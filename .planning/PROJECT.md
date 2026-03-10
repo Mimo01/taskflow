@@ -47,18 +47,19 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 ## Constraints
 
 - **Auth**: Personal access tokens only — no OAuth, no server-side credential storage
-- **Cross-platform**: Must run on macOS, Windows, Linux (web-based or cross-platform native)
-- **Jira API**: Must work with old on-premise Jira REST API (v2) — not Jira Cloud APIs
+- **Cross-platform**: Must run on macOS, Windows, Linux via Tauri 2 portable build (no installer, no admin rights required)
+- **Jira API**: Must work with Jira Data Center v10.3.15 REST API v2 — not Jira Cloud APIs
 - **No analytics**: v1 is real-time/live only — no historical data processing or chart generation
+- **Distribution**: Portable executable only — no system installer, no UAC/admin elevation (company PCs have restrictions)
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Cross-platform (web or native TBD) | Team is mixed OS, need it to run everywhere | — Pending |
+| Tauri 2 desktop app (portable build) | No CORS with on-premise Jira; no admin rights needed for portable .exe; ~10MB; OS keychain for PATs | — Pending |
 | Role-based dashboards (dev vs PM) | Different needs, same data sources | — Pending |
 | PAT-based auth only | Simple, no server needed, matches team's current practice | — Pending |
 | Task-MR linking via ticket number parsing | No formal integration exists; MR titles/commits contain ticket IDs | — Pending |
 
 ---
-*Last updated: 2026-03-10 after initialization*
+*Last updated: 2026-03-10 after requirements definition*
