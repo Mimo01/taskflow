@@ -113,21 +113,46 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01–06 | Phase 1 | Pending |
-| ROLE-01–02 | Phase 1 | Pending |
-| DEV-01–05 | TBD | Pending |
-| LINK-01–04 | TBD | Pending |
-| JACT-01–02 | TBD | Pending |
-| NOTF-01–06 | TBD | Pending |
-| PM-01–04 | TBD | Pending |
-| SRCH-01–02 | TBD | Pending |
-| UI-01–03 | TBD | Pending |
+| AUTH-01 | Phase 1 | Pending |
+| AUTH-02 | Phase 1 | Pending |
+| AUTH-03 | Phase 1 | Pending |
+| AUTH-04 | Phase 1 | Pending |
+| AUTH-05 | Phase 1 | Pending |
+| AUTH-06 | Phase 1 | Pending |
+| ROLE-01 | Phase 1 | Pending |
+| ROLE-02 | Phase 1 | Pending |
+| UI-01 | Phase 1 | Pending |
+| DEV-01 | Phase 2 | Pending |
+| DEV-02 | Phase 2 | Pending |
+| DEV-03 | Phase 2 | Pending |
+| DEV-04 | Phase 2 | Pending |
+| DEV-05 | Phase 2 | Pending |
+| LINK-01 | Phase 2 | Pending |
+| LINK-02 | Phase 2 | Pending |
+| LINK-03 | Phase 2 | Pending |
+| LINK-04 | Phase 2 | Pending |
+| JACT-01 | Phase 2 | Pending |
+| JACT-02 | Phase 2 | Pending |
+| UI-02 | Phase 2 | Pending |
+| UI-03 | Phase 2 | Pending |
+| NOTF-01 | Phase 3 | Pending |
+| NOTF-02 | Phase 3 | Pending |
+| NOTF-03 | Phase 3 | Pending |
+| NOTF-04 | Phase 3 | Pending |
+| NOTF-05 | Phase 3 | Pending |
+| NOTF-06 | Phase 3 | Pending |
+| PM-01 | Phase 4 | Pending |
+| PM-02 | Phase 4 | Pending |
+| PM-03 | Phase 4 | Pending |
+| PM-04 | Phase 4 | Pending |
+| SRCH-01 | Phase 4 | Pending |
+| SRCH-02 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 35 total
-- Mapped to phases: 8
-- Unmapped: 27 ⚠️ (roadmap will resolve)
+- Mapped to phases: 35
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-10*
-*Last updated: 2026-03-10 after initial definition*
+*Last updated: 2026-03-10 — traceability complete after roadmap creation*
