@@ -86,12 +86,14 @@ Plans:
   2. Project Manager sees team workload: open task count and story points per team member for the current sprint
   3. Project Manager sees a Releases view listing Jira fix versions with linked GitLab milestones or tags, showing task count and completion status per fix version
   4. Any user can search across Jira tasks and GitLab MRs by keyword or ticket key, with results grouped by type (tasks vs MRs) and each result linking to its detail view
-**Plans**: 3 plans
+**Plans**: 5 plans
 
 Plans:
 - [ ] 04-01-PLAN.md — Service layer extension: JiraIssue statusCategory type, fetchFixVersions, searchJira, GitLabMilestone/Tag types, fetchGroupMilestones, fetchProjectTags, searchGitLabMRs, releaseLinker pure function, Wave 0 test scaffolds
 - [ ] 04-02-PLAN.md — PM dashboard tabs: PmDashTab store extension, role-conditional dashboard index, SprintProgressTab (buckets + progress bar), WorkloadTab (per-assignee), ReleasesTab (fix versions with date-matched GitLab links)
 - [ ] 04-03-PLAN.md — Global search: SearchOverlay (debounced parallel search, grouped results), SearchResultPanel (read-only detail + openUrl), Search icon wired into TopBar
+- [ ] 04-04-PLAN.md — UAT gap closure: fix fetchFixVersions to extract data.values from paginated Jira envelope (Releases tab crash)
+- [ ] 04-05-PLAN.md — UAT gap closure: fix Jira ADF description rendering + make GitLab MR linked ticket chip clickable with Jira link
 
 ## Progress
 
@@ -103,4 +105,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Foundation | 6/6 | Complete   | 2026-03-11 |
 | 2. Developer Dashboard | 7/7 | Complete   | 2026-03-11 |
 | 3. Notifications Hub | 1/2 | In Progress|  |
-| 4. PM Dashboard + Search | 3/3 | Complete   | 2026-03-11 |
+| 4. PM Dashboard + Search | 3/5 | In Progress|  |
