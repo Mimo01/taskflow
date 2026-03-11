@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 03-notifications-hub/03-01-PLAN.md
-last_updated: "2026-03-11T15:09:00.317Z"
+stopped_at: Completed 03-notifications-hub/03-02-PLAN.md
+last_updated: "2026-03-11T15:18:06.073Z"
 last_activity: 2026-03-11 — Phase 2 Plan 04 complete — 86/86 tests passed
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 12
-  completed_plans: 11
+  completed_plans: 12
   percent: 100
 ---
 
@@ -62,6 +62,7 @@ Progress: [██████████] 100%
 | Phase 02-developer-dashboard P03 | 6 | 1 tasks | 7 files |
 | Phase 02-developer-dashboard P04 | 5 | 1 tasks | 5 files |
 | Phase 03-notifications-hub P01 | 8 | 2 tasks | 13 files |
+| Phase 03-notifications-hub P02 | 6 | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,8 @@ Recent decisions affecting current work:
 - [Phase 02-developer-dashboard P04]: Per-row inline errors keyed by issueKey-transition and issueKey-comment in MyTasksTab state map — scoped errors without prop drilling complex error objects
 - [Phase 03-notifications-hub]: readIds stored as string[] not Set in notifications store — Zustand JSON persist serializes Set as empty object, losing read state on restart
 - [Phase 03-notifications-hub]: LazyStore vi.mock requires class constructor syntax — vi.fn().mockImplementation is not a constructor and throws when used with new
+- [Phase 03-notifications-hub]: useNotificationPolling extracted from TopBar — TopBar tests render without QueryClientProvider; polling runs in AppLayout via custom hook where QueryClient is always available
+- [Phase 03-notifications-hub]: NotificationPopover is pure UI (no useQuery) — clean separation enables independent testability without query providers
 
 ### Pending Todos
 
@@ -115,6 +118,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-11T15:09:00.313Z
-Stopped at: Completed 03-notifications-hub/03-01-PLAN.md
+Last session: 2026-03-11T15:18:06.067Z
+Stopped at: Completed 03-notifications-hub/03-02-PLAN.md
 Resume file: None
