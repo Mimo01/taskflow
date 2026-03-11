@@ -6,14 +6,12 @@
  * This is GitLab's standard across all editions (CE, EE, SaaS, self-hosted).
  * Ref: https://docs.gitlab.com/ee/api/rest/authentication.html
  *
- * All HTTP calls use @tauri-apps/plugin-http's fetch(), which proxies through
- * the Rust backend to bypass webview CORS restrictions in Tauri 2.
+ * All HTTP calls use plain fetch(). Tauri desktop apps bypass CORS natively —
+ * no tauri-plugin-http is needed for outbound API calls from the renderer.
  *
  * IMPORTANT: This module does NOT store secrets. Callers are responsible for
  * calling storeSecret('gitlab-pat', token) after successful validation.
  */
-
-import { fetch } from '@tauri-apps/plugin-http';
 
 export interface GitLabUser {
   id: number;
@@ -45,7 +43,6 @@ export async function validateGitLab(baseUrl: string, token: string): Promise<Gi
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
       },
-      danger: { acceptInvalidCerts: true, acceptInvalidHostnames: true },
     });
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
@@ -84,7 +81,6 @@ export async function listGitLabGroups(baseUrl: string, token: string): Promise<
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
       },
-      danger: { acceptInvalidCerts: true, acceptInvalidHostnames: true },
     });
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
@@ -104,4 +100,217 @@ export async function listGitLabGroups(baseUrl: string, token: string): Promise<
   }
 
   throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+}
+
+// ─── Phase 2: Developer Dashboard ────────────────────────────────────────────
+
+export interface GitLabMR {
+  id: number;
+  iid: number;
+  project_id: number;
+  title: string;
+  state: 'opened' | 'closed' | 'merged' | 'locked';
+  author: { id: number; name: string; username: string; avatar_url: string };
+  reviewers: Array<{ id: number; name: string; username: string }>;
+  updated_at: string; // ISO 8601 UTC
+  web_url: string;
+}
+
+export interface MRCommit {
+  id: string;
+  title: string;
+  message: string;
+}
+
+export interface MRApprovals {
+  approved_by: Array<{ user: { id: number; name: string } }>;
+  approved: boolean;
+}
+
+export interface DiscussionNote {
+  id: string;
+  resolvable: boolean;
+  resolved: boolean;
+  body: string;
+}
+
+export interface Discussion {
+  id: string;
+  notes: DiscussionNote[];
+}
+
+/**
+ * Fetch merge requests assigned to the authenticated user.
+ *
+ * @param baseUrl - GitLab base URL
+ * @param token   - Personal Access Token
+ * @returns Array of open MRs assigned to the current user
+ */
+export async function fetchAssignedMRs(baseUrl: string, token: string): Promise<GitLabMR[]> {
+  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/merge_requests?scope=assigned_to_me&state=opened&per_page=100`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        'PRIVATE-TOKEN': token,
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch assigned MRs: status ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data as GitLabMR[];
+}
+
+/**
+ * Fetch merge requests where the given user is a reviewer.
+ *
+ * @param baseUrl  - GitLab base URL
+ * @param token    - Personal Access Token
+ * @param userId   - GitLab user ID of the reviewer
+ * @returns Array of open MRs where the user is a reviewer
+ */
+export async function fetchReviewerMRs(
+  baseUrl: string,
+  token: string,
+  userId: number,
+): Promise<GitLabMR[]> {
+  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/merge_requests?reviewer_id=${userId}&state=opened&per_page=100`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        'PRIVATE-TOKEN': token,
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch reviewer MRs: status ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data as GitLabMR[];
+}
+
+/**
+ * Fetch commits for a merge request.
+ *
+ * @param baseUrl   - GitLab base URL
+ * @param token     - Personal Access Token
+ * @param projectId - GitLab project ID
+ * @param mrIid     - MR internal IID within the project
+ * @returns Array of commits in the MR
+ */
+export async function fetchMRCommits(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+  mrIid: number,
+): Promise<MRCommit[]> {
+  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/merge_requests/${mrIid}/commits`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        'PRIVATE-TOKEN': token,
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch MR commits: status ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data as MRCommit[];
+}
+
+/**
+ * Fetch approval state for a merge request.
+ *
+ * @param baseUrl   - GitLab base URL
+ * @param token     - Personal Access Token
+ * @param projectId - GitLab project ID
+ * @param mrIid     - MR internal IID within the project
+ * @returns Approval state including who approved
+ */
+export async function fetchMRApprovals(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+  mrIid: number,
+): Promise<MRApprovals> {
+  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/merge_requests/${mrIid}/approvals`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        'PRIVATE-TOKEN': token,
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch MR approvals: status ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data as MRApprovals;
+}
+
+/**
+ * Fetch discussions (comments, threads) for a merge request.
+ *
+ * @param baseUrl   - GitLab base URL
+ * @param token     - Personal Access Token
+ * @param projectId - GitLab project ID
+ * @param mrIid     - MR internal IID within the project
+ * @returns Array of discussion threads
+ */
+export async function fetchMRDiscussions(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+  mrIid: number,
+): Promise<Discussion[]> {
+  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/merge_requests/${mrIid}/discussions`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        'PRIVATE-TOKEN': token,
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch MR discussions: status ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data as Discussion[];
 }
