@@ -18,8 +18,8 @@
 
 ### Role Selection
 
-- [ ] **ROLE-01**: User can select their role (Developer or Project Manager) during onboarding
-- [ ] **ROLE-02**: User can switch role from settings at any time
+- [x] **ROLE-01**: User can select their role (Developer or Project Manager) during onboarding
+- [x] **ROLE-02**: User can switch role from settings at any time
 
 ### Developer Dashboard
 
