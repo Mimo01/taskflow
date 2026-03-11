@@ -99,5 +99,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Foundation | 6/6 | Complete   | 2026-03-11 |
 | 2. Developer Dashboard | 4/4 | Complete   | 2026-03-11 |
-| 3. Notifications Hub | 0/2 | Not started | - |
+| 3. Notifications Hub | 1/2 | In Progress|  |
 | 4. PM Dashboard + Search | 0/3 | Not started | - |
