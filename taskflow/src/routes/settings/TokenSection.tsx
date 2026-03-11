@@ -192,7 +192,7 @@ export default function TokenSection() {
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="active-jira-project">Active Project</Label>
             <Select value={activeJiraProject ?? ''} onValueChange={(v) => v && handleProjectChange(v)}>
-              <SelectTrigger id="active-jira-project">
+              <SelectTrigger id="active-jira-project" className="w-full">
                 <SelectValue placeholder="Select project..." />
               </SelectTrigger>
               <SelectContent>

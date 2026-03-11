@@ -48,6 +48,7 @@ export async function validateJira(baseUrl: string, token: string): Promise<Jira
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
+      danger: { acceptInvalidCerts: true },
     });
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
@@ -86,6 +87,7 @@ export async function listJiraProjects(baseUrl: string, token: string): Promise<
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
+      danger: { acceptInvalidCerts: true },
     });
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
