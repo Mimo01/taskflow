@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 01-foundation-04-PLAN.md
-last_updated: "2026-03-11T09:10:56.365Z"
+stopped_at: Completed 01-foundation-05-PLAN.md
+last_updated: "2026-03-11T09:48:20.023Z"
 last_activity: 2026-03-11 — Phase 1 gap closure complete (plan 04)
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 5
+  completed_plans: 5
   percent: 25
 ---
 
@@ -54,6 +54,7 @@ Progress: [██░░░░░░░░] 25%
 | Phase 01-foundation P02 | 9 | 2 tasks | 23 files |
 | Phase 01-foundation P03 | 15 | 2 tasks | 16 files |
 | Phase 01-foundation P04 | 7 | 2 tasks | 6 files |
+| Phase 01-foundation P05 | 5 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,8 @@ Recent decisions affecting current work:
 - [Phase 01-foundation P04]: stronghold readSecret throws Error('Secret not found: key') on null — explicit over silent crash
 - [Phase 01-foundation P04]: Project list fetched on Settings mount via useEffect(jiraBaseUrl) — Select pre-populated when user opens Settings
 - [Phase 01-foundation P04]: queryClient.clear() called synchronously in handleProjectChange alongside setActiveJiraProject
+- [Phase 01-foundation]: tauri-plugin-http fetch required in renderer — plain fetch() causes CORS errors in Tauri 2 webview; prior STATE.md note was incorrect
+- [Phase 01-foundation]: Tauri capabilities scope must include https://** and http://** for on-premise Jira/GitLab instances
 
 ### Pending Todos
 
@@ -92,6 +95,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-11T10:08:00.000Z
-Stopped at: Completed 01-foundation-04-PLAN.md
+Last session: 2026-03-11T09:48:20.018Z
+Stopped at: Completed 01-foundation-05-PLAN.md
 Resume file: None
