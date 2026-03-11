@@ -34,10 +34,12 @@ interface SettingsState {
   role: 'developer' | 'pm' | null;
   theme: Theme;
   onboardingComplete: boolean;
-  _hasHydrated: boolean;
+  /** Number of days without update before an MR is considered stale. Default: 3. */
+  staleMrThresholdDays: number;
   setRole: (role: 'developer' | 'pm') => void;
   setTheme: (theme: Theme) => void;
   setOnboardingComplete: (complete: boolean) => void;
+  setStaleMrThresholdDays: (days: number) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -46,17 +48,15 @@ export const useSettingsStore = create<SettingsState>()(
       role: null,
       theme: 'system',
       onboardingComplete: false,
-      _hasHydrated: false,
+      staleMrThresholdDays: 3,
       setRole: (role) => set({ role }),
       setTheme: (theme) => set({ theme }),
       setOnboardingComplete: (complete) => set({ onboardingComplete: complete }),
+      setStaleMrThresholdDays: (days) => set({ staleMrThresholdDays: days }),
     }),
     {
       name: 'settings-store',
       storage: tauriStorage,
-      onRehydrateStorage: () => () => {
-        useSettingsStore.setState({ _hasHydrated: true });
-      },
     },
   ),
 );
