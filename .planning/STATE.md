@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in-progress
-stopped_at: Completed 01-foundation-03-PLAN.md
-last_updated: "2026-03-11T09:38:00.000Z"
-last_activity: 2026-03-11 — Phase 1 complete (all 3 plans executed)
+stopped_at: Completed 01-foundation-04-PLAN.md
+last_updated: "2026-03-11T10:08:00.000Z"
+last_activity: 2026-03-11 — Phase 1 gap closure complete (plan 04: TS errors + queryClient wiring)
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 4
+  completed_plans: 4
   percent: 25
 ---
 
@@ -21,38 +21,39 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-10)
 
 **Core value:** Developers and PMs can see tasks, MRs, sprint state, and notifications in one place without switching between Jira and GitLab.
-**Current focus:** Phase 2 — Dashboard (Phase 1 complete)
+**Current focus:** Phase 2 — Dashboard (Phase 1 fully complete including gap closure)
 
 ## Current Position
 
-Phase: 1 of 4 (Foundation) — COMPLETE
-Plan: 3 of 3 in current phase — COMPLETE
-Status: Phase 1 feature-complete — ready for Phase 2
-Last activity: 2026-03-11 — Phase 1 complete (all 3 plans executed)
+Phase: 1 of 4 (Foundation) — COMPLETE (including gap closure plan 04)
+Plan: 4 of 4 in current phase — COMPLETE
+Status: Phase 1 fully complete — tsc clean, all 42 tests pass, queryClient.clear() wired
+Last activity: 2026-03-11 — Phase 1 gap closure complete (plan 04)
 
 Progress: [██░░░░░░░░] 25%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: ~12.7 min
-- Total execution time: ~38 min
+- Total plans completed: 4
+- Average duration: ~10.5 min
+- Total execution time: ~45 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| Phase 01-foundation | 3 | ~38 min | ~12.7 min |
+| Phase 01-foundation | 4 | ~45 min | ~11.3 min |
 
 **Recent Trend:**
-- Last 5 plans: 14min, 9min, 15min
+- Last 5 plans: 14min, 9min, 15min, 7min
 - Trend: Consistent
 
 *Updated after each plan completion*
 | Phase 01-foundation P01 | 14 | 2 tasks | 25 files |
 | Phase 01-foundation P02 | 9 | 2 tasks | 23 files |
 | Phase 01-foundation P03 | 15 | 2 tasks | 16 files |
+| Phase 01-foundation P04 | 7 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,9 @@ Recent decisions affecting current work:
 - [Phase 01-foundation P03]: Sidebar is vertical — scales better for Phase 2 role-based nav expansion
 - [Phase 01-foundation P03]: Token reveal uses local component state only — token evaporates on unmount, never touches Zustand
 - [Phase 01-foundation P03]: AppLayout uses onboardingComplete from settings store as proxy for post-onboarding layout
+- [Phase 01-foundation P04]: stronghold readSecret throws Error('Secret not found: key') on null — explicit over silent crash
+- [Phase 01-foundation P04]: Project list fetched on Settings mount via useEffect(jiraBaseUrl) — Select pre-populated when user opens Settings
+- [Phase 01-foundation P04]: queryClient.clear() called synchronously in handleProjectChange alongside setActiveJiraProject
 
 ### Pending Todos
 
@@ -88,6 +92,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-11T09:38:00.000Z
-Stopped at: Completed 01-foundation-03-PLAN.md
+Last session: 2026-03-11T10:08:00.000Z
+Stopped at: Completed 01-foundation-04-PLAN.md
 Resume file: None

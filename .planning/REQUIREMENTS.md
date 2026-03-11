@@ -119,8 +119,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-04 | Phase 1 | Complete |
 | AUTH-05 | Phase 1 | Complete |
 | AUTH-06 | Phase 1 | Complete |
-| ROLE-01 | Phase 1 | Pending |
-| ROLE-02 | Phase 1 | Pending |
+| ROLE-01 | Phase 1 | Complete |
+| ROLE-02 | Phase 1 | Complete |
 | UI-01 | Phase 1 | Complete |
 | DEV-01 | Phase 2 | Pending |
 | DEV-02 | Phase 2 | Pending |

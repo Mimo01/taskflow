@@ -29,12 +29,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. App shows a clear, actionable error banner when a token is invalid or expired, not a generic failure message
   4. User can select Developer or Project Manager role during onboarding and change it from settings at any time
   5. User can switch between dark and light mode and the preference persists across app restarts
-**Plans**: 3 plans
+**Plans**: 4 plans
 
 Plans:
 - [x] 01-01-PLAN.md — Tauri 2 project scaffold: app shell, React 18 + TypeScript, routing, shadcn/ui, Tailwind v3, Zustand stores, Tauri abstraction layer, test infrastructure
 - [x] 01-02-PLAN.md — PAT onboarding flow: credential entry form, Tauri Stronghold storage, Jira/GitLab validation calls with exact error messages, inline project/group selection, re-auth banner
 - [x] 01-03-PLAN.md — Role selection + settings: role picker in onboarding and settings, dark/light/system theme toggle with persistence, token masking with eye-reveal, sidebar navigation
+- [x] 01-04-PLAN.md — Gap closure: 5 TypeScript compile errors resolved, Jira project Select UI + queryClient.clear() wired to project switching in TokenSection
 
 ### Phase 2: Developer Dashboard
 **Goal**: A developer can open the app, see their current sprint tasks and MRs that need attention, understand which MRs are linked to which tasks, and take actions on Jira tasks without leaving the app
@@ -94,7 +95,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 3/3 | Complete | 2026-03-11 |
+| 1. Foundation | 4/4 | Complete | 2026-03-11 |
 | 2. Developer Dashboard | 0/4 | Not started | - |
 | 3. Notifications Hub | 0/2 | Not started | - |
 | 4. PM Dashboard + Search | 0/3 | Not started | - |
