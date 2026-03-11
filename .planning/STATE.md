@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 1 context gathered
-last_updated: "2026-03-10T21:50:00.363Z"
+stopped_at: Completed 01-foundation-01-PLAN.md
+last_updated: "2026-03-11T08:20:08.310Z"
 last_activity: 2026-03-10 — Roadmap created from requirements + research
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 1
   percent: 0
 ---
 
@@ -50,6 +50,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 01-foundation P01 | 14 | 2 tasks | 25 files |
 
 ## Accumulated Context
 
@@ -62,6 +63,9 @@ Recent decisions affecting current work:
 - Auth: PAT-only (no OAuth) — tokens stored in OS keychain, never plaintext; 401 must surface re-auth banner not generic error
 - Polling: Single poll coordinator, minimum 60s background / 30s notification-critical, cursor-based incremental fetches — must be established in Phase 2 before notification work
 - Jira API: Server REST v2 only (not Cloud) — use `name` not `accountId`, offset pagination, per-issue transitions, Bearer PAT auth — validate with GET /rest/api/2/myself on real instance
+- [Phase 01-foundation]: createHashRouter (not createBrowserRouter) for Tauri SPA routing — BrowserRouter breaks production builds
+- [Phase 01-foundation]: Stronghold vault password: random 32-byte hex key on first launch stored in Tauri Store — migration path is replacing stronghold.ts with tauri-plugin-keyring in Tauri v3
+- [Phase 01-foundation]: Single tauriService abstraction boundary for @tauri-apps/api/core — enables testing without Tauri runtime; only tauri.ts imports from there
 
 ### Pending Todos
 
@@ -76,6 +80,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-10T21:50:00.355Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-foundation/01-CONTEXT.md
+Last session: 2026-03-11T08:20:08.302Z
+Stopped at: Completed 01-foundation-01-PLAN.md
+Resume file: None
