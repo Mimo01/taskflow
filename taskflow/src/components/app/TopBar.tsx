@@ -1,23 +1,39 @@
 /**
- * TopBar — persistent top bar with bell icon, unread badge, and notification popover trigger.
+ * TopBar — persistent top bar with search icon, bell icon, unread badge, and notification popover trigger.
  *
  * Pure UI component: renders badge from unread count, wraps bell in Popover trigger.
  * Polling is performed by useNotificationPolling hook called from AppLayout in main.tsx
  * (requires QueryClientProvider — separated so TopBar tests work without a QueryClient wrapper).
  *
+ * Search: useState(searchOpen) only — SearchOverlay child handles all search logic including useQuery.
+ * CRITICAL: TopBar must NOT use useQuery directly.
+ *
  * Rendered as first child of the flex-col div inside AppLayout (after onboarding check).
  * Bell badge shows unread count capped at 99+. Zero = badge hidden.
  */
-import { Bell } from 'lucide-react';
+import { useState } from 'react';
+import { Bell, Search } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { useUnreadCount } from '../../stores/notifications.store';
 import NotificationPopover from '../../routes/notifications/NotificationPopover';
+import SearchOverlay from './SearchOverlay';
 
 export default function TopBar() {
   const unreadCount = useUnreadCount();
+  const [searchOpen, setSearchOpen] = useState(false);
 
   return (
-    <header className="h-12 border-b flex items-center justify-end px-4 flex-shrink-0">
+    <header className="h-12 border-b flex items-center justify-end px-4 flex-shrink-0 gap-2">
+      {/* Search trigger */}
+      <button
+        type="button"
+        onClick={() => setSearchOpen(true)}
+        aria-label="Search"
+        className="relative flex items-center justify-center w-8 h-8 rounded hover:bg-muted transition-colors"
+      >
+        <Search className="w-5 h-5" />
+      </button>
+
       <Popover>
         <PopoverTrigger
           className="relative flex items-center justify-center w-8 h-8 rounded hover:bg-muted transition-colors"
@@ -34,6 +50,9 @@ export default function TopBar() {
           <NotificationPopover />
         </PopoverContent>
       </Popover>
+
+      {/* Search overlay — rendered outside Popover so it can cover full screen */}
+      {searchOpen && <SearchOverlay onClose={() => setSearchOpen(false)} />}
     </header>
   );
 }
