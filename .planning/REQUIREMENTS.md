@@ -38,8 +38,8 @@
 
 ### Jira Actions
 
-- [ ] **JACT-01**: User can update a Jira task's status by selecting from available workflow transitions
-- [ ] **JACT-02**: User can add a comment to a Jira task from the app
+- [x] **JACT-01**: User can update a Jira task's status by selecting from available workflow transitions
+- [x] **JACT-02**: User can add a comment to a Jira task from the app
 
 ### Notifications Hub
 
@@ -131,8 +131,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LINK-02 | Phase 2 | Complete |
 | LINK-03 | Phase 2 | Complete |
 | LINK-04 | Phase 2 | Complete |
-| JACT-01 | Phase 2 | Pending |
-| JACT-02 | Phase 2 | Pending |
+| JACT-01 | Phase 2 | Complete |
+| JACT-02 | Phase 2 | Complete |
 | UI-02 | Phase 2 | Complete |
 | UI-03 | Phase 2 | Complete |
 | NOTF-01 | Phase 3 | Pending |

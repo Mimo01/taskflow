@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 02-developer-dashboard 02-03-PLAN.md
-last_updated: "2026-03-11T14:07:08.706Z"
-last_activity: 2026-03-11 — Phase 2 Plan 02 complete — 71/71 tests passed
+stopped_at: Completed 02-developer-dashboard 02-04-PLAN.md
+last_updated: "2026-03-11T14:15:00.000Z"
+last_activity: 2026-03-11 — Phase 2 Plan 04 complete — 86/86 tests passed
 progress:
   total_phases: 4
   completed_phases: 1
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-10)
 
 ## Current Position
 
-Phase: 2 of 4 (Developer Dashboard) — IN PROGRESS
-Plan: 2 of 4 in current phase — COMPLETE
-Status: Phase 2 Plans 01+02 done — service layer + full dashboard UI with polling
-Last activity: 2026-03-11 — Phase 2 Plan 02 complete — 71/71 tests passed
+Phase: 2 of 4 (Developer Dashboard) — COMPLETE
+Plan: 4 of 4 in current phase — COMPLETE
+Status: Phase 2 all plans done — write actions (transition + comment) complete
+Last activity: 2026-03-11 — Phase 2 Plan 04 complete — 86/86 tests passed
 
-Progress: [████████░░] 80%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress: [████████░░] 80%
 | Phase 02-developer-dashboard P01 | 9 | 2 tasks | 7 files |
 | Phase 02-developer-dashboard P02 | 13 | 3 tasks | 13 files |
 | Phase 02-developer-dashboard P03 | 6 | 1 tasks | 7 files |
+| Phase 02-developer-dashboard P04 | 5 | 1 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,8 @@ Recent decisions affecting current work:
 - [Phase 02-developer-dashboard]: MrAttentionTab fetches sprint issues directly via useQuery (not only from cache) to ensure data is available regardless of tab visit order
 - [Phase 02-developer-dashboard]: SprintBoardTab reads health from queryClient cache only — health queries owned by MyTasksTab/MrAttentionTab to avoid double-fetching
 - [Phase 02-developer-dashboard]: TaskRow prop renamed from linkedMrs to linkedMrResults: Array<{mr, health}> — breaking change contained within dashboard package (Plan 02 stub passed [])
+- [Phase 02-developer-dashboard P04]: PopoverTrigger renders text directly (not asChild) — base-ui asChild wraps in outer button creating nested buttons, breaking accessibility and tests
+- [Phase 02-developer-dashboard P04]: Per-row inline errors keyed by issueKey-transition and issueKey-comment in MyTasksTab state map — scoped errors without prop drilling complex error objects
 
 ### Pending Todos
 
@@ -109,6 +112,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-11T14:07:08.696Z
-Stopped at: Completed 02-developer-dashboard 02-03-PLAN.md
+Last session: 2026-03-11T14:15:00.000Z
+Stopped at: Completed 02-developer-dashboard 02-04-PLAN.md
 Resume file: None
