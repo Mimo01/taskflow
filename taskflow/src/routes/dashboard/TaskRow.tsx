@@ -1,33 +1,19 @@
 /**
  * TaskRow — A single Jira issue row in the My Tasks list.
  *
- * Displays: issue key, summary, status badge, assignee, story points,
+ * Displays: issue key, summary, status popover, assignee, story points,
  * MR chips with health dots (or "no MR" placeholder), and a comment button.
  *
  * linkedMrResults comes from MyTasksTab after link engine computation (Plan 03).
  */
+import { useState } from 'react'
 import { MessageCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { JiraIssue } from '@/services/jira'
 import type { GitLabMR } from '@/services/gitlab'
 import type { ReviewHealth } from '@/services/linkEngine'
-
-interface StatusBadgeProps {
-  status: string
-  onClick: () => void
-}
-
-function StatusBadge({ status, onClick }: StatusBadgeProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="cursor-pointer rounded-full border border-border px-2 py-0.5 text-xs text-foreground hover:bg-accent transition-colors whitespace-nowrap"
-    >
-      {status}
-    </button>
-  )
-}
+import StatusPopover from './StatusPopover'
+import InlineComment from './InlineComment'
 
 const HEALTH_DOT_COLORS: Record<ReviewHealth, string> = {
   approved: 'bg-green-500',
@@ -38,18 +24,30 @@ const HEALTH_DOT_COLORS: Record<ReviewHealth, string> = {
 interface TaskRowProps {
   issue: JiraIssue
   linkedMrResults: Array<{ mr: GitLabMR; health: ReviewHealth }>
-  onStatusClick: (issueKey: string) => void
-  onCommentClick: (issueKey: string) => void
-  inlineError?: string
+  jiraBaseUrl: string
+  jiraToken: string
+  onTransitionSelect: (issueKey: string, transitionId: string, toStatusName: string) => void
+  onCommentSubmit: (issueKey: string, comment: string) => void
+  isTransitionPending?: boolean
+  isCommentPending?: boolean
+  transitionError?: string
+  commentError?: string
 }
 
 export default function TaskRow({
   issue,
   linkedMrResults,
-  onStatusClick,
-  onCommentClick,
-  inlineError,
+  jiraBaseUrl,
+  jiraToken,
+  onTransitionSelect,
+  onCommentSubmit,
+  isTransitionPending,
+  isCommentPending,
+  transitionError,
+  commentError,
 }: TaskRowProps) {
+  const [commentOpen, setCommentOpen] = useState(false)
+
   return (
     <div className="border-b border-border last:border-b-0">
       <div className="flex items-center gap-2 py-2 px-3">
@@ -61,10 +59,16 @@ export default function TaskRow({
         {/* Summary */}
         <span className="flex-1 truncate text-sm">{issue.fields.summary}</span>
 
-        {/* Status badge */}
-        <StatusBadge
-          status={issue.fields.status.name}
-          onClick={() => onStatusClick(issue.key)}
+        {/* Status popover */}
+        <StatusPopover
+          issueKey={issue.key}
+          currentStatus={issue.fields.status.name}
+          jiraBaseUrl={jiraBaseUrl}
+          token={jiraToken}
+          onSelect={(transitionId, toStatusName) =>
+            onTransitionSelect(issue.key, transitionId, toStatusName)
+          }
+          disabled={isTransitionPending}
         />
 
         {/* Assignee */}
@@ -104,7 +108,7 @@ export default function TaskRow({
         {/* Comment button */}
         <button
           type="button"
-          onClick={() => onCommentClick(issue.key)}
+          onClick={() => setCommentOpen((prev) => !prev)}
           className="text-muted-foreground hover:text-foreground transition-colors"
           aria-label={`Comment on ${issue.key}`}
         >
@@ -112,10 +116,23 @@ export default function TaskRow({
         </button>
       </div>
 
-      {/* Inline error */}
-      {inlineError && (
+      {/* Inline comment composer */}
+      <InlineComment
+        issueKey={issue.key}
+        isOpen={commentOpen}
+        onCancel={() => setCommentOpen(false)}
+        onSubmit={(comment) => {
+            onCommentSubmit(issue.key, comment)
+            setCommentOpen(false)
+          }}
+        isSubmitting={!!isCommentPending}
+        error={commentError}
+      />
+
+      {/* Transition inline error */}
+      {transitionError && (
         <div className="px-3 pb-1 text-xs text-destructive">
-          Failed to update — try again
+          {transitionError}
         </div>
       )}
     </div>
