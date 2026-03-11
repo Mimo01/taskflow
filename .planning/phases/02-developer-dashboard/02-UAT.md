@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 02-developer-dashboard
 source: 02-01-SUMMARY.md, 02-02-SUMMARY.md, 02-03-SUMMARY.md, 02-04-SUMMARY.md
 started: 2026-03-11T14:30:00Z
@@ -86,37 +86,76 @@ skipped: 0
   reason: "User reported: the app is missing styles"
   severity: major
   test: 1
-  artifacts: []
-  missing: []
+  root_cause: "postcss.config.js with empty plugins:{} triggers Vite's PostCSS pipeline, overriding @tailwindcss/vite plugin and stripping all Tailwind utilities from output"
+  artifacts:
+    - path: "taskflow/postcss.config.js"
+      issue: "Has plugins:{} (empty object) — its mere presence overrides @tailwindcss/vite"
+    - path: "taskflow/tailwind.config.js"
+      issue: "Dead Tailwind v3 CommonJS config; Tailwind v4 ignores it"
+    - path: "taskflow/tailwind.config.js.bak"
+      issue: "Dead backup of v3 config"
+  missing:
+    - "Delete taskflow/postcss.config.js (or remove it so @tailwindcss/vite takes over)"
+    - "Delete taskflow/tailwind.config.js and taskflow/tailwind.config.js.bak"
+  debug_session: ".planning/debug/missing-styles-tailwind.md"
 
 - truth: "Clicking the comment button on a task row expands an inline composer"
   status: failed
   reason: "User reported: The comment button does nothing"
   severity: major
   test: 3
-  artifacts: []
-  missing: []
+  root_cause: "onCommentClick in MyTasksTab.tsx is a no-op stub () => {}; InlineComment component exists but is never imported or rendered; no useState tracks open comment state"
+  artifacts:
+    - path: "taskflow/src/routes/dashboard/MyTasksTab.tsx"
+      issue: "onCommentClick is () => {}; no openCommentKey useState; InlineComment never imported/rendered"
+  missing:
+    - "Add useState<string|null> for openCommentKey in MyTasksTab"
+    - "Replace no-op onCommentClick with handler that sets openCommentKey"
+    - "Import and render InlineComment below each TaskRow, controlled by openCommentKey"
+  debug_session: ".planning/debug/interactive-buttons-not-working.md"
 
 - truth: "MR Attention tab lists MRs with stale badge based on configured threshold"
   status: failed
   reason: "User reported: I can't select active git project in the settings, there is no dropdown"
   severity: major
   test: 6
-  artifacts: []
-  missing: []
+  root_cause: "GitLab group selector is guarded by {gitlabGroups.length > 0 && ...}; listGitLabGroups() silently fails with .catch(()=>[]) on any error (CORS/network/token), leaving state empty and rendering nothing"
+  artifacts:
+    - path: "taskflow/src/routes/settings/TokenSection.tsx"
+      issue: "Lines 155-163: silent .catch(()=>[]) swallows fetch errors. Lines 315-335: selector hidden entirely when fetch fails. Same pattern affects Jira project selector."
+  missing:
+    - "Show loading state while listGitLabGroups is in-flight"
+    - "Show error state instead of silent failure when fetch fails"
+    - "Render selector unconditionally (disabled/placeholder) when gitlabBaseUrl is set"
+    - "Apply same fix to Jira project selector (same silent-failure pattern)"
+  debug_session: ".planning/debug/missing-gitlab-project-selector.md"
 
 - truth: "Clicking the status badge opens a popover with available Jira transitions"
   status: failed
   reason: "User reported: there is no popover on clicking the button"
   severity: major
   test: 10
-  artifacts: []
-  missing: []
+  root_cause: "onStatusClick in MyTasksTab.tsx is a no-op stub () => {}; TaskRow.tsx uses a plain local StatusBadge button instead of StatusPopover; StatusPopover component is fully implemented but never imported or used"
+  artifacts:
+    - path: "taskflow/src/routes/dashboard/MyTasksTab.tsx"
+      issue: "onStatusClick is () => {}; no openStatusKey useState; StatusPopover never imported/rendered"
+    - path: "taskflow/src/routes/dashboard/TaskRow.tsx"
+      issue: "Uses local StatusBadge (plain button) instead of StatusPopover; onStatusClick prop accepted but wired to dumb button"
+  missing:
+    - "Add useState<string|null> for openStatusKey in MyTasksTab"
+    - "Replace no-op onStatusClick with handler that sets openStatusKey"
+    - "Replace local StatusBadge in TaskRow with StatusPopover, passing jiraBaseUrl and token"
+  debug_session: ".planning/debug/interactive-buttons-not-working.md"
 
 - truth: "Clicking the comment button expands an inline textarea below the task row"
   status: failed
   reason: "User reported: nonthing happens when I clink on the comment button"
   severity: major
   test: 11
-  artifacts: []
-  missing: []
+  root_cause: "Same root cause as test 3 — onCommentClick no-op stub and InlineComment never wired in"
+  artifacts:
+    - path: "taskflow/src/routes/dashboard/MyTasksTab.tsx"
+      issue: "onCommentClick is () => {}; InlineComment never rendered"
+  missing:
+    - "Fixed by same changes as test 3 gap"
+  debug_session: ".planning/debug/interactive-buttons-not-working.md"
