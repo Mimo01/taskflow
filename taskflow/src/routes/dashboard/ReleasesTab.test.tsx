@@ -1,7 +1,7 @@
 // PM-03: Fix version rows with date and GitLab release links
 // PM-04: Completion status per fix version row
 // Wave 0 scaffold — component does not exist yet; tests are pending until Wave 2 implementation
-import { describe, it } from 'vitest';
+import { describe, it, vi } from 'vitest';
 
 vi.mock('./ReleasesTab', () => ({
   default: () => null,
