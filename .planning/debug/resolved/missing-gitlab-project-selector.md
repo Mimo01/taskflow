@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "Missing Git Project Selector in Settings — UAT Test 6 failed: I can't select active git project in the settings, there is no dropdown"
 created: 2026-03-11T00:00:00Z
 updated: 2026-03-11T00:00:00Z
@@ -7,10 +7,10 @@ updated: 2026-03-11T00:00:00Z
 
 ## Current Focus
 
-hypothesis: The GitLab group/project selector IS implemented in TokenSection.tsx but is conditionally rendered only when gitlabGroups.length > 0, and that list is only populated if listGitLabGroups() succeeds at component mount. If the fetch fails silently (network, CORS, auth error), the state stays empty [] and the Select never renders.
-test: Read TokenSection.tsx and trace the conditional rendering path
-expecting: Confirmed — the Select is guarded by `{gitlabGroups.length > 0 && ...}` with a silent catch(() => [])
-next_action: DIAGNOSED — return findings
+hypothesis: CONFIRMED — silent .catch(() => []) in useEffect left gitlabGroups = [] on any fetch failure, and the Select was gated on gitlabGroups.length > 0 so it never rendered when the fetch failed
+test: Read final TokenSection.tsx to verify fix is applied
+expecting: try/catch/finally with error state, loading state, and Select always shown when gitlabBaseUrl is set
+next_action: COMPLETE — fix verified in file, session archived
 
 ## Symptoms
 
@@ -42,7 +42,7 @@ started: UAT Test 6 — unclear if ever worked
   implication: The selector must be inside one of these, or missing entirely
 
 - timestamp: 2026-03-11
-  checked: taskflow/src/routes/settings/TokenSection.tsx lines 154-163
+  checked: taskflow/src/routes/settings/TokenSection.tsx lines 154-163 (old code)
   found: |
     useEffect fetches gitlabGroups at mount:
       const list = await listGitLabGroups(gitlabBaseUrl, pat).catch(() => []);
@@ -51,7 +51,7 @@ started: UAT Test 6 — unclear if ever worked
   implication: Silent failure leaves state empty — no error shown to user, no retry
 
 - timestamp: 2026-03-11
-  checked: taskflow/src/routes/settings/TokenSection.tsx lines 315-335
+  checked: taskflow/src/routes/settings/TokenSection.tsx lines 315-335 (old code)
   found: |
     {gitlabGroups.length > 0 && (
       <div className="flex flex-col gap-1.5">
@@ -66,7 +66,7 @@ started: UAT Test 6 — unclear if ever worked
   implication: Any auth failure, CORS issue, or network error during the mount effect causes the dropdown to silently not appear
 
 - timestamp: 2026-03-11
-  checked: The Jira counterpart (jiraProjects) at lines 145-153
+  checked: The Jira counterpart (jiraProjects) at lines 145-153 (old code)
   found: Same pattern — listJiraProjects().catch(() => []) — but Jira Active Project selector also has this same silent-failure risk
   implication: Both selectors share the same bug pattern, but the UAT user specifically reported the GitLab one
 
@@ -75,13 +75,40 @@ started: UAT Test 6 — unclear if ever worked
   found: No plan ever specified a standalone "GitLab Project Selector" settings section component. The selector was always designed to live inside TokenSection as a conditional element after the GitLab URL/token fields.
   implication: This is not a missing component — it's a conditional rendering that silently fails
 
+- timestamp: 2026-03-11
+  checked: TokenSection.tsx final state after fix
+  found: |
+    - gitlabGroupsLoading and gitlabGroupsError state variables added (lines 145-146)
+    - useEffect uses try/catch/finally — no silent catch(() => [])
+    - Network/CORS errors produce human-readable message: "Could not reach GitLab — check the URL and your network connection"
+    - Rendering block (lines 352-381) gated on {gitlabBaseUrl && ...} not gitlabGroups.length > 0
+    - Shows loading indicator, then error OR Select (always rendered when gitlabBaseUrl is set)
+    - Select shows "No groups found" placeholder when list is empty after successful fetch
+    - Same fix applied symmetrically to Jira projects
+  implication: Fix is complete and correct — both the GitLab and Jira selectors now show proper error/loading states
+
 ## Resolution
 
 root_cause: |
-  In TokenSection.tsx, the GitLab group selector (Select for activeGitlabGroup) is conditionally rendered only when gitlabGroups.length > 0. The gitlabGroups array is populated by a useEffect at mount that calls listGitLabGroups() with a silent .catch(() => []) — meaning ANY fetch failure (bad token in Stronghold, CORS, network, GitLab unreachable) causes the state to remain [] and the dropdown to never render. The user sees no error message, no loading state, and no dropdown — just a blank section.
+  In TokenSection.tsx, the GitLab group selector (Select for activeGitlabGroup) was conditionally rendered only when gitlabGroups.length > 0. The gitlabGroups array was populated by a useEffect at mount that called listGitLabGroups() with a silent .catch(() => []) — meaning ANY fetch failure (bad token in Stronghold, CORS, network, GitLab unreachable) caused the state to remain [] and the dropdown to never render. The user saw no error message, no loading state, and no dropdown — just a blank section.
 
-  Secondary issue: even when the fetch succeeds, there is no "loading" indicator while the async fetch is in progress, and no error message if it fails — the UI just shows nothing.
+  Secondary issue: same pattern existed for Jira projects.
 
-fix: NOT applied (diagnose-only mode)
-verification: NOT applied
-files_changed: []
+fix: |
+  Added gitlabGroupsLoading (boolean) and gitlabGroupsError (string | null) state.
+  Replaced silent .catch(() => []) with proper try/catch/finally block that sets error state.
+  Changed rendering guard from {gitlabGroups.length > 0 && ...} to {gitlabBaseUrl && ...}.
+  Added loading indicator ("Loading groups...") while fetch is in progress.
+  Added error message paragraph when fetch fails, with CORS/network-specific message.
+  Select always renders when gitlabBaseUrl is set (shows "No groups found" if list is empty after success).
+  Same fix applied symmetrically to Jira projects section.
+
+verification: |
+  Read final TokenSection.tsx — all changes confirmed present.
+  gitlabGroupsLoading and gitlabGroupsError state at lines 145-146.
+  try/catch/finally useEffect at lines 171-192.
+  Rendering block at lines 352-381 gated on gitlabBaseUrl, not gitlabGroups.length > 0.
+  Jira section fixed identically at lines 141-143, 148-169, 286-315.
+
+files_changed:
+  - TaskFlow/src/routes/settings/TokenSection.tsx
