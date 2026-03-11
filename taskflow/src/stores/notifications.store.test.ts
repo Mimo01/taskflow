@@ -1,8 +1,19 @@
 // NOTF-04: Unread badge count derived from store
 // NOTF-05: markAsRead(id) — individual notification read state
 // NOTF-06: markAllRead() — bulk read state
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
+
+// Mock Tauri plugin-store so LazyStore doesn't attempt IPC calls in jsdom
+vi.mock('@tauri-apps/plugin-store', () => {
+  class LazyStore {
+    get = vi.fn().mockResolvedValue(null);
+    set = vi.fn().mockResolvedValue(undefined);
+    save = vi.fn().mockResolvedValue(undefined);
+    delete = vi.fn().mockResolvedValue(undefined);
+  }
+  return { LazyStore };
+});
 import { useNotificationsStore, useUnreadCount } from './notifications.store';
 import type { NotificationItem } from './notifications.store';
 

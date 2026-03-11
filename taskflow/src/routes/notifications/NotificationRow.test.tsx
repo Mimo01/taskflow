@@ -1,5 +1,5 @@
 // NOTF-01: NotificationRow renders source-specific left border accent
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import NotificationRow from './NotificationRow';
 import type { NotificationItem } from '../../stores/notifications.store';

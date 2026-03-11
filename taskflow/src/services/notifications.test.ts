@@ -98,7 +98,9 @@ describe('notifications service', () => {
     });
 
     it('bodyPreview is truncated to 80 chars', async () => {
-      const longBody = 'A'.repeat(120);
+      // Body must include mention text so it passes client-side filter
+      const mention = '[~auser] ';
+      const longBody = mention + 'A'.repeat(120);
       const jiraSearchResp = {
         ok: true,
         status: 200,
@@ -142,6 +144,7 @@ describe('notifications service', () => {
         },
       );
 
+      expect(result).toHaveLength(1);
       expect(result[0].bodyPreview).toHaveLength(80);
       expect(result[0].fullBody).toBe(longBody);
     });
