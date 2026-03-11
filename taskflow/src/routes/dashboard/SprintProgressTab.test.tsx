@@ -54,8 +54,11 @@ function renderWithQuery(ui: React.ReactElement) {
 }
 
 describe('SprintProgressTab', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    // Re-establish readSecret mock implementation after clearAllMocks clears it
+    const stronghold = await import('@/services/stronghold');
+    vi.mocked(stronghold.readSecret).mockResolvedValue('test-jira-token');
   });
 
   it('groups issues into To Do / In Progress / Done buckets using statusCategory.key', async () => {
@@ -69,9 +72,12 @@ describe('SprintProgressTab', () => {
     const { default: SprintProgressTab } = await import('./SprintProgressTab');
     renderWithQuery(<SprintProgressTab />);
 
-    await screen.findByText(/to do/i);
+    // Wait for data to load — findByText waits for the progress summary which only appears after fetch
+    await screen.findByText(/8\s*\/\s*16\s*pts/i);
+    // All three bucket labels should be visible
+    expect(screen.getByText(/to do/i)).toBeTruthy();
     expect(screen.getByText(/in progress/i)).toBeTruthy();
-    expect(screen.getByText(/done/i)).toBeTruthy();
+    expect(screen.getAllByText(/done/i).length).toBeGreaterThan(0);
     // Each bucket should show "1" count
     const counts = screen.getAllByText('1');
     expect(counts.length).toBeGreaterThanOrEqual(3);
@@ -122,9 +128,11 @@ describe('SprintProgressTab', () => {
     const { default: SprintProgressTab } = await import('./SprintProgressTab');
     renderWithQuery(<SprintProgressTab />);
 
-    await screen.findByText(/to do/i);
-    // Should show "2" for To Do count
-    expect(screen.getByText('2')).toBeTruthy();
+    // Wait for data to load — "2" appears as the To Do count only after fetch resolves
+    await screen.findByText('2');
+    // Progress bar should not be shown
+    const progressBar = document.querySelector('[data-testid="progress-bar"]');
+    expect(progressBar).toBeNull();
   });
 
   it('defaults missing statusCategory.key to todo bucket (does not crash)', async () => {
@@ -136,8 +144,9 @@ describe('SprintProgressTab', () => {
     const { default: SprintProgressTab } = await import('./SprintProgressTab');
     renderWithQuery(<SprintProgressTab />);
 
-    await screen.findByText(/to do/i);
-    // Should not crash and should show 1 in To Do
-    expect(screen.getByText('1')).toBeTruthy();
+    // Wait for data to load — "1" appears as the To Do count only after fetch resolves
+    await screen.findByText('1');
+    // Should show "to do" bucket label
+    expect(screen.getByText(/to do/i)).toBeTruthy();
   });
 });

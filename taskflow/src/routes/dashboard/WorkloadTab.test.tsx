@@ -57,8 +57,11 @@ function renderWithQuery(ui: React.ReactElement) {
 }
 
 describe('WorkloadTab', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    // Re-establish readSecret mock implementation after clearAllMocks clears it
+    const stronghold = await import('@/services/stronghold');
+    vi.mocked(stronghold.readSecret).mockResolvedValue('test-jira-token');
   });
 
   it('groups open (non-done) sprint issues by assignee displayName, excludes done issues', async () => {
