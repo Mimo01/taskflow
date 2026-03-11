@@ -1,4 +1,5 @@
-// Placeholder — full wizard implemented in Plan 02
+import OnboardingWizard from '@/components/app/OnboardingWizard';
+
 export default function Onboarding() {
-  return <div>Onboarding</div>;
+  return <OnboardingWizard />;
 }
