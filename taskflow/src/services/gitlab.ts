@@ -6,12 +6,14 @@
  * This is GitLab's standard across all editions (CE, EE, SaaS, self-hosted).
  * Ref: https://docs.gitlab.com/ee/api/rest/authentication.html
  *
- * All HTTP calls use plain fetch(). Tauri desktop apps bypass CORS natively —
- * no tauri-plugin-http is needed for outbound API calls from the renderer.
+ * All HTTP calls use @tauri-apps/plugin-http's fetch(), which proxies through
+ * the Rust backend to bypass webview CORS restrictions in Tauri 2.
  *
  * IMPORTANT: This module does NOT store secrets. Callers are responsible for
  * calling storeSecret('gitlab-pat', token) after successful validation.
  */
+
+import { fetch } from '@tauri-apps/plugin-http';
 
 export interface GitLabUser {
   id: number;
