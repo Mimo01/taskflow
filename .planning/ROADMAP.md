@@ -55,8 +55,8 @@ Plans:
 Plans:
 - [x] 02-01-PLAN.md — API client layer: extend Jira + GitLab services with sprint/MR/transition/comment functions, create linkEngine.ts with pure linking logic, dashboard store, settings store extension (staleMrThresholdDays)
 - [x] 02-02-PLAN.md — Dashboard UI shell: three-tab layout (My Tasks / Sprint Board / MR Attention), TanStack Query polling, loading skeletons, error states, last-refreshed timestamps, Base UI Popover primitive, TaskRow/TaskCard/MrRow display components
-- [ ] 02-03-PLAN.md — Task-MR linking integration: wire linkEngine into tab components, compute link maps from live data, render MR chips on TaskRow, linked task badge on MrRow, review health dot on TaskCard, commit scan fallback
-- [ ] 02-04-PLAN.md — Jira write actions: StatusPopover with lazy-fetched transitions + optimistic update + rollback, InlineComment with expand/collapse, per-row inline errors (no toast/modal)
+- [x] 02-03-PLAN.md — Task-MR linking integration: wire linkEngine into tab components, compute link maps from live data, render MR chips on TaskRow, linked task badge on MrRow, review health dot on TaskCard, commit scan fallback
+- [x] 02-04-PLAN.md — Jira write actions: StatusPopover with lazy-fetched transitions + optimistic update + rollback, InlineComment with expand/collapse, per-row inline errors (no toast/modal)
 
 ### Phase 3: Notifications Hub
 **Goal**: Users see a unified feed of Jira mentions and GitLab MR thread activity, receive OS desktop notifications for new items, and can manage read/unread state — the primary pain point of the on-premise Jira instance with no built-in notifications
@@ -98,6 +98,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 6/6 | Complete   | 2026-03-11 |
-| 2. Developer Dashboard | 3/4 | In Progress|  |
+| 2. Developer Dashboard | 4/4 | Complete   | 2026-03-11 |
 | 3. Notifications Hub | 0/2 | Not started | - |
 | 4. PM Dashboard + Search | 0/3 | Not started | - |
