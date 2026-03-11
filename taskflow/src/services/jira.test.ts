@@ -9,6 +9,7 @@ import {
   fetchTransitions,
   postTransition,
   postComment,
+  fetchFixVersions,
 } from './jira';
 
 vi.mock('@tauri-apps/plugin-http', () => ({
@@ -241,6 +242,48 @@ describe('jira service', () => {
       await expect(
         postComment('https://jira.example.com', 'my-token', 'PROJ-1', 'comment'),
       ).rejects.toThrow();
+    });
+  });
+
+  describe('fetchFixVersions', () => {
+    const mockVersions = [
+      { id: '10001', name: 'v1.0', releaseDate: '2025-06-01', released: true, description: 'First release' },
+      { id: '10002', name: 'v1.1', releaseDate: '2025-09-01', released: false },
+    ];
+
+    it('PM-03: fetchFixVersions extracts values array from paginated envelope', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ values: mockVersions, total: 2, isLast: true, maxResults: 50 }),
+      } as Response);
+
+      const result = await fetchFixVersions('https://jira.example.com', 'my-token', 'PROJ');
+      expect(result).toEqual(mockVersions);
+      expect(Array.isArray(result)).toBe(true);
+    });
+
+    it('PM-03: fetchFixVersions returns empty array when values is absent', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ total: 0, isLast: true, maxResults: 50 }),
+      } as Response);
+
+      const result = await fetchFixVersions('https://jira.example.com', 'my-token', 'PROJ');
+      expect(result).toEqual([]);
+    });
+
+    it('PM-03: fetchFixVersions throws on non-200 response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({ errorMessages: ['Permission denied'] }),
+      } as Response);
+
+      await expect(
+        fetchFixVersions('https://jira.example.com', 'my-token', 'PROJ'),
+      ).rejects.toThrow('Permission denied');
     });
   });
 });
