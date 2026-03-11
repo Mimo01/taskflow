@@ -2,19 +2,20 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 vi.mock('@tauri-apps/plugin-store', () => {
   const map = new Map<string, unknown>();
-  return {
-    LazyStore: vi.fn().mockImplementation(() => ({
-      get: vi.fn(async (key: string) => map.get(key) ?? null),
-      set: vi.fn(async (key: string, val: unknown) => map.set(key, val)),
-      save: vi.fn(async () => {}),
-    })),
-  };
+  function LazyStore(_name: string) {
+    return {
+      get: async (key: string) => map.get(key) ?? null,
+      set: async (key: string, val: unknown) => { map.set(key, val); },
+      save: async () => {},
+    };
+  }
+  return { LazyStore };
 });
 
 describe('applyTheme', () => {
-  beforeEach(() => {
-    // Reset html class list before each test
+  beforeEach(async () => {
     document.documentElement.classList.remove('dark');
+    vi.resetModules();
   });
 
   it('applyTheme("dark") adds "dark" class to document.documentElement', async () => {
@@ -54,7 +55,7 @@ describe('applyTheme', () => {
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
-        matches: query !== '(prefers-color-scheme: dark)',
+        matches: false,
         media: query,
         onchange: null,
         addListener: vi.fn(),

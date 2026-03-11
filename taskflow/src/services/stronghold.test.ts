@@ -1,22 +1,22 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mockIPC, clearMocks } from '@tauri-apps/api/mocks';
+import { clearMocks } from '@tauri-apps/api/mocks';
 
-// We mock the @tauri-apps/plugin-stronghold module so tests don't need
-// the Tauri runtime. The service uses lazy singletons — reset between tests.
+// In-memory store shared across mock instances
+const _mockVault = new Map<string, number[]>();
+const _mockMeta = new Map<string, unknown>();
+
 vi.mock('@tauri-apps/plugin-stronghold', () => {
-  const store = new Map<string, number[]>();
-
   const mockStore = {
     insert: vi.fn(async (key: string, data: number[]) => {
-      store.set(key, data);
+      _mockVault.set(key, [...data]);
     }),
     get: vi.fn(async (key: string) => {
-      const val = store.get(key);
+      const val = _mockVault.get(key);
       if (!val) throw new Error(`Key not found: ${key}`);
-      return val;
+      return [...val];
     }),
     remove: vi.fn(async (key: string) => {
-      store.delete(key);
+      _mockVault.delete(key);
     }),
   };
 
@@ -34,9 +34,7 @@ vi.mock('@tauri-apps/plugin-stronghold', () => {
     Stronghold: {
       load: vi.fn(async () => mockStronghold),
     },
-    Client: vi.fn(),
-    _mockStore: mockStore,
-    _mockStronghold: mockStronghold,
+    Client: class MockClient {},
   };
 });
 
@@ -45,19 +43,21 @@ vi.mock('@tauri-apps/api/path', () => ({
 }));
 
 vi.mock('@tauri-apps/plugin-store', () => {
-  const map = new Map<string, unknown>();
-  return {
-    LazyStore: vi.fn().mockImplementation(() => ({
-      get: vi.fn(async (key: string) => map.get(key) ?? null),
-      set: vi.fn(async (key: string, val: unknown) => map.set(key, val)),
-      save: vi.fn(async () => {}),
-    })),
-  };
+  function LazyStore(_name: string) {
+    return {
+      get: async (key: string) => _mockMeta.get(key) ?? null,
+      set: async (key: string, val: unknown) => { _mockMeta.set(key, val); },
+      save: async () => {},
+      delete: async (key: string) => { _mockMeta.delete(key); },
+    };
+  }
+  return { LazyStore };
 });
 
 describe('stronghold service', () => {
-  beforeEach(async () => {
-    // Reset module so singletons (_stronghold, _store) are cleared between tests
+  beforeEach(() => {
+    _mockVault.clear();
+    _mockMeta.clear();
     vi.resetModules();
   });
 
@@ -80,7 +80,7 @@ describe('stronghold service', () => {
     expect(await readSecret('gitlab-pat')).toBe('gitlab-secret');
   });
 
-  it('removeSecret causes readSecret to throw or return empty', async () => {
+  it('removeSecret causes readSecret to throw', async () => {
     const { storeSecret, readSecret, removeSecret } = await import('./stronghold');
     await storeSecret('jira-pat', 'temp-token');
     await removeSecret('jira-pat');
