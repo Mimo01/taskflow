@@ -36,10 +36,20 @@ interface SettingsState {
   onboardingComplete: boolean;
   /** Number of days without update before an MR is considered stale. Default: 3. */
   staleMrThresholdDays: number;
+  /** Notification polling interval in seconds. Default: 60. Clamped to [30, 300]. */
+  notificationPollIntervalSecs: number;
+  /** Enable OS desktop notifications for Jira comment mentions. Default: true. */
+  osNotifJiraEnabled: boolean;
+  /** Enable OS desktop notifications for GitLab MR notes. Default: true. */
+  osNotifGitlabEnabled: boolean;
   setRole: (role: 'developer' | 'pm') => void;
   setTheme: (theme: Theme) => void;
   setOnboardingComplete: (complete: boolean) => void;
   setStaleMrThresholdDays: (days: number) => void;
+  /** Clamps input to [30, 300] before storing. */
+  setNotificationPollIntervalSecs: (secs: number) => void;
+  setOsNotifJiraEnabled: (v: boolean) => void;
+  setOsNotifGitlabEnabled: (v: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -49,10 +59,17 @@ export const useSettingsStore = create<SettingsState>()(
       theme: 'system',
       onboardingComplete: false,
       staleMrThresholdDays: 3,
+      notificationPollIntervalSecs: 60,
+      osNotifJiraEnabled: true,
+      osNotifGitlabEnabled: true,
       setRole: (role) => set({ role }),
       setTheme: (theme) => set({ theme }),
       setOnboardingComplete: (complete) => set({ onboardingComplete: complete }),
       setStaleMrThresholdDays: (days) => set({ staleMrThresholdDays: days }),
+      setNotificationPollIntervalSecs: (secs) =>
+        set({ notificationPollIntervalSecs: Math.max(30, Math.min(300, secs)) }),
+      setOsNotifJiraEnabled: (v) => set({ osNotifJiraEnabled: v }),
+      setOsNotifGitlabEnabled: (v) => set({ osNotifGitlabEnabled: v }),
     }),
     {
       name: 'settings-store',
