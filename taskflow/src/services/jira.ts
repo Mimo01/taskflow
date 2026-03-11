@@ -10,12 +10,13 @@
  * The function signatures are designed to allow adding an `authStrategy` parameter later
  * without changing callers (open/closed principle).
  *
- * All HTTP calls use plain fetch(). Tauri desktop apps bypass CORS natively —
- * no tauri-plugin-http is needed for outbound API calls from the renderer.
+ * All HTTP calls use `fetch` from `@tauri-apps/plugin-http` to bypass CORS
+ * in the Tauri 2 webview (plain fetch triggers preflight failures on Jira Server).
  *
  * IMPORTANT: This module does NOT store secrets. Callers are responsible for
  * calling storeSecret('jira-pat', token) after successful validation.
  */
+import { fetch } from '@tauri-apps/plugin-http';
 
 export interface JiraUser {
   displayName: string;

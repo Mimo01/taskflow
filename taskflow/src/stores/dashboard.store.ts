@@ -9,7 +9,7 @@
 import { create } from 'zustand';
 
 /** Available dashboard tabs. */
-export type DashTab = 'my-tasks' | 'sprint-board';
+export type DashTab = 'my-tasks' | 'sprint-board' | 'mr-attention';
 
 interface DashboardState {
   activeTab: DashTab;

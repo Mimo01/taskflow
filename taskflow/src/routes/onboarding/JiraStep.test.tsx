@@ -22,8 +22,9 @@ const mockStore = {
   jiraUrl: 'https://jira.example.com',
   jiraToken: 'test-token',
   jiraProject: null as string | null,
+  jiraProjects: [] as { id: string; key: string; name: string }[],
   jiraValidated: false,
-  set: vi.fn(),
+  set: vi.fn((updates: Partial<typeof mockStore>) => Object.assign(mockStore, updates)),
   goNext: vi.fn(),
   goBack: vi.fn(),
 };
@@ -56,6 +57,8 @@ describe('JiraStep', () => {
     mockStore.jiraToken = 'test-token';
     mockStore.jiraValidated = false;
     mockStore.jiraProject = null;
+    mockStore.jiraProjects = [];
+    mockStore.set.mockImplementation((updates: Partial<typeof mockStore>) => Object.assign(mockStore, updates));
   });
 
   it('AUTH-04: renders URL input, token input, and Test & Continue button', () => {
