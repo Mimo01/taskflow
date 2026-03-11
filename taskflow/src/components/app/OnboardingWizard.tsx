@@ -16,24 +16,17 @@ import StepIndicator from './StepIndicator';
 import WelcomeStep from '@/routes/onboarding/WelcomeStep';
 import JiraStep from '@/routes/onboarding/JiraStep';
 import GitLabStep from '@/routes/onboarding/GitLabStep';
+import RoleStep from '@/routes/onboarding/RoleStep';
+import DoneStep from '@/routes/onboarding/DoneStep';
 
 const STEP_LABELS = ['Welcome', 'Jira', 'GitLab', 'Role', 'Done'];
-
-// Placeholder steps for Plan 03
-function RoleStepPlaceholder() {
-  return <div className="p-8 text-center text-muted-foreground">Role selection — coming in Plan 03</div>;
-}
-
-function DoneStepPlaceholder() {
-  return <div className="p-8 text-center text-muted-foreground">All done! — coming in Plan 03</div>;
-}
 
 const STEP_COMPONENTS = [
   WelcomeStep,
   JiraStep,
   GitLabStep,
-  RoleStepPlaceholder,
-  DoneStepPlaceholder,
+  RoleStep,
+  DoneStep,
 ];
 
 export default function OnboardingWizard() {
@@ -43,7 +36,7 @@ export default function OnboardingWizard() {
   if (jiraValidated) completedSteps.push(1);
   if (gitlabValidated) completedSteps.push(2);
 
-  const CurrentStep = STEP_COMPONENTS[step] ?? DoneStepPlaceholder;
+  const CurrentStep = STEP_COMPONENTS[step] ?? DoneStep;
 
   return (
     <div className="min-h-screen flex flex-col">
