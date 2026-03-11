@@ -54,9 +54,10 @@ function makeIssue(key: string) {
     key,
     fields: {
       summary: `Summary for ${key}`,
-      status: { name: 'In Progress' },
+      status: { id: '3', name: 'In Progress' },
       assignee: null,
       customfield_10016: null,
+      issuetype: { name: 'Story' },
     },
   };
 }

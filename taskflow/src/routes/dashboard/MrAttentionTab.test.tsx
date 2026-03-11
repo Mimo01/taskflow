@@ -74,9 +74,10 @@ function makeIssue(key: string) {
     key,
     fields: {
       summary: `Summary for ${key}`,
-      status: { name: 'In Progress' },
+      status: { id: '3', name: 'In Progress' },
       assignee: null,
       customfield_10016: null,
+      issuetype: { name: 'Story' },
     },
   };
 }
@@ -166,7 +167,9 @@ describe('MrAttentionTab', () => {
     const { default: MrAttentionTab } = await import('./MrAttentionTab');
     renderWithQuery(<MrAttentionTab />);
 
-    // MrRow should render with linked task key badge "PROJ-7"
-    await screen.findByText(/PROJ-7/i);
+    // MrRow should render with linked task key badge — identified by font-mono class on the badge span
+    // We check for multiple PROJ-7 elements: one in MR title, one in linked task badge
+    const allMatches = await screen.findAllByText(/PROJ-7/i);
+    expect(allMatches.length).toBeGreaterThanOrEqual(2); // MR title + task badge
   });
 });
