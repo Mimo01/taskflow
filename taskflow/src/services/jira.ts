@@ -10,14 +10,12 @@
  * The function signatures are designed to allow adding an `authStrategy` parameter later
  * without changing callers (open/closed principle).
  *
- * All HTTP calls use @tauri-apps/plugin-http's fetch(), which proxies through
- * the Rust backend to bypass webview CORS restrictions in Tauri 2.
+ * All HTTP calls use plain fetch(). Tauri desktop apps bypass CORS natively —
+ * no tauri-plugin-http is needed for outbound API calls from the renderer.
  *
  * IMPORTANT: This module does NOT store secrets. Callers are responsible for
  * calling storeSecret('jira-pat', token) after successful validation.
  */
-
-import { fetch } from '@tauri-apps/plugin-http';
 
 export interface JiraUser {
   displayName: string;
@@ -48,7 +46,6 @@ export async function validateJira(baseUrl: string, token: string): Promise<Jira
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      danger: { acceptInvalidCerts: true, acceptInvalidHostnames: true },
     });
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
@@ -87,7 +84,6 @@ export async function listJiraProjects(baseUrl: string, token: string): Promise<
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      danger: { acceptInvalidCerts: true, acceptInvalidHostnames: true },
     });
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
@@ -107,4 +103,181 @@ export async function listJiraProjects(baseUrl: string, token: string): Promise<
   }
 
   throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+}
+
+// ─── Phase 2: Developer Dashboard ────────────────────────────────────────────
+
+export interface JiraIssue {
+  id: string;
+  key: string;
+  fields: {
+    summary: string;
+    status: { id: string; name: string };
+    assignee: { displayName: string; avatarUrls: { '48x48': string } } | null;
+    customfield_10016: number | null; // story points (most common field key)
+    issuetype: { name: string };
+  };
+}
+
+export interface JiraTransition {
+  id: string;
+  name: string;
+  to: { id: string; name: string };
+}
+
+/**
+ * Fetch issues in the active sprint for a project.
+ *
+ * @param baseUrl      - Jira base URL
+ * @param token        - Personal Access Token
+ * @param projectKey   - Jira project key (e.g. "PROJ")
+ * @param assignedToMe - If true, adds `AND assignee = currentUser()` (my-tasks variant).
+ *                       If false/omitted, returns all sprint issues (sprint-board variant).
+ * @throws Error('Sprint filtering unavailable — ensure Jira Software is installed') on 400 with sprint errors
+ */
+export async function fetchSprintIssues(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  assignedToMe = true,
+): Promise<JiraIssue[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const assigneeClause = assignedToMe ? ' AND assignee = currentUser()' : '';
+  const jql = encodeURIComponent(
+    `project = ${projectKey} AND sprint in openSprints()${assigneeClause} AND resolution = Unresolved ORDER BY updated DESC`,
+  );
+  const fields = 'summary,status,assignee,issuetype,customfield_10016,story_points';
+  const url = `${base}/rest/api/2/search?jql=${jql}&fields=${fields}`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (response.status === 400) {
+    const body = await response.text();
+    if (body.includes('function') || body.includes('not recognized')) {
+      throw new Error('Sprint filtering unavailable — ensure Jira Software is installed');
+    }
+    throw new Error(`Jira search failed with status 400`);
+  }
+
+  if (!response.ok) {
+    throw new Error(`Jira search failed with status ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.issues as JiraIssue[];
+}
+
+/**
+ * Fetch available transitions for a Jira issue.
+ *
+ * @param baseUrl   - Jira base URL
+ * @param token     - Personal Access Token
+ * @param issueKey  - Issue key (e.g. "PROJ-1")
+ * @returns Array of available transitions
+ */
+export async function fetchTransitions(
+  baseUrl: string,
+  token: string,
+  issueKey: string,
+): Promise<JiraTransition[]> {
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/transitions`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch transitions for ${issueKey}: status ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.transitions as JiraTransition[];
+}
+
+/**
+ * Transition a Jira issue to a new status.
+ *
+ * @param baseUrl      - Jira base URL
+ * @param token        - Personal Access Token
+ * @param issueKey     - Issue key (e.g. "PROJ-1")
+ * @param transitionId - Transition ID from fetchTransitions
+ */
+export async function postTransition(
+  baseUrl: string,
+  token: string,
+  issueKey: string,
+  transitionId: string,
+): Promise<void> {
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/transitions`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ transition: { id: transitionId } }),
+    });
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok && response.status !== 204) {
+    throw new Error(`Failed to transition ${issueKey}: status ${response.status}`);
+  }
+}
+
+/**
+ * Post a comment on a Jira issue.
+ *
+ * @param baseUrl  - Jira base URL
+ * @param token    - Personal Access Token
+ * @param issueKey - Issue key (e.g. "PROJ-1")
+ * @param body     - Comment text
+ */
+export async function postComment(
+  baseUrl: string,
+  token: string,
+  issueKey: string,
+  body: string,
+): Promise<void> {
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/comment`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ body }),
+    });
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok && response.status !== 201) {
+    throw new Error(`Failed to post comment on ${issueKey}: status ${response.status}`);
+  }
 }
