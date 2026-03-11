@@ -19,7 +19,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select';
 import { readSecret, storeSecret } from '@/services/stronghold';
 import { validateJira, listJiraProjects, type JiraProject } from '@/services/jira';
@@ -140,25 +139,53 @@ export default function TokenSection() {
   const [jiraUrl, setJiraUrl] = useState(jiraBaseUrl ?? '');
   const [gitlabUrl, setGitlabUrl] = useState(gitlabBaseUrl ?? '');
   const [jiraProjects, setJiraProjects] = useState<JiraProject[]>([]);
+  const [jiraProjectsLoading, setJiraProjectsLoading] = useState(false);
+  const [jiraProjectsError, setJiraProjectsError] = useState<string | null>(null);
   const [gitlabGroups, setGitlabGroups] = useState<GitLabGroup[]>([]);
+  const [gitlabGroupsLoading, setGitlabGroupsLoading] = useState(false);
+  const [gitlabGroupsError, setGitlabGroupsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!jiraBaseUrl) return;
-    (async () => {
-      const pat = await readSecret('jira-pat').catch(() => null);
-      if (!pat) return;
-      const list = await listJiraProjects(jiraBaseUrl, pat).catch(() => []);
-      setJiraProjects(list);
+    setJiraProjectsLoading(true);
+    setJiraProjectsError(null);
+    ;(async () => {
+      try {
+        const pat = await readSecret('jira-pat').catch(() => null);
+        if (!pat) {
+          setJiraProjectsError('Could not read Jira token');
+          return;
+        }
+        const list = await listJiraProjects(jiraBaseUrl, pat);
+        setJiraProjects(list);
+      } catch (err) {
+        setJiraProjectsError((err as Error)?.message ?? 'Failed to load projects');
+        setJiraProjects([]);
+      } finally {
+        setJiraProjectsLoading(false);
+      }
     })();
   }, [jiraBaseUrl]);
 
   useEffect(() => {
     if (!gitlabBaseUrl) return;
-    (async () => {
-      const pat = await readSecret('gitlab-pat').catch(() => null);
-      if (!pat) return;
-      const list = await listGitLabGroups(gitlabBaseUrl, pat).catch(() => []);
-      setGitlabGroups(list);
+    setGitlabGroupsLoading(true);
+    setGitlabGroupsError(null);
+    ;(async () => {
+      try {
+        const pat = await readSecret('gitlab-pat').catch(() => null);
+        if (!pat) {
+          setGitlabGroupsError('Could not read GitLab token');
+          return;
+        }
+        const list = await listGitLabGroups(gitlabBaseUrl, pat);
+        setGitlabGroups(list);
+      } catch (err) {
+        setGitlabGroupsError((err as Error)?.message ?? 'Failed to load groups');
+        setGitlabGroups([]);
+      } finally {
+        setGitlabGroupsLoading(false);
+      }
     })();
   }, [gitlabBaseUrl]);
 
@@ -254,26 +281,34 @@ export default function TokenSection() {
           {jiraUrlMutation.isError && <p className="text-sm text-destructive">{jiraUrlMutation.error?.message}</p>}
         </div>
 
-        {jiraProjects.length > 0 && (
+        {jiraBaseUrl && (
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="active-jira-project">Active Project</Label>
-            <Select value={activeJiraProject ?? ''} onValueChange={(v) => v && handleProjectChange(v)}>
-              <SelectTrigger id="active-jira-project" className="w-full">
-                <span className="flex flex-1 text-left text-sm">
-                  {activeJiraProject
-                    ? (() => { const p = jiraProjects.find(p => p.key === activeJiraProject); return p ? `${p.key} — ${p.name}` : activeJiraProject; })()
-                    : <span className="text-muted-foreground">Select project...</span>
-                  }
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                {jiraProjects.map((p) => (
-                  <SelectItem key={p.id} value={p.key}>
-                    {p.key} — {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {jiraProjectsLoading && (
+              <p className="text-sm text-muted-foreground">Loading projects...</p>
+            )}
+            {jiraProjectsError && !jiraProjectsLoading && (
+              <p className="text-sm text-destructive">{jiraProjectsError}</p>
+            )}
+            {!jiraProjectsLoading && !jiraProjectsError && (
+              <Select value={activeJiraProject ?? ''} onValueChange={(v) => v && handleProjectChange(v)}>
+                <SelectTrigger id="active-jira-project" className="w-full">
+                  <span className="flex flex-1 text-left text-sm">
+                    {activeJiraProject
+                      ? (() => { const p = jiraProjects.find(p => p.key === activeJiraProject); return p ? `${p.key} — ${p.name}` : activeJiraProject; })()
+                      : <span className="text-muted-foreground">{jiraProjects.length === 0 ? 'No projects found' : 'Select project...'}</span>
+                    }
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  {jiraProjects.map((p) => (
+                    <SelectItem key={p.id} value={p.key}>
+                      {p.key} — {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         )}
 
@@ -312,26 +347,34 @@ export default function TokenSection() {
           {gitlabUrlMutation.isError && <p className="text-sm text-destructive">{gitlabUrlMutation.error?.message}</p>}
         </div>
 
-        {gitlabGroups.length > 0 && (
+        {gitlabBaseUrl && (
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="active-gitlab-group">Active Group</Label>
-            <Select value={activeGitlabGroup ?? ''} onValueChange={(v) => v && handleGroupChange(v)}>
-              <SelectTrigger id="active-gitlab-group" className="w-full">
-                <span className="flex flex-1 text-left text-sm">
-                  {activeGitlabGroup
-                    ? (() => { const g = gitlabGroups.find(g => g.full_path === activeGitlabGroup); return g ? `${g.name} (${g.full_path})` : activeGitlabGroup; })()
-                    : <span className="text-muted-foreground">Select group...</span>
-                  }
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                {gitlabGroups.map((g) => (
-                  <SelectItem key={g.id} value={g.full_path}>
-                    {g.name} ({g.full_path})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {gitlabGroupsLoading && (
+              <p className="text-sm text-muted-foreground">Loading groups...</p>
+            )}
+            {gitlabGroupsError && !gitlabGroupsLoading && (
+              <p className="text-sm text-destructive">{gitlabGroupsError}</p>
+            )}
+            {!gitlabGroupsLoading && !gitlabGroupsError && (
+              <Select value={activeGitlabGroup ?? ''} onValueChange={(v) => v && handleGroupChange(v)}>
+                <SelectTrigger id="active-gitlab-group" className="w-full">
+                  <span className="flex flex-1 text-left text-sm">
+                    {activeGitlabGroup
+                      ? (() => { const g = gitlabGroups.find(g => g.full_path === activeGitlabGroup); return g ? `${g.name} (${g.full_path})` : activeGitlabGroup; })()
+                      : <span className="text-muted-foreground">{gitlabGroups.length === 0 ? 'No groups found' : 'Select group...'}</span>
+                    }
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  {gitlabGroups.map((g) => (
+                    <SelectItem key={g.id} value={g.full_path}>
+                      {g.name} ({g.full_path})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         )}
 
