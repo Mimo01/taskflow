@@ -10,7 +10,7 @@
  * - Fetches approvals + discussions per MR via ['mr-health', ...] queries (TanStack cache shared with MyTasksTab)
  * - Passes linkedTask and reviewHealth to each MrRow
  */
-import { useRef, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useQueries } from '@tanstack/react-query'
 import { RefreshCw } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
@@ -32,31 +32,31 @@ import MrRow from './MrRow'
 export default function MrAttentionTab() {
   const { gitlabBaseUrl, jiraBaseUrl, activeJiraProject } = useAuthStore()
   const { staleMrThresholdDays } = useSettingsStore()
-  const tokenRef = useRef<string | null>(null)
-  const jiraTokenRef = useRef<string | null>(null)
+  const [gitlabToken, setGitlabToken] = useState<string | null>(null)
+  const [jiraToken, setJiraToken] = useState<string | null>(null)
 
   useEffect(() => {
     if (gitlabBaseUrl) {
       readSecret('gitlab-pat')
-        .then((t) => { tokenRef.current = t })
-        .catch(() => { tokenRef.current = null })
+        .then((t) => { setGitlabToken(t) })
+        .catch(() => { setGitlabToken(null) })
     }
   }, [gitlabBaseUrl])
 
   useEffect(() => {
     if (jiraBaseUrl) {
       readSecret('jira-pat')
-        .then((t) => { jiraTokenRef.current = t })
-        .catch(() => { jiraTokenRef.current = null })
+        .then((t) => { setJiraToken(t) })
+        .catch(() => { setJiraToken(null) })
     }
   }, [jiraBaseUrl])
 
   // Fetch current GitLab user ID once (staleTime: Infinity)
   const { data: currentUser } = useQuery({
     queryKey: ['gitlab-current-user', gitlabBaseUrl],
-    queryFn: () => validateGitLab(gitlabBaseUrl!, tokenRef.current ?? ''),
+    queryFn: () => validateGitLab(gitlabBaseUrl!, gitlabToken!),
     staleTime: Infinity,
-    enabled: !!gitlabBaseUrl,
+    enabled: !!gitlabBaseUrl && !!gitlabToken,
   })
 
   const userId = currentUser?.id
@@ -64,16 +64,16 @@ export default function MrAttentionTab() {
   // Fetch sprint board issues for the link key set (or read from cache)
   const { data: sprintIssues } = useQuery({
     queryKey: ['jira-issues', 'sprint-board', activeJiraProject],
-    queryFn: () => fetchSprintIssues(jiraBaseUrl!, jiraTokenRef.current ?? '', activeJiraProject!, false),
+    queryFn: () => fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false),
     staleTime: 30_000,
-    enabled: !!jiraBaseUrl && !!activeJiraProject,
+    enabled: !!jiraBaseUrl && !!activeJiraProject && !!jiraToken,
   })
 
   // Combined MR fetch: assigned + reviewer, deduped (same query key as MyTasksTab)
   const { data, isLoading, isError, error, dataUpdatedAt, refetch } = useQuery({
     queryKey: ['gitlab-mrs', gitlabBaseUrl],
     queryFn: async () => {
-      const token = tokenRef.current ?? ''
+      const token = gitlabToken ?? ''
       const [assigned, reviewer] = await Promise.all([
         fetchAssignedMRs(gitlabBaseUrl!, token),
         userId ? fetchReviewerMRs(gitlabBaseUrl!, token, userId) : Promise.resolve([]),
@@ -109,7 +109,7 @@ export default function MrAttentionTab() {
     refetchInterval: 60_000,
     refetchIntervalInBackground: true,
     staleTime: 30_000,
-    enabled: !!gitlabBaseUrl,
+    enabled: !!gitlabBaseUrl && !!gitlabToken,
   })
 
   // Build sprint issue key set and issue lookup map
@@ -136,7 +136,7 @@ export default function MrAttentionTab() {
     queries: (data ?? []).map((mr) => ({
       queryKey: ['mr-health', mr.project_id, mr.iid],
       queryFn: async (): Promise<ReviewHealth> => {
-        const token = tokenRef.current ?? ''
+        const token = gitlabToken ?? ''
         const [approvals, discussions] = await Promise.all([
           fetchMRApprovals(gitlabBaseUrl!, token, mr.project_id, mr.iid),
           fetchMRDiscussions(gitlabBaseUrl!, token, mr.project_id, mr.iid),
@@ -144,7 +144,7 @@ export default function MrAttentionTab() {
         return deriveReviewHealth(approvals, discussions)
       },
       staleTime: 30_000,
-      enabled: !!gitlabBaseUrl,
+      enabled: !!gitlabBaseUrl && !!gitlabToken,
     })),
   })
 

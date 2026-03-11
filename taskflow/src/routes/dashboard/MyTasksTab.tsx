@@ -14,7 +14,7 @@
  * - transitionMutation: optimistic status update via postTransition
  * - commentMutation: post comment via postComment, collapses InlineComment on success
  */
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { RefreshCw } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
@@ -39,43 +39,40 @@ import TaskRow from './TaskRow'
 
 export default function MyTasksTab() {
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl } = useAuthStore()
-  const jiraTokenRef = useRef<string | null>(null)
-  const gitlabTokenRef = useRef<string | null>(null)
+  const [jiraToken, setJiraToken] = useState<string | null>(null)
+  const [gitlabToken, setGitlabToken] = useState<string | null>(null)
 
   useEffect(() => {
     if (jiraBaseUrl) {
       readSecret('jira-pat')
-        .then((t) => { jiraTokenRef.current = t })
-        .catch(() => { jiraTokenRef.current = null })
+        .then((t) => { setJiraToken(t) })
+        .catch(() => { setJiraToken(null) })
     }
   }, [jiraBaseUrl])
 
   useEffect(() => {
     if (gitlabBaseUrl) {
       readSecret('gitlab-pat')
-        .then((t) => { gitlabTokenRef.current = t })
-        .catch(() => { gitlabTokenRef.current = null })
+        .then((t) => { setGitlabToken(t) })
+        .catch(() => { setGitlabToken(null) })
     }
   }, [gitlabBaseUrl])
 
   // Fetch sprint issues assigned to current user
   const { data, isLoading, isError, error, dataUpdatedAt, refetch } = useQuery({
     queryKey: ['jira-issues', 'my-tasks', activeJiraProject],
-    queryFn: () => {
-      const token = jiraTokenRef.current ?? ''
-      return fetchSprintIssues(jiraBaseUrl!, token, activeJiraProject!, true)
-    },
+    queryFn: () => fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, true),
     refetchInterval: 60_000,
     refetchIntervalInBackground: true,
     staleTime: 30_000,
-    enabled: !!activeJiraProject && !!jiraBaseUrl,
+    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   })
 
   // Fetch GitLab MRs (same query key as MrAttentionTab — TanStack deduplicates)
   const { data: gitlabMrs } = useQuery({
     queryKey: ['gitlab-mrs', gitlabBaseUrl],
     queryFn: async () => {
-      const token = gitlabTokenRef.current ?? ''
+      const token = gitlabToken ?? ''
       const [assigned, reviewer] = await Promise.all([
         fetchAssignedMRs(gitlabBaseUrl!, token),
         fetchReviewerMRs(gitlabBaseUrl!, token, 0),
@@ -88,7 +85,7 @@ export default function MyTasksTab() {
     refetchInterval: 60_000,
     refetchIntervalInBackground: true,
     staleTime: 30_000,
-    enabled: !!gitlabBaseUrl,
+    enabled: !!gitlabBaseUrl && !!gitlabToken,
   })
 
   const sprintIssueKeySet = useMemo(() => {
@@ -113,9 +110,9 @@ export default function MyTasksTab() {
   const commitQueries = useQueries({
     queries: mrsNeedingCommits.map((mr) => ({
       queryKey: ['mr-commits', mr.project_id, mr.iid],
-      queryFn: () => fetchMRCommits(gitlabBaseUrl!, gitlabTokenRef.current ?? '', mr.project_id, mr.iid),
+      queryFn: () => fetchMRCommits(gitlabBaseUrl!, gitlabToken ?? '', mr.project_id, mr.iid),
       staleTime: 60_000,
-      enabled: !!gitlabBaseUrl,
+      enabled: !!gitlabBaseUrl && !!gitlabToken,
     })),
   })
 
@@ -166,7 +163,7 @@ export default function MyTasksTab() {
     queries: linkedMrsList.map((mr) => ({
       queryKey: ['mr-health', mr.project_id, mr.iid],
       queryFn: async (): Promise<ReviewHealth> => {
-        const token = gitlabTokenRef.current ?? ''
+        const token = gitlabToken ?? ''
         const [approvals, discussions] = await Promise.all([
           fetchMRApprovals(gitlabBaseUrl!, token, mr.project_id, mr.iid),
           fetchMRDiscussions(gitlabBaseUrl!, token, mr.project_id, mr.iid),
@@ -174,7 +171,7 @@ export default function MyTasksTab() {
         return deriveReviewHealth(approvals, discussions)
       },
       staleTime: 30_000,
-      enabled: !!gitlabBaseUrl,
+      enabled: !!gitlabBaseUrl && !!gitlabToken,
     })),
   })
 
@@ -198,7 +195,7 @@ export default function MyTasksTab() {
   // Transition mutation with optimistic update
   const transitionMutation = useMutation({
     mutationFn: ({ issueKey, transitionId }: { issueKey: string; transitionId: string; toStatusName: string }) =>
-      postTransition(jiraBaseUrl!, jiraTokenRef.current ?? '', issueKey, transitionId),
+      postTransition(jiraBaseUrl!, jiraToken ?? '', issueKey, transitionId),
     onMutate: async ({ issueKey, toStatusName }) => {
       await queryClient.cancelQueries({ queryKey: ['jira-issues', 'my-tasks', activeJiraProject] })
       const prev = queryClient.getQueryData<JiraIssue[]>(['jira-issues', 'my-tasks', activeJiraProject])
@@ -222,7 +219,7 @@ export default function MyTasksTab() {
   // Comment mutation
   const commentMutation = useMutation({
     mutationFn: ({ issueKey, comment }: { issueKey: string; comment: string }) =>
-      postComment(jiraBaseUrl!, jiraTokenRef.current ?? '', issueKey, comment),
+      postComment(jiraBaseUrl!, jiraToken ?? '', issueKey, comment),
     onSuccess: () => {
       // TaskRow closes comment optimistically on submit
     },
@@ -293,7 +290,7 @@ export default function MyTasksTab() {
                 issue={issue}
                 linkedMrResults={linkedMrResults}
                 jiraBaseUrl={jiraBaseUrl ?? ''}
-                jiraToken={jiraTokenRef.current ?? ''}
+                jiraToken={jiraToken ?? ''}
                 onTransitionSelect={(issueKey, transitionId, toStatusName) => {
                   setInlineErrors((prev) => { const next = { ...prev }; delete next[`${issueKey}-transition`]; return next })
                   transitionMutation.mutate({ issueKey, transitionId, toStatusName })

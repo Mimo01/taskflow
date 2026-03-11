@@ -11,7 +11,7 @@
  * - Priority: changes_requested > waiting_for_review > approved
  * - Passes healthDot to each TaskCard
  */
-import { useRef, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { RefreshCw } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
@@ -35,27 +35,24 @@ function bestHealth(healths: ReviewHealth[]): ReviewHealth | undefined {
 
 export default function SprintBoardTab() {
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl } = useAuthStore()
-  const tokenRef = useRef<string | null>(null)
+  const [jiraToken, setJiraToken] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
   useEffect(() => {
     if (jiraBaseUrl) {
       readSecret('jira-pat')
-        .then((t) => { tokenRef.current = t })
-        .catch(() => { tokenRef.current = null })
+        .then((t) => { setJiraToken(t) })
+        .catch(() => { setJiraToken(null) })
     }
   }, [jiraBaseUrl])
 
   const { data, isLoading, isError, error, dataUpdatedAt, refetch } = useQuery({
     queryKey: ['jira-issues', 'sprint-board', activeJiraProject],
-    queryFn: () => {
-      const token = tokenRef.current ?? ''
-      return fetchSprintIssues(jiraBaseUrl!, token, activeJiraProject!, false)
-    },
+    queryFn: () => fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false),
     refetchInterval: 60_000,
     refetchIntervalInBackground: true,
     staleTime: 30_000,
-    enabled: !!activeJiraProject && !!jiraBaseUrl,
+    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   })
 
   const lastRefreshed = dataUpdatedAt
