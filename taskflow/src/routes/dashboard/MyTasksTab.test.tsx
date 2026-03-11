@@ -17,6 +17,8 @@ vi.mock('@/services/stronghold', () => ({
 // Mock jira service — controlled from each test
 vi.mock('@/services/jira', () => ({
   fetchSprintIssues: vi.fn().mockResolvedValue([]),
+  postTransition: vi.fn().mockResolvedValue(undefined),
+  postComment: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock auth store
@@ -45,6 +47,17 @@ vi.mock('@/services/linkEngine', () => ({
   extractTicketKeys: vi.fn().mockReturnValue([]),
   deriveReviewHealth: vi.fn().mockReturnValue('waiting_for_review'),
   isStale: vi.fn().mockReturnValue(false),
+}));
+
+// Mock StatusPopover and InlineComment to avoid TanStack Query dependency in unit tests
+vi.mock('./StatusPopover', () => ({
+  default: ({ currentStatus }: { currentStatus: string }) => (
+    <button type="button" aria-label={currentStatus}>{currentStatus}</button>
+  ),
+}));
+
+vi.mock('./InlineComment', () => ({
+  default: () => null,
 }));
 
 // Helper builders
@@ -225,13 +238,18 @@ describe('TaskRow rendering', () => {
     const { default: TaskRow } = await import('./TaskRow');
     const issue = makeIssue('PROJ-3');
     const mr = makeMR(5, 'PROJ-3 feature');
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
-      <TaskRow
-        issue={issue}
-        linkedMrResults={[{ mr, health: 'approved' }]}
-        onStatusClick={() => {}}
-        onCommentClick={() => {}}
-      />,
+      <QueryClientProvider client={queryClient}>
+        <TaskRow
+          issue={issue}
+          linkedMrResults={[{ mr, health: 'approved' }]}
+          jiraBaseUrl="https://jira.example.com"
+          jiraToken="test-token"
+          onTransitionSelect={() => {}}
+          onCommentSubmit={() => {}}
+        />
+      </QueryClientProvider>,
     );
     // Should render "MR !5"
     expect(screen.getByText(/MR !5/i)).toBeTruthy();
@@ -244,13 +262,18 @@ describe('TaskRow rendering', () => {
     const { default: TaskRow } = await import('./TaskRow');
     const issue = makeIssue('PROJ-4');
     const mr = makeMR(6, 'PROJ-4 feature');
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
-      <TaskRow
-        issue={issue}
-        linkedMrResults={[{ mr, health: 'changes_requested' }]}
-        onStatusClick={() => {}}
-        onCommentClick={() => {}}
-      />,
+      <QueryClientProvider client={queryClient}>
+        <TaskRow
+          issue={issue}
+          linkedMrResults={[{ mr, health: 'changes_requested' }]}
+          jiraBaseUrl="https://jira.example.com"
+          jiraToken="test-token"
+          onTransitionSelect={() => {}}
+          onCommentSubmit={() => {}}
+        />
+      </QueryClientProvider>,
     );
     expect(screen.getByText(/MR !6/i)).toBeTruthy();
     const dot = document.querySelector('.bg-red-500');
@@ -260,13 +283,18 @@ describe('TaskRow rendering', () => {
   it('renders "— no MR" when linkedMrResults is empty', async () => {
     const { default: TaskRow } = await import('./TaskRow');
     const issue = makeIssue('PROJ-5');
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
-      <TaskRow
-        issue={issue}
-        linkedMrResults={[]}
-        onStatusClick={() => {}}
-        onCommentClick={() => {}}
-      />,
+      <QueryClientProvider client={queryClient}>
+        <TaskRow
+          issue={issue}
+          linkedMrResults={[]}
+          jiraBaseUrl="https://jira.example.com"
+          jiraToken="test-token"
+          onTransitionSelect={() => {}}
+          onCommentSubmit={() => {}}
+        />
+      </QueryClientProvider>,
     );
     expect(screen.getByText(/— no MR/i)).toBeTruthy();
   });

@@ -9,12 +9,17 @@
  * - Falls back to commit scan via linkMRToTaskViaCommits for unmatched MRs
  * - Fetches MR approvals + discussions to derive ReviewHealth per linked MR
  * - Passes linkedMrResults: Array<{mr, health}> to each TaskRow
+ *
+ * Write actions (Plan 06):
+ * - transitionMutation: optimistic status update via postTransition
+ * - commentMutation: post comment via postComment, collapses InlineComment on success
  */
-import { useRef, useEffect, useMemo } from 'react'
-import { useQuery, useQueries } from '@tanstack/react-query'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { RefreshCw } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
-import { fetchSprintIssues } from '@/services/jira'
+import { fetchSprintIssues, postTransition, postComment } from '@/services/jira'
+import type { JiraIssue } from '@/services/jira'
 import {
   fetchAssignedMRs,
   fetchReviewerMRs,
@@ -185,6 +190,47 @@ export default function MyTasksTab() {
     return map
   }, [linkedMrsList, healthQueries])
 
+  const queryClient = useQueryClient()
+
+  // Per-row inline errors: keyed by `${issueKey}-transition` or `${issueKey}-comment`
+  const [inlineErrors, setInlineErrors] = useState<Record<string, string>>({})
+
+  // Transition mutation with optimistic update
+  const transitionMutation = useMutation({
+    mutationFn: ({ issueKey, transitionId }: { issueKey: string; transitionId: string; toStatusName: string }) =>
+      postTransition(jiraBaseUrl!, jiraTokenRef.current ?? '', issueKey, transitionId),
+    onMutate: async ({ issueKey, toStatusName }) => {
+      await queryClient.cancelQueries({ queryKey: ['jira-issues', 'my-tasks', activeJiraProject] })
+      const prev = queryClient.getQueryData<JiraIssue[]>(['jira-issues', 'my-tasks', activeJiraProject])
+      queryClient.setQueryData<JiraIssue[]>(['jira-issues', 'my-tasks', activeJiraProject], (old) =>
+        (old ?? []).map((i) =>
+          i.key === issueKey
+            ? { ...i, fields: { ...i.fields, status: { ...i.fields.status, name: toStatusName } } }
+            : i,
+        ),
+      )
+      return { prev }
+    },
+    onError: (_err, { issueKey }, ctx) => {
+      queryClient.setQueryData(['jira-issues', 'my-tasks', activeJiraProject], ctx?.prev)
+      setInlineErrors((prev) => ({ ...prev, [`${issueKey}-transition`]: 'Failed to update — try again' }))
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: ['jira-issues', 'my-tasks', activeJiraProject] }),
+  })
+
+  // Comment mutation
+  const commentMutation = useMutation({
+    mutationFn: ({ issueKey, comment }: { issueKey: string; comment: string }) =>
+      postComment(jiraBaseUrl!, jiraTokenRef.current ?? '', issueKey, comment),
+    onSuccess: () => {
+      // TaskRow closes comment optimistically on submit
+    },
+    onError: (_err, { issueKey }) => {
+      setInlineErrors((prev) => ({ ...prev, [`${issueKey}-comment`]: 'Failed to add comment — try again' }))
+    },
+  })
+
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
     : 'Refreshed: Never'
@@ -246,8 +292,26 @@ export default function MyTasksTab() {
                 key={issue.id}
                 issue={issue}
                 linkedMrResults={linkedMrResults}
-                onStatusClick={() => {}}
-                onCommentClick={() => {}}
+                jiraBaseUrl={jiraBaseUrl ?? ''}
+                jiraToken={jiraTokenRef.current ?? ''}
+                onTransitionSelect={(issueKey, transitionId, toStatusName) => {
+                  setInlineErrors((prev) => { const next = { ...prev }; delete next[`${issueKey}-transition`]; return next })
+                  transitionMutation.mutate({ issueKey, transitionId, toStatusName })
+                }}
+                onCommentSubmit={(issueKey, comment) => {
+                  setInlineErrors((prev) => { const next = { ...prev }; delete next[`${issueKey}-comment`]; return next })
+                  commentMutation.mutate({ issueKey, comment })
+                }}
+                isTransitionPending={
+                  transitionMutation.isPending &&
+                  transitionMutation.variables?.issueKey === issue.key
+                }
+                isCommentPending={
+                  commentMutation.isPending &&
+                  commentMutation.variables?.issueKey === issue.key
+                }
+                transitionError={inlineErrors[`${issue.key}-transition`]}
+                commentError={inlineErrors[`${issue.key}-comment`]}
               />
             )
           })}
