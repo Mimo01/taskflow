@@ -1,3 +1,4 @@
+import './index.css';
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { createHashRouter, RouterProvider, Outlet } from 'react-router-dom';

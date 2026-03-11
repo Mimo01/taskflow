@@ -11,30 +11,36 @@ import {
   postComment,
 } from './jira';
 
+vi.mock('@tauri-apps/plugin-http', () => ({
+  fetch: vi.fn(),
+}));
+
+import { fetch as mockFetch } from '@tauri-apps/plugin-http';
+
 describe('jira service', () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('validateJira', () => {
     it('AUTH-01: validateJira returns user data on 200 response', async () => {
       const mockUser = { displayName: 'Jane Smith', emailAddress: 'jane@example.com' };
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      vi.mocked(mockFetch).mockResolvedValue({
         ok: true,
         status: 200,
         json: async () => mockUser,
-      }));
+      } as Response);
 
       const result = await validateJira('https://jira.example.com', 'my-token');
       expect(result).toEqual({ displayName: 'Jane Smith', emailAddress: 'jane@example.com' });
     });
 
     it('AUTH-01: validateJira throws "Invalid token or token has expired" on 401', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      vi.mocked(mockFetch).mockResolvedValue({
         ok: false,
         status: 401,
         json: async () => ({}),
-      }));
+      } as Response);
 
       await expect(validateJira('https://jira.example.com', 'bad-token')).rejects.toThrow(
         'Invalid token or token has expired',
@@ -42,11 +48,11 @@ describe('jira service', () => {
     });
 
     it('AUTH-01: validateJira throws "Token valid but lacks required permissions" on 403', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      vi.mocked(mockFetch).mockResolvedValue({
         ok: false,
         status: 403,
         json: async () => ({}),
-      }));
+      } as Response);
 
       await expect(validateJira('https://jira.example.com', 'limited-token')).rejects.toThrow(
         'Token valid but lacks required permissions',
@@ -54,7 +60,7 @@ describe('jira service', () => {
     });
 
     it('AUTH-01: validateJira throws "Cannot reach [URL]" on network error', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network failure')));
+      vi.mocked(mockFetch).mockRejectedValue(new Error('Network failure'));
 
       await expect(validateJira('https://jira.example.com', 'any-token')).rejects.toThrow(
         'Cannot reach https://jira.example.com — check the base URL',
@@ -62,11 +68,11 @@ describe('jira service', () => {
     });
 
     it('AUTH-01: validateJira throws "Cannot reach [URL]" on non-401/403 error status', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      vi.mocked(mockFetch).mockResolvedValue({
         ok: false,
         status: 500,
         json: async () => ({}),
-      }));
+      } as Response);
 
       await expect(validateJira('https://jira.example.com', 'any-token')).rejects.toThrow(
         'Cannot reach https://jira.example.com — check the base URL',
@@ -80,22 +86,22 @@ describe('jira service', () => {
         { id: '10001', key: 'APP', name: 'Application' },
         { id: '10002', key: 'BE', name: 'Backend' },
       ];
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      vi.mocked(mockFetch).mockResolvedValue({
         ok: true,
         status: 200,
         json: async () => mockProjects,
-      }));
+      } as Response);
 
       const result = await listJiraProjects('https://jira.example.com', 'my-token');
       expect(result).toEqual(mockProjects);
     });
 
     it('AUTH-06: listJiraProjects throws on 401', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      vi.mocked(mockFetch).mockResolvedValue({
         ok: false,
         status: 401,
         json: async () => ({}),
-      }));
+      } as Response);
 
       await expect(listJiraProjects('https://jira.example.com', 'bad-token')).rejects.toThrow(
         'Invalid token or token has expired',
@@ -117,11 +123,11 @@ describe('jira service', () => {
     };
 
     it('DEV-01: fetchSprintIssues returns JiraIssue[] with correct shape', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      vi.mocked(mockFetch).mockResolvedValue({
         ok: true,
         status: 200,
         json: async () => ({ issues: [mockIssue] }),
-      }));
+      } as Response);
 
       const result = await fetchSprintIssues('https://jira.example.com', 'my-token', 'PROJ');
       expect(result).toHaveLength(1);
@@ -129,39 +135,37 @@ describe('jira service', () => {
     });
 
     it('DEV-01: fetchSprintIssues with assignedToMe=true includes currentUser() in JQL', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
+      vi.mocked(mockFetch).mockResolvedValue({
         ok: true,
         status: 200,
         json: async () => ({ issues: [] }),
-      });
-      vi.stubGlobal('fetch', mockFetch);
+      } as Response);
 
       await fetchSprintIssues('https://jira.example.com', 'my-token', 'PROJ', true);
 
-      const callUrl = mockFetch.mock.calls[0][0] as string;
+      const callUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
       expect(callUrl).toContain('currentUser()');
     });
 
     it('DEV-01: fetchSprintIssues with assignedToMe=false does NOT include currentUser() in JQL', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
+      vi.mocked(mockFetch).mockResolvedValue({
         ok: true,
         status: 200,
         json: async () => ({ issues: [] }),
-      });
-      vi.stubGlobal('fetch', mockFetch);
+      } as Response);
 
       await fetchSprintIssues('https://jira.example.com', 'my-token', 'PROJ', false);
 
-      const callUrl = mockFetch.mock.calls[0][0] as string;
+      const callUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
       expect(callUrl).not.toContain('currentUser()');
     });
 
     it('DEV-01: fetchSprintIssues 400 with "function" in body throws sprint-unavailable error', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      vi.mocked(mockFetch).mockResolvedValue({
         ok: false,
         status: 400,
         text: async () => 'The function openSprints() is not recognized',
-      }));
+      } as Response);
 
       await expect(
         fetchSprintIssues('https://jira.example.com', 'my-token', 'PROJ'),
@@ -175,11 +179,11 @@ describe('jira service', () => {
         { id: '11', name: 'To Do', to: { id: '10000', name: 'To Do' } },
         { id: '21', name: 'In Progress', to: { id: '10001', name: 'In Progress' } },
       ];
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      vi.mocked(mockFetch).mockResolvedValue({
         ok: true,
         status: 200,
         json: async () => ({ transitions: mockTransitions }),
-      }));
+      } as Response);
 
       const result = await fetchTransitions('https://jira.example.com', 'my-token', 'PROJ-1');
       expect(result).toEqual(mockTransitions);
@@ -188,25 +192,24 @@ describe('jira service', () => {
 
   describe('postTransition', () => {
     it('DEV-03: postTransition calls POST with correct body and resolves void on 204', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
+      vi.mocked(mockFetch).mockResolvedValue({
         ok: true,
         status: 204,
-      });
-      vi.stubGlobal('fetch', mockFetch);
+      } as Response);
 
       const result = await postTransition('https://jira.example.com', 'my-token', 'PROJ-1', '21');
       expect(result).toBeUndefined();
 
-      const [, options] = mockFetch.mock.calls[0];
+      const [, options] = vi.mocked(mockFetch).mock.calls[0];
       const body = JSON.parse((options as RequestInit).body as string);
       expect(body).toEqual({ transition: { id: '21' } });
     });
 
     it('DEV-03: postTransition throws on non-2xx response', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      vi.mocked(mockFetch).mockResolvedValue({
         ok: false,
         status: 400,
-      }));
+      } as Response);
 
       await expect(
         postTransition('https://jira.example.com', 'my-token', 'PROJ-1', '21'),
@@ -216,25 +219,24 @@ describe('jira service', () => {
 
   describe('postComment', () => {
     it('DEV-04: postComment calls POST with correct body and resolves void on 201', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
+      vi.mocked(mockFetch).mockResolvedValue({
         ok: true,
         status: 201,
-      });
-      vi.stubGlobal('fetch', mockFetch);
+      } as Response);
 
       const result = await postComment('https://jira.example.com', 'my-token', 'PROJ-1', 'Great work!');
       expect(result).toBeUndefined();
 
-      const [, options] = mockFetch.mock.calls[0];
+      const [, options] = vi.mocked(mockFetch).mock.calls[0];
       const body = JSON.parse((options as RequestInit).body as string);
       expect(body).toEqual({ body: 'Great work!' });
     });
 
     it('DEV-04: postComment throws on non-2xx response', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      vi.mocked(mockFetch).mockResolvedValue({
         ok: false,
         status: 400,
-      }));
+      } as Response);
 
       await expect(
         postComment('https://jira.example.com', 'my-token', 'PROJ-1', 'comment'),
