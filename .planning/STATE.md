@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Completed 02-developer-dashboard 02-01-PLAN.md
-last_updated: "2026-03-11T13:49:24.397Z"
-last_activity: 2026-03-11 — Phase 1 UAT complete — 15/15 tests passed
+status: in_progress
+stopped_at: Completed 02-developer-dashboard 02-02-PLAN.md
+last_updated: "2026-03-11T15:00:00.000Z"
+last_activity: 2026-03-11 — Phase 2 Plan 02 complete — 71/71 tests passed
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 10
-  completed_plans: 7
-  percent: 100
+  completed_plans: 8
+  percent: 80
 ---
 
 # Project State
@@ -21,32 +21,33 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-10)
 
 **Core value:** Developers and PMs can see tasks, MRs, sprint state, and notifications in one place without switching between Jira and GitLab.
-**Current focus:** Phase 2 — Dashboard (Phase 1 fully complete including gap closure)
+**Current focus:** Phase 2 — Dashboard (Plans 01 and 02 complete)
 
 ## Current Position
 
-Phase: 1 of 4 (Foundation) — COMPLETE (code + UAT — 15/15 tests passed)
-Plan: 6 of 6 in current phase — COMPLETE
-Status: Phase 1 fully done — UAT passed, bugs fixed (Tailwind v4, TLS, selectors, persistence, hydration)
-Last activity: 2026-03-11 — Phase 1 UAT complete — 15/15 tests passed
+Phase: 2 of 4 (Developer Dashboard) — IN PROGRESS
+Plan: 2 of 4 in current phase — COMPLETE
+Status: Phase 2 Plans 01+02 done — service layer + full dashboard UI with polling
+Last activity: 2026-03-11 — Phase 2 Plan 02 complete — 71/71 tests passed
 
-Progress: [██████████] 100%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: ~8.2 min
-- Total execution time: ~49 min
+- Total plans completed: 8
+- Average duration: ~9.4 min
+- Total execution time: ~75 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | Phase 01-foundation | 6 | ~49 min | ~8.2 min |
+| Phase 02-developer-dashboard | 2 | ~22 min | ~11 min |
 
 **Recent Trend:**
-- Last 6 plans: 14min, 9min, 15min, 7min, 5min, 1min
+- Last 8 plans: 14min, 9min, 15min, 7min, 5min, 1min, 9min, 13min
 - Trend: Consistent
 
 *Updated after each plan completion*
@@ -57,6 +58,7 @@ Progress: [██████████] 100%
 | Phase 01-foundation P05 | 5 | 2 tasks | 4 files |
 | Phase 01-foundation P06 | 1 | 2 tasks | 2 files |
 | Phase 02-developer-dashboard P01 | 9 | 2 tasks | 7 files |
+| Phase 02-developer-dashboard P02 | 13 | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -88,6 +90,8 @@ Recent decisions affecting current work:
 - [Phase 01-foundation P06]: vi.mocked(mockFetch).mockReset() in beforeEach instead of vi.restoreAllMocks() — restoreAllMocks only resets spies, not module mocks
 - [Phase 02-developer-dashboard]: Plain fetch() enforced by linter (not @tauri-apps/plugin-http) — vi.stubGlobal pattern for tests
 - [Phase 02-developer-dashboard]: Negative lookbehind in ticket key regex: (?<![A-Za-z0-9-]) prevents PREFIX-FEAT-1 from matching FEAT-1
+- [Phase 02-developer-dashboard P02]: DashTab type extended to include mr-attention — Plan 01 store was missing the third tab value required by the UI spec
+- [Phase 02-developer-dashboard P02]: @tauri-apps/plugin-opener (openUrl) used for external links — plugin-shell not installed; openUrl is the correct API
 
 ### Pending Todos
 
@@ -101,6 +105,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-11T13:49:24.391Z
-Stopped at: Completed 02-developer-dashboard 02-01-PLAN.md
+Last session: 2026-03-11T15:00:00.000Z
+Stopped at: Completed 02-developer-dashboard 02-02-PLAN.md
 Resume file: None
