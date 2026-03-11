@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: "Completed 04-01-PLAN.md"
-last_updated: "2026-03-11T22:30:03Z"
-last_activity: 2026-03-11 — Phase 4 Plan 01 complete — service layer extended, releaseLinker tested, 5 Wave 0 scaffolds created
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-03-11T22:44:35.771Z"
+last_activity: 2026-03-11 — Phase 4 Plan 01 complete — releaseLinker 8/8 tests passed, 5 scaffold files created
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 18
-  completed_plans: 16
+  completed_plans: 17
   percent: 89
 ---
 
@@ -67,6 +67,7 @@ Progress: [████████░░] 89%
 | Phase 02-developer-dashboard P07 | 2 | 1 tasks | 1 files |
 | Phase 02-developer-dashboard P06 | 5 | 2 tasks | 3 files |
 | Phase 04-pm-dashboard-search P01 | 5 | 2 tasks | 9 files |
+| Phase 04-pm-dashboard-search P02 | 10 | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -117,6 +118,9 @@ Recent decisions affecting current work:
 - [Phase 04-pm-dashboard-search P01]: Date-only strings forced to UTC midnight (T00:00:00Z suffix) to prevent UTC+14 timezone drift in date matching
 - [Phase 04-pm-dashboard-search P01]: searchJira and searchGitLabMRs return empty array on non-200 to not block parallel search
 - [Phase 04-pm-dashboard-search P01]: Wave 0 scaffolds use vi.mock + it.todo to document component contracts before implementation
+- [Phase 04-pm-dashboard-search]: SprintProgressTab + WorkloadTab share ['jira-issues', 'sprint-board', projectKey] cache key — zero duplicate fetches
+- [Phase 04-pm-dashboard-search]: findByText in tests must target computed values not bucket labels — disabled-query initial render shows labels with 0 counts before token resolves
+- [Phase 04-pm-dashboard-search]: vi.clearAllMocks() clears mockResolvedValue implementations; async beforeEach with dynamic re-import required to restore mocks
 
 ### Pending Todos
 
@@ -130,6 +134,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-11T22:30:03Z
-Stopped at: Completed 04-01-PLAN.md
-Resume file: .planning/phases/04-pm-dashboard-search/04-02-PLAN.md
+Last session: 2026-03-11T22:44:35.765Z
+Stopped at: Completed 04-02-PLAN.md
+Resume file: None
