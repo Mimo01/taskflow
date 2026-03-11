@@ -68,11 +68,11 @@ Plans:
   3. User receives native OS desktop notifications on macOS, Windows, and Linux for new activity; when OS notification permission is denied, an actionable in-app banner explains the situation
   4. App shows a badge with the count of unread notifications that updates in real time as new items arrive
   5. User can mark individual notifications as read and can mark all notifications as read with a single action
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: Notification engine — cursor-based delta polling, stable event ID deduplication (jira-comment-{id}/gitlab-note-{id}), last-seen timestamp persistence in Tauri Store
-- [ ] 03-02: Notification hub UI — chronological feed, read/unread per item, mark-all-read, in-app badge, OS notification dispatch via Tauri Notification plugin, denied-permission banner
+- [ ] 03-01-PLAN.md — Notification engine: tauri-plugin-notification install + Cargo registration, notifications service (Jira + GitLab delta polling, deduplication, OS dispatch), notifications store (items/readIds/cursor/permissionDenied persisted), settings store extension (pollIntervalSecs + per-source OS toggles), auth store extension (jiraUserDisplayName/Username/gitlabUserId), Wave 0 test scaffolds
+- [ ] 03-02-PLAN.md — Notifications hub UI: TopBar with bell + badge (capped 99+), NotificationPopover with TanStack Query polling + feed list + mark-all-read, NotificationRow (source border/icon/unread bold/preview), NotificationDetail (read-only inline panel), NotificationSettingsSection, TopBar wired into AppLayout, Settings page extended
 
 ### Phase 4: PM Dashboard + Search
 **Goal**: A project manager can see sprint progress, team workload, and release state; any user can search across tasks and MRs by keyword or ticket key
