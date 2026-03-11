@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 3 context gathered
-last_updated: "2026-03-11T14:40:30.791Z"
+stopped_at: Completed 03-notifications-hub/03-01-PLAN.md
+last_updated: "2026-03-11T15:09:00.317Z"
 last_activity: 2026-03-11 — Phase 2 Plan 04 complete — 86/86 tests passed
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 10
-  completed_plans: 10
+  total_plans: 12
+  completed_plans: 11
   percent: 100
 ---
 
@@ -61,6 +61,7 @@ Progress: [██████████] 100%
 | Phase 02-developer-dashboard P02 | 13 | 3 tasks | 13 files |
 | Phase 02-developer-dashboard P03 | 6 | 1 tasks | 7 files |
 | Phase 02-developer-dashboard P04 | 5 | 1 tasks | 5 files |
+| Phase 03-notifications-hub P01 | 8 | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,8 @@ Recent decisions affecting current work:
 - [Phase 02-developer-dashboard]: TaskRow prop renamed from linkedMrs to linkedMrResults: Array<{mr, health}> — breaking change contained within dashboard package (Plan 02 stub passed [])
 - [Phase 02-developer-dashboard P04]: PopoverTrigger renders text directly (not asChild) — base-ui asChild wraps in outer button creating nested buttons, breaking accessibility and tests
 - [Phase 02-developer-dashboard P04]: Per-row inline errors keyed by issueKey-transition and issueKey-comment in MyTasksTab state map — scoped errors without prop drilling complex error objects
+- [Phase 03-notifications-hub]: readIds stored as string[] not Set in notifications store — Zustand JSON persist serializes Set as empty object, losing read state on restart
+- [Phase 03-notifications-hub]: LazyStore vi.mock requires class constructor syntax — vi.fn().mockImplementation is not a constructor and throws when used with new
 
 ### Pending Todos
 
@@ -112,6 +115,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-11T14:40:30.784Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-notifications-hub/03-CONTEXT.md
+Last session: 2026-03-11T15:09:00.313Z
+Stopped at: Completed 03-notifications-hub/03-01-PLAN.md
+Resume file: None

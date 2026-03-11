@@ -43,12 +43,12 @@
 
 ### Notifications Hub
 
-- [ ] **NOTF-01**: User sees a unified notification feed combining Jira comment mentions/replies and GitLab MR thread activity
-- [ ] **NOTF-02**: Notifications are fetched via polling (configurable interval, minimum 30 seconds)
-- [ ] **NOTF-03**: User receives native OS desktop notifications (macOS, Windows, Linux) for new activity
-- [ ] **NOTF-04**: App shows an in-app badge with the count of unread notifications
-- [ ] **NOTF-05**: User can mark individual notifications as read
-- [ ] **NOTF-06**: User can mark all notifications as read
+- [x] **NOTF-01**: User sees a unified notification feed combining Jira comment mentions/replies and GitLab MR thread activity
+- [x] **NOTF-02**: Notifications are fetched via polling (configurable interval, minimum 30 seconds)
+- [x] **NOTF-03**: User receives native OS desktop notifications (macOS, Windows, Linux) for new activity
+- [x] **NOTF-04**: App shows an in-app badge with the count of unread notifications
+- [x] **NOTF-05**: User can mark individual notifications as read
+- [x] **NOTF-06**: User can mark all notifications as read
 
 ### PM Dashboard
 
@@ -135,12 +135,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | JACT-02 | Phase 2 | Complete |
 | UI-02 | Phase 2 | Complete |
 | UI-03 | Phase 2 | Complete |
-| NOTF-01 | Phase 3 | Pending |
-| NOTF-02 | Phase 3 | Pending |
-| NOTF-03 | Phase 3 | Pending |
-| NOTF-04 | Phase 3 | Pending |
-| NOTF-05 | Phase 3 | Pending |
-| NOTF-06 | Phase 3 | Pending |
+| NOTF-01 | Phase 3 | Complete |
+| NOTF-02 | Phase 3 | Complete |
+| NOTF-03 | Phase 3 | Complete |
+| NOTF-04 | Phase 3 | Complete |
+| NOTF-05 | Phase 3 | Complete |
+| NOTF-06 | Phase 3 | Complete |
 | PM-01 | Phase 4 | Pending |
 | PM-02 | Phase 4 | Pending |
 | PM-03 | Phase 4 | Pending |
