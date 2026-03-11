@@ -109,7 +109,7 @@ export default function JiraStep() {
         {showProjectDropdown && (
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="jira-project">Select Project</Label>
-            <Select value={selectedProject} onValueChange={setSelectedProject}>
+            <Select value={selectedProject} onValueChange={(v) => v && setSelectedProject(v)}>
               <SelectTrigger id="jira-project">
                 <SelectValue placeholder="Choose a project..." />
               </SelectTrigger>

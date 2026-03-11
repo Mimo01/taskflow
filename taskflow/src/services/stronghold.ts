@@ -71,6 +71,7 @@ export async function storeSecret(key: string, value: string): Promise<void> {
 export async function readSecret(key: string): Promise<string> {
   const store = await getStore();
   const data = await store.get(key);
+  if (data === null) throw new Error(`Secret not found: ${key}`);
   return new TextDecoder().decode(new Uint8Array(data));
 }
 
