@@ -64,7 +64,7 @@
 
 ### UI & Polish
 
-- [ ] **UI-01**: User can toggle between dark and light mode
+- [x] **UI-01**: User can toggle between dark and light mode
 - [ ] **UI-02**: App shows last-refreshed timestamp on all data views
 - [ ] **UI-03**: App shows a loading state during API calls and a meaningful error message on failure
 
@@ -121,7 +121,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-06 | Phase 1 | Pending |
 | ROLE-01 | Phase 1 | Pending |
 | ROLE-02 | Phase 1 | Pending |
-| UI-01 | Phase 1 | Pending |
+| UI-01 | Phase 1 | Complete |
 | DEV-01 | Phase 2 | Pending |
 | DEV-02 | Phase 2 | Pending |
 | DEV-03 | Phase 2 | Pending |

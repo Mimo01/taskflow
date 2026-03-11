@@ -29,12 +29,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. App shows a clear, actionable error banner when a token is invalid or expired, not a generic failure message
   4. User can select Developer or Project Manager role during onboarding and change it from settings at any time
   5. User can switch between dark and light mode and the preference persists across app restarts
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: Tauri 2 project scaffold — app shell, React 18 + TypeScript, routing, shadcn/ui, Tailwind v3, Zustand, dev/Tauri abstraction layer
-- [ ] 01-02: PAT onboarding flow — entry form, Tauri Stronghold storage, Jira/GitLab validation calls, project/group selection, 401 re-auth banner
-- [ ] 01-03: Role selection + settings — role picker (onboarding + settings), dark/light mode toggle with persistence
+- [ ] 01-01-PLAN.md — Tauri 2 project scaffold: app shell, React 18 + TypeScript, routing, shadcn/ui, Tailwind v3, Zustand stores, Tauri abstraction layer, test infrastructure
+- [ ] 01-02-PLAN.md — PAT onboarding flow: credential entry form, Tauri Stronghold storage, Jira/GitLab validation calls with exact error messages, inline project/group selection, re-auth banner
+- [ ] 01-03-PLAN.md — Role selection + settings: role picker in onboarding and settings, dark/light/system theme toggle with persistence, token masking with eye-reveal, sidebar navigation
 
 ### Phase 2: Developer Dashboard
 **Goal**: A developer can open the app, see their current sprint tasks and MRs that need attention, understand which MRs are linked to which tasks, and take actions on Jira tasks without leaving the app
@@ -94,7 +94,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/3 | Not started | - |
+| 1. Foundation | 1/3 | In Progress|  |
 | 2. Developer Dashboard | 0/4 | Not started | - |
 | 3. Notifications Hub | 0/2 | Not started | - |
 | 4. PM Dashboard + Search | 0/3 | Not started | - |
