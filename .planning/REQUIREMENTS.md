@@ -52,15 +52,15 @@
 
 ### PM Dashboard
 
-- [ ] **PM-01**: Project Manager sees sprint progress: task counts by status (to do / in progress / done) and story points done vs remaining
-- [ ] **PM-02**: Project Manager sees team workload: open task count and story points per team member for the current sprint
-- [ ] **PM-03**: Project Manager sees a Releases view listing Jira fix versions with their linked GitLab milestone or tag
-- [ ] **PM-04**: Releases view shows the count of tasks per fix version and their completion status
+- [x] **PM-01**: Project Manager sees sprint progress: task counts by status (to do / in progress / done) and story points done vs remaining
+- [x] **PM-02**: Project Manager sees team workload: open task count and story points per team member for the current sprint
+- [x] **PM-03**: Project Manager sees a Releases view listing Jira fix versions with their linked GitLab milestone or tag
+- [x] **PM-04**: Releases view shows the count of tasks per fix version and their completion status
 
 ### Global Search
 
-- [ ] **SRCH-01**: User can search across Jira tasks and GitLab MRs by keyword or ticket key
-- [ ] **SRCH-02**: Search results are grouped by type (tasks vs MRs) and link to the detail view
+- [x] **SRCH-01**: User can search across Jira tasks and GitLab MRs by keyword or ticket key
+- [x] **SRCH-02**: Search results are grouped by type (tasks vs MRs) and link to the detail view
 
 ### UI & Polish
 
@@ -141,12 +141,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | NOTF-04 | Phase 3 | Complete |
 | NOTF-05 | Phase 3 | Complete |
 | NOTF-06 | Phase 3 | Complete |
-| PM-01 | Phase 4 | Pending |
-| PM-02 | Phase 4 | Pending |
-| PM-03 | Phase 4 | Pending |
-| PM-04 | Phase 4 | Pending |
-| SRCH-01 | Phase 4 | Pending |
-| SRCH-02 | Phase 4 | Pending |
+| PM-01 | Phase 4 | Complete |
+| PM-02 | Phase 4 | Complete |
+| PM-03 | Phase 4 | Complete |
+| PM-04 | Phase 4 | Complete |
+| SRCH-01 | Phase 4 | Complete |
+| SRCH-02 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 35 total

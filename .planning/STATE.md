@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 4 context gathered
-last_updated: "2026-03-11T22:08:27.776Z"
-last_activity: 2026-03-11 — Phase 2 Plan 04 complete — 86/86 tests passed
+stopped_at: "Completed 04-01-PLAN.md"
+last_updated: "2026-03-11T22:30:03Z"
+last_activity: 2026-03-11 — Phase 4 Plan 01 complete — service layer extended, releaseLinker tested, 5 Wave 0 scaffolds created
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 15
-  completed_plans: 15
-  percent: 100
+  total_plans: 18
+  completed_plans: 16
+  percent: 89
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-10)
 
 ## Current Position
 
-Phase: 2 of 4 (Developer Dashboard) — COMPLETE
-Plan: 4 of 4 in current phase — COMPLETE
-Status: Phase 2 all plans done — write actions (transition + comment) complete
-Last activity: 2026-03-11 — Phase 2 Plan 04 complete — 86/86 tests passed
+Phase: 4 of 4 (PM Dashboard & Search) — IN PROGRESS
+Plan: 1 of 3 in current phase — COMPLETE
+Status: Phase 4 Plan 01 done — service layer extensions and Wave 0 test scaffolds in place
+Last activity: 2026-03-11 — Phase 4 Plan 01 complete — releaseLinker 8/8 tests passed, 5 scaffold files created
 
-Progress: [██████████] 100%
+Progress: [████████░░] 89%
 
 ## Performance Metrics
 
@@ -66,6 +66,7 @@ Progress: [██████████] 100%
 | Phase 02-developer-dashboard P05 | 1 | 1 tasks | 3 files |
 | Phase 02-developer-dashboard P07 | 2 | 1 tasks | 1 files |
 | Phase 02-developer-dashboard P06 | 5 | 2 tasks | 3 files |
+| Phase 04-pm-dashboard-search P01 | 5 | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -112,6 +113,10 @@ Recent decisions affecting current work:
 - [Phase 02-developer-dashboard]: Selector visibility gated on baseUrl presence (not list length) in TokenSection — ensures selector always reachable when integration is configured
 - [Phase 02-developer-dashboard]: TaskRow manages commentOpen locally; MyTasksTab owns mutations and error strings — clean separation of UI state vs server state
 - [Phase 02-developer-dashboard]: Comment pane closes optimistically on submit in TaskRow onSubmit callback — openCommentKey in MyTasksTab removed as redundant
+- [Phase 04-pm-dashboard-search P01]: statusCategory on JiraIssue.fields.status is optional (?) — Jira Server on-prem may omit it; callers use ?.key with fallback
+- [Phase 04-pm-dashboard-search P01]: Date-only strings forced to UTC midnight (T00:00:00Z suffix) to prevent UTC+14 timezone drift in date matching
+- [Phase 04-pm-dashboard-search P01]: searchJira and searchGitLabMRs return empty array on non-200 to not block parallel search
+- [Phase 04-pm-dashboard-search P01]: Wave 0 scaffolds use vi.mock + it.todo to document component contracts before implementation
 
 ### Pending Todos
 
@@ -125,6 +130,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-11T22:08:27.771Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-pm-dashboard-search/04-CONTEXT.md
+Last session: 2026-03-11T22:30:03Z
+Stopped at: Completed 04-01-PLAN.md
+Resume file: .planning/phases/04-pm-dashboard-search/04-02-PLAN.md
