@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 04-pm-dashboard-search
 source: 04-01-SUMMARY.md, 04-02-SUMMARY.md, 04-03-SUMMARY.md
 started: 2026-03-11T23:00:00Z
@@ -68,19 +68,39 @@ skipped: 0
   reason: "User reported: Unexpected Application Error! (fixVersions ?? []).map is not a function. (fixVersions ?? []).map is undefined"
   severity: blocker
   test: 4
-  artifacts: []
-  missing: []
+  root_cause: "fetchFixVersions calls /rest/api/2/version with ?maxResults=50 which returns a paginated envelope { values: [...], total, ... } not a bare array; the function casts it as JiraFixVersion[] silencing TypeScript, but at runtime fixVersions is the envelope object — truthy, so ?? [] doesn't trigger, and .map fails"
+  artifacts:
+    - path: "taskflow/src/services/jira.ts"
+      issue: "fetchFixVersions returns raw paginated envelope object instead of data.values array"
+    - path: "taskflow/src/routes/dashboard/ReleasesTab.tsx"
+      issue: "(fixVersions ?? []).map(...) called on envelope object — crashes because object has no .map"
+  missing:
+    - "Fix fetchFixVersions to extract and return data.values instead of casting the raw response"
 - truth: "Jira issue detail panel shows a description excerpt"
   status: failed
   reason: "User reported: the description is not rendered properly but as plaintext with all special chars"
   severity: major
   test: 8
-  artifacts: []
-  missing: []
+  root_cause: "Jira Cloud returns description as ADF (Atlassian Document Format) JSON object, but the type declares it as string and SearchResultPanel calls .slice(0, 200) directly on it — producing [object Object] or raw JSON characters rendered verbatim in a <p> tag"
+  artifacts:
+    - path: "taskflow/src/services/jira.ts"
+      issue: "description typed as string | null but Jira Cloud returns ADF JSON object"
+    - path: "taskflow/src/components/app/SearchResultPanel.tsx"
+      issue: "descriptionExcerpt = issue.fields.description.slice(0, 200) — no ADF-to-text conversion before slicing"
+  missing:
+    - "Add ADF-to-plaintext utility that walks ADF content nodes and extracts text leaf values"
+    - "Call utility in SearchResultPanel before slicing description"
 - truth: "GitLab MR detail panel shows linked ticket key chip"
   status: failed
   reason: "User reported: would expect to have a link to jira ticket as well (if available) — chip shown but not clickable/linked"
   severity: major
   test: 8
-  artifacts: []
-  missing: []
+  root_cause: "GitLabPanel component receives no jiraBaseUrl prop — it is not forwarded from SearchResultPanel's root — so the linked ticket key chip is a plain <span> with no onClick/openUrl handler"
+  artifacts:
+    - path: "taskflow/src/components/app/SearchResultPanel.tsx"
+      issue: "GitLabPanel accepts only { mr, onBack } — jiraBaseUrl not in props interface and not forwarded at call site (line 157)"
+    - path: "taskflow/src/components/app/SearchResultPanel.tsx"
+      issue: "Linked key chip rendered as <span> with no onClick (lines 132-136)"
+  missing:
+    - "Add jiraBaseUrl to GitLabPanel props and forward from parent call site"
+    - "Replace chip <span> with <button> calling openUrl(`${jiraBaseUrl}/browse/${linkedKey}`) — same pattern as Jira panel's 'Open in Jira' button"
