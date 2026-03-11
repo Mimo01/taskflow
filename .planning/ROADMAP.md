@@ -13,7 +13,7 @@ Taskflow is built in four phases that follow a strict dependency chain. Phase 1 
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Tauri shell, PAT onboarding, OS keychain credential storage, and role selection
-- [ ] **Phase 2: Developer Dashboard** - Developer view with live tasks, sprint board, MR attention list, task-MR linking, and Jira write actions
+- [x] **Phase 2: Developer Dashboard** - Developer view with live tasks, sprint board, MR attention list, task-MR linking, and Jira write actions (completed 2026-03-11)
 - [ ] **Phase 3: Notifications Hub** - Unified notification feed with polling, OS desktop notifications, in-app badge, and read/unread tracking
 - [ ] **Phase 4: PM Dashboard + Search** - PM sprint and workload views, global search, and remaining UI polish
 
@@ -101,6 +101,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 6/6 | Complete   | 2026-03-11 |
-| 2. Developer Dashboard | 5/7 | In Progress|  |
+| 2. Developer Dashboard | 7/7 | Complete   | 2026-03-11 |
 | 3. Notifications Hub | 1/2 | In Progress|  |
 | 4. PM Dashboard + Search | 0/3 | Not started | - |
