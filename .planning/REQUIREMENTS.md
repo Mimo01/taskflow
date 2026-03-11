@@ -33,8 +33,8 @@
 
 - [x] **LINK-01**: App automatically links Jira tasks to GitLab MRs by parsing the Jira ticket key (e.g., PROJ-123) from MR title
 - [x] **LINK-02**: App falls back to scanning commit messages when ticket key is absent from MR title
-- [ ] **LINK-03**: Linked MRs are displayed on the task card (title, status, author)
-- [ ] **LINK-04**: Linked Jira task is displayed on the MR card (key, summary, status)
+- [x] **LINK-03**: Linked MRs are displayed on the task card (title, status, author)
+- [x] **LINK-04**: Linked Jira task is displayed on the MR card (key, summary, status)
 
 ### Jira Actions
 
@@ -129,8 +129,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEV-05 | Phase 2 | Complete |
 | LINK-01 | Phase 2 | Complete |
 | LINK-02 | Phase 2 | Complete |
-| LINK-03 | Phase 2 | Pending |
-| LINK-04 | Phase 2 | Pending |
+| LINK-03 | Phase 2 | Complete |
+| LINK-04 | Phase 2 | Complete |
 | JACT-01 | Phase 2 | Pending |
 | JACT-02 | Phase 2 | Pending |
 | UI-02 | Phase 2 | Complete |
