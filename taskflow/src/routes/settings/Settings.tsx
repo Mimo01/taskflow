@@ -7,6 +7,8 @@
 import TokenSection from './TokenSection';
 import RoleSection from './RoleSection';
 import ThemeSection from './ThemeSection';
+import StaleMrThresholdSection from './StaleMrThresholdSection';
+import NotificationSettingsSection from './NotificationSettingsSection';
 
 export default function Settings() {
   return (
@@ -14,7 +16,7 @@ export default function Settings() {
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Manage your credentials, role, and appearance.
+          Manage your credentials, role, appearance, and MR preferences.
         </p>
       </div>
 
@@ -27,6 +29,14 @@ export default function Settings() {
 
         <div className="pt-8">
           <ThemeSection />
+        </div>
+
+        <div className="pt-8">
+          <StaleMrThresholdSection />
+        </div>
+
+        <div className="pt-8">
+          <NotificationSettingsSection />
         </div>
       </div>
     </div>

@@ -1,6 +1,10 @@
 /**
  * TopBar — persistent top bar with bell icon, unread badge, and notification popover trigger.
  *
+ * Pure UI component: renders badge from unread count, wraps bell in Popover trigger.
+ * Polling is performed by useNotificationPolling hook called from AppLayout in main.tsx
+ * (requires QueryClientProvider — separated so TopBar tests work without a QueryClient wrapper).
+ *
  * Rendered as first child of the flex-col div inside AppLayout (after onboarding check).
  * Bell badge shows unread count capped at 99+. Zero = badge hidden.
  */
