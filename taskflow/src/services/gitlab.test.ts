@@ -1,13 +1,6 @@
 // AUTH-02: GitLab PAT validation
 // DEV-05: Phase 2 GitLab MR functions
-import { vi } from 'vitest';
-
-vi.mock('@tauri-apps/plugin-http', () => ({
-  fetch: vi.fn(),
-}));
-
-import { describe, it, expect, beforeEach } from 'vitest';
-import { fetch as mockFetch } from '@tauri-apps/plugin-http';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   validateGitLab,
   listGitLabGroups,
@@ -20,28 +13,28 @@ import {
 
 describe('gitlab service', () => {
   beforeEach(() => {
-    vi.mocked(mockFetch).mockReset();
+    vi.restoreAllMocks();
   });
 
   describe('validateGitLab', () => {
     it('AUTH-02: validateGitLab returns user data on 200 response', async () => {
       const mockUser = { id: 42, name: 'Jane Smith', username: 'jsmith' };
-      vi.mocked(mockFetch).mockResolvedValue({
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
         json: async () => mockUser,
-      } as any);
+      }));
 
       const result = await validateGitLab('https://gitlab.example.com', 'my-token');
       expect(result).toEqual({ id: 42, name: 'Jane Smith', username: 'jsmith' });
     });
 
     it('AUTH-02: validateGitLab throws "Invalid token or token has expired" on 401', async () => {
-      vi.mocked(mockFetch).mockResolvedValue({
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
         ok: false,
         status: 401,
         json: async () => ({}),
-      } as any);
+      }));
 
       await expect(validateGitLab('https://gitlab.example.com', 'bad-token')).rejects.toThrow(
         'Invalid token or token has expired',
@@ -49,11 +42,11 @@ describe('gitlab service', () => {
     });
 
     it('AUTH-02: validateGitLab throws "Token valid but lacks required permissions" on 403', async () => {
-      vi.mocked(mockFetch).mockResolvedValue({
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
         ok: false,
         status: 403,
         json: async () => ({}),
-      } as any);
+      }));
 
       await expect(validateGitLab('https://gitlab.example.com', 'limited-token')).rejects.toThrow(
         'Token valid but lacks required permissions',
@@ -61,7 +54,7 @@ describe('gitlab service', () => {
     });
 
     it('AUTH-02: validateGitLab throws "Cannot reach [URL]" on network error', async () => {
-      vi.mocked(mockFetch).mockRejectedValue(new Error('Network failure'));
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network failure')));
 
       await expect(validateGitLab('https://gitlab.example.com', 'any-token')).rejects.toThrow(
         'Cannot reach https://gitlab.example.com — check the base URL',
@@ -69,11 +62,11 @@ describe('gitlab service', () => {
     });
 
     it('AUTH-02: validateGitLab throws "Cannot reach [URL]" on non-401/403 error status', async () => {
-      vi.mocked(mockFetch).mockResolvedValue({
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
         ok: false,
         status: 500,
         json: async () => ({}),
-      } as any);
+      }));
 
       await expect(validateGitLab('https://gitlab.example.com', 'any-token')).rejects.toThrow(
         'Cannot reach https://gitlab.example.com — check the base URL',
@@ -87,11 +80,11 @@ describe('gitlab service', () => {
         { id: 1, name: 'Engineering', full_path: 'engineering' },
         { id: 2, name: 'Frontend', full_path: 'engineering/frontend' },
       ];
-      vi.mocked(mockFetch).mockResolvedValue({
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
         json: async () => mockGroups,
-      } as any);
+      }));
 
       const result = await listGitLabGroups('https://gitlab.example.com', 'my-token');
       expect(result).toEqual(mockGroups);
@@ -112,11 +105,11 @@ describe('gitlab service', () => {
     };
 
     it('DEV-05: fetchAssignedMRs returns GitLabMR[]', async () => {
-      vi.mocked(mockFetch).mockResolvedValue({
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
         json: async () => [mockMR],
-      } as any);
+      }));
 
       const result = await fetchAssignedMRs('https://gitlab.example.com', 'my-token');
       expect(result).toHaveLength(1);
@@ -126,15 +119,16 @@ describe('gitlab service', () => {
 
   describe('fetchReviewerMRs', () => {
     it('DEV-05: fetchReviewerMRs calls URL with reviewer_id param', async () => {
-      vi.mocked(mockFetch).mockResolvedValue({
+      const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
         json: async () => [],
-      } as any);
+      });
+      vi.stubGlobal('fetch', mockFetch);
 
       await fetchReviewerMRs('https://gitlab.example.com', 'my-token', 42);
 
-      const callUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      const callUrl = mockFetch.mock.calls[0][0] as string;
       expect(callUrl).toContain('reviewer_id=42');
     });
   });
@@ -144,11 +138,11 @@ describe('gitlab service', () => {
       const mockCommits = [
         { id: 'abc123', title: 'PROJ-42 fix login', message: 'PROJ-42 fix login\n\nDetails here' },
       ];
-      vi.mocked(mockFetch).mockResolvedValue({
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
         json: async () => mockCommits,
-      } as any);
+      }));
 
       const result = await fetchMRCommits('https://gitlab.example.com', 'my-token', 5, 1);
       expect(result).toEqual(mockCommits);
@@ -161,11 +155,11 @@ describe('gitlab service', () => {
         approved_by: [{ user: { id: 2, name: 'Bob' } }],
         approved: true,
       };
-      vi.mocked(mockFetch).mockResolvedValue({
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
         json: async () => mockApprovals,
-      } as any);
+      }));
 
       const result = await fetchMRApprovals('https://gitlab.example.com', 'my-token', 5, 1);
       expect(result).toEqual(mockApprovals);
@@ -181,11 +175,11 @@ describe('gitlab service', () => {
           notes: [{ id: 'n1', resolvable: true, resolved: false, body: 'Please fix this' }],
         },
       ];
-      vi.mocked(mockFetch).mockResolvedValue({
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
         json: async () => mockDiscussions,
-      } as any);
+      }));
 
       const result = await fetchMRDiscussions('https://gitlab.example.com', 'my-token', 5, 1);
       expect(result).toEqual(mockDiscussions);
