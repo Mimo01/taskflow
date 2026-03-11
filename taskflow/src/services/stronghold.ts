@@ -23,6 +23,7 @@ const metaStore = new LazyStore('stronghold-meta.json');
 
 let _stronghold: Stronghold | null = null;
 let _store: ReturnType<Client['getStore']> | null = null;
+let _initPromise: Promise<ReturnType<Client['getStore']>> | null = null;
 
 async function getVaultPassword(): Promise<string> {
   const existing = await metaStore.get<string>('vault-password');
@@ -41,16 +42,20 @@ async function getVaultPassword(): Promise<string> {
 
 async function getStore(): Promise<ReturnType<Client['getStore']>> {
   if (_store) return _store;
+  if (_initPromise) return _initPromise;
 
-  const vaultPath = `${await appDataDir()}/vault.hold`;
-  const password = await getVaultPassword();
+  _initPromise = (async () => {
+    const vaultPath = `${await appDataDir()}/vault.hold`;
+    const password = await getVaultPassword();
+    _stronghold = await Stronghold.load(vaultPath, password);
+    const client = await _stronghold
+      .loadClient('taskflow')
+      .catch(() => _stronghold!.createClient('taskflow'));
+    _store = client.getStore();
+    return _store;
+  })();
 
-  _stronghold = await Stronghold.load(vaultPath, password);
-  const client = await _stronghold
-    .loadClient('taskflow')
-    .catch(() => _stronghold!.createClient('taskflow'));
-  _store = client.getStore();
-  return _store;
+  return _initPromise;
 }
 
 /**
