@@ -1,8 +1,8 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "Jira PAT validation fails with CORS error: Fetch API cannot load https://jira.orange.sk/rest/api/2/myself due to access control checks"
 created: 2026-03-11T10:30:00Z
-updated: 2026-03-11T10:35:00Z
+updated: 2026-03-11T22:00:00Z
 ---
 
 ## Current Focus
@@ -10,7 +10,7 @@ updated: 2026-03-11T10:35:00Z
 hypothesis: Plain fetch() in Tauri 2 renderer IS subject to CORS because tauri-plugin-http's http:default capability has no allowed URL scope configured, so the webview enforces CORS normally
 test: Read acl-manifests.json to confirm http:default requires explicit URL scope
 expecting: Confirmed — scope is empty, so fetch() is blocked by CORS
-next_action: DIAGNOSED — root cause confirmed
+next_action: RESOLVED — fix confirmed applied in commits c893c33 and 2b2da50
 
 ## Symptoms
 
@@ -63,8 +63,14 @@ started: Discovered during UAT (2026-03-11)
 
 ## Resolution
 
-root_cause: In Tauri 2, plain browser fetch() in the renderer is NOT CORS-exempt. The webview runs in a normal browser security context and enforces CORS. The project's design decision "Plain fetch() works in Tauri renderer — tauri-plugin-http not needed" is wrong. To bypass CORS, code must use tauri-plugin-http's own fetch wrapper (which proxies through the Rust backend), AND the capabilities must include a URL scope allowlist. The current capabilities/default.json has "http:default" but no scope entry, meaning even if the correct fetch wrapper were used, all URLs would be blocked.
+root_cause: In Tauri 2, plain browser fetch() in the renderer is NOT CORS-exempt. The webview runs in a normal browser security context and enforces CORS. The project's design decision "Plain fetch() works in Tauri renderer — tauri-plugin-http not needed" is wrong. To bypass CORS, code must use tauri-plugin-http's own fetch wrapper (which proxies through the Rust backend), AND the capabilities must include a URL scope allowlist.
 
-fix: (not applied — diagnose-only mode)
-verification: (not applied — diagnose-only mode)
-files_changed: []
+fix: |
+  1. jira.ts: replaced native fetch() with `import { fetch } from '@tauri-apps/plugin-http'`
+  2. gitlab.ts: replaced native fetch() with `import { fetch } from '@tauri-apps/plugin-http'`
+  3. capabilities/default.json: replaced "http:default" with explicit http:allow-fetch (scope: https://** and http://**) plus http:allow-fetch-send, http:allow-fetch-cancel, http:allow-fetch-read-body
+verification: Fix confirmed applied in commits c893c33 (initial fix) and 2b2da50 (UAT refinement). Human verification confirmed fix resolves the issue.
+files_changed:
+  - taskflow/src/services/jira.ts
+  - taskflow/src/services/gitlab.ts
+  - taskflow/src-tauri/capabilities/default.json
