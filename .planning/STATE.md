@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 01-foundation-05-PLAN.md
-last_updated: "2026-03-11T09:48:20.023Z"
-last_activity: 2026-03-11 — Phase 1 gap closure complete (plan 04)
+stopped_at: Completed 01-foundation-06-PLAN.md
+last_updated: "2026-03-11T10:06:31Z"
+last_activity: 2026-03-11 — Phase 1 plan 06 complete — 42/42 tests pass with correct vi.mock pattern
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 6
+  completed_plans: 6
   percent: 25
 ---
 
@@ -25,28 +25,28 @@ See: .planning/PROJECT.md (updated 2026-03-10)
 
 ## Current Position
 
-Phase: 1 of 4 (Foundation) — COMPLETE (including gap closure plan 04)
-Plan: 4 of 4 in current phase — COMPLETE
-Status: Phase 1 fully complete — tsc clean, all 42 tests pass, queryClient.clear() wired
-Last activity: 2026-03-11 — Phase 1 gap closure complete (plan 04)
+Phase: 1 of 4 (Foundation) — COMPLETE (including gap closure plans 04, 05, 06)
+Plan: 6 of 6 in current phase — COMPLETE
+Status: Phase 1 fully complete — tsc clean, all 42 tests pass, correct vi.mock pattern established
+Last activity: 2026-03-11 — Phase 1 plan 06 complete — vi.mock pattern fixes 9 failing tests
 
-Progress: [██░░░░░░░░] 25%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: ~10.5 min
-- Total execution time: ~45 min
+- Total plans completed: 6
+- Average duration: ~8.2 min
+- Total execution time: ~49 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| Phase 01-foundation | 4 | ~45 min | ~11.3 min |
+| Phase 01-foundation | 6 | ~49 min | ~8.2 min |
 
 **Recent Trend:**
-- Last 5 plans: 14min, 9min, 15min, 7min
+- Last 6 plans: 14min, 9min, 15min, 7min, 5min, 1min
 - Trend: Consistent
 
 *Updated after each plan completion*
@@ -55,6 +55,7 @@ Progress: [██░░░░░░░░] 25%
 | Phase 01-foundation P03 | 15 | 2 tasks | 16 files |
 | Phase 01-foundation P04 | 7 | 2 tasks | 6 files |
 | Phase 01-foundation P05 | 5 | 2 tasks | 4 files |
+| Phase 01-foundation P06 | 1 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,8 @@ Recent decisions affecting current work:
 - [Phase 01-foundation P04]: queryClient.clear() called synchronously in handleProjectChange alongside setActiveJiraProject
 - [Phase 01-foundation]: tauri-plugin-http fetch required in renderer — plain fetch() causes CORS errors in Tauri 2 webview; prior STATE.md note was incorrect
 - [Phase 01-foundation]: Tauri capabilities scope must include https://** and http://** for on-premise Jira/GitLab instances
+- [Phase 01-foundation P06]: vi.mock('@tauri-apps/plugin-http') at module scope required to intercept named ES module import binding — vi.stubGlobal only patches globalThis.fetch which production services no longer use
+- [Phase 01-foundation P06]: vi.mocked(mockFetch).mockReset() in beforeEach instead of vi.restoreAllMocks() — restoreAllMocks only resets spies, not module mocks
 
 ### Pending Todos
 
@@ -95,6 +98,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-11T09:48:20.018Z
-Stopped at: Completed 01-foundation-05-PLAN.md
+Last session: 2026-03-11T10:06:31Z
+Stopped at: Completed 01-foundation-06-PLAN.md
 Resume file: None
