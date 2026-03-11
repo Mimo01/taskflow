@@ -1,13 +1,15 @@
-import './index.css';
-import React from 'react';
+import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { createHashRouter, RouterProvider, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { loadTheme } from './services/theme';
 import { useSettingsStore } from './stores/settings.store';
 import { useAuthStore } from './stores/auth.store';
 import Sidebar from './components/app/Sidebar';
 import ReAuthBanner from './components/app/ReAuthBanner';
+import TopBar from './components/app/TopBar';
+import { useNotificationPolling } from './hooks/useNotificationPolling';
 import Onboarding from './routes/onboarding/index';
 import Dashboard from './routes/dashboard/index';
 import Settings from './routes/settings/index';
@@ -26,12 +28,16 @@ const queryClient = new QueryClient({
  * Shows ReAuthBanner if jiraConnected is false but onboarding is complete.
  */
 function AppLayout() {
-  const { onboardingComplete, _hasHydrated } = useSettingsStore();
+  const { onboardingComplete } = useSettingsStore();
   const { jiraConnected } = useAuthStore();
 
-  if (!_hasHydrated) {
-    return null;
-  }
+  // Bring window to front when OS notification click activates the app
+  useEffect(() => {
+    getCurrentWindow().setFocus().catch(() => {});
+  }, []);
+
+  // Notification polling — runs inside QueryClientProvider context
+  useNotificationPolling();
 
   if (!onboardingComplete) {
     // During onboarding, no sidebar
@@ -42,6 +48,7 @@ function AppLayout() {
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
+        <TopBar />
         {!jiraConnected && <ReAuthBanner />}
         <main className="flex-1 overflow-auto">
           <Outlet />
