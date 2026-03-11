@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 01-foundation
 source: 01-01-SUMMARY.md, 01-02-SUMMARY.md, 01-03-SUMMARY.md, 01-04-SUMMARY.md
 started: 2026-03-11T10:15:00Z
@@ -102,21 +102,43 @@ skipped: 11
   reason: "User reported: The app has no styles."
   severity: blocker
   test: 1
-  artifacts: []
-  missing: []
+  root_cause: "src/index.css is never imported in main.tsx. The CSS file exists and is fully populated (Tailwind directives, shadcn CSS variables) but is excluded from Vite's module graph because there is no `import './index.css'` in main.tsx."
+  artifacts:
+    - path: "taskflow/src/main.tsx"
+      issue: "Missing `import './index.css'` — single line connects entire stylesheet to Vite bundle"
+    - path: "taskflow/src/index.css"
+      issue: "File is correct and complete but unreachable without the import"
+  missing:
+    - "Add `import './index.css'` as first import in main.tsx"
+  debug_session: ""
 
 - truth: "Jira PAT validation succeeds via fetch() without CORS errors in Tauri renderer"
   status: failed
   reason: "User reported: Fetch API cannot load https://jira.orange.sk/rest/api/2/myself due to access control checks."
   severity: blocker
   test: 1
-  artifacts: []
-  missing: []
+  root_cause: "Two compounding issues: (1) jira.ts and gitlab.ts use native browser fetch() which is CORS-enforced in Tauri 2's webview — must use fetch from @tauri-apps/plugin-http which proxies through Rust backend. (2) capabilities/default.json has http:default but no scope array — all URLs are blocked by Tauri's security layer even when using the plugin fetch."
+  artifacts:
+    - path: "taskflow/src/services/jira.ts"
+      issue: "Uses native fetch() instead of @tauri-apps/plugin-http's fetch — native fetch is CORS-enforced in Tauri 2"
+    - path: "taskflow/src/services/gitlab.ts"
+      issue: "Same native fetch() issue as jira.ts"
+    - path: "taskflow/src-tauri/capabilities/default.json"
+      issue: "Has http:default but no scope array — http:default explicitly states it does not allow any origins without manual scope configuration"
+  missing:
+    - "Replace native fetch() in jira.ts and gitlab.ts with fetch from @tauri-apps/plugin-http"
+    - "Add scope array to capabilities/default.json with allowed URL patterns (e.g. https://*)"
+  debug_session: ".planning/debug/jira-cors-fetch-blocked.md"
 
 - truth: "Onboarding wizard step indicator shows progress visually"
   status: failed
   reason: "User reported: there are steps but with no styles I can't tell if it shows progress or not"
   severity: major
   test: 2
-  artifacts: []
-  missing: []
+  root_cause: "Same root cause as gap 1 — src/index.css not imported in main.tsx. StepIndicator component exists and is correct but renders without any CSS styles, making visual state (active, checked, etc.) invisible."
+  artifacts:
+    - path: "taskflow/src/main.tsx"
+      issue: "Missing import './index.css' — affects all styled components including StepIndicator"
+  missing:
+    - "Resolved by same fix as gap 1: add import './index.css' to main.tsx"
+  debug_session: ""
