@@ -50,13 +50,16 @@ Plans:
   4. Sprint board cards show an MR review health badge (waiting for review / approved / changes requested) derived from linked MR state
   5. User can update a Jira task's status by selecting from available workflow transitions, and can add a comment to a Jira task — both with loading feedback and error recovery
   6. All data views show a last-refreshed timestamp and display a loading state during API calls with a meaningful error message on failure
-**Plans**: 4 plans
+**Plans**: 7 plans
 
 Plans:
 - [x] 02-01-PLAN.md — API client layer: extend Jira + GitLab services with sprint/MR/transition/comment functions, create linkEngine.ts with pure linking logic, dashboard store, settings store extension (staleMrThresholdDays)
 - [x] 02-02-PLAN.md — Dashboard UI shell: three-tab layout (My Tasks / Sprint Board / MR Attention), TanStack Query polling, loading skeletons, error states, last-refreshed timestamps, Base UI Popover primitive, TaskRow/TaskCard/MrRow display components
 - [x] 02-03-PLAN.md — Task-MR linking integration: wire linkEngine into tab components, compute link maps from live data, render MR chips on TaskRow, linked task badge on MrRow, review health dot on TaskCard, commit scan fallback
 - [x] 02-04-PLAN.md — Jira write actions: StatusPopover with lazy-fetched transitions + optimistic update + rollback, InlineComment with expand/collapse, per-row inline errors (no toast/modal)
+- [ ] 02-05-PLAN.md — UAT gap closure: delete postcss.config.js + dead tailwind.config.js files that strip all Tailwind CSS from the build output
+- [ ] 02-06-PLAN.md — UAT gap closure: wire StatusPopover and InlineComment into TaskRow/MyTasksTab (replace no-op stubs with real state and mutations)
+- [ ] 02-07-PLAN.md — UAT gap closure: fix TokenSection silent-failure pattern — GitLab group and Jira project selectors now show loading/error states instead of silently hiding
 
 ### Phase 3: Notifications Hub
 **Goal**: Users see a unified feed of Jira mentions and GitLab MR thread activity, receive OS desktop notifications for new items, and can manage read/unread state — the primary pain point of the on-premise Jira instance with no built-in notifications
@@ -98,6 +101,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 6/6 | Complete   | 2026-03-11 |
-| 2. Developer Dashboard | 4/4 | Complete   | 2026-03-11 |
+| 2. Developer Dashboard | 4/7 | In Progress|  |
 | 3. Notifications Hub | 1/2 | In Progress|  |
 | 4. PM Dashboard + Search | 0/3 | Not started | - |
