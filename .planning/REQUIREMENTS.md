@@ -23,16 +23,16 @@
 
 ### Developer Dashboard
 
-- [ ] **DEV-01**: Developer sees a list of their open Jira tasks filtered to the current sprint
-- [ ] **DEV-02**: Developer sees a sprint board with tasks grouped by workflow status (columns per status)
-- [ ] **DEV-03**: Developer sees a list of GitLab MRs assigned to them or where they are a reviewer with open threads
-- [ ] **DEV-04**: Sprint board cards show an MR review health badge (e.g., "waiting for review", "approved", "changes requested") derived from linked MRs
-- [ ] **DEV-05**: MRs with no activity for a configurable number of days are flagged as stale
+- [x] **DEV-01**: Developer sees a list of their open Jira tasks filtered to the current sprint
+- [x] **DEV-02**: Developer sees a sprint board with tasks grouped by workflow status (columns per status)
+- [x] **DEV-03**: Developer sees a list of GitLab MRs assigned to them or where they are a reviewer with open threads
+- [x] **DEV-04**: Sprint board cards show an MR review health badge (e.g., "waiting for review", "approved", "changes requested") derived from linked MRs
+- [x] **DEV-05**: MRs with no activity for a configurable number of days are flagged as stale
 
 ### Task-MR Linking
 
-- [ ] **LINK-01**: App automatically links Jira tasks to GitLab MRs by parsing the Jira ticket key (e.g., PROJ-123) from MR title
-- [ ] **LINK-02**: App falls back to scanning commit messages when ticket key is absent from MR title
+- [x] **LINK-01**: App automatically links Jira tasks to GitLab MRs by parsing the Jira ticket key (e.g., PROJ-123) from MR title
+- [x] **LINK-02**: App falls back to scanning commit messages when ticket key is absent from MR title
 - [ ] **LINK-03**: Linked MRs are displayed on the task card (title, status, author)
 - [ ] **LINK-04**: Linked Jira task is displayed on the MR card (key, summary, status)
 
@@ -65,8 +65,8 @@
 ### UI & Polish
 
 - [x] **UI-01**: User can toggle between dark and light mode
-- [ ] **UI-02**: App shows last-refreshed timestamp on all data views
-- [ ] **UI-03**: App shows a loading state during API calls and a meaningful error message on failure
+- [x] **UI-02**: App shows last-refreshed timestamp on all data views
+- [x] **UI-03**: App shows a loading state during API calls and a meaningful error message on failure
 
 ---
 
@@ -122,19 +122,19 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ROLE-01 | Phase 1 | Complete |
 | ROLE-02 | Phase 1 | Complete |
 | UI-01 | Phase 1 | Complete |
-| DEV-01 | Phase 2 | Pending |
-| DEV-02 | Phase 2 | Pending |
-| DEV-03 | Phase 2 | Pending |
-| DEV-04 | Phase 2 | Pending |
-| DEV-05 | Phase 2 | Pending |
-| LINK-01 | Phase 2 | Pending |
-| LINK-02 | Phase 2 | Pending |
+| DEV-01 | Phase 2 | Complete |
+| DEV-02 | Phase 2 | Complete |
+| DEV-03 | Phase 2 | Complete |
+| DEV-04 | Phase 2 | Complete |
+| DEV-05 | Phase 2 | Complete |
+| LINK-01 | Phase 2 | Complete |
+| LINK-02 | Phase 2 | Complete |
 | LINK-03 | Phase 2 | Pending |
 | LINK-04 | Phase 2 | Pending |
 | JACT-01 | Phase 2 | Pending |
 | JACT-02 | Phase 2 | Pending |
-| UI-02 | Phase 2 | Pending |
-| UI-03 | Phase 2 | Pending |
+| UI-02 | Phase 2 | Complete |
+| UI-03 | Phase 2 | Complete |
 | NOTF-01 | Phase 3 | Pending |
 | NOTF-02 | Phase 3 | Pending |
 | NOTF-03 | Phase 3 | Pending |
