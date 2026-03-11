@@ -1,6 +1,6 @@
 // PM-01: Sprint progress buckets from statusCategory
 // Wave 0 scaffold — component does not exist yet; tests are pending until Wave 2 implementation
-import { describe, it } from 'vitest';
+import { describe, it, vi } from 'vitest';
 
 vi.mock('./SprintProgressTab', () => ({
   default: () => null,

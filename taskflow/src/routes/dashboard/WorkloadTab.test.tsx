@@ -1,6 +1,6 @@
 // PM-02: Workload grouped by assignee
 // Wave 0 scaffold — component does not exist yet; tests are pending until Wave 2 implementation
-import { describe, it } from 'vitest';
+import { describe, it, vi } from 'vitest';
 
 vi.mock('./WorkloadTab', () => ({
   default: () => null,
