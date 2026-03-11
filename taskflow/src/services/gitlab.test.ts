@@ -1,4 +1,5 @@
 // AUTH-02: GitLab PAT validation
+// DEV-05: Phase 2 GitLab MR functions
 import { vi } from 'vitest';
 
 vi.mock('@tauri-apps/plugin-http', () => ({
@@ -7,7 +8,15 @@ vi.mock('@tauri-apps/plugin-http', () => ({
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { fetch as mockFetch } from '@tauri-apps/plugin-http';
-import { validateGitLab, listGitLabGroups } from './gitlab';
+import {
+  validateGitLab,
+  listGitLabGroups,
+  fetchAssignedMRs,
+  fetchReviewerMRs,
+  fetchMRCommits,
+  fetchMRApprovals,
+  fetchMRDiscussions,
+} from './gitlab';
 
 describe('gitlab service', () => {
   beforeEach(() => {
@@ -86,6 +95,101 @@ describe('gitlab service', () => {
 
       const result = await listGitLabGroups('https://gitlab.example.com', 'my-token');
       expect(result).toEqual(mockGroups);
+    });
+  });
+
+  describe('fetchAssignedMRs', () => {
+    const mockMR = {
+      id: 101,
+      iid: 1,
+      project_id: 5,
+      title: '[PROJ-42] Fix login bug',
+      state: 'opened' as const,
+      author: { id: 1, name: 'Alice', username: 'alice', avatar_url: 'https://example.com/alice.png' },
+      reviewers: [{ id: 2, name: 'Bob', username: 'bob' }],
+      updated_at: '2026-03-10T12:00:00Z',
+      web_url: 'https://gitlab.example.com/project/mr/1',
+    };
+
+    it('DEV-05: fetchAssignedMRs returns GitLabMR[]', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [mockMR],
+      } as any);
+
+      const result = await fetchAssignedMRs('https://gitlab.example.com', 'my-token');
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual(mockMR);
+    });
+  });
+
+  describe('fetchReviewerMRs', () => {
+    it('DEV-05: fetchReviewerMRs calls URL with reviewer_id param', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [],
+      } as any);
+
+      await fetchReviewerMRs('https://gitlab.example.com', 'my-token', 42);
+
+      const callUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      expect(callUrl).toContain('reviewer_id=42');
+    });
+  });
+
+  describe('fetchMRCommits', () => {
+    it('DEV-05: fetchMRCommits returns MRCommit[]', async () => {
+      const mockCommits = [
+        { id: 'abc123', title: 'PROJ-42 fix login', message: 'PROJ-42 fix login\n\nDetails here' },
+      ];
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockCommits,
+      } as any);
+
+      const result = await fetchMRCommits('https://gitlab.example.com', 'my-token', 5, 1);
+      expect(result).toEqual(mockCommits);
+    });
+  });
+
+  describe('fetchMRApprovals', () => {
+    it('DEV-05: fetchMRApprovals returns MRApprovals with approved_by', async () => {
+      const mockApprovals = {
+        approved_by: [{ user: { id: 2, name: 'Bob' } }],
+        approved: true,
+      };
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockApprovals,
+      } as any);
+
+      const result = await fetchMRApprovals('https://gitlab.example.com', 'my-token', 5, 1);
+      expect(result).toEqual(mockApprovals);
+      expect(result.approved_by).toHaveLength(1);
+    });
+  });
+
+  describe('fetchMRDiscussions', () => {
+    it('DEV-05: fetchMRDiscussions returns Discussion[] with notes', async () => {
+      const mockDiscussions = [
+        {
+          id: 'd1',
+          notes: [{ id: 'n1', resolvable: true, resolved: false, body: 'Please fix this' }],
+        },
+      ];
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockDiscussions,
+      } as any);
+
+      const result = await fetchMRDiscussions('https://gitlab.example.com', 'my-token', 5, 1);
+      expect(result).toEqual(mockDiscussions);
+      expect(result[0].notes[0].resolved).toBe(false);
     });
   });
 });
