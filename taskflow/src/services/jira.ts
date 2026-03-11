@@ -334,7 +334,9 @@ export async function fetchFixVersions(
   }
 
   const data = await response.json();
-  return data as JiraFixVersion[];
+  // GET /rest/api/2/version returns a paginated envelope { values: [...], total, ... }
+  // not a bare array — extract the inner array defensively
+  return (data.values ?? []) as JiraFixVersion[];
 }
 
 /**
