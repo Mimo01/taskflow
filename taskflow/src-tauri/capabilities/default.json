@@ -11,5 +11,10 @@
     "stronghold:default",
     "store:default",
     "http:default"
-  ]
+  ],
+  "scope": {
+    "http": {
+      "allow": ["https://**", "http://**"]
+    }
+  }
 }
