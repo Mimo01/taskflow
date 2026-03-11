@@ -10,11 +10,9 @@
     "opener:default",
     "stronghold:default",
     "store:default",
-    "http:default"
-  ],
-  "scope": {
-    "http": {
-      "allow": ["https://**", "http://**"]
+    {
+      "identifier": "http:default",
+      "allow": ["https://*:*", "http://*:*"]
     }
-  }
+  ]
 }
