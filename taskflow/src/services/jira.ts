@@ -113,11 +113,24 @@ export interface JiraIssue {
   key: string;
   fields: {
     summary: string;
-    status: { id: string; name: string };
+    status: {
+      id: string;
+      name: string;
+      statusCategory?: { key: 'new' | 'indeterminate' | 'done' };
+    };
     assignee: { displayName: string; avatarUrls: { '48x48': string } } | null;
     customfield_10016: number | null; // story points (most common field key)
     issuetype: { name: string };
+    description?: string | null;
   };
+}
+
+export interface JiraFixVersion {
+  id: string;
+  name: string;
+  releaseDate?: string; // "YYYY-MM-DD" — absent when not set, never null in API response
+  released: boolean;
+  description?: string;
 }
 
 export interface JiraTransition {
@@ -281,4 +294,84 @@ export async function postComment(
   if (!response.ok && response.status !== 201) {
     throw new Error(`Failed to post comment on ${issueKey}: status ${response.status}`);
   }
+}
+
+// ─── Phase 4: PM Dashboard & Search ──────────────────────────────────────────
+
+/**
+ * Fetch all fix versions (releases) for a Jira project.
+ *
+ * @param baseUrl    - Jira base URL
+ * @param token      - Personal Access Token
+ * @param projectKey - Jira project key (e.g. "PROJ")
+ * @returns Array of fix versions ordered by release date
+ */
+export async function fetchFixVersions(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+): Promise<JiraFixVersion[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const url = `${base}/rest/api/2/version?projectKey=${projectKey}&maxResults=50`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(
+      (data as { errorMessages?: string[] }).errorMessages?.[0] ?? 'Failed to fetch fix versions',
+    );
+  }
+
+  const data = await response.json();
+  return data as JiraFixVersion[];
+}
+
+/**
+ * Search Jira issues by text query using JQL.
+ *
+ * @param baseUrl    - Jira base URL
+ * @param token      - Personal Access Token
+ * @param projectKey - Jira project key (e.g. "PROJ")
+ * @param query      - Free-text search query
+ * @returns Array of matching issues (up to 20); returns empty array on error to not block parallel search
+ */
+export async function searchJira(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  query: string,
+): Promise<JiraIssue[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const jql = `project = ${projectKey} AND text ~ "${query.replace(/"/g, '\\"')}" ORDER BY updated DESC`;
+  const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee,customfield_10016,description&maxResults=20`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch {
+    return [];
+  }
+
+  if (!response.ok) {
+    return [];
+  }
+
+  const data = await response.json();
+  return (data.issues ?? []) as JiraIssue[];
 }

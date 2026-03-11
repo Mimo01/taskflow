@@ -105,6 +105,21 @@ export async function listGitLabGroups(baseUrl: string, token: string): Promise<
 
 // ─── Phase 2: Developer Dashboard ────────────────────────────────────────────
 
+export interface GitLabMilestone {
+  id: number;
+  iid: number;
+  title: string;
+  due_date: string | null; // "YYYY-MM-DD" or null
+  state: 'active' | 'closed';
+  web_url: string;
+}
+
+export interface GitLabTag {
+  name: string;
+  commit: { created_at: string }; // ISO 8601 with timezone
+  release: { tag_name: string; description: string } | null;
+}
+
 export interface GitLabMR {
   id: number;
   iid: number;
@@ -314,4 +329,114 @@ export async function fetchMRDiscussions(
 
   const data = await response.json();
   return data as Discussion[];
+}
+
+// ─── Phase 4: PM Dashboard & Search ──────────────────────────────────────────
+
+/**
+ * Fetch all milestones for a GitLab group.
+ *
+ * @param baseUrl   - GitLab base URL
+ * @param token     - Personal Access Token
+ * @param groupPath - Group full_path (e.g. "my-org/my-group"), URL-encoded internally
+ * @returns Array of group milestones
+ */
+export async function fetchGroupMilestones(
+  baseUrl: string,
+  token: string,
+  groupPath: string,
+): Promise<GitLabMilestone[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const url = `${base}/api/v4/groups/${encodeURIComponent(groupPath)}/milestones?per_page=100`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        'PRIVATE-TOKEN': token,
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch milestones');
+  }
+
+  const data = await response.json();
+  return data as GitLabMilestone[];
+}
+
+/**
+ * Fetch repository tags for a GitLab project.
+ *
+ * @param baseUrl   - GitLab base URL
+ * @param token     - Personal Access Token
+ * @param projectId - GitLab numeric project ID
+ * @returns Array of tags (most recent first)
+ */
+export async function fetchProjectTags(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+): Promise<GitLabTag[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const url = `${base}/api/v4/projects/${projectId}/repository/tags?per_page=100`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        'PRIVATE-TOKEN': token,
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch tags');
+  }
+
+  const data = await response.json();
+  return data as GitLabTag[];
+}
+
+/**
+ * Search GitLab merge requests by text query.
+ *
+ * @param baseUrl - GitLab base URL
+ * @param token   - Personal Access Token
+ * @param query   - Free-text search query
+ * @returns Array of matching MRs (up to 20); returns empty array on error to not block parallel Jira search
+ */
+export async function searchGitLabMRs(
+  baseUrl: string,
+  token: string,
+  query: string,
+): Promise<GitLabMR[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const url = `${base}/api/v4/search?scope=merge_requests&search=${encodeURIComponent(query)}&per_page=20`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        'PRIVATE-TOKEN': token,
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch {
+    return [];
+  }
+
+  if (!response.ok) {
+    return [];
+  }
+
+  const data = await response.json();
+  return data as GitLabMR[];
 }
