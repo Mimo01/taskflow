@@ -86,12 +86,12 @@ Plans:
   2. Project Manager sees team workload: open task count and story points per team member for the current sprint
   3. Project Manager sees a Releases view listing Jira fix versions with linked GitLab milestones or tags, showing task count and completion status per fix version
   4. Any user can search across Jira tasks and GitLab MRs by keyword or ticket key, with results grouped by type (tasks vs MRs) and each result linking to its detail view
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 04-01: PM dashboard — sprint progress view (status counts + story points), team workload view (per-member task count + points), role-based routing to PM vs dev dashboard
-- [ ] 04-02: Releases view — Jira fix versions list with linked GitLab milestones/tags, task count and completion status per version
-- [ ] 04-03: Global search — debounced Jira JQL + GitLab search API, unified results grouped by type, deep-links to detail views
+- [ ] 04-01-PLAN.md — Service layer extension: JiraIssue statusCategory type, fetchFixVersions, searchJira, GitLabMilestone/Tag types, fetchGroupMilestones, fetchProjectTags, searchGitLabMRs, releaseLinker pure function, Wave 0 test scaffolds
+- [ ] 04-02-PLAN.md — PM dashboard tabs: PmDashTab store extension, role-conditional dashboard index, SprintProgressTab (buckets + progress bar), WorkloadTab (per-assignee), ReleasesTab (fix versions with date-matched GitLab links)
+- [ ] 04-03-PLAN.md — Global search: SearchOverlay (debounced parallel search, grouped results), SearchResultPanel (read-only detail + openUrl), Search icon wired into TopBar
 
 ## Progress
 
