@@ -45,6 +45,7 @@ export async function validateGitLab(baseUrl: string, token: string): Promise<Gi
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
       },
+      danger: { acceptInvalidCerts: true },
     });
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
@@ -83,6 +84,7 @@ export async function listGitLabGroups(baseUrl: string, token: string): Promise<
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
       },
+      danger: { acceptInvalidCerts: true },
     });
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);

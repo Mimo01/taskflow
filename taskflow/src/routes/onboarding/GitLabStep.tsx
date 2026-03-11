@@ -106,7 +106,7 @@ export default function GitLabStep() {
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="gitlab-group">Select Group</Label>
             <Select value={selectedGroup} onValueChange={(v) => v && setSelectedGroup(v)}>
-              <SelectTrigger id="gitlab-group">
+              <SelectTrigger id="gitlab-group" className="w-full">
                 <SelectValue placeholder="Choose a group..." />
               </SelectTrigger>
               <SelectContent>
