@@ -50,13 +50,13 @@ Plans:
   4. Sprint board cards show an MR review health badge (waiting for review / approved / changes requested) derived from linked MR state
   5. User can update a Jira task's status by selecting from available workflow transitions, and can add a comment to a Jira task — both with loading feedback and error recovery
   6. All data views show a last-refreshed timestamp and display a loading state during API calls with a meaningful error message on failure
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 02-01: API client layer — typed Jira repository (Server REST v2), typed GitLab repository, normalized Task/MR/Sprint/User interfaces, MSW mock handlers, single TanStack Query poll coordinator
-- [ ] 02-02: Developer dashboard UI — my tasks list, sprint board (column-per-status), MR attention list, loading skeletons, error states, last-refreshed timestamps
-- [ ] 02-03: Task-MR linking engine — ticket key regex extraction from MR title and commit messages, cache join, linked MR chips on task cards, linked task badge on MR rows, review health badge, stale MR detection
-- [ ] 02-04: Jira write actions — status transition picker (per-issue transitions fetched at runtime), add comment, optimistic UI updates with revert on error
+- [ ] 02-01-PLAN.md — API client layer: extend Jira + GitLab services with sprint/MR/transition/comment functions, create linkEngine.ts with pure linking logic, dashboard store, settings store extension (staleMrThresholdDays)
+- [ ] 02-02-PLAN.md — Dashboard UI shell: three-tab layout (My Tasks / Sprint Board / MR Attention), TanStack Query polling, loading skeletons, error states, last-refreshed timestamps, Base UI Popover primitive, TaskRow/TaskCard/MrRow display components
+- [ ] 02-03-PLAN.md — Task-MR linking integration: wire linkEngine into tab components, compute link maps from live data, render MR chips on TaskRow, linked task badge on MrRow, review health dot on TaskCard, commit scan fallback
+- [ ] 02-04-PLAN.md — Jira write actions: StatusPopover with lazy-fetched transitions + optimistic update + rollback, InlineComment with expand/collapse, per-row inline errors (no toast/modal)
 
 ### Phase 3: Notifications Hub
 **Goal**: Users see a unified feed of Jira mentions and GitLab MR thread activity, receive OS desktop notifications for new items, and can manage read/unread state — the primary pain point of the on-premise Jira instance with no built-in notifications
