@@ -9,12 +9,12 @@
 
 ### Authentication & Setup
 
-- [ ] **AUTH-01**: User can enter Jira personal access token and Jira base URL during onboarding
-- [ ] **AUTH-02**: User can enter GitLab personal access token and GitLab base URL during onboarding
-- [ ] **AUTH-03**: PATs are stored in the OS keychain (not plaintext, not in app state)
-- [ ] **AUTH-04**: User can select the active Jira project and GitLab group/repo from a list after auth
-- [ ] **AUTH-05**: User can update or revoke stored tokens from settings
-- [ ] **AUTH-06**: App displays a clear error when a token is invalid or expired
+- [x] **AUTH-01**: User can enter Jira personal access token and Jira base URL during onboarding
+- [x] **AUTH-02**: User can enter GitLab personal access token and GitLab base URL during onboarding
+- [x] **AUTH-03**: PATs are stored in the OS keychain (not plaintext, not in app state)
+- [x] **AUTH-04**: User can select the active Jira project and GitLab group/repo from a list after auth
+- [x] **AUTH-05**: User can update or revoke stored tokens from settings
+- [x] **AUTH-06**: App displays a clear error when a token is invalid or expired
 
 ### Role Selection
 
@@ -113,12 +113,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1 | Pending |
-| AUTH-02 | Phase 1 | Pending |
-| AUTH-03 | Phase 1 | Pending |
-| AUTH-04 | Phase 1 | Pending |
-| AUTH-05 | Phase 1 | Pending |
-| AUTH-06 | Phase 1 | Pending |
+| AUTH-01 | Phase 1 | Complete |
+| AUTH-02 | Phase 1 | Complete |
+| AUTH-03 | Phase 1 | Complete |
+| AUTH-04 | Phase 1 | Complete |
+| AUTH-05 | Phase 1 | Complete |
+| AUTH-06 | Phase 1 | Complete |
 | ROLE-01 | Phase 1 | Pending |
 | ROLE-02 | Phase 1 | Pending |
 | UI-01 | Phase 1 | Complete |
