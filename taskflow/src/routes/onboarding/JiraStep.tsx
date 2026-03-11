@@ -11,7 +11,6 @@
  * storeSecret is called with key='jira-pat' after successful validateJira call.
  * Ref: PLAN 02 key_links → from JiraStep.tsx to stronghold.ts via storeSecret('jira-pat', token)
  */
-import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,17 +23,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { validateJira, listJiraProjects, type JiraProject } from '@/services/jira';
+import { validateJira, listJiraProjects } from '@/services/jira';
 import { storeSecret } from '@/services/stronghold';
 import { useOnboardingStore } from '@/stores/onboarding.store';
 import { useAuthStore } from '@/stores/auth.store';
 
 export default function JiraStep() {
-  const { jiraUrl, jiraToken, set, goBack, goNext } = useOnboardingStore();
+  const { jiraUrl, jiraToken, jiraProject, jiraProjects, set, goBack, goNext } = useOnboardingStore();
   const { setJiraConnected, setActiveJiraProject } = useAuthStore();
 
-  const [projects, setProjects] = useState<JiraProject[]>([]);
-  const [selectedProject, setSelectedProject] = useState<string>('');
+  const projects = jiraProjects;
+  const selectedProject = jiraProject ?? '';
+  const setSelectedProject = (v: string) => set({ jiraProject: v });
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -45,7 +45,7 @@ export default function JiraStep() {
     onSuccess: async ({ projectList }) => {
       // Store PAT in Stronghold — NEVER in Zustand
       await storeSecret('jira-pat', jiraToken);
-      setProjects(projectList);
+      set({ jiraProjects: projectList });
     },
   });
 
@@ -56,13 +56,13 @@ export default function JiraStep() {
 
   const handleContinue = () => {
     if (!selectedProject) return;
-    set({ jiraProject: selectedProject, jiraValidated: true });
+    set({ jiraValidated: true });
     setJiraConnected(true, jiraUrl);
     setActiveJiraProject(selectedProject);
     goNext();
   };
 
-  const showProjectDropdown = mutation.isSuccess && projects.length > 0;
+  const showProjectDropdown = projects.length > 0;
 
   return (
     <div className="flex flex-col gap-6 max-w-md mx-auto py-8">
@@ -111,11 +111,16 @@ export default function JiraStep() {
             <Label htmlFor="jira-project">Select Project</Label>
             <Select value={selectedProject} onValueChange={(v) => v && setSelectedProject(v)}>
               <SelectTrigger id="jira-project" className="w-full">
-                <SelectValue placeholder="Choose a project..." />
+                <span className="flex flex-1 text-left text-sm">
+                  {selectedProject
+                    ? (() => { const p = projects.find(p => p.key === selectedProject); return p ? `${p.key} — ${p.name}` : selectedProject; })()
+                    : <span className="text-muted-foreground">Choose a project...</span>
+                  }
+                </span>
               </SelectTrigger>
               <SelectContent>
                 {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
+                  <SelectItem key={project.id} value={project.key}>
                     {project.key} — {project.name}
                   </SelectItem>
                 ))}

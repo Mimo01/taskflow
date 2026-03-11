@@ -30,11 +30,12 @@ const STEP_COMPONENTS = [
 ];
 
 export default function OnboardingWizard() {
-  const { step, jiraValidated, gitlabValidated } = useOnboardingStore();
+  const { step, jiraValidated, gitlabValidated, role } = useOnboardingStore();
 
   const completedSteps: number[] = [];
   if (jiraValidated) completedSteps.push(1);
   if (gitlabValidated) completedSteps.push(2);
+  if (role) completedSteps.push(3);
 
   const CurrentStep = STEP_COMPONENTS[step] ?? DoneStep;
 

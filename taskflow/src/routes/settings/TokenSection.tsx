@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/select';
 import { readSecret, storeSecret } from '@/services/stronghold';
 import { validateJira, listJiraProjects, type JiraProject } from '@/services/jira';
-import { validateGitLab } from '@/services/gitlab';
+import { validateGitLab, listGitLabGroups, type GitLabGroup } from '@/services/gitlab';
 import { useAuthStore } from '@/stores/auth.store';
 
 // Masked placeholder — never show the real token on render
@@ -34,17 +34,23 @@ function TokenBlock({
   secretKey,
   onValidate,
   validating,
+  succeeded,
   errorMessage,
 }: {
   label: string;
   secretKey: string;
   onValidate: (newToken: string) => void;
   validating: boolean;
+  succeeded: boolean;
   errorMessage: string | null;
 }) {
   const [revealed, setRevealed] = useState(false);
   const [revealedToken, setRevealedToken] = useState<string>('');
   const [newToken, setNewToken] = useState('');
+
+  useEffect(() => {
+    if (succeeded) setNewToken('');
+  }, [succeeded]);
 
   const handleEyeClick = async () => {
     if (revealed) {
@@ -104,6 +110,11 @@ function TokenBlock({
         </div>
       </div>
 
+      {succeeded && (
+        <p className="text-sm text-green-600 dark:text-green-400" role="status">
+          Token updated successfully.
+        </p>
+      )}
       {errorMessage && (
         <p className="text-sm text-destructive" role="alert">
           {errorMessage}
@@ -122,9 +133,14 @@ export default function TokenSection() {
     setGitlabConnected,
     activeJiraProject,
     setActiveJiraProject,
+    activeGitlabGroup,
+    setActiveGitlabGroup,
   } = useAuthStore();
 
+  const [jiraUrl, setJiraUrl] = useState(jiraBaseUrl ?? '');
+  const [gitlabUrl, setGitlabUrl] = useState(gitlabBaseUrl ?? '');
   const [jiraProjects, setJiraProjects] = useState<JiraProject[]>([]);
+  const [gitlabGroups, setGitlabGroups] = useState<GitLabGroup[]>([]);
 
   useEffect(() => {
     if (!jiraBaseUrl) return;
@@ -136,31 +152,68 @@ export default function TokenSection() {
     })();
   }, [jiraBaseUrl]);
 
+  useEffect(() => {
+    if (!gitlabBaseUrl) return;
+    (async () => {
+      const pat = await readSecret('gitlab-pat').catch(() => null);
+      if (!pat) return;
+      const list = await listGitLabGroups(gitlabBaseUrl, pat).catch(() => []);
+      setGitlabGroups(list);
+    })();
+  }, [gitlabBaseUrl]);
+
   const handleProjectChange = (projectId: string) => {
     setActiveJiraProject(projectId);
     queryClient.clear();
   };
 
-  // Jira token update mutation
-  const jiraMutation = useMutation({
-    mutationFn: async (newToken: string) => {
-      const url = jiraBaseUrl ?? '';
-      await validateJira(url, newToken);
-      await storeSecret('jira-pat', newToken);
-      return { url };
+  const handleGroupChange = (group: string) => {
+    setActiveGitlabGroup(group);
+    queryClient.clear();
+  };
+
+  // Jira URL save mutation — validates existing token against new URL
+  const jiraUrlMutation = useMutation({
+    mutationFn: async () => {
+      const pat = await readSecret('jira-pat');
+      await validateJira(jiraUrl, pat);
+      return { url: jiraUrl };
     },
     onSuccess: ({ url }) => {
       setJiraConnected(true, url);
     },
   });
 
+  // Jira token update mutation
+  const jiraMutation = useMutation({
+    mutationFn: async (newToken: string) => {
+      await validateJira(jiraUrl, newToken);
+      await storeSecret('jira-pat', newToken);
+      return { url: jiraUrl };
+    },
+    onSuccess: ({ url }) => {
+      setJiraConnected(true, url);
+    },
+  });
+
+  // GitLab URL save mutation — validates existing token against new URL
+  const gitlabUrlMutation = useMutation({
+    mutationFn: async () => {
+      const pat = await readSecret('gitlab-pat');
+      await validateGitLab(gitlabUrl, pat);
+      return { url: gitlabUrl };
+    },
+    onSuccess: ({ url }) => {
+      setGitlabConnected(true, url);
+    },
+  });
+
   // GitLab token update mutation
   const gitlabMutation = useMutation({
     mutationFn: async (newToken: string) => {
-      const url = gitlabBaseUrl ?? '';
-      await validateGitLab(url, newToken);
+      await validateGitLab(gitlabUrl, newToken);
       await storeSecret('gitlab-pat', newToken);
-      return { url };
+      return { url: gitlabUrl };
     },
     onSuccess: ({ url }) => {
       setGitlabConnected(true, url);
@@ -179,13 +232,26 @@ export default function TokenSection() {
       <div className="border border-border rounded-lg p-4 flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="jira-base-url">Jira URL</Label>
-          <Input
-            id="jira-base-url"
-            type="url"
-            value={jiraBaseUrl ?? ''}
-            readOnly
-            className="text-muted-foreground"
-          />
+          <div className="flex gap-2">
+            <Input
+              id="jira-base-url"
+              type="url"
+              value={jiraUrl}
+              onChange={(e) => setJiraUrl(e.target.value)}
+              placeholder="https://jira.example.com"
+              disabled={jiraUrlMutation.isPending}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => jiraUrlMutation.mutate()}
+              disabled={jiraUrlMutation.isPending || !jiraUrl || jiraUrl === jiraBaseUrl}
+            >
+              {jiraUrlMutation.isPending ? 'Saving...' : 'Save'}
+            </Button>
+          </div>
+          {jiraUrlMutation.isSuccess && <p className="text-sm text-green-600 dark:text-green-400">URL updated.</p>}
+          {jiraUrlMutation.isError && <p className="text-sm text-destructive">{jiraUrlMutation.error?.message}</p>}
         </div>
 
         {jiraProjects.length > 0 && (
@@ -193,11 +259,16 @@ export default function TokenSection() {
             <Label htmlFor="active-jira-project">Active Project</Label>
             <Select value={activeJiraProject ?? ''} onValueChange={(v) => v && handleProjectChange(v)}>
               <SelectTrigger id="active-jira-project" className="w-full">
-                <SelectValue placeholder="Select project..." />
+                <span className="flex flex-1 text-left text-sm">
+                  {activeJiraProject
+                    ? (() => { const p = jiraProjects.find(p => p.key === activeJiraProject); return p ? `${p.key} — ${p.name}` : activeJiraProject; })()
+                    : <span className="text-muted-foreground">Select project...</span>
+                  }
+                </span>
               </SelectTrigger>
               <SelectContent>
                 {jiraProjects.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
+                  <SelectItem key={p.id} value={p.key}>
                     {p.key} — {p.name}
                   </SelectItem>
                 ))}
@@ -211,6 +282,7 @@ export default function TokenSection() {
           secretKey="jira-pat"
           onValidate={(token) => jiraMutation.mutate(token)}
           validating={jiraMutation.isPending}
+          succeeded={jiraMutation.isSuccess}
           errorMessage={jiraMutation.isError ? jiraMutation.error?.message ?? null : null}
         />
       </div>
@@ -218,20 +290,57 @@ export default function TokenSection() {
       <div className="border border-border rounded-lg p-4 flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="gitlab-base-url">GitLab URL</Label>
-          <Input
-            id="gitlab-base-url"
-            type="url"
-            value={gitlabBaseUrl ?? ''}
-            readOnly
-            className="text-muted-foreground"
-          />
+          <div className="flex gap-2">
+            <Input
+              id="gitlab-base-url"
+              type="url"
+              value={gitlabUrl}
+              onChange={(e) => setGitlabUrl(e.target.value)}
+              placeholder="https://gitlab.example.com"
+              disabled={gitlabUrlMutation.isPending}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => gitlabUrlMutation.mutate()}
+              disabled={gitlabUrlMutation.isPending || !gitlabUrl || gitlabUrl === gitlabBaseUrl}
+            >
+              {gitlabUrlMutation.isPending ? 'Saving...' : 'Save'}
+            </Button>
+          </div>
+          {gitlabUrlMutation.isSuccess && <p className="text-sm text-green-600 dark:text-green-400">URL updated.</p>}
+          {gitlabUrlMutation.isError && <p className="text-sm text-destructive">{gitlabUrlMutation.error?.message}</p>}
         </div>
+
+        {gitlabGroups.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="active-gitlab-group">Active Group</Label>
+            <Select value={activeGitlabGroup ?? ''} onValueChange={(v) => v && handleGroupChange(v)}>
+              <SelectTrigger id="active-gitlab-group" className="w-full">
+                <span className="flex flex-1 text-left text-sm">
+                  {activeGitlabGroup
+                    ? (() => { const g = gitlabGroups.find(g => g.full_path === activeGitlabGroup); return g ? `${g.name} (${g.full_path})` : activeGitlabGroup; })()
+                    : <span className="text-muted-foreground">Select group...</span>
+                  }
+                </span>
+              </SelectTrigger>
+              <SelectContent>
+                {gitlabGroups.map((g) => (
+                  <SelectItem key={g.id} value={g.full_path}>
+                    {g.name} ({g.full_path})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <TokenBlock
           label="GitLab Token"
           secretKey="gitlab-pat"
           onValidate={(token) => gitlabMutation.mutate(token)}
           validating={gitlabMutation.isPending}
+          succeeded={gitlabMutation.isSuccess}
           errorMessage={gitlabMutation.isError ? gitlabMutation.error?.message ?? null : null}
         />
       </div>

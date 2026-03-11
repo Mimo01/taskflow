@@ -13,18 +13,18 @@
 import { Link } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuthStore } from '@/stores/auth.store';
+import { useSettingsStore } from '@/stores/settings.store';
 
 export default function ReAuthBanner() {
-  const { jiraConnected, activeJiraProject } = useAuthStore();
+  const { jiraConnected } = useAuthStore();
+  const { onboardingComplete } = useSettingsStore();
 
-  // Only show when onboarding is complete AND jira token is expired
-  const onboardingComplete = activeJiraProject !== null;
   if (jiraConnected || !onboardingComplete) return null;
 
   return (
     <Alert className="rounded-none border-x-0 border-t-0 border-amber-400 bg-amber-50 text-amber-900 dark:bg-amber-900/20 dark:border-amber-600 dark:text-amber-200">
       <AlertDescription className="flex items-center justify-between">
-        <span>Jira token expired — update it in Settings</span>
+        <span>Jira connection lost — check your URL and token in Settings</span>
         <Link
           to="/settings"
           className="underline font-medium hover:no-underline ml-4 shrink-0"

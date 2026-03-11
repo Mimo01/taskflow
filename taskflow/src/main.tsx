@@ -26,8 +26,12 @@ const queryClient = new QueryClient({
  * Shows ReAuthBanner if jiraConnected is false but onboarding is complete.
  */
 function AppLayout() {
-  const { onboardingComplete } = useSettingsStore();
+  const { onboardingComplete, _hasHydrated } = useSettingsStore();
   const { jiraConnected } = useAuthStore();
+
+  if (!_hasHydrated) {
+    return null;
+  }
 
   if (!onboardingComplete) {
     // During onboarding, no sidebar
