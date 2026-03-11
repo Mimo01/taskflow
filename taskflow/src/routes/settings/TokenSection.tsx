@@ -159,7 +159,8 @@ export default function TokenSection() {
         const list = await listJiraProjects(jiraBaseUrl, pat);
         setJiraProjects(list);
       } catch (err) {
-        setJiraProjectsError((err as Error)?.message ?? 'Failed to load projects');
+        const msg = (err as Error)?.message ?? '';
+        setJiraProjectsError(msg.includes('error sending request') ? 'Could not reach Jira — check the URL and your network connection' : (msg || 'Failed to load projects'));
         setJiraProjects([]);
       } finally {
         setJiraProjectsLoading(false);
@@ -181,7 +182,8 @@ export default function TokenSection() {
         const list = await listGitLabGroups(gitlabBaseUrl, pat);
         setGitlabGroups(list);
       } catch (err) {
-        setGitlabGroupsError((err as Error)?.message ?? 'Failed to load groups');
+        const msg = (err as Error)?.message ?? '';
+        setGitlabGroupsError(msg.includes('error sending request') ? 'Could not reach GitLab — check the URL and your network connection' : (msg || 'Failed to load groups'));
         setGitlabGroups([]);
       } finally {
         setGitlabGroupsLoading(false);
