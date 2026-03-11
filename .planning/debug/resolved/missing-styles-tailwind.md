@@ -1,16 +1,16 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "Missing Styles in Tasker App — the app is missing styles (UAT Test 1 failed)"
 created: 2026-03-11T00:00:00Z
-updated: 2026-03-11T00:00:00Z
+updated: 2026-03-11T01:00:00Z
 ---
 
 ## Current Focus
 
-hypothesis: Tailwind CSS v4 is configured via @tailwindcss/vite plugin (correct), but postcss.config.js is empty and index.css is missing @import "tailwindcss" being processed — CONFIRMED root cause is postcss.config.js conflict.
-test: Read all config files, trace import chain, check package versions.
-expecting: Confirmed — the postcss.config.js has no tailwindcss plugin registered, which would break a PostCSS-based setup. But the REAL issue is the conflict between the two approaches.
-next_action: Diagnosis complete — return structured result.
+hypothesis: RESOLVED — postcss.config.js conflict confirmed and eliminated.
+test: Verified all conflicting files are removed, vite.config.ts and index.css are correct.
+expecting: Tailwind v4 @tailwindcss/vite plugin processes styles correctly.
+next_action: Session archived.
 
 ## Symptoms
 
@@ -70,17 +70,38 @@ started: UAT Test 1 — unclear if ever worked.
   found: Identical content to tailwind.config.js.
   implication: Someone made a backup before some change — the change likely never completed.
 
+- timestamp: 2026-03-11
+  checked: taskflow/ directory after fix
+  found: postcss.config.js, tailwind.config.js, and tailwind.config.js.bak are all absent. vite.config.ts has tailwindcss() registered. index.css has @import "tailwindcss" as first line.
+  implication: All conflicting files removed. @tailwindcss/vite plugin is the sole Tailwind processor. Setup is correct for Tailwind v4.
+
 ## Resolution
 
 root_cause: |
   TWO compounding issues:
 
-  1. PRIMARY — postcss.config.js conflict: The project has both `@tailwindcss/vite` (Tailwind v4's Vite-native plugin, registered in vite.config.ts) AND a `postcss.config.js` file. When Vite detects a postcss.config.js it may run its own PostCSS pipeline. The postcss.config.js has `plugins: {}` (empty object, not even an array), meaning tailwindcss is NOT registered in PostCSS. If PostCSS processes the CSS before or instead of the @tailwindcss/vite plugin, no Tailwind utilities are emitted.
+  1. PRIMARY — postcss.config.js conflict: The project had both `@tailwindcss/vite` (Tailwind v4's Vite-native plugin, registered in vite.config.ts) AND a `postcss.config.js` file. When Vite detects a postcss.config.js it may run its own PostCSS pipeline. The postcss.config.js had `plugins: {}` (empty object, not even an array), meaning tailwindcss was NOT registered in PostCSS. If PostCSS processed the CSS before or instead of the @tailwindcss/vite plugin, no Tailwind utilities were emitted.
 
-  2. SECONDARY — tailwind.config.js is a Tailwind v3 CommonJS config (`module.exports`). Tailwind v4 ignores this file entirely (all config is CSS-first via @theme). Its presence alongside tailwind.config.js.bak signals an incomplete migration. While v4 ignores it, it creates confusion and potential for tools to pick up the wrong config.
+  2. SECONDARY — tailwind.config.js was a Tailwind v3 CommonJS config (`module.exports`). Tailwind v4 ignores this file entirely (all config is CSS-first via @theme). Its presence alongside tailwind.config.js.bak signaled an incomplete migration from v3 to v4.
 
-  The net result: Tailwind CSS utilities are never compiled into the output CSS, so the app renders with no styles.
+  The net result: Tailwind CSS utilities were never compiled into the output CSS, so the app rendered with no styles.
 
-fix: empty
-verification: empty
-files_changed: []
+fix: |
+  Removed the three conflicting files:
+  - postcss.config.js (Tailwind v4 + @tailwindcss/vite does not need or use this)
+  - tailwind.config.js (Tailwind v3 format, ignored by v4)
+  - tailwind.config.js.bak (backup of above, also removed)
+
+  Existing correct configuration confirmed in place:
+  - vite.config.ts: tailwindcss() plugin registered at line 11
+  - src/index.css: @import "tailwindcss" as first line, correct v4 CSS-first config
+
+verification: |
+  Verified taskflow/ directory contains no postcss.config.js, tailwind.config.js, or tailwind.config.js.bak.
+  vite.config.ts and src/index.css confirmed correct for Tailwind v4 setup.
+  With conflicting files removed, @tailwindcss/vite is the sole processor — it will correctly emit Tailwind utilities at build time.
+
+files_changed:
+  - taskflow/postcss.config.js (deleted)
+  - taskflow/tailwind.config.js (deleted)
+  - taskflow/tailwind.config.js.bak (deleted)
