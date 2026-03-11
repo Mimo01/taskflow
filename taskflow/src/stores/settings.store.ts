@@ -33,8 +33,11 @@ const tauriStorage = createJSONStorage(() => ({
 interface SettingsState {
   role: 'developer' | 'pm' | null;
   theme: Theme;
+  onboardingComplete: boolean;
+  _hasHydrated: boolean;
   setRole: (role: 'developer' | 'pm') => void;
   setTheme: (theme: Theme) => void;
+  setOnboardingComplete: (complete: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -42,12 +45,18 @@ export const useSettingsStore = create<SettingsState>()(
     (set) => ({
       role: null,
       theme: 'system',
+      onboardingComplete: false,
+      _hasHydrated: false,
       setRole: (role) => set({ role }),
       setTheme: (theme) => set({ theme }),
+      setOnboardingComplete: (complete) => set({ onboardingComplete: complete }),
     }),
     {
       name: 'settings-store',
       storage: tauriStorage,
+      onRehydrateStorage: () => () => {
+        useSettingsStore.setState({ _hasHydrated: true });
+      },
     },
   ),
 );

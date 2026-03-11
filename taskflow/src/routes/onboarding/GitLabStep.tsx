@@ -7,7 +7,6 @@
  * - Group dropdown appears inline after validation
  * - Error messages are exact strings from gitlab.ts
  */
-import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,17 +19,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { validateGitLab, listGitLabGroups, type GitLabGroup } from '@/services/gitlab';
+import { validateGitLab, listGitLabGroups } from '@/services/gitlab';
 import { storeSecret } from '@/services/stronghold';
 import { useOnboardingStore } from '@/stores/onboarding.store';
 import { useAuthStore } from '@/stores/auth.store';
 
 export default function GitLabStep() {
-  const { gitlabUrl, gitlabToken, set, goBack, goNext } = useOnboardingStore();
+  const { gitlabUrl, gitlabToken, gitlabGroup, gitlabGroups, set, goBack, goNext } = useOnboardingStore();
   const { setGitlabConnected, setActiveGitlabGroup } = useAuthStore();
 
-  const [groups, setGroups] = useState<GitLabGroup[]>([]);
-  const [selectedGroup, setSelectedGroup] = useState<string>('');
+  const groups = gitlabGroups;
+  const selectedGroup = gitlabGroup ?? '';
+  const setSelectedGroup = (v: string) => set({ gitlabGroup: v });
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -41,7 +41,7 @@ export default function GitLabStep() {
     onSuccess: async ({ groupList }) => {
       // Store PAT in Stronghold — NEVER in Zustand
       await storeSecret('gitlab-pat', gitlabToken);
-      setGroups(groupList);
+      set({ gitlabGroups: groupList });
     },
   });
 
@@ -52,13 +52,13 @@ export default function GitLabStep() {
 
   const handleContinue = () => {
     if (!selectedGroup) return;
-    set({ gitlabGroup: selectedGroup, gitlabValidated: true });
+    set({ gitlabValidated: true });
     setGitlabConnected(true, gitlabUrl);
     setActiveGitlabGroup(selectedGroup);
     goNext();
   };
 
-  const showGroupDropdown = mutation.isSuccess && groups.length > 0;
+  const showGroupDropdown = groups.length > 0;
 
   return (
     <div className="flex flex-col gap-6 max-w-md mx-auto py-8">
@@ -107,11 +107,16 @@ export default function GitLabStep() {
             <Label htmlFor="gitlab-group">Select Group</Label>
             <Select value={selectedGroup} onValueChange={(v) => v && setSelectedGroup(v)}>
               <SelectTrigger id="gitlab-group" className="w-full">
-                <SelectValue placeholder="Choose a group..." />
+                <span className="flex flex-1 text-left text-sm">
+                  {selectedGroup
+                    ? (() => { const g = groups.find(g => g.full_path === selectedGroup); return g ? `${g.name} (${g.full_path})` : selectedGroup; })()
+                    : <span className="text-muted-foreground">Choose a group...</span>
+                  }
+                </span>
               </SelectTrigger>
               <SelectContent>
                 {groups.map((group) => (
-                  <SelectItem key={group.id} value={String(group.id)}>
+                  <SelectItem key={group.id} value={group.full_path}>
                     {group.name} ({group.full_path})
                   </SelectItem>
                 ))}

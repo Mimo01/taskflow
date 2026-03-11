@@ -6,15 +6,19 @@
  * (Anti-pattern to avoid: useState for wizard fields — see RESEARCH.md Pitfall 4)
  */
 import { create } from 'zustand';
+import type { JiraProject } from '@/services/jira';
+import type { GitLabGroup } from '@/services/gitlab';
 
 interface OnboardingState {
   step: number;
   jiraUrl: string;
   jiraToken: string;
   jiraProject: string | null;
+  jiraProjects: JiraProject[];
   gitlabUrl: string;
   gitlabToken: string;
   gitlabGroup: string | null;
+  gitlabGroups: GitLabGroup[];
   role: 'developer' | 'pm' | null;
   jiraValidated: boolean;
   gitlabValidated: boolean;
@@ -28,9 +32,11 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   jiraUrl: '',
   jiraToken: '',
   jiraProject: null,
+  jiraProjects: [],
   gitlabUrl: '',
   gitlabToken: '',
   gitlabGroup: null,
+  gitlabGroups: [],
   role: null,
   jiraValidated: false,
   gitlabValidated: false,
