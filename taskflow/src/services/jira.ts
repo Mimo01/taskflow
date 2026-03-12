@@ -189,7 +189,7 @@ export async function fetchSprintIssues(
   const jql = encodeURIComponent(
     `project = ${projectKey} AND sprint in openSprints()${assigneeClause} AND issuetype not in subtaskIssueTypes() ORDER BY updated DESC`,
   );
-  const url = `${base}/rest/api/2/search?jql=${jql}&fields=${fields}`;
+  const url = `${base}/rest/api/2/search?jql=${jql}&fields=${fields}&maxResults=200`;
 
   let response: Response;
   try {
