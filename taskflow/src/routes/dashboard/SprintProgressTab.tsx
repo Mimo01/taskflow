@@ -119,8 +119,11 @@ export default function SprintProgressTab() {
     const hasTimeData = totalEstSecs > 0 || totalSpentSecs > 0 || totalRemainSecs > 0;
     const hasPoints = stories.some((s) => ((s.fields[storyPointsFieldKey] as number | null | undefined) ?? 0) > 0);
 
-    // Assignee rows sorted alphabetically, excluding Unassigned if they have zero points
-    const assigneeRows = Array.from(assigneeMap.entries()).sort(([a], [b]) => a.localeCompare(b));
+    // Assignee rows sorted by total pts desc, alphabetical tiebreaker
+    const assigneeRows = Array.from(assigneeMap.entries())
+      .map(([name, buckets]) => ({ name, buckets, points: buckets.todo + buckets.inProgress + buckets.done }))
+      .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name))
+      .map(({ name, buckets }) => [name, buckets] as [string, { todo: number; inProgress: number; done: number }]);
 
     return {
       todo: todoCount,
