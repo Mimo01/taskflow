@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 04-03-PLAN.md
-last_updated: "2026-03-11T22:56:04.721Z"
+stopped_at: Completed 04-04-PLAN.md
+last_updated: "2026-03-12T00:01:27.273Z"
 last_activity: 2026-03-11 — Phase 4 Plan 01 complete — releaseLinker 8/8 tests passed, 5 scaffold files created
 progress:
   total_phases: 4
-  completed_phases: 4
-  total_plans: 18
-  completed_plans: 18
+  completed_phases: 3
+  total_plans: 20
+  completed_plans: 19
   percent: 89
 ---
 
@@ -69,6 +69,7 @@ Progress: [████████░░] 89%
 | Phase 04-pm-dashboard-search P01 | 5 | 2 tasks | 9 files |
 | Phase 04-pm-dashboard-search P02 | 10 | 2 tasks | 8 files |
 | Phase 04-pm-dashboard-search P03 | 4 | 2 tasks | 5 files |
+| Phase 04-pm-dashboard-search P04 | 4 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -124,6 +125,7 @@ Recent decisions affecting current work:
 - [Phase 04-pm-dashboard-search]: vi.clearAllMocks() clears mockResolvedValue implementations; async beforeEach with dynamic re-import required to restore mocks
 - [Phase 04-pm-dashboard-search]: data-testid attributes on overlay backdrop and loading skeleton for testability — aria roles insufficient for backdrop click detection in tests
 - [Phase 04-pm-dashboard-search]: SearchOverlay useQuery enabled guard checks tokens AND baseUrls AND projectKey — prevents queries with partial auth state
+- [Phase 04-pm-dashboard-search]: fetchFixVersions returns (data.values ?? []) — GET /rest/api/2/version returns paginated envelope not a bare array; defensive fallback for malformed/empty responses
 
 ### Pending Todos
 
@@ -137,6 +139,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-11T22:51:45.323Z
-Stopped at: Completed 04-03-PLAN.md
+Last session: 2026-03-12T00:01:27.267Z
+Stopped at: Completed 04-04-PLAN.md
 Resume file: None
