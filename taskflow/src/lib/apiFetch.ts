@@ -6,11 +6,17 @@
  *   Sanitizes Authorization and PRIVATE-TOKEN header values — replaces with "[REDACTED]".
  *
  * Uses getState() (not hooks) — safe to call outside React render context.
+ *
+ * Every call is subject to a 15-second timeout. If the network does not respond
+ * within API_TIMEOUT_MS the AbortController fires, fetch rejects with an AbortError,
+ * and the error is re-thrown so existing callers surface the failure correctly.
  */
 import { fetch } from '@tauri-apps/plugin-http';
 import { useSettingsStore } from '../stores/settings.store';
 import { useDebugLogStore } from '../stores/debug-log.store';
 import type { ApiLogEntry } from '../stores/debug-log.store';
+
+const API_TIMEOUT_MS = 15_000;
 
 /**
  * Instrumented fetch wrapper.
@@ -27,10 +33,24 @@ export async function apiFetch(
   url: string,
   init?: RequestInit,
 ): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
+  // Merge caller's signal with the timeout signal so EITHER can cancel the call
+  const signal = init?.signal
+    ? AbortSignal.any([controller.signal, init.signal])
+    : controller.signal;
+
+  const initWithSignal: RequestInit = { ...init, signal };
+
   const { debugMode } = useSettingsStore.getState();
 
   if (!debugMode) {
-    return fetch(url, init);
+    try {
+      return await fetch(url, initWithSignal);
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   // Debug mode: instrument the call
@@ -55,7 +75,7 @@ export async function apiFetch(
   let responseBody = '';
 
   try {
-    response = await fetch(url, init);
+    response = await fetch(url, initWithSignal);
     status = response.status;
     // Clone before reading so callers can still read the body
     const clone = response.clone();
@@ -83,6 +103,8 @@ export async function apiFetch(
     };
     useDebugLogStore.getState().append(entry);
     throw err; // re-throw so callers still get the network error
+  } finally {
+    clearTimeout(timer);
   }
 
   const durationMs = Math.round(performance.now() - start);
