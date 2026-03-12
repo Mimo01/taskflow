@@ -17,6 +17,7 @@ import { RefreshCw } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
 import { useSettingsStore } from '@/stores/settings.store'
 import { fetchSprintIssues } from '@/services/jira'
+import type { JiraIssue } from '@/services/jira'
 import { readSecret } from '@/services/stronghold'
 import { linkMRToTask } from '@/services/linkEngine'
 import type { ReviewHealth } from '@/services/linkEngine'
@@ -38,7 +39,16 @@ export default function SprintBoardTab() {
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl } = useAuthStore()
   const { storyPointsFieldKey } = useSettingsStore()
   const [jiraToken, setJiraToken] = useState<string | null>(null)
+  const [expandedStories, setExpandedStories] = useState<Set<string>>(new Set())
   const queryClient = useQueryClient()
+
+  function toggleStory(key: string) {
+    setExpandedStories(prev => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
+  }
 
   useEffect(() => {
     if (jiraBaseUrl) {
@@ -60,11 +70,6 @@ export default function SprintBoardTab() {
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
     : 'Refreshed: Never'
-
-  // Derive distinct column names in order of first appearance
-  const columns = data
-    ? Array.from(new Set(data.map((i) => i.fields.status.name)))
-    : []
 
   // Read GitLab MRs from TanStack cache (populated by MrAttentionTab or MyTasksTab)
   const gitlabMrs = useMemo(() => {
@@ -104,6 +109,28 @@ export default function SprintBoardTab() {
 
     return map
   }, [data, gitlabMrs, queryClient])
+
+  // Group issues into stories and subtasksByParent; orphan subtasks silently dropped
+  const boardGroups = useMemo(() => {
+    const issues = data ?? []
+    const stories = issues.filter(i => !i.fields.issuetype.subtask)
+    const subtasks = issues.filter(i => i.fields.issuetype.subtask)
+    const storyKeySet = new Set(stories.map(s => s.key))
+    const subtasksByParent = new Map<string, JiraIssue[]>()
+    for (const s of subtasks) {
+      const parentKey = s.fields.parent?.key
+      if (parentKey && storyKeySet.has(parentKey)) {
+        subtasksByParent.set(parentKey, [...(subtasksByParent.get(parentKey) ?? []), s])
+      }
+      // orphans silently dropped — no else branch
+    }
+    return { stories, subtasksByParent }
+  }, [data])
+
+  // Derive distinct column names from stories only (not all data)
+  const columns = boardGroups
+    ? Array.from(new Set(boardGroups.stories.map((i) => i.fields.status.name)))
+    : []
 
   return (
     <div className="flex flex-col gap-2 p-4">
@@ -146,31 +173,47 @@ export default function SprintBoardTab() {
       )}
 
       {/* Empty state */}
-      {!isLoading && !isError && data && data.length === 0 && (
+      {!isLoading && !isError && data && boardGroups.stories.length === 0 && (
         <div className="py-8 text-center text-sm text-muted-foreground">
           No issues in the current sprint.
         </div>
       )}
 
       {/* Board columns */}
-      {!isLoading && !isError && data && data.length > 0 && (
+      {!isLoading && !isError && data && boardGroups.stories.length > 0 && (
         <div className="overflow-x-auto">
           <div className="flex gap-4 min-w-max">
             {columns.map((col) => {
-              const colIssues = data.filter((i) => i.fields.status.name === col)
+              const colStories = boardGroups.stories.filter(s => s.fields.status.name === col)
               return (
                 <div key={col} className="min-w-[220px] flex-shrink-0 flex flex-col gap-2">
                   <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
                     {col}
-                    <span className="ml-1 text-xs font-normal">({colIssues.length})</span>
+                    <span className="ml-1 text-xs font-normal">({colStories.length})</span>
                   </div>
-                  {colIssues.map((issue) => (
-                    <TaskCard
-                      key={issue.id}
-                      issue={issue}
-                      healthDot={taskHealthMap.get(issue.key)}
-                    />
-                  ))}
+                  {colStories.map((story) => {
+                    const subtasks = boardGroups.subtasksByParent.get(story.key) ?? []
+                    const isExpanded = expandedStories.has(story.key)
+                    return (
+                      <div key={story.id}>
+                        <TaskCard
+                          issue={story}
+                          healthDot={taskHealthMap.get(story.key)}
+                          subtaskCount={subtasks.length}
+                          isExpanded={isExpanded}
+                          onToggle={() => toggleStory(story.key)}
+                        />
+                        {isExpanded && subtasks.map(sub => (
+                          <TaskCard
+                            key={sub.id}
+                            issue={sub}
+                            healthDot={taskHealthMap.get(sub.key)}
+                            isSubtask
+                          />
+                        ))}
+                      </div>
+                    )
+                  })}
                 </div>
               )
             })}
