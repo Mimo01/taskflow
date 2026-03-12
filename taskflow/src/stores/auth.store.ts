@@ -76,6 +76,11 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-store',
       storage: tauriStorage,
+      onRehydrateStorage: () => (state) => {
+        if (state && state.activeJiraProject && /^\d+$/.test(state.activeJiraProject)) {
+          state.activeJiraProject = null;
+        }
+      },
     },
   ),
 );
