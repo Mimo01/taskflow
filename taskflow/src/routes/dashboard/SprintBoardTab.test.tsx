@@ -78,7 +78,9 @@ function makeIssue(
         name: isSubtask ? 'Sub-task' : 'Story',
         subtask: isSubtask,
       },
-      ...(parentKey ? { parent: { key: parentKey } } : {}),
+      ...(parentKey
+        ? { parent: { id: parentKey, key: parentKey, fields: { summary: `Summary for ${parentKey}` } } }
+        : {}),
     },
   };
 }
