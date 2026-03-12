@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 05-api-foundation-quick-wins
 source: 05-01-SUMMARY.md, 05-02-SUMMARY.md, 05-03-SUMMARY.md, 05-04-SUMMARY.md, 05-05-SUMMARY.md, 05-06-SUMMARY.md
 started: 2026-03-12T16:00:00Z
@@ -54,19 +54,37 @@ skipped: 1
   reason: "User reported: I see a flat list of tasks(stories) and subtasks together. I see my assigned tasks but also some subtasks that are not assigned to me"
   severity: major
   test: 2
-  artifacts: []
-  missing: []
+  root_cause: "assigneeClause (derived from assignedToMe param) is correctly applied to the first JQL query (parent issues) but is completely absent from the second subtask JQL query. The variable is in scope at the subtask query construction site but never referenced there, so all subtasks of the user's parent issues are returned regardless of assignee."
+  artifacts:
+    - path: "taskflow/src/services/jira.ts"
+      issue: "Lines 235-237: subtask JQL missing assigneeClause — needs AND assignee = currentUser() appended when assignedToMe=true"
+  missing:
+    - "Append assigneeClause to subtask JQL in fetchSprintIssues: `issuetype in subtaskIssueTypes() AND parent in (${chunk.join(',')})${assigneeClause}`"
+    - "Add APIF-02 test verifying subtask query URL contains assignee=currentUser() when assignedToMe=true"
+  debug_session: ".planning/debug/sprint-subtask-assignee-filter.md"
 - truth: "Releases tab shows fix versions from the currently selected Jira project"
   status: failed
   reason: "User reported: released are first, unreleased then. But This are not the correct releases from my selected project. I see some releases but I do not recognize them. I want to see releases from my jira project In standard Jira I see them as Releases or FixVersion"
   severity: major
   test: 3
-  artifacts: []
-  missing: []
+  root_cause: "Two bugs combined: (1) fetchFixVersions calls GET /rest/api/2/version?projectKey=... which is not a valid Jira Server filter endpoint — correct endpoint is GET /rest/api/2/project/{projectKey}/versions. (2) onRehydrateStorage guard directly mutates state.activeJiraProject = null but with async Tauri storage, Zustand overwrites this mutation when it applies the hydrated snapshot — the guard never actually clears the stale value."
+  artifacts:
+    - path: "taskflow/src/services/jira.ts"
+      issue: "fetchFixVersions uses wrong endpoint /rest/api/2/version?projectKey=... — Jira Server ignores the projectKey filter, returning versions from wrong/default project"
+    - path: "taskflow/src/services/jira.ts"
+      issue: "Response unwrap uses data.values ?? [] but /rest/api/2/project/{projectKey}/versions returns a bare array, so this will always return [] after URL is fixed"
+    - path: "taskflow/src/stores/auth.store.ts"
+      issue: "onRehydrateStorage mutates state.activeJiraProject = null directly — ineffective with async storage; mutation is overwritten when Zustand applies hydrated state"
+  missing:
+    - "Fix fetchFixVersions URL to /rest/api/2/project/${projectKey}/versions"
+    - "Fix fetchFixVersions response unwrap from data.values ?? [] to Array.isArray(data) ? data : []"
+    - "Fix onRehydrateStorage to call useAuthStore.setState({ activeJiraProject: null }) instead of direct mutation"
+  debug_session: ""
 - truth: "Releases tab shows fix versions from the currently selected Jira project after app restart"
   status: failed
   reason: "User reported: the problem persists"
   severity: major
   test: 5
+  root_cause: "Same root cause as Test 3 — onRehydrateStorage guard is broken and fetchFixVersions calls wrong endpoint. Restart does not help because the guard never clears the stale value."
   artifacts: []
   missing: []
