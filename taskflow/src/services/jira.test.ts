@@ -22,7 +22,7 @@ import { fetch as mockFetch } from '@tauri-apps/plugin-http';
 
 describe('jira service', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   describe('validateJira', () => {
@@ -126,11 +126,17 @@ describe('jira service', () => {
     };
 
     it('DEV-01: fetchSprintIssues returns JiraIssue[] with correct shape', async () => {
-      vi.mocked(mockFetch).mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({ issues: [mockIssue] }),
-      } as Response);
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ issues: [mockIssue] }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ issues: [] }),
+        } as Response);
 
       const result = await fetchSprintIssues('https://jira.example.com', 'my-token', 'PROJ');
       expect(result).toHaveLength(1);
@@ -323,6 +329,94 @@ describe('jira service', () => {
       } as Response);
       const result = await discoverStoryPointsField('https://jira.example.com', 'token');
       expect(result).toBe('customfield_10028');
+    });
+  });
+
+  describe('APIF-02: fetchSprintIssues two-query subtask strategy', () => {
+    const parentIssue = {
+      id: '1', key: 'PROJ-1',
+      fields: {
+        summary: 'Story', status: { id: '1', name: 'In Progress' },
+        assignee: null, customfield_10016: 5,
+        issuetype: { name: 'Story', subtask: false },
+      },
+    };
+    const subtaskIssue = {
+      id: '10', key: 'PROJ-10',
+      fields: {
+        summary: 'Subtask', status: { id: '2', name: 'To Do' },
+        assignee: null, customfield_10016: null,
+        issuetype: { name: 'Sub-task', subtask: true },
+        parent: { id: '1', key: 'PROJ-1', fields: { summary: 'Story' } },
+      },
+    };
+
+    it('merges parent issues and subtasks into one array', async () => {
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({ issues: [parentIssue] }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({ issues: [subtaskIssue] }),
+        } as Response);
+
+      const result = await fetchSprintIssues('https://jira.example.com', 'token', 'PROJ', false);
+      expect(result).toHaveLength(2);
+      expect(result.map((i) => i.key)).toContain('PROJ-1');
+      expect(result.map((i) => i.key)).toContain('PROJ-10');
+    });
+
+    it('returns parent issues only when subtask query throws', async () => {
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({ issues: [parentIssue] }),
+        } as Response)
+        .mockRejectedValueOnce(new Error('network'));
+
+      const result = await fetchSprintIssues('https://jira.example.com', 'token', 'PROJ', false);
+      expect(result).toHaveLength(1);
+      expect(result[0].key).toBe('PROJ-1');
+    });
+
+    it('returns parent issues only when subtask query returns non-OK', async () => {
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({ issues: [parentIssue] }),
+        } as Response)
+        .mockResolvedValueOnce({ ok: false, status: 400 } as Response);
+
+      const result = await fetchSprintIssues('https://jira.example.com', 'token', 'PROJ', false);
+      expect(result).toHaveLength(1);
+    });
+
+    it('chunks parent keys into batches of 50 for large sprints', async () => {
+      // 55 parent issues → 2 subtask fetch calls (chunk 1: 50 keys, chunk 2: 5 keys)
+      const manyParents = Array.from({ length: 55 }, (_, i) => ({
+        ...parentIssue,
+        id: String(i),
+        key: `PROJ-${i}`,
+      }));
+
+      const emptySubtaskResponse = {
+        ok: true, status: 200,
+        json: async () => ({ issues: [] }),
+      } as Response;
+
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({ issues: manyParents }),
+        } as Response)
+        .mockResolvedValueOnce(emptySubtaskResponse)
+        .mockResolvedValueOnce(emptySubtaskResponse);
+
+      await fetchSprintIssues('https://jira.example.com', 'token', 'PROJ', false);
+      // First call: primary sprint query. Then 2 subtask chunk calls.
+      expect(vi.mocked(mockFetch)).toHaveBeenCalledTimes(3);
     });
   });
 
