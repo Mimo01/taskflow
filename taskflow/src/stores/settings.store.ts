@@ -44,6 +44,9 @@ interface SettingsState {
   osNotifGitlabEnabled: boolean;
   /** Discovered story points custom field key. Defaults to customfield_10016. */
   storyPointsFieldKey: string;
+  /** Enable API call logging for debug inspection. Default: false. */
+  debugMode: boolean;
+  setDebugMode: (v: boolean) => void;
   setRole: (role: 'developer' | 'pm') => void;
   setTheme: (theme: Theme) => void;
   setOnboardingComplete: (complete: boolean) => void;
@@ -66,6 +69,8 @@ export const useSettingsStore = create<SettingsState>()(
       osNotifJiraEnabled: true,
       osNotifGitlabEnabled: true,
       storyPointsFieldKey: 'customfield_10016',
+      debugMode: false,
+      setDebugMode: (v) => set({ debugMode: v }),
       setRole: (role) => set({ role }),
       setTheme: (theme) => set({ theme }),
       setOnboardingComplete: (complete) => set({ onboardingComplete: complete }),
