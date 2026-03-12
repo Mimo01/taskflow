@@ -98,8 +98,8 @@ describe('SprintProgressTab', () => {
     // Wait for data to load — stacked bar label appears after fetch
     await screen.findByText(/33%.*to do/i);
     // All three bucket labels should be visible
-    expect(screen.getByText(/to do/i)).toBeTruthy();
-    expect(screen.getByText(/in progress/i)).toBeTruthy();
+    expect(screen.getAllByText(/to do/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/in progress/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/done/i).length).toBeGreaterThan(0);
     // Each bucket should show "1" count
     const counts = screen.getAllByText('1');
@@ -152,7 +152,7 @@ describe('SprintProgressTab', () => {
     // Wait for data to load — "1" appears as the To Do count only after fetch resolves
     await screen.findByText('1');
     // Should show "to do" bucket label
-    expect(screen.getByText(/to do/i)).toBeTruthy();
+    expect(screen.getAllByText(/to do/i).length).toBeGreaterThan(0);
   });
 
   // SPPG-01 tests
@@ -167,8 +167,8 @@ describe('SprintProgressTab', () => {
     const { default: SprintProgressTab } = await import('./SprintProgressTab');
     renderWithQuery(<SprintProgressTab />);
 
-    await screen.findByText(/to do/i);
-    const stackedBar = document.querySelector('[data-testid="stacked-bar"]');
+    // Wait for stacked bar to appear — it only renders when total > 0 (data loaded)
+    const stackedBar = await screen.findByTestId('stacked-bar');
     expect(stackedBar).not.toBeNull();
   });
 
