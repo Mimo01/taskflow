@@ -179,6 +179,82 @@ describe('SearchResultPanel — Jira', () => {
   });
 });
 
+describe('adfToPlainText — ADF description rendering', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders plain-text description unchanged (Jira Server fallback)', () => {
+    render(
+      <SearchResultPanel
+        result={makeJiraIssue({ description: 'Plain text description' as unknown as JiraIssue['fields']['description'] })}
+        type="jira"
+        jiraBaseUrl={JIRA_BASE}
+        onBack={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('Plain text description')).toBeInTheDocument();
+  });
+
+  it('extracts text from ADF doc object (Jira Cloud)', () => {
+    const adfDoc = {
+      version: 1,
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'Hello' },
+            { type: 'text', text: 'World' },
+          ],
+        },
+      ],
+    };
+    render(
+      <SearchResultPanel
+        result={makeJiraIssue({ description: adfDoc as unknown as JiraIssue['fields']['description'] })}
+        type="jira"
+        jiraBaseUrl={JIRA_BASE}
+        onBack={vi.fn()}
+      />,
+    );
+    // Should render the joined text, not [object Object]
+    expect(screen.getByText(/Hello World/)).toBeInTheDocument();
+    expect(screen.queryByText(/\[object Object\]/)).not.toBeInTheDocument();
+  });
+
+  it('does not render description section when ADF resolves to empty string', () => {
+    const emptyAdf = { version: 1, type: 'doc', content: [] };
+    render(
+      <SearchResultPanel
+        result={makeJiraIssue({ description: emptyAdf as unknown as JiraIssue['fields']['description'] })}
+        type="jira"
+        jiraBaseUrl={JIRA_BASE}
+        onBack={vi.fn()}
+      />,
+    );
+    expect(document.querySelector('p.text-xs.text-muted-foreground.line-clamp-3')).toBeNull();
+  });
+
+  it('slices ADF text to 200 characters', () => {
+    const longText = 'B'.repeat(300);
+    const adfDoc = {
+      version: 1,
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: longText }] }],
+    };
+    render(
+      <SearchResultPanel
+        result={makeJiraIssue({ description: adfDoc as unknown as JiraIssue['fields']['description'] })}
+        type="jira"
+        jiraBaseUrl={JIRA_BASE}
+        onBack={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('B'.repeat(200))).toBeInTheDocument();
+  });
+});
+
 describe('SearchResultPanel — GitLab MR', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -245,6 +321,21 @@ describe('SearchResultPanel — GitLab MR', () => {
     // chip would be inside an orange badge, not just text
     const badges = document.querySelectorAll('.bg-orange-100');
     expect(badges.length).toBe(0);
+  });
+
+  it('linked ticket key chip is a button that opens Jira issue URL', () => {
+    render(
+      <SearchResultPanel
+        result={makeMR({ title: 'PROJ-123 feat: add auth' })}
+        type="gitlab"
+        jiraBaseUrl={JIRA_BASE}
+        onBack={vi.fn()}
+      />,
+    );
+    const chip = screen.getByRole('button', { name: 'Open PROJ-123 in Jira' });
+    expect(chip).toBeInTheDocument();
+    fireEvent.click(chip);
+    expect(openUrl).toHaveBeenCalledWith(`${JIRA_BASE}/browse/PROJ-123`);
   });
 
   it('calls openUrl with mr.web_url when "Open in GitLab" is clicked', () => {
