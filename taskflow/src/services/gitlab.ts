@@ -347,7 +347,8 @@ export async function fetchGroupMilestones(
   groupPath: string,
 ): Promise<GitLabMilestone[]> {
   const base = baseUrl.replace(/\/$/, '');
-  const url = `${base}/api/v4/groups/${encodeURIComponent(groupPath)}/milestones?per_page=100`;
+  // include_subgroups=true: also return milestones defined on subgroups within this group
+  const url = `${base}/api/v4/groups/${encodeURIComponent(groupPath)}/milestones?per_page=100&include_subgroups=true`;
 
   let response: Response;
   try {

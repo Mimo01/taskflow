@@ -7,8 +7,9 @@
  *   3. GitLab project tags (requires resolving group path → project ID)
  *   4. Per-version issue counts from Jira relatedIssueCounts endpoint
  *
- * Date matching uses matchGitLabToFixVersion (exact / fuzzy / none).
+ * Date matching uses matchGitLabToFixVersion (exact within same day / fuzzy within 1 day / none).
  * Fuzzy matches show a dashed underline indicator with hover tooltip.
+ * Name-based matching is not used — only date proximity determines the link.
  */
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
@@ -33,6 +34,7 @@ interface GitLabProject {
 interface VersionIssueCounts {
   issuesFixed: number;
   issuesAffected: number;
+  issuesTotal: number;
 }
 
 async function fetchGroupProjects(
@@ -56,18 +58,36 @@ async function fetchVersionIssueCounts(
   baseUrl: string,
   token: string,
   versionId: string,
+  versionName: string,
 ): Promise<VersionIssueCounts> {
-  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/version/${versionId}/relatedIssueCounts`;
-  try {
-    const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    });
-    if (!response.ok) return { issuesFixed: 0, issuesAffected: 0 };
-    const data = await response.json();
-    return { issuesFixed: data.issuesFixed ?? 0, issuesAffected: data.issuesAffected ?? 0 };
-  } catch {
-    return { issuesFixed: 0, issuesAffected: 0 };
-  }
+  const base = baseUrl.replace(/\/$/, '');
+
+  // Fetch resolved count from relatedIssueCounts endpoint
+  const countsUrl = `${base}/rest/api/2/version/${versionId}/relatedIssueCounts`;
+  // Fetch total issue count via JQL — Jira Server/DC does NOT return issuesUnresolvedCount
+  // so we use a JQL search with maxResults=0 to read response.total (all issues in this version)
+  const jql = encodeURIComponent(`fixVersion = "${versionName.replace(/"/g, '\\"')}"`);
+  const totalUrl = `${base}/rest/api/2/search?jql=${jql}&maxResults=0&fields=`;
+
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+  // Use allSettled so a failure in one request does not zero out the other.
+  // Network errors or non-ok responses for a specific version are handled per-request.
+  const countsPromise: Promise<{ issuesFixedCount?: number }> = fetch(countsUrl, {
+    headers,
+  }).then((r) => (r.ok ? (r.json() as Promise<{ issuesFixedCount?: number }>) : {}));
+  const totalPromise: Promise<{ total?: number }> = fetch(totalUrl, { headers }).then((r) =>
+    r.ok ? (r.json() as Promise<{ total?: number }>) : {},
+  );
+
+  const [countsResult, totalResult] = await Promise.allSettled([countsPromise, totalPromise]);
+
+  const issuesFixed =
+    countsResult.status === 'fulfilled' ? (countsResult.value.issuesFixedCount ?? 0) : 0;
+  const issuesTotal =
+    totalResult.status === 'fulfilled' ? (totalResult.value.total ?? 0) : 0;
+
+  return { issuesFixed, issuesAffected: 0, issuesTotal };
 }
 
 interface MatchedVersion {
@@ -127,8 +147,8 @@ export default function ReleasesTab() {
     staleTime: 5 * 60_000,
   });
 
-  // Fetch GitLab group milestones
-  const { data: milestones } = useQuery({
+  // Fetch GitLab group milestones (include_subgroups=true covers milestones on nested subgroups)
+  const { data: milestones, isError: milestonesError } = useQuery({
     queryKey: ['gitlab-milestones', activeGitlabGroup],
     queryFn: () => fetchGroupMilestones(gitlabBaseUrl!, gitlabToken!, activeGitlabGroup!),
     enabled: !!gitlabBaseUrl && !!activeGitlabGroup && !!gitlabToken,
@@ -157,7 +177,7 @@ export default function ReleasesTab() {
   const versionCountQueries = useQueries({
     queries: (fixVersions ?? []).map((v) => ({
       queryKey: ['jira-version-counts', v.id],
-      queryFn: () => fetchVersionIssueCounts(jiraBaseUrl!, jiraToken!, v.id),
+      queryFn: () => fetchVersionIssueCounts(jiraBaseUrl!, jiraToken!, v.id, v.name),
       enabled: !!jiraBaseUrl && !!jiraToken,
       staleTime: 5 * 60_000,
     })),
@@ -202,7 +222,8 @@ export default function ReleasesTab() {
       );
       const counts = countQuery?.data;
       const issuesFixed = counts?.issuesFixed ?? 0;
-      const issuesTotal = (counts?.issuesFixed ?? 0) + (counts?.issuesAffected ?? 0);
+      // issuesTotal comes from JQL count (fixVersion = "X") — accurate on all Jira editions
+      const issuesTotal = counts?.issuesTotal ?? 0;
 
       return { version, match: bestMatch, issuesFixed, issuesTotal };
     });
@@ -219,6 +240,11 @@ export default function ReleasesTab() {
     <div className="flex flex-col gap-3 p-4">
       {/* Header row */}
       <div className="flex items-center justify-end gap-2 pb-2">
+        {milestonesError && (
+          <span className="text-xs text-amber-600 dark:text-amber-400" title="GitLab milestone data unavailable — links may not appear">
+            GitLab unavailable
+          </span>
+        )}
         <span className="text-xs text-muted-foreground">{lastRefreshed}</span>
         <button
           type="button"
@@ -313,16 +339,25 @@ export default function ReleasesTab() {
 
                   {/* GitLab match indicator */}
                   <div className="flex items-center gap-3 shrink-0">
-                    {match.type === 'exact' && match.candidateUrl ? (
-                      <a
-                        href={match.candidateUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-primary hover:underline truncate max-w-[150px]"
-                        data-testid="gitlab-link-exact"
-                      >
-                        {match.candidateName}
-                      </a>
+                    {match.type === 'exact' ? (
+                      match.candidateUrl ? (
+                        <a
+                          href={match.candidateUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary hover:underline truncate max-w-[150px]"
+                          data-testid="gitlab-link-exact"
+                        >
+                          {match.candidateName}
+                        </a>
+                      ) : (
+                        <span
+                          className="text-xs text-foreground truncate max-w-[150px]"
+                          data-testid="gitlab-link-exact"
+                        >
+                          {match.candidateName}
+                        </span>
+                      )
                     ) : match.type === 'fuzzy' ? (
                       <span
                         className="text-xs border-b border-dashed border-muted-foreground cursor-default truncate max-w-[150px]"

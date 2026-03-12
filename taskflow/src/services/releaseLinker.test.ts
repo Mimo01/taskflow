@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { matchGitLabToFixVersion } from './releaseLinker';
 
-describe('matchGitLabToFixVersion', () => {
+describe('matchGitLabToFixVersion — date matching', () => {
   it('returns exact for same date strings', () => {
     const result = matchGitLabToFixVersion('2026-03-15', {
       date: '2026-03-15',
@@ -80,5 +80,15 @@ describe('matchGitLabToFixVersion', () => {
       url: 'https://gitlab.example.com/tag/v1.1.0',
     });
     expect(result.type).toBe('fuzzy');
+  });
+
+  it('returns none for date more than 1 day apart even if names match', () => {
+    // Name-based matching is not supported — only date matching
+    const result = matchGitLabToFixVersion('2026-03-15', {
+      date: '2026-03-20',
+      name: 'v2.1.0',
+      url: 'https://gitlab.example.com/milestone/5',
+    });
+    expect(result.type).toBe('none');
   });
 });
