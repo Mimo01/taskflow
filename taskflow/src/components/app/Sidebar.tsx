@@ -10,7 +10,7 @@
  *
  * Gear icon is always one click away from anywhere in the app.
  */
-import { Link } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import {
   Settings,
   LayoutDashboard,
@@ -25,7 +25,11 @@ import {
 import { useSettingsStore } from '@/stores/settings.store';
 
 const NAV_LINK_CLASS =
-  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium hover:bg-accent transition-colors';
+  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors';
+const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+  isActive
+    ? `${NAV_LINK_CLASS} bg-accent text-accent-foreground font-semibold`
+    : `${NAV_LINK_CLASS} hover:bg-accent`;
 
 export default function Sidebar() {
   const { role, debugMode } = useSettingsStore();
@@ -40,10 +44,10 @@ export default function Sidebar() {
 
       {/* Nav links */}
       <nav className="flex-1 px-2 py-4 flex flex-col gap-1">
-        <Link to="/dashboard" className={NAV_LINK_CLASS}>
+        <NavLink to="/dashboard" className={navLinkClass}>
           <LayoutDashboard className="h-4 w-4 shrink-0" />
           <span className="hidden md:block">Dashboard</span>
-        </Link>
+        </NavLink>
 
         {/* Work section (role-specific) */}
         {(role === 'developer' || role === 'pm' || role === 'tech-lead') && (
@@ -63,18 +67,18 @@ export default function Sidebar() {
                     Developer
                   </p>
                 )}
-                <Link to="/my-tasks" className={NAV_LINK_CLASS}>
+                <NavLink to="/my-tasks" className={navLinkClass}>
                   <CheckSquare className="h-4 w-4 shrink-0" />
                   <span className="hidden md:block">My Tasks</span>
-                </Link>
-                <Link to="/sprint-board" className={NAV_LINK_CLASS}>
+                </NavLink>
+                <NavLink to="/sprint-board" className={navLinkClass}>
                   <KanbanSquare className="h-4 w-4 shrink-0" />
                   <span className="hidden md:block">Sprint Board</span>
-                </Link>
-                <Link to="/mr-attention" className={NAV_LINK_CLASS}>
+                </NavLink>
+                <NavLink to="/mr-attention" className={navLinkClass}>
                   <GitMerge className="h-4 w-4 shrink-0" />
                   <span className="hidden md:block">MR Attention</span>
-                </Link>
+                </NavLink>
               </>
             )}
 
@@ -86,18 +90,18 @@ export default function Sidebar() {
                     PM
                   </p>
                 )}
-                <Link to="/sprint-progress" className={NAV_LINK_CLASS}>
+                <NavLink to="/sprint-progress" className={navLinkClass}>
                   <BarChart2 className="h-4 w-4 shrink-0" />
                   <span className="hidden md:block">Sprint Progress</span>
-                </Link>
-                <Link to="/workload" className={NAV_LINK_CLASS}>
+                </NavLink>
+                <NavLink to="/workload" className={navLinkClass}>
                   <Users className="h-4 w-4 shrink-0" />
                   <span className="hidden md:block">Workload</span>
-                </Link>
-                <Link to="/releases" className={NAV_LINK_CLASS}>
+                </NavLink>
+                <NavLink to="/releases" className={navLinkClass}>
                   <Tag className="h-4 w-4 shrink-0" />
                   <span className="hidden md:block">Releases</span>
-                </Link>
+                </NavLink>
               </>
             )}
           </div>
@@ -108,19 +112,19 @@ export default function Sidebar() {
       {/* Bottom: Debug Logs (when enabled) + Settings */}
       <div className="px-2 py-4 border-t border-border flex flex-col gap-1">
         {debugMode && (
-          <Link to="/debug-logs" className={NAV_LINK_CLASS}>
+          <NavLink to="/debug-logs" className={navLinkClass}>
             <Bug className="h-4 w-4 shrink-0" />
             <span className="hidden md:block">Debug Logs</span>
-          </Link>
+          </NavLink>
         )}
-        <Link
+        <NavLink
           to="/settings"
-          className={NAV_LINK_CLASS}
+          className={navLinkClass}
           aria-label="Settings"
         >
           <Settings className="h-4 w-4 shrink-0" />
           <span className="hidden md:block">Settings</span>
-        </Link>
+        </NavLink>
       </div>
     </aside>
   );
