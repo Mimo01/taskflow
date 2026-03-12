@@ -308,7 +308,7 @@ describe('SearchResultPanel — GitLab MR', () => {
     expect(screen.getByText('PROJ-123')).toBeInTheDocument();
   });
 
-  it('does not render a ticket key chip when title has no ticket key', () => {
+  it('does not render a Jira link or ticket key when title has no ticket key', () => {
     render(
       <SearchResultPanel
         result={makeMR({ title: 'feat: no ticket here' })}
@@ -317,9 +317,7 @@ describe('SearchResultPanel — GitLab MR', () => {
         onBack={vi.fn()}
       />,
     );
-    // chip would be inside an orange badge, not just text
-    const badges = document.querySelectorAll('.bg-orange-100');
-    expect(badges.length).toBe(0);
+    expect(screen.queryByRole('button', { name: /in Jira/ })).not.toBeInTheDocument();
   });
 
   it('linked ticket key chip is a button that opens Jira issue URL', () => {
