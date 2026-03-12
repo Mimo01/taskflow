@@ -178,11 +178,14 @@ export async function fetchSprintIssues(
   token: string,
   projectKey: string,
   assignedToMe = true,
+  storyPointsFieldKey = 'customfield_10016',
 ): Promise<JiraIssue[]> {
   const base = baseUrl.replace(/\/$/, '');
   const assigneeClause = assignedToMe ? ' AND assignee = currentUser()' : '';
-  // Updated fields: add parent, subtasks, timetracking to first query
-  const fields = 'summary,status,assignee,issuetype,customfield_10016,story_points,parent,subtasks,timetracking';
+  // Include both common story-point field IDs plus the discovered key (deduplicated) so
+  // the response contains whichever one this Jira instance uses.
+  const spFields = [...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey])].join(',');
+  const fields = `summary,status,assignee,issuetype,${spFields},parent,subtasks,timetracking`;
   const jql = encodeURIComponent(
     `project = ${projectKey} AND sprint in openSprints()${assigneeClause} AND issuetype not in subtaskIssueTypes() AND resolution = Unresolved ORDER BY updated DESC`,
   );
@@ -254,6 +257,113 @@ export async function fetchSprintIssues(
     // Subtask query failed: return parent issues only, silently
     return parentIssues;
   }
+}
+
+/**
+ * Fetch all sprint issues relevant to the current user with full team hierarchy.
+ *
+ * Returns every story where the user is assigned OR where at least one subtask is
+ * assigned to them, together with ALL subtasks of those stories (not just the user's).
+ * Callers can use `myIssueKeys` to visually distinguish issues not assigned to the user.
+ *
+ * Strategy:
+ *  1. Parallel: fetch my stories + fetch my subtasks
+ *  2. Find parents of my subtasks not already covered by step 1
+ *  3. Fetch those additional parent stories
+ *  4. Fetch ALL subtasks for every parent (no assignee filter)
+ */
+export async function fetchMyTasksHierarchy(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  storyPointsFieldKey = 'customfield_10016',
+): Promise<{ issues: JiraIssue[]; myIssueKeys: Set<string> }> {
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  // Include both common story-point field IDs plus the discovered key (deduplicated).
+  const spFields = [...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey])].join(',');
+  const fields = `summary,status,assignee,issuetype,${spFields},parent,subtasks,timetracking`;
+  const subtaskFields = 'summary,status,assignee,issuetype,parent,timetracking';
+
+  // Step 1: my stories + my subtasks in parallel
+  const myStoriesJql = encodeURIComponent(
+    `project = ${projectKey} AND sprint in openSprints() AND issuetype not in subtaskIssueTypes() AND assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC`,
+  );
+  const mySubtasksJql = encodeURIComponent(
+    `project = ${projectKey} AND sprint in openSprints() AND issuetype in subtaskIssueTypes() AND assignee = currentUser()`,
+  );
+
+  let storiesRes: Response;
+  let subtasksRes: Response;
+  try {
+    [storiesRes, subtasksRes] = await Promise.all([
+      apiFetch('jira', `${base}/rest/api/2/search?jql=${myStoriesJql}&fields=${fields}`, { headers }),
+      apiFetch('jira', `${base}/rest/api/2/search?jql=${mySubtasksJql}&fields=${subtaskFields}&maxResults=200`, { headers }),
+    ]);
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (storiesRes.status === 400) {
+    const body = await storiesRes.text();
+    if (body.includes('function') || body.includes('not recognized')) {
+      throw new Error('Sprint filtering unavailable — ensure Jira Software is installed');
+    }
+    throw new Error('Jira search failed with status 400');
+  }
+  if (!storiesRes.ok) throw new Error(`Jira search failed with status ${storiesRes.status}`);
+
+  const myStories: JiraIssue[] = (await storiesRes.json()).issues ?? [];
+  const mySubtasks: JiraIssue[] = subtasksRes.ok ? ((await subtasksRes.json()).issues ?? []) : [];
+
+  const myIssueKeys = new Set([...myStories.map((s) => s.key), ...mySubtasks.map((s) => s.key)]);
+  const myStoryKeys = new Set(myStories.map((s) => s.key));
+
+  // Step 2: parent keys of my subtasks not already covered by myStories
+  const extraParentKeys = [
+    ...new Set(
+      mySubtasks
+        .map((s) => s.fields.parent?.key)
+        .filter((k): k is string => !!k && !myStoryKeys.has(k)),
+    ),
+  ];
+
+  // Step 3: fetch additional parent stories (if any) — sprint-scoped so old-sprint parents are excluded
+  let extraParents: JiraIssue[] = [];
+  if (extraParentKeys.length > 0) {
+    try {
+      const extraJql = encodeURIComponent(
+        `key in (${extraParentKeys.join(',')}) AND sprint in openSprints() AND resolution = Unresolved`,
+      );
+      const extraRes = await apiFetch('jira', `${base}/rest/api/2/search?jql=${extraJql}&fields=${fields}&maxResults=200`, { headers });
+      if (extraRes.ok) extraParents = ((await extraRes.json()).issues ?? []) as JiraIssue[];
+    } catch { /* return partial results */ }
+  }
+
+  const allParents = [...myStories, ...extraParents];
+  if (allParents.length === 0) return { issues: [], myIssueKeys };
+
+  // Step 4: fetch ALL subtasks for every parent (no assignee filter)
+  const allParentKeys = allParents.map((p) => p.key);
+  const chunks: string[][] = [];
+  for (let i = 0; i < allParentKeys.length; i += SUBTASK_CHUNK_SIZE) {
+    chunks.push(allParentKeys.slice(i, i + SUBTASK_CHUNK_SIZE));
+  }
+
+  let allSubtasks: JiraIssue[] = [];
+  try {
+    const chunkResults = await Promise.all(
+      chunks.map(async (chunk) => {
+        const jql = encodeURIComponent(`issuetype in subtaskIssueTypes() AND parent in (${chunk.join(',')}) AND sprint in openSprints()`);
+        const res = await apiFetch('jira', `${base}/rest/api/2/search?jql=${jql}&fields=${subtaskFields}&maxResults=200`, { headers });
+        if (!res.ok) return [];
+        return ((await res.json()).issues ?? []) as JiraIssue[];
+      }),
+    );
+    allSubtasks = chunkResults.flat();
+  } catch { /* return parents without subtasks */ }
+
+  return { issues: [...allParents, ...allSubtasks], myIssueKeys };
 }
 
 /**

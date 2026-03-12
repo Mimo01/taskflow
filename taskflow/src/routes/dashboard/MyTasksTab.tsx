@@ -18,7 +18,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { RefreshCw } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
-import { fetchSprintIssues, postTransition, postComment } from '@/services/jira'
+import { useSettingsStore } from '@/stores/settings.store'
+import { fetchMyTasksHierarchy, postTransition, postComment } from '@/services/jira'
 import type { JiraIssue } from '@/services/jira'
 import {
   fetchAssignedMRs,
@@ -39,6 +40,7 @@ import TaskRow from './TaskRow'
 
 export default function MyTasksTab() {
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl } = useAuthStore()
+  const { storyPointsFieldKey } = useSettingsStore()
   const [jiraToken, setJiraToken] = useState<string | null>(null)
   const [gitlabToken, setGitlabToken] = useState<string | null>(null)
 
@@ -58,15 +60,19 @@ export default function MyTasksTab() {
     }
   }, [gitlabBaseUrl])
 
-  // Fetch sprint issues assigned to current user
-  const { data, isLoading, isError, error, dataUpdatedAt, refetch } = useQuery({
-    queryKey: ['jira-issues', 'my-tasks', activeJiraProject],
-    queryFn: () => fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, true),
+  // Fetch sprint issues: my stories + stories with my subtasks + all their subtasks.
+  // Include storyPointsFieldKey in cache key: when discovery changes the key, the query
+  // re-fires with the updated fields list so the response actually contains the value.
+  const { data: taskData, isLoading, isError, error, dataUpdatedAt, refetch } = useQuery({
+    queryKey: ['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey],
+    queryFn: () => fetchMyTasksHierarchy(jiraBaseUrl!, jiraToken!, activeJiraProject!, storyPointsFieldKey),
     refetchInterval: 60_000,
     refetchIntervalInBackground: true,
     staleTime: 30_000,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   })
+  const data = taskData?.issues
+  const myIssueKeys = taskData?.myIssueKeys ?? new Set<string>()
 
   // Fetch GitLab MRs (same query key as MrAttentionTab — TanStack deduplicates)
   const { data: gitlabMrs } = useQuery({
@@ -197,9 +203,9 @@ export default function MyTasksTab() {
     mutationFn: ({ issueKey, transitionId }: { issueKey: string; transitionId: string; toStatusName: string }) =>
       postTransition(jiraBaseUrl!, jiraToken ?? '', issueKey, transitionId),
     onMutate: async ({ issueKey, toStatusName }) => {
-      await queryClient.cancelQueries({ queryKey: ['jira-issues', 'my-tasks', activeJiraProject] })
-      const prev = queryClient.getQueryData<JiraIssue[]>(['jira-issues', 'my-tasks', activeJiraProject])
-      queryClient.setQueryData<JiraIssue[]>(['jira-issues', 'my-tasks', activeJiraProject], (old) =>
+      await queryClient.cancelQueries({ queryKey: ['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey] })
+      const prev = queryClient.getQueryData<JiraIssue[]>(['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey])
+      queryClient.setQueryData<JiraIssue[]>(['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey], (old) =>
         (old ?? []).map((i) =>
           i.key === issueKey
             ? { ...i, fields: { ...i.fields, status: { ...i.fields.status, name: toStatusName } } }
@@ -209,11 +215,11 @@ export default function MyTasksTab() {
       return { prev }
     },
     onError: (_err, { issueKey }, ctx) => {
-      queryClient.setQueryData(['jira-issues', 'my-tasks', activeJiraProject], ctx?.prev)
+      queryClient.setQueryData(['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey], ctx?.prev)
       setInlineErrors((prev) => ({ ...prev, [`${issueKey}-transition`]: 'Failed to update — try again' }))
     },
     onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: ['jira-issues', 'my-tasks', activeJiraProject] }),
+      queryClient.invalidateQueries({ queryKey: ['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey] }),
   })
 
   // Comment mutation
@@ -227,6 +233,26 @@ export default function MyTasksTab() {
       setInlineErrors((prev) => ({ ...prev, [`${issueKey}-comment`]: 'Failed to add comment — try again' }))
     },
   })
+
+  // Group flat issue list into parent→subtasks hierarchy
+  const groupedData = useMemo(() => {
+    const issues = data ?? []
+    const parents = issues.filter((i) => !i.fields.issuetype.subtask)
+    const subtasks = issues.filter((i) => i.fields.issuetype.subtask)
+    const parentKeySet = new Set(parents.map((p) => p.key))
+    const subtasksByParent = new Map<string, JiraIssue[]>()
+    const orphans: JiraIssue[] = []
+    for (const s of subtasks) {
+      const parentKey = s.fields.parent?.key
+      if (parentKey && parentKeySet.has(parentKey)) {
+        const existing = subtasksByParent.get(parentKey) ?? []
+        subtasksByParent.set(parentKey, [...existing, s])
+      } else {
+        orphans.push(s)
+      }
+    }
+    return { groups: parents.map((p) => ({ parent: p, subtasks: subtasksByParent.get(p.key) ?? [] })), orphans }
+  }, [data])
 
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
@@ -275,10 +301,54 @@ export default function MyTasksTab() {
         </div>
       )}
 
-      {/* Task list */}
+      {/* Task list — grouped by parent→subtasks */}
       {!isLoading && !isError && data && data.length > 0 && (
         <div className="flex flex-col">
-          {data.map((issue) => {
+          {groupedData.groups.map(({ parent, subtasks: children }) => {
+            const renderRow = (issue: JiraIssue, isSubtask: boolean) => {
+              const linkedMrs = fullLinkMap.get(issue.key) ?? []
+              const linkedMrResults = linkedMrs.map((mr) => ({
+                mr,
+                health: healthMap.get(mr.iid) ?? ('waiting_for_review' as ReviewHealth),
+              }))
+              return (
+                <TaskRow
+                  key={issue.id}
+                  issue={issue}
+                  isSubtask={isSubtask}
+                  notMine={isSubtask && !myIssueKeys.has(issue.key)}
+                  linkedMrResults={linkedMrResults}
+                  jiraBaseUrl={jiraBaseUrl ?? ''}
+                  jiraToken={jiraToken ?? ''}
+                  onTransitionSelect={(issueKey, transitionId, toStatusName) => {
+                    setInlineErrors((prev) => { const next = { ...prev }; delete next[`${issueKey}-transition`]; return next })
+                    transitionMutation.mutate({ issueKey, transitionId, toStatusName })
+                  }}
+                  onCommentSubmit={(issueKey, comment) => {
+                    setInlineErrors((prev) => { const next = { ...prev }; delete next[`${issueKey}-comment`]; return next })
+                    commentMutation.mutate({ issueKey, comment })
+                  }}
+                  isTransitionPending={
+                    transitionMutation.isPending &&
+                    transitionMutation.variables?.issueKey === issue.key
+                  }
+                  isCommentPending={
+                    commentMutation.isPending &&
+                    commentMutation.variables?.issueKey === issue.key
+                  }
+                  transitionError={inlineErrors[`${issue.key}-transition`]}
+                  commentError={inlineErrors[`${issue.key}-comment`]}
+                />
+              )
+            }
+            return (
+              <div key={parent.id}>
+                {renderRow(parent, false)}
+                {children.map((subtask) => renderRow(subtask, true))}
+              </div>
+            )
+          })}
+          {groupedData.orphans.map((issue) => {
             const linkedMrs = fullLinkMap.get(issue.key) ?? []
             const linkedMrResults = linkedMrs.map((mr) => ({
               mr,
@@ -288,6 +358,8 @@ export default function MyTasksTab() {
               <TaskRow
                 key={issue.id}
                 issue={issue}
+                isSubtask
+                notMine={!myIssueKeys.has(issue.key)}
                 linkedMrResults={linkedMrResults}
                 jiraBaseUrl={jiraBaseUrl ?? ''}
                 jiraToken={jiraToken ?? ''}

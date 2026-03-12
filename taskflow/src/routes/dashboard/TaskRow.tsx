@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 import type { JiraIssue } from '@/services/jira'
 import type { GitLabMR } from '@/services/gitlab'
 import type { ReviewHealth } from '@/services/linkEngine'
+import { useSettingsStore } from '@/stores/settings.store'
 import StatusPopover from './StatusPopover'
 import InlineComment from './InlineComment'
 
@@ -32,6 +33,8 @@ interface TaskRowProps {
   isCommentPending?: boolean
   transitionError?: string
   commentError?: string
+  isSubtask?: boolean
+  notMine?: boolean
 }
 
 export default function TaskRow({
@@ -45,19 +48,27 @@ export default function TaskRow({
   isCommentPending,
   transitionError,
   commentError,
+  isSubtask = false,
+  notMine = false,
 }: TaskRowProps) {
   const [commentOpen, setCommentOpen] = useState(false)
+  const { storyPointsFieldKey } = useSettingsStore()
 
   return (
-    <div className="border-b border-border last:border-b-0">
+    <div className={cn(
+      'border-b border-border last:border-b-0',
+      isSubtask && !notMine && 'ml-6 border-l-2 border-l-primary/50 bg-primary/5',
+      isSubtask && notMine && 'ml-6 border-l-2 border-l-muted-foreground/15 bg-muted/20 opacity-40',
+    )}>
       <div className="flex items-center gap-2 py-2 px-3">
         {/* Issue key */}
-        <span className="w-24 flex-shrink-0 font-mono text-sm text-muted-foreground truncate">
+        <span className="w-28 flex-shrink-0 font-mono text-sm text-muted-foreground truncate">
+          {isSubtask && <span className="mr-1 text-muted-foreground/40">↳</span>}
           {issue.key}
         </span>
 
         {/* Summary */}
-        <span className="flex-1 truncate text-sm">{issue.fields.summary}</span>
+        <span className={cn('flex-1 truncate text-sm', notMine && 'italic text-muted-foreground')}>{issue.fields.summary}</span>
 
         {/* Status popover */}
         <StatusPopover
@@ -78,7 +89,7 @@ export default function TaskRow({
 
         {/* Story points */}
         <span className="w-8 text-right text-xs text-muted-foreground">
-          {issue.fields.customfield_10016 ?? '—'}
+          {(issue.fields[storyPointsFieldKey] as number | null | undefined) ?? '—'}
         </span>
 
         {/* MR chips area */}

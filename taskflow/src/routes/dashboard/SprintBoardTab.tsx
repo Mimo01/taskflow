@@ -15,6 +15,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { RefreshCw } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
+import { useSettingsStore } from '@/stores/settings.store'
 import { fetchSprintIssues } from '@/services/jira'
 import { readSecret } from '@/services/stronghold'
 import { linkMRToTask } from '@/services/linkEngine'
@@ -35,6 +36,7 @@ function bestHealth(healths: ReviewHealth[]): ReviewHealth | undefined {
 
 export default function SprintBoardTab() {
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl } = useAuthStore()
+  const { storyPointsFieldKey } = useSettingsStore()
   const [jiraToken, setJiraToken] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
@@ -47,8 +49,8 @@ export default function SprintBoardTab() {
   }, [jiraBaseUrl])
 
   const { data, isLoading, isError, error, dataUpdatedAt, refetch } = useQuery({
-    queryKey: ['jira-issues', 'sprint-board', activeJiraProject],
-    queryFn: () => fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false),
+    queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey],
+    queryFn: () => fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false, storyPointsFieldKey),
     refetchInterval: 60_000,
     refetchIntervalInBackground: true,
     staleTime: 30_000,
