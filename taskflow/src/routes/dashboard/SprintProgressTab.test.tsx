@@ -273,14 +273,106 @@ describe('SprintProgressTab', () => {
     expect(screen.getByText('Alice')).toBeTruthy();
     expect(screen.getByText('Bob')).toBeTruthy();
 
-    // Find Alice's row and check To Do pts = 5
+    // Find Alice's row and check To Do pts = 5 (index 3 after Stories + Subtasks columns)
     const aliceRow = screen.getByText('Alice').closest('[data-testid="assignee-row"]');
     const aliceCells = aliceRow?.querySelectorAll('td');
-    expect(aliceCells?.[1]?.textContent).toBe('5'); // To Do pts
+    expect(aliceCells?.[3]?.textContent).toBe('5'); // To Do pts
 
-    // Find Bob's row and check Done pts = 3
+    // Find Bob's row and check Done pts = 3 (index 5 after Stories + Subtasks columns)
     const bobRow = screen.getByText('Bob').closest('[data-testid="assignee-row"]');
     const bobCells = bobRow?.querySelectorAll('td');
-    expect(bobCells?.[3]?.textContent).toBe('3'); // Done pts
+    expect(bobCells?.[5]?.textContent).toBe('3'); // Done pts
+  });
+});
+
+describe('SPPG-07: assignee stories and subtasks columns', () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    const stronghold = await import('@/services/stronghold');
+    vi.mocked(stronghold.readSecret).mockResolvedValue('test-jira-token');
+    const settingsStore = await import('@/stores/settings.store');
+    vi.mocked(settingsStore.useSettingsStore).mockReturnValue({ storyPointsFieldKey: 'customfield_10016' } as ReturnType<typeof settingsStore.useSettingsStore>);
+  });
+
+  it('Test A: assignee with 2 stories (any status) and 1 subtask shows Stories=2, Subtasks=1', async () => {
+    const { fetchSprintIssues } = await import('@/services/jira');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([
+      makeIssue('P-1', 'new', 3, { assigneeName: 'Alice' }),
+      makeIssue('P-2', 'done', 5, { assigneeName: 'Alice' }),
+      makeIssue('P-3', 'new', null, { subtask: true, assigneeName: 'Alice' }),
+    ]);
+
+    const { default: SprintProgressTab } = await import('./SprintProgressTab');
+    renderWithQuery(<SprintProgressTab />);
+
+    await screen.findByText('Alice');
+    const aliceRow = screen.getByText('Alice').closest('[data-testid="assignee-row"]');
+    const aliceCells = aliceRow?.querySelectorAll('td');
+    expect(aliceCells?.[1]?.textContent).toBe('2'); // Stories
+    expect(aliceCells?.[2]?.textContent).toBe('1'); // Subtasks
+  });
+
+  it('Test B: assignee with 1 story and 0 subtasks shows Subtasks=0', async () => {
+    const { fetchSprintIssues } = await import('@/services/jira');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([
+      makeIssue('P-1', 'new', 5, { assigneeName: 'Bob' }),
+    ]);
+
+    const { default: SprintProgressTab } = await import('./SprintProgressTab');
+    renderWithQuery(<SprintProgressTab />);
+
+    await screen.findByText('Bob');
+    const bobRow = screen.getByText('Bob').closest('[data-testid="assignee-row"]');
+    const bobCells = bobRow?.querySelectorAll('td');
+    expect(bobCells?.[2]?.textContent).toBe('0'); // Subtasks
+  });
+
+  it('Test C: story named "Sub-task" but issuetype.subtask=false is NOT counted as subtask', async () => {
+    const { fetchSprintIssues } = await import('@/services/jira');
+    // Create an issue with subtask=false but name "Sub-task" via direct object literal
+    const fakeSub = {
+      id: 'P-fake',
+      key: 'P-fake',
+      fields: {
+        summary: 'Summary P-fake',
+        status: {
+          id: '1',
+          name: 'To Do',
+          statusCategory: { key: 'new' as const },
+        },
+        assignee: { displayName: 'Carol', avatarUrls: { '48x48': '' } },
+        customfield_10016: null,
+        issuetype: {
+          name: 'Sub-task', // name says Sub-task
+          subtask: false,   // but boolean is false
+        },
+        timetracking: null,
+      },
+    };
+    vi.mocked(fetchSprintIssues).mockResolvedValue([fakeSub as ReturnType<typeof makeIssue>]);
+
+    const { default: SprintProgressTab } = await import('./SprintProgressTab');
+    renderWithQuery(<SprintProgressTab />);
+
+    await screen.findByText('Carol');
+    const carolRow = screen.getByText('Carol').closest('[data-testid="assignee-row"]');
+    const carolCells = carolRow?.querySelectorAll('td');
+    // issuetype.subtask=false → treated as a story, not a subtask
+    expect(carolCells?.[1]?.textContent).toBe('1'); // Stories = 1
+    expect(carolCells?.[2]?.textContent).toBe('0'); // Subtasks = 0
+  });
+
+  it('Test D: table header includes "Stories" and "Subtasks" column headers', async () => {
+    const { fetchSprintIssues } = await import('@/services/jira');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([
+      makeIssue('P-1', 'new', 3, { assigneeName: 'Alice' }),
+    ]);
+
+    const { default: SprintProgressTab } = await import('./SprintProgressTab');
+    renderWithQuery(<SprintProgressTab />);
+
+    await screen.findByText('Alice');
+    expect(screen.getByText('Stories')).toBeTruthy();
+    expect(screen.getByText('Subtasks')).toBeTruthy();
   });
 });
