@@ -40,8 +40,8 @@ Requirements for v1.1 Polish milestone. Each maps to roadmap phases.
 
 ### MR Attention
 
-- [ ] **MRAT-01**: MR Attention shows only open (`state=opened`) merge requests
-- [ ] **MRAT-02**: MR Attention includes MRs linked to stories where current user has at least one assigned subtask
+- [x] **MRAT-01**: MR Attention shows only open (`state=opened`) merge requests
+- [x] **MRAT-02**: MR Attention includes MRs linked to stories where current user has at least one assigned subtask
 
 ### Dashboard
 
@@ -86,8 +86,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | HIER-01 | Phase 7 | Complete |
 | HIER-02 | Phase 7 | Pending |
 | HIER-03 | Phase 7 | Pending |
-| MRAT-01 | Phase 7 | Pending |
-| MRAT-02 | Phase 7 | Pending |
+| MRAT-01 | Phase 7 | Complete |
+| MRAT-02 | Phase 7 | Complete |
 | DASH-01 | Phase 8 | Pending |
 | DASH-02 | Phase 8 | Pending |
 | DASH-03 | Phase 8 | Pending |

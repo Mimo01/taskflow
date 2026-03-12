@@ -108,5 +108,5 @@ Phases execute in numeric order: 5 → 6 → 7 → 8
 | 4. PM Dashboard + Search | v1.0 | 5/5 | Complete | 2026-03-12 |
 | 5. API Foundation + Quick Wins | 8/8 | Complete   | 2026-03-12 | 2026-03-12 |
 | 6. Workload + Sprint Progress Enrichment | 3/3 | Complete   | 2026-03-12 | - |
-| 7. Story/Subtask Hierarchy + MR Subtask Filter | 1/3 | In Progress|  | - |
+| 7. Story/Subtask Hierarchy + MR Subtask Filter | 2/3 | In Progress|  | - |
 | 8. Dashboard Enrichment | v1.1 | 0/? | Not started | - |
