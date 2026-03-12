@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: planning
-stopped_at: Completed 07-01-PLAN.md
-last_updated: "2026-03-12T23:40:36.851Z"
+stopped_at: Completed 07-03-PLAN.md
+last_updated: "2026-03-12T23:45:13.575Z"
 last_activity: "2026-03-12 - Completed quick task 11: Add active page indicator in sidebar"
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 14
-  completed_plans: 12
+  completed_plans: 13
   percent: 0
 ---
 
@@ -75,6 +75,8 @@ Key v1.1 constraints from research:
 - [Phase 06-workload-sprint-progress-enrichment]: WorkloadTab done-story fix: replace guard skip with conditional increment — done stories always pushed to assignee map, count/pts only incremented for non-done
 - [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: HIER-01: Orphans silently dropped — render block deleted, groupedData memo kept for tests/future use
 - [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: onMutate fix: my-tasks cache key holds { issues, myIssueKeys } not JiraIssue[] — typing was silently wrong
+- [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: queryFn return shape changed to {filtered, merged} so subtask extension memo accesses pre-filter pool without stale closure
+- [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: viaSubtaskKey only set when sprintIssueKeySet link is null — sprint-linked MRs never get via label
 
 ### Pending Todos
 
@@ -102,9 +104,10 @@ None.
 | Phase 06 P02 | 4 | 2 tasks | 2 files |
 | Phase 06-workload-sprint-progress-enrichment P03 | 5 | 1 tasks | 2 files |
 | Phase 07-story-subtask-hierarchy-mr-subtask-filter P01 | 15 | 2 tasks | 2 files |
+| Phase 07-story-subtask-hierarchy-mr-subtask-filter P03 | 10 | 2 tasks | 3 files |
 
 ## Session Continuity
 
-Last session: 2026-03-12T23:40:36.848Z
-Stopped at: Completed 07-01-PLAN.md
+Last session: 2026-03-12T23:45:13.571Z
+Stopped at: Completed 07-03-PLAN.md
 Resume file: None
