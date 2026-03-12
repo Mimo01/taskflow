@@ -419,7 +419,7 @@ export async function searchGitLabMRs(
   query: string,
 ): Promise<GitLabMR[]> {
   const base = baseUrl.replace(/\/$/, '');
-  const url = `${base}/api/v4/search?scope=merge_requests&search=${encodeURIComponent(query)}&per_page=20`;
+  const url = `${base}/api/v4/search?scope=merge_requests&search=${encodeURIComponent(query)}&state=opened&per_page=20`;
 
   let response: Response;
   try {
