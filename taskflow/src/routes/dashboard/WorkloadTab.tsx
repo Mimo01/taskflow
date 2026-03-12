@@ -4,7 +4,7 @@
  * Reads from the shared TanStack cache (same query key as SprintProgressTab).
  * Counts and points only reflect non-done stories; done stories appear in expanded sub-rows.
  * Groups by assignee.displayName, with null assignee → 'Unassigned'.
- * Rows sorted by open task count descending.
+ * Rows sorted by total story points (non-done) descending; ties broken alphabetically by name.
  * Time tracking columns (Est/Spent/Remaining) hidden when all values are zero/null.
  * Each assignee row is expandable to reveal per-story sub-rows.
  */
@@ -132,7 +132,7 @@ export default function WorkloadTab() {
       existing.remainSecs += tt?.remainingEstimateSeconds ?? 0;
     }
 
-    const rows = Array.from(map.values()).sort((a, b) => b.count - a.count);
+    const rows = Array.from(map.values()).sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
     const hasTimeData = rows.some((r) => r.estSecs > 0 || r.spentSecs > 0 || r.remainSecs > 0);
     return { rows, hasTimeData };
   }, [data, storyPointsFieldKey]);
