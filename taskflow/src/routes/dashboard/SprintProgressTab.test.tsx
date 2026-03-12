@@ -134,7 +134,7 @@ describe('SprintProgressTab', () => {
     renderWithQuery(<SprintProgressTab />);
 
     // Wait for data to load — "2" appears as the To Do count only after fetch resolves
-    await screen.findByText('2');
+    await screen.findAllByText('2');
     // Old single-segment progress-bar testid should be gone
     const progressBar = document.querySelector('[data-testid="progress-bar"]');
     expect(progressBar).toBeNull();
@@ -150,7 +150,7 @@ describe('SprintProgressTab', () => {
     renderWithQuery(<SprintProgressTab />);
 
     // Wait for data to load — "1" appears as the To Do count only after fetch resolves
-    await screen.findByText('1');
+    await screen.findAllByText('1');
     // Should show "to do" bucket label
     expect(screen.getAllByText(/to do/i).length).toBeGreaterThan(0);
   });
