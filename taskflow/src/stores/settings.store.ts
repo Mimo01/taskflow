@@ -42,6 +42,8 @@ interface SettingsState {
   osNotifJiraEnabled: boolean;
   /** Enable OS desktop notifications for GitLab MR notes. Default: true. */
   osNotifGitlabEnabled: boolean;
+  /** Discovered story points custom field key. Defaults to customfield_10016. */
+  storyPointsFieldKey: string;
   setRole: (role: 'developer' | 'pm') => void;
   setTheme: (theme: Theme) => void;
   setOnboardingComplete: (complete: boolean) => void;
@@ -50,6 +52,7 @@ interface SettingsState {
   setNotificationPollIntervalSecs: (secs: number) => void;
   setOsNotifJiraEnabled: (v: boolean) => void;
   setOsNotifGitlabEnabled: (v: boolean) => void;
+  setStoryPointsFieldKey: (key: string) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -62,6 +65,7 @@ export const useSettingsStore = create<SettingsState>()(
       notificationPollIntervalSecs: 60,
       osNotifJiraEnabled: true,
       osNotifGitlabEnabled: true,
+      storyPointsFieldKey: 'customfield_10016',
       setRole: (role) => set({ role }),
       setTheme: (theme) => set({ theme }),
       setOnboardingComplete: (complete) => set({ onboardingComplete: complete }),
@@ -70,6 +74,7 @@ export const useSettingsStore = create<SettingsState>()(
         set({ notificationPollIntervalSecs: Math.max(30, Math.min(300, secs)) }),
       setOsNotifJiraEnabled: (v) => set({ osNotifJiraEnabled: v }),
       setOsNotifGitlabEnabled: (v) => set({ osNotifGitlabEnabled: v }),
+      setStoryPointsFieldKey: (key) => set({ storyPointsFieldKey: key }),
     }),
     {
       name: 'settings-store',

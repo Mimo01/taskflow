@@ -75,7 +75,7 @@ function makeJiraIssue(key: string): JiraIssue {
       status: { id: '1', name: 'In Progress' },
       assignee: { displayName: 'Jane Doe', avatarUrls: { '48x48': '' } },
       customfield_10016: 5,
-      issuetype: { name: 'Story' },
+      issuetype: { name: 'Story', subtask: false },
       description: 'Some description text here',
     },
   };
