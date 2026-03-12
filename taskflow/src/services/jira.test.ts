@@ -121,7 +121,7 @@ describe('jira service', () => {
         status: { id: '10001', name: 'In Progress' },
         assignee: { displayName: 'Jane Smith', avatarUrls: { '48x48': 'https://example.com/avatar.png' } },
         customfield_10016: 5,
-        issuetype: { name: 'Story' },
+        issuetype: { name: 'Story', subtask: false },
       },
     };
 

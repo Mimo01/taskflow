@@ -2,7 +2,7 @@ import './index.css';
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { createHashRouter, RouterProvider, Outlet } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { loadTheme } from './services/theme';
 import { useSettingsStore } from './stores/settings.store';
@@ -11,6 +11,8 @@ import Sidebar from './components/app/Sidebar';
 import ReAuthBanner from './components/app/ReAuthBanner';
 import TopBar from './components/app/TopBar';
 import { useNotificationPolling } from './hooks/useNotificationPolling';
+import { readSecret } from './services/stronghold';
+import { discoverStoryPointsField } from './services/jira';
 import Onboarding from './routes/onboarding/index';
 import Dashboard from './routes/dashboard/index';
 import Settings from './routes/settings/index';
@@ -31,6 +33,33 @@ const queryClient = new QueryClient({
 });
 
 /**
+ * Runs discoverStoryPointsField once when Jira credentials first become available.
+ * Caches the result in settingsStore.storyPointsFieldKey for use by all sprint queries.
+ * staleTime: Infinity — field keys do not change without a Jira admin action.
+ */
+function useStoryPointsFieldDiscovery() {
+  const { jiraConnected, jiraBaseUrl } = useAuthStore();
+  const { setStoryPointsFieldKey } = useSettingsStore();
+
+  const query = useQuery({
+    queryKey: ['jira-story-points-field', jiraBaseUrl],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token || !jiraBaseUrl) return 'customfield_10016';
+      return discoverStoryPointsField(jiraBaseUrl, token);
+    },
+    staleTime: Infinity,
+    enabled: !!jiraBaseUrl && !!jiraConnected,
+  });
+
+  useEffect(() => {
+    if (query.data) {
+      setStoryPointsFieldKey(query.data);
+    }
+  }, [query.data, setStoryPointsFieldKey]);
+}
+
+/**
  * AppLayout — renders Sidebar + main content when user has completed onboarding.
  * Shows ReAuthBanner if jiraConnected is false but onboarding is complete.
  */
@@ -45,6 +74,7 @@ function AppLayout() {
 
   // Notification polling — runs inside QueryClientProvider context
   useNotificationPolling();
+  useStoryPointsFieldDiscovery();
 
   if (!onboardingComplete) {
     // During onboarding, no sidebar
