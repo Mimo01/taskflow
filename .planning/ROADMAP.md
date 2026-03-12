@@ -101,6 +101,6 @@ Phases execute in numeric order: 5 → 6 → 7 → 8
 | 3. Notifications Hub | v1.0 | 2/2 | Complete | 2026-03-12 |
 | 4. PM Dashboard + Search | v1.0 | 5/5 | Complete | 2026-03-12 |
 | 5. API Foundation + Quick Wins | 8/8 | Complete   | 2026-03-12 | 2026-03-12 |
-| 6. Workload + Sprint Progress Enrichment | v1.1 | 0/2 | Not started | - |
+| 6. Workload + Sprint Progress Enrichment | 1/2 | In Progress|  | - |
 | 7. Story/Subtask Hierarchy + MR Subtask Filter | v1.1 | 0/? | Not started | - |
 | 8. Dashboard Enrichment | v1.1 | 0/? | Not started | - |
