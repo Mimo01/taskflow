@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: resolved
 phase: 04-pm-dashboard-search
 source: 04-01-SUMMARY.md, 04-02-SUMMARY.md, 04-03-SUMMARY.md
 started: 2026-03-11T23:00:00Z
-updated: 2026-03-11T23:00:00Z
+updated: 2026-03-12T00:00:00Z
 ---
 
 ## Current Test
@@ -64,7 +64,7 @@ skipped: 0
 ## Gaps
 
 - truth: "Releases tab shows fix versions from Jira with GitLab date-matching and issue counts"
-  status: failed
+  status: resolved
   reason: "User reported: Unexpected Application Error! (fixVersions ?? []).map is not a function. (fixVersions ?? []).map is undefined"
   severity: blocker
   test: 4
@@ -77,7 +77,7 @@ skipped: 0
   missing:
     - "Fix fetchFixVersions to extract and return data.values instead of casting the raw response"
 - truth: "Jira issue detail panel shows a description excerpt"
-  status: failed
+  status: resolved
   reason: "User reported: the description is not rendered properly but as plaintext with all special chars"
   severity: major
   test: 8
@@ -91,7 +91,7 @@ skipped: 0
     - "Add ADF-to-plaintext utility that walks ADF content nodes and extracts text leaf values"
     - "Call utility in SearchResultPanel before slicing description"
 - truth: "GitLab MR detail panel shows linked ticket key chip"
-  status: failed
+  status: resolved
   reason: "User reported: would expect to have a link to jira ticket as well (if available) — chip shown but not clickable/linked"
   severity: major
   test: 8
