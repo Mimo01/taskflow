@@ -42,7 +42,7 @@ function makeIssue(
         ? { displayName: assigneeName, avatarUrls: { '48x48': '' } }
         : null,
       customfield_10016: pts,
-      issuetype: { name: 'Story' },
+      issuetype: { name: 'Story', subtask: false },
     },
   };
 }

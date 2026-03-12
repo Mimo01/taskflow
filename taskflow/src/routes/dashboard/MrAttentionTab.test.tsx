@@ -77,7 +77,7 @@ function makeIssue(key: string) {
       status: { id: '3', name: 'In Progress' },
       assignee: null,
       customfield_10016: null,
-      issuetype: { name: 'Story' },
+      issuetype: { name: 'Story', subtask: false },
     },
   };
 }

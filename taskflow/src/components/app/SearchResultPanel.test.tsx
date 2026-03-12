@@ -34,7 +34,7 @@ function makeJiraIssue(overrides: Partial<JiraIssue['fields']> = {}): JiraIssue 
       status: { id: '3', name: 'In Progress' },
       assignee: { displayName: 'Jane Doe', avatarUrls: { '48x48': '' } },
       customfield_10016: 8,
-      issuetype: { name: 'Story' },
+      issuetype: { name: 'Story', subtask: false },
       description: 'This is a description of the issue that contains important information.',
       ...overrides,
     },

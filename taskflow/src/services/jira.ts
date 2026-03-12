@@ -120,8 +120,23 @@ export interface JiraIssue {
     };
     assignee: { displayName: string; avatarUrls: { '48x48': string } } | null;
     customfield_10016: number | null; // story points (most common field key)
-    issuetype: { name: string };
+    issuetype: {
+      name: string;
+      subtask: boolean; // Use this — NOT name comparison. Admins can rename issue types.
+    };
     description?: string | null;
+    // v1.1 additions (all optional — non-breaking for all four existing callers):
+    parent?: { id: string; key: string; fields: { summary: string } };
+    subtasks?: Array<{ id: string; key: string; fields: { summary: string; status: { name: string } } }>;
+    timetracking?: {
+      originalEstimate?: string;
+      remainingEstimate?: string;
+      timeSpent?: string;
+      originalEstimateSeconds?: number;
+      remainingEstimateSeconds?: number;
+      timeSpentSeconds?: number;
+    };
+    [key: string]: unknown; // Enables issue.fields[storyPointsFieldKey] without casting
   };
 }
 
@@ -376,4 +391,40 @@ export async function searchJira(
 
   const data = await response.json();
   return (data.issues ?? []) as JiraIssue[];
+}
+
+// ─── Phase 5: API Foundation ──────────────────────────────────────────────────
+
+/**
+ * Discover the story points custom field ID for this Jira instance.
+ *
+ * Calls GET /rest/api/2/field to get all field descriptors, then matches by name.
+ * Falls back to 'customfield_10016' silently on any failure.
+ *
+ * Cache the result in settings store (storyPointsFieldKey) at app startup.
+ */
+export async function discoverStoryPointsField(
+  baseUrl: string,
+  token: string,
+): Promise<string> {
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/field`;
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) return 'customfield_10016';
+    const fields: Array<{ id: string; name: string }> = await response.json();
+    const match = fields.find(
+      (f) =>
+        f.name === 'Story Points' ||
+        f.name === 'story_points' ||
+        f.id === 'customfield_10028',
+    );
+    return match?.id ?? 'customfield_10016';
+  } catch {
+    return 'customfield_10016';
+  }
 }
