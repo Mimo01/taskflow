@@ -1,17 +1,17 @@
 # Project Research Summary
 
-**Project:** Taskflow
-**Domain:** Cross-platform developer/PM dashboard — on-premise Jira REST API v2 + GitLab integration
-**Researched:** 2026-03-10
-**Confidence:** MEDIUM (stack/architecture HIGH, features MEDIUM, Tauri plugin versions MEDIUM)
+**Project:** Taskflow v1.1 Polish
+**Domain:** Jira + GitLab desktop integration dashboard (Tauri 2, on-premise Data Center)
+**Researched:** 2026-03-12
+**Confidence:** HIGH
 
 ## Executive Summary
 
-Taskflow is a client-only API-aggregation desktop dashboard that unifies a team's Jira (on-premise, legacy Server/Data Center) and GitLab workflows into a single interface. The target audience is a small team of developers and PMs who are blocked by the absence of cross-tool notifications, the inability to see task-to-MR relationships at a glance, and the friction of context-switching between two browser tabs. The recommended approach is Tauri 2 + React 18 + TypeScript + TanStack Query — a lightweight desktop shell (no bundled Chromium) with a React frontend, where TanStack Query's polling and cache-invalidation mechanism drives all data fetching, including the notification loop. There is no backend; all API calls flow directly from the client to Jira and GitLab using Personal Access Tokens stored in the OS keychain.
+Taskflow v1.1 is a polish milestone on an already-shipped Tauri 2 + React + TypeScript desktop dashboard. The existing stack is sound and requires no new dependencies. All six v1.1 feature areas — story/subtask hierarchy, sprint progress enrichment, workload time tracking, dashboard enrichment, releases status display, and MR attention filtering — can be delivered by extending a single Jira API fields parameter (`parent,subtasks,timetracking`) and making targeted, additive changes to existing tab components. The foundational architecture is well-designed: a shared TanStack Query cache means adding fields once to `fetchSprintIssues` propagates data improvements to every consumer simultaneously.
 
-The architecture is explicitly client-only and must stay that way. A backend would add operational overhead with no benefit at this scale. The core technical challenge is building a reliable polling layer that handles on-premise Jira's quirks (no rate limits but limited capacity, Server API differences from Cloud, per-issue workflow transition IDs) alongside GitLab's rate-limiting (2000 req/min on .com, lower on self-hosted) without hammering either server. The notification hub — the primary pain point being solved — requires cursor-based incremental polling, deduplication by stable event IDs, and a fallback in-app badge that works even when OS notifications are blocked.
+The recommended delivery order is strictly driven by the dependency graph. One prerequisite change — extending `JiraIssue` in `jira.ts` and adding `parent,subtasks,timetracking` to the `fields` query param — unlocks four of the six feature areas at zero risk because all new fields are optional and existing code compiles unchanged. From there, two features (Releases sort, MR open-only filter) are fully independent and can be shipped immediately as quick wins. The most UI-complex feature (story/subtask hierarchy grouping) is deliberately last among the Jira work because it depends on the type foundation and is the only phase requiring new components.
 
-The top risks in order of severity are: (1) referencing Jira Cloud API docs instead of the Server REST v2 spec — this will cause silent auth failures and wrong field shapes from the start; (2) storing PATs in plaintext — must use the OS keychain via Tauri Stronghold from day one; (3) overaggressive polling — the single poll coordinator with 60-second minimum intervals and exponential backoff must be established as an architectural constraint before feature work begins, not retrofitted later. If these three are handled correctly in the first two phases, the rest of the build follows established patterns with moderate complexity.
+The critical risks are all Jira Data Center API behaviors, not architectural unknowns. Subtasks do not inherit sprint JQL scope, so a two-query strategy is mandatory. Story points double-counting will occur the moment subtasks enter the flat issue list unless the points accumulation loop filters by `issuetype.subtask === true`. Time tracking fields are absent silently when the Jira admin has disabled the feature — graceful hide (not zeros) is required. Every one of these pitfalls has a clear, low-cost fix documented in PITFALLS.md; none requires architectural rework.
 
 ---
 
@@ -19,169 +19,143 @@ The top risks in order of severity are: (1) referencing Jira Cloud API docs inst
 
 ### Recommended Stack
 
-The stack centers on Tauri 2 as the desktop shell (macOS, Windows, Linux), React 18 + TypeScript for the UI, and TanStack Query v5 as the single most important library — it manages all polling, caching, background refetch, and cache invalidation without any custom interval management. Zustand handles the small set of non-server UI state (theme, active role, selected project). shadcn/ui + Tailwind CSS provides accessible, fully-owned component primitives. Axios handles HTTP with interceptor-based PAT injection. Tauri Stronghold encrypts PATs at rest using the OS keychain.
+The v1.0 stack is validated and ships today: Tauri 2 desktop shell, React 18 + TypeScript, Vite, TanStack Query v5, Zustand, shadcn/ui + Tailwind CSS v4, `@tauri-apps/plugin-stronghold` for PAT storage. No new npm packages are needed for v1.1. See `STACK.md` for the full technology table and rationale.
 
-The abstraction layer between the UI and Tauri APIs is architecturally required: the same React codebase must run in both a Tauri desktop shell and a plain Vite dev server (for development and testing). Components must never call Tauri APIs directly.
+The only v1.1 stack-level addition is a story points field discovery function (`discoverStoryPointsField()` via `GET /rest/api/2/field`) because the `customfield_10016` ID is instance-specific on Data Center. The fallback to `customfield_10016` covers the majority of installs, but discovery prevents silent zero-point displays on non-standard instances. The existing invalid `story_points` field name in the `fetchSprintIssues` fields string must also be removed — it is silently ignored by the API.
 
 **Core technologies:**
-- **Tauri 2 (^2.1):** Desktop shell — ~10 MB installers vs ~150 MB for Electron; OS keychain access; no bundled Chromium
-- **React 18 (^18.3) + TypeScript (^5.4):** UI framework + type safety; Jira and GitLab API response shapes are complex and partially documented — TypeScript interfaces prevent entire categories of runtime bugs
-- **TanStack Query v5:** All API data fetching, polling, and cache management — `refetchInterval` drives the notification loop without manual `setInterval`
-- **Zustand (^4.5):** Theme, active role, PAT session config — kept strictly separate from server-derived data (which lives only in TanStack Query cache)
-- **Axios (^1.6):** HTTP client with interceptors for PAT injection and consistent error shapes
-- **shadcn/ui + Tailwind CSS (^3.4):** Copy-paste component primitives, fully owned and customizable; dark/light mode via one `dark:` class on `html`
-- **Tauri Stronghold (^2.x):** OS keychain-backed encrypted PAT storage — the only acceptable storage mechanism
-- **Tauri Notification plugin (^2.x):** OS-native desktop notifications triggered by the polling loop
-- **Vitest + MSW (^2.x):** Testing without Tauri — mock Jira + GitLab API responses in fast unit tests
-- **React Router v6 (^6.22) with `createHashRouter`:** Avoid file-path issues with Tauri webview asset serving
-
-**Critical version note:** Tailwind CSS v4 (released early 2025) is a breaking change from v3. Pin to ^3.4 for v1 and verify shadcn/ui compatibility before upgrading.
+- **Tauri 2 + `plugin-http`**: Desktop shell with CORS bypass for on-premise Jira/GitLab — no new changes for v1.1
+- **TanStack Query v5**: Shared cache across all tabs; extending one query function propagates new fields everywhere
+- **`services/jira.ts`**: Single integration point for all Jira API calls; `JiraIssue` type extension is the gating change for v1.1
+- **`services/gitlab.ts`**: GitLab API calls; add `&state=opened` to MR fetch functions
+- **`src/lib/sprintUtils.ts` (new)**: Pure utility module sharing `groupByAssignee` and `formatHours` between WorkloadTab and SprintProgressTab
 
 ### Expected Features
 
-All features resolve into two groups: things that make the app worth opening daily (table stakes), and things that justify it over just having two browser tabs (differentiators). Everything else is explicitly deferred or excluded.
+**Must have (table stakes — P1):**
+- `fetchSprintIssues` fields extension: add `parent,subtasks,timetracking` — prerequisite for all Jira hierarchy/time features
+- Releases tab: sort newest-to-oldest + released/unreleased badge — client-side only, no API changes
+- MR Attention: open MRs only (`state=opened` on GitLab fetch calls) — single-line fix per function
+- Workload: story points bug fix (double-counting parent + subtask points) — filter by `issuetype.subtask`
+- Sprint Progress: points breakdown by status bucket (To Do / In Progress / Done separately)
+- Workload: time tracking columns (estimate / spent / remaining) per assignee
+- Sprint Progress: per-assignee breakdown table
 
-**Must have (table stakes) — v1 scope:**
-- PAT authentication + OS keychain credential storage — gates everything
-- My open tasks list (filtered to current user + current sprint)
-- Sprint board view (column-per-status; drag-and-drop deferred)
-- MR list filtered to "needs my attention" (assigned + reviewer with unresolved threads)
-- Task-to-MR linking display (bidirectional: linked MRs on task card, linked task on MR row)
-- Unified notification feed (Jira comment mentions + GitLab MR thread activity, chronological)
-- Task status update via workflow transitions (fetch transitions per-issue — not hardcoded)
-- Add comment on Jira task and on GitLab MR thread
-- MR approve / request-changes action
-- PM sprint progress overview + team workload view
-- Desktop OS notifications + in-app badge (unread count)
-- Dark / light mode
-- Role-based routing: Developer dashboard vs PM dashboard
-
-**Should have (differentiators) — high value, some v1, some post-v1:**
-- Automatic task-to-MR linking from MR title, branch name, and description — no admin plugin required (v1)
-- MR review health indicator on sprint board cards (derived from linking — v1 if linking is solid)
-- Notification read/unread tracking per item (v1)
-- Stale MR detection — flag by `updated_at` age (v1, low effort)
-- "Ready to merge" checklist on MR card (approvals, CI, thread resolution) (v1)
-- Notification digest with smart grouping by parent entity (post-v1)
-- Keyboard shortcuts for power users (post-v1)
-- Release readiness score — requires releases view to be stable (post-v1)
+**Should have (differentiators — P2):**
+- Story/subtask hierarchy in MyTasksTab (grouped under parent story, collapsible)
+- Story/subtask hierarchy in SprintBoardTab (subtask cards under story card in columns)
+- MR Attention: subtask-story filter (MR relevant if linked story has current user's subtask)
+- Dashboard: developer subtask section + MR health summary + sprint health breakdown
+- Dashboard: recent notifications section (last 3 from Zustand store)
+- Releases: overdue badge + "days until release" countdown
+- Sprint Progress: sprint-wide time totals
+- Parent story context chip on orphan subtask rows
 
 **Defer (v2+):**
-- Releases / fix-version view — high correlation complexity between Jira fix versions and GitLab milestones/tags
-- Global search — Jira JQL + GitLab search API; URL deep-link to Jira/GitLab is acceptable fallback for v1
-- Create Jira task — lower-frequency action; Jira UI fallback acceptable for v1
-- Inline MR diff preview — enormous effort for marginal gain; deep-link to GitLab instead
-
-**Explicit anti-features (never build):**
-- Historical velocity / burndown / DORA metrics — LinearB/Swarmia exist; out of scope
-- OAuth / SSO — unnecessary complexity; PATs match team practice
-- Multi-project aggregation — exponentially increases data model complexity
-- Webhooks / two-way sync — requires a server; conflicts with client-only architecture
-- Full Jira issue editor (all custom fields, attachments) — on-premise custom field schemas vary wildly
+- Drag-and-drop subtask reordering (requires Jira rank API)
+- Burndown charts (no historical data store)
+- Fully configurable MR filter rules
+- Workload overloaded indicator with configurable threshold
+- Virtualised list rendering for sprints exceeding 200 issues
 
 ### Architecture Approach
 
-Taskflow is a client-only, API-aggregation dashboard with four layers: UI Layer (React components, role-based views), State Layer (TanStack Query cache + Zustand for UI state), API Client Layer (typed Jira and GitLab repository modules), and Persistence Layer (Tauri Stronghold for PATs, Tauri Store for preferences and last-seen cursors). A Linking Engine sits in the State Layer and joins Jira issues to GitLab MRs via regex parsing of ticket IDs from MR titles, branch names, and descriptions. A Notification Engine diffs polling results against last-seen cursors, deduplicates by stable event ID, and dispatches OS notifications and in-app badge updates.
+The app follows a clean layered architecture: React UI tabs read from a shared TanStack Query cache, populated by typed service functions in `services/jira.ts` and `services/gitlab.ts`, backed by Zustand stores for UI state and credentials. All data transformation (grouping, filtering, aggregation) lives in `useMemo` within the owning component, extracted to `src/lib/sprintUtils.ts` when shared across multiple components. The v1.1 build order flows from a single non-breaking type foundation change, through isolated quick wins, to the most complex UI work last.
 
-All Jira and GitLab fetches are independent and parallel — Jira latency must never block the GitLab MR panel from rendering. Write actions use optimistic UI updates (update state immediately, revert on API error) to compensate for slow on-premise Jira response times.
-
-**Major components:**
-1. **API Client Layer (Jira + GitLab repositories)** — typed wrappers around REST APIs; only these modules import axios; PATs injected once at initialization and never re-exposed to UI layer
-2. **State Layer (TanStack Query + Zustand)** — query cache is the source of truth for all server data; Zustand holds only user preferences and session config; polling is managed here via `refetchInterval`, not per-component
-3. **Linking Engine** — regex extracts ticket IDs (`/\b([A-Z][A-Z0-9]+-\d+)\b/gi`, case-insensitive, word-boundary) from MR title → branch name → description in order of cheapness; joins issues to MRs in the cache
-4. **Notification Engine** — cursor-based delta polling; deduplication via stable IDs (`jira-comment-{id}`, `gitlab-note-{id}`); OS notification dispatch + in-app badge update; in-app badge is the reliable fallback path
-5. **Persistence Layer (Tauri Stronghold + Store)** — PATs encrypted at rest in OS keychain; last-seen timestamps and user preferences in Tauri Store
-6. **UI Layer (React + shadcn/ui)** — dev dashboard, PM dashboard, notification hub, settings/onboarding; role-based routing via React Router hash mode
+**Major components and v1.1 changes:**
+1. `services/jira.ts` — MODIFIED: extend `JiraIssue` type with `parent?`, `subtasks?[]`, `timetracking?`, `issuetype.subtask: boolean`; extend `fetchSprintIssues` fields param; add `discoverStoryPointsField()`
+2. `services/gitlab.ts` — MODIFIED: add `&state=opened` to `fetchAssignedMRs` and `fetchReviewerMRs`
+3. `SprintBoardTab.tsx` + `MyTasksTab.tsx` — MODIFIED: two-pass grouping algorithm using new `StoryGroup.tsx`
+4. `WorkloadTab.tsx` + `SprintProgressTab.tsx` — MODIFIED: import from new `sprintUtils.ts`; add time tracking columns and per-assignee breakdown
+5. `ReleasesTab.tsx` — MODIFIED: client-side sort + released/unreleased badge (no API changes)
+6. `MrAttentionTab.tsx` — MODIFIED: open-only filter + subtask-story filter predicate
+7. `Dashboard/index.tsx` — MODIFIED: new sections reading from existing caches
+8. **`StoryGroup.tsx`, `SubtaskRow.tsx`, `SubtaskCard.tsx`** — NEW: collapsible hierarchy components
+9. **`src/lib/sprintUtils.ts`** — NEW: `groupByAssignee()`, `formatHours()` pure functions
 
 ### Critical Pitfalls
 
-1. **Jira Cloud API docs vs Server REST v2** — the default Atlassian developer portal shows Cloud docs. On Server: use `name` not `accountId` for users, use offset-based pagination (not cursor), fetch workflow transitions per-issue (not globally), auth with `Bearer <PAT>`. Test against the actual on-premise instance from day one with `GET /rest/api/2/myself`.
+1. **Subtasks absent from sprint JQL** — `sprint in openSprints()` silently excludes subtasks on Jira DC (subtasks have no sprint field of their own). Mandatory fix: two-query strategy — sprint JQL for parent stories, then `issuetype in subtaskIssueTypes() AND parent in (KEY-1,KEY-2,...)` for subtasks; merge results client-side before grouping.
 
-2. **PATs in plaintext** — never store in `localStorage`, config files, or unencrypted Tauri Store. Tauri Stronghold (OS keychain) is required from Phase 1. Any 401 response must surface a clear re-auth banner — not a generic error.
+2. **Story points double-counting** — once subtasks enter the flat issue list alongside parent stories, summing `customfield_10016` for all issues counts points at both hierarchy levels. Fix: `if (issue.fields.issuetype.subtask) continue;` in every points accumulation loop.
 
-3. **Overaggressive polling hammering on-premise Jira** — a single poll coordinator (not per-component polling) with minimum 60-second intervals for background data and 30-second for notification-critical paths. Cursor-based incremental fetches only — never re-fetch full lists. Exponential backoff on errors; respect GitLab's `Retry-After` and `X-RateLimit-Remaining` headers.
+3. **Time tracking silently absent** — `timetracking` is not in Jira's default field set AND may be disabled at the admin level. Always request it explicitly in `fields=`, use `*Seconds` integer variants for all arithmetic, and hide the time tracking section entirely (not zeros) when all values are null.
 
-4. **Task-to-MR linking regex misses real formats** — gather 20+ real MR titles from team history before writing the regex. Handle `PROJ-123`, `[PROJ-123]`, `feat/PROJ-123`, branch names, MR descriptions, and lowercase project keys. A missed link is a silent failure that destroys trust in the feature.
+4. **Issuetype detection by name breaks on custom DC installs** — `issuetype.name === 'Sub-task'` fails on instances where the admin has renamed the type. Always use `issuetype.subtask === true` (the boolean system field, not the display name). Add it to the `JiraIssue` TypeScript interface.
 
-5. **Desktop OS notifications silent failure** — macOS works; Windows with Focus Assist and Linux with non-GNOME desktops often don't. The in-app notification hub and badge must work independently of OS notification permission. Always handle `denied` permission state with an actionable in-app banner.
+5. **Mutation cache invalidation scope too narrow** — the existing `MyTasksTab` optimistic update only invalidates `['jira-issues','my-tasks',...]`. After subtask hierarchy, `SprintBoardTab` and `WorkloadTab` share the `['jira-issues','sprint-board',...]` key. Both keys must be invalidated in `onSettled` after any status transition.
+
+6. **Query key staleness after fields extension** — adding new fields to `fetchSprintIssues` without changing the TanStack query key causes stale cached responses (lacking new fields) to be served until TTL expires. Bump the query key or use a cache-bust strategy when deploying the fields extension.
 
 ---
 
 ## Implications for Roadmap
 
-The architecture research provides a clear 7-phase build order driven by data dependencies: nothing works without PATs, the data model must stabilize before the UI is built on it, and the notification system can only be proven after the polling pattern is established in the core dashboard phase.
+All six feature areas were researched with the existing codebase as direct context. The dependency graph is clear and the build order is unambiguous. Six phases are recommended.
 
-### Phase 1: Foundation — Auth, Credentials, Tauri Shell
+### Phase 1: API Foundation
 
-**Rationale:** PAT storage gates every other feature. This is also the only phase where the wrong decision (plaintext storage, web-only architecture) causes a rewrite. The desktop-vs-web architecture question must be resolved before writing a line of feature code — CORS makes a pure web app impossible against the on-premise Jira instance without a proxy.
-**Delivers:** Working Tauri 2 app shell; PAT entry/validation onboarding screen; Tauri Stronghold credential storage; PAT health check on startup; 401 → re-auth banner for all subsequent phases; role preference storage keyed by resolved Jira username
-**Addresses:** PAT authentication table-stakes feature; dark/light mode infrastructure
-**Avoids:** Pitfall 2 (plaintext PATs), Pitfall 9 (CORS), Pitfall 10 (no PAT expiry recovery), Pitfall 13 (role state bleeding between users)
+**Rationale:** Every other phase depends on this. All new fields are optional — zero risk to existing functionality. This is a pure enablement change that unblocks Areas 1, 2, 3, and 6 simultaneously.
+**Delivers:** Extended `JiraIssue` type (`parent?`, `subtasks?[]`, `timetracking?`, `issuetype.subtask: boolean`); updated `fetchSprintIssues` fields param using two-query strategy for subtasks; `discoverStoryPointsField()` function in `jira.ts`; removal of invalid `story_points` field name
+**Addresses:** FEATURES dependency for areas 1, 2, 3, 6
+**Avoids:** Pitfall 1 (two-query subtask strategy), Pitfall 3 (timetracking added to fields), Pitfall 4 (parent field added), Pitfall 5 (issuetype.subtask boolean added to type), Pitfall 6 (query key version bump)
 
-### Phase 2: API Client Layer + Data Models
+### Phase 2: Quick Wins — Releases + MR Open Filter
 
-**Rationale:** The internal data model (normalized `Task` and `MR` interfaces) must be stable before UI components are built against it. Changing the model mid-UI is expensive. Both Jira and GitLab clients must be tested against real API responses before feature work begins.
-**Delivers:** `jiraRepository` and `gitlabRepository` modules (typed, axios-backed, PAT-injected); normalized `Task`, `MR`, `Sprint`, `User` internal interfaces (adapter layer); MSW mock handlers for both APIs; Jira Server quirks locked in (fields param, per-issue transitions, Server auth header, `name` not `accountId`)
-**Uses:** axios, TypeScript, Vitest, MSW
-**Implements:** API Client Layer + Adapter Layer (architecture components)
-**Avoids:** Pitfall 1 (Cloud vs Server API), Pitfall 6 (non-portable transition IDs), Pitfall 7 (missing fields param), Pitfall 8 (GitLab pagination)
+**Rationale:** Both features are fully independent of Phase 1 (no new type fields needed). Releases is client-side only. MR state filter is a one-line change per function. Ship these first for immediate visible improvement at minimum risk.
+**Delivers:** Releases tab sorted newest-first with released/unreleased badge; `fetchAssignedMRs` and `fetchReviewerMRs` in `gitlab.ts` filtered to `state=opened`; overdue badge + days-until countdown on releases
+**Addresses:** FEATURES area 5 (all P1 + P2), area 6 (P1 open-only table stake)
+**Avoids:** Pitfall 8 (client-side sort wrapped in useMemo), Pitfall 9 (server-side state filter, not client-side)
 
-### Phase 3: Developer Dashboard + Core Write Actions
+### Phase 3: Workload + Sprint Progress Enrichment
 
-**Rationale:** The developer view delivers immediate daily value and validates the data model before the PM view or notification system is built. Write actions (status transitions, comments, MR approval) must follow immediately — a read-only dashboard does not serve the use case.
-**Delivers:** TanStack Query integration with single poll coordinator; Developer dashboard: my tasks list, sprint board (column-per-status), MR "needs attention" list; optimistic UI for all write actions; loading skeletons and error states per panel (independent Jira/GitLab failure modes); Jira task status update, add comment; GitLab MR approve, request changes, add comment
-**Addresses:** My tasks, sprint board, MR list, task status update, add comment, MR approve (all table stakes)
-**Avoids:** Pitfall 3 (aggressive polling — single coordinator established here), Anti-Pattern 1 (fetching in components), Anti-Pattern 4 (coupled Jira/GitLab fetches)
+**Rationale:** Both tabs read from the same TanStack cache key and share `groupByAssignee` logic. Extracting `sprintUtils.ts` here prevents duplication. The workload double-counting bug fix is critical correctness work that must ship before hierarchy UI is built on top of it.
+**Delivers:** `src/lib/sprintUtils.ts` with `groupByAssignee` + `formatHours`; WorkloadTab with correct story-level-only points + time tracking columns; SprintProgressTab with per-status point breakdown + sprint-wide time totals + per-assignee breakdown table
+**Addresses:** FEATURES areas 2 (sprint progress enrichment) and 3 (workload time tracking); fixes the explicitly-named workload double-counting bug
+**Avoids:** Pitfall 2 (double-counting fixed here), Anti-Pattern 3 (no duplicate groupBy logic), graceful-hide pattern for time tracking when admin-disabled
 
-### Phase 4: Task-to-MR Linking Engine
+### Phase 4: Story/Subtask Hierarchy UI
 
-**Rationale:** Linking is the core differentiator — it's what justifies the app over two browser tabs. It must follow Phase 3 because it requires both Jira issues and GitLab MRs to be in cache. It is architecturally isolated in the Linking Engine, so it can be built and tested independently before the UI integrates it.
-**Delivers:** Ticket ID regex extraction (`/\b([A-Z][A-Z0-9]+-\d+)\b/gi`) from MR title → branch name → description; cross-entity join in TanStack Query cache; linked MR chips on task cards; linked task badge on MR rows; MR review health indicator on sprint board cards; stale MR detection; "ready to merge" checklist
-**Addresses:** Task-to-MR linking display, bidirectional display, MR review health indicator (table stakes + differentiators)
-**Avoids:** Pitfall 4 (regex misses real formats — gather real MR title corpus before building), Anti-Pattern 5 (greedy commit scanning)
+**Rationale:** Highest UI complexity of the milestone. Depends on Phase 1 (parent + subtasks fields) and Phase 3 (sprintUtils patterns established). New components follow patterns proven in earlier phases.
+**Delivers:** `StoryGroup.tsx` (collapsible, variant prop for row/card), `SubtaskRow.tsx`, `SubtaskCard.tsx`; MyTasksTab grouping subtasks under parent story using sprint-board cache; SprintBoardTab grouping subtasks within columns; parent context chip on orphan subtask rows; mutation handlers updated to invalidate both query keys
+**Addresses:** FEATURES area 1 (all P1 + P2 hierarchy features)
+**Avoids:** Pitfall 6 (mutation `onSettled` invalidates both my-tasks and sprint-board keys), Anti-Pattern 4 (collapse state in StoryGroup's own useState, not parent tab), Anti-Pattern 1 (no per-story subtask fetch queries)
 
-### Phase 5: Notification Hub + OS Notifications
+### Phase 5: MR Subtask-Story Filter + Dashboard Enrichment
 
-**Rationale:** Notifications require the polling infrastructure established in Phase 3. They are architecturally the most complex feature (deduplication, cursor management, cross-platform OS behavior, two independent dispatch channels) and must be built as a dedicated phase, not bolted onto the dashboard.
-**Delivers:** Notification Engine with cursor-based delta polling and `lastSeenTimestamp` per source; deduplication by stable event IDs; in-app notification hub (chronological feed, read/unread per item, badge count); OS notification dispatch via Tauri Notification plugin; `denied` permission banner; in-app badge as primary reliable path; last-seen cursors persisted in Tauri Store
-**Addresses:** Unified notification feed, in-app badge, desktop OS notifications (all table stakes — the primary pain point)
-**Avoids:** Pitfall 3 (aggressive polling — notification polling uses same coordinator), Pitfall 5 (silent OS notification failure), Pitfall 14 (comment thread performance — delta polling with timestamps)
+**Rationale:** The MR subtask-story filter requires `subtasks[]` on sprint issues (Phase 1) and the grouping patterns from Phase 4. Dashboard enrichment reads from caches populated by all prior phases; adding it last ensures all data is already in place.
+**Delivers:** MrAttentionTab subtask-story filter predicate with reason labels; Dashboard new sections (my subtasks, MR health summary, sprint health breakdown, recent notifications from Zustand store); corrected MR attention count in Dashboard cards
+**Addresses:** FEATURES area 6 (P2 subtask-story filter + reason labels), area 4 (all dashboard enrichment)
+**Avoids:** Pitfall 7 (Dashboard reads from existing caches via `queryClient.getQueryData` + tight enabled role guards; handles cold-load blank state gracefully)
 
-### Phase 6: PM Dashboard
+### Phase 6: Verification + Polish
 
-**Rationale:** Additive to the existing data model and API clients. Can start after Phase 3 without blocking any other phase. Role-based routing is straightforward with React Router. The PM data (team workload, sprint progress) derives from already-fetched Jira data with aggregation.
-**Delivers:** PM dashboard: sprint progress overview (story points done/remaining), team workload view (open tasks + points per member); role-based routing (dev vs PM view) via React Router hash mode; role preference persisted per user identity
-**Addresses:** PM sprint progress, PM team workload, role-based dashboard (table stakes)
-**Avoids:** Pitfall 13 (role preference keyed by Jira username, not global)
-
-### Phase 7: Polish + Deferred Table Stakes
-
-**Rationale:** Global search and create-task were deferred in the MVP recommendation but are still table stakes (missing = workflow broken for some users). Polish (dark mode persistence, error states, keyboard shortcuts) belongs last when the app's shape is stable.
-**Delivers:** Global search (debounced Jira JQL + GitLab search API, unified results); create Jira task (summary, type, assignee, sprint — minimum fields only); dark/light mode persistence; keyboard shortcuts (j/k navigation, enter to open, a to approve); full error state coverage; Tauri build pipeline for distribution
-**Addresses:** Global search, create Jira task, dark/light mode (deferred table stakes); quick-action keyboard shortcuts (differentiator)
-**Avoids:** Shipping without a "test notification" button in settings (OS notification debuggability)
+**Rationale:** After all features are integrated, validate the "looks done but isn't" checklist from PITFALLS.md against the real Orange Jira Data Center instance. Several pitfalls are only detectable against the live instance.
+**Delivers:** Verified correct behavior across all 9 documented pitfalls; UX fixes from the 5-item UX pitfall list (time tracking graceful hide, expanded-by-default subtask groups, workload tooltip for points-vs-time); production-ready build
+**Addresses:** All pitfall verification items from PITFALLS.md; confirms `issuetype.subtask` detection on Orange's custom issue types; confirms time tracking admin status; confirms story points field ID via `discoverStoryPointsField()`
 
 ### Phase Ordering Rationale
 
-- **Phase 1 before everything:** PAT storage is the sole dependency for all API calls; architecture decision (desktop vs web) must be locked before any feature code
-- **Phase 2 before Phase 3:** Internal data model must be stable; changing it after UI is built is expensive; API quirks must be discovered against real endpoints before feature work
-- **Phase 3 before Phase 4:** Linking requires both Jira issues and GitLab MRs in cache; linking UI requires sprint board and MR list to exist
-- **Phase 3 before Phase 5:** Notification polling reuses the poll coordinator and TanStack Query patterns established in Phase 3; don't build notifications against an unproven polling foundation
-- **Phase 6 parallel-eligible with Phase 5:** PM dashboard is additive and uses the same Jira data already fetched; it can begin as soon as Phase 3 is complete without waiting for Phase 5
-- **Phase 7 last:** Search, create-task, and polish can only be prioritized correctly once the core daily-use flows are validated
+- Phase 1 must be first because four of six feature areas depend on its type changes, yet it is zero-risk (all fields optional, no existing code breaks). The two-query subtask strategy is embedded here before any hierarchy UI work begins.
+- Phase 2 is independent and can deliver value while Phase 1 is being tested. Ordering it second (not parallel) keeps the plan linear and avoids merge conflicts.
+- Phase 3 precedes Phase 4 because the workload double-counting bug fix and `sprintUtils.ts` extraction must be stable before the more complex hierarchy rendering is built on top of them.
+- Phase 4 is fourth because it is the most complex rendering work and depends on Phase 1's field infrastructure being stable and verified.
+- Phase 5 is fifth because the MR subtask-story filter depends on Phase 4's subtask data being in cache, and Dashboard enrichment logically follows all the data it summarises being available.
+- Phase 6 exists explicitly because several pitfalls are detectable only against the real Jira DC instance (time tracking admin config, subtask type naming, story points field ID variability).
 
 ### Research Flags
 
-Phases likely needing deeper research or on-premise validation during planning:
-- **Phase 1:** Tauri Stronghold v2 plugin API — verify initialization pattern, Rust crate registration in Cargo.toml, and actual PAT read/write flow against a real Tauri 2 project (MEDIUM confidence on plugin API details)
-- **Phase 2:** Validate actual on-premise Jira Server version — confirm whether Bearer PAT auth or Basic auth is required (depends on server version, pre/post 7.x), and whether any activity stream endpoints exist on this specific instance
-- **Phase 4:** Gather 20+ real MR titles and branch names from the team's GitLab history before writing the regex — this corpus is the test suite; can't do this from research alone
-- **Phase 5:** Cross-platform notification testing matrix must be defined and executed: macOS, Windows 11 (Focus Assist on/off), Ubuntu GNOME, and at least one KDE environment
+Phases needing careful validation against the real instance before declaring done:
 
-Phases with standard patterns (skip research-phase):
-- **Phase 3:** TanStack Query polling + React dashboard patterns are extremely well-documented; shadcn/ui component integration is standard; no novel decisions required
-- **Phase 6:** PM dashboard is data aggregation on top of already-fetched Jira data; no novel API patterns
-- **Phase 7:** Global search uses standard Jira JQL and GitLab search endpoints already validated in Phase 2; React Router patterns are standard
+- **Phase 1:** The two-query subtask JQL strategy must be verified on the specific Jira Data Center v10.3.15 instance. Subtask sprint inclusion behaviour varies by board filter configuration — confirm subtasks actually appear in the `issuetype in subtaskIssueTypes() AND parent in (...)` query before building hierarchy UI.
+- **Phase 3:** Time tracking fields may be absent if the Orange Jira admin has time tracking disabled. Verify on the real instance before building time tracking UI columns; the graceful-hide path may be the only visible result.
+- **Phase 6:** `discoverStoryPointsField()` result on the real instance — confirm whether `customfield_10016` is the correct story points field ID for this specific installation.
+
+Phases with well-documented patterns (standard, skip deep research):
+
+- **Phase 2:** Client-side sort and badge render in ReleasesTab; `state=opened` parameter for GitLab MR API — both are fully documented, straightforward, and verifiable without API research.
+- **Phase 4:** StoryGroup collapse state pattern is established React; `useMemo` two-pass grouping is pure array manipulation with no novel API interactions.
+- **Phase 5:** Dashboard passive cache reads (`queryClient.getQueryData`) follow the pattern already established in SprintBoardTab.
 
 ---
 
@@ -189,42 +163,44 @@ Phases with standard patterns (skip research-phase):
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | MEDIUM-HIGH | Core choices (React, TanStack Query, Zustand, axios) are HIGH; Tauri 2 plugin ecosystem and exact versions are MEDIUM; Tailwind v4 compatibility with shadcn/ui is LOW — pin to v3.4 |
-| Features | MEDIUM | Well-established patterns from LinearB/Swarmia analysis; Jira Server + GitLab API capabilities are HIGH; competitor feature set from training knowledge, not live product pages |
-| Architecture | HIGH | Client-only dashboard is a well-understood pattern; CORS constraint and polling vs webhook rationale are direct consequences of stated constraints; Jira/GitLab API patterns are authoritative |
-| Pitfalls | HIGH (Jira/GitLab API, security) / MEDIUM (cross-platform packaging, notifications) | Jira Server API differences and GitLab rate-limiting headers are well-documented; code signing requirements may have changed post-Aug 2025; desktop notification platform differences are MEDIUM |
+| Stack | HIGH | v1.0 stack is already validated in production; v1.1 requires no new dependencies; `discoverStoryPointsField()` uses a standard, documented Jira API pattern |
+| Features | HIGH | Based on direct codebase inspection of all relevant source files; scope defined by PROJECT.md v1.1 milestone; P1/P2/P3 prioritization is grounded in code inspection, not speculation |
+| Architecture | HIGH | Based on direct codebase inspection; all integration points reference concrete, existing code; build order follows a confirmed dependency graph with no ambiguity |
+| Pitfalls | HIGH (API constraints) / MEDIUM (DC v10.3 edge cases) | Jira Server/DC API constraints confirmed by multiple Atlassian community + official sources; exact behavior on Orange Jira DC v10.3.15 needs live validation |
 
-**Overall confidence:** MEDIUM-HIGH — sufficient to begin building with the architecture as specified; the main uncertainty is in Tauri plugin exact API surface and cross-platform notification behavior, both of which are validated by building Phase 1 and running the notification test matrix in Phase 5.
+**Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Actual on-premise Jira version and auth mechanism:** Must test `GET /rest/api/2/myself` with Bearer PAT against the real instance in Phase 1 before any other Jira work. The auth header format (Bearer vs Basic) determines how the axios interceptor is configured.
-- **Tailwind CSS v4 / shadcn/ui compatibility:** Pin to Tailwind ^3.4 for v1; do not assume v4 works until verified against current shadcn/ui release.
-- **GitLab self-hosted rate limits:** The 2000 req/min rate limit applies to GitLab.com. The team's GitLab instance may have a different (lower) default. Validate in Phase 2 before setting polling intervals.
-- **MR title corpus for linking:** Cannot be gathered from research — must pull real data from the team's GitLab history in Phase 4 planning.
-- **Tauri Stronghold initialization pattern:** Plugin API details at the Rust crate registration level need live verification against current Tauri 2 + Stronghold v2 documentation.
+- **Subtask JQL on this specific DC instance:** The two-query strategy is correct per Atlassian documentation, but whether `sprint in openSprints()` includes or excludes subtasks on this particular board filter configuration must be validated in Phase 1 before hierarchy UI work begins.
+- **Story points field ID on Orange instance:** `customfield_10016` is the most common default but is not guaranteed. The `discoverStoryPointsField()` function resolves this; log the discovered ID during Phase 1 development for explicit confirmation.
+- **Time tracking admin status on Orange Jira:** Research cannot confirm whether the Orange Jira DC instance has time tracking enabled. Phase 3 must ship graceful-hide as the primary path, not an edge case.
+- **`startDate` on fix versions:** Confirmed unavailable in GET responses on DC (Atlassian staff-confirmed). Releases sort must use `releaseDate` only. No workaround exists — this is an API constraint.
 
 ---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Jira Server REST API v2: `{jira-base-url}/rest/api/2/` — all Server-specific behavior (accountId vs name, transition IDs, pagination, auth)
-- GitLab REST API v4: https://docs.gitlab.com/ee/api/rest/ — rate limiting headers, pagination, MR endpoints, `updated_after` parameter
-- PAT security / OS keychain: Tauri Stronghold plugin docs, Electron keytar docs — storage patterns
-- CORS behavior: Web platform specification, Electron/Tauri architecture docs — desktop eliminates CORS entirely
+- Direct codebase inspection of all route, service, store files in `taskflow/src/` — architecture, component responsibilities, existing patterns
+- Atlassian Jira DC REST API v2 reference (9.14.0) — version endpoint, field names, time tracking structure
+- Atlassian community (staff-confirmed): `startDate` not in GET version response; `subtasks` array returns 4 fields only by design; `timetracking` requires explicit field request AND admin enable
+- Atlassian Support KB: subtask sprint JQL exclusion behavior (`openSprints()` does not match subtasks on DC)
+- Atlassian Developer Community: `issuetype.subtask` boolean for reliable subtask detection; `parent` field not in default navigable fields
+- TanStack Query v5 docs: query invalidation, shared cache keys, `queryClient.getQueryData` passive reads; tkdodo.eu concurrent optimistic updates
+- Jira Java API docs (TimeTracking class, v7.6.1–9.x): `*Seconds` field availability confirmed across DC versions
+- GitLab MR list API `state` parameter: standard documented server-side filter
 
 ### Secondary (MEDIUM confidence)
-- Tauri 2.0 release notes: https://tauri.app/blog/tauri-2-0-0-released/ — feature set, plugin ecosystem
-- TanStack Query v5 documentation: https://tanstack.com/query/latest — polling, cache invalidation, mutation patterns
-- LinearB, Swarmia, Axify feature sets — training knowledge (not live product pages) — competitor feature map
-- shadcn/ui documentation — component model, Tailwind integration
-- Electron Notification class docs: https://www.electronjs.org/docs/latest/api/notification — cross-platform notification behavior (proxy for Tauri behavior)
+- Atlassian community threads: story points double-counting in Advanced Roadmaps; fix version API ordering behavior; `customfield_10016` ID variability across instances
+- Industry pattern research: releases newest-first ordering conventions (GitHub, GitLab, Linear); sprint board subtask grouping user expectations
+- PROJECT.md v1.1 milestone definition — authoritative scope source for feature boundary decisions
 
-### Tertiary (LOW confidence)
-- Tailwind CSS v4 compatibility with shadcn/ui — verify against current releases before adopting; pin to v3.4 otherwise
-- Code signing requirements (macOS notarization, Windows EV certificate) — may have changed post-Aug 2025; verify before Phase 7 distribution work
+### Tertiary (noted gaps)
+- Exact subtask JQL behavior on Orange Jira DC v10.3.15 with its specific board filter configuration — needs live validation in Phase 1
+- Time tracking admin enable status on Orange Jira instance — needs live validation in Phase 3
+- Story points custom field ID on Orange instance — resolved by `discoverStoryPointsField()` in Phase 1
 
 ---
-*Research completed: 2026-03-10*
+*Research completed: 2026-03-12*
 *Ready for roadmap: yes*
