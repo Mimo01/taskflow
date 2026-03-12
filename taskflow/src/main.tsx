@@ -8,7 +8,7 @@ import { loadTheme } from './services/theme';
 import { useSettingsStore } from './stores/settings.store';
 import { useAuthStore } from './stores/auth.store';
 import Sidebar from './components/app/Sidebar';
-import ReAuthBanner from './components/app/ReAuthBanner';
+import ReAuthBanner, { GitLabReAuthBanner } from './components/app/ReAuthBanner';
 import TopBar from './components/app/TopBar';
 import { useNotificationPolling } from './hooks/useNotificationPolling';
 import { readSecret } from './services/stronghold';
@@ -66,7 +66,7 @@ function useStoryPointsFieldDiscovery() {
  */
 function AppLayout() {
   const { onboardingComplete } = useSettingsStore();
-  const { jiraConnected } = useAuthStore();
+  const { jiraConnected, gitlabConnected } = useAuthStore();
 
   // Bring window to front when OS notification click activates the app
   useEffect(() => {
@@ -88,6 +88,7 @@ function AppLayout() {
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopBar />
         {!jiraConnected && <ReAuthBanner />}
+        {!gitlabConnected && <GitLabReAuthBanner />}
         <main className="flex-1 overflow-auto">
           <Outlet />
         </main>
