@@ -187,7 +187,7 @@ export async function fetchSprintIssues(
   const spFields = [...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey])].join(',');
   const fields = `summary,status,assignee,issuetype,${spFields},parent,subtasks,timetracking`;
   const jql = encodeURIComponent(
-    `project = ${projectKey} AND sprint in openSprints()${assigneeClause} AND issuetype not in subtaskIssueTypes() AND resolution = Unresolved ORDER BY updated DESC`,
+    `project = ${projectKey} AND sprint in openSprints()${assigneeClause} AND issuetype not in subtaskIssueTypes() ORDER BY updated DESC`,
   );
   const url = `${base}/rest/api/2/search?jql=${jql}&fields=${fields}`;
 
@@ -287,7 +287,7 @@ export async function fetchMyTasksHierarchy(
 
   // Step 1: my stories + my subtasks in parallel
   const myStoriesJql = encodeURIComponent(
-    `project = ${projectKey} AND sprint in openSprints() AND issuetype not in subtaskIssueTypes() AND assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC`,
+    `project = ${projectKey} AND sprint in openSprints() AND issuetype not in subtaskIssueTypes() AND assignee = currentUser() ORDER BY updated DESC`,
   );
   const mySubtasksJql = encodeURIComponent(
     `project = ${projectKey} AND sprint in openSprints() AND issuetype in subtaskIssueTypes() AND assignee = currentUser()`,
@@ -333,7 +333,7 @@ export async function fetchMyTasksHierarchy(
   if (extraParentKeys.length > 0) {
     try {
       const extraJql = encodeURIComponent(
-        `key in (${extraParentKeys.join(',')}) AND sprint in openSprints() AND resolution = Unresolved`,
+        `key in (${extraParentKeys.join(',')}) AND sprint in openSprints()`,
       );
       const extraRes = await apiFetch('jira', `${base}/rest/api/2/search?jql=${extraJql}&fields=${fields}&maxResults=200`, { headers });
       if (extraRes.ok) extraParents = ((await extraRes.json()).issues ?? []) as JiraIssue[];
