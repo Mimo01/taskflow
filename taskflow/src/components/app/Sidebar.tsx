@@ -20,6 +20,7 @@ import {
   BarChart2,
   Users,
   Tag,
+  Bug,
 } from 'lucide-react';
 import { useSettingsStore } from '@/stores/settings.store';
 
@@ -84,6 +85,17 @@ export default function Sidebar() {
             )}
           </div>
         )}
+
+        {/* Tools section — always visible */}
+        <div className="mt-2">
+          <p className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:block">
+            Tools
+          </p>
+          <Link to="/debug-logs" className={NAV_LINK_CLASS}>
+            <Bug className="h-4 w-4 shrink-0" />
+            <span className="hidden md:block">Debug Logs</span>
+          </Link>
+        </div>
       </nav>
 
       {/* Bottom: Settings link */}

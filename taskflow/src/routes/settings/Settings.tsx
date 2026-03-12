@@ -9,6 +9,7 @@ import RoleSection from './RoleSection';
 import ThemeSection from './ThemeSection';
 import StaleMrThresholdSection from './StaleMrThresholdSection';
 import NotificationSettingsSection from './NotificationSettingsSection';
+import DebugModeSection from './DebugModeSection';
 
 export default function Settings() {
   return (
@@ -37,6 +38,10 @@ export default function Settings() {
 
         <div className="pt-8">
           <NotificationSettingsSection />
+        </div>
+
+        <div className="pt-8">
+          <DebugModeSection />
         </div>
       </div>
     </div>
