@@ -63,8 +63,8 @@ export default function SprintProgressTab() {
     let ptsInProgress = 0;
     let ptsDone = 0;
 
-    // Per-assignee map: name -> { todo, inProgress, done }
-    const assigneeMap = new Map<string, { todo: number; inProgress: number; done: number }>();
+    // Per-assignee map: name -> { todo, inProgress, done, stories, subtasks }
+    const assigneeMap = new Map<string, { todo: number; inProgress: number; done: number; stories: number; subtasks: number }>();
 
     for (const story of stories) {
       const cat = story.fields.status.statusCategory?.key ?? 'new';
@@ -73,9 +73,10 @@ export default function SprintProgressTab() {
       const assigneeName = (story.fields.assignee as { displayName: string } | null)?.displayName ?? 'Unassigned';
 
       if (!assigneeMap.has(assigneeName)) {
-        assigneeMap.set(assigneeName, { todo: 0, inProgress: 0, done: 0 });
+        assigneeMap.set(assigneeName, { todo: 0, inProgress: 0, done: 0, stories: 0, subtasks: 0 });
       }
       const row = assigneeMap.get(assigneeName)!;
+      row.stories++;
 
       if (cat === 'done') {
         doneCount++;
@@ -91,6 +92,16 @@ export default function SprintProgressTab() {
         ptsTodo += pts;
         row.todo += pts;
       }
+    }
+
+    // Count subtasks per assignee using issuetype.subtask boolean
+    for (const issue of issues) {
+      if (!issue.fields.issuetype?.subtask) continue;
+      const assigneeName = (issue.fields.assignee as { displayName: string } | null)?.displayName ?? 'Unassigned';
+      if (!assigneeMap.has(assigneeName)) {
+        assigneeMap.set(assigneeName, { todo: 0, inProgress: 0, done: 0, stories: 0, subtasks: 0 });
+      }
+      assigneeMap.get(assigneeName)!.subtasks++;
     }
 
     const total = todoCount + inProgressCount + doneCount;
@@ -123,7 +134,7 @@ export default function SprintProgressTab() {
     const assigneeRows = Array.from(assigneeMap.entries())
       .map(([name, buckets]) => ({ name, buckets, points: buckets.todo + buckets.inProgress + buckets.done }))
       .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name))
-      .map(({ name, buckets }) => [name, buckets] as [string, { todo: number; inProgress: number; done: number }]);
+      .map(({ name, buckets }) => [name, buckets] as [string, { todo: number; inProgress: number; done: number; stories: number; subtasks: number }]);
 
     return {
       todo: todoCount,
@@ -238,6 +249,8 @@ export default function SprintProgressTab() {
               <thead>
                 <tr className="text-xs text-muted-foreground border-b">
                   <th className="pb-2 text-left font-normal">Assignee</th>
+                  <th className="pb-2 text-right font-normal">Stories</th>
+                  <th className="pb-2 text-right font-normal">Subtasks</th>
                   <th className="pb-2 text-right font-normal">To Do pts</th>
                   <th className="pb-2 text-right font-normal">In Progress pts</th>
                   <th className="pb-2 text-right font-normal">Done pts</th>
@@ -247,6 +260,8 @@ export default function SprintProgressTab() {
                 {computed.assigneeRows.map(([name, buckets]) => (
                   <tr key={name} data-testid="assignee-row" className="hover:bg-muted/50">
                     <td className="py-1.5 text-sm">{name}</td>
+                    <td className="py-1.5 text-right tabular-nums text-muted-foreground">{buckets.stories}</td>
+                    <td className="py-1.5 text-right tabular-nums text-muted-foreground">{buckets.subtasks}</td>
                     <td className="py-1.5 text-right tabular-nums text-muted-foreground">{buckets.todo}</td>
                     <td className="py-1.5 text-right tabular-nums text-muted-foreground">{buckets.inProgress}</td>
                     <td className="py-1.5 text-right tabular-nums text-muted-foreground">{buckets.done}</td>
