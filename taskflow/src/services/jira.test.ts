@@ -446,6 +446,17 @@ describe('jira service', () => {
       expect(secondCallUrl).toContain('assignee%20%3D%20currentUser()');
     });
 
+    it('regression: parent query URL includes maxResults=200 so done stories are not truncated', async () => {
+      vi.mocked(mockFetch).mockResolvedValueOnce({
+        ok: true, status: 200,
+        json: async () => ({ issues: [] }),
+      } as Response);
+
+      await fetchSprintIssues('https://jira.example.com', 'token', 'PROJ', false);
+      const firstCallUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      expect(firstCallUrl).toContain('maxResults=200');
+    });
+
     it('assignedToMe=false: subtask query JQL does NOT contain currentUser()', async () => {
       vi.mocked(mockFetch)
         .mockResolvedValueOnce({
