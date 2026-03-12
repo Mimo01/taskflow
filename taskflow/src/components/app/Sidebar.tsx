@@ -86,22 +86,16 @@ export default function Sidebar() {
           </div>
         )}
 
-        {/* Tools section — only visible when debug mode is enabled */}
-        {debugMode && (
-          <div className="mt-2">
-            <p className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:block">
-              Tools
-            </p>
-            <Link to="/debug-logs" className={NAV_LINK_CLASS}>
-              <Bug className="h-4 w-4 shrink-0" />
-              <span className="hidden md:block">Debug Logs</span>
-            </Link>
-          </div>
-        )}
       </nav>
 
-      {/* Bottom: Settings link */}
+      {/* Bottom: Debug Logs (when enabled) + Settings */}
       <div className="px-2 py-4 border-t border-border flex flex-col gap-1">
+        {debugMode && (
+          <Link to="/debug-logs" className={NAV_LINK_CLASS}>
+            <Bug className="h-4 w-4 shrink-0" />
+            <span className="hidden md:block">Debug Logs</span>
+          </Link>
+        )}
         <Link
           to="/settings"
           className={NAV_LINK_CLASS}
