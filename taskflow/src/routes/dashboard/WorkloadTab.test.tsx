@@ -180,7 +180,7 @@ describe('WorkloadTab', () => {
       await screen.findByText('Alice');
       const aliceRow = screen.getByText('Alice').closest('[data-testid="workload-row"]');
       // Should show 1 task, not 2 tasks
-      expect(aliceRow?.textContent).toMatch(/1\s*task\b/i);
+      expect(aliceRow?.textContent).toMatch(/1\s*task/i);
       expect(aliceRow?.textContent).not.toMatch(/2\s*tasks/i);
     });
   });

@@ -2,26 +2,53 @@
  * WorkloadTab — PM-02: Per-assignee open task count and story points.
  *
  * Reads from the shared TanStack cache (same query key as SprintProgressTab).
- * Only counts NON-done issues (statusCategory.key !== 'done').
+ * Only counts NON-done stories (statusCategory.key !== 'done', subtasks excluded).
  * Groups by assignee.displayName, with null assignee → 'Unassigned'.
  * Rows sorted by open task count descending.
+ * Time tracking columns (Est/Spent/Remaining) hidden when all values are zero/null.
+ * Each assignee row is expandable to reveal per-story sub-rows.
  */
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
+import { useSettingsStore } from '@/stores/settings.store';
 import { fetchSprintIssues } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 
+interface WorkloadStoryRow {
+  key: string;
+  summary: string;
+  points: number;
+  estSecs: number;
+  spentSecs: number;
+  remainSecs: number;
+}
+
 interface WorkloadRow {
   name: string;
-  count: number;
-  points: number;
+  count: number;         // non-done story count only
+  points: number;        // story points only (no subtasks)
+  estSecs: number;       // stories + subtasks aggregated
+  spentSecs: number;
+  remainSecs: number;
+  stories: WorkloadStoryRow[];  // for expandable detail
+}
+
+function formatSeconds(secs: number): string {
+  if (secs === 0) return '0h';
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
 }
 
 export default function WorkloadTab() {
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
+  const { storyPointsFieldKey } = useSettingsStore();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (jiraBaseUrl) {
@@ -39,24 +66,70 @@ export default function WorkloadTab() {
     staleTime: 30_000,
   });
 
-  const rows: WorkloadRow[] = useMemo(() => {
+  function toggleRow(name: string) {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }
+
+  const { rows, hasTimeData } = useMemo(() => {
     const issues = data ?? [];
-    const map = new Map<string, { count: number; points: number }>();
+    const stories = issues.filter((i) => !i.fields.issuetype.subtask);
+    const subtasks = issues.filter((i) => i.fields.issuetype.subtask);
 
-    for (const issue of issues) {
-      const cat = issue.fields.status.statusCategory?.key ?? 'new';
-      if (cat === 'done') continue;
+    const map = new Map<string, WorkloadRow>();
 
-      const name = issue.fields.assignee?.displayName ?? 'Unassigned';
-      const pts = issue.fields.customfield_10016 ?? 0;
-      const existing = map.get(name) ?? { count: 0, points: 0 };
-      map.set(name, { count: existing.count + 1, points: existing.points + pts });
+    // Accumulate story-level data
+    for (const story of stories) {
+      const cat = story.fields.status.statusCategory?.key ?? 'new';
+      if (cat === 'done') continue; // exclude done stories from points, count, and rows
+      const name = story.fields.assignee?.displayName ?? 'Unassigned';
+      const pts = (story.fields[storyPointsFieldKey] as number | null) ?? 0;
+      const tt = story.fields.timetracking;
+      const existing = map.get(name) ?? {
+        name,
+        count: 0,
+        points: 0,
+        estSecs: 0,
+        spentSecs: 0,
+        remainSecs: 0,
+        stories: [],
+      };
+
+      existing.points += pts;
+      existing.estSecs += tt?.originalEstimateSeconds ?? 0;
+      existing.spentSecs += tt?.timeSpentSeconds ?? 0;
+      existing.remainSecs += tt?.remainingEstimateSeconds ?? 0;
+      existing.count += 1;
+      existing.stories.push({
+        key: story.key,
+        summary: story.fields.summary,
+        points: pts,
+        estSecs: tt?.originalEstimateSeconds ?? 0,
+        spentSecs: tt?.timeSpentSeconds ?? 0,
+        remainSecs: tt?.remainingEstimateSeconds ?? 0,
+      });
+      map.set(name, existing);
     }
 
-    return Array.from(map.entries())
-      .map(([name, { count, points }]) => ({ name, count, points }))
-      .sort((a, b) => b.count - a.count);
-  }, [data]);
+    // Accumulate subtask time into assignee bucket (no points, no count)
+    for (const sub of subtasks) {
+      const name = sub.fields.assignee?.displayName ?? 'Unassigned';
+      const tt = sub.fields.timetracking;
+      const existing = map.get(name);
+      if (!existing) continue; // subtask assignee not in any story — skip
+      existing.estSecs += tt?.originalEstimateSeconds ?? 0;
+      existing.spentSecs += tt?.timeSpentSeconds ?? 0;
+      existing.remainSecs += tt?.remainingEstimateSeconds ?? 0;
+    }
+
+    const rows = Array.from(map.values()).sort((a, b) => b.count - a.count);
+    const hasTimeData = rows.some((r) => r.estSecs > 0 || r.spentSecs > 0 || r.remainSecs > 0);
+    return { rows, hasTimeData };
+  }, [data, storyPointsFieldKey]);
 
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
@@ -102,21 +175,64 @@ export default function WorkloadTab() {
               No sprint data available
             </div>
           ) : (
-            <div className="flex flex-col gap-1">
-              {rows.map((row) => (
-                <div
-                  key={row.name}
-                  data-testid="workload-row"
-                  className="flex items-center justify-between rounded px-3 py-2 hover:bg-muted/50"
-                >
-                  <span className="text-sm font-medium">{row.name}</span>
-                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                    <span>{row.count} {row.count === 1 ? 'task' : 'tasks'}</span>
-                    <span>{row.points} pts</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-xs text-muted-foreground border-b">
+                  <th className="pb-2 text-left font-normal">Assignee</th>
+                  <th className="pb-2 text-right font-normal">Tasks</th>
+                  <th className="pb-2 text-right font-normal">Pts</th>
+                  {hasTimeData && <th className="pb-2 text-right font-normal">Est</th>}
+                  {hasTimeData && <th className="pb-2 text-right font-normal">Spent</th>}
+                  {hasTimeData && <th className="pb-2 text-right font-normal">Remaining</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => {
+                  const isOpen = expandedRows.has(row.name);
+                  return (
+                    <React.Fragment key={row.name}>
+                      {/* Summary row */}
+                      <tr
+                        data-testid="workload-row"
+                        className="hover:bg-muted/50 cursor-pointer"
+                        onClick={() => toggleRow(row.name)}
+                      >
+                        <td className="py-2 pr-2">
+                          <div className="flex items-center gap-1">
+                            <ChevronRight
+                              className={`size-3 text-muted-foreground transition-transform ${isOpen ? 'rotate-90' : ''}`}
+                              aria-label={isOpen ? 'Collapse' : 'Expand'}
+                            />
+                            <span className="font-medium">{row.name}</span>
+                          </div>
+                        </td>
+                        <td className="py-2 text-right tabular-nums text-muted-foreground">
+                          {row.count} {row.count === 1 ? 'task' : 'tasks'}
+                        </td>
+                        <td className="py-2 text-right tabular-nums">{row.points} pts</td>
+                        {hasTimeData && <td className="py-2 text-right tabular-nums text-muted-foreground">{formatSeconds(row.estSecs)}</td>}
+                        {hasTimeData && <td className="py-2 text-right tabular-nums text-muted-foreground">{formatSeconds(row.spentSecs)}</td>}
+                        {hasTimeData && <td className="py-2 text-right tabular-nums text-muted-foreground">{formatSeconds(row.remainSecs)}</td>}
+                      </tr>
+                      {/* Per-story rows — only shown when expanded */}
+                      {isOpen && row.stories.map((story) => (
+                        <tr key={story.key} data-testid="workload-story-row" className="bg-muted/20">
+                          <td className="py-1 pl-6 pr-2 text-xs text-muted-foreground">
+                            <span className="font-mono">{story.key}</span>
+                            <span className="ml-2 truncate">{story.summary}</span>
+                          </td>
+                          <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">—</td>
+                          <td className="py-1 text-right tabular-nums text-xs">{story.points} pts</td>
+                          {hasTimeData && <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">{formatSeconds(story.estSecs)}</td>}
+                          {hasTimeData && <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">{formatSeconds(story.spentSecs)}</td>}
+                          {hasTimeData && <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">{formatSeconds(story.remainSecs)}</td>}
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
           )}
         </>
       )}
