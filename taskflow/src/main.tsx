@@ -22,6 +22,7 @@ import MrAttentionTab from './routes/dashboard/MrAttentionTab';
 import SprintProgressTab from './routes/dashboard/SprintProgressTab';
 import WorkloadTab from './routes/dashboard/WorkloadTab';
 import ReleasesTab from './routes/dashboard/ReleasesTab';
+import DebugLogs from './routes/debug-logs/index';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -108,6 +109,7 @@ const router = createHashRouter([
       { path: '/sprint-progress', element: <SprintProgressTab /> },
       { path: '/workload', element: <WorkloadTab /> },
       { path: '/releases', element: <ReleasesTab /> },
+      { path: '/debug-logs', element: <DebugLogs /> },
     ],
   },
 ]);
