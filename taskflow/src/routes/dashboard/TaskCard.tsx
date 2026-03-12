@@ -3,8 +3,16 @@
  *
  * Shows issue key, summary (2-line clamp), assignee avatar (or initials),
  * and a health dot slot (gray if undefined, colored if Plan 03 provides health).
+ *
+ * Extended props (HIER-02):
+ * - subtaskCount: when > 0, renders a Badge chip and chevron toggle button
+ * - isExpanded: controls chevron direction (down vs right)
+ * - onToggle: called when chevron is clicked (stopPropagation included)
+ * - isSubtask: adds left indent and muted left border for visual nesting
  */
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
 import type { JiraIssue } from '@/services/jira'
 import type { ReviewHealth } from '@/services/linkEngine'
 
@@ -26,9 +34,13 @@ function getInitials(name: string): string {
 interface TaskCardProps {
   issue: JiraIssue
   healthDot?: ReviewHealth
+  subtaskCount?: number
+  isExpanded?: boolean
+  onToggle?: () => void
+  isSubtask?: boolean
 }
 
-export default function TaskCard({ issue, healthDot }: TaskCardProps) {
+export default function TaskCard({ issue, healthDot, subtaskCount, isExpanded, onToggle, isSubtask }: TaskCardProps) {
   const assignee = issue.fields.assignee
   const avatarUrl = assignee?.avatarUrls['48x48']
   const displayName = assignee?.displayName ?? ''
@@ -36,7 +48,7 @@ export default function TaskCard({ issue, healthDot }: TaskCardProps) {
   const dotColor = healthDot ? HEALTH_COLORS[healthDot] : 'bg-muted-foreground/40'
 
   return (
-    <div className="border rounded-lg p-2 bg-card w-full flex flex-col gap-1">
+    <div className={cn('border rounded-lg p-2 bg-card w-full flex flex-col gap-1', isSubtask && 'ml-4 border-l-2 border-l-muted')}>
       {/* Issue key */}
       <div className="text-xs font-mono text-muted-foreground">{issue.key}</div>
 
@@ -87,6 +99,27 @@ export default function TaskCard({ issue, healthDot }: TaskCardProps) {
         {/* Health dot */}
         <span className={cn('inline-block size-1.5 rounded-full', dotColor)} />
       </div>
+
+      {/* Subtask count chip + chevron — only when subtaskCount > 0 */}
+      {subtaskCount != null && subtaskCount > 0 && (
+        <div className="flex items-center gap-1">
+          <Badge variant="secondary" className="text-xs py-0">
+            {subtaskCount} subtask{subtaskCount !== 1 ? 's' : ''}
+          </Badge>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onToggle?.() }}
+            className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
+            aria-label={isExpanded ? 'Collapse subtasks' : 'Expand subtasks'}
+          >
+            {isExpanded ? (
+              <ChevronDown className="size-3" />
+            ) : (
+              <ChevronRight className="size-3" />
+            )}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
