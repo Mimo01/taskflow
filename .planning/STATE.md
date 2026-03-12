@@ -4,8 +4,8 @@ milestone: v1.1
 milestone_name: Polish
 status: planning
 stopped_at: Completed 06-03-PLAN.md
-last_updated: "2026-03-12T23:35:00Z"
-last_activity: "2026-03-12 - Completed quick task 9: Add 15s AbortController timeout to apiFetch for Jira and GitLab API calls"
+last_updated: "2026-03-12T23:36:00Z"
+last_activity: "2026-03-12 - Completed quick task 10: GitLab disconnection banner mirroring Jira banner"
 progress:
   total_phases: 4
   completed_phases: 2
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 Phase: 5 of 8 (API Foundation + Quick Wins)
 Plan: — of —
 Status: Ready to plan
-Last activity: 2026-03-12 - Completed quick task 9: Add 15s AbortController timeout to apiFetch for Jira and GitLab API calls
+Last activity: 2026-03-12 - Completed quick task 10: GitLab disconnection banner mirroring Jira banner
 
 Progress: [░░░░░░░░░░] 0% (v1.1)
 
@@ -94,12 +94,13 @@ None.
 | 7 | Add Stories and Subtasks columns to SprintProgressTab assignee breakdown table | 2026-03-12 | ded80fa | Verified | [7-in-sprint-progress-page-show-a-new-colum](./quick/7-in-sprint-progress-page-show-a-new-colum/) |
 | 8 | Add Tech Lead role with access to all Developer and PM features | 2026-03-12 | 2f3fb6a | Verified | [8-add-a-new-role-with-access-to-all-featur](./quick/8-add-a-new-role-with-access-to-all-featur/) |
 | 9 | Add 15-second AbortController timeout to all Jira and GitLab API calls | 2026-03-12 | 7859212 | Verified | [9-add-timeouts-for-jira-and-gitlab-api-cal](./quick/9-add-timeouts-for-jira-and-gitlab-api-cal/) |
+| 10 | GitLab disconnection amber banner mirroring Jira banner, stacks when both disconnected | 2026-03-12 | 5a1d3d4 | Verified | [10-when-gitlab-fails-to-connect-there-is-no](./quick/10-when-gitlab-fails-to-connect-there-is-no/) |
 | Phase 06 P01 | 203 | 2 tasks | 2 files |
 | Phase 06 P02 | 4 | 2 tasks | 2 files |
 | Phase 06-workload-sprint-progress-enrichment P03 | 5 | 1 tasks | 2 files |
 
 ## Session Continuity
 
-Last session: 2026-03-12T23:35:00Z
-Stopped at: Completed quick task 9
+Last session: 2026-03-12T23:36:00Z
+Stopped at: Completed quick task 10
 Resume file: None
