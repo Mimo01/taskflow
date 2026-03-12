@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 06-workload-sprint-progress-enrichment
 source: 06-01-SUMMARY.md, 06-02-SUMMARY.md
 started: 2026-03-12T00:00:00Z
@@ -61,5 +61,11 @@ skipped: 0
   reason: "User reported: The workload should show all assigned tasks in current sprint, even the ones in done"
   severity: major
   test: 2
-  artifacts: []
-  missing: []
+  root_cause: "Line 88 in WorkloadTab.tsx contains `if (cat === 'done') continue;` inside the story accumulation loop. This skips done stories entirely — they are never added to the assignee's stories array, never counted, and the assignee row is never created if all their stories are done."
+  artifacts:
+    - path: "taskflow/src/routes/dashboard/WorkloadTab.tsx"
+      issue: "Line 88 — `if (cat === 'done') continue;` unconditionally skips done stories, removing them from the table entirely. File-level JSDoc on line 5 also documents this as intentional."
+  missing:
+    - "Remove the `if (cat === 'done') continue;` guard so done stories are pushed into existing.stories and onto the assignee map"
+    - "Decide whether count/points columns should still exclude done (open-only) — if so, replace the guard with conditional increment logic rather than skipping the story entirely"
+    - "Update tests to assert done stories appear as sub-rows in the expanded assignee row"
