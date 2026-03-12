@@ -1,6 +1,7 @@
 // PM-02: Workload grouped by assignee
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
@@ -22,11 +23,26 @@ vi.mock('@/stores/auth.store', () => ({
   })),
 }));
 
+// Mock settings store
+vi.mock('@/stores/settings.store', () => ({
+  useSettingsStore: vi.fn(() => ({
+    storyPointsFieldKey: 'customfield_10016',
+  })),
+}));
+
 function makeIssue(
   key: string,
   assigneeName: string | null,
   statusCategoryKey: 'new' | 'indeterminate' | 'done',
   pts: number | null,
+  options?: {
+    subtask?: boolean;
+    timetracking?: {
+      originalEstimateSeconds?: number;
+      timeSpentSeconds?: number;
+      remainingEstimateSeconds?: number;
+    } | null;
+  },
 ) {
   return {
     id: key,
@@ -42,7 +58,8 @@ function makeIssue(
         ? { displayName: assigneeName, avatarUrls: { '48x48': '' } }
         : null,
       customfield_10016: pts,
-      issuetype: { name: 'Story', subtask: false },
+      issuetype: { name: options?.subtask ? 'Sub-task' : 'Story', subtask: options?.subtask ?? false },
+      timetracking: options?.timetracking ?? null,
     },
   };
 }
@@ -62,6 +79,11 @@ describe('WorkloadTab', () => {
     // Re-establish readSecret mock implementation after clearAllMocks clears it
     const stronghold = await import('@/services/stronghold');
     vi.mocked(stronghold.readSecret).mockResolvedValue('test-jira-token');
+    // Re-establish settings store mock
+    const settingsStore = await import('@/stores/settings.store');
+    vi.mocked(settingsStore.useSettingsStore).mockReturnValue({
+      storyPointsFieldKey: 'customfield_10016',
+    } as ReturnType<typeof settingsStore.useSettingsStore>);
   });
 
   it('groups open (non-done) sprint issues by assignee displayName, excludes done issues', async () => {
@@ -124,5 +146,134 @@ describe('WorkloadTab', () => {
     renderWithQuery(<WorkloadTab />);
 
     await screen.findByText(/no sprint data available/i);
+  });
+
+  describe('WORK-01: excludes subtasks from point and task totals', () => {
+    it('excludes subtask points from assignee story point total', async () => {
+      const { fetchSprintIssues } = await import('@/services/jira');
+      vi.mocked(fetchSprintIssues).mockResolvedValue([
+        makeIssue('P-1', 'Alice', 'indeterminate', 5),                      // story: 5pts
+        makeIssue('P-2', 'Alice', 'indeterminate', 8, { subtask: true }),   // subtask: excluded from pts
+      ]);
+
+      const { default: WorkloadTab } = await import('./WorkloadTab');
+      renderWithQuery(<WorkloadTab />);
+
+      await screen.findByText('Alice');
+      const aliceRow = screen.getByText('Alice').closest('[data-testid="workload-row"]');
+      expect(aliceRow).not.toBeNull();
+      // Should show 5 pts, not 13 pts
+      expect(aliceRow?.textContent).toMatch(/5\s*pts/i);
+      expect(aliceRow?.textContent).not.toMatch(/13\s*pts/i);
+    });
+
+    it('excludes subtasks from task count', async () => {
+      const { fetchSprintIssues } = await import('@/services/jira');
+      vi.mocked(fetchSprintIssues).mockResolvedValue([
+        makeIssue('P-1', 'Alice', 'indeterminate', 5),                      // story: counts
+        makeIssue('P-2', 'Alice', 'indeterminate', 8, { subtask: true }),   // subtask: excluded from count
+      ]);
+
+      const { default: WorkloadTab } = await import('./WorkloadTab');
+      renderWithQuery(<WorkloadTab />);
+
+      await screen.findByText('Alice');
+      const aliceRow = screen.getByText('Alice').closest('[data-testid="workload-row"]');
+      // Should show 1 task, not 2 tasks
+      expect(aliceRow?.textContent).toMatch(/1\s*task\b/i);
+      expect(aliceRow?.textContent).not.toMatch(/2\s*tasks/i);
+    });
+  });
+
+  describe('WORK-02: time tracking columns', () => {
+    it('shows time columns when sprint has time tracking data', async () => {
+      const { fetchSprintIssues } = await import('@/services/jira');
+      vi.mocked(fetchSprintIssues).mockResolvedValue([
+        makeIssue('P-1', 'Alice', 'indeterminate', 5, {
+          timetracking: { originalEstimateSeconds: 14400 }, // 4h
+        }),
+      ]);
+
+      const { default: WorkloadTab } = await import('./WorkloadTab');
+      renderWithQuery(<WorkloadTab />);
+
+      await screen.findByText('Alice');
+      // Table header should contain "Est"
+      expect(screen.getByText('Est')).toBeTruthy();
+      // The assignee row should show "4h" somewhere
+      const aliceRow = screen.getByText('Alice').closest('[data-testid="workload-row"]');
+      expect(aliceRow?.textContent).toMatch(/4h/i);
+    });
+
+    it('hides time columns when all time tracking is null/zero', async () => {
+      const { fetchSprintIssues } = await import('@/services/jira');
+      vi.mocked(fetchSprintIssues).mockResolvedValue([
+        makeIssue('P-1', 'Alice', 'indeterminate', 5, { timetracking: null }),
+      ]);
+
+      const { default: WorkloadTab } = await import('./WorkloadTab');
+      renderWithQuery(<WorkloadTab />);
+
+      await screen.findByText('Alice');
+      // Time columns should NOT appear at all
+      expect(screen.queryByText('Est')).toBeNull();
+      expect(screen.queryByText('Spent')).toBeNull();
+      expect(screen.queryByText('Remaining')).toBeNull();
+    });
+
+    it('formats seconds as Xh Ym', async () => {
+      const { fetchSprintIssues } = await import('@/services/jira');
+      vi.mocked(fetchSprintIssues).mockResolvedValue([
+        makeIssue('P-1', 'Alice', 'indeterminate', 5, {
+          timetracking: { originalEstimateSeconds: 16200 }, // 4h 30m
+        }),
+      ]);
+
+      const { default: WorkloadTab } = await import('./WorkloadTab');
+      renderWithQuery(<WorkloadTab />);
+
+      await screen.findByText('Alice');
+      const aliceRow = screen.getByText('Alice').closest('[data-testid="workload-row"]');
+      expect(aliceRow?.textContent).toMatch(/4h 30m/i);
+    });
+  });
+
+  describe('WORK-03: expand/collapse per-story rows', () => {
+    it('assignee rows are collapsed by default — story key not visible', async () => {
+      const { fetchSprintIssues } = await import('@/services/jira');
+      vi.mocked(fetchSprintIssues).mockResolvedValue([
+        makeIssue('P-1', 'Alice', 'indeterminate', 5),
+      ]);
+
+      const { default: WorkloadTab } = await import('./WorkloadTab');
+      renderWithQuery(<WorkloadTab />);
+
+      await screen.findByText('Alice');
+      // Story key P-1 should NOT be visible on initial render (collapsed)
+      expect(screen.queryByText('P-1')).toBeNull();
+    });
+
+    it('clicking expand toggle reveals per-story rows', async () => {
+      const user = userEvent.setup();
+      const { fetchSprintIssues } = await import('@/services/jira');
+      vi.mocked(fetchSprintIssues).mockResolvedValue([
+        makeIssue('P-1', 'Alice', 'indeterminate', 5),
+      ]);
+
+      const { default: WorkloadTab } = await import('./WorkloadTab');
+      renderWithQuery(<WorkloadTab />);
+
+      await screen.findByText('Alice');
+      // Initially collapsed
+      expect(screen.queryByText('P-1')).toBeNull();
+
+      // Click the assignee row to expand
+      const aliceRow = screen.getByText('Alice').closest('[data-testid="workload-row"]');
+      expect(aliceRow).not.toBeNull();
+      await user.click(aliceRow!);
+
+      // Story key P-1 should now be visible
+      expect(screen.getByText('P-1')).toBeTruthy();
+    });
   });
 });
