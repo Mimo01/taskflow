@@ -164,26 +164,31 @@ function GitLabPanel({
         <MrStateBadge state={mr.state} />
         <span className="text-muted-foreground">{mr.author.name}</span>
         {linkedKey && (
-          <button
-            type="button"
-            onClick={() => openUrl(`${jiraBaseUrl}/browse/${linkedKey}`)}
-            className="inline-block px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-mono hover:opacity-80 cursor-pointer"
-            aria-label={`Open ${linkedKey} in Jira`}
-          >
-            {linkedKey}
-          </button>
+          <span className="text-muted-foreground font-mono">{linkedKey}</span>
         )}
       </div>
 
       {/* Footer */}
-      <button
-        type="button"
-        onClick={() => openUrl(mr.web_url)}
-        className="text-xs text-primary hover:underline"
-        aria-label="Open in GitLab"
-      >
-        Open in GitLab ↗
-      </button>
+      <div className="flex items-center gap-4">
+        <button
+          type="button"
+          onClick={() => openUrl(mr.web_url)}
+          className="text-xs text-primary hover:underline"
+          aria-label="Open in GitLab"
+        >
+          Open in GitLab ↗
+        </button>
+        {linkedKey && (
+          <button
+            type="button"
+            onClick={() => openUrl(`${jiraBaseUrl}/browse/${linkedKey}`)}
+            className="text-xs text-primary hover:underline"
+            aria-label={`Open ${linkedKey} in Jira`}
+          >
+            Open {linkedKey} in Jira ↗
+          </button>
+        )}
+      </div>
     </div>
   );
 }
