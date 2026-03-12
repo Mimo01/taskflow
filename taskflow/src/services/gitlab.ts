@@ -26,6 +26,13 @@ export interface GitLabGroup {
   full_path: string;
 }
 
+export interface GitLabProject {
+  id: number;
+  name: string;
+  name_with_namespace: string;
+  path_with_namespace: string;
+}
+
 /**
  * Validate a GitLab PAT by calling GET /api/v4/user.
  *
@@ -90,6 +97,44 @@ export async function listGitLabGroups(baseUrl: string, token: string): Promise<
   if (response.ok) {
     const data = await response.json();
     return data as GitLabGroup[];
+  }
+
+  if (response.status === 401) {
+    throw new Error('Invalid token or token has expired');
+  }
+
+  if (response.status === 403) {
+    throw new Error('Token valid but lacks required permissions');
+  }
+
+  throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+}
+
+/**
+ * List all GitLab projects accessible to the authenticated user.
+ *
+ * @param baseUrl - GitLab base URL
+ * @param token   - Personal Access Token (already validated)
+ * @returns Array of projects sorted by last activity (most recent first)
+ */
+export async function listGitLabProjects(baseUrl: string, token: string): Promise<GitLabProject[]> {
+  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/projects?membership=true&per_page=100&order_by=last_activity_at&sort=desc`;
+
+  let response: Response;
+  try {
+    response = await apiFetch('gitlab', url, {
+      headers: {
+        'PRIVATE-TOKEN': token,
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (response.ok) {
+    const data = await response.json();
+    return data as GitLabProject[];
   }
 
   if (response.status === 401) {
@@ -349,6 +394,42 @@ export async function fetchGroupMilestones(
   const base = baseUrl.replace(/\/$/, '');
   // include_subgroups=true: also return milestones defined on subgroups within this group
   const url = `${base}/api/v4/groups/${encodeURIComponent(groupPath)}/milestones?per_page=100&include_subgroups=true`;
+
+  let response: Response;
+  try {
+    response = await apiFetch('gitlab', url, {
+      headers: {
+        'PRIVATE-TOKEN': token,
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch milestones');
+  }
+
+  const data = await response.json();
+  return data as GitLabMilestone[];
+}
+
+/**
+ * Fetch all milestones for a GitLab project.
+ *
+ * @param baseUrl   - GitLab base URL
+ * @param token     - Personal Access Token
+ * @param projectId - GitLab numeric project ID
+ * @returns Array of project milestones
+ */
+export async function fetchProjectMilestones(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+): Promise<GitLabMilestone[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const url = `${base}/api/v4/projects/${projectId}/milestones?per_page=100`;
 
   let response: Response;
   try {

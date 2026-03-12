@@ -34,7 +34,8 @@ interface AuthState {
   jiraBaseUrl: string | null;
   gitlabBaseUrl: string | null;
   activeJiraProject: string | null;
-  activeGitlabGroup: string | null;
+  activeGitlabProject: number | null;
+  activeGitlabProjectPath: string | null;
   /** Jira user display name from GET /rest/api/2/myself .displayName — for notification filtering. */
   jiraUserDisplayName: string | null;
   /** Jira username from GET /rest/api/2/myself .name — for @mention matching in comments. */
@@ -44,7 +45,7 @@ interface AuthState {
   setJiraConnected: (connected: boolean, baseUrl?: string) => void;
   setGitlabConnected: (connected: boolean, baseUrl?: string) => void;
   setActiveJiraProject: (project: string | null) => void;
-  setActiveGitlabGroup: (group: string | null) => void;
+  setActiveGitlabProject: (id: number | null, path: string | null) => void;
   /** Set Jira user identity for notification filtering. */
   setJiraUser: (displayName: string, username: string) => void;
   /** Set GitLab user ID for self-exclusion in MR notes. */
@@ -59,7 +60,8 @@ export const useAuthStore = create<AuthState>()(
       jiraBaseUrl: null,
       gitlabBaseUrl: null,
       activeJiraProject: null,
-      activeGitlabGroup: null,
+      activeGitlabProject: null,
+      activeGitlabProjectPath: null,
       jiraUserDisplayName: null,
       jiraUsername: null,
       gitlabUserId: null,
@@ -68,7 +70,7 @@ export const useAuthStore = create<AuthState>()(
       setGitlabConnected: (connected, baseUrl) =>
         set({ gitlabConnected: connected, gitlabBaseUrl: baseUrl ?? null }),
       setActiveJiraProject: (project) => set({ activeJiraProject: project }),
-      setActiveGitlabGroup: (group) => set({ activeGitlabGroup: group }),
+      setActiveGitlabProject: (id, path) => set({ activeGitlabProject: id, activeGitlabProjectPath: path }),
       setJiraUser: (displayName, username) =>
         set({ jiraUserDisplayName: displayName, jiraUsername: username }),
       setGitlabUserId: (id) => set({ gitlabUserId: id }),
