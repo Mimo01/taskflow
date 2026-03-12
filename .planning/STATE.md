@@ -4,8 +4,8 @@ milestone: v1.1
 milestone_name: Polish
 status: planning
 stopped_at: Completed 06-03-PLAN.md
-last_updated: "2026-03-12T23:32:00Z"
-last_activity: "2026-03-12 - Completed quick task 7: Add Stories and Subtasks columns to SprintProgressTab assignee breakdown table"
+last_updated: "2026-03-12T23:35:00Z"
+last_activity: "2026-03-12 - Completed quick task 8: Add Tech Lead role with access to all Developer and PM features"
 progress:
   total_phases: 4
   completed_phases: 2
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 Phase: 5 of 8 (API Foundation + Quick Wins)
 Plan: — of —
 Status: Ready to plan
-Last activity: 2026-03-12 - Completed quick task 7: Add Stories and Subtasks columns to SprintProgressTab assignee breakdown table
+Last activity: 2026-03-12 - Completed quick task 8: Add Tech Lead role with access to all Developer and PM features
 
 Progress: [░░░░░░░░░░] 0% (v1.1)
 
@@ -92,12 +92,13 @@ None.
 | 5 | GitLab group selection replaced with project selection (auth store, onboarding, settings, ReleasesTab, notifications) | 2026-03-12 | 6e2fb62 | Verified | [5-change-gitlab-active-group-selection-to-](./quick/5-change-gitlab-active-group-selection-to-/) |
 | 6 | Sort WorkloadTab assignees by story points descending with alphabetical tiebreaker | 2026-03-12 | 99dc766 | Verified | [6-sort-assignees-by-total-story-points-in-](./quick/6-sort-assignees-by-total-story-points-in-/) |
 | 7 | Add Stories and Subtasks columns to SprintProgressTab assignee breakdown table | 2026-03-12 | ded80fa | Verified | [7-in-sprint-progress-page-show-a-new-colum](./quick/7-in-sprint-progress-page-show-a-new-colum/) |
+| 8 | Add Tech Lead role with access to all Developer and PM features | 2026-03-12 | 2f3fb6a | Verified | [8-add-a-new-role-with-access-to-all-featur](./quick/8-add-a-new-role-with-access-to-all-featur/) |
 | Phase 06 P01 | 203 | 2 tasks | 2 files |
 | Phase 06 P02 | 4 | 2 tasks | 2 files |
 | Phase 06-workload-sprint-progress-enrichment P03 | 5 | 1 tasks | 2 files |
 
 ## Session Continuity
 
-Last session: 2026-03-12T23:32:00Z
-Stopped at: Completed quick task 7
+Last session: 2026-03-12T23:35:00Z
+Stopped at: Completed quick task 8
 Resume file: None
