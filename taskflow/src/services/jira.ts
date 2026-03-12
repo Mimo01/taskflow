@@ -16,7 +16,7 @@
  * IMPORTANT: This module does NOT store secrets. Callers are responsible for
  * calling storeSecret('jira-pat', token) after successful validation.
  */
-import { fetch } from '@tauri-apps/plugin-http';
+import { apiFetch } from '../lib/apiFetch';
 
 export interface JiraUser {
   displayName: string;
@@ -42,7 +42,7 @@ export async function validateJira(baseUrl: string, token: string): Promise<Jira
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await apiFetch('jira', url, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -80,7 +80,7 @@ export async function listJiraProjects(baseUrl: string, token: string): Promise<
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await apiFetch('jira', url, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -190,7 +190,7 @@ export async function fetchSprintIssues(
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await apiFetch('jira', url, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -236,7 +236,7 @@ export async function fetchSprintIssues(
           `issuetype in subtaskIssueTypes() AND parent in (${chunk.join(',')})${assigneeClause}`,
         );
         const subtaskUrl = `${base}/rest/api/2/search?jql=${subtaskJql}&fields=${subtaskFields}&maxResults=200`;
-        const subtaskResponse = await fetch(subtaskUrl, {
+        const subtaskResponse = await apiFetch('jira', subtaskUrl, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -273,7 +273,7 @@ export async function fetchTransitions(
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await apiFetch('jira', url, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -309,7 +309,7 @@ export async function postTransition(
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await apiFetch('jira', url, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -344,7 +344,7 @@ export async function postComment(
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await apiFetch('jira', url, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -381,7 +381,7 @@ export async function fetchFixVersions(
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await apiFetch('jira', url, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -424,7 +424,7 @@ export async function searchJira(
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await apiFetch('jira', url, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -458,7 +458,7 @@ export async function discoverStoryPointsField(
 ): Promise<string> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/field`;
   try {
-    const response = await fetch(url, {
+    const response = await apiFetch('jira', url, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
