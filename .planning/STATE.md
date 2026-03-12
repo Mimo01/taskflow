@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 04-04-PLAN.md
-last_updated: "2026-03-12T00:01:27.273Z"
+stopped_at: Completed 04-05-PLAN.md
+last_updated: "2026-03-12T00:07:30.000Z"
 last_activity: 2026-03-11 — Phase 4 Plan 01 complete — releaseLinker 8/8 tests passed, 5 scaffold files created
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 20
-  completed_plans: 19
-  percent: 89
+  completed_plans: 20
+  percent: 100
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-10)
 
 ## Current Position
 
-Phase: 4 of 4 (PM Dashboard & Search) — IN PROGRESS
-Plan: 1 of 3 in current phase — COMPLETE
-Status: Phase 4 Plan 01 done — service layer extensions and Wave 0 test scaffolds in place
-Last activity: 2026-03-11 — Phase 4 Plan 01 complete — releaseLinker 8/8 tests passed, 5 scaffold files created
+Phase: 4 of 4 (PM Dashboard & Search) — COMPLETE
+Plan: 5 of 5 in current phase — COMPLETE
+Status: Phase 4 Plan 05 done — ADF description fix + GitLab linked key chip clickable
+Last activity: 2026-03-12 — Phase 4 Plan 05 complete — adfToPlainText utility, GitLab chip button, 21 tests pass
 
-Progress: [████████░░] 89%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Progress: [████████░░] 89%
 | Phase 04-pm-dashboard-search P02 | 10 | 2 tasks | 8 files |
 | Phase 04-pm-dashboard-search P03 | 4 | 2 tasks | 5 files |
 | Phase 04-pm-dashboard-search P04 | 4 | 1 tasks | 2 files |
+| Phase 04-pm-dashboard-search P05 | 4 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -126,6 +127,8 @@ Recent decisions affecting current work:
 - [Phase 04-pm-dashboard-search]: data-testid attributes on overlay backdrop and loading skeleton for testability — aria roles insufficient for backdrop click detection in tests
 - [Phase 04-pm-dashboard-search]: SearchOverlay useQuery enabled guard checks tokens AND baseUrls AND projectKey — prevents queries with partial auth state
 - [Phase 04-pm-dashboard-search]: fetchFixVersions returns (data.values ?? []) — GET /rest/api/2/version returns paginated envelope not a bare array; defensive fallback for malformed/empty responses
+- [Phase 04-pm-dashboard-search P05]: adfToPlainText handles null/string/ADF-object defensively — Jira Server returns strings, Jira Cloud returns ADF; cast to unknown at call site avoids changing jira.ts canonical type
+- [Phase 04-pm-dashboard-search P05]: GitLab linked key chip changed from span to button with aria-label — enables role-based test queries and provides keyboard/click accessibility
 
 ### Pending Todos
 
@@ -139,6 +142,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-12T00:01:27.267Z
-Stopped at: Completed 04-04-PLAN.md
+Last session: 2026-03-12T00:07:30.000Z
+Stopped at: Completed 04-05-PLAN.md
 Resume file: None
