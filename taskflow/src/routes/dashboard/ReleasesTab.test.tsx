@@ -198,18 +198,26 @@ describe('ReleasesTab', () => {
       makeFixVersion('v1', 'v2.1.0', '2026-03-15'),
     ]);
 
-    // Mock the fetch call for version issue counts to return 3 fixed + 5 affected = 8 total
+    // fetchVersionIssueCounts makes two parallel HTTP calls:
+    //   1. GET /rest/api/2/version/{id}/relatedIssueCounts → { issuesFixedCount: 3, issuesAffectedCount: 0 }
+    //   2. GET /rest/api/2/search?jql=fixVersion="v2.1.0"&maxResults=0 → { total: 8 }
+    // We distinguish by checking the URL pattern in the mock.
     const { fetch: mockFetch } = await import('@tauri-apps/plugin-http');
-    vi.mocked(mockFetch).mockResolvedValue({
-      ok: true,
-      json: async () => ({ issuesFixed: 3, issuesAffected: 5 }),
-    } as Response);
+    vi.mocked(mockFetch).mockImplementation(async (url: string | URL | Request) => {
+      const urlStr = typeof url === 'string' ? url : url instanceof URL ? url.toString() : (url as Request).url;
+      if (urlStr.includes('/search')) {
+        // JQL total count endpoint → total=8 (3 fixed + 5 unresolved)
+        return { ok: true, json: async () => ({ total: 8 }) } as Response;
+      }
+      // relatedIssueCounts endpoint → issuesFixedCount=3
+      return { ok: true, json: async () => ({ issuesFixedCount: 3, issuesAffectedCount: 0 }) } as Response;
+    });
 
     const { default: ReleasesTab } = await import('./ReleasesTab');
     renderWithQuery(<ReleasesTab />);
 
     await screen.findByText('v2.1.0');
-    // Should show "3 / 8 done"
+    // Should show "3 / 8 done" (issuesFixed / JQL total)
     await screen.findByText(/3\s*\/\s*8\s*done/i);
   });
 });

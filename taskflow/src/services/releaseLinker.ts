@@ -1,5 +1,5 @@
 /**
- * Release linker — pure date-matching utility between Jira fix versions and GitLab milestones/tags.
+ * Release linker — date matching between Jira fix versions and GitLab milestones/tags.
  *
  * Date normalization rules:
  * - "YYYY-MM-DD" strings (Jira fix versions, GitLab milestone due_date) are parsed as UTC midnight
@@ -9,8 +9,10 @@
  *
  * Match thresholds:
  * - diff === 0 days → 'exact'
- * - diff <= 1 day  → 'fuzzy'
- * - diff > 1 day   → 'none'
+ * - diff <= 1 day  → 'fuzzy' (date-based)
+ * - diff > 1 day   → 'none'  (no name-based fallback — only date matching is used)
+ *
+ * Callers iterate candidates and keep the first 'exact' or the first 'fuzzy' encountered.
  */
 
 export type ReleaseMatchType = 'exact' | 'fuzzy' | 'none';
@@ -22,7 +24,12 @@ export interface ReleaseMatch {
 }
 
 /**
- * Determine whether a GitLab milestone or tag date matches a Jira fix version release date.
+ * Determine whether a GitLab milestone or tag matches a Jira fix version by date.
+ *
+ * Matching strategy (in priority order):
+ * 1. Date-exact (same UTC day) → 'exact'
+ * 2. Date-fuzzy (within 1 day) → 'fuzzy'
+ * 3. No match → 'none'
  *
  * @param fixVersionDate - Jira fix version releaseDate "YYYY-MM-DD" or undefined/null
  * @param candidate      - GitLab candidate with date ("YYYY-MM-DD" or ISO 8601), name, and url
