@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: planning
-stopped_at: Completed 06-02-PLAN.md
-last_updated: "2026-03-12T21:26:17.181Z"
+stopped_at: Completed 06-03-PLAN.md
+last_updated: "2026-03-12T21:49:25.199Z"
 last_activity: "2026-03-12 - Completed quick task 5: GitLab group selection replaced with project selection across auth store, onboarding wizard, settings, ReleasesTab, and notification polling"
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 10
-  completed_plans: 10
+  total_plans: 11
+  completed_plans: 11
   percent: 0
 ---
 
@@ -72,6 +72,7 @@ Key v1.1 constraints from research:
 - [Phase 06]: WorkloadTab: useState Set expand/collapse chosen over @base-ui/react Collapsible for simplicity and testability
 - [Phase 06]: SPPG: donePct = 100 - todoPct - inProgPct to prevent rounding gap in stacked bar
 - [Phase 06]: SPPG: issuetype.subtask boolean used for story partition (not name comparison)
+- [Phase 06-workload-sprint-progress-enrichment]: WorkloadTab done-story fix: replace guard skip with conditional increment — done stories always pushed to assignee map, count/pts only incremented for non-done
 
 ### Pending Todos
 
@@ -91,9 +92,10 @@ None.
 | 5 | GitLab group selection replaced with project selection (auth store, onboarding, settings, ReleasesTab, notifications) | 2026-03-12 | 6e2fb62 | Verified | [5-change-gitlab-active-group-selection-to-](./quick/5-change-gitlab-active-group-selection-to-/) |
 | Phase 06 P01 | 203 | 2 tasks | 2 files |
 | Phase 06 P02 | 4 | 2 tasks | 2 files |
+| Phase 06-workload-sprint-progress-enrichment P03 | 5 | 1 tasks | 2 files |
 
 ## Session Continuity
 
-Last session: 2026-03-12T21:21:49.986Z
-Stopped at: Completed 06-02-PLAN.md
+Last session: 2026-03-12T21:49:25.195Z
+Stopped at: Completed 06-03-PLAN.md
 Resume file: None
