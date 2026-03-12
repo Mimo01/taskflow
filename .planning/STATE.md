@@ -4,8 +4,8 @@ milestone: v1.1
 milestone_name: Polish
 status: planning
 stopped_at: Completed quick-5 (GitLab group to project selection)
-last_updated: "2026-03-12T20:36:00.000Z"
-last_activity: 2026-03-12 — Completed quick task 5: GitLab group selection replaced with project selection
+last_updated: "2026-03-12T20:41:32.940Z"
+last_activity: "2026-03-12 - Completed quick task 5: GitLab group selection replaced with project selection across auth store, onboarding wizard, settings, ReleasesTab, and notification polling"
 progress:
   total_phases: 4
   completed_phases: 1
