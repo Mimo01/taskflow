@@ -61,6 +61,14 @@ function LogCard({ entry }: { entry: ApiLogEntry }) {
       {/* Detail panel */}
       {open && (
         <div className="border-t border-border px-4 py-3 flex flex-col gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+              URL
+            </p>
+            <pre className="text-xs bg-muted rounded p-2 overflow-auto whitespace-pre-wrap break-all">
+              {entry.url}
+            </pre>
+          </div>
           {entry.error && (
             <div className="text-sm text-red-600 dark:text-red-400">
               <span className="font-semibold">Network error:</span> {entry.error}
