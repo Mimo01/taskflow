@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 05-api-foundation-quick-wins
 source: 05-01-SUMMARY.md, 05-02-SUMMARY.md, 05-03-SUMMARY.md, 05-04-SUMMARY.md
 started: 2026-03-12T00:00:00Z
@@ -51,12 +51,31 @@ skipped: 1
   reason: "User reported: I only see subtasks, there are no stories"
   severity: major
   test: 2
-  artifacts: []
-  missing: []
+  root_cause: "The first query JQL (`sprint in openSprints() AND resolution = Unresolved`) has no `AND issuetype not in subtaskIssueTypes()` guard. On this Jira DC instance, openSprints() returns subtasks (they have sprint values on this board config). The second query then searches for children of those subtask keys — which have no children — returning nothing. Result: only subtasks appear."
+  artifacts:
+    - path: "taskflow/src/services/jira.ts"
+      issue: "First query JQL missing AND issuetype not in subtaskIssueTypes() guard"
+    - path: "taskflow/src/services/jira.test.ts"
+      issue: "APIF-02 tests don't cover the case where first query returns subtasks"
+  missing:
+    - "Add AND issuetype not in subtaskIssueTypes() to first query JQL"
+    - "Add APIF-02 test for when first query returns a subtask (guard validation)"
+  debug_session: ".planning/debug/sprint-subtasks-only.md"
 - truth: "Releases tab shows fix versions from the currently selected Jira project, sorted newest-to-oldest"
   status: failed
   reason: "User reported: I see releases but ther don't seem to be from my selected project"
   severity: major
   test: 3
-  artifacts: []
-  missing: []
+  root_cause: "Stale numeric project ID persisted in Tauri Store (auth.json). The GET /rest/api/2/version?projectKey= endpoint silently accepts numeric IDs and returns versions for whatever project has that ID, which may not match what the user sees selected. Likely a prior iteration stored p.id (numeric) instead of p.key (string)."
+  artifacts:
+    - path: "taskflow/src/routes/settings/TokenSection.tsx"
+      issue: "handleProjectChange parameter named projectId but receives p.key — naming mismatch is a refactor trap"
+    - path: "taskflow/src/stores/auth.store.ts"
+      issue: "activeJiraProject persisted via Tauri Store with no type validation on read"
+    - path: "taskflow/src/services/jira.ts"
+      issue: "fetchFixVersions uses endpoint that silently accepts numeric IDs"
+  missing:
+    - "Rename handleProjectChange parameter from projectId to projectKey"
+    - "Guard against stale numeric IDs: if activeJiraProject is a pure numeric string on startup, clear it"
+    - "Optional: switch fetchFixVersions to GET /rest/api/2/project/{projectKey}/versions (only accepts string keys)"
+  debug_session: ".planning/debug/releases-tab-wrong-project.md"
