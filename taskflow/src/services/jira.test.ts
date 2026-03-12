@@ -429,6 +429,38 @@ describe('jira service', () => {
       // First call: primary sprint query. Then 2 subtask chunk calls.
       expect(vi.mocked(mockFetch)).toHaveBeenCalledTimes(3);
     });
+
+    it('assignedToMe=true: subtask query JQL contains assignee = currentUser()', async () => {
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({ issues: [parentIssue] }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({ issues: [] }),
+        } as Response);
+
+      await fetchSprintIssues('https://jira.example.com', 'token', 'PROJ', true);
+      const secondCallUrl = vi.mocked(mockFetch).mock.calls[1][0] as string;
+      expect(secondCallUrl).toContain('assignee%20%3D%20currentUser()');
+    });
+
+    it('assignedToMe=false: subtask query JQL does NOT contain currentUser()', async () => {
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({ issues: [parentIssue] }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({ issues: [] }),
+        } as Response);
+
+      await fetchSprintIssues('https://jira.example.com', 'token', 'PROJ', false);
+      const secondCallUrl = vi.mocked(mockFetch).mock.calls[1][0] as string;
+      expect(secondCallUrl).not.toContain('currentUser()');
+    });
   });
 
   describe('fetchFixVersions', () => {
