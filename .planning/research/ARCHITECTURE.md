@@ -1,313 +1,632 @@
-# Architecture Patterns
+# Architecture Research
 
-**Project:** Taskflow
-**Researched:** 2026-03-10
-**Confidence:** HIGH (well-established patterns for this class of app)
-
-## Recommended Architecture
-
-Taskflow is a **client-only, API-aggregation dashboard**. There is no backend server. All API calls happen directly from the client process to Jira and GitLab, credentials live only on the local machine, and state is maintained in memory plus a local persistence layer (for credentials and user preferences).
-
-This is the correct architecture given the PAT-only auth constraint and the single-team scale. A backend would add operational complexity with no benefit for this use case.
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                        Taskflow Client                           │
-│                                                                  │
-│  ┌─────────────┐   ┌───────────────┐   ┌──────────────────────┐ │
-│  │   UI Layer  │   │  State Layer  │   │   Persistence Layer  │ │
-│  │  (React)    │◄──│  (Zustand /   │   │  (local keychain /   │ │
-│  │             │   │   TanStack    │   │   config file)       │ │
-│  │  Dev View   │   │   Query)      │   │                      │ │
-│  │  PM View    │   │               │   │  - PATs              │ │
-│  │  Notifs     │   │  - Cache      │   │  - Prefs (theme)     │ │
-│  │  Search     │   │  - Polling    │   │  - Last-seen cursors │ │
-│  └──────┬──────┘   │  - Linking    │   └──────────────────────┘ │
-│         │          └───────┬───────┘                             │
-│         │                  │                                     │
-│  ┌──────▼──────────────────▼──────┐                             │
-│  │          API Client Layer      │                             │
-│  │                                │                             │
-│  │  ┌─────────────┐  ┌──────────┐ │                             │
-│  │  │ Jira Client │  │ GitLab   │ │                             │
-│  │  │  (REST v2)  │  │ Client   │ │                             │
-│  │  │             │  │ (REST)   │ │                             │
-│  │  └──────┬──────┘  └────┬─────┘ │                             │
-│  └─────────┼──────────────┼───────┘                             │
-└────────────┼──────────────┼────────────────────────────────────┘
-             │              │
-             ▼              ▼
-     [On-prem Jira]   [GitLab.com or
-      REST API v2       self-hosted]
-```
+**Domain:** Tauri 2 desktop app — Jira + GitLab integration (v1.1 integration analysis)
+**Researched:** 2026-03-12
+**Confidence:** HIGH — based on direct codebase inspection of all relevant source files
 
 ---
 
-## Component Boundaries
+## Standard Architecture
 
-| Component | Responsibility | Communicates With |
-|-----------|---------------|-------------------|
-| **UI Layer** | Render dev/PM views, notifications, search results, actions | State Layer (read), Action Handlers (write) |
-| **State Layer** | In-memory cache of fetched data; polling orchestration; linked entity resolution | API Client Layer (fetch), Persistence Layer (read prefs), UI Layer (push updates) |
-| **API Client Layer - Jira** | All Jira REST v2 calls: issues, sprints, comments, transitions, search | Jira on-prem instance only |
-| **API Client Layer - GitLab** | All GitLab REST calls: MRs, comments, approvals, milestones, commits | GitLab instance only |
-| **Linking Engine** | Parse Jira ticket IDs (e.g., `PROJ-123`) from MR titles and commit messages; join Jira issues to GitLab MRs | State Layer (bidirectional) |
-| **Notification Engine** | Detect new activity (Jira comment mentions, GitLab MR threads); dispatch OS notifications and in-app badges | State Layer (read diffs), OS notification API |
-| **Persistence Layer** | Store PATs securely (OS keychain on desktop, localStorage encrypted on web); store user prefs | State Layer (read/write on startup and settings change) |
-| **Action Handlers** | Encapsulate write operations: update Jira status, add comment, approve MR, etc. | API Client Layer (write), State Layer (invalidate/update cache) |
+### System Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         React UI Layer                           │
+├────────────────┬────────────────┬────────────────┬──────────────┤
+│  routes/       │  routes/       │  routes/       │  routes/     │
+│  dashboard/    │  notifications/│  settings/     │  onboarding/ │
+│  index.tsx     │                │                │              │
+│  MyTasksTab    │                │                │              │
+│  SprintBoard   │                │                │              │
+│  MrAttention   │                │                │              │
+│  WorkloadTab   │                │                │              │
+│  SprintProg    │                │                │              │
+│  ReleasesTab   │                │                │              │
+└───────┬────────┴────────────────┴────────────────┴──────────────┘
+        │
+┌───────▼────────────────────────────────────────────────────────┐
+│                    TanStack Query Cache                          │
+│  ['jira-issues','my-tasks',proj]        60s poll / 30s stale   │
+│  ['jira-issues','sprint-board',proj]    60s poll / 30s stale   │
+│  ['gitlab-mrs', baseUrl]                60s poll / 30s stale   │
+│  ['mr-health', projectId, iid]          30s stale              │
+│  ['mr-commits', projectId, iid]         60s stale              │
+│  ['jira-fix-versions', proj]            5min stale             │
+│  ['gitlab-current-user', baseUrl]       Infinity stale         │
+│  ['gitlab-milestones', group]           5min stale             │
+│  ['gitlab-tags', projectId]             5min stale             │
+└───────┬────────────────────────────────────────────────────────┘
+        │
+┌───────▼────────────────────────────────────────────────────────┐
+│                     Services Layer                               │
+│  services/jira.ts        services/gitlab.ts                     │
+│  services/linkEngine.ts  services/releaseLinker.ts              │
+│  services/notifications.ts  services/stronghold.ts             │
+│  services/tauri.ts       services/theme.ts                      │
+└───────┬────────────────────────────────────────────────────────┘
+        │
+┌───────▼────────────────────────────────────────────────────────┐
+│                     Zustand Stores (persisted)                   │
+│  auth.store.ts           settings.store.ts                      │
+│  notifications.store.ts  onboarding.store.ts                    │
+│  (Tauri Store plugin: auth.json / settings.json / ...)          │
+└────────────────────────────────────────────────────────────────┘
+        │
+┌───────▼────────────────────────────────────────────────────────┐
+│                   Tauri 2 Runtime / OS                           │
+│  tauri-plugin-http (CORS bypass)    tauri-plugin-stronghold     │
+│  tauri-plugin-store (persistence)   tauri-plugin-opener         │
+│  tauri-plugin-notification (OS notifications)                   │
+└────────────────────────────────────────────────────────────────┘
+```
+
+### Component Responsibilities
+
+| Component | Responsibility | v1.1 Change |
+|-----------|----------------|-------------|
+| `routes/dashboard/index.tsx` | Role-aware overview with live summary cards | MODIFIED: add subtask list, MR status, sprint health, recent notifications sections |
+| `routes/dashboard/MyTasksTab.tsx` | Jira issues assigned to me + MR linking | MODIFIED: group subtasks under parent story |
+| `routes/dashboard/SprintBoardTab.tsx` | All sprint issues in kanban columns | MODIFIED: group subtasks under story cards, collapsible |
+| `routes/dashboard/WorkloadTab.tsx` | Per-assignee task count + story points | MODIFIED: add time tracking columns (estimate/spent/remaining) |
+| `routes/dashboard/SprintProgressTab.tsx` | Sprint completion buckets + progress bar | MODIFIED: per-status point breakdown, time totals, per-assignee breakdown |
+| `routes/dashboard/ReleasesTab.tsx` | Fix versions + GitLab date matching | MODIFIED: sort newest-first, add released/unreleased badge |
+| `routes/dashboard/MrAttentionTab.tsx` | MRs requiring developer attention | MODIFIED: open-only filter + linked-story subtask filter |
+| `routes/dashboard/TaskRow.tsx` | Single issue row in My Tasks | MODIFIED: parent story context for subtask rows |
+| `routes/dashboard/TaskCard.tsx` | Compact issue card in Sprint Board | MODIFIED: parent story context for subtask cards |
+| `services/jira.ts` | All Jira REST API calls + type definitions | MODIFIED: extend JiraIssue type; extend fields param in fetchSprintIssues |
+
+---
+
+## Integration Points for v1.1 Features
+
+### 1. JiraIssue Type Extension
+
+**Current state in `services/jira.ts`:**
+```typescript
+export interface JiraIssue {
+  id: string;
+  key: string;
+  fields: {
+    summary: string;
+    status: { id: string; name: string; statusCategory?: { key: 'new' | 'indeterminate' | 'done' } };
+    assignee: { displayName: string; avatarUrls: { '48x48': string } } | null;
+    customfield_10016: number | null;  // story points
+    issuetype: { name: string };
+    description?: string | null;
+  };
+}
+```
+
+**Required additions — all fields are optional to preserve backward compatibility:**
+```typescript
+fields: {
+  // ... existing fields ...
+  parent?: { id: string; key: string; fields: { summary: string } }
+  subtasks?: Array<{
+    id: string
+    key: string
+    fields: {
+      summary: string
+      status: { name: string; statusCategory?: { key: 'new' | 'indeterminate' | 'done' } }
+      assignee: { displayName: string; avatarUrls: { '48x48': string } } | null
+    }
+  }>
+  timetracking?: {
+    originalEstimateSeconds?: number
+    timeSpentSeconds?: number
+    remainingEstimateSeconds?: number
+  }
+}
+```
+
+**fetchSprintIssues fields param change — single string in `jira.ts`:**
+```typescript
+// Current:
+const fields = 'summary,status,assignee,issuetype,customfield_10016,story_points';
+// After:
+const fields = 'summary,status,assignee,issuetype,customfield_10016,story_points,parent,subtasks,timetracking';
+```
+
+**Ripple effect on every JiraIssue consumer:**
+
+| File | Impact |
+|------|--------|
+| `MyTasksTab.tsx` | Reads `data: JiraIssue[]` — no breaking change; gains parent/subtasks for grouping |
+| `SprintBoardTab.tsx` | Reads `data: JiraIssue[]` — no breaking change; gains subtasks for column grouping |
+| `MrAttentionTab.tsx` | Reads sprintIssues for link key set; passes linkedTask as JiraIssue to MrRow — gains subtasks for filter logic |
+| `WorkloadTab.tsx` | Reads assignee + story points — no breaking change; gains timetracking for new columns |
+| `SprintProgressTab.tsx` | Reads statusCategory + story points — no breaking change; gains timetracking for time totals |
+| `Dashboard/index.tsx` | Derives counts from sprint data — no breaking change |
+| `TaskRow.tsx` | Receives JiraIssue prop — no breaking change; conditionally renders parent context |
+| `TaskCard.tsx` | Receives JiraIssue prop — no breaking change; conditionally renders parent context |
+| `MrRow.tsx` | Receives JiraIssue as linkedTask — reads .key and .fields.status.name only — no breaking change |
+
+All fields are optional. All existing components continue to compile and run unchanged. New display logic in each component is gated on field presence.
+
+---
+
+### 2. Story Grouping in My Tasks and Sprint Board
+
+**The data topology:** Jira returns a flat list of issues. A story has `fields.subtasks[]` (child keys + status). A subtask has `fields.parent` (parent key + summary). Both stories and subtasks can appear in the same sprint board response.
+
+**Two-pass grouping algorithm — for a shared `useMemo`:**
+
+```typescript
+// Input: JiraIssue[] from sprint cache
+// Output: { groups: StoryGroup[], orphans: JiraIssue[], standalone: JiraIssue[] }
+
+interface StoryGroup {
+  story: JiraIssue            // the parent story
+  subtasks: JiraIssue[]       // matched subtasks from the flat list
+  isCollapsed: boolean        // managed locally in StoryGroup component
+}
+
+// Pass 1: index all issues and identify subtasks vs stories
+const issueByKey = new Map<string, JiraIssue>()
+const subtasksByParentKey = new Map<string, JiraIssue[]>()
+
+for (const issue of issues) {
+  issueByKey.set(issue.key, issue)
+  const parentKey = issue.fields.parent?.key
+  if (parentKey) {
+    const arr = subtasksByParentKey.get(parentKey) ?? []
+    subtasksByParentKey.set(parentKey, [...arr, issue])
+  }
+}
+
+// Pass 2: build story groups
+const storyKeys = new Set<string>()
+const groups: StoryGroup[] = []
+
+for (const issue of issues) {
+  if ((issue.fields.subtasks?.length ?? 0) > 0) {
+    storyKeys.add(issue.key)
+    groups.push({
+      story: issue,
+      subtasks: subtasksByParentKey.get(issue.key) ?? [],
+    })
+  }
+}
+
+// Orphans: subtasks whose parent is not in this issue set (parent in a different sprint)
+const orphans = issues.filter(i => i.fields.parent && !storyKeys.has(i.fields.parent.key))
+// Standalone: non-subtask issues with no children (tasks, bugs)
+const standalone = issues.filter(i => !i.fields.parent && !storyKeys.has(i.key))
+```
+
+**My Tasks subtask visibility:** The current `fetchSprintIssues(assignedToMe=true)` JQL (`assignee = currentUser()`) returns only issues directly assigned to the current user. Subtasks assigned to me appear, but their parent stories (if assigned to someone else) do not. Two approaches:
+
+- **Approach A (recommended for v1.1):** Reuse the sprint board cache `['jira-issues','sprint-board',proj]` (all issues), filter client-side to `assignee = currentUser()`, then run grouping. Zero new API calls. The sprint board cache is already fetched when WorkloadTab/SprintProgressTab are visited.
+- **Approach B:** Keep the my-tasks query and add a second query for parent issues not in the result set. Two queries, more complex.
+
+Approach A is lower risk and already consistent with the pattern used by SprintBoardTab (which reads gitlab-mrs from cache without its own query).
+
+**New components:**
+
+- `StoryGroup.tsx` — collapsible container. Props: `story: JiraIssue`, `subtasks: JiraIssue[]`, `variant: 'row' | 'card'`. Renders story as `TaskRow`/`TaskCard` at top, subtask rows/cards indented below. Collapse state is local `useState` to avoid parent re-renders on expand.
+- `SubtaskRow.tsx` — lightweight TaskRow variant for use inside StoryGroup. Shows issue key, summary, status, assignee. Omits MR chips (story-level MR chip is sufficient). Shows parent context only when rendered outside a StoryGroup (orphan case).
+- `SubtaskCard.tsx` — lightweight TaskCard variant for Sprint Board columns inside StoryGroup.
+
+**Parent context display:** When a subtask is rendered standalone (orphan — parent not in current sprint), a small muted label shows `parent.key · parent.fields.summary` above the summary line. When inside a StoryGroup, this label is suppressed (context is already obvious).
+
+---
+
+### 3. WorkloadTab Time Tracking Enrichment
+
+**Current state:** Pure `useMemo` transform on `['jira-issues','sprint-board',proj]` cache. `WorkloadRow = { name, count, points }`.
+
+**Extended WorkloadRow:**
+```typescript
+interface WorkloadRow {
+  name: string
+  count: number
+  points: number
+  estimateHours: number   // sum(originalEstimateSeconds) / 3600, non-done issues only
+  spentHours: number      // sum(timeSpentSeconds) / 3600, non-done issues only
+  remainingHours: number  // sum(remainingEstimateSeconds) / 3600, non-done issues only
+}
+```
+
+**Integration approach:** No new queries. The existing `useQuery` for `['jira-issues','sprint-board',proj]` already runs. After extending the `fields` param to include `timetracking`, the `useMemo` in WorkloadTab gains three more accumulation variables per assignee. The render adds three columns (or a secondary display row per assignee) formatted via `formatHours(seconds)` from the shared `sprintUtils.ts`.
+
+**Per-story totals:** Show time breakdown per story within a developer's entry. This is a nested expand or tooltip — implementation detail for the render layer. The data structure supports it: `spentHours` can be accumulated per-story before summing to the row total.
+
+---
+
+### 4. SprintProgressTab Enrichment
+
+**Current state:** Three status buckets (To Do / In Progress / Done) + a single story points progress bar. All from `useMemo` on `['jira-issues','sprint-board',proj]`.
+
+**Required additions:**
+- Points broken down per status bucket (not just Done vs remaining)
+- Sprint-wide time totals (estimate/spent/remaining)
+- Per-assignee breakdown table
+
+**Integration approach:** All from existing cache. No new queries. The `useMemo` gains more aggregation. New sections appended below the existing progress bar in the render.
+
+**Per-assignee breakdown** shares groupByAssignee logic with WorkloadTab — extract to `sprintUtils.ts`:
+
+```typescript
+// src/lib/sprintUtils.ts
+export interface AssigneeMetrics {
+  name: string
+  taskCount: number
+  points: number
+  estimateHours: number
+  spentHours: number
+  remainingHours: number
+}
+
+export function groupByAssignee(issues: JiraIssue[]): AssigneeMetrics[]
+export function formatHours(seconds: number): string  // e.g. "3.5h"
+```
+
+Both WorkloadTab and SprintProgressTab import from this module. No duplication.
+
+---
+
+### 5. Dashboard New Sections
+
+**Current state:** `Dashboard/index.tsx` uses `useQuery` with the same keys as the tab components, reads from shared cache, derives 3 numeric card values per role.
+
+**Required new sections and their data sources:**
+
+| Section | Data Source | Query? |
+|---------|-------------|--------|
+| My open subtasks (dev) | `['jira-issues','my-tasks',proj]` cache | No — filter subtasks from existing data |
+| My open MRs (dev) | `['gitlab-mrs', baseUrl]` cache | No — filter `state === 'opened'` |
+| Sprint health summary (dev) | `['jira-issues','sprint-board',proj]` cache | No — derived metrics |
+| Recent notifications (both) | `useNotificationsStore(s => s.items)` | No — Zustand store direct read |
+
+**Integration pattern:** Dashboard already uses `useQuery` with `enabled: role !== 'pm'` to conditionally fetch. The pattern is established. New sections follow the same gating. Data is reactive: when the cache is populated (by tab navigation or initial load), the Dashboard's `useQuery` will already have it or will fetch it.
+
+**My open subtasks:** Filter `myTasks` where `issue.fields.issuetype.name === 'Sub-task'` (or `!!issue.fields.parent`). Render as a compact list, up to 5 items, with a "View all in My Tasks" link. Requires Phase 1 type extension to have the `parent` field populated.
+
+**Recent notifications:** `useNotificationsStore(s => s.items).slice(0, 3)`. No query needed — the notification polling hook (`useNotificationPolling`) updates the store independently on its own interval. The store is always available.
+
+---
+
+### 6. Releases Sort and Status Badge
+
+**Current state:** `matchedVersions` rendered in API order (typically oldest-first). `JiraFixVersion.released: boolean` already exists in the type. No badge displayed.
+
+**Required changes — both purely client-side:**
+
+```typescript
+// Sort: newest-first. Push versions with no releaseDate to the end.
+const sorted = [...matchedVersions].sort((a, b) => {
+  const dateA = a.version.releaseDate
+  const dateB = b.version.releaseDate
+  if (!dateA && !dateB) return 0
+  if (!dateA) return 1   // no date → end
+  if (!dateB) return -1  // no date → end
+  return dateB.localeCompare(dateA)  // ISO date strings sort correctly
+})
+```
+
+Badge: `version.released ? <Badge variant="success">Released</Badge> : <Badge variant="warning">Unreleased</Badge>`. The `released` field is already on `JiraFixVersion`, fetched by `fetchFixVersions`. No API changes.
+
+No new query keys. No changes to `jira.ts`. The sort and badge are a two-line addition in ReleasesTab's render section.
+
+---
+
+### 7. MR Attention Filter
+
+**Current state:** `MrAttentionTab.tsx` fetches `fetchAssignedMRs` + `fetchReviewerMRs` with no state filter. Includes MRs that may be closed/merged.
+
+**Required changes:**
+
+**Open-only filter:** Add `state=opened` to the GitLab API calls in `gitlab.ts`. This is a server-side filter — cleaner than client-side filtering because it reduces payload size. `fetchAssignedMRs` and `fetchReviewerMRs` both call `/api/v4/merge_requests` — add `&state=opened` to both URLs. This is a single-line change per function.
+
+**Linked-story subtask filter logic in `MrAttentionTab`:**
+```
+Current inclusion rule: assigned to me OR (reviewer MR with unresolved discussions)
+New inclusion rule:     state=opened AND (
+                          assigned to me
+                          OR (reviewer MR with unresolved discussions)
+                          OR (linked to story where any subtask.assignee.displayName === jiraUserDisplayName)
+                        )
+```
+
+The subtask check reads from `sprintIssues` (already fetched via `['jira-issues','sprint-board',proj]`):
+```typescript
+// After type extension, sprintIssues have subtasks[]
+const currentUserDisplayName = useAuthStore(s => s.jiraUserDisplayName)
+
+const mrIncludesMySubtask = (mr: GitLabMR): boolean => {
+  const linkedKey = linkMRToTask(mr, sprintIssueKeySet)
+  if (!linkedKey) return false
+  const issue = issueByKey.get(linkedKey)
+  if (!issue) return false
+  return (issue.fields.subtasks ?? []).some(
+    st => st.fields.assignee?.displayName === currentUserDisplayName
+  )
+}
+```
+
+This adds a predicate to the existing `useMemo` that builds the MR display list. No new queries.
+
+**Dependency:** This filter requires Phase 1 (type extension with `subtasks[]`) to be complete first.
+
+---
+
+## Recommended Project Structure Changes
+
+```
+taskflow/src/
+├── routes/
+│   └── dashboard/
+│       ├── index.tsx              MODIFIED — new sections
+│       ├── MyTasksTab.tsx         MODIFIED — story grouping
+│       ├── SprintBoardTab.tsx     MODIFIED — story grouping
+│       ├── WorkloadTab.tsx        MODIFIED — time tracking columns
+│       ├── SprintProgressTab.tsx  MODIFIED — enriched metrics
+│       ├── ReleasesTab.tsx        MODIFIED — sort + status badge
+│       ├── MrAttentionTab.tsx     MODIFIED — open-only + subtask filter
+│       ├── TaskRow.tsx            MODIFIED — parent context for orphan subtasks
+│       ├── TaskCard.tsx           MODIFIED — parent context for orphan subtask cards
+│       ├── StoryGroup.tsx         NEW — collapsible story+subtasks container
+│       ├── SubtaskRow.tsx         NEW — compact subtask row for inside StoryGroup
+│       ├── SubtaskCard.tsx        NEW — compact subtask card for sprint board
+│       ├── MrRow.tsx              no change
+│       ├── StatusPopover.tsx      no change
+│       └── InlineComment.tsx      no change
+├── lib/
+│   ├── utils.ts                   existing
+│   └── sprintUtils.ts             NEW — groupByAssignee, formatHours pure functions
+└── services/
+    ├── jira.ts                    MODIFIED — JiraIssue type extension + fields param
+    └── gitlab.ts                  MODIFIED — state=opened filter on MR fetch functions
+```
+
+### Structure Rationale
+
+- **StoryGroup.tsx with variant prop:** Single component renders story+subtasks in both list layout (MyTasksTab) and card layout (SprintBoardTab) via a `variant: 'row' | 'card'` prop. Prevents collapse logic duplication across two tabs. Collapse state lives in StoryGroup's own `useState` — not the parent — to prevent full-tab re-renders on toggle.
+- **SubtaskRow / SubtaskCard:** Lighter variants of TaskRow/TaskCard. Inside a StoryGroup the parent context label is suppressed (already obvious from StoryGroup heading). The MR chip section is also omitted from subtask rows — only story-level MR linkage is shown.
+- **sprintUtils.ts:** Pure functions with no React dependencies. Easy to unit test. Both WorkloadTab and SprintProgressTab import from here; no circular dependencies.
+
+---
+
+## Architectural Patterns
+
+### Pattern 1: Extend the Fields Param Before Adding New Queries
+
+**What:** When a feature needs new data fields on existing issues, extend the Jira `fields` query param in `fetchSprintIssues`. New optional fields on `JiraIssue` cost zero additional API calls and the same TanStack cache entry serves all consumers.
+
+**When to use:** Any time a v1.1 feature needs data that belongs to issues already fetched by a sprint query (parent, subtasks, timetracking, priority, labels).
+
+**Trade-offs:** Slightly larger JSON payloads. For a sprint of ~50 issues, adding `parent + subtasks + timetracking` adds roughly 2-5 KB — negligible for a desktop app on a local network.
+
+### Pattern 2: Read From Cache Before Declaring a New Query
+
+**What:** SprintBoardTab reads `['gitlab-mrs', baseUrl]` via `queryClient.getQueryData()` without its own `useQuery`. Dashboard reads from `['jira-issues','sprint-board']` that was first populated by SprintProgressTab. New Dashboard sections should follow this passive read pattern.
+
+**When to use:** When a component needs data already fetched by another component at the same polling interval.
+
+**Trade-offs:** The `getQueryData` read is synchronous and not reactive. SprintBoardTab works around this by including `data` (its own query result) in the `useMemo` dependency array — when the sprint refreshes, the memo recomputes and picks up the latest cached MRs.
+
+**Example (SprintBoardTab):**
+```typescript
+const gitlabMrs = useMemo(() => {
+  return queryClient.getQueryData<GitLabMR[]>(['gitlab-mrs', gitlabBaseUrl]) ?? []
+}, [queryClient, gitlabBaseUrl, data])  // 'data' dep causes recompute on sprint refresh
+```
+
+### Pattern 3: Client-Side Grouping via useMemo
+
+**What:** All data transformation (grouping, sorting, filtering, aggregation) happens in `useMemo` within the component that owns the query. No intermediate stores, no transformation at the service layer.
+
+**When to use:** All view-specific derivations from raw API data. Story grouping, workload aggregation, sprint progress bucketing, MR filtering — all belong here.
+
+**Trade-offs:** Logic lives close to the view (readable), but grows large in complex tabs. Extract to a utility function in `lib/` when a `useMemo` body exceeds ~30 lines.
+
+### Pattern 4: Token Loading via useEffect + useState
+
+**What:** Each tab independently calls `readSecret('jira-pat')` in a `useEffect` and stores the result in local state. TanStack Query `enabled` gates the query until the token arrives.
+
+**When to use:** Every component that needs a PAT. This is the established pattern throughout the entire codebase.
+
+**v1.1 rule:** All new or modified components continue this exact pattern. Do not extract tokens to a shared context or Zustand store — tokens in Zustand would be written to disk unencrypted, defeating Stronghold.
+
+### Pattern 5: Collapse State Belongs in the Leaf Component
+
+**What:** For StoryGroup, the `isCollapsed` boolean lives in `StoryGroup`'s own `useState`, not in the parent tab component.
+
+**Why:** If collapse state were `Record<storyKey, boolean>` in `MyTasksTab`, every expand/collapse would re-render the entire tab including all rows. With state inside `StoryGroup`, only that group re-renders.
+
+**When to use:** Any interactive UI element where state changes should not propagate upward.
 
 ---
 
 ## Data Flow
 
-### Read Path (Dashboard Render)
+### v1.1 Story Grouping Data Flow
 
 ```
-App Start
-  └─► Load PATs from Persistence Layer
-        └─► Initialize API Clients with PATs
-              └─► State Layer triggers initial fetch
-                    ├─► Jira Client: fetch assigned issues, sprint, fix versions
-                    ├─► GitLab Client: fetch open MRs, milestones, recent commits
-                    └─► Linking Engine: match ticket IDs from MR titles/commits
-                              └─► State Layer: merge into unified data model
-                                        └─► UI Layer: render dashboards
+fetchSprintIssues (fields param now includes parent, subtasks, timetracking)
+    |
+    v
+TanStack Cache ['jira-issues','sprint-board',proj]
+    | (shared by SprintBoardTab, WorkloadTab, SprintProgressTab, Dashboard)
+    v
+useMemo: groupByStory(issues)
+    |-- StoryGroup[] (story + matched subtasks)
+    |-- orphans[] (subtasks with parent not in sprint)
+    `-- standalone[] (tasks/bugs with no parent/children)
+    v
+StoryGroup component (per group):
+    |-- story card/row  (TaskCard or TaskRow)
+    `-- [expanded] SubtaskCard or SubtaskRow per subtask
 ```
 
-### Write Path (User Actions)
+### v1.1 MR Attention Filter Data Flow
 
 ```
-User Action (e.g., "Move task to In Progress")
-  └─► Action Handler
-        └─► API Client (POST/PUT to Jira or GitLab)
-              ├─► On success: optimistic update in State Layer
-              └─► On failure: revert + show error toast
+fetchAssignedMRs + fetchReviewerMRs (now with state=opened)
+    |
+    v
+TanStack Cache ['gitlab-mrs', baseUrl]
+    |
+TanStack Cache ['jira-issues','sprint-board',proj] (includes subtasks[])
+    |
+    v
+MrAttentionTab useMemo:
+    for each MR:
+        linkMRToTask() --> storyKey?
+            --> issueByKey.get(storyKey)?.fields.subtasks
+                --> any subtask.assignee.displayName === jiraUserDisplayName?
+    |
+    v
+Filtered open MR list --> MrRow render
 ```
 
-### Notification Path (Polling Loop)
+### v1.1 Dashboard New Sections Data Flow
 
 ```
-Every N seconds (polling interval):
-  ├─► Jira Client: fetch comments/activity since last-seen cursor
-  ├─► GitLab Client: fetch MR events since last-seen cursor
-  └─► Notification Engine:
-        ├─► Compare against last-known state
-        ├─► Filter: only mentions/replies for current user (Jira)
-        │           only MR thread activity on user's MRs (GitLab)
-        ├─► Dispatch OS notification (desktop) or in-app badge
-        └─► Update last-seen cursors in Persistence Layer
+Existing caches (populated by tab visits or Dashboard's own useQuery):
+  ['jira-issues','my-tasks',proj]      --> filter subtasks --> "My open subtasks"
+  ['gitlab-mrs',baseUrl]               --> filter state=opened --> "My open MRs"
+  ['jira-issues','sprint-board',proj]  --> derive health score --> "Sprint health"
+  useNotificationsStore.items          --> slice(0,3) --> "Recent notifications"
 ```
-
-### Task-MR Linking Flow
-
-```
-GitLab MR fetched (title: "PROJ-123: Add payment gateway")
-  └─► Linking Engine: regex extract ticket IDs → ["PROJ-123"]
-        └─► Look up PROJ-123 in Jira issue cache
-              ├─► Found: attach MR reference to Jira issue in state
-              └─► Not found: queue a targeted Jira fetch for PROJ-123
-                              └─► Cache result, attach MR reference
-```
-
-Commit messages in MR diff are a secondary source. Scan MR title first (cheaper), fall back to commit messages if title yields no ticket ID. Deduplicate — one MR can link to one ticket only (first match wins, per project convention).
 
 ---
 
-## API Polling vs Webhooks
+## Build Order
 
-**Use polling. Do not attempt webhooks.**
+The dependency graph of features drives this order. Later features depend on earlier ones being stable.
 
-Rationale:
-- On-premise Jira (old instance) may not support outbound webhooks reliably or at all without admin access the team may not have.
-- A client-only app has no public URL to receive webhook callbacks.
-- GitLab webhooks require a server endpoint. Even with GitLab.com, a client cannot receive webhooks directly.
-- Polling is sufficient for notification latency acceptable to this team (60–120 second interval is fine for "someone mentioned you in a comment").
+**Phase 1 — Type Foundation (zero risk, unlocks everything)**
+- Extend `JiraIssue` type in `jira.ts` with `parent?`, `subtasks?[]`, `timetracking?`
+- Extend `fetchSprintIssues` `fields` param
+- All optional fields — existing code compiles and runs unchanged
+- All downstream features depend on this being complete first
 
-Polling strategy:
-- **Foreground (app focused):** Poll every 30–60 seconds.
-- **Background (app open but unfocused):** Poll every 90–120 seconds to reduce API load.
-- **Idle (app minimized):** Poll every 3–5 minutes.
-- Use cursor-based incremental fetches (Jira: `updatedDate > [last-check]`; GitLab: `updated_after` parameter) — never re-fetch full lists on each poll.
+**Phase 2 — Releases (isolated, no dependencies)**
+- Sort `matchedVersions` newest-first in `ReleasesTab`
+- Add `released` badge using existing `JiraFixVersion.released` boolean
+- Purely client-side. No API changes. No cross-component effects
+- Self-contained — good first deliverable, low risk
 
-Rate limit awareness: Jira on-prem REST v2 has no documented rate limit but may be slow. GitLab.com enforces 2000 req/min per user. Batch requests where possible. Cache aggressively.
+**Phase 3 — WorkloadTab + SprintProgressTab enrichment**
+- Extract `sprintUtils.ts` with `groupByAssignee` + `formatHours`
+- Add time tracking columns to WorkloadTab
+- Add per-status point breakdown + time totals + per-assignee table to SprintProgressTab
+- Both tabs read from same `['jira-issues','sprint-board',proj]` cache — no new queries
+- Depends on Phase 1 (needs `timetracking` field)
 
----
+**Phase 4 — Story grouping in My Tasks and Sprint Board**
+- Build `StoryGroup.tsx`, `SubtaskRow.tsx`, `SubtaskCard.tsx`
+- Modify `MyTasksTab` to filter from sprint board cache + group subtasks
+- Modify `SprintBoardTab` to group subtasks within each column
+- Highest UI complexity of all v1.1 features
+- Depends on Phase 1 (needs `parent` and `subtasks[]` fields)
 
-## Token Storage
+**Phase 5 — MR Attention filter**
+- Add `state=opened` to `fetchAssignedMRs` + `fetchReviewerMRs` in `gitlab.ts`
+- Add linked-story subtask filter to `MrAttentionTab`
+- Depends on Phase 1 (needs `subtasks[]` on sprint issues)
+- Update existing MrAttentionTab tests to verify the new filter predicate
 
-| Deployment | Storage Mechanism | Threat Model |
-|------------|-------------------|--------------|
-| Desktop (Electron/Tauri) | OS keychain (Keychain on macOS, Credential Manager on Windows, libsecret on Linux) | PATs not in plaintext on disk; protected by OS user session |
-| Web app (if chosen) | localStorage (AES-256 encrypted with a session-derived key, or sessionStorage only) | Weaker — acceptable for internal team tool with no external exposure |
-
-Never store PATs in plain config files. Never log them. Redact from error reports.
-
-On first launch: prompt for both PATs (Jira URL + PAT, GitLab URL + PAT), validate by making a test API call (e.g., `GET /rest/api/2/myself` on Jira, `GET /api/v4/user` on GitLab), then persist.
-
----
-
-## Notification Delivery
-
-**Two channels, unified source of truth:**
-
-1. **OS native notifications** — triggered by the Notification Engine when new activity is detected. On desktop: use the platform's native notification API (Electron `Notification`, Tauri `tauri-plugin-notification`). On web: use the Web Notifications API (requires user permission grant on first run).
-
-2. **In-app notification hub** — a persistent list of all notifications with read/unread state. Stored in State Layer (memory) + last-seen cursors in Persistence Layer. Survives page navigation but resets on app restart unless persisted to local storage.
-
-**Deduplication:** Assign a stable ID to each notification event (`jira-comment-{commentId}`, `gitlab-note-{noteId}`). Check against seen-IDs set before dispatching OS notification. This prevents duplicate pings on repeated polls.
-
-**Badge count:** Unread notification count shown in app header and (on desktop) in dock/taskbar badge. Clear on notification hub open.
+**Phase 6 — Dashboard enrichment**
+- Add new sections to Dashboard: my subtasks, my MR status, sprint health, recent notifications
+- Reads entirely from existing caches and Zustand stores — no new queries
+- Depends on Phase 1 (subtask data) and Phase 4 (story grouping patterns established)
+- Purely additive — no existing cards modified
 
 ---
 
-## Patterns to Follow
+## Integration Boundaries
 
-### Pattern 1: Repository per API Domain
+### External Services
 
-Isolate all Jira calls in a `JiraRepository` module and all GitLab calls in a `GitLabRepository` module. Neither the UI nor the state layer imports raw `fetch`/`axios` — only these repositories do. This makes API changes (e.g., migrating to Jira Cloud someday) a single-file change.
+| Service | Integration Pattern | v1.1 Changes |
+|---------|---------------------|--------------|
+| Jira REST API v2 (Data Center) | `tauri-plugin-http` fetch, Bearer PAT | Extend `fields` param only — no new endpoints |
+| GitLab REST API v4 | `tauri-plugin-http` fetch, PRIVATE-TOKEN | Add `&state=opened` to MR list calls |
 
-```typescript
-// src/api/jira/repository.ts
-export const jiraRepository = {
-  getMyIssues: (params) => jiraClient.get('/rest/api/2/search', { jql: `assignee = currentUser() AND sprint in openSprints()` }),
-  transitionIssue: (issueKey, transitionId) => jiraClient.post(`/rest/api/2/issue/${issueKey}/transitions`, { transition: { id: transitionId } }),
-  addComment: (issueKey, body) => jiraClient.post(`/rest/api/2/issue/${issueKey}/comment`, { body }),
-  // ...
-}
-```
+### Internal Boundaries
 
-### Pattern 2: Optimistic UI for Write Actions
-
-When a user performs an action (e.g., move task to "Done"), update the local state immediately and show the new state in the UI, then fire the API call. On failure, revert the state and show an error. This makes the app feel fast on slow on-prem Jira instances.
-
-### Pattern 3: Cursor-Based Incremental Polling
-
-Never fetch all issues on every poll. Use timestamps or pagination cursors:
-
-```
-// Jira: JQL with updatedDate filter
-GET /rest/api/2/search?jql=project=PROJ AND updatedDate > "2026-03-10 12:00" ORDER BY updated DESC
-
-// GitLab: updated_after parameter
-GET /api/v4/projects/:id/merge_requests?updated_after=2026-03-10T12:00:00Z
-```
-
-Store `lastPolledAt` timestamp in Persistence Layer. Update after each successful poll.
-
-### Pattern 4: Unified Data Model (Adapter Layer)
-
-Both Jira and GitLab return different response shapes. Normalize them at the API client boundary into a shared internal model before passing to the State Layer. UI components never deal with raw API responses.
-
-```typescript
-// Internal models — not Jira/GitLab shapes
-interface Task { id: string; title: string; status: string; assignee: string; linkedMRs: MR[] }
-interface MR   { id: string; title: string; state: string; linkedTaskKey: string | null }
-```
+| Boundary | Communication | v1.1 Notes |
+|----------|---------------|------------|
+| `jira.ts` ↔ all tab components | TypeScript import of `JiraIssue` + service functions | Optional field extension is non-breaking |
+| TanStack cache ↔ Dashboard | `useQuery` with shared key + `queryClient.getQueryData` passive reads | New sections follow passive-read pattern |
+| `sprintUtils.ts` ↔ WorkloadTab + SprintProgressTab | Direct import of pure functions | New module; no circular dependencies possible |
+| `StoryGroup` ↔ MyTasksTab + SprintBoardTab | Props: `story`, `subtasks`, `variant` | Single component, two render paths via variant |
+| `notifications.store.ts` ↔ Dashboard | `useNotificationsStore` hook | Direct store read — no query needed |
 
 ---
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Fetching in Components
+### Anti-Pattern 1: New Query Key for Subtask Data
 
-**What:** React components calling the Jira/GitLab API directly (e.g., `useEffect` with `fetch` inside a component).
-**Why bad:** Polling logic scattered everywhere, no deduplication, cache invalidation impossible, every re-render triggers API calls.
-**Instead:** All fetching goes through the State Layer (TanStack Query or similar). Components only read from cache.
+**What people do:** Add a separate `fetchSubtasks(parentKey)` per story with a new query key `['jira-subtasks', parentKey]`.
 
-### Anti-Pattern 2: Re-fetching Full Lists on Every Poll
+**Why it's wrong:** The subtask data is already available on parent issues via `fields.subtasks[]` when `subtasks` is included in the `fields` param. Per-story fetches multiply API calls by the number of stories in the sprint.
 
-**What:** `GET /rest/api/2/search?jql=project=PROJ` (all issues) every 60 seconds.
-**Why bad:** Slow on large projects, hammers the Jira instance, wastes bandwidth.
-**Instead:** Use `updatedDate >` JQL filter and merge diffs into cache.
+**Do this instead:** Extend the `fields` param in the existing `fetchSprintIssues` call. One request, all data.
 
-### Anti-Pattern 3: Storing PATs in App State / Component State
+### Anti-Pattern 2: Storing Tokens in Zustand for Cross-Component Access
 
-**What:** Keeping PATs in a React context or Zustand store accessible to the entire component tree.
-**Why bad:** Any component can accidentally log or expose them. Vulnerable to accidental serialization (e.g., Redux DevTools, error reporting SDKs).
-**Instead:** PATs live only in the API client modules. Pass through once on initialization, never re-expose.
+**What people do:** Add `jiraToken: string | null` to auth.store.ts so all components can read it without the `readSecret` useEffect.
 
-### Anti-Pattern 4: Tight Coupling of Jira and GitLab Fetches
+**Why it's wrong:** Zustand state is serialized to Tauri Store on every mutation (via the persist middleware). Token strings would be written to disk unencrypted, defeating Stronghold entirely.
 
-**What:** A single "load dashboard" function that calls Jira AND GitLab in sequence, fails entirely if either times out.
-**Why bad:** Jira on-prem can be slow. GitLab timeout should not block the MR panel from rendering.
-**Instead:** Fetch Jira and GitLab data independently, in parallel, with independent loading/error states per panel.
+**Do this instead:** Continue the established `useEffect` + `readSecret` + local `useState` pattern in every component that needs tokens.
 
-### Anti-Pattern 5: Greedy Commit Scanning for Ticket Links
+### Anti-Pattern 3: Duplicate GroupBy Logic
 
-**What:** Fetching all commits for every open MR to scan for ticket IDs on every poll.
-**Why bad:** GitLab commit list API is paginated and expensive. MRs can have hundreds of commits.
-**Instead:** Scan MR title only first (fast, one field). Scan MR description second. Only fall back to commits if the MR title has no ticket ID and the MR is authored by the current user (reducing scope).
+**What people do:** Copy-paste the `groupByAssignee` calculation from WorkloadTab into SprintProgressTab when adding the per-assignee breakdown.
+
+**Why it's wrong:** Two copies diverge. Bug fixes apply to one only. Tests must be duplicated.
+
+**Do this instead:** Extract to `src/lib/sprintUtils.ts` as a pure function. Both tabs import from there.
+
+### Anti-Pattern 4: Collapse State in the Parent Tab Component
+
+**What people do:** Put `Record<string, boolean>` collapse state in `MyTasksTab` or `SprintBoardTab` to track which story groups are open.
+
+**Why it's wrong:** Every expand/collapse triggers a full re-render of the tab including all rows and cards.
+
+**Do this instead:** Collapse state lives in `StoryGroup`'s own `useState`. Each group re-renders independently on expand/collapse.
+
+### Anti-Pattern 5: Client-Side Filtering When Server Filtering Exists
+
+**What people do:** Fetch all MRs (including merged/closed) from GitLab and filter `mr.state === 'opened'` client-side in the MrAttentionTab `useMemo`.
+
+**Why it's wrong:** Unnecessarily fetches and caches closed/merged MRs. For active projects, closed MR count can be orders of magnitude larger than open MR count.
+
+**Do this instead:** Add `&state=opened` to the GitLab API calls in `gitlab.ts` — server filters before transmission.
 
 ---
 
 ## Scalability Considerations
 
-This app is explicitly scoped to one Jira project + one GitLab group. Scalability here means "works smoothly as the project grows" not "handles 1000 teams."
+Taskflow is a single-user desktop app. Scalability concerns are data volume, not user count.
 
-| Concern | At current scale (1 project) | If scale grows |
-|---------|-------------------------------|----------------|
-| API rate limits | GitLab: well within 2000 req/min. Jira: no limit documented | Add exponential backoff; reduce polling frequency |
-| Cache size | Hundreds of issues/MRs — fine in memory | Add LRU eviction if issue count exceeds ~5000 |
-| Notification volume | Low — a team of ~10 devs | Already cursor-based; no changes needed |
-| Linking engine | O(n) scan of open MRs against issue cache | Already bounded by single project scope |
+| Scale | Architecture Adjustments |
+|-------|--------------------------|
+| Sprint with fewer than 50 issues | Current pattern is fine; all in-memory grouping is instant |
+| Sprint with 50-200 issues | `useMemo` grouping is fast; subtask rendering adds rows but no O(n^2) operations |
+| Sprint with more than 200 issues | Virtualised list (react-virtual) would help TaskRow rendering; not needed for v1.1 |
 
----
+**First bottleneck at current scale:** Per-MR health queries scale linearly with linked MR count. TanStack deduplicates across tabs (MyTasksTab and MrAttentionTab share `['mr-health',...]` keys). Already working in v1.0.
 
-## Suggested Build Order
+**Second bottleneck:** Commit fallback queries scale linearly with unlinked MR count. Already present and acceptable in v1.0.
 
-Build order follows **data dependency**: you cannot render a dashboard until you can fetch data; you cannot link tasks to MRs until you have both; you cannot notify until you have a polling loop.
-
-```
-Phase 1: Foundation
-  ├─► Persistence Layer — PAT storage and retrieval
-  ├─► API Client Layer — Jira + GitLab clients with auth headers
-  └─► Settings / onboarding screen — PAT entry + validation
-
-Phase 2: Core Data
-  ├─► Jira repository: issues, sprint, transitions
-  ├─► GitLab repository: MRs, approvals
-  └─► Unified data models (adapter layer)
-
-Phase 3: Developer Dashboard
-  ├─► State Layer: initial fetch + caching (TanStack Query or Zustand)
-  ├─► Dev dashboard UI: my tasks, sprint board, MR panel
-  └─► Write actions: status transitions, comments, MR approvals
-
-Phase 4: Task-MR Linking
-  ├─► Linking Engine: ticket ID extraction regex
-  ├─► Cross-entity join in state (issues ↔ MRs)
-  └─► Linked MR chips on task cards; linked task badge on MR rows
-
-Phase 5: Notifications
-  ├─► Polling loop (foreground + background intervals)
-  ├─► Notification Engine: diff detection + deduplication
-  ├─► In-app notification hub
-  └─► OS notification dispatch
-
-Phase 6: PM Dashboard + Releases View
-  ├─► PM-specific data: team workload, sprint velocity proxy (open/closed ratio)
-  ├─► Releases view: fix versions ↔ GitLab milestones/tags
-  └─► Role-based routing (dev vs PM view)
-
-Phase 7: Polish
-  ├─► Global search (Jira JQL + GitLab search API)
-  ├─► Dark/light mode persistence
-  └─► Error states, loading skeletons, retry logic
-```
-
-**Key dependency constraints:**
-- Phase 1 must complete before any API calls are possible.
-- Phase 2 (data models) must be stable before Phase 3 UI is built — changing the internal model mid-UI is expensive.
-- Phase 4 (linking) requires both Jira issues and GitLab MRs to be in cache — must follow Phase 2.
-- Phase 5 (notifications) requires the polling infrastructure — build after the initial fetch pattern is proven in Phase 3.
-- Phase 6 is additive — can start after Phase 3 without blocking.
+**v1.1 additions do not introduce new bottlenecks.** Story grouping is pure `useMemo` work. Time tracking fields are already in the sprint response. MR open-only filter reduces payload size.
 
 ---
 
 ## Sources
 
-- Jira REST API v2 documentation: https://developer.atlassian.com/server/jira/platform/rest-apis/
-- GitLab REST API documentation: https://docs.gitlab.com/ee/api/rest/
-- Architecture patterns derived from well-established client-only dashboard apps (Linear, Refined GitHub, etc.) — HIGH confidence based on domain knowledge of this class of application.
-- PAT storage patterns: OS keychain integration is the standard for Electron/Tauri desktop apps — HIGH confidence.
-- Polling vs webhook rationale: direct consequence of client-only constraint + on-prem Jira limitations — HIGH confidence.
+- Direct inspection of all route, service, and store files in `taskflow/src/` — HIGH confidence
+- Jira REST API v2 field documentation: `parent`, `subtasks`, `timetracking` are standard system fields returned by `/rest/api/2/search` when listed in the `fields` param — HIGH confidence (standard Jira Data Center behavior, consistent across versions)
+- GitLab MR list API `state` parameter: standard filter documented at `GET /api/v4/merge_requests?state=opened` — HIGH confidence
+- TanStack Query `queryClient.getQueryData` passive read pattern: established in `SprintBoardTab.tsx` — confirmed by direct inspection
+
+---
+*Architecture research for: Taskflow v1.1 integration points*
+*Researched: 2026-03-12*
