@@ -17,7 +17,7 @@ vi.mock('@/services/jira', () => ({
 
 // Mock gitlab service
 vi.mock('@/services/gitlab', () => ({
-  fetchProjectMilestones: vi.fn().mockResolvedValue([]),
+  fetchProjectMilestonesInRange: vi.fn().mockResolvedValue([]),
   fetchProjectTags: vi.fn().mockResolvedValue([]),
 }));
 
@@ -74,8 +74,8 @@ describe('ReleasesTab', () => {
     } as Response);
     const { fetchFixVersions } = await import('@/services/jira');
     vi.mocked(fetchFixVersions).mockResolvedValue([]);
-    const { fetchProjectMilestones, fetchProjectTags } = await import('@/services/gitlab');
-    vi.mocked(fetchProjectMilestones).mockResolvedValue([]);
+    const { fetchProjectMilestonesInRange, fetchProjectTags } = await import('@/services/gitlab');
+    vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([]);
     vi.mocked(fetchProjectTags).mockResolvedValue([]);
     const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
     vi.mocked(matchGitLabToFixVersion).mockReturnValue({ type: 'none', candidateName: '', candidateUrl: '' });
@@ -111,8 +111,8 @@ describe('ReleasesTab', () => {
     ]);
 
     // Provide a milestone so the matching function is called with a candidate
-    const { fetchProjectMilestones } = await import('@/services/gitlab');
-    vi.mocked(fetchProjectMilestones).mockResolvedValue([
+    const { fetchProjectMilestonesInRange } = await import('@/services/gitlab');
+    vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([
       { id: 1, iid: 1, title: 'sprint-15', due_date: '2026-03-15', state: 'active', web_url: 'https://gitlab.example.com/milestone/1' },
     ]);
 
@@ -126,11 +126,10 @@ describe('ReleasesTab', () => {
     const { default: ReleasesTab } = await import('./ReleasesTab');
     renderWithQuery(<ReleasesTab />);
 
-    await screen.findByText('v2.1.0');
-    // Exact match shows as a link
-    const link = document.querySelector('[data-testid="gitlab-link-exact"]');
+    // Wait for milestone data to load (sequentially after fix versions)
+    const link = await screen.findByTestId('gitlab-link-exact');
     expect(link).not.toBeNull();
-    expect(link?.textContent).toBe('sprint-15');
+    expect(link.textContent).toBe('sprint-15');
   });
 
   it('shows dashed border indicator for fuzzy date match', async () => {
@@ -140,8 +139,8 @@ describe('ReleasesTab', () => {
     ]);
 
     // Provide a milestone candidate so the matching function is invoked
-    const { fetchProjectMilestones } = await import('@/services/gitlab');
-    vi.mocked(fetchProjectMilestones).mockResolvedValue([
+    const { fetchProjectMilestonesInRange } = await import('@/services/gitlab');
+    vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([
       { id: 1, iid: 1, title: 'sprint-15', due_date: '2026-03-14', state: 'active', web_url: 'https://gitlab.example.com/milestone/1' },
     ]);
 
@@ -155,12 +154,11 @@ describe('ReleasesTab', () => {
     const { default: ReleasesTab } = await import('./ReleasesTab');
     renderWithQuery(<ReleasesTab />);
 
-    await screen.findByText('v2.1.0');
-    // Fuzzy match shows with dashed underline
-    const fuzzyLink = document.querySelector('[data-testid="gitlab-link-fuzzy"]');
+    // Wait for milestone data to load (sequentially after fix versions)
+    const fuzzyLink = await screen.findByTestId('gitlab-link-fuzzy');
     expect(fuzzyLink).not.toBeNull();
-    expect(fuzzyLink?.textContent).toBe('sprint-15');
-    expect(fuzzyLink?.className).toContain('border-dashed');
+    expect(fuzzyLink.textContent).toBe('sprint-15');
+    expect(fuzzyLink.className).toContain('border-dashed');
   });
 
   it('shows No GitLab link label when no match within 1 day', async () => {
@@ -243,7 +241,7 @@ describe('REL-01: sort order', () => {
     expect(names[2]).toContain('Release C');
   });
 
-  it('undated releases appear at bottom of list', async () => {
+  it('undated releases appear at top of list with "No date set" warning', async () => {
     const { fetchFixVersions } = await import('@/services/jira');
     vi.mocked(fetchFixVersions).mockResolvedValue([
       makeFixVersion('v1', 'No Date Release', undefined),
@@ -255,8 +253,9 @@ describe('REL-01: sort order', () => {
     render(<QueryClientProvider client={queryClient}><ReleasesTab /></QueryClientProvider>);
 
     const rows = await screen.findAllByTestId('release-row');
-    expect(rows[0].textContent).toContain('Dated Release');
-    expect(rows[1].textContent).toContain('No Date Release');
+    expect(rows[0].textContent).toContain('No Date Release');
+    expect(rows[0].textContent).toContain('No date set');
+    expect(rows[1].textContent).toContain('Dated Release');
   });
 });
 

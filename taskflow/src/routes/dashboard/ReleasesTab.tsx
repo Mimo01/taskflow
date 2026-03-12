@@ -3,23 +3,22 @@
  *
  * Fetches:
  *   1. Jira fix versions for the active project
- *   2. GitLab group milestones
- *   3. GitLab project tags (requires resolving group path → project ID)
- *   4. Per-version issue counts from Jira relatedIssueCounts endpoint
+ *   2. GitLab project milestones
+ *   3. Per-version issue counts from Jira relatedIssueCounts endpoint
  *
  * Date matching uses matchGitLabToFixVersion (exact within same day / fuzzy within 1 day / none).
  * Fuzzy matches show a dashed underline indicator with hover tooltip.
  * Name-based matching is not used — only date proximity determines the link.
  */
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/stores/auth.store';
 import { fetchFixVersions } from '@/services/jira';
 import type { JiraFixVersion } from '@/services/jira';
-import { fetchProjectMilestones, fetchProjectTags } from '@/services/gitlab';
-import type { GitLabMilestone, GitLabTag } from '@/services/gitlab';
+import { fetchProjectMilestonesInRange } from '@/services/gitlab';
+import type { GitLabMilestone } from '@/services/gitlab';
 import { matchGitLabToFixVersion } from '@/services/releaseLinker';
 import type { ReleaseMatch } from '@/services/releaseLinker';
 import { readSecret } from '@/services/stronghold';
@@ -34,35 +33,27 @@ interface VersionIssueCounts {
 async function fetchVersionIssueCounts(
   baseUrl: string,
   token: string,
-  versionId: string,
-  versionName: string,
+  _versionId: string,
 ): Promise<VersionIssueCounts> {
   const base = baseUrl.replace(/\/$/, '');
-
-  // Fetch resolved count from relatedIssueCounts endpoint
-  const countsUrl = `${base}/rest/api/2/version/${versionId}/relatedIssueCounts`;
-  // Fetch total issue count via JQL — Jira Server/DC does NOT return issuesUnresolvedCount
-  // so we use a JQL search with maxResults=0 to read response.total (all issues in this version)
-  const jql = encodeURIComponent(`fixVersion = "${versionName.replace(/"/g, '\\"')}"`);
-  const totalUrl = `${base}/rest/api/2/search?jql=${jql}&maxResults=0&fields=`;
-
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
-  // Use allSettled so a failure in one request does not zero out the other.
-  // Network errors or non-ok responses for a specific version are handled per-request.
-  const countsPromise: Promise<{ issuesFixedCount?: number }> = fetch(countsUrl, {
-    headers,
-  }).then((r) => (r.ok ? (r.json() as Promise<{ issuesFixedCount?: number }>) : {}));
-  const totalPromise: Promise<{ total?: number }> = fetch(totalUrl, { headers }).then((r) =>
-    r.ok ? (r.json() as Promise<{ total?: number }>) : {},
-  );
+  // Both counts come from the same JQL source so they are always consistent with each other
+  // and with what Jira's own UI displays.
+  // statusCategory = Done matches any "Done" status regardless of how it is named.
+  const baseJql = `fixVersion = ${_versionId} AND issuetype not in subtaskIssueTypes()`;
+  const totalJql = encodeURIComponent(baseJql);
+  const doneJql = encodeURIComponent(`${baseJql} AND statusCategory = Done`);
+  const totalUrl = `${base}/rest/api/2/search?jql=${totalJql}&maxResults=0&fields=`;
+  const doneUrl = `${base}/rest/api/2/search?jql=${doneJql}&maxResults=0&fields=`;
 
-  const [countsResult, totalResult] = await Promise.allSettled([countsPromise, totalPromise]);
+  const [totalResult, doneResult] = await Promise.allSettled([
+    fetch(totalUrl, { headers }).then((r) => (r.ok ? (r.json() as Promise<{ total?: number }>) : ({ total: 0 }))),
+    fetch(doneUrl, { headers }).then((r) => (r.ok ? (r.json() as Promise<{ total?: number }>) : ({ total: 0 }))),
+  ]);
 
-  const issuesFixed =
-    countsResult.status === 'fulfilled' ? (countsResult.value.issuesFixedCount ?? 0) : 0;
-  const issuesTotal =
-    totalResult.status === 'fulfilled' ? (totalResult.value.total ?? 0) : 0;
+  const issuesTotal = totalResult.status === 'fulfilled' ? (totalResult.value.total ?? 0) : 0;
+  const issuesFixed = doneResult.status === 'fulfilled' ? (doneResult.value.total ?? 0) : 0;
 
   return { issuesFixed, issuesAffected: 0, issuesTotal };
 }
@@ -88,10 +79,15 @@ function getReleaseTimingLabel(releaseDate: string | undefined, released: boolea
   return { daysUntil: days };
 }
 
+const RELEASED_PAGE_SIZE = 5;
+const RELEASED_LOAD_MORE = 10;
+
 export default function ReleasesTab() {
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, activeGitlabProject } = useAuthStore();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
   const [gitlabToken, setGitlabToken] = useState<string | null>(null);
+  const [releasedVisible, setReleasedVisible] = useState(RELEASED_PAGE_SIZE);
+  const loadMoreReleased = useCallback(() => setReleasedVisible((n) => n + RELEASED_LOAD_MORE), []);
 
   useEffect(() => {
     if (jiraBaseUrl) {
@@ -124,19 +120,35 @@ export default function ReleasesTab() {
     staleTime: 5 * 60_000,
   });
 
-  // Fetch GitLab project milestones
-  const { data: milestones, isError: milestonesError } = useQuery({
-    queryKey: ['gitlab-milestones', activeGitlabProject],
-    queryFn: () => fetchProjectMilestones(gitlabBaseUrl!, gitlabToken!, activeGitlabProject!),
-    enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken,
-    staleTime: 5 * 60_000,
-  });
+  // Date window for milestone matching — derived from Jira fix version dates ± LEEWAY_DAYS.
+  // Milestones are only fetched once fix versions are loaded so we can scope the query.
+  const MILESTONE_LEEWAY_DAYS = 7;
+  const milestoneWindow = useMemo(() => {
+    const dates = (fixVersions ?? []).map((v) => v.releaseDate).filter(Boolean) as string[];
+    if (dates.length === 0) return null;
+    const addDays = (d: string, n: number) => {
+      const dt = new Date(d);
+      dt.setDate(dt.getDate() + n);
+      return dt.toISOString().slice(0, 10);
+    };
+    const min = dates.reduce((a, b) => (a < b ? a : b));
+    const max = dates.reduce((a, b) => (a > b ? a : b));
+    return { from: addDays(min, -MILESTONE_LEEWAY_DAYS), to: addDays(max, MILESTONE_LEEWAY_DAYS) };
+  }, [fixVersions]);
 
-  // Fetch GitLab project tags
-  const { data: tags } = useQuery({
-    queryKey: ['gitlab-tags', activeGitlabProject],
-    queryFn: () => fetchProjectTags(gitlabBaseUrl!, gitlabToken!, activeGitlabProject!),
-    enabled: !!gitlabBaseUrl && !!gitlabToken && activeGitlabProject !== null,
+  // Fetch GitLab milestones scoped to the fix-version date window.
+  // Uses paginated sorted fetch so large milestone lists don't miss relevant entries.
+  const { data: milestones, isError: milestonesError } = useQuery({
+    queryKey: ['gitlab-milestones', activeGitlabProject, milestoneWindow?.from, milestoneWindow?.to],
+    queryFn: () =>
+      fetchProjectMilestonesInRange(
+        gitlabBaseUrl!,
+        gitlabToken!,
+        activeGitlabProject!,
+        milestoneWindow!.from,
+        milestoneWindow!.to,
+      ),
+    enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken && milestoneWindow !== null,
     staleTime: 5 * 60_000,
   });
 
@@ -144,57 +156,46 @@ export default function ReleasesTab() {
   const versionCountQueries = useQueries({
     queries: (fixVersions ?? []).map((v) => ({
       queryKey: ['jira-version-counts', v.id],
-      queryFn: () => fetchVersionIssueCounts(jiraBaseUrl!, jiraToken!, v.id, v.name),
+      queryFn: () => fetchVersionIssueCounts(jiraBaseUrl!, jiraToken!, v.id),
       enabled: !!jiraBaseUrl && !!jiraToken,
       staleTime: 5 * 60_000,
     })),
   });
 
-  // Build matched versions via useMemo
-  const matchedVersions: MatchedVersion[] = useMemo(() => {
+  // Build matched versions split into: undated, unreleased (with date), released
+  const { undatedVersions, unreleasedVersions, releasedVersions } = useMemo(() => {
     const versions = fixVersions ?? [];
     const msList: GitLabMilestone[] = milestones ?? [];
-    const tagList: GitLabTag[] = tags ?? [];
 
-    // Sort newest-to-oldest by releaseDate; undated versions sink to the bottom
-    const sorted = [...versions].sort((a, b) => {
-      if (!a.releaseDate && !b.releaseDate) return 0;
-      if (!a.releaseDate) return 1;
-      if (!b.releaseDate) return -1;
-      return b.releaseDate.localeCompare(a.releaseDate);
-    });
+    const candidates = msList.map((m) => ({ date: m.due_date, name: m.title, url: m.web_url }));
 
-    const candidates = [
-      ...msList.map((m) => ({ date: m.due_date, name: m.title, url: m.web_url })),
-      ...tagList.map((t) => ({ date: t.commit.created_at, name: t.name, url: '' })),
-    ];
-
-    return sorted.map((version) => {
+    const toMatched = (version: JiraFixVersion): MatchedVersion => {
       let bestMatch: ReleaseMatch = { type: 'none', candidateName: '', candidateUrl: '' };
-
       for (const cand of candidates) {
         const match = matchGitLabToFixVersion(version.releaseDate, cand);
-        if (match.type === 'exact') {
-          bestMatch = match;
-          break;
-        }
-        if (match.type === 'fuzzy' && bestMatch.type === 'none') {
-          bestMatch = match;
-        }
+        if (match.type === 'exact') { bestMatch = match; break; }
+        if (match.type === 'fuzzy' && bestMatch.type === 'none') bestMatch = match;
       }
-
-      // Find count by matching the original fixVersions index to avoid off-by-one after sort
-      const countQuery = versionCountQueries.find(
-        (_, i) => (fixVersions ?? [])[i]?.id === version.id,
-      );
+      const countQuery = versionCountQueries.find((_, i) => (fixVersions ?? [])[i]?.id === version.id);
       const counts = countQuery?.data;
-      const issuesFixed = counts?.issuesFixed ?? 0;
-      // issuesTotal comes from JQL count (fixVersion = "X") — accurate on all Jira editions
-      const issuesTotal = counts?.issuesTotal ?? 0;
+      return { version, match: bestMatch, issuesFixed: counts?.issuesFixed ?? 0, issuesTotal: counts?.issuesTotal ?? 0 };
+    };
 
-      return { version, match: bestMatch, issuesFixed, issuesTotal };
-    });
-  }, [fixVersions, milestones, tags, versionCountQueries]);
+    const dateDesc = (a: JiraFixVersion, b: JiraFixVersion) =>
+      (b.releaseDate ?? '').localeCompare(a.releaseDate ?? '');
+
+    const undated = versions.filter((v) => !v.released && !v.releaseDate).map(toMatched);
+    const unreleased = versions
+      .filter((v) => !v.released && !!v.releaseDate)
+      .sort(dateDesc)
+      .map(toMatched);
+    const released = versions
+      .filter((v) => v.released)
+      .sort(dateDesc)
+      .map(toMatched);
+
+    return { undatedVersions: undated, unreleasedVersions: unreleased, releasedVersions: released };
+  }, [fixVersions, milestones, versionCountQueries]);
 
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
@@ -243,19 +244,20 @@ export default function ReleasesTab() {
       {/* Content */}
       {!isLoading && !isError && (
         <>
-          {matchedVersions.length === 0 ? (
+          {undatedVersions.length === 0 && unreleasedVersions.length === 0 && releasedVersions.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
               No fix versions configured for this project
             </div>
           ) : (
             <div className="flex flex-col gap-1">
-              {matchedVersions.map(({ version, match, issuesFixed, issuesTotal }) => (
+              {/* Render a single release row */}
+              {([...undatedVersions, ...unreleasedVersions, ...releasedVersions.slice(0, releasedVisible)] as MatchedVersion[]).map(({ version, match, issuesFixed, issuesTotal }) => (
                 <div
                   key={version.id}
                   data-testid="release-row"
                   className="flex items-center justify-between rounded px-3 py-2 hover:bg-muted/50 gap-3"
                 >
-                  {/* Version name + date */}
+                  {/* Version name + badges */}
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="text-sm font-medium truncate">{version.name}</span>
                     {/* Status badge — Released or Unreleased + timing */}
@@ -292,11 +294,17 @@ export default function ReleasesTab() {
                           </>
                         );
                       }
-                      // Unreleased but no releaseDate
+                      // Unreleased with no date
                       return (
                         <Badge variant="default" className="bg-amber-500 text-white shrink-0">Unreleased</Badge>
                       );
                     })()}
+                    {/* No date warning — solid badge after status, only for undated unreleased */}
+                    {!version.releaseDate && !version.released && (
+                      <Badge variant="default" className="shrink-0 bg-orange-500 text-white">
+                        ⚠ No date set
+                      </Badge>
+                    )}
                     {version.releaseDate && (
                       <span className="text-xs text-muted-foreground shrink-0">
                         {version.releaseDate}
@@ -326,13 +334,26 @@ export default function ReleasesTab() {
                         </span>
                       )
                     ) : match.type === 'fuzzy' ? (
-                      <span
-                        className="text-xs border-b border-dashed border-muted-foreground cursor-default truncate max-w-[150px]"
-                        title={`Fuzzy match: ${match.candidateName}`}
-                        data-testid="gitlab-link-fuzzy"
-                      >
-                        {match.candidateName}
-                      </span>
+                      match.candidateUrl ? (
+                        <a
+                          href={match.candidateUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs border-b border-dashed border-muted-foreground hover:text-foreground truncate max-w-[150px]"
+                          title={`Fuzzy match: ${match.candidateName}`}
+                          data-testid="gitlab-link-fuzzy"
+                        >
+                          {match.candidateName}
+                        </a>
+                      ) : (
+                        <span
+                          className="text-xs border-b border-dashed border-muted-foreground cursor-default truncate max-w-[150px]"
+                          title={`Fuzzy match: ${match.candidateName}`}
+                          data-testid="gitlab-link-fuzzy"
+                        >
+                          {match.candidateName}
+                        </span>
+                      )
                     ) : (
                       <span
                         className="text-xs text-muted-foreground"
@@ -349,6 +370,17 @@ export default function ReleasesTab() {
                   </div>
                 </div>
               ))}
+
+              {/* Load more released */}
+              {releasedVersions.length > releasedVisible && (
+                <button
+                  type="button"
+                  onClick={loadMoreReleased}
+                  className="mt-1 w-full rounded px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors text-center"
+                >
+                  Load {Math.min(RELEASED_LOAD_MORE, releasedVersions.length - releasedVisible)} more released
+                </button>
+              )}
             </div>
           )}
         </>

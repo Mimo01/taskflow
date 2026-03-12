@@ -16,7 +16,7 @@ vi.mock('@/services/stronghold', () => ({
 
 // Mock jira service — controlled from each test
 vi.mock('@/services/jira', () => ({
-  fetchSprintIssues: vi.fn().mockResolvedValue([]),
+  fetchMyTasksHierarchy: vi.fn().mockResolvedValue({ issues: [], myIssueKeys: new Set() }),
   postTransition: vi.fn().mockResolvedValue(undefined),
   postComment: vi.fn().mockResolvedValue(undefined),
 }));
@@ -27,6 +27,13 @@ vi.mock('@/stores/auth.store', () => ({
     jiraBaseUrl: 'https://jira.example.com',
     activeJiraProject: 'PROJ',
     gitlabBaseUrl: 'https://gitlab.example.com',
+  })),
+}));
+
+// Mock settings store — TaskRow reads storyPointsFieldKey
+vi.mock('@/stores/settings.store', () => ({
+  useSettingsStore: vi.fn(() => ({
+    storyPointsFieldKey: 'customfield_10016',
   })),
 }));
 
@@ -104,8 +111,8 @@ describe('MyTasksTab', () => {
   });
 
   it('renders "No tasks" when data is empty array', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([]);
+    const { fetchMyTasksHierarchy } = await import('@/services/jira');
+    vi.mocked(fetchMyTasksHierarchy).mockResolvedValue({ issues: [], myIssueKeys: new Set() });
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -122,9 +129,9 @@ describe('MyTasksTab', () => {
   });
 
   it('renders skeleton when isLoading (activeJiraProject present, fetch delayed)', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
+    const { fetchMyTasksHierarchy } = await import('@/services/jira');
     // Never resolve — keep loading state
-    vi.mocked(fetchSprintIssues).mockReturnValue(new Promise(() => {}));
+    vi.mocked(fetchMyTasksHierarchy).mockReturnValue(new Promise(() => {}));
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -142,8 +149,8 @@ describe('MyTasksTab', () => {
   });
 
   it('renders error message when fetch fails', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
-    vi.mocked(fetchSprintIssues).mockRejectedValue(new Error('Failed to fetch tasks'));
+    const { fetchMyTasksHierarchy } = await import('@/services/jira');
+    vi.mocked(fetchMyTasksHierarchy).mockRejectedValue(new Error('Failed to fetch tasks'));
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -159,8 +166,8 @@ describe('MyTasksTab', () => {
   });
 
   it('renders last-refreshed time when data loads', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([]);
+    const { fetchMyTasksHierarchy } = await import('@/services/jira');
+    vi.mocked(fetchMyTasksHierarchy).mockResolvedValue({ issues: [], myIssueKeys: new Set() });
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -180,8 +187,8 @@ describe('MyTasksTab', () => {
   });
 
   it('passes linkedMrResults with matched MR to TaskRow when MR title contains sprint issue key', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([makeIssue('PROJ-1')]);
+    const { fetchMyTasksHierarchy } = await import('@/services/jira');
+    vi.mocked(fetchMyTasksHierarchy).mockResolvedValue({ issues: [makeIssue('PROJ-1')], myIssueKeys: new Set(['PROJ-1']) });
 
     const { fetchAssignedMRs, fetchMRApprovals, fetchMRDiscussions } = await import('@/services/gitlab');
     const mr = makeMR(42, 'PROJ-1 fix the thing');
@@ -210,8 +217,8 @@ describe('MyTasksTab', () => {
   });
 
   it('TaskRow shows "— no MR" when no MR links to the task', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([makeIssue('PROJ-2')]);
+    const { fetchMyTasksHierarchy } = await import('@/services/jira');
+    vi.mocked(fetchMyTasksHierarchy).mockResolvedValue({ issues: [makeIssue('PROJ-2')], myIssueKeys: new Set(['PROJ-2']) });
 
     const { fetchAssignedMRs } = await import('@/services/gitlab');
     vi.mocked(fetchAssignedMRs).mockResolvedValue([]);
