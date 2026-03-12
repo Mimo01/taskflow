@@ -11,6 +11,14 @@ import { useState } from 'react';
 import { useDebugLogStore, type ApiLogEntry } from '../../stores/debug-log.store';
 import { useSettingsStore } from '../../stores/settings.store';
 
+function formatBody(raw: string): string {
+  try {
+    return JSON.stringify(JSON.parse(raw), null, 2);
+  } catch {
+    return raw;
+  }
+}
+
 function statusColor(status: number | null): string {
   if (status === null) return 'text-muted-foreground';
   if (status >= 200 && status < 300) return 'text-green-600 dark:text-green-400';
@@ -72,7 +80,7 @@ function LogCard({ entry }: { entry: ApiLogEntry }) {
                 Response Body
               </p>
               <pre className="text-xs bg-muted rounded p-2 overflow-auto max-h-64 whitespace-pre-wrap break-all">
-                {entry.responseBody}
+                {formatBody(entry.responseBody)}
               </pre>
             </div>
           )}
