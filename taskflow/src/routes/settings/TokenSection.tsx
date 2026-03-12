@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/select';
 import { readSecret, storeSecret } from '@/services/stronghold';
 import { validateJira, listJiraProjects, type JiraProject } from '@/services/jira';
-import { validateGitLab, listGitLabGroups, type GitLabGroup } from '@/services/gitlab';
+import { validateGitLab, listGitLabProjects, type GitLabProject } from '@/services/gitlab';
 import { useAuthStore } from '@/stores/auth.store';
 
 // Masked placeholder — never show the real token on render
@@ -132,8 +132,9 @@ export default function TokenSection() {
     setGitlabConnected,
     activeJiraProject,
     setActiveJiraProject,
-    activeGitlabGroup,
-    setActiveGitlabGroup,
+    activeGitlabProject,
+    activeGitlabProjectPath,
+    setActiveGitlabProject,
   } = useAuthStore();
 
   const [jiraUrl, setJiraUrl] = useState(jiraBaseUrl ?? '');
@@ -141,9 +142,9 @@ export default function TokenSection() {
   const [jiraProjects, setJiraProjects] = useState<JiraProject[]>([]);
   const [jiraProjectsLoading, setJiraProjectsLoading] = useState(false);
   const [jiraProjectsError, setJiraProjectsError] = useState<string | null>(null);
-  const [gitlabGroups, setGitlabGroups] = useState<GitLabGroup[]>([]);
-  const [gitlabGroupsLoading, setGitlabGroupsLoading] = useState(false);
-  const [gitlabGroupsError, setGitlabGroupsError] = useState<string | null>(null);
+  const [gitlabProjects, setGitlabProjects] = useState<GitLabProject[]>([]);
+  const [gitlabProjectsLoading, setGitlabProjectsLoading] = useState(false);
+  const [gitlabProjectsError, setGitlabProjectsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!jiraBaseUrl) return;
@@ -170,23 +171,23 @@ export default function TokenSection() {
 
   useEffect(() => {
     if (!gitlabBaseUrl) return;
-    setGitlabGroupsLoading(true);
-    setGitlabGroupsError(null);
+    setGitlabProjectsLoading(true);
+    setGitlabProjectsError(null);
     ;(async () => {
       try {
         const pat = await readSecret('gitlab-pat').catch(() => null);
         if (!pat) {
-          setGitlabGroupsError('Could not read GitLab token');
+          setGitlabProjectsError('Could not read GitLab token');
           return;
         }
-        const list = await listGitLabGroups(gitlabBaseUrl, pat);
-        setGitlabGroups(list);
+        const list = await listGitLabProjects(gitlabBaseUrl, pat);
+        setGitlabProjects(list);
       } catch (err) {
         const msg = (err as Error)?.message ?? '';
-        setGitlabGroupsError(msg.includes('error sending request') ? 'Could not reach GitLab — check the URL and your network connection' : (msg || 'Failed to load groups'));
-        setGitlabGroups([]);
+        setGitlabProjectsError(msg.includes('error sending request') ? 'Could not reach GitLab — check the URL and your network connection' : (msg || 'Failed to load projects'));
+        setGitlabProjects([]);
       } finally {
-        setGitlabGroupsLoading(false);
+        setGitlabProjectsLoading(false);
       }
     })();
   }, [gitlabBaseUrl]);
@@ -196,8 +197,11 @@ export default function TokenSection() {
     queryClient.clear();
   };
 
-  const handleGroupChange = (group: string) => {
-    setActiveGitlabGroup(group);
+  const handleProjectChange_gitlab = (value: string) => {
+    const id = parseInt(value, 10);
+    const project = gitlabProjects.find(p => p.id === id);
+    const path = project?.name_with_namespace ?? null;
+    setActiveGitlabProject(id, path);
     queryClient.clear();
   };
 
@@ -351,27 +355,27 @@ export default function TokenSection() {
 
         {gitlabBaseUrl && (
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="active-gitlab-group">Active Group</Label>
-            {gitlabGroupsLoading && (
-              <p className="text-sm text-muted-foreground">Loading groups...</p>
+            <Label htmlFor="active-gitlab-project">Active Project</Label>
+            {gitlabProjectsLoading && (
+              <p className="text-sm text-muted-foreground">Loading projects...</p>
             )}
-            {gitlabGroupsError && !gitlabGroupsLoading && (
-              <p className="text-sm text-destructive">{gitlabGroupsError}</p>
+            {gitlabProjectsError && !gitlabProjectsLoading && (
+              <p className="text-sm text-destructive">{gitlabProjectsError}</p>
             )}
-            {!gitlabGroupsLoading && !gitlabGroupsError && (
-              <Select value={activeGitlabGroup ?? ''} onValueChange={(v) => v && handleGroupChange(v)}>
-                <SelectTrigger id="active-gitlab-group" className="w-full">
+            {!gitlabProjectsLoading && !gitlabProjectsError && (
+              <Select value={activeGitlabProject !== null ? String(activeGitlabProject) : ''} onValueChange={(v) => v && handleProjectChange_gitlab(v)}>
+                <SelectTrigger id="active-gitlab-project" className="w-full">
                   <span className="flex flex-1 text-left text-sm">
-                    {activeGitlabGroup
-                      ? (() => { const g = gitlabGroups.find(g => g.full_path === activeGitlabGroup); return g ? `${g.name} (${g.full_path})` : activeGitlabGroup; })()
-                      : <span className="text-muted-foreground">{gitlabGroups.length === 0 ? 'No groups found' : 'Select group...'}</span>
+                    {activeGitlabProject !== null
+                      ? (activeGitlabProjectPath ?? String(activeGitlabProject))
+                      : <span className="text-muted-foreground">{gitlabProjects.length === 0 ? 'No projects found' : 'Select project...'}</span>
                     }
                   </span>
                 </SelectTrigger>
                 <SelectContent>
-                  {gitlabGroups.map((g) => (
-                    <SelectItem key={g.id} value={g.full_path}>
-                      {g.name} ({g.full_path})
+                  {gitlabProjects.map((p) => (
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      {p.name_with_namespace}
                     </SelectItem>
                   ))}
                 </SelectContent>

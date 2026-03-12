@@ -18,40 +18,17 @@ import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/stores/auth.store';
 import { fetchFixVersions } from '@/services/jira';
 import type { JiraFixVersion } from '@/services/jira';
-import { fetchGroupMilestones, fetchProjectTags } from '@/services/gitlab';
+import { fetchProjectMilestones, fetchProjectTags } from '@/services/gitlab';
 import type { GitLabMilestone, GitLabTag } from '@/services/gitlab';
 import { matchGitLabToFixVersion } from '@/services/releaseLinker';
 import type { ReleaseMatch } from '@/services/releaseLinker';
 import { readSecret } from '@/services/stronghold';
 import { fetch } from '@tauri-apps/plugin-http';
 
-interface GitLabProject {
-  id: number;
-  name: string;
-  path_with_namespace: string;
-}
-
 interface VersionIssueCounts {
   issuesFixed: number;
   issuesAffected: number;
   issuesTotal: number;
-}
-
-async function fetchGroupProjects(
-  baseUrl: string,
-  token: string,
-  groupPath: string,
-): Promise<GitLabProject[]> {
-  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/groups/${encodeURIComponent(groupPath)}/projects?per_page=100`;
-  try {
-    const response = await fetch(url, {
-      headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
-    });
-    if (!response.ok) return [];
-    return (await response.json()) as GitLabProject[];
-  } catch {
-    return [];
-  }
 }
 
 async function fetchVersionIssueCounts(
@@ -112,7 +89,7 @@ function getReleaseTimingLabel(releaseDate: string | undefined, released: boolea
 }
 
 export default function ReleasesTab() {
-  const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, activeGitlabGroup } = useAuthStore();
+  const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, activeGitlabProject } = useAuthStore();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
   const [gitlabToken, setGitlabToken] = useState<string | null>(null);
 
@@ -147,29 +124,19 @@ export default function ReleasesTab() {
     staleTime: 5 * 60_000,
   });
 
-  // Fetch GitLab group milestones (include_subgroups=true covers milestones on nested subgroups)
+  // Fetch GitLab project milestones
   const { data: milestones, isError: milestonesError } = useQuery({
-    queryKey: ['gitlab-milestones', activeGitlabGroup],
-    queryFn: () => fetchGroupMilestones(gitlabBaseUrl!, gitlabToken!, activeGitlabGroup!),
-    enabled: !!gitlabBaseUrl && !!activeGitlabGroup && !!gitlabToken,
+    queryKey: ['gitlab-milestones', activeGitlabProject],
+    queryFn: () => fetchProjectMilestones(gitlabBaseUrl!, gitlabToken!, activeGitlabProject!),
+    enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken,
     staleTime: 5 * 60_000,
   });
 
-  // Resolve group → project ID for tags
-  const { data: groupProjects } = useQuery({
-    queryKey: ['gitlab-group-projects', activeGitlabGroup],
-    queryFn: () => fetchGroupProjects(gitlabBaseUrl!, gitlabToken!, activeGitlabGroup!),
-    enabled: !!gitlabBaseUrl && !!activeGitlabGroup && !!gitlabToken,
-    staleTime: Infinity,
-  });
-
-  const firstProjectId = groupProjects?.[0]?.id ?? null;
-
   // Fetch GitLab project tags
   const { data: tags } = useQuery({
-    queryKey: ['gitlab-tags', firstProjectId],
-    queryFn: () => fetchProjectTags(gitlabBaseUrl!, gitlabToken!, firstProjectId!),
-    enabled: !!gitlabBaseUrl && !!gitlabToken && firstProjectId !== null,
+    queryKey: ['gitlab-tags', activeGitlabProject],
+    queryFn: () => fetchProjectTags(gitlabBaseUrl!, gitlabToken!, activeGitlabProject!),
+    enabled: !!gitlabBaseUrl && !!gitlabToken && activeGitlabProject !== null,
     staleTime: 5 * 60_000,
   });
 
