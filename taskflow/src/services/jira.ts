@@ -233,7 +233,7 @@ export async function fetchSprintIssues(
     const chunkResults = await Promise.all(
       chunks.map(async (chunk) => {
         const subtaskJql = encodeURIComponent(
-          `issuetype in subtaskIssueTypes() AND parent in (${chunk.join(',')})`,
+          `issuetype in subtaskIssueTypes() AND parent in (${chunk.join(',')})${assigneeClause}`,
         );
         const subtaskUrl = `${base}/rest/api/2/search?jql=${subtaskJql}&fields=${subtaskFields}&maxResults=200`;
         const subtaskResponse = await fetch(subtaskUrl, {
