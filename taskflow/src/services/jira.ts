@@ -184,7 +184,7 @@ export async function fetchSprintIssues(
   // Updated fields: add parent, subtasks, timetracking to first query
   const fields = 'summary,status,assignee,issuetype,customfield_10016,story_points,parent,subtasks,timetracking';
   const jql = encodeURIComponent(
-    `project = ${projectKey} AND sprint in openSprints()${assigneeClause} AND resolution = Unresolved ORDER BY updated DESC`,
+    `project = ${projectKey} AND sprint in openSprints()${assigneeClause} AND issuetype not in subtaskIssueTypes() AND resolution = Unresolved ORDER BY updated DESC`,
   );
   const url = `${base}/rest/api/2/search?jql=${jql}&fields=${fields}`;
 
