@@ -19,7 +19,7 @@ interface OnboardingState {
   gitlabToken: string;
   gitlabProject: number | null;
   gitlabProjects: GitLabProject[];
-  role: 'developer' | 'pm' | null;
+  role: 'developer' | 'pm' | 'tech-lead' | null;
   jiraValidated: boolean;
   gitlabValidated: boolean;
   set: (partial: Partial<Omit<OnboardingState, 'set' | 'goNext' | 'goBack'>>) => void;

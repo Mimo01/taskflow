@@ -31,7 +31,7 @@ const tauriStorage = createJSONStorage(() => ({
 }));
 
 interface SettingsState {
-  role: 'developer' | 'pm' | null;
+  role: 'developer' | 'pm' | 'tech-lead' | null;
   theme: Theme;
   onboardingComplete: boolean;
   /** Number of days without update before an MR is considered stale. Default: 3. */
@@ -47,7 +47,7 @@ interface SettingsState {
   /** Enable API call logging for debug inspection. Default: false. */
   debugMode: boolean;
   setDebugMode: (v: boolean) => void;
-  setRole: (role: 'developer' | 'pm') => void;
+  setRole: (role: 'developer' | 'pm' | 'tech-lead') => void;
   setTheme: (theme: Theme) => void;
   setOnboardingComplete: (complete: boolean) => void;
   setStaleMrThresholdDays: (days: number) => void;
