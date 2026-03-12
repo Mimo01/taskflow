@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: planning
-stopped_at: Completed 07-03-PLAN.md
-last_updated: "2026-03-12T23:45:13.575Z"
+stopped_at: Completed 07-02-PLAN.md
+last_updated: "2026-03-12T23:49:30.507Z"
 last_activity: "2026-03-12 - Completed quick task 11: Add active page indicator in sidebar"
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 14
-  completed_plans: 13
+  completed_plans: 14
   percent: 0
 ---
 
@@ -77,6 +77,8 @@ Key v1.1 constraints from research:
 - [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: onMutate fix: my-tasks cache key holds { issues, myIssueKeys } not JiraIssue[] — typing was silently wrong
 - [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: queryFn return shape changed to {filtered, merged} so subtask extension memo accesses pre-filter pool without stale closure
 - [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: viaSubtaskKey only set when sprintIssueKeySet link is null — sprint-linked MRs never get via label
+- [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: boardGroups useMemo partitions sprint issues into stories/subtasksByParent — columns and counts derived from stories only
+- [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: expandedStories standalone useState decoupled from query cache — collapse state survives 60s refetch
 
 ### Pending Todos
 
@@ -105,9 +107,10 @@ None.
 | Phase 06-workload-sprint-progress-enrichment P03 | 5 | 1 tasks | 2 files |
 | Phase 07-story-subtask-hierarchy-mr-subtask-filter P01 | 15 | 2 tasks | 2 files |
 | Phase 07-story-subtask-hierarchy-mr-subtask-filter P03 | 10 | 2 tasks | 3 files |
+| Phase 07-story-subtask-hierarchy-mr-subtask-filter P02 | 3 | 2 tasks | 2 files |
 
 ## Session Continuity
 
-Last session: 2026-03-12T23:45:13.571Z
-Stopped at: Completed 07-03-PLAN.md
+Last session: 2026-03-12T23:49:30.503Z
+Stopped at: Completed 07-02-PLAN.md
 Resume file: None
