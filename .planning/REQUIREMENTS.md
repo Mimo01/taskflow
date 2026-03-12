@@ -12,13 +12,13 @@ Requirements for v1.1 Polish milestone. Each maps to roadmap phases.
 - [ ] **APIF-01**: Jira `JiraIssue` type extended with `parent?`, `subtasks[]`, `timetracking?`, `issuetype.subtask` boolean
 - [ ] **APIF-02**: `fetchSprintIssues` uses two-query strategy to include subtasks (second query: `issuetype in subtaskIssueTypes() AND parent in (...)`)
 - [ ] **APIF-03**: Story points field ID discovered via `discoverStoryPointsField()` with fallback to `customfield_10016`
-- [ ] **APIF-04**: GitLab MR fetch calls filter to `state=opened` only
+- [x] **APIF-04**: GitLab MR fetch calls filter to `state=opened` only
 
 ### Releases
 
-- [ ] **REL-01**: User can see releases ordered newest to oldest by release date
-- [ ] **REL-02**: User can see released/unreleased status badge on each release
-- [ ] **REL-03**: User can see overdue badge on past-date unreleased releases and days-until countdown on future unreleased releases
+- [x] **REL-01**: User can see releases ordered newest to oldest by release date
+- [x] **REL-02**: User can see released/unreleased status badge on each release
+- [x] **REL-03**: User can see overdue badge on past-date unreleased releases and days-until countdown on future unreleased releases
 
 ### Workload
 
@@ -73,10 +73,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | APIF-01 | Phase 5 | Pending |
 | APIF-02 | Phase 5 | Pending |
 | APIF-03 | Phase 5 | Pending |
-| APIF-04 | Phase 5 | Pending |
-| REL-01 | Phase 5 | Pending |
-| REL-02 | Phase 5 | Pending |
-| REL-03 | Phase 5 | Pending |
+| APIF-04 | Phase 5 | Complete |
+| REL-01 | Phase 5 | Complete |
+| REL-02 | Phase 5 | Complete |
+| REL-03 | Phase 5 | Complete |
 | WORK-01 | Phase 6 | Pending |
 | WORK-02 | Phase 6 | Pending |
 | WORK-03 | Phase 6 | Pending |
