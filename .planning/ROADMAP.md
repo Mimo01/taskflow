@@ -77,7 +77,12 @@ Plans:
   2. Sprint Board renders subtask cards nested under their parent story card within each column, collapsible
   3. A subtask whose parent story is not in the current sprint displays a parent story name badge
   4. MR Attention shows only open MRs assigned to the current user or linked to stories where the current user has at least one assigned subtask
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — SprintBoardTab test scaffold (Wave 0) + MyTasksTab orphan suppression + onMutate fix
+- [ ] 07-02-PLAN.md — TaskCard subtask chip/chevron + SprintBoardTab grouped hierarchy
+- [ ] 07-03-PLAN.md — MrRow viaSubtaskKey + MrAttentionTab MRAT-02 subtask-linked MRs
 
 ### Phase 8: Dashboard Enrichment
 **Goal**: The Developer dashboard surfaces the current user's open subtasks, open MR health summary, sprint health, and recent notifications without requiring any tab navigation
@@ -103,5 +108,5 @@ Phases execute in numeric order: 5 → 6 → 7 → 8
 | 4. PM Dashboard + Search | v1.0 | 5/5 | Complete | 2026-03-12 |
 | 5. API Foundation + Quick Wins | 8/8 | Complete   | 2026-03-12 | 2026-03-12 |
 | 6. Workload + Sprint Progress Enrichment | 3/3 | Complete   | 2026-03-12 | - |
-| 7. Story/Subtask Hierarchy + MR Subtask Filter | v1.1 | 0/? | Not started | - |
+| 7. Story/Subtask Hierarchy + MR Subtask Filter | v1.1 | 0/3 | Not started | - |
 | 8. Dashboard Enrichment | v1.1 | 0/? | Not started | - |
