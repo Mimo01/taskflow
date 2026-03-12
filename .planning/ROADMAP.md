@@ -89,11 +89,11 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Service layer extension: JiraIssue statusCategory type, fetchFixVersions, searchJira, GitLabMilestone/Tag types, fetchGroupMilestones, fetchProjectTags, searchGitLabMRs, releaseLinker pure function, Wave 0 test scaffolds
-- [ ] 04-02-PLAN.md — PM dashboard tabs: PmDashTab store extension, role-conditional dashboard index, SprintProgressTab (buckets + progress bar), WorkloadTab (per-assignee), ReleasesTab (fix versions with date-matched GitLab links)
-- [ ] 04-03-PLAN.md — Global search: SearchOverlay (debounced parallel search, grouped results), SearchResultPanel (read-only detail + openUrl), Search icon wired into TopBar
-- [ ] 04-04-PLAN.md — UAT gap closure: fix fetchFixVersions to extract data.values from paginated Jira envelope (Releases tab crash)
-- [ ] 04-05-PLAN.md — UAT gap closure: fix Jira ADF description rendering + make GitLab MR linked ticket chip clickable with Jira link
+- [x] 04-01-PLAN.md — Service layer extension: JiraIssue statusCategory type, fetchFixVersions, searchJira, GitLabMilestone/Tag types, fetchGroupMilestones, fetchProjectTags, searchGitLabMRs, releaseLinker pure function, Wave 0 test scaffolds
+- [x] 04-02-PLAN.md — PM dashboard tabs: PmDashTab store extension, role-conditional dashboard index, SprintProgressTab (buckets + progress bar), WorkloadTab (per-assignee), ReleasesTab (fix versions with date-matched GitLab links)
+- [x] 04-03-PLAN.md — Global search: SearchOverlay (debounced parallel search, grouped results), SearchResultPanel (read-only detail + openUrl), Search icon wired into TopBar
+- [x] 04-04-PLAN.md — UAT gap closure: fix fetchFixVersions to extract data.values from paginated Jira envelope (Releases tab crash)
+- [x] 04-05-PLAN.md — UAT gap closure: fix Jira ADF description rendering + make GitLab MR linked ticket chip clickable with Jira link
 
 ## Progress
 
