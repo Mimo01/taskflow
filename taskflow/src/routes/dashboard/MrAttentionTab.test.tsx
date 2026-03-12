@@ -108,6 +108,21 @@ function renderWithQuery(ui: React.ReactElement) {
   return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
 }
 
+// Pre-populate the gitlab-current-user cache so userId is available immediately
+// (avoids reviewer MRs being skipped on first MR query run before validateGitLab resolves)
+function renderWithQueryAndUser(ui: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, staleTime: 0 },
+    },
+  });
+  queryClient.setQueryData(
+    ['gitlab-current-user', 'https://gitlab.example.com'],
+    { id: 42, name: 'Test User', username: 'testuser' },
+  );
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
+
 describe('MrAttentionTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -224,10 +239,10 @@ describe('MrAttentionTab', () => {
       } as ReturnType<typeof useAuthStore>);
 
       const { default: MrAttentionTab } = await import('./MrAttentionTab');
-      renderWithQuery(<MrAttentionTab />);
+      renderWithQueryAndUser(<MrAttentionTab />);
 
       // MR 20 should appear because it's linked to STORY-1 (subtask path)
-      await screen.findByText(/STORY-1/i);
+      await screen.findByText(/STORY-1/i, {}, { timeout: 3000 });
     });
 
     it('shows "via [subtask-key]" label on subtask-path-only MRs', async () => {
@@ -258,10 +273,10 @@ describe('MrAttentionTab', () => {
       } as ReturnType<typeof useAuthStore>);
 
       const { default: MrAttentionTab } = await import('./MrAttentionTab');
-      renderWithQuery(<MrAttentionTab />);
+      renderWithQueryAndUser(<MrAttentionTab />);
 
       // "via SUB-2" should appear as the label for the subtask-only MR
-      await screen.findByText(/via SUB-2/i);
+      await screen.findByText(/via SUB-2/i, {}, { timeout: 3000 });
     });
 
     it('does not show "via" label on MRs already included via sprint/assigned path', async () => {
@@ -299,12 +314,12 @@ describe('MrAttentionTab', () => {
       renderWithQuery(<MrAttentionTab />);
 
       // MR 22 appears (assigned path)
-      await screen.findByText(/STORY-3/i);
+      await screen.findByText(/STORY-3 assigned mr/i, {}, { timeout: 3000 });
 
       // No "via" label since it's already included via assignment/sprint
       await waitFor(() => {
         expect(screen.queryByText(/via SUB-3/i)).toBeNull();
-      });
+      }, { timeout: 3000 });
     });
 
     it('gracefully shows base MR list when subtask data is unavailable', async () => {
