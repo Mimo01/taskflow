@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: planning
-stopped_at: Completed 05-07-PLAN.md
-last_updated: "2026-03-12T17:21:49.064Z"
+stopped_at: Completed 05-08-PLAN.md
+last_updated: "2026-03-12T17:24:37.983Z"
 last_activity: 2026-03-12 — v1.1 roadmap created (Phases 5-8)
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 8
-  completed_plans: 7
+  completed_plans: 8
   percent: 0
 ---
 
@@ -66,6 +66,8 @@ Key v1.1 constraints from research:
 - [Phase 05-api-foundation-quick-wins]: APIF-02 guard: issuetype not in subtaskIssueTypes() in sprint JQL prevents Jira DC edge case where openSprints() returns subtasks causing empty sprint view
 - [Phase 05-api-foundation-quick-wins]: REL-01: onRehydrateStorage clears numeric activeJiraProject at startup — fixes Releases tab showing wrong project data
 - [Phase 05-api-foundation-quick-wins]: APIF-02 subtask JQL bug: assigneeClause was in scope but not interpolated into second query template literal — one-character fix appending ${assigneeClause}
+- [Phase 05-api-foundation-quick-wins]: REL-01: fetchFixVersions must use /rest/api/2/project/{projectKey}/versions — Jira Server silently ignores ?projectKey= filter on /rest/api/2/version
+- [Phase 05-api-foundation-quick-wins]: REL-01: onRehydrateStorage clears numeric activeJiraProject via useAuthStore.setState() — direct mutation is overwritten by async Tauri storage hydration
 
 ### Pending Todos
 
@@ -79,6 +81,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-12T17:21:44.676Z
-Stopped at: Completed 05-07-PLAN.md
+Last session: 2026-03-12T17:24:37.980Z
+Stopped at: Completed 05-08-PLAN.md
 Resume file: None
