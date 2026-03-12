@@ -191,8 +191,8 @@ export default function TokenSection() {
     })();
   }, [gitlabBaseUrl]);
 
-  const handleProjectChange = (projectId: string) => {
-    setActiveJiraProject(projectId);
+  const handleProjectChange = (projectKey: string) => {
+    setActiveJiraProject(projectKey);
     queryClient.clear();
   };
 
