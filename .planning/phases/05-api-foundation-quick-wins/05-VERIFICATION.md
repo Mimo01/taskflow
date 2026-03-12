@@ -1,17 +1,26 @@
 ---
 phase: 05-api-foundation-quick-wins
-verified: 2026-03-12T16:45:00Z
-status: passed
-score: 9/9 must-haves verified
+verified: 2026-03-12T18:45:00Z
+status: human_needed
+score: 12/12 must-haves verified
 re_verification: true
 previous_verification:
-  timestamp: 2026-03-12T15:10:00Z
-  status: passed
-  score: 7/7
-  note: "Previous verification predated gap closure plans 05-05 and 05-06. UAT discovered 2 major issues after that verification. This re-verification covers all 6 plans."
+  timestamp: 2026-03-12T18:30:00Z
+  status: gaps_found
+  score: 9/12
+  note: "Previous verification found 4 gaps: all were regressions from an uncommitted working-tree revert of plans 07 and 08. This pass confirms all 4 gaps are closed."
 gaps_closed:
-  - "APIF-02: fetchSprintIssues first JQL guard — AND issuetype not in subtaskIssueTypes() added (plan 05-05, commit 22c5e32)"
-  - "REL-01: Releases tab wrong project — onRehydrateStorage guard in auth.store.ts clears stale numeric activeJiraProject (plan 05-06, commit 31d66a5)"
+  - "APIF-01: JiraIssue type extended — parent, subtasks, timetracking, issuetype.subtask (plan 05-02)"
+  - "APIF-03: discoverStoryPointsField exported and wired at startup (plan 05-02)"
+  - "APIF-04: searchGitLabMRs state=opened filter (plan 05-01)"
+  - "REL-01 sort: Releases ordered newest-to-oldest (plan 05-04)"
+  - "REL-02/REL-03: Released/Unreleased badge + timing labels (plan 05-04)"
+  - "APIF-02 guard: first JQL contains issuetype not in subtaskIssueTypes() (plan 05-05)"
+  - "REL-01 project: stale numeric activeJiraProject cleared on startup (plan 05-06)"
+  - "APIF-02 subtask assignee filter: subtask JQL appends ${assigneeClause} when assignedToMe=true (plan 05-07)"
+  - "REL-01 endpoint: fetchFixVersions calls /rest/api/2/project/{projectKey}/versions (plan 05-08)"
+  - "REL-01 parse: fetchFixVersions response parsed as bare array with Array.isArray guard (plan 05-08)"
+  - "REL-01 rehydration: auth.store.ts onRehydrateStorage calls useAuthStore.setState (plan 05-08)"
 gaps_remaining: []
 regressions: []
 human_verification:
@@ -19,24 +28,35 @@ human_verification:
     expected: "Released versions show green badge; future unreleased show amber; overdue show red; same-day show blue"
     why_human: "Badge className values (bg-green-600, bg-amber-500, bg-blue-600, variant=destructive) cannot be verified programmatically"
   - test: "Real Jira DC subtask + guard validation"
-    expected: "Sprint view shows both parent stories and their subtasks; no edge case where only subtasks appear"
-    why_human: "issuetype not in subtaskIssueTypes() guard is tested via URL assertion in mocks; real Jira DC behavior unverifiable without live instance"
+    expected: "Sprint view shows both parent stories and their subtasks; My Tasks filter shows only the current user's subtasks"
+    why_human: "Assignee filter behavior requires live Jira DC instance"
   - test: "Story points field discovery end-to-end"
     expected: "storyPointsFieldKey in settings store reflects the actual discovered field key on app startup"
-    why_human: "Startup wiring uses useQuery + useEffect with async Stronghold token reads; behavior depends on real Stronghold availability in Tauri runtime"
+    why_human: "Startup wiring uses useQuery + useEffect with async Stronghold token reads; Tauri runtime required"
   - test: "Releases tab correct project after rehydration fix"
-    expected: "After app restart with stale numeric activeJiraProject in auth.json, user is prompted to re-select project and Releases tab shows versions from correct project"
-    why_human: "onRehydrateStorage fires at Tauri Store hydration time; requires real Tauri runtime and a pre-seeded stale auth.json to verify"
+    expected: "After app restart with stale numeric activeJiraProject, user is prompted to re-select project and Releases tab shows correct versions"
+    why_human: "onRehydrateStorage fires at Tauri Store hydration time; requires real Tauri runtime with pre-seeded stale auth.json"
 ---
 
 # Phase 5: API Foundation + Quick Wins Verification Report
 
-**Phase Goal:** API foundation quick wins — install Badge component, fix GitLab MR open filter, add story points discovery, fetch subtasks in sprint, implement Releases tab sort and badges, fix Releases tab wrong project issue, fix sprint subtask exclusion
-**Verified:** 2026-03-12T16:45:00Z
-**Status:** PASSED
-**Re-verification:** Yes — after gap closure plans 05-05 and 05-06
+**Phase Goal:** The data layer serves parent/subtask/time-tracking fields to every consumer, open-only MRs are fetched from GitLab, and the Releases tab displays correctly sorted and badged releases
+**Verified:** 2026-03-12T18:45:00Z
+**Status:** HUMAN NEEDED (all automated checks pass)
+**Re-verification:** Yes — fourth pass; closes all gaps from previous verification (uncommitted working-tree revert of plans 07 and 08 has been resolved)
 
-The previous verification (2026-03-12T15:10:00Z) predated UAT, which found 2 major issues: (1) sprint view showed only subtasks instead of parent+subtask merged list; (2) Releases tab showed versions from the wrong project. Plans 05-05 and 05-06 closed both gaps. This report is the definitive post-gap-closure verification.
+---
+
+## Re-Verification Summary
+
+The previous verification (2026-03-12T18:30:00Z) found 4 gaps — all caused by a working-tree revert of plan 07 and plan 08 fixes that existed in git commits but not on disk. This pass confirms:
+
+- `git status` shows only the VERIFICATION.md itself as modified; all source files are clean
+- `jira.ts` line 236: subtask JQL now ends with `${assigneeClause}` (plan 07 fix present)
+- `jira.ts` line 380: fetchFixVersions URL is `/rest/api/2/project/${projectKey}/versions` (plan 08 fix present)
+- `jira.ts` line 403: response unwrap is `Array.isArray(data) ? data : []` (plan 08 fix present)
+- `auth.store.ts` line 81: `useAuthStore.setState({ activeJiraProject: null })` (plan 08 fix present)
+- `jira.test.ts`: 33 tests pass (30 from prior plans + 2 plan 07 assignee tests + 1 plan 08 endpoint test, all assertions fully implemented)
 
 ---
 
@@ -46,67 +66,36 @@ The previous verification (2026-03-12T15:10:00Z) predated UAT, which found 2 maj
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | shadcn Badge component is installed and importable from `@/components/ui/badge` | VERIFIED | `taskflow/src/components/ui/badge.tsx` exists; `ReleasesTab.tsx` line 16: `import { Badge } from '@/components/ui/badge'`; Badge used in JSX lines 273-304 |
-| 2 | `searchGitLabMRs` URL includes `&state=opened` so merged/closed MRs are excluded | VERIFIED | `gitlab.ts` line 422: `state=opened&per_page=20` in URL; all 3 MR fetch functions confirmed with `state=opened`; APIF-04 test passes (12/12 gitlab tests) |
-| 3 | JiraIssue type accepts `parent`, `subtasks`, `timetracking`, and `issuetype.subtask` without TypeScript errors | VERIFIED | `jira.ts` lines 111-141: all fields present with index signature `[key: string]: unknown`; APIF-01 tests pass (2 tests) |
-| 4 | `discoverStoryPointsField()` exported from jira.ts; called at app startup; result stored in `storyPointsFieldKey` | VERIFIED | `jira.ts` line 456: function exported; `main.tsx` lines 15, 40-59, 77: imported, hook defined, called in AppLayout; `settings.store.ts` lines 46, 68, 77: field + setter present; APIF-03 tests pass (4 tests) |
-| 5 | `fetchSprintIssues` returns parent issues AND subtasks merged into one array via two-query strategy | VERIFIED | `jira.ts` lines 157, 176-257: `SUBTASK_CHUNK_SIZE=50`, two queries, chunked second JQL, `Promise.all` merge, silent fallback; APIF-02 tests pass (5 tests) |
-| 6 | `fetchSprintIssues` first JQL excludes subtasks via `issuetype not in subtaskIssueTypes()` guard so parentKeys never contains subtask keys | VERIFIED | `jira.ts` line 187: `AND issuetype not in subtaskIssueTypes() AND resolution = Unresolved`; guard test at `jira.test.ts` line 396 asserts `issuetype%20not%20in%20subtaskIssueTypes()` in first fetch URL; passes |
-| 7 | Releases tab renders versions newest-to-oldest by releaseDate; undated releases appear at bottom | VERIFIED | `ReleasesTab.tsx` line 177: `b.releaseDate.localeCompare(a.releaseDate)` sort in useMemo; undated guard at lines 174-176; REL-01 tests pass |
-| 8 | Every release row shows Released or Unreleased badge with correct timing label (Overdue/Due today/In X days) | VERIFIED | `ReleasesTab.tsx` lines 82, 268-304: `getReleaseTimingLabel` helper + IIFE badge rendering; REL-02 and REL-03 tests pass (14/14 ReleasesTab tests) |
-| 9 | Stale numeric `activeJiraProject` values are cleared on app startup so Releases tab uses correct project key | VERIFIED | `auth.store.ts` lines 79-83: `onRehydrateStorage: () => (state) => { if (state && state.activeJiraProject && /^\d+$/.test(state.activeJiraProject)) { state.activeJiraProject = null; } }`; `TokenSection.tsx` line 194: parameter renamed to `projectKey` |
+| 1 | shadcn Badge component is installed and importable from `@/components/ui/badge` | VERIFIED | `badge.tsx` exists; `ReleasesTab.tsx` line 16: `import { Badge }` |
+| 2 | `searchGitLabMRs` URL includes `&state=opened` so merged/closed MRs are excluded | VERIFIED | `gitlab.ts` line 422: `state=opened&per_page=20` |
+| 3 | JiraIssue type accepts `parent`, `subtasks`, `timetracking`, `issuetype.subtask` without TS errors | VERIFIED | `jira.ts` lines 111-141: all fields present with index signature |
+| 4 | `discoverStoryPointsField()` exported, called at startup, result stored in `storyPointsFieldKey` | VERIFIED | `jira.ts` line 455; `main.tsx` lines 15, 36-49, 77; `settings.store.ts` present |
+| 5 | `fetchSprintIssues` returns parent issues AND subtasks merged via two-query strategy | VERIFIED | `jira.ts` lines 157, 176-257: two-query implementation present |
+| 6 | `fetchSprintIssues` first JQL excludes subtasks via `issuetype not in subtaskIssueTypes()` | VERIFIED | `jira.ts` line 187: guard present; APIF-02 guard test in jira.test.ts passes |
+| 7 | `fetchSprintIssues` subtask JQL appends `${assigneeClause}` when assignedToMe=true | VERIFIED | `jira.ts` line 236: `...parent in (${chunk.join(',')})${assigneeClause}`; 2 plan 07 tests pass |
+| 8 | Releases tab renders versions newest-to-oldest by releaseDate; undated at bottom | VERIFIED | `ReleasesTab.tsx` line 177: `b.releaseDate.localeCompare(a.releaseDate)`; undated guard lines 174-176 |
+| 9 | Every release row shows Released or Unreleased badge with correct timing label | VERIFIED | `ReleasesTab.tsx` lines 82-89, 268-304; 14/14 ReleasesTab tests pass |
+| 10 | Badge component imported from `@/components/ui/badge` and rendered in ReleasesTab | VERIFIED | `ReleasesTab.tsx` line 16; Badge used in JSX lines 273-304 |
+| 11 | `fetchFixVersions` calls `/rest/api/2/project/{projectKey}/versions` and parses bare array | VERIFIED | `jira.ts` line 380: correct URL; line 403: `Array.isArray(data) ? data : []`; 3 REL-01 tests pass |
+| 12 | `onRehydrateStorage` uses `useAuthStore.setState()` (not direct mutation) to clear numeric project IDs | VERIFIED | `auth.store.ts` line 81: `useAuthStore.setState({ activeJiraProject: null })` |
 
-**Score:** 9/9 truths verified
+**Score:** 12/12 truths verified
 
 ---
 
 ## Required Artifacts
 
-### Plan 01 Artifacts
-
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `taskflow/src/components/ui/badge.tsx` | shadcn Badge component | VERIFIED | File exists; imported by ReleasesTab.tsx |
+| `taskflow/src/components/ui/badge.tsx` | shadcn Badge component | VERIFIED | File exists; imported by ReleasesTab.tsx line 16 |
 | `taskflow/src/services/gitlab.ts` | `searchGitLabMRs` with `state=opened` | VERIFIED | Line 422: `state=opened&per_page=20` |
-| `taskflow/src/services/gitlab.test.ts` | APIF-04 test for state=opened filter | VERIFIED | 12/12 tests pass; APIF-04 describe block present |
-| `taskflow/src/routes/dashboard/ReleasesTab.test.tsx` | REL-01/02/03 test stubs | VERIFIED | 14/14 tests pass |
-
-### Plan 02 Artifacts
-
-| Artifact | Expected | Status | Details |
-|----------|----------|--------|---------|
-| `taskflow/src/services/jira.ts` | Extended JiraIssue interface + `discoverStoryPointsField()` | VERIFIED | Lines 111-141: all 4 new fields + index signature; line 456: function exported |
-| `taskflow/src/stores/settings.store.ts` | `storyPointsFieldKey` + `setStoryPointsFieldKey` | VERIFIED | Lines 46, 55, 68, 77: field in interface, initialized to `'customfield_10016'`, setter implemented |
-| `taskflow/src/services/jira.test.ts` | APIF-01 and APIF-03 test coverage | VERIFIED | 30/30 jira tests pass; APIF-01 (2 tests), APIF-03 (4 tests) |
-| `taskflow/src/main.tsx` | `useStoryPointsFieldDiscovery` hook wired in AppLayout | VERIFIED | Lines 15, 40-59, 77: imported, defined, called |
-
-### Plan 03 Artifacts
-
-| Artifact | Expected | Status | Details |
-|----------|----------|--------|---------|
-| `taskflow/src/services/jira.ts` | `fetchSprintIssues` with two-query subtask strategy | VERIFIED | Lines 157, 176-257: full two-query implementation |
-| `taskflow/src/services/jira.test.ts` | APIF-02 tests: merge, failure fallback, chunk boundary | VERIFIED | Lines 335-425: 5 APIF-02 tests (4 original + 1 guard from plan 05-05) |
-
-### Plan 04 Artifacts
-
-| Artifact | Expected | Status | Details |
-|----------|----------|--------|---------|
-| `taskflow/src/routes/dashboard/ReleasesTab.tsx` | Sort logic + Badge imports + badge rendering per row | VERIFIED | Line 16: Badge import; line 82: `getReleaseTimingLabel`; line 177: `localeCompare` sort; lines 268-304: IIFE badge rendering |
-| `taskflow/src/routes/dashboard/ReleasesTab.test.tsx` | REL-01/02/03 tests passing GREEN | VERIFIED | 14/14 tests pass |
-
-### Plan 05 Artifacts (Gap Closure — APIF-02)
-
-| Artifact | Expected | Status | Details |
-|----------|----------|--------|---------|
-| `taskflow/src/services/jira.ts` | `issuetype not in subtaskIssueTypes()` guard in first JQL | VERIFIED | Line 187: guard present between assigneeClause and `AND resolution = Unresolved` |
-| `taskflow/src/services/jira.test.ts` | Guard test verifying JQL fragment in first fetch URL | VERIFIED | Line 396: `guard: first query JQL contains issuetype not in subtaskIssueTypes()`; asserts `issuetype%20not%20in%20subtaskIssueTypes()` in URL |
-
-### Plan 06 Artifacts (Gap Closure — REL-01)
-
-| Artifact | Expected | Status | Details |
-|----------|----------|--------|---------|
-| `taskflow/src/stores/auth.store.ts` | `onRehydrateStorage` callback clearing numeric `activeJiraProject` | VERIFIED | Lines 79-83: callback present; regex `/^\d+$/` guards correctly |
-| `taskflow/src/routes/settings/TokenSection.tsx` | `handleProjectChange` parameter renamed to `projectKey` | VERIFIED | Line 194: `const handleProjectChange = (projectKey: string)` |
+| `taskflow/src/services/jira.ts` | Extended JiraIssue + `discoverStoryPointsField()` + two-query subtask strategy + first JQL guard + subtask assigneeClause + correct fetchFixVersions URL + bare-array parse | VERIFIED | Lines 111-141, 455, 176-257, 187, 236, 380, 403: all present and correct |
+| `taskflow/src/stores/auth.store.ts` | `onRehydrateStorage` callback with `useAuthStore.setState` for async-safe clearing | VERIFIED | Line 81: `useAuthStore.setState({ activeJiraProject: null })` |
+| `taskflow/src/stores/settings.store.ts` | `storyPointsFieldKey` + `setStoryPointsFieldKey` | VERIFIED | Field and setter present |
+| `taskflow/src/main.tsx` | `useStoryPointsFieldDiscovery` hook wired in AppLayout | VERIFIED | Lines 15, 36-49 |
+| `taskflow/src/routes/dashboard/ReleasesTab.tsx` | Sort + Badge import + badge rendering | VERIFIED | Line 16, 174-177, 268-304 |
+| `taskflow/src/routes/dashboard/ReleasesTab.test.tsx` | REL-01/02/03 tests passing | VERIFIED | 14/14 tests pass |
+| `taskflow/src/services/jira.test.ts` | APIF-02 subtask assignee tests (plan 07) + REL-01 fetchFixVersions tests (plan 08) | VERIFIED | 33/33 tests pass; plan 07 lines 433-463; plan 08 lines 466-515 |
 
 ---
 
@@ -114,14 +103,15 @@ The previous verification (2026-03-12T15:10:00Z) predated UAT, which found 2 maj
 
 | From | To | Via | Status | Details |
 |------|----|-----|--------|---------|
-| `ReleasesTab.tsx` | `badge.tsx` | `import { Badge } from '@/components/ui/badge'` | WIRED | Line 16; Badge used in JSX lines 273-304 |
-| `useMemo matchedVersions` | sorted versions array | `b.releaseDate.localeCompare(a.releaseDate)` | WIRED | Line 177; undated versions guarded to bottom |
-| `main.tsx AppLayout` | `discoverStoryPointsField()` | `useQuery` with `staleTime: Infinity`, `enabled: !!jiraBaseUrl && !!jiraConnected` | WIRED | Lines 40-59: hook defined; line 77: called inside AppLayout |
-| `main.tsx useEffect` | `settings.store.ts setStoryPointsFieldKey` | `useEffect([query.data, setStoryPointsFieldKey])` | WIRED | Lines 55-59: `if (query.data) { setStoryPointsFieldKey(query.data) }` |
-| `gitlab.ts searchGitLabMRs` | GitLab `/api/v4/search` | URL query parameter `state=opened` | WIRED | Line 422: `state=opened` present |
-| `jira.ts fetchSprintIssues` first JQL | parentIssues array | `issuetype not in subtaskIssueTypes()` guard in JQL | WIRED | Line 187: guard ensures only non-subtask issues populate parentKeys |
-| `jira.ts fetchSprintIssues` | Jira REST API `/rest/api/2/search` (second call) | `issuetype in subtaskIssueTypes() AND parent in (...)` chunked | WIRED | Lines 235-238: chunked JQL built with parent keys |
-| `auth.store.ts onRehydrateStorage` | `activeJiraProject` | `/^\d+$/.test` regex nullifies numeric IDs at startup | WIRED | Lines 79-83: callback present in persist options |
+| `ReleasesTab.tsx` | `badge.tsx` | `import { Badge }` | WIRED | Line 16 |
+| `useMemo matchedVersions` | sorted versions | `localeCompare` sort | WIRED | Lines 174-177 |
+| `main.tsx AppLayout` | `discoverStoryPointsField()` | `useQuery` in hook | WIRED | Lines 36-49 |
+| `gitlab.ts searchGitLabMRs` | GitLab `/api/v4/search` | `state=opened` | WIRED | Line 422 |
+| `jira.ts fetchSprintIssues` | first JQL | `issuetype not in subtaskIssueTypes()` guard | WIRED | Line 187 |
+| `jira.ts fetchSprintIssues` subtask JQL | assignee filter | `${assigneeClause}` appended | WIRED | Line 236: `...parent in (${chunk.join(',')})${assigneeClause}` |
+| `jira.ts fetchFixVersions` | Jira Server API | `/rest/api/2/project/{projectKey}/versions` | WIRED | Line 380: correct path-based URL |
+| `jira.ts fetchFixVersions` response | bare array | `Array.isArray(data) ? data : []` | WIRED | Line 403 |
+| `auth.store.ts onRehydrateStorage` | Zustand live store | `useAuthStore.setState()` | WIRED | Line 81 |
 
 ---
 
@@ -129,40 +119,21 @@ The previous verification (2026-03-12T15:10:00Z) predated UAT, which found 2 maj
 
 | Requirement | Source Plans | Description | Status | Evidence |
 |-------------|-------------|-------------|--------|----------|
-| APIF-01 | 05-02-PLAN.md | JiraIssue type extended with `parent?`, `subtasks[]`, `timetracking?`, `issuetype.subtask` boolean | SATISFIED | jira.ts lines 111-141: all 4 fields present; 2 APIF-01 tests pass |
-| APIF-02 | 05-03-PLAN.md, 05-05-PLAN.md | `fetchSprintIssues` uses two-query strategy; first JQL guards against subtask keys via `issuetype not in subtaskIssueTypes()` | SATISFIED | jira.ts lines 157-257: full two-query + guard; 5 APIF-02 tests pass (4 original + 1 guard) |
-| APIF-03 | 05-02-PLAN.md | `discoverStoryPointsField()` with fallback to `customfield_10016` | SATISFIED | jira.ts line 456: exported; settings store holds result; main.tsx wires startup call; 4 APIF-03 tests pass |
-| APIF-04 | 05-01-PLAN.md | GitLab MR fetch calls filter to `state=opened` only | SATISFIED | gitlab.ts line 422: `searchGitLabMRs` includes `state=opened`; APIF-04 test passes |
-| REL-01 | 05-01-PLAN.md, 05-04-PLAN.md, 05-06-PLAN.md | Releases ordered newest to oldest; shows versions from correct project | SATISFIED | ReleasesTab.tsx line 177: sort; auth.store.ts lines 79-83: `onRehydrateStorage` guard; TokenSection.tsx line 194: projectKey rename; REL-01 tests pass |
-| REL-02 | 05-01-PLAN.md, 05-04-PLAN.md | Released/unreleased status badge on each release | SATISFIED | ReleasesTab.tsx lines 273-304: Released/Unreleased badges; REL-02 tests pass |
-| REL-03 | 05-01-PLAN.md, 05-04-PLAN.md | Overdue badge on past-date unreleased; days-until countdown on future unreleased | SATISFIED | `getReleaseTimingLabel` helper + IIFE badge rendering; REL-03 tests pass |
+| APIF-01 | 05-02 | JiraIssue type extended with parent, subtasks, timetracking, issuetype.subtask boolean | SATISFIED | `jira.ts` lines 111-141: all 4 fields present |
+| APIF-02 | 05-03, 05-05, 05-07 | Two-query strategy; first JQL guard; subtask assignee filter | SATISFIED | Two-query lines 176-257; guard line 187; assigneeClause line 236; 7 APIF-02 tests pass |
+| APIF-03 | 05-02 | `discoverStoryPointsField()` with fallback to customfield_10016 | SATISFIED | `jira.ts` line 455; settings store; main.tsx wired |
+| APIF-04 | 05-01 | GitLab MR fetch filters to `state=opened` only | SATISFIED | `gitlab.ts` line 422 |
+| REL-01 | 05-01, 05-04, 05-06, 05-08 | Releases ordered newest to oldest; correct project; correct endpoint; bare-array parse | SATISFIED | Sort lines 174-177; numeric project guard auth.store.ts line 81; URL `jira.ts` line 380; parse line 403 |
+| REL-02 | 05-01, 05-04 | Released/unreleased status badge on each release | SATISFIED | `ReleasesTab.tsx` lines 268-304 |
+| REL-03 | 05-01, 05-04 | Overdue/countdown badges on unreleased | SATISFIED | `getReleaseTimingLabel` lines 82-89 + IIFE badge rendering |
 
-No orphaned requirements — all 7 requirement IDs declared across all 6 PLAN frontmatter files are present in REQUIREMENTS.md and marked complete. APIF-02 is covered by both 05-03 (initial implementation) and 05-05 (gap closure guard).
+All 7 requirement IDs are satisfied. REQUIREMENTS.md marks all as complete with Phase 5.
 
 ---
 
 ## Anti-Patterns Found
 
-No new anti-patterns introduced by phase 05 (including gap closure plans 05-05 and 05-06).
-
-Scanned files: `ReleasesTab.tsx`, `jira.ts`, `gitlab.ts`, `main.tsx`, `settings.store.ts`, `auth.store.ts`, `TokenSection.tsx`
-
-- No TODO/FIXME/PLACEHOLDER comments in phase-modified files
-- No empty return stubs
-- No unimplemented handlers
-- `discoverStoryPointsField` fallback `return 'customfield_10016'` is intentional resilience, not a stub
-- `onRehydrateStorage` regex `/^\d+$/` is intentional migration guard, not a placeholder
-
-### Pre-existing Issues (not introduced by Phase 05)
-
-| File | Type | Severity | Notes |
-|------|------|----------|-------|
-| `src/components/app/SearchOverlay.test.tsx` | TS6133 unused `React` import | Info | Pre-exists from Phase 4 |
-| `src/routes/onboarding/GitLabStep.tsx` | TS6133 unused `SelectValue` import | Info | Pre-existing |
-| `src/routes/onboarding/JiraStep.tsx` | TS6133 unused `SelectValue` import | Info | Pre-existing |
-| `src/routes/dashboard/MyTasksTab.test.tsx` | `renders skeleton when isLoading` test failure — `expect(0).toBeGreaterThan(0)` | Warning | Pre-existing before any Phase 05 work; confirmed present at commit `6114edd` (Phase 02). Previous VERIFICATION.md cited `TopBar.test.tsx` as the pre-existing failure — that was a misidentification. TopBar tests now pass 3/3. |
-
-The MyTasksTab skeleton test (`renders skeleton when isLoading`) was failing before Phase 05 began (verified by reverting `MyTasksTab.test.tsx` to its pre-05 state at commit `6114edd` and observing the same failure). Phase 05 introduced zero new test failures.
+None. Scan of all modified files (`jira.ts`, `auth.store.ts`, `jira.test.ts`, `gitlab.ts`, `ReleasesTab.tsx`) found no TODO/FIXME comments, no placeholder returns, no stub handlers. No blockers.
 
 ---
 
@@ -170,10 +141,9 @@ The MyTasksTab skeleton test (`renders skeleton when isLoading`) was failing bef
 
 | File | Tests | Pass | Fail | Notes |
 |------|-------|------|------|-------|
+| `src/services/jira.test.ts` | 33 | 33 | 0 | +3 vs previous verification: 2 plan 07 assignee tests + 1 plan 08 endpoint test; all APIF-02 and REL-01 tests present |
 | `src/services/gitlab.test.ts` | 12 | 12 | 0 | APIF-04 included |
-| `src/services/jira.test.ts` | 30 | 30 | 0 | APIF-01, APIF-02 (5 tests), APIF-03 included; +1 guard test vs. previous verification |
 | `src/routes/dashboard/ReleasesTab.test.tsx` | 14 | 14 | 0 | REL-01, REL-02, REL-03 included |
-| Full suite (`npx vitest run`) | 185 | 180 | 1 | 1 pre-existing failure in MyTasksTab.test.tsx skeleton test (Phase 02 scope); 4 todo |
 
 ---
 
@@ -183,40 +153,28 @@ The MyTasksTab skeleton test (`renders skeleton when isLoading`) was failing bef
 
 **Test:** Run the app, connect to a Jira instance with fix versions, navigate to the Releases tab.
 **Expected:** Released versions show a green badge; future unreleased show amber; overdue unreleased show red; same-day show blue.
-**Why human:** Badge `className` values (`bg-green-600`, `bg-amber-500`, `bg-blue-600`, `variant="destructive"`) cannot be visually confirmed programmatically.
+**Why human:** Badge `className` values (bg-green-600, bg-amber-500, bg-blue-600, variant=destructive) cannot be confirmed programmatically.
 
 ### 2. Real Jira DC Subtask + Guard Validation
 
-**Test:** Connect to real Jira DC (Orange), navigate to a sprint board. Confirm both parent stories and their subtasks appear. Specifically test an instance where `openSprints()` returns subtasks alongside parents.
-**Expected:** Sprint view shows parents and subtasks merged; no edge case where only subtasks appear.
-**Why human:** The `issuetype not in subtaskIssueTypes()` guard is tested via URL assertion with mocks — actual Jira DC filtering behavior requires live instance to confirm.
+**Test:** Connect to real Jira DC, navigate to a sprint board. Enable "My Tasks" filter. Confirm only the current user's subtasks appear.
+**Expected:** Sprint view shows parents and subtasks merged; "My Tasks" filters subtasks to current user only (not all subtasks of assigned parent issues).
+**Why human:** Assignee filter behavior requires live Jira DC instance.
 
 ### 3. Story Points Field Discovery End-to-End
 
-**Test:** Connect to Jira, check that `storyPointsFieldKey` in the settings store reflects the actual discovered field key (verify via devtools).
-**Expected:** The discovered field key is written into the store on app startup when Jira credentials are available.
-**Why human:** Startup wiring uses `useQuery` + `useEffect` with async Stronghold token reads; behavior depends on real Stronghold availability in Tauri runtime.
+**Test:** Connect to Jira, check `storyPointsFieldKey` in the settings store via devtools.
+**Expected:** The discovered field key is written into the store on startup.
+**Why human:** Startup wiring uses `useQuery` + `useEffect` with async Stronghold token reads; Tauri runtime required.
 
-### 4. Releases Tab Correct Project After Rehydration Fix
+### 4. Releases Tab Correct Project After Rehydration
 
-**Test:** With a stale numeric `activeJiraProject` in `auth.json` (or simulate by editing the file), restart the app, navigate to Settings.
-**Expected:** Project selection shows "Select project..." (the stale value was cleared). Select a project and verify Releases tab shows versions from that project.
-**Why human:** `onRehydrateStorage` fires at Tauri Store hydration time; requires real Tauri runtime with a pre-seeded stale `auth.json` to verify.
-
----
-
-## Overall Assessment
-
-All 7 requirements (APIF-01 through APIF-04, REL-01 through REL-03) are implemented, tested, and wired. Both UAT gaps discovered after the initial verification have been closed:
-
-- **APIF-02 gap (plan 05-05):** The first JQL now contains `AND issuetype not in subtaskIssueTypes()`, preventing the Jira DC edge case where `openSprints()` returns subtasks that would otherwise pollute `parentKeys` and cause the second query to find no children. 5 APIF-02 tests pass (up from 4).
-
-- **REL-01 gap (plan 05-06):** `onRehydrateStorage` in `auth.store.ts` clears any pure-numeric `activeJiraProject` on app startup, fixing the root cause of Releases showing versions from the wrong project. `handleProjectChange` parameter renamed from `projectId` to `projectKey` to prevent future regression.
-
-The 3 TypeScript lint errors and 1 test failure (MyTasksTab skeleton) are pre-existing from Phases 2-4 and are not within Phase 05 scope. Phase 05 introduced zero new TypeScript errors and zero new test failures.
+**Test:** With a stale numeric `activeJiraProject` in `auth.json`, restart the app, navigate to Settings.
+**Expected:** Project selection shows "Select project..." and Releases tab shows versions from the re-selected project.
+**Why human:** `onRehydrateStorage` behavior requires real Tauri runtime with pre-seeded stale auth.json.
 
 ---
 
-_Verified: 2026-03-12T16:45:00Z_
+_Verified: 2026-03-12T18:45:00Z_
 _Verifier: Claude (gsd-verifier)_
-_Mode: Re-verification after gap closure (plans 05-05, 05-06)_
+_Mode: Re-verification (fourth pass) — all gaps closed, working tree clean_
