@@ -17,7 +17,7 @@ vi.mock('@/services/jira', () => ({
 
 // Mock gitlab service
 vi.mock('@/services/gitlab', () => ({
-  fetchGroupMilestones: vi.fn().mockResolvedValue([]),
+  fetchProjectMilestones: vi.fn().mockResolvedValue([]),
   fetchProjectTags: vi.fn().mockResolvedValue([]),
 }));
 
@@ -32,7 +32,7 @@ vi.mock('@/stores/auth.store', () => ({
     jiraBaseUrl: 'https://jira.example.com',
     activeJiraProject: 'PROJ',
     gitlabBaseUrl: 'https://gitlab.example.com',
-    activeGitlabGroup: 'my-org/team',
+    activeGitlabProject: 42,
   })),
 }));
 
@@ -74,8 +74,8 @@ describe('ReleasesTab', () => {
     } as Response);
     const { fetchFixVersions } = await import('@/services/jira');
     vi.mocked(fetchFixVersions).mockResolvedValue([]);
-    const { fetchGroupMilestones, fetchProjectTags } = await import('@/services/gitlab');
-    vi.mocked(fetchGroupMilestones).mockResolvedValue([]);
+    const { fetchProjectMilestones, fetchProjectTags } = await import('@/services/gitlab');
+    vi.mocked(fetchProjectMilestones).mockResolvedValue([]);
     vi.mocked(fetchProjectTags).mockResolvedValue([]);
     const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
     vi.mocked(matchGitLabToFixVersion).mockReturnValue({ type: 'none', candidateName: '', candidateUrl: '' });
@@ -111,8 +111,8 @@ describe('ReleasesTab', () => {
     ]);
 
     // Provide a milestone so the matching function is called with a candidate
-    const { fetchGroupMilestones } = await import('@/services/gitlab');
-    vi.mocked(fetchGroupMilestones).mockResolvedValue([
+    const { fetchProjectMilestones } = await import('@/services/gitlab');
+    vi.mocked(fetchProjectMilestones).mockResolvedValue([
       { id: 1, iid: 1, title: 'sprint-15', due_date: '2026-03-15', state: 'active', web_url: 'https://gitlab.example.com/milestone/1' },
     ]);
 
@@ -140,8 +140,8 @@ describe('ReleasesTab', () => {
     ]);
 
     // Provide a milestone candidate so the matching function is invoked
-    const { fetchGroupMilestones } = await import('@/services/gitlab');
-    vi.mocked(fetchGroupMilestones).mockResolvedValue([
+    const { fetchProjectMilestones } = await import('@/services/gitlab');
+    vi.mocked(fetchProjectMilestones).mockResolvedValue([
       { id: 1, iid: 1, title: 'sprint-15', due_date: '2026-03-14', state: 'active', web_url: 'https://gitlab.example.com/milestone/1' },
     ]);
 
