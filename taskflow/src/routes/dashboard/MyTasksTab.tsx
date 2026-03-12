@@ -204,18 +204,30 @@ export default function MyTasksTab() {
       postTransition(jiraBaseUrl!, jiraToken ?? '', issueKey, transitionId),
     onMutate: async ({ issueKey, toStatusName }) => {
       await queryClient.cancelQueries({ queryKey: ['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey] })
-      const prev = queryClient.getQueryData<JiraIssue[]>(['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey])
-      queryClient.setQueryData<JiraIssue[]>(['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey], (old) =>
-        (old ?? []).map((i) =>
-          i.key === issueKey
-            ? { ...i, fields: { ...i.fields, status: { ...i.fields.status, name: toStatusName } } }
-            : i,
-        ),
+      const prev = queryClient.getQueryData<{ issues: JiraIssue[]; myIssueKeys: Set<string> }>(
+        ['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey]
+      )
+      queryClient.setQueryData<{ issues: JiraIssue[]; myIssueKeys: Set<string> }>(
+        ['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey],
+        (old) => {
+          if (!old) return old
+          return {
+            ...old,
+            issues: old.issues.map((i) =>
+              i.key === issueKey
+                ? { ...i, fields: { ...i.fields, status: { ...i.fields.status, name: toStatusName } } }
+                : i,
+            ),
+          }
+        },
       )
       return { prev }
     },
     onError: (_err, { issueKey }, ctx) => {
-      queryClient.setQueryData(['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey], ctx?.prev)
+      queryClient.setQueryData<{ issues: JiraIssue[]; myIssueKeys: Set<string> }>(
+        ['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey],
+        ctx?.prev
+      )
       setInlineErrors((prev) => ({ ...prev, [`${issueKey}-transition`]: 'Failed to update — try again' }))
     },
     onSettled: () =>
@@ -346,42 +358,6 @@ export default function MyTasksTab() {
                 {renderRow(parent, false)}
                 {children.map((subtask) => renderRow(subtask, true))}
               </div>
-            )
-          })}
-          {groupedData.orphans.map((issue) => {
-            const linkedMrs = fullLinkMap.get(issue.key) ?? []
-            const linkedMrResults = linkedMrs.map((mr) => ({
-              mr,
-              health: healthMap.get(mr.iid) ?? ('waiting_for_review' as ReviewHealth),
-            }))
-            return (
-              <TaskRow
-                key={issue.id}
-                issue={issue}
-                isSubtask
-                notMine={!myIssueKeys.has(issue.key)}
-                linkedMrResults={linkedMrResults}
-                jiraBaseUrl={jiraBaseUrl ?? ''}
-                jiraToken={jiraToken ?? ''}
-                onTransitionSelect={(issueKey, transitionId, toStatusName) => {
-                  setInlineErrors((prev) => { const next = { ...prev }; delete next[`${issueKey}-transition`]; return next })
-                  transitionMutation.mutate({ issueKey, transitionId, toStatusName })
-                }}
-                onCommentSubmit={(issueKey, comment) => {
-                  setInlineErrors((prev) => { const next = { ...prev }; delete next[`${issueKey}-comment`]; return next })
-                  commentMutation.mutate({ issueKey, comment })
-                }}
-                isTransitionPending={
-                  transitionMutation.isPending &&
-                  transitionMutation.variables?.issueKey === issue.key
-                }
-                isCommentPending={
-                  commentMutation.isPending &&
-                  commentMutation.variables?.issueKey === issue.key
-                }
-                transitionError={inlineErrors[`${issue.key}-transition`]}
-                commentError={inlineErrors[`${issue.key}-comment`]}
-              />
             )
           })}
         </div>
