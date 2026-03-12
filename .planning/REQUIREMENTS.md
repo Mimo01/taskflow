@@ -22,9 +22,9 @@ Requirements for v1.1 Polish milestone. Each maps to roadmap phases.
 
 ### Workload
 
-- [ ] **WORK-01**: User sees correct story points per assignee (subtasks excluded from point totals)
-- [ ] **WORK-02**: User sees original estimate, time spent, and remaining estimate columns per assignee
-- [ ] **WORK-03**: User sees time tracking aggregated at story level under each assignee
+- [x] **WORK-01**: User sees correct story points per assignee (subtasks excluded from point totals)
+- [x] **WORK-02**: User sees original estimate, time spent, and remaining estimate columns per assignee
+- [x] **WORK-03**: User sees time tracking aggregated at story level under each assignee
 
 ### Sprint Progress
 
@@ -77,9 +77,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REL-01 | Phase 5 | Complete |
 | REL-02 | Phase 5 | Complete |
 | REL-03 | Phase 5 | Complete |
-| WORK-01 | Phase 6 | Pending |
-| WORK-02 | Phase 6 | Pending |
-| WORK-03 | Phase 6 | Pending |
+| WORK-01 | Phase 6 | Complete |
+| WORK-02 | Phase 6 | Complete |
+| WORK-03 | Phase 6 | Complete |
 | SPPG-01 | Phase 6 | Pending |
 | SPPG-02 | Phase 6 | Pending |
 | SPPG-03 | Phase 6 | Pending |

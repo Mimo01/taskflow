@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: planning
-stopped_at: Phase 6 context gathered
-last_updated: "2026-03-12T20:58:28.636Z"
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-03-12T21:16:09.474Z"
 last_activity: "2026-03-12 - Completed quick task 5: GitLab group selection replaced with project selection across auth store, onboarding wizard, settings, ReleasesTab, and notification polling"
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 10
+  completed_plans: 9
   percent: 0
 ---
 
@@ -68,6 +68,8 @@ Key v1.1 constraints from research:
 - [Phase 05-api-foundation-quick-wins]: APIF-02 subtask JQL bug: assigneeClause was in scope but not interpolated into second query template literal — one-character fix appending ${assigneeClause}
 - [Phase 05-api-foundation-quick-wins]: REL-01: fetchFixVersions must use /rest/api/2/project/{projectKey}/versions — Jira Server silently ignores ?projectKey= filter on /rest/api/2/version
 - [Phase 05-api-foundation-quick-wins]: REL-01: onRehydrateStorage clears numeric activeJiraProject via useAuthStore.setState() — direct mutation is overwritten by async Tauri storage hydration
+- [Phase 06]: WorkloadTab: exclude done stories from point totals — preserves original test behavior
+- [Phase 06]: WorkloadTab: useState Set expand/collapse chosen over @base-ui/react Collapsible for simplicity and testability
 
 ### Pending Todos
 
@@ -85,9 +87,10 @@ None.
 |---|-------------|------|--------|--------|-----------|
 | 4 | Jira & GitLab api call logging, debug option toggle in settings and new UI page for displaying the logs | 2026-03-12 | e3eb929 | Verified | [4-jira-gitlab-api-call-logging-debug-optio](./quick/4-jira-gitlab-api-call-logging-debug-optio/) |
 | 5 | GitLab group selection replaced with project selection (auth store, onboarding, settings, ReleasesTab, notifications) | 2026-03-12 | 6e2fb62 | Verified | [5-change-gitlab-active-group-selection-to-](./quick/5-change-gitlab-active-group-selection-to-/) |
+| Phase 06 P01 | 203 | 2 tasks | 2 files |
 
 ## Session Continuity
 
-Last session: 2026-03-12T20:58:28.631Z
-Stopped at: Phase 6 context gathered
-Resume file: .planning/phases/06-workload-sprint-progress-enrichment/06-CONTEXT.md
+Last session: 2026-03-12T21:16:09.470Z
+Stopped at: Completed 06-01-PLAN.md
+Resume file: None
