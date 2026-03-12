@@ -86,11 +86,12 @@ describe('WorkloadTab', () => {
     } as ReturnType<typeof settingsStore.useSettingsStore>);
   });
 
-  it('groups open (non-done) sprint issues by assignee displayName, excludes done issues', async () => {
+  it('groups sprint issues by assignee — done excluded from count/pts but visible as sub-rows', async () => {
+    const user = userEvent.setup();
     const { fetchSprintIssues } = await import('@/services/jira');
     vi.mocked(fetchSprintIssues).mockResolvedValue([
       makeIssue('P-1', 'Alice', 'indeterminate', 5),
-      makeIssue('P-2', 'Alice', 'done', 3),       // done — excluded
+      makeIssue('P-2', 'Alice', 'done', 3),       // done — excluded from count/pts
       makeIssue('P-3', null, 'new', 2),            // unassigned
     ]);
 
@@ -102,19 +103,25 @@ describe('WorkloadTab', () => {
     // Unassigned: 1 open task (P-3)
     expect(screen.getByText('Unassigned')).toBeTruthy();
 
-    // Alice row should show 1 task (P-2 done is excluded)
+    // Alice row should show 1 task (P-2 done is excluded from count/pts)
     const aliceRow = screen.getByText('Alice').closest('[data-testid="workload-row"]');
     expect(aliceRow).not.toBeNull();
     expect(aliceRow?.textContent).toMatch(/1/);
     expect(aliceRow?.textContent).toMatch(/5\s*pts/i);
+
+    // Expand Alice row — both P-1 and P-2 (done) should appear as sub-rows
+    await user.click(aliceRow!);
+    expect(screen.getByText('P-1')).toBeTruthy();
+    expect(screen.getByText('P-2')).toBeTruthy();
   });
 
   it('sums story points per assignee (unresolved only)', async () => {
+    const user = userEvent.setup();
     const { fetchSprintIssues } = await import('@/services/jira');
     vi.mocked(fetchSprintIssues).mockResolvedValue([
       makeIssue('P-1', 'Bob', 'new', 8),
       makeIssue('P-2', 'Bob', 'indeterminate', 5),
-      makeIssue('P-3', 'Bob', 'done', 13),         // done — points excluded
+      makeIssue('P-3', 'Bob', 'done', 13),         // done — points excluded from total
     ]);
 
     const { default: WorkloadTab } = await import('./WorkloadTab');
@@ -124,6 +131,34 @@ describe('WorkloadTab', () => {
     // Bob open tasks: P-1 (8pts) + P-2 (5pts) = 13 pts, 2 tasks
     const bobRow = screen.getByText('Bob').closest('[data-testid="workload-row"]');
     expect(bobRow?.textContent).toMatch(/13\s*pts/i);
+
+    // Expand Bob row — done story P-3 should also appear as a sub-row
+    await user.click(bobRow!);
+    expect(screen.getByText('P-3')).toBeTruthy();
+  });
+
+  it('shows assignee row for person with only done stories', async () => {
+    const user = userEvent.setup();
+    const { fetchSprintIssues } = await import('@/services/jira');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([
+      makeIssue('P-1', 'Carol', 'done', 5),
+    ]);
+
+    const { default: WorkloadTab } = await import('./WorkloadTab');
+    renderWithQuery(<WorkloadTab />);
+
+    // Carol should still appear even though her only story is done
+    await screen.findByText('Carol');
+
+    const carolRow = screen.getByText('Carol').closest('[data-testid="workload-row"]');
+    expect(carolRow).not.toBeNull();
+    // Carol row should show 0 tasks and 0 pts
+    expect(carolRow?.textContent).toMatch(/0\s*tasks?/i);
+    expect(carolRow?.textContent).toMatch(/0\s*pts/i);
+
+    // Expand Carol row — P-1 (done) should appear as a sub-row
+    await user.click(carolRow!);
+    expect(screen.getByText('P-1')).toBeTruthy();
   });
 
   it('shows Unassigned bucket for issues with null assignee', async () => {

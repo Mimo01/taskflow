@@ -2,7 +2,7 @@
  * WorkloadTab — PM-02: Per-assignee open task count and story points.
  *
  * Reads from the shared TanStack cache (same query key as SprintProgressTab).
- * Only counts NON-done stories (statusCategory.key !== 'done', subtasks excluded).
+ * Counts and points only reflect non-done stories; done stories appear in expanded sub-rows.
  * Groups by assignee.displayName, with null assignee → 'Unassigned'.
  * Rows sorted by open task count descending.
  * Time tracking columns (Est/Spent/Remaining) hidden when all values are zero/null.
@@ -85,7 +85,8 @@ export default function WorkloadTab() {
     // Accumulate story-level data
     for (const story of stories) {
       const cat = story.fields.status.statusCategory?.key ?? 'new';
-      if (cat === 'done') continue; // exclude done stories from points, count, and rows
+      const isDone = cat === 'done';
+      // Always add story to the assignee map — done stories still appear as sub-rows
       const name = story.fields.assignee?.displayName ?? 'Unassigned';
       const pts = (story.fields[storyPointsFieldKey] as number | null) ?? 0;
       const tt = story.fields.timetracking;
@@ -99,11 +100,14 @@ export default function WorkloadTab() {
         stories: [],
       };
 
-      existing.points += pts;
+      if (!isDone) {
+        existing.points += pts;
+        existing.count += 1;
+      }
+      // Time tracking always aggregated regardless of done status
       existing.estSecs += tt?.originalEstimateSeconds ?? 0;
       existing.spentSecs += tt?.timeSpentSeconds ?? 0;
       existing.remainSecs += tt?.remainingEstimateSeconds ?? 0;
-      existing.count += 1;
       existing.stories.push({
         key: story.key,
         summary: story.fields.summary,
