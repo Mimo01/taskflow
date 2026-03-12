@@ -154,8 +154,17 @@ export interface JiraTransition {
   to: { id: string; name: string };
 }
 
+const SUBTASK_CHUNK_SIZE = 50;
+
 /**
  * Fetch issues in the active sprint for a project.
+ *
+ * Uses a two-query strategy: first query fetches parent issues (Jira DC's
+ * `sprint in openSprints()` intentionally excludes subtasks), second query
+ * fetches subtasks for those parents in chunks of 50 keys.
+ *
+ * On any failure of the second (subtask) query, parent issues are returned
+ * alone — callers never observe an error from subtask fetching.
  *
  * @param baseUrl      - Jira base URL
  * @param token        - Personal Access Token
@@ -172,10 +181,11 @@ export async function fetchSprintIssues(
 ): Promise<JiraIssue[]> {
   const base = baseUrl.replace(/\/$/, '');
   const assigneeClause = assignedToMe ? ' AND assignee = currentUser()' : '';
+  // Updated fields: add parent, subtasks, timetracking to first query
+  const fields = 'summary,status,assignee,issuetype,customfield_10016,story_points,parent,subtasks,timetracking';
   const jql = encodeURIComponent(
     `project = ${projectKey} AND sprint in openSprints()${assigneeClause} AND resolution = Unresolved ORDER BY updated DESC`,
   );
-  const fields = 'summary,status,assignee,issuetype,customfield_10016,story_points';
   const url = `${base}/rest/api/2/search?jql=${jql}&fields=${fields}`;
 
   let response: Response;
@@ -203,7 +213,47 @@ export async function fetchSprintIssues(
   }
 
   const data = await response.json();
-  return data.issues as JiraIssue[];
+  const parentIssues = data.issues as JiraIssue[];
+
+  // Second query: fetch subtasks for all parent issues
+  // Note: sprint in openSprints() excludes subtasks on Jira DC by design
+  const parentKeys = parentIssues.map((i) => i.key);
+  if (parentKeys.length === 0) return parentIssues;
+
+  // Subtask fields: same as parent query EXCEPT description is omitted (fetched on-demand)
+  const subtaskFields = 'summary,status,assignee,issuetype,parent,timetracking';
+
+  try {
+    // Chunk to stay within Jira DC URL length limits (~6000 chars JQL max)
+    const chunks: string[][] = [];
+    for (let i = 0; i < parentKeys.length; i += SUBTASK_CHUNK_SIZE) {
+      chunks.push(parentKeys.slice(i, i + SUBTASK_CHUNK_SIZE));
+    }
+
+    const chunkResults = await Promise.all(
+      chunks.map(async (chunk) => {
+        const subtaskJql = encodeURIComponent(
+          `issuetype in subtaskIssueTypes() AND parent in (${chunk.join(',')})`,
+        );
+        const subtaskUrl = `${base}/rest/api/2/search?jql=${subtaskJql}&fields=${subtaskFields}&maxResults=200`;
+        const subtaskResponse = await fetch(subtaskUrl, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!subtaskResponse.ok) return [];
+        const subtaskData = await subtaskResponse.json();
+        return subtaskData.issues as JiraIssue[];
+      }),
+    );
+
+    const subtasks = chunkResults.flat();
+    return [...parentIssues, ...subtasks];
+  } catch {
+    // Subtask query failed: return parent issues only, silently
+    return parentIssues;
+  }
 }
 
 /**
