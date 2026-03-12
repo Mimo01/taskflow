@@ -9,6 +9,7 @@ import {
   fetchMRCommits,
   fetchMRApprovals,
   fetchMRDiscussions,
+  searchGitLabMRs,
 } from './gitlab';
 
 vi.mock('@tauri-apps/plugin-http', () => ({
@@ -189,6 +190,19 @@ describe('gitlab service', () => {
       const result = await fetchMRDiscussions('https://gitlab.example.com', 'my-token', 5, 1);
       expect(result).toEqual(mockDiscussions);
       expect(result[0].notes[0].resolved).toBe(false);
+    });
+  });
+
+  describe('searchGitLabMRs', () => {
+    it('APIF-04: request URL includes state=opened filter', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [],
+      } as Response);
+      await searchGitLabMRs('https://gitlab.example.com', 'my-token', 'feat login');
+      const calledUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      expect(calledUrl).toMatch(/state=opened/);
     });
   });
 });
