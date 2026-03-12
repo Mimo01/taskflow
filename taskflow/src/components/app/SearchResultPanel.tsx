@@ -22,6 +22,31 @@ interface SearchResultPanelProps {
   onBack: () => void;
 }
 
+/**
+ * Convert Atlassian Document Format (ADF) to plain text.
+ * Jira Cloud returns issue.fields.description as an ADF JSON object.
+ * Jira Server may still return a plain string — handle both defensively.
+ */
+function adfToPlainText(description: unknown): string {
+  if (!description) return '';
+  // Jira Server plain-string fallback
+  if (typeof description === 'string') return description;
+  // ADF object: walk content nodes and collect text leaves
+  const parts: string[] = [];
+  function walk(node: unknown): void {
+    if (!node || typeof node !== 'object') return;
+    const n = node as { type?: string; text?: string; content?: unknown[] };
+    if (n.type === 'text' && typeof n.text === 'string') {
+      parts.push(n.text);
+    }
+    if (Array.isArray(n.content)) {
+      n.content.forEach(walk);
+    }
+  }
+  walk(description);
+  return parts.join(' ').replace(/\s+/g, ' ').trim();
+}
+
 function isJiraIssue(result: JiraIssue | GitLabMR): result is JiraIssue {
   return 'key' in result && 'fields' in result;
 }
@@ -49,9 +74,10 @@ function JiraPanel({
   jiraBaseUrl: string;
   onBack: () => void;
 }) {
-  const descriptionExcerpt = issue.fields.description
-    ? issue.fields.description.slice(0, 200)
-    : null;
+  const descriptionExcerpt = (() => {
+    const text = adfToPlainText(issue.fields.description as unknown);
+    return text ? text.slice(0, 200) : null;
+  })();
 
   return (
     <div className="p-3 space-y-3">
@@ -103,7 +129,15 @@ function JiraPanel({
   );
 }
 
-function GitLabPanel({ mr, onBack }: { mr: GitLabMR; onBack: () => void }) {
+function GitLabPanel({
+  mr,
+  jiraBaseUrl,
+  onBack,
+}: {
+  mr: GitLabMR;
+  jiraBaseUrl: string;
+  onBack: () => void;
+}) {
   const linkedKey = extractTicketKeys(mr.title)[0] ?? null;
 
   return (
@@ -130,9 +164,14 @@ function GitLabPanel({ mr, onBack }: { mr: GitLabMR; onBack: () => void }) {
         <MrStateBadge state={mr.state} />
         <span className="text-muted-foreground">{mr.author.name}</span>
         {linkedKey && (
-          <span className="inline-block px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-mono">
+          <button
+            type="button"
+            onClick={() => openUrl(`${jiraBaseUrl}/browse/${linkedKey}`)}
+            className="inline-block px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-mono hover:opacity-80 cursor-pointer"
+            aria-label={`Open ${linkedKey} in Jira`}
+          >
             {linkedKey}
-          </span>
+          </button>
         )}
       </div>
 
@@ -154,7 +193,7 @@ export default function SearchResultPanel({ result, type, jiraBaseUrl, onBack }:
     return <JiraPanel issue={result} jiraBaseUrl={jiraBaseUrl} onBack={onBack} />;
   }
   if (type === 'gitlab' && !isJiraIssue(result)) {
-    return <GitLabPanel mr={result as GitLabMR} onBack={onBack} />;
+    return <GitLabPanel mr={result as GitLabMR} jiraBaseUrl={jiraBaseUrl} onBack={onBack} />;
   }
   return null;
 }
