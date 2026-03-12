@@ -46,13 +46,23 @@ export default function Sidebar() {
         </Link>
 
         {/* Work section (role-specific) */}
-        {(role === 'developer' || role === 'pm') && (
+        {(role === 'developer' || role === 'pm' || role === 'tech-lead') && (
           <div className="mt-2">
-            <p className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:block">
-              Work
-            </p>
-            {role === 'developer' && (
+            {/* Developer and PM roles: single "Work" label */}
+            {(role === 'developer' || role === 'pm') && (
+              <p className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:block">
+                Work
+              </p>
+            )}
+
+            {/* Developer role links */}
+            {(role === 'developer' || role === 'tech-lead') && (
               <>
+                {role === 'tech-lead' && (
+                  <p className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:block">
+                    Developer
+                  </p>
+                )}
                 <Link to="/my-tasks" className={NAV_LINK_CLASS}>
                   <CheckSquare className="h-4 w-4 shrink-0" />
                   <span className="hidden md:block">My Tasks</span>
@@ -67,8 +77,15 @@ export default function Sidebar() {
                 </Link>
               </>
             )}
-            {role === 'pm' && (
+
+            {/* PM role links */}
+            {(role === 'pm' || role === 'tech-lead') && (
               <>
+                {role === 'tech-lead' && (
+                  <p className="px-3 py-1 mt-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:block">
+                    PM
+                  </p>
+                )}
                 <Link to="/sprint-progress" className={NAV_LINK_CLASS}>
                   <BarChart2 className="h-4 w-4 shrink-0" />
                   <span className="hidden md:block">Sprint Progress</span>
