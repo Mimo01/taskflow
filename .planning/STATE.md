@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 Phase: 4 of 4 (PM Dashboard & Search) — COMPLETE
 Plan: 5 of 5 in current phase — COMPLETE
 Status: Phase 4 Plan 05 done — ADF description fix + GitLab linked key chip clickable
-Last activity: 2026-03-12 — Phase 4 Plan 05 complete — adfToPlainText utility, GitLab chip button, 21 tests pass
+Last activity: 2026-03-12 - Completed quick task 1: Restructure navigation: move Dashboard header nav to sidebar, keep Dashboard as overview page
 
 Progress: [██████████] 100%
 
@@ -140,6 +140,12 @@ None.
 - Phase 2: Must validate Jira Server auth header format (Bearer vs Basic) against actual on-premise instance before writing polling interceptor
 - Phase 2: GitLab self-hosted rate limit may differ from GitLab.com 2000 req/min — validate before setting polling intervals
 - Phase 2: Gather 20+ real MR titles from team GitLab history before writing ticket-key regex (silent linking failures destroy trust)
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Status | Directory |
+|---|-------------|------|--------|--------|-----------|
+| 1 | Restructure navigation: move Dashboard header nav to sidebar, keep Dashboard as overview page | 2026-03-12 | 82f7778 | Needs Review | [1-restructure-navigation-move-dashboard-he](./quick/1-restructure-navigation-move-dashboard-he/) |
 
 ## Session Continuity
 
