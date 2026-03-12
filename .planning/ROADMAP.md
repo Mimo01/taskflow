@@ -40,7 +40,7 @@ See archive: `.planning/milestones/v1.0-ROADMAP.md`
   2. Past-due unreleased releases show an overdue badge; future unreleased releases show a days-until countdown
   3. MR Attention and all MR lists show only open (not merged or closed) merge requests
   4. Sprint issues returned by the API include parent, subtasks, time tracking, and issuetype.subtask fields without any existing functionality breaking
-**Plans**: 6 plans
+**Plans**: 8 plans
 
 Plans:
 - [ ] 05-01-PLAN.md — Install shadcn Badge + fix searchGitLabMRs + write Wave 0 test stubs
@@ -49,6 +49,8 @@ Plans:
 - [ ] 05-04-PLAN.md — Releases tab sort + Released/Unreleased/timing badges
 - [ ] 05-05-PLAN.md — Fix sprint JQL: add issuetype not in subtaskIssueTypes() guard (gap closure)
 - [ ] 05-06-PLAN.md — Fix releases wrong project: clear stale numeric project IDs on startup (gap closure)
+- [ ] 05-07-PLAN.md — Fix subtask assignee filter: append assigneeClause to subtask JQL (gap closure)
+- [ ] 05-08-PLAN.md — Fix fetchFixVersions endpoint + bare-array parse + auth store setState guard (gap closure)
 
 ### Phase 6: Workload + Sprint Progress Enrichment
 **Goal**: Workload shows correct per-assignee story points (no double-counting) plus time tracking columns, and Sprint Progress shows a full breakdown by status, time totals, and per-assignee table
@@ -94,7 +96,7 @@ Phases execute in numeric order: 5 → 6 → 7 → 8
 | 2. Developer Dashboard | v1.0 | 7/7 | Complete | 2026-03-11 |
 | 3. Notifications Hub | v1.0 | 2/2 | Complete | 2026-03-12 |
 | 4. PM Dashboard + Search | v1.0 | 5/5 | Complete | 2026-03-12 |
-| 5. API Foundation + Quick Wins | 6/6 | Complete   | 2026-03-12 | 2026-03-12 |
+| 5. API Foundation + Quick Wins | v1.1 | 6/8 | Gap closure | 2026-03-12 |
 | 6. Workload + Sprint Progress Enrichment | v1.1 | 0/? | Not started | - |
 | 7. Story/Subtask Hierarchy + MR Subtask Filter | v1.1 | 0/? | Not started | - |
 | 8. Dashboard Enrichment | v1.1 | 0/? | Not started | - |
