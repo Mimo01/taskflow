@@ -213,3 +213,120 @@ describe('ReleasesTab', () => {
     await screen.findByText(/3\s*\/\s*8\s*done/i);
   });
 });
+
+describe('REL-01: sort order', () => {
+  it('renders releases newest-to-oldest by releaseDate', async () => {
+    const { fetchFixVersions } = await import('@/services/jira');
+    vi.mocked(fetchFixVersions).mockResolvedValue([
+      makeFixVersion('v1', 'Release A', '2026-01-01'),
+      makeFixVersion('v2', 'Release B', '2026-03-15'),
+      makeFixVersion('v3', 'Release C', '2025-12-01'),
+    ]);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } });
+    const { default: ReleasesTab } = await import('./ReleasesTab');
+    render(<QueryClientProvider client={queryClient}><ReleasesTab /></QueryClientProvider>);
+
+    const rows = await screen.findAllByTestId('release-row');
+    const names = rows.map(r => r.getAttribute('data-name') ?? r.textContent ?? '');
+    // Expect newest first: B (2026-03-15), A (2026-01-01), C (2025-12-01)
+    expect(names[0]).toContain('Release B');
+    expect(names[1]).toContain('Release A');
+    expect(names[2]).toContain('Release C');
+  });
+
+  it('undated releases appear at bottom of list', async () => {
+    const { fetchFixVersions } = await import('@/services/jira');
+    vi.mocked(fetchFixVersions).mockResolvedValue([
+      makeFixVersion('v1', 'No Date Release', undefined),
+      makeFixVersion('v2', 'Dated Release', '2026-03-15'),
+    ]);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } });
+    const { default: ReleasesTab } = await import('./ReleasesTab');
+    render(<QueryClientProvider client={queryClient}><ReleasesTab /></QueryClientProvider>);
+
+    const rows = await screen.findAllByTestId('release-row');
+    expect(rows[0].textContent).toContain('Dated Release');
+    expect(rows[1].textContent).toContain('No Date Release');
+  });
+});
+
+describe('REL-02: status badges', () => {
+  it('released version shows Released badge', async () => {
+    const { fetchFixVersions } = await import('@/services/jira');
+    vi.mocked(fetchFixVersions).mockResolvedValue([
+      { id: 'v1', name: 'v1.0.0', releaseDate: '2026-01-01', released: true },
+    ]);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } });
+    const { default: ReleasesTab } = await import('./ReleasesTab');
+    render(<QueryClientProvider client={queryClient}><ReleasesTab /></QueryClientProvider>);
+
+    await screen.findByText('v1.0.0');
+    expect(screen.getByText('Released')).toBeTruthy();
+  });
+
+  it('unreleased version shows Unreleased badge', async () => {
+    const { fetchFixVersions } = await import('@/services/jira');
+    vi.mocked(fetchFixVersions).mockResolvedValue([
+      makeFixVersion('v1', 'v2.0.0', '2026-06-01'),
+    ]);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } });
+    const { default: ReleasesTab } = await import('./ReleasesTab');
+    render(<QueryClientProvider client={queryClient}><ReleasesTab /></QueryClientProvider>);
+
+    await screen.findByText('v2.0.0');
+    expect(screen.getByText('Unreleased')).toBeTruthy();
+  });
+});
+
+describe('REL-03: timing labels', () => {
+  it('past-date unreleased shows Overdue label', async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const pastDate = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const { fetchFixVersions } = await import('@/services/jira');
+    vi.mocked(fetchFixVersions).mockResolvedValue([
+      makeFixVersion('v1', 'Past Release', pastDate),
+    ]);
+    void today; // used for reference
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } });
+    const { default: ReleasesTab } = await import('./ReleasesTab');
+    render(<QueryClientProvider client={queryClient}><ReleasesTab /></QueryClientProvider>);
+
+    await screen.findByText('Past Release');
+    expect(screen.getByText(/overdue/i)).toBeTruthy();
+  });
+
+  it('same-day unreleased shows Due today label', async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const { fetchFixVersions } = await import('@/services/jira');
+    vi.mocked(fetchFixVersions).mockResolvedValue([
+      makeFixVersion('v1', 'Today Release', today),
+    ]);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } });
+    const { default: ReleasesTab } = await import('./ReleasesTab');
+    render(<QueryClientProvider client={queryClient}><ReleasesTab /></QueryClientProvider>);
+
+    await screen.findByText('Today Release');
+    expect(screen.getByText(/due today/i)).toBeTruthy();
+  });
+
+  it('future unreleased shows In X days label', async () => {
+    const futureDate = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const { fetchFixVersions } = await import('@/services/jira');
+    vi.mocked(fetchFixVersions).mockResolvedValue([
+      makeFixVersion('v1', 'Future Release', futureDate),
+    ]);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } });
+    const { default: ReleasesTab } = await import('./ReleasesTab');
+    render(<QueryClientProvider client={queryClient}><ReleasesTab /></QueryClientProvider>);
+
+    await screen.findByText('Future Release');
+    expect(screen.getByText(/in \d+ days/i)).toBeTruthy();
+  });
+});
