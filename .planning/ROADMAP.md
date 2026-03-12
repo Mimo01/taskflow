@@ -61,7 +61,11 @@ Plans:
   2. Workload shows original estimate, time spent, and remaining estimate columns per assignee
   3. Sprint Progress shows points broken down into To Do / In Progress / Done buckets with counts and percentages
   4. Sprint Progress shows sprint-wide time totals (total estimated vs total logged) and a per-assignee breakdown table
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — WorkloadTab rewrite: subtask exclusion, time tracking columns, expandable per-story rows
+- [ ] 06-02-PLAN.md — SprintProgressTab rewrite: stacked bar, sprint time totals, per-assignee breakdown table
 
 ### Phase 7: Story/Subtask Hierarchy + MR Subtask Filter
 **Goal**: My Tasks and Sprint Board group subtasks under their parent story, orphan subtasks show a parent context badge, and MR Attention includes MRs linked to stories where the current user has assigned subtasks
@@ -97,6 +101,6 @@ Phases execute in numeric order: 5 → 6 → 7 → 8
 | 3. Notifications Hub | v1.0 | 2/2 | Complete | 2026-03-12 |
 | 4. PM Dashboard + Search | v1.0 | 5/5 | Complete | 2026-03-12 |
 | 5. API Foundation + Quick Wins | 8/8 | Complete   | 2026-03-12 | 2026-03-12 |
-| 6. Workload + Sprint Progress Enrichment | v1.1 | 0/? | Not started | - |
+| 6. Workload + Sprint Progress Enrichment | v1.1 | 0/2 | Not started | - |
 | 7. Story/Subtask Hierarchy + MR Subtask Filter | v1.1 | 0/? | Not started | - |
 | 8. Dashboard Enrichment | v1.1 | 0/? | Not started | - |
