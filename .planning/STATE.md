@@ -5,7 +5,7 @@ milestone_name: Polish
 status: planning
 stopped_at: Completed 06-03-PLAN.md
 last_updated: "2026-03-12T23:35:00Z"
-last_activity: "2026-03-12 - Completed quick task 8: Add Tech Lead role with access to all Developer and PM features"
+last_activity: "2026-03-12 - Completed quick task 9: Add 15s AbortController timeout to apiFetch for Jira and GitLab API calls"
 progress:
   total_phases: 4
   completed_phases: 2
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 Phase: 5 of 8 (API Foundation + Quick Wins)
 Plan: — of —
 Status: Ready to plan
-Last activity: 2026-03-12 - Completed quick task 8: Add Tech Lead role with access to all Developer and PM features
+Last activity: 2026-03-12 - Completed quick task 9: Add 15s AbortController timeout to apiFetch for Jira and GitLab API calls
 
 Progress: [░░░░░░░░░░] 0% (v1.1)
 
@@ -93,6 +93,7 @@ None.
 | 6 | Sort WorkloadTab assignees by story points descending with alphabetical tiebreaker | 2026-03-12 | 99dc766 | Verified | [6-sort-assignees-by-total-story-points-in-](./quick/6-sort-assignees-by-total-story-points-in-/) |
 | 7 | Add Stories and Subtasks columns to SprintProgressTab assignee breakdown table | 2026-03-12 | ded80fa | Verified | [7-in-sprint-progress-page-show-a-new-colum](./quick/7-in-sprint-progress-page-show-a-new-colum/) |
 | 8 | Add Tech Lead role with access to all Developer and PM features | 2026-03-12 | 2f3fb6a | Verified | [8-add-a-new-role-with-access-to-all-featur](./quick/8-add-a-new-role-with-access-to-all-featur/) |
+| 9 | Add 15-second AbortController timeout to all Jira and GitLab API calls | 2026-03-12 | 7859212 | Verified | [9-add-timeouts-for-jira-and-gitlab-api-cal](./quick/9-add-timeouts-for-jira-and-gitlab-api-cal/) |
 | Phase 06 P01 | 203 | 2 tasks | 2 files |
 | Phase 06 P02 | 4 | 2 tasks | 2 files |
 | Phase 06-workload-sprint-progress-enrichment P03 | 5 | 1 tasks | 2 files |
@@ -100,5 +101,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-12T23:35:00Z
-Stopped at: Completed quick task 8
+Stopped at: Completed quick task 9
 Resume file: None
