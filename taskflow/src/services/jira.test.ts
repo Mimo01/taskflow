@@ -464,35 +464,44 @@ describe('jira service', () => {
   });
 
   describe('fetchFixVersions', () => {
-    const mockVersions = [
-      { id: '10001', name: 'v1.0', releaseDate: '2025-06-01', released: true, description: 'First release' },
-      { id: '10002', name: 'v1.1', releaseDate: '2025-09-01', released: false },
-    ];
-
-    it('PM-03: fetchFixVersions extracts values array from paginated envelope', async () => {
+    it('REL-01: fetchFixVersions calls correct project versions endpoint', async () => {
       vi.mocked(mockFetch).mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => ({ values: mockVersions, total: 2, isLast: true, maxResults: 50 }),
+        json: async () => [{ id: '1', name: 'v1.0', released: false }],
+      } as Response);
+
+      const result = await fetchFixVersions('https://jira.example.com', 'my-token', 'PROJ');
+      const calledUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      expect(calledUrl).toContain('/rest/api/2/project/PROJ/versions');
+      expect(calledUrl).not.toContain('/rest/api/2/version');
+      expect(result).toHaveLength(1);
+    });
+
+    it('REL-01: fetchFixVersions parses bare array response', async () => {
+      const mockVersions = [{ id: '2', name: 'v2.0', released: true, releaseDate: '2026-01-01' }];
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockVersions,
       } as Response);
 
       const result = await fetchFixVersions('https://jira.example.com', 'my-token', 'PROJ');
       expect(result).toEqual(mockVersions);
-      expect(Array.isArray(result)).toBe(true);
     });
 
-    it('PM-03: fetchFixVersions returns empty array when values is absent', async () => {
+    it('REL-01: fetchFixVersions returns [] when response is not an array', async () => {
       vi.mocked(mockFetch).mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => ({ total: 0, isLast: true, maxResults: 50 }),
+        json: async () => ({ values: [{ id: '1' }] }),
       } as Response);
 
       const result = await fetchFixVersions('https://jira.example.com', 'my-token', 'PROJ');
       expect(result).toEqual([]);
     });
 
-    it('PM-03: fetchFixVersions throws on non-200 response', async () => {
+    it('REL-01: fetchFixVersions throws on non-200 response', async () => {
       vi.mocked(mockFetch).mockResolvedValue({
         ok: false,
         status: 403,
