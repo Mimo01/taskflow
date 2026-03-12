@@ -28,9 +28,9 @@ Requirements for v1.1 Polish milestone. Each maps to roadmap phases.
 
 ### Sprint Progress
 
-- [ ] **SPPG-01**: User sees story points broken down by status bucket (To Do / In Progress / Done with counts and %)
-- [ ] **SPPG-02**: User sees sprint-wide time totals (total estimate vs total time logged)
-- [ ] **SPPG-03**: User sees per-assignee breakdown table with point counts and time tracking
+- [x] **SPPG-01**: User sees story points broken down by status bucket (To Do / In Progress / Done with counts and %)
+- [x] **SPPG-02**: User sees sprint-wide time totals (total estimate vs total time logged)
+- [x] **SPPG-03**: User sees per-assignee breakdown table with point counts and time tracking
 
 ### Story/Subtask Hierarchy
 
@@ -80,9 +80,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | WORK-01 | Phase 6 | Complete |
 | WORK-02 | Phase 6 | Complete |
 | WORK-03 | Phase 6 | Complete |
-| SPPG-01 | Phase 6 | Pending |
-| SPPG-02 | Phase 6 | Pending |
-| SPPG-03 | Phase 6 | Pending |
+| SPPG-01 | Phase 6 | Complete |
+| SPPG-02 | Phase 6 | Complete |
+| SPPG-03 | Phase 6 | Complete |
 | HIER-01 | Phase 7 | Pending |
 | HIER-02 | Phase 7 | Pending |
 | HIER-03 | Phase 7 | Pending |
