@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: MVP
-status: archived
-stopped_at: Completed quick-1-01-PLAN.md (navigation restructure)
-last_updated: "2026-03-12T09:32:00.000Z"
-last_activity: 2026-03-12 — quick task 1 complete — 6 flat routes, role-aware sidebar, dashboard overview cards
+milestone: v1.1
+milestone_name: Polish
+status: defining_requirements
+stopped_at: —
+last_updated: "2026-03-12T00:00:00.000Z"
+last_activity: 2026-03-12 — Milestone v1.1 started
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 20
-  completed_plans: 20
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 
 ## Current Position
 
-Phase: 4 of 4 (PM Dashboard & Search) — COMPLETE
-Plan: 5 of 5 in current phase — COMPLETE
-Status: Phase 4 Plan 05 done — ADF description fix + GitLab linked key chip clickable
-Last activity: 2026-03-12 - Completed quick task 1: Restructure navigation: move Dashboard header nav to sidebar, keep Dashboard as overview page
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-12 — Milestone v1.1 started
 
 Progress: [██████████] 100%
 

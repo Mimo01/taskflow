@@ -28,9 +28,29 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ Dark/light/system theme toggle with persistence — v1.0
 - ✓ Last-refreshed timestamps and loading/error states on all data views — v1.0
 
+## Current Milestone: v1.1 Polish
+
+**Goal:** Fix and enrich existing features — releases ordering/status, workload accuracy, sprint progress depth, dashboard usefulness, story→subtask hierarchy throughout, and MR Attention filtering.
+
+**Target features:**
+- Releases ordered newest→oldest with released/unreleased status badge
+- Workload story points bug fix + time tracking (original estimate, time spent, remaining, per-story totals)
+- Sprint progress: points by status breakdown, time totals, per-assignee breakdown
+- Dashboard: my subtasks, my MR status, sprint health summary, recent notifications
+- Story→subtask hierarchy: My Tasks groups subtasks under parent story; Sprint Board groups subtasks under story card; story context visible throughout
+- MR Attention: open MRs only; assigned to me OR linked to story with at least one subtask assigned to me
+
 ### Active
 
-*(None — v2.0 requirements to be defined via `/gsd:new-milestone`)*
+- [ ] Releases ordered newest→oldest with released/unreleased status
+- [ ] Workload correctly counts story points per assignee
+- [ ] Workload shows time tracking (original estimate, time spent, remaining, per-story totals)
+- [ ] Sprint progress shows points by status, time totals, per-assignee breakdown
+- [ ] Dashboard shows my open subtasks, my open MRs, sprint health, recent notifications
+- [ ] My Tasks groups all my subtasks under their parent story
+- [ ] Sprint Board groups subtasks under their parent story card (collapsible)
+- [ ] Story context (parent name) visible wherever subtasks appear
+- [ ] MR Attention shows only open MRs assigned to me or linked to stories with my subtasks
 
 ### Out of Scope
 
@@ -83,4 +103,4 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 | adfToPlainText handles null/string/ADF defensively | Jira Server returns strings, Cloud returns ADF; cast to unknown at call site | ✓ Good — no runtime crashes |
 
 ---
-*Last updated: 2026-03-12 after v1.0 milestone*
+*Last updated: 2026-03-12 after v1.1 milestone start*
