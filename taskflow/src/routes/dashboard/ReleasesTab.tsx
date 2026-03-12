@@ -154,12 +154,20 @@ export default function ReleasesTab() {
     const msList: GitLabMilestone[] = milestones ?? [];
     const tagList: GitLabTag[] = tags ?? [];
 
+    // Sort newest-to-oldest by releaseDate; undated versions sink to the bottom
+    const sorted = [...versions].sort((a, b) => {
+      if (!a.releaseDate && !b.releaseDate) return 0;
+      if (!a.releaseDate) return 1;
+      if (!b.releaseDate) return -1;
+      return b.releaseDate.localeCompare(a.releaseDate);
+    });
+
     const candidates = [
       ...msList.map((m) => ({ date: m.due_date, name: m.title, url: m.web_url })),
       ...tagList.map((t) => ({ date: t.commit.created_at, name: t.name, url: '' })),
     ];
 
-    return versions.map((version, idx) => {
+    return sorted.map((version) => {
       let bestMatch: ReleaseMatch = { type: 'none', candidateName: '', candidateUrl: '' };
 
       for (const cand of candidates) {
@@ -173,7 +181,11 @@ export default function ReleasesTab() {
         }
       }
 
-      const counts = versionCountQueries[idx]?.data;
+      // Find count by matching the original fixVersions index to avoid off-by-one after sort
+      const countQuery = versionCountQueries.find(
+        (_, i) => (fixVersions ?? [])[i]?.id === version.id,
+      );
+      const counts = countQuery?.data;
       const issuesFixed = counts?.issuesFixed ?? 0;
       const issuesTotal = (counts?.issuesFixed ?? 0) + (counts?.issuesAffected ?? 0);
 
