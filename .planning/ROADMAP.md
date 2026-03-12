@@ -44,7 +44,7 @@ See archive: `.planning/milestones/v1.0-ROADMAP.md`
 
 Plans:
 - [ ] 05-01-PLAN.md — Install shadcn Badge + fix searchGitLabMRs + write Wave 0 test stubs
-- [ ] 05-02-PLAN.md — Extend JiraIssue type + discoverStoryPointsField() + settings store
+- [x] 05-02-PLAN.md — Extend JiraIssue type + discoverStoryPointsField() + settings store
 - [ ] 05-03-PLAN.md — fetchSprintIssues two-query subtask strategy
 - [ ] 05-04-PLAN.md — Releases tab sort + Released/Unreleased/timing badges
 
