@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-milestone_name: milestone
-status: completed
-stopped_at: Completed 04-05-PLAN.md
-last_updated: "2026-03-12T00:15:01.404Z"
-last_activity: 2026-03-12 — Phase 4 Plan 05 complete — adfToPlainText utility, GitLab chip button, 21 tests pass
+milestone_name: MVP
+status: archived
+stopped_at: v1.0 milestone complete — archived 2026-03-12
+last_updated: "2026-03-12T09:30:00.000Z"
+last_activity: 2026-03-12 — v1.0 MVP milestone archived — 4 phases, 20 plans, all requirements shipped
 progress:
   total_phases: 4
   completed_phases: 4
@@ -18,10 +18,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-10)
+See: .planning/PROJECT.md (updated 2026-03-12)
 
-**Core value:** Developers and PMs can see tasks, MRs, sprint state, and notifications in one place without switching between Jira and GitLab.
-**Current focus:** Phase 2 — Dashboard (Plans 01 and 02 complete)
+**Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
+**Current focus:** Planning next milestone — run `/gsd:new-milestone` to start v2.0
 
 ## Current Position
 
@@ -77,6 +77,7 @@ Progress: [██████████] 100%
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
+All v1.0 decisions captured in PROJECT.md after milestone close.
 Recent decisions affecting current work:
 
 - Architecture: Tauri 2 portable build (no installer) — eliminates CORS against on-premise Jira; OS keychain for PATs via Tauri Stronghold; required before any feature code
