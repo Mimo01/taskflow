@@ -10,7 +10,7 @@ Requirements for v1.1 Polish milestone. Each maps to roadmap phases.
 ### API Foundation
 
 - [x] **APIF-01**: Jira `JiraIssue` type extended with `parent?`, `subtasks[]`, `timetracking?`, `issuetype.subtask` boolean
-- [ ] **APIF-02**: `fetchSprintIssues` uses two-query strategy to include subtasks (second query: `issuetype in subtaskIssueTypes() AND parent in (...)`)
+- [x] **APIF-02**: `fetchSprintIssues` uses two-query strategy to include subtasks (second query: `issuetype in subtaskIssueTypes() AND parent in (...)`)
 - [x] **APIF-03**: Story points field ID discovered via `discoverStoryPointsField()` with fallback to `customfield_10016`
 - [x] **APIF-04**: GitLab MR fetch calls filter to `state=opened` only
 
@@ -71,7 +71,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | APIF-01 | Phase 5 | Complete |
-| APIF-02 | Phase 5 | Pending |
+| APIF-02 | Phase 5 | Complete |
 | APIF-03 | Phase 5 | Complete |
 | APIF-04 | Phase 5 | Complete |
 | REL-01 | Phase 5 | Complete |

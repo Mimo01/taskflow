@@ -24,7 +24,7 @@ See archive: `.planning/milestones/v1.0-ROADMAP.md`
 
 **Milestone Goal:** Fix and enrich existing features — releases ordering/status, workload accuracy, sprint progress depth, dashboard usefulness, story/subtask hierarchy throughout, and MR Attention filtering.
 
-- [ ] **Phase 5: API Foundation + Quick Wins** - Extend Jira types and fetch strategy; fix GitLab open-only filter; ship Releases display improvements
+- [x] **Phase 5: API Foundation + Quick Wins** - Extend Jira types and fetch strategy; fix GitLab open-only filter; ship Releases display improvements (completed 2026-03-12)
 - [ ] **Phase 6: Workload + Sprint Progress Enrichment** - Fix story points double-counting; add time tracking columns; enrich sprint progress with status breakdown and per-assignee table
 - [ ] **Phase 7: Story/Subtask Hierarchy + MR Subtask Filter** - Group subtasks under parent stories in My Tasks and Sprint Board; add MR Attention subtask-story filter
 - [ ] **Phase 8: Dashboard Enrichment** - Add subtasks, MR health summary, sprint health, and recent notifications to the Developer dashboard
@@ -92,7 +92,7 @@ Phases execute in numeric order: 5 → 6 → 7 → 8
 | 2. Developer Dashboard | v1.0 | 7/7 | Complete | 2026-03-11 |
 | 3. Notifications Hub | v1.0 | 2/2 | Complete | 2026-03-12 |
 | 4. PM Dashboard + Search | v1.0 | 5/5 | Complete | 2026-03-12 |
-| 5. API Foundation + Quick Wins | 2/4 | In Progress|  | - |
+| 5. API Foundation + Quick Wins | 4/4 | Complete   | 2026-03-12 | - |
 | 6. Workload + Sprint Progress Enrichment | v1.1 | 0/? | Not started | - |
 | 7. Story/Subtask Hierarchy + MR Subtask Filter | v1.1 | 0/? | Not started | - |
 | 8. Dashboard Enrichment | v1.1 | 0/? | Not started | - |
