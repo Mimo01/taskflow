@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: planning
-stopped_at: Completed quick-4 (Jira/GitLab API call logging debug option)
-last_updated: "2026-03-12T18:48:42.349Z"
-last_activity: 2026-03-12 — v1.1 roadmap created (Phases 5-8)
+stopped_at: Completed quick-5 (GitLab group to project selection)
+last_updated: "2026-03-12T20:36:00.000Z"
+last_activity: 2026-03-12 — Completed quick task 5: GitLab group selection replaced with project selection
 progress:
   total_phases: 4
   completed_phases: 1
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 Phase: 5 of 8 (API Foundation + Quick Wins)
 Plan: — of —
 Status: Ready to plan
-Last activity: 2026-03-12 - Completed quick task 4: Jira & GitLab api call logging, debug option toggle in settings and new UI page for displaying the logs
+Last activity: 2026-03-12 - Completed quick task 5: GitLab group selection replaced with project selection across auth store, onboarding wizard, settings, ReleasesTab, and notification polling
 
 Progress: [░░░░░░░░░░] 0% (v1.1)
 
@@ -84,9 +84,10 @@ None.
 | # | Description | Date | Commit | Status | Directory |
 |---|-------------|------|--------|--------|-----------|
 | 4 | Jira & GitLab api call logging, debug option toggle in settings and new UI page for displaying the logs | 2026-03-12 | e3eb929 | Verified | [4-jira-gitlab-api-call-logging-debug-optio](./quick/4-jira-gitlab-api-call-logging-debug-optio/) |
+| 5 | GitLab group selection replaced with project selection (auth store, onboarding, settings, ReleasesTab, notifications) | 2026-03-12 | 6e2fb62 | Verified | [5-change-gitlab-active-group-selection-to-](./quick/5-change-gitlab-active-group-selection-to-/) |
 
 ## Session Continuity
 
-Last session: 2026-03-12T18:48:42.345Z
-Stopped at: Completed quick-4 (Jira/GitLab API call logging debug option)
+Last session: 2026-03-12T20:36:00.000Z
+Stopped at: Completed quick-5 (GitLab group to project selection)
 Resume file: None
