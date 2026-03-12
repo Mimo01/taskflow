@@ -24,9 +24,10 @@ interface MrRowProps {
   linkedTask: JiraIssue | null
   staleMrThresholdDays: number
   reviewHealth?: ReviewHealth
+  viaSubtaskKey?: string
 }
 
-export default function MrRow({ mr, linkedTask, staleMrThresholdDays, reviewHealth }: MrRowProps) {
+export default function MrRow({ mr, linkedTask, staleMrThresholdDays, reviewHealth, viaSubtaskKey }: MrRowProps) {
   const stale = isStale(mr, staleMrThresholdDays)
   const staleDays = Math.floor(
     (Date.now() - new Date(mr.updated_at).getTime()) / 86_400_000,
@@ -85,6 +86,13 @@ export default function MrRow({ mr, linkedTask, staleMrThresholdDays, reviewHeal
         <span className="rounded border border-border px-1.5 py-0.5 text-xs font-mono whitespace-nowrap">
           {linkedTask.key}{' '}
           <span className="text-muted-foreground">{linkedTask.fields.status.name}</span>
+        </span>
+      )}
+
+      {/* Via subtask label — muted, only shown for subtask-path-only MRs */}
+      {viaSubtaskKey && (
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
+          via {viaSubtaskKey}
         </span>
       )}
     </div>
