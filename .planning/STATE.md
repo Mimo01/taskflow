@@ -5,7 +5,7 @@ milestone_name: Polish
 status: planning
 stopped_at: Completed 06-03-PLAN.md
 last_updated: "2026-03-12T23:36:00Z"
-last_activity: "2026-03-12 - Completed quick task 10: GitLab disconnection banner mirroring Jira banner"
+last_activity: "2026-03-12 - Completed quick task 11: Add active page indicator in sidebar"
 progress:
   total_phases: 4
   completed_phases: 2
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 Phase: 5 of 8 (API Foundation + Quick Wins)
 Plan: — of —
 Status: Ready to plan
-Last activity: 2026-03-12 - Completed quick task 10: GitLab disconnection banner mirroring Jira banner
+Last activity: 2026-03-12 - Completed quick task 11: Add active page indicator in sidebar
 
 Progress: [░░░░░░░░░░] 0% (v1.1)
 
