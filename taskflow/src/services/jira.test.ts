@@ -393,6 +393,17 @@ describe('jira service', () => {
       expect(result).toHaveLength(1);
     });
 
+    it('guard: first query JQL contains issuetype not in subtaskIssueTypes()', async () => {
+      vi.mocked(mockFetch).mockResolvedValueOnce({
+        ok: true, status: 200,
+        json: async () => ({ issues: [] }),
+      } as Response);
+
+      await fetchSprintIssues('https://jira.example.com', 'token', 'PROJ', false);
+      const firstCallUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      expect(firstCallUrl).toContain('issuetype%20not%20in%20subtaskIssueTypes()');
+    });
+
     it('chunks parent keys into batches of 50 for large sprints', async () => {
       // 55 parent issues → 2 subtask fetch calls (chunk 1: 50 keys, chunk 2: 5 keys)
       const manyParents = Array.from({ length: 55 }, (_, i) => ({
