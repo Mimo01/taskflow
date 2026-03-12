@@ -70,34 +70,34 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| APIF-01 | — | Pending |
-| APIF-02 | — | Pending |
-| APIF-03 | — | Pending |
-| APIF-04 | — | Pending |
-| REL-01 | — | Pending |
-| REL-02 | — | Pending |
-| REL-03 | — | Pending |
-| WORK-01 | — | Pending |
-| WORK-02 | — | Pending |
-| WORK-03 | — | Pending |
-| SPPG-01 | — | Pending |
-| SPPG-02 | — | Pending |
-| SPPG-03 | — | Pending |
-| HIER-01 | — | Pending |
-| HIER-02 | — | Pending |
-| HIER-03 | — | Pending |
-| MRAT-01 | — | Pending |
-| MRAT-02 | — | Pending |
-| DASH-01 | — | Pending |
-| DASH-02 | — | Pending |
-| DASH-03 | — | Pending |
-| DASH-04 | — | Pending |
+| APIF-01 | Phase 5 | Pending |
+| APIF-02 | Phase 5 | Pending |
+| APIF-03 | Phase 5 | Pending |
+| APIF-04 | Phase 5 | Pending |
+| REL-01 | Phase 5 | Pending |
+| REL-02 | Phase 5 | Pending |
+| REL-03 | Phase 5 | Pending |
+| WORK-01 | Phase 6 | Pending |
+| WORK-02 | Phase 6 | Pending |
+| WORK-03 | Phase 6 | Pending |
+| SPPG-01 | Phase 6 | Pending |
+| SPPG-02 | Phase 6 | Pending |
+| SPPG-03 | Phase 6 | Pending |
+| HIER-01 | Phase 7 | Pending |
+| HIER-02 | Phase 7 | Pending |
+| HIER-03 | Phase 7 | Pending |
+| MRAT-01 | Phase 7 | Pending |
+| MRAT-02 | Phase 7 | Pending |
+| DASH-01 | Phase 8 | Pending |
+| DASH-02 | Phase 8 | Pending |
+| DASH-03 | Phase 8 | Pending |
+| DASH-04 | Phase 8 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 22 total
-- Mapped to phases: 0
-- Unmapped: 22 ⚠️
+- Mapped to phases: 22
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-12*
-*Last updated: 2026-03-12 after initial definition*
+*Last updated: 2026-03-12 after roadmap creation (v1.1 phases 5-8)*
