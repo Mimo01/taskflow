@@ -29,7 +29,7 @@ export function useNotificationPolling() {
     jiraUserDisplayName,
     jiraUsername,
     gitlabUserId,
-    activeGitlabGroup,
+    activeGitlabProject,
   } = useAuthStore();
 
   const pollIntervalMs = Math.max(30_000, notificationPollIntervalSecs * 1000);
@@ -45,7 +45,7 @@ export function useNotificationPolling() {
 
       // Read cached MR list (same pattern as SprintBoardTab)
       const mrList =
-        queryClient.getQueryData<GitLabMR[]>(['gitlab-mrs', gitlabBaseUrl, activeGitlabGroup]) ??
+        queryClient.getQueryData<GitLabMR[]>(['gitlab-mrs', gitlabBaseUrl, activeGitlabProject]) ??
         [];
 
       const newItems = await fetchNewNotifications(jiraBaseUrl, gitlabBaseUrl, tokens, {

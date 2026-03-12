@@ -1,10 +1,10 @@
 /**
- * GitLabStep — GitLab credential entry with inline validation and group selection.
+ * GitLabStep — GitLab credential entry with inline validation and project selection.
  *
  * Mirrors the JiraStep pattern exactly — same UX decisions apply:
  * - Field values in Zustand (not useState) — back nav preserves them
  * - PAT stored to Stronghold ('gitlab-pat') after successful validation
- * - Group dropdown appears inline after validation
+ * - Project dropdown appears inline after validation
  * - Error messages are exact strings from gitlab.ts
  */
 import { useMutation } from '@tanstack/react-query';
@@ -17,31 +17,30 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select';
-import { validateGitLab, listGitLabGroups } from '@/services/gitlab';
+import { validateGitLab, listGitLabProjects, type GitLabProject } from '@/services/gitlab';
 import { storeSecret } from '@/services/stronghold';
 import { useOnboardingStore } from '@/stores/onboarding.store';
 import { useAuthStore } from '@/stores/auth.store';
 
 export default function GitLabStep() {
-  const { gitlabUrl, gitlabToken, gitlabGroup, gitlabGroups, set, goBack, goNext } = useOnboardingStore();
-  const { setGitlabConnected, setActiveGitlabGroup } = useAuthStore();
+  const { gitlabUrl, gitlabToken, gitlabProject, gitlabProjects, set, goBack, goNext } = useOnboardingStore();
+  const { setGitlabConnected, setActiveGitlabProject } = useAuthStore();
 
-  const groups = gitlabGroups;
-  const selectedGroup = gitlabGroup ?? '';
-  const setSelectedGroup = (v: string) => set({ gitlabGroup: v });
+  const projects = gitlabProjects;
+  const selectedProjectId = gitlabProject;
+  const setSelectedProject = (v: string) => set({ gitlabProject: parseInt(v, 10) });
 
   const mutation = useMutation({
     mutationFn: async () => {
       const user = await validateGitLab(gitlabUrl, gitlabToken);
-      const groupList = await listGitLabGroups(gitlabUrl, gitlabToken);
-      return { user, groupList };
+      const projectList = await listGitLabProjects(gitlabUrl, gitlabToken);
+      return { user, projectList };
     },
-    onSuccess: async ({ groupList }) => {
+    onSuccess: async ({ projectList }) => {
       // Store PAT in Stronghold — NEVER in Zustand
       await storeSecret('gitlab-pat', gitlabToken);
-      set({ gitlabGroups: groupList });
+      set({ gitlabProjects: projectList });
     },
   });
 
@@ -51,14 +50,16 @@ export default function GitLabStep() {
   };
 
   const handleContinue = () => {
-    if (!selectedGroup) return;
+    if (!selectedProjectId) return;
+    const selectedProject: GitLabProject | undefined = projects.find(p => p.id === selectedProjectId);
+    if (!selectedProject) return;
     set({ gitlabValidated: true });
     setGitlabConnected(true, gitlabUrl);
-    setActiveGitlabGroup(selectedGroup);
+    setActiveGitlabProject(selectedProject.id, selectedProject.name_with_namespace);
     goNext();
   };
 
-  const showGroupDropdown = groups.length > 0;
+  const showProjectDropdown = projects.length > 0;
 
   return (
     <div className="flex flex-col gap-6 max-w-md mx-auto py-8">
@@ -101,23 +102,23 @@ export default function GitLabStep() {
           </p>
         )}
 
-        {/* Inline group dropdown after successful validation */}
-        {showGroupDropdown && (
+        {/* Inline project dropdown after successful validation */}
+        {showProjectDropdown && (
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="gitlab-group">Select Group</Label>
-            <Select value={selectedGroup} onValueChange={(v) => v && setSelectedGroup(v)}>
-              <SelectTrigger id="gitlab-group" className="w-full">
+            <Label htmlFor="gitlab-project">Select Project</Label>
+            <Select value={selectedProjectId ? String(selectedProjectId) : ''} onValueChange={(v) => v && setSelectedProject(v)}>
+              <SelectTrigger id="gitlab-project" className="w-full">
                 <span className="flex flex-1 text-left text-sm">
-                  {selectedGroup
-                    ? (() => { const g = groups.find(g => g.full_path === selectedGroup); return g ? `${g.name} (${g.full_path})` : selectedGroup; })()
-                    : <span className="text-muted-foreground">Choose a group...</span>
+                  {selectedProjectId
+                    ? (() => { const p = projects.find(p => p.id === selectedProjectId); return p ? p.name_with_namespace : String(selectedProjectId); })()
+                    : <span className="text-muted-foreground">Choose a project...</span>
                   }
                 </span>
               </SelectTrigger>
               <SelectContent>
-                {groups.map((group) => (
-                  <SelectItem key={group.id} value={group.full_path}>
-                    {group.name} ({group.full_path})
+                {projects.map((p) => (
+                  <SelectItem key={p.id} value={String(p.id)}>
+                    {p.name_with_namespace}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -131,8 +132,8 @@ export default function GitLabStep() {
           Back
         </Button>
 
-        {showGroupDropdown ? (
-          <Button onClick={handleContinue} disabled={!selectedGroup}>
+        {showProjectDropdown ? (
+          <Button onClick={handleContinue} disabled={!selectedProjectId}>
             Continue
           </Button>
         ) : (
