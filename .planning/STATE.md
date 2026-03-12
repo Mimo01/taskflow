@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 Phase: 5 of 8 (API Foundation + Quick Wins)
 Plan: — of —
 Status: Ready to plan
-Last activity: 2026-03-12 — v1.1 roadmap created (Phases 5-8)
+Last activity: 2026-03-12 - Completed quick task 4: Jira & GitLab api call logging, debug option toggle in settings and new UI page for displaying the logs
 
 Progress: [░░░░░░░░░░] 0% (v1.1)
 
@@ -78,6 +78,12 @@ None.
 - Phase 5: Two-query subtask JQL strategy must be validated on the real Orange Jira DC v10.3.15 instance before hierarchy UI is built
 - Phase 6: Verify time tracking admin status on Orange Jira instance — graceful-hide may be the only visible result
 - Phase 5: Confirm `discoverStoryPointsField()` result on real instance vs assumed `customfield_10016`
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Status | Directory |
+|---|-------------|------|--------|--------|-----------|
+| 4 | Jira & GitLab api call logging, debug option toggle in settings and new UI page for displaying the logs | 2026-03-12 | e3eb929 | Verified | [4-jira-gitlab-api-call-logging-debug-optio](./quick/4-jira-gitlab-api-call-logging-debug-optio/) |
 
 ## Session Continuity
 
