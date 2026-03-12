@@ -34,7 +34,7 @@ Requirements for v1.1 Polish milestone. Each maps to roadmap phases.
 
 ### Story/Subtask Hierarchy
 
-- [ ] **HIER-01**: My Tasks groups all assigned subtasks under their parent story header
+- [x] **HIER-01**: My Tasks groups all assigned subtasks under their parent story header
 - [ ] **HIER-02**: Sprint Board groups subtask cards under parent story card in each column (collapsible)
 - [ ] **HIER-03**: Subtasks whose parent story is not in the current sprint display a parent story badge
 
@@ -83,7 +83,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SPPG-01 | Phase 6 | Complete |
 | SPPG-02 | Phase 6 | Complete |
 | SPPG-03 | Phase 6 | Complete |
-| HIER-01 | Phase 7 | Pending |
+| HIER-01 | Phase 7 | Complete |
 | HIER-02 | Phase 7 | Pending |
 | HIER-03 | Phase 7 | Pending |
 | MRAT-01 | Phase 7 | Pending |
