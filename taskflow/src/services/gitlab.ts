@@ -12,7 +12,7 @@
  * IMPORTANT: This module does NOT store secrets. Callers are responsible for
  * calling storeSecret('gitlab-pat', token) after successful validation.
  */
-import { fetch } from '@tauri-apps/plugin-http';
+import { apiFetch } from '../lib/apiFetch';
 
 export interface GitLabUser {
   id: number;
@@ -39,7 +39,7 @@ export async function validateGitLab(baseUrl: string, token: string): Promise<Gi
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await apiFetch('gitlab', url, {
       headers: {
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
@@ -77,7 +77,7 @@ export async function listGitLabGroups(baseUrl: string, token: string): Promise<
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await apiFetch('gitlab', url, {
       headers: {
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
@@ -167,7 +167,7 @@ export async function fetchAssignedMRs(baseUrl: string, token: string): Promise<
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await apiFetch('gitlab', url, {
       headers: {
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
@@ -202,7 +202,7 @@ export async function fetchReviewerMRs(
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await apiFetch('gitlab', url, {
       headers: {
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
@@ -239,7 +239,7 @@ export async function fetchMRCommits(
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await apiFetch('gitlab', url, {
       headers: {
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
@@ -276,7 +276,7 @@ export async function fetchMRApprovals(
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await apiFetch('gitlab', url, {
       headers: {
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
@@ -313,7 +313,7 @@ export async function fetchMRDiscussions(
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await apiFetch('gitlab', url, {
       headers: {
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
@@ -352,7 +352,7 @@ export async function fetchGroupMilestones(
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await apiFetch('gitlab', url, {
       headers: {
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
@@ -388,7 +388,7 @@ export async function fetchProjectTags(
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await apiFetch('gitlab', url, {
       headers: {
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
@@ -424,7 +424,7 @@ export async function searchGitLabMRs(
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await apiFetch('gitlab', url, {
       headers: {
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
