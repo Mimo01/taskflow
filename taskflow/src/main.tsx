@@ -14,6 +14,12 @@ import { useNotificationPolling } from './hooks/useNotificationPolling';
 import Onboarding from './routes/onboarding/index';
 import Dashboard from './routes/dashboard/index';
 import Settings from './routes/settings/index';
+import MyTasksTab from './routes/dashboard/MyTasksTab';
+import SprintBoardTab from './routes/dashboard/SprintBoardTab';
+import MrAttentionTab from './routes/dashboard/MrAttentionTab';
+import SprintProgressTab from './routes/dashboard/SprintProgressTab';
+import WorkloadTab from './routes/dashboard/WorkloadTab';
+import ReleasesTab from './routes/dashboard/ReleasesTab';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -66,6 +72,12 @@ const router = createHashRouter([
       { path: '/', element: <Onboarding /> },
       { path: '/dashboard', element: <Dashboard /> },
       { path: '/settings', element: <Settings /> },
+      { path: '/my-tasks', element: <MyTasksTab /> },
+      { path: '/sprint-board', element: <SprintBoardTab /> },
+      { path: '/mr-attention', element: <MrAttentionTab /> },
+      { path: '/sprint-progress', element: <SprintProgressTab /> },
+      { path: '/workload', element: <WorkloadTab /> },
+      { path: '/releases', element: <ReleasesTab /> },
     ],
   },
 ]);

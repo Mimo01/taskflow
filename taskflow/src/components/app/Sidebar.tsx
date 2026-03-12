@@ -3,20 +3,28 @@
  *
  * Layout: vertical sidebar. Contains:
  * - App name/logo at top
- * - Dashboard link (always present; role-based nav added in Phase 2)
- * - Current role label (Phase 2 implements conditional nav items)
- * - Bottom: ThemeToggle and gear icon linking to /settings
+ * - Dashboard link (always present)
+ * - Role-conditional nav links: developer sees My Tasks, Sprint Board, MR Attention;
+ *   PM sees Sprint Progress, Workload, Releases
+ * - Bottom: Settings link
  *
  * Gear icon is always one click away from anywhere in the app.
  */
 import { Link } from 'react-router-dom';
-import { Settings, LayoutDashboard } from 'lucide-react';
+import {
+  Settings,
+  LayoutDashboard,
+  CheckSquare,
+  KanbanSquare,
+  GitMerge,
+  BarChart2,
+  Users,
+  Tag,
+} from 'lucide-react';
 import { useSettingsStore } from '@/stores/settings.store';
 
-const ROLE_LABELS: Record<string, string> = {
-  developer: 'Developer',
-  pm: 'Project Manager',
-};
+const NAV_LINK_CLASS =
+  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium hover:bg-accent transition-colors';
 
 export default function Sidebar() {
   const { role } = useSettingsStore();
@@ -31,21 +39,45 @@ export default function Sidebar() {
 
       {/* Nav links */}
       <nav className="flex-1 px-2 py-4 flex flex-col gap-1">
-        <Link
-          to="/dashboard"
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium hover:bg-accent transition-colors"
-        >
+        <Link to="/dashboard" className={NAV_LINK_CLASS}>
           <LayoutDashboard className="h-4 w-4 shrink-0" />
           <span className="hidden md:block">Dashboard</span>
         </Link>
 
-        {/* Role label placeholder — Phase 2 adds role-conditional nav items */}
-        {role && (
-          <div className="mt-4 px-3">
-            <p className="text-xs text-muted-foreground hidden md:block">
-              {ROLE_LABELS[role] ?? role}
-            </p>
-          </div>
+        {/* Developer-only links */}
+        {role === 'developer' && (
+          <>
+            <Link to="/my-tasks" className={NAV_LINK_CLASS}>
+              <CheckSquare className="h-4 w-4 shrink-0" />
+              <span className="hidden md:block">My Tasks</span>
+            </Link>
+            <Link to="/sprint-board" className={NAV_LINK_CLASS}>
+              <KanbanSquare className="h-4 w-4 shrink-0" />
+              <span className="hidden md:block">Sprint Board</span>
+            </Link>
+            <Link to="/mr-attention" className={NAV_LINK_CLASS}>
+              <GitMerge className="h-4 w-4 shrink-0" />
+              <span className="hidden md:block">MR Attention</span>
+            </Link>
+          </>
+        )}
+
+        {/* PM-only links */}
+        {role === 'pm' && (
+          <>
+            <Link to="/sprint-progress" className={NAV_LINK_CLASS}>
+              <BarChart2 className="h-4 w-4 shrink-0" />
+              <span className="hidden md:block">Sprint Progress</span>
+            </Link>
+            <Link to="/workload" className={NAV_LINK_CLASS}>
+              <Users className="h-4 w-4 shrink-0" />
+              <span className="hidden md:block">Workload</span>
+            </Link>
+            <Link to="/releases" className={NAV_LINK_CLASS}>
+              <Tag className="h-4 w-4 shrink-0" />
+              <span className="hidden md:block">Releases</span>
+            </Link>
+          </>
         )}
       </nav>
 
@@ -53,7 +85,7 @@ export default function Sidebar() {
       <div className="px-2 py-4 border-t border-border flex flex-col gap-1">
         <Link
           to="/settings"
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium hover:bg-accent transition-colors"
+          className={NAV_LINK_CLASS}
           aria-label="Settings"
         >
           <Settings className="h-4 w-4 shrink-0" />
