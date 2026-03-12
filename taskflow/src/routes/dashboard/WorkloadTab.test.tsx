@@ -273,6 +273,25 @@ describe('WorkloadTab', () => {
     });
   });
 
+  it('sorts assignee rows by story points descending', async () => {
+    const { fetchSprintIssues } = await import('@/services/jira');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([
+      makeIssue('P-1', 'Alice', 'new', 3),
+      makeIssue('P-2', 'Bob', 'new', 8),
+      makeIssue('P-3', 'Carol', 'new', 5),
+    ]);
+
+    const { default: WorkloadTab } = await import('./WorkloadTab');
+    renderWithQuery(<WorkloadTab />);
+
+    await screen.findByText('Bob');
+    const rows = screen.getAllByTestId('workload-row');
+    // Bob (8pts) > Carol (5pts) > Alice (3pts)
+    expect(rows[0].textContent).toMatch(/Bob/);
+    expect(rows[1].textContent).toMatch(/Carol/);
+    expect(rows[2].textContent).toMatch(/Alice/);
+  });
+
   describe('WORK-03: expand/collapse per-story rows', () => {
     it('assignee rows are collapsed by default — story key not visible', async () => {
       const { fetchSprintIssues } = await import('@/services/jira');
