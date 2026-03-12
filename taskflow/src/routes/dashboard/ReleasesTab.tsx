@@ -13,6 +13,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { RefreshCw } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/stores/auth.store';
 import { fetchFixVersions } from '@/services/jira';
 import type { JiraFixVersion } from '@/services/jira';
@@ -74,6 +75,20 @@ interface MatchedVersion {
   match: ReleaseMatch;
   issuesFixed: number;
   issuesTotal: number;
+}
+
+type TimingLabel = 'overdue' | 'due-today' | { daysUntil: number } | null;
+
+function getReleaseTimingLabel(releaseDate: string | undefined, released: boolean): TimingLabel {
+  if (released || !releaseDate) return null;
+  const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD" — timezone-safe
+  if (releaseDate < today) return 'overdue';
+  if (releaseDate === today) return 'due-today';
+  const msPerDay = 86_400_000;
+  const days = Math.round(
+    (new Date(releaseDate).getTime() - new Date(today).getTime()) / msPerDay,
+  );
+  return { daysUntil: days };
 }
 
 export default function ReleasesTab() {
@@ -250,6 +265,45 @@ export default function ReleasesTab() {
                   {/* Version name + date */}
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="text-sm font-medium truncate">{version.name}</span>
+                    {/* Status badge — Released or Unreleased + timing */}
+                    {(() => {
+                      const timing = getReleaseTimingLabel(version.releaseDate, version.released);
+                      if (version.released) {
+                        return (
+                          <Badge variant="default" className="bg-green-600 text-white shrink-0">
+                            Released
+                          </Badge>
+                        );
+                      }
+                      if (timing === 'overdue') {
+                        return (
+                          <>
+                            <Badge variant="destructive" className="shrink-0">Unreleased</Badge>
+                            <Badge variant="destructive" className="shrink-0">Overdue</Badge>
+                          </>
+                        );
+                      }
+                      if (timing === 'due-today') {
+                        return (
+                          <>
+                            <Badge variant="default" className="bg-blue-600 text-white shrink-0">Unreleased</Badge>
+                            <Badge variant="default" className="bg-blue-600 text-white shrink-0">Due today</Badge>
+                          </>
+                        );
+                      }
+                      if (timing && typeof timing === 'object' && 'daysUntil' in timing) {
+                        return (
+                          <>
+                            <Badge variant="default" className="bg-amber-500 text-white shrink-0">Unreleased</Badge>
+                            <span className="text-xs text-muted-foreground shrink-0">In {timing.daysUntil} days</span>
+                          </>
+                        );
+                      }
+                      // Unreleased but no releaseDate
+                      return (
+                        <Badge variant="default" className="bg-amber-500 text-white shrink-0">Unreleased</Badge>
+                      );
+                    })()}
                     {version.releaseDate && (
                       <span className="text-xs text-muted-foreground shrink-0">
                         {version.releaseDate}
