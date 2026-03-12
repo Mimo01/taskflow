@@ -44,40 +44,45 @@ export default function Sidebar() {
           <span className="hidden md:block">Dashboard</span>
         </Link>
 
-        {/* Developer-only links */}
-        {role === 'developer' && (
-          <>
-            <Link to="/my-tasks" className={NAV_LINK_CLASS}>
-              <CheckSquare className="h-4 w-4 shrink-0" />
-              <span className="hidden md:block">My Tasks</span>
-            </Link>
-            <Link to="/sprint-board" className={NAV_LINK_CLASS}>
-              <KanbanSquare className="h-4 w-4 shrink-0" />
-              <span className="hidden md:block">Sprint Board</span>
-            </Link>
-            <Link to="/mr-attention" className={NAV_LINK_CLASS}>
-              <GitMerge className="h-4 w-4 shrink-0" />
-              <span className="hidden md:block">MR Attention</span>
-            </Link>
-          </>
-        )}
-
-        {/* PM-only links */}
-        {role === 'pm' && (
-          <>
-            <Link to="/sprint-progress" className={NAV_LINK_CLASS}>
-              <BarChart2 className="h-4 w-4 shrink-0" />
-              <span className="hidden md:block">Sprint Progress</span>
-            </Link>
-            <Link to="/workload" className={NAV_LINK_CLASS}>
-              <Users className="h-4 w-4 shrink-0" />
-              <span className="hidden md:block">Workload</span>
-            </Link>
-            <Link to="/releases" className={NAV_LINK_CLASS}>
-              <Tag className="h-4 w-4 shrink-0" />
-              <span className="hidden md:block">Releases</span>
-            </Link>
-          </>
+        {/* Work section (role-specific) */}
+        {(role === 'developer' || role === 'pm') && (
+          <div className="mt-2">
+            <p className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:block">
+              Work
+            </p>
+            {role === 'developer' && (
+              <>
+                <Link to="/my-tasks" className={NAV_LINK_CLASS}>
+                  <CheckSquare className="h-4 w-4 shrink-0" />
+                  <span className="hidden md:block">My Tasks</span>
+                </Link>
+                <Link to="/sprint-board" className={NAV_LINK_CLASS}>
+                  <KanbanSquare className="h-4 w-4 shrink-0" />
+                  <span className="hidden md:block">Sprint Board</span>
+                </Link>
+                <Link to="/mr-attention" className={NAV_LINK_CLASS}>
+                  <GitMerge className="h-4 w-4 shrink-0" />
+                  <span className="hidden md:block">MR Attention</span>
+                </Link>
+              </>
+            )}
+            {role === 'pm' && (
+              <>
+                <Link to="/sprint-progress" className={NAV_LINK_CLASS}>
+                  <BarChart2 className="h-4 w-4 shrink-0" />
+                  <span className="hidden md:block">Sprint Progress</span>
+                </Link>
+                <Link to="/workload" className={NAV_LINK_CLASS}>
+                  <Users className="h-4 w-4 shrink-0" />
+                  <span className="hidden md:block">Workload</span>
+                </Link>
+                <Link to="/releases" className={NAV_LINK_CLASS}>
+                  <Tag className="h-4 w-4 shrink-0" />
+                  <span className="hidden md:block">Releases</span>
+                </Link>
+              </>
+            )}
+          </div>
         )}
       </nav>
 

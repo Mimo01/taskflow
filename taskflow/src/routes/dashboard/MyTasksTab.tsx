@@ -233,7 +233,7 @@ export default function MyTasksTab() {
     : 'Refreshed: Never'
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 p-4">
       {/* Header row with last-refreshed and refresh button */}
       <div className="flex items-center justify-end gap-2 pb-2">
         <span className="text-xs text-muted-foreground">{lastRefreshed}</span>
