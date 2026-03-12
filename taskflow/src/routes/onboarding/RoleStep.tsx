@@ -15,7 +15,7 @@ export default function RoleStep() {
   const { role, set, goNext, goBack } = useOnboardingStore();
   const { setRole } = useSettingsStore();
 
-  const handleValueChange = (value: 'developer' | 'pm') => {
+  const handleValueChange = (value: 'developer' | 'pm' | 'tech-lead') => {
     set({ role: value });
     setRole(value);
   };
@@ -31,7 +31,7 @@ export default function RoleStep() {
 
       <RadioGroup
         value={role ?? ''}
-        onValueChange={(v) => handleValueChange(v as 'developer' | 'pm')}
+        onValueChange={(v) => handleValueChange(v as 'developer' | 'pm' | 'tech-lead')}
         className="flex flex-col gap-4"
       >
         <div className="flex items-center space-x-3 border border-border rounded-lg p-4 cursor-pointer hover:bg-accent">
@@ -47,6 +47,14 @@ export default function RoleStep() {
           <Label htmlFor="role-pm" className="cursor-pointer flex-1">
             <span className="font-medium">Project Manager</span>
             <p className="text-sm text-muted-foreground">View sprint progress, tickets, and team velocity</p>
+          </Label>
+        </div>
+
+        <div className="flex items-center space-x-3 border border-border rounded-lg p-4 cursor-pointer hover:bg-accent">
+          <RadioGroupItem value="tech-lead" id="role-tech-lead" />
+          <Label htmlFor="role-tech-lead" className="cursor-pointer flex-1">
+            <span className="font-medium">Tech Lead</span>
+            <p className="text-sm text-muted-foreground">Access all developer and PM views</p>
           </Label>
         </div>
       </RadioGroup>
