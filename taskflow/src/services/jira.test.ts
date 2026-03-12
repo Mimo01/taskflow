@@ -10,6 +10,8 @@ import {
   postTransition,
   postComment,
   fetchFixVersions,
+  discoverStoryPointsField,
+  type JiraIssue,
 } from './jira';
 
 vi.mock('@tauri-apps/plugin-http', () => ({
@@ -242,6 +244,85 @@ describe('jira service', () => {
       await expect(
         postComment('https://jira.example.com', 'my-token', 'PROJ-1', 'comment'),
       ).rejects.toThrow();
+    });
+  });
+
+  describe('APIF-01: JiraIssue type extension', () => {
+    it('accepts parent, subtasks, timetracking, and issuetype.subtask fields', () => {
+      const issue: JiraIssue = {
+        id: '1',
+        key: 'PROJ-1',
+        fields: {
+          summary: 'Test',
+          status: { id: '1', name: 'To Do' },
+          assignee: null,
+          customfield_10016: 5,
+          issuetype: { name: 'Story', subtask: false },
+          parent: { id: '2', key: 'PROJ-0', fields: { summary: 'Parent' } },
+          subtasks: [{ id: '3', key: 'PROJ-2', fields: { summary: 'Sub', status: { name: 'To Do' } } }],
+          timetracking: { originalEstimate: '2h', timeSpent: '1h', remainingEstimate: '1h' },
+        },
+      };
+      expect(issue.fields.parent?.key).toBe('PROJ-0');
+      expect(issue.fields.subtasks?.length).toBe(1);
+      expect(issue.fields.timetracking?.originalEstimate).toBe('2h');
+      expect(issue.fields.issuetype.subtask).toBe(false);
+    });
+
+    it('APIF-01: index signature enables dynamic field key access', () => {
+      const issue: JiraIssue = {
+        id: '1',
+        key: 'PROJ-1',
+        fields: {
+          summary: 'Test',
+          status: { id: '1', name: 'To Do' },
+          assignee: null,
+          customfield_10016: null,
+          issuetype: { name: 'Story', subtask: false },
+          customfield_10028: 8, // dynamic field — allowed by index signature
+        },
+      };
+      const fieldKey = 'customfield_10028';
+      expect(issue.fields[fieldKey]).toBe(8);
+    });
+  });
+
+  describe('APIF-03: discoverStoryPointsField', () => {
+    it('returns the id of the field named "Story Points"', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [
+          { id: 'customfield_10016', name: 'Story Points' },
+          { id: 'summary', name: 'Summary' },
+        ],
+      } as Response);
+      const result = await discoverStoryPointsField('https://jira.example.com', 'token');
+      expect(result).toBe('customfield_10016');
+    });
+
+    it('returns fallback customfield_10016 when API returns non-OK', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({ ok: false, status: 404 } as Response);
+      const result = await discoverStoryPointsField('https://jira.example.com', 'token');
+      expect(result).toBe('customfield_10016');
+    });
+
+    it('returns fallback customfield_10016 when network throws', async () => {
+      vi.mocked(mockFetch).mockRejectedValue(new Error('network'));
+      const result = await discoverStoryPointsField('https://jira.example.com', 'token');
+      expect(result).toBe('customfield_10016');
+    });
+
+    it('matches field by id "customfield_10028" as secondary fallback', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [
+          { id: 'customfield_10028', name: 'SP' }, // id matches, name does not
+        ],
+      } as Response);
+      const result = await discoverStoryPointsField('https://jira.example.com', 'token');
+      expect(result).toBe('customfield_10028');
     });
   });
 
