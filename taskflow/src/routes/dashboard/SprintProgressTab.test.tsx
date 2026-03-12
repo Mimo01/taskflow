@@ -239,6 +239,26 @@ describe('SprintProgressTab', () => {
   });
 
   // SPPG-03 tests
+  it('SPPG-03: assignee rows sorted by total pts desc then alphabetically', async () => {
+    const { fetchSprintIssues } = await import('@/services/jira');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([
+      makeIssue('P-1', 'new', 5, { assigneeName: 'Alice' }),
+      makeIssue('P-2', 'done', 3, { assigneeName: 'Bob' }),
+      makeIssue('P-3', 'indeterminate', 8, { assigneeName: 'Charlie' }),
+      makeIssue('P-4', 'new', 5, { assigneeName: 'Zara' }),  // tie with Alice — alpha second
+    ]);
+
+    const { default: SprintProgressTab } = await import('./SprintProgressTab');
+    renderWithQuery(<SprintProgressTab />);
+
+    await screen.findByText('Charlie');
+    const rows = screen.getAllByTestId('assignee-row');
+    expect(rows[0].querySelector('td')?.textContent).toBe('Charlie'); // 8 pts
+    expect(rows[1].querySelector('td')?.textContent).toBe('Alice');   // 5 pts, alpha before Zara
+    expect(rows[2].querySelector('td')?.textContent).toBe('Zara');    // 5 pts, alpha after Alice
+    expect(rows[3].querySelector('td')?.textContent).toBe('Bob');     // 3 pts
+  });
+
   it('SPPG-03: per-assignee breakdown table shows correct pts buckets', async () => {
     const { fetchSprintIssues } = await import('@/services/jira');
     vi.mocked(fetchSprintIssues).mockResolvedValue([
