@@ -20,7 +20,7 @@ vi.mock('@/services/jira', () => ({
 // Mock gitlab service
 vi.mock('@/services/gitlab', () => ({
   validateGitLab: vi.fn().mockResolvedValue({ id: 1, name: 'Jane Smith', username: 'jane' }),
-  listGitLabGroups: vi.fn().mockResolvedValue([{ id: 1, name: 'My Group', full_path: 'my-group' }]),
+  listGitLabProjects: vi.fn().mockResolvedValue([{ id: 1, name: 'My Project', name_with_namespace: 'Org / My Project', path_with_namespace: 'org/my-project' }]),
 }));
 
 // Mock theme service
@@ -36,12 +36,13 @@ const mockAuthStore = {
   jiraBaseUrl: 'https://jira.example.com',
   gitlabBaseUrl: 'https://gitlab.example.com',
   activeJiraProject: 'PROJECT-1',
-  activeGitlabGroup: 'group-1',
+  activeGitlabProject: 1,
+  activeGitlabProjectPath: 'Org / My Project',
   set: vi.fn(),
   setJiraConnected: vi.fn(),
   setGitlabConnected: vi.fn(),
   setActiveJiraProject: vi.fn(),
-  setActiveGitlabGroup: vi.fn(),
+  setActiveGitlabProject: vi.fn(),
 };
 
 vi.mock('@/stores/auth.store', () => ({

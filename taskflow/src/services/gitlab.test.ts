@@ -4,11 +4,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   validateGitLab,
   listGitLabGroups,
+  listGitLabProjects,
   fetchAssignedMRs,
   fetchReviewerMRs,
   fetchMRCommits,
   fetchMRApprovals,
   fetchMRDiscussions,
+  fetchProjectMilestones,
   searchGitLabMRs,
 } from './gitlab';
 
@@ -190,6 +192,27 @@ describe('gitlab service', () => {
       const result = await fetchMRDiscussions('https://gitlab.example.com', 'my-token', 5, 1);
       expect(result).toEqual(mockDiscussions);
       expect(result[0].notes[0].resolved).toBe(false);
+    });
+  });
+
+  describe('listGitLabProjects', () => {
+    it('listGitLabProjects returns project list on success', async () => {
+      const mockProjects = [
+        { id: 1, name: 'Frontend', name_with_namespace: 'Org / Frontend', path_with_namespace: 'org/frontend' },
+      ];
+      vi.mocked(mockFetch).mockResolvedValue({ ok: true, status: 200, json: async () => mockProjects } as Response);
+      const result = await listGitLabProjects('https://gitlab.example.com', 'my-token');
+      expect(result).toEqual(mockProjects);
+    });
+  });
+
+  describe('fetchProjectMilestones', () => {
+    it('fetchProjectMilestones returns milestones for a project', async () => {
+      const mockMilestones = [{ id: 10, iid: 1, title: 'Sprint 1', due_date: '2026-04-01', state: 'active', web_url: 'https://gitlab.example.com/project/-/milestones/1' }];
+      vi.mocked(mockFetch).mockResolvedValue({ ok: true, status: 200, json: async () => mockMilestones } as Response);
+      const result = await fetchProjectMilestones('https://gitlab.example.com', 'my-token', 42);
+      expect(result).toEqual(mockMilestones);
+      expect(vi.mocked(mockFetch)).toHaveBeenCalledWith(expect.stringContaining('/projects/42/milestones'), expect.any(Object));
     });
   });
 
