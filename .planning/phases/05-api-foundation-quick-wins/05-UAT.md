@@ -1,13 +1,10 @@
 ---
-status: resolved
+status: complete
 phase: 05-api-foundation-quick-wins
-source: 05-01-SUMMARY.md, 05-02-SUMMARY.md, 05-03-SUMMARY.md, 05-04-SUMMARY.md
-started: 2026-03-12T00:00:00Z
-updated: 2026-03-12T12:00:00Z
+source: 05-01-SUMMARY.md, 05-02-SUMMARY.md, 05-03-SUMMARY.md, 05-04-SUMMARY.md, 05-05-SUMMARY.md, 05-06-SUMMARY.md
+started: 2026-03-12T16:00:00Z
+updated: 2026-03-12T16:00:00Z
 ---
-
-## Current Test
-<!-- OVERWRITE each test - shows where we are -->
 
 ## Current Test
 
@@ -19,16 +16,16 @@ updated: 2026-03-12T12:00:00Z
 expected: Open the search overlay and search for a GitLab MR by name or keyword. Only open (not merged, not closed) MRs appear in the results. Previously merged or closed MRs should not show up.
 result: pass
 
-### 2. Sprint Issues Include Subtasks
-expected: Navigate to the sprint board or My Tasks tab. Subtasks should now appear alongside their parent issues in the list (previously only parent stories/tasks appeared — subtasks were excluded by Jira's sprint query). If your sprint has any subtasks, they should be visible.
+### 2. Sprint Issues Include Both Stories and Subtasks
+expected: Navigate to My Tasks or the sprint view. You should see both parent issues (stories/tasks) and their subtasks together in the list — not just one or the other. If your sprint has subtasks, they should appear alongside parent issues.
 result: issue
-reported: "I only see subtasks, there are no stories"
+reported: "I see a flat list of tasks(stories) and subtasks together. I see my assigned tasks but also some subtasks that are not assigned to me"
 severity: major
 
 ### 3. Releases Tab Sort Order
 expected: Open the Releases tab. Fix versions should be sorted newest-to-oldest by release date (most recent date at the top). Versions without a release date should appear at the bottom of the list.
 result: issue
-reported: "I see releases but ther don't seem to be from my selected project"
+reported: "released are first, unreleased then. But This are not the correct releases from my selected project. I see some releases but I do not recognize them. I want to see releases from my jira project In standard Jira I see them as Releases or FixVersion"
 severity: major
 
 ### 4. Release Status Badges
@@ -36,46 +33,40 @@ expected: In the Releases tab, each row shows a color-coded status badge next to
 result: skipped
 reason: Cannot verify — releases shown are from wrong project (blocked by Test 3 issue)
 
+### 5. Releases Tab Shows Correct Project
+expected: In the Releases tab, the fix versions shown belong to your currently selected Jira project. If you previously had a bug where releases from a different (or unknown) project appeared, restarting the app should now clear that and show the correct project's releases (or prompt you to re-select your project).
+result: issue
+reported: "the problem persists"
+severity: major
+
 ## Summary
 
-total: 4
+total: 5
 passed: 1
-issues: 2
+issues: 3
 pending: 0
 skipped: 1
 
 ## Gaps
 
-- truth: "Sprint issues list contains both parent issues (stories/tasks) and subtasks merged together"
-  status: resolved
-  reason: "User reported: I only see subtasks, there are no stories"
+- truth: "Sprint issues list shows only issues assigned to the current user (both parent stories and their subtasks)"
+  status: failed
+  reason: "User reported: I see a flat list of tasks(stories) and subtasks together. I see my assigned tasks but also some subtasks that are not assigned to me"
   severity: major
   test: 2
-  root_cause: "The first query JQL (`sprint in openSprints() AND resolution = Unresolved`) has no `AND issuetype not in subtaskIssueTypes()` guard. On this Jira DC instance, openSprints() returns subtasks (they have sprint values on this board config). The second query then searches for children of those subtask keys — which have no children — returning nothing. Result: only subtasks appear."
-  artifacts:
-    - path: "taskflow/src/services/jira.ts"
-      issue: "First query JQL missing AND issuetype not in subtaskIssueTypes() guard"
-    - path: "taskflow/src/services/jira.test.ts"
-      issue: "APIF-02 tests don't cover the case where first query returns subtasks"
-  missing:
-    - "Add AND issuetype not in subtaskIssueTypes() to first query JQL"
-    - "Add APIF-02 test for when first query returns a subtask (guard validation)"
-  debug_session: ".planning/debug/sprint-subtasks-only.md"
-- truth: "Releases tab shows fix versions from the currently selected Jira project, sorted newest-to-oldest"
-  status: resolved
-  reason: "User reported: I see releases but ther don't seem to be from my selected project"
+  artifacts: []
+  missing: []
+- truth: "Releases tab shows fix versions from the currently selected Jira project"
+  status: failed
+  reason: "User reported: released are first, unreleased then. But This are not the correct releases from my selected project. I see some releases but I do not recognize them. I want to see releases from my jira project In standard Jira I see them as Releases or FixVersion"
   severity: major
   test: 3
-  root_cause: "Stale numeric project ID persisted in Tauri Store (auth.json). The GET /rest/api/2/version?projectKey= endpoint silently accepts numeric IDs and returns versions for whatever project has that ID, which may not match what the user sees selected. Likely a prior iteration stored p.id (numeric) instead of p.key (string)."
-  artifacts:
-    - path: "taskflow/src/routes/settings/TokenSection.tsx"
-      issue: "handleProjectChange parameter named projectId but receives p.key — naming mismatch is a refactor trap"
-    - path: "taskflow/src/stores/auth.store.ts"
-      issue: "activeJiraProject persisted via Tauri Store with no type validation on read"
-    - path: "taskflow/src/services/jira.ts"
-      issue: "fetchFixVersions uses endpoint that silently accepts numeric IDs"
-  missing:
-    - "Rename handleProjectChange parameter from projectId to projectKey"
-    - "Guard against stale numeric IDs: if activeJiraProject is a pure numeric string on startup, clear it"
-    - "Optional: switch fetchFixVersions to GET /rest/api/2/project/{projectKey}/versions (only accepts string keys)"
-  debug_session: ".planning/debug/releases-tab-wrong-project.md"
+  artifacts: []
+  missing: []
+- truth: "Releases tab shows fix versions from the currently selected Jira project after app restart"
+  status: failed
+  reason: "User reported: the problem persists"
+  severity: major
+  test: 5
+  artifacts: []
+  missing: []
