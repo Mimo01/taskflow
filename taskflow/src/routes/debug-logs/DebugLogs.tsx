@@ -66,7 +66,7 @@ function LogCard({ entry }: { entry: ApiLogEntry }) {
               URL
             </p>
             <pre className="text-xs bg-muted rounded p-2 overflow-auto whitespace-pre-wrap break-all">
-              {entry.url}
+              {decodeURIComponent(entry.url)}
             </pre>
           </div>
           {entry.error && (
