@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: resolved
 phase: 05-api-foundation-quick-wins
 source: 05-01-SUMMARY.md, 05-02-SUMMARY.md, 05-03-SUMMARY.md, 05-04-SUMMARY.md
 started: 2026-03-12T00:00:00Z
-updated: 2026-03-12T00:00:00Z
+updated: 2026-03-12T12:00:00Z
 ---
 
 ## Current Test
@@ -47,7 +47,7 @@ skipped: 1
 ## Gaps
 
 - truth: "Sprint issues list contains both parent issues (stories/tasks) and subtasks merged together"
-  status: failed
+  status: resolved
   reason: "User reported: I only see subtasks, there are no stories"
   severity: major
   test: 2
@@ -62,7 +62,7 @@ skipped: 1
     - "Add APIF-02 test for when first query returns a subtask (guard validation)"
   debug_session: ".planning/debug/sprint-subtasks-only.md"
 - truth: "Releases tab shows fix versions from the currently selected Jira project, sorted newest-to-oldest"
-  status: failed
+  status: resolved
   reason: "User reported: I see releases but ther don't seem to be from my selected project"
   severity: major
   test: 3
