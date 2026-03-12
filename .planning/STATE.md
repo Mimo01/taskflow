@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: planning
-stopped_at: Completed 05-03-PLAN.md
-last_updated: "2026-03-12T14:24:45.730Z"
+stopped_at: Completed 05-05-PLAN.md
+last_updated: "2026-03-12T15:35:33.118Z"
 last_activity: 2026-03-12 — v1.1 roadmap created (Phases 5-8)
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
+  completed_phases: 0
+  total_plans: 6
+  completed_plans: 5
   percent: 0
 ---
 
@@ -63,6 +63,7 @@ Key v1.1 constraints from research:
 - [Phase 05-api-foundation-quick-wins]: APIF-04 passes immediately as searchGitLabMRs fix lands in same plan
 - [Phase 05-api-foundation-quick-wins]: Use version.id lookup (not array index) for versionCountQueries after sort to avoid off-by-one counts
 - [Phase 05-api-foundation-quick-wins]: APIF-02: fetchSprintIssues two-query strategy implemented with SUBTASK_CHUNK_SIZE=50, subtask fields exclude description, silent fallback on subtask query failure
+- [Phase 05-api-foundation-quick-wins]: APIF-02 guard: issuetype not in subtaskIssueTypes() in sprint JQL prevents Jira DC edge case where openSprints() returns subtasks causing empty sprint view
 
 ### Pending Todos
 
@@ -76,6 +77,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-12T13:44:02.194Z
-Stopped at: Completed 05-03-PLAN.md
+Last session: 2026-03-12T15:35:33.115Z
+Stopped at: Completed 05-05-PLAN.md
 Resume file: None
