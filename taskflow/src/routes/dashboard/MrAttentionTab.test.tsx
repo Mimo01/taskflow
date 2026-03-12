@@ -1,11 +1,11 @@
 /**
- * MrAttentionTab tests — DEV-03, DEV-05, UI-03, LINK-03, LINK-04
+ * MrAttentionTab tests — DEV-03, DEV-05, UI-03, LINK-03, LINK-04, MRAT-01, MRAT-02
  *
  * Tests stale badge logic, no-stale-badge for fresh MRs,
- * and MR-to-task linking behavior.
+ * MR-to-task linking behavior, and subtask-linked story MR inclusion.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
@@ -36,6 +36,7 @@ vi.mock('@/services/linkEngine', () => ({
 vi.mock('@/stores/settings.store', () => ({
   useSettingsStore: vi.fn(() => ({
     staleMrThresholdDays: 3,
+    storyPointsFieldKey: 'customfield_10016',
   })),
 }));
 
@@ -48,9 +49,10 @@ vi.mock('@/stores/auth.store', () => ({
   })),
 }));
 
-// Mock jira service for sprint issues
+// Mock jira service for sprint issues and my-tasks hierarchy
 vi.mock('@/services/jira', () => ({
   fetchSprintIssues: vi.fn().mockResolvedValue([]),
+  fetchMyTasksHierarchy: vi.fn().mockResolvedValue({ issues: [], myIssueKeys: new Set() }),
 }));
 
 // Helper to create an MR with given updated_at
@@ -78,6 +80,21 @@ function makeIssue(key: string) {
       assignee: null,
       customfield_10016: null,
       issuetype: { name: 'Story', subtask: false },
+    },
+  };
+}
+
+function makeSubtaskIssue(key: string, parentKey: string) {
+  return {
+    id: key,
+    key,
+    fields: {
+      summary: `Subtask ${key}`,
+      status: { id: '3', name: 'In Progress' },
+      assignee: null,
+      customfield_10016: null,
+      issuetype: { name: 'Sub-task', subtask: true },
+      parent: { key: parentKey },
     },
   };
 }
@@ -171,5 +188,149 @@ describe('MrAttentionTab', () => {
     // We check for multiple PROJ-7 elements: one in MR title, one in linked task badge
     const allMatches = await screen.findAllByText(/PROJ-7/i);
     expect(allMatches.length).toBeGreaterThanOrEqual(2); // MR title + task badge
+  });
+
+  // MRAT-02: subtask-linked story MRs
+  describe('MRAT-02: subtask-linked story MRs', () => {
+    it('includes reviewer MR linked to a story where user has subtask (bypasses discussion filter)', async () => {
+      // MR is a reviewer MR linked to STORY-1. User has subtask SUB-1 under STORY-1.
+      // Without subtask path: this MR would be excluded (no unresolved discussions).
+      // With subtask path: should be included unconditionally.
+      const now = new Date().toISOString();
+      const { fetchAssignedMRs, fetchReviewerMRs, fetchMRDiscussions } = await import('@/services/gitlab');
+      vi.mocked(fetchAssignedMRs).mockResolvedValue([]);
+      vi.mocked(fetchReviewerMRs).mockResolvedValue([makeMR(20, now, 'STORY-1 some fix')]);
+      // No unresolved discussions — would normally exclude this reviewer MR
+      vi.mocked(fetchMRDiscussions).mockResolvedValue([]);
+
+      // linkMRToTask: returns STORY-1 when keys contains STORY-1
+      const { linkMRToTask } = await import('@/services/linkEngine');
+      vi.mocked(linkMRToTask).mockImplementation((mr, keys) =>
+        keys.has('STORY-1') && mr.title.includes('STORY-1') ? 'STORY-1' : null,
+      );
+
+      // my-tasks: user has subtask SUB-1 whose parent is STORY-1
+      const { fetchMyTasksHierarchy } = await import('@/services/jira');
+      vi.mocked(fetchMyTasksHierarchy).mockResolvedValue({
+        issues: [makeSubtaskIssue('SUB-1', 'STORY-1') as any],
+        myIssueKeys: new Set(['SUB-1']),
+      });
+
+      const { useAuthStore } = await import('@/stores/auth.store');
+      vi.mocked(useAuthStore).mockReturnValue({
+        gitlabBaseUrl: 'https://gitlab.example.com',
+        jiraBaseUrl: 'https://jira.example.com',
+        activeJiraProject: 'PROJ',
+      } as ReturnType<typeof useAuthStore>);
+
+      const { default: MrAttentionTab } = await import('./MrAttentionTab');
+      renderWithQuery(<MrAttentionTab />);
+
+      // MR 20 should appear because it's linked to STORY-1 (subtask path)
+      await screen.findByText(/STORY-1/i);
+    });
+
+    it('shows "via [subtask-key]" label on subtask-path-only MRs', async () => {
+      // MR is only in list because of subtask path — should show "via SUB-1"
+      const now = new Date().toISOString();
+      const { fetchAssignedMRs, fetchReviewerMRs, fetchMRDiscussions } = await import('@/services/gitlab');
+      vi.mocked(fetchAssignedMRs).mockResolvedValue([]);
+      vi.mocked(fetchReviewerMRs).mockResolvedValue([makeMR(21, now, 'STORY-2 feature branch')]);
+      vi.mocked(fetchMRDiscussions).mockResolvedValue([]);
+
+      const { linkMRToTask } = await import('@/services/linkEngine');
+      // Returns STORY-2 only when keys contains STORY-2 (subtask story key)
+      vi.mocked(linkMRToTask).mockImplementation((mr, keys) =>
+        keys.has('STORY-2') && mr.title.includes('STORY-2') ? 'STORY-2' : null,
+      );
+
+      const { fetchMyTasksHierarchy } = await import('@/services/jira');
+      vi.mocked(fetchMyTasksHierarchy).mockResolvedValue({
+        issues: [makeSubtaskIssue('SUB-2', 'STORY-2') as any],
+        myIssueKeys: new Set(['SUB-2']),
+      });
+
+      const { useAuthStore } = await import('@/stores/auth.store');
+      vi.mocked(useAuthStore).mockReturnValue({
+        gitlabBaseUrl: 'https://gitlab.example.com',
+        jiraBaseUrl: 'https://jira.example.com',
+        activeJiraProject: 'PROJ',
+      } as ReturnType<typeof useAuthStore>);
+
+      const { default: MrAttentionTab } = await import('./MrAttentionTab');
+      renderWithQuery(<MrAttentionTab />);
+
+      // "via SUB-2" should appear as the label for the subtask-only MR
+      await screen.findByText(/via SUB-2/i);
+    });
+
+    it('does not show "via" label on MRs already included via sprint/assigned path', async () => {
+      // MR is assigned to user AND linked to a story where user has subtask
+      // → already in list via assignment, no "via" label
+      const now = new Date().toISOString();
+      const { fetchAssignedMRs, fetchReviewerMRs } = await import('@/services/gitlab');
+      vi.mocked(fetchAssignedMRs).mockResolvedValue([makeMR(22, now, 'STORY-3 assigned mr')]);
+      vi.mocked(fetchReviewerMRs).mockResolvedValue([]);
+
+      const { linkMRToTask } = await import('@/services/linkEngine');
+      // Returns STORY-3 for sprint key set (meaning it's already sprint-linked)
+      vi.mocked(linkMRToTask).mockImplementation((mr, keys) =>
+        keys.has('STORY-3') && mr.title.includes('STORY-3') ? 'STORY-3' : null,
+      );
+
+      // Sprint issues include STORY-3 so MR is sprint-linked
+      const { fetchSprintIssues } = await import('@/services/jira');
+      vi.mocked(fetchSprintIssues).mockResolvedValue([makeIssue('STORY-3')]);
+
+      const { fetchMyTasksHierarchy } = await import('@/services/jira');
+      vi.mocked(fetchMyTasksHierarchy).mockResolvedValue({
+        issues: [makeSubtaskIssue('SUB-3', 'STORY-3') as any],
+        myIssueKeys: new Set(['SUB-3']),
+      });
+
+      const { useAuthStore } = await import('@/stores/auth.store');
+      vi.mocked(useAuthStore).mockReturnValue({
+        gitlabBaseUrl: 'https://gitlab.example.com',
+        jiraBaseUrl: 'https://jira.example.com',
+        activeJiraProject: 'PROJ',
+      } as ReturnType<typeof useAuthStore>);
+
+      const { default: MrAttentionTab } = await import('./MrAttentionTab');
+      renderWithQuery(<MrAttentionTab />);
+
+      // MR 22 appears (assigned path)
+      await screen.findByText(/STORY-3/i);
+
+      // No "via" label since it's already included via assignment/sprint
+      await waitFor(() => {
+        expect(screen.queryByText(/via SUB-3/i)).toBeNull();
+      });
+    });
+
+    it('gracefully shows base MR list when subtask data is unavailable', async () => {
+      // fetchMyTasksHierarchy rejects — base list still shown, no crash
+      const now = new Date().toISOString();
+      const { fetchAssignedMRs, fetchReviewerMRs } = await import('@/services/gitlab');
+      vi.mocked(fetchAssignedMRs).mockResolvedValue([makeMR(30, now, 'Base MR')]);
+      vi.mocked(fetchReviewerMRs).mockResolvedValue([]);
+
+      const { fetchMyTasksHierarchy } = await import('@/services/jira');
+      vi.mocked(fetchMyTasksHierarchy).mockRejectedValue(new Error('unavailable'));
+
+      const { useAuthStore } = await import('@/stores/auth.store');
+      vi.mocked(useAuthStore).mockReturnValue({
+        gitlabBaseUrl: 'https://gitlab.example.com',
+        jiraBaseUrl: 'https://jira.example.com',
+        activeJiraProject: 'PROJ',
+      } as ReturnType<typeof useAuthStore>);
+
+      const { default: MrAttentionTab } = await import('./MrAttentionTab');
+      renderWithQuery(<MrAttentionTab />);
+
+      // Base MR still rendered
+      await screen.findByText(/Base MR/i);
+      // No crash — no error boundary triggered
+      expect(screen.queryByText(/failed/i)).toBeNull();
+    });
   });
 });
