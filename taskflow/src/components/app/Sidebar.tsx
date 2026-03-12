@@ -28,7 +28,7 @@ const NAV_LINK_CLASS =
   'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium hover:bg-accent transition-colors';
 
 export default function Sidebar() {
-  const { role } = useSettingsStore();
+  const { role, debugMode } = useSettingsStore();
 
   return (
     <aside className="flex flex-col h-full w-16 md:w-56 border-r border-border bg-background shrink-0">
@@ -86,16 +86,18 @@ export default function Sidebar() {
           </div>
         )}
 
-        {/* Tools section — always visible */}
-        <div className="mt-2">
-          <p className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:block">
-            Tools
-          </p>
-          <Link to="/debug-logs" className={NAV_LINK_CLASS}>
-            <Bug className="h-4 w-4 shrink-0" />
-            <span className="hidden md:block">Debug Logs</span>
-          </Link>
-        </div>
+        {/* Tools section — only visible when debug mode is enabled */}
+        {debugMode && (
+          <div className="mt-2">
+            <p className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:block">
+              Tools
+            </p>
+            <Link to="/debug-logs" className={NAV_LINK_CLASS}>
+              <Bug className="h-4 w-4 shrink-0" />
+              <span className="hidden md:block">Debug Logs</span>
+            </Link>
+          </div>
+        )}
       </nav>
 
       {/* Bottom: Settings link */}
