@@ -1,7 +1,6 @@
 // SRCH-02: Search result panel display for Jira tasks and GitLab MRs
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import React from 'react';
 
 // Mock @tauri-apps/plugin-opener
 vi.mock('@tauri-apps/plugin-opener', () => ({
