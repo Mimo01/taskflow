@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: planning
-stopped_at: Phase 5 context gathered
-last_updated: "2026-03-12T12:51:44.068Z"
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-03-12T13:21:34.523Z"
 last_activity: 2026-03-12 — v1.1 roadmap created (Phases 5-8)
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 4
+  completed_plans: 1
   percent: 0
 ---
 
@@ -58,6 +58,9 @@ Key v1.1 constraints from research:
 - [v1.1 WORK]: Time tracking fields may be admin-disabled — graceful hide (not zeros) is the primary path
 - [v1.1 HIER]: Mutation `onSettled` must invalidate both `['jira-issues','my-tasks',...]` and `['jira-issues','sprint-board',...]`
 - [v1.1 REL]: Sort must use `releaseDate` only — `startDate` confirmed unavailable in GET responses on DC
+- [Phase 05-api-foundation-quick-wins]: Pre-existing TypeScript errors confirmed out-of-scope via git stash check
+- [Phase 05-api-foundation-quick-wins]: REL-01/02/03 stubs intentionally fail (RED state) — Plan 04 makes them pass
+- [Phase 05-api-foundation-quick-wins]: APIF-04 passes immediately as searchGitLabMRs fix lands in same plan
 
 ### Pending Todos
 
@@ -71,6 +74,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-12T12:51:44.061Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-api-foundation-quick-wins/05-CONTEXT.md
+Last session: 2026-03-12T13:21:34.519Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None
