@@ -552,6 +552,70 @@ export async function searchJira(
   return (data.issues ?? []) as JiraIssue[];
 }
 
+// ─── Phase 8: Dashboard Enrichment ───────────────────────────────────────────
+
+export interface JiraActiveSprint {
+  id: number;
+  name: string;
+  state: 'active' | 'future' | 'closed';
+  startDate?: string;
+  endDate?: string;
+  goal?: string;
+}
+
+/**
+ * Fetch the active sprint for a Jira project using the Agile REST API.
+ *
+ * Step 1: Discover the scrum board for the project via GET /rest/agile/1.0/board.
+ * Step 2: Fetch the active sprint from that board via GET /rest/agile/1.0/board/{boardId}/sprint?state=active.
+ *
+ * Returns null on any failure (board not found, sprint not found, network error).
+ * Never throws — all errors are caught and null is returned (graceful-hide).
+ *
+ * NOTE: apiFetch already adds a 15-second AbortController timeout (Quick-9).
+ *
+ * @param baseUrl    - Jira base URL (e.g. "https://jira.example.com")
+ * @param token      - Personal Access Token
+ * @param projectKey - Jira project key (e.g. "PROJ")
+ * @returns Active sprint or null
+ */
+export async function fetchActiveSprint(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+): Promise<JiraActiveSprint | null> {
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+  try {
+    // Step 1: board discovery
+    const boardRes = await apiFetch(
+      'jira',
+      `${base}/rest/agile/1.0/board?projectKeyOrId=${projectKey}&type=scrum`,
+      { headers },
+    );
+    if (!boardRes.ok) return null;
+    const boardData = await boardRes.json();
+    const boardId: number | undefined = boardData?.values?.[0]?.id;
+    if (!boardId) return null;
+
+    // Step 2: active sprint
+    const sprintRes = await apiFetch(
+      'jira',
+      `${base}/rest/agile/1.0/board/${boardId}/sprint?state=active`,
+      { headers },
+    );
+    if (!sprintRes.ok) return null;
+    const sprintData = await sprintRes.json();
+    const values: JiraActiveSprint[] = sprintData?.values ?? [];
+    if (values.length === 0) return null;
+
+    return values[0];
+  } catch {
+    return null;
+  }
+}
+
 // ─── Phase 5: API Foundation ──────────────────────────────────────────────────
 
 /**
