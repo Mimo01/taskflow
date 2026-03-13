@@ -66,9 +66,15 @@ export const useAuthStore = create<AuthState>()(
       jiraUsername: null,
       gitlabUserId: null,
       setJiraConnected: (connected, baseUrl) =>
-        set({ jiraConnected: connected, jiraBaseUrl: baseUrl ?? null }),
+        set((state) => ({
+          jiraConnected: connected,
+          jiraBaseUrl: baseUrl !== undefined ? baseUrl : state.jiraBaseUrl,
+        })),
       setGitlabConnected: (connected, baseUrl) =>
-        set({ gitlabConnected: connected, gitlabBaseUrl: baseUrl ?? null }),
+        set((state) => ({
+          gitlabConnected: connected,
+          gitlabBaseUrl: baseUrl !== undefined ? baseUrl : state.gitlabBaseUrl,
+        })),
       setActiveJiraProject: (project) => set({ activeJiraProject: project }),
       setActiveGitlabProject: (id, path) => set({ activeGitlabProject: id, activeGitlabProjectPath: path }),
       setJiraUser: (displayName, username) =>
