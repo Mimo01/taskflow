@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: planning
-stopped_at: Completed 08-07-PLAN.md — MyTasksTab non-array guards
-last_updated: "2026-03-13T12:18:42.314Z"
-last_activity: "2026-03-13 - Completed quick task 16: WorkloadTab subtask nesting + worklog attribution (fetchIssueWorklogs)"
+stopped_at: Completed quick task 17 — WorkloadTab all-story count + Done badge
+last_updated: "2026-03-13T15:26:39.720Z"
+last_activity: "2026-03-13 - Completed quick task 17: WorkloadTab all-story count + Done badge"
 progress:
   total_phases: 4
   completed_phases: 4
@@ -129,6 +129,7 @@ None.
 | 14 | Remove fullpage /notifications route and dashboard NotificationsPanel — bell popover is sole notifications surface | 2026-03-13 | ec6d662 | Done | [14-remove-fullpage-notifications-and-dashbo](./quick/14-remove-fullpage-notifications-and-dashbo/) |
 | 15 | Comment count badge on TaskRow + existing comments list in InlineComment panel | 2026-03-13 | d0404e9 | Verified | [15-show-comment-count-on-my-tasks-page-and-](./quick/15-show-comment-count-on-my-tasks-page-and-/) |
 | 16 | WorkloadTab subtask nesting + worklog attribution: three-level hierarchy and fetchIssueWorklogs | 2026-03-13 | 36553c8 | Verified | [16-in-workload-tab-show-subtasks-and-time-l](./quick/16-in-workload-tab-show-subtasks-and-time-l/) |
+| 17 | WorkloadTab Tasks column counts all stories (in-progress + done); Done badge on done sub-rows | 2026-03-13 | 4d74b93 | Done | [17-in-the-workload-tab-only-in-progress-tas](./quick/17-in-the-workload-tab-only-in-progress-tas/) |
 | Phase 06 P01 | 203 | 2 tasks | 2 files |
 | Phase 06 P02 | 4 | 2 tasks | 2 files |
 | Phase 06-workload-sprint-progress-enrichment P03 | 5 | 1 tasks | 2 files |
@@ -148,6 +149,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-13T15:01:54.443Z
-Stopped at: Completed quick task 16 — WorkloadTab subtask nesting + worklog attribution
+Last session: 2026-03-13T15:26:39.716Z
+Stopped at: Completed quick task 17 — WorkloadTab all-story count + Done badge
 Resume file: None
