@@ -9,12 +9,12 @@ Requirements for the Jira Parity milestone. Goal: replace the need to open real 
 
 ### Issue Detail (ISSUE)
 
-- [ ] **ISSUE-01**: User can open a full detail panel for any Jira issue (story, subtask, bug, epic) from any view in the app
+- [x] **ISSUE-01**: User can open a full detail panel for any Jira issue (story, subtask, bug, epic) from any view in the app
 - [x] **ISSUE-02**: User can read the full issue description rendered from Jira wiki markup as formatted text
-- [ ] **ISSUE-03**: User can view all issue metadata: priority, assignee, reporter, story points, status, epic link, sprint, labels, fix versions, dates
+- [x] **ISSUE-03**: User can view all issue metadata: priority, assignee, reporter, story points, status, epic link, sprint, labels, fix versions, dates
 - [ ] **ISSUE-04**: User can edit issue fields inline from the detail panel: assignee, priority, story points (optimistic update + rollback)
-- [ ] **ISSUE-05**: User can view all child subtasks with their status from the issue detail panel
-- [ ] **ISSUE-06**: User can view linked issues (relates to, blocks, is blocked by) from the issue detail panel
+- [x] **ISSUE-05**: User can view all child subtasks with their status from the issue detail panel
+- [x] **ISSUE-06**: User can view linked issues (relates to, blocks, is blocked by) from the issue detail panel
 - [ ] **ISSUE-07**: User can read the full comment thread for any issue from the detail panel
 - [ ] **ISSUE-08**: User can post a comment on any issue from the detail panel
 - [ ] **ISSUE-09**: User can open any issue directly in Jira via a deep link from the detail panel
@@ -84,12 +84,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ISSUE-01 | Phase 9 | Pending |
+| ISSUE-01 | Phase 9 | Complete |
 | ISSUE-02 | Phase 9 | Complete |
-| ISSUE-03 | Phase 9 | Pending |
+| ISSUE-03 | Phase 9 | Complete |
 | ISSUE-04 | Phase 9 | Pending |
-| ISSUE-05 | Phase 9 | Pending |
-| ISSUE-06 | Phase 9 | Pending |
+| ISSUE-05 | Phase 9 | Complete |
+| ISSUE-06 | Phase 9 | Complete |
 | ISSUE-07 | Phase 9 | Pending |
 | ISSUE-08 | Phase 9 | Pending |
 | ISSUE-09 | Phase 9 | Pending |
