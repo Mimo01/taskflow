@@ -593,4 +593,174 @@ describe('jira service', () => {
       ).rejects.toThrow('Permission denied');
     });
   });
+
+  describe('PAGI-01: fetchSprintIssues pagination — fetches all pages when total > PAGE_SIZE', () => {
+    const makeParent = (key: string) => ({
+      id: key, key,
+      fields: {
+        summary: `Story ${key}`,
+        status: { id: '1', name: 'In Progress' },
+        assignee: null,
+        customfield_10016: 1,
+        issuetype: { name: 'Story', subtask: false },
+      },
+    });
+
+    it('fetches page 2 when total=250 and first page returns 200 issues', async () => {
+      const page1Issues = Array.from({ length: 200 }, (_, i) => makeParent(`P-${i}`));
+      const page2Issues = Array.from({ length: 50 }, (_, i) => makeParent(`P-${200 + i}`));
+
+      vi.mocked(mockFetch)
+        // Page 1 of parent issues (startAt=0)
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({ issues: page1Issues, total: 250, startAt: 0, maxResults: 200 }),
+        } as Response)
+        // Page 2 of parent issues (startAt=200)
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({ issues: page2Issues, total: 250, startAt: 200, maxResults: 200 }),
+        } as Response)
+        // Subtask chunks — return empty so we can count calls without complication
+        .mockResolvedValue({
+          ok: true, status: 200,
+          json: async () => ({ issues: [], total: 0, startAt: 0, maxResults: 200 }),
+        } as Response);
+
+      const result = await fetchSprintIssues('https://jira.example.com', 'token', 'PROJ', false);
+      // Should have all 250 parent issues (plus 0 subtasks)
+      expect(result).toHaveLength(250);
+
+      // First two calls are the two pages of the parent query
+      const call1Url = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      const call2Url = vi.mocked(mockFetch).mock.calls[1][0] as string;
+      expect(call1Url).toContain('startAt=0');
+      expect(call2Url).toContain('startAt=200');
+    });
+
+    it('stops paging when total is exactly one page (no second request needed)', async () => {
+      const issues = Array.from({ length: 50 }, (_, i) => makeParent(`P-${i}`));
+
+      vi.mocked(mockFetch)
+        // Single page — total=50, PAGE_SIZE=200 so no second page needed
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({ issues, total: 50, startAt: 0, maxResults: 200 }),
+        } as Response)
+        // Subtask chunk query
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({ issues: [], total: 0, startAt: 0, maxResults: 200 }),
+        } as Response);
+
+      const result = await fetchSprintIssues('https://jira.example.com', 'token', 'PROJ', false);
+      expect(result).toHaveLength(50);
+      // Only 2 calls: 1 parent page + 1 subtask chunk page
+      expect(vi.mocked(mockFetch)).toHaveBeenCalledTimes(2);
+    });
+
+    it('fetches multiple pages of subtasks when a chunk has >200 subtasks', async () => {
+      const parent = makeParent('P-1');
+      const subtaskPage1 = Array.from({ length: 200 }, (_, i) => ({
+        id: `ST-${i}`, key: `ST-${i}`,
+        fields: {
+          summary: `Sub ${i}`,
+          status: { id: '2', name: 'To Do' },
+          assignee: null,
+          customfield_10016: null,
+          issuetype: { name: 'Sub-task', subtask: true },
+          parent: { id: 'P-1', key: 'P-1', fields: { summary: 'Story P-1' } },
+        },
+      }));
+      const subtaskPage2 = Array.from({ length: 30 }, (_, i) => ({
+        id: `ST-${200 + i}`, key: `ST-${200 + i}`,
+        fields: {
+          summary: `Sub ${200 + i}`,
+          status: { id: '2', name: 'To Do' },
+          assignee: null,
+          customfield_10016: null,
+          issuetype: { name: 'Sub-task', subtask: true },
+          parent: { id: 'P-1', key: 'P-1', fields: { summary: 'Story P-1' } },
+        },
+      }));
+
+      vi.mocked(mockFetch)
+        // Parent query: 1 parent, total=1
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({ issues: [parent], total: 1, startAt: 0, maxResults: 200 }),
+        } as Response)
+        // Subtask page 1: 200 subtasks, total=230
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({ issues: subtaskPage1, total: 230, startAt: 0, maxResults: 200 }),
+        } as Response)
+        // Subtask page 2: remaining 30 subtasks
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({ issues: subtaskPage2, total: 230, startAt: 200, maxResults: 200 }),
+        } as Response);
+
+      const result = await fetchSprintIssues('https://jira.example.com', 'token', 'PROJ', false);
+      // 1 parent + 230 subtasks = 231 total
+      expect(result).toHaveLength(231);
+    });
+  });
+
+  describe('PAGI-02: fetchIssueWorklogs pagination — fetches all pages', () => {
+    it('fetches page 2 when total=300 and first page returns 200 worklogs', async () => {
+      const page1 = Array.from({ length: 200 }, (_, i) => ({ author: { displayName: `Author${i}` } }));
+      const page2 = Array.from({ length: 100 }, (_, i) => ({ author: { displayName: `Author${200 + i}` } }));
+
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({ worklogs: page1, total: 300, startAt: 0, maxResults: 200 }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({ worklogs: page2, total: 300, startAt: 200, maxResults: 200 }),
+        } as Response);
+
+      const { fetchIssueWorklogs } = await import('./jira');
+      const result = await fetchIssueWorklogs('https://jira.example.com', 'token', 'PROJ-1');
+      // All 300 distinct author names should be present
+      expect(result).toHaveLength(300);
+      expect(result).toContain('Author0');
+      expect(result).toContain('Author299');
+
+      // Two fetch calls (two pages)
+      expect(vi.mocked(mockFetch)).toHaveBeenCalledTimes(2);
+      const call1Url = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      const call2Url = vi.mocked(mockFetch).mock.calls[1][0] as string;
+      expect(call1Url).toContain('startAt=0');
+      expect(call2Url).toContain('startAt=200');
+    });
+
+    it('deduplicates authors across pages — same author on multiple pages counted once', async () => {
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({
+            worklogs: [{ author: { displayName: 'Alice' } }],
+            total: 2,
+            startAt: 0,
+            maxResults: 200,
+          }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({
+            worklogs: [{ author: { displayName: 'Alice' } }],
+            total: 2,
+            startAt: 200,
+            maxResults: 200,
+          }),
+        } as Response);
+
+      const { fetchIssueWorklogs } = await import('./jira');
+      const result = await fetchIssueWorklogs('https://jira.example.com', 'token', 'PROJ-1');
+      expect(result).toEqual(['Alice']);
+    });
+  });
 });
