@@ -92,12 +92,12 @@ describe('WorkloadTab', () => {
     vi.mocked(fetchIssueWorklogs).mockResolvedValue([]);
   });
 
-  it('groups sprint issues by assignee — all stories counted, done excluded from pts only', async () => {
+  it('groups sprint issues by assignee — all stories counted including done', async () => {
     const user = userEvent.setup();
     const { fetchSprintIssues } = await import('@/services/jira');
     vi.mocked(fetchSprintIssues).mockResolvedValue([
       makeIssue('P-1', 'Alice', 'indeterminate', 5),
-      makeIssue('P-2', 'Alice', 'done', 3),       // done — counted in tasks but excluded from pts
+      makeIssue('P-2', 'Alice', 'done', 3),       // done — counted in tasks and pts
       makeIssue('P-3', null, 'new', 2),            // unassigned
     ]);
 
@@ -109,11 +109,11 @@ describe('WorkloadTab', () => {
     // Unassigned: 1 open task (P-3)
     expect(screen.getByText('Unassigned')).toBeTruthy();
 
-    // Alice row should show 2 tasks (P-2 done is now counted) but only 5 pts (done excluded from pts)
+    // Alice row should show 2 tasks and 8 pts (5 + 3, done included)
     const aliceRow = screen.getByText('Alice').closest('[data-testid="workload-row"]');
     expect(aliceRow).not.toBeNull();
     expect(aliceRow?.textContent).toMatch(/2\s*tasks/i);
-    expect(aliceRow?.textContent).toMatch(/5\s*pts/i);
+    expect(aliceRow?.textContent).toMatch(/8\s*pts/i);
 
     // Expand Alice row — both P-1 and P-2 (done) should appear as sub-rows
     await user.click(aliceRow!);
@@ -121,22 +121,22 @@ describe('WorkloadTab', () => {
     expect(screen.getByText('P-2')).toBeTruthy();
   });
 
-  it('sums story points per assignee (unresolved only)', async () => {
+  it('sums story points per assignee including done stories', async () => {
     const user = userEvent.setup();
     const { fetchSprintIssues } = await import('@/services/jira');
     vi.mocked(fetchSprintIssues).mockResolvedValue([
       makeIssue('P-1', 'Bob', 'new', 8),
       makeIssue('P-2', 'Bob', 'indeterminate', 5),
-      makeIssue('P-3', 'Bob', 'done', 13),         // done — points excluded from total
+      makeIssue('P-3', 'Bob', 'done', 13),         // done — points included in total
     ]);
 
     const { default: WorkloadTab } = await import('./WorkloadTab');
     renderWithQuery(<WorkloadTab />);
 
     await screen.findByText('Bob');
-    // Bob open tasks: P-1 (8pts) + P-2 (5pts) = 13 pts, 2 tasks
+    // Bob: P-1 (8pts) + P-2 (5pts) + P-3 done (13pts) = 26 pts, 3 tasks
     const bobRow = screen.getByText('Bob').closest('[data-testid="workload-row"]');
-    expect(bobRow?.textContent).toMatch(/13\s*pts/i);
+    expect(bobRow?.textContent).toMatch(/26\s*pts/i);
 
     // Expand Bob row — done story P-3 should also appear as a sub-row
     await user.click(bobRow!);
@@ -158,9 +158,9 @@ describe('WorkloadTab', () => {
 
     const carolRow = screen.getByText('Carol').closest('[data-testid="workload-row"]');
     expect(carolRow).not.toBeNull();
-    // Carol row should show 1 task (done stories now counted) and 0 pts (locked decision)
+    // Carol row should show 1 task and 5 pts (done stories counted)
     expect(carolRow?.textContent).toMatch(/1\s*task/i);
-    expect(carolRow?.textContent).toMatch(/0\s*pts/i);
+    expect(carolRow?.textContent).toMatch(/5\s*pts/i);
 
     // Expand Carol row — P-1 (done) should appear as a sub-row
     await user.click(carolRow!);
@@ -171,7 +171,7 @@ describe('WorkloadTab', () => {
     const { fetchSprintIssues } = await import('@/services/jira');
     vi.mocked(fetchSprintIssues).mockResolvedValue([
       makeIssue('P-1', 'Alice', 'indeterminate', 5),  // in-progress: 5 pts
-      makeIssue('P-2', 'Alice', 'done', 3),            // done: 0 pts, but counted
+      makeIssue('P-2', 'Alice', 'done', 3),            // done: 3 pts, counted
     ]);
 
     const { default: WorkloadTab } = await import('./WorkloadTab');
@@ -182,9 +182,8 @@ describe('WorkloadTab', () => {
     expect(aliceRow).not.toBeNull();
     // Tasks should show 2 (1 in-progress + 1 done)
     expect(aliceRow?.textContent).toMatch(/2\s*tasks/i);
-    // Pts should show only 5 (not 8 — done story excluded from pts)
-    expect(aliceRow?.textContent).toMatch(/5\s*pts/i);
-    expect(aliceRow?.textContent).not.toMatch(/8\s*pts/i);
+    // Pts should show 8 (5 + 3, done included)
+    expect(aliceRow?.textContent).toMatch(/8\s*pts/i);
   });
 
   it('done story sub-row has Done badge', async () => {
