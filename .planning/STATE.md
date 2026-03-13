@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: planning
-stopped_at: "Checkpoint: 08-05 visual verification pending"
-last_updated: "2026-03-13T10:07:37.111Z"
+stopped_at: Completed 08-05-PLAN.md — Phase 8 dashboard enrichment complete
+last_updated: "2026-03-13T10:31:43.408Z"
 last_activity: "2026-03-13 - Completed quick task 12: Fix MR-to-Jira task mapping empty array"
 progress:
   total_phases: 4
@@ -94,6 +94,8 @@ Key v1.1 constraints from research:
 - [Phase 08-dashboard-enrichment]: SprintHealthPanel reads JiraIssue[] directly from fetchSprintIssues (array, not {issues, myIssueKeys}) — confirmed from SprintProgressTab pattern
 - [Phase 08-dashboard-enrichment]: Dashboard index.tsx is a thin wiring layer only — token loading + prop passing; panels handle their own queries
 - [Phase 08-dashboard-enrichment]: PM layout uses early return pattern for clean role separation; developer/tech-lead default shares 4-panel grid
+- [Phase 08-dashboard-enrichment]: Dashboard index.tsx is a thin wiring layer only — token loading + prop passing; panels handle their own queries
+- [Phase 08-dashboard-enrichment]: Notifications store sanitized on rehydration — numeric/null id values coerced to string to prevent row click failures
 
 ### Pending Todos
 
@@ -130,9 +132,10 @@ None.
 | Phase 08-dashboard-enrichment P04 | 2 | 1 tasks | 2 files |
 | Phase 08-dashboard-enrichment P02 | 3 | 2 tasks | 3 files |
 | Phase 08-dashboard-enrichment P03 | 3 | 2 tasks | 5 files |
+| Phase 08 P05 | 35 | 1 tasks | 1 files |
 
 ## Session Continuity
 
-Last session: 2026-03-13T10:07:19.790Z
-Stopped at: Checkpoint: 08-05 visual verification pending
+Last session: 2026-03-13T10:31:19.007Z
+Stopped at: Completed 08-05-PLAN.md — Phase 8 dashboard enrichment complete
 Resume file: None
