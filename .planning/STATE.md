@@ -4,8 +4,8 @@ milestone: v1.1
 milestone_name: Polish
 status: planning
 stopped_at: Completed 07-05-PLAN.md
-last_updated: "2026-03-13T08:32:36.432Z"
-last_activity: "2026-03-12 - Completed quick task 11: Add active page indicator in sidebar"
+last_updated: "2026-03-13T09:55:00.000Z"
+last_activity: "2026-03-13 - Completed quick task 12: Fix MR-to-Jira task mapping empty array"
 progress:
   total_phases: 4
   completed_phases: 3
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 Phase: 5 of 8 (API Foundation + Quick Wins)
 Plan: — of —
 Status: Ready to plan
-Last activity: 2026-03-12 - Completed quick task 11: Add active page indicator in sidebar
+Last activity: 2026-03-13 - Completed quick task 12: Fix MR-to-Jira task mapping empty array
 
 Progress: [░░░░░░░░░░] 0% (v1.1)
 
@@ -83,6 +83,9 @@ Key v1.1 constraints from research:
 - [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: queryKey for gitlab-mrs includes userId as third element — ensures fresh fetch when userId changes from undefined to real value
 - [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: enabled guard requires !!userId — prevents query firing before validateGitLab resolves
 - [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: gitlab.ts uncommitted diff discarded via git checkout — duplicate fetchProjectMilestonesInRange never committed
+- [Quick-12]: MyTasksTab gitlabMrs queryKey now ['gitlab-mrs', gitlabBaseUrl, userId] — matches MrAttentionTab for shared TanStack cache
+- [Quick-12]: fetchProjectMRs added to gitlab.ts — project-level MR pool enables Jira-key linking without GitLab assignment
+- [Quick-12]: Sprint-linked project MR bypass implemented in data useMemo (not queryFn) to keep queryFn pure
 
 ### Pending Todos
 
@@ -106,6 +109,7 @@ None.
 | 9 | Add 15-second AbortController timeout to all Jira and GitLab API calls | 2026-03-12 | 7859212 | Verified | [9-add-timeouts-for-jira-and-gitlab-api-cal](./quick/9-add-timeouts-for-jira-and-gitlab-api-cal/) |
 | 10 | GitLab disconnection amber banner mirroring Jira banner, stacks when both disconnected | 2026-03-12 | 5a1d3d4 | Verified | [10-when-gitlab-fails-to-connect-there-is-no](./quick/10-when-gitlab-fails-to-connect-there-is-no/) |
 | 11 | Active page indicator in sidebar using NavLink with bg-accent highlight | 2026-03-12 | dbd0a8d | Verified | [11-add-active-page-indicator-in-sidebar](./quick/11-add-active-page-indicator-in-sidebar/) |
+| 12 | Fix MR-to-Jira task mapping: userId=0 reviewer bug + project-level MR pool for Jira-key linking | 2026-03-13 | d81be7a | Verified | [12-fix-mr-to-jira-task-mapping-empty-array-](./quick/12-fix-mr-to-jira-task-mapping-empty-array-/) |
 | Phase 06 P01 | 203 | 2 tasks | 2 files |
 | Phase 06 P02 | 4 | 2 tasks | 2 files |
 | Phase 06-workload-sprint-progress-enrichment P03 | 5 | 1 tasks | 2 files |
@@ -117,6 +121,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-13T08:26:34.188Z
-Stopped at: Completed 07-05-PLAN.md
+Last session: 2026-03-13T09:55:00.000Z
+Stopped at: Completed quick task 12
 Resume file: None
