@@ -57,9 +57,9 @@ See archive: `.planning/milestones/v1.1-ROADMAP.md`
 **Plans**: 8 plans
 
 Plans:
-- [ ] 09-01-PLAN.md — Install deps + shadcn Sheet + Wave 0 test scaffolds
-- [ ] 09-02-PLAN.md — discoverCustomFields(), fetchIssueDetail(), updateIssueField() + settings store + main.tsx
-- [ ] 09-03-PLAN.md — WikiRenderer (jira2md + react-markdown pipeline)
+- [x] 09-01-PLAN.md — Install deps + shadcn Sheet + Wave 0 test scaffolds
+- [x] 09-02-PLAN.md — discoverCustomFields(), fetchIssueDetail(), updateIssueField() + settings store + main.tsx
+- [x] 09-03-PLAN.md — WikiRenderer (jira2md + react-markdown pipeline)
 - [ ] 09-04-PLAN.md — IssueDetailSheet shell + IssueDetailContent + IssueDetailSidebar (read-only)
 - [ ] 09-05-PLAN.md — Inline field editors with optimistic updates (assignee, priority, story points, labels)
 - [ ] 09-06-PLAN.md — Comment thread + CommentComposer + Open in Jira deep link

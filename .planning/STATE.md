@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
-status: planning
-stopped_at: Completed 09-03-PLAN.md (WikiRenderer)
-last_updated: "2026-03-13T22:38:25.554Z"
-last_activity: 2026-03-13 — Roadmap created for v1.2 Jira Parity (phases 9-13)
+status: executing
+stopped_at: Completed 09-01-PLAN.md (deps + Wave 0 test scaffolds)
+last_updated: "2026-03-13T23:47:00.000Z"
+last_activity: 2026-03-13 — Completed 09-01 (install deps, shadcn Sheet, IssueDetailSheet.test.tsx scaffold)
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 8
-  completed_plans: 1
-  percent: 0
+  completed_plans: 2
+  percent: 25
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 Phase: 9 of 13 (Custom Field Discovery + Issue Detail Foundation)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-03-13 — Roadmap created for v1.2 Jira Parity (phases 9-13)
+Plan: 09-01 complete (2 of 8 plans done in phase 9)
+Status: Executing
+Last activity: 2026-03-13 — Completed 09-01 (install deps + Wave 0 test scaffolds); 09-02 and 09-03 also complete
 
-Progress: [░░░░░░░░░░] 0% (v1.2)
+Progress: [██░░░░░░░░] 25% (v1.2, 2/8 plans)
 
 ## Performance Metrics
 
@@ -65,6 +65,8 @@ Key v1.2 constraints from research:
 - [v1.2 RESEARCH]: Issue link type names are admin-configurable — discover via GET /rest/api/2/issueLinkType; never hardcode
 - [Phase 09]: Used @ts-expect-error on jira2md default import — no TypeScript default export type declarations
 - [Phase 09]: WikiRenderer null guard produces empty string '' to avoid React children warning on undefined
+- [09-01]: Plans 09-02/03 ran before 09-01 — WikiRenderer.test.tsx and jira.test.ts Phase 9 scaffolds already present as real tests; kept real tests (no regression to stubs)
+- [09-01]: jira.test.ts import fix — discoverStoryPointsField removed (superseded by discoverCustomFields in 09-02)
 
 ### Pending Todos
 
@@ -79,6 +81,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-13T22:38:25.548Z
-Stopped at: Completed 09-03-PLAN.md (WikiRenderer)
+Last session: 2026-03-13T23:47:00.000Z
+Stopped at: Completed 09-01-PLAN.md (deps + Wave 0 scaffolds)
 Resume file: None
