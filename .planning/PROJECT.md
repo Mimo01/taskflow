@@ -37,7 +37,13 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ### Active
 
-*(None — all v1.1 features shipped. Define next milestone requirements via `/gsd:new-milestone`.)*
+<!-- v1.2 Jira Parity — building toward these -->
+
+- [ ] Full-page issue detail view with rich-text description, editable fields, subtask list, comments, and linked issues
+- [ ] Sprint board redesigned: subtasks as kanban cards grouped under story headers, all team members visible, drag-to-move status transitions, inline issue detail
+- [ ] Backlog view: unassigned stories/subtasks, move-to-sprint, create new stories, filter by epic/label
+- [ ] Epic management: epic list, filter sprint/backlog by epic, epic detail page, create epics
+- [ ] Create and edit Jira issues: summary, description, assignee, story points, epic link, issue type, account custom field, issue links
 
 ### Out of Scope
 
@@ -98,5 +104,16 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 | Dashboard panels receive props from thin index.tsx | Token loading centralized; panels own their queries — avoids prop drilling and keeps index.tsx testable | ✓ Good — clean separation |
 | Notifications store sanitized on rehydration | Numeric/null id values coerced to string — prevents row-click failures after store migration | ✓ Good — no crashes on existing persisted stores |
 
+## Current Milestone: v1.2 Jira Parity
+
+**Goal:** Replace the need to open Jira — full issue detail, backlog management, epic tracking, and task creation/editing from within the app.
+
+**Target features:**
+- Full-page issue detail view (rich text, editable fields, subtasks, comments, linked issues)
+- Sprint board redesign (subtask-card layout, all team members, drag-to-move)
+- Backlog view (unassigned issues, move-to-sprint, create/filter)
+- Epic management (list, filter, detail, create)
+- Create/edit tasks (all key fields including account custom field and issue links)
+
 ---
-*Last updated: 2026-03-13 after v1.1 milestone*
+*Last updated: 2026-03-13 after v1.2 milestone start*
