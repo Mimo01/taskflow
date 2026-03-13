@@ -322,4 +322,307 @@ describe('notifications service', () => {
       expect(clamp(999)).toBe(300);
     });
   });
+
+  describe('QUICK-19: broadened Jira notifications — assignee/reporter/watcher', () => {
+    it('returns items for issues where jiraUsername matches assignee', async () => {
+      // Query A: assignee/reporter/watcher issues
+      const issueUpdatesResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          issues: [
+            {
+              key: 'PROJ-10',
+              fields: {
+                summary: 'Assignee issue',
+                status: { name: 'In Progress' },
+                assignee: { displayName: 'Jane Doe' },
+                reporter: { displayName: 'Boss Man' },
+                updated: '2026-03-12T10:00:00.000Z',
+              },
+            },
+          ],
+        }),
+      };
+      // Query B: comment mentions — empty
+      const commentResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({ issues: [] }),
+      };
+
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(issueUpdatesResp as unknown as Response)
+        .mockResolvedValueOnce(commentResp as unknown as Response);
+
+      const result = await fetchNewNotifications(
+        'https://jira.example.com',
+        null,
+        { jira: 'jira-token', gitlab: null },
+        {
+          activeJiraProject: 'PROJ',
+          jiraUserDisplayName: 'Jane Doe',
+          jiraUsername: 'jdoe',
+          gitlabUserId: null,
+          mrList: [],
+          lastSeenCursor: '2026-03-11T10:00:00.000Z',
+        },
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('jira-issue-PROJ-10-2026-03-12T10:00:00.000Z');
+      expect(result[0].source).toBe('jira');
+      expect(result[0].entityTitle).toBe('PROJ-10: Assignee issue');
+      expect(result[0].bodyPreview).toBe('Status: In Progress');
+    });
+
+    it('returns items for issues where user is reporter', async () => {
+      const issueUpdatesResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          issues: [
+            {
+              key: 'PROJ-20',
+              fields: {
+                summary: 'Reporter issue',
+                status: { name: 'To Do' },
+                assignee: { displayName: 'Someone Else' },
+                reporter: { displayName: 'Jane Doe' },
+                updated: '2026-03-12T11:00:00.000Z',
+              },
+            },
+          ],
+        }),
+      };
+      const commentResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({ issues: [] }),
+      };
+
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(issueUpdatesResp as unknown as Response)
+        .mockResolvedValueOnce(commentResp as unknown as Response);
+
+      const result = await fetchNewNotifications(
+        'https://jira.example.com',
+        null,
+        { jira: 'jira-token', gitlab: null },
+        {
+          activeJiraProject: 'PROJ',
+          jiraUserDisplayName: 'Jane Doe',
+          jiraUsername: 'jdoe',
+          gitlabUserId: null,
+          mrList: [],
+          lastSeenCursor: '2026-03-11T10:00:00.000Z',
+        },
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('jira-issue-PROJ-20-2026-03-12T11:00:00.000Z');
+      expect(result[0].source).toBe('jira');
+      expect(result[0].entityTitle).toBe('PROJ-20: Reporter issue');
+    });
+
+    it('returns items for issues where user is watcher', async () => {
+      const issueUpdatesResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          issues: [
+            {
+              key: 'PROJ-30',
+              fields: {
+                summary: 'Watcher issue',
+                status: { name: 'Done' },
+                assignee: null,
+                reporter: { displayName: 'Someone' },
+                updated: '2026-03-12T12:00:00.000Z',
+              },
+            },
+          ],
+        }),
+      };
+      const commentResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({ issues: [] }),
+      };
+
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(issueUpdatesResp as unknown as Response)
+        .mockResolvedValueOnce(commentResp as unknown as Response);
+
+      const result = await fetchNewNotifications(
+        'https://jira.example.com',
+        null,
+        { jira: 'jira-token', gitlab: null },
+        {
+          activeJiraProject: 'PROJ',
+          jiraUserDisplayName: 'Jane Doe',
+          jiraUsername: 'jdoe',
+          gitlabUserId: null,
+          mrList: [],
+          lastSeenCursor: '2026-03-11T10:00:00.000Z',
+        },
+      );
+
+      // assignee is null — author falls back to reporter displayName
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('jira-issue-PROJ-30-2026-03-12T12:00:00.000Z');
+      expect(result[0].author).toBe('Someone');
+    });
+
+    it('original comment-mention path still produces results (backwards compat)', async () => {
+      // Query A returns nothing
+      const issueUpdatesResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({ issues: [] }),
+      };
+      // Query B returns a comment mention
+      const commentResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          issues: [
+            {
+              key: 'PROJ-99',
+              fields: {
+                summary: 'Mention issue',
+                comment: {
+                  comments: [
+                    {
+                      id: 'c999',
+                      author: { displayName: 'J.Smith' },
+                      body: 'Hey [~jdoe] take a look',
+                      updated: '2026-03-12T09:00:00.000Z',
+                      created: '2026-03-12T09:00:00.000Z',
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        }),
+      };
+
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(issueUpdatesResp as unknown as Response)
+        .mockResolvedValueOnce(commentResp as unknown as Response);
+
+      const result = await fetchNewNotifications(
+        'https://jira.example.com',
+        null,
+        { jira: 'jira-token', gitlab: null },
+        {
+          activeJiraProject: 'PROJ',
+          jiraUserDisplayName: 'John Doe',
+          jiraUsername: 'jdoe',
+          gitlabUserId: null,
+          mrList: [],
+          lastSeenCursor: '2026-03-11T10:00:00.000Z',
+        },
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('jira-comment-c999');
+      expect(result[0].source).toBe('jira');
+    });
+
+    it('deduplicates when same issue appears in both issue-update and comment-mention results', async () => {
+      // Query A returns PROJ-5
+      const issueUpdatesResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          issues: [
+            {
+              key: 'PROJ-5',
+              fields: {
+                summary: 'Duplicate issue',
+                status: { name: 'In Review' },
+                assignee: { displayName: 'Jane Doe' },
+                reporter: { displayName: 'Boss' },
+                updated: '2026-03-12T08:00:00.000Z',
+              },
+            },
+          ],
+        }),
+      };
+      // Query B also returns PROJ-5 as a comment mention — produces jira-comment-dup1
+      const commentResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          issues: [
+            {
+              key: 'PROJ-5',
+              fields: {
+                summary: 'Duplicate issue',
+                comment: {
+                  comments: [
+                    {
+                      id: 'dup1',
+                      author: { displayName: 'J.Smith' },
+                      body: '[~jdoe] see this',
+                      updated: '2026-03-12T08:00:00.000Z',
+                      created: '2026-03-12T08:00:00.000Z',
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        }),
+      };
+
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(issueUpdatesResp as unknown as Response)
+        .mockResolvedValueOnce(commentResp as unknown as Response);
+
+      const result = await fetchNewNotifications(
+        'https://jira.example.com',
+        null,
+        { jira: 'jira-token', gitlab: null },
+        {
+          activeJiraProject: 'PROJ',
+          jiraUserDisplayName: 'Jane Doe',
+          jiraUsername: 'jdoe',
+          gitlabUserId: null,
+          mrList: [],
+          lastSeenCursor: '2026-03-11T10:00:00.000Z',
+        },
+      );
+
+      // Different IDs: jira-issue-PROJ-5-... and jira-comment-dup1 — both present, no actual
+      // duplication since ids differ. This test verifies the seen-Set deduplication doesn't
+      // accidentally drop different-id items from the same issue.
+      expect(result).toHaveLength(2);
+      const ids = result.map((r) => r.id);
+      expect(ids).toContain('jira-issue-PROJ-5-2026-03-12T08:00:00.000Z');
+      expect(ids).toContain('jira-comment-dup1');
+    });
+
+    it('returns [] when both jiraUsername and jiraUserDisplayName are null', async () => {
+      const result = await fetchNewNotifications(
+        'https://jira.example.com',
+        null,
+        { jira: 'jira-token', gitlab: null },
+        {
+          activeJiraProject: 'PROJ',
+          jiraUserDisplayName: null,
+          jiraUsername: null,
+          gitlabUserId: null,
+          mrList: [],
+          lastSeenCursor: '2026-03-11T10:00:00.000Z',
+        },
+      );
+
+      expect(result).toHaveLength(0);
+      // fetch should not have been called at all
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+  });
 });
