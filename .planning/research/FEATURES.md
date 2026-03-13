@@ -1,250 +1,228 @@
-# Feature Research — v1.1 Polish
+# Feature Research — v1.2 Jira Parity
 
-**Domain:** Developer/PM dashboard — Jira + GitLab integration (Tauri 2 desktop, on-premise)
-**Researched:** 2026-03-12
-**Confidence:** MEDIUM-HIGH (code inspection HIGH; industry pattern research MEDIUM via WebSearch)
+**Domain:** Developer/PM tool — Jira issue management parity (Tauri 2 desktop, on-premise Jira DC v10.3.15)
+**Researched:** 2026-03-13
+**Confidence:** MEDIUM-HIGH (Jira API behavior HIGH from codebase knowledge; UX patterns MEDIUM via WebSearch and official Atlassian docs)
 
-> This file supersedes the v1.0 FEATURES.md. v1.0 features are shipped and stable.
-> This file focuses exclusively on the six v1.1 feature areas.
-
----
-
-## Context: What Already Exists
-
-Before defining table stakes and differentiators, it is important to be precise about what v1.0 built, because "enrichment" implies a working foundation.
-
-| Component | v1.0 State |
-|-----------|-----------|
-| `SprintBoardTab` | Status columns, all-sprint issues, TaskCard with MR health dot, no subtask grouping |
-| `MyTasksTab` | Flat list of issues assigned to current user, TaskRow with MR chips, no grouping |
-| `SprintProgressTab` | 3-bucket counts (To Do / In Progress / Done) + story points progress bar (points done / total) |
-| `WorkloadTab` | Per-assignee row: open task count + story points. Bug: counts stories and subtasks as flat items |
-| `ReleasesTab` | Fix versions list, Jira issue counts, GitLab milestone/tag date-match. No sort order; released field available but not displayed |
-| `MrAttentionTab` | Assigned MRs + reviewer MRs (unresolved threads filter). Includes merged/closed MRs. No subtask-linked-story filter |
-| `Dashboard` (index) | 3 metric cards per role. Dev: Active Sprint Tasks, Open MRs, MRs Needing Attention. PM: Sprint Completion %, Team Workload (in-progress count), Next Release |
-| `JiraIssue` type | Has `summary`, `status`, `assignee`, `customfield_10016` (story points), `issuetype`. Missing: `parent`, `subtasks`, `timetracking` |
+> This file supersedes the v1.1 FEATURES.md for v1.2 planning.
+> v1.0 and v1.1 features are shipped and stable. This file focuses exclusively on the five v1.2 feature areas.
 
 ---
 
-## Feature Area 1: Story/Subtask Hierarchy
+## Feature Landscape
 
-### Table Stakes
+### Table Stakes (Users Expect These)
 
-| Feature | Why Expected | Complexity | Existing Dependency | Notes |
-|---------|--------------|------------|--------------------|----|
-| Subtasks visible under parent story in My Tasks | PM tools (Jira native, Linear, Height) always group child items under parent — flat list makes subtasks unrecognizable as belonging to a story | MEDIUM | `fetchSprintIssues` must request `parent` field in JQL; `JiraIssue` type needs `parent` and `subtasks` fields | Jira REST API v2: `parent` field returns `{id, key, fields: {summary, status, issuetype}}`. Currently not in the fields request |
-| Parent story name visible wherever a subtask appears | Subtask summaries are often short ("Write unit tests") and meaningless without parent context | LOW | Requires parent field on JiraIssue | Display pattern: subtask row is indented with "STORY-1 > subtask summary" or a smaller parent chip above the subtask title |
-| Sprint Board groups subtasks under story card | Jira's own board groups subtasks under their story in swimlane mode; developers expect this | MEDIUM | `fetchSprintIssues` parent field + board rendering logic | Subtask cards should be collapsible under the story card in their status column. Collapsed by default is acceptable |
-| Subtask count on story card (e.g., "3/5 subtasks done") | Immediate sprint health signal at the story level | LOW | Derived from grouping logic once parent field is available | No extra API call — computed from already-fetched subtask statuses |
+Features that users assume exist in any Jira-like issue management surface. Missing these = product feels like a broken subset of Jira, not a replacement.
 
-### Differentiators
+#### 1. Issue Detail View
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Summary (title) | Every issue has one; first thing users look at | LOW | Already fetched in existing `JiraIssue.fields.summary` |
+| Status with transition control | Users expect to change status in-place | LOW | Already built: `StatusPopover` + `postTransition` — reuse directly |
+| Assignee display + change | Core action: re-assign without opening Jira | MEDIUM | Need `PUT /rest/api/2/issue/{key}` with `{ fields: { assignee: { name } } }`; user list from `/rest/api/2/user/assignable/search` |
+| Story points display + edit | Teams live by points; expected to edit inline | MEDIUM | `discoverStoryPointsField()` already resolves field ID; PUT to update |
+| Issue type badge | Distinguishes stories from subtasks from bugs | LOW | Already in `JiraIssue.fields.issuetype` |
+| Description (rich text rendered) | Core information field | MEDIUM | Jira DC returns wiki markup strings (not ADF); `expand=renderedFields` returns HTML; render safely with sanitized innerHTML or convert to markdown |
+| Comments list (read) | Teams track decisions in comments | LOW | `fetchComments` already built; just needs display component |
+| Add comment | Users expect to reply to discussion | LOW | `postComment` already built; needs text input + submit |
+| Subtasks list with status | Seeing child work at a glance | LOW | `JiraIssue.fields.subtasks` already fetched; display only |
+| Priority display | Expected field on every issue | LOW | Not currently fetched; add `priority` to fields param |
+| Reporter display | Accountability/audit trail | LOW | Not currently fetched; add `reporter` to fields param |
+| Epic link display | Where does this story belong | MEDIUM | Epic is a custom field (`customfield_10014` commonly); need to discover via `/rest/api/2/field` |
+| Linked issues (read) | Cross-reference between tickets | MEDIUM | `issuelinks` field available from Jira API; not currently fetched; display only for table stakes |
+| Labels display | Tags/categorization | LOW | `labels` field in Jira API; not currently fetched |
+| Fix version display | Release targeting | LOW | Already have `JiraFixVersion`; add `fixVersions` to fields |
+| Open-in-Jira link | Escape hatch to full Jira | LOW | Construct `{baseUrl}/browse/{key}` — always include |
+
+#### 2. Backlog View
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| List of unstarted stories/subtasks | Core purpose of a backlog view | MEDIUM | JQL: `project = X AND sprint not in openSprints() AND resolution = Unresolved AND issuetype not in subtaskIssueTypes()` |
+| Issue type, summary, assignee, story points visible in row | Expected scan-ability | LOW | Same fields as sprint board rows |
+| Move issue to current sprint | Core grooming action | MEDIUM | `PUT /rest/api/2/issue/{key}` with sprint custom field, or `POST /rest/agile/1.0/sprint/{sprintId}/issue` — need to verify which endpoint DC supports |
+| Filter by epic | Common grooming pattern — focus one epic at a time | MEDIUM | Client-side filter on epic link field value |
+| Filter by label | Secondary grouping | LOW | Client-side filter |
+| Filter by assignee | Who owns unassigned work | LOW | Client-side filter |
+| Create new story in backlog | Grooming includes adding new items | HIGH | Requires create issue form (see section 4) |
+| Story count / point total | At-a-glance backlog size | LOW | Derived from data already fetched |
+
+#### 3. Epic Management
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Epic list with name, color, and story count | Teams navigate work by epic | MEDIUM | JQL: `project = X AND issuetype = Epic`; epic color in `customfield_10010` or `color` field — varies by DC version |
+| Filter sprint board by epic | Most common epic use case | MEDIUM | Client-side filter using epic link on each issue |
+| Filter backlog by epic | Same — common grooming pattern | LOW | Client-side, same mechanism |
+| Epic detail page: stories list | See all work belonging to an epic | MEDIUM | JQL: `"Epic Link" = {epicKey}` or `issueFunction in subtasksOf("key = {epicKey}")` depending on DC version |
+| Create epic | Full parity requires being able to add epics | HIGH | Requires create form with Epic issue type; depends on create/edit form |
+
+#### 4. Create/Edit Issue Form
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Summary field | Required; every issue needs a title | LOW | Text input, required validation |
+| Issue type selector | Story vs subtask vs bug etc | MEDIUM | Fetch issue types from `/rest/api/2/issuetype` filtered to project |
+| Assignee selector | Who does the work | MEDIUM | Typeahead from `/rest/api/2/user/assignable/search?project=X` |
+| Story points | Teams estimate in points | MEDIUM | Same discovered field key as display; number input |
+| Description (plain text or simple markdown) | Details behind the summary | MEDIUM | Jira DC wiki markup for write; plain textarea acceptable — users can format in Jira if needed |
+| Epic link | Which epic does this belong to | MEDIUM | Fetch epics list; select from dropdown |
+| Priority | Urgency signal | LOW | Static list: Highest/High/Medium/Low/Lowest |
+| Fix version | Release target | LOW | Reuse `fetchFixVersions`; select from existing versions |
+| Labels | Tagging | LOW | Comma-separated free-text or typeahead |
+| Parent (for subtasks) | Subtask requires parent | MEDIUM | Only shown when issuetype.subtask = true; story key picker |
+| Account (custom field) | Mentioned in PROJECT.md as required for this team | MEDIUM | Custom field — discover via createmeta endpoint; text or select depending on field type |
+| Issue links (add) | Link this to blocks/is-blocked-by/relates-to | HIGH | `POST /rest/api/2/issue/{key}/remotelink` or issuelinks body; need link types from `/rest/api/2/issueLinkType` |
+
+#### 5. Sprint Board (Subtask-as-Card Redesign)
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Subtask cards as first-class board items | v1.2 target: replace subtask collapse with card expansion | HIGH | Each subtask is a kanban card; parent story shown as a non-movable header/lane separator above its subtasks |
+| All team members visible (not just "my tasks") | PM and team leads need full board | LOW | Already built in SprintBoardTab with `assignedToMe = false`; this is a board view preference |
+| Drag-to-move status transitions | Core kanban interaction | HIGH | dnd-kit (@dnd-kit/core + @dnd-kit/sortable) is recommended for React; triggers `postTransition` on drop |
+| Inline issue detail (click card → side panel) | Expected: click for detail without leaving board | MEDIUM | Slide-in panel or modal showing IssueDetail component; already have global search detail panel as pattern |
+| Story header shows aggregate status | Parent visibility: how many subtasks are done | LOW | Derived: count done/total from subtask array |
+| Assignee filter | Focus on one developer | LOW | Client-side filter on assignee |
+
+---
+
+### Differentiators (Competitive Advantage)
+
+Features that go beyond what Jira offers out of the box for this team's context, or that Taskflow can do better/faster.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Collapsible subtask group in Sprint Board | Keeps board scannable — a story with 8 subtasks doesn't dominate a column | LOW | Default collapsed; expand toggle. Lucide `ChevronDown`/`ChevronRight` works |
-| Story-level progress bar on board card | Show "3/5 done" as a mini progress bar on the story card, not just the count | LOW | One-line implementation once subtask data is available |
-| MR health roll-up on story card | If any subtask's MR needs attention, surface a warning on the parent story | MEDIUM | Requires linking across subtask MR → story context |
-
-### Anti-Features
-
-| Anti-Feature | Why Avoid | Alternative |
-|--------------|-----------|-------------|
-| Drag-and-drop subtask reordering | Requires Jira rank field API (not standard); complex optimistic state | Read-only hierarchy display; status transitions are sufficient write action |
-| Fetching subtask detail separately via issue-by-issue API calls | N+1 requests — one per subtask. Sprint with 20 stories x 5 subtasks = 100 extra requests | Ensure all required fields (including parent) are in the initial `fetchSprintIssues` JQL fields param |
-
-### Dependency Note
-
-All hierarchy features depend on a single change: adding `parent,subtasks` to the `fields` param in `fetchSprintIssues`. The `JiraIssue` type needs `parent?: { key: string; fields: { summary: string } }` and optionally `subtasks?: JiraIssue[]`. Once the API returns this data, all UI grouping is pure client-side computation.
+| Inline status transitions on issue detail | Change status without a dedicated status page, with optimistic update | LOW | Reuse existing `StatusPopover`; already battle-tested |
+| MR health badge on issue detail | See linked MR status directly on the issue — no GitLab context switch | MEDIUM | MR linking via `linkEngine.ts` already works; surface MR health inside detail view |
+| Instant keyboard shortcut to open issue detail | `Ctrl+K` → type ticket key → open detail. Faster than Jira search | LOW | Hook into existing global search store |
+| Sprint board "focus mode": single developer swimlane | One-click to filter board to current user's subtasks only | LOW | Client-side filter; high value for standups |
+| Backlog → Sprint move with instant optimistic feedback | No page reload; card visually moves to sprint list | MEDIUM | Optimistic update pattern already established in codebase |
+| Comments show linked MR when comment contains MR URL | Contextually link comment thread to the MR | HIGH | Parse comment text for GitLab MR URLs; complexity probably not worth it in v1.2 |
+| Create issue pre-populated from sprint context | Opening create form from sprint board defaults assignee and sprint | LOW | Pass context props to create form |
 
 ---
 
-## Feature Area 2: Sprint Progress Enrichment
+### Anti-Features (Commonly Requested, Often Problematic)
 
-### Table Stakes
+Features that look like good scope for v1.2 but add complexity disproportionate to value, or create maintenance debt.
 
-| Feature | Why Expected | Complexity | Existing Dependency | Notes |
-|---------|--------------|------------|--------------------|----|
-| Points breakdown by status (not just done vs remaining) | "In Progress" points matter — they represent work started but not finished; collapsing to done/remaining hides sprint risk | LOW | SprintProgressTab already has 3-bucket counts; needs pts per bucket | Currently `ptsDone` and `ptsRemaining` lump "To Do" and "In Progress" together. Separate `ptsInProgress` from `ptsTodo` |
-| Per-assignee breakdown | PM's primary question: "Who is overloaded? Who is done?" | MEDIUM | Shared cache with WorkloadTab — same data, different presentation | Show table: assignee / to-do pts / in-progress pts / done pts. Sort by total open pts descending |
-| Time totals (original estimate vs spent vs remaining) | Teams that use Jira time tracking expect to see sprint-level time summation | MEDIUM | Requires `timetracking` field added to `fetchSprintIssues` | Jira `timetracking` field: `originalEstimate` (string), `originalEstimateSeconds` (int), `timeSpent`, `timeSpentSeconds`, `remainingEstimate`, `remainingEstimateSeconds`. Only shown if time tracking enabled on the Jira instance |
-
-### Differentiators
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Story vs subtask points separation | Stories often have points; subtasks inherit or have their own. Knowing the split prevents double-counting confusion | MEDIUM | Requires `issuetype` check — already in JiraIssue. Filter: only sum story points for issues with `issuetype.name !== 'Sub-task'` (or check `parent` absence) to avoid double-counting |
-| At-risk indicator | If a sprint has > X% of points still In Progress with < 2 days remaining, surface a warning | MEDIUM | Requires sprint end date from Jira API (not currently fetched). Flag as out of scope unless sprint date is available |
-| Time tracking graceful degradation | When no issues have time tracking set, hide the time section entirely rather than showing all zeros | LOW | Already done for story points — same pattern for time fields |
-
-### Anti-Features
-
-| Anti-Feature | Why Avoid | Alternative |
-|--------------|-----------|-------------|
-| Burndown chart | Requires historical snapshots — the app is live-only, no data store | Sprint-level current state breakdown is the appropriate scope |
-| Per-day velocity trend | Same — no historical data | Out of scope per PROJECT.md |
-
-### Dependency Note
-
-Time tracking requires adding `timetracking` to the JQL `fields` parameter. The `JiraIssue` type needs `timetracking?: { originalEstimateSeconds: number | null; timeSpentSeconds: number | null; remainingEstimateSeconds: number | null }`. The `WorkloadTab` and `SprintProgressTab` share the same TanStack query cache key (`['jira-issues', 'sprint-board', ...]`) — adding time fields to the fetch benefits both simultaneously.
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|-----------------|-------------|
+| Full Atlassian Document Format (ADF) rich text editor for description write | Jira uses ADF; match exactly | ADF is a complex JSON node format; building or embedding a full ADF editor (like Atlaskit Editor) would be 50k+ lines of editor framework in the bundle. Jira Server returns wiki markup strings, not ADF, further muddying the waters. | Plain textarea for write; use `expand=renderedFields` for read display; link to Jira for complex formatting. Covers 90% of real use. |
+| Drag-and-drop backlog reordering (priority rank) | Grooming = reordering | Jira's rank field (`customfield_10019`) is controlled by Jira's internal ranking service (`/rest/agile/1.0/issue/rank`); the API exists but rank changes can silently fail on DC configurations without the ranking plugin enabled. Also adds significant UI complexity for low actual use. | Move-to-sprint button is the high-value grooming action. Skip rank-drag for v1.2. |
+| Attachment upload on create/edit | Looks like full parity | Tauri portable build file access requires `tauri-plugin-fs` and multipart form POST; testing on all three platforms adds QA surface. LOW actual use — most Jira attachments are screenshots, added via Jira directly. | Deep-link to Jira issue for attachment needs; out of scope per PROJECT.md |
+| Real-time board updates (websocket/polling under 30s) | "Live" board feels modern | Jira DC has no webhook push for issue updates; polling under 30s hammers on-prem server; sprint boards for a small team change rarely. The existing 60s poll cadence is sufficient. | Keep existing 60s poll; show last-refreshed timestamp; manual refresh button |
+| Subtask drag between parent stories (re-parent) | Seems natural on a board | Re-parenting a subtask in Jira DC requires changing the `parent` field via issue update AND moving it off the current parent's subtask list — complex transactional update that can leave data inconsistent on failure; Jira's own UI warns on this action. | Status transition drag (column to column) only; re-parenting done in Jira directly |
+| Epic Gantt/roadmap timeline view | Roadmaps look professional | Requires date fields (start date) that Jira DC does not reliably populate for stories; rendering a timeline correctly requires significant layout work for marginal value to this team. PROJECT.md explicitly excludes analytics/historical views. | Epic list view (stories under epic) is sufficient; provides the "what's in each epic" visibility without timeline complexity |
+| Bulk issue edit | Power feature; "while I'm here" | High API complexity (batch update + rollback on partial failure), high UI complexity (multi-select, field merge conflicts), rarely needed by small teams | Move-to-sprint is the only bulk action worth the cost; others deferred |
+| Issue history/activity log | Full Jira parity | Requires `/rest/api/2/issue/{key}/changelog` which is a separate paginated endpoint; renders as a long wall of audit events that developers rarely read; adds significant rendering complexity | Comments tab covers the human decision trail; changelog available via Jira deep-link |
+| Configurable board columns (workflow editor) | "Make it fit our workflow" | Workflow configuration in Jira DC is admin-level; Taskflow reads transitions from the API already and renders them dynamically — that IS the workflow. Adding an editor duplicates Jira admin. | Transitions already fetched dynamically from Jira; board columns = unique statuses in sprint — no config needed |
+| @mention autocomplete in comment editor | Full Jira comment parity | Requires user search on every keystroke (`/rest/api/2/user/search?query=`), complex DOM positioning for the mention dropdown, and Jira's mention rendering is Jira-side anyway. | Plain text comment with @username works; Jira renders it correctly when posted |
 
 ---
 
-## Feature Area 3: Workload with Time Tracking
-
-### Table Stakes
-
-| Feature | Why Expected | Complexity | Existing Dependency | Notes |
-|---------|--------------|------------|--------------------|----|
-| Workload correctly counts story-level points only | Current bug: if a sprint has Story A (5 pts) with Subtask B (2 pts) and Subtask C (3 pts), WorkloadTab may count 10 pts for the assignee instead of 5 | LOW-MEDIUM | `JiraIssue.issuetype` already in type; needs `parent` field to distinguish subtasks reliably | Fix: skip issues where `issue.fields.issuetype.name === 'Sub-task'` OR where `issue.fields.parent` exists when summing story points. The issue is double-counting when stories own the points |
-| Time tracking per assignee (original estimate, time spent, remaining) | Developers who log time in Jira expect to see per-person tracking in workload | MEDIUM | `timetracking` field addition to JQL (see Area 2 dependency) | Show three columns per person: Estimated / Spent / Remaining. Sum per-assignee across their open (non-done) issues |
-| Per-story time totals | Managers check story-level time to identify estimation errors | MEDIUM | Same `timetracking` field | In the workload row or a drill-down, show per-story time sums |
-
-### Differentiators
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Time tracking graceful hide | When no issues in the sprint have time tracking set, hide the time columns completely | LOW | `hasTimeTracking = issues.some(i => i.fields.timetracking?.originalEstimateSeconds)` — same pattern as `hasPoints` |
-| Workload bar visualization | Replace raw numbers with a stacked bar (Estimated / Spent / Remaining) for each assignee | MEDIUM | Tailwind width + fixed-height div. Useful for PMs who scan visually |
-| Overloaded indicator | Flag assignees where remaining estimate exceeds X hours | MEDIUM | Configurable threshold — probably deferred to v2 to avoid settings bloat |
-
-### Anti-Features
-
-| Anti-Feature | Why Avoid | Alternative |
-|--------------|-----------|-------------|
-| Worklog detail (individual time entries) | Each entry requires a separate API call per issue; expensive for large sprints | Show summed seconds from `timetracking` field — Jira calculates this server-side |
-| Capacity planning (compare estimate vs team capacity) | Requires team schedule/availability data — not in Jira's sprint API | Keep to "what's logged" vs "what's estimated" per the sprint data at hand |
-
----
-
-## Feature Area 4: Dashboard Enrichment
-
-### Table Stakes
-
-| Feature | Why Expected | Complexity | Existing Dependency | Notes |
-|---------|--------------|------------|--------------------|----|
-| Developer dashboard shows open subtasks (grouped by parent story) | If My Tasks is being enriched with hierarchy, the Dashboard overview must reflect the same reality | MEDIUM | Same parent/subtasks field addition. Dashboard currently queries `['jira-issues', 'my-tasks', ...]` — same cache | Show "X subtasks across Y stories" or list them in a compact section below the 3 metric cards |
-| Developer dashboard shows my open MR status summary | Current card shows count only — no health breakdown | LOW | GitLab MR data already fetched for Dashboard. Filter to `state === 'opened'` | Show mini breakdown: X waiting review, Y changes requested, Z approved |
-| Sprint health summary (PM) | PM dashboard currently shows Sprint Completion % — should show per-status breakdown | LOW | `sprintIssues` already fetched in Dashboard | Add To Do / In Progress / Done counts inline below the % card |
-| Recent notifications | Dashboard is the "home" screen — showing last 3–5 notifications creates instant context | MEDIUM | Notifications hub already built; notifications are in Zustand store | Read from notifications store, show truncated list with unread badges |
-
-### Differentiators
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Next Release countdown (PM) | "Release in 3 days" is actionable; "v2.1.0 · 2026-03-15" is informational | LOW | Derived from existing `nextRelease.releaseDate` — just compute days delta |
-| MR attention count filtered correctly | Dashboard currently shows reviewer MR count without the open-only filter that v1.1 adds to MrAttentionTab | LOW | After MrAttentionTab filtering is fixed, Dashboard should share or mirror that logic |
-| Empty state messaging | When sprint has no tasks, MR list is empty, etc., Dashboard should explain rather than show "0" | LOW | Guidance: "No active sprint" vs "0 tasks" — meaningfully different |
-
-### Anti-Features
-
-| Anti-Feature | Why Avoid | Alternative |
-|--------------|-----------|-------------|
-| Clickable/navigable dashboard cards | Deep-linking from a card into the relevant tab is nice but adds routing complexity | Keep cards as read-only summary; tabs are one click away in the sidebar |
-| Per-card refresh controls | Dashboard is an overview — it should inherit the refresh timing of the underlying data | Single refresh at the top or no refresh control; let TanStack Query manage it |
-| Custom dashboard layout | This is a focused internal tool — opinionated layout is a feature, not a limitation | Keep role-based card sets; add depth to existing cards rather than adding flexibility |
-
----
-
-## Feature Area 5: Releases Status Display
-
-### Table Stakes
-
-| Feature | Why Expected | Complexity | Existing Dependency | Notes |
-|---------|--------------|------------|--------------------|----|
-| Versions ordered newest-to-oldest | Industry standard (GitHub releases, NPM, Jira itself on the release page) — upcoming releases first, then history | LOW | `fetchFixVersions` returns versions from `/rest/api/2/version` — sort client-side by `releaseDate` descending, nulls last | No new API call needed |
-| Released vs Unreleased status badge | The `released` boolean is already in `JiraFixVersion`. It is the most important differentiator on a releases list — "is this out?" | LOW | `JiraFixVersion.released: boolean` already in type and returned by API | Badge: green "Released" / grey "Unreleased". If `released && archivedFlag` could show "Archived" but archiving is rare — skip for v1.1 |
-| Unreleased versions at the top | Project managers work on what's coming, not what's shipped. Released versions are history | LOW | Client-side sort: `unreleased first, then by releaseDate desc within each group` | Common pattern: Linear, GitLab, GitHub all front-load unreleased items |
-
-### Differentiators
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Overdue unreleased badge | If `releaseDate < today && !released`, the version is overdue — flag it distinctly | LOW | Compute `isOverdue = !v.released && v.releaseDate && new Date(v.releaseDate) < new Date()`. Show amber "Overdue" badge |
-| Days until release | "In 5 days" is more actionable than "2026-03-17" for unreleased versions | LOW | `daysDelta = Math.ceil((new Date(v.releaseDate) - Date.now()) / 86_400_000)`. Show only for unreleased, non-overdue |
-| Task completion mini-bar per release | Existing `issuesFixed / issuesTotal` shown as a progress bar rather than fraction text | LOW | Single CSS div, same pattern as SprintProgressTab progress bar |
-
-### Anti-Features
-
-| Anti-Feature | Why Avoid | Alternative |
-|--------------|-----------|-------------|
-| Manual sort / drag-and-drop reorder | Ordering versions is an admin action in Jira — don't replicate admin capabilities in the dashboard | Sort by release date, stable and deterministic |
-| Archived version toggle | Archived versions are rarely relevant to daily use; the endpoint returns them mixed in | Filter: show only non-archived. `JiraFixVersion` has no `archived` field in current type — verify if API returns it before adding |
-
-### Dependency Note
-
-The `JiraFixVersion` type already has `released: boolean` and `releaseDate?: string`. No new API fields needed. The entire feature is a client-side sort and badge render change in `ReleasesTab.tsx`.
-
----
-
-## Feature Area 6: MR Attention Filtering
-
-### Table Stakes
-
-| Feature | Why Expected | Complexity | Existing Dependency | Notes |
-|---------|--------------|------------|--------------------|----|
-| Open MRs only | A merged or closed MR that needed attention no longer needs attention. Showing them is noise | LOW | GitLab MR API returns `state` field. Add filter: `mr.state === 'opened'` | Current `fetchAssignedMRs` and `fetchReviewerMRs` may return merged MRs. Filter at the component or service level |
-| Assigned to me OR linked to a story with my subtask | The current logic shows assigned + reviewer MRs, but misses the case where a developer owns a subtask on a story that has an MR | MEDIUM | Requires `parent` field on JiraIssue (from Area 1), plus JQL for "my subtasks" | Logic: MR is relevant if (a) assigned to current user, OR (b) MR links to a story key AND current user has a subtask under that story. This is the tightest, most correct filter for "MRs I need to care about" |
-| No closed/merged MRs visible | Developers frequently check this tab during sprint review — showing old merged MRs creates confusion about sprint state | LOW | Same `state === 'opened'` filter | This is the simplest fix — single-line filter |
-
-### Differentiators
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Clear reason why each MR appears | Show a small label: "Assigned to you" vs "You have a subtask on STORY-5" | MEDIUM | Requires knowing which filter matched. Compute `reason: 'assigned' | 'subtask-story'` per MR during the filtering step |
-| MR count badge improvement | After filtering to open-only + correct logic, the count in Dashboard's "MRs Needing Attention" card will be more accurate | LOW | Dashboard uses `reviewerMrs.length` — this becomes correct once MrAttentionTab filtering logic is applied consistently |
-| Subtask-story MR context | When an MR appears because of a subtask linkage, show the subtask name inline in MrRow | MEDIUM | Requires threading subtask info through to MrRow props |
-
-### Anti-Features
-
-| Anti-Feature | Why Avoid | Alternative |
-|--------------|-----------|-------------|
-| Fully configurable MR filter rules | The right filter set is deterministic for this team's workflow — making it configurable adds UI complexity with no clear user need | Ship the correct filter; revisit in v2 if teams have divergent needs |
-| Showing MRs where user is mentioned in a comment | Over-inclusive; generates too many false positives for "attention" framing | The current "unresolved threads where user is reviewer" filter is the correct precision level |
-
-### Dependency Note
-
-The "linked to story with my subtask" filter requires:
-1. `parent` field on JiraIssue (Area 1 dependency).
-2. The current user's Jira username/displayName for filtering — available via `useAuthStore` (jiraUser is stored after validation).
-3. A set of story keys where current user has a subtask: `new Set(myTasks.filter(i => i.fields.parent).map(i => i.fields.parent!.key))`.
-4. Then: an MR's linked task key must be in that set.
-
----
-
-## Cross-Feature Dependencies
+## Feature Dependencies
 
 ```
-fetchSprintIssues (adds parent, subtasks, timetracking fields)
-    ├── Area 1: Story/subtask hierarchy (parent field)
-    │       ├── MyTasksTab grouping
-    │       ├── SprintBoardTab grouping
-    │       └── Area 6: MR Attention "subtask-story" filter
-    ├── Area 2: Sprint Progress (timetracking field)
-    │       └── Area 3: Workload time tracking (same field, same cache)
-    └── Area 3: Workload bug fix (issuetype or parent field)
+Issue Detail View (read)
+    └──reuses──> StatusPopover (status transitions) [ALREADY BUILT]
+    └──reuses──> postComment / fetchComments [ALREADY BUILT]
+    └──reuses──> discoverStoryPointsField [ALREADY BUILT]
+    └──requires──> priority, reporter, epic link, labels added to JiraIssue fields
 
-JiraFixVersion.released (already available)
-    └── Area 5: Releases status display (sort + badge — no new API calls)
+Sprint Board Redesign (subtask-as-card)
+    └──requires──> Issue Detail View (inline panel on card click)
+    └──requires──> dnd-kit library added to project
+    └──reuses──> StatusPopover via drag-drop → postTransition [ALREADY BUILT]
+    └──reuses──> fetchSprintIssues two-query strategy [ALREADY BUILT]
 
-GitLabMR.state (already available in API response)
-    └── Area 6: MR Attention open-only filter (single filter predicate)
+Backlog View
+    └──requires──> Issue Detail View (click row → detail panel)
+    └──requires──> Create/Edit Form (create story in backlog)
+    └──requires──> fetchActiveSprint (to know which sprint to move issues into) [ALREADY BUILT]
+    └──requires──> new API call: move issue to sprint
 
-Dashboard (reads from TanStack cache shared with all tabs)
-    ├── Area 4: Developer subtask section (reads my-tasks cache after hierarchy fix)
-    ├── Area 4: MR health summary (reads gitlab-mrs cache)
-    └── Area 4: Sprint health summary (reads sprint-board cache)
+Epic Management
+    └──requires──> Issue Detail View (epic detail page shows stories as rows)
+    └──requires──> Create/Edit Form (create epic action)
+    └──requires──> epic link field discovery (custom field ID varies by DC instance)
+
+Create/Edit Issue Form
+    └──requires──> fetchFixVersions [ALREADY BUILT]
+    └──requires──> discoverStoryPointsField [ALREADY BUILT]
+    └──requires──> new API: list assignable users (GET /rest/api/2/user/assignable/search)
+    └──requires──> new API: list issue types (GET /rest/api/2/issuetype)
+    └──requires──> new API: list epics (JQL query filtered to Epic issuetype)
+    └──requires──> new API: PUT /rest/api/2/issue/{key} (edit existing)
+    └──requires──> new API: POST /rest/api/2/issue (create new)
+    └──requires──> new API: GET /rest/api/2/createmeta (discover required fields + account custom field)
 ```
 
-### Dependency Order for Implementation
+### Dependency Notes
 
-1. **First:** Add `parent,subtasks,timetracking` to `fetchSprintIssues` fields param and extend `JiraIssue` type — this unblocks Areas 1, 2, 3, and 6.
-2. **Second:** Workload story-points bug fix (Area 3, LOW complexity) — independent once type is extended.
-3. **Third:** Releases sort + status badge (Area 5) — fully independent, no type changes needed.
-4. **Fourth:** MR Attention open-only filter (Area 6, LOW) — independent, single predicate.
-5. **Fifth:** Sprint Progress enrichment (Area 2) — uses timetracking field added in step 1.
-6. **Sixth:** Story/subtask hierarchy UI (Area 1) — uses parent field added in step 1; more rendering complexity.
-7. **Seventh:** MR Attention subtask-story filter (Area 6, MEDIUM) — requires Area 1 parent field and MyTasks to have been updated.
-8. **Eighth:** Dashboard enrichment (Area 4) — reads from caches enriched by earlier areas; relatively independent rendering work.
+- **Sprint Board Redesign requires Issue Detail View:** Cards should open a detail panel inline; building the board without detail view means dead-end clicks.
+- **Backlog View requires Create/Edit Form:** The "create story in backlog" action is a primary grooming operation; the backlog is low value without it.
+- **Epic Management requires Create/Edit Form:** Epic creation reuses the same form with `issuetype = Epic`; building epic management before the form means read-only epics only.
+- **Create/Edit Form is the deepest dependency:** Build this early (or in parallel with Issue Detail); everything else benefits from it.
+- **Account custom field:** PROJECT.md lists it as a required field for this team. Discover via `/rest/api/2/createmeta?projectKeys=X&issuetypeNames=Story&expand=projects.issuetypes.fields` before assuming field ID.
+- **Epic link field:** On Jira DC, epic link is typically `customfield_10014` but is not guaranteed. Discover via field metadata same as story points.
+
+---
+
+## MVP Definition (for v1.2 Phases)
+
+### Phase 1 — Foundation: Issue Detail View (Read + Edit Core Fields)
+
+Highest return: every other v1.2 feature links to issue detail. Delivers immediate value (no more opening Jira just to read a description).
+
+- [ ] Fetch full issue fields: description (`expand=renderedFields`), priority, reporter, labels, fix versions, epic link, linked issues
+- [ ] Render description as sanitized HTML (from `renderedFields.description`)
+- [ ] Display comments list (reuse `fetchComments`)
+- [ ] Add comment (reuse `postComment`)
+- [ ] Display subtasks list with status badges
+- [ ] Edit assignee inline (PUT field update)
+- [ ] Edit story points inline
+- [ ] Status transition (reuse `StatusPopover`)
+- [ ] Open-in-Jira deep-link button
+
+### Phase 2 — Sprint Board Redesign (Subtask-as-Card + Drag-to-Move)
+
+High developer value. Transforms the board from a dashboard into an actual working surface.
+
+- [ ] Add dnd-kit to project
+- [ ] Render subtasks as individual draggable cards grouped under story-header rows
+- [ ] Drag card to new column → `postTransition` (optimistic update + rollback)
+- [ ] Click card → Issue Detail View in slide-in panel
+- [ ] Assignee filter (client-side)
+
+### Phase 3 — Create/Edit Issue Form
+
+Foundation for backlog grooming and epic management. Build before those phases.
+
+- [ ] Fetch issue types, assignable users, epics, fix versions, createmeta
+- [ ] Form: summary (required), issue type, assignee, story points, description, priority, epic link, fix version, labels, parent (for subtasks), account custom field
+- [ ] POST /rest/api/2/issue for create
+- [ ] PUT /rest/api/2/issue/{key} for edit (reuse form, pre-populate fields)
+- [ ] Accessible from: board card (edit), issue detail (edit button), backlog (create)
+
+### Phase 4 — Backlog View
+
+- [ ] List unstarted stories with row fields (type, key, summary, assignee, points, epic)
+- [ ] Move to sprint (call sprint issue endpoint)
+- [ ] Filters: epic, label, assignee (client-side)
+- [ ] Create story in backlog (opens Create form, adds to backlog by not assigning sprint)
+- [ ] Point total / issue count summary
+
+### Phase 5 — Epic Management
+
+- [ ] Epic list: name, color, story count, point total
+- [ ] Filter sprint board by epic
+- [ ] Filter backlog by epic
+- [ ] Epic detail: stories list (read; links to Issue Detail)
+- [ ] Create epic (reuse Create form with Epic issuetype)
 
 ---
 
@@ -252,39 +230,66 @@ Dashboard (reads from TanStack cache shared with all tabs)
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Releases: sort + released/unreleased badge | HIGH | LOW (client-side only) | P1 |
-| MR Attention: open-only filter | HIGH | LOW (one-line filter) | P1 |
-| Workload: story-points bug fix | HIGH | LOW-MEDIUM | P1 |
-| Sprint Progress: points by status | HIGH | LOW | P1 |
-| fetchSprintIssues: add parent + timetracking fields | HIGH | LOW (prerequisite) | P1 |
-| Workload: time tracking columns | HIGH | MEDIUM | P1 |
-| Sprint Progress: per-assignee breakdown | HIGH | MEDIUM | P1 |
-| Story hierarchy: MyTasksTab grouping | HIGH | MEDIUM | P2 |
-| Story hierarchy: SprintBoardTab grouping | HIGH | MEDIUM | P2 |
-| MR Attention: subtask-story filter | MEDIUM | MEDIUM | P2 |
-| Dashboard: subtask section + MR health summary | MEDIUM | MEDIUM | P2 |
-| Dashboard: sprint health inline breakdown | MEDIUM | LOW | P2 |
-| Dashboard: recent notifications | MEDIUM | LOW | P2 |
-| Releases: overdue badge + days-until | MEDIUM | LOW | P2 |
-| Sprint Progress: time totals | MEDIUM | LOW (once field added) | P2 |
-| Story hierarchy: parent name chip on subtask | MEDIUM | LOW | P2 |
-| MR Attention: reason label per MR | LOW | MEDIUM | P3 |
-| Workload: stacked bar visualization | LOW | MEDIUM | P3 |
+| Issue detail view (read) | HIGH | MEDIUM | P1 |
+| Inline field edit (assignee, points, status) | HIGH | LOW (reuses existing) | P1 |
+| Comment add/view | HIGH | LOW (reuses existing) | P1 |
+| Sprint board subtask-as-card layout | HIGH | HIGH (dnd-kit, redesign) | P1 |
+| Drag-to-move status transition | HIGH | MEDIUM | P1 |
+| Create/edit issue form | HIGH | HIGH (many fields, APIs) | P1 |
+| Backlog view (list + move to sprint) | HIGH | MEDIUM | P1 |
+| Epic list + filter | MEDIUM | MEDIUM | P2 |
+| Epic detail page | MEDIUM | LOW (reuses issue list) | P2 |
+| Create epic | MEDIUM | LOW (reuses create form) | P2 |
+| Inline issue detail panel on board | MEDIUM | LOW (reuses detail view) | P2 |
+| Open-in-Jira deep-link | HIGH | LOW | P1 |
+| MR health badge on issue detail | MEDIUM | MEDIUM | P2 |
+| ADF rich text editor for write | LOW | VERY HIGH | P3 — anti-feature, defer/skip |
+| Epic timeline/Gantt | LOW | HIGH | P3 — anti-feature, defer/skip |
+| Bulk edit | LOW | HIGH | P3 — anti-feature, defer/skip |
+| Issue history/changelog | LOW | MEDIUM | P3 — defer/skip |
 
-**Priority key:** P1 = must have for v1.1, P2 = should have, P3 = nice to have / v1.2 candidate
+**Priority key:**
+- P1: Must have for v1.2 — these are the stated goals in PROJECT.md
+- P2: Should have, adds meaningful value with reasonable cost
+- P3: Nice to have, defer to v1.3+ or explicitly cut
+
+---
+
+## Jira API Surface Required (New for v1.2)
+
+All APIs are Jira REST API v2 (Data Center). This section flags new API calls not currently implemented in `jira.ts`.
+
+| API Call | Endpoint | Used For | Notes |
+|----------|----------|----------|-------|
+| Fetch single issue (full fields) | `GET /rest/api/2/issue/{key}?expand=renderedFields&fields=...` | Issue Detail | Need priority, reporter, labels, fixVersions, issuelinks, epic link added to fields |
+| Update issue fields | `PUT /rest/api/2/issue/{key}` | Inline edit, Edit form | Body: `{ fields: { ... } }` |
+| Create issue | `POST /rest/api/2/issue` | Create form | Body: `{ fields: { project, issuetype, summary, ... } }` |
+| Fetch assignable users | `GET /rest/api/2/user/assignable/search?project={key}&maxResults=50` | Assignee dropdown | Returns `name` field (DC uses `name`, not `accountId`) |
+| Fetch issue types | `GET /rest/api/2/issuetype` | Issue type selector | Filter client-side to relevant types for project |
+| Fetch create metadata | `GET /rest/api/2/issue/createmeta?projectKeys={key}&expand=projects.issuetypes.fields` | Discover required/custom fields | Used once per session to find account field ID, epic link field ID |
+| Fetch backlog issues | `GET /rest/api/2/search?jql=...` | Backlog view | JQL: `project=X AND sprint not in openSprints() AND resolution=Unresolved AND issuetype not in subtaskIssueTypes()` |
+| Fetch epics | `GET /rest/api/2/search?jql=project=X AND issuetype=Epic` | Epic list, epic picker | Filter on issuetype name "Epic" |
+| Move issue to sprint | `POST /rest/agile/1.0/sprint/{sprintId}/issue` | Backlog → sprint | Body: `{ issues: [key] }`; verify DC endpoint availability |
+| Fetch issue link types | `GET /rest/api/2/issueLinkType` | Linked issues display/create | For "blocks", "is blocked by", "relates to" labels |
 
 ---
 
 ## Sources
 
-- Codebase inspection (jira.ts, SprintBoardTab.tsx, WorkloadTab.tsx, SprintProgressTab.tsx, ReleasesTab.tsx, MrAttentionTab.tsx, Dashboard/index.tsx, TaskRow.tsx, MrRow.tsx) — HIGH confidence
-- Jira REST API v2 community documentation on time tracking fields and parent/subtasks fields structure — MEDIUM confidence (verified pattern, not live-tested against this specific Jira Data Center v10.3.15 instance)
-- Jira sprint board subtask grouping community discussions — MEDIUM confidence (confirms industry expectation for grouping under parent story)
-- Sprint dashboard metrics industry patterns (Atlassian Analytics, Bold BI, Axify) — MEDIUM confidence
-- GitLab MR state field and filtering documentation — MEDIUM confidence
-- PROJECT.md v1.1 milestone definition — HIGH confidence (authoritative scope source)
+- Atlassian Jira Software Data Center documentation: issue view configuration — https://confluence.atlassian.com/jirasoftwareserver/configuring-the-issue-view-938845334.html
+- Atlassian Jira REST API v2 create issue examples — https://developer.atlassian.com/server/jira/platform/jira-rest-api-example-create-issue-7897248/
+- Atlassian Jira REST API create metadata — https://developer.atlassian.com/server/jira/platform/jira-rest-api-example-discovering-meta-data-for-creating-issues-6291669/
+- Atlassian Data Center REST API reference — https://developer.atlassian.com/server/jira/platform/rest/v10000/api-group-issue/
+- ONES blog on showing subtasks on Jira Kanban board — https://ones.com/blog/show-subtasks-jira-kanban-board/
+- Atlassian community: Display Sub-Tasks on Scrum Board — https://community.atlassian.com/forums/Jira-questions/Display-Sub-Tasks-on-Scrum-Board/qaq-p/2808156
+- Atlassian Jira backlog grooming documentation (DC 10.3) — https://confluence.atlassian.com/jirasoftwareserver103/grooming-your-backlog-1489805148.html
+- Atlassian ADF documentation — https://developer.atlassian.com/cloud/jira/platform/apis/document/structure/
+- Medium: Jira vs Linear vs GitHub Issues 2025 — https://medium.com/@samurai.stateless.coder/jira-vs-linear-vs-github-issues-best-tool-for-web-dev-teams-2025-d808740317e6
+- dnd-kit documentation — https://dndkit.com/
+- LogRocket: Build kanban board with dnd-kit and React — https://blog.logrocket.com/build-kanban-board-dnd-kit-react/
+- Taskflow PROJECT.md (codebase) — `.planning/PROJECT.md`
+- Taskflow jira.ts service (codebase inspection) — `taskflow/src/services/jira.ts`
 
 ---
-
-*Feature research for: Taskflow v1.1 Polish milestone*
-*Researched: 2026-03-12*
+*Feature research for: v1.2 Jira Parity — Taskflow desktop app*
+*Researched: 2026-03-13*

@@ -1,8 +1,183 @@
 # Technology Stack
 
 **Project:** Taskflow
-**Researched:** 2026-03-10 (v1.0 base), 2026-03-12 (v1.1 Jira API addendum)
-**Research mode:** v1.0 — training knowledge. v1.1 addendum — live web research (verified).
+**Researched:** 2026-03-10 (v1.0 base), 2026-03-12 (v1.1 Jira API addendum), 2026-03-13 (v1.2 Jira Parity addendum)
+**Research mode:** v1.0 — training knowledge. v1.1 addendum — live web research (verified). v1.2 addendum — live npm registry + Atlassian official docs (verified).
+
+---
+
+## v1.2 Addendum: New Libraries and API Endpoints for Jira Parity
+
+This section documents the specific new npm dependencies and Jira REST API endpoints required for v1.2 features: ADF rich-text rendering, drag-and-drop kanban, create/edit issue forms, and Jira Agile API (epics, backlog, sprint management, issue links). No changes to Tauri plugins, state management, or UI library are needed.
+
+---
+
+### Actual Runtime Context (Verified 2026-03-13)
+
+The app is currently running **React 19.1** (not React 18 as originally documented in v1.0 research). All library peer-dependency checks below are against React 19.
+
+```
+react: ^19.1.0         (not ^18.3 as documented in v1.0 section)
+vite: ^7.0.4           (not v5.x)
+vitest: ^4.0.18        (not v1.6)
+zustand: ^5.0.11       (not v4.5)
+@base-ui/react: ^1.2.0 (shadcn/ui components rendered via this)
+```
+
+---
+
+### 1. New npm Dependencies
+
+#### Drag-and-Drop (Kanban Board)
+
+| Library | Version | Purpose | Why |
+|---------|---------|---------|-----|
+| `@dnd-kit/core` | `^6.3.1` | DndContext, Draggable, Droppable, DragOverlay primitives | Production-stable (v6 since 2021, 6.3.1 is current). MIT. Peer dep `react >=16.8.0` — confirmed compatible with React 19. Replaces unmaintained `react-beautiful-dnd` (archived by Atlassian). Has `DragOverlay` for smooth ghost card UX. |
+| `@dnd-kit/sortable` | `^10.0.0` | SortableContext + useSortable for within-column reordering | Peer dep: `@dnd-kit/core ^6.3.0`. Required for columns where cards can be reordered within the same status. |
+| `@dnd-kit/utilities` | `^3.2.2` | CSS.Transform.toString helper | Avoids manual transform math when positioning dragged elements. Tiny (no additional peer deps). |
+
+**Why not `@dnd-kit/react` (the new API):** As of November 2025 the maintainer has not confirmed it is production-ready. A public discussion (#1842 on GitHub, Nov 26 2025) asking "should new projects start with @dnd-kit/react or stick to @dnd-kit/core for stability?" remains unanswered. Use `@dnd-kit/core` (the stable v6 API) for this milestone.
+
+**Why not `@hello-pangea/dnd`:** Documented performance issues on large lists; less granular control over drag overlay; DragDropContext/Droppable/Draggable API is more prescriptive. dnd-kit gives direct control over sensors (PointerSensor + KeyboardSensor) and overlay rendering.
+
+#### Form Management (Create/Edit Issue)
+
+| Library | Version | Purpose | Why |
+|---------|---------|---------|-----|
+| `react-hook-form` | `^7.71.2` | Uncontrolled form state for create/edit issue forms | Explicit React 19 peer dep (`^16.8.0 \|\| ^17 \|\| ^18 \|\| ^19`). Minimal re-renders via uncontrolled inputs — critical for dynamic custom field forms that can have 15–30 fields. |
+| `@hookform/resolvers` | `^5.2.2` | Bridges react-hook-form with Zod validation | Peer dep: `react-hook-form ^7.55.0`. Works with Zod v3. |
+| `zod` | `^3.24` | Runtime schema validation for form fields | Use **v3, not v4**. Zod v4 (4.3.6 on npm) breaks `zodResolver`: ZodError is thrown instead of captured by RHF, so `formState.errors` is never populated. Multiple open issues in `react-hook-form/resolvers` (issues #799, #813, #768) confirmed as of Aug–Sep 2025. Stay on v3 until a stable v4 resolver ships. |
+
+#### ADF Rich-Text Rendering (Issue Detail View)
+
+| Library | Version | Purpose | Why |
+|---------|---------|---------|-----|
+| `simple-adf-formatter` | `^latest` | ADF document → React JSX elements | Under 2 kB, zero dependencies, Apache-2.0. Supports JSX output via `jsxFormatter`. Handles all standard ADF node types: text, paragraph, heading, bulletList, orderedList, codeBlock, blockquote, hardBreak, mentions, links. Avoids `@atlaskit/renderer` which adds 3.5–12 MB to the Vite bundle — incompatible with the ~10 MB Tauri portable target. |
+
+**Why not `@atlaskit/renderer`:** The package is 3.51 MB unpacked and pulls in ProseMirror, Emotion CSS-in-JS, and dozens of `@atlaskit/*` sub-packages. Users report bundle growth from 400 kB to 12 MB after adding it. Unacceptable for a portable Tauri executable where total build size is a hard constraint.
+
+**Fallback option:** If `simple-adf-formatter` proves insufficient for any node types, extend the existing inline `adfToPlainText()` function in `SearchResultPanel.tsx` to emit JSX rather than strings. The walker is ~30 lines and fully under project control. This is a 1–2 hour effort and keeps zero new dependencies.
+
+---
+
+### 2. Jira REST API — New Endpoints (No New Libraries)
+
+All new Jira API calls use the existing `apiFetch.ts` + `@tauri-apps/plugin-http` pattern with Bearer PAT auth. No new HTTP client needed.
+
+#### Jira Agile REST API (`/rest/agile/1.0/`)
+
+| Feature | Endpoint | Notes |
+|---------|----------|-------|
+| Epic list for a board | `GET /rest/agile/1.0/board/{boardId}/epic` | Returns epics with `key`, `name`, `color`; paginated |
+| Issues in an epic | `GET /rest/agile/1.0/board/{boardId}/epic/{epicId}/issue` | Returns issues belonging to that epic on the board |
+| Issues not in any sprint (backlog) | `GET /rest/agile/1.0/board/{boardId}/backlog` | Returns incomplete issues not assigned to future/active sprint |
+| Move issues to sprint | `POST /rest/agile/1.0/sprint/{sprintId}/issue` | Body: `{ "issues": ["PROJ-1", "PROJ-2"] }`. Max 50 per call. Only open/active sprints. |
+| Move issues to backlog | `POST /rest/agile/1.0/backlog/issue` | Body: `{ "issues": ["PROJ-1"] }`. Equivalent to removing sprint assignment. |
+
+**boardId discovery:** Already available via `GET /rest/agile/1.0/board?projectKeyOrId={key}`. Cache it alongside the current project key in the settings store.
+
+#### Jira Platform REST API v2 — New Endpoints (`/rest/api/2/`)
+
+| Feature | Endpoint | Notes |
+|---------|----------|-------|
+| Issue creation | `POST /rest/api/2/issue` | Body: `{ "fields": { "project": {...}, "summary": "...", "issuetype": {...}, ... } }` |
+| Issue edit | `PUT /rest/api/2/issue/{issueKey}` | Body: `{ "fields": { ... } }` — only send fields being changed |
+| Full issue detail | `GET /rest/api/2/issue/{issueKey}?expand=renderedFields,names` | `renderedFields` contains server-rendered HTML for ADF fields; `names` maps field IDs to display names |
+| Issue link | `POST /rest/api/2/issueLink` | Body: `{ "type": { "name": "Blocks" }, "inwardIssue": {...}, "outwardIssue": {...} }` |
+| Issue link types | `GET /rest/api/2/issueLinkType` | Returns all configured link types (Blocks, Clones, Duplicates, etc.) |
+| Create-form metadata | `GET /rest/api/2/issue/createmeta?projectKeys={key}&expand=projects.issuetypes.fields` | Returns field schemas per issue type; use to discover custom field IDs and allowed values |
+| User search (assignee picker) | `GET /rest/api/2/user/search?query={term}` | Returns users matching query; use for assignee autocomplete |
+| Issue transitions | `GET /rest/api/2/issue/{key}/transitions` | Already used; no change needed |
+| Apply transition | `POST /rest/api/2/issue/{key}/transitions` | Already used; no change needed |
+
+**Custom field schema pattern for create/edit form:** Call `GET /rest/api/2/issue/createmeta?projectKeys={key}&expand=projects.issuetypes.fields` on form open. The response gives each field's schema including `type`, `allowedValues`, and `required`. Build the Zod schema programmatically from this response. For the "account" custom field, identify it by `schema.custom` containing `"com.atlassian.jira.plugin.system.customfieldtypes:userpicker"` or by its field `name` configured in the instance.
+
+**Note on `expand=renderedFields`:** When fetching full issue detail, `renderedFields.description` contains server-side HTML rendering of the ADF description. This is an alternative to client-side ADF parsing with `simple-adf-formatter` — render the HTML via `dangerouslySetInnerHTML` in a sandboxed container. Evaluate both approaches; `renderedFields` gives Jira-native rendering fidelity but requires sanitization (`DOMPurify` or equivalent).
+
+---
+
+### 3. Installation Commands
+
+```bash
+# From: /Users/mimo/Desktop/Tasker/taskflow/
+
+# Drag-and-drop (kanban board)
+npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities
+
+# Form management (create/edit issue)
+npm install react-hook-form @hookform/resolvers zod@^3
+
+# ADF rich-text rendering
+npm install simple-adf-formatter
+```
+
+---
+
+### 4. Version Compatibility Matrix (v1.2 additions)
+
+| Package | Version | React 19 Compatible | Notes |
+|---------|---------|---------------------|-------|
+| `@dnd-kit/core` | `^6.3.1` | Yes | peerDep: `react >=16.8.0` — verified via npm registry |
+| `@dnd-kit/sortable` | `^10.0.0` | Yes | peerDep: `@dnd-kit/core ^6.3.0` — confirmed |
+| `@dnd-kit/utilities` | `^3.2.2` | Yes | No peer dep constraints |
+| `react-hook-form` | `^7.71.2` | Yes | peerDep explicitly includes `^19` — verified via npm |
+| `@hookform/resolvers` | `^5.2.2` | Yes | peerDep: `react-hook-form ^7.55.0` — verified |
+| `zod` | `^3.24` | Yes (no peer dep) | Do NOT use v4 — zodResolver breakage (open Aug–Sep 2025) |
+| `simple-adf-formatter` | latest | Yes (no peer dep) | Zero deps, < 2kB — verified via GitHub |
+
+---
+
+### 5. Implementation Patterns
+
+**Drag-and-drop kanban (subtask card layout):**
+- `DndContext` wraps the board; one `SortableContext` per status column
+- Sensors: `PointerSensor` (mouse/touch) + `KeyboardSensor` (accessibility)
+- `DragOverlay` renders the ghost card during drag — avoids layout shift in the source column
+- `onDragEnd`: fire optimistic status transition via existing `POST /rest/api/2/issue/{key}/transitions`; rollback on API error using the same pattern as v1.0 `StatusPopover`
+- Keep drag state (active card ID) in local React state, not Zustand — it's ephemeral per-session
+
+**Create/edit issue forms:**
+- `useForm` with `zodResolver` wrapping a Zod schema built from `createmeta` response
+- `useFieldArray` for issue links (variable count, add/remove)
+- On mount: call `createmeta` to populate field definitions; show skeleton while loading
+- Custom user-picker fields: `GET /rest/api/2/user/search?query=` with debounced input, render results as a combobox using `@base-ui/react` Select primitive (already in project)
+
+**ADF rich-text in issue detail:**
+- Gate behind type check: `typeof description === 'object'` → use `simple-adf-formatter`; `typeof description === 'string'` → render as plain text (existing Jira DC Server behavior)
+- Alternatively: if `renderedFields.description` is available from `expand=renderedFields`, prefer it — Jira renders ADF server-side including complex macros
+- If using `renderedFields`: sanitize HTML before setting `dangerouslySetInnerHTML` (Jira's rendered HTML is generally safe but add a lightweight sanitizer as defense)
+
+**Backlog / move-to-sprint:**
+- `fetchBacklog(boardId)` → paginated `GET /rest/agile/1.0/board/{boardId}/backlog`
+- `moveToSprint(sprintId, issueKeys[])` → `POST /rest/agile/1.0/sprint/{sprintId}/issue` with SUBTASK_CHUNK_SIZE-style chunking (max 50 per call)
+- Optimistic update: remove moved issues from backlog query cache via `queryClient.setQueryData`; invalidate sprint query
+
+---
+
+### 6. What NOT to Add
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| `@atlaskit/renderer` | 3.51 MB package; 12 MB bundle growth in practice; pulls ProseMirror + Emotion | `simple-adf-formatter` (< 2kB) |
+| `@atlaskit/editor-core` | Full collaborative editor; 8–12 MB; overkill for view-only ADF description | Not needed — issue description is read-only |
+| `react-dnd` (original) | Unmaintained; React 19 support issue #3655 still open | `@dnd-kit/core ^6.3.1` |
+| `react-beautiful-dnd` | Archived by Atlassian; no React 18+ support | `@dnd-kit/core ^6.3.1` |
+| `@dnd-kit/react` (new API) | Pre-stable alpha; maintainer has not confirmed production-ready (Nov 2025) | `@dnd-kit/core ^6.3.1` |
+| `zod ^4` | `zodResolver` breaks silently (errors thrown not captured); open issues Aug–Sep 2025 | `zod ^3.24` |
+| Any Jira API client library | None validated against Jira DC v10.3 + Bearer PAT + tauri-plugin-http CORS flow | Extend existing `jira.ts` |
+| `DOMPurify` (full package) | Only needed if using `renderedFields` HTML path | If needed: use `dompurify` (MIT, ~14kB) or the native Sanitizer API (Chromium-based webviews) |
+
+---
+
+### 7. Sources (v1.2 Research)
+
+- npm registry, live (2026-03-13): `@dnd-kit/core` 6.3.1, `@dnd-kit/sortable` 10.0.0, `@dnd-kit/utilities` 3.2.2, `react-hook-form` 7.71.2, `@hookform/resolvers` 5.2.2, `zod` 4.3.6 — peer deps verified via `npm info`; confidence HIGH
+- GitHub: [clauderic/dnd-kit discussion #1842](https://github.com/clauderic/dnd-kit/discussions/1842) — `@dnd-kit/react` not yet production-ready confirmed (Nov 2025); confidence HIGH
+- GitHub: [react-hook-form/resolvers issues #799, #813, #768](https://github.com/react-hook-form/resolvers/issues/799) — Zod v4 + zodResolver breakage confirmed open Aug–Sep 2025; confidence HIGH
+- GitHub: [dixahq/simple-adf-formatter](https://github.com/dixahq/simple-adf-formatter) — JSX output confirmed, < 2kB, zero deps, Apache-2.0; confidence MEDIUM (12 stars, low adoption but correct scope and active commits)
+- Atlassian community: [@atlaskit/renderer bundle size thread](https://community.developer.atlassian.com/t/is-there-anyway-to-reduce-the-bundle-size-of-atlaskit-renderer-in-my-react-custom-ui/53543) — 3.5 MB unpacked, 12 MB bundle growth confirmed; confidence HIGH
+- [Jira Software Data Center REST API 9.14.0 docs](https://docs.atlassian.com/jira-software/REST/9.14.0/) — epic, backlog, sprint, board endpoints confirmed; confidence MEDIUM (9.14 docs, app targets 10.3.15; Agile API is stable across DC versions)
+- [Atlassian developer: createmeta example](https://developer.atlassian.com/server/jira/platform/jira-rest-api-example-discovering-meta-data-for-creating-issues-6291669/) — custom field schema discovery via `createmeta` confirmed; confidence HIGH
 
 ---
 
@@ -295,7 +470,7 @@ The existing `GET /rest/api/2/version?projectKey={key}` already returns `release
 
 ---
 
-### 6. What NOT to Add
+### 6. What NOT to Add (v1.1)
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
@@ -329,9 +504,9 @@ The following stack is already validated and shipped in v1.0. Do not re-research
 
 | Technology | Version | Purpose | Why |
 |------------|---------|---------|-----|
-| React | ^18.3 | UI component framework | The dominant ecosystem choice. Tauri's own documentation and templates are React-first. TanStack Query, the most important library in this stack, has its deepest integration with React. |
-| TypeScript | ^5.4 | Type safety across the whole codebase | Jira API v2 and GitLab API have complex, partially-documented response shapes. TypeScript interfaces for API responses will prevent entire categories of runtime bugs. |
-| Vite | ^5.x | Build tool and dev server | Tauri's official scaffolding uses Vite. Sub-second HMR in development. |
+| React | ^19.1 | UI component framework | The dominant ecosystem choice. Tauri's own documentation and templates are React-first. TanStack Query, the most important library in this stack, has its deepest integration with React. (Note: v1.0 docs said ^18.3; actual shipped version is 19.1.) |
+| TypeScript | ^5.8 | Type safety across the whole codebase | Jira API v2 and GitLab API have complex, partially-documented response shapes. TypeScript interfaces for API responses will prevent entire categories of runtime bugs. |
+| Vite | ^7.x | Build tool and dev server | Tauri's official scaffolding uses Vite. Sub-second HMR in development. |
 
 ---
 
@@ -347,7 +522,7 @@ The following stack is already validated and shipped in v1.0. Do not re-research
 
 | Technology | Version | Purpose | Why |
 |------------|---------|---------|-----|
-| Zustand | ^4.5 | Global UI state: theme, active role, selected project/sprint, discovered field IDs | Minimal boilerplate, no context hell. Use it to cache the discovered story points field key between sessions. |
+| Zustand | ^5.0 | Global UI state: theme, active role, selected project/sprint, discovered field IDs | Minimal boilerplate, no context hell. Use it to cache the discovered story points field key between sessions. |
 
 ---
 
@@ -355,8 +530,8 @@ The following stack is already validated and shipped in v1.0. Do not re-research
 
 | Technology | Version | Purpose | Why |
 |------------|---------|---------|-----|
-| shadcn/ui | current (copy-paste model) | Accessible component primitives | Built on Radix UI primitives + Tailwind CSS. Components are owned by the project. |
-| Tailwind CSS | v4 (via @tailwindcss/vite, no postcss.config.js) | Utility-first styling | CSS-first v4 pipeline; no tailwind.config.js required. |
+| shadcn/ui | current (copy-paste model via `shadcn` CLI) | Accessible component primitives | Built on `@base-ui/react ^1.2` primitives + Tailwind CSS. Components are owned by the project. |
+| Tailwind CSS | v4 (via `@tailwindcss/vite` only — no postcss.config.js, no tailwind.config.js) | Utility-first styling | CSS-first v4 pipeline; no config files required. |
 
 ---
 
@@ -373,8 +548,8 @@ The following stack is already validated and shipped in v1.0. Do not re-research
 
 | Technology | Version | Purpose | Why |
 |------------|---------|---------|-----|
-| Vitest | ^1.6 | Unit + integration tests | Vite-native test runner. |
-| React Testing Library | ^14.x | Component tests | Standard for React component testing by behavior. |
+| Vitest | ^4.0 | Unit + integration tests | Vite-native test runner. |
+| React Testing Library | ^16.x | Component tests | Standard for React component testing by behavior. |
 
 ---
 
@@ -391,6 +566,15 @@ The following stack is already validated and shipped in v1.0. Do not re-research
 ---
 
 ## Sources
+
+**v1.2 Jira Parity research (live, 2026-03-13):**
+- npm registry (live): `@dnd-kit/core` 6.3.1, `@dnd-kit/sortable` 10.0.0, `@dnd-kit/utilities` 3.2.2, `react-hook-form` 7.71.2, `@hookform/resolvers` 5.2.2, `zod` 4.3.6 — peer deps verified via `npm info`
+- [clauderic/dnd-kit discussion #1842](https://github.com/clauderic/dnd-kit/discussions/1842) — `@dnd-kit/react` pre-stable status (Nov 2025)
+- [react-hook-form/resolvers issues #799, #813, #768](https://github.com/react-hook-form/resolvers/issues/799) — Zod v4 breakage confirmed Aug–Sep 2025
+- [dixahq/simple-adf-formatter GitHub](https://github.com/dixahq/simple-adf-formatter) — JSX output, < 2kB, zero deps, Apache-2.0
+- [Atlassian community: @atlaskit/renderer bundle size](https://community.developer.atlassian.com/t/is-there-anyway-to-reduce-the-bundle-size-of-atlaskit-renderer-in-my-react-custom-ui/53543) — 12 MB bundle growth confirmed
+- [Jira Software Data Center REST API 9.14.0](https://docs.atlassian.com/jira-software/REST/9.14.0/) — epic, backlog, sprint endpoints
+- [Atlassian: createmeta discovering metadata](https://developer.atlassian.com/server/jira/platform/jira-rest-api-example-discovering-meta-data-for-creating-issues-6291669/) — custom field schema discovery
 
 **v1.1 Jira API research (live, 2026-03-12):**
 - [Jira REST API examples (Atlassian Server docs)](https://developer.atlassian.com/server/jira/platform/jira-rest-api-examples/) — subtask field structure, parent field
@@ -410,4 +594,4 @@ The following stack is already validated and shipped in v1.0. Do not re-research
 ---
 
 *Stack research for: Taskflow — Jira/GitLab desktop integration (Tauri 2 + React + TypeScript)*
-*v1.0 researched: 2026-03-10 | v1.1 addendum researched: 2026-03-12*
+*v1.0 researched: 2026-03-10 | v1.1 addendum: 2026-03-12 | v1.2 addendum: 2026-03-13*
