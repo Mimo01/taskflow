@@ -21,6 +21,7 @@ import { apiFetch } from '../lib/apiFetch';
 export interface JiraUser {
   displayName: string;
   emailAddress: string;
+  name: string;
 }
 
 export interface JiraProject {
@@ -54,7 +55,7 @@ export async function validateJira(baseUrl: string, token: string): Promise<Jira
 
   if (response.ok) {
     const data = await response.json();
-    return { displayName: data.displayName, emailAddress: data.emailAddress };
+    return { displayName: data.displayName, emailAddress: data.emailAddress, name: data.name ?? data.emailAddress };
   }
 
   if (response.status === 401) {
@@ -155,6 +156,103 @@ export interface JiraTransition {
 }
 
 const SUBTASK_CHUNK_SIZE = 50;
+const PAGE_SIZE = 200;
+
+/**
+ * Fetch all pages of a Jira /rest/api/2/search query.
+ *
+ * Jira paginates search results using startAt + maxResults + total fields.
+ * This helper loops, incrementing startAt by PAGE_SIZE each iteration, until
+ * startAt + PAGE_SIZE >= total (all items retrieved).
+ *
+ * The first page uses startAt=0 so the URL always contains `maxResults=200`,
+ * preserving compatibility with any callers that inspect the URL.
+ *
+ * On first-page failure the raw Response object is thrown so the caller can
+ * read its status and body for specific error messages (400, 401, etc.).
+ * On subsequent-page failure, the already-fetched issues are returned as-is
+ * (partial is better than nothing, and avoids surfacing transient errors).
+ *
+ * @param baseSearchUrl - Full search URL WITHOUT startAt or maxResults params.
+ * @param headers       - Request headers (auth etc.)
+ * @returns Flat array of all JiraIssue objects across all pages.
+ */
+async function fetchAllSearchPages(
+  baseSearchUrl: string,
+  headers: Record<string, string>,
+): Promise<JiraIssue[]> {
+  const allIssues: JiraIssue[] = [];
+  let startAt = 0;
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const url = `${baseSearchUrl}&maxResults=${PAGE_SIZE}&startAt=${startAt}`;
+    const response = await apiFetch('jira', url, { headers });
+
+    if (!response.ok) {
+      if (startAt === 0) {
+        // Throw the raw Response so the caller can inspect status + body.
+        throw response;
+      }
+      // Partial result — stop paging but don't lose what we already have.
+      break;
+    }
+
+    const data = await response.json();
+    const issues: JiraIssue[] = data.issues ?? [];
+    allIssues.push(...issues);
+
+    const total: number = data.total ?? 0;
+    startAt += PAGE_SIZE;
+    if (startAt >= total || issues.length === 0) break;
+  }
+
+  return allIssues;
+}
+
+/**
+ * Fetch all pages of a Jira /rest/api/2/issue/{key}/worklog endpoint.
+ *
+ * Jira worklog pagination uses the same startAt + maxResults + total pattern
+ * as the search API. This helper loops until all worklogs are retrieved.
+ *
+ * On any failure, returns what has been collected so far (empty array on
+ * first-page failure) — callers treat worklogs as enrichment only.
+ *
+ * @param baseWorklogUrl - Full worklog URL WITHOUT startAt or maxResults params.
+ * @param headers        - Request headers (auth etc.)
+ * @returns Flat array of raw worklog objects across all pages.
+ */
+async function fetchAllWorklogPages(
+  baseWorklogUrl: string,
+  headers: Record<string, string>,
+): Promise<Array<{ author?: { displayName?: string } }>> {
+  const allWorklogs: Array<{ author?: { displayName?: string } }> = [];
+  let startAt = 0;
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const url = `${baseWorklogUrl}?maxResults=${PAGE_SIZE}&startAt=${startAt}`;
+    let response: Response;
+    try {
+      response = await apiFetch('jira', url, { headers });
+    } catch {
+      break;
+    }
+
+    if (!response.ok) break;
+
+    const data = await response.json();
+    const worklogs: Array<{ author?: { displayName?: string } }> = data.worklogs ?? [];
+    allWorklogs.push(...worklogs);
+
+    const total: number = data.total ?? 0;
+    startAt += PAGE_SIZE;
+    if (startAt >= total || worklogs.length === 0) break;
+  }
+
+  return allWorklogs;
+}
 
 /**
  * Fetch issues in the active sprint for a project.
@@ -162,6 +260,10 @@ const SUBTASK_CHUNK_SIZE = 50;
  * Uses a two-query strategy: first query fetches parent issues (Jira DC's
  * `sprint in openSprints()` intentionally excludes subtasks), second query
  * fetches subtasks for those parents in chunks of 50 keys.
+ *
+ * Both queries are fully paginated — all pages are fetched until total is
+ * exhausted, so sprints with >200 issues or chunks with >200 subtasks are
+ * handled correctly.
  *
  * On any failure of the second (subtask) query, parent issues are returned
  * alone — callers never observe an error from subtask fetching.
@@ -181,6 +283,7 @@ export async function fetchSprintIssues(
   storyPointsFieldKey = 'customfield_10016',
 ): Promise<JiraIssue[]> {
   const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const assigneeClause = assignedToMe ? ' AND assignee = currentUser()' : '';
   // Include both common story-point field IDs plus the discovered key (deduplicated) so
   // the response contains whichever one this Jira instance uses.
@@ -189,34 +292,25 @@ export async function fetchSprintIssues(
   const jql = encodeURIComponent(
     `project = ${projectKey} AND sprint in openSprints()${assigneeClause} AND issuetype not in subtaskIssueTypes() ORDER BY updated DESC`,
   );
-  const url = `${base}/rest/api/2/search?jql=${jql}&fields=${fields}&maxResults=200`;
+  const baseSearchUrl = `${base}/rest/api/2/search?jql=${jql}&fields=${fields}`;
 
-  let response: Response;
+  let parentIssues: JiraIssue[];
   try {
-    response = await apiFetch('jira', url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-  } catch {
+    parentIssues = await fetchAllSearchPages(baseSearchUrl, headers);
+  } catch (err) {
+    // fetchAllSearchPages throws the raw Response on first-page failure
+    if (err instanceof Response) {
+      if (err.status === 400) {
+        const body = await err.text();
+        if (body.includes('function') || body.includes('not recognized')) {
+          throw new Error('Sprint filtering unavailable — ensure Jira Software is installed');
+        }
+        throw new Error(`Jira search failed with status 400`);
+      }
+      throw new Error(`Jira search failed with status ${err.status}`);
+    }
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
-
-  if (response.status === 400) {
-    const body = await response.text();
-    if (body.includes('function') || body.includes('not recognized')) {
-      throw new Error('Sprint filtering unavailable — ensure Jira Software is installed');
-    }
-    throw new Error(`Jira search failed with status 400`);
-  }
-
-  if (!response.ok) {
-    throw new Error(`Jira search failed with status ${response.status}`);
-  }
-
-  const data = await response.json();
-  const parentIssues = data.issues as JiraIssue[];
 
   // Second query: fetch subtasks for all parent issues
   // Note: sprint in openSprints() excludes subtasks on Jira DC by design
@@ -238,16 +332,12 @@ export async function fetchSprintIssues(
         const subtaskJql = encodeURIComponent(
           `issuetype in subtaskIssueTypes() AND parent in (${chunk.join(',')})${assigneeClause}`,
         );
-        const subtaskUrl = `${base}/rest/api/2/search?jql=${subtaskJql}&fields=${subtaskFields}&maxResults=200`;
-        const subtaskResponse = await apiFetch('jira', subtaskUrl, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-        if (!subtaskResponse.ok) return [];
-        const subtaskData = await subtaskResponse.json();
-        return subtaskData.issues as JiraIssue[];
+        const subtaskBaseUrl = `${base}/rest/api/2/search?jql=${subtaskJql}&fields=${subtaskFields}`;
+        try {
+          return await fetchAllSearchPages(subtaskBaseUrl, headers);
+        } catch {
+          return [];
+        }
       }),
     );
 

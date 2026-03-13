@@ -13,7 +13,7 @@ vi.mock('@/services/stronghold', () => ({
 
 // Mock jira service
 vi.mock('@/services/jira', () => ({
-  validateJira: vi.fn().mockResolvedValue({ displayName: 'Jane Smith', emailAddress: 'jane@example.com' }),
+  validateJira: vi.fn().mockResolvedValue({ displayName: 'Jane Smith', emailAddress: 'jane@example.com', name: 'janesmith' }),
   listJiraProjects: vi.fn().mockResolvedValue([{ id: '10001', key: 'APP', name: 'Application' }]),
 }));
 
@@ -117,6 +117,7 @@ describe('Settings', () => {
     vi.mocked(validateJira).mockResolvedValue({
       displayName: 'Jane Smith',
       emailAddress: 'jane@example.com',
+      name: 'janesmith',
     });
 
     renderWithQuery(<Settings />);

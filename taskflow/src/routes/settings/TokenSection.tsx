@@ -129,12 +129,14 @@ export default function TokenSection() {
     jiraBaseUrl,
     gitlabBaseUrl,
     setJiraConnected,
+    setJiraUser,
     setGitlabConnected,
     activeJiraProject,
     setActiveJiraProject,
     activeGitlabProject,
     activeGitlabProjectPath,
     setActiveGitlabProject,
+    setGitlabUserId,
   } = useAuthStore();
 
   const [jiraUrl, setJiraUrl] = useState(jiraBaseUrl ?? '');
@@ -209,23 +211,25 @@ export default function TokenSection() {
   const jiraUrlMutation = useMutation({
     mutationFn: async () => {
       const pat = await readSecret('jira-pat');
-      await validateJira(jiraUrl, pat);
-      return { url: jiraUrl };
+      const user = await validateJira(jiraUrl, pat);
+      return { url: jiraUrl, user };
     },
-    onSuccess: ({ url }) => {
+    onSuccess: ({ url, user }) => {
       setJiraConnected(true, url);
+      setJiraUser(user.displayName, user.name);
     },
   });
 
   // Jira token update mutation
   const jiraMutation = useMutation({
     mutationFn: async (newToken: string) => {
-      await validateJira(jiraUrl, newToken);
+      const user = await validateJira(jiraUrl, newToken);
       await storeSecret('jira-pat', newToken);
-      return { url: jiraUrl };
+      return { url: jiraUrl, user };
     },
-    onSuccess: ({ url }) => {
+    onSuccess: ({ url, user }) => {
       setJiraConnected(true, url);
+      setJiraUser(user.displayName, user.name);
     },
   });
 
@@ -233,23 +237,25 @@ export default function TokenSection() {
   const gitlabUrlMutation = useMutation({
     mutationFn: async () => {
       const pat = await readSecret('gitlab-pat');
-      await validateGitLab(gitlabUrl, pat);
-      return { url: gitlabUrl };
+      const user = await validateGitLab(gitlabUrl, pat);
+      return { url: gitlabUrl, userId: user.id };
     },
-    onSuccess: ({ url }) => {
+    onSuccess: ({ url, userId }) => {
       setGitlabConnected(true, url);
+      setGitlabUserId(userId);
     },
   });
 
   // GitLab token update mutation
   const gitlabMutation = useMutation({
     mutationFn: async (newToken: string) => {
-      await validateGitLab(gitlabUrl, newToken);
+      const user = await validateGitLab(gitlabUrl, newToken);
       await storeSecret('gitlab-pat', newToken);
-      return { url: gitlabUrl };
+      return { url: gitlabUrl, userId: user.id };
     },
-    onSuccess: ({ url }) => {
+    onSuccess: ({ url, userId }) => {
       setGitlabConnected(true, url);
+      setGitlabUserId(userId);
     },
   });
 

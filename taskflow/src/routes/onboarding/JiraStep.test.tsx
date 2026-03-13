@@ -135,7 +135,7 @@ describe('JiraStep', () => {
     vi.mocked(validateJira).mockReturnValue(
       new Promise((resolve) => {
         resolveValidate = () =>
-          resolve({ displayName: 'Jane Smith', emailAddress: 'jane@example.com' });
+          resolve({ displayName: 'Jane Smith', emailAddress: 'jane@example.com', name: 'janesmith' });
       }),
     );
 
@@ -154,7 +154,7 @@ describe('JiraStep', () => {
     vi.mocked(validateJira).mockReturnValue(
       new Promise((resolve) => {
         resolveValidate = () =>
-          resolve({ displayName: 'Jane Smith', emailAddress: 'jane@example.com' });
+          resolve({ displayName: 'Jane Smith', emailAddress: 'jane@example.com', name: 'janesmith' });
       }),
     );
 
