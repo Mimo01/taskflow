@@ -2,7 +2,8 @@
  * WorkloadTab — PM-02: Per-assignee open task count and story points.
  *
  * Reads from the shared TanStack cache (same query key as SprintProgressTab).
- * Counts and points only reflect non-done stories; done stories appear in expanded sub-rows.
+ * Count includes all stories (in-progress + done); points only reflect non-done stories (locked decision).
+ * Done stories are visually distinguished with a "Done" badge in expanded sub-rows.
  * Groups by assignee.displayName, with null assignee → 'Unassigned'.
  * Rows sorted by total story points (non-done) descending; ties broken alphabetically by name.
  * Time tracking columns (Est/Spent/Remaining) hidden when all values are zero/null.
@@ -29,6 +30,7 @@ interface WorkloadStoryRow {
   key: string;
   summary: string;
   points: number;
+  isDone: boolean;
   estSecs: number;
   spentSecs: number;
   remainSecs: number;
@@ -37,8 +39,8 @@ interface WorkloadStoryRow {
 
 interface WorkloadRow {
   name: string;
-  count: number;         // non-done story count only
-  points: number;        // story points only (no subtasks)
+  count: number;         // all stories (in-progress + done)
+  points: number;        // story points only (non-done, no subtasks)
   estSecs: number;       // stories + subtasks aggregated
   spentSecs: number;
   remainSecs: number;
@@ -147,9 +149,9 @@ export default function WorkloadTab() {
         stories: [],
       };
 
+      existing.count += 1;          // count ALL stories regardless of done status
       if (!isDone) {
-        existing.points += pts;
-        existing.count += 1;
+        existing.points += pts;     // points remain non-done only (locked decision)
       }
       // Time tracking always aggregated regardless of done status
       existing.estSecs += tt?.originalEstimateSeconds ?? 0;
@@ -159,6 +161,7 @@ export default function WorkloadTab() {
         key: story.key,
         summary: story.fields.summary,
         points: pts,
+        isDone,
         estSecs: tt?.originalEstimateSeconds ?? 0,
         spentSecs: tt?.timeSpentSeconds ?? 0,
         remainSecs: tt?.remainingEstimateSeconds ?? 0,
@@ -292,6 +295,9 @@ export default function WorkloadTab() {
                             <td className="py-1 pl-6 pr-2 text-xs text-muted-foreground">
                               <span className="font-mono">{story.key}</span>
                               <span className="ml-2 truncate">{story.summary}</span>
+                              {story.isDone && (
+                                <span data-testid="done-badge" className="ml-1 text-xs text-green-600 font-medium">Done</span>
+                              )}
                             </td>
                             <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">—</td>
                             <td className="py-1 text-right tabular-nums text-xs">{story.points} pts</td>
