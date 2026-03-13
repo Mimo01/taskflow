@@ -95,6 +95,17 @@ export const useNotificationsStore = create<NotificationsState>()(
         readIds: s.readIds,
         lastSeenCursor: s.lastSeenCursor,
       }),
+      // Sanitize rehydrated data — old store versions serialized readIds/items as Set,
+      // which JSON-stringifies to {}. Guard both fields so new Set(readIds) never throws.
+      merge: (persisted, current) => {
+        const p = persisted as Partial<NotificationsState>;
+        return {
+          ...current,
+          ...p,
+          readIds: Array.isArray(p.readIds) ? p.readIds : [],
+          items: Array.isArray(p.items) ? p.items : [],
+        };
+      },
     },
   ),
 );
