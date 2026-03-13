@@ -2,14 +2,14 @@
  * Notifications service — delta polling for Jira comment mentions and GitLab MR notes,
  * plus OS desktop notification dispatch via tauri-plugin-notification.
  *
- * All HTTP calls use `fetch` from `@tauri-apps/plugin-http` (not global fetch)
- * to avoid CORS issues in Tauri 2 webview.
+ * All HTTP calls use `apiFetch` (instrumented wrapper around @tauri-apps/plugin-http fetch)
+ * to avoid CORS issues in Tauri 2 webview and to capture calls in the debug log.
  *
  * API key links:
  *  - Jira: JQL comment ~ displayName + client-side cursor filtering
  *  - GitLab: Per-MR notes endpoint, client-side cursor + system/own-note filtering
  */
-import { fetch } from '@tauri-apps/plugin-http';
+import { apiFetch } from '../lib/apiFetch';
 import {
   isPermissionGranted,
   requestPermission,
@@ -83,7 +83,7 @@ async function fetchNewJiraComments(
 
     let response: Response;
     try {
-      response = await fetch(url, { headers });
+      response = await apiFetch('jira', url, { headers });
     } catch {
       return [];
     }
@@ -133,7 +133,7 @@ async function fetchNewJiraComments(
 
     let response: Response;
     try {
-      response = await fetch(url, { headers });
+      response = await apiFetch('jira', url, { headers });
     } catch {
       return [];
     }
@@ -218,7 +218,7 @@ async function fetchNewGitlabNotes(
 
     let response: Response;
     try {
-      response = await fetch(url, {
+      response = await apiFetch('gitlab', url, {
         headers: {
           'PRIVATE-TOKEN': token,
           'Content-Type': 'application/json',
