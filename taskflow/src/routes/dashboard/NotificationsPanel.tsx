@@ -6,6 +6,7 @@
  * Reads directly from useNotificationsStore — no useQuery, no fetch.
  */
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useNotificationsStore } from '@/stores/notifications.store';
 import NotificationRow from '../notifications/NotificationRow';
 import NotificationDetail from '../notifications/NotificationDetail';
@@ -58,6 +59,12 @@ export default function NotificationsPanel() {
         </div>
       )}
 
+      <Link
+        to="/notifications"
+        className="text-xs text-muted-foreground hover:underline mt-auto"
+      >
+        View all notifications
+      </Link>
     </div>
   );
 }
