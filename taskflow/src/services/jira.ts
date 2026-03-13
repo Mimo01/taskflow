@@ -474,6 +474,35 @@ export async function postComment(
   }
 }
 
+export interface JiraComment {
+  id: string;
+  author: { displayName: string };
+  body: string;
+  created: string; // ISO 8601
+  updated: string;
+}
+
+export async function fetchComments(
+  baseUrl: string,
+  token: string,
+  issueKey: string,
+): Promise<JiraComment[]> {
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/comment`;
+  let response: Response;
+  try {
+    response = await apiFetch('jira', url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+  if (!response.ok) {
+    throw new Error(`Failed to fetch comments for ${issueKey}: status ${response.status}`);
+  }
+  const data = await response.json() as { comments: JiraComment[] };
+  return data.comments ?? [];
+}
+
 // ─── Phase 4: PM Dashboard & Search ──────────────────────────────────────────
 
 /**
