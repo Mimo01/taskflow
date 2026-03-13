@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: planning
-stopped_at: Completed 08-07-PLAN.md — MyTasksTab non-array guards
-last_updated: "2026-03-13T12:01:54.447Z"
+stopped_at: Completed 08-08-PLAN.md — /notifications full-page route + Bell sidebar link
+last_updated: "2026-03-13T12:02:00.000Z"
 last_activity: "2026-03-13 - Completed quick task 12: Fix MR-to-Jira task mapping empty array"
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 24
-  completed_plans: 23
+  completed_plans: 24
   percent: 0
 ---
 
@@ -99,6 +99,8 @@ Key v1.1 constraints from research:
 - [Phase 08-dashboard-enrichment]: sprintData?.issues ?? [] — line 61 fix aligns with fetchSprintIssues {issues, myIssueKeys} return shape; Tauri opener mock uses mockRejectedValue so window.open fallback is exercised; View all notifications Link placed after conditional content block with mt-auto
 - [Phase 08-dashboard-enrichment]: Array.isArray(data) guard in sprintIssueKeySet useMemo — rejects non-array objects that pass ?? [] but throw when iterated
 - [Phase 08-dashboard-enrichment]: Array.isArray(projectMrs) guard on spread — fetchProjectMRs may return {} on parse failure causing spread throw
+- [Phase 08-dashboard-enrichment]: NotificationsPage reuses existing NotificationRow and NotificationDetail sub-components — no new UI primitives needed
+- [Phase 08-dashboard-enrichment]: Bell sidebar link placed above Debug Logs in bottom utility section, no role-gating
 
 ### Pending Todos
 
@@ -139,6 +141,7 @@ None.
 | Phase 08 P05 | 35 | 1 tasks | 1 files |
 | Phase 08-dashboard-enrichment P06 | 5 | 2 tasks | 3 files |
 | Phase 08-dashboard-enrichment P07 | 3 | 1 tasks | 1 files |
+| Phase 08-dashboard-enrichment P08 | 2 | 2 tasks | 3 files |
 
 ## Session Continuity
 

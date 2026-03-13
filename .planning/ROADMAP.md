@@ -105,7 +105,7 @@ Plans:
 - [ ] 08-05-PLAN.md — Wire dashboard/index.tsx with 2x2 panel grid + visual checkpoint
 - [ ] 08-06-PLAN.md — Fix sprintData type mismatch + test assertions + NotificationsPanel View all link (gap closure)
 - [ ] 08-07-PLAN.md — Fix MyTasksTab {} is not iterable crash: Array.isArray guards (gap closure)
-- [ ] 08-08-PLAN.md — Create /notifications page + register route + add sidebar Bell link (gap closure)
+- [x] 08-08-PLAN.md — Create /notifications page + register route + add sidebar Bell link (gap closure)
 
 ## Progress
 
