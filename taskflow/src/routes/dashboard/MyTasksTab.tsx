@@ -22,8 +22,10 @@ import { useSettingsStore } from '@/stores/settings.store'
 import { fetchMyTasksHierarchy, postTransition, postComment } from '@/services/jira'
 import type { JiraIssue } from '@/services/jira'
 import {
+  validateGitLab,
   fetchAssignedMRs,
   fetchReviewerMRs,
+  fetchProjectMRs,
   fetchMRCommits,
   fetchMRApprovals,
   fetchMRDiscussions,
@@ -39,7 +41,7 @@ import type { GitLabMR } from '@/services/gitlab'
 import TaskRow from './TaskRow'
 
 export default function MyTasksTab() {
-  const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl } = useAuthStore()
+  const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, activeGitlabProject } = useAuthStore()
   const { storyPointsFieldKey } = useSettingsStore()
   const [jiraToken, setJiraToken] = useState<string | null>(null)
   const [gitlabToken, setGitlabToken] = useState<string | null>(null)
@@ -60,6 +62,16 @@ export default function MyTasksTab() {
     }
   }, [gitlabBaseUrl])
 
+  // Fetch current GitLab user ID once (staleTime: Infinity) — same as MrAttentionTab
+  const { data: currentUser } = useQuery({
+    queryKey: ['gitlab-current-user', gitlabBaseUrl],
+    queryFn: () => validateGitLab(gitlabBaseUrl!, gitlabToken!),
+    staleTime: Infinity,
+    enabled: !!gitlabBaseUrl && !!gitlabToken,
+  })
+
+  const userId = currentUser?.id
+
   // Fetch sprint issues: my stories + stories with my subtasks + all their subtasks.
   // Include storyPointsFieldKey in cache key: when discovery changes the key, the query
   // re-fires with the updated fields list so the response actually contains the value.
@@ -74,24 +86,28 @@ export default function MyTasksTab() {
   const data = taskData?.issues
   const myIssueKeys = taskData?.myIssueKeys ?? new Set<string>()
 
-  // Fetch GitLab MRs (same query key as MrAttentionTab — TanStack deduplicates)
+  // Fetch GitLab MRs — query key matches MrAttentionTab so both tabs share TanStack cache.
+  // Also fetches project-level MRs so Jira-linked MRs appear even when user is not assignee/reviewer.
   const { data: gitlabMrs } = useQuery({
-    queryKey: ['gitlab-mrs', gitlabBaseUrl],
+    queryKey: ['gitlab-mrs', gitlabBaseUrl, userId],
     queryFn: async () => {
       const token = gitlabToken ?? ''
-      const [assigned, reviewer] = await Promise.all([
+      const [assigned, reviewer, projectMrs] = await Promise.all([
         fetchAssignedMRs(gitlabBaseUrl!, token),
-        fetchReviewerMRs(gitlabBaseUrl!, token, 0),
+        userId ? fetchReviewerMRs(gitlabBaseUrl!, token, userId) : Promise.resolve([]),
+        activeGitlabProject
+          ? fetchProjectMRs(gitlabBaseUrl!, token, activeGitlabProject)
+          : Promise.resolve([]),
       ])
       const seen = new Set<number>()
-      return [...assigned, ...reviewer].filter(
+      return [...assigned, ...reviewer, ...projectMrs].filter(
         (mr) => !seen.has(mr.iid) && seen.add(mr.iid),
       )
     },
     refetchInterval: 60_000,
     refetchIntervalInBackground: true,
     staleTime: 30_000,
-    enabled: !!gitlabBaseUrl && !!gitlabToken,
+    enabled: !!gitlabBaseUrl && !!gitlabToken && !!userId,
   })
 
   const sprintIssueKeySet = useMemo(() => {

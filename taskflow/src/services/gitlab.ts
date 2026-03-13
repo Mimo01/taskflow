@@ -488,6 +488,38 @@ export async function fetchProjectTags(
 }
 
 /**
+ * Fetch all open merge requests for a GitLab project.
+ *
+ * @param baseUrl   - GitLab base URL
+ * @param token     - Personal Access Token
+ * @param projectId - GitLab numeric project ID
+ * @returns Array of open MRs for the project (up to 100)
+ */
+export async function fetchProjectMRs(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+): Promise<GitLabMR[]> {
+  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/merge_requests?state=opened&per_page=100`;
+
+  let response: Response;
+  try {
+    response = await apiFetch('gitlab', url, {
+      headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+    });
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch project MRs: status ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data as GitLabMR[];
+}
+
+/**
  * Search GitLab merge requests by text query.
  *
  * @param baseUrl - GitLab base URL
