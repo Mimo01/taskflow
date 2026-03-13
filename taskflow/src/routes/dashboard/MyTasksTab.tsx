@@ -86,9 +86,9 @@ export default function MyTasksTab() {
   const data = taskData?.issues
   const myIssueKeys = taskData?.myIssueKeys ?? new Set<string>()
 
-  // Fetch GitLab MRs — query key matches MrAttentionTab so both tabs share TanStack cache.
-  // Also fetches project-level MRs so Jira-linked MRs appear even when user is not assignee/reviewer.
-  const { data: gitlabMrs } = useQuery({
+  // Fetch GitLab MRs — query key matches MrAttentionTab/MrHealthPanel so all three share TanStack cache.
+  // Returns { filtered, merged } shape to stay compatible with the shared cache contract.
+  const { data: gitlabMrsData } = useQuery({
     queryKey: ['gitlab-mrs', gitlabBaseUrl, userId],
     queryFn: async () => {
       const token = gitlabToken ?? ''
@@ -100,15 +100,21 @@ export default function MyTasksTab() {
           : Promise.resolve([]),
       ])
       const seen = new Set<number>()
-      return [...assigned, ...reviewer, ...(Array.isArray(projectMrs) ? projectMrs : [])].filter(
+      const merged = [...assigned, ...reviewer, ...(Array.isArray(projectMrs) ? projectMrs : [])].filter(
         (mr) => !seen.has(mr.iid) && seen.add(mr.iid),
       )
+      return { filtered: merged, merged }
     },
     refetchInterval: 60_000,
     refetchIntervalInBackground: true,
     staleTime: 30_000,
     enabled: !!gitlabBaseUrl && !!gitlabToken && !!userId,
   })
+  // Normalise: cache may hold { filtered, merged } (from MrAttentionTab/MrHealthPanel) or
+  // a legacy raw GitLabMR[] from an older version of this queryFn. Always produce GitLabMR[].
+  const gitlabMrs: GitLabMR[] = Array.isArray(gitlabMrsData)
+    ? gitlabMrsData
+    : (gitlabMrsData as { merged?: GitLabMR[] } | undefined)?.merged ?? []
 
   const sprintIssueKeySet = useMemo(() => {
     return new Set((Array.isArray(data) ? data : []).map((i) => i.key))
