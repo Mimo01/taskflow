@@ -47,6 +47,12 @@ describe('notifications service', () => {
 
   describe('NOTF-01: fetchNewNotifications — Jira comment items', () => {
     it('returns NotificationItem[] with id=jira-comment-{id} for Jira comments', async () => {
+      // Query A (issue updates) returns empty — we only care about comment mentions here
+      const emptyIssuesResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({ issues: [] }),
+      };
       const jiraSearchResp = {
         ok: true,
         status: 200,
@@ -74,6 +80,7 @@ describe('notifications service', () => {
       };
 
       vi.mocked(mockFetch)
+        .mockResolvedValueOnce(emptyIssuesResp as unknown as Response)
         .mockResolvedValueOnce(jiraSearchResp as unknown as Response);
 
       const result = await fetchNewNotifications(
@@ -102,6 +109,12 @@ describe('notifications service', () => {
       // Body must include mention text so it passes client-side filter
       const mention = '[~auser] ';
       const longBody = mention + 'A'.repeat(120);
+      // Query A (issue updates) returns empty — we only care about comment mentions here
+      const emptyIssuesResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({ issues: [] }),
+      };
       const jiraSearchResp = {
         ok: true,
         status: 200,
@@ -129,6 +142,7 @@ describe('notifications service', () => {
       };
 
       vi.mocked(mockFetch)
+        .mockResolvedValueOnce(emptyIssuesResp as unknown as Response)
         .mockResolvedValueOnce(jiraSearchResp as unknown as Response);
 
       const result = await fetchNewNotifications(
@@ -213,6 +227,13 @@ describe('notifications service', () => {
 
   describe('NOTF-01: fetchNewNotifications — merge and sort', () => {
     it('merges Jira and GitLab results and sorts chronologically newest-first', async () => {
+      // Query A (Jira issue updates) returns empty — test focuses on comment mention + GitLab note
+      const emptyIssuesResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({ issues: [] }),
+      };
+      // Query B (Jira comment mentions)
       const jiraResp = {
         ok: true,
         status: 200,
@@ -254,6 +275,7 @@ describe('notifications service', () => {
       };
 
       vi.mocked(mockFetch)
+        .mockResolvedValueOnce(emptyIssuesResp as unknown as Response)
         .mockResolvedValueOnce(jiraResp as unknown as Response)
         .mockResolvedValueOnce(notesResp as unknown as Response);
 
