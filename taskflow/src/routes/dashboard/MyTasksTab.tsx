@@ -100,7 +100,7 @@ export default function MyTasksTab() {
           : Promise.resolve([]),
       ])
       const seen = new Set<number>()
-      return [...assigned, ...reviewer, ...projectMrs].filter(
+      return [...assigned, ...reviewer, ...(Array.isArray(projectMrs) ? projectMrs : [])].filter(
         (mr) => !seen.has(mr.iid) && seen.add(mr.iid),
       )
     },
@@ -111,7 +111,7 @@ export default function MyTasksTab() {
   })
 
   const sprintIssueKeySet = useMemo(() => {
-    return new Set((data ?? []).map((i) => i.key))
+    return new Set((Array.isArray(data) ? data : []).map((i) => i.key))
   }, [data])
 
   // Title-scan linking: synchronous, no API calls
