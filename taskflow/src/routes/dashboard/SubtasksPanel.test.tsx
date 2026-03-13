@@ -48,6 +48,11 @@ vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-jira-token'),
 }));
 
+// Mock Tauri opener — reject so window.open fallback is exercised
+vi.mock('@tauri-apps/plugin-opener', () => ({
+  openUrl: vi.fn().mockRejectedValue(new Error('tauri unavailable')),
+}));
+
 import { useQuery } from '@tanstack/react-query';
 import SubtasksPanel from './SubtasksPanel';
 
@@ -215,7 +220,7 @@ describe('SubtasksPanel (DASH-01)', () => {
       expect(screen.getByText('PROJ-34')).toBeInTheDocument();
       expect(screen.queryByText('PROJ-35')).not.toBeInTheDocument();
       // "View all" link should appear
-      expect(screen.getByText('View all in My Tasks')).toBeInTheDocument();
+      expect(screen.getByText(/View all.*in My Tasks/i)).toBeInTheDocument();
     });
   });
 
@@ -242,7 +247,11 @@ describe('SubtasksPanel (DASH-01)', () => {
       expect(rowButton).not.toBeNull();
       await userEvent.click(rowButton!);
 
-      expect(openSpy).toHaveBeenCalledWith('https://jira.example.com/browse/PROJ-40', '_blank');
+      expect(openSpy).toHaveBeenCalledWith(
+        'https://jira.example.com/browse/PROJ-40',
+        '_blank',
+        'noopener,noreferrer',
+      );
       openSpy.mockRestore();
     });
   });
