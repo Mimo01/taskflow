@@ -289,8 +289,10 @@ export async function fetchMyTasksHierarchy(
   const myStoriesJql = encodeURIComponent(
     `project = ${projectKey} AND sprint in openSprints() AND issuetype not in subtaskIssueTypes() AND assignee = currentUser() ORDER BY updated DESC`,
   );
+  // Note: sprint in openSprints() does not work for subtasks on Jira DC — use statusCategory filter instead.
+  // Sprint membership is validated downstream by checking parent key against sprintKeySet.
   const mySubtasksJql = encodeURIComponent(
-    `project = ${projectKey} AND sprint in openSprints() AND issuetype in subtaskIssueTypes() AND assignee = currentUser()`,
+    `project = ${projectKey} AND issuetype in subtaskIssueTypes() AND assignee = currentUser() AND statusCategory != Done`,
   );
 
   let storiesRes: Response;
@@ -354,7 +356,8 @@ export async function fetchMyTasksHierarchy(
   try {
     const chunkResults = await Promise.all(
       chunks.map(async (chunk) => {
-        const jql = encodeURIComponent(`issuetype in subtaskIssueTypes() AND parent in (${chunk.join(',')}) AND sprint in openSprints()`);
+        // Parents are already sprint-scoped; sprint in openSprints() is not supported for subtasks on Jira DC.
+        const jql = encodeURIComponent(`issuetype in subtaskIssueTypes() AND parent in (${chunk.join(',')}) AND statusCategory != Done`);
         const res = await apiFetch('jira', `${base}/rest/api/2/search?jql=${jql}&fields=${subtaskFields}&maxResults=200`, { headers });
         if (!res.ok) return [];
         return ((await res.json()).issues ?? []) as JiraIssue[];
