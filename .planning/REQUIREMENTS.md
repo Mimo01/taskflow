@@ -1,0 +1,122 @@
+# Requirements: Taskflow
+
+**Defined:** 2026-03-13
+**Core Value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
+
+## v1.2 Requirements
+
+Requirements for the Jira Parity milestone. Goal: replace the need to open real Jira for day-to-day work.
+
+### Issue Detail (ISSUE)
+
+- [ ] **ISSUE-01**: User can open a full detail panel for any Jira issue (story, subtask, bug, epic) from any view in the app
+- [ ] **ISSUE-02**: User can read the full issue description rendered from Jira wiki markup as formatted text
+- [ ] **ISSUE-03**: User can view all issue metadata: priority, assignee, reporter, story points, status, epic link, sprint, labels, fix versions, dates
+- [ ] **ISSUE-04**: User can edit issue fields inline from the detail panel: assignee, priority, story points (optimistic update + rollback)
+- [ ] **ISSUE-05**: User can view all child subtasks with their status from the issue detail panel
+- [ ] **ISSUE-06**: User can view linked issues (relates to, blocks, is blocked by) from the issue detail panel
+- [ ] **ISSUE-07**: User can read the full comment thread for any issue from the detail panel
+- [ ] **ISSUE-08**: User can post a comment on any issue from the detail panel
+- [ ] **ISSUE-09**: User can open any issue directly in Jira via a deep link from the detail panel
+
+### Sprint Board (BOARD)
+
+- [ ] **BOARD-01**: Sprint board shows subtasks as kanban cards grouped under collapsible parent story headers (Jira-like layout)
+- [ ] **BOARD-02**: Sprint board shows all team members' tasks (board-wide view, not filtered to current user only)
+- [ ] **BOARD-03**: User can drag subtask/story cards between status columns to transition status (optimistic update + rollback on failure)
+- [ ] **BOARD-04**: User can create a new story or subtask directly from the sprint board without leaving the board view
+- [ ] **BOARD-05**: User can open the issue detail panel from any sprint board card
+
+### Backlog (BACK)
+
+- [ ] **BACK-01**: User can view all backlog issues (issues not in any active or future sprint) in a paginated list
+- [ ] **BACK-02**: User can move one or more backlog issues into the active sprint
+- [ ] **BACK-03**: User can create a new story directly from the backlog view
+- [ ] **BACK-04**: User can filter the backlog by epic, label, and assignee
+- [ ] **BACK-05**: User can open the issue detail panel from any backlog row
+
+### Epics (EPIC)
+
+- [ ] **EPIC-01**: User can view a list of all epics with name, status, story count, and point totals
+- [ ] **EPIC-02**: User can filter the sprint board and backlog by a selected epic
+- [ ] **EPIC-03**: User can open an epic detail view showing all stories under that epic
+- [ ] **EPIC-04**: User can create a new epic from within the app
+
+### Create/Edit (CREATE)
+
+- [ ] **CREATE-01**: User can create a new Jira issue (story, subtask, bug) with: summary, description, assignee, story points, issue type, epic link, priority, and parent (for subtasks)
+- [ ] **CREATE-02**: User can set all required custom fields when creating or editing an issue — fields are discovered dynamically from the `createmeta` endpoint, not hardcoded (covers Account and any other required fields on the Orange instance)
+- [ ] **CREATE-03**: User can edit an existing issue's summary, description, assignee, story points, priority, and epic link
+- [ ] **CREATE-04**: User can add issue links to any issue (relates to, blocks, is blocked by) with link type selection from the discovered list
+
+## v1.3+ Requirements
+
+Deferred to future release. Tracked but not in current roadmap.
+
+### Write Actions
+
+- **WRITE-01**: User can create GitLab MR comments and approvals from the app
+- **WRITE-02**: User can create a GitLab MR from within the app
+
+### Advanced Jira
+
+- **ADV-01**: User can upload attachments to Jira issues
+- **ADV-02**: User can view issue changelog / history
+- **ADV-03**: User can bulk edit multiple issues at once
+- **ADV-04**: User can reorder backlog items by rank drag (requires Jira ranking plugin)
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| ADF rich-text editor for write | DC v2 uses wiki markup strings — ADF editor adds 8–12 MB bundle, incompatible with ~10 MB portable build target |
+| Drag-and-drop backlog rank reorder | Jira rank API unreliable on DC configurations without the ranking plugin |
+| Issue history / changelog | Rarely read; available via Jira deep-link |
+| Bulk issue edit | High API and UI complexity for low return on small teams |
+| Real-time board updates (< 30s) | DC has no webhook push; 60s polling cadence is sufficient |
+| Attachment upload | Requires multipart POST + file system access; excluded by PROJECT.md |
+| OAuth / SSO login | Team uses PATs; OAuth adds server-side requirements conflicting with no-server architecture |
+| Historical analytics / burndown | LinearB/Swarmia exist for this; no daily-use value |
+
+## Traceability
+
+Which phases cover which requirements. Updated during roadmap creation.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| ISSUE-01 | — | Pending |
+| ISSUE-02 | — | Pending |
+| ISSUE-03 | — | Pending |
+| ISSUE-04 | — | Pending |
+| ISSUE-05 | — | Pending |
+| ISSUE-06 | — | Pending |
+| ISSUE-07 | — | Pending |
+| ISSUE-08 | — | Pending |
+| ISSUE-09 | — | Pending |
+| BOARD-01 | — | Pending |
+| BOARD-02 | — | Pending |
+| BOARD-03 | — | Pending |
+| BOARD-04 | — | Pending |
+| BOARD-05 | — | Pending |
+| BACK-01 | — | Pending |
+| BACK-02 | — | Pending |
+| BACK-03 | — | Pending |
+| BACK-04 | — | Pending |
+| BACK-05 | — | Pending |
+| EPIC-01 | — | Pending |
+| EPIC-02 | — | Pending |
+| EPIC-03 | — | Pending |
+| EPIC-04 | — | Pending |
+| CREATE-01 | — | Pending |
+| CREATE-02 | — | Pending |
+| CREATE-03 | — | Pending |
+| CREATE-04 | — | Pending |
+
+**Coverage:**
+- v1.2 requirements: 27 total
+- Mapped to phases: 0
+- Unmapped: 27 ⚠️
+
+---
+*Requirements defined: 2026-03-13*
+*Last updated: 2026-03-13 after initial definition*
