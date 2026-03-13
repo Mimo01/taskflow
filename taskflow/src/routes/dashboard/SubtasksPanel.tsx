@@ -10,9 +10,19 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { useSettingsStore } from '@/stores/settings.store';
 import { fetchMyTasksHierarchy, fetchSprintIssues } from '@/services/jira';
 import { Badge } from '@/components/ui/badge';
+
+async function openJiraIssue(jiraBaseUrl: string, issueKey: string) {
+  const url = jiraBaseUrl.replace(/\/$/, '') + '/browse/' + issueKey;
+  try {
+    await openUrl(url);
+  } catch {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+}
 
 interface SubtasksPanelProps {
   jiraBaseUrl: string;
@@ -89,7 +99,7 @@ export default function SubtasksPanel({
             <button
               key={issue.key}
               type="button"
-              onClick={() => window.open(jiraBaseUrl + '/browse/' + issue.key, '_blank')}
+              onClick={() => openJiraIssue(jiraBaseUrl, issue.key)}
               className="w-full text-left flex items-center gap-2 py-1.5 hover:bg-muted/50 rounded px-1"
             >
               <span className="font-mono text-xs text-muted-foreground w-20 flex-shrink-0">
@@ -108,9 +118,9 @@ export default function SubtasksPanel({
       )}
 
       {/* View all link */}
-      {hasMore && (
-        <Link to="/my-tasks" className="text-xs text-muted-foreground hover:underline mt-1">
-          View all in My Tasks
+      {!isLoading && (
+        <Link to="/my-tasks" className="text-xs text-muted-foreground hover:underline mt-auto">
+          {hasMore ? `View all ${mySubtasks.length} in My Tasks` : 'View My Tasks'}
         </Link>
       )}
     </div>
