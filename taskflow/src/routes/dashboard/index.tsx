@@ -2,10 +2,10 @@
  * Dashboard — role-aware overview page with enriched panel components.
  *
  * Developer role (default when role is null or 'developer' or 'tech-lead'):
- *   Panels (2×2 grid): SubtasksPanel | MrHealthPanel | SprintHealthPanel | NotificationsPanel
+ *   Panels (2-column grid): SubtasksPanel | MrHealthPanel | SprintHealthPanel
  *
  * PM role:
- *   Panels (2-column grid): SprintHealthPanel | NotificationsPanel
+ *   Panel (single column): SprintHealthPanel
  *
  * Panel components manage their own data fetching via React Query.
  * This file only handles token loading and passing credentials as props.
@@ -19,7 +19,6 @@ import { readSecret } from '@/services/stronghold';
 import SubtasksPanel from './SubtasksPanel';
 import MrHealthPanel from './MrHealthPanel';
 import SprintHealthPanel from './SprintHealthPanel';
-import NotificationsPanel from './NotificationsPanel';
 
 export default function Dashboard() {
   const role = useSettingsStore((s) => s.role);
@@ -77,13 +76,12 @@ export default function Dashboard() {
     return (
       <div className="flex flex-col h-full p-4 gap-4 overflow-y-auto">
         {header}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <SprintHealthPanel
             jiraBaseUrl={jiraBaseUrl ?? ''}
             jiraToken={jiraToken ?? ''}
             activeJiraProject={activeJiraProject ?? ''}
           />
-          <NotificationsPanel />
         </div>
       </div>
     );
@@ -108,7 +106,6 @@ export default function Dashboard() {
           jiraToken={jiraToken ?? ''}
           activeJiraProject={activeJiraProject ?? ''}
         />
-        <NotificationsPanel />
       </div>
     </div>
   );
