@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { fetchIssueWorklogs } from '@/services/jira';
 import React from 'react';
 
 // Mock stronghold
@@ -13,6 +14,7 @@ vi.mock('@/services/stronghold', () => ({
 // Mock jira service
 vi.mock('@/services/jira', () => ({
   fetchSprintIssues: vi.fn().mockResolvedValue([]),
+  fetchIssueWorklogs: vi.fn().mockResolvedValue([]),
 }));
 
 // Mock auth store
@@ -37,6 +39,7 @@ function makeIssue(
   pts: number | null,
   options?: {
     subtask?: boolean;
+    parentKey?: string;
     timetracking?: {
       originalEstimateSeconds?: number;
       timeSpentSeconds?: number;
@@ -60,6 +63,7 @@ function makeIssue(
       customfield_10016: pts,
       issuetype: { name: options?.subtask ? 'Sub-task' : 'Story', subtask: options?.subtask ?? false },
       timetracking: options?.timetracking ?? null,
+      ...(options?.parentKey ? { parent: { id: options.parentKey, key: options.parentKey, fields: { summary: `Summary ${options.parentKey}` } } } : {}),
     },
   };
 }
@@ -84,6 +88,8 @@ describe('WorkloadTab', () => {
     vi.mocked(settingsStore.useSettingsStore).mockReturnValue({
       storyPointsFieldKey: 'customfield_10016',
     } as ReturnType<typeof settingsStore.useSettingsStore>);
+    // Re-establish fetchIssueWorklogs mock
+    vi.mocked(fetchIssueWorklogs).mockResolvedValue([]);
   });
 
   it('groups sprint issues by assignee — done excluded from count/pts but visible as sub-rows', async () => {
@@ -328,6 +334,90 @@ describe('WorkloadTab', () => {
 
       // Story key P-1 should now be visible
       expect(screen.getByText('P-1')).toBeTruthy();
+    });
+  });
+
+  describe('WORK-SUBTASK-01: subtask nesting under parent stories', () => {
+    it('expanding assignee row shows subtask nested under parent story', async () => {
+      const user = userEvent.setup();
+      const { fetchSprintIssues } = await import('@/services/jira');
+      vi.mocked(fetchSprintIssues).mockResolvedValue([
+        makeIssue('P-1', 'Alice', 'indeterminate', 5),
+        makeIssue('P-1-1', 'Alice', 'new', null, { subtask: true, parentKey: 'P-1' }),
+      ]);
+
+      const { default: WorkloadTab } = await import('./WorkloadTab');
+      renderWithQuery(<WorkloadTab />);
+
+      await screen.findByText('Alice');
+      const aliceRow = screen.getByText('Alice').closest('[data-testid="workload-row"]');
+      expect(aliceRow).not.toBeNull();
+
+      // Expand Alice row
+      await user.click(aliceRow!);
+
+      // Story row P-1 should be visible
+      expect(screen.getByText('P-1')).toBeTruthy();
+
+      // Subtask row P-1-1 should be visible with data-testid="workload-subtask-row"
+      expect(screen.getAllByTestId('workload-subtask-row').length).toBeGreaterThan(0);
+      expect(screen.getByText('P-1-1')).toBeTruthy();
+    });
+
+    it('worklog attribution: person only in worklogs appears as workload row', async () => {
+      const { fetchSprintIssues } = await import('@/services/jira');
+      vi.mocked(fetchSprintIssues).mockResolvedValue([
+        makeIssue('P-1', 'Alice', 'indeterminate', 5),
+      ]);
+      // Bob logged time on P-1 but has no assigned issues
+      vi.mocked(fetchIssueWorklogs).mockImplementation(async (_base, _token, issueKey) => {
+        if (issueKey === 'P-1') return ['Bob'];
+        return [];
+      });
+
+      const { default: WorkloadTab } = await import('./WorkloadTab');
+      renderWithQuery(<WorkloadTab />);
+
+      await screen.findByText('Alice');
+      // Bob should appear as a workload row even though he has no assigned stories
+      await screen.findByText('Bob');
+      const bobRow = screen.getByText('Bob').closest('[data-testid="workload-row"]');
+      expect(bobRow).not.toBeNull();
+    });
+
+    it('worklog-attributed person has count=0 and points=0', async () => {
+      const { fetchSprintIssues } = await import('@/services/jira');
+      vi.mocked(fetchSprintIssues).mockResolvedValue([
+        makeIssue('P-1', 'Alice', 'indeterminate', 5),
+      ]);
+      vi.mocked(fetchIssueWorklogs).mockImplementation(async (_base, _token, issueKey) => {
+        if (issueKey === 'P-1') return ['Bob'];
+        return [];
+      });
+
+      const { default: WorkloadTab } = await import('./WorkloadTab');
+      renderWithQuery(<WorkloadTab />);
+
+      await screen.findByText('Bob');
+      const bobRow = screen.getByText('Bob').closest('[data-testid="workload-row"]');
+      expect(bobRow).not.toBeNull();
+      expect(bobRow?.textContent).toMatch(/0\s*tasks?/i);
+      expect(bobRow?.textContent).toMatch(/0\s*pts/i);
+    });
+
+    it('graceful degradation: fetchIssueWorklogs rejects → workload still renders without crash', async () => {
+      const { fetchSprintIssues } = await import('@/services/jira');
+      vi.mocked(fetchSprintIssues).mockResolvedValue([
+        makeIssue('P-1', 'Alice', 'indeterminate', 5),
+      ]);
+      vi.mocked(fetchIssueWorklogs).mockRejectedValue(new Error('network'));
+
+      const { default: WorkloadTab } = await import('./WorkloadTab');
+      renderWithQuery(<WorkloadTab />);
+
+      // Alice's row should still appear — no crash
+      await screen.findByText('Alice');
+      expect(screen.queryByTestId('error-banner')).toBeNull();
     });
   });
 });
