@@ -40,7 +40,7 @@ interface WorkloadStoryRow {
 interface WorkloadRow {
   name: string;
   count: number;         // all stories (in-progress + done)
-  points: number;        // story points only (non-done, no subtasks)
+  points: number;        // story points (all stories including done, no subtasks)
   estSecs: number;       // stories + subtasks aggregated
   spentSecs: number;
   remainSecs: number;
@@ -150,9 +150,7 @@ export default function WorkloadTab() {
       };
 
       existing.count += 1;          // count ALL stories regardless of done status
-      if (!isDone) {
-        existing.points += pts;     // points remain non-done only (locked decision)
-      }
+      existing.points += pts;       // points include done stories
       // Time tracking always aggregated regardless of done status
       existing.estSecs += tt?.originalEstimateSeconds ?? 0;
       existing.spentSecs += tt?.timeSpentSeconds ?? 0;
