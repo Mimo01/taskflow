@@ -102,23 +102,21 @@ export default function TaskCard({ issue, healthDot, subtaskCount, isExpanded, o
 
       {/* Subtask count chip + chevron — only when subtaskCount > 0 */}
       {subtaskCount != null && subtaskCount > 0 && (
-        <div className="flex items-center gap-1">
-          <Badge variant="secondary" className="text-xs py-0">
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onToggle?.() }}
+          className="flex items-center gap-1 p-1 -mx-1 rounded text-muted-foreground hover:text-foreground transition-colors"
+          aria-label={isExpanded ? 'Collapse subtasks' : 'Expand subtasks'}
+        >
+          <Badge variant="secondary" className="text-xs py-0 pointer-events-none">
             {subtaskCount} subtask{subtaskCount !== 1 ? 's' : ''}
           </Badge>
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onToggle?.() }}
-            className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
-            aria-label={isExpanded ? 'Collapse subtasks' : 'Expand subtasks'}
-          >
-            {isExpanded ? (
-              <ChevronDown className="size-3" />
-            ) : (
-              <ChevronRight className="size-3" />
-            )}
-          </button>
-        </div>
+          {isExpanded ? (
+            <ChevronDown className="size-4" />
+          ) : (
+            <ChevronRight className="size-4" />
+          )}
+        </button>
       )}
     </div>
   )
