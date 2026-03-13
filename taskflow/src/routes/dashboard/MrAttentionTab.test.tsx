@@ -19,6 +19,7 @@ vi.mock('@/services/gitlab', () => ({
   validateGitLab: vi.fn().mockResolvedValue({ id: 42, name: 'Test User', username: 'testuser' }),
   fetchAssignedMRs: vi.fn().mockResolvedValue([]),
   fetchReviewerMRs: vi.fn().mockResolvedValue([]),
+  fetchProjectMRs: vi.fn().mockResolvedValue([]),
   fetchMRDiscussions: vi.fn().mockResolvedValue([]),
   fetchMRApprovals: vi.fn().mockResolvedValue({ approved_by: [], approved: false }),
 }));
@@ -203,6 +204,42 @@ describe('MrAttentionTab', () => {
     // We check for multiple PROJ-7 elements: one in MR title, one in linked task badge
     const allMatches = await screen.findAllByText(/PROJ-7/i);
     expect(allMatches.length).toBeGreaterThanOrEqual(2); // MR title + task badge
+  });
+
+  // MRAT-03: project-level MR sprint-linked inclusion
+  describe('MRAT-03: project-level sprint-linked MRs', () => {
+    it('includes project MR linked to sprint issue key even without GitLab assignment', async () => {
+      // User is not assignee/reviewer. MR only appears via fetchProjectMRs.
+      // MR title contains sprint issue key PROJ-99.
+      const now = new Date().toISOString();
+      const { fetchAssignedMRs, fetchReviewerMRs, fetchProjectMRs, fetchMRDiscussions } = await import('@/services/gitlab');
+      vi.mocked(fetchAssignedMRs).mockResolvedValue([]);
+      vi.mocked(fetchReviewerMRs).mockResolvedValue([]);
+      vi.mocked(fetchProjectMRs).mockResolvedValue([makeMR(88, now, 'PROJ-99 feature from project pool')]);
+      vi.mocked(fetchMRDiscussions).mockResolvedValue([]);
+
+      const { linkMRToTask } = await import('@/services/linkEngine');
+      vi.mocked(linkMRToTask).mockImplementation((mr, keys) =>
+        keys.has('PROJ-99') && mr.title.includes('PROJ-99') ? 'PROJ-99' : null,
+      );
+
+      const { fetchSprintIssues } = await import('@/services/jira');
+      vi.mocked(fetchSprintIssues).mockResolvedValue([makeIssue('PROJ-99')]);
+
+      const { useAuthStore } = await import('@/stores/auth.store');
+      vi.mocked(useAuthStore).mockReturnValue({
+        gitlabBaseUrl: 'https://gitlab.example.com',
+        jiraBaseUrl: 'https://jira.example.com',
+        activeJiraProject: 'PROJ',
+        activeGitlabProject: 5,
+      } as ReturnType<typeof useAuthStore>);
+
+      const { default: MrAttentionTab } = await import('./MrAttentionTab');
+      renderWithQueryAndUser(<MrAttentionTab />);
+
+      // MR 88 should appear in the attention tab because its title links to PROJ-99
+      await screen.findByText(/PROJ-99 feature from project pool/i, {}, { timeout: 3000 });
+    });
   });
 
   // MRAT-02: subtask-linked story MRs

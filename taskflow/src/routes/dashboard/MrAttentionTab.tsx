@@ -24,6 +24,7 @@ import {
   validateGitLab,
   fetchAssignedMRs,
   fetchReviewerMRs,
+  fetchProjectMRs,
   fetchMRDiscussions,
   fetchMRApprovals,
 } from '@/services/gitlab'
@@ -35,7 +36,7 @@ import type { JiraIssue } from '@/services/jira'
 import MrRow from './MrRow'
 
 export default function MrAttentionTab() {
-  const { gitlabBaseUrl, jiraBaseUrl, activeJiraProject } = useAuthStore()
+  const { gitlabBaseUrl, jiraBaseUrl, activeJiraProject, activeGitlabProject } = useAuthStore()
   const { staleMrThresholdDays, storyPointsFieldKey } = useSettingsStore()
   const [gitlabToken, setGitlabToken] = useState<string | null>(null)
   const [jiraToken, setJiraToken] = useState<string | null>(null)
@@ -98,14 +99,17 @@ export default function MrAttentionTab() {
     queryKey: ['gitlab-mrs', gitlabBaseUrl, userId],
     queryFn: async () => {
       const token = gitlabToken ?? ''
-      const [assigned, reviewer] = await Promise.all([
+      const [assigned, reviewer, projectMrs] = await Promise.all([
         fetchAssignedMRs(gitlabBaseUrl!, token),
         userId ? fetchReviewerMRs(gitlabBaseUrl!, token, userId) : Promise.resolve([]),
+        activeGitlabProject
+          ? fetchProjectMRs(gitlabBaseUrl!, token, activeGitlabProject)
+          : Promise.resolve([]),
       ])
 
       // Deduplicate by iid
       const seen = new Set<number>()
-      const merged = [...assigned, ...reviewer].filter(
+      const merged = [...assigned, ...reviewer, ...projectMrs].filter(
         (mr) => !seen.has(mr.iid) && seen.add(mr.iid),
       )
 
@@ -177,25 +181,36 @@ export default function MrAttentionTab() {
     return map
   }, [myTasksData])
 
-  // Extend the base filtered MR list with subtask-linked MRs (unconditional inclusion).
-  // Subtask-linked MRs may have been filtered out by the reviewer discussion check.
+  // Extend the base filtered MR list with:
+  // 1. Subtask-linked MRs (unconditional inclusion — may have been filtered by discussion check)
+  // 2. Project-level MRs whose title links to a sprint issue key (bypass discussion filter)
   const data = useMemo(() => {
     const base = mrQueryData?.filtered ?? []
-    if (subtaskStoryKeys.size === 0) return base
     const merged = mrQueryData?.merged ?? []
     const filteredIids = new Set(base.map((m) => m.iid))
     const extras: typeof base = []
+
     for (const mr of merged) {
-      if (!filteredIids.has(mr.iid)) {
-        const linkedKey = linkMRToTask(mr, subtaskStoryKeys)
-        if (linkedKey !== null) {
-          extras.push(mr)
-          filteredIids.add(mr.iid)
-        }
+      if (filteredIids.has(mr.iid)) continue
+
+      // Include if linked to a subtask story key
+      const subtaskLink = subtaskStoryKeys.size > 0 ? linkMRToTask(mr, subtaskStoryKeys) : null
+      if (subtaskLink !== null) {
+        extras.push(mr)
+        filteredIids.add(mr.iid)
+        continue
+      }
+
+      // Include if linked to a sprint issue key (project MRs not in assigned/reviewer)
+      const sprintLink = sprintIssueKeySet.size > 0 ? linkMRToTask(mr, sprintIssueKeySet) : null
+      if (sprintLink !== null) {
+        extras.push(mr)
+        filteredIids.add(mr.iid)
       }
     }
+
     return [...base, ...extras]
-  }, [mrQueryData, subtaskStoryKeys])
+  }, [mrQueryData, subtaskStoryKeys, sprintIssueKeySet])
 
   // Compute MR -> linked task map using linkMRToTask (sprint key set only -- not subtask keys)
   // Subtask-path-only MRs will have null linkedTask -- the "via" label explains the context
