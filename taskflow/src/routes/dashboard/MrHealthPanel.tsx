@@ -9,17 +9,27 @@
  * populated by MrAttentionTab and MyTasksTab. Undefined health entries → Needs Review.
  */
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchAssignedMRs, fetchReviewerMRs } from '@/services/gitlab';
+import { fetchAssignedMRs, fetchReviewerMRs, validateGitLab } from '@/services/gitlab';
 import type { GitLabMR } from '@/services/gitlab';
 
 export interface MrHealthPanelProps {
   gitlabBaseUrl: string;
   gitlabToken: string;
-  userId: number | undefined;
 }
 
-export default function MrHealthPanel({ gitlabBaseUrl, gitlabToken, userId }: MrHealthPanelProps) {
+export default function MrHealthPanel({ gitlabBaseUrl, gitlabToken }: MrHealthPanelProps) {
   const queryClient = useQueryClient();
+
+  // Resolve userId internally — shares ['gitlab-current-user'] cache with Dashboard,
+  // so no extra network request is made. This avoids the two-step cascade where Dashboard
+  // must complete validateGitLab before passing userId down as a prop.
+  const { data: currentUser } = useQuery({
+    queryKey: ['gitlab-current-user', gitlabBaseUrl],
+    queryFn: () => validateGitLab(gitlabBaseUrl!, gitlabToken!),
+    staleTime: Infinity,
+    enabled: !!gitlabBaseUrl && !!gitlabToken,
+  });
+  const userId = currentUser?.id;
 
   const { data: mrQueryData, isLoading } = useQuery({
     queryKey: ['gitlab-mrs', gitlabBaseUrl, userId],

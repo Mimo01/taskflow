@@ -57,8 +57,9 @@ export default function SubtasksPanel({
 
   const isLoading = isLoadingTasks || isLoadingSprint;
 
-  // Build sprint issue key set for orphan detection
-  const sprintKeySet = new Set((sprintData?.issues ?? []).map((i: { key: string }) => i.key));
+  // Build sprint issue key set for orphan detection.
+  // fetchSprintIssues returns JiraIssue[] directly (not { issues: JiraIssue[] }).
+  const sprintKeySet = new Set((Array.isArray(sprintData) ? sprintData : []).map((i) => i.key));
 
   // Filter to: my subtasks whose parent is in the current sprint
   const mySubtasks = (taskData?.issues ?? []).filter(
