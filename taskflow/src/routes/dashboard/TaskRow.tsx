@@ -6,10 +6,12 @@
  *
  * linkedMrResults comes from MyTasksTab after link engine computation (Plan 03).
  */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { MessageCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { JiraIssue } from '@/services/jira'
+import { fetchComments } from '@/services/jira'
 import type { GitLabMR } from '@/services/gitlab'
 import type { ReviewHealth } from '@/services/linkEngine'
 import { useSettingsStore } from '@/stores/settings.store'
@@ -52,7 +54,21 @@ export default function TaskRow({
   notMine = false,
 }: TaskRowProps) {
   const [commentOpen, setCommentOpen] = useState(false)
+  const [commentCount, setCommentCount] = useState<number | null>(null)
   const { storyPointsFieldKey } = useSettingsStore()
+
+  const { data: comments, isLoading: isLoadingComments } = useQuery({
+    queryKey: ['jira-comments', issue.key],
+    queryFn: () => fetchComments(jiraBaseUrl ?? '', jiraToken ?? '', issue.key),
+    staleTime: 60_000,
+    enabled: commentOpen && !!jiraBaseUrl && !!jiraToken,
+  })
+
+  useEffect(() => {
+    if (comments) {
+      setCommentCount(comments.length)
+    }
+  }, [comments])
 
   return (
     <div className={cn(
@@ -120,10 +136,15 @@ export default function TaskRow({
         <button
           type="button"
           onClick={() => setCommentOpen((prev) => !prev)}
-          className="text-muted-foreground hover:text-foreground transition-colors"
+          className="relative text-muted-foreground hover:text-foreground transition-colors"
           aria-label={`Comment on ${issue.key}`}
         >
           <MessageCircle className="size-4" />
+          {commentCount !== null && commentCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 flex size-3.5 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground leading-none">
+              {commentCount > 99 ? '99+' : commentCount}
+            </span>
+          )}
         </button>
       </div>
 
@@ -138,6 +159,8 @@ export default function TaskRow({
           }}
         isSubmitting={!!isCommentPending}
         error={commentError}
+        existingComments={comments}
+        isLoadingComments={isLoadingComments}
       />
 
       {/* Transition inline error */}
