@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 08-dashboard-enrichment
 source: 08-01-SUMMARY.md, 08-02-SUMMARY.md, 08-03-SUMMARY.md, 08-04-SUMMARY.md, 08-05-SUMMARY.md, 08-06-SUMMARY.md
 started: 2026-03-13T12:00:00Z
@@ -90,21 +90,38 @@ skipped: 2
   reason: "User reported: Unexpected Application Error! 404 Not Found — React Router error boundary shown, no route matched /notifications"
   severity: major
   test: 14
-  artifacts: []
-  missing: []
+  root_cause: "Double failure: (1) no taskflow/src/routes/notifications/index.tsx page component exists — the notifications directory only has sub-components (NotificationRow, NotificationPopover, NotificationDetail), not a top-level page; (2) /notifications is not registered in createHashRouter in main.tsx (routes: /dashboard, /settings, /my-tasks, /sprint-board, /mr-attention, /sprint-progress, /workload, /releases, /debug-logs — no /notifications)"
+  artifacts:
+    - path: "taskflow/src/main.tsx"
+      issue: "/notifications route missing from createHashRouter children array (lines 100-116)"
+    - path: "taskflow/src/routes/notifications/"
+      issue: "no index.tsx page component — only sub-components exist"
+  missing:
+    - "Create taskflow/src/routes/notifications/index.tsx as a page that renders a list of all notifications using existing NotificationRow and NotificationDetail components"
+    - "Register { path: '/notifications', element: <NotificationsPage /> } in main.tsx createHashRouter"
+  debug_session: ""
 
 - truth: "MrHealthPanel shows Needs Review / Approved / Changes Requested counts for assigned open MRs"
   status: failed
   reason: "User reported: i dont see any mr"
   severity: major
-  test: 7
+  root_cause: "LIKELY FALSE POSITIVE: Test 8 (MrHealthPanel empty state 'No open MRs') passed — user has no assigned open MRs in GitLab, so the empty state displayed correctly. Test 7 could not be verified because there is no live MR data. The counts feature itself is untestable without assigned MRs."
   artifacts: []
-  missing: []
+  missing:
+    - "No code fix needed — this is a data availability issue, not a bug"
+  debug_session: ""
 
 - truth: "Clicking 'View all in My Tasks' navigates to My Tasks without errors"
   status: failed
   reason: "User reported: Unexpected Application Error! {} is not iterable @MyTasksTab.tsx:107:19 (useMemo / MyTasksTab:105)"
   severity: blocker
-  test: 6
-  artifacts: []
-  missing: []
+  root_cause: "MyTasksTab crashes with '{} is not iterable' inside a useMemo. The sprintIssueKeySet useMemo (line 113-115) does `new Set((data ?? []).map(i => i.key))` where `data = taskData?.issues`. The `data ?? []` guard only protects against null/undefined — if `data` is a defined but non-iterable object `{}` (e.g., Jira API returned {issues: {}} or a cache entry stored the wrong shape), `new Set({})` throws the error. fetchProjectMRs in the gitlabMrs queryFn is also a candidate: if it returns `{}` on failure instead of `[]`, `[...projectMrs]` inside the queryFn spread would throw the same error."
+  artifacts:
+    - path: "taskflow/src/routes/dashboard/MyTasksTab.tsx"
+      issue: "line 114: `data ?? []` guard insufficient — does not protect against data being a defined non-array object; fix: `Array.isArray(data) ? data : []`"
+    - path: "taskflow/src/routes/dashboard/MyTasksTab.tsx"
+      issue: "line 103: `[...assigned, ...reviewer, ...projectMrs]` — if fetchProjectMRs returns {} on error, spread throws; fix: ensure fetchProjectMRs always returns []"
+  missing:
+    - "Replace `data ?? []` with `Array.isArray(data) ? data : []` in sprintIssueKeySet useMemo"
+    - "Guard `projectMrs` spread: use `Array.isArray(projectMrs) ? projectMrs : []`"
+  debug_session: ""
