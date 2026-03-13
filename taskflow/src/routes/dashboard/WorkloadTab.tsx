@@ -6,15 +6,24 @@
  * Groups by assignee.displayName, with null assignee → 'Unassigned'.
  * Rows sorted by total story points (non-done) descending; ties broken alphabetically by name.
  * Time tracking columns (Est/Spent/Remaining) hidden when all values are zero/null.
- * Each assignee row is expandable to reveal per-story sub-rows.
+ * Each assignee row is expandable to reveal per-story sub-rows, with subtasks nested under each story.
+ * People who appear only in worklogs (not assigned to any story) get a workload row (count=0, pts=0).
  */
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { RefreshCw, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import { fetchSprintIssues } from '@/services/jira';
+import { fetchSprintIssues, fetchIssueWorklogs } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
+
+interface WorkloadSubtaskRow {
+  key: string;
+  summary: string;
+  estSecs: number;
+  spentSecs: number;
+  remainSecs: number;
+}
 
 interface WorkloadStoryRow {
   key: string;
@@ -23,6 +32,7 @@ interface WorkloadStoryRow {
   estSecs: number;
   spentSecs: number;
   remainSecs: number;
+  subtasks: WorkloadSubtaskRow[];
 }
 
 interface WorkloadRow {
@@ -68,6 +78,23 @@ export default function WorkloadTab() {
     staleTime: 30_000,
   });
 
+  const sprintIssues = data ?? [];
+
+  const { data: worklogMap } = useQuery({
+    queryKey: ['workload-worklogs', activeJiraProject, sprintIssues.map((i) => i.key).join(',')],
+    queryFn: async () => {
+      const entries = await Promise.all(
+        sprintIssues.map(async (issue) => {
+          const authors = await fetchIssueWorklogs(jiraBaseUrl!, jiraToken!, issue.key);
+          return [issue.key, authors] as [string, string[]];
+        }),
+      );
+      return new Map<string, string[]>(entries);
+    },
+    enabled: !!jiraBaseUrl && !!jiraToken && sprintIssues.length > 0,
+    staleTime: 60_000,
+  });
+
   function toggleRow(name: string) {
     setExpandedRows((prev) => {
       const next = new Set(prev);
@@ -81,6 +108,24 @@ export default function WorkloadTab() {
     const issues = data ?? [];
     const stories = issues.filter((i) => !i.fields.issuetype.subtask);
     const subtasks = issues.filter((i) => i.fields.issuetype.subtask);
+
+    // Build subtasksByParent map: parentKey → WorkloadSubtaskRow[]
+    const subtasksByParent = new Map<string, WorkloadSubtaskRow[]>();
+    for (const sub of subtasks) {
+      const parentKey = sub.fields.parent?.key;
+      if (!parentKey) continue;
+      const tt = sub.fields.timetracking;
+      const subRow: WorkloadSubtaskRow = {
+        key: sub.key,
+        summary: sub.fields.summary,
+        estSecs: tt?.originalEstimateSeconds ?? 0,
+        spentSecs: tt?.timeSpentSeconds ?? 0,
+        remainSecs: tt?.remainingEstimateSeconds ?? 0,
+      };
+      const existing = subtasksByParent.get(parentKey) ?? [];
+      existing.push(subRow);
+      subtasksByParent.set(parentKey, existing);
+    }
 
     const map = new Map<string, WorkloadRow>();
 
@@ -117,6 +162,7 @@ export default function WorkloadTab() {
         estSecs: tt?.originalEstimateSeconds ?? 0,
         spentSecs: tt?.timeSpentSeconds ?? 0,
         remainSecs: tt?.remainingEstimateSeconds ?? 0,
+        subtasks: subtasksByParent.get(story.key) ?? [],
       });
       map.set(name, existing);
     }
@@ -132,10 +178,29 @@ export default function WorkloadTab() {
       existing.remainSecs += tt?.remainingEstimateSeconds ?? 0;
     }
 
+    // Worklog attribution: ensure worklog authors appear as rows (count=0, pts=0 if not already present)
+    if (worklogMap) {
+      for (const [, authors] of worklogMap) {
+        for (const authorName of authors) {
+          if (!map.has(authorName)) {
+            map.set(authorName, {
+              name: authorName,
+              count: 0,
+              points: 0,
+              estSecs: 0,
+              spentSecs: 0,
+              remainSecs: 0,
+              stories: [],
+            });
+          }
+        }
+      }
+    }
+
     const rows = Array.from(map.values()).sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
     const hasTimeData = rows.some((r) => r.estSecs > 0 || r.spentSecs > 0 || r.remainSecs > 0);
     return { rows, hasTimeData };
-  }, [data, storyPointsFieldKey]);
+  }, [data, storyPointsFieldKey, worklogMap]);
 
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
@@ -222,17 +287,33 @@ export default function WorkloadTab() {
                       </tr>
                       {/* Per-story rows — only shown when expanded */}
                       {isOpen && row.stories.map((story) => (
-                        <tr key={story.key} data-testid="workload-story-row" className="bg-muted/20">
-                          <td className="py-1 pl-6 pr-2 text-xs text-muted-foreground">
-                            <span className="font-mono">{story.key}</span>
-                            <span className="ml-2 truncate">{story.summary}</span>
-                          </td>
-                          <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">—</td>
-                          <td className="py-1 text-right tabular-nums text-xs">{story.points} pts</td>
-                          {hasTimeData && <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">{formatSeconds(story.estSecs)}</td>}
-                          {hasTimeData && <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">{formatSeconds(story.spentSecs)}</td>}
-                          {hasTimeData && <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">{formatSeconds(story.remainSecs)}</td>}
-                        </tr>
+                        <React.Fragment key={story.key}>
+                          <tr key={story.key} data-testid="workload-story-row" className="bg-muted/20">
+                            <td className="py-1 pl-6 pr-2 text-xs text-muted-foreground">
+                              <span className="font-mono">{story.key}</span>
+                              <span className="ml-2 truncate">{story.summary}</span>
+                            </td>
+                            <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">—</td>
+                            <td className="py-1 text-right tabular-nums text-xs">{story.points} pts</td>
+                            {hasTimeData && <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">{formatSeconds(story.estSecs)}</td>}
+                            {hasTimeData && <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">{formatSeconds(story.spentSecs)}</td>}
+                            {hasTimeData && <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">{formatSeconds(story.remainSecs)}</td>}
+                          </tr>
+                          {/* Subtask rows — nested under parent story */}
+                          {story.subtasks.map((sub) => (
+                            <tr key={sub.key} data-testid="workload-subtask-row" className="bg-muted/10">
+                              <td className="py-1 pl-12 pr-2 text-xs text-muted-foreground">
+                                <span className="font-mono">{sub.key}</span>
+                                <span className="ml-2 truncate">{sub.summary}</span>
+                              </td>
+                              <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">—</td>
+                              <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">—</td>
+                              {hasTimeData && <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">{formatSeconds(sub.estSecs)}</td>}
+                              {hasTimeData && <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">{formatSeconds(sub.spentSecs)}</td>}
+                              {hasTimeData && <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">{formatSeconds(sub.remainSecs)}</td>}
+                            </tr>
+                          ))}
+                        </React.Fragment>
                       ))}
                     </React.Fragment>
                   );
