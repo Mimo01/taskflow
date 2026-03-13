@@ -106,6 +106,7 @@ describe('gitlab service', () => {
       iid: 1,
       project_id: 5,
       title: '[PROJ-42] Fix login bug',
+      source_branch: 'feature/PROJ-42-fix-login',
       state: 'opened' as const,
       author: { id: 1, name: 'Alice', username: 'alice', avatar_url: 'https://example.com/alice.png' },
       reviewers: [{ id: 2, name: 'Bob', username: 'bob' }],

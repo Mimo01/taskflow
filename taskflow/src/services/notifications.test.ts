@@ -29,6 +29,7 @@ const mockJiraMR = {
   iid: 1,
   project_id: 5,
   title: 'PROJ-42: Fix login bug',
+  source_branch: 'feature/PROJ-42-fix-login',
   state: 'opened' as const,
   author: { id: 1, name: 'Alice', username: 'alice', avatar_url: '' },
   reviewers: [],

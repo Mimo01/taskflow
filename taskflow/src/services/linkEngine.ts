@@ -37,16 +37,24 @@ export function extractTicketKeys(text: string): string[] {
 }
 
 /**
- * Link a merge request to a sprint issue by scanning the MR title.
- * Returns the first key from the title that exists in the sprint's issue set.
+ * Link a merge request to a sprint issue by scanning the MR title and source branch name.
+ * Title is checked first; if no match is found there, the branch name is scanned as a fallback.
+ * Returns the first key that exists in the sprint's issue set.
+ *
+ * Branch names often carry Jira keys even when MR titles do not
+ * (e.g. "feature/PROJ-123-implement-something" vs a short title "Implement feature").
  *
  * @param mr              - The merge request to inspect
  * @param sprintIssueKeys - Set of Jira keys currently in the sprint
  * @returns Matched key or null
  */
 export function linkMRToTask(mr: GitLabMR, sprintIssueKeys: Set<string>): string | null {
-  const keys = extractTicketKeys(mr.title);
-  return keys.find((k) => sprintIssueKeys.has(k)) ?? null;
+  const titleKeys = extractTicketKeys(mr.title);
+  const titleMatch = titleKeys.find((k) => sprintIssueKeys.has(k));
+  if (titleMatch !== undefined) return titleMatch;
+
+  const branchKeys = extractTicketKeys(mr.source_branch);
+  return branchKeys.find((k) => sprintIssueKeys.has(k)) ?? null;
 }
 
 /**

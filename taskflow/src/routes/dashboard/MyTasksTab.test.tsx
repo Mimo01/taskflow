@@ -83,12 +83,13 @@ function makeIssue(key: string) {
   };
 }
 
-function makeMR(iid: number, title: string) {
+function makeMR(iid: number, title: string, source_branch = `feature/branch-${iid}`) {
   return {
     id: iid,
     iid,
     project_id: 1,
     title,
+    source_branch,
     state: 'opened' as const,
     author: { id: 1, name: 'Author', username: 'author', avatar_url: '' },
     reviewers: [],
