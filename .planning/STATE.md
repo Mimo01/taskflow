@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 Phase: 5 of 8 (API Foundation + Quick Wins)
 Plan: — of —
 Status: Ready to plan
-Last activity: 2026-03-13 - Completed quick task 14: Remove fullpage notifications and dashboard notifications card, keep top menu and popover
+Last activity: 2026-03-13 - Completed quick task 16: WorkloadTab subtask nesting + worklog attribution
 
 Progress: [░░░░░░░░░░] 0% (v1.1)
 
@@ -128,7 +128,7 @@ None.
 | 13 | Custom error page replacing default React Router boundary — ErrorPage.tsx + errorElement on root route | 2026-03-13 | 4db00be | Verified | [13-add-a-custom-error-page-to-replace-the-d](./quick/13-add-a-custom-error-page-to-replace-the-d/) |
 | 14 | Remove fullpage /notifications route and dashboard NotificationsPanel — bell popover is sole notifications surface | 2026-03-13 | ec6d662 | Done | [14-remove-fullpage-notifications-and-dashbo](./quick/14-remove-fullpage-notifications-and-dashbo/) |
 | 15 | Comment count badge on TaskRow + existing comments list in InlineComment panel | 2026-03-13 | d0404e9 | Verified | [15-show-comment-count-on-my-tasks-page-and-](./quick/15-show-comment-count-on-my-tasks-page-and-/) |
-| 16 | WorkloadTab subtask nesting + worklog attribution: three-level hierarchy and fetchIssueWorklogs | 2026-03-13 | 36553c8 | Done | [16-in-workload-tab-show-subtasks-and-time-l](./quick/16-in-workload-tab-show-subtasks-and-time-l/) |
+| 16 | WorkloadTab subtask nesting + worklog attribution: three-level hierarchy and fetchIssueWorklogs | 2026-03-13 | 36553c8 | Verified | [16-in-workload-tab-show-subtasks-and-time-l](./quick/16-in-workload-tab-show-subtasks-and-time-l/) |
 | Phase 06 P01 | 203 | 2 tasks | 2 files |
 | Phase 06 P02 | 4 | 2 tasks | 2 files |
 | Phase 06-workload-sprint-progress-enrichment P03 | 5 | 1 tasks | 2 files |
