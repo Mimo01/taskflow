@@ -23,7 +23,7 @@ import SprintHealthPanel from './SprintHealthPanel';
 export default function Dashboard() {
   const role = useSettingsStore((s) => s.role);
   const storyPointsFieldKey = useSettingsStore((s) => s.storyPointsFieldKey);
-  const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl } = useAuthStore();
+  const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, _hasHydrated } = useAuthStore();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
   const [gitlabToken, setGitlabToken] = useState<string | null>(null);
   // Track whether the GitLab token read from Stronghold has settled so panels
@@ -56,10 +56,13 @@ export default function Dashboard() {
         .then(t => setGitlabToken(t))
         .catch(() => setGitlabToken(null))
         .finally(() => setGitlabTokenLoading(false));
-    } else {
+    } else if (_hasHydrated) {
+      // Only collapse the loading state once the store has actually rehydrated.
+      // If gitlabBaseUrl is null before rehydration completes, keep the skeleton
+      // visible to avoid a blank flash.
       setGitlabTokenLoading(false);
     }
-  }, [gitlabBaseUrl]);
+  }, [gitlabBaseUrl, _hasHydrated]);
 
   function handleRefresh() {
     queryClient.invalidateQueries();

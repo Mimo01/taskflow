@@ -42,6 +42,12 @@ interface AuthState {
   jiraUsername: string | null;
   /** GitLab user ID from validation response .id — for self-exclusion in MR notes. */
   gitlabUserId: number | null;
+  /**
+   * True once the Tauri async storage rehydration has completed.
+   * Transient — not persisted. Used by components to avoid collapsing
+   * loading states prematurely before real store values are available.
+   */
+  _hasHydrated: boolean;
   setJiraConnected: (connected: boolean, baseUrl?: string) => void;
   setGitlabConnected: (connected: boolean, baseUrl?: string) => void;
   setActiveJiraProject: (project: string | null) => void;
@@ -65,6 +71,7 @@ export const useAuthStore = create<AuthState>()(
       jiraUserDisplayName: null,
       jiraUsername: null,
       gitlabUserId: null,
+      _hasHydrated: false,
       setJiraConnected: (connected, baseUrl) =>
         set((state) => ({
           jiraConnected: connected,
@@ -84,10 +91,18 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-store',
       storage: tauriStorage,
+      // Exclude _hasHydrated from persistence — it is a transient runtime flag.
+      partialize: (state) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { _hasHydrated, ...persisted } = state as AuthState & Record<string, unknown>;
+        return persisted;
+      },
       onRehydrateStorage: () => (state) => {
         if (state && state.activeJiraProject && /^\d+$/.test(state.activeJiraProject)) {
           useAuthStore.setState({ activeJiraProject: null });
         }
+        // Mark hydration complete regardless of whether state was available.
+        useAuthStore.setState({ _hasHydrated: true });
       },
     },
   ),

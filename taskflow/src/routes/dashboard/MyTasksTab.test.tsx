@@ -140,6 +140,7 @@ describe('MyTasksTab', () => {
       jiraBaseUrl: 'https://jira.example.com',
       activeJiraProject: 'PROJ',
       gitlabBaseUrl: 'https://gitlab.example.com',
+      gitlabUserId: 42,
     } as ReturnType<typeof useAuthStore>);
 
     const { default: MyTasksTab } = await import('./MyTasksTab');
@@ -209,6 +210,7 @@ describe('MyTasksTab', () => {
       jiraBaseUrl: 'https://jira.example.com',
       activeJiraProject: 'PROJ',
       gitlabBaseUrl: 'https://gitlab.example.com',
+      gitlabUserId: 42,
     } as ReturnType<typeof useAuthStore>);
 
     const { default: MyTasksTab } = await import('./MyTasksTab');
@@ -242,6 +244,7 @@ describe('MyTasksTab', () => {
       activeJiraProject: 'PROJ',
       gitlabBaseUrl: 'https://gitlab.example.com',
       activeGitlabProject: 5,
+      gitlabUserId: 42,
     } as ReturnType<typeof useAuthStore>);
 
     const { default: MyTasksTab } = await import('./MyTasksTab');

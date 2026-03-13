@@ -67,7 +67,7 @@ function useStoryPointsFieldDiscovery() {
  */
 function AppLayout() {
   const { onboardingComplete } = useSettingsStore();
-  const { jiraConnected, gitlabConnected } = useAuthStore();
+  const { jiraConnected, gitlabConnected, _hasHydrated } = useAuthStore();
 
   // Bring window to front when OS notification click activates the app
   useEffect(() => {
@@ -88,8 +88,8 @@ function AppLayout() {
       <Sidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopBar />
-        {!jiraConnected && <ReAuthBanner />}
-        {!gitlabConnected && <GitLabReAuthBanner />}
+        {_hasHydrated && !jiraConnected && <ReAuthBanner />}
+        {_hasHydrated && !gitlabConnected && <GitLabReAuthBanner />}
         <main className="flex-1 overflow-auto">
           <Outlet />
         </main>

@@ -22,7 +22,6 @@ import { useSettingsStore } from '@/stores/settings.store'
 import { fetchMyTasksHierarchy, postTransition, postComment } from '@/services/jira'
 import type { JiraIssue } from '@/services/jira'
 import {
-  validateGitLab,
   fetchAssignedMRs,
   fetchReviewerMRs,
   fetchProjectMRs,
@@ -41,7 +40,7 @@ import type { GitLabMR } from '@/services/gitlab'
 import TaskRow from './TaskRow'
 
 export default function MyTasksTab() {
-  const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, activeGitlabProject } = useAuthStore()
+  const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, activeGitlabProject, gitlabUserId } = useAuthStore()
   const { storyPointsFieldKey } = useSettingsStore()
   const [jiraToken, setJiraToken] = useState<string | null>(null)
   const [gitlabToken, setGitlabToken] = useState<string | null>(null)
@@ -62,15 +61,10 @@ export default function MyTasksTab() {
     }
   }, [gitlabBaseUrl])
 
-  // Fetch current GitLab user ID once (staleTime: Infinity) — same as MrAttentionTab
-  const { data: currentUser } = useQuery({
-    queryKey: ['gitlab-current-user', gitlabBaseUrl],
-    queryFn: () => validateGitLab(gitlabBaseUrl!, gitlabToken!),
-    staleTime: Infinity,
-    enabled: !!gitlabBaseUrl && !!gitlabToken,
-  })
-
-  const userId = currentUser?.id
+  // Use persisted GitLab user ID from auth store — avoids a validateGitLab round-trip
+  // on every mount. The ID is stored during onboarding (GitLabStep) and token update
+  // (TokenSection), matching the same approach used in MrAttentionTab.
+  const userId = gitlabUserId ?? undefined
 
   // Fetch sprint issues: my stories + stories with my subtasks + all their subtasks.
   // Include storyPointsFieldKey in cache key: when discovery changes the key, the query

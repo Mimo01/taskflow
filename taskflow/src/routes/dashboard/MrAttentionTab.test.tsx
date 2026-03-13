@@ -48,6 +48,7 @@ vi.mock('@/stores/auth.store', () => ({
     jiraBaseUrl: 'https://jira.example.com',
     activeJiraProject: 'PROJ',
     gitlabUserId: 42,
+    _hasHydrated: true,
   })),
 }));
 
@@ -144,7 +145,7 @@ describe('MrAttentionTab', () => {
     vi.mocked(useSettingsStore).mockReturnValue({ staleMrThresholdDays: 3 } as ReturnType<typeof useSettingsStore>);
 
     const { useAuthStore } = await import('@/stores/auth.store');
-    vi.mocked(useAuthStore).mockReturnValue({ gitlabBaseUrl: 'https://gitlab.example.com', jiraBaseUrl: 'https://jira.example.com', activeJiraProject: 'PROJ', gitlabUserId: 42 } as ReturnType<typeof useAuthStore>);
+    vi.mocked(useAuthStore).mockReturnValue({ gitlabBaseUrl: 'https://gitlab.example.com', jiraBaseUrl: 'https://jira.example.com', activeJiraProject: 'PROJ', gitlabUserId: 42, _hasHydrated: true } as ReturnType<typeof useAuthStore>);
 
     const { default: MrAttentionTab } = await import('./MrAttentionTab');
     renderWithQueryAndUser(<MrAttentionTab />);
@@ -165,7 +166,7 @@ describe('MrAttentionTab', () => {
     vi.mocked(useSettingsStore).mockReturnValue({ staleMrThresholdDays: 3 } as ReturnType<typeof useSettingsStore>);
 
     const { useAuthStore } = await import('@/stores/auth.store');
-    vi.mocked(useAuthStore).mockReturnValue({ gitlabBaseUrl: 'https://gitlab.example.com', jiraBaseUrl: 'https://jira.example.com', activeJiraProject: 'PROJ', gitlabUserId: 42 } as ReturnType<typeof useAuthStore>);
+    vi.mocked(useAuthStore).mockReturnValue({ gitlabBaseUrl: 'https://gitlab.example.com', jiraBaseUrl: 'https://jira.example.com', activeJiraProject: 'PROJ', gitlabUserId: 42, _hasHydrated: true } as ReturnType<typeof useAuthStore>);
 
     const { default: MrAttentionTab } = await import('./MrAttentionTab');
     renderWithQueryAndUser(<MrAttentionTab />);
@@ -198,6 +199,7 @@ describe('MrAttentionTab', () => {
       jiraBaseUrl: 'https://jira.example.com',
       activeJiraProject: 'PROJ',
       gitlabUserId: 42,
+      _hasHydrated: true,
     } as ReturnType<typeof useAuthStore>);
 
     const { default: MrAttentionTab } = await import('./MrAttentionTab');
@@ -236,6 +238,7 @@ describe('MrAttentionTab', () => {
         activeJiraProject: 'PROJ',
         activeGitlabProject: 5,
         gitlabUserId: 42,
+        _hasHydrated: true,
       } as ReturnType<typeof useAuthStore>);
 
       const { default: MrAttentionTab } = await import('./MrAttentionTab');
@@ -278,6 +281,7 @@ describe('MrAttentionTab', () => {
         jiraBaseUrl: 'https://jira.example.com',
         activeJiraProject: 'PROJ',
         gitlabUserId: 42,
+        _hasHydrated: true,
       } as ReturnType<typeof useAuthStore>);
 
       const { default: MrAttentionTab } = await import('./MrAttentionTab');
@@ -313,6 +317,7 @@ describe('MrAttentionTab', () => {
         jiraBaseUrl: 'https://jira.example.com',
         activeJiraProject: 'PROJ',
         gitlabUserId: 42,
+        _hasHydrated: true,
       } as ReturnType<typeof useAuthStore>);
 
       const { default: MrAttentionTab } = await import('./MrAttentionTab');
@@ -352,6 +357,7 @@ describe('MrAttentionTab', () => {
         jiraBaseUrl: 'https://jira.example.com',
         activeJiraProject: 'PROJ',
         gitlabUserId: 42,
+        _hasHydrated: true,
       } as ReturnType<typeof useAuthStore>);
 
       const { default: MrAttentionTab } = await import('./MrAttentionTab');
@@ -382,6 +388,7 @@ describe('MrAttentionTab', () => {
         jiraBaseUrl: 'https://jira.example.com',
         activeJiraProject: 'PROJ',
         gitlabUserId: 42,
+        _hasHydrated: true,
       } as ReturnType<typeof useAuthStore>);
 
       const { default: MrAttentionTab } = await import('./MrAttentionTab');
