@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: planning
-stopped_at: Completed 08-dashboard-enrichment-04-PLAN.md
-last_updated: "2026-03-13T10:01:28.911Z"
+stopped_at: Completed 08-dashboard-enrichment-02-PLAN.md
+last_updated: "2026-03-13T10:02:38.174Z"
 last_activity: "2026-03-13 - Completed quick task 12: Fix MR-to-Jira task mapping empty array"
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 21
-  completed_plans: 18
+  completed_plans: 19
   percent: 0
 ---
 
@@ -88,6 +88,8 @@ Key v1.1 constraints from research:
 - [Quick-12]: Sprint-linked project MR bypass implemented in data useMemo (not queryFn) to keep queryFn pure
 - [Phase 08-dashboard-enrichment]: it.todo() chosen for Wave 0 stubs — cleaner test output vs expect(true).toBe(false); vitest reports pending rather than error noise
 - [Phase 08-dashboard-enrichment]: NotificationRow actual props are { item, isUnread?, onClick } — plan interface block referenced wrong props; corrected in implementation
+- [Phase 08-dashboard-enrichment]: fetchActiveSprint uses two-step Agile REST API pattern: board discovery then active sprint fetch
+- [Phase 08-dashboard-enrichment]: SubtasksPanel receives jiraBaseUrl/jiraToken/activeJiraProject as props — no internal secret reads
 
 ### Pending Todos
 
@@ -122,9 +124,10 @@ None.
 | Phase 07-story-subtask-hierarchy-mr-subtask-filter P05 | 2 | 2 tasks | 2 files |
 | Phase 08-dashboard-enrichment P01 | 2 | 2 tasks | 4 files |
 | Phase 08-dashboard-enrichment P04 | 2 | 1 tasks | 2 files |
+| Phase 08-dashboard-enrichment P02 | 3 | 2 tasks | 3 files |
 
 ## Session Continuity
 
-Last session: 2026-03-13T10:01:28.907Z
-Stopped at: Completed 08-dashboard-enrichment-04-PLAN.md
+Last session: 2026-03-13T10:02:38.170Z
+Stopped at: Completed 08-dashboard-enrichment-02-PLAN.md
 Resume file: None
