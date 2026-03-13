@@ -113,7 +113,7 @@ describe('ReleasesTab', () => {
     // Provide a milestone so the matching function is called with a candidate
     const { fetchProjectMilestonesInRange } = await import('@/services/gitlab');
     vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([
-      { id: 1, iid: 1, title: 'sprint-15', due_date: '2026-03-15', state: 'active', web_url: 'https://gitlab.example.com/milestone/1' },
+      { id: 1, iid: 1, title: 'sprint-15', start_date: null, due_date: '2026-03-15', state: 'active', web_url: 'https://gitlab.example.com/milestone/1' },
     ]);
 
     const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
@@ -141,7 +141,7 @@ describe('ReleasesTab', () => {
     // Provide a milestone candidate so the matching function is invoked
     const { fetchProjectMilestonesInRange } = await import('@/services/gitlab');
     vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([
-      { id: 1, iid: 1, title: 'sprint-15', due_date: '2026-03-14', state: 'active', web_url: 'https://gitlab.example.com/milestone/1' },
+      { id: 1, iid: 1, title: 'sprint-15', start_date: null, due_date: '2026-03-14', state: 'active', web_url: 'https://gitlab.example.com/milestone/1' },
     ]);
 
     const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
