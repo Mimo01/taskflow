@@ -62,7 +62,7 @@ Plans:
 - [x] 09-03-PLAN.md — WikiRenderer (jira2md + react-markdown pipeline)
 - [x] 09-04-PLAN.md — IssueDetailSheet shell + IssueDetailContent + IssueDetailSidebar (read-only)
 - [ ] 09-05-PLAN.md — Inline field editors with optimistic updates (assignee, priority, story points, labels)
-- [ ] 09-06-PLAN.md — Comment thread + CommentComposer + Open in Jira deep link
+- [x] 09-06-PLAN.md — Comment thread + CommentComposer + Open in Jira deep link
 - [ ] 09-07-PLAN.md — Wire sheet into SprintBoardTab + MyTasksTab (TaskCard onClick, TaskRow onIssueClick)
 - [ ] 09-08-PLAN.md — Wire sheet into search + notifications (Dashboard root) + human verification
 
@@ -124,7 +124,7 @@ Plans:
 | 6. Workload + Sprint Progress Enrichment | v1.1 | 3/3 | Complete | 2026-03-12 |
 | 7. Story/Subtask Hierarchy + MR Subtask Filter | v1.1 | 5/5 | Complete | 2026-03-13 |
 | 8. Dashboard Enrichment | v1.1 | 8/8 | Complete | 2026-03-13 |
-| 9. Custom Field Discovery + Issue Detail Foundation | v1.2 | 4/8 | In Progress | - |
+| 9. Custom Field Discovery + Issue Detail Foundation | v1.2 | 6/8 | In Progress | - |
 | 10. Sprint Board Redesign | v1.2 | 0/TBD | Not started | - |
 | 11. Create/Edit Issue Form | v1.2 | 0/TBD | Not started | - |
 | 12. Backlog View | v1.2 | 0/TBD | Not started | - |
