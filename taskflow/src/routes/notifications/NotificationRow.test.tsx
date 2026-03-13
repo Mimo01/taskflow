@@ -1,8 +1,10 @@
 // NOTF-01: NotificationRow renders source-specific left border accent
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import NotificationRow from './NotificationRow';
 import type { NotificationItem } from '../../stores/notifications.store';
+
+vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: vi.fn() }));
 
 function makeItem(source: 'jira' | 'gitlab'): NotificationItem {
   return {
@@ -41,5 +43,17 @@ describe('NotificationRow', () => {
     const item = makeItem('gitlab');
     render(<NotificationRow item={item} onClick={() => {}} />);
     expect(screen.getByText('The issue was caused by a race condition')).toBeInTheDocument();
+  });
+
+  it('renders type label Comment mention when notificationType is comment-mention', () => {
+    const item: NotificationItem = { ...makeItem('jira'), notificationType: 'comment-mention' };
+    render(<NotificationRow item={item} onClick={() => {}} />);
+    expect(screen.getByText('Comment mention')).toBeInTheDocument();
+  });
+
+  it('renders priority chip when priority is provided', () => {
+    const item: NotificationItem = { ...makeItem('jira'), priority: 'High' };
+    render(<NotificationRow item={item} onClick={() => {}} />);
+    expect(screen.getByText('High')).toBeInTheDocument();
   });
 });
