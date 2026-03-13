@@ -30,7 +30,7 @@ import { useAuthStore } from '@/stores/auth.store';
 
 export default function JiraStep() {
   const { jiraUrl, jiraToken, jiraProject, jiraProjects, set, goBack, goNext } = useOnboardingStore();
-  const { setJiraConnected, setActiveJiraProject } = useAuthStore();
+  const { setJiraConnected, setActiveJiraProject, setJiraUser } = useAuthStore();
 
   const projects = jiraProjects;
   const selectedProject = jiraProject ?? '';
@@ -59,6 +59,8 @@ export default function JiraStep() {
     set({ jiraValidated: true });
     setJiraConnected(true, jiraUrl);
     setActiveJiraProject(selectedProject);
+    const user = mutation.data?.user;
+    if (user) setJiraUser(user.displayName, user.name);
     goNext();
   };
 

@@ -27,7 +27,7 @@ describe('jira service', () => {
 
   describe('validateJira', () => {
     it('AUTH-01: validateJira returns user data on 200 response', async () => {
-      const mockUser = { displayName: 'Jane Smith', emailAddress: 'jane@example.com' };
+      const mockUser = { displayName: 'Jane Smith', emailAddress: 'jane@example.com', name: 'janesmith' };
       vi.mocked(mockFetch).mockResolvedValue({
         ok: true,
         status: 200,
@@ -35,7 +35,7 @@ describe('jira service', () => {
       } as Response);
 
       const result = await validateJira('https://jira.example.com', 'my-token');
-      expect(result).toEqual({ displayName: 'Jane Smith', emailAddress: 'jane@example.com' });
+      expect(result).toEqual({ displayName: 'Jane Smith', emailAddress: 'jane@example.com', name: 'janesmith' });
     });
 
     it('AUTH-01: validateJira throws "Invalid token or token has expired" on 401', async () => {
