@@ -100,7 +100,7 @@ export default function SubtasksPanel({
               key={issue.key}
               type="button"
               onClick={() => openJiraIssue(jiraBaseUrl, issue.key)}
-              className="w-full text-left flex items-center gap-2 py-1.5 hover:bg-muted/50 rounded px-1"
+              className="w-full text-left flex items-center gap-2 py-1.5 hover:bg-muted/50 rounded px-1 cursor-pointer"
             >
               <span className="font-mono text-xs text-muted-foreground w-20 flex-shrink-0">
                 {issue.key}
