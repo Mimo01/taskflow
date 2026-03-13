@@ -4,9 +4,6 @@
  * Tests % points done computation, days-left display,
  * graceful hiding when endDate is absent, at-risk items list,
  * and no-at-risk state.
- *
- * RED state: SprintHealthPanel component does not exist yet.
- * These tests will fail at import resolution — that is expected.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
@@ -88,17 +85,207 @@ describe('SprintHealthPanel (DASH-03)', () => {
   });
 
   describe('% done computation', () => {
-    it.todo('shows correct "% done" computed from done-points / total-points');
-    it.todo('shows 0% done when sprint has no story points (guard: no division by zero)');
+    it('shows correct "% done" computed from done-points / total-points', async () => {
+      const { useQuery } = await import('@tanstack/react-query');
+
+      const issues = [
+        makeSprintIssue('PROJ-1', 'done', 3),
+        makeSprintIssue('PROJ-2', 'done', 3),
+        makeSprintIssue('PROJ-3', 'indeterminate', 4),
+      ];
+
+      // Sprint-board query returns issues; active-sprint returns null
+      vi.mocked(useQuery)
+        .mockReturnValueOnce({
+          data: issues,
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>)
+        .mockReturnValueOnce({
+          data: null,
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>);
+
+      const { default: SprintHealthPanel } = await import('./SprintHealthPanel');
+      renderWithQuery(
+        <SprintHealthPanel
+          jiraBaseUrl="https://jira.example.com"
+          jiraToken="token"
+          activeJiraProject="PROJ"
+        />,
+      );
+
+      // 6 done out of 10 total = 60%
+      expect(screen.getByText(/60%\s*done/)).toBeDefined();
+    });
+
+    it('shows 0% done when sprint has no story points (guard: no division by zero)', async () => {
+      const { useQuery } = await import('@tanstack/react-query');
+
+      const issues = [
+        makeSprintIssue('PROJ-1', 'done', null),
+        makeSprintIssue('PROJ-2', 'indeterminate', null),
+      ];
+
+      vi.mocked(useQuery)
+        .mockReturnValueOnce({
+          data: issues,
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>)
+        .mockReturnValueOnce({
+          data: null,
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>);
+
+      const { default: SprintHealthPanel } = await import('./SprintHealthPanel');
+      renderWithQuery(
+        <SprintHealthPanel
+          jiraBaseUrl="https://jira.example.com"
+          jiraToken="token"
+          activeJiraProject="PROJ"
+        />,
+      );
+
+      expect(screen.getByText(/0%\s*done/)).toBeDefined();
+    });
   });
 
   describe('days remaining', () => {
-    it.todo('shows "N days left" when activeSprint.endDate is present');
-    it.todo('hides "days left" segment gracefully when activeSprint is null or endDate is absent');
+    it('shows "N days left" when activeSprint.endDate is present', async () => {
+      const { useQuery } = await import('@tanstack/react-query');
+
+      const issues = [makeSprintIssue('PROJ-1', 'done', 5)];
+      // endDate 10 days from now
+      const endDate = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString();
+
+      vi.mocked(useQuery)
+        .mockReturnValueOnce({
+          data: issues,
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>)
+        .mockReturnValueOnce({
+          data: { id: 1, name: 'Sprint 1', state: 'active', endDate },
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>);
+
+      const { default: SprintHealthPanel } = await import('./SprintHealthPanel');
+      renderWithQuery(
+        <SprintHealthPanel
+          jiraBaseUrl="https://jira.example.com"
+          jiraToken="token"
+          activeJiraProject="PROJ"
+        />,
+      );
+
+      expect(screen.getByText(/days left/)).toBeDefined();
+    });
+
+    it('hides "days left" segment gracefully when activeSprint is null or endDate is absent', async () => {
+      const { useQuery } = await import('@tanstack/react-query');
+
+      const issues = [makeSprintIssue('PROJ-1', 'done', 5)];
+
+      vi.mocked(useQuery)
+        .mockReturnValueOnce({
+          data: issues,
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>)
+        .mockReturnValueOnce({
+          data: null,
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>);
+
+      const { default: SprintHealthPanel } = await import('./SprintHealthPanel');
+      renderWithQuery(
+        <SprintHealthPanel
+          jiraBaseUrl="https://jira.example.com"
+          jiraToken="token"
+          activeJiraProject="PROJ"
+        />,
+      );
+
+      expect(screen.queryByText(/days left/)).toBeNull();
+    });
   });
 
   describe('at-risk items', () => {
-    it.todo('lists at-risk items (in-progress stories with timeSpentSeconds == 0) by title below summary');
-    it.todo('shows no at-risk list when all in-progress items have time logged');
+    it('lists at-risk items (in-progress stories with timeSpentSeconds == 0) by title below summary', async () => {
+      const { useQuery } = await import('@tanstack/react-query');
+
+      const issues = [
+        makeSprintIssue('PROJ-1', 'indeterminate', 3, 0), // at-risk: in-progress, no time
+        makeSprintIssue('PROJ-2', 'indeterminate', 3, 3600), // not at-risk: has time logged
+        makeSprintIssue('PROJ-3', 'done', 5),
+      ];
+
+      vi.mocked(useQuery)
+        .mockReturnValueOnce({
+          data: issues,
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>)
+        .mockReturnValueOnce({
+          data: null,
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>);
+
+      const { default: SprintHealthPanel } = await import('./SprintHealthPanel');
+      renderWithQuery(
+        <SprintHealthPanel
+          jiraBaseUrl="https://jira.example.com"
+          jiraToken="token"
+          activeJiraProject="PROJ"
+        />,
+      );
+
+      // Summary shows 1 at-risk
+      expect(screen.getByText(/1 at-risk/)).toBeDefined();
+      // PROJ-1 title appears in at-risk list
+      expect(screen.getByText(/PROJ-1/)).toBeDefined();
+      // PROJ-2 does NOT appear in at-risk list
+      expect(screen.queryByText(/Story PROJ-2/)).toBeNull();
+    });
+
+    it('shows no at-risk list when all in-progress items have time logged', async () => {
+      const { useQuery } = await import('@tanstack/react-query');
+
+      const issues = [
+        makeSprintIssue('PROJ-1', 'indeterminate', 3, 7200), // has time logged
+        makeSprintIssue('PROJ-2', 'done', 5),
+      ];
+
+      vi.mocked(useQuery)
+        .mockReturnValueOnce({
+          data: issues,
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>)
+        .mockReturnValueOnce({
+          data: null,
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>);
+
+      const { default: SprintHealthPanel } = await import('./SprintHealthPanel');
+      renderWithQuery(
+        <SprintHealthPanel
+          jiraBaseUrl="https://jira.example.com"
+          jiraToken="token"
+          activeJiraProject="PROJ"
+        />,
+      );
+
+      expect(screen.getByText(/0 at-risk/)).toBeDefined();
+      // No at-risk list items
+      expect(screen.queryByRole('list')).toBeNull();
+    });
   });
 });
