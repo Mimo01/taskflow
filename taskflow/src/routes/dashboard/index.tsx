@@ -22,7 +22,8 @@ import SprintHealthPanel from './SprintHealthPanel';
 import NotificationsPanel from './NotificationsPanel';
 
 export default function Dashboard() {
-  const { role, storyPointsFieldKey } = useSettingsStore((s) => ({ role: s.role, storyPointsFieldKey: s.storyPointsFieldKey }));
+  const role = useSettingsStore((s) => s.role);
+  const storyPointsFieldKey = useSettingsStore((s) => s.storyPointsFieldKey);
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl } = useAuthStore();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
   const [gitlabToken, setGitlabToken] = useState<string | null>(null);
