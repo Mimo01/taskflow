@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 Phase: 5 of 8 (API Foundation + Quick Wins)
 Plan: — of —
 Status: Ready to plan
-Last activity: 2026-03-13 - Completed quick task 18: Make the default app dimensions a little bit bigger. Also make the wizard container a little bit bigger (wider)
+Last activity: 2026-03-13 - Completed quick task 19: Broaden Jira notifications to assignee/reporter/watcher issue updates
 
 Progress: [░░░░░░░░░░] 0% (v1.1)
 
