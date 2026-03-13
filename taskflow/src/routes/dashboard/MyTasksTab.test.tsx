@@ -42,6 +42,7 @@ vi.mock('@/services/gitlab', () => ({
   validateGitLab: vi.fn().mockResolvedValue({ id: 42, name: 'Test User', username: 'testuser' }),
   fetchAssignedMRs: vi.fn().mockResolvedValue([]),
   fetchReviewerMRs: vi.fn().mockResolvedValue([]),
+  fetchProjectMRs: vi.fn().mockResolvedValue([]),
   fetchMRCommits: vi.fn().mockResolvedValue([]),
   fetchMRApprovals: vi.fn().mockResolvedValue({ approved_by: [], approved: false }),
   fetchMRDiscussions: vi.fn().mockResolvedValue([]),
@@ -214,6 +215,39 @@ describe('MyTasksTab', () => {
 
     // TaskRow should render with the MR chip "MR !42"
     await screen.findByText(/MR !42/i);
+  });
+
+  it('includes project-level MR in link map when MR title references a sprint task', async () => {
+    const { fetchMyTasksHierarchy } = await import('@/services/jira');
+    vi.mocked(fetchMyTasksHierarchy).mockResolvedValue({ issues: [makeIssue('PROJ-1')], myIssueKeys: new Set(['PROJ-1']) });
+
+    const { fetchAssignedMRs, fetchReviewerMRs, fetchProjectMRs, fetchMRApprovals, fetchMRDiscussions } = await import('@/services/gitlab');
+    const projectMr = makeMR(99, 'PROJ-1 fix via project fetch');
+    vi.mocked(fetchAssignedMRs).mockResolvedValue([]);
+    vi.mocked(fetchReviewerMRs).mockResolvedValue([]);
+    vi.mocked(fetchProjectMRs).mockResolvedValue([projectMr]);
+    vi.mocked(fetchMRApprovals).mockResolvedValue({ approved_by: [], approved: false });
+    vi.mocked(fetchMRDiscussions).mockResolvedValue([]);
+
+    const { linkMRToTask, deriveReviewHealth } = await import('@/services/linkEngine');
+    vi.mocked(linkMRToTask).mockImplementation((m, keys) =>
+      keys.has('PROJ-1') && m.title.includes('PROJ-1') ? 'PROJ-1' : null,
+    );
+    vi.mocked(deriveReviewHealth).mockReturnValue('waiting_for_review');
+
+    const { useAuthStore } = await import('@/stores/auth.store');
+    vi.mocked(useAuthStore).mockReturnValue({
+      jiraBaseUrl: 'https://jira.example.com',
+      activeJiraProject: 'PROJ',
+      gitlabBaseUrl: 'https://gitlab.example.com',
+      activeGitlabProject: 5,
+    } as ReturnType<typeof useAuthStore>);
+
+    const { default: MyTasksTab } = await import('./MyTasksTab');
+    renderWithQuery(<MyTasksTab />);
+
+    // Project-level MR should appear as linked MR chip "MR !99"
+    await screen.findByText(/MR !99/i);
   });
 
   it('TaskRow shows "— no MR" when no MR links to the task', async () => {
