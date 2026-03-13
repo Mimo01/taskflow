@@ -1,206 +1,231 @@
 # Project Research Summary
 
-**Project:** Taskflow v1.1 Polish
-**Domain:** Jira + GitLab desktop integration dashboard (Tauri 2, on-premise Data Center)
-**Researched:** 2026-03-12
+**Project:** Taskflow — v1.2 Jira Parity
+**Domain:** Desktop developer/PM tool — on-premise Jira Data Center issue management (Tauri 2, Jira DC v10.3.15)
+**Researched:** 2026-03-13
 **Confidence:** HIGH
 
 ## Executive Summary
 
-Taskflow v1.1 is a polish milestone on an already-shipped Tauri 2 + React + TypeScript desktop dashboard. The existing stack is sound and requires no new dependencies. All six v1.1 feature areas — story/subtask hierarchy, sprint progress enrichment, workload time tracking, dashboard enrichment, releases status display, and MR attention filtering — can be delivered by extending a single Jira API fields parameter (`parent,subtasks,timetracking`) and making targeted, additive changes to existing tab components. The foundational architecture is well-designed: a shared TanStack Query cache means adding fields once to `fetchSprintIssues` propagates data improvements to every consumer simultaneously.
+Taskflow v1.2 adds five major Jira parity features to an already-shipped Tauri 2 + React 19 + TanStack Query desktop app: a full issue detail view, a redesigned sprint board with drag-and-drop subtask cards, a backlog view with sprint-grooming actions, a create/edit issue form, and epic management. The existing codebase provides a strong foundation — `StatusPopover`, `postComment`/`fetchComments`, `discoverStoryPointsField`, the `apiFetch`/`jira.ts` service layer, and the TanStack Query optimistic mutation pattern are all proven and reusable. The recommended approach is incremental delivery ordered strictly by the dependency graph: Issue Detail first (consumed by everything else), then Sprint Board Redesign, then Create/Edit Form, then Backlog View, then Epics.
 
-The recommended delivery order is strictly driven by the dependency graph. One prerequisite change — extending `JiraIssue` in `jira.ts` and adding `parent,subtasks,timetracking` to the `fields` query param — unlocks four of the six feature areas at zero risk because all new fields are optional and existing code compiles unchanged. From there, two features (Releases sort, MR open-only filter) are fully independent and can be shipped immediately as quick wins. The most UI-complex feature (story/subtask hierarchy grouping) is deliberately last among the Jira work because it depends on the type foundation and is the only phase requiring new components.
+The most important architectural decisions are already settled by the existing codebase and confirmed by research. Issue detail should render as a `shadcn <Sheet>` slide-over (keeping the board's `DndContext` mounted), not a navigation route. Drag-and-drop uses `@dnd-kit/core` v6 (the only maintained, React 19-compatible option). All custom field IDs — story points, epic link, epic name, and the team-specific Account field — must be discovered at startup via a single `GET /rest/api/2/field` call consolidated into `discoverCustomFields()`. The `createmeta` endpoint must be called before any create/edit form is wired to the API to discover which fields are present on the Orange instance's create screen.
 
-The critical risks are all Jira Data Center API behaviors, not architectural unknowns. Subtasks do not inherit sprint JQL scope, so a two-query strategy is mandatory. Story points double-counting will occur the moment subtasks enter the flat issue list unless the points accumulation loop filters by `issuetype.subtask === true`. Time tracking fields are absent silently when the Jira admin has disabled the feature — graceful hide (not zeros) is required. Every one of these pitfalls has a clear, low-cost fix documented in PITFALLS.md; none requires architectural rework.
-
----
+The most dangerous risk in this milestone is the ADF vs. wiki markup confusion: Jira Data Center v2 returns description fields as wiki markup strings, not ADF JSON. ADF is a Cloud-only (v3) concept. Sending ADF JSON to the DC v2 create endpoint stores it as a literal string in Jira, corrupting the issue. A secondary risk is stale TanStack Query cache delivering responses that lack newly-added fields — issue detail must use its own independent query key (`['jira-issue-detail', key]`) and never reuse the sprint board cache. Both risks are straightforward to prevent if caught early, expensive to recover from if discovered after shipping.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The v1.0 stack is validated and ships today: Tauri 2 desktop shell, React 18 + TypeScript, Vite, TanStack Query v5, Zustand, shadcn/ui + Tailwind CSS v4, `@tauri-apps/plugin-stronghold` for PAT storage. No new npm packages are needed for v1.1. See `STACK.md` for the full technology table and rationale.
+The v1.2 stack adds three new npm packages to the existing Tauri 2 / React 19.1 / Vite 7 / Zustand 5 / TanStack Query 5 / shadcn+Tailwind 4 base. No changes to Tauri plugins, state management, or UI library are needed. All new Jira API calls extend the existing `apiFetch.ts` + `@tauri-apps/plugin-http` pattern with Bearer PAT auth.
 
-The only v1.1 stack-level addition is a story points field discovery function (`discoverStoryPointsField()` via `GET /rest/api/2/field`) because the `customfield_10016` ID is instance-specific on Data Center. The fallback to `customfield_10016` covers the majority of installs, but discovery prevents silent zero-point displays on non-standard instances. The existing invalid `story_points` field name in the `fetchSprintIssues` fields string must also be removed — it is silently ignored by the API.
+**Core technologies (existing, validated):**
+- `react ^19.1` / `vite ^7.0.4` / `vitest ^4.0` — build toolchain, no changes needed
+- `@tanstack/react-query ^5` — all API calls, caching, optimistic updates; `refetchInterval` drives polling
+- `zustand ^5.0.11` — UI state; `settingsStore` extended with `customFields` object
+- `@base-ui/react ^1.2` (via shadcn) — Sheet, Select, and other primitives already cover all new UI needs
 
-**Core technologies:**
-- **Tauri 2 + `plugin-http`**: Desktop shell with CORS bypass for on-premise Jira/GitLab — no new changes for v1.1
-- **TanStack Query v5**: Shared cache across all tabs; extending one query function propagates new fields everywhere
-- **`services/jira.ts`**: Single integration point for all Jira API calls; `JiraIssue` type extension is the gating change for v1.1
-- **`services/gitlab.ts`**: GitLab API calls; add `&state=opened` to MR fetch functions
-- **`src/lib/sprintUtils.ts` (new)**: Pure utility module sharing `groupByAssignee` and `formatHours` between WorkloadTab and SprintProgressTab
+**New libraries (v1.2):**
+- `@dnd-kit/core ^6.3.1` + `@dnd-kit/sortable ^10.0.0` + `@dnd-kit/utilities ^3.2.2` — drag-and-drop for the kanban board; the only maintained, React 19-compatible choice (`react-beautiful-dnd` archived; `@dnd-kit/react` new API not production-ready as of Nov 2025)
+- `react-hook-form ^7.71.2` + `@hookform/resolvers ^5.2.2` + `zod ^3.24` — create/edit issue form; **use Zod v3, not v4** — `zodResolver` silently breaks with Zod v4 (open issues Aug–Sep 2025, `formState.errors` never populated)
+- `simple-adf-formatter` (latest, < 2kB, zero deps) — ADF rendering if needed; on this DC instance descriptions will be wiki markup strings, so this library is likely not needed
+
+**Critical version constraint:** Do not upgrade to Zod v4. The `zodResolver` in `@hookform/resolvers` throws `ZodError` instead of capturing it into `formState.errors`.
 
 ### Expected Features
 
-**Must have (table stakes — P1):**
-- `fetchSprintIssues` fields extension: add `parent,subtasks,timetracking` — prerequisite for all Jira hierarchy/time features
-- Releases tab: sort newest-to-oldest + released/unreleased badge — client-side only, no API changes
-- MR Attention: open MRs only (`state=opened` on GitLab fetch calls) — single-line fix per function
-- Workload: story points bug fix (double-counting parent + subtask points) — filter by `issuetype.subtask`
-- Sprint Progress: points breakdown by status bucket (To Do / In Progress / Done separately)
-- Workload: time tracking columns (estimate / spent / remaining) per assignee
-- Sprint Progress: per-assignee breakdown table
+**Must have (table stakes — all P1):**
+- Issue detail view: description rendered (wiki markup), status transitions, assignee/story points inline edit, subtasks list, comments read/write, linked issues read, priority, reporter, labels, fix versions, epic link, open-in-Jira deep-link
+- Sprint board redesign: subtasks as first-class draggable cards grouped under parent story headers; drag-to-move triggers status transition with optimistic update + rollback
+- Create/edit issue form: summary, issue type, assignee (typeahead), story points, description, priority, epic link, fix version, labels, parent (for subtasks), Account custom field; built dynamically from `createmeta` response
+- Backlog view: unstarted stories list with move-to-sprint action and client-side filtering by epic/label/assignee
+- Open-in-Jira deep-link on every issue — non-negotiable escape hatch
 
-**Should have (differentiators — P2):**
-- Story/subtask hierarchy in MyTasksTab (grouped under parent story, collapsible)
-- Story/subtask hierarchy in SprintBoardTab (subtask cards under story card in columns)
-- MR Attention: subtask-story filter (MR relevant if linked story has current user's subtask)
-- Dashboard: developer subtask section + MR health summary + sprint health breakdown
-- Dashboard: recent notifications section (last 3 from Zustand store)
-- Releases: overdue badge + "days until release" countdown
-- Sprint Progress: sprint-wide time totals
-- Parent story context chip on orphan subtask rows
+**Should have (P2 — competitive):**
+- Epic list with name, color, story count — filter sprint board and backlog by epic
+- Epic detail page (stories under epic; reuses issue list pattern)
+- Create epic (reuses create form with `issuetype = Epic`)
+- MR health badge on issue detail (GitLab link via existing `linkEngine.ts`)
+- Sprint "focus mode": one-click filter to current user's subtasks only
 
-**Defer (v2+):**
-- Drag-and-drop subtask reordering (requires Jira rank API)
-- Burndown charts (no historical data store)
-- Fully configurable MR filter rules
-- Workload overloaded indicator with configurable threshold
-- Virtualised list rendering for sprints exceeding 200 issues
+**Defer to v1.3+ (anti-features — do not scope):**
+- ADF rich-text editor for description write — DC v2 uses wiki markup; a full ADF editor adds 8–12 MB to the bundle
+- Drag-and-drop backlog rank reordering — Jira's rank API is unreliable on DC configurations without the ranking plugin
+- Attachment upload — requires `tauri-plugin-fs` and multipart POST; excluded by PROJECT.md
+- Real-time board updates (< 30s polling) — DC has no webhook push; existing 60s cadence is sufficient
+- Issue history/changelog — rarely read; available via Jira deep-link
+- Bulk issue edit — high API and UI complexity for low return on small teams
 
 ### Architecture Approach
 
-The app follows a clean layered architecture: React UI tabs read from a shared TanStack Query cache, populated by typed service functions in `services/jira.ts` and `services/gitlab.ts`, backed by Zustand stores for UI state and credentials. All data transformation (grouping, filtering, aggregation) lives in `useMemo` within the owning component, extracted to `src/lib/sprintUtils.ts` when shared across multiple components. The v1.1 build order flows from a single non-breaking type foundation change, through isolated quick wins, to the most complex UI work last.
+The v1.2 architecture is additive to the existing router + service layer + query cache pattern. New routes (`/backlog`, `/epics`, `/issue/:key`) are added to `createHashRouter`. Two shared Sheet overlays — `IssueDetailSheet` and `IssueCreateSheet` — are consumed from any view (board, backlog, tasks) without navigating away, keeping the board's `DndContext` mounted. All new service functions live in `jira.ts`. The `settingsStore` gains a `customFields` object replacing the single `storyPointsFieldKey` field. A single `discoverCustomFields()` call at startup resolves all four field IDs in one request.
 
-**Major components and v1.1 changes:**
-1. `services/jira.ts` — MODIFIED: extend `JiraIssue` type with `parent?`, `subtasks?[]`, `timetracking?`, `issuetype.subtask: boolean`; extend `fetchSprintIssues` fields param; add `discoverStoryPointsField()`
-2. `services/gitlab.ts` — MODIFIED: add `&state=opened` to `fetchAssignedMRs` and `fetchReviewerMRs`
-3. `SprintBoardTab.tsx` + `MyTasksTab.tsx` — MODIFIED: two-pass grouping algorithm using new `StoryGroup.tsx`
-4. `WorkloadTab.tsx` + `SprintProgressTab.tsx` — MODIFIED: import from new `sprintUtils.ts`; add time tracking columns and per-assignee breakdown
-5. `ReleasesTab.tsx` — MODIFIED: client-side sort + released/unreleased badge (no API changes)
-6. `MrAttentionTab.tsx` — MODIFIED: open-only filter + subtask-story filter predicate
-7. `Dashboard/index.tsx` — MODIFIED: new sections reading from existing caches
-8. **`StoryGroup.tsx`, `SubtaskRow.tsx`, `SubtaskCard.tsx`** — NEW: collapsible hierarchy components
-9. **`src/lib/sprintUtils.ts`** — NEW: `groupByAssignee()`, `formatHours()` pure functions
+**Major components (new):**
+1. `IssueDetailPanel` / `IssueDetailSheet` / `IssueDetailPage` — shared issue detail content rendered as Sheet overlay (from board/backlog) or full-page route (from search/notifications)
+2. `IssueCreateSheet` — create/edit form driven by `createmeta` response; dynamically-built Zod schema via `react-hook-form` + `zodResolver`
+3. `BacklogTab` — paginated JQL query using compound sprint clause, move-to-sprint action, client-side filters
+4. `EpicsTab` / `EpicDetailSheet` — epic list via JQL (`issuetype = Epic`), issues per epic via `${epicLinkFieldKey} = EPIC-KEY`
+5. `SprintBoardTab` (redesigned) — `DndContext` wrapping `SortableContext` per column, `DragOverlay` ghost card, `localOrder` component state as drag source of truth
+
+**New service functions in `jira.ts`:**
+`discoverCustomFields`, `fetchIssueDetail`, `fetchBacklogIssues`, `fetchEpics`, `fetchEpicIssues`, `createIssue`, `updateIssueFields`, `postIssueLink`, `fetchIssueLinkTypes`, `moveIssuesToSprint`, `searchUsers`
+
+**New TanStack Query keys:**
+- `['jira-issue-detail', issueKey, jiraBaseUrl]` — issue detail (independent, never shares sprint board cache)
+- `['jira-issues', 'backlog', activeJiraProject, storyPointsFieldKey]` — backlog
+- `['jira-epics', boardId]` — epic list
+- `['jira-issue-link-types']` — link type list (long TTL, rarely changes)
 
 ### Critical Pitfalls
 
-1. **Subtasks absent from sprint JQL** — `sprint in openSprints()` silently excludes subtasks on Jira DC (subtasks have no sprint field of their own). Mandatory fix: two-query strategy — sprint JQL for parent stories, then `issuetype in subtaskIssueTypes() AND parent in (KEY-1,KEY-2,...)` for subtasks; merge results client-side before grouping.
+1. **ADF is Cloud-only — Jira DC v2 description is always a wiki markup string** — Never send ADF JSON to the DC v2 create/update endpoint; it stores the raw JSON object as literal text in Jira. For reading: implement a wiki markup renderer (evaluate `jira2md` npm package; fallback is extending the existing `adfToPlainText()` walker). For writing: send a plain string. Existing defensive pattern (`typeof description === 'string'`) is the model to follow.
 
-2. **Story points double-counting** — once subtasks enter the flat issue list alongside parent stories, summing `customfield_10016` for all issues counts points at both hierarchy levels. Fix: `if (issue.fields.issuetype.subtask) continue;` in every points accumulation loop.
+2. **Epic link field ID is instance-specific — discover via `schema.custom === 'com.pyxis.greenhopper.jira:gh-epic-link'`** — Hardcoding `customfield_10014` breaks on DC instances where the field was created at a different time. Consolidate all field discovery into a single `discoverCustomFields()` call. Never use the display name "Epic Link" in JQL; always use the discovered field key.
 
-3. **Time tracking silently absent** — `timetracking` is not in Jira's default field set AND may be disabled at the admin level. Always request it explicitly in `fields=`, use `*Seconds` integer variants for all arithmetic, and hide the time tracking section entirely (not zeros) when all values are null.
+3. **Backlog JQL `sprint is EMPTY` silently misses issues from closed sprints** — Atlassian's own KB documents this limitation. Use the combined clause: `sprint is EMPTY OR sprint not in (openSprints(), futureSprints())`. Test against the Orange instance with at least one issue that was in a completed sprint and returned to the backlog.
 
-4. **Issuetype detection by name breaks on custom DC installs** — `issuetype.name === 'Sub-task'` fails on instances where the admin has renamed the type. Always use `issuetype.subtask === true` (the boolean system field, not the display name). Add it to the `JiraIssue` TypeScript interface.
+4. **Create issue `createmeta` must precede form build — "field not on screen" 400s are instance-specific** — The Orange instance's create screen may not include all fields the form sends. Call `GET /rest/api/2/issue/createmeta?projectKeys=X&expand=projects.issuetypes.fields` first; only send fields confirmed present. Parse the `errors` map from 400 responses and display per-field messages.
 
-5. **Mutation cache invalidation scope too narrow** — the existing `MyTasksTab` optimistic update only invalidates `['jira-issues','my-tasks',...]`. After subtask hierarchy, `SprintBoardTab` and `WorkloadTab` share the `['jira-issues','sprint-board',...]` key. Both keys must be invalidated in `onSettled` after any status transition.
+5. **Drag-and-drop optimistic updates flicker when TanStack Query cache is the sole drag state source** — Maintain `localOrder` in component `useState` as the drag source of truth. On drop, set `localOrder` synchronously (no flicker). Fire the mutation. Rollback `localOrder` on error. Call `invalidateQueries` on settle to sync server state.
 
-6. **Query key staleness after fields extension** — adding new fields to `fetchSprintIssues` without changing the TanStack query key causes stale cached responses (lacking new fields) to be served until TTL expires. Bump the query key or use a cache-bust strategy when deploying the fields extension.
+6. **Issue detail must use its own query key — stale sprint board cache will serve responses without new fields** — Adding `issuelinks`, `description`, `comment` to `fetchSprintIssues` both pollutes the board payload and creates a cache-staleness trap. The `['jira-issue-detail', key]` query fetches full fields independently on demand.
 
----
+7. **Issue link type names are admin-configurable — never hardcode** — Discover via `GET /rest/api/2/issueLinkType` at session start. Build the link type dropdown from the API response. Use `type.name` (e.g., `"Blocks"`) for write operations, not the `inward`/`outward` direction strings.
 
 ## Implications for Roadmap
 
-All six feature areas were researched with the existing codebase as direct context. The dependency graph is clear and the build order is unambiguous. Six phases are recommended.
+Research confirms a clear dependency graph that dictates phase order. Issue Detail is the foundation that every other feature consumes. Create/Edit Form is the deepest dependency for Backlog and Epics. Sprint Board Redesign can proceed in parallel with Create/Edit Form after Issue Detail is stable.
 
-### Phase 1: API Foundation
+### Phase 1: Custom Field Discovery + Issue Detail Foundation
 
-**Rationale:** Every other phase depends on this. All new fields are optional — zero risk to existing functionality. This is a pure enablement change that unblocks Areas 1, 2, 3, and 6 simultaneously.
-**Delivers:** Extended `JiraIssue` type (`parent?`, `subtasks?[]`, `timetracking?`, `issuetype.subtask: boolean`); updated `fetchSprintIssues` fields param using two-query strategy for subtasks; `discoverStoryPointsField()` function in `jira.ts`; removal of invalid `story_points` field name
-**Addresses:** FEATURES dependency for areas 1, 2, 3, 6
-**Avoids:** Pitfall 1 (two-query subtask strategy), Pitfall 3 (timetracking added to fields), Pitfall 4 (parent field added), Pitfall 5 (issuetype.subtask boolean added to type), Pitfall 6 (query key version bump)
+**Rationale:** Every subsequent feature depends on `customFields` (epic link, account, story points field keys) and on `IssueDetailPanel`. Build the shared infrastructure before any feature that consumes it. Issue detail delivers immediate user value — no more opening Jira just to read a description or check comments. Establishes the optimistic field edit mutation pattern that all later phases reuse.
 
-### Phase 2: Quick Wins — Releases + MR Open Filter
+**Delivers:** `discoverCustomFields()` replacing `discoverStoryPointsField()`; `settingsStore.customFields` object; `IssueDetailPanel` + `IssueDetailSheet` + `/issue/:key` route; `fetchIssueDetail` service function; optimistic field edit mutations (assignee, story points); wiki markup description rendering; comments read/write; linked issues read (display only); subtasks list; open-in-Jira link.
 
-**Rationale:** Both features are fully independent of Phase 1 (no new type fields needed). Releases is client-side only. MR state filter is a one-line change per function. Ship these first for immediate visible improvement at minimum risk.
-**Delivers:** Releases tab sorted newest-first with released/unreleased badge; `fetchAssignedMRs` and `fetchReviewerMRs` in `gitlab.ts` filtered to `state=opened`; overdue badge + days-until countdown on releases
-**Addresses:** FEATURES area 5 (all P1 + P2), area 6 (P1 open-only table stake)
-**Avoids:** Pitfall 8 (client-side sort wrapped in useMemo), Pitfall 9 (server-side state filter, not client-side)
+**Addresses:** All P1 Issue Detail table stakes from FEATURES.md; MR health badge (P2)
 
-### Phase 3: Workload + Sprint Progress Enrichment
+**Avoids:** ADF/wiki markup confusion (Pitfall 1); stale cache from sprint board (Pitfall 6); issue link field missing from `?fields=` (Pitfall 7 read side); three separate field discovery calls (Architecture Anti-Pattern 4)
 
-**Rationale:** Both tabs read from the same TanStack cache key and share `groupByAssignee` logic. Extracting `sprintUtils.ts` here prevents duplication. The workload double-counting bug fix is critical correctness work that must ship before hierarchy UI is built on top of it.
-**Delivers:** `src/lib/sprintUtils.ts` with `groupByAssignee` + `formatHours`; WorkloadTab with correct story-level-only points + time tracking columns; SprintProgressTab with per-status point breakdown + sprint-wide time totals + per-assignee breakdown table
-**Addresses:** FEATURES areas 2 (sprint progress enrichment) and 3 (workload time tracking); fixes the explicitly-named workload double-counting bug
-**Avoids:** Pitfall 2 (double-counting fixed here), Anti-Pattern 3 (no duplicate groupBy logic), graceful-hide pattern for time tracking when admin-disabled
+**Research flag:** Standard patterns throughout. Wiki markup renderer library selection (jira2md vs. custom) is the only decision to make at plan time — verify jira2md maintenance status before adopting.
 
-### Phase 4: Story/Subtask Hierarchy UI
+---
 
-**Rationale:** Highest UI complexity of the milestone. Depends on Phase 1 (parent + subtasks fields) and Phase 3 (sprintUtils patterns established). New components follow patterns proven in earlier phases.
-**Delivers:** `StoryGroup.tsx` (collapsible, variant prop for row/card), `SubtaskRow.tsx`, `SubtaskCard.tsx`; MyTasksTab grouping subtasks under parent story using sprint-board cache; SprintBoardTab grouping subtasks within columns; parent context chip on orphan subtask rows; mutation handlers updated to invalidate both query keys
-**Addresses:** FEATURES area 1 (all P1 + P2 hierarchy features)
-**Avoids:** Pitfall 6 (mutation `onSettled` invalidates both my-tasks and sprint-board keys), Anti-Pattern 4 (collapse state in StoryGroup's own useState, not parent tab), Anti-Pattern 1 (no per-story subtask fetch queries)
+### Phase 2: Sprint Board Redesign (Subtask-as-Card + Drag-to-Move)
 
-### Phase 5: MR Subtask-Story Filter + Dashboard Enrichment
+**Rationale:** Highest developer-visible impact after Issue Detail. Depends on `IssueDetailSheet` (card click triggers it). Can begin as soon as Phase 1 ships. The `DndContext` component structure and `localOrder` pattern must be established before wiring to the API to avoid the drag-drop flicker pitfall.
 
-**Rationale:** The MR subtask-story filter requires `subtasks[]` on sprint issues (Phase 1) and the grouping patterns from Phase 4. Dashboard enrichment reads from caches populated by all prior phases; adding it last ensures all data is already in place.
-**Delivers:** MrAttentionTab subtask-story filter predicate with reason labels; Dashboard new sections (my subtasks, MR health summary, sprint health breakdown, recent notifications from Zustand store); corrected MR attention count in Dashboard cards
-**Addresses:** FEATURES area 6 (P2 subtask-story filter + reason labels), area 4 (all dashboard enrichment)
-**Avoids:** Pitfall 7 (Dashboard reads from existing caches via `queryClient.getQueryData` + tight enabled role guards; handles cold-load blank state gracefully)
+**Delivers:** `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities` added to project; `SprintBoardTab` redesigned with subtask cards as first-class kanban items grouped under parent story headers; drag-to-column triggers `postTransition` with optimistic update + rollback; `DragOverlay` ghost card; `refetchInterval: isDragging ? false : 60_000` pattern; assignee filter.
 
-### Phase 6: Verification + Polish
+**Uses:** `@dnd-kit/core ^6.3.1` (stable v6 API — not the pre-stable `@dnd-kit/react`); `PointerSensor` + `KeyboardSensor` for accessibility.
 
-**Rationale:** After all features are integrated, validate the "looks done but isn't" checklist from PITFALLS.md against the real Orange Jira Data Center instance. Several pitfalls are only detectable against the live instance.
-**Delivers:** Verified correct behavior across all 9 documented pitfalls; UX fixes from the 5-item UX pitfall list (time tracking graceful hide, expanded-by-default subtask groups, workload tooltip for points-vs-time); production-ready build
-**Addresses:** All pitfall verification items from PITFALLS.md; confirms `issuetype.subtask` detection on Orange's custom issue types; confirms time tracking admin status; confirms story points field ID via `discoverStoryPointsField()`
+**Avoids:** Drag-drop flicker (Pitfall 5 — `localOrder` hybrid pattern); route navigation destroying `DndContext` (Architecture Anti-Pattern 1); pre-fetching transitions for all issues at board load (Architecture Anti-Pattern 6 — lazy fetch on `onDragStart`).
+
+**Research flag:** Standard patterns. dnd-kit is well-documented with multiple 2025 tutorials. Optimistic update pattern already proven in codebase via `StatusPopover`.
+
+---
+
+### Phase 3: Create/Edit Issue Form
+
+**Rationale:** Required by Backlog (create story), Epics (create epic), and Sprint Board (edit from card). Building it before Backlog and Epics unblocks those phases. It is the most complex single feature and benefits from being built standalone before being embedded in multiple surfaces.
+
+**Delivers:** `react-hook-form` + `@hookform/resolvers` + `zod ^3` added to project; `IssueCreateSheet` component; `createIssue` and `updateIssueFields` service functions; dynamic form built from `createmeta` response; fields: summary (required), issue type, assignee (typeahead via `user/assignable/search`), story points, description (plain textarea), priority, epic link, fix version, labels, parent (for subtasks), Account custom field; `POST /rest/api/2/issue` for create; `PUT /rest/api/2/issue/{key}` for edit; issue link creation (serial `POST /rest/api/2/issueLink`); per-field error messages from 400 responses.
+
+**Avoids:** "Field not on screen" 400s (Pitfall 4 — `createmeta` first, dynamic field inclusion); hardcoded link type names (Pitfall 7 — write side, discover from `issueLinkType` endpoint); sending ADF JSON on create (Pitfall 1); Zod v4 breakage (STACK.md constraint — pin to `^3.24`).
+
+**Research flag:** The Account custom field type on the Orange instance is unknown. During plan creation, call `createmeta` against the live instance to determine whether Account is a user picker or string field before designing that form component. Also evaluate whether the paginated `createmeta` variant (DC 8.4+) is needed if the non-paginated endpoint is slow.
+
+---
+
+### Phase 4: Backlog View
+
+**Rationale:** Depends on Issue Detail (row click opens Sheet) and Create/Edit Form (create story in backlog). Self-contained after Phase 1 and 3 ship. Move-to-sprint is the primary grooming action and requires the active sprint ID (already cached by `fetchActiveSprint`).
+
+**Delivers:** `BacklogTab` route; `fetchBacklogIssues` service function with correct compound JQL (`sprint is EMPTY OR sprint not in (openSprints(), futureSprints())`); move-to-sprint via `POST /rest/agile/1.0/sprint/{sprintId}/issue` with 50-issue chunking; client-side filters (epic, label, assignee); create-story-in-backlog (opens Phase 3 form); point total / issue count summary.
+
+**Avoids:** Backlog JQL closed-sprint gap (Pitfall 3 — compound clause); move-to-sprint 403 silent failure (Pitfall 4 API — explicit user-visible error); Agile Board backlog API as data source (Architecture Anti-Pattern 5 — use JQL instead).
+
+**Research flag:** Validate the compound JQL against the Orange instance before building the UI — confirm that a known closed-sprint issue appears in results. This is a 15-minute manual verification, not a full research phase.
+
+---
+
+### Phase 5: Epic Management
+
+**Rationale:** Depends on Issue Detail (epic detail shows stories as rows) and Create/Edit Form (create epic reuses form with `issuetype = Epic`). Last because Epics are the least-blocking missing capability — the team can manage epics in Jira directly until this phase ships. Epic field keys are already discovered in Phase 1 (`discoverCustomFields()`), so no new infrastructure is required.
+
+**Delivers:** `EpicsTab` route; `EpicDetailSheet`; `fetchEpics` (JQL: `issuetype = Epic AND project = X`) and `fetchEpicIssues` (JQL: `${epicLinkFieldKey} = EPIC-KEY`) service functions; epic list with name, color, story count, point total; filter sprint board and backlog by epic; create epic (Phase 3 form with `issuetype = Epic`).
+
+**Avoids:** Agile API for epic issues list (Pitfall 8 — use JQL `${epicLinkFieldKey} = KEY` not `/rest/agile/1.0/epic/{id}/issue`); "Epic Link" display name in JQL (Pitfall 2 — always use discovered field key); fetching all epic issue lists on backlog load (Performance Trap — fetch on demand only).
+
+**Research flag:** Standard patterns. Epic data model and JQL strategies are fully researched and documented. No additional phase research needed.
+
+---
 
 ### Phase Ordering Rationale
 
-- Phase 1 must be first because four of six feature areas depend on its type changes, yet it is zero-risk (all fields optional, no existing code breaks). The two-query subtask strategy is embedded here before any hierarchy UI work begins.
-- Phase 2 is independent and can deliver value while Phase 1 is being tested. Ordering it second (not parallel) keeps the plan linear and avoids merge conflicts.
-- Phase 3 precedes Phase 4 because the workload double-counting bug fix and `sprintUtils.ts` extraction must be stable before the more complex hierarchy rendering is built on top of them.
-- Phase 4 is fourth because it is the most complex rendering work and depends on Phase 1's field infrastructure being stable and verified.
-- Phase 5 is fifth because the MR subtask-story filter depends on Phase 4's subtask data being in cache, and Dashboard enrichment logically follows all the data it summarises being available.
-- Phase 6 exists explicitly because several pitfalls are detectable only against the real Jira DC instance (time tracking admin config, subtask type naming, story points field ID variability).
+- **Issue Detail before everything:** Both the board and backlog require a detail view on card/row click. Building them without it produces dead-end interactions. The optimistic mutation pattern established here is reused by every later phase.
+- **Sprint Board before Backlog/Epics:** Higher developer-day value; unblocks daily standup use-case. Independent of Create/Edit Form (board editing re-uses Issue Detail's inline edit mutations).
+- **Create/Edit Form before Backlog and Epics:** The backlog "create story" action and epic "create epic" action both require the form. Building Backlog/Epics without the form produces read-only views with placeholder buttons.
+- **Custom field discovery in Phase 1:** All later phases require `epicLinkFieldKey` and `accountFieldKey`. Consolidating into `discoverCustomFields()` prevents three redundant API calls at startup.
+- **Backlog before Epics:** The backlog is the primary grooming surface; epic filtering of the backlog (Phase 5) is more valuable once the backlog exists.
 
 ### Research Flags
 
-Phases needing careful validation against the real instance before declaring done:
+Phases needing additional research or validation during plan creation:
+- **Phase 3 (Create/Edit Form):** Account custom field type on the Orange instance is unknown. Verify via `createmeta` against the live instance before designing the Account field component. Also evaluate paginated `createmeta` endpoints if performance is an issue.
+- **Phase 4 (Backlog):** Validate the compound JQL clause against the Orange instance with a known closed-sprint backlog issue before building UI. Confirm `futureSprints()` JQL function is available (almost certain since `openSprints()` works, but worth checking).
 
-- **Phase 1:** The two-query subtask JQL strategy must be verified on the specific Jira Data Center v10.3.15 instance. Subtask sprint inclusion behaviour varies by board filter configuration — confirm subtasks actually appear in the `issuetype in subtaskIssueTypes() AND parent in (...)` query before building hierarchy UI.
-- **Phase 3:** Time tracking fields may be absent if the Orange Jira admin has time tracking disabled. Verify on the real instance before building time tracking UI columns; the graceful-hide path may be the only visible result.
-- **Phase 6:** `discoverStoryPointsField()` result on the real instance — confirm whether `customfield_10016` is the correct story points field ID for this specific installation.
-
-Phases with well-documented patterns (standard, skip deep research):
-
-- **Phase 2:** Client-side sort and badge render in ReleasesTab; `state=opened` parameter for GitLab MR API — both are fully documented, straightforward, and verifiable without API research.
-- **Phase 4:** StoryGroup collapse state pattern is established React; `useMemo` two-pass grouping is pure array manipulation with no novel API interactions.
-- **Phase 5:** Dashboard passive cache reads (`queryClient.getQueryData`) follow the pattern already established in SprintBoardTab.
-
----
+Phases with standard patterns (skip research-phase):
+- **Phase 1 (Custom Fields + Issue Detail):** Field discovery, Sheet overlay UX, optimistic mutations, wiki markup rendering — all well-documented patterns, several already proven in the codebase.
+- **Phase 2 (Sprint Board Redesign):** dnd-kit patterns are thoroughly documented with 2025 tutorials; optimistic update + rollback already proven via `StatusPopover`.
+- **Phase 5 (Epic Management):** Fully researched; relies on field discovery infrastructure from Phase 1.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | v1.0 stack is already validated in production; v1.1 requires no new dependencies; `discoverStoryPointsField()` uses a standard, documented Jira API pattern |
-| Features | HIGH | Based on direct codebase inspection of all relevant source files; scope defined by PROJECT.md v1.1 milestone; P1/P2/P3 prioritization is grounded in code inspection, not speculation |
-| Architecture | HIGH | Based on direct codebase inspection; all integration points reference concrete, existing code; build order follows a confirmed dependency graph with no ambiguity |
-| Pitfalls | HIGH (API constraints) / MEDIUM (DC v10.3 edge cases) | Jira Server/DC API constraints confirmed by multiple Atlassian community + official sources; exact behavior on Orange Jira DC v10.3.15 needs live validation |
+| Stack | HIGH | Core stack is already shipped and running (React 19.1, Vite 7, Zustand 5, TanStack Query 5 confirmed via codebase on 2026-03-13). New libraries verified against npm registry on 2026-03-13 with peer dep checks. Zod v4 breakage confirmed via multiple open GitHub issues. |
+| Features | HIGH | Scope derived from PROJECT.md goals + Atlassian official documentation for DC v10.3.15. Anti-feature decisions are well-justified with concrete reasons. Account custom field type is the one unknown (MEDIUM for that specific field). |
+| Architecture | HIGH | Existing codebase read directly on 2026-03-13. Integration patterns (Sheet vs. route, optimistic mutation, query key strategy) verified against official TanStack Query v5 docs and dnd-kit docs. Backlog JQL verified against Atlassian official KB. |
+| Pitfalls | HIGH | 9 of 10 pitfalls confirmed via Atlassian KB, community documentation with staff responses, or GitHub issues. Drag-drop flicker confirmed via dnd-kit Discussion #1522. ADF/wiki markup distinction confirmed by multiple community sources. |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Subtask JQL on this specific DC instance:** The two-query strategy is correct per Atlassian documentation, but whether `sprint in openSprints()` includes or excludes subtasks on this particular board filter configuration must be validated in Phase 1 before hierarchy UI work begins.
-- **Story points field ID on Orange instance:** `customfield_10016` is the most common default but is not guaranteed. The `discoverStoryPointsField()` function resolves this; log the discovered ID during Phase 1 development for explicit confirmation.
-- **Time tracking admin status on Orange Jira:** Research cannot confirm whether the Orange Jira DC instance has time tracking enabled. Phase 3 must ship graceful-hide as the primary path, not an edge case.
-- **`startDate` on fix versions:** Confirmed unavailable in GET responses on DC (Atlassian staff-confirmed). Releases sort must use `releaseDate` only. No workaround exists — this is an API constraint.
+- **Account custom field type:** The field named "Account" on the Orange Jira instance may be a user picker, a string field, or a different custom type. During Phase 3 planning, call `createmeta` against the live instance to discover the field type before designing the Account field component.
 
----
+- **Wiki markup renderer library:** The research recommends either `jira2md` (converts Jira wiki markup to Markdown) or a custom regex-based renderer extending the existing `adfToPlainText()` walker. The `jira2md` package maintenance status in 2026 is not confirmed. Verify during Phase 1 planning before adopting; the custom walker extension is the safe fallback.
+
+- **`futureSprints()` JQL availability on Orange:** Almost certainly available since `openSprints()` already works. Confirm during Phase 4 planning with a test query.
+
+- **`createmeta` performance on Orange's DC instance:** Large DC instances have reported this endpoint being slow with `expand=projects.issuetypes.fields`. The paginated variant (DC 8.4+, which DC v10.3 satisfies) may be preferable. Measure during Phase 3 planning.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Direct codebase inspection of all route, service, store files in `taskflow/src/` — architecture, component responsibilities, existing patterns
-- Atlassian Jira DC REST API v2 reference (9.14.0) — version endpoint, field names, time tracking structure
-- Atlassian community (staff-confirmed): `startDate` not in GET version response; `subtasks` array returns 4 fields only by design; `timetracking` requires explicit field request AND admin enable
-- Atlassian Support KB: subtask sprint JQL exclusion behavior (`openSprints()` does not match subtasks on DC)
-- Atlassian Developer Community: `issuetype.subtask` boolean for reliable subtask detection; `parent` field not in default navigable fields
-- TanStack Query v5 docs: query invalidation, shared cache keys, `queryClient.getQueryData` passive reads; tkdodo.eu concurrent optimistic updates
-- Jira Java API docs (TimeTracking class, v7.6.1–9.x): `*Seconds` field availability confirmed across DC versions
-- GitLab MR list API `state` parameter: standard documented server-side filter
+- Existing Taskflow codebase (`/Users/mimo/Desktop/Tasker/taskflow/src/`) — read directly on 2026-03-13; architecture, existing patterns, actual runtime versions
+- npm registry (live, 2026-03-13) — `@dnd-kit/core` 6.3.1, `@dnd-kit/sortable` 10.0.0, `@dnd-kit/utilities` 3.2.2, `react-hook-form` 7.71.2, `@hookform/resolvers` 5.2.2, `zod` 4.3.6 peer deps verified
+- Atlassian Jira Software Data Center REST API 9.14.0 docs — epic, backlog, sprint, board endpoints; version field behavior; `createmeta` discovery
+- Atlassian Support KB — backlog JQL gap (`sprint is EMPTY` limitation explicitly documented), epic link via REST API, issue links via REST API
+- Atlassian Developer docs — `createmeta` field discovery, issue create/update REST API examples, custom field schema types
+- TanStack Query v5 official docs — optimistic updates, query key patterns, `cancelQueries` in `onMutate`
+- dnd-kit official docs — `DndContext`, `SortableContext`, `DragOverlay`, sensor configuration
 
 ### Secondary (MEDIUM confidence)
-- Atlassian community threads: story points double-counting in Advanced Roadmaps; fix version API ordering behavior; `customfield_10016` ID variability across instances
-- Industry pattern research: releases newest-first ordering conventions (GitHub, GitLab, Linear); sprint board subtask grouping user expectations
-- PROJECT.md v1.1 milestone definition — authoritative scope source for feature boundary decisions
+- GitHub: clauderic/dnd-kit Discussion #1842 — `@dnd-kit/react` not production-ready (Nov 2025)
+- GitHub: react-hook-form/resolvers Issues #799, #813, #768 — Zod v4 + zodResolver breakage (Aug–Sep 2025)
+- GitHub: clauderic/dnd-kit Discussion #1522 — drag-drop flicker with TanStack Query as sole state source; `localOrder` pattern recommended
+- GitHub: dixahq/simple-adf-formatter — zero deps, < 2kB, JSX output confirmed
+- Atlassian community — ADF is Cloud v3 only; DC v2 returns wiki markup strings (multiple staff confirmations)
+- Atlassian community — epic link field ID varies; stable schema type `com.pyxis.greenhopper.jira:gh-epic-link` confirmed
+- Atlassian community — `@atlaskit/renderer` bundle size: 3.51 MB unpacked, 12 MB bundle growth in practice
+- tkdodo.eu — concurrent optimistic updates in React Query
 
-### Tertiary (noted gaps)
-- Exact subtask JQL behavior on Orange Jira DC v10.3.15 with its specific board filter configuration — needs live validation in Phase 1
-- Time tracking admin enable status on Orange Jira instance — needs live validation in Phase 3
-- Story points custom field ID on Orange instance — resolved by `discoverStoryPointsField()` in Phase 1
+### Tertiary (needs validation during planning)
+- `POST /rest/agile/1.0/sprint/{id}/issue` max 50 issues and permissions behavior — confirm against Orange instance during Phase 4 planning
+- jira2md npm package — wiki markup to Markdown converter; maintenance status as of 2026 not confirmed — verify before Phase 1 adoption
+- `futureSprints()` JQL function availability on Orange's DC instance — confirm during Phase 4 planning
 
 ---
-*Research completed: 2026-03-12*
+*Research completed: 2026-03-13*
 *Ready for roadmap: yes*
