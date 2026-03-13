@@ -299,15 +299,21 @@ export async function fetchSprintIssues(
     parentIssues = await fetchAllSearchPages(baseSearchUrl, headers);
   } catch (err) {
     // fetchAllSearchPages throws the raw Response on first-page failure
-    if (err instanceof Response) {
-      if (err.status === 400) {
-        const body = await err.text();
+    // fetchAllSearchPages throws the raw Response (or a Response-like mock) on first-page
+    // failure. Detect by checking for a numeric status property (duck-typing for both real
+    // Response objects and plain-object mocks used in tests).
+    if (err !== null && typeof err === 'object' && 'status' in err && typeof (err as { status: unknown }).status === 'number') {
+      const status = (err as { status: number; text?: () => Promise<string> }).status;
+      if (status === 400) {
+        const body = typeof (err as { text?: () => Promise<string> }).text === 'function'
+          ? await (err as { text: () => Promise<string> }).text()
+          : '';
         if (body.includes('function') || body.includes('not recognized')) {
           throw new Error('Sprint filtering unavailable — ensure Jira Software is installed');
         }
         throw new Error(`Jira search failed with status 400`);
       }
-      throw new Error(`Jira search failed with status ${err.status}`);
+      throw new Error(`Jira search failed with status ${status}`);
     }
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -375,7 +381,7 @@ export async function fetchMyTasksHierarchy(
   const fields = `summary,status,assignee,issuetype,${spFields},parent,subtasks,timetracking`;
   const subtaskFields = 'summary,status,assignee,issuetype,parent,timetracking';
 
-  // Step 1: my stories + my subtasks in parallel
+  // Step 1: my stories + my subtasks in parallel — both fully paginated
   const myStoriesJql = encodeURIComponent(
     `project = ${projectKey} AND sprint in openSprints() AND issuetype not in subtaskIssueTypes() AND assignee = currentUser() ORDER BY updated DESC`,
   );
@@ -385,28 +391,33 @@ export async function fetchMyTasksHierarchy(
     `project = ${projectKey} AND issuetype in subtaskIssueTypes() AND assignee = currentUser() AND statusCategory != Done`,
   );
 
-  let storiesRes: Response;
-  let subtasksRes: Response;
+  let myStories: JiraIssue[];
+  let mySubtasks: JiraIssue[];
   try {
-    [storiesRes, subtasksRes] = await Promise.all([
-      apiFetch('jira', `${base}/rest/api/2/search?jql=${myStoriesJql}&fields=${fields}`, { headers }),
-      apiFetch('jira', `${base}/rest/api/2/search?jql=${mySubtasksJql}&fields=${subtaskFields}&maxResults=200`, { headers }),
+    [myStories, mySubtasks] = await Promise.all([
+      fetchAllSearchPages(`${base}/rest/api/2/search?jql=${myStoriesJql}&fields=${fields}`, headers),
+      fetchAllSearchPages(`${base}/rest/api/2/search?jql=${mySubtasksJql}&fields=${subtaskFields}`, headers)
+        .catch(() => [] as JiraIssue[]),
     ]);
-  } catch {
+  } catch (err) {
+    // fetchAllSearchPages throws the raw Response (or a Response-like mock) on first-page
+    // failure. Detect by checking for a numeric status property (duck-typing for both real
+    // Response objects and plain-object mocks used in tests).
+    if (err !== null && typeof err === 'object' && 'status' in err && typeof (err as { status: unknown }).status === 'number') {
+      const status = (err as { status: number; text?: () => Promise<string> }).status;
+      if (status === 400) {
+        const body = typeof (err as { text?: () => Promise<string> }).text === 'function'
+          ? await (err as { text: () => Promise<string> }).text()
+          : '';
+        if (body.includes('function') || body.includes('not recognized')) {
+          throw new Error('Sprint filtering unavailable — ensure Jira Software is installed');
+        }
+        throw new Error('Jira search failed with status 400');
+      }
+      throw new Error(`Jira search failed with status ${status}`);
+    }
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
-
-  if (storiesRes.status === 400) {
-    const body = await storiesRes.text();
-    if (body.includes('function') || body.includes('not recognized')) {
-      throw new Error('Sprint filtering unavailable — ensure Jira Software is installed');
-    }
-    throw new Error('Jira search failed with status 400');
-  }
-  if (!storiesRes.ok) throw new Error(`Jira search failed with status ${storiesRes.status}`);
-
-  const myStories: JiraIssue[] = (await storiesRes.json()).issues ?? [];
-  const mySubtasks: JiraIssue[] = subtasksRes.ok ? ((await subtasksRes.json()).issues ?? []) : [];
 
   const myIssueKeys = new Set([...myStories.map((s) => s.key), ...mySubtasks.map((s) => s.key)]);
   const myStoryKeys = new Set(myStories.map((s) => s.key));
@@ -427,15 +438,17 @@ export async function fetchMyTasksHierarchy(
       const extraJql = encodeURIComponent(
         `key in (${extraParentKeys.join(',')}) AND sprint in openSprints()`,
       );
-      const extraRes = await apiFetch('jira', `${base}/rest/api/2/search?jql=${extraJql}&fields=${fields}&maxResults=200`, { headers });
-      if (extraRes.ok) extraParents = ((await extraRes.json()).issues ?? []) as JiraIssue[];
+      extraParents = await fetchAllSearchPages(
+        `${base}/rest/api/2/search?jql=${extraJql}&fields=${fields}`,
+        headers,
+      );
     } catch { /* return partial results */ }
   }
 
   const allParents = [...myStories, ...extraParents];
   if (allParents.length === 0) return { issues: [], myIssueKeys };
 
-  // Step 4: fetch ALL subtasks for every parent (no assignee filter)
+  // Step 4: fetch ALL subtasks for every parent (no assignee filter) — fully paginated per chunk
   const allParentKeys = allParents.map((p) => p.key);
   const chunks: string[][] = [];
   for (let i = 0; i < allParentKeys.length; i += SUBTASK_CHUNK_SIZE) {
@@ -448,9 +461,11 @@ export async function fetchMyTasksHierarchy(
       chunks.map(async (chunk) => {
         // Parents are already sprint-scoped; sprint in openSprints() is not supported for subtasks on Jira DC.
         const jql = encodeURIComponent(`issuetype in subtaskIssueTypes() AND parent in (${chunk.join(',')}) AND statusCategory != Done`);
-        const res = await apiFetch('jira', `${base}/rest/api/2/search?jql=${jql}&fields=${subtaskFields}&maxResults=200`, { headers });
-        if (!res.ok) return [];
-        return ((await res.json()).issues ?? []) as JiraIssue[];
+        try {
+          return await fetchAllSearchPages(`${base}/rest/api/2/search?jql=${jql}&fields=${subtaskFields}`, headers);
+        } catch {
+          return [];
+        }
       }),
     );
     allSubtasks = chunkResults.flat();
@@ -750,6 +765,10 @@ export async function fetchActiveSprint(
  */
 /**
  * Returns the unique displayNames of all authors who logged work on an issue.
+ *
+ * Paginates through all worklog pages so issues with many worklogs do not
+ * silently lose authors beyond the first page.
+ *
  * Silently returns [] on any error — callers use this for attribution enrichment only.
  */
 export async function fetchIssueWorklogs(
@@ -758,12 +777,9 @@ export async function fetchIssueWorklogs(
   issueKey: string,
 ): Promise<string[]> {
   try {
-    const res = await apiFetch('jira', `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/worklog`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    const worklogs: Array<{ author?: { displayName?: string } }> = data.worklogs ?? [];
+    const headers = { Authorization: `Bearer ${token}`, Accept: 'application/json' };
+    const worklogUrl = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/worklog`;
+    const worklogs = await fetchAllWorklogPages(worklogUrl, headers);
     const names = new Set<string>();
     for (const wl of worklogs) {
       const name = wl.author?.displayName;

@@ -111,34 +111,30 @@ export default function WorkloadTab() {
     const stories = issues.filter((i) => !i.fields.issuetype.subtask);
     const subtasks = issues.filter((i) => i.fields.issuetype.subtask);
 
-    // Build subtasksByParent map: parentKey → WorkloadSubtaskRow[]
-    const subtasksByParent = new Map<string, WorkloadSubtaskRow[]>();
+    // Build subtask lookup by key for fast access
+    const subtaskByKey = new Map(subtasks.map((s) => [s.key, s]));
+
+    // Build subtasksByParent map: parentKey → subtask keys (for worklog-based filtering in Pass 2)
+    const subtaskKeysByParent = new Map<string, string[]>();
     for (const sub of subtasks) {
       const parentKey = sub.fields.parent?.key;
       if (!parentKey) continue;
-      const tt = sub.fields.timetracking;
-      const subRow: WorkloadSubtaskRow = {
-        key: sub.key,
-        summary: sub.fields.summary,
-        estSecs: tt?.originalEstimateSeconds ?? 0,
-        spentSecs: tt?.timeSpentSeconds ?? 0,
-        remainSecs: tt?.remainingEstimateSeconds ?? 0,
-      };
-      const existing = subtasksByParent.get(parentKey) ?? [];
-      existing.push(subRow);
-      subtasksByParent.set(parentKey, existing);
+      const existing = subtaskKeysByParent.get(parentKey) ?? [];
+      existing.push(sub.key);
+      subtaskKeysByParent.set(parentKey, existing);
     }
 
     const map = new Map<string, WorkloadRow>();
 
-    // Accumulate story-level data
+    // Pass 1: assignment-based — build rows with count, points, and the stories[] drill-down.
+    // Every assignee sees all their stories in the drill-down immediately (no worklog data needed).
+    // Subtasks start empty ([]) and are overlaid in Pass 2 once worklog data arrives.
+    // Time totals (est/spent/remaining) are worklog-based, so they stay at 0 until Pass 2.
     for (const story of stories) {
-      const cat = story.fields.status.statusCategory?.key ?? 'new';
-      const isDone = cat === 'done';
-      // Always add story to the assignee map — done stories still appear as sub-rows
       const name = story.fields.assignee?.displayName ?? 'Unassigned';
       const pts = (story.fields[storyPointsFieldKey] as number | null) ?? 0;
-      const tt = story.fields.timetracking;
+      const cat = story.fields.status.statusCategory?.key ?? 'new';
+      const isDone = cat === 'done';
       const existing = map.get(name) ?? {
         name,
         count: 0,
@@ -148,39 +144,25 @@ export default function WorkloadTab() {
         remainSecs: 0,
         stories: [],
       };
-
-      existing.count += 1;          // count ALL stories regardless of done status
-      existing.points += pts;       // points include done stories
-      // Time tracking always aggregated regardless of done status
-      existing.estSecs += tt?.originalEstimateSeconds ?? 0;
-      existing.spentSecs += tt?.timeSpentSeconds ?? 0;
-      existing.remainSecs += tt?.remainingEstimateSeconds ?? 0;
+      existing.count += 1;
+      existing.points += pts;
       existing.stories.push({
         key: story.key,
         summary: story.fields.summary,
         points: pts,
         isDone,
-        estSecs: tt?.originalEstimateSeconds ?? 0,
-        spentSecs: tt?.timeSpentSeconds ?? 0,
-        remainSecs: tt?.remainingEstimateSeconds ?? 0,
-        subtasks: subtasksByParent.get(story.key) ?? [],
+        estSecs: 0,
+        spentSecs: 0,
+        remainSecs: 0,
+        subtasks: [],
       });
       map.set(name, existing);
     }
 
-    // Accumulate subtask time into assignee bucket (no points, no count)
-    for (const sub of subtasks) {
-      const name = sub.fields.assignee?.displayName ?? 'Unassigned';
-      const tt = sub.fields.timetracking;
-      const existing = map.get(name);
-      if (!existing) continue; // subtask assignee not in any story — skip
-      existing.estSecs += tt?.originalEstimateSeconds ?? 0;
-      existing.spentSecs += tt?.timeSpentSeconds ?? 0;
-      existing.remainSecs += tt?.remainingEstimateSeconds ?? 0;
-    }
-
-    // Worklog attribution: ensure worklog authors appear as rows (count=0, pts=0 if not already present)
+    // Pass 2: worklog-based overlay — fill in subtasks, time totals, and worklog-only author rows.
+    // Runs only once worklogMap is available; rows remain usable before it loads (stories already visible).
     if (worklogMap) {
+      // Ensure every worklog author has a row (even if not assigned to any story)
       for (const [, authors] of worklogMap) {
         for (const authorName of authors) {
           if (!map.has(authorName)) {
@@ -193,6 +175,117 @@ export default function WorkloadTab() {
               remainSecs: 0,
               stories: [],
             });
+          }
+        }
+      }
+
+      // For each story: update the assignee's existing story row with filtered subtasks + time totals.
+      // Also add the story to any worklog-only authors who logged time on it (not the assignee).
+      for (const story of stories) {
+        const storyAuthors = worklogMap.get(story.key) ?? [];
+        const cat = story.fields.status.statusCategory?.key ?? 'new';
+        const isDone = cat === 'done';
+        const pts = (story.fields[storyPointsFieldKey] as number | null) ?? 0;
+        const tt = story.fields.timetracking;
+        const childKeys = subtaskKeysByParent.get(story.key) ?? [];
+
+        for (const authorName of storyAuthors) {
+          const row = map.get(authorName);
+          if (!row) continue;
+
+          // Collect only subtasks where this author also has worklogs
+          const filteredSubtasks: WorkloadSubtaskRow[] = childKeys
+            .filter((subKey) => (worklogMap.get(subKey) ?? []).includes(authorName))
+            .map((subKey) => {
+              const sub = subtaskByKey.get(subKey)!;
+              const subTt = sub.fields.timetracking;
+              return {
+                key: sub.key,
+                summary: sub.fields.summary,
+                estSecs: subTt?.originalEstimateSeconds ?? 0,
+                spentSecs: subTt?.timeSpentSeconds ?? 0,
+                remainSecs: subTt?.remainingEstimateSeconds ?? 0,
+              };
+            });
+
+          // Find the existing story row built in Pass 1 (assignee-based) and update it,
+          // or push a new story row if this is a worklog-only author (not the assignee).
+          const existingStoryRow = row.stories.find((s) => s.key === story.key);
+          if (existingStoryRow) {
+            // Update the already-visible story row with worklog-derived data
+            existingStoryRow.estSecs = tt?.originalEstimateSeconds ?? 0;
+            existingStoryRow.spentSecs = tt?.timeSpentSeconds ?? 0;
+            existingStoryRow.remainSecs = tt?.remainingEstimateSeconds ?? 0;
+            existingStoryRow.subtasks = filteredSubtasks;
+          } else {
+            // Worklog-only author: story wasn't in their assignment, add it now
+            row.stories.push({
+              key: story.key,
+              summary: story.fields.summary,
+              points: pts,
+              isDone,
+              estSecs: tt?.originalEstimateSeconds ?? 0,
+              spentSecs: tt?.timeSpentSeconds ?? 0,
+              remainSecs: tt?.remainingEstimateSeconds ?? 0,
+              subtasks: filteredSubtasks,
+            });
+          }
+
+          // Time totals on the summary row: accumulate from story-level worklog
+          row.estSecs += tt?.originalEstimateSeconds ?? 0;
+          row.spentSecs += tt?.timeSpentSeconds ?? 0;
+          row.remainSecs += tt?.remainingEstimateSeconds ?? 0;
+        }
+      }
+
+      // Accumulate subtask time into author row for subtasks where author has a worklog
+      // (covers subtasks whose parent story wasn't logged by this author).
+      // Also attaches the subtask visually to the parent story row in the author's drill-down,
+      // covering the case where someone logged time on a subtask but not on its parent story.
+      for (const sub of subtasks) {
+        const subAuthors = worklogMap.get(sub.key) ?? [];
+        const tt = sub.fields.timetracking;
+        const parentKey = sub.fields.parent?.key;
+        const parentStory = parentKey ? stories.find((s) => s.key === parentKey) : undefined;
+        for (const authorName of subAuthors) {
+          const row = map.get(authorName);
+          if (!row) continue;
+          row.estSecs += tt?.originalEstimateSeconds ?? 0;
+          row.spentSecs += tt?.timeSpentSeconds ?? 0;
+          row.remainSecs += tt?.remainingEstimateSeconds ?? 0;
+
+          // If the subtask's parent story exists, make sure this subtask appears in the
+          // author's drill-down under that story — even if the author has no worklog on
+          // the story itself (subtask-only contributor).
+          if (parentStory) {
+            let storyRow = row.stories.find((s) => s.key === parentKey);
+            if (!storyRow) {
+              // Author has no story-level worklog and isn't assigned — add the parent story row
+              const parentPts = (parentStory.fields[storyPointsFieldKey] as number | null) ?? 0;
+              const parentCat = parentStory.fields.status.statusCategory?.key ?? 'new';
+              const parentTt = parentStory.fields.timetracking;
+              storyRow = {
+                key: parentStory.key,
+                summary: parentStory.fields.summary,
+                points: parentPts,
+                isDone: parentCat === 'done',
+                estSecs: parentTt?.originalEstimateSeconds ?? 0,
+                spentSecs: parentTt?.timeSpentSeconds ?? 0,
+                remainSecs: parentTt?.remainingEstimateSeconds ?? 0,
+                subtasks: [],
+              };
+              row.stories.push(storyRow);
+            }
+            // Add subtask to the story row if not already present (story loop may have added it)
+            if (!storyRow.subtasks.some((st) => st.key === sub.key)) {
+              storyRow.subtasks.push({
+                key: sub.key,
+                summary: sub.fields.summary,
+                estSecs: tt?.originalEstimateSeconds ?? 0,
+                spentSecs: tt?.timeSpentSeconds ?? 0,
+                remainSecs: tt?.remainingEstimateSeconds ?? 0,
+              });
+            }
           }
         }
       }
