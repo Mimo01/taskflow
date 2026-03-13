@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: planning
-stopped_at: Completed 08-dashboard-enrichment-03-PLAN.md
-last_updated: "2026-03-13T10:04:05.851Z"
+stopped_at: "Checkpoint: 08-05 visual verification pending"
+last_updated: "2026-03-13T10:07:37.111Z"
 last_activity: "2026-03-13 - Completed quick task 12: Fix MR-to-Jira task mapping empty array"
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 21
-  completed_plans: 20
+  completed_plans: 21
   percent: 0
 ---
 
@@ -92,6 +92,8 @@ Key v1.1 constraints from research:
 - [Phase 08-dashboard-enrichment]: SubtasksPanel receives jiraBaseUrl/jiraToken/activeJiraProject as props — no internal secret reads
 - [Phase 08-dashboard-enrichment]: fetchActiveSprint added to jira.ts in Plan 03 (Plan 02 not yet executed) — Rule 3 blocking dependency
 - [Phase 08-dashboard-enrichment]: SprintHealthPanel reads JiraIssue[] directly from fetchSprintIssues (array, not {issues, myIssueKeys}) — confirmed from SprintProgressTab pattern
+- [Phase 08-dashboard-enrichment]: Dashboard index.tsx is a thin wiring layer only — token loading + prop passing; panels handle their own queries
+- [Phase 08-dashboard-enrichment]: PM layout uses early return pattern for clean role separation; developer/tech-lead default shares 4-panel grid
 
 ### Pending Todos
 
@@ -131,6 +133,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-13T10:04:05.848Z
-Stopped at: Completed 08-dashboard-enrichment-03-PLAN.md
+Last session: 2026-03-13T10:07:19.790Z
+Stopped at: Checkpoint: 08-05 visual verification pending
 Resume file: None
