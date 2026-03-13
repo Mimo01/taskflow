@@ -54,7 +54,17 @@ See archive: `.planning/milestones/v1.1-ROADMAP.md`
   3. User can see all issue metadata in one place: priority, assignee, reporter, story points, status, epic link, sprint, labels, fix versions, dates, subtasks, and linked issues
   4. User can edit assignee, priority, and story points inline and see the update reflected immediately (with rollback if the API call fails)
   5. User can post a comment and open the issue in Jira via a deep link from the detail panel
-**Plans**: TBD
+**Plans**: 8 plans
+
+Plans:
+- [ ] 09-01-PLAN.md — Install deps + shadcn Sheet + Wave 0 test scaffolds
+- [ ] 09-02-PLAN.md — discoverCustomFields(), fetchIssueDetail(), updateIssueField() + settings store + main.tsx
+- [ ] 09-03-PLAN.md — WikiRenderer (jira2md + react-markdown pipeline)
+- [ ] 09-04-PLAN.md — IssueDetailSheet shell + IssueDetailContent + IssueDetailSidebar (read-only)
+- [ ] 09-05-PLAN.md — Inline field editors with optimistic updates (assignee, priority, story points, labels)
+- [ ] 09-06-PLAN.md — Comment thread + CommentComposer + Open in Jira deep link
+- [ ] 09-07-PLAN.md — Wire sheet into SprintBoardTab + MyTasksTab (TaskCard onClick, TaskRow onIssueClick)
+- [ ] 09-08-PLAN.md — Wire sheet into search + notifications (Dashboard root) + human verification
 
 ### Phase 10: Sprint Board Redesign
 **Goal**: The sprint board shows every team member's subtasks as first-class kanban cards grouped under their parent story, and developers can drag cards between columns to transition status without any context switching
@@ -114,7 +124,7 @@ See archive: `.planning/milestones/v1.1-ROADMAP.md`
 | 6. Workload + Sprint Progress Enrichment | v1.1 | 3/3 | Complete | 2026-03-12 |
 | 7. Story/Subtask Hierarchy + MR Subtask Filter | v1.1 | 5/5 | Complete | 2026-03-13 |
 | 8. Dashboard Enrichment | v1.1 | 8/8 | Complete | 2026-03-13 |
-| 9. Custom Field Discovery + Issue Detail Foundation | v1.2 | 0/TBD | Not started | - |
+| 9. Custom Field Discovery + Issue Detail Foundation | v1.2 | 0/8 | Not started | - |
 | 10. Sprint Board Redesign | v1.2 | 0/TBD | Not started | - |
 | 11. Create/Edit Issue Form | v1.2 | 0/TBD | Not started | - |
 | 12. Backlog View | v1.2 | 0/TBD | Not started | - |
