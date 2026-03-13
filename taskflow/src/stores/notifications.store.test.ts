@@ -56,6 +56,42 @@ describe('notifications.store', () => {
       expect(items[1].id).toBe('old-1');
     });
 
+    it('does not prepend items whose IDs are already in the store (no duplicates)', () => {
+      act(() => {
+        useNotificationsStore.getState().setItems([makeItem('existing-1'), makeItem('existing-2')]);
+      });
+
+      act(() => {
+        // 'existing-1' is already in the store — should be filtered out
+        useNotificationsStore.getState().prependItems([makeItem('existing-1'), makeItem('new-1')]);
+      });
+
+      const { items } = useNotificationsStore.getState();
+      expect(items).toHaveLength(3);
+      expect(items[0].id).toBe('new-1');
+      expect(items[1].id).toBe('existing-1');
+      expect(items[2].id).toBe('existing-2');
+      // Confirm no duplicate 'existing-1' entries
+      expect(items.filter((i) => i.id === 'existing-1')).toHaveLength(1);
+    });
+
+    it('does not mutate state when all incoming items are already present', () => {
+      const original = [makeItem('a'), makeItem('b')];
+      act(() => {
+        useNotificationsStore.getState().setItems(original);
+      });
+
+      const stateBefore = useNotificationsStore.getState().items;
+
+      act(() => {
+        useNotificationsStore.getState().prependItems([makeItem('a'), makeItem('b')]);
+      });
+
+      const stateAfter = useNotificationsStore.getState().items;
+      // State reference must be unchanged (early-return `s` path)
+      expect(stateAfter).toBe(stateBefore);
+    });
+
     it('caps total items at 200', () => {
       const existing = Array.from({ length: 199 }, (_, i) => makeItem(`item-${i}`));
       act(() => {

@@ -68,9 +68,12 @@ export const useNotificationsStore = create<NotificationsState>()(
       setItems: (items) => set({ items }),
 
       prependItems: (newItems) =>
-        set((s) => ({
-          items: [...newItems, ...s.items].slice(0, 200),
-        })),
+        set((s) => {
+          const existingIds = new Set(s.items.map((i) => i.id));
+          const deduped = newItems.filter((i) => !existingIds.has(i.id));
+          if (deduped.length === 0) return s;
+          return { items: [...deduped, ...s.items].slice(0, 200) };
+        }),
 
       markAsRead: (id) =>
         set((s) => ({
