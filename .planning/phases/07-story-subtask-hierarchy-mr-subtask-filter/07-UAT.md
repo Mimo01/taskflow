@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: resolved
 phase: 07-story-subtask-hierarchy-mr-subtask-filter
 source: 07-01-SUMMARY.md, 07-02-SUMMARY.md, 07-03-SUMMARY.md
 started: 2026-03-13T00:00:00Z
-updated: 2026-03-13T03:00:00Z
+updated: 2026-03-13T12:00:00Z
 ---
 
 ## Current Test
@@ -59,7 +59,7 @@ skipped: 1
 ## Gaps
 
 - truth: "Subtask toggle button is easy to click on story cards"
-  status: failed
+  status: resolved
   reason: "User reported: the button to show subtasks is very small and hard to click"
   severity: minor
   test: 1
@@ -73,7 +73,7 @@ skipped: 1
     - "Optionally increase icon from size-3 to size-4 for better visual affordance"
 
 - truth: "MR Attention tab shows reviewer MRs linked to subtask stories"
-  status: failed
+  status: resolved
   reason: "User reported: mr matching seems to be broken. When fetching mr, it returns empty array from gitlab"
   severity: major
   test: 6
