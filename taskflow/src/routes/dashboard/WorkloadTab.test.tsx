@@ -92,12 +92,12 @@ describe('WorkloadTab', () => {
     vi.mocked(fetchIssueWorklogs).mockResolvedValue([]);
   });
 
-  it('groups sprint issues by assignee — done excluded from count/pts but visible as sub-rows', async () => {
+  it('groups sprint issues by assignee — all stories counted, done excluded from pts only', async () => {
     const user = userEvent.setup();
     const { fetchSprintIssues } = await import('@/services/jira');
     vi.mocked(fetchSprintIssues).mockResolvedValue([
       makeIssue('P-1', 'Alice', 'indeterminate', 5),
-      makeIssue('P-2', 'Alice', 'done', 3),       // done — excluded from count/pts
+      makeIssue('P-2', 'Alice', 'done', 3),       // done — counted in tasks but excluded from pts
       makeIssue('P-3', null, 'new', 2),            // unassigned
     ]);
 
@@ -105,14 +105,14 @@ describe('WorkloadTab', () => {
     renderWithQuery(<WorkloadTab />);
 
     await screen.findByText('Alice');
-    // Alice: only 1 open task (P-1, not P-2 which is done)
+    // Alice: 2 tasks (P-1 in-progress + P-2 done)
     // Unassigned: 1 open task (P-3)
     expect(screen.getByText('Unassigned')).toBeTruthy();
 
-    // Alice row should show 1 task (P-2 done is excluded from count/pts)
+    // Alice row should show 2 tasks (P-2 done is now counted) but only 5 pts (done excluded from pts)
     const aliceRow = screen.getByText('Alice').closest('[data-testid="workload-row"]');
     expect(aliceRow).not.toBeNull();
-    expect(aliceRow?.textContent).toMatch(/1/);
+    expect(aliceRow?.textContent).toMatch(/2\s*tasks/i);
     expect(aliceRow?.textContent).toMatch(/5\s*pts/i);
 
     // Expand Alice row — both P-1 and P-2 (done) should appear as sub-rows
@@ -158,13 +158,62 @@ describe('WorkloadTab', () => {
 
     const carolRow = screen.getByText('Carol').closest('[data-testid="workload-row"]');
     expect(carolRow).not.toBeNull();
-    // Carol row should show 0 tasks and 0 pts
-    expect(carolRow?.textContent).toMatch(/0\s*tasks?/i);
+    // Carol row should show 1 task (done stories now counted) and 0 pts (locked decision)
+    expect(carolRow?.textContent).toMatch(/1\s*task/i);
     expect(carolRow?.textContent).toMatch(/0\s*pts/i);
 
     // Expand Carol row — P-1 (done) should appear as a sub-row
     await user.click(carolRow!);
     expect(screen.getByText('P-1')).toBeTruthy();
+  });
+
+  it('counts done stories in task total', async () => {
+    const { fetchSprintIssues } = await import('@/services/jira');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([
+      makeIssue('P-1', 'Alice', 'indeterminate', 5),  // in-progress: 5 pts
+      makeIssue('P-2', 'Alice', 'done', 3),            // done: 0 pts, but counted
+    ]);
+
+    const { default: WorkloadTab } = await import('./WorkloadTab');
+    renderWithQuery(<WorkloadTab />);
+
+    await screen.findByText('Alice');
+    const aliceRow = screen.getByText('Alice').closest('[data-testid="workload-row"]');
+    expect(aliceRow).not.toBeNull();
+    // Tasks should show 2 (1 in-progress + 1 done)
+    expect(aliceRow?.textContent).toMatch(/2\s*tasks/i);
+    // Pts should show only 5 (not 8 — done story excluded from pts)
+    expect(aliceRow?.textContent).toMatch(/5\s*pts/i);
+    expect(aliceRow?.textContent).not.toMatch(/8\s*pts/i);
+  });
+
+  it('done story sub-row has Done badge', async () => {
+    const user = userEvent.setup();
+    const { fetchSprintIssues } = await import('@/services/jira');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([
+      makeIssue('P-1', 'Alice', 'indeterminate', 5),  // in-progress: no badge
+      makeIssue('P-2', 'Alice', 'done', 3),            // done: should have badge
+    ]);
+
+    const { default: WorkloadTab } = await import('./WorkloadTab');
+    renderWithQuery(<WorkloadTab />);
+
+    await screen.findByText('Alice');
+    const aliceRow = screen.getByText('Alice').closest('[data-testid="workload-row"]');
+    expect(aliceRow).not.toBeNull();
+
+    // Expand Alice row
+    await user.click(aliceRow!);
+
+    // Done badge should appear (only for P-2, the done story)
+    const doneBadges = screen.getAllByTestId('done-badge');
+    expect(doneBadges.length).toBe(1);
+
+    // In-progress story P-1 should NOT have a done badge
+    const storyRows = screen.getAllByTestId('workload-story-row');
+    const p1Row = storyRows.find((r) => r.textContent?.includes('P-1'));
+    expect(p1Row).toBeTruthy();
+    expect(p1Row?.querySelector('[data-testid="done-badge"]')).toBeNull();
   });
 
   it('shows Unassigned bucket for issues with null assignee', async () => {
