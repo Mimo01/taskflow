@@ -107,22 +107,21 @@ describe('IssueDetailSheet', () => {
         { wrapper }
       )
 
-      // Sheet should be open — find the sheet-content by data-slot
-      const sheetContent = await screen.findByTestId('sheet-open')
-      expect(sheetContent).toBeTruthy()
+      // When open, the skeleton or body is rendered (skeleton initially while loading)
+      // The Sheet is open when issueKey is non-null — verify by finding skeleton or content
+      const skeleton = await screen.findByTestId('issue-detail-skeleton')
+      expect(skeleton).toBeTruthy()
     })
 
-    it('renders sheet closed when issueKey is null', () => {
-      const IssueDetailSheetModule = vi.importActual('./IssueDetailSheet')
-      // When issueKey is null, the Sheet's open prop is false
-      // We verify by checking that body content is not rendered
-      const { IssueDetailSheet } = require('./IssueDetailSheet')
+    it('renders sheet closed when issueKey is null', async () => {
+      const { IssueDetailSheet } = await import('./IssueDetailSheet')
       render(
         <IssueDetailSheet issueKey={null} onClose={vi.fn()} />,
         { wrapper }
       )
-      // No sheet content visible when closed
+      // When issueKey is null, no body or skeleton is rendered inside the sheet
       expect(screen.queryByTestId('issue-detail-body')).toBeNull()
+      expect(screen.queryByTestId('issue-detail-skeleton')).toBeNull()
     })
 
     it('calls onClose when Sheet onOpenChange fires with false', async () => {
