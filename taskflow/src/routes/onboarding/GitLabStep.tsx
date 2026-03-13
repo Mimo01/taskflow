@@ -25,7 +25,7 @@ import { useAuthStore } from '@/stores/auth.store';
 
 export default function GitLabStep() {
   const { gitlabUrl, gitlabToken, gitlabProject, gitlabProjects, set, goBack, goNext } = useOnboardingStore();
-  const { setGitlabConnected, setActiveGitlabProject } = useAuthStore();
+  const { setGitlabConnected, setActiveGitlabProject, setGitlabUserId } = useAuthStore();
 
   const projects = gitlabProjects;
   const selectedProjectId = gitlabProject;
@@ -37,9 +37,11 @@ export default function GitLabStep() {
       const projectList = await listGitLabProjects(gitlabUrl, gitlabToken);
       return { user, projectList };
     },
-    onSuccess: async ({ projectList }) => {
+    onSuccess: async ({ user, projectList }) => {
       // Store PAT in Stronghold — NEVER in Zustand
       await storeSecret('gitlab-pat', gitlabToken);
+      // Persist user ID so MrAttentionTab can skip the validateGitLab round-trip
+      setGitlabUserId(user.id);
       set({ gitlabProjects: projectList });
     },
   });
@@ -62,7 +64,7 @@ export default function GitLabStep() {
   const showProjectDropdown = projects.length > 0;
 
   return (
-    <div className="flex flex-col gap-6 max-w-md mx-auto py-8">
+    <div className="flex flex-col gap-6 max-w-lg mx-auto py-8">
       <div>
         <h2 className="text-xl font-semibold">Connect GitLab</h2>
         <p className="text-sm text-muted-foreground mt-1">
