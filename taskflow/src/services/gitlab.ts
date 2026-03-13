@@ -154,6 +154,7 @@ export interface GitLabMilestone {
   id: number;
   iid: number;
   title: string;
+  start_date: string | null; // "YYYY-MM-DD" or null
   due_date: string | null; // "YYYY-MM-DD" or null
   state: 'active' | 'closed';
   web_url: string;
@@ -449,6 +450,33 @@ export async function fetchProjectMilestones(
 
   const data = await response.json();
   return data as GitLabMilestone[];
+}
+
+/**
+ * Fetch project milestones whose due_date (or start_date) falls within a date range.
+ * Fetches all milestones and filters client-side since the GitLab API doesn't support
+ * direct date-range filtering on milestones.
+ *
+ * @param baseUrl   - GitLab base URL
+ * @param token     - Personal Access Token
+ * @param projectId - GitLab numeric project ID
+ * @param from      - Start of range, inclusive (YYYY-MM-DD)
+ * @param to        - End of range, inclusive (YYYY-MM-DD)
+ * @returns Array of milestones with due_date or start_date within the range
+ */
+export async function fetchProjectMilestonesInRange(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+  from: string,
+  to: string,
+): Promise<GitLabMilestone[]> {
+  const all = await fetchProjectMilestones(baseUrl, token, projectId);
+  return all.filter((m) => {
+    const date = m.due_date ?? m.start_date;
+    if (!date) return false;
+    return date >= from && date <= to;
+  });
 }
 
 /**
