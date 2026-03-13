@@ -22,11 +22,25 @@ import SprintHealthPanel from './SprintHealthPanel';
 import NotificationsPanel from './NotificationsPanel';
 
 export default function Dashboard() {
-  const role = useSettingsStore((s) => s.role);
+  const { role, storyPointsFieldKey } = useSettingsStore((s) => ({ role: s.role, storyPointsFieldKey: s.storyPointsFieldKey }));
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl } = useAuthStore();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
   const [gitlabToken, setGitlabToken] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  // Track last-refreshed time by subscribing to the my-tasks query (shared cache with SubtasksPanel)
+  const [updatedAt, setUpdatedAt] = useState<number>(
+    () => queryClient.getQueryState(['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey])?.dataUpdatedAt ?? 0
+  );
+  useEffect(() => {
+    return queryClient.getQueryCache().subscribe(() => {
+      const ts = queryClient.getQueryState(['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey])?.dataUpdatedAt;
+      if (ts) setUpdatedAt(ts);
+    });
+  }, [queryClient, activeJiraProject, storyPointsFieldKey]);
+  const lastRefreshed = updatedAt
+    ? `Refreshed: ${new Date(updatedAt).toLocaleTimeString()}`
+    : 'Refreshed: Never';
 
   useEffect(() => {
     if (jiraBaseUrl) readSecret('jira-pat').then(t => setJiraToken(t)).catch(() => setJiraToken(null));
@@ -43,15 +57,18 @@ export default function Dashboard() {
   const header = (
     <div className="flex items-center justify-between">
       <h1 className="text-xl font-semibold">Overview</h1>
-      <button
-        type="button"
-        onClick={handleRefresh}
-        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        aria-label="Refresh"
-      >
-        <RefreshCw className="size-3" />
-        Refresh
-      </button>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">{lastRefreshed}</span>
+        <button
+          type="button"
+          onClick={handleRefresh}
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Refresh"
+        >
+          <RefreshCw className="size-3" />
+          Refresh
+        </button>
+      </div>
     </div>
   );
 
