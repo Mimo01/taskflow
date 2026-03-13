@@ -45,10 +45,10 @@ Requirements for v1.1 Polish milestone. Each maps to roadmap phases.
 
 ### Dashboard
 
-- [ ] **DASH-01**: Dashboard shows current user's open subtasks from the current sprint
-- [ ] **DASH-02**: Dashboard shows current user's open MR health summary (needs review / approved / changes requested)
-- [ ] **DASH-03**: Dashboard shows sprint health (days left, % points done, at-risk in-progress items)
-- [ ] **DASH-04**: Dashboard shows last 3 unread Jira/GitLab notifications inline
+- [x] **DASH-01**: Dashboard shows current user's open subtasks from the current sprint
+- [x] **DASH-02**: Dashboard shows current user's open MR health summary (needs review / approved / changes requested)
+- [x] **DASH-03**: Dashboard shows sprint health (days left, % points done, at-risk in-progress items)
+- [x] **DASH-04**: Dashboard shows last 3 unread Jira/GitLab notifications inline
 
 ## Future Requirements
 
@@ -88,10 +88,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | HIER-03 | Phase 7 | Complete |
 | MRAT-01 | Phase 7 | Complete |
 | MRAT-02 | Phase 7 | Complete |
-| DASH-01 | Phase 8 | Pending |
-| DASH-02 | Phase 8 | Pending |
-| DASH-03 | Phase 8 | Pending |
-| DASH-04 | Phase 8 | Pending |
+| DASH-01 | Phase 8 | Complete |
+| DASH-02 | Phase 8 | Complete |
+| DASH-03 | Phase 8 | Complete |
+| DASH-04 | Phase 8 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 22 total
