@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
 status: executing
-stopped_at: Completed 09-02-PLAN.md (custom field discovery infrastructure)
-last_updated: "2026-03-13T23:42:00.000Z"
-last_activity: 2026-03-13 — Completed 09-02 (discoverCustomFields, fetchIssueDetail, updateIssueField, settings store extension, main.tsx hook update)
+stopped_at: Completed 09-04-PLAN.md (IssueDetailSheet + IssueDetailContent + IssueDetailSidebar)
+last_updated: "2026-03-13T22:49:25Z"
+last_activity: 2026-03-13 — Completed 09-04 (IssueDetailSheet controlled sheet container, IssueDetailContent left column, IssueDetailSidebar right column, skeleton.tsx component)
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 8
-  completed_plans: 3
-  percent: 38
+  completed_plans: 4
+  percent: 50
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 Phase: 9 of 13 (Custom Field Discovery + Issue Detail Foundation)
-Plan: 09-02 complete (3 of 8 plans done in phase 9)
+Plan: 09-04 complete (4 of 8 plans done in phase 9)
 Status: Executing
-Last activity: 2026-03-13 — Completed 09-02 (discoverCustomFields, fetchIssueDetail, updateIssueField, settings store extension, main.tsx hook)
+Last activity: 2026-03-13 — Completed 09-04 (IssueDetailSheet controlled container, IssueDetailContent, IssueDetailSidebar, skeleton.tsx)
 
-Progress: [███░░░░░░░] 38% (v1.2, 3/8 plans)
+Progress: [████░░░░░░] 50% (v1.2, 4/8 plans)
 
 ## Performance Metrics
 
@@ -70,6 +70,9 @@ Key v1.2 constraints from research:
 - [09-02]: discoverStoryPointsField removed from jira.ts — discoverCustomFields supersedes it with all four field keys
 - [09-02]: accountFieldKey added to settings store as string | null (null default) — reserved for Phase 11
 - [09-02]: fetchIssueDetail explicit fields= param includes epicNameFieldKey (omitted from research code example; added per Pitfall 1)
+- [09-04]: IssueDetailBody split as internal component — prevents useQuery being called unconditionally when issueKey is null (rules of hooks)
+- [09-04]: skeleton.tsx created manually (standard shadcn animate-pulse pattern) — npx shadcn not available in execution environment
+- [09-04]: data-testid added to skeleton div for reliable test assertions without relying on CSS class names
 
 ### Pending Todos
 
@@ -84,6 +87,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-13T23:42:00.000Z
-Stopped at: Completed 09-02-PLAN.md (custom field discovery infrastructure)
+Last session: 2026-03-13T22:49:25Z
+Stopped at: Completed 09-04-PLAN.md (IssueDetailSheet + IssueDetailContent + IssueDetailSidebar)
 Resume file: None
