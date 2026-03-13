@@ -15,9 +15,9 @@ Requirements for the Jira Parity milestone. Goal: replace the need to open real 
 - [ ] **ISSUE-04**: User can edit issue fields inline from the detail panel: assignee, priority, story points (optimistic update + rollback)
 - [x] **ISSUE-05**: User can view all child subtasks with their status from the issue detail panel
 - [x] **ISSUE-06**: User can view linked issues (relates to, blocks, is blocked by) from the issue detail panel
-- [ ] **ISSUE-07**: User can read the full comment thread for any issue from the detail panel
-- [ ] **ISSUE-08**: User can post a comment on any issue from the detail panel
-- [ ] **ISSUE-09**: User can open any issue directly in Jira via a deep link from the detail panel
+- [x] **ISSUE-07**: User can read the full comment thread for any issue from the detail panel
+- [x] **ISSUE-08**: User can post a comment on any issue from the detail panel
+- [x] **ISSUE-09**: User can open any issue directly in Jira via a deep link from the detail panel
 
 ### Sprint Board (BOARD)
 
@@ -90,9 +90,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ISSUE-04 | Phase 9 | Pending |
 | ISSUE-05 | Phase 9 | Complete |
 | ISSUE-06 | Phase 9 | Complete |
-| ISSUE-07 | Phase 9 | Pending |
-| ISSUE-08 | Phase 9 | Pending |
-| ISSUE-09 | Phase 9 | Pending |
+| ISSUE-07 | Phase 9 | Complete |
+| ISSUE-08 | Phase 9 | Complete |
+| ISSUE-09 | Phase 9 | Complete |
 | BOARD-01 | Phase 10 | Pending |
 | BOARD-02 | Phase 10 | Pending |
 | BOARD-03 | Phase 10 | Pending |

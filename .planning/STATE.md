@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
 status: executing
-stopped_at: Completed 09-04-PLAN.md (IssueDetailSheet + IssueDetailContent + IssueDetailSidebar)
-last_updated: "2026-03-13T22:49:25Z"
-last_activity: 2026-03-13 — Completed 09-04 (IssueDetailSheet controlled sheet container, IssueDetailContent left column, IssueDetailSidebar right column, skeleton.tsx component)
+stopped_at: Completed 09-06-PLAN.md (CommentComposer + comment thread + Open in Jira)
+last_updated: "2026-03-13T23:57:30Z"
+last_activity: 2026-03-13 — Completed 09-06 (CommentComposer with wiki toolbar, comment thread newest-first, Open in Jira deep link)
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 8
-  completed_plans: 4
-  percent: 50
+  completed_plans: 6
+  percent: 75
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 Phase: 9 of 13 (Custom Field Discovery + Issue Detail Foundation)
-Plan: 09-04 complete (4 of 8 plans done in phase 9)
+Plan: 09-06 complete (6 of 8 plans done in phase 9)
 Status: Executing
-Last activity: 2026-03-13 — Completed 09-04 (IssueDetailSheet controlled container, IssueDetailContent, IssueDetailSidebar, skeleton.tsx)
+Last activity: 2026-03-13 — Completed 09-06 (CommentComposer with wiki markup toolbar, comment thread newest-first with relativeTime + WikiRenderer, Open in Jira deep link via openUrl)
 
-Progress: [████░░░░░░] 50% (v1.2, 4/8 plans)
+Progress: [██████░░░░] 75% (v1.2, 6/8 plans)
 
 ## Performance Metrics
 
@@ -73,6 +73,13 @@ Key v1.2 constraints from research:
 - [09-04]: IssueDetailBody split as internal component — prevents useQuery being called unconditionally when issueKey is null (rules of hooks)
 - [09-04]: skeleton.tsx created manually (standard shadcn animate-pulse pattern) — npx shadcn not available in execution environment
 - [09-04]: data-testid added to skeleton div for reliable test assertions without relying on CSS class names
+- [09-06]: textarea.tsx created manually — npx shadcn not available; native textarea wrapper consistent with input.tsx pattern
+- [09-06]: relativeTime inlined in IssueDetailContent using Intl.RelativeTimeFormat — zero-dependency per RESEARCH.md guidance
+- [09-06]: CommentComposer reads token via readSecret('jira-pat') directly — no prop drilling of auth token
+- [09-06]: comment thread renders [...comments].reverse() — newest-first without mutating original array
+- [09-05]: useFieldMutation hook extracted inside IssueDetailSidebar — co-locates mutation logic with editing UI; reusable template for future field edits
+- [09-05]: PopoverTrigger used without asChild — @base-ui/react/popover does not support asChild/slot composition pattern
+- [09-05]: Priority select opens immediately on click (not two-step) — reduces edit friction
 
 ### Pending Todos
 
@@ -87,6 +94,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-13T22:49:25Z
-Stopped at: Completed 09-04-PLAN.md (IssueDetailSheet + IssueDetailContent + IssueDetailSidebar)
+Last session: 2026-03-13T23:58:00Z
+Stopped at: Completed 09-05-PLAN.md (IssueDetailSidebar inline field editors + optimistic updates)
 Resume file: None
