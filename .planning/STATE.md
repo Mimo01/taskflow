@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
 status: executing
-stopped_at: Completed 09-01-PLAN.md (deps + Wave 0 test scaffolds)
-last_updated: "2026-03-13T23:47:00.000Z"
-last_activity: 2026-03-13 — Completed 09-01 (install deps, shadcn Sheet, IssueDetailSheet.test.tsx scaffold)
+stopped_at: Completed 09-02-PLAN.md (custom field discovery infrastructure)
+last_updated: "2026-03-13T23:42:00.000Z"
+last_activity: 2026-03-13 — Completed 09-02 (discoverCustomFields, fetchIssueDetail, updateIssueField, settings store extension, main.tsx hook update)
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 8
-  completed_plans: 2
-  percent: 25
+  completed_plans: 3
+  percent: 38
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 Phase: 9 of 13 (Custom Field Discovery + Issue Detail Foundation)
-Plan: 09-01 complete (2 of 8 plans done in phase 9)
+Plan: 09-02 complete (3 of 8 plans done in phase 9)
 Status: Executing
-Last activity: 2026-03-13 — Completed 09-01 (install deps + Wave 0 test scaffolds); 09-02 and 09-03 also complete
+Last activity: 2026-03-13 — Completed 09-02 (discoverCustomFields, fetchIssueDetail, updateIssueField, settings store extension, main.tsx hook)
 
-Progress: [██░░░░░░░░] 25% (v1.2, 2/8 plans)
+Progress: [███░░░░░░░] 38% (v1.2, 3/8 plans)
 
 ## Performance Metrics
 
@@ -67,6 +67,9 @@ Key v1.2 constraints from research:
 - [Phase 09]: WikiRenderer null guard produces empty string '' to avoid React children warning on undefined
 - [09-01]: Plans 09-02/03 ran before 09-01 — WikiRenderer.test.tsx and jira.test.ts Phase 9 scaffolds already present as real tests; kept real tests (no regression to stubs)
 - [09-01]: jira.test.ts import fix — discoverStoryPointsField removed (superseded by discoverCustomFields in 09-02)
+- [09-02]: discoverStoryPointsField removed from jira.ts — discoverCustomFields supersedes it with all four field keys
+- [09-02]: accountFieldKey added to settings store as string | null (null default) — reserved for Phase 11
+- [09-02]: fetchIssueDetail explicit fields= param includes epicNameFieldKey (omitted from research code example; added per Pitfall 1)
 
 ### Pending Todos
 
@@ -81,6 +84,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-13T23:47:00.000Z
-Stopped at: Completed 09-01-PLAN.md (deps + Wave 0 scaffolds)
+Last session: 2026-03-13T23:42:00.000Z
+Stopped at: Completed 09-02-PLAN.md (custom field discovery infrastructure)
 Resume file: None
