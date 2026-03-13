@@ -4,7 +4,7 @@ milestone: v1.1
 milestone_name: Polish
 status: planning
 stopped_at: Completed 08-06-PLAN.md — gap closure SubtasksPanel + NotificationsPanel
-last_updated: "2026-03-13T10:51:52.099Z"
+last_updated: "2026-03-13T10:55:29.790Z"
 last_activity: "2026-03-13 - Completed quick task 12: Fix MR-to-Jira task mapping empty array"
 progress:
   total_phases: 4
