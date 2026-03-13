@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: planning
-stopped_at: Completed 07-04-PLAN.md
-last_updated: "2026-03-13T08:24:37.876Z"
+stopped_at: Completed 07-05-PLAN.md
+last_updated: "2026-03-13T08:26:34.192Z"
 last_activity: "2026-03-12 - Completed quick task 11: Add active page indicator in sidebar"
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 16
-  completed_plans: 15
+  completed_plans: 16
   percent: 0
 ---
 
@@ -80,6 +80,9 @@ Key v1.1 constraints from research:
 - [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: boardGroups useMemo partitions sprint issues into stories/subtasksByParent — columns and counts derived from stories only
 - [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: expandedStories standalone useState decoupled from query cache — collapse state survives 60s refetch
 - [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: Single button wrapping Badge+chevron is idiomatic — avoids nested interactive elements and makes the entire row the hit target
+- [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: queryKey for gitlab-mrs includes userId as third element — ensures fresh fetch when userId changes from undefined to real value
+- [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: enabled guard requires !!userId — prevents query firing before validateGitLab resolves
+- [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: gitlab.ts uncommitted diff discarded via git checkout — duplicate fetchProjectMilestonesInRange never committed
 
 ### Pending Todos
 
@@ -110,9 +113,10 @@ None.
 | Phase 07-story-subtask-hierarchy-mr-subtask-filter P03 | 10 | 2 tasks | 3 files |
 | Phase 07-story-subtask-hierarchy-mr-subtask-filter P02 | 3 | 2 tasks | 2 files |
 | Phase 07-story-subtask-hierarchy-mr-subtask-filter P04 | 3 | 1 tasks | 1 files |
+| Phase 07-story-subtask-hierarchy-mr-subtask-filter P05 | 2 | 2 tasks | 2 files |
 
 ## Session Continuity
 
-Last session: 2026-03-13T08:24:37.873Z
-Stopped at: Completed 07-04-PLAN.md
+Last session: 2026-03-13T08:26:34.188Z
+Stopped at: Completed 07-05-PLAN.md
 Resume file: None
