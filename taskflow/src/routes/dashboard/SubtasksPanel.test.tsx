@@ -3,26 +3,25 @@
  *
  * Tests subtask display, orphan filtering, empty state,
  * display limit, and Jira deep-link click behavior.
- *
- * RED state: SubtasksPanel component does not exist yet.
- * These tests will fail at import resolution — that is expected.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 
-// Mock @tanstack/react-query (useQuery, useQueryClient)
+// We keep the actual react-query but mock useQuery to control data
 vi.mock('@tanstack/react-query', async () => {
   const actual = await vi.importActual('@tanstack/react-query');
   return {
     ...actual,
-    useQuery: vi.fn().mockReturnValue({ data: undefined, isLoading: false, isError: false }),
+    useQuery: vi.fn(),
     useQueryClient: vi.fn().mockReturnValue({ getQueryData: vi.fn() }),
   };
 });
 
-// Mock auth store
+// Mock auth store — SubtasksPanel receives props, auth store not used inside it
 vi.mock('@/stores/auth.store', () => ({
   useAuthStore: vi.fn(() => ({
     jiraBaseUrl: 'https://jira.example.com',
@@ -49,6 +48,11 @@ vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-jira-token'),
 }));
 
+import { useQuery } from '@tanstack/react-query';
+import SubtasksPanel from './SubtasksPanel';
+
+const mockedUseQuery = vi.mocked(useQuery);
+
 // Helper: build a subtask issue fixture
 function makeSubtask(key: string, parentKey: string, parentSummary: string, status = 'In Progress') {
   return {
@@ -61,6 +65,7 @@ function makeSubtask(key: string, parentKey: string, parentSummary: string, stat
       customfield_10016: null,
       issuetype: { name: 'Sub-task', subtask: true },
       parent: {
+        id: parentKey,
         key: parentKey,
         fields: { summary: parentSummary },
       },
@@ -69,35 +74,176 @@ function makeSubtask(key: string, parentKey: string, parentSummary: string, stat
   };
 }
 
+// Helper: build a sprint-board issue fixture (parent story)
+function makeStory(key: string) {
+  return {
+    id: key,
+    key,
+    fields: {
+      summary: `Story ${key}`,
+      status: { id: '1', name: 'In Progress', statusCategory: { key: 'indeterminate' } },
+      assignee: null,
+      customfield_10016: 3,
+      issuetype: { name: 'Story', subtask: false },
+    },
+  };
+}
+
+const DEFAULT_PROPS = {
+  jiraBaseUrl: 'https://jira.example.com',
+  jiraToken: 'test-jira-token',
+  activeJiraProject: 'PROJ',
+};
+
 function renderWithQuery(ui: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: 0 } },
   });
-  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+  return render(
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+    </MemoryRouter>,
+  );
 }
 
 describe('SubtasksPanel (DASH-01)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: both queries return empty
+    mockedUseQuery.mockReturnValue({ data: undefined, isLoading: false, isError: false } as ReturnType<typeof useQuery>);
   });
 
   describe('subtask row display', () => {
-    it.todo('renders subtask row with key, title, status badge, and parent story name');
+    it('renders subtask row with key, title, status badge, and parent story name', () => {
+      const subtask = makeSubtask('PROJ-10', 'PROJ-1', 'Parent Story Name');
+      // First useQuery call = my-tasks, second = sprint-board
+      mockedUseQuery
+        .mockReturnValueOnce({
+          data: { issues: [subtask], myIssueKeys: new Set(['PROJ-10']) },
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>)
+        .mockReturnValueOnce({
+          data: { issues: [makeStory('PROJ-1')] },
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>);
+
+      renderWithQuery(<SubtasksPanel {...DEFAULT_PROPS} />);
+
+      expect(screen.getByText('PROJ-10')).toBeInTheDocument();
+      expect(screen.getByText('Subtask PROJ-10 title')).toBeInTheDocument();
+      expect(screen.getByText('In Progress')).toBeInTheDocument();
+      expect(screen.getByText(/Parent Story Name/)).toBeInTheDocument();
+    });
   });
 
   describe('orphan subtask filtering', () => {
-    it.todo('hides orphan subtasks whose parent.key is not in the sprint issue set');
+    it('hides orphan subtasks whose parent.key is not in the sprint issue set', () => {
+      // Subtask whose parent is NOT in the sprint board
+      const orphan = makeSubtask('PROJ-20', 'PROJ-999', 'Old Story');
+      const validSubtask = makeSubtask('PROJ-21', 'PROJ-1', 'Current Story');
+
+      mockedUseQuery
+        .mockReturnValueOnce({
+          data: {
+            issues: [orphan, validSubtask],
+            myIssueKeys: new Set(['PROJ-20', 'PROJ-21']),
+          },
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>)
+        .mockReturnValueOnce({
+          data: { issues: [makeStory('PROJ-1')] }, // Only PROJ-1 is in sprint
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>);
+
+      renderWithQuery(<SubtasksPanel {...DEFAULT_PROPS} />);
+
+      // Valid subtask should appear
+      expect(screen.getByText('PROJ-21')).toBeInTheDocument();
+      // Orphan should NOT appear
+      expect(screen.queryByText('PROJ-20')).not.toBeInTheDocument();
+    });
   });
 
   describe('empty state', () => {
-    it.todo('shows "No open subtasks in the current sprint" when no subtasks are present');
+    it('shows "No open subtasks in the current sprint" when no subtasks are present', () => {
+      mockedUseQuery
+        .mockReturnValueOnce({
+          data: { issues: [], myIssueKeys: new Set() },
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>)
+        .mockReturnValueOnce({
+          data: { issues: [] },
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>);
+
+      renderWithQuery(<SubtasksPanel {...DEFAULT_PROPS} />);
+
+      expect(screen.getByText('No open subtasks in the current sprint')).toBeInTheDocument();
+    });
   });
 
   describe('display limit', () => {
-    it.todo('limits display to 5 subtasks and shows "View all in My Tasks" link when more exist');
+    it('limits display to 5 subtasks and shows "View all in My Tasks" link when more exist', () => {
+      // Create 7 subtasks all with parent PROJ-1 (which is in sprint)
+      const subtasks = Array.from({ length: 7 }, (_, i) =>
+        makeSubtask(`PROJ-${30 + i}`, 'PROJ-1', 'Parent Story'),
+      );
+      const myKeys = new Set(subtasks.map((s) => s.key));
+
+      mockedUseQuery
+        .mockReturnValueOnce({
+          data: { issues: subtasks, myIssueKeys: myKeys },
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>)
+        .mockReturnValueOnce({
+          data: { issues: [makeStory('PROJ-1')] },
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>);
+
+      renderWithQuery(<SubtasksPanel {...DEFAULT_PROPS} />);
+
+      // Only 5 subtask keys should appear (PROJ-30 through PROJ-34)
+      expect(screen.getByText('PROJ-30')).toBeInTheDocument();
+      expect(screen.getByText('PROJ-34')).toBeInTheDocument();
+      expect(screen.queryByText('PROJ-35')).not.toBeInTheDocument();
+      // "View all" link should appear
+      expect(screen.getByText('View all in My Tasks')).toBeInTheDocument();
+    });
   });
 
   describe('Jira deep-link', () => {
-    it.todo('clicking a subtask row calls window.open with the Jira browse URL');
+    it('clicking a subtask row calls window.open with the Jira browse URL', async () => {
+      const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+      const subtask = makeSubtask('PROJ-40', 'PROJ-1', 'Parent Story');
+
+      mockedUseQuery
+        .mockReturnValueOnce({
+          data: { issues: [subtask], myIssueKeys: new Set(['PROJ-40']) },
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>)
+        .mockReturnValueOnce({
+          data: { issues: [makeStory('PROJ-1')] },
+          isLoading: false,
+          isError: false,
+        } as ReturnType<typeof useQuery>);
+
+      renderWithQuery(<SubtasksPanel {...DEFAULT_PROPS} />);
+
+      const rowButton = screen.getByText('PROJ-40').closest('button');
+      expect(rowButton).not.toBeNull();
+      await userEvent.click(rowButton!);
+
+      expect(openSpy).toHaveBeenCalledWith('https://jira.example.com/browse/PROJ-40', '_blank');
+      openSpy.mockRestore();
+    });
   });
 });
