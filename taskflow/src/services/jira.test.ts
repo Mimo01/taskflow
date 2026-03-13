@@ -12,6 +12,8 @@ import {
   fetchFixVersions,
   discoverStoryPointsField,
   type JiraIssue,
+  type JiraIssueDetail,
+  type JiraIssueLink,
 } from './jira';
 
 vi.mock('@tauri-apps/plugin-http', () => ({
@@ -761,6 +763,162 @@ describe('jira service', () => {
       const { fetchIssueWorklogs } = await import('./jira');
       const result = await fetchIssueWorklogs('https://jira.example.com', 'token', 'PROJ-1');
       expect(result).toEqual(['Alice']);
+    });
+  });
+
+  describe('ISSUE-03: discoverCustomFields', () => {
+    it('resolves epicLinkFieldKey from schema.custom gh-epic-link', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [
+          { id: 'customfield_10100', name: 'Epic Link', schema: { custom: 'com.pyxis.greenhopper.jira:gh-epic-link' } },
+          { id: 'customfield_10016', name: 'Story Points', schema: { custom: 'com.atlassian.jira.plugin.system.customfieldtypes:float' } },
+          { id: 'customfield_10020', name: 'Sprint', schema: { custom: 'com.pyxis.greenhopper.jira:gh-sprint' } },
+          { id: 'customfield_10015', name: 'Epic Name', schema: { custom: 'com.pyxis.greenhopper.jira:gh-epic-label' } },
+        ],
+      } as Response);
+      const { discoverCustomFields } = await import('./jira');
+      const result = await discoverCustomFields('https://jira.example.com', 'token');
+      expect(result.epicLinkFieldKey).toBe('customfield_10100');
+    });
+
+    it('resolves sprintFieldKey from schema.custom gh-sprint', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [
+          { id: 'customfield_10055', name: 'Sprint', schema: { custom: 'com.pyxis.greenhopper.jira:gh-sprint' } },
+        ],
+      } as Response);
+      const { discoverCustomFields } = await import('./jira');
+      const result = await discoverCustomFields('https://jira.example.com', 'token');
+      expect(result.sprintFieldKey).toBe('customfield_10055');
+    });
+
+    it('resolves storyPointsFieldKey from float custom field named Story Points', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [
+          { id: 'customfield_10028', name: 'Story Points', schema: { custom: 'com.atlassian.jira.plugin.system.customfieldtypes:float' } },
+        ],
+      } as Response);
+      const { discoverCustomFields } = await import('./jira');
+      const result = await discoverCustomFields('https://jira.example.com', 'token');
+      expect(result.storyPointsFieldKey).toBe('customfield_10028');
+    });
+
+    it('returns all four defaults when API call throws', async () => {
+      vi.mocked(mockFetch).mockRejectedValue(new Error('Network error'));
+      const { discoverCustomFields } = await import('./jira');
+      const result = await discoverCustomFields('https://jira.example.com', 'token');
+      expect(result).toEqual({
+        storyPointsFieldKey: 'customfield_10016',
+        epicLinkFieldKey: 'customfield_10014',
+        epicNameFieldKey: 'customfield_10015',
+        sprintFieldKey: 'customfield_10020',
+      });
+    });
+
+    it('returns all four defaults when response is not ok', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({}),
+      } as Response);
+      const { discoverCustomFields } = await import('./jira');
+      const result = await discoverCustomFields('https://jira.example.com', 'token');
+      expect(result).toEqual({
+        storyPointsFieldKey: 'customfield_10016',
+        epicLinkFieldKey: 'customfield_10014',
+        epicNameFieldKey: 'customfield_10015',
+        sprintFieldKey: 'customfield_10020',
+      });
+    });
+  });
+
+  describe('ISSUE-03: fetchIssueDetail', () => {
+    it('calls GET /rest/api/2/issue/{key} and returns parsed JSON', async () => {
+      const mockIssue = { id: '10001', key: 'PROJ-1', fields: { summary: 'Test issue' } };
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockIssue,
+      } as Response);
+      const { fetchIssueDetail } = await import('./jira');
+      const result = await fetchIssueDetail('https://jira.example.com', 'token', 'PROJ-1', {
+        epicLinkFieldKey: 'customfield_10014',
+        epicNameFieldKey: 'customfield_10015',
+        sprintFieldKey: 'customfield_10020',
+        storyPointsFieldKey: 'customfield_10016',
+      });
+      expect(result).toEqual(mockIssue);
+    });
+
+    it('includes dynamic custom field keys in the fields= query param', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ id: '1', key: 'PROJ-1', fields: {} }),
+      } as Response);
+      const { fetchIssueDetail } = await import('./jira');
+      await fetchIssueDetail('https://jira.example.com', 'token', 'PROJ-1', {
+        epicLinkFieldKey: 'customfield_10100',
+        epicNameFieldKey: 'customfield_10200',
+        sprintFieldKey: 'customfield_10055',
+        storyPointsFieldKey: 'customfield_10028',
+      });
+      const calledUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      expect(calledUrl).toContain('customfield_10100');
+      expect(calledUrl).toContain('customfield_10055');
+      expect(calledUrl).toContain('customfield_10028');
+    });
+
+    it('throws when response.ok is false', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 404,
+        json: async () => ({}),
+      } as Response);
+      const { fetchIssueDetail } = await import('./jira');
+      await expect(
+        fetchIssueDetail('https://jira.example.com', 'token', 'PROJ-999', {
+          epicLinkFieldKey: 'customfield_10014',
+          epicNameFieldKey: 'customfield_10015',
+          sprintFieldKey: 'customfield_10020',
+          storyPointsFieldKey: 'customfield_10016',
+        }),
+      ).rejects.toThrow('PROJ-999');
+    });
+  });
+
+  describe('ISSUE-03: updateIssueField', () => {
+    it('calls PUT /rest/api/2/issue/{key} with correct body', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({}),
+      } as Response);
+      const { updateIssueField } = await import('./jira');
+      await updateIssueField('https://jira.example.com', 'token', 'PROJ-1', 'priority', { name: 'High' });
+      const call = vi.mocked(mockFetch).mock.calls[0];
+      expect(call[0]).toContain('/rest/api/2/issue/PROJ-1');
+      const options = call[1] as RequestInit;
+      expect(options.method).toBe('PUT');
+      expect(JSON.parse(options.body as string)).toEqual({ fields: { priority: { name: 'High' } } });
+    });
+
+    it('does not throw on 204 response (Jira DC success)', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 204,
+        json: async () => ({}),
+      } as Response);
+      const { updateIssueField } = await import('./jira');
+      await expect(
+        updateIssueField('https://jira.example.com', 'token', 'PROJ-1', 'story_points', 5),
+      ).resolves.toBeUndefined();
     });
   });
 });
