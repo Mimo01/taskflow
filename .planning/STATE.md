@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: planning
-stopped_at: Completed 08-05-PLAN.md — Phase 8 dashboard enrichment complete
-last_updated: "2026-03-13T10:31:43.408Z"
+stopped_at: Completed 08-06-PLAN.md — gap closure SubtasksPanel + NotificationsPanel
+last_updated: "2026-03-13T10:51:52.099Z"
 last_activity: "2026-03-13 - Completed quick task 12: Fix MR-to-Jira task mapping empty array"
 progress:
   total_phases: 4
   completed_phases: 4
-  total_plans: 21
-  completed_plans: 21
+  total_plans: 22
+  completed_plans: 22
   percent: 0
 ---
 
@@ -96,6 +96,7 @@ Key v1.1 constraints from research:
 - [Phase 08-dashboard-enrichment]: PM layout uses early return pattern for clean role separation; developer/tech-lead default shares 4-panel grid
 - [Phase 08-dashboard-enrichment]: Dashboard index.tsx is a thin wiring layer only — token loading + prop passing; panels handle their own queries
 - [Phase 08-dashboard-enrichment]: Notifications store sanitized on rehydration — numeric/null id values coerced to string to prevent row click failures
+- [Phase 08-dashboard-enrichment]: sprintData?.issues ?? [] — line 61 fix aligns with fetchSprintIssues {issues, myIssueKeys} return shape; Tauri opener mock uses mockRejectedValue so window.open fallback is exercised; View all notifications Link placed after conditional content block with mt-auto
 
 ### Pending Todos
 
@@ -133,9 +134,10 @@ None.
 | Phase 08-dashboard-enrichment P02 | 3 | 2 tasks | 3 files |
 | Phase 08-dashboard-enrichment P03 | 3 | 2 tasks | 5 files |
 | Phase 08 P05 | 35 | 1 tasks | 1 files |
+| Phase 08-dashboard-enrichment P06 | 5 | 2 tasks | 3 files |
 
 ## Session Continuity
 
-Last session: 2026-03-13T10:31:19.007Z
-Stopped at: Completed 08-05-PLAN.md — Phase 8 dashboard enrichment complete
+Last session: 2026-03-13T10:51:52.094Z
+Stopped at: Completed 08-06-PLAN.md — gap closure SubtasksPanel + NotificationsPanel
 Resume file: None
