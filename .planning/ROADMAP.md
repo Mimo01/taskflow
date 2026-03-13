@@ -61,7 +61,7 @@ Plans:
 - [x] 09-02-PLAN.md — discoverCustomFields(), fetchIssueDetail(), updateIssueField() + settings store + main.tsx
 - [x] 09-03-PLAN.md — WikiRenderer (jira2md + react-markdown pipeline)
 - [x] 09-04-PLAN.md — IssueDetailSheet shell + IssueDetailContent + IssueDetailSidebar (read-only)
-- [ ] 09-05-PLAN.md — Inline field editors with optimistic updates (assignee, priority, story points, labels)
+- [x] 09-05-PLAN.md — Inline field editors with optimistic updates (assignee, priority, story points, labels)
 - [x] 09-06-PLAN.md — Comment thread + CommentComposer + Open in Jira deep link
 - [ ] 09-07-PLAN.md — Wire sheet into SprintBoardTab + MyTasksTab (TaskCard onClick, TaskRow onIssueClick)
 - [ ] 09-08-PLAN.md — Wire sheet into search + notifications (Dashboard root) + human verification
