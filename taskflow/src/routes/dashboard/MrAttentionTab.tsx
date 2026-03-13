@@ -21,7 +21,6 @@ import { RefreshCw } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
 import { useSettingsStore } from '@/stores/settings.store'
 import {
-  validateGitLab,
   fetchAssignedMRs,
   fetchReviewerMRs,
   fetchProjectMRs,
@@ -36,16 +35,23 @@ import type { JiraIssue } from '@/services/jira'
 import MrRow from './MrRow'
 
 export default function MrAttentionTab() {
-  const { gitlabBaseUrl, jiraBaseUrl, activeJiraProject, activeGitlabProject } = useAuthStore()
+  const { gitlabBaseUrl, jiraBaseUrl, activeJiraProject, activeGitlabProject, gitlabUserId } = useAuthStore()
   const { staleMrThresholdDays, storyPointsFieldKey } = useSettingsStore()
   const [gitlabToken, setGitlabToken] = useState<string | null>(null)
   const [jiraToken, setJiraToken] = useState<string | null>(null)
+  // Track whether Stronghold reads have settled. Starts true so a skeleton is
+  // shown immediately on mount, before the async reads complete.
+  const [gitlabTokenLoading, setGitlabTokenLoading] = useState(true)
 
   useEffect(() => {
     if (gitlabBaseUrl) {
+      setGitlabTokenLoading(true)
       readSecret('gitlab-pat')
         .then((t) => { setGitlabToken(t) })
         .catch(() => { setGitlabToken(null) })
+        .finally(() => { setGitlabTokenLoading(false) })
+    } else {
+      setGitlabTokenLoading(false)
     }
   }, [gitlabBaseUrl])
 
@@ -74,15 +80,9 @@ export default function MrAttentionTab() {
 
   const myTasksData = cachedMyTasks ?? myTasksFallback
 
-  // Fetch current GitLab user ID once (staleTime: Infinity)
-  const { data: currentUser } = useQuery({
-    queryKey: ['gitlab-current-user', gitlabBaseUrl],
-    queryFn: () => validateGitLab(gitlabBaseUrl!, gitlabToken!),
-    staleTime: Infinity,
-    enabled: !!gitlabBaseUrl && !!gitlabToken,
-  })
-
-  const userId = currentUser?.id
+  // Use persisted GitLab user ID from auth store — avoids an extra network round-trip
+  // on every mount. The ID is stored during onboarding and token update.
+  const userId = gitlabUserId ?? undefined
 
   // Fetch sprint board issues for the link key set (or read from cache)
   const { data: sprintIssues } = useQuery({
@@ -291,8 +291,8 @@ export default function MrAttentionTab() {
         </button>
       </div>
 
-      {/* Loading skeleton */}
-      {isLoading && (
+      {/* Loading skeleton — shown while Stronghold token is fetching OR while query is in-flight */}
+      {(gitlabTokenLoading || isLoading) && (
         <div className="flex flex-col gap-2">
           {[0, 1, 2].map((i) => (
             <div
@@ -312,14 +312,14 @@ export default function MrAttentionTab() {
       )}
 
       {/* Empty state */}
-      {!isLoading && !isError && mrQueryData && data.length === 0 && (
+      {!gitlabTokenLoading && !isLoading && !isError && mrQueryData && data.length === 0 && (
         <div className="py-8 text-center text-sm text-muted-foreground">
           No MRs requiring attention.
         </div>
       )}
 
       {/* MR list */}
-      {!isLoading && !isError && mrQueryData && data.length > 0 && (
+      {!gitlabTokenLoading && !isLoading && !isError && mrQueryData && data.length > 0 && (
         <div className="flex flex-col">
           {data.map((mr) => (
             <MrRow
