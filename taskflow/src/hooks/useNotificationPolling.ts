@@ -7,6 +7,7 @@
  * Must be rendered inside QueryClientProvider (called from AppLayout in main.tsx).
  * Separated from TopBar so TopBar tests don't require a QueryClientProvider wrapper.
  */
+import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNotificationsStore } from '../stores/notifications.store';
 import { useSettingsStore } from '../stores/settings.store';
@@ -16,6 +17,7 @@ import {
   fetchNewNotifications,
   tryDispatchOsNotification,
 } from '../services/notifications';
+import { validateJira } from '../services/jira';
 import type { GitLabMR } from '../services/gitlab';
 
 export function useNotificationPolling() {
@@ -30,7 +32,20 @@ export function useNotificationPolling() {
     jiraUsername,
     gitlabUserId,
     activeGitlabProject,
+    setJiraUser,
   } = useAuthStore();
+
+  // Bootstrap identity for existing sessions where jiraUsername was never persisted.
+  // Runs once when Jira is connected but identity fields are missing.
+  useEffect(() => {
+    if (!jiraBaseUrl || jiraUsername || jiraUserDisplayName) return;
+    (async () => {
+      const pat = await readSecret('jira-pat').catch(() => null);
+      if (!pat) return;
+      const user = await validateJira(jiraBaseUrl, pat).catch(() => null);
+      if (user) setJiraUser(user.displayName, user.name);
+    })();
+  }, [jiraBaseUrl, jiraUsername, jiraUserDisplayName, setJiraUser]);
 
   const pollIntervalMs = Math.max(30_000, notificationPollIntervalSecs * 1000);
   const queryClient = useQueryClient();
