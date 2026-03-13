@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: planning
-stopped_at: Completed quick task 18 — Increase default window size + widen onboarding wizard
-last_updated: "2026-03-13T15:40:00.000Z"
-last_activity: "2026-03-13 - Completed quick task 19: Broaden Jira notification polling to assignee/reporter/watcher"
+stopped_at: Completed quick task 20 — Improve notifications to be more useful
+last_updated: "2026-03-13T20:56:46.181Z"
+last_activity: "2026-03-13 - Completed quick task 19: Broaden Jira notifications to assignee/reporter/watcher issue updates"
 progress:
   total_phases: 4
   completed_phases: 4
@@ -101,6 +101,7 @@ Key v1.1 constraints from research:
 - [Phase 08-dashboard-enrichment]: Array.isArray(projectMrs) guard on spread — fetchProjectMRs may return {} on parse failure causing spread throw
 - [Phase 08-dashboard-enrichment]: NotificationsPage reuses existing NotificationRow and NotificationDetail sub-components — no new UI primitives needed
 - [Phase 08-dashboard-enrichment]: Bell sidebar link placed above Debug Logs in bottom utility section, no role-gating
+- [Phase quick-20]: linkifyText defined locally in NotificationRow and NotificationDetail (not shared util) — avoids new file for two identical small helpers
 
 ### Pending Todos
 
@@ -151,6 +152,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-13T16:55:00.000Z
-Stopped at: Completed quick task 19 — Broaden Jira notification polling to assignee/reporter/watcher
+Last session: 2026-03-13T20:56:40.882Z
+Stopped at: Completed quick task 20 — Improve notifications to be more useful
 Resume file: None
