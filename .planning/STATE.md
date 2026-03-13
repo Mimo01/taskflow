@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: planning
-stopped_at: Completed 08-06-PLAN.md — gap closure SubtasksPanel + NotificationsPanel
-last_updated: "2026-03-13T10:55:29.790Z"
-last_activity: "2026-03-13 - Completed quick task 12: Fix MR-to-Jira task mapping empty array"
+stopped_at: Completed quick task 13 — custom error page replacing default React Router boundary
+last_updated: "2026-03-13T11:05:00.000Z"
+last_activity: "2026-03-13 - Completed quick task 13: Add custom error page (ErrorPage.tsx + errorElement wiring)"
 progress:
   total_phases: 4
   completed_phases: 4
@@ -121,6 +121,7 @@ None.
 | 10 | GitLab disconnection amber banner mirroring Jira banner, stacks when both disconnected | 2026-03-12 | 5a1d3d4 | Verified | [10-when-gitlab-fails-to-connect-there-is-no](./quick/10-when-gitlab-fails-to-connect-there-is-no/) |
 | 11 | Active page indicator in sidebar using NavLink with bg-accent highlight | 2026-03-12 | dbd0a8d | Verified | [11-add-active-page-indicator-in-sidebar](./quick/11-add-active-page-indicator-in-sidebar/) |
 | 12 | Fix MR-to-Jira task mapping: userId=0 reviewer bug + project-level MR pool for Jira-key linking | 2026-03-13 | d81be7a | Verified | [12-fix-mr-to-jira-task-mapping-empty-array-](./quick/12-fix-mr-to-jira-task-mapping-empty-array-/) |
+| 13 | Custom error page replacing default React Router boundary — ErrorPage.tsx + errorElement on root route | 2026-03-13 | 4db00be | Verified | [13-add-a-custom-error-page-to-replace-the-d](./quick/13-add-a-custom-error-page-to-replace-the-d/) |
 | Phase 06 P01 | 203 | 2 tasks | 2 files |
 | Phase 06 P02 | 4 | 2 tasks | 2 files |
 | Phase 06-workload-sprint-progress-enrichment P03 | 5 | 1 tasks | 2 files |
