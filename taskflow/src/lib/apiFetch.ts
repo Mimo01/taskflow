@@ -58,7 +58,8 @@ export async function apiFetch(
       response = await fetch(url, initWithSignal);
     } catch (err) {
       clearTimeout(timer);
-      markDisconnected(source);
+      // Network errors (timeout, DNS failure, etc.) do NOT mark disconnected.
+      // Only a 401 response means credentials are invalid.
       throw err;
     }
     clearTimeout(timer);
@@ -115,7 +116,8 @@ export async function apiFetch(
       error: errorMsg,
     };
     useDebugLogStore.getState().append(entry);
-    markDisconnected(source);
+    // Network errors (timeout, DNS failure, etc.) do NOT mark disconnected.
+    // Only a 401 response means credentials are invalid.
     throw err; // re-throw so callers still get the network error
   } finally {
     clearTimeout(timer);

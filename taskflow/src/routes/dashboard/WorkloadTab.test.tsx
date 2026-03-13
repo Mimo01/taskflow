@@ -100,6 +100,11 @@ describe('WorkloadTab', () => {
       makeIssue('P-2', 'Alice', 'done', 3),       // done — counted in tasks and pts
       makeIssue('P-3', null, 'new', 2),            // unassigned
     ]);
+    // Alice has worklogs on both her stories so they appear in drill-down
+    vi.mocked(fetchIssueWorklogs).mockImplementation(async (_base, _token, issueKey) => {
+      if (issueKey === 'P-1' || issueKey === 'P-2') return ['Alice'];
+      return [];
+    });
 
     const { default: WorkloadTab } = await import('./WorkloadTab');
     renderWithQuery(<WorkloadTab />);
@@ -129,6 +134,11 @@ describe('WorkloadTab', () => {
       makeIssue('P-2', 'Bob', 'indeterminate', 5),
       makeIssue('P-3', 'Bob', 'done', 13),         // done — points included in total
     ]);
+    // Bob has worklogs on all his stories so they appear in drill-down
+    vi.mocked(fetchIssueWorklogs).mockImplementation(async (_base, _token, issueKey) => {
+      if (issueKey === 'P-1' || issueKey === 'P-2' || issueKey === 'P-3') return ['Bob'];
+      return [];
+    });
 
     const { default: WorkloadTab } = await import('./WorkloadTab');
     renderWithQuery(<WorkloadTab />);
@@ -149,6 +159,11 @@ describe('WorkloadTab', () => {
     vi.mocked(fetchSprintIssues).mockResolvedValue([
       makeIssue('P-1', 'Carol', 'done', 5),
     ]);
+    // Carol has a worklog on her done story so it appears in drill-down
+    vi.mocked(fetchIssueWorklogs).mockImplementation(async (_base, _token, issueKey) => {
+      if (issueKey === 'P-1') return ['Carol'];
+      return [];
+    });
 
     const { default: WorkloadTab } = await import('./WorkloadTab');
     renderWithQuery(<WorkloadTab />);
@@ -193,6 +208,11 @@ describe('WorkloadTab', () => {
       makeIssue('P-1', 'Alice', 'indeterminate', 5),  // in-progress: no badge
       makeIssue('P-2', 'Alice', 'done', 3),            // done: should have badge
     ]);
+    // Alice has worklogs on both stories so they appear in drill-down
+    vi.mocked(fetchIssueWorklogs).mockImplementation(async (_base, _token, issueKey) => {
+      if (issueKey === 'P-1' || issueKey === 'P-2') return ['Alice'];
+      return [];
+    });
 
     const { default: WorkloadTab } = await import('./WorkloadTab');
     renderWithQuery(<WorkloadTab />);
@@ -282,13 +302,18 @@ describe('WorkloadTab', () => {
           timetracking: { originalEstimateSeconds: 14400 }, // 4h
         }),
       ]);
+      // Alice has a worklog on P-1 so its time data rolls up to her row
+      vi.mocked(fetchIssueWorklogs).mockImplementation(async (_base, _token, issueKey) => {
+        if (issueKey === 'P-1') return ['Alice'];
+        return [];
+      });
 
       const { default: WorkloadTab } = await import('./WorkloadTab');
       renderWithQuery(<WorkloadTab />);
 
       await screen.findByText('Alice');
-      // Table header should contain "Est"
-      expect(screen.getByText('Est')).toBeTruthy();
+      // Wait for the worklog query to resolve and time columns to appear
+      await screen.findByText('Est');
       // The assignee row should show "4h" somewhere
       const aliceRow = screen.getByText('Alice').closest('[data-testid="workload-row"]');
       expect(aliceRow?.textContent).toMatch(/4h/i);
@@ -317,13 +342,21 @@ describe('WorkloadTab', () => {
           timetracking: { originalEstimateSeconds: 16200 }, // 4h 30m
         }),
       ]);
+      // Alice has a worklog on P-1 so its time data rolls up to her row
+      vi.mocked(fetchIssueWorklogs).mockImplementation(async (_base, _token, issueKey) => {
+        if (issueKey === 'P-1') return ['Alice'];
+        return [];
+      });
 
       const { default: WorkloadTab } = await import('./WorkloadTab');
       renderWithQuery(<WorkloadTab />);
 
       await screen.findByText('Alice');
+      // Wait for the worklog query to resolve and time data to appear in the row
       const aliceRow = screen.getByText('Alice').closest('[data-testid="workload-row"]');
-      expect(aliceRow?.textContent).toMatch(/4h 30m/i);
+      await vi.waitFor(() => {
+        expect(aliceRow?.textContent).toMatch(/4h 30m/i);
+      });
     });
   });
 
@@ -367,6 +400,11 @@ describe('WorkloadTab', () => {
       vi.mocked(fetchSprintIssues).mockResolvedValue([
         makeIssue('P-1', 'Alice', 'indeterminate', 5),
       ]);
+      // Alice has a worklog on P-1 so it appears in her drill-down
+      vi.mocked(fetchIssueWorklogs).mockImplementation(async (_base, _token, issueKey) => {
+        if (issueKey === 'P-1') return ['Alice'];
+        return [];
+      });
 
       const { default: WorkloadTab } = await import('./WorkloadTab');
       renderWithQuery(<WorkloadTab />);
@@ -393,6 +431,11 @@ describe('WorkloadTab', () => {
         makeIssue('P-1', 'Alice', 'indeterminate', 5),
         makeIssue('P-1-1', 'Alice', 'new', null, { subtask: true, parentKey: 'P-1' }),
       ]);
+      // Alice has worklogs on both story and subtask
+      vi.mocked(fetchIssueWorklogs).mockImplementation(async (_base, _token, issueKey) => {
+        if (issueKey === 'P-1' || issueKey === 'P-1-1') return ['Alice'];
+        return [];
+      });
 
       const { default: WorkloadTab } = await import('./WorkloadTab');
       renderWithQuery(<WorkloadTab />);
@@ -466,6 +509,146 @@ describe('WorkloadTab', () => {
       // Alice's row should still appear — no crash
       await screen.findByText('Alice');
       expect(screen.queryByTestId('error-banner')).toBeNull();
+    });
+  });
+
+  describe('WORK-WORKLOG-01: drill-down filtered by worklog authorship, not assignment', () => {
+    it('expanding a worklog-only person shows the story they logged time on', async () => {
+      const user = userEvent.setup();
+      const { fetchSprintIssues } = await import('@/services/jira');
+      vi.mocked(fetchSprintIssues).mockResolvedValue([
+        makeIssue('P-1', 'Alice', 'indeterminate', 5),
+      ]);
+      // Bob logged time on P-1 but is not assigned to it
+      vi.mocked(fetchIssueWorklogs).mockImplementation(async (_base, _token, issueKey) => {
+        if (issueKey === 'P-1') return ['Bob'];
+        return [];
+      });
+
+      const { default: WorkloadTab } = await import('./WorkloadTab');
+      renderWithQuery(<WorkloadTab />);
+
+      await screen.findByText('Bob');
+      const bobRow = screen.getByText('Bob').closest('[data-testid="workload-row"]');
+      expect(bobRow).not.toBeNull();
+
+      // Expand Bob — should see P-1 (he logged time on it, even though Alice is assigned)
+      await user.click(bobRow!);
+      expect(screen.getByText('P-1')).toBeTruthy();
+    });
+
+    it('assigned person sees ALL their assigned stories in drill-down; worklog-only person sees only stories they logged time on', async () => {
+      const user = userEvent.setup();
+      const { fetchSprintIssues } = await import('@/services/jira');
+      vi.mocked(fetchSprintIssues).mockResolvedValue([
+        makeIssue('P-1', 'Alice', 'indeterminate', 5),  // Alice assigned; Bob also logged time
+        makeIssue('P-2', 'Alice', 'indeterminate', 3),  // Alice assigned AND logged time
+      ]);
+      vi.mocked(fetchIssueWorklogs).mockImplementation(async (_base, _token, issueKey) => {
+        if (issueKey === 'P-1') return ['Bob'];  // only Bob has a worklog on P-1
+        if (issueKey === 'P-2') return ['Alice']; // only Alice has a worklog on P-2
+        return [];
+      });
+
+      const { default: WorkloadTab } = await import('./WorkloadTab');
+      renderWithQuery(<WorkloadTab />);
+
+      await screen.findByText('Alice');
+      const aliceRow = screen.getByText('Alice').closest('[data-testid="workload-row"]');
+      expect(aliceRow).not.toBeNull();
+
+      // Expand Alice — she is assigned to BOTH P-1 and P-2, so she sees BOTH in her drill-down.
+      // Assignment drives story visibility; worklog data only drives subtask filtering and time totals.
+      await user.click(aliceRow!);
+      expect(screen.getByText('P-1')).toBeTruthy();
+      expect(screen.getByText('P-2')).toBeTruthy();
+
+      // Bob logged time on P-1 but is not assigned to it — he should see P-1 via worklog attribution
+      const bobRow = screen.getByText('Bob').closest('[data-testid="workload-row"]');
+      expect(bobRow).not.toBeNull();
+      await user.click(bobRow!);
+      expect(screen.getAllByText('P-1').length).toBeGreaterThan(0);
+    });
+
+    it('expanding person shows only subtasks where they have worklogs, not all subtasks of a story', async () => {
+      const user = userEvent.setup();
+      const { fetchSprintIssues } = await import('@/services/jira');
+      vi.mocked(fetchSprintIssues).mockResolvedValue([
+        makeIssue('P-1', 'Alice', 'indeterminate', 5),
+        makeIssue('P-1-1', 'Alice', 'new', null, { subtask: true, parentKey: 'P-1' }),
+        makeIssue('P-1-2', 'Bob', 'new', null, { subtask: true, parentKey: 'P-1' }),
+      ]);
+      // Alice logged time on story P-1 and subtask P-1-1; Bob logged time on P-1 and P-1-2
+      vi.mocked(fetchIssueWorklogs).mockImplementation(async (_base, _token, issueKey) => {
+        if (issueKey === 'P-1') return ['Alice', 'Bob'];
+        if (issueKey === 'P-1-1') return ['Alice'];
+        if (issueKey === 'P-1-2') return ['Bob'];
+        return [];
+      });
+
+      const { default: WorkloadTab } = await import('./WorkloadTab');
+      renderWithQuery(<WorkloadTab />);
+
+      await screen.findByText('Alice');
+      const aliceRow = screen.getByText('Alice').closest('[data-testid="workload-row"]');
+      expect(aliceRow).not.toBeNull();
+
+      // Expand Alice — should see P-1 and P-1-1 (her worklog), but NOT P-1-2 (Bob's subtask)
+      await user.click(aliceRow!);
+      expect(screen.getByText('P-1')).toBeTruthy();
+      expect(screen.getByText('P-1-1')).toBeTruthy();
+      expect(screen.queryByText('P-1-2')).toBeNull();
+    });
+
+    it('subtask-only contributor: person with worklog only on subtask (not parent story) sees subtask in drill-down', async () => {
+      const user = userEvent.setup();
+      const { fetchSprintIssues } = await import('@/services/jira');
+      vi.mocked(fetchSprintIssues).mockResolvedValue([
+        makeIssue('P-1', 'Alice', 'indeterminate', 5),
+        makeIssue('P-1-1', 'Alice', 'new', null, { subtask: true, parentKey: 'P-1' }),
+      ]);
+      // Bob logged time ONLY on the subtask P-1-1, not on the parent story P-1
+      vi.mocked(fetchIssueWorklogs).mockImplementation(async (_base, _token, issueKey) => {
+        if (issueKey === 'P-1') return ['Alice'];
+        if (issueKey === 'P-1-1') return ['Alice', 'Bob'];
+        return [];
+      });
+
+      const { default: WorkloadTab } = await import('./WorkloadTab');
+      renderWithQuery(<WorkloadTab />);
+
+      await screen.findByText('Bob');
+      const bobRow = screen.getByText('Bob').closest('[data-testid="workload-row"]');
+      expect(bobRow).not.toBeNull();
+
+      // Expand Bob — he should see P-1-1 (his subtask worklog) nested under P-1
+      await user.click(bobRow!);
+      expect(screen.getByText('P-1-1')).toBeTruthy();
+      // The subtask row should be visible
+      expect(screen.getAllByTestId('workload-subtask-row').length).toBeGreaterThan(0);
+    });
+
+    it('shows assigned stories in drill-down even when nobody has worklogs yet', async () => {
+      const user = userEvent.setup();
+      const { fetchSprintIssues } = await import('@/services/jira');
+      // fetchIssueWorklogs returns [] for all — simulates worklog data not yet available
+      vi.mocked(fetchIssueWorklogs).mockResolvedValue([]);
+      vi.mocked(fetchSprintIssues).mockResolvedValue([
+        makeIssue('P-1', 'Alice', 'indeterminate', 5),
+      ]);
+
+      const { default: WorkloadTab } = await import('./WorkloadTab');
+      renderWithQuery(<WorkloadTab />);
+
+      await screen.findByText('Alice');
+      const aliceRow = screen.getByText('Alice').closest('[data-testid="workload-row"]');
+      expect(aliceRow).not.toBeNull();
+
+      // Expand Alice — P-1 is assigned to Alice so it appears in her drill-down immediately,
+      // regardless of whether worklog data has loaded. Subtasks and time totals start empty
+      // and are filled in once the worklog query resolves.
+      await user.click(aliceRow!);
+      expect(screen.getByText('P-1')).toBeTruthy();
     });
   });
 });

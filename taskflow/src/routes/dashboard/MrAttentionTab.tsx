@@ -35,7 +35,7 @@ import type { JiraIssue } from '@/services/jira'
 import MrRow from './MrRow'
 
 export default function MrAttentionTab() {
-  const { gitlabBaseUrl, jiraBaseUrl, activeJiraProject, activeGitlabProject, gitlabUserId } = useAuthStore()
+  const { gitlabBaseUrl, jiraBaseUrl, activeJiraProject, activeGitlabProject, gitlabUserId, _hasHydrated } = useAuthStore()
   const { staleMrThresholdDays, storyPointsFieldKey } = useSettingsStore()
   const [gitlabToken, setGitlabToken] = useState<string | null>(null)
   const [jiraToken, setJiraToken] = useState<string | null>(null)
@@ -50,10 +50,13 @@ export default function MrAttentionTab() {
         .then((t) => { setGitlabToken(t) })
         .catch(() => { setGitlabToken(null) })
         .finally(() => { setGitlabTokenLoading(false) })
-    } else {
+    } else if (_hasHydrated) {
+      // Only collapse the loading state once the store has actually rehydrated.
+      // If gitlabBaseUrl is null before rehydration completes, we keep the skeleton
+      // visible to avoid a blank flash.
       setGitlabTokenLoading(false)
     }
-  }, [gitlabBaseUrl])
+  }, [gitlabBaseUrl, _hasHydrated])
 
   useEffect(() => {
     if (jiraBaseUrl) {
