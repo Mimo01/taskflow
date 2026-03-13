@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 07-story-subtask-hierarchy-mr-subtask-filter
 source: 07-01-SUMMARY.md, 07-02-SUMMARY.md, 07-03-SUMMARY.md
 started: 2026-03-13T00:00:00Z
@@ -63,13 +63,28 @@ skipped: 1
   reason: "User reported: the button to show subtasks is very small and hard to click"
   severity: minor
   test: 1
-  artifacts: []
-  missing: []
+  root_cause: "The chevron <button> in TaskCard.tsx has no padding and uses a size-3 (12px) icon, making the hit target only ~12px square"
+  artifacts:
+    - path: "taskflow/src/routes/dashboard/TaskCard.tsx"
+      issue: "Toggle button has no padding; icon is size-3 (12px), hit area is ~12px with no surrounding interactive zone"
+  missing:
+    - "Add p-1.5 or p-2 padding to the chevron button to expand hit target to ~32-44px"
+    - "Consider making the entire Badge + chevron row the clickable toggle area"
+    - "Optionally increase icon from size-3 to size-4 for better visual affordance"
 
 - truth: "MR Attention tab shows reviewer MRs linked to subtask stories"
   status: failed
   reason: "User reported: mr matching seems to be broken. When fetching mr, it returns empty array from gitlab"
   severity: major
   test: 6
-  artifacts: []
-  missing: []
+  root_cause: "userId is not in the gitlab-mrs query key or enabled guard; query fires before validateGitLab resolves, fetchReviewerMRs falls back to [], and the stale cache is never invalidated when userId arrives"
+  artifacts:
+    - path: "taskflow/src/routes/dashboard/MrAttentionTab.tsx"
+      issue: "enabled guard does not include !!userId; query key ['gitlab-mrs', gitlabBaseUrl] omits userId — stale cache with empty reviewer MRs is never busted when userId resolves"
+    - path: "taskflow/src/services/gitlab.ts"
+      issue: "Uncommitted diff re-adds fetchProjectMilestonesInRange which already exists at lines 469-508 — duplicate identifier will cause TypeScript error"
+  missing:
+    - "Add userId to query key: ['gitlab-mrs', gitlabBaseUrl, userId]"
+    - "Add !!userId to enabled guard so query waits for validateGitLab to resolve"
+    - "Remove duplicate fetchProjectMilestonesInRange block from uncommitted gitlab.ts changes"
+    - "Switch stale-badge and linking tests to renderWithQueryAndUser to cover the userId race"
