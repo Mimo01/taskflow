@@ -5,7 +5,7 @@ milestone_name: Polish
 status: planning
 stopped_at: Completed 08-07-PLAN.md — MyTasksTab non-array guards
 last_updated: "2026-03-13T12:18:42.314Z"
-last_activity: "2026-03-13 - Completed quick task 12: Fix MR-to-Jira task mapping empty array"
+last_activity: "2026-03-13 - Completed quick task 15: Comment count badge on My Tasks + existing comments panel"
 progress:
   total_phases: 4
   completed_phases: 4
@@ -126,6 +126,7 @@ None.
 | 11 | Active page indicator in sidebar using NavLink with bg-accent highlight | 2026-03-12 | dbd0a8d | Verified | [11-add-active-page-indicator-in-sidebar](./quick/11-add-active-page-indicator-in-sidebar/) |
 | 12 | Fix MR-to-Jira task mapping: userId=0 reviewer bug + project-level MR pool for Jira-key linking | 2026-03-13 | d81be7a | Verified | [12-fix-mr-to-jira-task-mapping-empty-array-](./quick/12-fix-mr-to-jira-task-mapping-empty-array-/) |
 | 13 | Custom error page replacing default React Router boundary — ErrorPage.tsx + errorElement on root route | 2026-03-13 | 4db00be | Verified | [13-add-a-custom-error-page-to-replace-the-d](./quick/13-add-a-custom-error-page-to-replace-the-d/) |
+| 15 | Comment count badge on TaskRow + existing comments list in InlineComment panel | 2026-03-13 | d0404e9 | Verified | [15-show-comment-count-on-my-tasks-page-and-](./quick/15-show-comment-count-on-my-tasks-page-and-/) |
 | Phase 06 P01 | 203 | 2 tasks | 2 files |
 | Phase 06 P02 | 4 | 2 tasks | 2 files |
 | Phase 06-workload-sprint-progress-enrichment P03 | 5 | 1 tasks | 2 files |
