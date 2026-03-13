@@ -817,3 +817,110 @@ export async function discoverStoryPointsField(
   }
 }
 
+export interface JiraIssueLink {
+  id: string
+  type: { id: string; name: string; inward: string; outward: string }
+  inwardIssue?: { id: string; key: string; fields: { summary: string; status: { name: string } } }
+  outwardIssue?: { id: string; key: string; fields: { summary: string; status: { name: string } } }
+}
+
+export interface JiraIssueDetail {
+  id: string
+  key: string
+  fields: {
+    summary: string
+    description: string | null
+    status: { id: string; name: string; statusCategory?: { key: string } }
+    issuetype: { name: string; subtask: boolean }
+    priority: { name: string; iconUrl?: string } | null
+    assignee: { displayName: string; name: string; avatarUrls: { '48x48': string } } | null
+    reporter: { displayName: string; avatarUrls: { '48x48': string } } | null
+    subtasks: Array<{ id: string; key: string; fields: { summary: string; status: { name: string } } }>
+    issuelinks: JiraIssueLink[]
+    comment: { comments: JiraComment[] }
+    labels: string[]
+    fixVersions: Array<{ id: string; name: string }>
+    parent?: { id: string; key: string; fields: { summary: string } }
+    created: string
+    updated: string
+    duedate: string | null
+    [key: string]: unknown
+  }
+}
+
+export async function discoverCustomFields(
+  baseUrl: string,
+  token: string,
+): Promise<{ storyPointsFieldKey: string; epicLinkFieldKey: string; epicNameFieldKey: string; sprintFieldKey: string }> {
+  const defaults = {
+    storyPointsFieldKey: 'customfield_10016',
+    epicLinkFieldKey: 'customfield_10014',
+    epicNameFieldKey: 'customfield_10015',
+    sprintFieldKey: 'customfield_10020',
+  }
+  try {
+    const response = await apiFetch('jira', `${baseUrl.replace(/\/$/, '')}/rest/api/2/field`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!response.ok) return defaults
+    const fields: Array<{ id: string; name: string; schema?: { custom?: string } }> = await response.json()
+    const result = { ...defaults }
+    for (const f of fields) {
+      const custom = f.schema?.custom ?? ''
+      if (custom === 'com.pyxis.greenhopper.jira:gh-epic-link') result.epicLinkFieldKey = f.id
+      if (custom === 'com.pyxis.greenhopper.jira:gh-epic-label') result.epicNameFieldKey = f.id
+      if (custom === 'com.pyxis.greenhopper.jira:gh-sprint') result.sprintFieldKey = f.id
+      if (
+        custom === 'com.atlassian.jira.plugin.system.customfieldtypes:float' &&
+        (f.name === 'Story Points' || f.name === 'story_points')
+      ) result.storyPointsFieldKey = f.id
+      if (f.id === 'customfield_10028') result.storyPointsFieldKey = f.id
+    }
+    return result
+  } catch {
+    return defaults
+  }
+}
+
+export async function fetchIssueDetail(
+  baseUrl: string,
+  token: string,
+  issueKey: string,
+  customFields: { epicLinkFieldKey: string; epicNameFieldKey: string; sprintFieldKey: string; storyPointsFieldKey: string },
+): Promise<JiraIssueDetail> {
+  const base = baseUrl.replace(/\/$/, '')
+  const fields = [
+    'summary', 'status', 'assignee', 'reporter', 'priority', 'issuetype',
+    'description', 'comment', 'issuelinks', 'subtasks', 'labels',
+    'fixVersions', 'parent', 'timetracking', 'created', 'updated', 'duedate',
+    customFields.epicLinkFieldKey,
+    customFields.epicNameFieldKey,
+    customFields.sprintFieldKey,
+    customFields.storyPointsFieldKey,
+  ].join(',')
+  const url = `${base}/rest/api/2/issue/${issueKey}?fields=${fields}`
+  const response = await apiFetch('jira', url, {
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+  })
+  if (!response.ok) throw new Error(`Failed to fetch issue ${issueKey}: ${response.status}`)
+  return response.json() as Promise<JiraIssueDetail>
+}
+
+export async function updateIssueField(
+  baseUrl: string,
+  token: string,
+  issueKey: string,
+  fieldName: string,
+  value: unknown,
+): Promise<void> {
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}`
+  const response = await apiFetch('jira', url, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { [fieldName]: value } }),
+  })
+  if (!response.ok && response.status !== 204) {
+    throw new Error(`Failed to update ${fieldName} on ${issueKey}: ${response.status}`)
+  }
+}
+
