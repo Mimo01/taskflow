@@ -791,32 +791,6 @@ export async function fetchIssueWorklogs(
   }
 }
 
-export async function discoverStoryPointsField(
-  baseUrl: string,
-  token: string,
-): Promise<string> {
-  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/field`;
-  try {
-    const response = await apiFetch('jira', url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    if (!response.ok) return 'customfield_10016';
-    const fields: Array<{ id: string; name: string }> = await response.json();
-    const match = fields.find(
-      (f) =>
-        f.name === 'Story Points' ||
-        f.name === 'story_points' ||
-        f.id === 'customfield_10028',
-    );
-    return match?.id ?? 'customfield_10016';
-  } catch {
-    return 'customfield_10016';
-  }
-}
-
 export interface JiraIssueLink {
   id: string
   type: { id: string; name: string; inward: string; outward: string }

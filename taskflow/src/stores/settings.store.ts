@@ -44,6 +44,14 @@ interface SettingsState {
   osNotifGitlabEnabled: boolean;
   /** Discovered story points custom field key. Defaults to customfield_10016. */
   storyPointsFieldKey: string;
+  /** Discovered epic link custom field key. Defaults to customfield_10014. */
+  epicLinkFieldKey: string;
+  /** Discovered epic name custom field key. Defaults to customfield_10015. */
+  epicNameFieldKey: string;
+  /** Discovered sprint custom field key. Defaults to customfield_10020. */
+  sprintFieldKey: string;
+  /** Discovered account custom field key. Reserved for Phase 11. */
+  accountFieldKey: string | null;
   /** Enable API call logging for debug inspection. Default: false. */
   debugMode: boolean;
   setDebugMode: (v: boolean) => void;
@@ -56,6 +64,10 @@ interface SettingsState {
   setOsNotifJiraEnabled: (v: boolean) => void;
   setOsNotifGitlabEnabled: (v: boolean) => void;
   setStoryPointsFieldKey: (key: string) => void;
+  setEpicLinkFieldKey: (key: string) => void;
+  setEpicNameFieldKey: (key: string) => void;
+  setSprintFieldKey: (key: string) => void;
+  setAccountFieldKey: (key: string | null) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -69,6 +81,10 @@ export const useSettingsStore = create<SettingsState>()(
       osNotifJiraEnabled: true,
       osNotifGitlabEnabled: true,
       storyPointsFieldKey: 'customfield_10016',
+      epicLinkFieldKey: 'customfield_10014',
+      epicNameFieldKey: 'customfield_10015',
+      sprintFieldKey: 'customfield_10020',
+      accountFieldKey: null,
       debugMode: false,
       setDebugMode: (v) => set({ debugMode: v }),
       setRole: (role) => set({ role }),
@@ -80,6 +96,10 @@ export const useSettingsStore = create<SettingsState>()(
       setOsNotifJiraEnabled: (v) => set({ osNotifJiraEnabled: v }),
       setOsNotifGitlabEnabled: (v) => set({ osNotifGitlabEnabled: v }),
       setStoryPointsFieldKey: (key) => set({ storyPointsFieldKey: key }),
+      setEpicLinkFieldKey: (key) => set({ epicLinkFieldKey: key }),
+      setEpicNameFieldKey: (key) => set({ epicNameFieldKey: key }),
+      setSprintFieldKey: (key) => set({ sprintFieldKey: key }),
+      setAccountFieldKey: (key) => set({ accountFieldKey: key }),
     }),
     {
       name: 'settings-store',

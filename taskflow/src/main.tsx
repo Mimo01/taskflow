@@ -12,7 +12,7 @@ import ReAuthBanner, { GitLabReAuthBanner } from './components/app/ReAuthBanner'
 import TopBar from './components/app/TopBar';
 import { useNotificationPolling } from './hooks/useNotificationPolling';
 import { readSecret } from './services/stronghold';
-import { discoverStoryPointsField } from './services/jira';
+import { discoverCustomFields } from './services/jira';
 import Onboarding from './routes/onboarding/index';
 import Dashboard from './routes/dashboard/index';
 import Settings from './routes/settings/index';
@@ -35,20 +35,21 @@ const queryClient = new QueryClient({
 });
 
 /**
- * Runs discoverStoryPointsField once when Jira credentials first become available.
- * Caches the result in settingsStore.storyPointsFieldKey for use by all sprint queries.
+ * Runs discoverCustomFields once when Jira credentials first become available.
+ * Resolves all four instance-specific custom field IDs in a single API call and
+ * caches them in the settings store for use by all subsequent queries.
  * staleTime: Infinity — field keys do not change without a Jira admin action.
  */
-function useStoryPointsFieldDiscovery() {
+function useCustomFieldDiscovery() {
   const { jiraConnected, jiraBaseUrl } = useAuthStore();
-  const { setStoryPointsFieldKey } = useSettingsStore();
+  const { setStoryPointsFieldKey, setEpicLinkFieldKey, setEpicNameFieldKey, setSprintFieldKey } = useSettingsStore();
 
   const query = useQuery({
-    queryKey: ['jira-story-points-field', jiraBaseUrl],
+    queryKey: ['jira-custom-fields', jiraBaseUrl],
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
-      if (!token || !jiraBaseUrl) return 'customfield_10016';
-      return discoverStoryPointsField(jiraBaseUrl, token);
+      if (!token || !jiraBaseUrl) return null;
+      return discoverCustomFields(jiraBaseUrl, token);
     },
     staleTime: Infinity,
     enabled: !!jiraBaseUrl && !!jiraConnected,
@@ -56,9 +57,12 @@ function useStoryPointsFieldDiscovery() {
 
   useEffect(() => {
     if (query.data) {
-      setStoryPointsFieldKey(query.data);
+      setStoryPointsFieldKey(query.data.storyPointsFieldKey);
+      setEpicLinkFieldKey(query.data.epicLinkFieldKey);
+      setEpicNameFieldKey(query.data.epicNameFieldKey);
+      setSprintFieldKey(query.data.sprintFieldKey);
     }
-  }, [query.data, setStoryPointsFieldKey]);
+  }, [query.data, setStoryPointsFieldKey, setEpicLinkFieldKey, setEpicNameFieldKey, setSprintFieldKey]);
 }
 
 /**
@@ -76,7 +80,7 @@ function AppLayout() {
 
   // Notification polling — runs inside QueryClientProvider context
   useNotificationPolling();
-  useStoryPointsFieldDiscovery();
+  useCustomFieldDiscovery();
 
   if (!onboardingComplete) {
     // During onboarding, no sidebar
