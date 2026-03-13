@@ -10,7 +10,6 @@ import {
   postTransition,
   postComment,
   fetchFixVersions,
-  discoverStoryPointsField,
   type JiraIssue,
   type JiraIssueDetail,
   type JiraIssueLink,
@@ -295,33 +294,36 @@ describe('jira service', () => {
     });
   });
 
-  describe('APIF-03: discoverStoryPointsField', () => {
-    it('returns the id of the field named "Story Points"', async () => {
+  describe('APIF-03: discoverCustomFields (replaces discoverStoryPointsField)', () => {
+    it('returns the id of the field named "Story Points" as storyPointsFieldKey', async () => {
       vi.mocked(mockFetch).mockResolvedValue({
         ok: true,
         status: 200,
         json: async () => [
-          { id: 'customfield_10016', name: 'Story Points' },
+          { id: 'customfield_10016', name: 'Story Points', schema: { custom: 'com.atlassian.jira.plugin.system.customfieldtypes:float' } },
           { id: 'summary', name: 'Summary' },
         ],
       } as Response);
-      const result = await discoverStoryPointsField('https://jira.example.com', 'token');
-      expect(result).toBe('customfield_10016');
+      const { discoverCustomFields } = await import('./jira');
+      const result = await discoverCustomFields('https://jira.example.com', 'token');
+      expect(result.storyPointsFieldKey).toBe('customfield_10016');
     });
 
-    it('returns fallback customfield_10016 when API returns non-OK', async () => {
+    it('returns fallback customfield_10016 for storyPointsFieldKey when API returns non-OK', async () => {
       vi.mocked(mockFetch).mockResolvedValue({ ok: false, status: 404 } as Response);
-      const result = await discoverStoryPointsField('https://jira.example.com', 'token');
-      expect(result).toBe('customfield_10016');
+      const { discoverCustomFields } = await import('./jira');
+      const result = await discoverCustomFields('https://jira.example.com', 'token');
+      expect(result.storyPointsFieldKey).toBe('customfield_10016');
     });
 
-    it('returns fallback customfield_10016 when network throws', async () => {
+    it('returns fallback customfield_10016 for storyPointsFieldKey when network throws', async () => {
       vi.mocked(mockFetch).mockRejectedValue(new Error('network'));
-      const result = await discoverStoryPointsField('https://jira.example.com', 'token');
-      expect(result).toBe('customfield_10016');
+      const { discoverCustomFields } = await import('./jira');
+      const result = await discoverCustomFields('https://jira.example.com', 'token');
+      expect(result.storyPointsFieldKey).toBe('customfield_10016');
     });
 
-    it('matches field by id "customfield_10028" as secondary fallback', async () => {
+    it('matches field by id "customfield_10028" as secondary story points field', async () => {
       vi.mocked(mockFetch).mockResolvedValue({
         ok: true,
         status: 200,
@@ -329,8 +331,9 @@ describe('jira service', () => {
           { id: 'customfield_10028', name: 'SP' }, // id matches, name does not
         ],
       } as Response);
-      const result = await discoverStoryPointsField('https://jira.example.com', 'token');
-      expect(result).toBe('customfield_10028');
+      const { discoverCustomFields } = await import('./jira');
+      const result = await discoverCustomFields('https://jira.example.com', 'token');
+      expect(result.storyPointsFieldKey).toBe('customfield_10028');
     });
   });
 
