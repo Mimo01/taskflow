@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 Phase: 5 of 8 (API Foundation + Quick Wins)
 Plan: — of —
 Status: Ready to plan
-Last activity: 2026-03-13 - Completed quick task 19: Broaden Jira notifications to assignee/reporter/watcher issue updates
+Last activity: 2026-03-13 - Completed quick task 20: Improve notifications to be more useful and informative
 
 Progress: [░░░░░░░░░░] 0% (v1.1)
 
@@ -133,6 +133,7 @@ None.
 | 17 | WorkloadTab Tasks column counts all stories (in-progress + done); Done badge on done sub-rows | 2026-03-13 | 4d74b93 | Done | [17-in-the-workload-tab-only-in-progress-tas](./quick/17-in-the-workload-tab-only-in-progress-tas/) |
 | 18 | Tauri window 1100x750; onboarding wizard containers max-w-lg | 2026-03-13 | 57c0c9e | Done | [18-make-the-default-app-dimensions-a-little](./quick/18-make-the-default-app-dimensions-a-little/) |
 | 19 | Broaden Jira notifications: assignee/reporter/watcher issue updates alongside comment mentions | 2026-03-13 | 5fd923c | Done | [19-i-want-to-ask-how-notifications-work-cur](./quick/19-i-want-to-ask-how-notifications-work-cur/) |
+| 20 | Improve notifications to be more useful and informative | 2026-03-13 | e363d21 | Verified | [20-improve-notifications-to-be-more-useful-](./quick/20-improve-notifications-to-be-more-useful-/) |
 | Phase 06 P01 | 203 | 2 tasks | 2 files |
 | Phase 06 P02 | 4 | 2 tasks | 2 files |
 | Phase 06-workload-sprint-progress-enrichment P03 | 5 | 1 tasks | 2 files |
