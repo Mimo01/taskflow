@@ -82,6 +82,8 @@ function IssueDetailBody({
       <div className="w-[38%] border-l overflow-auto p-4 shrink-0">
         <IssueDetailSidebar
           issue={issue}
+          issueKey={issueKey}
+          jiraBaseUrl={jiraBaseUrl!}
           storyPointsFieldKey={storyPointsFieldKey}
           epicLinkFieldKey={epicLinkFieldKey}
           epicNameFieldKey={epicNameFieldKey}
