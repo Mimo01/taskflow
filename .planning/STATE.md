@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Polish
-status: complete
-stopped_at: "v1.1 milestone complete — archived 2026-03-13"
-last_updated: "2026-03-13T21:15:00.000Z"
-last_activity: "2026-03-13 - Completed v1.1 milestone"
+milestone: v1.2
+milestone_name: Jira Parity
+status: defining_requirements
+stopped_at: ""
+last_updated: "2026-03-13T00:00:00.000Z"
+last_activity: "2026-03-13 - Milestone v1.2 started"
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 24
-  completed_plans: 24
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 
 ## Current Position
 
-Phase: 5 of 8 (API Foundation + Quick Wins)
-Plan: — of —
-Status: Ready to plan
-Last activity: 2026-03-13 - Completed quick task 20: Improve notifications to be more useful and informative
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-13 — Milestone v1.2 Jira Parity started
 
 Progress: [░░░░░░░░░░] 0% (v1.1)
 
