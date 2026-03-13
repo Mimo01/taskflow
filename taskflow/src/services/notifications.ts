@@ -32,11 +32,23 @@ export interface NotificationItem {
 // ─── Jira Comment Fetcher ─────────────────────────────────────────────────────
 
 /**
- * Fetch Jira comment mentions newer than lastSeenCursor for the current user.
+ * Fetch Jira notifications newer than lastSeenCursor for the current user.
  *
- * Strategy: JQL finds issues commented on recently where currentUser is mentioned,
- * then client-side filtering extracts only comments newer than the cursor that
- * contain the user's display name or username (Jira @mention formats).
+ * Strategy: Two parallel JQL queries via Promise.allSettled.
+ *
+ * Query A (issue updates — assignee/reporter/watcher):
+ *   Returns recently-updated issues where the user has a stake. Each issue
+ *   becomes one NotificationItem with id `jira-issue-{key}-{updated}`.
+ *   Skipped when username is null (no identity to filter on).
+ *
+ * Query B (comment mentions — backwards-compat):
+ *   JQL finds issues with comments mentioning the user. Client-side filtering
+ *   extracts only comments newer than the cursor and containing [~username] or
+ *   @displayName. Each comment becomes one NotificationItem with id
+ *   `jira-comment-{commentId}`.
+ *   Skipped when both displayName and username are null.
+ *
+ * Deduplication is handled by the caller (fetchNewNotifications seen Set).
  */
 async function fetchNewJiraComments(
   baseUrl: string,
@@ -51,52 +63,136 @@ async function fetchNewJiraComments(
   const since = lastSeenCursor ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   // JQL requires "YYYY-MM-DD HH:mm" format (no seconds, space not T)
   const sinceJql = since.substring(0, 16).replace('T', ' ');
+  const base = baseUrl.replace(/\/$/, '');
 
-  const mentionTarget = displayName ?? username ?? '';
-  const jql = `project = ${projectKey} AND comment ~ "${mentionTarget}" AND updatedDate >= "${sinceJql}" ORDER BY updated DESC`;
-  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,comment&maxResults=20`;
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  };
 
-  let response: Response;
-  try {
-    response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-  } catch {
-    return [];
-  }
+  // ── Query A: issue updates (assignee / reporter / watcher) ──────────────────
+  async function fetchIssueUpdates(): Promise<NotificationItem[]> {
+    if (!username) return [];
 
-  if (!response.ok) return [];
+    const jql =
+      `project = ${projectKey}` +
+      ` AND (assignee = "${username}" OR reporter = "${username}" OR watcher = "${username}")` +
+      ` AND updatedDate >= "${sinceJql}"` +
+      ` ORDER BY updated DESC`;
+    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee,reporter,updated&maxResults=20`;
 
-  const data = await response.json();
-  const issues = data.issues ?? [];
-  const results: NotificationItem[] = [];
+    let response: Response;
+    try {
+      response = await fetch(url, { headers });
+    } catch {
+      return [];
+    }
+    if (!response.ok) return [];
 
-  for (const issue of issues) {
-    const comments = issue.fields?.comment?.comments ?? [];
-    for (const comment of comments) {
-      // Client-side cursor filter
-      if (comment.updated <= since) continue;
+    const data = await response.json();
+    const issues: unknown[] = data.issues ?? [];
+    const results: NotificationItem[] = [];
 
-      // Must mention the current user (Jira uses [~username] or @displayName)
-      const body: string = comment.body ?? '';
-      const mentionedByUsername = username && body.includes(`[~${username}]`);
-      const mentionedByDisplayName = displayName && body.includes(`@${displayName}`);
-      if (!mentionedByUsername && !mentionedByDisplayName) continue;
+    for (const rawIssue of issues) {
+      const issue = rawIssue as {
+        key: string;
+        fields: {
+          summary: string;
+          status?: { name: string };
+          assignee?: { displayName: string } | null;
+          reporter?: { displayName: string } | null;
+          updated: string;
+        };
+      };
+
+      const statusName = issue.fields.status?.name ?? 'Unknown';
+      const author =
+        issue.fields.assignee?.displayName ??
+        issue.fields.reporter?.displayName ??
+        'Unknown';
 
       results.push({
-        id: `jira-comment-${comment.id}`,
+        id: `jira-issue-${issue.key}-${issue.fields.updated}`,
         source: 'jira',
         entityTitle: `${issue.key}: ${issue.fields.summary}`,
-        author: comment.author?.displayName ?? 'Unknown',
-        bodyPreview: body.substring(0, 80),
-        fullBody: body,
-        createdAt: comment.created,
+        author,
+        bodyPreview: `Status: ${statusName}`,
+        fullBody: `Status: ${statusName}`,
+        createdAt: issue.fields.updated,
       });
     }
+
+    return results;
   }
+
+  // ── Query B: comment mentions (original logic) ──────────────────────────────
+  async function fetchCommentMentions(): Promise<NotificationItem[]> {
+    const mentionTarget = displayName ?? username ?? '';
+    const jql = `project = ${projectKey} AND comment ~ "${mentionTarget}" AND updatedDate >= "${sinceJql}" ORDER BY updated DESC`;
+    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,comment&maxResults=20`;
+
+    let response: Response;
+    try {
+      response = await fetch(url, { headers });
+    } catch {
+      return [];
+    }
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    const issues: unknown[] = data.issues ?? [];
+    const results: NotificationItem[] = [];
+
+    for (const rawIssue of issues) {
+      const issue = rawIssue as {
+        key: string;
+        fields: {
+          summary: string;
+          comment?: { comments: Array<{
+            id: string;
+            author?: { displayName?: string };
+            body?: string;
+            updated: string;
+            created: string;
+          }> };
+        };
+      };
+
+      const comments = issue.fields?.comment?.comments ?? [];
+      for (const comment of comments) {
+        // Client-side cursor filter
+        if (comment.updated <= since) continue;
+
+        // Must mention the current user (Jira uses [~username] or @displayName)
+        const body: string = comment.body ?? '';
+        const mentionedByUsername = username && body.includes(`[~${username}]`);
+        const mentionedByDisplayName = displayName && body.includes(`@${displayName}`);
+        if (!mentionedByUsername && !mentionedByDisplayName) continue;
+
+        results.push({
+          id: `jira-comment-${comment.id}`,
+          source: 'jira',
+          entityTitle: `${issue.key}: ${issue.fields.summary}`,
+          author: comment.author?.displayName ?? 'Unknown',
+          bodyPreview: body.substring(0, 80),
+          fullBody: body,
+          createdAt: comment.created,
+        });
+      }
+    }
+
+    return results;
+  }
+
+  // Run both queries in parallel; failure of one doesn't break the other
+  const [issueResult, commentResult] = await Promise.allSettled([
+    fetchIssueUpdates(),
+    fetchCommentMentions(),
+  ]);
+
+  const results: NotificationItem[] = [];
+  if (issueResult.status === 'fulfilled') results.push(...issueResult.value);
+  if (commentResult.status === 'fulfilled') results.push(...commentResult.value);
 
   return results;
 }
