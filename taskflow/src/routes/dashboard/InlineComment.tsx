@@ -2,11 +2,12 @@
  * InlineComment — Expandable inline textarea for adding Jira comments.
  *
  * When isOpen=false: renders nothing.
- * When isOpen=true: shows textarea with Submit/Cancel buttons.
+ * When isOpen=true: shows existing comments list (if any) above textarea with Submit/Cancel buttons.
  * Submit is disabled when textarea is empty or isSubmitting is true.
  * Error prop shows inline error text below textarea.
  */
 import { useState, useRef, useEffect } from 'react'
+import type { JiraComment } from '@/services/jira'
 
 interface InlineCommentProps {
   issueKey: string
@@ -15,6 +16,8 @@ interface InlineCommentProps {
   onSubmit: (comment: string) => void
   isSubmitting: boolean
   error?: string
+  existingComments?: JiraComment[]
+  isLoadingComments?: boolean
 }
 
 export default function InlineComment({
@@ -24,6 +27,8 @@ export default function InlineComment({
   onSubmit,
   isSubmitting,
   error,
+  existingComments,
+  isLoadingComments,
 }: InlineCommentProps) {
   const [text, setText] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -51,6 +56,22 @@ export default function InlineComment({
 
   return (
     <div className="px-3 pb-2 flex flex-col gap-1.5">
+      {isLoadingComments && (
+        <p className="text-xs text-muted-foreground py-1">Loading comments...</p>
+      )}
+      {!isLoadingComments && existingComments && existingComments.length > 0 && (
+        <div className="flex flex-col gap-2 mb-2 max-h-48 overflow-y-auto">
+          {existingComments.map((c) => (
+            <div key={c.id} className="rounded border border-border bg-muted/30 px-2 py-1.5 text-xs">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="font-medium text-foreground">{c.author.displayName}</span>
+                <span className="text-muted-foreground">{new Date(c.created).toLocaleString()}</span>
+              </div>
+              <p className="text-foreground whitespace-pre-wrap">{c.body}</p>
+            </div>
+          ))}
+        </div>
+      )}
       <textarea
         ref={textareaRef}
         rows={3}
