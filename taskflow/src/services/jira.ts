@@ -658,6 +658,33 @@ export async function fetchActiveSprint(
  *
  * Cache the result in settings store (storyPointsFieldKey) at app startup.
  */
+/**
+ * Returns the unique displayNames of all authors who logged work on an issue.
+ * Silently returns [] on any error — callers use this for attribution enrichment only.
+ */
+export async function fetchIssueWorklogs(
+  baseUrl: string,
+  token: string,
+  issueKey: string,
+): Promise<string[]> {
+  try {
+    const res = await apiFetch('jira', `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/worklog`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const worklogs: Array<{ author?: { displayName?: string } }> = data.worklogs ?? [];
+    const names = new Set<string>();
+    for (const wl of worklogs) {
+      const name = wl.author?.displayName;
+      if (name) names.add(name);
+    }
+    return Array.from(names);
+  } catch {
+    return [];
+  }
+}
+
 export async function discoverStoryPointsField(
   baseUrl: string,
   token: string,

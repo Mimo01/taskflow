@@ -474,6 +474,75 @@ describe('jira service', () => {
     });
   });
 
+  describe('fetchIssueWorklogs', () => {
+    it('happy path: deduplicates same author logging multiple times → returns [author]', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          worklogs: [
+            { author: { displayName: 'Alice' } },
+            { author: { displayName: 'Alice' } },
+          ],
+        }),
+      } as Response);
+
+      const { fetchIssueWorklogs } = await import('./jira');
+      const result = await fetchIssueWorklogs('https://jira.example.com', 'token', 'PROJ-1');
+      expect(result).toEqual(['Alice']);
+    });
+
+    it('returns both names for two different authors', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          worklogs: [
+            { author: { displayName: 'Alice' } },
+            { author: { displayName: 'Bob' } },
+          ],
+        }),
+      } as Response);
+
+      const { fetchIssueWorklogs } = await import('./jira');
+      const result = await fetchIssueWorklogs('https://jira.example.com', 'token', 'PROJ-1');
+      expect(result).toContain('Alice');
+      expect(result).toContain('Bob');
+      expect(result).toHaveLength(2);
+    });
+
+    it('returns [] on non-ok response (401)', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 401,
+      } as Response);
+
+      const { fetchIssueWorklogs } = await import('./jira');
+      const result = await fetchIssueWorklogs('https://jira.example.com', 'token', 'PROJ-1');
+      expect(result).toEqual([]);
+    });
+
+    it('returns [] on empty worklogs array', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ worklogs: [] }),
+      } as Response);
+
+      const { fetchIssueWorklogs } = await import('./jira');
+      const result = await fetchIssueWorklogs('https://jira.example.com', 'token', 'PROJ-1');
+      expect(result).toEqual([]);
+    });
+
+    it('returns [] when fetch throws', async () => {
+      vi.mocked(mockFetch).mockRejectedValue(new Error('network error'));
+
+      const { fetchIssueWorklogs } = await import('./jira');
+      const result = await fetchIssueWorklogs('https://jira.example.com', 'token', 'PROJ-1');
+      expect(result).toEqual([]);
+    });
+  });
+
   describe('fetchFixVersions', () => {
     it('REL-01: fetchFixVersions calls correct project versions endpoint', async () => {
       vi.mocked(mockFetch).mockResolvedValue({
