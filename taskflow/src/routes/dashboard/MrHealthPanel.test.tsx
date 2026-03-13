@@ -102,14 +102,13 @@ describe('MrHealthPanel (DASH-02)', () => {
         }
         return undefined;
       });
-      vi.mocked(useQueryClient).mockReturnValue({ getQueryData } as ReturnType<typeof useQueryClient>);
+      vi.mocked(useQueryClient).mockReturnValue({ getQueryData } as unknown as ReturnType<typeof useQueryClient>);
 
       const { default: MrHealthPanel } = await import('./MrHealthPanel');
       renderWithQuery(
         <MrHealthPanel
           gitlabBaseUrl="https://gitlab.example.com"
           gitlabToken="token"
-          userId={1}
         />,
       );
 
@@ -136,14 +135,13 @@ describe('MrHealthPanel (DASH-02)', () => {
 
       vi.mocked(useQueryClient).mockReturnValue({
         getQueryData: vi.fn().mockReturnValue(undefined),
-      } as ReturnType<typeof useQueryClient>);
+      } as unknown as ReturnType<typeof useQueryClient>);
 
       const { default: MrHealthPanel } = await import('./MrHealthPanel');
       renderWithQuery(
         <MrHealthPanel
           gitlabBaseUrl="https://gitlab.example.com"
           gitlabToken="token"
-          userId={1}
         />,
       );
 
