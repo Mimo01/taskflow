@@ -38,6 +38,11 @@ export interface NotificationItem {
   bodyPreview: string;   // first ~80 chars of body
   fullBody: string;
   createdAt: string;     // ISO 8601
+  url?: string;              // browser-openable URL for the entity
+  notificationType?: 'comment-mention' | 'issue-update' | 'mr-note';
+  priority?: string;         // Jira: "High" / "Medium" / "Low" etc.
+  labels?: string[];         // Jira: issue label names
+  entityState?: string;      // GitLab: "opened" | "merged" | "closed"
 }
 
 interface NotificationsState {
