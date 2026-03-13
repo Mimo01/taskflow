@@ -2,26 +2,26 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
-status: planning
-stopped_at: Completed quick task 20 — Improve notifications to be more useful
-last_updated: "2026-03-13T20:56:46.181Z"
-last_activity: "2026-03-13 - Completed quick task 19: Broaden Jira notifications to assignee/reporter/watcher issue updates"
+status: complete
+stopped_at: "v1.1 milestone complete — archived 2026-03-13"
+last_updated: "2026-03-13T21:15:00.000Z"
+last_activity: "2026-03-13 - Completed v1.1 milestone"
 progress:
   total_phases: 4
   completed_phases: 4
   total_plans: 24
   completed_plans: 24
-  percent: 0
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-12)
+See: .planning/PROJECT.md (updated 2026-03-13)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** v1.1 Polish — Phase 5: API Foundation + Quick Wins
+**Current focus:** Planning next milestone (run `/gsd:new-milestone`)
 
 ## Current Position
 
