@@ -27,6 +27,11 @@ export interface NotificationItem {
   bodyPreview: string;   // first ~80 chars of body
   fullBody: string;
   createdAt: string;     // ISO 8601
+  url?: string;              // browser-openable URL for the entity
+  notificationType?: 'comment-mention' | 'issue-update' | 'mr-note';
+  priority?: string;         // Jira: "High" / "Medium" / "Low" etc.
+  labels?: string[];         // Jira: issue label names
+  entityState?: string;      // GitLab: "opened" | "merged" | "closed"
 }
 
 // ─── Jira Comment Fetcher ─────────────────────────────────────────────────────
@@ -79,7 +84,7 @@ async function fetchNewJiraComments(
       ` AND (assignee = "${username}" OR reporter = "${username}" OR watcher = "${username}")` +
       ` AND updatedDate >= "${sinceJql}"` +
       ` ORDER BY updated DESC`;
-    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee,reporter,updated&maxResults=20`;
+    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee,reporter,updated,priority,labels&maxResults=20`;
 
     let response: Response;
     try {
@@ -102,6 +107,8 @@ async function fetchNewJiraComments(
           assignee?: { displayName: string } | null;
           reporter?: { displayName: string } | null;
           updated: string;
+          priority?: { name: string } | null;
+          labels?: string[];
         };
       };
 
@@ -119,6 +126,11 @@ async function fetchNewJiraComments(
         bodyPreview: `Status: ${statusName}`,
         fullBody: `Status: ${statusName}`,
         createdAt: issue.fields.updated,
+        url: `${base}/browse/${issue.key}`,
+        notificationType: 'issue-update',
+        priority: issue.fields.priority?.name,
+        labels: issue.fields.labels ?? [],
+        entityState: undefined,
       });
     }
 
@@ -177,6 +189,11 @@ async function fetchNewJiraComments(
           bodyPreview: body.substring(0, 80),
           fullBody: body,
           createdAt: comment.created,
+          url: `${base}/browse/${issue.key}`,
+          notificationType: 'comment-mention',
+          priority: undefined,
+          labels: undefined,
+          entityState: undefined,
         });
       }
     }
@@ -246,6 +263,11 @@ async function fetchNewGitlabNotes(
         bodyPreview: body.substring(0, 80),
         fullBody: body,
         createdAt: note.created_at,
+        url: mr.web_url,
+        notificationType: 'mr-note',
+        priority: undefined,
+        labels: undefined,
+        entityState: mr.state,
       });
     }
   }
