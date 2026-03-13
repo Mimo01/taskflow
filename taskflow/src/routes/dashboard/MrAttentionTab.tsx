@@ -95,7 +95,7 @@ export default function MrAttentionTab() {
   // Returns { filtered: base MR list, merged: all fetched MRs pre-filter } so subtask
   // extension can pull reviewer MRs that were filtered out by the discussion check.
   const { data: mrQueryData, isLoading, isError, error, dataUpdatedAt, refetch } = useQuery({
-    queryKey: ['gitlab-mrs', gitlabBaseUrl],
+    queryKey: ['gitlab-mrs', gitlabBaseUrl, userId],
     queryFn: async () => {
       const token = gitlabToken ?? ''
       const [assigned, reviewer] = await Promise.all([
@@ -136,7 +136,7 @@ export default function MrAttentionTab() {
     refetchInterval: 60_000,
     refetchIntervalInBackground: true,
     staleTime: 30_000,
-    enabled: !!gitlabBaseUrl && !!gitlabToken,
+    enabled: !!gitlabBaseUrl && !!gitlabToken && !!userId,
   })
 
   // Build sprint issue key set and issue lookup map

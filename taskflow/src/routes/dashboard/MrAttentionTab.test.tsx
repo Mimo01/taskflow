@@ -144,7 +144,7 @@ describe('MrAttentionTab', () => {
     vi.mocked(useAuthStore).mockReturnValue({ gitlabBaseUrl: 'https://gitlab.example.com', jiraBaseUrl: 'https://jira.example.com', activeJiraProject: 'PROJ' } as ReturnType<typeof useAuthStore>);
 
     const { default: MrAttentionTab } = await import('./MrAttentionTab');
-    renderWithQuery(<MrAttentionTab />);
+    renderWithQueryAndUser(<MrAttentionTab />);
 
     await screen.findByText(/stale/i);
   });
@@ -165,7 +165,7 @@ describe('MrAttentionTab', () => {
     vi.mocked(useAuthStore).mockReturnValue({ gitlabBaseUrl: 'https://gitlab.example.com', jiraBaseUrl: 'https://jira.example.com', activeJiraProject: 'PROJ' } as ReturnType<typeof useAuthStore>);
 
     const { default: MrAttentionTab } = await import('./MrAttentionTab');
-    renderWithQuery(<MrAttentionTab />);
+    renderWithQueryAndUser(<MrAttentionTab />);
 
     // Wait for data to load
     await screen.findByText(/MR 2/i);
@@ -197,7 +197,7 @@ describe('MrAttentionTab', () => {
     } as ReturnType<typeof useAuthStore>);
 
     const { default: MrAttentionTab } = await import('./MrAttentionTab');
-    renderWithQuery(<MrAttentionTab />);
+    renderWithQueryAndUser(<MrAttentionTab />);
 
     // MrRow should render with linked task key badge — identified by font-mono class on the badge span
     // We check for multiple PROJ-7 elements: one in MR title, one in linked task badge
