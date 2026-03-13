@@ -23,6 +23,7 @@ import SprintProgressTab from './routes/dashboard/SprintProgressTab';
 import WorkloadTab from './routes/dashboard/WorkloadTab';
 import ReleasesTab from './routes/dashboard/ReleasesTab';
 import DebugLogs from './routes/debug-logs/index';
+import ErrorPage from './routes/error/ErrorPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -100,6 +101,7 @@ function AppLayout() {
 const router = createHashRouter([
   {
     element: <AppLayout />,
+    errorElement: <ErrorPage />,
     children: [
       { path: '/', element: <Onboarding /> },
       { path: '/dashboard', element: <Dashboard /> },
