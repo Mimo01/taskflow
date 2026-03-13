@@ -124,7 +124,7 @@ Plans:
 | 6. Workload + Sprint Progress Enrichment | v1.1 | 3/3 | Complete | 2026-03-12 |
 | 7. Story/Subtask Hierarchy + MR Subtask Filter | v1.1 | 5/5 | Complete | 2026-03-13 |
 | 8. Dashboard Enrichment | v1.1 | 8/8 | Complete | 2026-03-13 |
-| 9. Custom Field Discovery + Issue Detail Foundation | 1/8 | In Progress|  | - |
+| 9. Custom Field Discovery + Issue Detail Foundation | v1.2 | 3/8 | In Progress | - |
 | 10. Sprint Board Redesign | v1.2 | 0/TBD | Not started | - |
 | 11. Create/Edit Issue Form | v1.2 | 0/TBD | Not started | - |
 | 12. Backlog View | v1.2 | 0/TBD | Not started | - |
