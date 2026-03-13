@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: planning
-stopped_at: Completed 07-02-PLAN.md
-last_updated: "2026-03-12T23:53:05.956Z"
+stopped_at: Completed 07-04-PLAN.md
+last_updated: "2026-03-13T08:24:37.876Z"
 last_activity: "2026-03-12 - Completed quick task 11: Add active page indicator in sidebar"
 progress:
   total_phases: 4
-  completed_phases: 3
-  total_plans: 14
-  completed_plans: 14
+  completed_phases: 2
+  total_plans: 16
+  completed_plans: 15
   percent: 0
 ---
 
@@ -79,6 +79,7 @@ Key v1.1 constraints from research:
 - [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: viaSubtaskKey only set when sprintIssueKeySet link is null — sprint-linked MRs never get via label
 - [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: boardGroups useMemo partitions sprint issues into stories/subtasksByParent — columns and counts derived from stories only
 - [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: expandedStories standalone useState decoupled from query cache — collapse state survives 60s refetch
+- [Phase 07-story-subtask-hierarchy-mr-subtask-filter]: Single button wrapping Badge+chevron is idiomatic — avoids nested interactive elements and makes the entire row the hit target
 
 ### Pending Todos
 
@@ -108,9 +109,10 @@ None.
 | Phase 07-story-subtask-hierarchy-mr-subtask-filter P01 | 15 | 2 tasks | 2 files |
 | Phase 07-story-subtask-hierarchy-mr-subtask-filter P03 | 10 | 2 tasks | 3 files |
 | Phase 07-story-subtask-hierarchy-mr-subtask-filter P02 | 3 | 2 tasks | 2 files |
+| Phase 07-story-subtask-hierarchy-mr-subtask-filter P04 | 3 | 1 tasks | 1 files |
 
 ## Session Continuity
 
-Last session: 2026-03-12T23:49:30.503Z
-Stopped at: Completed 07-02-PLAN.md
+Last session: 2026-03-13T08:24:37.873Z
+Stopped at: Completed 07-04-PLAN.md
 Resume file: None
