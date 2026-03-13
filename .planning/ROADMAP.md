@@ -27,7 +27,7 @@ See archive: `.planning/milestones/v1.0-ROADMAP.md`
 - [x] **Phase 5: API Foundation + Quick Wins** - Extend Jira types and fetch strategy; fix GitLab open-only filter; ship Releases display improvements (completed 2026-03-12)
 - [x] **Phase 6: Workload + Sprint Progress Enrichment** - Fix story points double-counting; add time tracking columns; enrich sprint progress with status breakdown and per-assignee table (completed 2026-03-12)
 - [ ] **Phase 7: Story/Subtask Hierarchy + MR Subtask Filter** - Group subtasks under parent stories in My Tasks and Sprint Board; add MR Attention subtask-story filter
-- [ ] **Phase 8: Dashboard Enrichment** - Add subtasks, MR health summary, sprint health, and recent notifications to the Developer dashboard
+- [x] **Phase 8: Dashboard Enrichment** - Add subtasks, MR health summary, sprint health, and recent notifications to the Developer dashboard (completed 2026-03-13)
 
 ## Phase Details
 
@@ -118,4 +118,4 @@ Phases execute in numeric order: 5 → 6 → 7 → 8
 | 5. API Foundation + Quick Wins | 8/8 | Complete   | 2026-03-12 | 2026-03-12 |
 | 6. Workload + Sprint Progress Enrichment | 3/3 | Complete   | 2026-03-12 | - |
 | 7. Story/Subtask Hierarchy + MR Subtask Filter | 4/5 | In Progress|  | - |
-| 8. Dashboard Enrichment | 4/5 | In Progress|  | - |
+| 8. Dashboard Enrichment | 5/5 | Complete   | 2026-03-13 | - |
