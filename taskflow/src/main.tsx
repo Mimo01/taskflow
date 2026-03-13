@@ -23,6 +23,7 @@ import SprintProgressTab from './routes/dashboard/SprintProgressTab';
 import WorkloadTab from './routes/dashboard/WorkloadTab';
 import ReleasesTab from './routes/dashboard/ReleasesTab';
 import DebugLogs from './routes/debug-logs/index';
+import NotificationsPage from './routes/notifications/index';
 import ErrorPage from './routes/error/ErrorPage';
 
 const queryClient = new QueryClient({
@@ -113,6 +114,7 @@ const router = createHashRouter([
       { path: '/workload', element: <WorkloadTab /> },
       { path: '/releases', element: <ReleasesTab /> },
       { path: '/debug-logs', element: <DebugLogs /> },
+      { path: '/notifications', element: <NotificationsPage /> },
     ],
   },
 ]);
