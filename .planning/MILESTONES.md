@@ -1,5 +1,22 @@
 # Milestones
 
+## v1.1 Polish (Shipped: 2026-03-13)
+
+**Phases completed:** 4 phases (5-8), 24 plans
+**Timeline:** 2026-03-12 → 2026-03-13 (2 days)
+**Codebase:** ~15,856 lines TypeScript
+**Git range:** feat(05-01) → docs(quick-20)
+
+**Key accomplishments:**
+1. Extended Jira data layer with parent/subtask/time-tracking fields and two-query subtask strategy; fixed Releases tab with correct server endpoint, newest-to-oldest sort, released/unreleased/overdue badges
+2. WorkloadTab rewrite: subtasks excluded from story point totals, time tracking columns (original estimate, time spent, remaining), done stories shown as expandable sub-rows
+3. SprintProgressTab enriched with stacked status breakdown (To Do / In Progress / Done with counts and %), sprint-wide time totals, and per-assignee breakdown table
+4. Story/subtask hierarchy in My Tasks and Sprint Board: subtasks grouped under collapsible parent story headers; orphan subtasks show parent context badge
+5. MR Attention fixed: only open MRs shown; includes MRs linked to stories where current user has assigned subtasks (subtask-linked inclusion)
+6. Developer dashboard enriched with SubtasksPanel, MrHealthPanel, SprintHealthPanel, and NotificationsPanel; full-page /notifications route with accordion expand and Bell sidebar link
+
+---
+
 ## v1.0 MVP (Shipped: 2026-03-12)
 
 **Phases completed:** 4 phases, 20 plans
