@@ -18,7 +18,7 @@ export default function DoneStep() {
   };
 
   return (
-    <div className="flex flex-col items-center gap-6 max-w-md mx-auto py-16 text-center">
+    <div className="flex flex-col items-center gap-6 max-w-lg mx-auto py-16 text-center">
       <div className="text-5xl">✓</div>
       <div>
         <h2 className="text-2xl font-semibold">You're all set!</h2>

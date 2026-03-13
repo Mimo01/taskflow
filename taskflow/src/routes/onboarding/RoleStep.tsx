@@ -21,7 +21,7 @@ export default function RoleStep() {
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-md mx-auto py-8">
+    <div className="flex flex-col gap-6 max-w-lg mx-auto py-8">
       <div>
         <h2 className="text-xl font-semibold">Select Your Role</h2>
         <p className="text-sm text-muted-foreground mt-1">

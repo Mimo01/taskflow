@@ -14,12 +14,12 @@ export default function WelcomeStep() {
     <div className="flex flex-col items-center justify-center gap-8 py-12 text-center">
       <div className="flex flex-col gap-3">
         <h1 className="text-3xl font-bold tracking-tight">Welcome to Taskflow</h1>
-        <p className="text-muted-foreground text-lg max-w-sm">
+        <p className="text-muted-foreground text-lg max-w-md">
           Your Jira and GitLab, in one place.
         </p>
       </div>
 
-      <p className="text-sm text-muted-foreground max-w-md">
+      <p className="text-sm text-muted-foreground max-w-lg">
         Connect your Jira and GitLab accounts to see tasks, merge requests, and sprint state
         without switching between tools.
       </p>

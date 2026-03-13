@@ -65,7 +65,7 @@ export default function JiraStep() {
   const showProjectDropdown = projects.length > 0;
 
   return (
-    <div className="flex flex-col gap-6 max-w-md mx-auto py-8">
+    <div className="flex flex-col gap-6 max-w-lg mx-auto py-8">
       <div>
         <h2 className="text-xl font-semibold">Connect Jira</h2>
         <p className="text-sm text-muted-foreground mt-1">
