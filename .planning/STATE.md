@@ -5,7 +5,7 @@ milestone_name: Polish
 status: planning
 stopped_at: Completed 08-07-PLAN.md — MyTasksTab non-array guards
 last_updated: "2026-03-13T12:18:42.314Z"
-last_activity: "2026-03-13 - Completed quick task 15: Comment count badge on My Tasks + existing comments panel"
+last_activity: "2026-03-13 - Completed quick task 14: Remove fullpage notifications and dashboard notifications card, keep top menu and popover"
 progress:
   total_phases: 4
   completed_phases: 4
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 Phase: 5 of 8 (API Foundation + Quick Wins)
 Plan: — of —
 Status: Ready to plan
-Last activity: 2026-03-13 - Completed quick task 12: Fix MR-to-Jira task mapping empty array
+Last activity: 2026-03-13 - Completed quick task 14: Remove fullpage notifications and dashboard notifications card, keep top menu and popover
 
 Progress: [░░░░░░░░░░] 0% (v1.1)
 
