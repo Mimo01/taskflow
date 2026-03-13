@@ -21,11 +21,15 @@ vi.mock('@tanstack/react-query', async () => {
 
 // Mock auth store
 vi.mock('@/stores/auth.store', () => ({
-  useAuthStore: vi.fn(() => ({
-    jiraBaseUrl: 'https://jira.example.com',
-    activeJiraProject: 'PROJ',
-    gitlabBaseUrl: 'https://gitlab.example.com',
-  })),
+  useAuthStore: vi.fn((selector?: (s: unknown) => unknown) => {
+    const state = {
+      jiraBaseUrl: 'https://jira.example.com',
+      activeJiraProject: 'PROJ',
+      gitlabBaseUrl: 'https://gitlab.example.com',
+      gitlabUserId: 42,
+    };
+    return selector ? selector(state) : state;
+  }),
 }));
 
 // Mock settings store
@@ -59,6 +63,7 @@ function makeMR(iid: number, projectId = 1) {
     iid,
     project_id: projectId,
     title: `MR ${iid}`,
+    source_branch: `feature/branch-${iid}`,
     state: 'opened' as const,
     author: { id: 1, name: 'Author', username: 'author', avatar_url: '' },
     reviewers: [],

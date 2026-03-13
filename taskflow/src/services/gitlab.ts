@@ -171,6 +171,7 @@ export interface GitLabMR {
   iid: number;
   project_id: number;
   title: string;
+  source_branch: string;
   state: 'opened' | 'closed' | 'merged' | 'locked';
   author: { id: number; name: string; username: string; avatar_url: string };
   reviewers: Array<{ id: number; name: string; username: string }>;

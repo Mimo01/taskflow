@@ -15,6 +15,7 @@ const baseMR: GitLabMR = {
   iid: 1,
   project_id: 5,
   title: '',
+  source_branch: 'main',
   state: 'opened',
   author: { id: 1, name: 'Alice', username: 'alice', avatar_url: '' },
   reviewers: [],
@@ -56,21 +57,39 @@ describe('linkEngine', () => {
 
   describe('linkMRToTask', () => {
     it('LINK-02: returns first matching key from MR title', () => {
-      const mr = { ...baseMR, title: '[PROJ-42] fix bug' };
+      const mr = { ...baseMR, title: '[PROJ-42] fix bug', source_branch: 'main' };
       const result = linkMRToTask(mr, new Set(['PROJ-42']));
       expect(result).toBe('PROJ-42');
     });
 
     it('LINK-02: returns null when title has no matching key', () => {
-      const mr = { ...baseMR, title: 'fix unrelated' };
+      const mr = { ...baseMR, title: 'fix unrelated', source_branch: 'fix-unrelated' };
       const result = linkMRToTask(mr, new Set(['PROJ-42']));
       expect(result).toBeNull();
     });
 
     it('LINK-02: returns null when key in title not in sprint set', () => {
-      const mr = { ...baseMR, title: '[PROJ-99] something' };
+      const mr = { ...baseMR, title: '[PROJ-99] something', source_branch: 'feature/PROJ-99-something' };
       const result = linkMRToTask(mr, new Set(['PROJ-42']));
       expect(result).toBeNull();
+    });
+
+    it('LINK-02: returns key from source_branch when title has no matching key', () => {
+      const mr = { ...baseMR, title: 'Implement feature', source_branch: 'feature/PROJ-42-implement-feature' };
+      const result = linkMRToTask(mr, new Set(['PROJ-42']));
+      expect(result).toBe('PROJ-42');
+    });
+
+    it('LINK-02: title match takes priority over branch match', () => {
+      const mr = { ...baseMR, title: '[PROJ-42] fix', source_branch: 'feature/PROJ-99-something' };
+      const result = linkMRToTask(mr, new Set(['PROJ-42', 'PROJ-99']));
+      expect(result).toBe('PROJ-42');
+    });
+
+    it('LINK-02: branch match with lowercase prefix separators still extracts uppercase key', () => {
+      const mr = { ...baseMR, title: 'no key here', source_branch: 'feature/PROJ-123-some-work' };
+      const result = linkMRToTask(mr, new Set(['PROJ-123']));
+      expect(result).toBe('PROJ-123');
     });
   });
 

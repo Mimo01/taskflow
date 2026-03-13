@@ -87,6 +87,7 @@ function makeMR(iid: number): GitLabMR {
     iid,
     project_id: 10,
     title: 'feat: my merge request',
+    source_branch: `feature/branch-${iid}`,
     state: 'opened',
     author: { id: 1, name: 'John Smith', username: 'john', avatar_url: '' },
     reviewers: [],

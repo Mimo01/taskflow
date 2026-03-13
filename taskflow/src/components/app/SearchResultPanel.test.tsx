@@ -47,6 +47,7 @@ function makeMR(overrides: Partial<GitLabMR> = {}): GitLabMR {
     iid: 5,
     project_id: 10,
     title: 'feat: my merge request',
+    source_branch: 'feature/branch-5',
     state: 'opened',
     author: { id: 1, name: 'John Smith', username: 'john', avatar_url: '' },
     reviewers: [],
