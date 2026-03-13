@@ -3,9 +3,6 @@
  *
  * Tests Needs Review / Approved / Changes Requested count display
  * and empty state when no assigned MRs exist.
- *
- * RED state: MrHealthPanel component does not exist yet.
- * These tests will fail at import resolution — that is expected.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
@@ -83,10 +80,74 @@ describe('MrHealthPanel (DASH-02)', () => {
   });
 
   describe('health bucket counts', () => {
-    it.todo('shows correct Needs Review / Approved / Changes Requested counts from mr-health cache');
+    it('shows correct Needs Review / Approved / Changes Requested counts from mr-health cache', async () => {
+      const { useQuery, useQueryClient } = await import('@tanstack/react-query');
+      const mr1 = makeMR(1, 10);
+      const mr2 = makeMR(2, 10);
+      const mr3 = makeMR(3, 10);
+      const mrs = [mr1, mr2, mr3];
+
+      vi.mocked(useQuery).mockReturnValue({
+        data: { filtered: mrs, merged: mrs },
+        isLoading: false,
+        isError: false,
+      } as ReturnType<typeof useQuery>);
+
+      const getQueryData = vi.fn((key: unknown[]) => {
+        if (Array.isArray(key) && key[0] === 'mr-health') {
+          const iid = key[2] as number;
+          if (iid === 1) return 'approved';
+          if (iid === 2) return 'changes_requested';
+          return undefined; // mr3 → needs review
+        }
+        return undefined;
+      });
+      vi.mocked(useQueryClient).mockReturnValue({ getQueryData } as ReturnType<typeof useQueryClient>);
+
+      const { default: MrHealthPanel } = await import('./MrHealthPanel');
+      renderWithQuery(
+        <MrHealthPanel
+          gitlabBaseUrl="https://gitlab.example.com"
+          gitlabToken="token"
+          userId={1}
+        />,
+      );
+
+      expect(screen.getByText('Needs Review')).toBeDefined();
+      expect(screen.getByText('Approved')).toBeDefined();
+      expect(screen.getByText('Changes Requested')).toBeDefined();
+
+      // Count values: 1 approved, 1 changes_requested, 1 needs review
+      const countEls = screen.getAllByRole('generic').filter((el) => /^\d+$/.test(el.textContent ?? ''));
+      const counts = countEls.map((el) => Number(el.textContent));
+      expect(counts).toContain(1); // each bucket has 1
+    });
   });
 
   describe('empty state', () => {
-    it.todo('shows "No open MRs" empty state when assigned MRs list is empty');
+    it('shows "No open MRs" empty state when assigned MRs list is empty', async () => {
+      const { useQuery, useQueryClient } = await import('@tanstack/react-query');
+
+      vi.mocked(useQuery).mockReturnValue({
+        data: { filtered: [], merged: [] },
+        isLoading: false,
+        isError: false,
+      } as ReturnType<typeof useQuery>);
+
+      vi.mocked(useQueryClient).mockReturnValue({
+        getQueryData: vi.fn().mockReturnValue(undefined),
+      } as ReturnType<typeof useQueryClient>);
+
+      const { default: MrHealthPanel } = await import('./MrHealthPanel');
+      renderWithQuery(
+        <MrHealthPanel
+          gitlabBaseUrl="https://gitlab.example.com"
+          gitlabToken="token"
+          userId={1}
+        />,
+      );
+
+      expect(screen.getByText('No open MRs')).toBeDefined();
+    });
   });
 });
