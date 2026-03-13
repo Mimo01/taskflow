@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: planning
-stopped_at: Completed quick task 13 — custom error page replacing default React Router boundary
-last_updated: "2026-03-13T11:05:00.000Z"
-last_activity: "2026-03-13 - Completed quick task 13: Add custom error page (ErrorPage.tsx + errorElement wiring)"
+stopped_at: Completed 08-07-PLAN.md — MyTasksTab non-array guards
+last_updated: "2026-03-13T12:01:54.447Z"
+last_activity: "2026-03-13 - Completed quick task 12: Fix MR-to-Jira task mapping empty array"
 progress:
   total_phases: 4
-  completed_phases: 4
-  total_plans: 22
-  completed_plans: 22
+  completed_phases: 3
+  total_plans: 24
+  completed_plans: 23
   percent: 0
 ---
 
@@ -97,6 +97,8 @@ Key v1.1 constraints from research:
 - [Phase 08-dashboard-enrichment]: Dashboard index.tsx is a thin wiring layer only — token loading + prop passing; panels handle their own queries
 - [Phase 08-dashboard-enrichment]: Notifications store sanitized on rehydration — numeric/null id values coerced to string to prevent row click failures
 - [Phase 08-dashboard-enrichment]: sprintData?.issues ?? [] — line 61 fix aligns with fetchSprintIssues {issues, myIssueKeys} return shape; Tauri opener mock uses mockRejectedValue so window.open fallback is exercised; View all notifications Link placed after conditional content block with mt-auto
+- [Phase 08-dashboard-enrichment]: Array.isArray(data) guard in sprintIssueKeySet useMemo — rejects non-array objects that pass ?? [] but throw when iterated
+- [Phase 08-dashboard-enrichment]: Array.isArray(projectMrs) guard on spread — fetchProjectMRs may return {} on parse failure causing spread throw
 
 ### Pending Todos
 
@@ -136,9 +138,10 @@ None.
 | Phase 08-dashboard-enrichment P03 | 3 | 2 tasks | 5 files |
 | Phase 08 P05 | 35 | 1 tasks | 1 files |
 | Phase 08-dashboard-enrichment P06 | 5 | 2 tasks | 3 files |
+| Phase 08-dashboard-enrichment P07 | 3 | 1 tasks | 1 files |
 
 ## Session Continuity
 
-Last session: 2026-03-13T10:51:52.094Z
-Stopped at: Completed 08-06-PLAN.md — gap closure SubtasksPanel + NotificationsPanel
+Last session: 2026-03-13T12:01:54.443Z
+Stopped at: Completed 08-07-PLAN.md — MyTasksTab non-array guards
 Resume file: None
