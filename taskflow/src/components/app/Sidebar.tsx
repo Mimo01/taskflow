@@ -21,6 +21,7 @@ import {
   Users,
   Tag,
   Bug,
+  Bell,
 } from 'lucide-react';
 import { useSettingsStore } from '@/stores/settings.store';
 
@@ -109,8 +110,12 @@ export default function Sidebar() {
 
       </nav>
 
-      {/* Bottom: Debug Logs (when enabled) + Settings */}
+      {/* Bottom: Notifications + Debug Logs (when enabled) + Settings */}
       <div className="px-2 py-4 border-t border-border flex flex-col gap-1">
+        <NavLink to="/notifications" className={navLinkClass}>
+          <Bell className="h-4 w-4 shrink-0" />
+          <span className="hidden md:block">Notifications</span>
+        </NavLink>
         {debugMode && (
           <NavLink to="/debug-logs" className={navLinkClass}>
             <Bug className="h-4 w-4 shrink-0" />
