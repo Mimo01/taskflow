@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Polish
 status: planning
-stopped_at: Completed quick task 17 — WorkloadTab all-story count + Done badge
-last_updated: "2026-03-13T15:26:39.720Z"
-last_activity: "2026-03-13 - Completed quick task 17: WorkloadTab all-story count + Done badge"
+stopped_at: Completed quick task 18 — Increase default window size + widen onboarding wizard
+last_updated: "2026-03-13T15:40:00.000Z"
+last_activity: "2026-03-13 - Completed quick task 18: Tauri window 1100x750, onboarding max-w-lg"
 progress:
   total_phases: 4
   completed_phases: 4
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 Phase: 5 of 8 (API Foundation + Quick Wins)
 Plan: — of —
 Status: Ready to plan
-Last activity: 2026-03-13 - Completed quick task 16: WorkloadTab subtask nesting + worklog attribution
+Last activity: 2026-03-13 - Completed quick task 17: In the workload tab only in progress tasks are counted. I also want to include/show closed tasks
 
 Progress: [░░░░░░░░░░] 0% (v1.1)
 
@@ -130,6 +130,7 @@ None.
 | 15 | Comment count badge on TaskRow + existing comments list in InlineComment panel | 2026-03-13 | d0404e9 | Verified | [15-show-comment-count-on-my-tasks-page-and-](./quick/15-show-comment-count-on-my-tasks-page-and-/) |
 | 16 | WorkloadTab subtask nesting + worklog attribution: three-level hierarchy and fetchIssueWorklogs | 2026-03-13 | 36553c8 | Verified | [16-in-workload-tab-show-subtasks-and-time-l](./quick/16-in-workload-tab-show-subtasks-and-time-l/) |
 | 17 | WorkloadTab Tasks column counts all stories (in-progress + done); Done badge on done sub-rows | 2026-03-13 | 4d74b93 | Done | [17-in-the-workload-tab-only-in-progress-tas](./quick/17-in-the-workload-tab-only-in-progress-tas/) |
+| 18 | Tauri window 1100x750; onboarding wizard containers max-w-lg | 2026-03-13 | 57c0c9e | Done | [18-make-the-default-app-dimensions-a-little](./quick/18-make-the-default-app-dimensions-a-little/) |
 | Phase 06 P01 | 203 | 2 tasks | 2 files |
 | Phase 06 P02 | 4 | 2 tasks | 2 files |
 | Phase 06-workload-sprint-progress-enrichment P03 | 5 | 1 tasks | 2 files |
@@ -149,6 +150,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-13T15:26:39.716Z
-Stopped at: Completed quick task 17 — WorkloadTab all-story count + Done badge
+Last session: 2026-03-13T15:40:00.000Z
+Stopped at: Completed quick task 18 — Increase default window size + widen onboarding wizard
 Resume file: None
