@@ -95,7 +95,7 @@ Plans:
   2. Dashboard shows a MR health summary (needs review / approved / changes requested counts)
   3. Dashboard shows sprint health — days remaining, percentage of points done, and any at-risk in-progress items
   4. Dashboard shows the last 3 unread Jira and GitLab notifications inline
-**Plans**: 5 plans
+**Plans**: 6 plans
 
 Plans:
 - [ ] 08-01-PLAN.md — Wave 0 test stubs: SubtasksPanel, MrHealthPanel, SprintHealthPanel, NotificationsPanel
@@ -103,6 +103,7 @@ Plans:
 - [ ] 08-03-PLAN.md — MrHealthPanel (DASH-02) + SprintHealthPanel (DASH-03)
 - [ ] 08-04-PLAN.md — NotificationsPanel (DASH-04)
 - [ ] 08-05-PLAN.md — Wire dashboard/index.tsx with 2x2 panel grid + visual checkpoint
+- [ ] 08-06-PLAN.md — Fix sprintData type mismatch + test assertions + NotificationsPanel View all link (gap closure)
 
 ## Progress
 
@@ -118,4 +119,4 @@ Phases execute in numeric order: 5 → 6 → 7 → 8
 | 5. API Foundation + Quick Wins | 8/8 | Complete   | 2026-03-12 | 2026-03-12 |
 | 6. Workload + Sprint Progress Enrichment | 3/3 | Complete   | 2026-03-12 | - |
 | 7. Story/Subtask Hierarchy + MR Subtask Filter | 4/5 | In Progress|  | - |
-| 8. Dashboard Enrichment | 5/5 | Complete   | 2026-03-13 | - |
+| 8. Dashboard Enrichment | 5/6 | In Progress   | 2026-03-13 | - |
