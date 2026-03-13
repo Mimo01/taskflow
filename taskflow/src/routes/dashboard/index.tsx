@@ -26,6 +26,9 @@ export default function Dashboard() {
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl } = useAuthStore();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
   const [gitlabToken, setGitlabToken] = useState<string | null>(null);
+  // Track whether the GitLab token read from Stronghold has settled so panels
+  // can show a skeleton immediately rather than a premature empty state.
+  const [gitlabTokenLoading, setGitlabTokenLoading] = useState(true);
   const queryClient = useQueryClient();
 
   // Track last-refreshed time by subscribing to the my-tasks query (shared cache with SubtasksPanel)
@@ -47,7 +50,15 @@ export default function Dashboard() {
   }, [jiraBaseUrl]);
 
   useEffect(() => {
-    if (gitlabBaseUrl) readSecret('gitlab-pat').then(t => setGitlabToken(t)).catch(() => setGitlabToken(null));
+    if (gitlabBaseUrl) {
+      setGitlabTokenLoading(true);
+      readSecret('gitlab-pat')
+        .then(t => setGitlabToken(t))
+        .catch(() => setGitlabToken(null))
+        .finally(() => setGitlabTokenLoading(false));
+    } else {
+      setGitlabTokenLoading(false);
+    }
   }, [gitlabBaseUrl]);
 
   function handleRefresh() {
@@ -100,6 +111,7 @@ export default function Dashboard() {
         <MrHealthPanel
           gitlabBaseUrl={gitlabBaseUrl ?? ''}
           gitlabToken={gitlabToken ?? ''}
+          tokenLoading={gitlabTokenLoading}
         />
         <SprintHealthPanel
           jiraBaseUrl={jiraBaseUrl ?? ''}

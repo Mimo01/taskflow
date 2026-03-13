@@ -9,27 +9,23 @@
  * populated by MrAttentionTab and MyTasksTab. Undefined health entries → Needs Review.
  */
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchAssignedMRs, fetchReviewerMRs, validateGitLab } from '@/services/gitlab';
+import { fetchAssignedMRs, fetchReviewerMRs } from '@/services/gitlab';
 import type { GitLabMR } from '@/services/gitlab';
+import { useAuthStore } from '@/stores/auth.store';
 
 export interface MrHealthPanelProps {
   gitlabBaseUrl: string;
   gitlabToken: string;
+  /** True while the parent is still reading the token from Stronghold. */
+  tokenLoading?: boolean;
 }
 
-export default function MrHealthPanel({ gitlabBaseUrl, gitlabToken }: MrHealthPanelProps) {
+export default function MrHealthPanel({ gitlabBaseUrl, gitlabToken, tokenLoading = false }: MrHealthPanelProps) {
   const queryClient = useQueryClient();
 
-  // Resolve userId internally — shares ['gitlab-current-user'] cache with Dashboard,
-  // so no extra network request is made. This avoids the two-step cascade where Dashboard
-  // must complete validateGitLab before passing userId down as a prop.
-  const { data: currentUser } = useQuery({
-    queryKey: ['gitlab-current-user', gitlabBaseUrl],
-    queryFn: () => validateGitLab(gitlabBaseUrl!, gitlabToken!),
-    staleTime: Infinity,
-    enabled: !!gitlabBaseUrl && !!gitlabToken,
-  });
-  const userId = currentUser?.id;
+  // Use persisted GitLab user ID from auth store — avoids a validateGitLab round-trip
+  // on every mount. The ID is stored during onboarding and token update.
+  const userId = useAuthStore((s) => s.gitlabUserId) ?? undefined;
 
   const { data: mrQueryData, isLoading } = useQuery({
     queryKey: ['gitlab-mrs', gitlabBaseUrl, userId],
@@ -65,7 +61,8 @@ export default function MrHealthPanel({ gitlabBaseUrl, gitlabToken }: MrHealthPa
         MR Health
       </h2>
 
-      {isLoading && (
+      {/* Skeleton — shown while Stronghold token is fetching OR while query is in-flight */}
+      {(tokenLoading || isLoading) && (
         <div className="flex flex-col gap-2">
           {[0, 1, 2].map((i) => (
             <div key={i} className="h-5 rounded bg-muted animate-pulse" />
@@ -73,11 +70,11 @@ export default function MrHealthPanel({ gitlabBaseUrl, gitlabToken }: MrHealthPa
         </div>
       )}
 
-      {!isLoading && assignedMrs.length === 0 && (
+      {!tokenLoading && !isLoading && assignedMrs.length === 0 && (
         <p className="text-sm text-muted-foreground">No open MRs</p>
       )}
 
-      {!isLoading && assignedMrs.length > 0 && (
+      {!tokenLoading && !isLoading && assignedMrs.length > 0 && (
         <div className="flex flex-col gap-1.5">
           <div className="flex justify-between text-sm">
             <span>Needs Review</span>
