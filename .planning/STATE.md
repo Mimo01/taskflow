@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
 current_plan: 4 of 4 (complete)
-status: verifying
-stopped_at: "Checkpoint: 13-05 Task 2 human-verify (dev server running at localhost:1420)"
-last_updated: "2026-03-14T22:26:05.131Z"
-last_activity: 2026-03-14 — Completed 13-04 (EpicDetailSheet built and AppLayout wired; Phase 13 fully complete)
+status: complete
+stopped_at: Completed 13-05-PLAN.md — Phase 13 and v1.2 milestone fully complete
+last_updated: "2026-03-14T23:05:00.000Z"
+last_activity: 2026-03-14 — Completed 13-05 (Human verification passed — EPIC-01..04 confirmed on Orange Jira instance; v1.2 milestone achieved)
 progress:
   total_phases: 5
   completed_phases: 5
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 Phase: 13 of 13 (Epic Management) — COMPLETE
 Current Plan: 4 of 4 (complete)
 Next: All phases complete — v1.2 milestone achieved
-Status: Phase 13 fully complete — EpicDetailSheet built and AppLayout wired; EPIC-01..03 all verified
-Last activity: 2026-03-14 — Completed 13-04 (EpicDetailSheet built and AppLayout wired; Phase 13 fully complete)
+Status: Phase 13 fully complete — all EPIC requirements (EPIC-01..04) human-verified on Orange Jira instance; v1.2 milestone achieved
+Last activity: 2026-03-14 — Completed 13-05 (Human verification passed — EPIC-01..04 confirmed on Orange Jira instance; v1.2 milestone achieved)
 
-Progress: [██████████] 100% (v1.2, 4/4 plans — Phase 13 fully complete)
+Progress: [██████████] 100% (v1.2, 5/5 plans — Phase 13 fully complete)
 
 ## Performance Metrics
 
@@ -127,6 +127,7 @@ Key v1.2 constraints from research:
 - [13-04]: Token sourced from useSettingsStore.jiraToken (not readSecret) in EpicDetailSheet — test mock provides token via store, same pattern as CreateEpicDialog
 - [13-04]: EpicDetailBody split as internal component — hooks rules compliance (useQuery not called when epicKey is null)
 - [Phase 13-epic-management]: 13-05: Full test suite gated at 367 passing (above 351 baseline) — all 4 EPIC test files GREEN before human verification checkpoint
+- [Phase 13]: 13-05: Human verification on Orange Jira instance confirmed EPIC-01..04 all pass — integration with real Jira DC data confirmed
 
 ### Pending Todos
 
@@ -141,6 +142,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-14T22:26:05.127Z
-Stopped at: Checkpoint: 13-05 Task 2 human-verify (dev server running at localhost:1420)
+Last session: 2026-03-14T23:03:33.024Z
+Stopped at: Completed 13-05-PLAN.md — Phase 13 and v1.2 milestone fully complete
 Resume file: None
