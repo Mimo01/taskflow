@@ -14,6 +14,7 @@ import { useNotificationPolling } from './hooks/useNotificationPolling';
 import { readSecret } from './services/stronghold';
 import { discoverCustomFields } from './services/jira';
 import { IssueDetailSheet } from './routes/dashboard/IssueDetailSheet';
+import { CreateEditIssueModal, type EditInitialValues } from './routes/dashboard/CreateEditIssueModal';
 import Onboarding from './routes/onboarding/index';
 import Dashboard from './routes/dashboard/index';
 import Settings from './routes/settings/index';
@@ -78,6 +79,19 @@ function AppLayout() {
   const { onboardingComplete } = useSettingsStore();
   const { jiraConnected, gitlabConnected, _hasHydrated } = useAuthStore();
   const [selectedIssueKey, setSelectedIssueKey] = useState<string | null>(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createModalMode, setCreateModalMode] = useState<'create' | 'edit'>('create');
+  const [createModalInitialValues, setCreateModalInitialValues] = useState<EditInitialValues | undefined>(undefined);
+  const [createModalDefaultType, setCreateModalDefaultType] = useState<'Story' | 'Subtask' | 'Bug' | undefined>(undefined);
+  const [createModalDefaultParent, setCreateModalDefaultParent] = useState<string | undefined>(undefined);
+
+  const handleOpenCreate = () => {
+    setCreateModalMode('create');
+    setCreateModalInitialValues(undefined);
+    setCreateModalDefaultType(undefined);
+    setCreateModalDefaultParent(undefined);
+    setCreateModalOpen(true);
+  };
 
   // Bring window to front when OS notification click activates the app
   useEffect(() => {
@@ -95,7 +109,7 @@ function AppLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar />
+      <Sidebar onOpenCreate={handleOpenCreate} />
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopBar onIssueClick={setSelectedIssueKey} />
         {_hasHydrated && !jiraConnected && <ReAuthBanner />}
@@ -109,6 +123,26 @@ function AppLayout() {
         issueKey={selectedIssueKey}
         onClose={() => setSelectedIssueKey(null)}
         onOpenIssue={setSelectedIssueKey}
+        onEdit={(vals) => {
+          setCreateModalMode('edit');
+          setCreateModalInitialValues(vals);
+          setCreateModalOpen(true);
+        }}
+        onAddSubtask={(parentKey) => {
+          setCreateModalMode('create');
+          setCreateModalDefaultType('Subtask');
+          setCreateModalDefaultParent(parentKey);
+          setCreateModalInitialValues(undefined);
+          setCreateModalOpen(true);
+        }}
+      />
+      <CreateEditIssueModal
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        mode={createModalMode}
+        initialValues={createModalInitialValues}
+        defaultIssueType={createModalDefaultType}
+        defaultParentKey={createModalDefaultParent}
       />
     </div>
   );

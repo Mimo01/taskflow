@@ -21,6 +21,7 @@ import {
   Users,
   Tag,
   Bug,
+  PlusSquare,
 } from 'lucide-react';
 import { useSettingsStore } from '@/stores/settings.store';
 
@@ -31,7 +32,11 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     ? `${NAV_LINK_CLASS} bg-accent text-accent-foreground font-semibold`
     : `${NAV_LINK_CLASS} hover:bg-accent`;
 
-export default function Sidebar() {
+interface SidebarProps {
+  onOpenCreate: () => void;
+}
+
+export default function Sidebar({ onOpenCreate }: SidebarProps) {
   const { role, debugMode } = useSettingsStore();
 
   return (
@@ -48,6 +53,15 @@ export default function Sidebar() {
           <LayoutDashboard className="h-4 w-4 shrink-0" />
           <span className="hidden md:block">Dashboard</span>
         </NavLink>
+
+        <button
+          type="button"
+          onClick={onOpenCreate}
+          className={`${NAV_LINK_CLASS} hover:bg-accent`}
+        >
+          <PlusSquare className="h-4 w-4 shrink-0" />
+          <span className="hidden md:block">Create Issue</span>
+        </button>
 
         {/* Work section (role-specific) */}
         {(role === 'developer' || role === 'pm' || role === 'tech-lead') && (
