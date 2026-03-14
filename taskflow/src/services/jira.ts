@@ -1351,32 +1351,34 @@ export async function fetchBacklogView(
   const base = baseUrl.replace(/\/$/, '')
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
 
-  // Include customfield_10020 (sprint) to enable grouping by sprint from issue data
-  const fields = [
+  const issueFields = [
     ...new Set([
       'summary', 'status', 'assignee', 'issuetype', 'labels',
       'customfield_10016', 'customfield_10014', 'customfield_10015',
-      'customfield_10020',
       storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey,
     ]),
   ].join(',')
 
-  // Parse sprint metadata from customfield_10020 (array, last entry = current sprint)
+  // The Agile board issue API returns fields.sprint as a proper object —
+  // no custom field key guessing needed (customfield_10020 varies by instance).
+  const agileFields = `${issueFields},sprint`
+
+  // Parse fields.sprint from Agile API response (single object, not an array)
   function parseSprintFromIssue(issue: JiraIssue): JiraActiveSprint | null {
-    const sprintArr = (issue.fields as Record<string, unknown>)['customfield_10020']
-    if (!Array.isArray(sprintArr) || sprintArr.length === 0) return null
-    const s = sprintArr[sprintArr.length - 1] as Record<string, unknown>
-    if (typeof s.id !== 'number' || typeof s.name !== 'string') return null
+    const s = (issue.fields as Record<string, unknown>)['sprint']
+    if (!s || typeof s !== 'object' || Array.isArray(s)) return null
+    const sprint = s as Record<string, unknown>
+    if (typeof sprint.id !== 'number') return null
     return {
-      id: s.id,
-      name: s.name,
-      state: s.state as 'active' | 'future' | 'closed',
-      startDate: typeof s.startDate === 'string' ? s.startDate : undefined,
-      endDate: typeof s.endDate === 'string' ? s.endDate : undefined,
+      id: sprint.id,
+      name: String(sprint.name ?? ''),
+      state: String(sprint.state ?? '').toLowerCase() as 'active' | 'future' | 'closed',
+      startDate: typeof sprint.startDate === 'string' ? sprint.startDate : undefined,
+      endDate: typeof sprint.endDate === 'string' ? sprint.endDate : undefined,
     }
   }
 
-  // Group issues by sprint, preserving order (insertion = rank order)
+  // Group issues by sprint, preserving rank order
   function groupBySprint(
     issues: JiraIssue[],
   ): Array<{ sprint: JiraActiveSprint; issues: JiraIssue[] }> {
@@ -1390,28 +1392,49 @@ export async function fetchBacklogView(
     return Array.from(map.values())
   }
 
-  // Fetch active sprints, future sprints, and backlog in parallel.
-  // openSprints()/futureSprints() are project-scoped — no cross-project sprints possible.
-  const activeJql = encodeURIComponent(
-    `project = ${projectKey} AND sprint in openSprints() AND issuetype != Sub-task ORDER BY rank ASC`,
-  )
-  const futureJql = encodeURIComponent(
-    `project = ${projectKey} AND sprint in futureSprints() AND issuetype != Sub-task ORDER BY rank ASC`,
-  )
+  // Step 1: Discover board (needed for Agile API endpoint)
+  let boardId: number | null = null
+  try {
+    const boardRes = await apiFetch(
+      'jira',
+      `${base}/rest/agile/1.0/board?projectKeyOrId=${projectKey}&type=scrum`,
+      { headers },
+    )
+    if (boardRes.ok) {
+      const boardData = await boardRes.json()
+      boardId = boardData?.values?.[0]?.id ?? null
+    }
+  } catch { /* boardId stays null */ }
+
+  // Step 2: Fetch active + future sprint issues via Agile board endpoint.
+  // /rest/agile/1.0/board/{id}/issue returns fields.sprint as a reliable object,
+  // and openSprints()/futureSprints() JQL functions scope results to this project only.
+  let sprints: Array<{ sprint: JiraActiveSprint; issues: JiraIssue[] }> = []
+  if (boardId !== null) {
+    const activeJql = encodeURIComponent(
+      `project = ${projectKey} AND sprint in openSprints() AND issuetype != Sub-task ORDER BY rank ASC`,
+    )
+    const futureJql = encodeURIComponent(
+      `project = ${projectKey} AND sprint in futureSprints() AND issuetype != Sub-task ORDER BY rank ASC`,
+    )
+    const agileBase = `${base}/rest/agile/1.0/board/${boardId}/issue`
+    const [activeIssues, futureIssues] = await Promise.all([
+      fetchAllSearchPages(`${agileBase}?jql=${activeJql}&fields=${agileFields}`, headers)
+        .catch(() => [] as JiraIssue[]),
+      fetchAllSearchPages(`${agileBase}?jql=${futureJql}&fields=${agileFields}`, headers)
+        .catch(() => [] as JiraIssue[]),
+    ])
+    sprints = [...groupBySprint(activeIssues), ...groupBySprint(futureIssues)]
+  }
+
+  // Step 3: Fetch backlog (unassigned to any sprint) via regular search API
   const backlogJql = encodeURIComponent(
     `project = ${projectKey} AND sprint is EMPTY AND issuetype != Sub-task ORDER BY rank ASC`,
   )
-
-  const [activeIssues, futureIssues, backlog] = await Promise.all([
-    fetchAllSearchPages(`${base}/rest/api/2/search?jql=${activeJql}&fields=${fields}`, headers)
-      .catch(() => [] as JiraIssue[]),
-    fetchAllSearchPages(`${base}/rest/api/2/search?jql=${futureJql}&fields=${fields}`, headers)
-      .catch(() => [] as JiraIssue[]),
-    fetchAllSearchPages(`${base}/rest/api/2/search?jql=${backlogJql}&fields=${fields}`, headers)
-      .catch(() => [] as JiraIssue[]),
-  ])
-
-  const sprints = [...groupBySprint(activeIssues), ...groupBySprint(futureIssues)]
+  const backlog = await fetchAllSearchPages(
+    `${base}/rest/api/2/search?jql=${backlogJql}&fields=${issueFields}`,
+    headers,
+  ).catch(() => [] as JiraIssue[])
 
   return { sprints, backlog }
 }
