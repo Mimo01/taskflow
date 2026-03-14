@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
 status: completed
-stopped_at: Completed 10-03-PLAN.md
-last_updated: "2026-03-14T11:43:49.481Z"
-last_activity: 2026-03-14 — Completed 09-08 (sidebar widened 85vw/42% after user feedback; all four entry points verified; ISSUE-01 done)
+stopped_at: Completed 10-04-PLAN.md
+last_updated: "2026-03-14T12:00:00.000Z"
+last_activity: 2026-03-14 — Completed 10-04 (human verification passed; all five BOARD requirements confirmed; Phase 10 complete)
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 12
-  completed_plans: 11
+  completed_plans: 12
   percent: 100
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-13)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Phase 9 — Custom Field Discovery + Issue Detail Foundation
+**Current focus:** Phase 10 — Sprint Board Redesign (COMPLETE)
 
 ## Current Position
 
-Phase: 9 of 13 (Custom Field Discovery + Issue Detail Foundation)
-Plan: 09-08 complete (8 of 8 plans done in phase 9) — Phase 9 COMPLETE
+Phase: 10 of 13 (Sprint Board Redesign)
+Plan: 10-04 complete (4 of 4 plans done in phase 10) — Phase 10 COMPLETE
 Status: Complete
-Last activity: 2026-03-14 — Completed 09-08 (sidebar widened 85vw/42% after user feedback; all four entry points verified; ISSUE-01 done)
+Last activity: 2026-03-14 — Completed 10-04 (human verification passed; all five BOARD requirements confirmed; sticky columns, swimlanes, drag-and-drop verified)
 
-Progress: [██████████] 100% (v1.2, 8/8 plans — Phase 9 complete, human verification passed)
+Progress: [██████████] 100% (v1.2, 4/4 plans — Phase 10 complete, human verification passed)
 
 ## Performance Metrics
 
@@ -94,6 +94,7 @@ Key v1.2 constraints from research:
 - [Phase 10-sprint-board-redesign]: Subtasks always visible under StoryHeaderRow — old expandedStories collapse state removed; old HIER-02 tests replaced to match new always-visible layout
 - [Phase 10-sprint-board-redesign]: DraggableCard passes onClick to TaskCard (not wrapper div) to avoid dnd-kit pointer event conflict
 - [Phase 10-sprint-board-redesign]: QuickCreateInput renders '+ Add' as text (not lucide icon) — accessible name required by pre-written test
+- [10-04]: Human verification passed — all five BOARD requirements confirmed working in live app with real Jira data
 
 ### Pending Todos
 
@@ -108,6 +109,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-14T11:43:49.478Z
-Stopped at: Completed 10-03-PLAN.md
+Last session: 2026-03-14T12:00:00.000Z
+Stopped at: Completed 10-04-PLAN.md
 Resume file: None
