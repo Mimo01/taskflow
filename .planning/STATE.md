@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
-current_plan: 3 of 4 complete
-status: completed
-stopped_at: Completed 12-03-PLAN.md
-last_updated: "2026-03-14T17:09:54.072Z"
-last_activity: 2026-03-14 — Completed 12-02 (BacklogPage, BacklogRow, BacklogFilterBar UI; BACK-01 and BACK-04 tests GREEN)
+current_plan: 4 of 4 (checkpoint — awaiting human verify)
+status: verifying
+stopped_at: "12-04 checkpoint:human-verify (Task 2 — BACK-01..05 verification on Orange Jira)"
+last_updated: "2026-03-14T19:02:24.813Z"
+last_activity: 2026-03-14 — Completed 12-04 Task 1 (/backlog route confirmed, TypeScript clean, 351 tests GREEN)
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 21
-  completed_plans: 20
-  percent: 50
+  completed_plans: 21
+  percent: 97
 ---
 
 # Project State
@@ -27,12 +27,12 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 Phase: 12 of 13 (Backlog View) — IN PROGRESS
-Current Plan: 3 of 4 complete
-Next: Phase 12 Plan 04 — Final integration/E2E verification
-Status: 12-03 complete (handleMoveToSprint optimistic, openCreateStory in Outlet context; all BACK-01..05 GREEN); ready for 12-04
-Last activity: 2026-03-14 — Completed 12-03 (move-to-sprint wiring, Create Story button, all 13 BacklogPage tests GREEN)
+Current Plan: 4 of 4 (checkpoint — awaiting human verify)
+Next: Human verify BACK-01..05 on Orange Jira instance, then Phase 13
+Status: 12-04 Task 1 complete; checkpoint:human-verify pending user sign-off on live Jira
+Last activity: 2026-03-14 — Completed 12-04 Task 1 (/backlog route confirmed, TypeScript clean, 351 tests GREEN)
 
-Progress: [██████████] 95% (v1.2, 3/4 plans — Phase 12 Plans 01-03 complete)
+Progress: [██████████] 97% (v1.2, 4/4 plans — Phase 12 Plans 01-04 complete pending human verify)
 
 ## Performance Metrics
 
@@ -115,6 +115,8 @@ Key v1.2 constraints from research:
 - [Phase 12-backlog-view]: Button text 'Move to sprint' required — plan template would not match test regex /move to sprint/i
 - [Phase 12-backlog-view]: useOutletContext mock changed to vi.fn() enabling BACK-03/BACK-05 tests to call mockReturnValue
 - [Phase 12-backlog-view]: wasStoryCreate ref in AppLayout tracks modal open source for conditional jira-backlog cache invalidation on close
+- [Phase 12-backlog-view]: Optimistic cache updates must spread existing cache object (...old) to preserve all BacklogViewData required fields including epicNames
+- [Phase 12-backlog-view]: Test fixtures for BacklogViewData must include epicNames: new Map() — field is required (not optional) in the type
 
 ### Pending Todos
 
@@ -129,6 +131,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-14T17:09:48.926Z
-Stopped at: Completed 12-03-PLAN.md
+Last session: 2026-03-14T19:05:00Z
+Stopped at: 12-04 checkpoint:human-verify (Task 2 — BACK-01..05 verification on Orange Jira)
 Resume file: None
