@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth.store'
 import { useSettingsStore } from '@/stores/settings.store'
 import { readSecret } from '@/services/stronghold'
-import { fetchIssueDetail } from '@/services/jira'
+import { fetchIssueDetail, fetchEpicStories } from '@/services/jira'
+import type { JiraIssue } from '@/services/jira'
 import { IssueDetailContent } from './IssueDetailContent'
 import { IssueDetailSidebar } from './IssueDetailSidebar'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -66,6 +67,19 @@ function IssueDetailBody({
     enabled: !!issueKey && !!jiraBaseUrl && !!jiraConnected,
   })
 
+  const isEpic = issue?.fields.issuetype.name === 'Epic'
+
+  const { data: epicStories } = useQuery<JiraIssue[]>({
+    queryKey: ['jira-epic-stories', issueKey, jiraBaseUrl],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null)
+      if (!token || !jiraBaseUrl) return []
+      return fetchEpicStories(jiraBaseUrl, token, issueKey, '', storyPointsFieldKey)
+    },
+    staleTime: 30_000,
+    enabled: isEpic && !!jiraBaseUrl && !!jiraConnected,
+  })
+
   if (isLoading || !issue) {
     return <IssueDetailSkeleton data-testid="issue-detail-skeleton" />
   }
@@ -84,6 +98,7 @@ function IssueDetailBody({
           storyPointsFieldKey={storyPointsFieldKey}
           sprintFieldKey={sprintFieldKey}
           epicLinkFieldKey={epicLinkFieldKey}
+          epicStories={epicStories}
         />
       </div>
       {/* Right sidebar: ~42% */}
