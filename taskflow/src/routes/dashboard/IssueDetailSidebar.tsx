@@ -80,12 +80,20 @@ export function IssueDetailSidebar({
   issueKey,
   jiraBaseUrl,
   storyPointsFieldKey,
+  epicLinkFieldKey,
   epicNameFieldKey,
   sprintFieldKey,
 }: IssueDetailSidebarProps) {
   const f = issue.fields
+  const isEpic = f.issuetype.name === 'Epic'
+  const isSubtask = f.issuetype.subtask
+  const isStory = !isEpic && !isSubtask
+
   const storyPoints = f[storyPointsFieldKey] as number | null
-  const epicName = f[epicNameFieldKey] as string | null
+  // For stories: epicLinkFieldKey holds the parent epic key string (e.g. "PROJ-42")
+  // For epics: epicNameFieldKey holds the epic's own display name
+  const epicLink = isStory ? (f[epicLinkFieldKey] as string | null) : null
+  const epicOwnName = isEpic ? (f[epicNameFieldKey] as string | null) : null
   const rawSprint = f[sprintFieldKey] as Array<{ name: string; state: string }> | string | null | undefined
   const sprintName = typeof rawSprint === 'string'
     ? rawSprint
@@ -272,43 +280,65 @@ export function IssueDetailSidebar({
 
       <MetaRow label="Reporter">{f.reporter?.displayName ?? '—'}</MetaRow>
 
-      {/* Story Points — click to edit with number input */}
-      <MetaRow label="Story Points">
-        {spEditing ? (
-          <div>
-            <Input
-              type="number"
-              min={0}
-              max={999}
-              value={spInput}
-              onChange={e => setSpInput(e.target.value)}
-              onBlur={commitSpEdit}
-              onKeyDown={e => {
-                if (e.key === 'Enter') commitSpEdit()
-                if (e.key === 'Escape') cancelSpEdit()
-              }}
-              autoFocus
-              className="h-6 w-20 text-xs"
-            />
-            {mutation.isError && (
-              <p className="text-xs text-destructive mt-1">Save failed — changes reverted</p>
-            )}
-          </div>
-        ) : (
-          <button
-            data-testid="story-points-edit"
-            type="button"
-            onClick={startSpEdit}
-            className="hover:bg-accent rounded px-1 -ml-1 cursor-pointer text-left"
-            title="Click to edit story points"
-          >
-            {storyPoints != null ? String(storyPoints) : '—'}
-          </button>
-        )}
-      </MetaRow>
+      {/* Story Points — stories only */}
+      {isStory && (
+        <MetaRow label="Story Points">
+          {spEditing ? (
+            <div>
+              <Input
+                type="number"
+                min={0}
+                max={999}
+                value={spInput}
+                onChange={e => setSpInput(e.target.value)}
+                onBlur={commitSpEdit}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') commitSpEdit()
+                  if (e.key === 'Escape') cancelSpEdit()
+                }}
+                autoFocus
+                className="h-6 w-20 text-xs"
+              />
+              {mutation.isError && (
+                <p className="text-xs text-destructive mt-1">Save failed — changes reverted</p>
+              )}
+            </div>
+          ) : (
+            <button
+              data-testid="story-points-edit"
+              type="button"
+              onClick={startSpEdit}
+              className="hover:bg-accent rounded px-1 -ml-1 cursor-pointer text-left"
+              title="Click to edit story points"
+            >
+              {storyPoints != null ? String(storyPoints) : '—'}
+            </button>
+          )}
+        </MetaRow>
+      )}
 
-      <MetaRow label="Epic">{epicName ?? '—'}</MetaRow>
-      <MetaRow label="Sprint">{sprintName ?? 'No sprint'}</MetaRow>
+      {/* Epic link — stories only */}
+      {isStory && (
+        <MetaRow label="Epic">
+          <span className="font-mono text-xs">{epicLink ?? '—'}</span>
+        </MetaRow>
+      )}
+
+      {/* Epic own name — epics only */}
+      {isEpic && epicOwnName && (
+        <MetaRow label="Epic Name">{epicOwnName}</MetaRow>
+      )}
+
+      {/* Parent — subtasks only */}
+      {isSubtask && f.parent && (
+        <MetaRow label="Parent">
+          <span className="font-mono text-xs">{f.parent.key}</span>
+          <span className="text-xs text-muted-foreground ml-1">— {f.parent.fields.summary}</span>
+        </MetaRow>
+      )}
+
+      {/* Sprint — epics and stories */}
+      {!isSubtask && <MetaRow label="Sprint">{sprintName ?? 'No sprint'}</MetaRow>}
 
       {/* Labels — badge chips with remove + add */}
       <MetaRow label="Labels">
