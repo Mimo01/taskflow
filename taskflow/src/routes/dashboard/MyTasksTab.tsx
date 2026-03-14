@@ -15,6 +15,7 @@
  * - commentMutation: post comment via postComment, collapses InlineComment on success
  */
 import { useState, useEffect, useMemo } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { RefreshCw } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
@@ -38,7 +39,6 @@ import {
 import type { ReviewHealth } from '@/services/linkEngine'
 import type { GitLabMR } from '@/services/gitlab'
 import TaskRow from './TaskRow'
-import { IssueDetailSheet } from './IssueDetailSheet'
 
 export default function MyTasksTab() {
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, activeGitlabProject, gitlabUserId } = useAuthStore()
@@ -214,7 +214,7 @@ export default function MyTasksTab() {
 
   // Per-row inline errors: keyed by `${issueKey}-transition` or `${issueKey}-comment`
   const [inlineErrors, setInlineErrors] = useState<Record<string, string>>({})
-  const [selectedIssueKey, setSelectedIssueKey] = useState<string | null>(null)
+  const { onIssueClick: setSelectedIssueKey } = useOutletContext<{ onIssueClick: (key: string) => void }>()
 
   // Transition mutation with optimistic update
   const transitionMutation = useMutation({
@@ -383,11 +383,6 @@ export default function MyTasksTab() {
         </div>
       )}
     </div>
-    <IssueDetailSheet
-      issueKey={selectedIssueKey}
-      onClose={() => setSelectedIssueKey(null)}
-      onOpenIssue={setSelectedIssueKey}
-    />
     </>
   )
 }

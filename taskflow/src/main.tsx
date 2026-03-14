@@ -93,6 +93,22 @@ function AppLayout() {
     setCreateModalOpen(true);
   };
 
+  const handleOpenEdit = (vals: EditInitialValues) => {
+    setCreateModalMode('edit');
+    setCreateModalInitialValues(vals);
+    setCreateModalDefaultType(undefined);
+    setCreateModalDefaultParent(undefined);
+    setCreateModalOpen(true);
+  };
+
+  const handleOpenAddSubtask = (parentKey: string) => {
+    setCreateModalMode('create');
+    setCreateModalDefaultType('Subtask');
+    setCreateModalDefaultParent(parentKey);
+    setCreateModalInitialValues(undefined);
+    setCreateModalOpen(true);
+  };
+
   // Bring window to front when OS notification click activates the app
   useEffect(() => {
     getCurrentWindow().setFocus().catch(() => {});
@@ -115,7 +131,7 @@ function AppLayout() {
         {_hasHydrated && !jiraConnected && <ReAuthBanner />}
         {_hasHydrated && !gitlabConnected && <GitLabReAuthBanner />}
         <main className="flex-1 overflow-auto">
-          <Outlet />
+          <Outlet context={{ onIssueClick: setSelectedIssueKey, openEdit: handleOpenEdit, openAddSubtask: handleOpenAddSubtask }} />
         </main>
       </div>
       {/* Global IssueDetailSheet — accessible from search, notifications, and all route views */}
@@ -123,18 +139,8 @@ function AppLayout() {
         issueKey={selectedIssueKey}
         onClose={() => setSelectedIssueKey(null)}
         onOpenIssue={setSelectedIssueKey}
-        onEdit={(vals) => {
-          setCreateModalMode('edit');
-          setCreateModalInitialValues(vals);
-          setCreateModalOpen(true);
-        }}
-        onAddSubtask={(parentKey) => {
-          setCreateModalMode('create');
-          setCreateModalDefaultType('Subtask');
-          setCreateModalDefaultParent(parentKey);
-          setCreateModalInitialValues(undefined);
-          setCreateModalOpen(true);
-        }}
+        onEdit={handleOpenEdit}
+        onAddSubtask={handleOpenAddSubtask}
       />
       <CreateEditIssueModal
         open={createModalOpen}

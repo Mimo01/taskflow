@@ -10,6 +10,10 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
+vi.mock('react-router-dom', () => ({
+  useOutletContext: () => ({ onIssueClick: vi.fn() }),
+}));
+
 // Mock stronghold — avoid real Tauri vault calls
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-jira-token'),

@@ -119,6 +119,8 @@ export function CreateEditIssueModal({
   const [epicLinkKey, setEpicLinkKey] = useState<string | null>(
     initialValues?.epicLinkKey ?? null,
   )
+  const [epicOpen, setEpicOpen] = useState(false)
+  const [epicFilter, setEpicFilter] = useState('')
   const [parentKey, setParentKey] = useState<string | null>(defaultParentKey ?? null)
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({})
   const [assigneeResults, setAssigneeResults] = useState<JiraUser[]>([])
@@ -467,22 +469,57 @@ export function CreateEditIssueModal({
             {selectedIssueType !== 'Subtask' && (
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium">Epic Link</label>
-                <Select
-                  value={epicLinkKey ?? ''}
-                  onValueChange={(v) => setEpicLinkKey(v || null)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select epic (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">None</SelectItem>
-                    {(epics ?? []).map((epic) => (
-                      <SelectItem key={epic.key} value={epic.key}>
-                        {epic.key}: {epic.fields.summary}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {epicOpen ? (
+                  <div className="rounded-md border shadow-sm">
+                    <input
+                      autoFocus
+                      value={epicFilter}
+                      onChange={(e) => setEpicFilter(e.target.value)}
+                      placeholder="Filter epics..."
+                      className="w-full rounded-t-md px-3 py-2 text-sm outline-none border-b bg-background"
+                      onBlur={() => setTimeout(() => setEpicOpen(false), 150)}
+                    />
+                    <div className="max-h-48 overflow-y-auto">
+                      <button
+                        type="button"
+                        className="w-full px-3 py-1.5 text-left text-sm hover:bg-accent text-muted-foreground"
+                        onMouseDown={() => { setEpicLinkKey(null); setEpicFilter(''); setEpicOpen(false) }}
+                      >
+                        None
+                      </button>
+                      {(epics ?? [])
+                        .filter((e) =>
+                          epicFilter === '' ||
+                          e.key.toLowerCase().includes(epicFilter.toLowerCase()) ||
+                          e.fields.summary.toLowerCase().includes(epicFilter.toLowerCase()),
+                        )
+                        .map((epic) => (
+                          <button
+                            key={epic.key}
+                            type="button"
+                            className="w-full px-3 py-1.5 text-left text-sm hover:bg-accent"
+                            onMouseDown={() => { setEpicLinkKey(epic.key); setEpicFilter(''); setEpicOpen(false) }}
+                          >
+                            <span className="font-mono text-xs text-muted-foreground">{epic.key}</span>
+                            {' '}{epic.fields.summary}
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => { setEpicOpen(true); setEpicFilter('') }}
+                    disabled={isPending}
+                    className="flex h-9 w-full items-center rounded-md border bg-background px-3 py-2 text-sm text-left shadow-xs hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {epicLinkKey
+                      ? epics?.find((e) => e.key === epicLinkKey)
+                        ? `${epicLinkKey}: ${epics!.find((e) => e.key === epicLinkKey)!.fields.summary}`
+                        : epicLinkKey
+                      : <span className="text-muted-foreground">Select epic (optional)</span>}
+                  </button>
+                )}
               </div>
             )}
 
