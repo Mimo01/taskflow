@@ -1,4 +1,4 @@
-import type { JiraIssueDetail } from '@/services/jira'
+import type { JiraIssueDetail, JiraIssue } from '@/services/jira'
 import { WikiRenderer } from './WikiRenderer'
 import { CommentComposer } from './CommentComposer'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +18,7 @@ interface IssueDetailContentProps {
   epicLinkFieldKey: string
   onEdit?: (initialValues: EditInitialValues) => void
   onAddSubtask?: (parentKey: string) => void
+  epicStories?: JiraIssue[]
 }
 
 function relativeTime(iso: string): string {
@@ -30,10 +31,12 @@ function relativeTime(iso: string): string {
   return rtf.format(-Math.floor(diffSecs / 86400), 'day')
 }
 
-export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, onEdit, onAddSubtask }: IssueDetailContentProps) {
+export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, onEdit, onAddSubtask, epicStories }: IssueDetailContentProps) {
   const { summary, description, subtasks } = issue.fields
   const comments = issue.fields.comment?.comments ?? []
   const { storyPointsFieldKey, epicLinkFieldKey } = useSettingsStore()
+  const isEpic = issue.fields.issuetype.name === 'Epic'
+  const isSubtask = issue.fields.issuetype.subtask
 
   return (
     <div className="space-y-6">
@@ -53,8 +56,40 @@ export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, 
         )}
       </section>
 
-      {/* Subtasks — only shown for non-subtask issue types */}
-      {!issue.fields.issuetype.subtask && (
+      {/* Epic → Stories list */}
+      {isEpic && (
+        <section>
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">
+            Stories{epicStories && epicStories.length > 0 ? ` (${epicStories.length})` : ''}
+          </h3>
+          {!epicStories && (
+            <p className="text-sm text-muted-foreground">Loading stories…</p>
+          )}
+          {epicStories && epicStories.length === 0 && (
+            <p className="text-sm text-muted-foreground italic">No stories in this epic</p>
+          )}
+          {epicStories && epicStories.length > 0 && (
+            <ul className="space-y-1">
+              {epicStories.map((story) => (
+                <li key={story.key}>
+                  <button
+                    type="button"
+                    onClick={() => onOpenIssue?.(story.key)}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent text-sm text-left"
+                  >
+                    <span className="font-mono text-xs text-muted-foreground shrink-0">{story.key}</span>
+                    <span className="flex-1 truncate">{story.fields.summary}</span>
+                    <Badge variant="outline" className="text-xs shrink-0">{story.fields.status.name}</Badge>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {/* Story/task → Subtasks list */}
+      {!isEpic && !isSubtask && (
         <section>
           {subtasks && subtasks.length > 0 && (
             <>
