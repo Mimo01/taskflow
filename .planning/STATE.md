@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
-current_plan: 2 of 3 complete
+current_plan: 3 of 3 complete
 status: completed
-stopped_at: Completed 14-03-PLAN.md
-last_updated: "2026-03-14T23:43:36.208Z"
-last_activity: 2026-03-15 — Completed 14-02 (fixed handleCreateModalClose cache key; backlog now refreshes after story creation)
+stopped_at: Completed 14-01-PLAN.md — QuickCreateInput wired into SprintBoardTab; BOARD-04 GREEN
+last_updated: "2026-03-15T00:43:00.000Z"
+last_activity: 2026-03-15 — Completed 14-01 (wired QuickCreateInput into SprintBoardTab DroppableCells; BOARD-04 test GREEN; 366 passing)
 progress:
   total_phases: 6
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 29
-  completed_plans: 28
+  completed_plans: 29
   percent: 100
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 
 ## Current Position
 
-Phase: 14 of 14 (Fix Wiring & Credential Bugs) — IN PROGRESS
-Current Plan: 2 of 3 complete
-Next: 14-03 (next gap fix plan)
-Status: 14-02 complete — cache invalidation key fix for backlog refresh after story creation; BACK-03 GREEN
-Last activity: 2026-03-15 — Completed 14-02 (fixed handleCreateModalClose cache key; backlog now refreshes after story creation)
+Phase: 14 of 14 (Fix Wiring & Credential Bugs) — COMPLETE
+Current Plan: 3 of 3 complete
+Next: All plans in phase 14 complete
+Status: 14-01 complete — QuickCreateInput wired into SprintBoardTab; BOARD-04 GREEN; 366 tests passing
+Last activity: 2026-03-15 — Completed 14-01 (wired QuickCreateInput into SprintBoardTab DroppableCells; BOARD-04 test GREEN; 366 passing)
 
 Progress: [██████████] 100% (v1.2, 5/5 plans — Phase 13 fully complete)
 
@@ -130,6 +130,7 @@ Key v1.2 constraints from research:
 - [Phase 13]: 13-05: Human verification on Orange Jira instance confirmed EPIC-01..04 all pass — integration with real Jira DC data confirmed
 - [14-02]: Cache invalidation prefix pattern — invalidateQueries({ queryKey: ['jira-backlog-view'] }) matches all ['jira-backlog-view', project, url] variants; old key ['jira-backlog'] never matched anything
 - [Phase 14-fix-wiring-credential-bugs]: 14-03: CreateEpicDialog jiraToken fetched via readSecret('jira-pat') inside mutationFn — not held in component state; useSettingsStore type-cast removed; useAuthStore used for connection config
+- [14-01]: QuickCreateInput wired inside filteredSwimlanes.map DroppableCells guarded by jiraToken && activeJiraProject; onCreated invalidates ['jira-issues', 'sprint-board'] query key
 
 ### Pending Todos
 
@@ -144,6 +145,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-14T23:43:36.204Z
-Stopped at: Completed 14-03-PLAN.md
+Last session: 2026-03-15T00:43:00.000Z
+Stopped at: Completed 14-01-PLAN.md — QuickCreateInput wired into SprintBoardTab; BOARD-04 GREEN
 Resume file: None
