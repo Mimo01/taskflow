@@ -75,7 +75,13 @@ Plans:
   2. User can drag a subtask or story card from one status column to another and see the status update immediately, with the card snapping back if the transition fails
   3. User can click any board card to open the issue detail panel without leaving the board
   4. User can create a new story or subtask directly from the board without navigating away
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 10-01-PLAN.md — Install @dnd-kit + fetchProjectStatuses/createIssue service functions + Wave 0 RED test stubs
+- [ ] 10-02-PLAN.md — Rebuild board layout with workflow-API columns, grouped kanban, StoryHeaderRow + BoardColumn
+- [ ] 10-03-PLAN.md — Drag-and-drop (DndContext + DraggableCard + useDroppable) + QuickCreateInput
+- [ ] 10-04-PLAN.md — Human verification checkpoint (all five BOARD requirements)
 
 ### Phase 11: Create/Edit Issue Form
 **Goal**: Users can create new Jira issues and edit existing ones with all required fields — including any instance-specific required custom fields — from a form that builds itself from the live Jira configuration
@@ -125,7 +131,7 @@ Plans:
 | 7. Story/Subtask Hierarchy + MR Subtask Filter | v1.1 | 5/5 | Complete | 2026-03-13 |
 | 8. Dashboard Enrichment | v1.1 | 8/8 | Complete | 2026-03-13 |
 | 9. Custom Field Discovery + Issue Detail Foundation | v1.2 | 8/8 | Complete | 2026-03-14 |
-| 10. Sprint Board Redesign | v1.2 | 0/TBD | Not started | - |
+| 10. Sprint Board Redesign | v1.2 | 0/4 | Not started | - |
 | 11. Create/Edit Issue Form | v1.2 | 0/TBD | Not started | - |
 | 12. Backlog View | v1.2 | 0/TBD | Not started | - |
 | 13. Epic Management | v1.2 | 0/TBD | Not started | - |
