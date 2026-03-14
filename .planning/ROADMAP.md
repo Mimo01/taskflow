@@ -92,7 +92,14 @@ Plans:
   2. All required custom fields on the Orange Jira instance (including the Account field) appear in the create form and are discovered dynamically — no hardcoded field IDs
   3. User can open an existing issue for editing and update its summary, description, assignee, story points, priority, and epic link
   4. User can add issue links (relates to, blocks, is blocked by) with link type selection from the Jira-discovered list
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+- [ ] 11-01-PLAN.md — Wave 0 RED test stubs + jira.ts service extensions (createIssue, fetchCreatemeta, bulkUpdateIssue, fetchIssueLinkTypes, createIssueLink)
+- [ ] 11-02-PLAN.md — CreateEditIssueModal core (Dialog, type switcher, dynamic createmeta fields, DescriptionEditor, create/edit mutations)
+- [ ] 11-03-PLAN.md — IssueLinkRow + issue links wired into modal (link type discovery, search picker, post-create links)
+- [ ] 11-04-PLAN.md — Wiring: AppLayout state lift + Sidebar Create Issue button + IssueDetailContent Edit + Add Subtask buttons
+- [ ] 11-05-PLAN.md — Human verification checkpoint (all four CREATE requirements)
 
 ### Phase 12: Backlog View
 **Goal**: Users can see all backlog issues in one place, move issues into the active sprint, create new stories, and filter the list — eliminating the need to open Jira for sprint grooming
@@ -132,6 +139,6 @@ Plans:
 | 8. Dashboard Enrichment | v1.1 | 8/8 | Complete | 2026-03-13 |
 | 9. Custom Field Discovery + Issue Detail Foundation | v1.2 | 8/8 | Complete | 2026-03-14 |
 | 10. Sprint Board Redesign | 4/4 | Complete    | 2026-03-14 | - |
-| 11. Create/Edit Issue Form | v1.2 | 0/TBD | Not started | - |
+| 11. Create/Edit Issue Form | v1.2 | 0/5 | Not started | - |
 | 12. Backlog View | v1.2 | 0/TBD | Not started | - |
 | 13. Epic Management | v1.2 | 0/TBD | Not started | - |
