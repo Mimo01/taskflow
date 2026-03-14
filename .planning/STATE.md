@@ -2,16 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
-status: planning
-stopped_at: "Completed 12-02-PLAN.md"
-last_updated: "2026-03-14T16:59:04Z"
+current_plan: 3 of 4 complete
+status: completed
+stopped_at: Completed 12-03-PLAN.md
+last_updated: "2026-03-14T17:09:54.072Z"
 last_activity: 2026-03-14 — Completed 12-02 (BacklogPage, BacklogRow, BacklogFilterBar UI; BACK-01 and BACK-04 tests GREEN)
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 21
-  completed_plans: 19
-  percent: 90
+  completed_plans: 20
+  percent: 50
 ---
 
 # Project State
@@ -26,12 +27,12 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 Phase: 12 of 13 (Backlog View) — IN PROGRESS
-Current Plan: 2 of 4 complete
-Next: Phase 12 Plan 03 — Move to sprint + Create story wiring
-Status: 12-02 complete (BacklogPage, BacklogRow, BacklogFilterBar; BACK-01 and BACK-04 GREEN); ready for 12-03
-Last activity: 2026-03-14 — Completed 12-02 (BacklogPage, BacklogRow, BacklogFilterBar UI; BACK-01 and BACK-04 tests GREEN)
+Current Plan: 3 of 4 complete
+Next: Phase 12 Plan 04 — Final integration/E2E verification
+Status: 12-03 complete (handleMoveToSprint optimistic, openCreateStory in Outlet context; all BACK-01..05 GREEN); ready for 12-04
+Last activity: 2026-03-14 — Completed 12-03 (move-to-sprint wiring, Create Story button, all 13 BacklogPage tests GREEN)
 
-Progress: [██████████] 50% (v1.2, 2/4 plans — Phase 12 Plans 01-02 complete)
+Progress: [██████████] 95% (v1.2, 3/4 plans — Phase 12 Plans 01-03 complete)
 
 ## Performance Metrics
 
@@ -111,6 +112,9 @@ Key v1.2 constraints from research:
 - [12-02]: BacklogFilterBar uses native <select> (combobox role) — tests use getByRole('combobox') + fireEvent.change, requiring valid select options not @base-ui popovers
 - [12-02]: filterOptions epics Map uses epicKey → (epicName ?? epicKey) fallback — ensures select options exist even when epicName field is null
 - [12-02]: BACK-05 test has pre-existing mock design issue (useOutletContext is plain function not vi.fn()) — BACK-05 remains RED; functionality implemented correctly
+- [Phase 12-backlog-view]: Button text 'Move to sprint' required — plan template would not match test regex /move to sprint/i
+- [Phase 12-backlog-view]: useOutletContext mock changed to vi.fn() enabling BACK-03/BACK-05 tests to call mockReturnValue
+- [Phase 12-backlog-view]: wasStoryCreate ref in AppLayout tracks modal open source for conditional jira-backlog cache invalidation on close
 
 ### Pending Todos
 
@@ -125,6 +129,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-14T16:59:04Z
-Stopped at: Completed 12-02-PLAN.md
-Resume file: .planning/phases/12-backlog-view/12-03-PLAN.md
+Last session: 2026-03-14T17:09:48.926Z
+Stopped at: Completed 12-03-PLAN.md
+Resume file: None
