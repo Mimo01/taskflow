@@ -42,7 +42,7 @@ export function CreateEpicDialog({ open, onClose }: CreateEpicDialogProps) {
       })
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['jira-epics'] })
+      queryClient.invalidateQueries({ queryKey: ['jira-epics-basic'] })
       setEpicName('')
       setDescription('')
       onClose()
