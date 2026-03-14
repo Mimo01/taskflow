@@ -25,6 +25,7 @@ import SprintProgressTab from './routes/dashboard/SprintProgressTab';
 import WorkloadTab from './routes/dashboard/WorkloadTab';
 import ReleasesTab from './routes/dashboard/ReleasesTab';
 import BacklogPage from './routes/dashboard/BacklogPage';
+import EpicsPage from './routes/dashboard/EpicsPage';
 import DebugLogs from './routes/debug-logs/index';
 import ErrorPage from './routes/error/ErrorPage';
 
@@ -188,6 +189,7 @@ const router = createHashRouter([
       { path: '/my-tasks', element: <MyTasksTab /> },
       { path: '/sprint-board', element: <SprintBoardTab /> },
       { path: '/backlog', element: <BacklogPage /> },
+      { path: '/epics', element: <EpicsPage /> },
       { path: '/mr-attention', element: <MrAttentionTab /> },
       { path: '/sprint-progress', element: <SprintProgressTab /> },
       { path: '/workload', element: <WorkloadTab /> },
