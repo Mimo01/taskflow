@@ -40,7 +40,7 @@ Requirements for the Jira Parity milestone. Goal: replace the need to open real 
 - [x] **EPIC-01**: User can view a list of all epics with name, status, story count, and point totals
 - [x] **EPIC-02**: User can filter the sprint board and backlog by a selected epic
 - [x] **EPIC-03**: User can open an epic detail view showing all stories under that epic
-- [ ] **EPIC-04**: User can create a new epic from within the app
+- [x] **EPIC-04**: User can create a new epic from within the app
 
 ### Create/Edit (CREATE)
 
@@ -106,7 +106,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EPIC-01 | Phase 13 | Complete |
 | EPIC-02 | Phase 13 | Complete |
 | EPIC-03 | Phase 13 | Complete |
-| EPIC-04 | Phase 14 | Pending |
+| EPIC-04 | Phase 14 | Complete |
 | CREATE-01 | Phase 11 | Complete |
 | CREATE-02 | Phase 11 | Complete |
 | CREATE-03 | Phase 11 | Complete |
