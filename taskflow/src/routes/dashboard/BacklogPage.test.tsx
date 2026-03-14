@@ -1,14 +1,16 @@
 /**
- * BacklogPage tests — BACK-01..05 RED stubs (Wave 0)
+ * BacklogPage tests — Jira-style backlog view (BACK-01..05)
  *
- * BacklogPage.tsx does not exist yet — all tests fail at import.
- * These stubs define the behavioral contract for Plan 12-02 (GREEN phase).
+ * Tests the redesigned BacklogPage that shows:
+ *   - Active sprint section with header and issues
+ *   - Future sprint sections with headers and issues
+ *   - Backlog section (unassigned issues) always at bottom
  *
  * Requirements covered:
- *   BACK-01 — Backlog issue list (load, skeleton, empty state)
+ *   BACK-01 — Backlog issue list (sprint issues + backlog issues, section headers appear)
  *   BACK-02 — Bulk "Move to sprint" action (checkbox selection, optimistic removal, rollback)
- *   BACK-03 — Create Story entry point (+ Create Story button)
- *   BACK-04 — Epic / assignee filters (AND logic, dismiss chip)
+ *   BACK-03 — Create story entry point (+ Create Story button)
+ *   BACK-04 — Epic / assignee filters (AND logic, applies across all sections, dismiss chip)
  *   BACK-05 — Row click opens issue detail
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -27,7 +29,7 @@ vi.mock('@/services/stronghold', () => ({
 }));
 
 vi.mock('@/services/jira', () => ({
-  fetchBacklogIssues: vi.fn().mockResolvedValue([]),
+  fetchBacklogView: vi.fn().mockResolvedValue({ sprints: [], backlog: [] }),
   addIssuesToSprint: vi.fn().mockResolvedValue(undefined),
   fetchActiveSprint: vi.fn().mockResolvedValue(null),
 }));
@@ -50,7 +52,13 @@ vi.mock('@/stores/settings.store', () => ({
 
 vi.mock('lucide-react', async (importOriginal) => {
   const actual = await importOriginal<typeof import('lucide-react')>();
-  return { ...actual, List: () => <span data-testid="icon-list" />, RefreshCw: () => <span /> };
+  return {
+    ...actual,
+    List: () => <span data-testid="icon-list" />,
+    RefreshCw: () => <span />,
+    ChevronDown: () => <span data-testid="icon-chevron-down" />,
+    ChevronRight: () => <span data-testid="icon-chevron-right" />,
+  };
 });
 
 // ── Fixtures ───────────────────────────────────────────────────────────────────
@@ -83,6 +91,10 @@ function makeIssue(
   };
 }
 
+function makeSprint(id: number, name: string, state: 'active' | 'future' = 'active') {
+  return { id, name, state };
+}
+
 // ── Render helper ──────────────────────────────────────────────────────────────
 
 function renderBacklogPage(ui: React.ReactElement) {
@@ -99,27 +111,38 @@ describe('BACK-01 List', () => {
     vi.clearAllMocks();
   });
 
-  it('renders issue key and summary rows when fetchBacklogIssues resolves with data', async () => {
-    const { fetchBacklogIssues } = await import('@/services/jira');
-    vi.mocked(fetchBacklogIssues).mockResolvedValue([
-      makeIssue('PROJ-1', 'Build login page'),
-      makeIssue('PROJ-2', 'Fix signup flow'),
-    ]);
+  it('renders backlog issues AND sprint issues; sprint section headers appear', async () => {
+    const { fetchBacklogView } = await import('@/services/jira');
+    vi.mocked(fetchBacklogView).mockResolvedValue({
+      sprints: [
+        {
+          sprint: makeSprint(1, 'Sprint 1', 'active'),
+          issues: [makeIssue('PROJ-1', 'Sprint story one')],
+        },
+      ],
+      backlog: [makeIssue('PROJ-2', 'Backlog story two')],
+    });
 
     const { default: BacklogPage } = await import('./BacklogPage');
     renderBacklogPage(<BacklogPage />);
 
     await waitFor(() => {
+      // Sprint section header
+      expect(screen.getByText('Sprint 1')).toBeInTheDocument();
+      // Sprint issue
       expect(screen.getByText('PROJ-1')).toBeInTheDocument();
-      expect(screen.getByText('Build login page')).toBeInTheDocument();
+      expect(screen.getByText('Sprint story one')).toBeInTheDocument();
+      // Backlog section header (two "Backlog" elements: h1 page title + section header span)
+      expect(screen.getAllByText('Backlog').length).toBeGreaterThanOrEqual(2);
+      // Backlog issue
       expect(screen.getByText('PROJ-2')).toBeInTheDocument();
-      expect(screen.getByText('Fix signup flow')).toBeInTheDocument();
+      expect(screen.getByText('Backlog story two')).toBeInTheDocument();
     });
   });
 
   it('renders skeleton/loading state while query is pending', async () => {
-    const { fetchBacklogIssues } = await import('@/services/jira');
-    vi.mocked(fetchBacklogIssues).mockReturnValue(new Promise(() => {})); // never resolves
+    const { fetchBacklogView } = await import('@/services/jira');
+    vi.mocked(fetchBacklogView).mockReturnValue(new Promise(() => {})); // never resolves
 
     const { default: BacklogPage } = await import('./BacklogPage');
     renderBacklogPage(<BacklogPage />);
@@ -130,9 +153,9 @@ describe('BACK-01 List', () => {
     });
   });
 
-  it('renders empty state message when fetchBacklogIssues resolves with []', async () => {
-    const { fetchBacklogIssues } = await import('@/services/jira');
-    vi.mocked(fetchBacklogIssues).mockResolvedValue([]);
+  it('renders empty state message when fetchBacklogView resolves with no issues', async () => {
+    const { fetchBacklogView } = await import('@/services/jira');
+    vi.mocked(fetchBacklogView).mockResolvedValue({ sprints: [], backlog: [] });
 
     const { default: BacklogPage } = await import('./BacklogPage');
     renderBacklogPage(<BacklogPage />);
@@ -143,6 +166,25 @@ describe('BACK-01 List', () => {
       ).toBeInTheDocument();
     });
   });
+
+  it('renders Active badge on active sprint section and Future badge on future sprint section', async () => {
+    const { fetchBacklogView } = await import('@/services/jira');
+    vi.mocked(fetchBacklogView).mockResolvedValue({
+      sprints: [
+        { sprint: makeSprint(1, 'Sprint 1', 'active'), issues: [] },
+        { sprint: makeSprint(2, 'Sprint 2', 'future'), issues: [] },
+      ],
+      backlog: [],
+    });
+
+    const { default: BacklogPage } = await import('./BacklogPage');
+    renderBacklogPage(<BacklogPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Active')).toBeInTheDocument();
+      expect(screen.getByText('Future')).toBeInTheDocument();
+    });
+  });
 });
 
 describe('BACK-02 Move to sprint', () => {
@@ -151,10 +193,11 @@ describe('BACK-02 Move to sprint', () => {
   });
 
   it('selecting a row checkbox reveals the bulk action bar', async () => {
-    const { fetchBacklogIssues } = await import('@/services/jira');
-    vi.mocked(fetchBacklogIssues).mockResolvedValue([
-      makeIssue('PROJ-1', 'Build login page'),
-    ]);
+    const { fetchBacklogView } = await import('@/services/jira');
+    vi.mocked(fetchBacklogView).mockResolvedValue({
+      sprints: [],
+      backlog: [makeIssue('PROJ-1', 'Build login page')],
+    });
 
     const { default: BacklogPage } = await import('./BacklogPage');
     renderBacklogPage(<BacklogPage />);
@@ -168,10 +211,11 @@ describe('BACK-02 Move to sprint', () => {
   });
 
   it('"Move to sprint" button is disabled when fetchActiveSprint returns null', async () => {
-    const { fetchBacklogIssues, fetchActiveSprint } = await import('@/services/jira');
-    vi.mocked(fetchBacklogIssues).mockResolvedValue([
-      makeIssue('PROJ-1', 'Build login page'),
-    ]);
+    const { fetchBacklogView, fetchActiveSprint } = await import('@/services/jira');
+    vi.mocked(fetchBacklogView).mockResolvedValue({
+      sprints: [],
+      backlog: [makeIssue('PROJ-1', 'Build login page')],
+    });
     vi.mocked(fetchActiveSprint).mockResolvedValue(null);
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -187,12 +231,15 @@ describe('BACK-02 Move to sprint', () => {
     });
   });
 
-  it('clicking "Move to sprint" removes selected issues optimistically from the list', async () => {
-    const { fetchBacklogIssues, fetchActiveSprint, addIssuesToSprint } = await import('@/services/jira');
-    vi.mocked(fetchBacklogIssues).mockResolvedValue([
-      makeIssue('PROJ-1', 'Build login page'),
-      makeIssue('PROJ-2', 'Fix signup flow'),
-    ]);
+  it('clicking "Move to sprint" removes selected backlog issues optimistically from the list', async () => {
+    const { fetchBacklogView, fetchActiveSprint, addIssuesToSprint } = await import('@/services/jira');
+    vi.mocked(fetchBacklogView).mockResolvedValue({
+      sprints: [],
+      backlog: [
+        makeIssue('PROJ-1', 'Build login page'),
+        makeIssue('PROJ-2', 'Fix signup flow'),
+      ],
+    });
     vi.mocked(fetchActiveSprint).mockResolvedValue({
       id: 42,
       name: 'Sprint 1',
@@ -217,11 +264,46 @@ describe('BACK-02 Move to sprint', () => {
     });
   });
 
+  it('clicking "Move to sprint" removes selected sprint issues optimistically from the list', async () => {
+    const { fetchBacklogView, fetchActiveSprint, addIssuesToSprint } = await import('@/services/jira');
+    vi.mocked(fetchBacklogView).mockResolvedValue({
+      sprints: [
+        {
+          sprint: makeSprint(1, 'Sprint 1', 'active'),
+          issues: [
+            makeIssue('PROJ-1', 'Sprint issue one'),
+            makeIssue('PROJ-2', 'Sprint issue two'),
+          ],
+        },
+      ],
+      backlog: [],
+    });
+    vi.mocked(fetchActiveSprint).mockResolvedValue({ id: 1, name: 'Sprint 1', state: 'active' });
+    vi.mocked(addIssuesToSprint).mockResolvedValue(undefined);
+
+    const { default: BacklogPage } = await import('./BacklogPage');
+    renderBacklogPage(<BacklogPage />);
+
+    await waitFor(() => screen.getByText('PROJ-1'));
+
+    const checkbox = screen.getByRole('checkbox', { name: /PROJ-1/i });
+    fireEvent.click(checkbox);
+
+    const moveBtn = await screen.findByRole('button', { name: /move to sprint/i });
+    fireEvent.click(moveBtn);
+
+    await waitFor(() => {
+      expect(screen.queryByText('PROJ-1')).not.toBeInTheDocument();
+      expect(screen.getByText('PROJ-2')).toBeInTheDocument();
+    });
+  });
+
   it('when addIssuesToSprint rejects, issues reappear and error message is shown', async () => {
-    const { fetchBacklogIssues, fetchActiveSprint, addIssuesToSprint } = await import('@/services/jira');
-    vi.mocked(fetchBacklogIssues).mockResolvedValue([
-      makeIssue('PROJ-1', 'Build login page'),
-    ]);
+    const { fetchBacklogView, fetchActiveSprint, addIssuesToSprint } = await import('@/services/jira');
+    vi.mocked(fetchBacklogView).mockResolvedValue({
+      sprints: [],
+      backlog: [makeIssue('PROJ-1', 'Build login page')],
+    });
     vi.mocked(fetchActiveSprint).mockResolvedValue({
       id: 42,
       name: 'Sprint 1',
@@ -259,8 +341,8 @@ describe('BACK-03 Create story', () => {
     const { useOutletContext } = await import('react-router-dom');
     vi.mocked(useOutletContext).mockReturnValue({ onIssueClick: vi.fn(), openCreateStory });
 
-    const { fetchBacklogIssues } = await import('@/services/jira');
-    vi.mocked(fetchBacklogIssues).mockResolvedValue([]);
+    const { fetchBacklogView } = await import('@/services/jira');
+    vi.mocked(fetchBacklogView).mockResolvedValue({ sprints: [], backlog: [] });
 
     const { default: BacklogPage } = await import('./BacklogPage');
     renderBacklogPage(<BacklogPage />);
@@ -278,12 +360,17 @@ describe('BACK-04 Filters', () => {
     vi.clearAllMocks();
   });
 
-  it('selecting an epic filter hides rows with a different epic', async () => {
-    const { fetchBacklogIssues } = await import('@/services/jira');
-    vi.mocked(fetchBacklogIssues).mockResolvedValue([
-      makeIssue('PROJ-1', 'Story in Epic A', 'EPIC-1'),
-      makeIssue('PROJ-2', 'Story in Epic B', 'EPIC-2'),
-    ]);
+  it('selecting an epic filter hides rows with a different epic (across sections)', async () => {
+    const { fetchBacklogView } = await import('@/services/jira');
+    vi.mocked(fetchBacklogView).mockResolvedValue({
+      sprints: [
+        {
+          sprint: makeSprint(1, 'Sprint 1', 'active'),
+          issues: [makeIssue('PROJ-1', 'Story in Epic A', 'EPIC-1')],
+        },
+      ],
+      backlog: [makeIssue('PROJ-2', 'Story in Epic B', 'EPIC-2')],
+    });
 
     const { default: BacklogPage } = await import('./BacklogPage');
     renderBacklogPage(<BacklogPage />);
@@ -301,11 +388,14 @@ describe('BACK-04 Filters', () => {
   });
 
   it('selecting an assignee filter hides rows with a different assignee', async () => {
-    const { fetchBacklogIssues } = await import('@/services/jira');
-    vi.mocked(fetchBacklogIssues).mockResolvedValue([
-      makeIssue('PROJ-1', 'Alice story', undefined, 'Alice'),
-      makeIssue('PROJ-2', 'Bob story', undefined, 'Bob'),
-    ]);
+    const { fetchBacklogView } = await import('@/services/jira');
+    vi.mocked(fetchBacklogView).mockResolvedValue({
+      sprints: [],
+      backlog: [
+        makeIssue('PROJ-1', 'Alice story', undefined, 'Alice'),
+        makeIssue('PROJ-2', 'Bob story', undefined, 'Bob'),
+      ],
+    });
 
     const { default: BacklogPage } = await import('./BacklogPage');
     renderBacklogPage(<BacklogPage />);
@@ -322,12 +412,15 @@ describe('BACK-04 Filters', () => {
   });
 
   it('two active filters narrow results using AND logic (epic AND assignee)', async () => {
-    const { fetchBacklogIssues } = await import('@/services/jira');
-    vi.mocked(fetchBacklogIssues).mockResolvedValue([
-      makeIssue('PROJ-1', 'Alice + Epic A', 'EPIC-1', 'Alice'),
-      makeIssue('PROJ-2', 'Alice + Epic B', 'EPIC-2', 'Alice'),
-      makeIssue('PROJ-3', 'Bob + Epic A', 'EPIC-1', 'Bob'),
-    ]);
+    const { fetchBacklogView } = await import('@/services/jira');
+    vi.mocked(fetchBacklogView).mockResolvedValue({
+      sprints: [],
+      backlog: [
+        makeIssue('PROJ-1', 'Alice + Epic A', 'EPIC-1', 'Alice'),
+        makeIssue('PROJ-2', 'Alice + Epic B', 'EPIC-2', 'Alice'),
+        makeIssue('PROJ-3', 'Bob + Epic A', 'EPIC-1', 'Bob'),
+      ],
+    });
 
     const { default: BacklogPage } = await import('./BacklogPage');
     renderBacklogPage(<BacklogPage />);
@@ -341,18 +434,21 @@ describe('BACK-04 Filters', () => {
     fireEvent.change(assigneeFilter, { target: { value: 'Alice' } });
 
     await waitFor(() => {
-      expect(screen.getByText('PROJ-1')).toBeInTheDocument();   // Alice + EPIC-1 — shown
+      expect(screen.getByText('PROJ-1')).toBeInTheDocument();      // Alice + EPIC-1 — shown
       expect(screen.queryByText('PROJ-2')).not.toBeInTheDocument(); // Alice + EPIC-2 — hidden
       expect(screen.queryByText('PROJ-3')).not.toBeInTheDocument(); // Bob + EPIC-1 — hidden
     });
   });
 
   it('clicking the dismiss chip on an active filter clears that filter', async () => {
-    const { fetchBacklogIssues } = await import('@/services/jira');
-    vi.mocked(fetchBacklogIssues).mockResolvedValue([
-      makeIssue('PROJ-1', 'Story in Epic A', 'EPIC-1'),
-      makeIssue('PROJ-2', 'Story in Epic B', 'EPIC-2'),
-    ]);
+    const { fetchBacklogView } = await import('@/services/jira');
+    vi.mocked(fetchBacklogView).mockResolvedValue({
+      sprints: [],
+      backlog: [
+        makeIssue('PROJ-1', 'Story in Epic A', 'EPIC-1'),
+        makeIssue('PROJ-2', 'Story in Epic B', 'EPIC-2'),
+      ],
+    });
 
     const { default: BacklogPage } = await import('./BacklogPage');
     renderBacklogPage(<BacklogPage />);
@@ -386,10 +482,11 @@ describe('BACK-05 Row click', () => {
     const { useOutletContext } = await import('react-router-dom');
     vi.mocked(useOutletContext).mockReturnValue({ onIssueClick, openCreateStory: vi.fn() });
 
-    const { fetchBacklogIssues } = await import('@/services/jira');
-    vi.mocked(fetchBacklogIssues).mockResolvedValue([
-      makeIssue('PROJ-1', 'Build login page'),
-    ]);
+    const { fetchBacklogView } = await import('@/services/jira');
+    vi.mocked(fetchBacklogView).mockResolvedValue({
+      sprints: [],
+      backlog: [makeIssue('PROJ-1', 'Build login page')],
+    });
 
     const { default: BacklogPage } = await import('./BacklogPage');
     renderBacklogPage(<BacklogPage />);
@@ -398,6 +495,32 @@ describe('BACK-05 Row click', () => {
 
     // Click the row (by summary text — not the checkbox)
     fireEvent.click(screen.getByText('Build login page'));
+
+    expect(onIssueClick).toHaveBeenCalledWith('PROJ-1');
+  });
+
+  it('clicking a row in a sprint section calls onIssueClick with the issue key', async () => {
+    const onIssueClick = vi.fn();
+    const { useOutletContext } = await import('react-router-dom');
+    vi.mocked(useOutletContext).mockReturnValue({ onIssueClick, openCreateStory: vi.fn() });
+
+    const { fetchBacklogView } = await import('@/services/jira');
+    vi.mocked(fetchBacklogView).mockResolvedValue({
+      sprints: [
+        {
+          sprint: makeSprint(1, 'Sprint 1', 'active'),
+          issues: [makeIssue('PROJ-1', 'Sprint issue summary')],
+        },
+      ],
+      backlog: [],
+    });
+
+    const { default: BacklogPage } = await import('./BacklogPage');
+    renderBacklogPage(<BacklogPage />);
+
+    await waitFor(() => screen.getByText('PROJ-1'));
+
+    fireEvent.click(screen.getByText('Sprint issue summary'));
 
     expect(onIssueClick).toHaveBeenCalledWith('PROJ-1');
   });
