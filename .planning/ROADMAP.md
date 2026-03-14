@@ -41,7 +41,7 @@ See archive: `.planning/milestones/v1.1-ROADMAP.md`
 - [x] **Phase 11: Create/Edit Issue Form** - Create and edit any Jira issue with all required fields, dynamically built from createmeta (completed 2026-03-14)
 - [x] **Phase 12: Backlog View** - Backlog list with move-to-sprint, create story, and epic/label/assignee filters (completed 2026-03-14)
 - [x] **Phase 13: Epic Management** - Epic list, detail, cross-view filtering, and epic creation (completed 2026-03-14)
-- [ ] **Phase 14: Fix v1.2 Wiring and Credential Bugs** - Wire BoardColumn/QuickCreateInput into SprintBoardTab, fix cache invalidation key, fix CreateEpicDialog credential store
+- [x] **Phase 14: Fix v1.2 Wiring and Credential Bugs** - Wire BoardColumn/QuickCreateInput into SprintBoardTab, fix cache invalidation key, fix CreateEpicDialog credential store (completed 2026-03-15)
 
 ## Phase Details
 
@@ -149,9 +149,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 14-01-PLAN.md — Import BoardColumn + QuickCreateInput into SprintBoardTab.tsx (BOARD-04)
-- [ ] 14-02-PLAN.md — Fix cache invalidation key in main.tsx (BACK-03)
-- [ ] 14-03-PLAN.md — Replace useSettingsStore with useAuthStore in CreateEpicDialog.tsx (EPIC-04)
+- [x] 14-01-PLAN.md — Import BoardColumn + QuickCreateInput into SprintBoardTab.tsx (BOARD-04)
+- [x] 14-02-PLAN.md — Fix cache invalidation key in main.tsx (BACK-03)
+- [x] 14-03-PLAN.md — Replace useSettingsStore with useAuthStore in CreateEpicDialog.tsx (EPIC-04)
 
 ## Progress
 
@@ -172,4 +172,4 @@ Plans:
 | 11. Create/Edit Issue Form | 4/5 | In Progress|  | - |
 | 12. Backlog View | 4/4 | Complete    | 2026-03-14 | - |
 | 13. Epic Management | 5/5 | Complete    | 2026-03-14 | - |
-| 14. Fix v1.2 Wiring and Credential Bugs | 2/3 | In Progress|  | - |
+| 14. Fix v1.2 Wiring and Credential Bugs | v1.2 | 3/3 | Complete | 2026-03-15 |
