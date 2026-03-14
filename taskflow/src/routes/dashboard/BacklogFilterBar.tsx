@@ -17,6 +17,7 @@ interface MultiFilterComboboxProps {
   id: string
   label: string
   placeholder: string
+  noun: string // singular noun for the count chip e.g. "epic", "assignee", "label"
   options: string[]
   selected: Set<string>
   onToggle: (value: string) => void
@@ -26,6 +27,7 @@ function MultiFilterCombobox({
   id,
   label,
   placeholder,
+  noun,
   options,
   selected,
   onToggle,
@@ -69,7 +71,7 @@ function MultiFilterCombobox({
         aria-autocomplete="list"
         aria-expanded={open}
         value={query}
-        placeholder={selected.size > 0 ? `${selected.size} label${selected.size > 1 ? 's' : ''}` : placeholder}
+        placeholder={selected.size > 0 ? `${selected.size} ${noun}${selected.size > 1 ? 's' : ''}` : placeholder}
         onChange={handleChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
@@ -141,6 +143,7 @@ export function BacklogFilterBar({
         id="epic-filter"
         label="Epic"
         placeholder="Epic"
+        noun="epic"
         options={epicNames}
         selected={activeEpics}
         onToggle={(name) => onEpicsChange(toggle(activeEpics, name))}
@@ -150,6 +153,7 @@ export function BacklogFilterBar({
         id="label-filter"
         label="Label"
         placeholder="Label"
+        noun="label"
         options={filterOptions.labels}
         selected={activeLabels}
         onToggle={(label) => onLabelsChange(toggle(activeLabels, label))}
@@ -159,6 +163,7 @@ export function BacklogFilterBar({
         id="assignee-filter"
         label="Assignee"
         placeholder="Assignee"
+        noun="assignee"
         options={filterOptions.assignees}
         selected={activeAssignees}
         onToggle={(name) => onAssigneesChange(toggle(activeAssignees, name))}
