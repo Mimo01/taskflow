@@ -25,6 +25,7 @@ vi.mock('@/services/jira', () => ({
   fetchProjectStatuses: vi.fn().mockResolvedValue([]),
   fetchTransitions: vi.fn().mockResolvedValue([]),
   postTransition: vi.fn().mockResolvedValue(undefined),
+  createIssue: vi.fn().mockResolvedValue({ key: 'PROJ-99' }),
 }));
 
 // Mock auth store
@@ -514,5 +515,28 @@ describe('SprintBoardTab', () => {
         expect(screen.getAllByText('Story Beta').length).toBeGreaterThanOrEqual(1);
       });
     });
+  });
+});
+
+describe('BOARD-04 QuickCreateInput wiring', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders a QuickCreateInput in each column when data is loaded', async () => {
+    const { fetchSprintIssues } = await import('@/services/jira');
+    // Provide one story so the board renders a swimlane with 3 DroppableCells
+    vi.mocked(fetchSprintIssues).mockResolvedValueOnce([
+      makeIssue('PROJ-1', 'Story 1', false, undefined, 'To Do'),
+    ]);
+
+    const { default: SprintBoardTab } = await import('./SprintBoardTab');
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <SprintBoardTab />
+      </QueryClientProvider>
+    );
+    // Expect 3 "+ Add" buttons — one per column (new/indeterminate/done)
+    await waitFor(() => expect(screen.getAllByText(/\+ Add/i)).toHaveLength(3));
   });
 });
