@@ -17,7 +17,7 @@ interface IssueDetailSheetProps {
 export function IssueDetailSheet({ issueKey, onClose, onOpenIssue }: IssueDetailSheetProps) {
   return (
     <Sheet open={issueKey !== null} onOpenChange={(open) => { if (!open) onClose() }}>
-      <SheetContent side="right" className="p-0 flex flex-col overflow-hidden" style={{ width: '95vw', maxWidth: '95vw' }}>
+      <SheetContent side="right" className="p-0 flex flex-col overflow-hidden" style={{ width: '75vw', maxWidth: '75vw' }}>
         {issueKey && (
           <IssueDetailBody
             data-testid="sheet-open"
