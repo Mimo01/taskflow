@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
-status: complete
-stopped_at: "Completed 09-08-PLAN.md — all four IssueDetailSheet entry points wired and verified; sidebar layout fixed; Phase 9 complete"
-last_updated: "2026-03-14T11:45:00Z"
+status: completed
+stopped_at: Completed 09-08-PLAN.md — Phase 9 complete, ISSUE-01 done
+last_updated: "2026-03-14T10:54:28.271Z"
 last_activity: 2026-03-14 — Completed 09-08 (sidebar widened 85vw/42% after user feedback; all four entry points verified; ISSUE-01 done)
 progress:
   total_phases: 5

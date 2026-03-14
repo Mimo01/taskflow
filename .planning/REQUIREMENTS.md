@@ -12,7 +12,7 @@ Requirements for the Jira Parity milestone. Goal: replace the need to open real 
 - [x] **ISSUE-01**: User can open a full detail panel for any Jira issue (story, subtask, bug, epic) from any view in the app
 - [x] **ISSUE-02**: User can read the full issue description rendered from Jira wiki markup as formatted text
 - [x] **ISSUE-03**: User can view all issue metadata: priority, assignee, reporter, story points, status, epic link, sprint, labels, fix versions, dates
-- [ ] **ISSUE-04**: User can edit issue fields inline from the detail panel: assignee, priority, story points (optimistic update + rollback)
+- [x] **ISSUE-04**: User can edit issue fields inline from the detail panel: assignee, priority, story points (optimistic update + rollback)
 - [x] **ISSUE-05**: User can view all child subtasks with their status from the issue detail panel
 - [x] **ISSUE-06**: User can view linked issues (relates to, blocks, is blocked by) from the issue detail panel
 - [x] **ISSUE-07**: User can read the full comment thread for any issue from the detail panel
@@ -87,7 +87,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ISSUE-01 | Phase 9 | Complete |
 | ISSUE-02 | Phase 9 | Complete |
 | ISSUE-03 | Phase 9 | Complete |
-| ISSUE-04 | Phase 9 | Pending |
+| ISSUE-04 | Phase 9 | Complete |
 | ISSUE-05 | Phase 9 | Complete |
 | ISSUE-06 | Phase 9 | Complete |
 | ISSUE-07 | Phase 9 | Complete |
