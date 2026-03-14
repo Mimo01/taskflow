@@ -22,6 +22,7 @@ import {
   createIssue,
   createIssueLink,
   bulkUpdateIssue,
+  wrapCustomFieldValue,
   type CreatemetaField,
   type IssueLinkType,
   type JiraIssue,
@@ -87,7 +88,7 @@ export function CreateEditIssueModal({
 }: CreateEditIssueModalProps) {
   const queryClient = useQueryClient()
   const { jiraBaseUrl, activeJiraProject } = useAuthStore()
-  const { epicLinkFieldKey, storyPointsFieldKey, accountFieldKey } = useSettingsStore()
+  const { epicLinkFieldKey, storyPointsFieldKey } = useSettingsStore()
 
   const projectKey = activeJiraProject ?? ''
 
@@ -111,8 +112,9 @@ export function CreateEditIssueModal({
   const [epicFilter, setEpicFilter] = useState('')
   const [parentKey, setParentKey] = useState<string | null>(defaultParentKey ?? null)
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({})
-  const [assigneeResults, setAssigneeResults] = useState<JiraUser[]>([])
-  const [assigneeLoading, setAssigneeLoading] = useState(false)
+  const [customFieldInputValues, setCustomFieldInputValues] = useState<Record<string, string>>({})
+  const [customFieldAutoResults, setCustomFieldAutoResults] = useState<Record<string, Array<{ id: string; label: string }>>>({})
+  const [customFieldShowResults, setCustomFieldShowResults] = useState<Record<string, boolean>>({})
   const [showAssigneeResults, setShowAssigneeResults] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
   const [linkRows, setLinkRows] = useState<IssueLinkRowValue[]>([])
@@ -135,7 +137,9 @@ export function CreateEditIssueModal({
     setEpicFilter('')
     setParentKey(defaultParentKey ?? null)
     setCustomFieldValues({})
-    setAssigneeResults([])
+    setCustomFieldInputValues({})
+    setCustomFieldAutoResults({})
+    setCustomFieldShowResults({})
     setShowAssigneeResults(false)
     setApiError(null)
     setLinkRows([])
@@ -180,10 +184,8 @@ export function CreateEditIssueModal({
   const customRequiredFields = (creatметаFields ?? []).filter((f) => {
     if (!f.required) return false
     if (CORE_FIELD_IDS.has(f.fieldId)) return false
-    // Exclude epicLinkFieldKey, storyPointsFieldKey, accountFieldKey (handled as core)
     if (epicLinkFieldKey && f.fieldId === epicLinkFieldKey) return false
     if (storyPointsFieldKey && f.fieldId === storyPointsFieldKey) return false
-    if (accountFieldKey && f.fieldId === accountFieldKey) return false
     return true
   })
 
@@ -220,35 +222,24 @@ export function CreateEditIssueModal({
     staleTime: 5 * 60 * 1000,
   })
 
-  // ── Assignee search — debounced via useEffect ────────────────────────────────
-  useEffect(() => {
-    if (!assigneeInputValue.trim()) {
-      setAssigneeResults([])
-      return
-    }
-    const timer = setTimeout(async () => {
-      setAssigneeLoading(true)
-      try {
-        const token = await readSecret('jira-pat').catch(() => null)
-        if (!token || !jiraBaseUrl || !projectKey) return
-        const base = jiraBaseUrl.replace(/\/$/, '')
-        const resp = await apiFetch(
-          'jira',
-          `${base}/rest/api/2/user/assignable/search?project=${projectKey}&query=${encodeURIComponent(assigneeInputValue)}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        )
-        if (resp.ok) {
-          const data = (await resp.json()) as JiraUser[]
-          setAssigneeResults(data)
-        }
-      } catch {
-        // ignore
-      } finally {
-        setAssigneeLoading(false)
-      }
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [assigneeInputValue, jiraBaseUrl, projectKey])
+  // ── Assignee list — load all assignable users once when modal opens ──────────
+  const { data: allAssignees = [], isLoading: assigneeLoading } = useQuery<JiraUser[]>({
+    queryKey: ['assignable-users', projectKey, jiraBaseUrl],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null)
+      if (!token || !jiraBaseUrl || !projectKey) return []
+      const base = jiraBaseUrl.replace(/\/$/, '')
+      const resp = await apiFetch(
+        'jira',
+        `${base}/rest/api/2/user/assignable/search?project=${projectKey}&maxResults=200`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      )
+      if (!resp.ok) return []
+      return (await resp.json()) as JiraUser[]
+    },
+    enabled: open && !!projectKey && !!jiraBaseUrl,
+    staleTime: 5 * 60 * 1000,
+  })
 
   // ── Submit validation ────────────────────────────────────────────────────────
   const requiredCustomFieldsFilled = customRequiredFields.every(
@@ -280,7 +271,9 @@ export function CreateEditIssueModal({
 
       // Add custom field values
       for (const [k, v] of Object.entries(customFieldValues)) {
-        if (v.trim() !== '') options[k] = v
+        if (v.trim() === '') continue
+        const fieldMeta = creatметаFields?.find((f) => f.fieldId === k)
+        options[k] = fieldMeta ? wrapCustomFieldValue(fieldMeta, v) : v
       }
 
       const newIssue = await createIssue(jiraBaseUrl, token, projectKey, summary.trim(), {
@@ -341,7 +334,9 @@ export function CreateEditIssueModal({
 
       // Add custom field values
       for (const [k, v] of Object.entries(customFieldValues)) {
-        if (v.trim() !== '') fields[k] = v
+        if (v.trim() === '') continue
+        const fieldMeta = creatметаFields?.find((f) => f.fieldId === k)
+        fields[k] = fieldMeta ? wrapCustomFieldValue(fieldMeta, v) : v
       }
 
       await bulkUpdateIssue(jiraBaseUrl, token, initialValues.issueKey, fields)
@@ -561,7 +556,6 @@ export function CreateEditIssueModal({
                     // Clear so the user can type a fresh search immediately
                     setAssigneeInputValue('')
                     setSelectedAssigneeName(null)
-                    setAssigneeResults([])
                   }
                   setShowAssigneeResults(true)
                 }}
@@ -569,28 +563,41 @@ export function CreateEditIssueModal({
                 placeholder="Search assignee..."
                 disabled={isPending}
               />
-              {showAssigneeResults && (assigneeLoading || assigneeResults.length > 0) && (
+              {showAssigneeResults && (assigneeLoading || allAssignees.length > 0) && (
                 <div className="mt-1 rounded-lg border bg-popover shadow-md">
                   {assigneeLoading && (
                     <div className="px-3 py-2 text-sm text-muted-foreground">
-                      Searching...
+                      Loading...
                     </div>
                   )}
-                  {assigneeResults.map((user) => (
-                    <button
-                      key={user.name}
-                      type="button"
-                      className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
-                      onMouseDown={() => {
-                        setSelectedAssigneeName(user.name)
-                        setAssigneeInputValue(user.displayName)
-                        setAssigneeResults([])
-                        setShowAssigneeResults(false)
-                      }}
-                    >
-                      {user.displayName} ({user.name})
-                    </button>
-                  ))}
+                  {allAssignees
+                    .filter((user) => {
+                      const q = assigneeInputValue.toLowerCase()
+                      if (!q) return true
+                      const fuzzy = (str: string) => {
+                        let i = 0
+                        for (const ch of str.toLowerCase()) {
+                          if (ch === q[i]) i++
+                          if (i === q.length) return true
+                        }
+                        return false
+                      }
+                      return fuzzy(user.displayName) || fuzzy(user.name)
+                    })
+                    .map((user) => (
+                      <button
+                        key={user.name}
+                        type="button"
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
+                        onMouseDown={() => {
+                          setSelectedAssigneeName(user.name)
+                          setAssigneeInputValue(user.displayName)
+                          setShowAssigneeResults(false)
+                        }}
+                      >
+                        {user.displayName} ({user.name})
+                      </button>
+                    ))}
                 </div>
               )}
             </div>
@@ -649,44 +656,146 @@ export function CreateEditIssueModal({
                 <Skeleton className="h-8 w-full" />
               </div>
             )}
-            {customRequiredFields.map((field) => (
-              <div key={field.fieldId} className="flex flex-col gap-1">
-                <label className="text-sm font-medium">
-                  {field.name} <span className="text-destructive">*</span>
-                </label>
-                {field.schema.allowedValues && field.schema.allowedValues.length > 0 ? (
-                  <Select
-                    value={customFieldValues[field.fieldId] ?? ''}
-                    onValueChange={(v) =>
-                      setCustomFieldValues((prev) => ({ ...prev, [field.fieldId]: v ?? '' }))
+            {customRequiredFields.map((field) => {
+              const fid = field.fieldId
+              const isUserField = field.schema.type === 'user' || field.schema.items === 'user'
+              const hasAutocomplete = isUserField || !!field.autoCompleteUrl
+
+              const fetchAutoComplete = async (q: string) => {
+                if (isUserField) {
+                  const lq = q.toLowerCase()
+                  const fuzzy = (str: string) => {
+                    let i = 0
+                    for (const ch of str.toLowerCase()) {
+                      if (ch === lq[i]) i++
+                      if (i === lq.length) return true
                     }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder={`Select ${field.name}`} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {field.schema.allowedValues.map((av) => (
-                        <SelectItem key={av.id} value={av.id}>
-                          {av.value}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    value={customFieldValues[field.fieldId] ?? ''}
-                    onChange={(e) =>
-                      setCustomFieldValues((prev) => ({
-                        ...prev,
-                        [field.fieldId]: e.target.value,
-                      }))
-                    }
-                    placeholder={field.name}
-                    disabled={isPending}
-                  />
-                )}
-              </div>
-            ))}
+                    return false
+                  }
+                  const results = !lq
+                    ? allAssignees.map((u) => ({ id: u.name, label: `${u.displayName} (${u.name})` }))
+                    : allAssignees
+                        .filter((u) => fuzzy(u.displayName) || fuzzy(u.name))
+                        .map((u) => ({ id: u.name, label: `${u.displayName} (${u.name})` }))
+                  setCustomFieldAutoResults((prev) => ({ ...prev, [fid]: results }))
+                } else if (field.autoCompleteUrl) {
+                  const token = await readSecret('jira-pat').catch(() => null)
+                  if (!token) return
+                  const url = field.autoCompleteUrl + encodeURIComponent(q)
+                  const resp = await apiFetch('jira', url, {
+                    headers: { Authorization: `Bearer ${token}` },
+                  })
+                  if (!resp.ok) return
+                  const data = await resp.json()
+                  const items: unknown[] = Array.isArray(data)
+                    ? data
+                    : (data.values ?? data.users ?? data.accounts ?? data.results ?? data.suggestions ?? [])
+                  const results = (items as Record<string, string>[]).map((item) => ({
+                    id: String(item.id ?? item.name ?? item.key ?? ''),
+                    label: item.key
+                      ? `${item.key} – ${item.displayName ?? item.name ?? item.value ?? ''}`
+                      : (item.displayName ?? item.name ?? item.value ?? String(item.id ?? '')),
+                  }))
+                  setCustomFieldAutoResults((prev) => ({ ...prev, [fid]: results }))
+                }
+              }
+
+              return (
+                <div key={fid} className="flex flex-col gap-1">
+                  <label className="text-sm font-medium">
+                    {field.name} <span className="text-destructive">*</span>
+                  </label>
+                  {field.schema.allowedValues && field.schema.allowedValues.length > 0 ? (
+                    <Select
+                      value={customFieldValues[fid] ?? ''}
+                      onValueChange={(v) =>
+                        setCustomFieldValues((prev) => ({ ...prev, [fid]: v ?? '' }))
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={`Select ${field.name}`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {field.schema.allowedValues.map((av) => (
+                          <SelectItem key={av.id} value={av.id}>
+                            {av.value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : hasAutocomplete ? (
+                    <div className="relative">
+                      <Input
+                        value={customFieldInputValues[fid] ?? ''}
+                        onChange={(e) => {
+                          const q = e.target.value
+                          setCustomFieldInputValues((prev) => ({ ...prev, [fid]: q }))
+                          setCustomFieldValues((prev) => ({ ...prev, [fid]: '' }))
+                          setCustomFieldShowResults((prev) => ({ ...prev, [fid]: true }))
+                          void fetchAutoComplete(q)
+                        }}
+                        onFocus={() => {
+                          setCustomFieldShowResults((prev) => ({ ...prev, [fid]: true }))
+                          if (!customFieldAutoResults[fid]?.length) void fetchAutoComplete('')
+                        }}
+                        onBlur={() =>
+                          setTimeout(
+                            () =>
+                              setCustomFieldShowResults((prev) => ({
+                                ...prev,
+                                [field.fieldId]: false,
+                              })),
+                            150,
+                          )
+                        }
+                        placeholder={`Search ${field.name}...`}
+                        disabled={isPending}
+                      />
+                      {customFieldShowResults[field.fieldId] &&
+                        (customFieldAutoResults[field.fieldId] ?? []).length > 0 && (
+                          <div className="absolute z-50 mt-1 w-full rounded-lg border bg-popover shadow-md">
+                            {(customFieldAutoResults[field.fieldId] ?? []).map((result) => (
+                              <button
+                                key={result.id}
+                                type="button"
+                                className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
+                                onMouseDown={() => {
+                                  setCustomFieldValues((prev) => ({
+                                    ...prev,
+                                    [field.fieldId]: result.id,
+                                  }))
+                                  setCustomFieldInputValues((prev) => ({
+                                    ...prev,
+                                    [field.fieldId]: result.label,
+                                  }))
+                                  setCustomFieldShowResults((prev) => ({
+                                    ...prev,
+                                    [field.fieldId]: false,
+                                  }))
+                                }}
+                              >
+                                {result.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                    </div>
+                  ) : (
+                    <Input
+                      value={customFieldValues[field.fieldId] ?? ''}
+                      onChange={(e) =>
+                        setCustomFieldValues((prev) => ({
+                          ...prev,
+                          [field.fieldId]: e.target.value,
+                        }))
+                      }
+                      placeholder={field.name}
+                      disabled={isPending}
+                    />
+                  )}
+                </div>
+              )
+            })}
 
             {/* Issue Links */}
             <div className="flex flex-col gap-2">

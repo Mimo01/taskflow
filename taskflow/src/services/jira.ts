@@ -957,8 +957,10 @@ export interface CreatemetaField {
   fieldId: string
   name: string
   required: boolean
+  autoCompleteUrl?: string
   schema: {
     type: string
+    items?: string
     system?: string
     custom?: string
     allowedValues?: Array<{ id: string; value: string }>
@@ -1055,6 +1057,34 @@ export async function createIssue(
  * @param issueTypeName - Issue type display name (required for legacy fallback)
  * @returns Array of CreatemetaField descriptors
  */
+/**
+ * Wrap a raw string value into the shape Jira DC expects for a given custom field.
+ * - user fields: { name: value }
+ * - id-keyed fields (option lists, accounts, etc.): { id: value }
+ * - everything else: raw string
+ */
+export function wrapCustomFieldValue(
+  field: CreatemetaField,
+  value: string,
+): string | { name: string } | { id: string } {
+  if (field.schema.type === 'user' || field.schema.items === 'user') return { name: value }
+  // autoCompleteUrl fields that return id-based items (accounts, versions, components…)
+  if (field.autoCompleteUrl && field.schema.type !== 'string') return { id: value }
+  return value
+}
+
+/**
+ * Derive an autoCompleteUrl for fields that the API doesn't provide one for.
+ * Maps known plugin schema.custom patterns to their REST search endpoints.
+ * Extend this map as new field types are encountered.
+ */
+function deriveAutoCompleteUrl(field: CreatemetaField, base: string): string | undefined {
+  if (field.autoCompleteUrl) return field.autoCompleteUrl
+  const custom = field.schema.custom ?? ''
+  if (custom.includes('tempo-accounts')) return `${base}/rest/tempo-accounts/1/account/search?query=`
+  return undefined
+}
+
 export async function fetchCreatemeta(
   baseUrl: string,
   token: string,
@@ -1065,12 +1095,15 @@ export async function fetchCreatemeta(
   const base = baseUrl.replace(/\/$/, '')
   const headers = { Authorization: `Bearer ${token}` }
 
+  const enrich = (fields: CreatemetaField[]) =>
+    fields.map((f) => ({ ...f, autoCompleteUrl: deriveAutoCompleteUrl(f, base) }))
+
   // Strategy A: Jira 8.4+ paginated endpoint
   const newEndpoint = `${base}/rest/api/2/issue/createmeta/${projectKey}/issuetypes/${issueTypeId}?maxResults=50`
   const resp = await apiFetch('jira', newEndpoint, { headers })
   if (resp.ok) {
     const data = await resp.json()
-    return (data.values ?? []) as CreatemetaField[]
+    return enrich((data.values ?? []) as CreatemetaField[])
   }
 
   // Strategy B: Legacy flat endpoint (pre-8.4 or 9.0+ with re-enabled flag)
@@ -1080,7 +1113,7 @@ export async function fetchCreatemeta(
   const legacyData = await legacyResp.json()
   const fields = legacyData.projects?.[0]?.issuetypes?.[0]?.fields
   if (!fields) return []
-  return Object.values(fields) as CreatemetaField[]
+  return enrich(Object.values(fields) as CreatemetaField[])
 }
 
 /**
