@@ -45,7 +45,14 @@ function LoadingSkeleton() {
   );
 }
 
-export default function SearchOverlay({ onClose }: { onClose: () => void }) {
+interface SearchOverlayProps {
+  onClose: () => void;
+  /** Called with the Jira issue key when a Jira result is clicked. When provided,
+   *  Jira results open the IssueDetailSheet instead of the inline SearchResultPanel. */
+  onIssueClick?: (issueKey: string) => void;
+}
+
+export default function SearchOverlay({ onClose, onIssueClick }: SearchOverlayProps) {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [selected, setSelected] = useState<{
@@ -175,7 +182,15 @@ export default function SearchOverlay({ onClose }: { onClose: () => void }) {
                       key={task.key}
                       type="button"
                       className="w-full text-left px-3 py-2 rounded hover:bg-muted text-sm flex gap-2"
-                      onClick={() => setSelected({ item: task, type: 'jira' })}
+                      onClick={() => {
+                        if (onIssueClick) {
+                          // Open issue in the global IssueDetailSheet instead of inline panel
+                          onIssueClick(task.key);
+                          onClose();
+                        } else {
+                          setSelected({ item: task, type: 'jira' });
+                        }
+                      }}
                     >
                       <span className="text-muted-foreground font-mono">{task.key}</span>
                       <span className="truncate">{task.fields.summary}</span>

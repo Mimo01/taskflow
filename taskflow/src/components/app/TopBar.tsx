@@ -18,7 +18,12 @@ import { useUnreadCount } from '../../stores/notifications.store';
 import NotificationPopover from '../../routes/notifications/NotificationPopover';
 import SearchOverlay from './SearchOverlay';
 
-export default function TopBar() {
+interface TopBarProps {
+  /** Called with the Jira issue key when a Jira result in search or notifications is clicked. */
+  onIssueClick?: (issueKey: string) => void;
+}
+
+export default function TopBar({ onIssueClick }: TopBarProps) {
   const unreadCount = useUnreadCount();
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -47,12 +52,17 @@ export default function TopBar() {
           )}
         </PopoverTrigger>
         <PopoverContent className="p-0 w-80">
-          <NotificationPopover />
+          <NotificationPopover onIssueClick={onIssueClick} />
         </PopoverContent>
       </Popover>
 
       {/* Search overlay — rendered outside Popover so it can cover full screen */}
-      {searchOpen && <SearchOverlay onClose={() => setSearchOpen(false)} />}
+      {searchOpen && (
+        <SearchOverlay
+          onClose={() => setSearchOpen(false)}
+          onIssueClick={onIssueClick}
+        />
+      )}
     </header>
   );
 }

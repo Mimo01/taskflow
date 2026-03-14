@@ -12,7 +12,35 @@ import { useNotificationsStore } from '../../stores/notifications.store';
 import NotificationRow from './NotificationRow';
 import NotificationDetail from './NotificationDetail';
 
-export default function NotificationPopover() {
+/**
+ * Extracts a Jira issue key from a notification item.
+ * entityTitle is formatted as "PROJ-123: Fix login bug" for Jira items.
+ * Falls back to extracting from the url path (/browse/PROJ-123) if entityTitle parsing fails.
+ */
+function extractJiraIssueKey(item: { source: string; entityTitle: string; url?: string }): string | null {
+  if (item.source !== 'jira') return null;
+  // entityTitle: "PROJ-123: Fix login bug" — key is everything before the first ": "
+  const colonIdx = item.entityTitle.indexOf(':');
+  if (colonIdx > 0) {
+    const candidate = item.entityTitle.slice(0, colonIdx).trim();
+    // Validate: Jira keys are ALPHA-NUMBER (e.g. PROJ-123)
+    if (/^[A-Z]+-\d+$/.test(candidate)) return candidate;
+  }
+  // Fallback: extract from url /browse/PROJ-123
+  if (item.url) {
+    const match = item.url.match(/\/browse\/([A-Z]+-\d+)/);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+interface NotificationPopoverProps {
+  /** Called with the Jira issue key when a Jira notification row is clicked. When provided,
+   *  Jira notifications open the IssueDetailSheet instead of the inline NotificationDetail. */
+  onIssueClick?: (issueKey: string) => void;
+}
+
+export default function NotificationPopover({ onIssueClick }: NotificationPopoverProps) {
   const {
     items,
     readIds,
@@ -35,9 +63,17 @@ export default function NotificationPopover() {
     ? items.find((i) => i.id === selectedItemId) ?? null
     : null;
 
-  function handleRowClick(id: string) {
-    setSelectedItemId(id);
-    markAsRead(id);
+  function handleRowClick(item: (typeof sortedItems)[0]) {
+    const issueKey = extractJiraIssueKey(item);
+    if (issueKey && onIssueClick) {
+      // Open Jira issue in the global IssueDetailSheet
+      markAsRead(item.id);
+      onIssueClick(issueKey);
+      return;
+    }
+    // Fallback: show inline NotificationDetail
+    setSelectedItemId(item.id);
+    markAsRead(item.id);
   }
 
   function handleDetailClose() {
@@ -86,7 +122,7 @@ export default function NotificationPopover() {
               <NotificationRow
                 item={item}
                 isUnread={!readSet.has(item.id)}
-                onClick={() => handleRowClick(item.id)}
+                onClick={() => handleRowClick(item)}
               />
               {selectedItemId === item.id && selectedItem && (
                 <NotificationDetail item={selectedItem} onClose={handleDetailClose} />
