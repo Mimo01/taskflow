@@ -38,7 +38,7 @@ See archive: `.planning/milestones/v1.1-ROADMAP.md`
 
 - [x] **Phase 9: Custom Field Discovery + Issue Detail Foundation** - Full issue detail view accessible from any screen; custom field infrastructure powering all later phases (human verification passed)
 - [x] **Phase 10: Sprint Board Redesign** - Subtask-as-card kanban with drag-to-move status transitions and full team visibility (completed 2026-03-14)
-- [ ] **Phase 11: Create/Edit Issue Form** - Create and edit any Jira issue with all required fields, dynamically built from createmeta
+- [x] **Phase 11: Create/Edit Issue Form** - Create and edit any Jira issue with all required fields, dynamically built from createmeta (completed 2026-03-14)
 - [ ] **Phase 12: Backlog View** - Backlog list with move-to-sprint, create story, and epic/label/assignee filters
 - [ ] **Phase 13: Epic Management** - Epic list, detail, cross-view filtering, and epic creation
 
