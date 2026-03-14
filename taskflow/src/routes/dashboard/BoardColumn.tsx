@@ -110,6 +110,11 @@ export function BoardColumn({
                   <StoryHeaderRow
                     storyKey={headerIssue.key}
                     summary={headerIssue.fields.summary}
+                    statusName={headerIssue.fields.status.name}
+                    statusCategoryKey={headerIssue.fields.status.statusCategory?.key ?? 'new'}
+                    subtaskCount={group.cards.length}
+                    isExpanded={true}
+                    onToggle={() => {}}
                     onOpenDetail={onOpenDetail}
                   />
                 )}

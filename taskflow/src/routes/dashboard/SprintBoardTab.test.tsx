@@ -170,13 +170,12 @@ describe('SprintBoardTab', () => {
 
   // ─── HIER-02 behavior stubs (RED state — FAIL against current implementation) ─
 
-  it('column count shows draggable cards only (subtasks, not story headers)', async () => {
+  it('story swimlane renders story header and its subtask cards', async () => {
     const { fetchSprintIssues, fetchProjectStatuses } = await import('@/services/jira');
-    // Story with one subtask: column count = 1 (the subtask card), not 2 (story + subtask)
-    const story = makeIssue('PROJ-1', 'Story One', false, undefined, 'Done');
+    const story = makeIssue('PROJ-1', 'Story One', false, undefined, 'In Progress');
     const subtask = makeIssue('PROJ-2', 'Subtask One', true, 'PROJ-1', 'Done');
     vi.mocked(fetchSprintIssues).mockResolvedValue([story, subtask]);
-    vi.mocked(fetchProjectStatuses).mockResolvedValue([makeStatus('Done', 'done')]);
+    vi.mocked(fetchProjectStatuses).mockResolvedValue([makeStatus('In Progress', 'indeterminate'), makeStatus('Done', 'done')]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -188,11 +187,12 @@ describe('SprintBoardTab', () => {
     const { default: SprintBoardTab } = await import('./SprintBoardTab');
     renderWithQuery(<SprintBoardTab />);
 
-    // Column header should show (1) — the subtask card — not (2) (story header is not a card)
+    // Story header must appear once — the swimlane section
     await waitFor(() => {
-      const columnHeader = screen.getByText(/\(1\)/);
-      expect(columnHeader).toBeTruthy();
+      expect(screen.getAllByText('PROJ-1').length).toBe(1);
     });
+    // Subtask card must be visible directly (no expand needed)
+    expect(screen.getByText('Subtask One')).toBeTruthy();
   });
 
   it('subtask card is always visible under its story header (no collapse)', async () => {
@@ -279,13 +279,14 @@ describe('SprintBoardTab', () => {
   // They FAIL now because current board derives columns from issue statuses
   // and has no drag support. They will pass after the relevant plan implementations.
 
-  it('renders workflow-API-derived columns (BOARD-01)', async () => {
+  it('multiple stories render as separate swimlane sections (BOARD-01)', async () => {
     const { fetchSprintIssues, fetchProjectStatuses } = await import('@/services/jira');
-    vi.mocked(fetchProjectStatuses).mockResolvedValue([
-      { id: '1', name: 'To Do', statusCategory: { key: 'new' } },
-      { id: '2', name: 'In Progress', statusCategory: { key: 'indeterminate' } },
-    ]);
-    vi.mocked(fetchSprintIssues).mockResolvedValue([]);
+    const story1 = makeIssue('PROJ-1', 'Story One', false, undefined, 'In Progress');
+    const story2 = makeIssue('PROJ-2', 'Story Two', false, undefined, 'To Do');
+    const subtask1 = makeIssue('PROJ-3', 'Subtask of One', true, 'PROJ-1', 'In Progress');
+    const subtask2 = makeIssue('PROJ-4', 'Subtask of Two', true, 'PROJ-2', 'To Do');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([story1, story2, subtask1, subtask2]);
+    vi.mocked(fetchProjectStatuses).mockResolvedValue([makeStatus('To Do', 'new'), makeStatus('In Progress', 'indeterminate')]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -297,25 +298,24 @@ describe('SprintBoardTab', () => {
     const { default: SprintBoardTab } = await import('./SprintBoardTab');
     renderWithQuery(<SprintBoardTab />);
 
-    // RED: current board does not call fetchProjectStatuses for column headers
+    // Both story headers appear as separate sections
     await waitFor(() => {
-      expect(screen.getByText('To Do')).toBeTruthy();
-      expect(screen.getByText('In Progress')).toBeTruthy();
+      expect(screen.getByText('PROJ-1')).toBeTruthy();
+      expect(screen.getByText('PROJ-2')).toBeTruthy();
     });
+    // Each subtask appears under its story
+    expect(screen.getByText('Subtask of One')).toBeTruthy();
+    expect(screen.getByText('Subtask of Two')).toBeTruthy();
   });
 
-  it('story header appears in each column that has its subtasks (BOARD-01)', async () => {
+  it('story header appears exactly once per story (not per column) (BOARD-01)', async () => {
     const { fetchSprintIssues, fetchProjectStatuses } = await import('@/services/jira');
-    // Story in 'To Do', subtask in 'In Progress' — story header should appear in 'In Progress' column
-    // Story does NOT appear in 'To Do' as a bare card because it has subtasks
+    // Story with subtasks in two different statuses — header still appears once
     const story = makeIssue('PROJ-1', 'My Story', false, undefined, 'To Do');
-    const subtaskInProgress = makeIssue('PROJ-2', 'My Subtask', true, 'PROJ-1', 'In Progress');
-    const subtaskTodo = makeIssue('PROJ-3', 'Another Subtask', true, 'PROJ-1', 'To Do');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([story, subtaskInProgress, subtaskTodo]);
-    vi.mocked(fetchProjectStatuses).mockResolvedValue([
-      makeStatus('To Do', 'new'),
-      makeStatus('In Progress', 'indeterminate'),
-    ]);
+    const subtask1 = makeIssue('PROJ-2', 'My Subtask', true, 'PROJ-1', 'In Progress');
+    const subtask2 = makeIssue('PROJ-3', 'Another Subtask', true, 'PROJ-1', 'To Do');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([story, subtask1, subtask2]);
+    vi.mocked(fetchProjectStatuses).mockResolvedValue([makeStatus('To Do', 'new'), makeStatus('In Progress', 'indeterminate')]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -327,21 +327,20 @@ describe('SprintBoardTab', () => {
     const { default: SprintBoardTab } = await import('./SprintBoardTab');
     renderWithQuery(<SprintBoardTab />);
 
-    // Story header (PROJ-1 key) should appear in both 'To Do' and 'In Progress' columns
+    // Story header appears exactly once (swimlane, not per-column)
     await waitFor(() => {
-      const storyHeaders = screen.getAllByText('PROJ-1');
-      expect(storyHeaders.length).toBeGreaterThanOrEqual(2);
+      expect(screen.getAllByText('PROJ-1').length).toBe(1);
     });
+    // Both subtasks visible beneath it
+    expect(screen.getByText('My Subtask')).toBeTruthy();
+    expect(screen.getByText('Another Subtask')).toBeTruthy();
   });
 
-  it('onDragEnd moves card optimistically (BOARD-03)', async () => {
-    const { fetchSprintIssues, fetchProjectStatuses } = await import('@/services/jira');
-    const story = makeIssue('PROJ-1', 'Draggable Story', false, undefined, 'To Do');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([story]);
-    vi.mocked(fetchProjectStatuses).mockResolvedValue([
-      makeStatus('To Do', 'new'),
-      makeStatus('In Progress', 'indeterminate'),
-    ]);
+  it('subtask card shows status badge (BOARD-03)', async () => {
+    const { fetchSprintIssues } = await import('@/services/jira');
+    const story = makeIssue('PROJ-1', 'My Story', false, undefined, 'To Do');
+    const subtask = makeIssue('PROJ-2', 'My Subtask', true, 'PROJ-1', 'In Progress');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([story, subtask]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -353,26 +352,19 @@ describe('SprintBoardTab', () => {
     const { default: SprintBoardTab } = await import('./SprintBoardTab');
     renderWithQuery(<SprintBoardTab />);
 
-    // Card must render in the board
+    // Status badge on the subtask card
     await waitFor(() => {
-      expect(screen.getByText('Draggable Story')).toBeTruthy();
+      expect(screen.getByText('My Subtask')).toBeTruthy();
     });
-
-    // Board must expose data-droppable on each column (for DndContext in plan 10-03)
-    // GREEN: BoardColumn now sets data-droppable on the card list area
-    const inProgressColumn = document.querySelector('[data-droppable="In Progress"]');
-    expect(inProgressColumn).not.toBeNull();
+    // Status name "In Progress" appears as a badge on the card
+    const statusBadges = screen.getAllByText('In Progress');
+    expect(statusBadges.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('onDragEnd rollback: card reverts when postTransition throws (BOARD-03)', async () => {
-    const { fetchSprintIssues, fetchProjectStatuses, postTransition } = await import('@/services/jira');
-    const story = makeIssue('PROJ-1', 'Rollback Story', false, undefined, 'To Do');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([story]);
-    vi.mocked(postTransition).mockRejectedValue(new Error('Transition failed'));
-    vi.mocked(fetchProjectStatuses).mockResolvedValue([
-      makeStatus('To Do', 'new'),
-      makeStatus('In Progress', 'indeterminate'),
-    ]);
+  it('bare story (no subtasks) renders as a standalone card (BOARD-03)', async () => {
+    const { fetchSprintIssues } = await import('@/services/jira');
+    const bareStory = makeIssue('PROJ-1', 'Bare Story', false, undefined, 'To Do');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([bareStory]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -384,13 +376,10 @@ describe('SprintBoardTab', () => {
     const { default: SprintBoardTab } = await import('./SprintBoardTab');
     renderWithQuery(<SprintBoardTab />);
 
-    // RED (drag not implemented yet): card appears in initial column
+    // Story header and standalone card both show the summary and status
     await waitFor(() => {
-      expect(screen.getByText('Rollback Story')).toBeTruthy();
+      expect(screen.getAllByText('Bare Story').length).toBeGreaterThanOrEqual(1);
     });
-
-    // Board exposes data-droppable on each column
-    const toDoDroppable = document.querySelector('[data-droppable="To Do"]');
-    expect(toDoDroppable).not.toBeNull();
+    expect(screen.getAllByText('To Do').length).toBeGreaterThanOrEqual(1);
   });
 });

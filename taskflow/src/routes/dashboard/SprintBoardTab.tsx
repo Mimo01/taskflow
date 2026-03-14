@@ -1,49 +1,93 @@
 /**
- * SprintBoardTab — Grouped kanban board using workflow-API columns.
+ * SprintBoardTab — Jira-style sprint board: 3 category columns × story swimlanes.
  *
- * Columns come from fetchProjectStatuses (Jira workflow statuses API), sorted by
- * category (To Do → In Progress → Done) then alphabetically within each category.
- * Empty columns are always shown (valid drop targets for drag-and-drop).
+ * Columns: always exactly "To Do" | "In Progress" | "Done", driven by the
+ * statusCategory field that Jira returns on every status. All statuses with
+ * statusCategory.key === "new" land in To Do, "indeterminate" in In Progress,
+ * "done" in Done — regardless of how many workflow statuses the project has.
  *
- * Layout:
- * - Stories with subtasks: StoryHeaderRow divider + subtask TaskCards in each column
- *   that contains at least one of their subtasks
- * - Bare stories (no subtasks): standalone draggable TaskCard in their status column
+ * fetchProjectStatuses is used to build a statusId → category map so that
+ * drag-and-drop can find a valid transition to the target category.
  *
- * Drag-and-drop (plan 10-03):
- * - DndContext with PointerSensor (5px threshold) wraps all columns
- * - DraggableCard used for all card rendering via BoardColumn
- * - handleDragEnd: optimistic update + postTransition + rollback on failure
- * - transitions pre-fetched for all draggable issues after board data loads
- *
- * ANTI-PATTERN: Do NOT derive columns from issue status names — only use workflowStatuses.
+ * Layout: sticky column headers → collapsible story swimlanes → card cells.
+ * Drag-and-drop: optimistic update + rollback on API failure.
  */
-import { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { RefreshCw } from 'lucide-react'
-import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+} from '@dnd-kit/core'
 import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core'
 import { useAuthStore } from '@/stores/auth.store'
 import { useSettingsStore } from '@/stores/settings.store'
-import { fetchSprintIssues, fetchProjectStatuses, fetchTransitions, postTransition } from '@/services/jira'
-import type { JiraIssue, JiraProjectStatus, JiraTransition } from '@/services/jira'
+import {
+  fetchSprintIssues,
+  fetchProjectStatuses,
+  fetchTransitions,
+  postTransition,
+} from '@/services/jira'
+import type { JiraIssue, JiraTransition } from '@/services/jira'
 import { readSecret } from '@/services/stronghold'
-import BoardColumn from './BoardColumn'
-import type { BoardColumnGroup } from './BoardColumn'
-import QuickCreateInput from './QuickCreateInput'
+import DraggableCard from './DraggableCard'
 import TaskCard from './TaskCard'
+import { StoryHeaderRow } from './StoryHeaderRow'
 import { IssueDetailSheet } from './IssueDetailSheet'
 
-/** Category sort order: To Do (new) → In Progress (indeterminate) → Done (done) → unknown */
-const CATEGORY_ORDER: Record<string, number> = { new: 0, indeterminate: 1, done: 2 }
+/** The three fixed columns — all Jira statuses map into one of these via statusCategory. */
+const CATEGORY_COLUMNS = [
+  { key: 'new', label: 'To Do' },
+  { key: 'indeterminate', label: 'In Progress' },
+  { key: 'done', label: 'Done' },
+] as const
 
-function sortStatuses(statuses: JiraProjectStatus[]): JiraProjectStatus[] {
-  return [...statuses].sort((a, b) => {
-    const ca = CATEGORY_ORDER[a.statusCategory.key] ?? 3
-    const cb = CATEGORY_ORDER[b.statusCategory.key] ?? 3
-    if (ca !== cb) return ca - cb
-    return a.name.localeCompare(b.name)
+type CategoryKey = (typeof CATEGORY_COLUMNS)[number]['key']
+
+function categoryOf(issue: JiraIssue): CategoryKey {
+  return (issue.fields.status.statusCategory?.key as CategoryKey) ?? 'new'
+}
+
+/**
+ * A droppable cell for one category column inside a story swimlane.
+ * ID: "{storyKey}|{categoryKey}" so handleDragEnd can extract the category.
+ */
+function DroppableCell({
+  storyKey,
+  categoryKey,
+  isDisabled,
+  children,
+}: {
+  storyKey: string
+  categoryKey: string
+  isDisabled: boolean
+  children: React.ReactNode
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `${storyKey}|${categoryKey}`,
+    disabled: isDisabled,
   })
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={[
+        'flex-1 min-h-[80px] flex flex-col gap-1.5 p-2 border-l border-border/20 transition-colors',
+        isOver && !isDisabled ? 'bg-primary/5 ring-inset ring-1 ring-primary/40' : '',
+        isDisabled ? 'opacity-40 pointer-events-none' : '',
+      ].filter(Boolean).join(' ')}
+      style={isDisabled ? {
+        background:
+          'repeating-linear-gradient(45deg,transparent,transparent 4px,hsl(var(--muted)) 4px,hsl(var(--muted)) 8px)',
+      } : undefined}
+    >
+      {children}
+    </div>
+  )
 }
 
 export default function SprintBoardTab() {
@@ -53,7 +97,14 @@ export default function SprintBoardTab() {
   const [selectedIssueKey, setSelectedIssueKey] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
-  // Optimistic drag state
+  const [collapsedStories, setCollapsedStories] = useState<Set<string>>(new Set())
+  const toggleStory = (key: string) =>
+    setCollapsedStories(prev => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
+
   const [localIssues, setLocalIssues] = useState<JiraIssue[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [activeIssue, setActiveIssue] = useState<JiraIssue | null>(null)
@@ -66,20 +117,22 @@ export default function SprintBoardTab() {
   useEffect(() => {
     if (jiraBaseUrl) {
       readSecret('jira-pat')
-        .then((t) => { setJiraToken(t) })
-        .catch(() => { setJiraToken(null) })
+        .then(t => setJiraToken(t))
+        .catch(() => setJiraToken(null))
     }
   }, [jiraBaseUrl])
 
   const { data, isLoading, isError, error, dataUpdatedAt, refetch } = useQuery({
     queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey],
-    queryFn: () => fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false, storyPointsFieldKey),
+    queryFn: () =>
+      fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false, storyPointsFieldKey),
     refetchInterval: 60_000,
     refetchIntervalInBackground: true,
     staleTime: 30_000,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   })
 
+  /** Used to map transition target status IDs → category keys for drag-and-drop */
   const { data: workflowStatuses } = useQuery({
     queryKey: ['project-statuses', activeJiraProject, jiraBaseUrl],
     queryFn: () => fetchProjectStatuses(jiraBaseUrl!, jiraToken!, activeJiraProject!),
@@ -87,38 +140,48 @@ export default function SprintBoardTab() {
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   })
 
-  // Sync localIssues from server, gated on !isDragging to avoid flicker during drag
   useEffect(() => {
     if (!isDragging) setLocalIssues(data ?? [])
   }, [data, isDragging])
 
-  // Pre-fetch transitions for all draggable issues after board data loads
+  // Pre-fetch transitions for all draggable cards
   useEffect(() => {
-    if (!jiraBaseUrl || !jiraToken || !data) return
-
-    // Build subtasks-by-parent map to identify bare stories
+    if (!jiraBaseUrl || !jiraToken || !localIssues.length) return
     const subtaskParentKeys = new Set(
       localIssues
         .filter(i => i.fields.issuetype.subtask && i.fields.parent?.key)
         .map(i => i.fields.parent!.key)
     )
-
-    // Draggable = subtasks + bare stories (stories with no subtasks in the sprint)
-    const draggable = localIssues.filter(i =>
-      i.fields.issuetype.subtask || !subtaskParentKeys.has(i.key)
+    const draggable = localIssues.filter(
+      i => i.fields.issuetype.subtask || !subtaskParentKeys.has(i.key)
     )
-
-    // Use Promise.allSettled — silent fail on individual transition fetches
     void Promise.allSettled(
       draggable.map(issue =>
         queryClient.fetchQuery({
           queryKey: ['transitions', issue.key],
           queryFn: () => fetchTransitions(jiraBaseUrl, jiraToken!, issue.key),
-          staleTime: 5 * 60 * 1000, // 5 minutes
+          staleTime: 5 * 60 * 1000,
         })
       )
     )
-  }, [jiraBaseUrl, jiraToken, localIssues.length]) // re-fetch when issue list changes
+  }, [jiraBaseUrl, jiraToken, localIssues.length])
+
+  /**
+   * Maps status ID → category key.
+   * Built from workflowStatuses (authoritative) + any categories already on local issues.
+   */
+  const statusCategoryMap = useMemo(() => {
+    const map = new Map<string, CategoryKey>()
+    for (const s of workflowStatuses ?? []) {
+      map.set(s.id, s.statusCategory.key as CategoryKey)
+    }
+    for (const issue of localIssues) {
+      if (issue.fields.status.statusCategory) {
+        map.set(issue.fields.status.id, issue.fields.status.statusCategory.key as CategoryKey)
+      }
+    }
+    return map
+  }, [workflowStatuses, localIssues])
 
   function handleDragStart(event: DragStartEvent) {
     const issue = localIssues.find(i => i.key === String(event.active.id))
@@ -129,194 +192,244 @@ export default function SprintBoardTab() {
     setIsDragging(false)
     setActiveIssue(null)
     const { active, over } = event
-    if (!over || active.id === over.id) return
+    if (!over) return
 
     const issueKey = String(active.id)
-    const targetStatusId = String(over.id)
+    // Droppable ID: "{storyKey}|{categoryKey}"
+    const targetCategory = String(over.id).split('|')[1] as CategoryKey
 
-    // Find original status for rollback
     const originalIssue = localIssues.find(i => i.key === issueKey)
     if (!originalIssue) return
-    const originalStatusId = originalIssue.fields.status.id
+    if (categoryOf(originalIssue) === targetCategory) return
 
-    if (originalStatusId === targetStatusId) return
-
-    // Find transition
+    // Find a transition whose target status belongs to the dropped category
     const transitions = queryClient.getQueryData<JiraTransition[]>(['transitions', issueKey])
-    const transition = transitions?.find(t => t.to.id === targetStatusId)
+    const transition = transitions?.find(
+      t => (statusCategoryMap.get(t.to.id) ?? 'new') === targetCategory
+    )
     if (!transition) {
       setCardErrors(prev => new Map(prev).set(issueKey, 'No valid transition'))
       return
     }
 
-    // Optimistic update
-    setLocalIssues(prev => prev.map(i =>
-      i.key === issueKey
-        ? { ...i, fields: { ...i.fields, status: { ...i.fields.status, id: targetStatusId, name: transition.to.name } } }
-        : i
-    ))
-    // Clear any prior error for this card
+    const targetStatusCategory = workflowStatuses?.find(s => s.id === transition.to.id)?.statusCategory
+
+    // Optimistic update — move card into the target category column immediately
+    setLocalIssues(prev =>
+      prev.map(i =>
+        i.key === issueKey
+          ? {
+              ...i,
+              fields: {
+                ...i.fields,
+                status: {
+                  id: transition.to.id,
+                  name: transition.to.name,
+                  statusCategory: (targetStatusCategory ?? { key: targetCategory }) as { key: 'new' | 'indeterminate' | 'done' },
+                },
+              },
+            }
+          : i
+      )
+    )
     setCardErrors(prev => { const m = new Map(prev); m.delete(issueKey); return m })
 
     try {
       await postTransition(jiraBaseUrl!, jiraToken!, issueKey, transition.id)
       queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] })
     } catch {
-      // Rollback
-      setLocalIssues(prev => prev.map(i =>
-        i.key === issueKey
-          ? { ...i, fields: { ...i.fields, status: { ...i.fields.status, id: originalStatusId, name: originalIssue.fields.status.name } } }
-          : i
-      ))
+      // Rollback to original status
+      setLocalIssues(prev =>
+        prev.map(i =>
+          i.key === issueKey
+            ? { ...i, fields: { ...i.fields, status: originalIssue.fields.status } }
+            : i
+        )
+      )
       setCardErrors(prev => new Map(prev).set(issueKey, 'Transition failed'))
     }
   }
 
-  // Compute valid drop targets based on active issue's fetched transitions
-  const validTargets = useMemo(() => {
-    if (!activeIssue) return new Map<string, Set<string>>()
-    const map = new Map<string, Set<string>>()
+  /** Set of category keys reachable by the currently dragged card */
+  const validTargetCategories = useMemo((): Set<CategoryKey> => {
+    if (!activeIssue) return new Set()
     const transitions = queryClient.getQueryData<JiraTransition[]>(['transitions', activeIssue.key])
-    if (transitions) {
-      map.set(activeIssue.key, new Set(transitions.map(t => t.to.id)))
+    const cats = new Set<CategoryKey>()
+    for (const t of transitions ?? []) {
+      const cat = statusCategoryMap.get(t.to.id)
+      if (cat) cats.add(cat)
     }
-    return map
-  }, [activeIssue, queryClient])
+    return cats
+  }, [activeIssue, queryClient, statusCategoryMap])
+
+  const swimlanes = useMemo(() => {
+    const stories = localIssues.filter(i => !i.fields.issuetype.subtask)
+    const subtasks = localIssues.filter(i => i.fields.issuetype.subtask)
+    const subtasksByParent = new Map<string, JiraIssue[]>()
+    for (const sub of subtasks) {
+      const pk = sub.fields.parent?.key
+      if (pk) subtasksByParent.set(pk, [...(subtasksByParent.get(pk) ?? []), sub])
+    }
+    return stories.map(story => ({
+      story,
+      subtasks: subtasksByParent.get(story.key) ?? [],
+    }))
+  }, [localIssues])
 
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
     : 'Refreshed: Never'
 
-  const sortedColumns = useMemo(() =>
-    workflowStatuses ? sortStatuses(workflowStatuses) : [],
-  [workflowStatuses])
-
-  const boardGroups = useMemo(() => {
-    const stories = localIssues.filter(i => !i.fields.issuetype.subtask)
-    const subtasks = localIssues.filter(i => i.fields.issuetype.subtask)
-
-    // Build parent key → subtasks map
-    const subtasksByParent = new Map<string, JiraIssue[]>()
-    for (const sub of subtasks) {
-      const parentKey = sub.fields.parent?.key
-      if (parentKey) {
-        subtasksByParent.set(parentKey, [...(subtasksByParent.get(parentKey) ?? []), sub])
-      }
-    }
-
-    // For each column, build groups
-    return sortedColumns.map(col => {
-      const groups: BoardColumnGroup[] = []
-
-      for (const story of stories) {
-        const storySubtasks = subtasksByParent.get(story.key) ?? []
-        const subtasksInThisCol = storySubtasks.filter(s => s.fields.status.id === col.id)
-        const storyInThisCol = story.fields.status.id === col.id
-
-        if (storySubtasks.length === 0 && storyInThisCol) {
-          // Bare story (no subtasks) — appears as a draggable card
-          groups.push({ story: story, cards: [story], isBareStory: true })
-        } else if (subtasksInThisCol.length > 0) {
-          // Story has subtasks in this column — show header + subtask cards
-          groups.push({ story: null, storyForHeader: story, cards: subtasksInThisCol, isBareStory: false })
-        }
-      }
-
-      return { status: col, groups }
-    })
-  }, [localIssues, sortedColumns])
-
-  const hasAnyIssues = localIssues.length > 0
-
   return (
     <>
-      <div className="flex flex-col gap-2 p-4 flex-1 min-h-0">
-        {/* Header row */}
-        <div className="flex items-center justify-end gap-2 pb-2">
-          <span className="text-xs text-muted-foreground">{lastRefreshed}</span>
-          <button
-            type="button"
-            onClick={() => refetch()}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Refresh"
-          >
-            <RefreshCw className="size-3" />
-            Refresh
-          </button>
-        </div>
-
-        {/* Loading skeleton */}
-        {isLoading && (
-          <div className="flex gap-4 overflow-x-auto">
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="min-w-[280px] flex-shrink-0 flex flex-col gap-2"
+      {/*
+       * No overflow container here — <main className="flex-1 overflow-auto"> in AppLayout
+       * is the scroll container. Sticky elements below reference that ancestor.
+       */}
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={() => { setActiveIssue(null); setIsDragging(false) }}
+      >
+        <div>
+          {/*
+           * Sticky top bar: column headers + refresh button.
+           * h-10 = 40px. Story headers use top-10 to sit directly below this.
+           * Sticks relative to <main> — no inner overflow container.
+           */}
+          <div className="sticky top-0 z-20 bg-background border-b border-border flex h-10">
+            {CATEGORY_COLUMNS.map(col => {
+              const count = localIssues.filter(
+                i => i.fields.issuetype.subtask && categoryOf(i) === col.key
+              ).length
+              return (
+                <div
+                  key={col.key}
+                  className="flex-1 px-3 flex items-center gap-1.5 border-l border-border/20 first:border-l-0"
+                >
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {col.label}
+                  </span>
+                  <span className="text-xs text-muted-foreground/70">({count})</span>
+                </div>
+              )
+            })}
+            {/* Refresh tucked into the right end of the header bar */}
+            <div className="px-3 flex items-center gap-2 shrink-0 border-l border-border/20">
+              <span className="text-xs text-muted-foreground hidden sm:inline">{lastRefreshed}</span>
+              <button
+                type="button"
+                onClick={() => refetch()}
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Refresh"
               >
-                <div className="h-5 rounded bg-muted animate-pulse w-24" />
-                {[0, 1, 2].map((j) => (
-                  <div key={j} className="h-20 rounded bg-muted animate-pulse" />
-                ))}
-              </div>
-            ))}
+                <RefreshCw className="size-3" />
+              </button>
+            </div>
           </div>
-        )}
 
-        {/* Error state */}
-        {isError && (
-          <div className="rounded border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {(error as Error)?.message ?? 'Failed to load sprint board'}
-          </div>
-        )}
+          {/* Loading skeleton */}
+          {isLoading && (
+            <div className="p-4 flex flex-col gap-3">
+              {[0, 1].map(i => (
+                <div key={i} className="flex flex-col gap-0.5">
+                  <div className="h-9 rounded bg-muted animate-pulse" />
+                  <div className="flex">
+                    {CATEGORY_COLUMNS.map(col => (
+                      <div key={col.key} className="flex-1 h-20 bg-muted/50 animate-pulse" />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
-        {/* Empty state */}
-        {!isLoading && !isError && data && !hasAnyIssues && (
-          <div className="py-8 text-center text-sm text-muted-foreground">
-            No issues in the current sprint.
-          </div>
-        )}
+          {/* Error */}
+          {isError && (
+            <div className="m-4 rounded border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {(error as Error)?.message ?? 'Failed to load sprint board'}
+            </div>
+          )}
 
-        {/* Board columns — wrapped in DndContext for drag-and-drop */}
-        {!isLoading && !isError && data && (
-          <DndContext
-            sensors={sensors}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDragCancel={() => { setActiveIssue(null); setIsDragging(false) }}
-          >
-            <div className="flex gap-3 overflow-x-auto pb-4 flex-1 min-h-0">
-              {boardGroups.map(({ status, groups }) => {
-                const isDisabledForActive = activeIssue !== null &&
-                  validTargets.has(activeIssue.key) &&
-                  !validTargets.get(activeIssue.key)!.has(status.id)
+          {/* Empty */}
+          {!isLoading && !isError && data && swimlanes.length === 0 && (
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              No issues in the current sprint.
+            </div>
+          )}
+
+          {/* Swimlane rows */}
+          {!isLoading && !isError && data && (
+            <div className="flex flex-col divide-y divide-border/40">
+              {swimlanes.map(({ story, subtasks }) => {
+                const isExpanded = !collapsedStories.has(story.key)
+                const cards = subtasks.length > 0 ? subtasks : [story]
                 return (
-                  <BoardColumn
-                    key={status.id}
-                    status={status}
-                    groups={groups}
-                    onOpenDetail={setSelectedIssueKey}
-                    isDisabledForActive={isDisabledForActive}
-                    activeIssue={activeIssue}
-                    cardErrors={cardErrors}
-                  >
-                    <QuickCreateInput
-                      statusId={status.id}
-                      statusName={status.name}
-                      projectKey={activeJiraProject!}
-                      jiraBaseUrl={jiraBaseUrl!}
-                      jiraToken={jiraToken!}
-                      onCreated={() => queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] })}
-                    />
-                  </BoardColumn>
+                  <div key={story.key}>
+                    {/*
+                     * sticky top-10: sits directly below the 40px column header bar.
+                     * Sticks until this story section's bottom edge scrolls off-screen,
+                     * then the next story's header takes over at the same position.
+                     * z-[9] keeps story headers below the column header bar (z-20).
+                     */}
+                    <div className="sticky top-10 z-[9] bg-background">
+                      <StoryHeaderRow
+                        storyKey={story.key}
+                        summary={story.fields.summary}
+                        statusName={story.fields.status.name}
+                        statusCategoryKey={story.fields.status.statusCategory?.key ?? 'new'}
+                        subtaskCount={subtasks.length}
+                        isExpanded={isExpanded}
+                        onToggle={() => toggleStory(story.key)}
+                        onOpenDetail={setSelectedIssueKey}
+                      />
+                    </div>
+                    {isExpanded && (
+                      <div className="flex bg-muted/10">
+                        {CATEGORY_COLUMNS.map(col => {
+                          const colCards = cards.filter(c => categoryOf(c) === col.key)
+                          const isDisabled =
+                            activeIssue !== null &&
+                            validTargetCategories.size > 0 &&
+                            !validTargetCategories.has(col.key)
+                          return (
+                            <DroppableCell
+                              key={col.key}
+                              storyKey={story.key}
+                              categoryKey={col.key}
+                              isDisabled={isDisabled}
+                            >
+                              {colCards.map(card => (
+                                <React.Fragment key={card.key}>
+                                  <DraggableCard
+                                    issue={card}
+                                    isSubtask={card.fields.issuetype.subtask}
+                                    onOpenDetail={setSelectedIssueKey}
+                                  />
+                                  {cardErrors.get(card.key) && (
+                                    <p className="text-xs text-destructive px-1">
+                                      {cardErrors.get(card.key)}
+                                    </p>
+                                  )}
+                                </React.Fragment>
+                              ))}
+                            </DroppableCell>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
                 )
               })}
             </div>
-            <DragOverlay>
-              {activeIssue ? <TaskCard issue={activeIssue} /> : null}
-            </DragOverlay>
-          </DndContext>
-        )}
-      </div>
+          )}
+        </div>
+
+        <DragOverlay>
+          {activeIssue ? <TaskCard issue={activeIssue} /> : null}
+        </DragOverlay>
+      </DndContext>
 
       <IssueDetailSheet
         issueKey={selectedIssueKey}

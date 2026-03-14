@@ -22,6 +22,12 @@ const HEALTH_COLORS: Record<ReviewHealth, string> = {
   waiting_for_review: 'bg-amber-400',
 }
 
+const STATUS_CATEGORY_STYLES: Record<string, string> = {
+  new: 'bg-muted text-muted-foreground',
+  indeterminate: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
+  done: 'bg-green-500/15 text-green-600 dark:text-green-400',
+}
+
 function getInitials(name: string): string {
   return name
     .split(' ')
@@ -38,10 +44,11 @@ interface TaskCardProps {
   isExpanded?: boolean
   onToggle?: () => void
   isSubtask?: boolean
+  showStatus?: boolean
   onClick?: () => void
 }
 
-export default function TaskCard({ issue, healthDot, subtaskCount, isExpanded, onToggle, isSubtask, onClick }: TaskCardProps) {
+export default function TaskCard({ issue, healthDot, subtaskCount, isExpanded, onToggle, isSubtask, showStatus, onClick }: TaskCardProps) {
   const assignee = issue.fields.assignee
   const avatarUrl = assignee?.avatarUrls['48x48']
   const displayName = assignee?.displayName ?? ''
@@ -74,6 +81,16 @@ export default function TaskCard({ issue, healthDot, subtaskCount, isExpanded, o
       >
         {issue.fields.summary}
       </div>
+
+      {/* Status badge — shown when not in a column context */}
+      {showStatus && (
+        <span className={cn(
+          'self-start rounded px-1.5 py-0.5 text-xs font-medium',
+          STATUS_CATEGORY_STYLES[issue.fields.status.statusCategory?.key ?? 'new'] ?? STATUS_CATEGORY_STYLES.new,
+        )}>
+          {issue.fields.status.name}
+        </span>
+      )}
 
       {/* Bottom row: assignee avatar + health dot */}
       <div className="flex items-center justify-between mt-1">
