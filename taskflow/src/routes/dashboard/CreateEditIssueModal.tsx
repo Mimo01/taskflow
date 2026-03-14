@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Dialog } from '@base-ui/react/dialog'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Plus } from 'lucide-react'
@@ -128,6 +128,29 @@ export function CreateEditIssueModal({
   const [showAssigneeResults, setShowAssigneeResults] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
   const [linkRows, setLinkRows] = useState<IssueLinkRowValue[]>([])
+
+  // ── Reset form state on each open ────────────────────────────────────────────
+  // The component stays mounted in AppLayout between opens; useState initializers
+  // only run once, so we must re-sync from props whenever the modal opens.
+  useEffect(() => {
+    if (!open) return
+    setSelectedIssueType(defaultIssueType ?? 'Story')
+    setSummary(initialValues?.summary ?? '')
+    setDescription(initialValues?.description ?? '')
+    setAssigneeQuery('')
+    setSelectedAssigneeName(initialValues?.assigneeName ?? null)
+    setPriority(initialValues?.priority ?? null)
+    setStoryPoints(initialValues?.storyPoints != null ? String(initialValues.storyPoints) : '')
+    setEpicLinkKey(initialValues?.epicLinkKey ?? null)
+    setEpicOpen(false)
+    setEpicFilter('')
+    setParentKey(defaultParentKey ?? null)
+    setCustomFieldValues({})
+    setAssigneeResults([])
+    setShowAssigneeResults(false)
+    setApiError(null)
+    setLinkRows([])
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Issue type ID resolution for createmeta ──────────────────────────────────
   const { data: issueTypes } = useQuery<CreatemtaIssueType[]>({
