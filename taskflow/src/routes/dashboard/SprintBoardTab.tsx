@@ -23,6 +23,7 @@ import { linkMRToTask } from '@/services/linkEngine'
 import type { ReviewHealth } from '@/services/linkEngine'
 import type { GitLabMR } from '@/services/gitlab'
 import TaskCard from './TaskCard'
+import { IssueDetailSheet } from './IssueDetailSheet'
 
 /** Priority order for health: lower index = higher priority */
 const HEALTH_PRIORITY: ReviewHealth[] = ['changes_requested', 'waiting_for_review', 'approved']
@@ -40,6 +41,7 @@ export default function SprintBoardTab() {
   const { storyPointsFieldKey } = useSettingsStore()
   const [jiraToken, setJiraToken] = useState<string | null>(null)
   const [expandedStories, setExpandedStories] = useState<Set<string>>(new Set())
+  const [selectedIssueKey, setSelectedIssueKey] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
   function toggleStory(key: string) {
@@ -133,6 +135,7 @@ export default function SprintBoardTab() {
     : []
 
   return (
+    <>
     <div className="flex flex-col gap-2 p-4">
       {/* Header row */}
       <div className="flex items-center justify-end gap-2 pb-2">
@@ -202,6 +205,7 @@ export default function SprintBoardTab() {
                           subtaskCount={subtasks.length}
                           isExpanded={isExpanded}
                           onToggle={() => toggleStory(story.key)}
+                          onClick={() => setSelectedIssueKey(story.key)}
                         />
                         {isExpanded && subtasks.map(sub => (
                           <TaskCard
@@ -209,6 +213,7 @@ export default function SprintBoardTab() {
                             issue={sub}
                             healthDot={taskHealthMap.get(sub.key)}
                             isSubtask
+                            onClick={() => setSelectedIssueKey(sub.key)}
                           />
                         ))}
                       </div>
@@ -221,5 +226,11 @@ export default function SprintBoardTab() {
         </div>
       )}
     </div>
+    <IssueDetailSheet
+      issueKey={selectedIssueKey}
+      onClose={() => setSelectedIssueKey(null)}
+      onOpenIssue={setSelectedIssueKey}
+    />
+    </>
   )
 }
