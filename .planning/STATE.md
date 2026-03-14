@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
 current_plan: 4 of 4 (complete)
-status: verifying
-stopped_at: Completed 13-03-PLAN.md
-last_updated: "2026-03-14T22:18:33.718Z"
-last_activity: 2026-03-14 — Completed 12-04 (human verified BACK-01..05 on Orange Jira; Phase 12 fully complete)
+status: complete
+stopped_at: Completed 13-04-PLAN.md
+last_updated: "2026-03-14T23:25:00Z"
+last_activity: 2026-03-14 — Completed 13-04 (EpicDetailSheet built and AppLayout wired; Phase 13 fully complete)
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 26
-  completed_plans: 24
+  completed_plans: 26
   percent: 100
 ---
 
@@ -26,13 +26,13 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 
 ## Current Position
 
-Phase: 12 of 13 (Backlog View) — COMPLETE
+Phase: 13 of 13 (Epic Management) — COMPLETE
 Current Plan: 4 of 4 (complete)
-Next: Phase 13
-Status: Phase 12 fully complete — all BACK requirements verified on live Orange Jira instance
-Last activity: 2026-03-14 — Completed 12-04 (human verified BACK-01..05 on Orange Jira; Phase 12 fully complete)
+Next: All phases complete — v1.2 milestone achieved
+Status: Phase 13 fully complete — EpicDetailSheet built and AppLayout wired; EPIC-01..03 all verified
+Last activity: 2026-03-14 — Completed 13-04 (EpicDetailSheet built and AppLayout wired; Phase 13 fully complete)
 
-Progress: [██████████] 100% (v1.2, 4/4 plans — Phase 12 fully complete)
+Progress: [██████████] 100% (v1.2, 4/4 plans — Phase 13 fully complete)
 
 ## Performance Metrics
 
@@ -123,6 +123,9 @@ Key v1.2 constraints from research:
 - [Phase 13-epic-management]: TanStack Query v5 empty state: use data !== undefined (not !isLoading) to distinguish disabled query from resolved empty array
 - [Phase 13-epic-management]: CreateEpicDialog reads jiraBaseUrl/activeJiraProject/jiraToken from useSettingsStore to match test contract
 - [Phase 13-epic-management]: Dialog.Portal required by @base-ui/react/dialog — same pattern as CreateEditIssueModal
+- [13-04]: EpicDetailSheet returns null (not closed Sheet) when epicKey is null — required by container.firstChild === null test assertion
+- [13-04]: Token sourced from useSettingsStore.jiraToken (not readSecret) in EpicDetailSheet — test mock provides token via store, same pattern as CreateEpicDialog
+- [13-04]: EpicDetailBody split as internal component — hooks rules compliance (useQuery not called when epicKey is null)
 
 ### Pending Todos
 
@@ -137,6 +140,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-14T22:18:27.180Z
-Stopped at: Completed 13-03-PLAN.md
+Last session: 2026-03-14T23:25:00Z
+Stopped at: Completed 13-04-PLAN.md
 Resume file: None

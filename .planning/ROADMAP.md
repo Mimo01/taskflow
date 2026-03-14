@@ -154,4 +154,4 @@ Plans:
 | 10. Sprint Board Redesign | 4/4 | Complete    | 2026-03-14 | - |
 | 11. Create/Edit Issue Form | 4/5 | In Progress|  | - |
 | 12. Backlog View | 4/4 | Complete    | 2026-03-14 | - |
-| 13. Epic Management | 3/5 | In Progress|  | - |
+| 13. Epic Management | 4/5 | In Progress|  | - |
