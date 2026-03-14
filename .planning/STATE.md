@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
 status: completed
-stopped_at: Completed 11-01-PLAN.md
-last_updated: "2026-03-14T13:04:59.858Z"
+stopped_at: Completed 11-02-PLAN.md
+last_updated: "2026-03-14T13:11:37.298Z"
 last_activity: 2026-03-14 — Completed 10-04 (human verification passed; all five BOARD requirements confirmed; sticky columns, swimlanes, drag-and-drop verified)
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 17
-  completed_plans: 13
+  completed_plans: 14
   percent: 100
 ---
 
@@ -98,6 +98,8 @@ Key v1.2 constraints from research:
 - [Phase 11-create-edit-issue-form]: createIssue() extended with optional options param — backward-compatible; existing QuickCreateInput.tsx caller (4-arg form) unaffected
 - [Phase 11-create-edit-issue-form]: fetchCreatemeta() dual-endpoint: try 8.4+ paginated endpoint first, fallback to legacy flat on 404; takes both issueTypeId and issueTypeName
 - [Phase 11-create-edit-issue-form]: bulkUpdateIssue() treats HTTP 204 as success — Jira DC returns 204 on PUT updates
+- [Phase 11-create-edit-issue-form]: Dialog.Root used directly from @base-ui/react/dialog for centered modal (not Sheet slide-over)
+- [Phase 11-create-edit-issue-form]: Two-step createmeta: fetch issuetypes list for IDs first, then fetch fields per type — required by 8.4+ paginated endpoint
 
 ### Pending Todos
 
@@ -112,6 +114,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-14T13:04:59.854Z
-Stopped at: Completed 11-01-PLAN.md
+Last session: 2026-03-14T13:11:37.294Z
+Stopped at: Completed 11-02-PLAN.md
 Resume file: None
