@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
 status: completed
-stopped_at: Completed 10-01-PLAN.md
-last_updated: "2026-03-14T11:28:56.443Z"
+stopped_at: Completed 10-02-PLAN.md
+last_updated: "2026-03-14T11:36:13.967Z"
 last_activity: 2026-03-14 — Completed 09-08 (sidebar widened 85vw/42% after user feedback; all four entry points verified; ISSUE-01 done)
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 12
-  completed_plans: 9
+  completed_plans: 10
   percent: 100
 ---
 
@@ -91,6 +91,7 @@ Key v1.2 constraints from research:
 - [Phase 10-sprint-board-redesign]: @dnd-kit/react not installed — @dnd-kit/core v6 stable API only; @dnd-kit/react new API not production-ready
 - [Phase 10-sprint-board-redesign]: [10-01]: fetchProjectStatuses deduplicates statuses by id Set with first-occurrence-wins semantics
 - [Phase 10-sprint-board-redesign]: [10-01]: createIssue hardcodes issuetype name as Story — minimal body per plan spec
+- [Phase 10-sprint-board-redesign]: Subtasks always visible under StoryHeaderRow — old expandedStories collapse state removed; old HIER-02 tests replaced to match new always-visible layout
 
 ### Pending Todos
 
@@ -105,6 +106,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-14T11:28:47.542Z
-Stopped at: Completed 10-01-PLAN.md
+Last session: 2026-03-14T11:36:13.963Z
+Stopped at: Completed 10-02-PLAN.md
 Resume file: None
