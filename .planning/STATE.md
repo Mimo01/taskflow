@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
-current_plan: 2 of 3 (phase 14)
-status: in-progress
-stopped_at: Completed 14-02-PLAN.md — cache invalidation key fix for backlog refresh after story creation
-last_updated: "2026-03-15T00:44:00Z"
-last_activity: 2026-03-15 — Completed 14-02 (fixed handleCreateModalClose cache key from jira-backlog to jira-backlog-view; BACK-03 GREEN)
+current_plan: 2 of 3 complete
+status: completed
+stopped_at: Completed 14-03-PLAN.md
+last_updated: "2026-03-14T23:43:36.208Z"
+last_activity: 2026-03-15 — Completed 14-02 (fixed handleCreateModalClose cache key; backlog now refreshes after story creation)
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 5
-  total_plans: 26
-  completed_plans: 26
+  total_plans: 29
+  completed_plans: 28
   percent: 100
 ---
 
@@ -129,6 +129,7 @@ Key v1.2 constraints from research:
 - [Phase 13-epic-management]: 13-05: Full test suite gated at 367 passing (above 351 baseline) — all 4 EPIC test files GREEN before human verification checkpoint
 - [Phase 13]: 13-05: Human verification on Orange Jira instance confirmed EPIC-01..04 all pass — integration with real Jira DC data confirmed
 - [14-02]: Cache invalidation prefix pattern — invalidateQueries({ queryKey: ['jira-backlog-view'] }) matches all ['jira-backlog-view', project, url] variants; old key ['jira-backlog'] never matched anything
+- [Phase 14-fix-wiring-credential-bugs]: 14-03: CreateEpicDialog jiraToken fetched via readSecret('jira-pat') inside mutationFn — not held in component state; useSettingsStore type-cast removed; useAuthStore used for connection config
 
 ### Pending Todos
 
@@ -143,6 +144,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-14T23:03:33.024Z
-Stopped at: Completed 13-05-PLAN.md — Phase 13 and v1.2 milestone fully complete
+Last session: 2026-03-14T23:43:36.204Z
+Stopped at: Completed 14-03-PLAN.md
 Resume file: None
