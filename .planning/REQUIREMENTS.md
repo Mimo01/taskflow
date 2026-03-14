@@ -44,10 +44,10 @@ Requirements for the Jira Parity milestone. Goal: replace the need to open real 
 
 ### Create/Edit (CREATE)
 
-- [ ] **CREATE-01**: User can create a new Jira issue (story, subtask, bug) with: summary, description, assignee, story points, issue type, epic link, priority, and parent (for subtasks)
-- [ ] **CREATE-02**: User can set all required custom fields when creating or editing an issue — fields are discovered dynamically from the `createmeta` endpoint, not hardcoded (covers Account and any other required fields on the Orange instance)
-- [ ] **CREATE-03**: User can edit an existing issue's summary, description, assignee, story points, priority, and epic link
-- [ ] **CREATE-04**: User can add issue links to any issue (relates to, blocks, is blocked by) with link type selection from the discovered list
+- [x] **CREATE-01**: User can create a new Jira issue (story, subtask, bug) with: summary, description, assignee, story points, issue type, epic link, priority, and parent (for subtasks)
+- [x] **CREATE-02**: User can set all required custom fields when creating or editing an issue — fields are discovered dynamically from the `createmeta` endpoint, not hardcoded (covers Account and any other required fields on the Orange instance)
+- [x] **CREATE-03**: User can edit an existing issue's summary, description, assignee, story points, priority, and epic link
+- [x] **CREATE-04**: User can add issue links to any issue (relates to, blocks, is blocked by) with link type selection from the discovered list
 
 ## v1.3+ Requirements
 
@@ -107,10 +107,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EPIC-02 | Phase 13 | Pending |
 | EPIC-03 | Phase 13 | Pending |
 | EPIC-04 | Phase 13 | Pending |
-| CREATE-01 | Phase 11 | Pending |
-| CREATE-02 | Phase 11 | Pending |
-| CREATE-03 | Phase 11 | Pending |
-| CREATE-04 | Phase 11 | Pending |
+| CREATE-01 | Phase 11 | Complete |
+| CREATE-02 | Phase 11 | Complete |
+| CREATE-03 | Phase 11 | Complete |
+| CREATE-04 | Phase 11 | Complete |
 
 **Coverage:**
 - v1.2 requirements: 27 total
