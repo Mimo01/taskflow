@@ -342,7 +342,7 @@ export function IssueDetailSidebar({
             <button
               type="button"
               onClick={() => onOpenIssue?.(epicLink)}
-              className="text-left hover:underline"
+              className="text-left hover:underline cursor-pointer"
             >
               <span className="font-mono text-xs">{epicLink}</span>
               {epicName && <span className="text-xs text-muted-foreground ml-1">— {epicName}</span>}
@@ -357,7 +357,7 @@ export function IssueDetailSidebar({
           <button
             type="button"
             onClick={() => onOpenIssue?.(f.parent!.key)}
-            className="text-left hover:underline"
+            className="text-left hover:underline cursor-pointer"
           >
             <span className="font-mono text-xs">{f.parent.key}</span>
             <span className="text-xs text-muted-foreground ml-1">— {f.parent.fields.summary}</span>
