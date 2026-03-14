@@ -700,6 +700,7 @@ export interface JiraActiveSprint {
   startDate?: string;
   endDate?: string;
   goal?: string;
+  originBoardId?: number;
 }
 
 /**
@@ -1299,7 +1300,9 @@ export async function fetchSprintsForBoard(
     )
     if (!res.ok) return []
     const data = await res.json()
-    const sprints: JiraActiveSprint[] = data?.values ?? []
+    const sprints: JiraActiveSprint[] = (data?.values ?? []).filter(
+      (s: JiraActiveSprint) => s.originBoardId === boardId,
+    )
     // Sort: active first, then future by startDate ascending
     return sprints.sort((a, b) => {
       if (a.state === 'active' && b.state !== 'active') return -1
