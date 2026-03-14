@@ -92,7 +92,7 @@ function DroppableCell({
 
 export default function SprintBoardTab() {
   const { jiraBaseUrl, activeJiraProject } = useAuthStore()
-  const { storyPointsFieldKey } = useSettingsStore()
+  const { storyPointsFieldKey, epicLinkFieldKey } = useSettingsStore()
   const [jiraToken, setJiraToken] = useState<string | null>(null)
   const { onIssueClick: setSelectedIssueKey } = useOutletContext<{ onIssueClick: (key: string) => void }>()
   const queryClient = useQueryClient()
@@ -276,6 +276,25 @@ export default function SprintBoardTab() {
     }))
   }, [localIssues])
 
+  const [activeEpicFilter, setActiveEpicFilter] = useState<string | null>(null)
+
+  const epicOptions = useMemo(() => {
+    const seen = new Set<string>()
+    for (const { story } of swimlanes) {
+      const ek = story.fields[epicLinkFieldKey as string] as string | null | undefined
+      if (ek) seen.add(ek)
+    }
+    return Array.from(seen).sort()
+  }, [swimlanes, epicLinkFieldKey])
+
+  const filteredSwimlanes = useMemo(() => {
+    if (!activeEpicFilter) return swimlanes
+    return swimlanes.filter(({ story }) => {
+      const ek = story.fields[epicLinkFieldKey as string] as string | null | undefined
+      return !!ek && ek === activeEpicFilter
+    })
+  }, [swimlanes, activeEpicFilter, epicLinkFieldKey])
+
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
     : 'Refreshed: Never'
@@ -352,6 +371,29 @@ export default function SprintBoardTab() {
             </div>
           )}
 
+          {/* Epic filter bar */}
+          {!isLoading && !isError && data && epicOptions.length > 0 && (
+            <div className="px-4 py-2 border-b flex items-center gap-2" data-testid="sprint-epic-filter">
+              <label htmlFor="sprint-epic-select" className="text-xs text-muted-foreground">Epic:</label>
+              <select
+                id="sprint-epic-select"
+                value={activeEpicFilter ?? ''}
+                onChange={e => setActiveEpicFilter(e.target.value || null)}
+                className="text-xs border rounded px-2 py-1 bg-background"
+                aria-label="Filter by epic"
+              >
+                <option value="">All epics</option>
+                {epicOptions.map(key => (
+                  <option key={key} value={key}>{key}</option>
+                ))}
+              </select>
+              {activeEpicFilter && (
+                <button type="button" onClick={() => setActiveEpicFilter(null)}
+                  className="text-xs text-muted-foreground hover:text-foreground">Clear</button>
+              )}
+            </div>
+          )}
+
           {/* Empty */}
           {!isLoading && !isError && data && swimlanes.length === 0 && (
             <div className="py-8 text-center text-sm text-muted-foreground">
@@ -362,7 +404,7 @@ export default function SprintBoardTab() {
           {/* Swimlane rows */}
           {!isLoading && !isError && data && (
             <div className="flex flex-col divide-y divide-border/40">
-              {swimlanes.map(({ story, subtasks }) => {
+              {filteredSwimlanes.map(({ story, subtasks }) => {
                 const isExpanded = !collapsedStories.has(story.key)
                 const cards = subtasks.length > 0 ? subtasks : [story]
                 return (
