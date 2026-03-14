@@ -3,6 +3,8 @@ import { Dialog } from '@base-ui/react/dialog'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createIssue } from '@/services/jira'
 import { useSettingsStore } from '@/stores/settings.store'
+import { useAuthStore } from '@/stores/auth.store'
+import { readSecret } from '@/services/stronghold'
 
 export interface CreateEpicDialogProps {
   open: boolean
@@ -10,20 +12,8 @@ export interface CreateEpicDialogProps {
 }
 
 export function CreateEpicDialog({ open, onClose }: CreateEpicDialogProps) {
-  // The settings store holds custom field keys; jiraBaseUrl/activeJiraProject/jiraToken
-  // come from auth context — but the test contract reads all from useSettingsStore.
-  // We destructure what the component needs, including any auth values provided by the store.
-  const settings = useSettingsStore() as {
-    epicNameFieldKey: string
-    jiraBaseUrl?: string
-    activeJiraProject?: string
-    jiraToken?: string
-  }
-  const { epicNameFieldKey } = settings
-  // Fall back to empty string so the mutationFn guard catches missing config gracefully.
-  const jiraBaseUrl = settings.jiraBaseUrl ?? ''
-  const activeJiraProject = settings.activeJiraProject ?? ''
-  const jiraToken = settings.jiraToken ?? ''
+  const { epicNameFieldKey } = useSettingsStore()
+  const { jiraBaseUrl, activeJiraProject } = useAuthStore()
 
   const [epicName, setEpicName] = useState('')
   const [description, setDescription] = useState('')
@@ -32,6 +22,7 @@ export function CreateEpicDialog({ open, onClose }: CreateEpicDialogProps) {
 
   const mutation = useMutation({
     mutationFn: async () => {
+      const jiraToken = await readSecret('jira-pat').catch(() => null)
       if (!jiraBaseUrl || !jiraToken || !activeJiraProject || !epicNameFieldKey) {
         throw new Error('Not configured')
       }
