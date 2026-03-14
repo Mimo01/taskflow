@@ -14,7 +14,6 @@ import { useNotificationPolling } from './hooks/useNotificationPolling';
 import { readSecret } from './services/stronghold';
 import { discoverCustomFields } from './services/jira';
 import { IssueDetailSheet } from './routes/dashboard/IssueDetailSheet';
-import { EpicDetailSheet } from './routes/dashboard/EpicDetailSheet';
 import { CreateEditIssueModal, type EditInitialValues } from './routes/dashboard/CreateEditIssueModal';
 import Onboarding from './routes/onboarding/index';
 import Dashboard from './routes/dashboard/index';
@@ -82,7 +81,6 @@ function AppLayout() {
   const { onboardingComplete } = useSettingsStore();
   const { jiraConnected, gitlabConnected, _hasHydrated } = useAuthStore();
   const [selectedIssueKey, setSelectedIssueKey] = useState<string | null>(null);
-  const [selectedEpicKey, setSelectedEpicKey] = useState<string | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createModalMode, setCreateModalMode] = useState<'create' | 'edit'>('create');
   const [createModalInitialValues, setCreateModalInitialValues] = useState<EditInitialValues | undefined>(undefined);
@@ -157,7 +155,7 @@ function AppLayout() {
         {_hasHydrated && !jiraConnected && <ReAuthBanner />}
         {_hasHydrated && !gitlabConnected && <GitLabReAuthBanner />}
         <main className="flex-1 overflow-auto">
-          <Outlet context={{ onIssueClick: setSelectedIssueKey, onEpicClick: setSelectedEpicKey, openEdit: handleOpenEdit, openAddSubtask: handleOpenAddSubtask, openCreateStory: handleOpenCreateStory }} />
+          <Outlet context={{ onIssueClick: setSelectedIssueKey, onEpicClick: setSelectedIssueKey, openEdit: handleOpenEdit, openAddSubtask: handleOpenAddSubtask, openCreateStory: handleOpenCreateStory }} />
         </main>
       </div>
       {/* Global IssueDetailSheet — accessible from search, notifications, and all route views */}
@@ -167,11 +165,6 @@ function AppLayout() {
         onOpenIssue={setSelectedIssueKey}
         onEdit={handleOpenEdit}
         onAddSubtask={handleOpenAddSubtask}
-      />
-      <EpicDetailSheet
-        epicKey={selectedEpicKey}
-        onClose={() => setSelectedEpicKey(null)}
-        onOpenIssue={setSelectedIssueKey}
       />
       <CreateEditIssueModal
         open={createModalOpen}
