@@ -179,6 +179,7 @@ export default function BacklogPage() {
       (old) => {
         if (!old) return old;
         return {
+          ...old,
           sprints: old.sprints.map((s) => ({
             ...s,
             issues: s.issues.filter((i) => !selectedKeys.has(i.key)),
