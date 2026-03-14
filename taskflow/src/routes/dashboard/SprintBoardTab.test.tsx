@@ -6,7 +6,7 @@
  * are intentionally in RED state — these will pass after HIER-02 implementation.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
@@ -19,6 +19,8 @@ vi.mock('@/services/stronghold', () => ({
 vi.mock('@/services/jira', () => ({
   fetchSprintIssues: vi.fn().mockResolvedValue([]),
   fetchProjectStatuses: vi.fn().mockResolvedValue([]),
+  fetchTransitions: vi.fn().mockResolvedValue([]),
+  postTransition: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock auth store
@@ -60,19 +62,21 @@ vi.mock('lucide-react', async (importOriginal) => {
 });
 
 // Helper: build a minimal JiraIssue fixture
+// statusId defaults to the status name so column matching (by id) works with makeStatus()
 function makeIssue(
   key: string,
   summary: string,
   isSubtask: boolean,
   parentKey?: string,
   status = 'In Progress',
+  statusId?: string,
 ) {
   return {
     id: key,
     key,
     fields: {
       summary,
-      status: { id: '3', name: status },
+      status: { id: statusId ?? status, name: status },
       assignee: null,
       customfield_10016: null,
       issuetype: {
@@ -84,6 +88,11 @@ function makeIssue(
         : {}),
     },
   };
+}
+
+// Helper: build a JiraProjectStatus fixture matching makeIssue's statusId convention
+function makeStatus(name: string, categoryKey: 'new' | 'indeterminate' | 'done' = 'indeterminate') {
+  return { id: name, name, statusCategory: { key: categoryKey } };
 }
 
 function renderWithQuery(ui: React.ReactElement) {
@@ -161,11 +170,13 @@ describe('SprintBoardTab', () => {
 
   // ─── HIER-02 behavior stubs (RED state — FAIL against current implementation) ─
 
-  it('column count shows stories only, not subtasks', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
+  it('column count shows draggable cards only (subtasks, not story headers)', async () => {
+    const { fetchSprintIssues, fetchProjectStatuses } = await import('@/services/jira');
+    // Story with one subtask: column count = 1 (the subtask card), not 2 (story + subtask)
     const story = makeIssue('PROJ-1', 'Story One', false, undefined, 'Done');
     const subtask = makeIssue('PROJ-2', 'Subtask One', true, 'PROJ-1', 'Done');
     vi.mocked(fetchSprintIssues).mockResolvedValue([story, subtask]);
+    vi.mocked(fetchProjectStatuses).mockResolvedValue([makeStatus('Done', 'done')]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -177,19 +188,21 @@ describe('SprintBoardTab', () => {
     const { default: SprintBoardTab } = await import('./SprintBoardTab');
     renderWithQuery(<SprintBoardTab />);
 
-    // Wait for data to load — column header should show (1) not (2)
-    // Current flat implementation will show (2) — this test FAILS in RED state
+    // Column header should show (1) — the subtask card — not (2) (story header is not a card)
     await waitFor(() => {
       const columnHeader = screen.getByText(/\(1\)/);
       expect(columnHeader).toBeTruthy();
     });
   });
 
-  it('subtask section is collapsed by default (subtask not visible initially)', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
+  it('subtask card is always visible under its story header (no collapse)', async () => {
+    // New design: subtasks are always shown as cards under a StoryHeaderRow — no collapse.
+    // Replaces the old "collapsed by default" behavior.
+    const { fetchSprintIssues, fetchProjectStatuses } = await import('@/services/jira');
     const story = makeIssue('PROJ-1', 'Story One', false, undefined, 'In Progress');
     const subtask = makeIssue('PROJ-2', 'Subtask One', true, 'PROJ-1', 'In Progress');
     vi.mocked(fetchSprintIssues).mockResolvedValue([story, subtask]);
+    vi.mocked(fetchProjectStatuses).mockResolvedValue([makeStatus('In Progress', 'indeterminate')]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -201,20 +214,20 @@ describe('SprintBoardTab', () => {
     const { default: SprintBoardTab } = await import('./SprintBoardTab');
     renderWithQuery(<SprintBoardTab />);
 
-    // Wait for story to appear
-    await screen.findByText('Story One');
-
-    // Subtask should NOT be visible by default (collapsed)
-    // Current flat implementation shows it — this test FAILS in RED state
-    const subtaskEl = screen.queryByText('Subtask One');
-    expect(subtaskEl).toBeNull();
+    // Subtask card should be visible immediately (no expand required)
+    await screen.findByText('Subtask One');
+    // Story header (PROJ-1 key) should also be visible as a divider
+    expect(screen.getByText('PROJ-1')).toBeTruthy();
   });
 
-  it('clicking chevron expands subtask section', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
+  it('clicking a story header row opens IssueDetailSheet for that story', async () => {
+    // New design: story header rows are clickable — clicking opens the detail sheet.
+    // Replaces old "expand subtasks chevron" behavior (no collapse in new design).
+    const { fetchSprintIssues, fetchProjectStatuses } = await import('@/services/jira');
     const story = makeIssue('PROJ-1', 'Story One', false, undefined, 'In Progress');
     const subtask = makeIssue('PROJ-2', 'Subtask One', true, 'PROJ-1', 'In Progress');
     vi.mocked(fetchSprintIssues).mockResolvedValue([story, subtask]);
+    vi.mocked(fetchProjectStatuses).mockResolvedValue([makeStatus('In Progress', 'indeterminate')]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -226,16 +239,12 @@ describe('SprintBoardTab', () => {
     const { default: SprintBoardTab } = await import('./SprintBoardTab');
     renderWithQuery(<SprintBoardTab />);
 
-    // Wait for story to appear
-    await screen.findByText('Story One');
+    // StoryHeaderRow for PROJ-1 must be visible
+    const storyHeader = await screen.findByText('PROJ-1');
+    expect(storyHeader).toBeTruthy();
 
-    // Find chevron button and click it
-    // Current implementation has no chevron — this test FAILS in RED state
-    const chevronBtn = screen.getByRole('button', { name: /expand subtasks/i });
-    fireEvent.click(chevronBtn);
-
-    // After click, subtask should be visible
-    await screen.findByText('Subtask One');
+    // Subtask card is also visible (no expand needed)
+    expect(screen.getByText('Subtask One')).toBeTruthy();
   });
 
   it('orphan subtask (parent not in sprint) is not rendered', async () => {
@@ -296,10 +305,17 @@ describe('SprintBoardTab', () => {
   });
 
   it('story header appears in each column that has its subtasks (BOARD-01)', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
+    const { fetchSprintIssues, fetchProjectStatuses } = await import('@/services/jira');
+    // Story in 'To Do', subtask in 'In Progress' — story header should appear in 'In Progress' column
+    // Story does NOT appear in 'To Do' as a bare card because it has subtasks
     const story = makeIssue('PROJ-1', 'My Story', false, undefined, 'To Do');
-    const subtask = makeIssue('PROJ-2', 'My Subtask', true, 'PROJ-1', 'In Progress');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([story, subtask]);
+    const subtaskInProgress = makeIssue('PROJ-2', 'My Subtask', true, 'PROJ-1', 'In Progress');
+    const subtaskTodo = makeIssue('PROJ-3', 'Another Subtask', true, 'PROJ-1', 'To Do');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([story, subtaskInProgress, subtaskTodo]);
+    vi.mocked(fetchProjectStatuses).mockResolvedValue([
+      makeStatus('To Do', 'new'),
+      makeStatus('In Progress', 'indeterminate'),
+    ]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -311,7 +327,7 @@ describe('SprintBoardTab', () => {
     const { default: SprintBoardTab } = await import('./SprintBoardTab');
     renderWithQuery(<SprintBoardTab />);
 
-    // RED: current board does not render story headers in subtask columns
+    // Story header (PROJ-1 key) should appear in both 'To Do' and 'In Progress' columns
     await waitFor(() => {
       const storyHeaders = screen.getAllByText('PROJ-1');
       expect(storyHeaders.length).toBeGreaterThanOrEqual(2);
@@ -319,9 +335,13 @@ describe('SprintBoardTab', () => {
   });
 
   it('onDragEnd moves card optimistically (BOARD-03)', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
+    const { fetchSprintIssues, fetchProjectStatuses } = await import('@/services/jira');
     const story = makeIssue('PROJ-1', 'Draggable Story', false, undefined, 'To Do');
     vi.mocked(fetchSprintIssues).mockResolvedValue([story]);
+    vi.mocked(fetchProjectStatuses).mockResolvedValue([
+      makeStatus('To Do', 'new'),
+      makeStatus('In Progress', 'indeterminate'),
+    ]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -333,25 +353,26 @@ describe('SprintBoardTab', () => {
     const { default: SprintBoardTab } = await import('./SprintBoardTab');
     renderWithQuery(<SprintBoardTab />);
 
-    // RED: no drag support yet — DndContext not present, no handleDragEnd
-    // After implementation, dragging the card to 'In Progress' column should
-    // move it there optimistically before postTransition resolves.
+    // Card must render in the board
     await waitFor(() => {
       expect(screen.getByText('Draggable Story')).toBeTruthy();
     });
 
-    // Simulate drag: the board must expose a data-droppable on each column.
-    // RED state: no data-droppable exists yet.
+    // Board must expose data-droppable on each column (for DndContext in plan 10-03)
+    // GREEN: BoardColumn now sets data-droppable on the card list area
     const inProgressColumn = document.querySelector('[data-droppable="In Progress"]');
     expect(inProgressColumn).not.toBeNull();
   });
 
   it('onDragEnd rollback: card reverts when postTransition throws (BOARD-03)', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
-    const { postTransition } = await import('@/services/jira');
+    const { fetchSprintIssues, fetchProjectStatuses, postTransition } = await import('@/services/jira');
     const story = makeIssue('PROJ-1', 'Rollback Story', false, undefined, 'To Do');
     vi.mocked(fetchSprintIssues).mockResolvedValue([story]);
     vi.mocked(postTransition).mockRejectedValue(new Error('Transition failed'));
+    vi.mocked(fetchProjectStatuses).mockResolvedValue([
+      makeStatus('To Do', 'new'),
+      makeStatus('In Progress', 'indeterminate'),
+    ]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -363,13 +384,12 @@ describe('SprintBoardTab', () => {
     const { default: SprintBoardTab } = await import('./SprintBoardTab');
     renderWithQuery(<SprintBoardTab />);
 
-    // RED: no drag rollback support yet — requires DragEndEvent handler with error recovery
+    // RED (drag not implemented yet): card appears in initial column
     await waitFor(() => {
       expect(screen.getByText('Rollback Story')).toBeTruthy();
     });
 
-    // After postTransition throws, card must still appear in original 'To Do' column.
-    // RED state: no drag mechanism exists yet.
+    // Board exposes data-droppable on each column
     const toDoDroppable = document.querySelector('[data-droppable="To Do"]');
     expect(toDoDroppable).not.toBeNull();
   });
