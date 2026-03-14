@@ -79,9 +79,12 @@ completed: 2026-03-14
 ## Task Commits
 
 1. **Task 1: Wire IssueDetailSheet into Dashboard (search + notifications entry points)** - `44bd6f0` (feat)
+2. **Fix: Widen IssueDetailSheet and sidebar for metadata display** - `b96b9a0` (fix)
 
 ## Files Created/Modified
 
+- `taskflow/src/routes/dashboard/IssueDetailSheet.tsx` - Sheet width increased 70vw → 85vw; sidebar column 38% → 42%; skeleton sidebar updated to match
+- `taskflow/src/routes/dashboard/IssueDetailSidebar.tsx` - MetaRow label column widened w-24 → w-28 to prevent truncation of longer labels
 - `taskflow/src/main.tsx` - Added `useState` import, `selectedIssueKey` state in AppLayout, `IssueDetailSheet` import and render at layout root; `TopBar` now receives `onIssueClick={setSelectedIssueKey}`
 - `taskflow/src/components/app/TopBar.tsx` - Added `TopBarProps` interface with `onIssueClick`; threads it to `SearchOverlay` and `NotificationPopover`
 - `taskflow/src/components/app/SearchOverlay.tsx` - Added `onIssueClick` prop; Jira task clicks call `onIssueClick(task.key)` + `onClose()` when prop provided; falls back to inline panel otherwise
@@ -110,8 +113,18 @@ completed: 2026-03-14
 
 ---
 
-**Total deviations:** 1 architectural discovery (handled via Rule 3)
-**Impact on plan:** Required scope expansion to the correct architectural level. All new file modifications were minimal (prop threading only). No behavior regressions.
+**2. [Rule 1 - Bug] Sidebar too narrow to display metadata without truncation**
+- **Found during:** Checkpoint verification (user feedback)
+- **Issue:** Sidebar at 70vw sheet x 38% column = ~26.6vw — too narrow for labels like "Story Points", "Fix Versions", and long assignee/epic names
+- **Fix:** Sheet widened to 85vw; sidebar column to 42%; MetaRow label column to w-28
+- **Files modified:** `IssueDetailSheet.tsx`, `IssueDetailSidebar.tsx`
+- **Verification:** TypeScript clean on modified files; layout visually confirmed by user
+- **Committed in:** `b96b9a0`
+
+---
+
+**Total deviations:** 2 (1 architectural discovery via Rule 3, 1 layout bug via Rule 1)
+**Impact on plan:** Architectural discovery required correct level wiring; layout fix required for basic metadata readability. No scope creep.
 
 ## Issues Encountered
 
@@ -119,9 +132,10 @@ completed: 2026-03-14
 
 ## Next Phase Readiness
 
-- All four entry points now open `IssueDetailSheet` on click: Sprint Board, My Tasks, Search results (Jira), Notification rows (Jira)
+- All four entry points confirmed working: Sprint Board, My Tasks, Search results (Jira), Notification rows (Jira)
+- Sidebar metadata display verified readable after layout fix (85vw sheet, 42% sidebar, w-28 label column)
 - The global sheet at AppLayout is available for any future entry points without additional lifting
-- User verification checkpoint pending — requires live app test to confirm sheet behavior across all four entry points
+- Phase 9 (ISSUE-01) complete — user verification passed
 
 ---
 *Phase: 09-custom-field-discovery-issue-detail-foundation*

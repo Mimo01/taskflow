@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
-status: executing
-stopped_at: Completed 09-08-PLAN.md (checkpoint — awaiting human verification of all four IssueDetailSheet entry points)
-last_updated: "2026-03-14T10:30:00Z"
-last_activity: 2026-03-14 — Completed 09-08 task 1 (IssueDetailSheet lifted to AppLayout; search results and Jira notification rows wired)
+status: complete
+stopped_at: "Completed 09-08-PLAN.md — all four IssueDetailSheet entry points wired and verified; sidebar layout fixed; Phase 9 complete"
+last_updated: "2026-03-14T11:45:00Z"
+last_activity: 2026-03-14 — Completed 09-08 (sidebar widened 85vw/42% after user feedback; all four entry points verified; ISSUE-01 done)
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 8
   completed_plans: 8
   percent: 100
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 Phase: 9 of 13 (Custom Field Discovery + Issue Detail Foundation)
-Plan: 09-08 complete (8 of 8 plans done in phase 9) — AWAITING HUMAN VERIFICATION CHECKPOINT
-Status: Executing (at checkpoint)
-Last activity: 2026-03-14 — Completed 09-08 task 1 (IssueDetailSheet lifted to AppLayout; search results and Jira notification rows wired via onIssueClick prop threading)
+Plan: 09-08 complete (8 of 8 plans done in phase 9) — Phase 9 COMPLETE
+Status: Complete
+Last activity: 2026-03-14 — Completed 09-08 (sidebar widened 85vw/42% after user feedback; all four entry points verified; ISSUE-01 done)
 
-Progress: [████████░░] 100% (v1.2, 8/8 plans — all code complete, pending human verification)
+Progress: [██████████] 100% (v1.2, 8/8 plans — Phase 9 complete, human verification passed)
 
 ## Performance Metrics
 
@@ -87,6 +87,7 @@ Key v1.2 constraints from research:
 - [09-08]: onIssueClick prop threading used (not React context) — codebase has zero existing context usage; explicit props kept
 - [09-08]: Jira issue key extracted from NotificationItem.entityTitle ("PROJ-123: ...") with /browse/ URL as fallback — entityTitle format is stable
 - [09-08]: Dashboard/index.tsx gets its own selectedIssueKey for SubtasksPanel — route components can't access AppLayout state without prop drilling through router
+- [09-08]: IssueDetailSheet sidebar widened to 85vw sheet / 42% column / w-28 label — 70vw/38%/w-24 too narrow for metadata labels like "Story Points" and "Fix Versions"
 
 ### Pending Todos
 
@@ -101,6 +102,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-14T10:30:00Z
-Stopped at: 09-08 checkpoint:human-verify — all four entry points coded; awaiting live app verification
+Last session: 2026-03-14T11:45:00Z
+Stopped at: Completed 09-08-PLAN.md — Phase 9 complete, ISSUE-01 done
 Resume file: None

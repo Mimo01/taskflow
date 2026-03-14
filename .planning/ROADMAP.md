@@ -36,7 +36,7 @@ See archive: `.planning/milestones/v1.1-ROADMAP.md`
 
 **Milestone Goal:** Replace the need to open Jira — full issue detail, backlog management, epic tracking, and task creation/editing from within the app.
 
-- [x] **Phase 9: Custom Field Discovery + Issue Detail Foundation** - Full issue detail view accessible from any screen; custom field infrastructure powering all later phases (awaiting human verification checkpoint)
+- [x] **Phase 9: Custom Field Discovery + Issue Detail Foundation** - Full issue detail view accessible from any screen; custom field infrastructure powering all later phases (human verification passed)
 - [ ] **Phase 10: Sprint Board Redesign** - Subtask-as-card kanban with drag-to-move status transitions and full team visibility
 - [ ] **Phase 11: Create/Edit Issue Form** - Create and edit any Jira issue with all required fields, dynamically built from createmeta
 - [ ] **Phase 12: Backlog View** - Backlog list with move-to-sprint, create story, and epic/label/assignee filters
@@ -124,7 +124,7 @@ Plans:
 | 6. Workload + Sprint Progress Enrichment | v1.1 | 3/3 | Complete | 2026-03-12 |
 | 7. Story/Subtask Hierarchy + MR Subtask Filter | v1.1 | 5/5 | Complete | 2026-03-13 |
 | 8. Dashboard Enrichment | v1.1 | 8/8 | Complete | 2026-03-13 |
-| 9. Custom Field Discovery + Issue Detail Foundation | v1.2 | 8/8 | At Checkpoint | - |
+| 9. Custom Field Discovery + Issue Detail Foundation | v1.2 | 8/8 | Complete | 2026-03-14 |
 | 10. Sprint Board Redesign | v1.2 | 0/TBD | Not started | - |
 | 11. Create/Edit Issue Form | v1.2 | 0/TBD | Not started | - |
 | 12. Backlog View | v1.2 | 0/TBD | Not started | - |
