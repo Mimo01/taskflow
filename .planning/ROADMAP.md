@@ -110,7 +110,13 @@ Plans:
   2. User can select one or more backlog issues and move them into the active sprint in a single action
   3. User can create a new story directly from the backlog view and see it appear in the list
   4. User can filter the backlog by epic, label, and assignee and click any row to open the issue detail panel
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 12-01-PLAN.md — Wave 0 RED test stubs + jira.ts service extensions (fetchBacklogIssues, addIssuesToSprint)
+- [ ] 12-02-PLAN.md — BacklogPage + BacklogRow + BacklogFilterBar (list render, filters, row click)
+- [ ] 12-03-PLAN.md — Move-to-sprint mutation + Create Story wiring + AppLayout Outlet context extension
+- [ ] 12-04-PLAN.md — Route registration + Sidebar NavLinks + human verification checkpoint
 
 ### Phase 13: Epic Management
 **Goal**: Users can view all epics, filter the sprint board and backlog by a selected epic, drill into an epic's stories, and create new epics — completing the daily Jira workflow without leaving the app
@@ -140,5 +146,5 @@ Plans:
 | 9. Custom Field Discovery + Issue Detail Foundation | v1.2 | 8/8 | Complete | 2026-03-14 |
 | 10. Sprint Board Redesign | 4/4 | Complete    | 2026-03-14 | - |
 | 11. Create/Edit Issue Form | 4/5 | In Progress|  | - |
-| 12. Backlog View | v1.2 | 0/TBD | Not started | - |
+| 12. Backlog View | v1.2 | 0/4 | Not started | - |
 | 13. Epic Management | v1.2 | 0/TBD | Not started | - |
