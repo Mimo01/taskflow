@@ -38,7 +38,7 @@ function makeIssue(
       originalEstimateSeconds?: number;
       timeSpentSeconds?: number;
       remainingEstimateSeconds?: number;
-    } | null;
+    };
   },
 ) {
   return {
@@ -59,7 +59,7 @@ function makeIssue(
         name: options?.subtask ? 'Sub-task' : 'Story',
         subtask: options?.subtask ?? false,
       },
-      timetracking: options?.timetracking ?? null,
+      timetracking: options?.timetracking ?? undefined,
     },
   };
 }
@@ -227,7 +227,7 @@ describe('SprintProgressTab', () => {
   it('SPPG-02: hides time summary when all time tracking is null', async () => {
     const { fetchSprintIssues } = await import('@/services/jira');
     vi.mocked(fetchSprintIssues).mockResolvedValue([
-      makeIssue('P-1', 'new', null, { timetracking: null }),
+      makeIssue('P-1', 'new', null, { timetracking: undefined }),
     ]);
 
     const { default: SprintProgressTab } = await import('./SprintProgressTab');
@@ -346,7 +346,7 @@ describe('SPPG-07: assignee stories and subtasks columns', () => {
           name: 'Sub-task', // name says Sub-task
           subtask: false,   // but boolean is false
         },
-        timetracking: null,
+        timetracking: undefined,
       },
     };
     vi.mocked(fetchSprintIssues).mockResolvedValue([fakeSub as ReturnType<typeof makeIssue>]);

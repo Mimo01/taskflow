@@ -21,7 +21,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select';
 import { validateJira, listJiraProjects } from '@/services/jira';
 import { storeSecret } from '@/services/stronghold';

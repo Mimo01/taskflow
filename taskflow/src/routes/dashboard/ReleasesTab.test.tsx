@@ -196,19 +196,19 @@ describe('ReleasesTab', () => {
       makeFixVersion('v1', 'v2.1.0', '2026-03-15'),
     ]);
 
-    // fetchVersionIssueCounts makes two parallel HTTP calls:
-    //   1. GET /rest/api/2/version/{id}/relatedIssueCounts → { issuesFixedCount: 3, issuesAffectedCount: 0 }
-    //   2. GET /rest/api/2/search?jql=fixVersion="v2.1.0"&maxResults=0 → { total: 8 }
-    // We distinguish by checking the URL pattern in the mock.
+    // fetchVersionIssueCounts makes two parallel JQL search calls:
+    //   1. GET /rest/api/2/search?jql=fixVersion=...&maxResults=0 → { total: 8 } (all issues)
+    //   2. GET /rest/api/2/search?jql=fixVersion=...+AND+statusCategory=Done&maxResults=0 → { total: 3 }
+    // We distinguish by checking for statusCategory in the URL.
     const { fetch: mockFetch } = await import('@tauri-apps/plugin-http');
     vi.mocked(mockFetch).mockImplementation(async (url: string | URL | Request) => {
       const urlStr = typeof url === 'string' ? url : url instanceof URL ? url.toString() : (url as Request).url;
-      if (urlStr.includes('/search')) {
-        // JQL total count endpoint → total=8 (3 fixed + 5 unresolved)
-        return { ok: true, json: async () => ({ total: 8 }) } as Response;
+      if (urlStr.includes('statusCategory')) {
+        // Done-only JQL endpoint → total=3 fixed
+        return { ok: true, json: async () => ({ total: 3 }) } as Response;
       }
-      // relatedIssueCounts endpoint → issuesFixedCount=3
-      return { ok: true, json: async () => ({ issuesFixedCount: 3, issuesAffectedCount: 0 }) } as Response;
+      // Total JQL endpoint → total=8 (all issues in fix version)
+      return { ok: true, json: async () => ({ total: 8 }) } as Response;
     });
 
     const { default: ReleasesTab } = await import('./ReleasesTab');

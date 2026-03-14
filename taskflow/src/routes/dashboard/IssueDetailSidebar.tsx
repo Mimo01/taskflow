@@ -4,7 +4,6 @@ import type { JiraIssueDetail } from '@/services/jira'
 import { updateIssueField } from '@/services/jira'
 import { apiFetch } from '@/lib/apiFetch'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -141,7 +140,8 @@ export function IssueDetailSidebar({
 
   const debouncedSearch = useDebounce(doSearch, 300)
 
-  function handlePriorityChange(value: string) {
+  function handlePriorityChange(value: string | null) {
+    if (!value) return
     setPriorityEditing(false)
     mutation.mutate({ fieldName: 'priority', value: { name: value } })
   }

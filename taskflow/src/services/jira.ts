@@ -303,10 +303,11 @@ export async function fetchSprintIssues(
     // failure. Detect by checking for a numeric status property (duck-typing for both real
     // Response objects and plain-object mocks used in tests).
     if (err !== null && typeof err === 'object' && 'status' in err && typeof (err as { status: unknown }).status === 'number') {
-      const status = (err as { status: number; text?: () => Promise<string> }).status;
+      const errObj = err as unknown as { status: number; text?: () => Promise<string> };
+      const status = errObj.status;
       if (status === 400) {
-        const body = typeof (err as { text?: () => Promise<string> }).text === 'function'
-          ? await (err as { text: () => Promise<string> }).text()
+        const body = typeof errObj.text === 'function'
+          ? await errObj.text()
           : '';
         if (body.includes('function') || body.includes('not recognized')) {
           throw new Error('Sprint filtering unavailable — ensure Jira Software is installed');
@@ -404,10 +405,11 @@ export async function fetchMyTasksHierarchy(
     // failure. Detect by checking for a numeric status property (duck-typing for both real
     // Response objects and plain-object mocks used in tests).
     if (err !== null && typeof err === 'object' && 'status' in err && typeof (err as { status: unknown }).status === 'number') {
-      const status = (err as { status: number; text?: () => Promise<string> }).status;
+      const errObj = err as unknown as { status: number; text?: () => Promise<string> };
+      const status = errObj.status;
       if (status === 400) {
-        const body = typeof (err as { text?: () => Promise<string> }).text === 'function'
-          ? await (err as { text: () => Promise<string> }).text()
+        const body = typeof errObj.text === 'function'
+          ? await errObj.text()
           : '';
         if (body.includes('function') || body.includes('not recognized')) {
           throw new Error('Sprint filtering unavailable — ensure Jira Software is installed');
