@@ -2,6 +2,7 @@
 // AUTH-06: Error banners for Jira validation failures
 // DEV-01, DEV-02, DEV-03, DEV-04: Phase 2 Jira sprint & transition functions
 // CREATE-01..04: Phase 11 new service functions (Wave 0 RED tests)
+// EPIC-01, EPIC-03: Phase 13 epic service functions
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   validateJira,
@@ -16,6 +17,8 @@ import {
   fetchIssueLinkTypes,
   createIssueLink,
   createIssue,
+  fetchEpicsWithEnrichment,
+  fetchEpicStories,
   type JiraIssue,
 } from './jira';
 
@@ -1205,6 +1208,181 @@ describe('jira service', () => {
       await expect(
         createIssueLink('https://jira.example.com', 'token', '10000', 'PROJ-1', 'PROJ-2'),
       ).rejects.toThrow('Failed to create issue link');
+    });
+  });
+
+  describe('EPIC-01: fetchEpicsWithEnrichment', () => {
+    function makeEpicIssue(key: string, epicName: string | null = null): JiraIssue {
+      return {
+        id: key,
+        key,
+        fields: {
+          summary: `Summary of ${key}`,
+          status: { id: '3', name: 'In Progress', statusCategory: { key: 'indeterminate' } },
+          assignee: null,
+          issuetype: { name: 'Epic', subtask: false },
+          customfield_10016: null,
+          customfield_10015: epicName,
+        },
+      };
+    }
+
+    function makeStoryIssue(key: string, epicKey: string, done = false, points: number | null = 0): JiraIssue {
+      return {
+        id: key,
+        key,
+        fields: {
+          summary: `Story ${key}`,
+          status: {
+            id: '10002',
+            name: done ? 'Done' : 'In Progress',
+            statusCategory: { key: done ? 'done' : 'indeterminate' },
+          },
+          assignee: null,
+          issuetype: { name: 'Story', subtask: false },
+          customfield_10014: epicKey,
+          customfield_10016: points,
+        },
+      };
+    }
+
+    function makeJsonResponse(data: unknown) {
+      return {
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(data),
+      } as unknown as Response;
+    }
+
+    it('returns epics with correct totalStories, doneStories, and totalPoints', async () => {
+      const epics = [makeEpicIssue('PROJ-10', 'Epic Alpha'), makeEpicIssue('PROJ-11', 'Epic Beta')];
+      // PROJ-10 has 3 stories (1 done, 5+3=8 pts), PROJ-11 has 2 stories (1 done, 2 pts)
+      const stories = [
+        makeStoryIssue('PROJ-1', 'PROJ-10', false, 5),
+        makeStoryIssue('PROJ-2', 'PROJ-10', true, 3),
+        makeStoryIssue('PROJ-3', 'PROJ-10', false, 0),
+        makeStoryIssue('PROJ-4', 'PROJ-11', true, 2),
+        makeStoryIssue('PROJ-5', 'PROJ-11', false, 0),
+      ];
+
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(makeJsonResponse({ issues: epics, total: 2 }))
+        .mockResolvedValueOnce(makeJsonResponse({ issues: stories, total: 5 }));
+
+      const result = await fetchEpicsWithEnrichment(
+        'https://jira.example.com', 'token', 'PROJ',
+        'customfield_10016', 'customfield_10014', 'customfield_10015',
+      );
+
+      expect(result).toHaveLength(2);
+      const alpha = result.find(e => e.key === 'PROJ-10')!;
+      expect(alpha.epicName).toBe('Epic Alpha');
+      expect(alpha.totalStories).toBe(3);
+      expect(alpha.doneStories).toBe(1);
+      expect(alpha.totalPoints).toBe(8);
+
+      const beta = result.find(e => e.key === 'PROJ-11')!;
+      expect(beta.totalStories).toBe(2);
+      expect(beta.doneStories).toBe(1);
+      expect(beta.totalPoints).toBe(2);
+    });
+
+    it('falls back to summary when epicNameFieldKey is null', async () => {
+      const epics = [makeEpicIssue('PROJ-10', null)]; // epicName field is null
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(makeJsonResponse({ issues: epics, total: 1 }))
+        .mockResolvedValueOnce(makeJsonResponse({ issues: [], total: 0 }));
+
+      const result = await fetchEpicsWithEnrichment(
+        'https://jira.example.com', 'token', 'PROJ',
+        'customfield_10016', 'customfield_10014', 'customfield_10015',
+      );
+      expect(result[0].epicName).toBe('Summary of PROJ-10');
+    });
+
+    it('returns epics with totalStories=0 when stories fetch fails', async () => {
+      const epics = [makeEpicIssue('PROJ-10', 'Epic Alpha')];
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(makeJsonResponse({ issues: epics, total: 1 }))
+        .mockRejectedValueOnce(new Error('network failure'));
+
+      const result = await fetchEpicsWithEnrichment(
+        'https://jira.example.com', 'token', 'PROJ',
+        'customfield_10016', 'customfield_10014', 'customfield_10015',
+      );
+      expect(result).toHaveLength(1);
+      expect(result[0].totalStories).toBe(0);
+      expect(result[0].doneStories).toBe(0);
+      expect(result[0].totalPoints).toBe(0);
+    });
+
+    it('stories JQL includes issuetype != Sub-task', async () => {
+      const epics = [makeEpicIssue('PROJ-10', 'Epic Alpha')];
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(makeJsonResponse({ issues: epics, total: 1 }))
+        .mockResolvedValueOnce(makeJsonResponse({ issues: [], total: 0 }));
+
+      await fetchEpicsWithEnrichment(
+        'https://jira.example.com', 'token', 'PROJ',
+        'customfield_10016', 'customfield_10014', 'customfield_10015',
+      );
+
+      const calls = vi.mocked(mockFetch).mock.calls;
+      const storiesUrl = calls[1][0] as string;
+      expect(decodeURIComponent(storiesUrl)).toContain('issuetype != Sub-task');
+    });
+
+    it('returns empty array when no epics found', async () => {
+      vi.mocked(mockFetch).mockResolvedValueOnce(makeJsonResponse({ issues: [], total: 0 }));
+
+      const result = await fetchEpicsWithEnrichment(
+        'https://jira.example.com', 'token', 'PROJ',
+      );
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('EPIC-03: fetchEpicStories', () => {
+    function makeStory(key: string): JiraIssue {
+      return {
+        id: key,
+        key,
+        fields: {
+          summary: `Story ${key}`,
+          status: { id: '3', name: 'In Progress', statusCategory: { key: 'indeterminate' } },
+          assignee: null,
+          issuetype: { name: 'Story', subtask: false },
+          customfield_10016: null,
+        },
+      };
+    }
+
+    it('returns stories for a given epicKey, excluding subtasks', async () => {
+      const stories = [makeStory('PROJ-1'), makeStory('PROJ-2')];
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ issues: stories, total: 2 }),
+      } as unknown as Response);
+
+      const result = await fetchEpicStories(
+        'https://jira.example.com', 'token', 'PROJ-42', 'PROJ',
+      );
+      expect(result).toHaveLength(2);
+      expect(result[0].key).toBe('PROJ-1');
+
+      const url = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      expect(decodeURIComponent(url)).toContain('"Epic Link" = PROJ-42');
+      expect(decodeURIComponent(url)).toContain('issuetype != Sub-task');
+    });
+
+    it('returns empty array on fetch failure without throwing', async () => {
+      vi.mocked(mockFetch).mockRejectedValue(new Error('network error'));
+
+      const result = await fetchEpicStories(
+        'https://jira.example.com', 'token', 'PROJ-42', 'PROJ',
+      );
+      expect(result).toEqual([]);
     });
   });
 });
