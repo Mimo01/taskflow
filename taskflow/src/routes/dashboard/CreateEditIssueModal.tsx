@@ -18,13 +18,17 @@ import { useSettingsStore } from '@/stores/settings.store'
 import { apiFetch } from '@/lib/apiFetch'
 import {
   fetchCreatemeta,
+  fetchIssueLinkTypes,
   createIssue,
+  createIssueLink,
   bulkUpdateIssue,
   type CreatemetaField,
+  type IssueLinkType,
   type JiraIssue,
   type JiraUser,
 } from '@/services/jira'
 import { DescriptionEditor } from './DescriptionEditor'
+import { IssueLinkRow, type IssueLinkRowValue } from './IssueLinkRow'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -116,6 +120,7 @@ export function CreateEditIssueModal({
   const [assigneeLoading, setAssigneeLoading] = useState(false)
   const [showAssigneeResults, setShowAssigneeResults] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
+  const [linkRows, setLinkRows] = useState<IssueLinkRowValue[]>([])
 
   // ── Issue type ID resolution for createmeta ──────────────────────────────────
   const { data: issueTypes } = useQuery<CreatemtaIssueType[]>({
@@ -184,6 +189,18 @@ export function CreateEditIssueModal({
     staleTime: 5 * 60 * 1000,
   })
 
+  // ── Issue link types ─────────────────────────────────────────────────────────
+  const { data: linkTypes = [], isLoading: linkTypesLoading } = useQuery<IssueLinkType[]>({
+    queryKey: ['jira-link-types', jiraBaseUrl],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null)
+      if (!token || !jiraBaseUrl) return []
+      return fetchIssueLinkTypes(jiraBaseUrl, token)
+    },
+    enabled: open && !!jiraBaseUrl,
+    staleTime: 5 * 60 * 1000,
+  })
+
   // ── Assignee search ──────────────────────────────────────────────────────────
   const doSearch = useCallback(
     async (query: string) => {
@@ -248,10 +265,23 @@ export function CreateEditIssueModal({
         if (v.trim() !== '') options[k] = v
       }
 
-      return createIssue(jiraBaseUrl, token, projectKey, summary.trim(), {
+      const newIssue = await createIssue(jiraBaseUrl, token, projectKey, summary.trim(), {
         issuetype: selectedIssueType,
         ...options,
       })
+
+      // Post-create: create issue links (Jira DC constraint — cannot be in create body)
+      for (const row of linkRows) {
+        if (!row.linkTypeId || !row.issueKey) continue
+        try {
+          await createIssueLink(jiraBaseUrl, token, row.linkTypeId, newIssue.key, row.issueKey)
+        } catch (e) {
+          console.error('Failed to create issue link:', e)
+          // Individual link failures are silent — do not fail the overall submit
+        }
+      }
+
+      return newIssue
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] })
@@ -296,7 +326,18 @@ export function CreateEditIssueModal({
         if (v.trim() !== '') fields[k] = v
       }
 
-      return bulkUpdateIssue(jiraBaseUrl, token, initialValues.issueKey, fields)
+      await bulkUpdateIssue(jiraBaseUrl, token, initialValues.issueKey, fields)
+
+      // Post-update: create new issue links
+      for (const row of linkRows) {
+        if (!row.linkTypeId || !row.issueKey) continue
+        try {
+          await createIssueLink(jiraBaseUrl, token, row.linkTypeId, initialValues.issueKey, row.issueKey)
+        } catch (e) {
+          console.error('Failed to create issue link:', e)
+          // Individual link failures are silent — do not fail the overall submit
+        }
+      }
     },
     onSuccess: () => {
       if (initialValues?.issueKey && jiraBaseUrl) {
@@ -566,21 +607,37 @@ export function CreateEditIssueModal({
               </div>
             ))}
 
-            {/* Issue Links placeholder (plan 11-03 will add IssueLinkRow here) */}
+            {/* Issue Links */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium">Issue Links</label>
                 <button
                   type="button"
-                  disabled={isPending}
+                  disabled={isPending || linkTypesLoading}
+                  aria-label="Add link"
                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
-                  // Link rows will be managed by plan 11-03
+                  onClick={() =>
+                    setLinkRows((prev) => [
+                      ...prev,
+                      { id: (crypto.randomUUID?.() ?? `link-${Date.now()}-${Math.random()}`), linkTypeId: '', issueKey: '' },
+                    ])
+                  }
                 >
                   <Plus className="h-3 w-3" />
                   Add link
                 </button>
               </div>
-              {/* IssueLinkRow components will be inserted here in plan 11-03 */}
+              {linkRows.map((row) => (
+                <IssueLinkRow
+                  key={row.id}
+                  linkTypes={linkTypes}
+                  value={row}
+                  onChange={(updated) =>
+                    setLinkRows((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
+                  }
+                  onRemove={() => setLinkRows((prev) => prev.filter((r) => r.id !== row.id))}
+                />
+              ))}
             </div>
 
             {/* API Error */}
