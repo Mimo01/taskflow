@@ -24,6 +24,7 @@ interface IssueDetailSidebarProps {
   epicLinkFieldKey: string
   epicNameFieldKey: string
   sprintFieldKey: string
+  onOpenIssue?: (key: string) => void
 }
 
 // Shared mutation hook implementing Pattern 4 from RESEARCH.md
@@ -83,6 +84,7 @@ export function IssueDetailSidebar({
   epicLinkFieldKey,
   epicNameFieldKey,
   sprintFieldKey,
+  onOpenIssue,
 }: IssueDetailSidebarProps) {
   const f = issue.fields
   const isEpic = f.issuetype.name === 'Epic'
@@ -333,28 +335,38 @@ export function IssueDetailSidebar({
         </MetaRow>
       )}
 
-      {/* Epic — stories only: key + name once loaded */}
+      {/* Epic — stories only: key + name, navigable */}
       {isStory && (
         <MetaRow label="Epic">
           {epicLink ? (
-            <>
+            <button
+              type="button"
+              onClick={() => onOpenIssue?.(epicLink)}
+              className="text-left hover:underline"
+            >
               <span className="font-mono text-xs">{epicLink}</span>
               {epicName && <span className="text-xs text-muted-foreground ml-1">— {epicName}</span>}
-            </>
+            </button>
           ) : '—'}
         </MetaRow>
       )}
 
-      {/* Parent — subtasks only */}
+      {/* Parent — subtasks only, navigable */}
       {isSubtask && f.parent && (
         <MetaRow label="Parent">
-          <span className="font-mono text-xs">{f.parent.key}</span>
-          <span className="text-xs text-muted-foreground ml-1">— {f.parent.fields.summary}</span>
+          <button
+            type="button"
+            onClick={() => onOpenIssue?.(f.parent!.key)}
+            className="text-left hover:underline"
+          >
+            <span className="font-mono text-xs">{f.parent.key}</span>
+            <span className="text-xs text-muted-foreground ml-1">— {f.parent.fields.summary}</span>
+          </button>
         </MetaRow>
       )}
 
-      {/* Sprint — epics and stories */}
-      {!isSubtask && <MetaRow label="Sprint">{sprintName ?? 'No sprint'}</MetaRow>}
+      {/* Sprint — stories only (epics and subtasks don't have sprints) */}
+      {isStory && <MetaRow label="Sprint">{sprintName ?? 'No sprint'}</MetaRow>}
 
       {/* Labels — badge chips with remove + add */}
       <MetaRow label="Labels">

@@ -111,6 +111,7 @@ function IssueDetailBody({
           epicLinkFieldKey={epicLinkFieldKey}
           epicNameFieldKey={epicNameFieldKey}
           sprintFieldKey={sprintFieldKey}
+          onOpenIssue={onOpenIssue}
         />
       </div>
     </div>
