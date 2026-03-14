@@ -29,11 +29,11 @@ Requirements for the Jira Parity milestone. Goal: replace the need to open real 
 
 ### Backlog (BACK)
 
-- [ ] **BACK-01**: User can view all backlog issues (issues not in any active or future sprint) in a paginated list
-- [ ] **BACK-02**: User can move one or more backlog issues into the active sprint
-- [ ] **BACK-03**: User can create a new story directly from the backlog view
-- [ ] **BACK-04**: User can filter the backlog by epic, label, and assignee
-- [ ] **BACK-05**: User can open the issue detail panel from any backlog row
+- [x] **BACK-01**: User can view all backlog issues (issues not in any active or future sprint) in a paginated list
+- [x] **BACK-02**: User can move one or more backlog issues into the active sprint
+- [x] **BACK-03**: User can create a new story directly from the backlog view
+- [x] **BACK-04**: User can filter the backlog by epic, label, and assignee
+- [x] **BACK-05**: User can open the issue detail panel from any backlog row
 
 ### Epics (EPIC)
 
@@ -98,11 +98,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BOARD-03 | Phase 10 | Complete |
 | BOARD-04 | Phase 10 | Complete |
 | BOARD-05 | Phase 10 | Complete |
-| BACK-01 | Phase 12 | Pending |
-| BACK-02 | Phase 12 | Pending |
-| BACK-03 | Phase 12 | Pending |
-| BACK-04 | Phase 12 | Pending |
-| BACK-05 | Phase 12 | Pending |
+| BACK-01 | Phase 12 | Complete |
+| BACK-02 | Phase 12 | Complete |
+| BACK-03 | Phase 12 | Complete |
+| BACK-04 | Phase 12 | Complete |
+| BACK-05 | Phase 12 | Complete |
 | EPIC-01 | Phase 13 | Pending |
 | EPIC-02 | Phase 13 | Pending |
 | EPIC-03 | Phase 13 | Pending |
