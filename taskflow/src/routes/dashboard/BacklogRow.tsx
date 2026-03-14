@@ -106,7 +106,7 @@ export function BacklogRow({
       <td className="w-10 px-2 py-2">
         {issue.fields.assignee ? (
           <img
-            src={issue.fields.assignee.avatarUrls['48x48']}
+            src={issue.fields.assignee.avatarUrls['48x48'] || undefined}
             alt={issue.fields.assignee.displayName}
             title={issue.fields.assignee.displayName}
             className="rounded-full w-6 h-6 object-cover"
