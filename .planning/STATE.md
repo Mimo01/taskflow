@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
 status: completed
-stopped_at: Phase 11 context gathered
-last_updated: "2026-03-14T12:40:18.135Z"
+stopped_at: Completed 11-01-PLAN.md
+last_updated: "2026-03-14T13:04:59.858Z"
 last_activity: 2026-03-14 — Completed 10-04 (human verification passed; all five BOARD requirements confirmed; sticky columns, swimlanes, drag-and-drop verified)
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 12
-  completed_plans: 12
+  total_plans: 17
+  completed_plans: 13
   percent: 100
 ---
 
@@ -95,6 +95,9 @@ Key v1.2 constraints from research:
 - [Phase 10-sprint-board-redesign]: DraggableCard passes onClick to TaskCard (not wrapper div) to avoid dnd-kit pointer event conflict
 - [Phase 10-sprint-board-redesign]: QuickCreateInput renders '+ Add' as text (not lucide icon) — accessible name required by pre-written test
 - [10-04]: Human verification passed — all five BOARD requirements confirmed working in live app with real Jira data
+- [Phase 11-create-edit-issue-form]: createIssue() extended with optional options param — backward-compatible; existing QuickCreateInput.tsx caller (4-arg form) unaffected
+- [Phase 11-create-edit-issue-form]: fetchCreatemeta() dual-endpoint: try 8.4+ paginated endpoint first, fallback to legacy flat on 404; takes both issueTypeId and issueTypeName
+- [Phase 11-create-edit-issue-form]: bulkUpdateIssue() treats HTTP 204 as success — Jira DC returns 204 on PUT updates
 
 ### Pending Todos
 
@@ -109,6 +112,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-14T12:40:18.131Z
-Stopped at: Phase 11 context gathered
-Resume file: .planning/phases/11-create-edit-issue-form/11-CONTEXT.md
+Last session: 2026-03-14T13:04:59.854Z
+Stopped at: Completed 11-01-PLAN.md
+Resume file: None
