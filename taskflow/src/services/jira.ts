@@ -1210,3 +1210,95 @@ export async function bulkUpdateIssue(
   }
 }
 
+// ─── Phase 12: Backlog View ───────────────────────────────────────────────────
+
+/**
+ * Fetch all backlog issues for a Jira project.
+ *
+ * Uses compound JQL to retrieve issues that are not in any open or future sprint:
+ *   project = {projectKey} AND (sprint is EMPTY OR sprint not in (openSprints(), futureSprints()))
+ *   AND issuetype not in subtaskIssueTypes() ORDER BY created DESC
+ *
+ * Delegates pagination to the private fetchAllSearchPages helper.
+ * On 400 response (e.g. Jira Software license not active), throws a user-friendly error.
+ *
+ * @param baseUrl             - Jira base URL (e.g. "https://jira.example.com")
+ * @param token               - Personal Access Token
+ * @param projectKey          - Jira project key (e.g. "PROJ")
+ * @param storyPointsFieldKey - Custom field ID for story points (default: customfield_10016)
+ * @param epicLinkFieldKey    - Custom field ID for epic link (default: customfield_10014)
+ * @param epicNameFieldKey    - Custom field ID for epic name (default: customfield_10015)
+ * @returns Array of JiraIssue (parent/story level only — no subtasks)
+ * @throws Error('Backlog query unavailable — ensure Jira Software license is active for this project') on 400
+ */
+export async function fetchBacklogIssues(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  storyPointsFieldKey = 'customfield_10016',
+  epicLinkFieldKey = 'customfield_10014',
+  epicNameFieldKey = 'customfield_10015',
+): Promise<JiraIssue[]> {
+  const base = baseUrl.replace(/\/$/, '')
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+
+  // Deduplicate fields (custom keys may overlap with defaults)
+  const fields = [
+    ...new Set([
+      'summary', 'status', 'assignee', 'issuetype', 'labels',
+      'customfield_10016', 'customfield_10014', 'customfield_10015',
+      storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey,
+    ]),
+  ].join(',')
+
+  const jql = encodeURIComponent(
+    `project = ${projectKey} AND (sprint is EMPTY OR sprint not in (openSprints(), futureSprints())) AND issuetype not in subtaskIssueTypes() ORDER BY created DESC`,
+  )
+  const baseSearchUrl = `${base}/rest/api/2/search?jql=${jql}&fields=${fields}`
+
+  try {
+    return await fetchAllSearchPages(baseSearchUrl, headers)
+  } catch (err) {
+    // fetchAllSearchPages throws the raw Response on first-page failure (duck-typed by status)
+    if (err !== null && typeof err === 'object' && 'status' in err && typeof (err as { status: unknown }).status === 'number') {
+      const errObj = err as unknown as { status: number; text?: () => Promise<string> }
+      const status = errObj.status
+      if (status === 400) {
+        throw new Error('Backlog query unavailable — ensure Jira Software license is active for this project')
+      }
+      throw new Error(`Jira search failed with status ${status}`)
+    }
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`)
+  }
+}
+
+/**
+ * Move a set of issues into a sprint via the Jira Agile REST API.
+ *
+ * POSTs to POST /rest/agile/1.0/sprint/{sprintId}/issue with body { issues: issueKeys }.
+ * Jira returns 204 No Content on success — treated as success.
+ * Throws Error on any other non-ok response.
+ *
+ * @param baseUrl   - Jira base URL (e.g. "https://jira.example.com")
+ * @param token     - Personal Access Token
+ * @param sprintId  - Numeric sprint ID (JiraActiveSprint.id)
+ * @param issueKeys - Array of issue keys to add (e.g. ["PROJ-1", "PROJ-2"])
+ * @throws Error with status code on non-ok, non-204 response
+ */
+export async function addIssuesToSprint(
+  baseUrl: string,
+  token: string,
+  sprintId: number,
+  issueKeys: string[],
+): Promise<void> {
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/agile/1.0/sprint/${sprintId}/issue`
+  const response = await apiFetch('jira', url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ issues: issueKeys }),
+  })
+  // 204 No Content is the expected success response for this endpoint
+  if (!response.ok && response.status !== 204) {
+    throw new Error(`Failed to add issues to sprint: ${response.status}`)
+  }
+}
