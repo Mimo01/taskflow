@@ -1273,6 +1273,158 @@ export async function fetchBacklogIssues(
 }
 
 /**
+ * Fetch a sprint board's active and future sprints.
+ *
+ * Calls GET /rest/agile/1.0/board/{boardId}/sprint?state=active,future.
+ * Returns an empty array on any failure (graceful degradation — callers render
+ * just the backlog section when no sprints are found).
+ *
+ * @param baseUrl - Jira base URL (e.g. "https://jira.example.com")
+ * @param token   - Personal Access Token
+ * @param boardId - Numeric board ID (discover via fetchActiveSprint or similar)
+ * @returns Array of JiraActiveSprint with state 'active' or 'future', ordered by start date
+ */
+export async function fetchSprintsForBoard(
+  baseUrl: string,
+  token: string,
+  boardId: number,
+): Promise<JiraActiveSprint[]> {
+  const base = baseUrl.replace(/\/$/, '')
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+  try {
+    const res = await apiFetch(
+      'jira',
+      `${base}/rest/agile/1.0/board/${boardId}/sprint?state=active,future`,
+      { headers },
+    )
+    if (!res.ok) return []
+    const data = await res.json()
+    const sprints: JiraActiveSprint[] = data?.values ?? []
+    // Sort: active first, then future by startDate ascending
+    return sprints.sort((a, b) => {
+      if (a.state === 'active' && b.state !== 'active') return -1
+      if (b.state === 'active' && a.state !== 'active') return 1
+      const aDate = a.startDate ?? ''
+      const bDate = b.startDate ?? ''
+      return aDate < bDate ? -1 : aDate > bDate ? 1 : 0
+    })
+  } catch {
+    return []
+  }
+}
+
+export interface BacklogViewData {
+  sprints: Array<{ sprint: JiraActiveSprint; issues: JiraIssue[] }>
+  backlog: JiraIssue[]
+}
+
+/**
+ * Fetch the full backlog view: active sprint, future sprints, and unassigned backlog.
+ *
+ * Strategy:
+ * 1. Discover the scrum board for the project.
+ * 2. Fetch active + future sprints from that board.
+ * 3. Fetch issues for each sprint in parallel (JQL: sprint = {id} AND issuetype != Sub-task).
+ * 4. Fetch unassigned backlog issues (sprint is EMPTY AND issuetype != Sub-task).
+ *
+ * On board/sprint discovery failure the sprints array is empty and only the backlog
+ * section is populated. On individual sprint issue fetch failure that sprint shows
+ * zero issues (never throws).
+ *
+ * @param baseUrl             - Jira base URL
+ * @param token               - Personal Access Token
+ * @param projectKey          - Jira project key (e.g. "PROJ")
+ * @param storyPointsFieldKey - Custom field ID for story points
+ * @param epicLinkFieldKey    - Custom field ID for epic link
+ * @param epicNameFieldKey    - Custom field ID for epic name
+ * @returns BacklogViewData with sprints (ordered active-first, then future) and backlog
+ */
+export async function fetchBacklogView(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  storyPointsFieldKey = 'customfield_10016',
+  epicLinkFieldKey = 'customfield_10014',
+  epicNameFieldKey = 'customfield_10015',
+): Promise<BacklogViewData> {
+  const base = baseUrl.replace(/\/$/, '')
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+
+  // Deduplicate fields
+  const fields = [
+    ...new Set([
+      'summary', 'status', 'assignee', 'issuetype', 'labels',
+      'customfield_10016', 'customfield_10014', 'customfield_10015',
+      storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey,
+    ]),
+  ].join(',')
+
+  // Step 1: Discover board
+  let boardId: number | null = null
+  try {
+    const boardRes = await apiFetch(
+      'jira',
+      `${base}/rest/agile/1.0/board?projectKeyOrId=${projectKey}&type=scrum`,
+      { headers },
+    )
+    if (boardRes.ok) {
+      const boardData = await boardRes.json()
+      boardId = boardData?.values?.[0]?.id ?? null
+    }
+  } catch { /* boardId stays null */ }
+
+  // Step 2: Fetch sprints (active + future)
+  let sprints: JiraActiveSprint[] = []
+  if (boardId !== null) {
+    sprints = await fetchSprintsForBoard(baseUrl, token, boardId)
+  }
+
+  // Step 3: Fetch sprint issues in parallel
+  const sprintResults = await Promise.all(
+    sprints.map(async (sprint) => {
+      const jql = encodeURIComponent(
+        `sprint = ${sprint.id} AND issuetype != Sub-task ORDER BY rank ASC`,
+      )
+      const url = `${base}/rest/api/2/search?jql=${jql}&fields=${fields}`
+      try {
+        const issues = await fetchAllSearchPages(url, headers)
+        return { sprint, issues }
+      } catch {
+        return { sprint, issues: [] }
+      }
+    }),
+  )
+
+  // Step 4: Fetch backlog (unassigned to any sprint)
+  const backlogJql = encodeURIComponent(
+    `project = ${projectKey} AND sprint is EMPTY AND issuetype != Sub-task ORDER BY rank ASC`,
+  )
+  const backlogUrl = `${base}/rest/api/2/search?jql=${backlogJql}&fields=${fields}`
+
+  let backlog: JiraIssue[] = []
+  try {
+    backlog = await fetchAllSearchPages(backlogUrl, headers)
+  } catch (err) {
+    // Surface user-friendly error only for 400 (Jira Software license issues)
+    if (
+      err !== null &&
+      typeof err === 'object' &&
+      'status' in err &&
+      typeof (err as { status: unknown }).status === 'number'
+    ) {
+      const errObj = err as { status: number }
+      if (errObj.status === 400) {
+        throw new Error('Backlog query unavailable — ensure Jira Software license is active for this project')
+      }
+    }
+    // For other failures, return empty backlog (partial results are fine)
+    backlog = []
+  }
+
+  return { sprints: sprintResults, backlog }
+}
+
+/**
  * Move a set of issues into a sprint via the Jira Agile REST API.
  *
  * POSTs to POST /rest/agile/1.0/sprint/{sprintId}/issue with body { issues: issueKeys }.
