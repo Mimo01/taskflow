@@ -53,39 +53,41 @@ export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, 
         )}
       </section>
 
-      {/* Subtasks */}
-      <section>
-        {subtasks && subtasks.length > 0 && (
-          <>
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">
-              Subtasks ({subtasks.length})
-            </h3>
-            <ul className="space-y-1">
-              {subtasks.map((sub) => (
-                <li key={sub.id}>
-                  <button
-                    type="button"
-                    onClick={() => onOpenIssue?.(sub.key)}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent text-sm text-left"
-                  >
-                    <span className="font-mono text-xs text-muted-foreground shrink-0">{sub.key}</span>
-                    <span className="flex-1 truncate">{sub.fields.summary}</span>
-                    <Badge variant="outline" className="text-xs shrink-0">{sub.fields.status.name}</Badge>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-        <button
-          type="button"
-          onClick={() => onAddSubtask?.(issueKey)}
-          className="mt-1 flex items-center gap-1.5 px-2 py-1.5 rounded text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-        >
-          <Plus className="size-3.5" />
-          Add subtask
-        </button>
-      </section>
+      {/* Subtasks — only shown for non-subtask issue types */}
+      {!issue.fields.issuetype.subtask && (
+        <section>
+          {subtasks && subtasks.length > 0 && (
+            <>
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                Subtasks ({subtasks.length})
+              </h3>
+              <ul className="space-y-1">
+                {subtasks.map((sub) => (
+                  <li key={sub.id}>
+                    <button
+                      type="button"
+                      onClick={() => onOpenIssue?.(sub.key)}
+                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent text-sm text-left"
+                    >
+                      <span className="font-mono text-xs text-muted-foreground shrink-0">{sub.key}</span>
+                      <span className="flex-1 truncate">{sub.fields.summary}</span>
+                      <Badge variant="outline" className="text-xs shrink-0">{sub.fields.status.name}</Badge>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          <button
+            type="button"
+            onClick={() => onAddSubtask?.(issueKey)}
+            className="mt-1 flex items-center gap-1.5 px-2 py-1.5 rounded text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          >
+            <Plus className="size-3.5" />
+            Add subtask
+          </button>
+        </section>
+      )}
 
       {/* Open in Jira + Edit */}
       <div className="flex justify-end gap-2">

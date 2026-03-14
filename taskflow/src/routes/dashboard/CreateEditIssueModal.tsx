@@ -403,26 +403,32 @@ export function CreateEditIssueModal({
             {mode === 'create' && (
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium">Issue Type</label>
-                <Select
-                  value={selectedIssueType}
-                  onValueChange={(v) => {
-                    setSelectedIssueType(v as IssueType)
-                    // Reset parent/epic when switching types
-                    setParentKey(null)
-                    setEpicLinkKey(null)
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ISSUE_TYPES.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {t}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {defaultIssueType ? (
+                  <div className="flex h-9 w-full items-center rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground">
+                    {selectedIssueType}
+                  </div>
+                ) : (
+                  <Select
+                    value={selectedIssueType}
+                    onValueChange={(v) => {
+                      setSelectedIssueType(v as IssueType)
+                      // Reset parent/epic when switching types
+                      setParentKey(null)
+                      setEpicLinkKey(null)
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ISSUE_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             )}
 
@@ -456,12 +462,18 @@ export function CreateEditIssueModal({
                 <label className="text-sm font-medium">
                   Parent <span className="text-destructive">*</span>
                 </label>
-                <Input
-                  value={parentKey ?? ''}
-                  onChange={(e) => setParentKey(e.target.value || null)}
-                  placeholder="Parent issue key (e.g. PROJ-123)"
-                  disabled={isPending}
-                />
+                {defaultParentKey ? (
+                  <div className="flex h-9 w-full items-center rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground font-mono">
+                    {parentKey}
+                  </div>
+                ) : (
+                  <Input
+                    value={parentKey ?? ''}
+                    onChange={(e) => setParentKey(e.target.value || null)}
+                    placeholder="Parent issue key (e.g. PROJ-123)"
+                    disabled={isPending}
+                  />
+                )}
               </div>
             )}
 
