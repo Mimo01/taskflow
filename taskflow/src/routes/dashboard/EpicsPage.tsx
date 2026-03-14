@@ -1,16 +1,14 @@
 /**
  * EpicsPage — Full-page /epics route component.
  *
- * Renders a table of epics with: name (clickable), status badge,
- * story count, story points, progress bar, and assignee avatar.
- * "+ Create Epic" button opens CreateEpicDialog (local state).
- * Clicking an epic name calls onEpicClick from Outlet context (wired in 13-04).
+ * Loads only basic epic data (name, status, assignee). Story counts and
+ * progress are deferred to EpicDetailSheet — no expensive bulk story query here.
  */
 import { useState, useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import type { EpicEnriched } from '@/services/jira'
-import { fetchEpicsWithEnrichment } from '@/services/jira'
+import { fetchEpicsBasic } from '@/services/jira'
 import { useSettingsStore } from '@/stores/settings.store'
 import { useAuthStore } from '@/stores/auth.store'
 import { readSecret } from '@/services/stronghold'
@@ -35,11 +33,6 @@ interface EpicRowProps {
 }
 
 function EpicRow({ epic, onEpicClick }: EpicRowProps) {
-  const pct =
-    epic.totalStories > 0
-      ? Math.round((epic.doneStories / epic.totalStories) * 100)
-      : 0
-
   return (
     <tr className="border-b border-border hover:bg-muted/30 transition-colors">
       {/* Epic name */}
@@ -53,37 +46,16 @@ function EpicRow({ epic, onEpicClick }: EpicRowProps) {
         </button>
       </td>
 
+      {/* Epic key */}
+      <td className="px-3 py-3 text-xs text-muted-foreground font-mono">
+        {epic.key}
+      </td>
+
       {/* Status badge */}
       <td className="px-3 py-3">
         <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground border-border">
           {epic.status.name}
         </span>
-      </td>
-
-      {/* Story count */}
-      <td className="px-3 py-3 text-sm text-center">
-        {epic.totalStories}
-      </td>
-
-      {/* Story points */}
-      <td className="px-3 py-3 text-sm text-center">
-        {epic.totalPoints}
-      </td>
-
-      {/* Progress bar */}
-      <td className="px-3 py-3">
-        <div
-          role="progressbar"
-          aria-valuenow={pct}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          className="w-20 h-1.5 rounded-full bg-muted"
-        >
-          <div
-            className="h-1.5 rounded-full bg-green-500"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
       </td>
 
       {/* Assignee */}
@@ -104,35 +76,26 @@ function EpicRow({ epic, onEpicClick }: EpicRowProps) {
 // ── EpicsPage ─────────────────────────────────────────────────────────────────
 
 export default function EpicsPage() {
-  // Read Outlet context — onEpicClick may not be present until plan 13-04
   const ctx = useOutletContext<{ onEpicClick?: (key: string) => void; [key: string]: unknown }>() ?? {}
   const onEpicClick = ctx.onEpicClick
 
-  // Auth (base URL and project from auth store, same as BacklogPage)
   const { jiraBaseUrl, activeJiraProject } = useAuthStore()
+  const { epicNameFieldKey } = useSettingsStore()
 
-  // Settings (discovered custom field keys)
-  const { storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey } = useSettingsStore()
-
-  // PAT (same pattern as BacklogPage)
   const [token, setToken] = useState<string | null>(null)
   useEffect(() => {
     readSecret('jira-pat').then(setToken).catch(() => setToken(null))
   }, [])
 
-  // CreateEpicDialog open state
   const [createOpen, setCreateOpen] = useState(false)
 
-  // Epics query
   const { data: epicsData, isLoading } = useQuery<EpicEnriched[]>({
-    queryKey: ['jira-epics', activeJiraProject, jiraBaseUrl],
+    queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
     queryFn: () =>
-      fetchEpicsWithEnrichment(
+      fetchEpicsBasic(
         jiraBaseUrl!,
         token!,
         activeJiraProject!,
-        storyPointsFieldKey ?? undefined,
-        epicLinkFieldKey ?? undefined,
         epicNameFieldKey ?? undefined,
       ),
     enabled: !!jiraBaseUrl && !!token && !!activeJiraProject,
@@ -170,17 +133,11 @@ export default function EpicsPage() {
                     <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Name
                     </th>
+                    <th className="w-28 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                      Key
+                    </th>
                     <th className="w-32 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
                       Status
-                    </th>
-                    <th className="w-20 px-3 py-2 text-center text-xs font-medium text-muted-foreground">
-                      Stories
-                    </th>
-                    <th className="w-20 px-3 py-2 text-center text-xs font-medium text-muted-foreground">
-                      Points
-                    </th>
-                    <th className="w-28 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                      Progress
                     </th>
                     <th className="w-12 px-3 py-2 text-xs font-medium text-muted-foreground">
                       Assignee
