@@ -127,7 +127,7 @@ function AppLayout() {
 
   const handleCreateModalClose = () => {
     if (wasStoryCreate.current) {
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-backlog-view'] });
     }
     wasStoryCreate.current = false;
     setCreateModalOpen(false);
