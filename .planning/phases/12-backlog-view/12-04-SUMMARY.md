@@ -45,14 +45,14 @@ completed: 2026-03-14
 
 # Phase 12 Plan 04: Final Integration Summary
 
-**Navigable /backlog route with sidebar NavLinks in both developer and PM sections; TypeScript-clean codebase with all 351 tests passing**
+**Navigable /backlog route with sidebar NavLinks in both developer and PM sections; all five BACK requirements verified on live Orange Jira instance**
 
 ## Performance
 
 - **Duration:** 7 min
 - **Started:** 2026-03-14T18:57:45Z
 - **Completed:** 2026-03-14T19:05:00Z
-- **Tasks:** 1 of 2 (Task 2 is checkpoint:human-verify, pending user sign-off)
+- **Tasks:** 2 of 2
 - **Files modified:** 2
 
 ## Accomplishments
@@ -68,7 +68,9 @@ Each task was committed atomically:
 
 1. **Task 1: Register /backlog route and add Sidebar NavLinks** - `a8cab8e` (feat)
 
-**Plan metadata:** (pending — checkpoint not yet approved)
+2. **Task 2: Human verification — all five BACK requirements on Orange Jira instance** - human approved (no code commit)
+
+**Plan metadata:** (docs commit — see below)
 
 ## Files Created/Modified
 - `taskflow/src/routes/dashboard/BacklogPage.tsx` - Fixed optimistic update to spread ...old preserving epicNames
@@ -111,8 +113,8 @@ None - no external service configuration required.
 
 ## Next Phase Readiness
 - Full Phase 12 backlog view complete: navigable route, sprint sections with collapse, backlog section, filters (epic/assignee/label), bulk move-to-sprint with optimistic update, create story button, row click opening IssueDetailSheet
-- Task 2 checkpoint pending: human verification on live Orange Jira instance required to confirm BACK-01 through BACK-05 end-to-end
-- Concerns logged in STATE.md: validate compound backlog JQL and futureSprints() availability on Orange instance
+- Task 2 checkpoint approved: human confirmed all five BACK requirements (BACK-01 through BACK-05) pass on live Orange Jira instance
+- Phase 12 fully complete; ready for Phase 13
 
 ---
 *Phase: 12-backlog-view*
