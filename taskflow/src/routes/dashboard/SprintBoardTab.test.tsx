@@ -6,7 +6,7 @@
  * are intentionally in RED state — these will pass after HIER-02 implementation.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
@@ -40,6 +40,7 @@ vi.mock('@/stores/auth.store', () => ({
 vi.mock('@/stores/settings.store', () => ({
   useSettingsStore: vi.fn(() => ({
     storyPointsFieldKey: 'customfield_10016',
+    epicLinkFieldKey: 'customfield_10014',
   })),
 }));
 
@@ -385,5 +386,133 @@ describe('SprintBoardTab', () => {
       expect(screen.getAllByText('Bare Story').length).toBeGreaterThanOrEqual(1);
     });
     expect(screen.getAllByText('To Do').length).toBeGreaterThanOrEqual(1);
+  });
+
+  // ─── EPIC-02 epic filter tests ─────────────────────────────────────────────
+
+  describe('EPIC-02: epic filter', () => {
+    function makeIssueWithEpic(
+      key: string,
+      summary: string,
+      isSubtask: boolean,
+      parentKey?: string,
+      epicKey?: string,
+    ) {
+      const issue = makeIssue(key, summary, isSubtask, parentKey, 'In Progress');
+      if (epicKey) {
+        (issue.fields as Record<string, unknown>)['customfield_10014'] = epicKey;
+      }
+      return issue;
+    }
+
+    it('EPIC-02: filtering by epic key hides non-matching swimlanes', async () => {
+      const { fetchSprintIssues } = await import('@/services/jira');
+      const { useSettingsStore } = await import('@/stores/settings.store');
+      vi.mocked(useSettingsStore).mockReturnValue({
+        storyPointsFieldKey: 'customfield_10016',
+        epicLinkFieldKey: 'customfield_10014',
+      } as ReturnType<typeof useSettingsStore>);
+
+      const story1 = makeIssueWithEpic('PROJ-1', 'Story Alpha', false, undefined, 'PROJ-10');
+      const story2 = makeIssueWithEpic('PROJ-2', 'Story Beta', false, undefined, 'PROJ-20');
+      const sub1 = makeIssueWithEpic('PROJ-3', 'Sub of Alpha', true, 'PROJ-1', 'PROJ-10');
+      const sub2 = makeIssueWithEpic('PROJ-4', 'Sub of Beta', true, 'PROJ-2', 'PROJ-20');
+      vi.mocked(fetchSprintIssues).mockResolvedValue([story1, story2, sub1, sub2]);
+
+      const { useAuthStore } = await import('@/stores/auth.store');
+      vi.mocked(useAuthStore).mockReturnValue({
+        jiraBaseUrl: 'https://jira.example.com',
+        activeJiraProject: 'PROJ',
+        gitlabBaseUrl: 'https://gitlab.example.com',
+      } as ReturnType<typeof useAuthStore>);
+
+      const { default: SprintBoardTab } = await import('./SprintBoardTab');
+      renderWithQuery(<SprintBoardTab />);
+
+      // Wait for data to load and epic filter to appear
+      const epicSelect = await screen.findByTestId('sprint-epic-filter');
+      expect(epicSelect).toBeTruthy();
+
+      // Select PROJ-10 epic
+      const select = epicSelect.querySelector('select')!;
+      fireEvent.change(select, { target: { value: 'PROJ-10' } });
+
+      // Story Alpha should still be visible; Story Beta should be hidden
+      await waitFor(() => {
+        expect(screen.getAllByText('Story Alpha').length).toBeGreaterThanOrEqual(1);
+        expect(screen.queryByText('Story Beta')).toBeNull();
+      });
+    });
+
+    it('EPIC-02: stories with no epic link are hidden when filter is active', async () => {
+      const { fetchSprintIssues } = await import('@/services/jira');
+      const { useSettingsStore } = await import('@/stores/settings.store');
+      vi.mocked(useSettingsStore).mockReturnValue({
+        storyPointsFieldKey: 'customfield_10016',
+        epicLinkFieldKey: 'customfield_10014',
+      } as ReturnType<typeof useSettingsStore>);
+
+      const storyWithEpic = makeIssueWithEpic('PROJ-1', 'Epic Story', false, undefined, 'PROJ-10');
+      const storyNoEpic = makeIssue('PROJ-2', 'No Epic Story', false);
+      vi.mocked(fetchSprintIssues).mockResolvedValue([storyWithEpic, storyNoEpic]);
+
+      const { useAuthStore } = await import('@/stores/auth.store');
+      vi.mocked(useAuthStore).mockReturnValue({
+        jiraBaseUrl: 'https://jira.example.com',
+        activeJiraProject: 'PROJ',
+        gitlabBaseUrl: 'https://gitlab.example.com',
+      } as ReturnType<typeof useAuthStore>);
+
+      const { default: SprintBoardTab } = await import('./SprintBoardTab');
+      renderWithQuery(<SprintBoardTab />);
+
+      const epicSelect = await screen.findByTestId('sprint-epic-filter');
+      const select = epicSelect.querySelector('select')!;
+      fireEvent.change(select, { target: { value: 'PROJ-10' } });
+
+      await waitFor(() => {
+        expect(screen.getAllByText('Epic Story').length).toBeGreaterThanOrEqual(1);
+        expect(screen.queryByText('No Epic Story')).toBeNull();
+      });
+    });
+
+    it('EPIC-02: clearing filter shows all swimlanes again', async () => {
+      const { fetchSprintIssues } = await import('@/services/jira');
+      const { useSettingsStore } = await import('@/stores/settings.store');
+      vi.mocked(useSettingsStore).mockReturnValue({
+        storyPointsFieldKey: 'customfield_10016',
+        epicLinkFieldKey: 'customfield_10014',
+      } as ReturnType<typeof useSettingsStore>);
+
+      const story1 = makeIssueWithEpic('PROJ-1', 'Story Alpha', false, undefined, 'PROJ-10');
+      const story2 = makeIssueWithEpic('PROJ-2', 'Story Beta', false, undefined, 'PROJ-20');
+      vi.mocked(fetchSprintIssues).mockResolvedValue([story1, story2]);
+
+      const { useAuthStore } = await import('@/stores/auth.store');
+      vi.mocked(useAuthStore).mockReturnValue({
+        jiraBaseUrl: 'https://jira.example.com',
+        activeJiraProject: 'PROJ',
+        gitlabBaseUrl: 'https://gitlab.example.com',
+      } as ReturnType<typeof useAuthStore>);
+
+      const { default: SprintBoardTab } = await import('./SprintBoardTab');
+      renderWithQuery(<SprintBoardTab />);
+
+      const epicSelect = await screen.findByTestId('sprint-epic-filter');
+      const select = epicSelect.querySelector('select')!;
+
+      // Filter to PROJ-10
+      fireEvent.change(select, { target: { value: 'PROJ-10' } });
+      await waitFor(() => {
+        expect(screen.queryByText('Story Beta')).toBeNull();
+      });
+
+      // Clear the filter
+      fireEvent.change(select, { target: { value: '' } });
+      await waitFor(() => {
+        expect(screen.getAllByText('Story Alpha').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('Story Beta').length).toBeGreaterThanOrEqual(1);
+      });
+    });
   });
 });
