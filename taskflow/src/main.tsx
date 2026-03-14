@@ -1,8 +1,8 @@
 import './index.css';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { createHashRouter, RouterProvider, Outlet } from 'react-router-dom';
-import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { loadTheme } from './services/theme';
 import { useSettingsStore } from './stores/settings.store';
@@ -84,8 +84,11 @@ function AppLayout() {
   const [createModalInitialValues, setCreateModalInitialValues] = useState<EditInitialValues | undefined>(undefined);
   const [createModalDefaultType, setCreateModalDefaultType] = useState<'Story' | 'Subtask' | 'Bug' | undefined>(undefined);
   const [createModalDefaultParent, setCreateModalDefaultParent] = useState<string | undefined>(undefined);
+  const wasStoryCreate = useRef(false);
+  const queryClient = useQueryClient();
 
   const handleOpenCreate = () => {
+    wasStoryCreate.current = false;
     setCreateModalMode('create');
     setCreateModalInitialValues(undefined);
     setCreateModalDefaultType(undefined);
@@ -94,6 +97,7 @@ function AppLayout() {
   };
 
   const handleOpenEdit = (vals: EditInitialValues) => {
+    wasStoryCreate.current = false;
     setCreateModalMode('edit');
     setCreateModalInitialValues(vals);
     setCreateModalDefaultType(undefined);
@@ -102,11 +106,29 @@ function AppLayout() {
   };
 
   const handleOpenAddSubtask = (parentKey: string) => {
+    wasStoryCreate.current = false;
     setCreateModalMode('create');
     setCreateModalDefaultType('Subtask');
     setCreateModalDefaultParent(parentKey);
     setCreateModalInitialValues(undefined);
     setCreateModalOpen(true);
+  };
+
+  const handleOpenCreateStory = () => {
+    wasStoryCreate.current = true;
+    setCreateModalMode('create');
+    setCreateModalDefaultType('Story');
+    setCreateModalInitialValues(undefined);
+    setCreateModalDefaultParent(undefined);
+    setCreateModalOpen(true);
+  };
+
+  const handleCreateModalClose = () => {
+    if (wasStoryCreate.current) {
+      queryClient.invalidateQueries({ queryKey: ['jira-backlog'] });
+    }
+    wasStoryCreate.current = false;
+    setCreateModalOpen(false);
   };
 
   // Bring window to front when OS notification click activates the app
@@ -131,7 +153,7 @@ function AppLayout() {
         {_hasHydrated && !jiraConnected && <ReAuthBanner />}
         {_hasHydrated && !gitlabConnected && <GitLabReAuthBanner />}
         <main className="flex-1 overflow-auto">
-          <Outlet context={{ onIssueClick: setSelectedIssueKey, openEdit: handleOpenEdit, openAddSubtask: handleOpenAddSubtask }} />
+          <Outlet context={{ onIssueClick: setSelectedIssueKey, openEdit: handleOpenEdit, openAddSubtask: handleOpenAddSubtask, openCreateStory: handleOpenCreateStory }} />
         </main>
       </div>
       {/* Global IssueDetailSheet — accessible from search, notifications, and all route views */}
@@ -144,7 +166,7 @@ function AppLayout() {
       />
       <CreateEditIssueModal
         open={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
+        onClose={handleCreateModalClose}
         mode={createModalMode}
         initialValues={createModalInitialValues}
         defaultIssueType={createModalDefaultType}
