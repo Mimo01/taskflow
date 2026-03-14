@@ -18,6 +18,7 @@ vi.mock('@/services/stronghold', () => ({
 // Mock jira service — controlled from each test
 vi.mock('@/services/jira', () => ({
   fetchSprintIssues: vi.fn().mockResolvedValue([]),
+  fetchProjectStatuses: vi.fn().mockResolvedValue([]),
 }));
 
 // Mock auth store
@@ -262,5 +263,114 @@ describe('SprintBoardTab', () => {
     // Current flat implementation shows it in the column — this test FAILS in RED state
     const orphanEl = screen.queryByText('Orphan Subtask');
     expect(orphanEl).toBeNull();
+  });
+
+  // ─── BOARD-01 / BOARD-03 Wave 0 RED stubs ─────────────────────────────────
+  // These tests describe behavior for the redesigned sprint board.
+  // They FAIL now because current board derives columns from issue statuses
+  // and has no drag support. They will pass after the relevant plan implementations.
+
+  it('renders workflow-API-derived columns (BOARD-01)', async () => {
+    const { fetchSprintIssues, fetchProjectStatuses } = await import('@/services/jira');
+    vi.mocked(fetchProjectStatuses).mockResolvedValue([
+      { id: '1', name: 'To Do', statusCategory: { key: 'new' } },
+      { id: '2', name: 'In Progress', statusCategory: { key: 'indeterminate' } },
+    ]);
+    vi.mocked(fetchSprintIssues).mockResolvedValue([]);
+
+    const { useAuthStore } = await import('@/stores/auth.store');
+    vi.mocked(useAuthStore).mockReturnValue({
+      jiraBaseUrl: 'https://jira.example.com',
+      activeJiraProject: 'PROJ',
+      gitlabBaseUrl: 'https://gitlab.example.com',
+    } as ReturnType<typeof useAuthStore>);
+
+    const { default: SprintBoardTab } = await import('./SprintBoardTab');
+    renderWithQuery(<SprintBoardTab />);
+
+    // RED: current board does not call fetchProjectStatuses for column headers
+    await waitFor(() => {
+      expect(screen.getByText('To Do')).toBeTruthy();
+      expect(screen.getByText('In Progress')).toBeTruthy();
+    });
+  });
+
+  it('story header appears in each column that has its subtasks (BOARD-01)', async () => {
+    const { fetchSprintIssues } = await import('@/services/jira');
+    const story = makeIssue('PROJ-1', 'My Story', false, undefined, 'To Do');
+    const subtask = makeIssue('PROJ-2', 'My Subtask', true, 'PROJ-1', 'In Progress');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([story, subtask]);
+
+    const { useAuthStore } = await import('@/stores/auth.store');
+    vi.mocked(useAuthStore).mockReturnValue({
+      jiraBaseUrl: 'https://jira.example.com',
+      activeJiraProject: 'PROJ',
+      gitlabBaseUrl: 'https://gitlab.example.com',
+    } as ReturnType<typeof useAuthStore>);
+
+    const { default: SprintBoardTab } = await import('./SprintBoardTab');
+    renderWithQuery(<SprintBoardTab />);
+
+    // RED: current board does not render story headers in subtask columns
+    await waitFor(() => {
+      const storyHeaders = screen.getAllByText('PROJ-1');
+      expect(storyHeaders.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  it('onDragEnd moves card optimistically (BOARD-03)', async () => {
+    const { fetchSprintIssues } = await import('@/services/jira');
+    const story = makeIssue('PROJ-1', 'Draggable Story', false, undefined, 'To Do');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([story]);
+
+    const { useAuthStore } = await import('@/stores/auth.store');
+    vi.mocked(useAuthStore).mockReturnValue({
+      jiraBaseUrl: 'https://jira.example.com',
+      activeJiraProject: 'PROJ',
+      gitlabBaseUrl: 'https://gitlab.example.com',
+    } as ReturnType<typeof useAuthStore>);
+
+    const { default: SprintBoardTab } = await import('./SprintBoardTab');
+    renderWithQuery(<SprintBoardTab />);
+
+    // RED: no drag support yet — DndContext not present, no handleDragEnd
+    // After implementation, dragging the card to 'In Progress' column should
+    // move it there optimistically before postTransition resolves.
+    await waitFor(() => {
+      expect(screen.getByText('Draggable Story')).toBeTruthy();
+    });
+
+    // Simulate drag: the board must expose a data-droppable on each column.
+    // RED state: no data-droppable exists yet.
+    const inProgressColumn = document.querySelector('[data-droppable="In Progress"]');
+    expect(inProgressColumn).not.toBeNull();
+  });
+
+  it('onDragEnd rollback: card reverts when postTransition throws (BOARD-03)', async () => {
+    const { fetchSprintIssues } = await import('@/services/jira');
+    const { postTransition } = await import('@/services/jira');
+    const story = makeIssue('PROJ-1', 'Rollback Story', false, undefined, 'To Do');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([story]);
+    vi.mocked(postTransition).mockRejectedValue(new Error('Transition failed'));
+
+    const { useAuthStore } = await import('@/stores/auth.store');
+    vi.mocked(useAuthStore).mockReturnValue({
+      jiraBaseUrl: 'https://jira.example.com',
+      activeJiraProject: 'PROJ',
+      gitlabBaseUrl: 'https://gitlab.example.com',
+    } as ReturnType<typeof useAuthStore>);
+
+    const { default: SprintBoardTab } = await import('./SprintBoardTab');
+    renderWithQuery(<SprintBoardTab />);
+
+    // RED: no drag rollback support yet — requires DragEndEvent handler with error recovery
+    await waitFor(() => {
+      expect(screen.getByText('Rollback Story')).toBeTruthy();
+    });
+
+    // After postTransition throws, card must still appear in original 'To Do' column.
+    // RED state: no drag mechanism exists yet.
+    const toDoDroppable = document.querySelector('[data-droppable="To Do"]');
+    expect(toDoDroppable).not.toBeNull();
   });
 });
