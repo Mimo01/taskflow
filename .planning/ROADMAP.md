@@ -127,7 +127,14 @@ Plans:
   2. User can select an epic and have the sprint board and backlog filter to show only issues belonging to that epic
   3. User can open an epic detail view showing all stories under that epic
   4. User can create a new epic from within the app
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+- [ ] 13-01-PLAN.md — jira.ts service functions (fetchEpicsWithEnrichment, fetchEpicStories) + Wave 0 RED test stubs
+- [ ] 13-02-PLAN.md — EpicsPage route + Sidebar /epics NavLink + main.tsx route registration
+- [ ] 13-03-PLAN.md — SprintBoardTab epic filter bar + CreateEpicDialog component
+- [ ] 13-04-PLAN.md — EpicDetailSheet component + AppLayout wiring (state, mount, Outlet context)
+- [ ] 13-05-PLAN.md — Full test suite gate + human verification checkpoint (all four EPIC requirements)
 
 ## Progress
 
@@ -147,4 +154,4 @@ Plans:
 | 10. Sprint Board Redesign | 4/4 | Complete    | 2026-03-14 | - |
 | 11. Create/Edit Issue Form | 4/5 | In Progress|  | - |
 | 12. Backlog View | 4/4 | Complete    | 2026-03-14 | - |
-| 13. Epic Management | v1.2 | 0/TBD | Not started | - |
+| 13. Epic Management | v1.2 | 0/5 | Not started | - |
