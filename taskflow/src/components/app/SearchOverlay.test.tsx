@@ -3,7 +3,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
 
 // Mock @tauri-apps/plugin-store (LazyStore) — class constructor syntax required
 vi.mock('@tauri-apps/plugin-store', () => {

@@ -17,8 +17,6 @@ import {
   createIssueLink,
   createIssue,
   type JiraIssue,
-  type JiraIssueDetail,
-  type JiraIssueLink,
 } from './jira';
 
 vi.mock('@tauri-apps/plugin-http', () => ({

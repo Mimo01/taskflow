@@ -44,7 +44,7 @@ function makeIssue(
       originalEstimateSeconds?: number;
       timeSpentSeconds?: number;
       remainingEstimateSeconds?: number;
-    } | null;
+    };
   },
 ) {
   return {
@@ -62,7 +62,7 @@ function makeIssue(
         : null,
       customfield_10016: pts,
       issuetype: { name: options?.subtask ? 'Sub-task' : 'Story', subtask: options?.subtask ?? false },
-      timetracking: options?.timetracking ?? null,
+      timetracking: options?.timetracking ?? undefined,
       ...(options?.parentKey ? { parent: { id: options.parentKey, key: options.parentKey, fields: { summary: `Summary ${options.parentKey}` } } } : {}),
     },
   };
@@ -322,7 +322,7 @@ describe('WorkloadTab', () => {
     it('hides time columns when all time tracking is null/zero', async () => {
       const { fetchSprintIssues } = await import('@/services/jira');
       vi.mocked(fetchSprintIssues).mockResolvedValue([
-        makeIssue('P-1', 'Alice', 'indeterminate', 5, { timetracking: null }),
+        makeIssue('P-1', 'Alice', 'indeterminate', 5, { timetracking: undefined }),
       ]);
 
       const { default: WorkloadTab } = await import('./WorkloadTab');

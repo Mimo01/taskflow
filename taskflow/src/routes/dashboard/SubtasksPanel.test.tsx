@@ -129,7 +129,7 @@ describe('SubtasksPanel (DASH-01)', () => {
           isError: false,
         } as ReturnType<typeof useQuery>)
         .mockReturnValueOnce({
-          data: { issues: [makeStory('PROJ-1')] },
+          data: [makeStory('PROJ-1')],
           isLoading: false,
           isError: false,
         } as ReturnType<typeof useQuery>);
@@ -159,7 +159,7 @@ describe('SubtasksPanel (DASH-01)', () => {
           isError: false,
         } as ReturnType<typeof useQuery>)
         .mockReturnValueOnce({
-          data: { issues: [makeStory('PROJ-1')] }, // Only PROJ-1 is in sprint
+          data: [makeStory('PROJ-1')], // Only PROJ-1 is in sprint
           isLoading: false,
           isError: false,
         } as ReturnType<typeof useQuery>);
@@ -208,7 +208,7 @@ describe('SubtasksPanel (DASH-01)', () => {
           isError: false,
         } as ReturnType<typeof useQuery>)
         .mockReturnValueOnce({
-          data: { issues: [makeStory('PROJ-1')] },
+          data: [makeStory('PROJ-1')],
           isLoading: false,
           isError: false,
         } as ReturnType<typeof useQuery>);
@@ -236,7 +236,7 @@ describe('SubtasksPanel (DASH-01)', () => {
           isError: false,
         } as ReturnType<typeof useQuery>)
         .mockReturnValueOnce({
-          data: { issues: [makeStory('PROJ-1')] },
+          data: [makeStory('PROJ-1')],
           isLoading: false,
           isError: false,
         } as ReturnType<typeof useQuery>);

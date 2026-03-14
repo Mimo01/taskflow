@@ -146,8 +146,8 @@ describe('MyTasksTab', () => {
     const { default: MyTasksTab } = await import('./MyTasksTab');
     renderWithQuery(<MyTasksTab />);
 
-    // Skeleton divs should be visible immediately before data resolves
-    const skeletons = document.querySelectorAll('[data-testid="skeleton-row"]');
+    // Skeleton divs should be visible after token loads but before data resolves
+    const skeletons = await screen.findAllByTestId('skeleton-row');
     expect(skeletons.length).toBeGreaterThan(0);
   });
 

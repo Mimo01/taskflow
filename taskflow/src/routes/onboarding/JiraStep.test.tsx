@@ -77,6 +77,7 @@ describe('JiraStep', () => {
     vi.mocked(validateJira).mockResolvedValue({
       displayName: 'Jane Smith',
       emailAddress: 'jane@example.com',
+      name: 'janesmith',
     });
     vi.mocked(listJiraProjects).mockResolvedValue([
       { id: '10001', key: 'APP', name: 'Application' },

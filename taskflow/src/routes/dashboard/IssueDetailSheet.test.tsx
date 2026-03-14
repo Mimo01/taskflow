@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
@@ -355,6 +355,8 @@ describe('IssueDetailSheet', () => {
       render(
         <IssueDetailSidebar
           issue={issue as never}
+          issueKey="PROJ-1"
+          jiraBaseUrl="https://jira.example.com"
           storyPointsFieldKey="customfield_10016"
           epicLinkFieldKey="customfield_10014"
           epicNameFieldKey="customfield_10015"
@@ -374,6 +376,8 @@ describe('IssueDetailSheet', () => {
       render(
         <IssueDetailSidebar
           issue={issue as never}
+          issueKey="PROJ-1"
+          jiraBaseUrl="https://jira.example.com"
           storyPointsFieldKey="customfield_10016"
           epicLinkFieldKey="customfield_10014"
           epicNameFieldKey="customfield_10015"
