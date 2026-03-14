@@ -1,16 +1,17 @@
 /**
- * QuickCreateInput tests — Wave 0 RED stubs
+ * QuickCreateInput tests — Wave 0 RED stubs (now GREEN after plan 10-03)
  *
- * These tests describe the expected behavior of the QuickCreateInput component
- * which does not exist yet. All tests in this file are intentionally RED.
- * They will pass after the QuickCreateInput component is implemented in a later plan.
+ * These tests describe the expected behavior of the QuickCreateInput component.
+ * Props updated to match the final component interface (statusId, projectKey,
+ * jiraBaseUrl, jiraToken, onCreated required alongside statusName).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import React from 'react';
 
 vi.mock('@/services/jira', () => ({
   createIssue: vi.fn().mockResolvedValue({ id: '10001', key: 'PROJ-42' }),
+  fetchTransitions: vi.fn().mockResolvedValue([]),
+  postTransition: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@/services/stronghold', () => ({
@@ -24,15 +25,24 @@ vi.mock('@/stores/auth.store', () => ({
   })),
 }));
 
+// Default props to satisfy the required interface
+const DEFAULT_PROPS = {
+  statusId: 'status-1',
+  statusName: 'To Do',
+  projectKey: 'PROJ',
+  jiraBaseUrl: 'https://jira.example.com',
+  jiraToken: 'test-jira-token',
+  onCreated: vi.fn(),
+};
+
 describe('QuickCreateInput', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('shows text input when + Add button is clicked', async () => {
-    // RED: QuickCreateInput component does not exist yet
     const { default: QuickCreateInput } = await import('./QuickCreateInput');
-    render(<QuickCreateInput statusName="To Do" />);
+    render(<QuickCreateInput {...DEFAULT_PROPS} />);
 
     // Input should not be visible before clicking
     expect(screen.queryByRole('textbox')).toBeNull();
@@ -48,9 +58,8 @@ describe('QuickCreateInput', () => {
   it('calls createIssue with correct args and hides input after Enter', async () => {
     const { createIssue } = await import('@/services/jira');
 
-    // RED: QuickCreateInput component does not exist yet
     const { default: QuickCreateInput } = await import('./QuickCreateInput');
-    render(<QuickCreateInput statusName="To Do" />);
+    render(<QuickCreateInput {...DEFAULT_PROPS} />);
 
     // Open the input
     const addButton = screen.getByRole('button', { name: /\+ Add/i });
@@ -78,9 +87,8 @@ describe('QuickCreateInput', () => {
   it('hides input when Escape is pressed without creating', async () => {
     const { createIssue } = await import('@/services/jira');
 
-    // RED: QuickCreateInput component does not exist yet
     const { default: QuickCreateInput } = await import('./QuickCreateInput');
-    render(<QuickCreateInput statusName="To Do" />);
+    render(<QuickCreateInput {...DEFAULT_PROPS} />);
 
     // Open the input
     const addButton = screen.getByRole('button', { name: /\+ Add/i });
