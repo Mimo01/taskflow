@@ -945,16 +945,51 @@ export async function fetchProjectStatuses(
   return result
 }
 
+// ─── Phase 11: Create/Edit Issue Form ─────────────────────────────────────────
+
 /**
- * Create a new Jira Story issue.
+ * Field descriptor returned by the createmeta endpoints.
+ * Returned by both the Jira 8.4+ paginated endpoint and the legacy flat endpoint.
+ */
+export interface CreatemetaField {
+  fieldId: string
+  name: string
+  required: boolean
+  schema: {
+    type: string
+    system?: string
+    custom?: string
+    allowedValues?: Array<{ id: string; value: string }>
+  }
+}
+
+/**
+ * Issue link type descriptor returned by GET /rest/api/2/issueLinkType.
+ */
+export interface IssueLinkType {
+  id: string
+  name: string
+  inward: string
+  outward: string
+}
+
+/**
+ * Create a new Jira issue with optional full field set (Phase 11 extended version).
  *
- * Posts to POST /rest/api/2/issue with the minimal issue body required to
- * create a Story: project key, summary, and issue type name.
+ * Backward-compatible: existing callers that pass only (baseUrl, token, projectKey, summary)
+ * continue to work — the options parameter is optional and defaults to Story type.
+ *
+ * The submit body is filtered to only include fields that are explicitly defined
+ * (i.e. not undefined) to avoid "field not on screen" 400 errors from Jira.
+ *
+ * CRITICAL: Never send ADF for description — DC REST API accepts wiki markup strings only.
+ * CRITICAL: Assignee uses DC format { name: username }, NOT { accountId } (Cloud-only).
  *
  * @param baseUrl    - Jira base URL
  * @param token      - Personal Access Token
  * @param projectKey - Jira project key (e.g. "PROJ")
  * @param summary    - Issue summary text
+ * @param options    - Optional extra fields (all optional, filtered to defined values)
  * @returns Created issue id and key
  * @throws Error with message "Failed to create issue: {status}" on non-ok response
  */
@@ -963,22 +998,180 @@ export async function createIssue(
   token: string,
   projectKey: string,
   summary: string,
+  options?: {
+    issuetype?: string           // 'Story' | 'Subtask' | 'Bug' — defaults to 'Story' if omitted
+    description?: string         // wiki markup string (DC always; never ADF)
+    assignee?: { name: string }  // DC format — NOT { accountId }
+    priority?: { name: string }
+    parent?: { key: string }     // required for Subtasks
+    [fieldKey: string]: unknown  // dynamic custom fields (storyPoints, epicLink, account, etc.)
+  },
 ): Promise<{ id: string; key: string }> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue`
+
+  // Base required fields
+  const baseFields: Record<string, unknown> = {
+    project: { key: projectKey },
+    summary,
+    issuetype: { name: options?.issuetype ?? 'Story' },
+  }
+
+  // Merge in optional fields, filtering out undefined values
+  if (options) {
+    const { issuetype, ...rest } = options
+    void issuetype // consumed above via options?.issuetype
+    for (const [k, v] of Object.entries(rest)) {
+      if (v !== undefined) {
+        baseFields[k] = v
+      }
+    }
+  }
+
   const response = await apiFetch('jira', url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      fields: {
-        project: { key: projectKey },
-        summary,
-        issuetype: { name: 'Story' },
-      },
-    }),
+    body: JSON.stringify({ fields: baseFields }),
   })
   if (!response.ok) {
     throw new Error(`Failed to create issue: ${response.status}`)
   }
   return response.json() as Promise<{ id: string; key: string }>
+}
+
+/**
+ * Discover required fields for a given issue type via the createmeta endpoint.
+ *
+ * Strategy (Jira version adaptive):
+ * 1. Try new paginated endpoint (Jira 8.4+): GET /rest/api/2/issue/createmeta/{project}/issuetypes/{id}
+ * 2. On non-ok (including 404 on pre-8.4 instances), fall back to legacy flat endpoint:
+ *    GET /rest/api/2/issue/createmeta?projectKeys={key}&issuetypeNames={name}&expand=projects.issuetypes.fields
+ *
+ * @param baseUrl       - Jira base URL
+ * @param token         - Personal Access Token
+ * @param projectKey    - Jira project key (e.g. "PROJ")
+ * @param issueTypeId   - Numeric issue type ID (required for new paginated endpoint)
+ * @param issueTypeName - Issue type display name (required for legacy fallback)
+ * @returns Array of CreatemetaField descriptors
+ */
+export async function fetchCreatemeta(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  issueTypeId: string,
+  issueTypeName: string,
+): Promise<CreatemetaField[]> {
+  const base = baseUrl.replace(/\/$/, '')
+  const headers = { Authorization: `Bearer ${token}` }
+
+  // Strategy A: Jira 8.4+ paginated endpoint
+  const newEndpoint = `${base}/rest/api/2/issue/createmeta/${projectKey}/issuetypes/${issueTypeId}?maxResults=50`
+  const resp = await apiFetch('jira', newEndpoint, { headers })
+  if (resp.ok) {
+    const data = await resp.json()
+    return (data.values ?? []) as CreatemetaField[]
+  }
+
+  // Strategy B: Legacy flat endpoint (pre-8.4 or 9.0+ with re-enabled flag)
+  const legacyUrl = `${base}/rest/api/2/issue/createmeta?projectKeys=${projectKey}&issuetypeNames=${encodeURIComponent(issueTypeName)}&expand=projects.issuetypes.fields`
+  const legacyResp = await apiFetch('jira', legacyUrl, { headers })
+  if (!legacyResp.ok) return []
+  const legacyData = await legacyResp.json()
+  const fields = legacyData.projects?.[0]?.issuetypes?.[0]?.fields
+  if (!fields) return []
+  return Object.values(fields) as CreatemetaField[]
+}
+
+/**
+ * Fetch available issue link types from GET /rest/api/2/issueLinkType.
+ *
+ * Link type names are admin-configurable — never hardcode "Blocks", "Relates To", etc.
+ * Returns empty array on any non-ok response (graceful degradation).
+ *
+ * @param baseUrl - Jira base URL
+ * @param token   - Personal Access Token
+ * @returns Array of IssueLinkType descriptors
+ */
+export async function fetchIssueLinkTypes(
+  baseUrl: string,
+  token: string,
+): Promise<IssueLinkType[]> {
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issueLinkType`
+  const resp = await apiFetch('jira', url, { headers: { Authorization: `Bearer ${token}` } })
+  if (!resp.ok) return []
+  const data = await resp.json()
+  return data.issueLinkTypes ?? []
+}
+
+/**
+ * Create an issue link between two issues.
+ *
+ * Issue links CANNOT be sent in the create body — they must be posted separately
+ * after the issue is created. POST /rest/api/2/issueLink returns 201 on success.
+ *
+ * CRITICAL: Use linkTypeId (not name) to avoid brittleness from admin renames.
+ *
+ * @param baseUrl    - Jira base URL
+ * @param token      - Personal Access Token
+ * @param linkTypeId - ID from GET /rest/api/2/issueLinkType (not the name)
+ * @param inwardKey  - The issue being created/edited (inward side of the link)
+ * @param outwardKey - The linked issue (outward side of the link)
+ * @throws Error with "Failed to create issue link: {status}" on non-201/200 response
+ */
+export async function createIssueLink(
+  baseUrl: string,
+  token: string,
+  linkTypeId: string,
+  inwardKey: string,
+  outwardKey: string,
+): Promise<void> {
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issueLink`
+  const response = await apiFetch('jira', url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      type: { id: linkTypeId },
+      inwardIssue: { key: inwardKey },
+      outwardIssue: { key: outwardKey },
+    }),
+  })
+  if (!response.ok && response.status !== 201) {
+    throw new Error(`Failed to create issue link: ${response.status}`)
+  }
+}
+
+/**
+ * Update multiple fields on a Jira issue in a single PUT request.
+ *
+ * Prefer this over calling updateIssueField() multiple times for edit mode.
+ * The fields object should only include fields confirmed present on screen
+ * (via createmeta) to avoid "field not on screen" 400 errors.
+ *
+ * Jira DC returns 204 on success (not 200) — both are treated as success.
+ *
+ * @param baseUrl  - Jira base URL
+ * @param token    - Personal Access Token
+ * @param issueKey - Issue key (e.g. "PROJ-1")
+ * @param fields   - Map of field keys to values (only confirmed-present fields)
+ * @throws Error with Jira's errorMessages[0] on non-ok, non-204 response
+ */
+export async function bulkUpdateIssue(
+  baseUrl: string,
+  token: string,
+  issueKey: string,
+  fields: Record<string, unknown>,
+): Promise<void> {
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}`
+  const response = await apiFetch('jira', url, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields }),
+  })
+  if (!response.ok && response.status !== 204) {
+    const body = await response.json().catch(() => ({}))
+    throw new Error(
+      (body as { errorMessages?: string[] }).errorMessages?.[0]
+        ?? `Failed to update ${issueKey}: ${response.status}`,
+    )
+  }
 }
 
