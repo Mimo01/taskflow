@@ -7,17 +7,14 @@ import { fetchIssueDetail } from '@/services/jira'
 import { IssueDetailContent } from './IssueDetailContent'
 import { IssueDetailSidebar } from './IssueDetailSidebar'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { EditInitialValues } from './CreateEditIssueModal'
 
 interface IssueDetailSheetProps {
   issueKey: string | null
   onClose: () => void
   onOpenIssue?: (key: string) => void
-  onEdit?: (initialValues: EditInitialValues) => void
-  onAddSubtask?: (parentKey: string) => void
 }
 
-export function IssueDetailSheet({ issueKey, onClose, onOpenIssue, onEdit, onAddSubtask }: IssueDetailSheetProps) {
+export function IssueDetailSheet({ issueKey, onClose, onOpenIssue }: IssueDetailSheetProps) {
   return (
     <Sheet open={issueKey !== null} onOpenChange={(open) => { if (!open) onClose() }}>
       <SheetContent side="right" className="p-0 flex flex-col overflow-hidden" style={{ width: '75vw', maxWidth: '75vw' }}>
@@ -25,10 +22,7 @@ export function IssueDetailSheet({ issueKey, onClose, onOpenIssue, onEdit, onAdd
           <IssueDetailBody
             data-testid="sheet-open"
             issueKey={issueKey}
-            onClose={onClose}
             onOpenIssue={onOpenIssue}
-            onEdit={onEdit}
-            onAddSubtask={onAddSubtask}
           />
         )}
       </SheetContent>
@@ -38,17 +32,11 @@ export function IssueDetailSheet({ issueKey, onClose, onOpenIssue, onEdit, onAdd
 
 function IssueDetailBody({
   issueKey,
-  onClose,
   onOpenIssue,
-  onEdit,
-  onAddSubtask,
 }: {
   'data-testid'?: string
   issueKey: string
-  onClose: () => void
   onOpenIssue?: (key: string) => void
-  onEdit?: (initialValues: EditInitialValues) => void
-  onAddSubtask?: (parentKey: string) => void
 }) {
   const { jiraBaseUrl, jiraConnected } = useAuthStore()
   const { epicLinkFieldKey, epicNameFieldKey, sprintFieldKey, storyPointsFieldKey } = useSettingsStore()
@@ -85,8 +73,6 @@ function IssueDetailBody({
           storyPointsFieldKey={storyPointsFieldKey}
           sprintFieldKey={sprintFieldKey}
           epicLinkFieldKey={epicLinkFieldKey}
-          onEdit={onEdit}
-          onAddSubtask={onAddSubtask}
         />
       </div>
       {/* Right sidebar: ~42% */}
