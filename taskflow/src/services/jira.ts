@@ -1523,6 +1523,69 @@ export interface EpicEnriched {
 }
 
 /**
+ * Fetch all epics in a project without story enrichment — fast first-load.
+ */
+export async function fetchEpicsBasic(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  epicNameFieldKey = 'customfield_10015',
+): Promise<EpicEnriched[]> {
+  const base = baseUrl.replace(/\/$/, '')
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+  const epicFields = [...new Set(['summary', 'status', 'assignee', epicNameFieldKey])].join(',')
+  const epicJql = encodeURIComponent(`project = ${projectKey} AND issuetype = Epic ORDER BY updated DESC`)
+  const epicIssues = await fetchAllSearchPages(
+    `${base}/rest/api/2/search?jql=${epicJql}&fields=${epicFields}`, headers,
+  )
+  return epicIssues.map(epic => ({
+    key: epic.key,
+    epicName: (epic.fields[epicNameFieldKey] as string | null) ?? epic.fields.summary,
+    summary: epic.fields.summary,
+    status: epic.fields.status,
+    assignee: epic.fields.assignee,
+    totalStories: 0,
+    doneStories: 0,
+    totalPoints: 0,
+  }))
+}
+
+/**
+ * Fetch story counts and points for a set of epic keys and return a map.
+ * Used to progressively enrich an already-displayed epic list.
+ */
+export async function fetchEpicEnrichmentMap(
+  baseUrl: string,
+  token: string,
+  epicKeys: string[],
+  storyPointsFieldKey = 'customfield_10016',
+  epicLinkFieldKey = 'customfield_10014',
+): Promise<Map<string, { total: number; done: number; points: number }>> {
+  if (epicKeys.length === 0) return new Map()
+  const base = baseUrl.replace(/\/$/, '')
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+  const storyFields = [...new Set(['status', storyPointsFieldKey, epicLinkFieldKey, 'customfield_10016'])].join(',')
+  const storiesJql = encodeURIComponent(
+    `"Epic Link" in (${epicKeys.join(',')}) AND issuetype != Sub-task`,
+  )
+  const stories = await fetchAllSearchPages(
+    `${base}/rest/api/2/search?jql=${storiesJql}&fields=${storyFields}`, headers,
+  ).catch(() => [] as JiraIssue[])
+
+  const countMap = new Map<string, { total: number; done: number; points: number }>()
+  for (const story of stories) {
+    const ek = story.fields[epicLinkFieldKey] as string | null
+    if (!ek) continue
+    const entry = countMap.get(ek) ?? { total: 0, done: 0, points: 0 }
+    entry.total++
+    if (story.fields.status.statusCategory?.key === 'done') entry.done++
+    entry.points += (story.fields[storyPointsFieldKey] as number | null) ?? 0
+    countMap.set(ek, entry)
+  }
+  return countMap
+}
+
+/**
  * Fetch all epics in a project and enrich them with child story counts and points.
  *
  * Two-query pattern (mirrors fetchBacklogView):
