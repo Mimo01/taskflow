@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
 status: completed
-stopped_at: Phase 10 context gathered
-last_updated: "2026-03-14T11:07:09.233Z"
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-03-14T11:28:56.443Z"
 last_activity: 2026-03-14 — Completed 09-08 (sidebar widened 85vw/42% after user feedback; all four entry points verified; ISSUE-01 done)
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 12
+  completed_plans: 9
   percent: 100
 ---
 
@@ -88,6 +88,9 @@ Key v1.2 constraints from research:
 - [09-08]: Jira issue key extracted from NotificationItem.entityTitle ("PROJ-123: ...") with /browse/ URL as fallback — entityTitle format is stable
 - [09-08]: Dashboard/index.tsx gets its own selectedIssueKey for SubtasksPanel — route components can't access AppLayout state without prop drilling through router
 - [09-08]: IssueDetailSheet sidebar widened to 85vw sheet / 42% column / w-28 label — 70vw/38%/w-24 too narrow for metadata labels like "Story Points" and "Fix Versions"
+- [Phase 10-sprint-board-redesign]: @dnd-kit/react not installed — @dnd-kit/core v6 stable API only; @dnd-kit/react new API not production-ready
+- [Phase 10-sprint-board-redesign]: [10-01]: fetchProjectStatuses deduplicates statuses by id Set with first-occurrence-wins semantics
+- [Phase 10-sprint-board-redesign]: [10-01]: createIssue hardcodes issuetype name as Story — minimal body per plan spec
 
 ### Pending Todos
 
@@ -102,6 +105,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-14T11:07:09.229Z
-Stopped at: Phase 10 context gathered
-Resume file: .planning/phases/10-sprint-board-redesign/10-CONTEXT.md
+Last session: 2026-03-14T11:28:47.542Z
+Stopped at: Completed 10-01-PLAN.md
+Resume file: None
