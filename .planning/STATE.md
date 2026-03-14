@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
 status: executing
-stopped_at: Completed 09-06-PLAN.md (CommentComposer + comment thread + Open in Jira)
-last_updated: "2026-03-13T23:57:30Z"
-last_activity: 2026-03-13 — Completed 09-06 (CommentComposer with wiki toolbar, comment thread newest-first, Open in Jira deep link)
+stopped_at: Completed 09-07-PLAN.md (IssueDetailSheet wired into SprintBoardTab and MyTasksTab)
+last_updated: "2026-03-14T10:25:00Z"
+last_activity: 2026-03-14 — Completed 09-07 (TaskCard onClick, TaskRow onIssueClick, IssueDetailSheet entry points in sprint board and My Tasks)
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 8
-  completed_plans: 6
-  percent: 75
+  completed_plans: 7
+  percent: 88
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 Phase: 9 of 13 (Custom Field Discovery + Issue Detail Foundation)
-Plan: 09-06 complete (6 of 8 plans done in phase 9)
+Plan: 09-07 complete (7 of 8 plans done in phase 9)
 Status: Executing
-Last activity: 2026-03-13 — Completed 09-06 (CommentComposer with wiki markup toolbar, comment thread newest-first with relativeTime + WikiRenderer, Open in Jira deep link via openUrl)
+Last activity: 2026-03-14 — Completed 09-07 (TaskCard onClick, TaskRow onIssueClick, IssueDetailSheet wired into SprintBoardTab and MyTasksTab with selectedIssueKey state + subtask navigation)
 
 Progress: [██████░░░░] 75% (v1.2, 6/8 plans)
 
@@ -80,6 +80,9 @@ Key v1.2 constraints from research:
 - [09-05]: useFieldMutation hook extracted inside IssueDetailSidebar — co-locates mutation logic with editing UI; reusable template for future field edits
 - [09-05]: PopoverTrigger used without asChild — @base-ui/react/popover does not support asChild/slot composition pattern
 - [09-05]: Priority select opens immediately on click (not two-step) — reduces edit friction
+- [09-07]: IssueDetailSheet is a named export — import { IssueDetailSheet }, not default import
+- [09-07]: SprintBoardTab sheet placed as React fragment sibling outside DndContext DOM subtree — DndContext stays mounted while sheet is open
+- [09-07]: onOpenIssue=setSelectedIssueKey implements single-sheet subtask navigation (key replacement, no nesting)
 
 ### Pending Todos
 
@@ -94,6 +97,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-13T23:58:00Z
-Stopped at: Completed 09-05-PLAN.md (IssueDetailSidebar inline field editors + optimistic updates)
+Last session: 2026-03-14T10:25:00Z
+Stopped at: Completed 09-07-PLAN.md (IssueDetailSheet wired into SprintBoardTab and MyTasksTab)
 Resume file: None
