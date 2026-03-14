@@ -6,7 +6,7 @@
  * jiraBaseUrl, jiraToken, onCreated required alongside statusName).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 vi.mock('@/services/jira', () => ({
   createIssue: vi.fn().mockResolvedValue({ id: '10001', key: 'PROJ-42' }),
@@ -80,8 +80,10 @@ describe('QuickCreateInput', () => {
       'My new story',
     );
 
-    // Input should be hidden after submission
-    expect(screen.queryByRole('textbox')).toBeNull();
+    // Input should be hidden after submission (async — wait for promises to resolve)
+    await waitFor(() => {
+      expect(screen.queryByRole('textbox')).toBeNull();
+    });
   });
 
   it('hides input when Escape is pressed without creating', async () => {

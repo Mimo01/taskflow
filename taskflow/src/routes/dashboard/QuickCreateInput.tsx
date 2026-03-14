@@ -14,7 +14,6 @@
  * status; the board re-fetch will show it in the correct column.
  */
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
 import { createIssue, fetchTransitions, postTransition } from '@/services/jira'
 
 interface QuickCreateInputProps {
@@ -72,8 +71,7 @@ export default function QuickCreateInput({
         onClick={() => setIsOpen(true)}
         className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mt-1 px-1"
       >
-        <Plus className="size-3" />
-        Add
+        + Add
       </button>
     )
   }
