@@ -4,14 +4,14 @@ milestone: v1.2
 milestone_name: Jira Parity
 current_plan: 4 of 4 (complete)
 status: verifying
-stopped_at: Completed 13-01-PLAN.md
-last_updated: "2026-03-14T21:57:19.735Z"
+stopped_at: Completed 13-02-PLAN.md
+last_updated: "2026-03-14T22:12:07.186Z"
 last_activity: 2026-03-14 — Completed 12-04 (human verified BACK-01..05 on Orange Jira; Phase 12 fully complete)
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 26
-  completed_plans: 22
+  completed_plans: 23
   percent: 100
 ---
 
@@ -119,6 +119,8 @@ Key v1.2 constraints from research:
 - [Phase 12-backlog-view]: Test fixtures for BacklogViewData must include epicNames: new Map() — field is required (not optional) in the type
 - [Phase 13-epic-management]: _projectKey prefixed with underscore in fetchEpicStories — JQL uses epicKey directly, projectKey not needed in query
 - [Phase 13-epic-management]: Wave 0 RED test stubs use dynamic import() pattern same as Phase 12 — RED state is import resolution failure confirming TDD discipline
+- [Phase 13-epic-management]: EpicsPage reads jiraBaseUrl/activeJiraProject from useAuthStore (not useSettingsStore) — consistent with BacklogPage; Wave 0 test stubs updated with proper mocks
+- [Phase 13-epic-management]: TanStack Query v5 empty state: use data !== undefined (not !isLoading) to distinguish disabled query from resolved empty array
 
 ### Pending Todos
 
@@ -133,6 +135,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-14T21:57:19.732Z
-Stopped at: Completed 13-01-PLAN.md
+Last session: 2026-03-14T22:11:56.573Z
+Stopped at: Completed 13-02-PLAN.md
 Resume file: None
