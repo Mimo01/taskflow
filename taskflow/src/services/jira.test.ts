@@ -924,4 +924,70 @@ describe('jira service', () => {
       ).resolves.toBeUndefined();
     });
   });
+
+  describe('BOARD-04: fetchProjectStatuses', () => {
+    it('flattens statuses across issue types', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [
+          { statuses: [{ id: '1', name: 'To Do', statusCategory: { key: 'new' } }] },
+          {
+            statuses: [
+              { id: '1', name: 'To Do', statusCategory: { key: 'new' } },
+              { id: '2', name: 'In Progress', statusCategory: { key: 'indeterminate' } },
+            ],
+          },
+        ],
+      } as Response);
+      const { fetchProjectStatuses } = await import('./jira');
+      const result = await fetchProjectStatuses('https://jira.example.com', 'token', 'PROJ');
+      expect(result.length).toBe(2);
+      expect(result[0].name).toBe('To Do');
+      expect(result[1].name).toBe('In Progress');
+    });
+
+    it('throws with correct message on non-ok response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 403,
+      } as Response);
+      const { fetchProjectStatuses } = await import('./jira');
+      await expect(
+        fetchProjectStatuses('https://jira.example.com', 'token', 'PROJ'),
+      ).rejects.toThrow('Failed to fetch project statuses: 403');
+    });
+  });
+
+  describe('BOARD-04: createIssue', () => {
+    it('POSTs correct body and returns id and key', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 201,
+        json: async () => ({ id: '10001', key: 'PROJ-42' }),
+      } as Response);
+      const { createIssue } = await import('./jira');
+      const result = await createIssue('https://jira.example.com', 'token', 'PROJ', 'My new story');
+      const call = vi.mocked(mockFetch).mock.calls[0];
+      expect(call[0]).toContain('/rest/api/2/issue');
+      const options = call[1] as RequestInit;
+      expect(options.method).toBe('POST');
+      const body = JSON.parse(options.body as string);
+      expect(body.fields.project.key).toBe('PROJ');
+      expect(body.fields.summary).toBe('My new story');
+      expect(body.fields.issuetype.name).toBe('Story');
+      expect(result).toEqual({ id: '10001', key: 'PROJ-42' });
+    });
+
+    it('throws with correct message on non-ok response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+      } as Response);
+      const { createIssue } = await import('./jira');
+      await expect(
+        createIssue('https://jira.example.com', 'token', 'PROJ', 'My new story'),
+      ).rejects.toThrow('Failed to create issue: 400');
+    });
+  });
 });

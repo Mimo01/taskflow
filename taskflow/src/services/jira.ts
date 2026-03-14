@@ -898,3 +898,87 @@ export async function updateIssueField(
   }
 }
 
+// ─── Phase 10: Sprint Board Redesign ─────────────────────────────────────────
+
+export interface JiraProjectStatus {
+  id: string
+  name: string
+  statusCategory: { key: 'new' | 'indeterminate' | 'done' | string }
+}
+
+/**
+ * Fetch all statuses for a Jira project, flattened across issue types.
+ *
+ * Calls GET /rest/api/2/project/{projectKey}/statuses which returns one object
+ * per issue type, each with a `statuses` array. This function flattens them
+ * and deduplicates by status id (first occurrence wins).
+ *
+ * @param baseUrl    - Jira base URL
+ * @param token      - Personal Access Token
+ * @param projectKey - Jira project key (e.g. "PROJ")
+ * @returns Deduplicated array of JiraProjectStatus across all issue types
+ * @throws Error with message "Failed to fetch project statuses: {status}" on non-ok response
+ */
+export async function fetchProjectStatuses(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+): Promise<JiraProjectStatus[]> {
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/project/${projectKey}/statuses`
+  const response = await apiFetch('jira', url, {
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+  })
+  if (!response.ok) {
+    throw new Error(`Failed to fetch project statuses: ${response.status}`)
+  }
+  const data: Array<{ statuses: JiraProjectStatus[] }> = await response.json()
+  const seen = new Set<string>()
+  const result: JiraProjectStatus[] = []
+  for (const issueType of data) {
+    for (const status of issueType.statuses) {
+      if (!seen.has(status.id)) {
+        seen.add(status.id)
+        result.push(status)
+      }
+    }
+  }
+  return result
+}
+
+/**
+ * Create a new Jira Story issue.
+ *
+ * Posts to POST /rest/api/2/issue with the minimal issue body required to
+ * create a Story: project key, summary, and issue type name.
+ *
+ * @param baseUrl    - Jira base URL
+ * @param token      - Personal Access Token
+ * @param projectKey - Jira project key (e.g. "PROJ")
+ * @param summary    - Issue summary text
+ * @returns Created issue id and key
+ * @throws Error with message "Failed to create issue: {status}" on non-ok response
+ */
+export async function createIssue(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  summary: string,
+): Promise<{ id: string; key: string }> {
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue`
+  const response = await apiFetch('jira', url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fields: {
+        project: { key: projectKey },
+        summary,
+        issuetype: { name: 'Story' },
+      },
+    }),
+  })
+  if (!response.ok) {
+    throw new Error(`Failed to create issue: ${response.status}`)
+  }
+  return response.json() as Promise<{ id: string; key: string }>
+}
+
