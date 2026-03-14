@@ -4,14 +4,14 @@ milestone: v1.2
 milestone_name: Jira Parity
 current_plan: 4 of 4 (complete)
 status: verifying
-stopped_at: Phase 13 context gathered
-last_updated: "2026-03-14T21:33:00.058Z"
+stopped_at: Completed 13-01-PLAN.md
+last_updated: "2026-03-14T21:57:19.735Z"
 last_activity: 2026-03-14 — Completed 12-04 (human verified BACK-01..05 on Orange Jira; Phase 12 fully complete)
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 21
-  completed_plans: 21
+  total_plans: 26
+  completed_plans: 22
   percent: 100
 ---
 
@@ -117,6 +117,8 @@ Key v1.2 constraints from research:
 - [Phase 12-backlog-view]: wasStoryCreate ref in AppLayout tracks modal open source for conditional jira-backlog cache invalidation on close
 - [Phase 12-backlog-view]: Optimistic cache updates must spread existing cache object (...old) to preserve all BacklogViewData required fields including epicNames
 - [Phase 12-backlog-view]: Test fixtures for BacklogViewData must include epicNames: new Map() — field is required (not optional) in the type
+- [Phase 13-epic-management]: _projectKey prefixed with underscore in fetchEpicStories — JQL uses epicKey directly, projectKey not needed in query
+- [Phase 13-epic-management]: Wave 0 RED test stubs use dynamic import() pattern same as Phase 12 — RED state is import resolution failure confirming TDD discipline
 
 ### Pending Todos
 
@@ -131,6 +133,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-14T21:33:00.054Z
-Stopped at: Phase 13 context gathered
-Resume file: .planning/phases/13-epic-management/13-CONTEXT.md
+Last session: 2026-03-14T21:57:19.732Z
+Stopped at: Completed 13-01-PLAN.md
+Resume file: None
