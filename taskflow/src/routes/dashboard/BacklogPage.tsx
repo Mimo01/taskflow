@@ -255,6 +255,9 @@ export default function BacklogPage() {
                     <th className="w-24 px-2 py-2 text-left text-xs font-medium text-muted-foreground">
                       Key
                     </th>
+                    <th className="w-32 px-2 py-2 text-left text-xs font-medium text-muted-foreground">
+                      Epic
+                    </th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
                       Summary
                     </th>
@@ -263,9 +266,6 @@ export default function BacklogPage() {
                     </th>
                     <th className="w-10 px-2 py-2 text-xs font-medium text-muted-foreground">
                       Assignee
-                    </th>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
-                      Epic
                     </th>
                   </tr>
                 </thead>
