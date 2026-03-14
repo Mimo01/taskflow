@@ -38,9 +38,10 @@ interface TaskCardProps {
   isExpanded?: boolean
   onToggle?: () => void
   isSubtask?: boolean
+  onClick?: () => void
 }
 
-export default function TaskCard({ issue, healthDot, subtaskCount, isExpanded, onToggle, isSubtask }: TaskCardProps) {
+export default function TaskCard({ issue, healthDot, subtaskCount, isExpanded, onToggle, isSubtask, onClick }: TaskCardProps) {
   const assignee = issue.fields.assignee
   const avatarUrl = assignee?.avatarUrls['48x48']
   const displayName = assignee?.displayName ?? ''
@@ -48,7 +49,16 @@ export default function TaskCard({ issue, healthDot, subtaskCount, isExpanded, o
   const dotColor = healthDot ? HEALTH_COLORS[healthDot] : 'bg-muted-foreground/40'
 
   return (
-    <div className={cn('border rounded-lg p-2 bg-card w-full flex flex-col gap-1', isSubtask && 'ml-4 border-l-2 border-l-muted')}>
+    <div
+      className={cn(
+        'border rounded-lg p-2 bg-card w-full flex flex-col gap-1 cursor-pointer hover:border-primary/50 transition-colors',
+        isSubtask && 'ml-4 border-l-2 border-l-muted',
+      )}
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick?.() }}
+    >
       {/* Issue key */}
       <div className="text-xs font-mono text-muted-foreground">{issue.key}</div>
 
