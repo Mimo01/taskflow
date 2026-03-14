@@ -119,6 +119,15 @@ Each task was committed atomically:
 - `children` slot in `BoardColumn` reserved for `QuickCreateInput` (plan 10-04)
 - BOARD-03 drag/rollback tests remain RED — will turn GREEN in plan 10-03
 
+## Self-Check: PASSED
+
+- FOUND: BoardColumn.tsx
+- FOUND: StoryHeaderRow.tsx
+- FOUND: SprintBoardTab.tsx
+- FOUND: 10-02-SUMMARY.md
+- FOUND commit: 259debf (Task 1)
+- FOUND commit: a822e5a (Task 2)
+
 ---
 *Phase: 10-sprint-board-redesign*
 *Completed: 2026-03-14*

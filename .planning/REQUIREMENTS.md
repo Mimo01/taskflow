@@ -22,10 +22,10 @@ Requirements for the Jira Parity milestone. Goal: replace the need to open real 
 ### Sprint Board (BOARD)
 
 - [x] **BOARD-01**: Sprint board shows subtasks as kanban cards grouped under collapsible parent story headers (Jira-like layout)
-- [ ] **BOARD-02**: Sprint board shows all team members' tasks (board-wide view, not filtered to current user only)
+- [x] **BOARD-02**: Sprint board shows all team members' tasks (board-wide view, not filtered to current user only)
 - [x] **BOARD-03**: User can drag subtask/story cards between status columns to transition status (optimistic update + rollback on failure)
 - [x] **BOARD-04**: User can create a new story or subtask directly from the sprint board without leaving the board view
-- [ ] **BOARD-05**: User can open the issue detail panel from any sprint board card
+- [x] **BOARD-05**: User can open the issue detail panel from any sprint board card
 
 ### Backlog (BACK)
 
@@ -94,10 +94,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ISSUE-08 | Phase 9 | Complete |
 | ISSUE-09 | Phase 9 | Complete |
 | BOARD-01 | Phase 10 | Complete |
-| BOARD-02 | Phase 10 | Pending |
+| BOARD-02 | Phase 10 | Complete |
 | BOARD-03 | Phase 10 | Complete |
 | BOARD-04 | Phase 10 | Complete |
-| BOARD-05 | Phase 10 | Pending |
+| BOARD-05 | Phase 10 | Complete |
 | BACK-01 | Phase 12 | Pending |
 | BACK-02 | Phase 12 | Pending |
 | BACK-03 | Phase 12 | Pending |
