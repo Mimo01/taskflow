@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
 status: completed
-stopped_at: Completed 11-03-PLAN.md
-last_updated: "2026-03-14T13:20:42.071Z"
+stopped_at: Completed 11-04-PLAN.md
+last_updated: "2026-03-14T13:27:25.464Z"
 last_activity: 2026-03-14 — Completed 10-04 (human verification passed; all five BOARD requirements confirmed; sticky columns, swimlanes, drag-and-drop verified)
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 17
-  completed_plans: 15
+  completed_plans: 16
   percent: 100
 ---
 
@@ -102,6 +102,8 @@ Key v1.2 constraints from research:
 - [Phase 11-create-edit-issue-form]: Two-step createmeta: fetch issuetypes list for IDs first, then fetch fields per type — required by 8.4+ paginated endpoint
 - [Phase 11-create-edit-issue-form]: IssueLinkRow uses internal debouncedQuery state rather than passing debounced value to useQuery enabled flag
 - [Phase 11-create-edit-issue-form]: crypto.randomUUID?.() with Date.now() fallback — crypto.randomUUID not available in vitest jsdom environment
+- [Phase 11-create-edit-issue-form]: Modal state lifted to AppLayout (same level as IssueDetailSheet) — consistent shell ownership pattern for all modal entry points
+- [Phase 11-create-edit-issue-form]: Sidebar Create Issue is a <button> not <NavLink> — opens dialog (no route change); defaultIssueType/defaultParentKey added to CreateEditIssueModalProps for Add Subtask pre-set entry point
 
 ### Pending Todos
 
@@ -116,6 +118,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-14T13:20:42.067Z
-Stopped at: Completed 11-03-PLAN.md
+Last session: 2026-03-14T13:27:25.460Z
+Stopped at: Completed 11-04-PLAN.md
 Resume file: None
