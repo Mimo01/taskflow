@@ -11,7 +11,7 @@
  */
 import { useState, useEffect, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { JiraIssue, JiraActiveSprint } from '@/services/jira';
 import { fetchBacklogIssues, fetchActiveSprint, addIssuesToSprint } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
@@ -25,8 +25,11 @@ import { BacklogFilterBar } from './BacklogFilterBar';
 export default function BacklogPage() {
   const { onIssueClick, openCreateStory } = useOutletContext<{
     onIssueClick: (key: string) => void;
-    openCreateStory?: () => void;
+    openCreateStory: () => void;
   }>();
+
+  // ── Query client ────────────────────────────────────────────────────────────
+  const queryClient = useQueryClient();
 
   // ── Auth / settings ─────────────────────────────────────────────────────────
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
@@ -77,9 +80,7 @@ export default function BacklogPage() {
 
   // ── Move-to-sprint state ─────────────────────────────────────────────────────
 
-  const [moveError, setMoveError] = useState<string | null>(null);
-  // Optimistic removal: track which keys have been moved (hidden from list)
-  const [movedKeys, setMovedKeys] = useState<Set<string>>(new Set());
+  const [bulkError, setBulkError] = useState<string | null>(null);
 
   // ── Filter options (derived from raw issues) ─────────────────────────────────
 
@@ -104,9 +105,6 @@ export default function BacklogPage() {
   const visibleIssues = useMemo(() => {
     if (!issues) return [];
     return issues.filter((issue) => {
-      // Hide optimistically moved issues
-      if (movedKeys.has(issue.key)) return false;
-
       const epicMatch =
         !activeEpic ||
         (issue.fields[epicLinkFieldKey] as string | null) === activeEpic;
@@ -117,7 +115,7 @@ export default function BacklogPage() {
         !activeAssignee || issue.fields.assignee?.displayName === activeAssignee;
       return epicMatch && labelMatch && assigneeMatch;
     });
-  }, [issues, activeEpic, activeLabels, activeAssignee, epicLinkFieldKey, movedKeys]);
+  }, [issues, activeEpic, activeLabels, activeAssignee, epicLinkFieldKey]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
@@ -134,26 +132,25 @@ export default function BacklogPage() {
   }
 
   async function handleMoveToSprint() {
-    if (!activeSprint) return;
+    if (!activeSprint || selectedKeys.size === 0) return;
     const keysToMove = Array.from(selectedKeys);
-    // Optimistic removal
-    setMovedKeys((prev) => {
-      const next = new Set(prev);
-      for (const k of keysToMove) next.add(k);
-      return next;
-    });
+    // Optimistic removal from cache
+    const previousIssues = queryClient.getQueryData<JiraIssue[]>(['jira-backlog', activeJiraProject, jiraBaseUrl]);
+    queryClient.setQueryData<JiraIssue[]>(
+      ['jira-backlog', activeJiraProject, jiraBaseUrl],
+      (old) => (old ?? []).filter((i) => !selectedKeys.has(i.key)),
+    );
     setSelectedKeys(new Set());
-    setMoveError(null);
+    setBulkError(null);
     try {
       await addIssuesToSprint(jiraBaseUrl!, jiraToken!, activeSprint.id, keysToMove);
+      queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-backlog'] });
     } catch (err) {
       // Rollback on failure
-      setMovedKeys((prev) => {
-        const next = new Set(prev);
-        for (const k of keysToMove) next.delete(k);
-        return next;
-      });
-      setMoveError(err instanceof Error ? err.message : 'Failed to add issues to sprint');
+      queryClient.setQueryData(['jira-backlog', activeJiraProject, jiraBaseUrl], previousIssues);
+      setSelectedKeys(new Set(keysToMove));
+      setBulkError(err instanceof Error ? err.message : 'Failed to add issues to sprint');
     }
   }
 
@@ -166,19 +163,13 @@ export default function BacklogPage() {
         <h1 className="text-lg font-semibold">Backlog</h1>
         <button
           type="button"
-          onClick={() => openCreateStory?.()}
+          onClick={() => openCreateStory()}
           className="rounded border border-border bg-background px-3 py-1.5 text-sm hover:bg-accent transition-colors"
         >
           + Create Story
         </button>
       </div>
 
-      {/* Error message */}
-      {moveError && (
-        <div className="px-4 py-2 text-sm text-destructive bg-destructive/10 border-b border-destructive/20">
-          {moveError}
-        </div>
-      )}
 
       {/* Filter bar */}
       <BacklogFilterBar
@@ -251,26 +242,27 @@ export default function BacklogPage() {
 
       {/* Bulk action bar — only shown when issues are selected */}
       {selectedKeys.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-10 bg-background border-t p-3 flex items-center gap-4">
-          <span>
+        <div className="fixed bottom-0 left-0 right-0 z-10 bg-background border-t shadow-lg p-3 flex items-center gap-4">
+          <span className="text-sm font-medium">
             {selectedKeys.size} issue{selectedKeys.size !== 1 ? 's' : ''} selected
           </span>
           <button
             type="button"
-            onClick={handleMoveToSprint}
-            disabled={!activeSprint}
+            className="px-3 py-1.5 text-sm rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!activeSprint || selectedKeys.size === 0}
             title={!activeSprint ? 'No active sprint in this project' : undefined}
-            className="rounded border border-border bg-background px-3 py-1.5 text-sm hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleMoveToSprint}
           >
-            Move {selectedKeys.size} issue{selectedKeys.size !== 1 ? 's' : ''} to active sprint
+            Move to sprint
           </button>
           <button
             type="button"
+            className="text-sm text-muted-foreground hover:text-foreground"
             onClick={() => setSelectedKeys(new Set())}
-            className="rounded border border-border bg-background px-3 py-1.5 text-sm hover:bg-accent transition-colors"
           >
             Deselect all
           </button>
+          {bulkError && <span className="text-sm text-destructive ml-auto">{bulkError}</span>}
         </div>
       )}
     </div>
