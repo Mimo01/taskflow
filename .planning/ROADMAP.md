@@ -139,6 +139,6 @@ Plans:
 | 8. Dashboard Enrichment | v1.1 | 8/8 | Complete | 2026-03-13 |
 | 9. Custom Field Discovery + Issue Detail Foundation | v1.2 | 8/8 | Complete | 2026-03-14 |
 | 10. Sprint Board Redesign | 4/4 | Complete    | 2026-03-14 | - |
-| 11. Create/Edit Issue Form | 1/5 | In Progress|  | - |
+| 11. Create/Edit Issue Form | 2/5 | In Progress|  | - |
 | 12. Backlog View | v1.2 | 0/TBD | Not started | - |
 | 13. Epic Management | v1.2 | 0/TBD | Not started | - |
