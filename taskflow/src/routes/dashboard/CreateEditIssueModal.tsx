@@ -47,6 +47,9 @@ export interface CreateEditIssueModalProps {
   onClose: () => void
   mode: 'create' | 'edit'
   initialValues?: EditInitialValues
+  // Pre-sets for "+ Add subtask" entry point:
+  defaultIssueType?: 'Story' | 'Subtask' | 'Bug'
+  defaultParentKey?: string
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -92,6 +95,8 @@ export function CreateEditIssueModal({
   onClose,
   mode,
   initialValues,
+  defaultIssueType,
+  defaultParentKey,
 }: CreateEditIssueModalProps) {
   const queryClient = useQueryClient()
   const { jiraBaseUrl, activeJiraProject } = useAuthStore()
@@ -100,7 +105,7 @@ export function CreateEditIssueModal({
   const projectKey = activeJiraProject ?? ''
 
   // ── Form state ──────────────────────────────────────────────────────────────
-  const [selectedIssueType, setSelectedIssueType] = useState<IssueType>('Story')
+  const [selectedIssueType, setSelectedIssueType] = useState<IssueType>(defaultIssueType ?? 'Story')
   const [summary, setSummary] = useState(initialValues?.summary ?? '')
   const [description, setDescription] = useState(initialValues?.description ?? '')
   const [assigneeQuery, setAssigneeQuery] = useState('')
@@ -114,7 +119,7 @@ export function CreateEditIssueModal({
   const [epicLinkKey, setEpicLinkKey] = useState<string | null>(
     initialValues?.epicLinkKey ?? null,
   )
-  const [parentKey, setParentKey] = useState<string | null>(null)
+  const [parentKey, setParentKey] = useState<string | null>(defaultParentKey ?? null)
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({})
   const [assigneeResults, setAssigneeResults] = useState<JiraUser[]>([])
   const [assigneeLoading, setAssigneeLoading] = useState(false)
