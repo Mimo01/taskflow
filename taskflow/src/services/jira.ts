@@ -1375,6 +1375,7 @@ export async function fetchBacklogView(
       state: String(sprint.state ?? '').toLowerCase() as 'active' | 'future' | 'closed',
       startDate: typeof sprint.startDate === 'string' ? sprint.startDate : undefined,
       endDate: typeof sprint.endDate === 'string' ? sprint.endDate : undefined,
+      originBoardId: typeof sprint.originBoardId === 'number' ? sprint.originBoardId : undefined,
     }
   }
 
@@ -1424,7 +1425,21 @@ export async function fetchBacklogView(
       fetchAllSearchPages(`${agileBase}?jql=${futureJql}&fields=${agileFields}`, headers)
         .catch(() => [] as JiraIssue[]),
     ])
-    sprints = [...groupBySprint(activeIssues), ...groupBySprint(futureIssues)]
+    const activeSprints = groupBySprint(activeIssues)
+    const futureSprints = groupBySprint(futureIssues)
+
+    // Determine the project's canonical board from the active sprint's originBoardId.
+    // The discovered boardId may be wrong (e.g. "Copy of X" instead of "X").
+    // originBoardId on the active sprint reliably identifies which board owns these sprints.
+    const projectBoardId = activeSprints[0]?.sprint.originBoardId
+      ?? futureSprints[0]?.sprint.originBoardId
+
+    const filterByBoard = (groups: typeof activeSprints) =>
+      projectBoardId !== undefined
+        ? groups.filter(g => g.sprint.originBoardId === projectBoardId)
+        : groups
+
+    sprints = [...filterByBoard(activeSprints), ...filterByBoard(futureSprints)]
   }
 
   // Step 3: Fetch backlog (unassigned to any sprint) via regular search API
