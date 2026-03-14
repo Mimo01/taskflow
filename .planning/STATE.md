@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
 status: planning
-stopped_at: Phase 12 context gathered
-last_updated: "2026-03-14T16:23:43.307Z"
-last_activity: 2026-03-14 — Completed 10-04 (human verification passed; all five BOARD requirements confirmed; sticky columns, swimlanes, drag-and-drop verified)
+stopped_at: "Completed 12-01-PLAN.md"
+last_updated: "2026-03-14T16:47:55Z"
+last_activity: 2026-03-14 — Completed 12-01 (fetchBacklogIssues, addIssuesToSprint to jira.ts; BacklogPage.test.tsx RED stubs for BACK-01..05)
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 17
-  completed_plans: 17
-  percent: 100
+  total_plans: 21
+  completed_plans: 18
+  percent: 86
 ---
 
 # Project State
@@ -25,12 +25,13 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 
 ## Current Position
 
-Phase: 11 of 13 (Create/Edit Issue Form) — COMPLETE
-Next: Phase 12 — Backlog View
-Status: Phase 11 complete, ready to plan Phase 12
-Last activity: 2026-03-14 — Completed 10-04 (human verification passed; all five BOARD requirements confirmed; sticky columns, swimlanes, drag-and-drop verified)
+Phase: 12 of 13 (Backlog View) — IN PROGRESS
+Current Plan: 1 of 4 complete
+Next: Phase 12 Plan 02 — BacklogPage UI implementation
+Status: 12-01 complete (service functions + RED test stubs); ready for 12-02
+Last activity: 2026-03-14 — Completed 12-01 (fetchBacklogIssues, addIssuesToSprint to jira.ts; BacklogPage.test.tsx RED stubs for BACK-01..05)
 
-Progress: [██████████] 100% (v1.2, 4/4 plans — Phase 10 complete, human verification passed)
+Progress: [█████████░] 25% (v1.2, 1/4 plans — Phase 12 Plan 01 complete)
 
 ## Performance Metrics
 
@@ -104,6 +105,9 @@ Key v1.2 constraints from research:
 - [Phase 11-create-edit-issue-form]: crypto.randomUUID?.() with Date.now() fallback — crypto.randomUUID not available in vitest jsdom environment
 - [Phase 11-create-edit-issue-form]: Modal state lifted to AppLayout (same level as IssueDetailSheet) — consistent shell ownership pattern for all modal entry points
 - [Phase 11-create-edit-issue-form]: Sidebar Create Issue is a <button> not <NavLink> — opens dialog (no route change); defaultIssueType/defaultParentKey added to CreateEditIssueModalProps for Add Subtask pre-set entry point
+- [12-01]: fetchBacklogIssues 400 error handling mirrors fetchSprintIssues — duck-type thrown Response by checking .status property
+- [12-01]: addIssuesToSprint accepts sprintId: number (not string) to match JiraActiveSprint.id type
+- [12-01]: BacklogPage.test.tsx uses dynamic import('./BacklogPage') inside each test — RED state is import failure at test runtime; TS2307 errors expected Wave 0 artifacts
 
 ### Pending Todos
 
