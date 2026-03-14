@@ -61,11 +61,25 @@ function EpicRow({ epic, onEpicClick }: EpicRowProps) {
       {/* Assignee */}
       <td className="px-3 py-3">
         {epic.assignee ? (
-          <div
-            className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium"
-            title={epic.assignee.displayName}
-          >
-            {getInitials(epic.assignee.displayName)}
+          <div className="relative h-6 w-6" title={epic.assignee.displayName}>
+            {epic.assignee.avatarUrls?.['48x48'] && (
+              <img
+                src={epic.assignee.avatarUrls['48x48']}
+                alt={epic.assignee.displayName}
+                className="h-6 w-6 rounded-full"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                  const sib = e.currentTarget.nextElementSibling as HTMLElement | null
+                  if (sib) sib.style.display = 'flex'
+                }}
+              />
+            )}
+            <div
+              className="h-6 w-6 rounded-full bg-primary text-primary-foreground items-center justify-center text-xs font-medium"
+              style={{ display: epic.assignee.avatarUrls?.['48x48'] ? 'none' : 'flex' }}
+            >
+              {getInitials(epic.assignee.displayName)}
+            </div>
           </div>
         ) : null}
       </td>

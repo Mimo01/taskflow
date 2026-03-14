@@ -9,13 +9,11 @@ interface EpicDetailSheetProps {
 }
 
 export function EpicDetailSheet({ epicKey, onClose, onOpenIssue }: EpicDetailSheetProps) {
-  if (!epicKey) return null
-
   return (
-    <Sheet open={true} onOpenChange={(open) => { if (!open) onClose() }}>
+    <Sheet open={!!epicKey} onOpenChange={(open) => { if (!open) onClose() }}>
       <SheetContent side="right" className="p-0 flex flex-col overflow-hidden"
         style={{ width: '85vw', maxWidth: '85vw' }}>
-        <EpicDetailBody epicKey={epicKey} onOpenIssue={onOpenIssue} />
+        {epicKey && <EpicDetailBody epicKey={epicKey} onOpenIssue={onOpenIssue} />}
       </SheetContent>
     </Sheet>
   )
@@ -39,7 +37,7 @@ function EpicDetailBody({ epicKey, onOpenIssue }: { epicKey: string; onOpenIssue
       const { fetchEpicStories } = await import('@/services/jira')
       return fetchEpicStories(jiraBaseUrl, jiraToken, epicKey, activeJiraProject, storyPointsFieldKey ?? undefined)
     },
-    enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject,
+    enabled: !!epicKey && !!jiraBaseUrl && !!jiraToken && !!activeJiraProject,
   })
 
   return (
