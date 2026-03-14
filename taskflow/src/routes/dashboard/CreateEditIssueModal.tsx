@@ -108,10 +108,11 @@ export function CreateEditIssueModal({
   const [selectedIssueType, setSelectedIssueType] = useState<IssueType>(defaultIssueType ?? 'Story')
   const [summary, setSummary] = useState(initialValues?.summary ?? '')
   const [description, setDescription] = useState(initialValues?.description ?? '')
-  const [assigneeQuery, setAssigneeQuery] = useState('')
+  const [assigneeInputValue, setAssigneeInputValue] = useState(initialValues?.assigneeName ?? '')
   const [selectedAssigneeName, setSelectedAssigneeName] = useState<string | null>(
     initialValues?.assigneeName ?? null,
   )
+  const [timeEstimate, setTimeEstimate] = useState('')
   const [priority, setPriority] = useState<string | null>(initialValues?.priority ?? null)
   const [storyPoints, setStoryPoints] = useState<string>(
     initialValues?.storyPoints != null ? String(initialValues.storyPoints) : '',
@@ -137,8 +138,9 @@ export function CreateEditIssueModal({
     setSelectedIssueType(defaultIssueType ?? 'Story')
     setSummary(initialValues?.summary ?? '')
     setDescription(initialValues?.description ?? '')
-    setAssigneeQuery('')
+    setAssigneeInputValue(initialValues?.assigneeName ?? '')
     setSelectedAssigneeName(initialValues?.assigneeName ?? null)
+    setTimeEstimate('')
     setPriority(initialValues?.priority ?? null)
     setStoryPoints(initialValues?.storyPoints != null ? String(initialValues.storyPoints) : '')
     setEpicLinkKey(initialValues?.epicLinkKey ?? null)
@@ -280,12 +282,13 @@ export function CreateEditIssueModal({
       if (description.trim()) options.description = description
       if (selectedAssigneeName) options.assignee = { name: selectedAssigneeName }
       if (priority) options.priority = { name: priority }
-      if (storyPoints !== '' && storyPointsFieldKey)
+      if (!isSubtask && storyPoints !== '' && storyPointsFieldKey)
         options[storyPointsFieldKey] = Number(storyPoints)
 
       if (isSubtask) {
         if (parentKey) options.parent = { key: parentKey }
-        // CRITICAL: never include epicLinkFieldKey on Subtasks
+        if (timeEstimate.trim()) options.timetracking = { originalEstimate: timeEstimate.trim() }
+        // CRITICAL: never include epicLinkFieldKey or storyPointsFieldKey on Subtasks
       } else {
         if (epicLinkKey && epicLinkFieldKey) options[epicLinkFieldKey] = epicLinkKey
       }
@@ -563,18 +566,17 @@ export function CreateEditIssueModal({
               <label className="text-sm font-medium">Assignee</label>
               <div className="relative">
                 <Input
-                  value={selectedAssigneeName ? selectedAssigneeName : assigneeQuery}
+                  value={assigneeInputValue}
                   onChange={(e) => {
-                    if (selectedAssigneeName) {
-                      setSelectedAssigneeName(null)
-                      setAssigneeQuery(e.target.value)
-                    } else {
-                      setAssigneeQuery(e.target.value)
-                    }
+                    setAssigneeInputValue(e.target.value)
+                    setSelectedAssigneeName(null)
                     setShowAssigneeResults(true)
                     debouncedSearch(e.target.value)
                   }}
-                  onFocus={() => setShowAssigneeResults(true)}
+                  onFocus={(e) => {
+                    if (selectedAssigneeName) e.target.select()
+                    setShowAssigneeResults(true)
+                  }}
                   onBlur={() => setTimeout(() => setShowAssigneeResults(false), 150)}
                   placeholder="Search assignee..."
                   disabled={isPending}
@@ -593,7 +595,7 @@ export function CreateEditIssueModal({
                         className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
                         onMouseDown={() => {
                           setSelectedAssigneeName(user.name)
-                          setAssigneeQuery('')
+                          setAssigneeInputValue(user.displayName)
                           setAssigneeResults([])
                           setShowAssigneeResults(false)
                         }}
@@ -624,19 +626,34 @@ export function CreateEditIssueModal({
               </Select>
             </div>
 
-            {/* Story Points */}
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Story Points</label>
-              <Input
-                type="number"
-                min="0"
-                step="0.5"
-                value={storyPoints}
-                onChange={(e) => setStoryPoints(e.target.value)}
-                placeholder="Optional"
-                disabled={isPending}
-              />
-            </div>
+            {/* Story Points — non-subtask only */}
+            {!isSubtask && (
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium">Story Points</label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={storyPoints}
+                  onChange={(e) => setStoryPoints(e.target.value)}
+                  placeholder="Optional"
+                  disabled={isPending}
+                />
+              </div>
+            )}
+
+            {/* Time Estimate — subtask only */}
+            {isSubtask && (
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium">Time Estimate</label>
+                <Input
+                  value={timeEstimate}
+                  onChange={(e) => setTimeEstimate(e.target.value)}
+                  placeholder="e.g. 2h, 1d 3h, 30m"
+                  disabled={isPending}
+                />
+              </div>
+            )}
 
             {/* Custom Required Fields — from createmeta */}
             {creatметаLoading && !creatметаFields && (
