@@ -28,12 +28,16 @@ interface SubtasksPanelProps {
   jiraBaseUrl: string;
   jiraToken: string;
   activeJiraProject: string;
+  /** Called with issue key when a subtask row is clicked. When provided,
+   *  opens the IssueDetailSheet instead of the browser. */
+  onIssueClick?: (issueKey: string) => void;
 }
 
 export default function SubtasksPanel({
   jiraBaseUrl,
   jiraToken,
   activeJiraProject,
+  onIssueClick,
 }: SubtasksPanelProps) {
   const { storyPointsFieldKey } = useSettingsStore();
 
@@ -100,7 +104,9 @@ export default function SubtasksPanel({
             <button
               key={issue.key}
               type="button"
-              onClick={() => openJiraIssue(jiraBaseUrl, issue.key)}
+              onClick={() =>
+                onIssueClick ? onIssueClick(issue.key) : openJiraIssue(jiraBaseUrl, issue.key)
+              }
               className="w-full text-left flex items-center gap-2 py-1.5 hover:bg-muted/50 rounded px-1 cursor-pointer"
             >
               <span className="font-mono text-xs text-muted-foreground w-20 flex-shrink-0">

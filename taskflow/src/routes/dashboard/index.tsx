@@ -19,6 +19,7 @@ import { readSecret } from '@/services/stronghold';
 import SubtasksPanel from './SubtasksPanel';
 import MrHealthPanel from './MrHealthPanel';
 import SprintHealthPanel from './SprintHealthPanel';
+import { IssueDetailSheet } from './IssueDetailSheet';
 
 export default function Dashboard() {
   const role = useSettingsStore((s) => s.role);
@@ -26,6 +27,7 @@ export default function Dashboard() {
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, _hasHydrated } = useAuthStore();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
   const [gitlabToken, setGitlabToken] = useState<string | null>(null);
+  const [selectedIssueKey, setSelectedIssueKey] = useState<string | null>(null);
   // Track whether the GitLab token read from Stronghold has settled so panels
   // can show a skeleton immediately rather than a premature empty state.
   const [gitlabTokenLoading, setGitlabTokenLoading] = useState(true);
@@ -88,9 +90,43 @@ export default function Dashboard() {
 
   if (role === 'pm') {
     return (
+      <>
+        <div className="flex flex-col h-full p-4 gap-4 overflow-y-auto">
+          {header}
+          <div className="grid grid-cols-1 gap-4">
+            <SprintHealthPanel
+              jiraBaseUrl={jiraBaseUrl ?? ''}
+              jiraToken={jiraToken ?? ''}
+              activeJiraProject={activeJiraProject ?? ''}
+            />
+          </div>
+        </div>
+        <IssueDetailSheet
+          issueKey={selectedIssueKey}
+          onClose={() => setSelectedIssueKey(null)}
+          onOpenIssue={setSelectedIssueKey}
+        />
+      </>
+    );
+  }
+
+  // Developer / tech-lead (default)
+  return (
+    <>
       <div className="flex flex-col h-full p-4 gap-4 overflow-y-auto">
         {header}
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <SubtasksPanel
+            jiraBaseUrl={jiraBaseUrl ?? ''}
+            jiraToken={jiraToken ?? ''}
+            activeJiraProject={activeJiraProject ?? ''}
+            onIssueClick={setSelectedIssueKey}
+          />
+          <MrHealthPanel
+            gitlabBaseUrl={gitlabBaseUrl ?? ''}
+            gitlabToken={gitlabToken ?? ''}
+            tokenLoading={gitlabTokenLoading}
+          />
           <SprintHealthPanel
             jiraBaseUrl={jiraBaseUrl ?? ''}
             jiraToken={jiraToken ?? ''}
@@ -98,30 +134,11 @@ export default function Dashboard() {
           />
         </div>
       </div>
-    );
-  }
-
-  // Developer / tech-lead (default)
-  return (
-    <div className="flex flex-col h-full p-4 gap-4 overflow-y-auto">
-      {header}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <SubtasksPanel
-          jiraBaseUrl={jiraBaseUrl ?? ''}
-          jiraToken={jiraToken ?? ''}
-          activeJiraProject={activeJiraProject ?? ''}
-        />
-        <MrHealthPanel
-          gitlabBaseUrl={gitlabBaseUrl ?? ''}
-          gitlabToken={gitlabToken ?? ''}
-          tokenLoading={gitlabTokenLoading}
-        />
-        <SprintHealthPanel
-          jiraBaseUrl={jiraBaseUrl ?? ''}
-          jiraToken={jiraToken ?? ''}
-          activeJiraProject={activeJiraProject ?? ''}
-        />
-      </div>
-    </div>
+      <IssueDetailSheet
+        issueKey={selectedIssueKey}
+        onClose={() => setSelectedIssueKey(null)}
+        onOpenIssue={setSelectedIssueKey}
+      />
+    </>
   );
 }

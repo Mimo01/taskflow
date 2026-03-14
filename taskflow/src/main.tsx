@@ -1,5 +1,5 @@
 import './index.css';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { createHashRouter, RouterProvider, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
@@ -13,6 +13,7 @@ import TopBar from './components/app/TopBar';
 import { useNotificationPolling } from './hooks/useNotificationPolling';
 import { readSecret } from './services/stronghold';
 import { discoverCustomFields } from './services/jira';
+import { IssueDetailSheet } from './routes/dashboard/IssueDetailSheet';
 import Onboarding from './routes/onboarding/index';
 import Dashboard from './routes/dashboard/index';
 import Settings from './routes/settings/index';
@@ -68,10 +69,15 @@ function useCustomFieldDiscovery() {
 /**
  * AppLayout — renders Sidebar + main content when user has completed onboarding.
  * Shows ReAuthBanner if jiraConnected is false but onboarding is complete.
+ *
+ * Owns global selectedIssueKey state so IssueDetailSheet is accessible from
+ * any entry point in the app (search results, notifications, sprint board,
+ * my tasks, dashboard panels) without nesting sheets.
  */
 function AppLayout() {
   const { onboardingComplete } = useSettingsStore();
   const { jiraConnected, gitlabConnected, _hasHydrated } = useAuthStore();
+  const [selectedIssueKey, setSelectedIssueKey] = useState<string | null>(null);
 
   // Bring window to front when OS notification click activates the app
   useEffect(() => {
@@ -91,13 +97,19 @@ function AppLayout() {
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
-        <TopBar />
+        <TopBar onIssueClick={setSelectedIssueKey} />
         {_hasHydrated && !jiraConnected && <ReAuthBanner />}
         {_hasHydrated && !gitlabConnected && <GitLabReAuthBanner />}
         <main className="flex-1 overflow-auto">
           <Outlet />
         </main>
       </div>
+      {/* Global IssueDetailSheet — accessible from search, notifications, and all route views */}
+      <IssueDetailSheet
+        issueKey={selectedIssueKey}
+        onClose={() => setSelectedIssueKey(null)}
+        onOpenIssue={setSelectedIssueKey}
+      />
     </div>
   );
 }
