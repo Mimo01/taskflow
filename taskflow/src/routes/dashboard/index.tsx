@@ -11,6 +11,7 @@
  * This file only handles token loading and passing credentials as props.
  */
 import { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { RefreshCw } from 'lucide-react';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -19,7 +20,6 @@ import { readSecret } from '@/services/stronghold';
 import SubtasksPanel from './SubtasksPanel';
 import MrHealthPanel from './MrHealthPanel';
 import SprintHealthPanel from './SprintHealthPanel';
-import { IssueDetailSheet } from './IssueDetailSheet';
 
 export default function Dashboard() {
   const role = useSettingsStore((s) => s.role);
@@ -27,7 +27,7 @@ export default function Dashboard() {
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, _hasHydrated } = useAuthStore();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
   const [gitlabToken, setGitlabToken] = useState<string | null>(null);
-  const [selectedIssueKey, setSelectedIssueKey] = useState<string | null>(null);
+  const { onIssueClick: setSelectedIssueKey } = useOutletContext<{ onIssueClick: (key: string) => void }>();
   // Track whether the GitLab token read from Stronghold has settled so panels
   // can show a skeleton immediately rather than a premature empty state.
   const [gitlabTokenLoading, setGitlabTokenLoading] = useState(true);
@@ -101,11 +101,6 @@ export default function Dashboard() {
             />
           </div>
         </div>
-        <IssueDetailSheet
-          issueKey={selectedIssueKey}
-          onClose={() => setSelectedIssueKey(null)}
-          onOpenIssue={setSelectedIssueKey}
-        />
       </>
     );
   }
@@ -134,11 +129,6 @@ export default function Dashboard() {
           />
         </div>
       </div>
-      <IssueDetailSheet
-        issueKey={selectedIssueKey}
-        onClose={() => setSelectedIssueKey(null)}
-        onOpenIssue={setSelectedIssueKey}
-      />
     </>
   );
 }

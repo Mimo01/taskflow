@@ -13,6 +13,7 @@
  * Drag-and-drop: optimistic update + rollback on API failure.
  */
 import React, { useState, useEffect, useMemo } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { RefreshCw } from 'lucide-react'
 import {
@@ -37,7 +38,6 @@ import { readSecret } from '@/services/stronghold'
 import DraggableCard from './DraggableCard'
 import TaskCard from './TaskCard'
 import { StoryHeaderRow } from './StoryHeaderRow'
-import { IssueDetailSheet } from './IssueDetailSheet'
 
 /** The three fixed columns — all Jira statuses map into one of these via statusCategory. */
 const CATEGORY_COLUMNS = [
@@ -94,7 +94,7 @@ export default function SprintBoardTab() {
   const { jiraBaseUrl, activeJiraProject } = useAuthStore()
   const { storyPointsFieldKey } = useSettingsStore()
   const [jiraToken, setJiraToken] = useState<string | null>(null)
-  const [selectedIssueKey, setSelectedIssueKey] = useState<string | null>(null)
+  const { onIssueClick: setSelectedIssueKey } = useOutletContext<{ onIssueClick: (key: string) => void }>()
   const queryClient = useQueryClient()
 
   const [collapsedStories, setCollapsedStories] = useState<Set<string>>(new Set())
@@ -431,11 +431,6 @@ export default function SprintBoardTab() {
         </DragOverlay>
       </DndContext>
 
-      <IssueDetailSheet
-        issueKey={selectedIssueKey}
-        onClose={() => setSelectedIssueKey(null)}
-        onOpenIssue={setSelectedIssueKey}
-      />
     </>
   )
 }
