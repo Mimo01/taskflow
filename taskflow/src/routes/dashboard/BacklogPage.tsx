@@ -1,19 +1,22 @@
 /**
- * BacklogPage — Full-page backlog route component.
+ * BacklogPage — Jira-style backlog view with sprint sections.
  *
- * Fetches all backlog issues via fetchBacklogIssues and active sprint via fetchActiveSprint.
- * Manages client-side filter state (epic, label, assignee) with AND logic.
- * Manages checkbox selection state for bulk "Move to sprint" action.
- * Renders BacklogFilterBar and a table of BacklogRow components.
+ * Renders:
+ *   1. Active sprint section (if any) — collapsible, with sprint name, badge, issue count
+ *   2. Future sprint sections — one per sprint, ordered by start date
+ *   3. Backlog section — issues with no sprint assignment, always at bottom
  *
- * IssueDetailSheet is NOT nested here — row clicks call onIssueClick from outlet context.
- * openCreateStory from outlet context opens the CreateEditIssueModal (added in Plan 03).
+ * Each section uses BacklogRow for individual issue rows.
+ * BacklogFilterBar applies filters across ALL sections combined.
+ * Bulk "Move to sprint" action bar and handleMoveToSprint remain unchanged.
+ * Create story entry point via Outlet context remains unchanged.
  */
 import { useState, useEffect, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { JiraIssue, JiraActiveSprint } from '@/services/jira';
-import { fetchBacklogIssues, fetchActiveSprint, addIssuesToSprint } from '@/services/jira';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import type { JiraIssue, JiraActiveSprint, BacklogViewData } from '@/services/jira';
+import { fetchBacklogView, fetchActiveSprint, addIssuesToSprint } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -44,12 +47,12 @@ export default function BacklogPage() {
   // ── Queries ─────────────────────────────────────────────────────────────────
 
   const {
-    data: issues,
+    data: backlogView,
     isLoading,
-  } = useQuery<JiraIssue[]>({
-    queryKey: ['jira-backlog', activeJiraProject, jiraBaseUrl],
+  } = useQuery<BacklogViewData>({
+    queryKey: ['jira-backlog-view', activeJiraProject, jiraBaseUrl],
     queryFn: () =>
-      fetchBacklogIssues(
+      fetchBacklogView(
         jiraBaseUrl!,
         jiraToken!,
         activeJiraProject!,
@@ -68,6 +71,22 @@ export default function BacklogPage() {
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
 
+  // ── Collapse state (all sections open by default) ────────────────────────────
+
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+
+  function toggleSection(sectionId: string) {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) {
+        next.delete(sectionId);
+      } else {
+        next.add(sectionId);
+      }
+      return next;
+    });
+  }
+
   // ── Filter state ─────────────────────────────────────────────────────────────
 
   const [activeEpic, setActiveEpic] = useState<string | null>(null);
@@ -82,28 +101,35 @@ export default function BacklogPage() {
 
   const [bulkError, setBulkError] = useState<string | null>(null);
 
-  // ── Filter options (derived from raw issues) ─────────────────────────────────
+  // ── All issues combined (for filter options) ─────────────────────────────────
+
+  const allIssues = useMemo<JiraIssue[]>(() => {
+    if (!backlogView) return [];
+    const sprintIssues = backlogView.sprints.flatMap((s) => s.issues);
+    return [...sprintIssues, ...backlogView.backlog];
+  }, [backlogView]);
+
+  // ── Filter options (derived from all issues across all sections) ──────────────
 
   const filterOptions = useMemo(() => {
     const epics = new Map<string, string>(); // epicKey → epicName
     const labels = new Set<string>();
     const assignees = new Set<string>();
-    for (const issue of issues ?? []) {
+    for (const issue of allIssues) {
       const epicKey = issue.fields[epicLinkFieldKey] as string | null;
       const epicName = issue.fields[epicNameFieldKey] as string | null;
-      if (epicKey) epics.set(epicKey, epicName ?? epicKey); // fall back to key if no name
+      if (epicKey) epics.set(epicKey, epicName ?? epicKey);
       for (const label of (issue.fields.labels as string[] | undefined) ?? []) {
         labels.add(label);
       }
       if (issue.fields.assignee?.displayName) assignees.add(issue.fields.assignee.displayName);
     }
     return { epics, labels: Array.from(labels), assignees: Array.from(assignees) };
-  }, [issues, epicLinkFieldKey, epicNameFieldKey]);
+  }, [allIssues, epicLinkFieldKey, epicNameFieldKey]);
 
-  // ── Visible issues (client-side filtering) ───────────────────────────────────
+  // ── Filter application helper ─────────────────────────────────────────────────
 
-  const visibleIssues = useMemo(() => {
-    if (!issues) return [];
+  function applyFilters(issues: JiraIssue[]): JiraIssue[] {
     return issues.filter((issue) => {
       const epicMatch =
         !activeEpic ||
@@ -115,7 +141,7 @@ export default function BacklogPage() {
         !activeAssignee || issue.fields.assignee?.displayName === activeAssignee;
       return epicMatch && labelMatch && assigneeMatch;
     });
-  }, [issues, activeEpic, activeLabels, activeAssignee, epicLinkFieldKey]);
+  }
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
@@ -135,23 +161,141 @@ export default function BacklogPage() {
     if (!activeSprint || selectedKeys.size === 0) return;
     const keysToMove = Array.from(selectedKeys);
     // Optimistic removal from cache
-    const previousIssues = queryClient.getQueryData<JiraIssue[]>(['jira-backlog', activeJiraProject, jiraBaseUrl]);
-    queryClient.setQueryData<JiraIssue[]>(
-      ['jira-backlog', activeJiraProject, jiraBaseUrl],
-      (old) => (old ?? []).filter((i) => !selectedKeys.has(i.key)),
+    const previousView = queryClient.getQueryData<BacklogViewData>(['jira-backlog-view', activeJiraProject, jiraBaseUrl]);
+    queryClient.setQueryData<BacklogViewData>(
+      ['jira-backlog-view', activeJiraProject, jiraBaseUrl],
+      (old) => {
+        if (!old) return old;
+        return {
+          sprints: old.sprints.map((s) => ({
+            ...s,
+            issues: s.issues.filter((i) => !selectedKeys.has(i.key)),
+          })),
+          backlog: old.backlog.filter((i) => !selectedKeys.has(i.key)),
+        };
+      },
     );
     setSelectedKeys(new Set());
     setBulkError(null);
     try {
       await addIssuesToSprint(jiraBaseUrl!, jiraToken!, activeSprint.id, keysToMove);
       queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-backlog-view'] });
     } catch (err) {
       // Rollback on failure
-      queryClient.setQueryData(['jira-backlog', activeJiraProject, jiraBaseUrl], previousIssues);
+      queryClient.setQueryData(['jira-backlog-view', activeJiraProject, jiraBaseUrl], previousView);
       setSelectedKeys(new Set(keysToMove));
       setBulkError(err instanceof Error ? err.message : 'Failed to add issues to sprint');
     }
+  }
+
+  // ── Section renderer ──────────────────────────────────────────────────────────
+
+  function renderSection(
+    sectionId: string,
+    title: string,
+    badge: string | null,
+    issues: JiraIssue[],
+    showCreateStory: boolean,
+  ) {
+    const isCollapsed = collapsedSections.has(sectionId);
+    const filteredIssues = applyFilters(issues);
+
+    return (
+      <div key={sectionId} className="mb-2" data-testid={`sprint-section-${sectionId}`}>
+        {/* Section header */}
+        <button
+          type="button"
+          onClick={() => toggleSection(sectionId)}
+          className="flex items-center gap-2 w-full px-4 py-2 bg-muted/40 hover:bg-muted/60 border-b border-border transition-colors text-left"
+          data-testid={`section-header-${sectionId}`}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+          )}
+          <span className="text-sm font-semibold">{title}</span>
+          {badge && (
+            <span
+              className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border ${
+                badge === 'Active'
+                  ? 'bg-green-100 text-green-800 border-green-300'
+                  : 'bg-blue-100 text-blue-800 border-blue-300'
+              }`}
+            >
+              {badge}
+            </span>
+          )}
+          <span className="ml-auto text-xs text-muted-foreground">
+            {issues.length} {issues.length === 1 ? 'issue' : 'issues'}
+          </span>
+        </button>
+
+        {/* Section body */}
+        {!isCollapsed && (
+          <div>
+            {filteredIssues.length > 0 ? (
+              <table className="w-full text-sm">
+                <thead className="border-b bg-muted/10">
+                  <tr>
+                    <th className="w-8 px-3 py-2" />
+                    <th className="w-24 px-2 py-2 text-left text-xs font-medium text-muted-foreground">
+                      Key
+                    </th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
+                      Summary
+                    </th>
+                    <th className="w-14 px-2 py-2 text-right text-xs font-medium text-muted-foreground">
+                      Points
+                    </th>
+                    <th className="w-10 px-2 py-2 text-xs font-medium text-muted-foreground">
+                      Assignee
+                    </th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
+                      Epic
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredIssues.map((issue) => (
+                    <BacklogRow
+                      key={issue.key}
+                      issue={issue}
+                      selected={selectedKeys.has(issue.key)}
+                      onSelect={handleSelect}
+                      onIssueClick={onIssueClick}
+                      storyPointsFieldKey={storyPointsFieldKey}
+                      epicLinkFieldKey={epicLinkFieldKey}
+                      epicNameFieldKey={epicNameFieldKey}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            ) : issues.length > 0 ? (
+              /* All issues filtered out */
+              <p className="px-4 py-3 text-sm text-muted-foreground">
+                No issues match the current filters
+              </p>
+            ) : null}
+
+            {/* Create story button at the bottom of the section */}
+            {showCreateStory && (
+              <div className="px-4 py-2 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => openCreateStory()}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  data-testid={`create-story-${sectionId}`}
+                >
+                  + Create Story
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
   }
 
   // ── Render ────────────────────────────────────────────────────────────────────
@@ -169,7 +313,6 @@ export default function BacklogPage() {
           + Create Story
         </button>
       </div>
-
 
       {/* Filter bar */}
       <BacklogFilterBar
@@ -191,7 +334,8 @@ export default function BacklogPage() {
               <div key={i} className="h-10 animate-pulse rounded bg-muted" />
             ))}
           </div>
-        ) : visibleIssues.length === 0 ? (
+        ) : !backlogView ||
+          (backlogView.sprints.length === 0 && backlogView.backlog.length === 0) ? (
           /* Empty state */
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <p className="text-base font-medium text-foreground">No backlog issues</p>
@@ -200,43 +344,28 @@ export default function BacklogPage() {
             </p>
           </div>
         ) : (
-          /* Issue table */
-          <table className="w-full text-sm">
-            <thead className="border-b bg-muted/20">
-              <tr>
-                <th className="w-8 px-3 py-2" />
-                <th className="w-24 px-2 py-2 text-left text-xs font-medium text-muted-foreground">
-                  Key
-                </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
-                  Summary
-                </th>
-                <th className="w-14 px-2 py-2 text-right text-xs font-medium text-muted-foreground">
-                  Points
-                </th>
-                <th className="w-10 px-2 py-2 text-xs font-medium text-muted-foreground">
-                  Assignee
-                </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
-                  Epic
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleIssues.map((issue) => (
-                <BacklogRow
-                  key={issue.key}
-                  issue={issue}
-                  selected={selectedKeys.has(issue.key)}
-                  onSelect={handleSelect}
-                  onIssueClick={onIssueClick}
-                  storyPointsFieldKey={storyPointsFieldKey}
-                  epicLinkFieldKey={epicLinkFieldKey}
-                  epicNameFieldKey={epicNameFieldKey}
-                />
-              ))}
-            </tbody>
-          </table>
+          /* Sprint sections + backlog section */
+          <div>
+            {/* Sprint sections (active first, then future) */}
+            {backlogView.sprints.map(({ sprint, issues }) =>
+              renderSection(
+                `sprint-${sprint.id}`,
+                sprint.name,
+                sprint.state === 'active' ? 'Active' : 'Future',
+                issues,
+                false,
+              ),
+            )}
+
+            {/* Backlog section — always last */}
+            {renderSection(
+              'backlog',
+              'Backlog',
+              null,
+              backlogView.backlog,
+              true,
+            )}
+          </div>
         )}
       </div>
 
