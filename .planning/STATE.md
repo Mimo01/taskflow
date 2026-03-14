@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
 status: executing
-stopped_at: Completed 09-07-PLAN.md (IssueDetailSheet wired into SprintBoardTab and MyTasksTab)
-last_updated: "2026-03-14T10:25:00Z"
-last_activity: 2026-03-14 — Completed 09-07 (TaskCard onClick, TaskRow onIssueClick, IssueDetailSheet entry points in sprint board and My Tasks)
+stopped_at: Completed 09-08-PLAN.md (checkpoint — awaiting human verification of all four IssueDetailSheet entry points)
+last_updated: "2026-03-14T10:30:00Z"
+last_activity: 2026-03-14 — Completed 09-08 task 1 (IssueDetailSheet lifted to AppLayout; search results and Jira notification rows wired)
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 8
-  completed_plans: 7
-  percent: 88
+  completed_plans: 8
+  percent: 100
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 Phase: 9 of 13 (Custom Field Discovery + Issue Detail Foundation)
-Plan: 09-07 complete (7 of 8 plans done in phase 9)
-Status: Executing
-Last activity: 2026-03-14 — Completed 09-07 (TaskCard onClick, TaskRow onIssueClick, IssueDetailSheet wired into SprintBoardTab and MyTasksTab with selectedIssueKey state + subtask navigation)
+Plan: 09-08 complete (8 of 8 plans done in phase 9) — AWAITING HUMAN VERIFICATION CHECKPOINT
+Status: Executing (at checkpoint)
+Last activity: 2026-03-14 — Completed 09-08 task 1 (IssueDetailSheet lifted to AppLayout; search results and Jira notification rows wired via onIssueClick prop threading)
 
-Progress: [██████░░░░] 75% (v1.2, 6/8 plans)
+Progress: [████████░░] 100% (v1.2, 8/8 plans — all code complete, pending human verification)
 
 ## Performance Metrics
 
@@ -83,6 +83,10 @@ Key v1.2 constraints from research:
 - [09-07]: IssueDetailSheet is a named export — import { IssueDetailSheet }, not default import
 - [09-07]: SprintBoardTab sheet placed as React fragment sibling outside DndContext DOM subtree — DndContext stays mounted while sheet is open
 - [09-07]: onOpenIssue=setSelectedIssueKey implements single-sheet subtask navigation (key replacement, no nesting)
+- [09-08]: IssueDetailSheet lifted to AppLayout (main.tsx) — search/notifications live in TopBar (global shell), not inside a route; only AppLayout level can serve all entry points
+- [09-08]: onIssueClick prop threading used (not React context) — codebase has zero existing context usage; explicit props kept
+- [09-08]: Jira issue key extracted from NotificationItem.entityTitle ("PROJ-123: ...") with /browse/ URL as fallback — entityTitle format is stable
+- [09-08]: Dashboard/index.tsx gets its own selectedIssueKey for SubtasksPanel — route components can't access AppLayout state without prop drilling through router
 
 ### Pending Todos
 
@@ -97,6 +101,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-14T10:25:00Z
-Stopped at: Completed 09-07-PLAN.md (IssueDetailSheet wired into SprintBoardTab and MyTasksTab)
+Last session: 2026-03-14T10:30:00Z
+Stopped at: 09-08 checkpoint:human-verify — all four entry points coded; awaiting live app verification
 Resume file: None
