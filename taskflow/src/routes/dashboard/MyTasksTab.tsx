@@ -38,6 +38,7 @@ import {
 import type { ReviewHealth } from '@/services/linkEngine'
 import type { GitLabMR } from '@/services/gitlab'
 import TaskRow from './TaskRow'
+import { IssueDetailSheet } from './IssueDetailSheet'
 
 export default function MyTasksTab() {
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, activeGitlabProject, gitlabUserId } = useAuthStore()
@@ -213,6 +214,7 @@ export default function MyTasksTab() {
 
   // Per-row inline errors: keyed by `${issueKey}-transition` or `${issueKey}-comment`
   const [inlineErrors, setInlineErrors] = useState<Record<string, string>>({})
+  const [selectedIssueKey, setSelectedIssueKey] = useState<string | null>(null)
 
   // Transition mutation with optimistic update
   const transitionMutation = useMutation({
@@ -287,6 +289,7 @@ export default function MyTasksTab() {
     : 'Refreshed: Never'
 
   return (
+    <>
     <div className="flex flex-col gap-2 p-4">
       {/* Header row with last-refreshed and refresh button */}
       <div className="flex items-center justify-end gap-2 pb-2">
@@ -348,6 +351,7 @@ export default function MyTasksTab() {
                   linkedMrResults={linkedMrResults}
                   jiraBaseUrl={jiraBaseUrl ?? ''}
                   jiraToken={jiraToken ?? ''}
+                  onIssueClick={(key) => setSelectedIssueKey(key)}
                   onTransitionSelect={(issueKey, transitionId, toStatusName) => {
                     setInlineErrors((prev) => { const next = { ...prev }; delete next[`${issueKey}-transition`]; return next })
                     transitionMutation.mutate({ issueKey, transitionId, toStatusName })
@@ -379,5 +383,11 @@ export default function MyTasksTab() {
         </div>
       )}
     </div>
+    <IssueDetailSheet
+      issueKey={selectedIssueKey}
+      onClose={() => setSelectedIssueKey(null)}
+      onOpenIssue={setSelectedIssueKey}
+    />
+    </>
   )
 }
