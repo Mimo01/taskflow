@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
-current_plan: 4 of 4 (complete)
-status: verifying
-stopped_at: Completed 13-05-PLAN.md — Phase 13 and v1.2 milestone fully complete
-last_updated: "2026-03-14T23:11:30.973Z"
-last_activity: 2026-03-14 — Completed 13-05 (Human verification passed — EPIC-01..04 confirmed on Orange Jira instance; v1.2 milestone achieved)
+current_plan: 2 of 3 (phase 14)
+status: in-progress
+stopped_at: Completed 14-02-PLAN.md — cache invalidation key fix for backlog refresh after story creation
+last_updated: "2026-03-15T00:44:00Z"
+last_activity: 2026-03-15 — Completed 14-02 (fixed handleCreateModalClose cache key from jira-backlog to jira-backlog-view; BACK-03 GREEN)
 progress:
   total_phases: 5
   completed_phases: 5
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 
 ## Current Position
 
-Phase: 13 of 13 (Epic Management) — COMPLETE
-Current Plan: 4 of 4 (complete)
-Next: All phases complete — v1.2 milestone achieved
-Status: Phase 13 fully complete — all EPIC requirements (EPIC-01..04) human-verified on Orange Jira instance; v1.2 milestone achieved
-Last activity: 2026-03-14 — Completed 13-05 (Human verification passed — EPIC-01..04 confirmed on Orange Jira instance; v1.2 milestone achieved)
+Phase: 14 of 14 (Fix Wiring & Credential Bugs) — IN PROGRESS
+Current Plan: 2 of 3 complete
+Next: 14-03 (next gap fix plan)
+Status: 14-02 complete — cache invalidation key fix for backlog refresh after story creation; BACK-03 GREEN
+Last activity: 2026-03-15 — Completed 14-02 (fixed handleCreateModalClose cache key; backlog now refreshes after story creation)
 
 Progress: [██████████] 100% (v1.2, 5/5 plans — Phase 13 fully complete)
 
@@ -128,6 +128,7 @@ Key v1.2 constraints from research:
 - [13-04]: EpicDetailBody split as internal component — hooks rules compliance (useQuery not called when epicKey is null)
 - [Phase 13-epic-management]: 13-05: Full test suite gated at 367 passing (above 351 baseline) — all 4 EPIC test files GREEN before human verification checkpoint
 - [Phase 13]: 13-05: Human verification on Orange Jira instance confirmed EPIC-01..04 all pass — integration with real Jira DC data confirmed
+- [14-02]: Cache invalidation prefix pattern — invalidateQueries({ queryKey: ['jira-backlog-view'] }) matches all ['jira-backlog-view', project, url] variants; old key ['jira-backlog'] never matched anything
 
 ### Pending Todos
 
