@@ -131,14 +131,20 @@ export default function BacklogPage() {
 
   function applyFilters(issues: JiraIssue[]): JiraIssue[] {
     return issues.filter((issue) => {
-      const epicMatch =
-        !activeEpic ||
-        (issue.fields[epicLinkFieldKey] as string | null) === activeEpic;
+      const epicMatch = (() => {
+        if (!activeEpic) return true;
+        const epicKey = issue.fields[epicLinkFieldKey] as string | null;
+        const epicName = filterOptions.epics.get(epicKey ?? '') ?? epicKey ?? '';
+        return epicName.toLowerCase().includes(activeEpic.toLowerCase());
+      })();
       const labelMatch =
         activeLabels.size === 0 ||
         (issue.fields.labels as string[] | undefined ?? []).some((l) => activeLabels.has(l));
       const assigneeMatch =
-        !activeAssignee || issue.fields.assignee?.displayName === activeAssignee;
+        !activeAssignee ||
+        (issue.fields.assignee?.displayName ?? '')
+          .toLowerCase()
+          .includes(activeAssignee.toLowerCase());
       return epicMatch && labelMatch && assigneeMatch;
     });
   }
