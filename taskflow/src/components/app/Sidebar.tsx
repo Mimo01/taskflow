@@ -23,6 +23,7 @@ import {
   Bug,
   PlusSquare,
   List,
+  BookOpen,
 } from 'lucide-react';
 import { useSettingsStore } from '@/stores/settings.store';
 
@@ -63,6 +64,12 @@ export default function Sidebar({ onOpenCreate }: SidebarProps) {
           <PlusSquare className="h-4 w-4 shrink-0" />
           <span className="hidden md:block">Create Issue</span>
         </button>
+
+        {/* Shared: Epics (visible for all roles) */}
+        <NavLink to="/epics" className={navLinkClass}>
+          <BookOpen className="h-4 w-4 shrink-0" />
+          <span className="hidden md:block">Epics</span>
+        </NavLink>
 
         {/* Work section (role-specific) */}
         {(role === 'developer' || role === 'pm' || role === 'tech-lead') && (
