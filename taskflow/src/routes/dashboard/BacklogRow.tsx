@@ -88,12 +88,14 @@ export function BacklogRow({
       {/* Epic badge cell — right after key */}
       <td className="w-32 px-2 py-2">
         {epicKey && epicName ? (
-          <span
-            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium truncate max-w-full ${epicColorClass(epicKey)}`}
+          <button
+            type="button"
+            onClick={() => onIssueClick(epicKey)}
+            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium truncate max-w-full hover:opacity-80 transition-opacity ${epicColorClass(epicKey)}`}
             title={epicName}
           >
             {epicName}
-          </span>
+          </button>
         ) : null}
       </td>
 
