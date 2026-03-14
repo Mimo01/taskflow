@@ -3,8 +3,10 @@ import { WikiRenderer } from './WikiRenderer'
 import { CommentComposer } from './CommentComposer'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, Pencil, Plus } from 'lucide-react'
 import { openUrl } from '@tauri-apps/plugin-opener'
+import { useSettingsStore } from '@/stores/settings.store'
+import type { EditInitialValues } from './CreateEditIssueModal'
 
 interface IssueDetailContentProps {
   issue: JiraIssueDetail
@@ -14,6 +16,8 @@ interface IssueDetailContentProps {
   storyPointsFieldKey: string
   sprintFieldKey: string
   epicLinkFieldKey: string
+  onEdit?: (initialValues: EditInitialValues) => void
+  onAddSubtask?: (parentKey: string) => void
 }
 
 function relativeTime(iso: string): string {
@@ -26,9 +30,10 @@ function relativeTime(iso: string): string {
   return rtf.format(-Math.floor(diffSecs / 86400), 'day')
 }
 
-export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue }: IssueDetailContentProps) {
+export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, onEdit, onAddSubtask }: IssueDetailContentProps) {
   const { summary, description, subtasks } = issue.fields
   const comments = issue.fields.comment?.comments ?? []
+  const { storyPointsFieldKey, epicLinkFieldKey } = useSettingsStore()
 
   return (
     <div className="space-y-6">
@@ -49,31 +54,58 @@ export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue }
       </section>
 
       {/* Subtasks */}
-      {subtasks && subtasks.length > 0 && (
-        <section>
-          <h3 className="text-sm font-medium text-muted-foreground mb-2">
-            Subtasks ({subtasks.length})
-          </h3>
-          <ul className="space-y-1">
-            {subtasks.map((sub) => (
-              <li key={sub.id}>
-                <button
-                  type="button"
-                  onClick={() => onOpenIssue?.(sub.key)}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent text-sm text-left"
-                >
-                  <span className="font-mono text-xs text-muted-foreground shrink-0">{sub.key}</span>
-                  <span className="flex-1 truncate">{sub.fields.summary}</span>
-                  <Badge variant="outline" className="text-xs shrink-0">{sub.fields.status.name}</Badge>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <section>
+        {subtasks && subtasks.length > 0 && (
+          <>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">
+              Subtasks ({subtasks.length})
+            </h3>
+            <ul className="space-y-1">
+              {subtasks.map((sub) => (
+                <li key={sub.id}>
+                  <button
+                    type="button"
+                    onClick={() => onOpenIssue?.(sub.key)}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent text-sm text-left"
+                  >
+                    <span className="font-mono text-xs text-muted-foreground shrink-0">{sub.key}</span>
+                    <span className="flex-1 truncate">{sub.fields.summary}</span>
+                    <Badge variant="outline" className="text-xs shrink-0">{sub.fields.status.name}</Badge>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        <button
+          type="button"
+          onClick={() => onAddSubtask?.(issueKey)}
+          className="mt-1 flex items-center gap-1.5 px-2 py-1.5 rounded text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+        >
+          <Plus className="size-3.5" />
+          Add subtask
+        </button>
+      </section>
 
-      {/* Open in Jira */}
-      <div className="flex justify-end">
+      {/* Open in Jira + Edit */}
+      <div className="flex justify-end gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onEdit?.({
+            issueKey,
+            summary: issue.fields.summary,
+            description: issue.fields.description ?? '',
+            assigneeName: issue.fields.assignee?.name ?? null,
+            priority: issue.fields.priority?.name ?? null,
+            storyPoints: issue.fields[storyPointsFieldKey] as number ?? null,
+            epicLinkKey: issue.fields[epicLinkFieldKey] as string ?? null,
+          })}
+          className="gap-1.5 text-xs"
+        >
+          <Pencil className="size-3.5" />
+          Edit
+        </Button>
         <Button
           variant="outline"
           size="sm"
