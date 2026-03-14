@@ -564,48 +564,51 @@ export function CreateEditIssueModal({
             {/* Assignee */}
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium">Assignee</label>
-              <div className="relative">
-                <Input
-                  value={assigneeInputValue}
-                  onChange={(e) => {
-                    setAssigneeInputValue(e.target.value)
+              <Input
+                value={assigneeInputValue}
+                onChange={(e) => {
+                  setAssigneeInputValue(e.target.value)
+                  setSelectedAssigneeName(null)
+                  setShowAssigneeResults(true)
+                  debouncedSearch(e.target.value)
+                }}
+                onFocus={() => {
+                  if (selectedAssigneeName) {
+                    // Clear so the user can type a fresh search immediately
+                    setAssigneeInputValue('')
                     setSelectedAssigneeName(null)
-                    setShowAssigneeResults(true)
-                    debouncedSearch(e.target.value)
-                  }}
-                  onFocus={(e) => {
-                    if (selectedAssigneeName) e.target.select()
-                    setShowAssigneeResults(true)
-                  }}
-                  onBlur={() => setTimeout(() => setShowAssigneeResults(false), 150)}
-                  placeholder="Search assignee..."
-                  disabled={isPending}
-                />
-                {showAssigneeResults && (assigneeLoading || assigneeResults.length > 0) && (
-                  <div className="absolute z-10 mt-1 w-full rounded-lg border bg-popover shadow-md">
-                    {assigneeLoading && (
-                      <div className="px-3 py-2 text-sm text-muted-foreground">
-                        Searching...
-                      </div>
-                    )}
-                    {assigneeResults.map((user) => (
-                      <button
-                        key={user.name}
-                        type="button"
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
-                        onMouseDown={() => {
-                          setSelectedAssigneeName(user.name)
-                          setAssigneeInputValue(user.displayName)
-                          setAssigneeResults([])
-                          setShowAssigneeResults(false)
-                        }}
-                      >
-                        {user.displayName} ({user.name})
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                    setAssigneeResults([])
+                  }
+                  setShowAssigneeResults(true)
+                }}
+                onBlur={() => setTimeout(() => setShowAssigneeResults(false), 150)}
+                placeholder="Search assignee..."
+                disabled={isPending}
+              />
+              {showAssigneeResults && (assigneeLoading || assigneeResults.length > 0) && (
+                <div className="mt-1 rounded-lg border bg-popover shadow-md">
+                  {assigneeLoading && (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                      Searching...
+                    </div>
+                  )}
+                  {assigneeResults.map((user) => (
+                    <button
+                      key={user.name}
+                      type="button"
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
+                      onMouseDown={() => {
+                        setSelectedAssigneeName(user.name)
+                        setAssigneeInputValue(user.displayName)
+                        setAssigneeResults([])
+                        setShowAssigneeResults(false)
+                      }}
+                    >
+                      {user.displayName} ({user.name})
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Priority */}
