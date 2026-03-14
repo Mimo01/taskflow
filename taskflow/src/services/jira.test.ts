@@ -1,6 +1,7 @@
 // AUTH-01: Jira PAT validation
 // AUTH-06: Error banners for Jira validation failures
 // DEV-01, DEV-02, DEV-03, DEV-04: Phase 2 Jira sprint & transition functions
+// CREATE-01..04: Phase 11 new service functions (Wave 0 RED tests)
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   validateJira,
@@ -10,6 +11,11 @@ import {
   postTransition,
   postComment,
   fetchFixVersions,
+  fetchCreatemeta,
+  bulkUpdateIssue,
+  fetchIssueLinkTypes,
+  createIssueLink,
+  createIssue,
   type JiraIssue,
   type JiraIssueDetail,
   type JiraIssueLink,
@@ -988,6 +994,219 @@ describe('jira service', () => {
       await expect(
         createIssue('https://jira.example.com', 'token', 'PROJ', 'My new story'),
       ).rejects.toThrow('Failed to create issue: 400');
+    });
+  });
+
+  // ─── Phase 11: CREATE-01..04 Wave 0 RED Tests ────────────────────────────────
+
+  describe('CREATE-01: createIssue (extended)', () => {
+    it('sends issuetype, description, assignee, priority in body when provided', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 201,
+        json: async () => ({ id: '10002', key: 'PROJ-99' }),
+      } as Response);
+
+      const result = await createIssue('https://jira.example.com', 'token', 'PROJ', 'My story', {
+        issuetype: 'Bug',
+        description: 'Reproduce by clicking X',
+        assignee: { name: 'jdoe' },
+        priority: { name: 'High' },
+      });
+
+      const call = vi.mocked(mockFetch).mock.calls[0];
+      expect(call[0]).toContain('/rest/api/2/issue');
+      const options = call[1] as RequestInit;
+      expect(options.method).toBe('POST');
+      const body = JSON.parse(options.body as string);
+      expect(body.fields.issuetype).toEqual({ name: 'Bug' });
+      expect(body.fields.description).toBe('Reproduce by clicking X');
+      expect(body.fields.assignee).toEqual({ name: 'jdoe' });
+      expect(body.fields.priority).toEqual({ name: 'High' });
+      expect(result).toEqual({ id: '10002', key: 'PROJ-99' });
+    });
+
+    it('does NOT include undefined fields in body (never send undefined to Jira)', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 201,
+        json: async () => ({ id: '10003', key: 'PROJ-100' }),
+      } as Response);
+
+      await createIssue('https://jira.example.com', 'token', 'PROJ', 'Clean story', {
+        issuetype: 'Story',
+        description: undefined,
+        assignee: undefined,
+      });
+
+      const call = vi.mocked(mockFetch).mock.calls[0];
+      const options = call[1] as RequestInit;
+      const body = JSON.parse(options.body as string);
+      expect(body.fields).not.toHaveProperty('description');
+      expect(body.fields).not.toHaveProperty('assignee');
+    });
+  });
+
+  describe('CREATE-02: fetchCreatemeta', () => {
+    it('returns required fields from new 8.4+ endpoint (mock 200 with values array)', async () => {
+      const mockFields = [
+        { fieldId: 'summary', name: 'Summary', required: true, schema: { type: 'string' } },
+        { fieldId: 'customfield_10200', name: 'Account', required: true, schema: { type: 'option', custom: 'com.example:account' } },
+      ];
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ values: mockFields }),
+      } as Response);
+
+      const result = await fetchCreatemeta('https://jira.example.com', 'token', 'PROJ', '10001', 'Story');
+
+      const callUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      expect(callUrl).toContain('/rest/api/2/issue/createmeta/PROJ/issuetypes/10001');
+      expect(result).toEqual(mockFields);
+    });
+
+    it('falls back to legacy flat endpoint when new endpoint returns 404', async () => {
+      const legacyFields = {
+        summary: { fieldId: 'summary', name: 'Summary', required: true, schema: { type: 'string' } },
+        customfield_10200: { fieldId: 'customfield_10200', name: 'Account', required: true, schema: { type: 'option' } },
+      };
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 404,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            projects: [{
+              issuetypes: [{
+                fields: legacyFields,
+              }],
+            }],
+          }),
+        } as Response);
+
+      const result = await fetchCreatemeta('https://jira.example.com', 'token', 'PROJ', '10001', 'Story');
+
+      const secondCallUrl = vi.mocked(mockFetch).mock.calls[1][0] as string;
+      expect(secondCallUrl).toContain('/rest/api/2/issue/createmeta');
+      expect(secondCallUrl).toContain('projectKeys=PROJ');
+      expect(result).toHaveLength(2);
+    });
+  });
+
+  describe('CREATE-03: bulkUpdateIssue', () => {
+    it('sends PUT to /rest/api/2/issue/{key} with correct fields body', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 204,
+      } as Response);
+
+      await bulkUpdateIssue('https://jira.example.com', 'token', 'PROJ-5', {
+        summary: 'Updated summary',
+        priority: { name: 'High' },
+      });
+
+      const call = vi.mocked(mockFetch).mock.calls[0];
+      expect(call[0]).toContain('/rest/api/2/issue/PROJ-5');
+      const options = call[1] as RequestInit;
+      expect(options.method).toBe('PUT');
+      const body = JSON.parse(options.body as string);
+      expect(body).toEqual({
+        fields: {
+          summary: 'Updated summary',
+          priority: { name: 'High' },
+        },
+      });
+    });
+
+    it('treats 204 (Jira DC success) as success without throwing', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 204,
+      } as Response);
+
+      await expect(
+        bulkUpdateIssue('https://jira.example.com', 'token', 'PROJ-5', { summary: 'New summary' }),
+      ).resolves.toBeUndefined();
+    });
+
+    it('throws with Jira error message on failure', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ errorMessages: ['Field not on screen: customfield_99999'] }),
+      } as Response);
+
+      await expect(
+        bulkUpdateIssue('https://jira.example.com', 'token', 'PROJ-5', { customfield_99999: 'bad' }),
+      ).rejects.toThrow('Field not on screen: customfield_99999');
+    });
+  });
+
+  describe('CREATE-04: fetchIssueLinkTypes', () => {
+    it('returns array from mocked issueLinkType response', async () => {
+      const mockLinkTypes = [
+        { id: '10000', name: 'Blocks', inward: 'is blocked by', outward: 'blocks' },
+        { id: '10001', name: 'Cloners', inward: 'is cloned by', outward: 'clones' },
+        { id: '10002', name: 'Relates', inward: 'relates to', outward: 'relates to' },
+      ];
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ issueLinkTypes: mockLinkTypes }),
+      } as Response);
+
+      const result = await fetchIssueLinkTypes('https://jira.example.com', 'token');
+
+      const callUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      expect(callUrl).toContain('/rest/api/2/issueLinkType');
+      expect(result).toEqual(mockLinkTypes);
+    });
+
+    it('returns empty array on non-ok response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 403,
+      } as Response);
+
+      const result = await fetchIssueLinkTypes('https://jira.example.com', 'token');
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('CREATE-04: createIssueLink', () => {
+    it('sends POST with type.id, inwardIssue.key, outwardIssue.key', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 201,
+      } as Response);
+
+      await createIssueLink('https://jira.example.com', 'token', '10000', 'PROJ-1', 'PROJ-2');
+
+      const call = vi.mocked(mockFetch).mock.calls[0];
+      expect(call[0]).toContain('/rest/api/2/issueLink');
+      const options = call[1] as RequestInit;
+      expect(options.method).toBe('POST');
+      const body = JSON.parse(options.body as string);
+      expect(body).toEqual({
+        type: { id: '10000' },
+        inwardIssue: { key: 'PROJ-1' },
+        outwardIssue: { key: 'PROJ-2' },
+      });
+    });
+
+    it('throws on non-201/200 response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+      } as Response);
+
+      await expect(
+        createIssueLink('https://jira.example.com', 'token', '10000', 'PROJ-1', 'PROJ-2'),
+      ).rejects.toThrow('Failed to create issue link');
     });
   });
 });
