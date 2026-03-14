@@ -172,4 +172,4 @@ Plans:
 | 11. Create/Edit Issue Form | 4/5 | In Progress|  | - |
 | 12. Backlog View | 4/4 | Complete    | 2026-03-14 | - |
 | 13. Epic Management | 5/5 | Complete    | 2026-03-14 | - |
-| 14. Fix v1.2 Wiring and Credential Bugs | v1.2 | 3/3 | Complete | 2026-03-15 |
+| 14. Fix v1.2 Wiring and Credential Bugs | v1.2 | Complete    | 2026-03-14 | 2026-03-15 |
