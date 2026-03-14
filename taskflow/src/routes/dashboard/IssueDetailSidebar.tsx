@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import { useQueryClient, useMutation } from '@tanstack/react-query'
+import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query'
 import type { JiraIssueDetail } from '@/services/jira'
 import { updateIssueField } from '@/services/jira'
 import { apiFetch } from '@/lib/apiFetch'
@@ -91,9 +91,7 @@ export function IssueDetailSidebar({
 
   const storyPoints = f[storyPointsFieldKey] as number | null
   // For stories: epicLinkFieldKey holds the parent epic key string (e.g. "PROJ-42")
-  // For epics: epicNameFieldKey holds the epic's own display name
   const epicLink = isStory ? (f[epicLinkFieldKey] as string | null) : null
-  const epicOwnName = isEpic ? (f[epicNameFieldKey] as string | null) : null
   const rawSprint = f[sprintFieldKey] as Array<{ name: string; state: string }> | string | null | undefined
   const sprintName = typeof rawSprint === 'string'
     ? rawSprint
@@ -101,8 +99,26 @@ export function IssueDetailSidebar({
       ? (rawSprint.find(s => s.state === 'active') ?? rawSprint[0])?.name ?? null
       : null
 
-  const { jiraBaseUrl: storeJiraBaseUrl } = useAuthStore()
+  const { jiraBaseUrl: storeJiraBaseUrl, jiraConnected } = useAuthStore()
   const effectiveJiraBaseUrl = jiraBaseUrl || storeJiraBaseUrl || ''
+
+  // Fetch epic name for stories — lightweight single-issue fetch
+  const { data: epicIssue } = useQuery({
+    queryKey: ['jira-issue-name', epicLink, effectiveJiraBaseUrl],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null)
+      if (!token) return null
+      const url = `${effectiveJiraBaseUrl.replace(/\/$/, '')}/rest/api/2/issue/${epicLink}?fields=summary,${epicNameFieldKey}`
+      const resp = await apiFetch('jira', url, { headers: { Authorization: `Bearer ${token}` } })
+      if (!resp.ok) return null
+      return resp.json() as Promise<{ fields: { summary: string; [k: string]: unknown } }>
+    },
+    enabled: isStory && !!epicLink && !!effectiveJiraBaseUrl && !!jiraConnected,
+    staleTime: 60_000,
+  })
+  const epicName = epicIssue
+    ? ((epicIssue.fields[epicNameFieldKey] as string | null) ?? epicIssue.fields.summary)
+    : null
 
   const mutation = useFieldMutation(issueKey, effectiveJiraBaseUrl)
 
@@ -317,16 +333,16 @@ export function IssueDetailSidebar({
         </MetaRow>
       )}
 
-      {/* Epic link — stories only */}
+      {/* Epic — stories only: key + name once loaded */}
       {isStory && (
         <MetaRow label="Epic">
-          <span className="font-mono text-xs">{epicLink ?? '—'}</span>
+          {epicLink ? (
+            <>
+              <span className="font-mono text-xs">{epicLink}</span>
+              {epicName && <span className="text-xs text-muted-foreground ml-1">— {epicName}</span>}
+            </>
+          ) : '—'}
         </MetaRow>
-      )}
-
-      {/* Epic own name — epics only */}
-      {isEpic && epicOwnName && (
-        <MetaRow label="Epic Name">{epicOwnName}</MetaRow>
       )}
 
       {/* Parent — subtasks only */}
