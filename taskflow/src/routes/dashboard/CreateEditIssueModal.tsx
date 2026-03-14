@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog } from '@base-ui/react/dialog'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Plus } from 'lucide-react'
@@ -50,19 +50,6 @@ export interface CreateEditIssueModalProps {
   // Pre-sets for "+ Add subtask" entry point:
   defaultIssueType?: 'Story' | 'Subtask' | 'Bug'
   defaultParentKey?: string
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function useDebounce<T extends unknown[]>(fn: (...args: T) => void, delay: number) {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  return useCallback(
-    (...args: T) => {
-      if (timerRef.current) clearTimeout(timerRef.current)
-      timerRef.current = setTimeout(() => fn(...args), delay)
-    },
-    [fn, delay],
-  )
 }
 
 // Core field IDs to exclude from custom field rendering (already shown as core fields)
@@ -233,21 +220,21 @@ export function CreateEditIssueModal({
     staleTime: 5 * 60 * 1000,
   })
 
-  // ── Assignee search ──────────────────────────────────────────────────────────
-  const doSearch = useCallback(
-    async (query: string) => {
-      if (!query.trim()) {
-        setAssigneeResults([])
-        return
-      }
+  // ── Assignee search — debounced via useEffect ────────────────────────────────
+  useEffect(() => {
+    if (!assigneeInputValue.trim()) {
+      setAssigneeResults([])
+      return
+    }
+    const timer = setTimeout(async () => {
       setAssigneeLoading(true)
       try {
         const token = await readSecret('jira-pat').catch(() => null)
-        if (!token || !jiraBaseUrl) return
+        if (!token || !jiraBaseUrl || !projectKey) return
         const base = jiraBaseUrl.replace(/\/$/, '')
         const resp = await apiFetch(
           'jira',
-          `${base}/rest/api/2/user/assignable/search?project=${projectKey}&query=${encodeURIComponent(query)}`,
+          `${base}/rest/api/2/user/assignable/search?project=${projectKey}&query=${encodeURIComponent(assigneeInputValue)}`,
           { headers: { Authorization: `Bearer ${token}` } },
         )
         if (resp.ok) {
@@ -259,11 +246,9 @@ export function CreateEditIssueModal({
       } finally {
         setAssigneeLoading(false)
       }
-    },
-    [jiraBaseUrl, projectKey],
-  )
-
-  const debouncedSearch = useDebounce(doSearch, 300)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [assigneeInputValue, jiraBaseUrl, projectKey])
 
   // ── Submit validation ────────────────────────────────────────────────────────
   const requiredCustomFieldsFilled = customRequiredFields.every(
@@ -570,7 +555,6 @@ export function CreateEditIssueModal({
                   setAssigneeInputValue(e.target.value)
                   setSelectedAssigneeName(null)
                   setShowAssigneeResults(true)
-                  debouncedSearch(e.target.value)
                 }}
                 onFocus={() => {
                   if (selectedAssigneeName) {
