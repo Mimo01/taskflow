@@ -41,6 +41,7 @@ See archive: `.planning/milestones/v1.1-ROADMAP.md`
 - [x] **Phase 11: Create/Edit Issue Form** - Create and edit any Jira issue with all required fields, dynamically built from createmeta (completed 2026-03-14)
 - [x] **Phase 12: Backlog View** - Backlog list with move-to-sprint, create story, and epic/label/assignee filters (completed 2026-03-14)
 - [x] **Phase 13: Epic Management** - Epic list, detail, cross-view filtering, and epic creation (completed 2026-03-14)
+- [ ] **Phase 14: Fix v1.2 Wiring and Credential Bugs** - Wire BoardColumn/QuickCreateInput into SprintBoardTab, fix cache invalidation key, fix CreateEpicDialog credential store
 
 ## Phase Details
 
@@ -136,6 +137,22 @@ Plans:
 - [ ] 13-04-PLAN.md — EpicDetailSheet component + AppLayout wiring (state, mount, Outlet context)
 - [ ] 13-05-PLAN.md — Full test suite gate + human verification checkpoint (all four EPIC requirements)
 
+### Phase 14: Fix v1.2 Wiring and Credential Bugs
+**Goal**: All three broken E2E flows are restored — inline issue creation is reachable from the sprint board, backlog refreshes after story creation, and epic creation succeeds with correct credentials
+**Depends on**: Phase 10, Phase 12, Phase 13
+**Requirements**: BOARD-04, BACK-03, EPIC-04
+**Gap Closure:** Closes gaps from v1.2 audit
+**Success Criteria** (what must be TRUE):
+  1. SprintBoardTab renders BoardColumn and QuickCreateInput — user can create a story/subtask from the sprint board
+  2. Creating a story from the backlog triggers cache invalidation with the correct key and the backlog list refreshes immediately
+  3. Creating an epic via CreateEpicDialog succeeds — credentials come from useAuthStore, not useSettingsStore
+**Plans**: 3 plans
+
+Plans:
+- [ ] 14-01-PLAN.md — Import BoardColumn + QuickCreateInput into SprintBoardTab.tsx (BOARD-04)
+- [ ] 14-02-PLAN.md — Fix cache invalidation key in main.tsx (BACK-03)
+- [ ] 14-03-PLAN.md — Replace useSettingsStore with useAuthStore in CreateEpicDialog.tsx (EPIC-04)
+
 ## Progress
 
 **Execution Order:** 9 → 10 → 11 → 12 → 13
@@ -155,3 +172,4 @@ Plans:
 | 11. Create/Edit Issue Form | 4/5 | In Progress|  | - |
 | 12. Backlog View | 4/4 | Complete    | 2026-03-14 | - |
 | 13. Epic Management | 5/5 | Complete    | 2026-03-14 | - |
+| 14. Fix v1.2 Wiring and Credential Bugs | v1.2 | 0/3 | Pending | - |

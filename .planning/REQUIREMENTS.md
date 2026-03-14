@@ -24,14 +24,14 @@ Requirements for the Jira Parity milestone. Goal: replace the need to open real 
 - [x] **BOARD-01**: Sprint board shows subtasks as kanban cards grouped under collapsible parent story headers (Jira-like layout)
 - [x] **BOARD-02**: Sprint board shows all team members' tasks (board-wide view, not filtered to current user only)
 - [x] **BOARD-03**: User can drag subtask/story cards between status columns to transition status (optimistic update + rollback on failure)
-- [x] **BOARD-04**: User can create a new story or subtask directly from the sprint board without leaving the board view
+- [ ] **BOARD-04**: User can create a new story or subtask directly from the sprint board without leaving the board view
 - [x] **BOARD-05**: User can open the issue detail panel from any sprint board card
 
 ### Backlog (BACK)
 
 - [x] **BACK-01**: User can view all backlog issues (issues not in any active or future sprint) in a paginated list
 - [x] **BACK-02**: User can move one or more backlog issues into the active sprint
-- [x] **BACK-03**: User can create a new story directly from the backlog view
+- [ ] **BACK-03**: User can create a new story directly from the backlog view
 - [x] **BACK-04**: User can filter the backlog by epic, label, and assignee
 - [x] **BACK-05**: User can open the issue detail panel from any backlog row
 
@@ -40,7 +40,7 @@ Requirements for the Jira Parity milestone. Goal: replace the need to open real 
 - [x] **EPIC-01**: User can view a list of all epics with name, status, story count, and point totals
 - [x] **EPIC-02**: User can filter the sprint board and backlog by a selected epic
 - [x] **EPIC-03**: User can open an epic detail view showing all stories under that epic
-- [x] **EPIC-04**: User can create a new epic from within the app
+- [ ] **EPIC-04**: User can create a new epic from within the app
 
 ### Create/Edit (CREATE)
 
@@ -96,17 +96,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BOARD-01 | Phase 10 | Complete |
 | BOARD-02 | Phase 10 | Complete |
 | BOARD-03 | Phase 10 | Complete |
-| BOARD-04 | Phase 10 | Complete |
+| BOARD-04 | Phase 14 | Pending |
 | BOARD-05 | Phase 10 | Complete |
 | BACK-01 | Phase 12 | Complete |
 | BACK-02 | Phase 12 | Complete |
-| BACK-03 | Phase 12 | Complete |
+| BACK-03 | Phase 14 | Pending |
 | BACK-04 | Phase 12 | Complete |
 | BACK-05 | Phase 12 | Complete |
 | EPIC-01 | Phase 13 | Complete |
 | EPIC-02 | Phase 13 | Complete |
 | EPIC-03 | Phase 13 | Complete |
-| EPIC-04 | Phase 13 | Complete |
+| EPIC-04 | Phase 14 | Pending |
 | CREATE-01 | Phase 11 | Complete |
 | CREATE-02 | Phase 11 | Complete |
 | CREATE-03 | Phase 11 | Complete |
@@ -116,6 +116,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 - v1.2 requirements: 27 total
 - Mapped to phases: 27
 - Unmapped: 0 ✓
+- Pending gap closure: 3 (BOARD-04, BACK-03, EPIC-04 → Phase 14)
 
 ---
 *Requirements defined: 2026-03-13*
