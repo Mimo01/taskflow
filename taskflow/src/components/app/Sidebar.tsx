@@ -22,6 +22,7 @@ import {
   Tag,
   Bug,
   PlusSquare,
+  List,
 } from 'lucide-react';
 import { useSettingsStore } from '@/stores/settings.store';
 
@@ -89,6 +90,10 @@ export default function Sidebar({ onOpenCreate }: SidebarProps) {
                   <KanbanSquare className="h-4 w-4 shrink-0" />
                   <span className="hidden md:block">Sprint Board</span>
                 </NavLink>
+                <NavLink to="/backlog" className={navLinkClass}>
+                  <List className="h-4 w-4 shrink-0" />
+                  <span className="hidden md:block">Backlog</span>
+                </NavLink>
                 <NavLink to="/mr-attention" className={navLinkClass}>
                   <GitMerge className="h-4 w-4 shrink-0" />
                   <span className="hidden md:block">MR Attention</span>
@@ -111,6 +116,10 @@ export default function Sidebar({ onOpenCreate }: SidebarProps) {
                 <NavLink to="/workload" className={navLinkClass}>
                   <Users className="h-4 w-4 shrink-0" />
                   <span className="hidden md:block">Workload</span>
+                </NavLink>
+                <NavLink to="/backlog" className={navLinkClass}>
+                  <List className="h-4 w-4 shrink-0" />
+                  <span className="hidden md:block">Backlog</span>
                 </NavLink>
                 <NavLink to="/releases" className={navLinkClass}>
                   <Tag className="h-4 w-4 shrink-0" />
