@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
 status: completed
-stopped_at: Completed 11-02-PLAN.md
-last_updated: "2026-03-14T13:11:37.298Z"
+stopped_at: Completed 11-03-PLAN.md
+last_updated: "2026-03-14T13:20:42.071Z"
 last_activity: 2026-03-14 — Completed 10-04 (human verification passed; all five BOARD requirements confirmed; sticky columns, swimlanes, drag-and-drop verified)
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 17
-  completed_plans: 14
+  completed_plans: 15
   percent: 100
 ---
 
@@ -100,6 +100,8 @@ Key v1.2 constraints from research:
 - [Phase 11-create-edit-issue-form]: bulkUpdateIssue() treats HTTP 204 as success — Jira DC returns 204 on PUT updates
 - [Phase 11-create-edit-issue-form]: Dialog.Root used directly from @base-ui/react/dialog for centered modal (not Sheet slide-over)
 - [Phase 11-create-edit-issue-form]: Two-step createmeta: fetch issuetypes list for IDs first, then fetch fields per type — required by 8.4+ paginated endpoint
+- [Phase 11-create-edit-issue-form]: IssueLinkRow uses internal debouncedQuery state rather than passing debounced value to useQuery enabled flag
+- [Phase 11-create-edit-issue-form]: crypto.randomUUID?.() with Date.now() fallback — crypto.randomUUID not available in vitest jsdom environment
 
 ### Pending Todos
 
@@ -114,6 +116,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-14T13:11:37.294Z
-Stopped at: Completed 11-02-PLAN.md
+Last session: 2026-03-14T13:20:42.067Z
+Stopped at: Completed 11-03-PLAN.md
 Resume file: None
