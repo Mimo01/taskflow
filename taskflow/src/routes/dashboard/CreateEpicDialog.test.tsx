@@ -4,11 +4,17 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 vi.mock('@/stores/settings.store', () => ({
   useSettingsStore: () => ({
-    jiraBaseUrl: 'https://jira.example.com',
-    activeJiraProject: 'PROJ',
-    jiraToken: 'tok',
     epicNameFieldKey: 'customfield_10015',
   }),
+}))
+vi.mock('@/stores/auth.store', () => ({
+  useAuthStore: () => ({
+    jiraBaseUrl: 'https://jira.example.com',
+    activeJiraProject: 'PROJ',
+  }),
+}))
+vi.mock('@/services/stronghold', () => ({
+  readSecret: vi.fn().mockResolvedValue('tok'),
 }))
 vi.mock('@/services/jira', () => ({
   createIssue: vi.fn(),
