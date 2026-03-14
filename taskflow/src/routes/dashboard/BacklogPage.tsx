@@ -280,6 +280,7 @@ export default function BacklogPage() {
                       storyPointsFieldKey={storyPointsFieldKey}
                       epicLinkFieldKey={epicLinkFieldKey}
                       epicNameFieldKey={epicNameFieldKey}
+                      epicNames={backlogView?.epicNames}
                     />
                   ))}
                 </tbody>

@@ -36,6 +36,7 @@ export interface BacklogRowProps {
   storyPointsFieldKey: string;
   epicLinkFieldKey: string;
   epicNameFieldKey: string;
+  epicNames?: Map<string, string>;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -48,9 +49,13 @@ export function BacklogRow({
   storyPointsFieldKey,
   epicLinkFieldKey,
   epicNameFieldKey,
+  epicNames,
 }: BacklogRowProps) {
   const epicKey = issue.fields[epicLinkFieldKey] as string | null;
-  const epicName = issue.fields[epicNameFieldKey] as string | null;
+  // Prefer fetched epic name from the epicNames map; fall back to customfield_10015, then key
+  const epicName = epicKey
+    ? (epicNames?.get(epicKey) ?? (issue.fields[epicNameFieldKey] as string | null) ?? epicKey)
+    : null;
   const storyPoints =
     (issue.fields[storyPointsFieldKey] as number | null) ??
     (issue.fields.customfield_10016 as number | null);
@@ -78,6 +83,18 @@ export function BacklogRow({
       {/* Key cell */}
       <td className="w-24 px-2 py-2">
         <span className="font-mono text-xs text-muted-foreground">{issue.key}</span>
+      </td>
+
+      {/* Epic badge cell — right after key */}
+      <td className="w-32 px-2 py-2">
+        {epicKey && epicName ? (
+          <span
+            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium truncate max-w-full ${epicColorClass(epicKey)}`}
+            title={epicName}
+          >
+            {epicName}
+          </span>
+        ) : null}
       </td>
 
       {/* Summary cell — clickable button */}
@@ -121,17 +138,7 @@ export function BacklogRow({
         )}
       </td>
 
-      {/* Epic badge cell */}
-      <td className="px-2 py-2">
-        {epicKey && epicName ? (
-          <span
-            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${epicColorClass(epicKey)}`}
-            title={epicKey}
-          >
-            {epicName}
-          </span>
-        ) : null}
-      </td>
+
     </tr>
   );
 }
