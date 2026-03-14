@@ -17,7 +17,7 @@ interface IssueDetailSheetProps {
 export function IssueDetailSheet({ issueKey, onClose, onOpenIssue }: IssueDetailSheetProps) {
   return (
     <Sheet open={issueKey !== null} onOpenChange={(open) => { if (!open) onClose() }}>
-      <SheetContent side="right" className="w-[70vw] max-w-none sm:max-w-none p-0 flex flex-col overflow-hidden">
+      <SheetContent side="right" className="w-[85vw] max-w-none sm:max-w-none p-0 flex flex-col overflow-hidden">
         {issueKey && (
           <IssueDetailBody
             data-testid="sheet-open"
@@ -78,8 +78,8 @@ function IssueDetailBody({
           epicLinkFieldKey={epicLinkFieldKey}
         />
       </div>
-      {/* Right sidebar: ~40% */}
-      <div className="w-[38%] border-l overflow-auto p-4 shrink-0">
+      {/* Right sidebar: ~42% */}
+      <div className="w-[42%] border-l overflow-auto p-4 shrink-0">
         <IssueDetailSidebar
           issue={issue}
           issueKey={issueKey}
@@ -103,7 +103,7 @@ function IssueDetailSkeleton({ 'data-testid': testId }: { 'data-testid'?: string
         <Skeleton className="h-4 w-5/6" />
         <Skeleton className="h-32 w-full" />
       </div>
-      <div className="w-[38%] space-y-3">
+      <div className="w-[42%] space-y-3">
         <Skeleton className="h-6 w-1/2" />
         <Skeleton className="h-5 w-full" />
         <Skeleton className="h-5 w-full" />
