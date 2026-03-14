@@ -5,16 +5,22 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 vi.mock('@/stores/settings.store', () => ({
   useSettingsStore: () => ({
-    jiraBaseUrl: 'https://jira.example.com',
-    activeJiraProject: 'PROJ',
-    jiraToken: 'tok',
     storyPointsFieldKey: 'customfield_10016',
     epicLinkFieldKey: 'customfield_10014',
     epicNameFieldKey: 'customfield_10015',
   }),
 }))
+vi.mock('@/stores/auth.store', () => ({
+  useAuthStore: () => ({
+    jiraBaseUrl: 'https://jira.example.com',
+    activeJiraProject: 'PROJ',
+  }),
+}))
 vi.mock('@/services/jira', () => ({
   fetchEpicsWithEnrichment: vi.fn(),
+}))
+vi.mock('@/services/stronghold', () => ({
+  readSecret: vi.fn().mockResolvedValue('test-jira-token'),
 }))
 
 function makeClient() {
@@ -22,7 +28,12 @@ function makeClient() {
 }
 
 describe('EpicsPage', () => {
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(async () => {
+    vi.clearAllMocks()
+    // Restore readSecret default after clearAllMocks clears the implementation
+    const { readSecret } = await import('@/services/stronghold')
+    ;(readSecret as ReturnType<typeof vi.fn>).mockResolvedValue('test-jira-token')
+  })
 
   it('EPIC-01: renders epic name, status badge, story count, story points, and progress bar for each epic', async () => {
     const { fetchEpicsWithEnrichment } = await import('@/services/jira')
