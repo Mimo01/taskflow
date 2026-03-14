@@ -1383,7 +1383,7 @@ export async function fetchBacklogView(
   const sprintResults = await Promise.all(
     sprints.map(async (sprint) => {
       const jql = encodeURIComponent(
-        `sprint = ${sprint.id} AND issuetype != Sub-task ORDER BY rank ASC`,
+        `project = ${projectKey} AND sprint = ${sprint.id} AND issuetype != Sub-task ORDER BY rank ASC`,
       )
       const url = `${base}/rest/api/2/search?jql=${jql}&fields=${fields}`
       try {
