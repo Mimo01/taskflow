@@ -37,6 +37,7 @@ interface TaskRowProps {
   commentError?: string
   isSubtask?: boolean
   notMine?: boolean
+  onIssueClick?: (issueKey: string) => void
 }
 
 export default function TaskRow({
@@ -52,6 +53,7 @@ export default function TaskRow({
   commentError,
   isSubtask = false,
   notMine = false,
+  onIssueClick,
 }: TaskRowProps) {
   const [commentOpen, setCommentOpen] = useState(false)
   const [commentCount, setCommentCount] = useState<number | null>(null)
@@ -83,8 +85,17 @@ export default function TaskRow({
           {issue.key}
         </span>
 
-        {/* Summary */}
-        <span className={cn('flex-1 truncate text-sm', notMine && 'italic text-muted-foreground')}>{issue.fields.summary}</span>
+        {/* Summary — clickable to open IssueDetailSheet */}
+        <button
+          type="button"
+          onClick={() => onIssueClick?.(issue.key)}
+          className={cn(
+            'flex-1 truncate text-sm text-left hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded',
+            notMine && 'italic text-muted-foreground',
+          )}
+        >
+          {issue.fields.summary}
+        </button>
 
         {/* Status popover */}
         <StatusPopover
