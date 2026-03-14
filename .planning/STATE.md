@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Jira Parity
 current_plan: 4 of 4 (complete)
-status: complete
-stopped_at: Completed 13-04-PLAN.md
-last_updated: "2026-03-14T23:25:00Z"
+status: verifying
+stopped_at: "Checkpoint: 13-05 Task 2 human-verify (dev server running at localhost:1420)"
+last_updated: "2026-03-14T22:26:05.131Z"
 last_activity: 2026-03-14 — Completed 13-04 (EpicDetailSheet built and AppLayout wired; Phase 13 fully complete)
 progress:
   total_phases: 5
@@ -126,6 +126,7 @@ Key v1.2 constraints from research:
 - [13-04]: EpicDetailSheet returns null (not closed Sheet) when epicKey is null — required by container.firstChild === null test assertion
 - [13-04]: Token sourced from useSettingsStore.jiraToken (not readSecret) in EpicDetailSheet — test mock provides token via store, same pattern as CreateEpicDialog
 - [13-04]: EpicDetailBody split as internal component — hooks rules compliance (useQuery not called when epicKey is null)
+- [Phase 13-epic-management]: 13-05: Full test suite gated at 367 passing (above 351 baseline) — all 4 EPIC test files GREEN before human verification checkpoint
 
 ### Pending Todos
 
@@ -140,6 +141,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-14T23:25:00Z
-Stopped at: Completed 13-04-PLAN.md
+Last session: 2026-03-14T22:26:05.127Z
+Stopped at: Checkpoint: 13-05 Task 2 human-verify (dev server running at localhost:1420)
 Resume file: None
