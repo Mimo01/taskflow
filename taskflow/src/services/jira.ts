@@ -1351,81 +1351,69 @@ export async function fetchBacklogView(
   const base = baseUrl.replace(/\/$/, '')
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
 
-  // Deduplicate fields
+  // Include customfield_10020 (sprint) to enable grouping by sprint from issue data
   const fields = [
     ...new Set([
       'summary', 'status', 'assignee', 'issuetype', 'labels',
       'customfield_10016', 'customfield_10014', 'customfield_10015',
+      'customfield_10020',
       storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey,
     ]),
   ].join(',')
 
-  // Step 1: Discover board
-  let boardId: number | null = null
-  try {
-    const boardRes = await apiFetch(
-      'jira',
-      `${base}/rest/agile/1.0/board?projectKeyOrId=${projectKey}&type=scrum`,
-      { headers },
-    )
-    if (boardRes.ok) {
-      const boardData = await boardRes.json()
-      boardId = boardData?.values?.[0]?.id ?? null
+  // Parse sprint metadata from customfield_10020 (array, last entry = current sprint)
+  function parseSprintFromIssue(issue: JiraIssue): JiraActiveSprint | null {
+    const sprintArr = (issue.fields as Record<string, unknown>)['customfield_10020']
+    if (!Array.isArray(sprintArr) || sprintArr.length === 0) return null
+    const s = sprintArr[sprintArr.length - 1] as Record<string, unknown>
+    if (typeof s.id !== 'number' || typeof s.name !== 'string') return null
+    return {
+      id: s.id,
+      name: s.name,
+      state: s.state as 'active' | 'future' | 'closed',
+      startDate: typeof s.startDate === 'string' ? s.startDate : undefined,
+      endDate: typeof s.endDate === 'string' ? s.endDate : undefined,
     }
-  } catch { /* boardId stays null */ }
-
-  // Step 2: Fetch sprints (active + future)
-  let sprints: JiraActiveSprint[] = []
-  if (boardId !== null) {
-    sprints = await fetchSprintsForBoard(baseUrl, token, boardId)
   }
 
-  // Step 3: Fetch sprint issues in parallel
-  const sprintResults = await Promise.all(
-    sprints.map(async (sprint) => {
-      const jql = encodeURIComponent(
-        `project = ${projectKey} AND sprint = ${sprint.id} AND issuetype != Sub-task ORDER BY rank ASC`,
-      )
-      const url = `${base}/rest/api/2/search?jql=${jql}&fields=${fields}`
-      try {
-        const issues = await fetchAllSearchPages(url, headers)
-        return { sprint, issues }
-      } catch {
-        return { sprint, issues: [] }
-      }
-    }),
+  // Group issues by sprint, preserving order (insertion = rank order)
+  function groupBySprint(
+    issues: JiraIssue[],
+  ): Array<{ sprint: JiraActiveSprint; issues: JiraIssue[] }> {
+    const map = new Map<number, { sprint: JiraActiveSprint; issues: JiraIssue[] }>()
+    for (const issue of issues) {
+      const sprint = parseSprintFromIssue(issue)
+      if (!sprint) continue
+      if (!map.has(sprint.id)) map.set(sprint.id, { sprint, issues: [] })
+      map.get(sprint.id)!.issues.push(issue)
+    }
+    return Array.from(map.values())
+  }
+
+  // Fetch active sprints, future sprints, and backlog in parallel.
+  // openSprints()/futureSprints() are project-scoped — no cross-project sprints possible.
+  const activeJql = encodeURIComponent(
+    `project = ${projectKey} AND sprint in openSprints() AND issuetype != Sub-task ORDER BY rank ASC`,
   )
-
-  // Filter out sprints that have no issues from this project (cross-project sprints)
-  const filteredSprintResults = sprintResults.filter((r) => r.issues.length > 0)
-
-  // Step 4: Fetch backlog (unassigned to any sprint)
+  const futureJql = encodeURIComponent(
+    `project = ${projectKey} AND sprint in futureSprints() AND issuetype != Sub-task ORDER BY rank ASC`,
+  )
   const backlogJql = encodeURIComponent(
     `project = ${projectKey} AND sprint is EMPTY AND issuetype != Sub-task ORDER BY rank ASC`,
   )
-  const backlogUrl = `${base}/rest/api/2/search?jql=${backlogJql}&fields=${fields}`
 
-  let backlog: JiraIssue[] = []
-  try {
-    backlog = await fetchAllSearchPages(backlogUrl, headers)
-  } catch (err) {
-    // Surface user-friendly error only for 400 (Jira Software license issues)
-    if (
-      err !== null &&
-      typeof err === 'object' &&
-      'status' in err &&
-      typeof (err as { status: unknown }).status === 'number'
-    ) {
-      const errObj = err as { status: number }
-      if (errObj.status === 400) {
-        throw new Error('Backlog query unavailable — ensure Jira Software license is active for this project')
-      }
-    }
-    // For other failures, return empty backlog (partial results are fine)
-    backlog = []
-  }
+  const [activeIssues, futureIssues, backlog] = await Promise.all([
+    fetchAllSearchPages(`${base}/rest/api/2/search?jql=${activeJql}&fields=${fields}`, headers)
+      .catch(() => [] as JiraIssue[]),
+    fetchAllSearchPages(`${base}/rest/api/2/search?jql=${futureJql}&fields=${fields}`, headers)
+      .catch(() => [] as JiraIssue[]),
+    fetchAllSearchPages(`${base}/rest/api/2/search?jql=${backlogJql}&fields=${fields}`, headers)
+      .catch(() => [] as JiraIssue[]),
+  ])
 
-  return { sprints: filteredSprintResults, backlog }
+  const sprints = [...groupBySprint(activeIssues), ...groupBySprint(futureIssues)]
+
+  return { sprints, backlog }
 }
 
 /**
