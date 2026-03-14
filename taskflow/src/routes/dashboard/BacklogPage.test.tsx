@@ -29,7 +29,7 @@ vi.mock('@/services/stronghold', () => ({
 }));
 
 vi.mock('@/services/jira', () => ({
-  fetchBacklogView: vi.fn().mockResolvedValue({ sprints: [], backlog: [] }),
+  fetchBacklogView: vi.fn().mockResolvedValue({ sprints: [], backlog: [], epicNames: new Map() }),
   addIssuesToSprint: vi.fn().mockResolvedValue(undefined),
   fetchActiveSprint: vi.fn().mockResolvedValue(null),
 }));
@@ -370,6 +370,7 @@ describe('BACK-04 Filters', () => {
         },
       ],
       backlog: [makeIssue('PROJ-2', 'Story in Epic B', 'EPIC-2')],
+      epicNames: new Map([['EPIC-1', 'EPIC-1'], ['EPIC-2', 'EPIC-2']]),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -377,9 +378,12 @@ describe('BACK-04 Filters', () => {
 
     await waitFor(() => screen.getByText('PROJ-1'));
 
-    // Select EPIC-1 from the epic filter dropdown
+    // Type to filter options, then click the option to select it
     const epicFilter = screen.getByRole('combobox', { name: /epic/i });
+    fireEvent.focus(epicFilter);
     fireEvent.change(epicFilter, { target: { value: 'EPIC-1' } });
+    const option = await screen.findByRole('option', { name: 'EPIC-1' });
+    fireEvent.mouseDown(option.querySelector('button')!);
 
     await waitFor(() => {
       expect(screen.getByText('PROJ-1')).toBeInTheDocument();
@@ -395,6 +399,7 @@ describe('BACK-04 Filters', () => {
         makeIssue('PROJ-1', 'Alice story', undefined, 'Alice'),
         makeIssue('PROJ-2', 'Bob story', undefined, 'Bob'),
       ],
+      epicNames: new Map(),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -403,7 +408,10 @@ describe('BACK-04 Filters', () => {
     await waitFor(() => screen.getByText('PROJ-1'));
 
     const assigneeFilter = screen.getByRole('combobox', { name: /assignee/i });
+    fireEvent.focus(assigneeFilter);
     fireEvent.change(assigneeFilter, { target: { value: 'Alice' } });
+    const option = await screen.findByRole('option', { name: 'Alice' });
+    fireEvent.mouseDown(option.querySelector('button')!);
 
     await waitFor(() => {
       expect(screen.getByText('PROJ-1')).toBeInTheDocument();
@@ -420,6 +428,7 @@ describe('BACK-04 Filters', () => {
         makeIssue('PROJ-2', 'Alice + Epic B', 'EPIC-2', 'Alice'),
         makeIssue('PROJ-3', 'Bob + Epic A', 'EPIC-1', 'Bob'),
       ],
+      epicNames: new Map([['EPIC-1', 'EPIC-1'], ['EPIC-2', 'EPIC-2']]),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -428,10 +437,16 @@ describe('BACK-04 Filters', () => {
     await waitFor(() => screen.getByText('PROJ-1'));
 
     const epicFilter = screen.getByRole('combobox', { name: /epic/i });
+    fireEvent.focus(epicFilter);
     fireEvent.change(epicFilter, { target: { value: 'EPIC-1' } });
+    const epicOption = await screen.findByRole('option', { name: 'EPIC-1' });
+    fireEvent.mouseDown(epicOption.querySelector('button')!);
 
     const assigneeFilter = screen.getByRole('combobox', { name: /assignee/i });
+    fireEvent.focus(assigneeFilter);
     fireEvent.change(assigneeFilter, { target: { value: 'Alice' } });
+    const assigneeOption = await screen.findByRole('option', { name: 'Alice' });
+    fireEvent.mouseDown(assigneeOption.querySelector('button')!);
 
     await waitFor(() => {
       expect(screen.getByText('PROJ-1')).toBeInTheDocument();      // Alice + EPIC-1 — shown
@@ -448,6 +463,7 @@ describe('BACK-04 Filters', () => {
         makeIssue('PROJ-1', 'Story in Epic A', 'EPIC-1'),
         makeIssue('PROJ-2', 'Story in Epic B', 'EPIC-2'),
       ],
+      epicNames: new Map([['EPIC-1', 'EPIC-1'], ['EPIC-2', 'EPIC-2']]),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -455,14 +471,17 @@ describe('BACK-04 Filters', () => {
 
     await waitFor(() => screen.getByText('PROJ-1'));
 
-    // Apply epic filter
+    // Apply epic filter by typing + clicking option
     const epicFilter = screen.getByRole('combobox', { name: /epic/i });
+    fireEvent.focus(epicFilter);
     fireEvent.change(epicFilter, { target: { value: 'EPIC-1' } });
+    const option = await screen.findByRole('option', { name: 'EPIC-1' });
+    fireEvent.mouseDown(option.querySelector('button')!);
 
     await waitFor(() => expect(screen.queryByText('PROJ-2')).not.toBeInTheDocument());
 
     // Dismiss the active filter chip
-    const dismissChip = screen.getByRole('button', { name: /clear epic filter|remove epic/i });
+    const dismissChip = screen.getByRole('button', { name: /clear epic filter/i });
     fireEvent.click(dismissChip);
 
     await waitFor(() => {

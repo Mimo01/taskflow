@@ -1317,6 +1317,7 @@ export async function fetchSprintsForBoard(
 export interface BacklogViewData {
   sprints: Array<{ sprint: JiraActiveSprint; issues: JiraIssue[] }>
   backlog: JiraIssue[]
+  epicNames: Map<string, string> // epicKey → epic summary (display name)
 }
 
 /**
@@ -1451,7 +1452,28 @@ export async function fetchBacklogView(
     headers,
   ).catch(() => [] as JiraIssue[])
 
-  return { sprints, backlog }
+  // Step 4: Batch-fetch epic names from the epic issues themselves.
+  // customfield_10015 (epic name) is often null on Jira Server — the epic's
+  // own summary field is the authoritative display name.
+  const allIssues = [...sprints.flatMap(s => s.issues), ...backlog]
+  const epicKeys = new Set(
+    allIssues
+      .map(i => i.fields[epicLinkFieldKey] as string | null)
+      .filter((k): k is string => !!k),
+  )
+  const epicNames = new Map<string, string>()
+  if (epicKeys.size > 0) {
+    const epicJql = encodeURIComponent(`issuekey in (${Array.from(epicKeys).join(',')})`)
+    const epicIssues = await fetchAllSearchPages(
+      `${base}/rest/api/2/search?jql=${epicJql}&fields=summary`,
+      headers,
+    ).catch(() => [] as JiraIssue[])
+    for (const epic of epicIssues) {
+      epicNames.set(epic.key, epic.fields.summary)
+    }
+  }
+
+  return { sprints, backlog, epicNames }
 }
 
 /**

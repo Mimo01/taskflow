@@ -89,9 +89,9 @@ export default function BacklogPage() {
 
   // ── Filter state ─────────────────────────────────────────────────────────────
 
-  const [activeEpic, setActiveEpic] = useState<string | null>(null);
+  const [activeEpics, setActiveEpics] = useState<Set<string>>(new Set());
   const [activeLabels, setActiveLabels] = useState<Set<string>>(new Set());
-  const [activeAssignee, setActiveAssignee] = useState<string | null>(null);
+  const [activeAssignees, setActiveAssignees] = useState<Set<string>>(new Set());
 
   // ── Selection state ──────────────────────────────────────────────────────────
 
@@ -112,39 +112,45 @@ export default function BacklogPage() {
   // ── Filter options (derived from all issues across all sections) ──────────────
 
   const filterOptions = useMemo(() => {
-    const epics = new Map<string, string>(); // epicKey → epicName
+    // Epic names come from the batch-fetched epicNames map (actual epic summaries).
+    // Fall back to epicKey only when the epic issue wasn't found.
+    const epicNames = backlogView?.epicNames ?? new Map<string, string>();
+    const epics = new Map<string, string>(); // epicKey → display name
     const labels = new Set<string>();
     const assignees = new Set<string>();
     for (const issue of allIssues) {
       const epicKey = issue.fields[epicLinkFieldKey] as string | null;
-      const epicName = issue.fields[epicNameFieldKey] as string | null;
-      if (epicKey) epics.set(epicKey, epicName ?? epicKey);
+      if (epicKey) epics.set(epicKey, epicNames.get(epicKey) ?? epicKey);
       for (const label of (issue.fields.labels as string[] | undefined) ?? []) {
         labels.add(label);
       }
       if (issue.fields.assignee?.displayName) assignees.add(issue.fields.assignee.displayName);
     }
     return { epics, labels: Array.from(labels), assignees: Array.from(assignees) };
-  }, [allIssues, epicLinkFieldKey, epicNameFieldKey]);
+  }, [allIssues, epicLinkFieldKey, backlogView?.epicNames]);
 
   // ── Filter application helper ─────────────────────────────────────────────────
 
   function applyFilters(issues: JiraIssue[]): JiraIssue[] {
     return issues.filter((issue) => {
       const epicMatch = (() => {
-        if (!activeEpic) return true;
+        if (activeEpics.size === 0) return true;
         const epicKey = issue.fields[epicLinkFieldKey] as string | null;
         const epicName = filterOptions.epics.get(epicKey ?? '') ?? epicKey ?? '';
-        return epicName.toLowerCase().includes(activeEpic.toLowerCase());
+        return Array.from(activeEpics).some((q) =>
+          epicName.toLowerCase().includes(q.toLowerCase()),
+        );
       })();
       const labelMatch =
         activeLabels.size === 0 ||
         (issue.fields.labels as string[] | undefined ?? []).some((l) => activeLabels.has(l));
-      const assigneeMatch =
-        !activeAssignee ||
-        (issue.fields.assignee?.displayName ?? '')
-          .toLowerCase()
-          .includes(activeAssignee.toLowerCase());
+      const assigneeMatch = (() => {
+        if (activeAssignees.size === 0) return true;
+        const name = issue.fields.assignee?.displayName ?? '';
+        return Array.from(activeAssignees).some((q) =>
+          name.toLowerCase().includes(q.toLowerCase()),
+        );
+      })();
       return epicMatch && labelMatch && assigneeMatch;
     });
   }
@@ -323,12 +329,12 @@ export default function BacklogPage() {
       {/* Filter bar */}
       <BacklogFilterBar
         filterOptions={filterOptions}
-        activeEpic={activeEpic}
+        activeEpics={activeEpics}
         activeLabels={activeLabels}
-        activeAssignee={activeAssignee}
-        onEpicChange={setActiveEpic}
+        activeAssignees={activeAssignees}
+        onEpicsChange={setActiveEpics}
         onLabelsChange={setActiveLabels}
-        onAssigneeChange={setActiveAssignee}
+        onAssigneesChange={setActiveAssignees}
       />
 
       {/* Main content */}
