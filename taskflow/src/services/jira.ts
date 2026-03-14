@@ -1300,9 +1300,7 @@ export async function fetchSprintsForBoard(
     )
     if (!res.ok) return []
     const data = await res.json()
-    const sprints: JiraActiveSprint[] = (data?.values ?? []).filter(
-      (s: JiraActiveSprint) => s.originBoardId === boardId,
-    )
+    const sprints: JiraActiveSprint[] = data?.values ?? []
     // Sort: active first, then future by startDate ascending
     return sprints.sort((a, b) => {
       if (a.state === 'active' && b.state !== 'active') return -1
@@ -1398,6 +1396,9 @@ export async function fetchBacklogView(
     }),
   )
 
+  // Filter out sprints that have no issues from this project (cross-project sprints)
+  const filteredSprintResults = sprintResults.filter((r) => r.issues.length > 0)
+
   // Step 4: Fetch backlog (unassigned to any sprint)
   const backlogJql = encodeURIComponent(
     `project = ${projectKey} AND sprint is EMPTY AND issuetype != Sub-task ORDER BY rank ASC`,
@@ -1424,7 +1425,7 @@ export async function fetchBacklogView(
     backlog = []
   }
 
-  return { sprints: sprintResults, backlog }
+  return { sprints: filteredSprintResults, backlog }
 }
 
 /**
