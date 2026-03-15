@@ -1,11 +1,11 @@
-# Feature Research — v1.2 Jira Parity
+# Feature Research — v1.3 UX & Branding
 
-**Domain:** Developer/PM tool — Jira issue management parity (Tauri 2 desktop, on-premise Jira DC v10.3.15)
-**Researched:** 2026-03-13
-**Confidence:** MEDIUM-HIGH (Jira API behavior HIGH from codebase knowledge; UX patterns MEDIUM via WebSearch and official Atlassian docs)
+**Domain:** Developer Productivity Desktop App — UX & Branding (Tauri 2 + React 18, shadcn/ui)
+**Researched:** 2026-03-15
+**Confidence:** HIGH (patterns well-established in Linear/Notion/VS Code; implementation verified against existing codebase)
 
-> This file supersedes the v1.1 FEATURES.md for v1.2 planning.
-> v1.0 and v1.1 features are shipped and stable. This file focuses exclusively on the five v1.2 feature areas.
+> This file supersedes the v1.2 FEATURES.md.
+> v1.0–v1.2 features are shipped and stable. This file focuses exclusively on the v1.3 UX & Branding features.
 
 ---
 
@@ -13,216 +13,160 @@
 
 ### Table Stakes (Users Expect These)
 
-Features that users assume exist in any Jira-like issue management surface. Missing these = product feels like a broken subset of Jira, not a replacement.
-
-#### 1. Issue Detail View
+Features users assume exist in any keyboard-first developer tool. Missing these makes the app feel unpolished compared to Linear, Notion, or VS Code — tools the target users use daily.
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Summary (title) | Every issue has one; first thing users look at | LOW | Already fetched in existing `JiraIssue.fields.summary` |
-| Status with transition control | Users expect to change status in-place | LOW | Already built: `StatusPopover` + `postTransition` — reuse directly |
-| Assignee display + change | Core action: re-assign without opening Jira | MEDIUM | Need `PUT /rest/api/2/issue/{key}` with `{ fields: { assignee: { name } } }`; user list from `/rest/api/2/user/assignable/search` |
-| Story points display + edit | Teams live by points; expected to edit inline | MEDIUM | `discoverStoryPointsField()` already resolves field ID; PUT to update |
-| Issue type badge | Distinguishes stories from subtasks from bugs | LOW | Already in `JiraIssue.fields.issuetype` |
-| Description (rich text rendered) | Core information field | MEDIUM | Jira DC returns wiki markup strings (not ADF); `expand=renderedFields` returns HTML; render safely with sanitized innerHTML or convert to markdown |
-| Comments list (read) | Teams track decisions in comments | LOW | `fetchComments` already built; just needs display component |
-| Add comment | Users expect to reply to discussion | LOW | `postComment` already built; needs text input + submit |
-| Subtasks list with status | Seeing child work at a glance | LOW | `JiraIssue.fields.subtasks` already fetched; display only |
-| Priority display | Expected field on every issue | LOW | Not currently fetched; add `priority` to fields param |
-| Reporter display | Accountability/audit trail | LOW | Not currently fetched; add `reporter` to fields param |
-| Epic link display | Where does this story belong | MEDIUM | Epic is a custom field (`customfield_10014` commonly); need to discover via `/rest/api/2/field` |
-| Linked issues (read) | Cross-reference between tickets | MEDIUM | `issuelinks` field available from Jira API; not currently fetched; display only for table stakes |
-| Labels display | Tags/categorization | LOW | `labels` field in Jira API; not currently fetched |
-| Fix version display | Release targeting | LOW | Already have `JiraFixVersion`; add `fixVersions` to fields |
-| Open-in-Jira link | Escape hatch to full Jira | LOW | Construct `{baseUrl}/browse/{key}` — always include |
-
-#### 2. Backlog View
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| List of unstarted stories/subtasks | Core purpose of a backlog view | MEDIUM | JQL: `project = X AND sprint not in openSprints() AND resolution = Unresolved AND issuetype not in subtaskIssueTypes()` |
-| Issue type, summary, assignee, story points visible in row | Expected scan-ability | LOW | Same fields as sprint board rows |
-| Move issue to current sprint | Core grooming action | MEDIUM | `PUT /rest/api/2/issue/{key}` with sprint custom field, or `POST /rest/agile/1.0/sprint/{sprintId}/issue` — need to verify which endpoint DC supports |
-| Filter by epic | Common grooming pattern — focus one epic at a time | MEDIUM | Client-side filter on epic link field value |
-| Filter by label | Secondary grouping | LOW | Client-side filter |
-| Filter by assignee | Who owns unassigned work | LOW | Client-side filter |
-| Create new story in backlog | Grooming includes adding new items | HIGH | Requires create issue form (see section 4) |
-| Story count / point total | At-a-glance backlog size | LOW | Derived from data already fetched |
-
-#### 3. Epic Management
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Epic list with name, color, and story count | Teams navigate work by epic | MEDIUM | JQL: `project = X AND issuetype = Epic`; epic color in `customfield_10010` or `color` field — varies by DC version |
-| Filter sprint board by epic | Most common epic use case | MEDIUM | Client-side filter using epic link on each issue |
-| Filter backlog by epic | Same — common grooming pattern | LOW | Client-side, same mechanism |
-| Epic detail page: stories list | See all work belonging to an epic | MEDIUM | JQL: `"Epic Link" = {epicKey}` or `issueFunction in subtasksOf("key = {epicKey}")` depending on DC version |
-| Create epic | Full parity requires being able to add epics | HIGH | Requires create form with Epic issue type; depends on create/edit form |
-
-#### 4. Create/Edit Issue Form
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Summary field | Required; every issue needs a title | LOW | Text input, required validation |
-| Issue type selector | Story vs subtask vs bug etc | MEDIUM | Fetch issue types from `/rest/api/2/issuetype` filtered to project |
-| Assignee selector | Who does the work | MEDIUM | Typeahead from `/rest/api/2/user/assignable/search?project=X` |
-| Story points | Teams estimate in points | MEDIUM | Same discovered field key as display; number input |
-| Description (plain text or simple markdown) | Details behind the summary | MEDIUM | Jira DC wiki markup for write; plain textarea acceptable — users can format in Jira if needed |
-| Epic link | Which epic does this belong to | MEDIUM | Fetch epics list; select from dropdown |
-| Priority | Urgency signal | LOW | Static list: Highest/High/Medium/Low/Lowest |
-| Fix version | Release target | LOW | Reuse `fetchFixVersions`; select from existing versions |
-| Labels | Tagging | LOW | Comma-separated free-text or typeahead |
-| Parent (for subtasks) | Subtask requires parent | MEDIUM | Only shown when issuetype.subtask = true; story key picker |
-| Account (custom field) | Mentioned in PROJECT.md as required for this team | MEDIUM | Custom field — discover via createmeta endpoint; text or select depending on field type |
-| Issue links (add) | Link this to blocks/is-blocked-by/relates-to | HIGH | `POST /rest/api/2/issue/{key}/remotelink` or issuelinks body; need link types from `/rest/api/2/issueLinkType` |
-
-#### 5. Sprint Board (Subtask-as-Card Redesign)
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Subtask cards as first-class board items | v1.2 target: replace subtask collapse with card expansion | HIGH | Each subtask is a kanban card; parent story shown as a non-movable header/lane separator above its subtasks |
-| All team members visible (not just "my tasks") | PM and team leads need full board | LOW | Already built in SprintBoardTab with `assignedToMe = false`; this is a board view preference |
-| Drag-to-move status transitions | Core kanban interaction | HIGH | dnd-kit (@dnd-kit/core + @dnd-kit/sortable) is recommended for React; triggers `postTransition` on drop |
-| Inline issue detail (click card → side panel) | Expected: click for detail without leaving board | MEDIUM | Slide-in panel or modal showing IssueDetail component; already have global search detail panel as pattern |
-| Story header shows aggregate status | Parent visibility: how many subtasks are done | LOW | Derived: count done/total from subtask array |
-| Assignee filter | Focus on one developer | LOW | Client-side filter on assignee |
-
----
+| Command palette opens with Cmd+K | Muscle-memory shortcut in every modern dev tool (Linear, Figma, Notion, VS Code, GitHub); users reach for it automatically | MEDIUM | shadcn/ui ships a `Command` component built on cmdk — no new npm dependency needed; add via `npx shadcn@latest add command` |
+| Fuzzy search within command palette | Users don't know exact titles; fuzzy matching removes need for precision | LOW | cmdk's built-in filter handles this; no custom scorer needed at this data scale |
+| Command palette covers issues, MRs, and nav actions | Users expect one box, not three; unified access mirrors how Linear's Cmd+K works | MEDIUM | Reuses existing TanStack Query cache (jira-search, gitlab-mrs); groups results by type; cached data only (no live keystroke API calls) |
+| Escape closes the palette | Universal dismiss behaviour for overlays | LOW | cmdk handles this natively |
+| Arrow key navigation in palette | Keyboard-first flow cannot require mouse after opening | LOW | cmdk handles this natively |
+| `?` key opens keyboard shortcut reference panel | Standard in Gmail, Linear, GitHub; developers expect a discoverable cheat sheet | LOW | Simple Dialog/Sheet listing grouped shortcuts; reads from a central shortcut registry |
+| Settings split into logical sections with sidebar nav | A single long-scroll page with 6+ sections is hard to navigate; sidebar-per-section is the norm in any mature desktop app (System Preferences, Linear settings, VS Code settings) | MEDIUM | Existing `Settings.tsx` is one long scroll with 6 section components; needs sidebar nav + child routes; existing section components migrate with minimal change |
+| Empty states explain what to do | Blank screens with no explanation feel broken; users need contextual guidance (headline + sub-copy + CTA) | LOW | Primarily copy + icon/SVG illustration; no new data fetching logic |
+| Error states offer a recovery action | "Something went wrong" with no button is a dead end; retry or reconnect CTA expected | LOW | Retry button + plain-language message; reuses existing loading/error patterns already present on all data views |
+| App icon matches product quality | The default Tauri icon undermines trust in a team-facing tool immediately | MEDIUM | Tauri 2 `tauri icon` CLI converts a single 1024×1024 PNG to all platform sizes (icns, ico, png variants); design asset required first |
 
 ### Differentiators (Competitive Advantage)
 
-Features that go beyond what Jira offers out of the box for this team's context, or that Taskflow can do better/faster.
+Features that elevate the app from "functional" to "fast and delightful" for developer users. These are what make Taskflow feel like a product, not a prototype.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Inline status transitions on issue detail | Change status without a dedicated status page, with optimistic update | LOW | Reuse existing `StatusPopover`; already battle-tested |
-| MR health badge on issue detail | See linked MR status directly on the issue — no GitLab context switch | MEDIUM | MR linking via `linkEngine.ts` already works; surface MR health inside detail view |
-| Instant keyboard shortcut to open issue detail | `Ctrl+K` → type ticket key → open detail. Faster than Jira search | LOW | Hook into existing global search store |
-| Sprint board "focus mode": single developer swimlane | One-click to filter board to current user's subtasks only | LOW | Client-side filter; high value for standups |
-| Backlog → Sprint move with instant optimistic feedback | No page reload; card visually moves to sprint list | MEDIUM | Optimistic update pattern already established in codebase |
-| Comments show linked MR when comment contains MR URL | Contextually link comment thread to the MR | HIGH | Parse comment text for GitLab MR URLs; complexity probably not worth it in v1.2 |
-| Create issue pre-populated from sprint context | Opening create form from sprint board defaults assignee and sprint | LOW | Pass context props to create form |
-
----
+| Pinned issue tabs in header | Developers context-switch between 3–5 issues simultaneously; persistent tabs eliminate re-searching and re-opening issue detail — mirrors how Linear handles multi-issue workflows | HIGH | Requires new `usePinnedTabsStore` Zustand slice, TopBar redesign to accommodate tab strip, overflow dropdown for >N tabs, integration with IssueDetailSheet open/close lifecycle |
+| Recent items quick-access in header or palette default state | Surfaces last N visited issues without re-opening search; reduces friction for returning to interrupted work — pattern used by Linear (recents in palette), VS Code (recent files in Cmd+P) | MEDIUM | New `useRecentItemsStore` Zustand slice (bounded array, max 15); populated by existing `onIssueClick` in AppLayout — just wraps one call; display in palette default state before user types |
+| Global "go to" keyboard shortcuts (G+B = backlog, G+S = sprint board) | Power users bypass menus entirely; mirrors Linear's navigation shortcuts and Gmail's two-key combos; makes the app feel keyboard-native | MEDIUM | `useGlobalShortcuts` hook in AppLayout listening on `document.keydown`; shortcut definitions in a central registry (constants file); same registry feeds `?` help panel |
+| J/K keyboard navigation in list views | Developers coming from Vim, Gmail, or Linear expect row navigation without mouse; makes Sprint Board and My Tasks feel fast during standup or triage | MEDIUM | `useKeyboardNav` hook per list view; active row index in local state; Enter opens detail; must handle focus management correctly |
+| Illustrated empty states | Monochrome SVG illustrations (Linear's zero-state style) make the app feel intentionally designed rather than abandoned; high perceived quality for low implementation cost | LOW | SVG assets only; no logic change; consistent illustration style across all data views |
+| Settings sections deep-linkable | `/settings/connections`, `/settings/notifications` etc. — enables "Go to Connections settings" as a command palette action in a future phase | LOW | Hash router already supports child routes; add routes under `/settings`; minimal extra work during settings restructure |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
-Features that look like good scope for v1.2 but add complexity disproportionate to value, or create maintenance debt.
-
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| Full Atlassian Document Format (ADF) rich text editor for description write | Jira uses ADF; match exactly | ADF is a complex JSON node format; building or embedding a full ADF editor (like Atlaskit Editor) would be 50k+ lines of editor framework in the bundle. Jira Server returns wiki markup strings, not ADF, further muddying the waters. | Plain textarea for write; use `expand=renderedFields` for read display; link to Jira for complex formatting. Covers 90% of real use. |
-| Drag-and-drop backlog reordering (priority rank) | Grooming = reordering | Jira's rank field (`customfield_10019`) is controlled by Jira's internal ranking service (`/rest/agile/1.0/issue/rank`); the API exists but rank changes can silently fail on DC configurations without the ranking plugin enabled. Also adds significant UI complexity for low actual use. | Move-to-sprint button is the high-value grooming action. Skip rank-drag for v1.2. |
-| Attachment upload on create/edit | Looks like full parity | Tauri portable build file access requires `tauri-plugin-fs` and multipart form POST; testing on all three platforms adds QA surface. LOW actual use — most Jira attachments are screenshots, added via Jira directly. | Deep-link to Jira issue for attachment needs; out of scope per PROJECT.md |
-| Real-time board updates (websocket/polling under 30s) | "Live" board feels modern | Jira DC has no webhook push for issue updates; polling under 30s hammers on-prem server; sprint boards for a small team change rarely. The existing 60s poll cadence is sufficient. | Keep existing 60s poll; show last-refreshed timestamp; manual refresh button |
-| Subtask drag between parent stories (re-parent) | Seems natural on a board | Re-parenting a subtask in Jira DC requires changing the `parent` field via issue update AND moving it off the current parent's subtask list — complex transactional update that can leave data inconsistent on failure; Jira's own UI warns on this action. | Status transition drag (column to column) only; re-parenting done in Jira directly |
-| Epic Gantt/roadmap timeline view | Roadmaps look professional | Requires date fields (start date) that Jira DC does not reliably populate for stories; rendering a timeline correctly requires significant layout work for marginal value to this team. PROJECT.md explicitly excludes analytics/historical views. | Epic list view (stories under epic) is sufficient; provides the "what's in each epic" visibility without timeline complexity |
-| Bulk issue edit | Power feature; "while I'm here" | High API complexity (batch update + rollback on partial failure), high UI complexity (multi-select, field merge conflicts), rarely needed by small teams | Move-to-sprint is the only bulk action worth the cost; others deferred |
-| Issue history/activity log | Full Jira parity | Requires `/rest/api/2/issue/{key}/changelog` which is a separate paginated endpoint; renders as a long wall of audit events that developers rarely read; adds significant rendering complexity | Comments tab covers the human decision trail; changelog available via Jira deep-link |
-| Configurable board columns (workflow editor) | "Make it fit our workflow" | Workflow configuration in Jira DC is admin-level; Taskflow reads transitions from the API already and renders them dynamically — that IS the workflow. Adding an editor duplicates Jira admin. | Transitions already fetched dynamically from Jira; board columns = unique statuses in sprint — no config needed |
-| @mention autocomplete in comment editor | Full Jira comment parity | Requires user search on every keystroke (`/rest/api/2/user/search?query=`), complex DOM positioning for the mention dropdown, and Jira's mention rendering is Jira-side anyway. | Plain text comment with @username works; Jira renders it correctly when posted |
+| Customisable keyboard shortcuts | Power-user appeal; "let me remap Cmd+K to something else" | Requires a shortcut registry with conflict detection, persistence, a settings UI section, and migration logic — disproportionate complexity for a small team tool where defaults will be fine | Ship a fixed, well-chosen default set; document them clearly in the `?` panel; revisit only if user feedback is specific and repeated |
+| Tab session restore across restarts | "My pinned tabs should survive app quit" | Serialising open issue state to disk and rehydrating on boot adds a persistence + migration concern; issue data may be stale or deleted after a restart | Persist pinned tab keys only (not issue data); on boot, keys remain pinned but detail panel is closed; treat as "favourites not session" — this is already what pinning implies |
+| Animated/Lottie illustrated empty states | Higher visual polish; "makes it feel alive" | Lottie in Tauri 2 webview adds bundle weight (~500 KB for lottie-web) and potential rendering variance across platforms; animation may also feel patronising in a focused work tool | Static SVGs — same warmth, zero runtime cost, no cross-platform risk |
+| Live API search in command palette (search-as-you-type against Jira) | "Fresher results than the cache" | Adds visible latency on every keystroke; hammers on-premise Jira server; breaks the palette's instant-feel premise | Use TanStack Query cache as the palette data source; add a "Search Jira for X →" tail item that opens the full SearchOverlay for live results — same pattern used by Raycast |
+| Tab drag-and-drop reordering in the header strip | "I want to organise my pinned tabs" | DnD on a narrow header tab strip is fiddly (especially in a flex overflow container with @dnd-kit); adds implementation complexity for marginal value; tab strip only holds 4–6 items before overflow | Fixed insertion order: tabs appear in pin chronology; user can unpin and re-pin to reorder — equivalent outcome without DnD complexity |
+| Palette frecency ranking (most-used items first) | Makes the palette smarter over time | Requires usage tracking, scoring algorithm, and persistence; adds complexity to what should be a thin search layer | Start with recency (most recently visited first) using the `recentItems` store — already needed for recent items feature; good enough approximation of frecency for this scale |
 
 ---
 
 ## Feature Dependencies
 
 ```
-Issue Detail View (read)
-    └──reuses──> StatusPopover (status transitions) [ALREADY BUILT]
-    └──reuses──> postComment / fetchComments [ALREADY BUILT]
-    └──reuses──> discoverStoryPointsField [ALREADY BUILT]
-    └──requires──> priority, reporter, epic link, labels added to JiraIssue fields
+Command Palette (Cmd+K)
+    └──reuses──> Existing SearchOverlay query data (jira-search, gitlab-mrs)
+    └──uses──> shadcn Command component (add via npx shadcn add command)
+    └──reads from──> useRecentItemsStore (default state before typing)
+    └──can navigate to──> /settings/connections etc. (requires multi-page settings routes)
+    └──can show shortcut hints──> shortcut registry (shares source with ? panel)
 
-Sprint Board Redesign (subtask-as-card)
-    └──requires──> Issue Detail View (inline panel on card click)
-    └──requires──> dnd-kit library added to project
-    └──reuses──> StatusPopover via drag-drop → postTransition [ALREADY BUILT]
-    └──reuses──> fetchSprintIssues two-query strategy [ALREADY BUILT]
+Keyboard Shortcuts System
+    └──requires──> Central shortcut registry (new constants file: shortcuts.ts)
+    └──enhances──> Command Palette (palette shows ⌘K, G+S hints on action items)
+    └──feeds──> ? Help Panel (reads from same registry — single source of truth)
+    └──lives in──> useGlobalShortcuts hook in AppLayout
 
-Backlog View
-    └──requires──> Issue Detail View (click row → detail panel)
-    └──requires──> Create/Edit Form (create story in backlog)
-    └──requires──> fetchActiveSprint (to know which sprint to move issues into) [ALREADY BUILT]
-    └──requires──> new API call: move issue to sprint
+? Help Panel
+    └──requires──> Shortcut registry (read-only display)
+    └──independent of──> command palette (can be built in same phase)
 
-Epic Management
-    └──requires──> Issue Detail View (epic detail page shows stories as rows)
-    └──requires──> Create/Edit Form (create epic action)
-    └──requires──> epic link field discovery (custom field ID varies by DC instance)
+Pinned Issue Tabs
+    └──requires──> usePinnedTabsStore (new Zustand slice with persistence)
+    └──requires──> TopBar redesign (tab strip replaces icon-only bar)
+    └──integrates with──> IssueDetailSheet (tab click opens sheet; close collapses open state, not pin state)
+    └──independent of──> command palette (can be built in separate phase)
 
-Create/Edit Issue Form
-    └──requires──> fetchFixVersions [ALREADY BUILT]
-    └──requires──> discoverStoryPointsField [ALREADY BUILT]
-    └──requires──> new API: list assignable users (GET /rest/api/2/user/assignable/search)
-    └──requires──> new API: list issue types (GET /rest/api/2/issuetype)
-    └──requires──> new API: list epics (JQL query filtered to Epic issuetype)
-    └──requires──> new API: PUT /rest/api/2/issue/{key} (edit existing)
-    └──requires──> new API: POST /rest/api/2/issue (create new)
-    └──requires──> new API: GET /rest/api/2/createmeta (discover required fields + account custom field)
+Recent Items
+    └──requires──> useRecentItemsStore (new bounded Zustand slice, max 15)
+    └──populated by──> onIssueClick in AppLayout (already exists — wraps one call)
+    └──displayed in──> Command Palette default state (before user types)
+    └──optionally displayed in──> header dropdown (same phase as TopBar redesign)
+    └──depends on──> nothing blocking; can be built before or after palette
+
+Multi-Page Settings
+    └──requires──> Settings child routes (/settings/connections, /settings/appearance, /settings/notifications, /settings/workflow)
+    └──requires──> Settings sidebar nav component (new)
+    └──migrates──> existing Settings.tsx section components into individual route files
+    └──enables──> command palette "go to settings" actions (deep-link)
+    └──independent of──> all other v1.3 features; good to build early
+
+Empty & Error States
+    └──independent of──> all other v1.3 features
+    └──applies to──> existing data views (no new components)
+    └──requires──> SVG illustration assets per state category (no-data, error, no-results, first-use)
+
+App Icon
+    └──requires──> source PNG/SVG design asset (1024×1024)
+    └──uses──> tauri icon CLI (built into Tauri 2 toolchain; no new deps)
+    └──independent of──> all other features; can be done in any phase
 ```
 
 ### Dependency Notes
 
-- **Sprint Board Redesign requires Issue Detail View:** Cards should open a detail panel inline; building the board without detail view means dead-end clicks.
-- **Backlog View requires Create/Edit Form:** The "create story in backlog" action is a primary grooming operation; the backlog is low value without it.
-- **Epic Management requires Create/Edit Form:** Epic creation reuses the same form with `issuetype = Epic`; building epic management before the form means read-only epics only.
-- **Create/Edit Form is the deepest dependency:** Build this early (or in parallel with Issue Detail); everything else benefits from it.
-- **Account custom field:** PROJECT.md lists it as a required field for this team. Discover via `/rest/api/2/createmeta?projectKeys=X&issuetypeNames=Story&expand=projects.issuetypes.fields` before assuming field ID.
-- **Epic link field:** On Jira DC, epic link is typically `customfield_10014` but is not guaranteed. Discover via field metadata same as story points.
+- **Command palette should be built after settings routes exist** so "Go to Connections" can be a working palette action from day one. Settings restructure is a natural Phase 1.
+- **Pinned tabs are the highest-complexity feature** — they touch TopBar layout, a new store slice, and the IssueDetailSheet open/close contract. Build after TopBar redesign is settled and IssueDetailSheet integration is clear. Natural Phase 3–4.
+- **Recent items is a low-risk store addition** — `onIssueClick` already flows through `AppLayout`; wrapping it is one line. The only design decision is where to display recents (palette default state is the right answer). Bundle with the command palette phase.
+- **Keyboard shortcut registry and `?` panel are tightly coupled** — define the registry constants first; the panel is just a read-only display grouped by category. Natural same-phase as command palette.
+- **Empty/error states are fully independent** — can be done in any phase; good candidate for a standalone polish phase at end of milestone.
+- **App icon is fully independent** — depends only on a design asset being ready; can be done in Phase 1 if asset is ready.
 
 ---
 
-## MVP Definition (for v1.2 Phases)
+## Phase Recommendations for v1.3
 
-### Phase 1 — Foundation: Issue Detail View (Read + Edit Core Fields)
+### Phase 1 — Foundation: Multi-Page Settings + App Icon
 
-Highest return: every other v1.2 feature links to issue detail. Delivers immediate value (no more opening Jira just to read a description).
+Low risk, high readiness. Settings restructure unlocks palette deep-links. App icon has zero code dependencies.
 
-- [ ] Fetch full issue fields: description (`expand=renderedFields`), priority, reporter, labels, fix versions, epic link, linked issues
-- [ ] Render description as sanitized HTML (from `renderedFields.description`)
-- [ ] Display comments list (reuse `fetchComments`)
-- [ ] Add comment (reuse `postComment`)
-- [ ] Display subtasks list with status badges
-- [ ] Edit assignee inline (PUT field update)
-- [ ] Edit story points inline
-- [ ] Status transition (reuse `StatusPopover`)
-- [ ] Open-in-Jira deep-link button
+- [ ] App icon: source asset → `tauri icon` CLI → all platform sizes
+- [ ] Settings child routes: `/settings/connections`, `/settings/appearance`, `/settings/notifications`, `/settings/workflow`
+- [ ] Settings sidebar nav component with active route highlighting
+- [ ] Migrate existing 6 section components into their route files
+- [ ] Deep-linkable from sidebar and eventually command palette
 
-### Phase 2 — Sprint Board Redesign (Subtask-as-Card + Drag-to-Move)
+### Phase 2 — Power Features: Command Palette + Keyboard Shortcuts
 
-High developer value. Transforms the board from a dashboard into an actual working surface.
+Highest-impact phase. Adds keyboard-first power to an app with a lot of data.
 
-- [ ] Add dnd-kit to project
-- [ ] Render subtasks as individual draggable cards grouped under story-header rows
-- [ ] Drag card to new column → `postTransition` (optimistic update + rollback)
-- [ ] Click card → Issue Detail View in slide-in panel
-- [ ] Assignee filter (client-side)
+- [ ] Add shadcn `Command` component (`npx shadcn add command`)
+- [ ] `CommandPalette` component: dialog wrapper, groups (Recent, Issues, MRs, Navigation)
+- [ ] Default state: recent items list (before typing)
+- [ ] Fuzzy-filtered results: issues + MRs from TanStack Query cache; nav actions as static items
+- [ ] "Search Jira for X →" tail item that opens SearchOverlay
+- [ ] Keyboard shortcut registry constants file (`shortcuts.ts`)
+- [ ] `useGlobalShortcuts` hook in AppLayout (G+S, G+B, G+M, etc.)
+- [ ] `?` key → ShortcutsHelpPanel Dialog
 
-### Phase 3 — Create/Edit Issue Form
+### Phase 3 — Recent Items Store
 
-Foundation for backlog grooming and epic management. Build before those phases.
+Can be bundled into Phase 2 or done separately. Very low risk.
 
-- [ ] Fetch issue types, assignable users, epics, fix versions, createmeta
-- [ ] Form: summary (required), issue type, assignee, story points, description, priority, epic link, fix version, labels, parent (for subtasks), account custom field
-- [ ] POST /rest/api/2/issue for create
-- [ ] PUT /rest/api/2/issue/{key} for edit (reuse form, pre-populate fields)
-- [ ] Accessible from: board card (edit), issue detail (edit button), backlog (create)
+- [ ] `useRecentItemsStore` Zustand slice (bounded array, persist)
+- [ ] Instrument `onIssueClick` in AppLayout to write to store
+- [ ] Wire recent items into command palette default state
 
-### Phase 4 — Backlog View
+### Phase 4 — Header Redesign: Pinned Tabs
 
-- [ ] List unstarted stories with row fields (type, key, summary, assignee, points, epic)
-- [ ] Move to sprint (call sprint issue endpoint)
-- [ ] Filters: epic, label, assignee (client-side)
-- [ ] Create story in backlog (opens Create form, adds to backlog by not assigning sprint)
-- [ ] Point total / issue count summary
+Highest complexity in the milestone. Build after all other features are stable.
 
-### Phase 5 — Epic Management
+- [ ] `usePinnedTabsStore` Zustand slice (pinned keys array, persist)
+- [ ] TopBar redesign: add tab strip; pin/unpin actions from IssueDetailSheet
+- [ ] Tab overflow: `+N more` dropdown when tabs exceed container width
+- [ ] Tab click → opens IssueDetailSheet for that key
+- [ ] Close tab X button: removes from open state; pin remains until explicit unpin
 
-- [ ] Epic list: name, color, story count, point total
-- [ ] Filter sprint board by epic
-- [ ] Filter backlog by epic
-- [ ] Epic detail: stories list (read; links to Issue Detail)
-- [ ] Create epic (reuse Create form with Epic issuetype)
+### Phase 5 — Polish: Empty States + Error Recovery
+
+Independent; apply across all existing views.
+
+- [ ] SVG illustration assets: no-data, error, no-results, first-use
+- [ ] Consistent `EmptyState` component: illustration + headline + sub-copy + optional CTA
+- [ ] Consistent `ErrorState` component: plain-language message + retry/reconnect CTA
+- [ ] Apply to: My Tasks, Sprint Board, Backlog, Notifications, Search, Releases, Workload
 
 ---
 
@@ -230,66 +174,80 @@ Foundation for backlog grooming and epic management. Build before those phases.
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Issue detail view (read) | HIGH | MEDIUM | P1 |
-| Inline field edit (assignee, points, status) | HIGH | LOW (reuses existing) | P1 |
-| Comment add/view | HIGH | LOW (reuses existing) | P1 |
-| Sprint board subtask-as-card layout | HIGH | HIGH (dnd-kit, redesign) | P1 |
-| Drag-to-move status transition | HIGH | MEDIUM | P1 |
-| Create/edit issue form | HIGH | HIGH (many fields, APIs) | P1 |
-| Backlog view (list + move to sprint) | HIGH | MEDIUM | P1 |
-| Epic list + filter | MEDIUM | MEDIUM | P2 |
-| Epic detail page | MEDIUM | LOW (reuses issue list) | P2 |
-| Create epic | MEDIUM | LOW (reuses create form) | P2 |
-| Inline issue detail panel on board | MEDIUM | LOW (reuses detail view) | P2 |
-| Open-in-Jira deep-link | HIGH | LOW | P1 |
-| MR health badge on issue detail | MEDIUM | MEDIUM | P2 |
-| ADF rich text editor for write | LOW | VERY HIGH | P3 — anti-feature, defer/skip |
-| Epic timeline/Gantt | LOW | HIGH | P3 — anti-feature, defer/skip |
-| Bulk edit | LOW | HIGH | P3 — anti-feature, defer/skip |
-| Issue history/changelog | LOW | MEDIUM | P3 — defer/skip |
+| App icon redesign | MEDIUM | LOW | P1 |
+| Multi-page Settings with sidebar nav | HIGH | MEDIUM | P1 |
+| Command palette (Cmd+K) | HIGH | MEDIUM | P1 |
+| Keyboard shortcuts + `?` panel | HIGH | MEDIUM | P1 |
+| Actionable error recovery states | HIGH | LOW | P1 |
+| Illustrated empty states | MEDIUM | LOW | P1 |
+| Recent items (palette default state) | MEDIUM | LOW | P1 |
+| Pinned issue tabs in header | HIGH | HIGH | P2 |
+| J/K list view navigation | MEDIUM | MEDIUM | P2 |
+| Global "go to" shortcuts (G+S, G+B) | MEDIUM | MEDIUM | P2 — bundle with keyboard shortcuts phase |
 
 **Priority key:**
-- P1: Must have for v1.2 — these are the stated goals in PROJECT.md
-- P2: Should have, adds meaningful value with reasonable cost
-- P3: Nice to have, defer to v1.3+ or explicitly cut
+- P1: Must have for v1.3 milestone
+- P2: Should have; include if time allows
+- P3: Future milestone
 
 ---
 
-## Jira API Surface Required (New for v1.2)
+## Competitor Feature Analysis
 
-All APIs are Jira REST API v2 (Data Center). This section flags new API calls not currently implemented in `jira.ts`.
+| Feature | Linear | Notion | VS Code | Our Approach |
+|---------|--------|--------|---------|--------------|
+| Command palette | Cmd+K; frecency-ranked; nav + issue actions; instant | Cmd+K; creates blocks + navigates pages | Cmd+Shift+P (actions), Cmd+P (files); extensible | Cmd+K; fuzzy across issues, MRs, nav actions; cached data; "Search Jira for X" tail item |
+| Keyboard shortcuts | Comprehensive; G+letter navigation; two-key combos; `?` panel | Partial coverage; `?` panel exists | Full coverage; fully customisable | Fixed set; G+letter navigation; `?` panel; no customisation v1 |
+| Pinned/open tabs | Full tab system: pin, drag reorder, overflow; T to search tabs | Page favourites in left sidebar | Editor tabs with pin (prevents auto-close) | Header strip; pin/unpin; overflow dropdown; no drag reorder (v1) |
+| Settings structure | Sidebar nav; deeply categorised; keyboard-navigable | Sidebar nav in modal overlay; clean | Sidebar nav in dedicated settings window; search | Sidebar nav; 4 sections: Connections, Appearance, Notifications, Workflow; deep-linkable |
+| Recent items | Shown in Cmd+K default state before typing; frecency-ranked | Recent pages listed in sidebar | Recent files as Cmd+P default state | Shown in Cmd+K default state; recency-ordered (not frecency); max 15 items |
+| Empty states | Illustrated monochrome SVGs; contextual copy; action CTAs; consistent style | Illustrated; playful; contextual | Minimal; functional welcome screen | Illustrated monochrome SVGs; consistent `EmptyState` component; contextual headline + CTA |
+| App icon | Custom mark (triangle-based); consistent on all platforms | Custom N mark; instantly recognisable | Consistent VS Code logo across platforms | New abstract/geometric mark via `tauri icon` CLI; replace default Tauri icon |
 
-| API Call | Endpoint | Used For | Notes |
-|----------|----------|----------|-------|
-| Fetch single issue (full fields) | `GET /rest/api/2/issue/{key}?expand=renderedFields&fields=...` | Issue Detail | Need priority, reporter, labels, fixVersions, issuelinks, epic link added to fields |
-| Update issue fields | `PUT /rest/api/2/issue/{key}` | Inline edit, Edit form | Body: `{ fields: { ... } }` |
-| Create issue | `POST /rest/api/2/issue` | Create form | Body: `{ fields: { project, issuetype, summary, ... } }` |
-| Fetch assignable users | `GET /rest/api/2/user/assignable/search?project={key}&maxResults=50` | Assignee dropdown | Returns `name` field (DC uses `name`, not `accountId`) |
-| Fetch issue types | `GET /rest/api/2/issuetype` | Issue type selector | Filter client-side to relevant types for project |
-| Fetch create metadata | `GET /rest/api/2/issue/createmeta?projectKeys={key}&expand=projects.issuetypes.fields` | Discover required/custom fields | Used once per session to find account field ID, epic link field ID |
-| Fetch backlog issues | `GET /rest/api/2/search?jql=...` | Backlog view | JQL: `project=X AND sprint not in openSprints() AND resolution=Unresolved AND issuetype not in subtaskIssueTypes()` |
-| Fetch epics | `GET /rest/api/2/search?jql=project=X AND issuetype=Epic` | Epic list, epic picker | Filter on issuetype name "Epic" |
-| Move issue to sprint | `POST /rest/agile/1.0/sprint/{sprintId}/issue` | Backlog → sprint | Body: `{ issues: [key] }`; verify DC endpoint availability |
-| Fetch issue link types | `GET /rest/api/2/issueLinkType` | Linked issues display/create | For "blocks", "is blocked by", "relates to" labels |
+---
+
+## Implementation Notes for This Codebase
+
+### shadcn/ui Command Component (cmdk)
+
+The project already uses shadcn/ui with Tailwind v4. The `Command` component is built on cmdk (the same library powering Linear and Raycast). Add it with `npx shadcn@latest add command`. This provides `CommandDialog`, `CommandInput`, `CommandList`, `CommandGroup`, `CommandItem`, `CommandEmpty`, `CommandSeparator`, and `CommandShortcut` — everything needed for a full palette. No new npm packages required beyond what cmdk brings.
+
+### Keyboard Shortcut Registration
+
+For shortcuts that work within the focused Tauri window (all use cases in v1.3), `document.addEventListener('keydown', handler)` inside a `useEffect` in a custom hook is sufficient. `@tauri-apps/plugin-global-shortcut` is only needed for system-wide shortcuts when the window is not focused — not required for v1.3. The hook should live in `AppLayout` after onboarding completes to avoid firing during onboarding.
+
+### Zustand Store Pattern for Pinned Tabs and Recent Items
+
+Follow the existing `notifications.store.ts` pattern exactly: `createJSONStorage(() => localStorage)` with `partialize` to select only the fields that need persistence. Key decisions:
+- `pinnedTabs: string[]` — array of issue keys; use `string[]` not `Set` (Set serializes as empty object in JSON persist — documented as a known caveat in PROJECT.md)
+- `recentItems: { key: string; title: string; type: 'issue' | 'mr'; timestamp: number }[]` — max 15 items; newest first; deduped on key
+
+### Settings Routes with createHashRouter
+
+The existing `createHashRouter` supports nested children. Add child routes under `/settings` in `main.tsx` with a settings layout component that renders the sidebar nav + `<Outlet />`. Each existing section component (`TokenSection`, `RoleSection`, `ThemeSection`, etc.) moves into its route. Existing `/settings` route becomes a redirect to `/settings/connections`.
+
+### Tauri App Icon
+
+`tauri icon ./path/to/icon.png` (run from `taskflow/src-tauri/`) generates all required platform-specific sizes automatically. Source PNG must be 1024×1024 with transparency. Output goes to `src-tauri/icons/`. No manual resizing or format conversion.
 
 ---
 
 ## Sources
 
-- Atlassian Jira Software Data Center documentation: issue view configuration — https://confluence.atlassian.com/jirasoftwareserver/configuring-the-issue-view-938845334.html
-- Atlassian Jira REST API v2 create issue examples — https://developer.atlassian.com/server/jira/platform/jira-rest-api-example-create-issue-7897248/
-- Atlassian Jira REST API create metadata — https://developer.atlassian.com/server/jira/platform/jira-rest-api-example-discovering-meta-data-for-creating-issues-6291669/
-- Atlassian Data Center REST API reference — https://developer.atlassian.com/server/jira/platform/rest/v10000/api-group-issue/
-- ONES blog on showing subtasks on Jira Kanban board — https://ones.com/blog/show-subtasks-jira-kanban-board/
-- Atlassian community: Display Sub-Tasks on Scrum Board — https://community.atlassian.com/forums/Jira-questions/Display-Sub-Tasks-on-Scrum-Board/qaq-p/2808156
-- Atlassian Jira backlog grooming documentation (DC 10.3) — https://confluence.atlassian.com/jirasoftwareserver103/grooming-your-backlog-1489805148.html
-- Atlassian ADF documentation — https://developer.atlassian.com/cloud/jira/platform/apis/document/structure/
-- Medium: Jira vs Linear vs GitHub Issues 2025 — https://medium.com/@samurai.stateless.coder/jira-vs-linear-vs-github-issues-best-tool-for-web-dev-teams-2025-d808740317e6
-- dnd-kit documentation — https://dndkit.com/
-- LogRocket: Build kanban board with dnd-kit and React — https://blog.logrocket.com/build-kanban-board-dnd-kit-react/
-- Taskflow PROJECT.md (codebase) — `.planning/PROJECT.md`
-- Taskflow jira.ts service (codebase inspection) — `taskflow/src/services/jira.ts`
+- [shadcn/ui Command component docs](https://www.shadcn.io/ui/command) — HIGH confidence (official shadcn docs)
+- [cmdk GitHub — Fast, unstyled command menu React component](https://github.com/dip/cmdk) — MEDIUM confidence (GitHub; confirmed used by Linear and Raycast)
+- [Command Palette UX Patterns — uxpatterns.dev](https://uxpatterns.dev/patterns/advanced/command-palette) — MEDIUM confidence (WebSearch)
+- [Maggie Appleton — Command K Bars](https://maggieappleton.com/command-bar) — MEDIUM confidence (well-known UX analysis)
+- [Tauri 2 Global Shortcut Plugin (official docs)](https://v2.tauri.app/plugin/global-shortcut/) — HIGH confidence (official Tauri v2 docs)
+- [Linear Keyboard Shortcuts Help changelog](https://linear.app/changelog/2021-03-25-keyboard-shortcuts-help) — MEDIUM confidence (official Linear changelog)
+- [Linear Personalized Sidebar / Multi-page Settings](https://linear.app/changelog/2024-12-18-personalized-sidebar) — MEDIUM confidence (official Linear changelog)
+- [NN/G — Left-Side Vertical Navigation on Desktop](https://www.nngroup.com/articles/vertical-nav/) — HIGH confidence (Nielsen Norman Group)
+- [Carbon Design System — Empty States Pattern](https://carbondesignsystem.com/patterns/empty-states-pattern/) — HIGH confidence (IBM design system)
+- [PatternFly — Empty State Design Guidelines](https://www.patternfly.org/components/empty-state/design-guidelines/) — HIGH confidence (RedHat design system)
+- [Taskflow PROJECT.md (codebase)](/.planning/PROJECT.md) — HIGH confidence (authoritative project spec)
+- Codebase inspection: `taskflow/src/main.tsx`, `taskflow/src/components/app/TopBar.tsx`, `taskflow/src/routes/settings/Settings.tsx`
 
 ---
-*Feature research for: v1.2 Jira Parity — Taskflow desktop app*
-*Researched: 2026-03-13*
+
+*Feature research for: Taskflow v1.3 UX & Branding*
+*Researched: 2026-03-15*
