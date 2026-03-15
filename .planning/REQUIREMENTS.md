@@ -9,7 +9,7 @@ Requirements for the v1.3 UX & Branding milestone. Each maps to roadmap phases.
 
 ### Branding
 
-- [ ] **BRAND-01**: App has a new abstract/geometric icon on all platforms (macOS Dock, Windows taskbar, Linux)
+- [x] **BRAND-01**: App has a new abstract/geometric icon on all platforms (macOS Dock, Windows taskbar, Linux)
 
 ### Header & Tabs
 
@@ -92,7 +92,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BRAND-01 | Phase 18 | Pending |
+| BRAND-01 | Phase 18 | Complete |
 | SETTINGS-01 | Phase 18 | Complete |
 | SETTINGS-02 | Phase 18 | Complete |
 | SETTINGS-03 | Phase 18 | Complete |
