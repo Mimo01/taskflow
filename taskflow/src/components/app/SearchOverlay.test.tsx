@@ -182,7 +182,7 @@ describe('SearchOverlay', () => {
     const onClose = vi.fn();
     renderOverlay(onClose);
 
-    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' });
     expect(onClose).toHaveBeenCalledOnce();
   });
 
