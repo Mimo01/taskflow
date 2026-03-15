@@ -42,6 +42,9 @@ See archive: `.planning/milestones/v1.1-ROADMAP.md`
 - [x] **Phase 12: Backlog View** - Backlog list with move-to-sprint, create story, and epic/label/assignee filters (completed 2026-03-14)
 - [x] **Phase 13: Epic Management** - Epic list, detail, cross-view filtering, and epic creation (completed 2026-03-14)
 - [x] **Phase 14: Fix v1.2 Wiring and Credential Bugs** - Wire BoardColumn/QuickCreateInput into SprintBoardTab, fix cache invalidation key, fix CreateEpicDialog credential store (completed 2026-03-15)
+- [ ] **Phase 15: Fix BOARD-04 statusId Bug** - Pass numeric Jira status ID to QuickCreateInput so new issues land in the clicked column
+- [ ] **Phase 16: Write Missing Phase 10 + 11 VERIFICATION.md** - Create formal verification artifacts so CREATE-01..04 and BOARD-01..05 are fully accounted for across all three verification sources
+- [ ] **Phase 17: Nyquist Validation — Phases 9–14** - Fill draft VALIDATION.md files to achieve Nyquist compliance across all v1.2 phases
 
 ## Phase Details
 
@@ -152,6 +155,52 @@ Plans:
 - [x] 14-01-PLAN.md — Import BoardColumn + QuickCreateInput into SprintBoardTab.tsx (BOARD-04)
 - [x] 14-02-PLAN.md — Fix cache invalidation key in main.tsx (BACK-03)
 - [x] 14-03-PLAN.md — Replace useSettingsStore with useAuthStore in CreateEpicDialog.tsx (EPIC-04)
+
+### Phase 15: Fix BOARD-04 statusId Bug
+**Goal**: New issues created from the sprint board land in the clicked column — QuickCreateInput receives a real numeric Jira status ID instead of the category key string so the transition lookup succeeds
+**Depends on**: Phase 14
+**Requirements**: BOARD-04
+**Gap Closure:** Closes integration bug from v1.2 audit (col.key category string never matched tr.to.id numeric ID)
+**Success Criteria** (what must be TRUE):
+  1. SprintBoardTab passes the first numeric status ID in the clicked column's category (from workflowStatuses) to QuickCreateInput's statusId prop
+  2. When a user creates an issue from a column, postTransition is called with a matching transition — issue lands in that column's status
+  3. Regression test: creating from a column with mocked numeric status IDs verifies postTransition is called
+**Plans**: 1 plan
+
+Plans:
+- [ ] 15-01-PLAN.md — Fix statusId prop in SprintBoardTab.tsx + regression test
+
+### Phase 16: Write Missing Phase 10 + 11 VERIFICATION.md
+**Goal**: CREATE-01..04 and BOARD-01..05 are fully accounted for across all three verification sources — VERIFICATION.md files created for both phases from existing human approval evidence
+**Depends on**: Phase 15
+**Requirements**: CREATE-01, CREATE-02, CREATE-03, CREATE-04, BOARD-01, BOARD-02, BOARD-03, BOARD-04, BOARD-05
+**Gap Closure:** Closes CREATE-01..04 orphan status and BOARD verification gap from v1.2 audit
+**Success Criteria** (what must be TRUE):
+  1. `.planning/phases/10-sprint-board-redesign/10-VERIFICATION.md` exists and references all five BOARD requirements as SATISFIED
+  2. `.planning/phases/11-create-edit-issue-form/11-VERIFICATION.md` exists and references all four CREATE requirements as SATISFIED
+  3. Both files reference the human approval evidence from SUMMARY files
+**Plans**: 1 plan
+
+Plans:
+- [ ] 16-01-PLAN.md — Write VERIFICATION.md for Phase 10 and Phase 11
+
+### Phase 17: Nyquist Validation — Phases 9–14
+**Goal**: All six v1.2 VALIDATION.md files reach nyquist_compliant: true — test coverage gaps filled so no requirement relies only on manual verification
+**Depends on**: Phase 16
+**Requirements**: ISSUE-01..09, BOARD-01..05, BACK-01..05, EPIC-01..04, CREATE-01..04
+**Gap Closure:** Closes Nyquist compliance gap from v1.2 audit (all phases in draft state)
+**Success Criteria** (what must be TRUE):
+  1. Each phase VALIDATION.md has nyquist_compliant: true and wave_0_complete: true
+  2. Each requirement has at least one automated test covering it
+**Plans**: 6 plans
+
+Plans:
+- [ ] 17-01-PLAN.md — Validate Phase 9 (ISSUE-01..09)
+- [ ] 17-02-PLAN.md — Validate Phase 10 (BOARD-01..05)
+- [ ] 17-03-PLAN.md — Validate Phase 11 (CREATE-01..04)
+- [ ] 17-04-PLAN.md — Validate Phase 12 (BACK-01..05)
+- [ ] 17-05-PLAN.md — Validate Phase 13 (EPIC-01..04)
+- [ ] 17-06-PLAN.md — Validate Phase 14 (BOARD-04, BACK-03, EPIC-04)
 
 ## Progress
 

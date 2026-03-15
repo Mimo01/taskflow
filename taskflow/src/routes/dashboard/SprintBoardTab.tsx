@@ -459,7 +459,7 @@ export default function SprintBoardTab() {
                               ))}
                               {jiraToken && activeJiraProject && (
                                 <QuickCreateInput
-                                  statusId={col.key}
+                                  statusId={workflowStatuses?.find(s => s.statusCategory.key === col.key)?.id ?? col.key}
                                   statusName={col.label}
                                   projectKey={activeJiraProject}
                                   jiraBaseUrl={jiraBaseUrl!}
