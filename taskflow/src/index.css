@@ -5,6 +5,8 @@
 @import "@fontsource-variable/geist";
 
 @variant dark (&:is(.dark *));
+@variant density-compact (&:is([data-density="compact"] *));
+@variant density-comfortable (&:is([data-density="comfortable"] *));
 
 @theme inline {
   --color-background: var(--background);
