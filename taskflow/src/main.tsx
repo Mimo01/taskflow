@@ -1,5 +1,7 @@
 import './index.css';
 import React, { useEffect, useRef, useState } from 'react';
+import { useHotkeys } from 'react-hotkeys-hook';
+import { KeyboardShortcutsPanel } from './components/app/KeyboardShortcutsPanel';
 import ReactDOM from 'react-dom/client';
 import { createHashRouter, RouterProvider, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -88,6 +90,11 @@ function AppLayout() {
   const [createModalDefaultParent, setCreateModalDefaultParent] = useState<string | undefined>(undefined);
   const wasStoryCreate = useRef(false);
   const queryClient = useQueryClient();
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+  // KEYS-01: ? opens shortcuts panel from anywhere (except inside text inputs — react-hotkeys-hook default)
+  // KEYS-07: enableOnFormTags defaults to false — typing ? in an input does NOT open the panel
+  useHotkeys('?', () => setShortcutsOpen(true));
 
   const handleOpenCreate = () => {
     wasStoryCreate.current = false;
@@ -173,6 +180,10 @@ function AppLayout() {
         initialValues={createModalInitialValues}
         defaultIssueType={createModalDefaultType}
         defaultParentKey={createModalDefaultParent}
+      />
+      <KeyboardShortcutsPanel
+        open={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
       />
     </div>
   );

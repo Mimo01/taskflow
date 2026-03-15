@@ -7,6 +7,7 @@
  * Clicking a result opens SearchResultPanel inline. Escape/backdrop closes overlay.
  */
 import { useState, useEffect } from 'react';
+import { useHotkeys } from 'react-hotkeys-hook';
 import { useQuery } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
@@ -87,14 +88,9 @@ export default function SearchOverlay({ onClose, onIssueClick }: SearchOverlayPr
     return () => clearTimeout(t);
   }, [query]);
 
-  // Escape key listener
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [onClose]);
+  // KEYS migration: all keyboard shortcuts use react-hotkeys-hook (no raw window listeners)
+  // enableOnFormTags: true is intentional — Escape must close the overlay even while typing in the search input
+  useHotkeys('escape', onClose, { enableOnFormTags: true });
 
   const { data, isLoading } = useQuery({
     queryKey: ['search', debouncedQuery, activeJiraProject],
