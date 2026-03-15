@@ -1,5 +1,24 @@
 # Milestones
 
+## v1.2 Jira Parity (Shipped: 2026-03-15)
+
+**Phases completed:** 9 phases (9–17), 29 plans
+**Timeline:** 2026-03-13 → 2026-03-15 (2 days)
+**Codebase:** ~23,607 lines TypeScript
+**Git range:** 3001850..a84417a (173 commits, 222 files changed, +28,330/−1,730 lines)
+
+**Key accomplishments:**
+1. Full issue detail panel accessible from all app entry points (sprint board, my tasks, search, notifications) with inline field editing and comment posting
+2. Rebuilt sprint board with Jira-workflow columns, story swimlane layout, drag-and-drop status transitions, and inline issue creation from any column
+3. Create/edit Jira issue form with dynamically discovered fields from `createmeta` API — account and all required custom fields, no hardcoded field IDs
+4. Backlog view with paginated list, move-to-sprint, story creation, and epic/label/assignee filters
+5. Epic management — list with metrics, sprint board filter, epic detail slide-over, and create epic dialog
+6. Fixed 3 broken E2E flows post-integration: QuickCreateInput wiring (BOARD-04), cache invalidation key (BACK-03), CreateEpicDialog credentials (EPIC-04)
+
+**Known Tech Debt:** Pre-existing Phase 8 test regressions (6 tests); 13 live Jira human verification items deferred; EPIC-01 story counts removed per user decision (performance trade-off).
+
+---
+
 ## v1.1 Polish (Shipped: 2026-03-13)
 
 **Phases completed:** 4 phases (5-8), 24 plans
