@@ -10,8 +10,12 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
+// Shared mock for onIssueClick — tests that need to assert on it can reference this variable.
+// The factory always reads the current value of onIssueClickShared so per-test overrides work.
+let onIssueClickShared = vi.fn();
+
 vi.mock('react-router-dom', () => ({
-  useOutletContext: () => ({ onIssueClick: vi.fn() }),
+  useOutletContext: vi.fn(() => ({ onIssueClick: onIssueClickShared })),
 }));
 
 // Mock stronghold — avoid real Tauri vault calls
@@ -514,6 +518,130 @@ describe('SprintBoardTab', () => {
         expect(screen.getAllByText('Story Alpha').length).toBeGreaterThanOrEqual(1);
         expect(screen.getAllByText('Story Beta').length).toBeGreaterThanOrEqual(1);
       });
+    });
+  });
+});
+
+// ─── BOARD-02: all team members' cards visible ─────────────────────────────
+describe('BOARD-02: board shows all team members issues', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('shows cards for issues assigned to different team members', async () => {
+    const { fetchSprintIssues } = await import('@/services/jira');
+
+    function makeIssueWithAssignee(
+      key: string,
+      summary: string,
+      isSubtask: boolean,
+      parentKey: string | undefined,
+      assigneeName: string,
+    ) {
+      return {
+        id: key,
+        key,
+        fields: {
+          summary,
+          status: { id: 'in-progress', name: 'In Progress', statusCategory: { key: 'indeterminate' } },
+          assignee: { displayName: assigneeName, avatarUrls: { '48x48': '' } },
+          customfield_10016: null,
+          issuetype: { name: isSubtask ? 'Sub-task' : 'Story', subtask: isSubtask },
+          ...(parentKey ? { parent: { id: parentKey, key: parentKey, fields: { summary: `Parent ${parentKey}` } } } : {}),
+        },
+      };
+    }
+
+    const story1 = makeIssueWithAssignee('PROJ-1', 'Alice Story', false, undefined, 'Alice Smith');
+    const story2 = makeIssueWithAssignee('PROJ-2', 'Bob Story', false, undefined, 'Bob Jones');
+    const sub1 = makeIssueWithAssignee('PROJ-3', 'Alice Subtask', true, 'PROJ-1', 'Alice Smith');
+    const sub2 = makeIssueWithAssignee('PROJ-4', 'Bob Subtask', true, 'PROJ-2', 'Bob Jones');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([story1, story2, sub1, sub2]);
+
+    const { useAuthStore } = await import('@/stores/auth.store');
+    vi.mocked(useAuthStore).mockReturnValue({
+      jiraBaseUrl: 'https://jira.example.com',
+      activeJiraProject: 'PROJ',
+      gitlabBaseUrl: 'https://gitlab.example.com',
+    } as ReturnType<typeof useAuthStore>);
+
+    const { default: SprintBoardTab } = await import('./SprintBoardTab');
+    renderWithQuery(<SprintBoardTab />);
+
+    // Cards from both team members must be visible — no user filtering
+    await screen.findByText('Alice Subtask');
+    expect(screen.getByText('Bob Subtask')).toBeTruthy();
+    // Both story headers visible
+    expect(screen.getByText('PROJ-1')).toBeTruthy();
+    expect(screen.getByText('PROJ-2')).toBeTruthy();
+  });
+});
+
+// ─── BOARD-05: clicking a card opens the issue detail sheet ─────────────────
+describe('BOARD-05: clicking a card opens issue detail', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Reset the shared click mock so assertions start fresh
+    onIssueClickShared = vi.fn();
+  });
+
+  it('clicking a subtask card fires onIssueClick with the card issue key', async () => {
+    const { fetchSprintIssues } = await import('@/services/jira');
+    const story = makeIssue('PROJ-1', 'My Story', false, undefined, 'In Progress');
+    const subtask = makeIssue('PROJ-2', 'Click Me Subtask', true, 'PROJ-1', 'In Progress');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([story, subtask]);
+
+    const { useAuthStore } = await import('@/stores/auth.store');
+    vi.mocked(useAuthStore).mockReturnValue({
+      jiraBaseUrl: 'https://jira.example.com',
+      activeJiraProject: 'PROJ',
+      gitlabBaseUrl: 'https://gitlab.example.com',
+    } as ReturnType<typeof useAuthStore>);
+
+    const { default: SprintBoardTab } = await import('./SprintBoardTab');
+    renderWithQuery(<SprintBoardTab />);
+
+    // Wait for the subtask card to appear
+    const cardText = await screen.findByText('Click Me Subtask');
+
+    // Click the card (role=button on TaskCard div)
+    fireEvent.click(cardText);
+
+    // onIssueClick should be called with the subtask key
+    await waitFor(() => {
+      expect(onIssueClickShared).toHaveBeenCalledWith('PROJ-2');
+    });
+  });
+
+  it('clicking a story header fires onIssueClick with the story key', async () => {
+    const { fetchSprintIssues } = await import('@/services/jira');
+    // Use a story with a subtask so the bare-story card doesn't appear alongside the header
+    const story = makeIssue('PROJ-1', 'My Story', false, undefined, 'In Progress');
+    const subtask = makeIssue('PROJ-2', 'A Subtask', true, 'PROJ-1', 'In Progress');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([story, subtask]);
+
+    const { useAuthStore } = await import('@/stores/auth.store');
+    vi.mocked(useAuthStore).mockReturnValue({
+      jiraBaseUrl: 'https://jira.example.com',
+      activeJiraProject: 'PROJ',
+      gitlabBaseUrl: 'https://gitlab.example.com',
+    } as ReturnType<typeof useAuthStore>);
+
+    const { default: SprintBoardTab } = await import('./SprintBoardTab');
+    renderWithQuery(<SprintBoardTab />);
+
+    // Wait for story header — click the story key span inside the StoryHeaderRow button.
+    // Use aria-label on the collapse/expand button to locate the header row, then find the
+    // adjacent key+summary button via getAllByText and click the one in the story header.
+    await waitFor(() => {
+      expect(screen.getAllByText('PROJ-1').length).toBeGreaterThanOrEqual(1);
+    });
+    // Click the first occurrence — which is the story key span inside StoryHeaderRow's button
+    const allKeyEls = screen.getAllByText('PROJ-1');
+    fireEvent.click(allKeyEls[0]);
+
+    await waitFor(() => {
+      expect(onIssueClickShared).toHaveBeenCalledWith('PROJ-1');
     });
   });
 });
