@@ -92,9 +92,9 @@ function AppLayout() {
   const queryClient = useQueryClient();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
-  // KEYS-01: ? opens shortcuts panel from anywhere (except inside text inputs — react-hotkeys-hook default)
-  // KEYS-07: enableOnFormTags defaults to false — typing ? in an input does NOT open the panel
-  useHotkeys('?', () => setShortcutsOpen(true));
+  // KEYS-01: mod+/ (Cmd+/ on macOS, Ctrl+/ elsewhere) opens shortcuts panel (layout-independent)
+  // KEYS-07: enableOnFormTags defaults to false — mod+/ in an input does NOT open the panel
+  useHotkeys('mod+/', () => setShortcutsOpen(true));
 
   const handleOpenCreate = () => {
     wasStoryCreate.current = false;

@@ -1,6 +1,6 @@
-// KEYS-01: ? key opens the shortcuts panel
+// KEYS-01: mod+/ (Cmd+/ on macOS, Ctrl+/ elsewhere) opens the shortcuts panel
 // KEYS-02: Escape closes the shortcuts panel (handled by @base-ui/react/dialog natively)
-// KEYS-07: ? does not fire in text inputs (react-hotkeys-hook default — enableOnFormTags: false)
+// KEYS-07: mod+/ does not fire in text inputs (react-hotkeys-hook default — enableOnFormTags: false)
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
@@ -40,13 +40,13 @@ describe('KeyboardShortcutsPanel', () => {
     expect(screen.getByText('General')).toBeInTheDocument();
   });
 
-  it('renders "Show keyboard shortcuts" entry with ? key badge', () => {
+  it('renders "Show keyboard shortcuts" entry with ⌘/ key badge', () => {
     render(<KeyboardShortcutsPanel open={true} onClose={vi.fn()} />);
     expect(screen.getByText('Show keyboard shortcuts')).toBeInTheDocument();
-    // ? key badge rendered as <kbd>
+    // ⌘/ key badge rendered as <kbd>
     const kbdElements = document.querySelectorAll('kbd');
     const keyTexts = Array.from(kbdElements).map((el) => el.textContent);
-    expect(keyTexts).toContain('?');
+    expect(keyTexts).toContain('⌘/');
   });
 
   it('renders "Dismiss shortcuts panel" entry with Esc key badge', () => {
@@ -57,10 +57,10 @@ describe('KeyboardShortcutsPanel', () => {
     expect(keyTexts).toContain('Esc');
   });
 
-  it('KEYS-07: no enableOnFormTags used for ? shortcut — satisfied by react-hotkeys-hook default', () => {
+  it('KEYS-07: no enableOnFormTags used for mod+/ shortcut — satisfied by react-hotkeys-hook default', () => {
     // This is a structural test: the component must not pass enableOnFormTags: true
-    // to the useHotkeys call for the ? shortcut.
-    // Verified by code review: useHotkeys('?', ...) with no options object (or enableOnFormTags absent/false)
+    // to the useHotkeys call for the mod+/ shortcut.
+    // Verified by code review: useHotkeys('mod+/', ...) with no options object (or enableOnFormTags absent/false)
     // This test documents the requirement rather than testing runtime behavior.
     expect(true).toBe(true); // placeholder — see component implementation
   });
