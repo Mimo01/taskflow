@@ -33,8 +33,8 @@ Declared values (multiples of 4 only):
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| xs | 4px | Icon gaps, `<kbd>` inner horizontal padding |
-| sm | 8px | Shortcut row vertical padding, gap between label and kbd badge |
+| xs | 4px | Icon gaps |
+| sm | 8px | Shortcut row vertical padding, gap between label and kbd badge; `<kbd>` inner padding (px-2=8px, py-1=4px) |
 | md | 16px | Dialog internal padding (horizontal), gap between shortcut rows |
 | lg | 24px | Dialog padding (top/bottom), gap between category groups |
 | xl | 32px | Not used this phase |
@@ -52,7 +52,7 @@ Exceptions: Dialog max-height uses `max-h-[80vh]` (viewport-relative, not token-
 | Body | 14px (text-sm) | 400 (font-normal) | 1.5 | Shortcut description text |
 | Label | 12px (text-xs) | 600 (font-semibold) | 1.4 | Category headings (uppercase) |
 | Heading | 18px (text-lg) | 600 (font-semibold) | 1.2 | Dialog title ("Keyboard Shortcuts") |
-| kbd | 12px (text-xs) | 500 (font-medium) | 1 | Key badge content |
+| kbd | 12px (text-xs) | 400 (font-normal) | 1 | Key badge content |
 
 Source: Established codebase pattern. CreateEpicDialog uses `text-lg font-semibold` for dialog title; SearchOverlay uses `text-xs font-semibold uppercase` for section headers; body content uses `text-sm`.
 
@@ -109,7 +109,7 @@ Dialog.Root
 `<kbd>` badge structure (inline within shortcut rows):
 
 ```
-<kbd className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium
+<kbd className="inline-flex items-center px-2 py-1 text-xs font-normal
                 bg-muted text-foreground border border-border rounded-sm font-mono">
   {key}
 </kbd>
@@ -165,7 +165,7 @@ Category heading structure:
 | Dialog title | "Keyboard Shortcuts" |
 | Category heading (Phase 19 only) | "General" |
 | Shortcut: show panel | "Show keyboard shortcuts" |
-| Shortcut: dismiss panel | "Dismiss" |
+| Shortcut: dismiss panel | "Dismiss shortcuts panel" |
 | Close button aria-label | "Close keyboard shortcuts" |
 | Panel accessible description | "A list of all available keyboard shortcuts grouped by category." |
 
@@ -187,7 +187,7 @@ The panel renders exactly these 2 entries in Phase 19:
 | id | defaultKey | description | category |
 |----|------------|-------------|----------|
 | `show-shortcuts` | `?` | Show keyboard shortcuts | General |
-| `dismiss` | `Esc` | Dismiss | General |
+| `dismiss` | `Esc` | Dismiss shortcuts panel | General |
 
 Future phases extend `src/lib/shortcuts.ts` with additional entries. The panel component needs no changes — it reads from the constants.
 
