@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
+use tauri::menu::{self, Menu, MenuItemBuilder};
 use tauri::{Emitter, Manager};
 
 #[tauri::command]
@@ -35,13 +35,21 @@ pub fn run() {
                 .accelerator("CmdOrCtrl+/")
                 .build(app)?;
 
-            let help_menu = SubmenuBuilder::new(app, "Help")
-                .item(&shortcuts_item)
-                .build()?;
+            let menu = Menu::default(app.handle())?;
 
-            let menu = MenuBuilder::new(app)
-                .item(&help_menu)
-                .build()?;
+            // Find the existing Help submenu and append our item to it
+            let help_submenu = menu.items()?.into_iter().find_map(|item| {
+                if let menu::MenuItemKind::Submenu(sub) = item {
+                    if sub.text().unwrap_or_default() == "Help" {
+                        return Some(sub);
+                    }
+                }
+                None
+            });
+
+            if let Some(help) = help_submenu {
+                help.append(&shortcuts_item)?;
+            }
 
             app.set_menu(menu)?;
 
