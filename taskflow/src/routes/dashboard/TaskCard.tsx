@@ -58,7 +58,7 @@ export default function TaskCard({ issue, healthDot, subtaskCount, isExpanded, o
   return (
     <div
       className={cn(
-        'border rounded-lg p-2 bg-card w-full flex flex-col gap-1 cursor-pointer hover:border-primary/50 transition-colors',
+        'border rounded-lg px-2 py-2 density-compact:py-1 density-comfortable:py-3 bg-card w-full flex flex-col gap-1 cursor-pointer hover:border-primary/50 transition-colors',
         isSubtask && 'ml-4 border-l-2 border-l-muted',
       )}
       role="button"
