@@ -1,7 +1,7 @@
 /**
  * KeyboardShortcutsPanel — centered modal listing all registered keyboard shortcuts.
  *
- * Opens when the user presses `?` (from anywhere, except inside text inputs — KEYS-07).
+ * Opens when the user presses `mod+/` / Cmd+/ (macOS) / Ctrl+/ (from anywhere, except inside text inputs — KEYS-07).
  * Closes on Escape (handled natively by @base-ui/react/dialog — KEYS-02).
  * Do NOT add useHotkeys('escape') here — it would cause double-fire.
  *

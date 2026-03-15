@@ -16,7 +16,7 @@ export type ShortcutCategory = 'Navigation' | 'Lists' | 'Actions' | 'General';
 export interface ShortcutEntry {
   /** Stable ID slug — used as the key for user overrides in useSettingsStore.keyboardOverrides */
   id: string;
-  /** The default key string as recognized by react-hotkeys-hook (e.g., '?', 'escape', 'g+s') */
+  /** The default key string as recognized by react-hotkeys-hook (e.g., 'mod+/', 'escape', 'g+s') */
   defaultKey: string;
   /** Human-readable description shown in the shortcuts panel */
   description: string;
@@ -35,7 +35,7 @@ export interface ShortcutEntry {
 export const SHORTCUTS: ShortcutEntry[] = [
   {
     id: 'show-shortcuts',
-    defaultKey: '?',
+    defaultKey: '⌘/',
     description: 'Show keyboard shortcuts',
     category: 'General',
   },
