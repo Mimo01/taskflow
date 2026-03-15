@@ -107,16 +107,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EPIC-02 | Phase 13 | Complete |
 | EPIC-03 | Phase 13 | Complete |
 | EPIC-04 | Phase 14 | Complete |
-| CREATE-01 | Phase 11 | Complete |
-| CREATE-02 | Phase 11 | Complete |
-| CREATE-03 | Phase 11 | Complete |
-| CREATE-04 | Phase 11 | Complete |
+| CREATE-01 | Phase 16 | Complete |
+| CREATE-02 | Phase 16 | Complete |
+| CREATE-03 | Phase 16 | Complete |
+| CREATE-04 | Phase 16 | Complete |
 
 **Coverage:**
 - v1.2 requirements: 27 total
 - Mapped to phases: 27
 - Unmapped: 0 ✓
-- Pending gap closure: 0 (BOARD-04, BACK-03, EPIC-04 all completed in Phase 14)
+- Pending gap closure: 0 ✓ (Phase 15 fixed BOARD-04 statusId bug; Phase 16 wrote VERIFICATION.md for Phases 10 + 11)
 
 ---
 *Requirements defined: 2026-03-13*
