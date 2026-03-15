@@ -5,6 +5,7 @@ import { KeyboardShortcutsPanel } from './components/app/KeyboardShortcutsPanel'
 import ReactDOM from 'react-dom/client';
 import { createHashRouter, RouterProvider, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
+import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { loadTheme, applyDensity } from './services/theme';
 import { useSettingsStore } from './stores/settings.store';
@@ -95,6 +96,14 @@ function AppLayout() {
   // KEYS-01: mod+/ (Cmd+/ on macOS, Ctrl+/ elsewhere) opens shortcuts panel (layout-independent)
   // KEYS-07: enableOnFormTags defaults to false — mod+/ in an input does NOT open the panel
   useHotkeys('mod+/', () => setShortcutsOpen(true));
+
+  // KEYS-02: Listen for native menu "Help > Keyboard Shortcuts" click
+  useEffect(() => {
+    const unlisten = listen('menu-keyboard-shortcuts', () => {
+      setShortcutsOpen(true);
+    });
+    return () => { unlisten.then((fn) => fn()); };
+  }, []);
 
   const handleOpenCreate = () => {
     wasStoryCreate.current = false;
