@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Background: full-bleed dark fill — no transparent areas -->
+  <rect width="1024" height="1024" fill="#0d1117"/>
+
+  <!-- Edges: drawn before nodes so nodes appear on top -->
+
+  <!-- Center (512,512) → Top-left (280,290) -->
+  <line x1="512" y1="512" x2="280" y2="290" stroke="#4f7cff" stroke-width="10" stroke-linecap="round" opacity="0.55"/>
+
+  <!-- Center (512,512) → Top-right (742,260) -->
+  <line x1="512" y1="512" x2="742" y2="260" stroke="#4f7cff" stroke-width="10" stroke-linecap="round" opacity="0.55"/>
+
+  <!-- Center (512,512) → Bottom-right (768,740) -->
+  <line x1="512" y1="512" x2="768" y2="740" stroke="#4f7cff" stroke-width="10" stroke-linecap="round" opacity="0.55"/>
+
+  <!-- Center (512,512) → Bottom-left (265,745) -->
+  <line x1="512" y1="512" x2="265" y2="745" stroke="#4f7cff" stroke-width="10" stroke-linecap="round" opacity="0.55"/>
+
+  <!-- Additional cross edge: Top-right (742,260) → Bottom-right (768,740) — adds real-graph feel -->
+  <line x1="742" y1="260" x2="768" y2="740" stroke="#4f7cff" stroke-width="8" stroke-linecap="round" opacity="0.35"/>
+
+  <!-- Glow ring on center node -->
+  <circle cx="512" cy="512" r="80" fill="none" stroke="#4f7cff" stroke-width="3" opacity="0.25"/>
+
+  <!-- Satellite nodes -->
+  <!-- Top-left -->
+  <circle cx="280" cy="290" r="36" fill="#6c8fff"/>
+
+  <!-- Top-right -->
+  <circle cx="742" cy="260" r="36" fill="#6c8fff"/>
+
+  <!-- Bottom-right -->
+  <circle cx="768" cy="740" r="36" fill="#6c8fff"/>
+
+  <!-- Bottom-left -->
+  <circle cx="265" cy="745" r="36" fill="#6c8fff"/>
+
+  <!-- Center hub node — drawn last to sit on top of edges and glow ring -->
+  <circle cx="512" cy="512" r="52" fill="#4f7cff"/>
+</svg>
