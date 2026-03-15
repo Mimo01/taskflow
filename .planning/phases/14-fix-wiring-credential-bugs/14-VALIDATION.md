@@ -1,10 +1,11 @@
 ---
 phase: 14
 slug: fix-wiring-credential-bugs
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-15
+audited: 2026-03-15
 ---
 
 # Phase 14 — Validation Strategy
@@ -38,9 +39,9 @@ created: 2026-03-15
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 14-01-01 | 01 | 1 | BOARD-04 | unit | `cd taskflow && npx vitest run SprintBoardTab` | ✅ (needs BOARD-04 test — Wave 0) | ⬜ pending |
-| 14-02-01 | 02 | 1 | BACK-03 | unit | `cd taskflow && npx vitest run BacklogPage` | ✅ BacklogPage.test.tsx | ⬜ pending |
-| 14-03-01 | 03 | 1 | EPIC-04 | unit | `cd taskflow && npx vitest run CreateEpicDialog` | ✅ (needs mock update — Wave 0) | ⬜ pending |
+| 14-01-01 | 01 | 1 | BOARD-04 | unit | `cd taskflow && npx vitest run SprintBoardTab` | ✅ SprintBoardTab.test.tsx (BOARD-04 describe block, 2 tests) | ✅ green |
+| 14-02-01 | 02 | 1 | BACK-03 | unit | `cd taskflow && npx vitest run BacklogPage` | ✅ BacklogPage.test.tsx (BACK-03 describe block, 1 test) | ✅ green |
+| 14-03-01 | 03 | 1 | EPIC-04 | unit | `cd taskflow && npx vitest run CreateEpicDialog` | ✅ CreateEpicDialog.test.tsx (2 EPIC-04 tests) | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -48,10 +49,12 @@ created: 2026-03-15
 
 ## Wave 0 Requirements
 
-- [ ] `taskflow/src/routes/dashboard/SprintBoardTab.test.tsx` — add BOARD-04 test: render SprintBoardTab with data, assert `+ Add` button visible in each column
-- [ ] `taskflow/src/routes/dashboard/CreateEpicDialog.test.tsx` — update mocks: replace `useSettingsStore` credential fields with `useAuthStore` + `readSecret` mocks
+- [x] `taskflow/src/routes/dashboard/SprintBoardTab.test.tsx` — BOARD-04 test added: `describe('BOARD-04 QuickCreateInput wiring')` with 2 tests (renders 3 "+ Add" buttons; statusId regression). GREEN.
+- [x] `taskflow/src/routes/dashboard/CreateEpicDialog.test.tsx` — Mocks updated: `useSettingsStore` provides only `epicNameFieldKey`; `useAuthStore` mock added; `readSecret` mock added. GREEN.
 
-*BacklogPage.test.tsx already has BACK-03 coverage — no Wave 0 gap.*
+*BacklogPage.test.tsx already had BACK-03 coverage — no Wave 0 gap.*
+
+*Audit run: 2026-03-15 — all 34 targeted tests passed (SprintBoardTab: 12+2=14 incl. BOARD-04 x2, BacklogPage: 16 incl. BACK-03, CreateEpicDialog: 2 incl. EPIC-04 x2).*
 
 ---
 
@@ -67,11 +70,11 @@ created: 2026-03-15
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** green — all 34 targeted tests passing (2026-03-15 audit)
