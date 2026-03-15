@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: UX & Branding
 status: planning
-stopped_at: Completed 19-06-PLAN.md
-last_updated: "2026-03-15T22:35:58.426Z"
+stopped_at: Completed 19-05-PLAN.md
+last_updated: "2026-03-15T22:38:15.232Z"
 last_activity: 2026-03-15 — v1.3 roadmap created, 32 requirements mapped across 5 phases
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 12
-  completed_plans: 11
+  completed_plans: 12
   percent: 0
 ---
 
@@ -62,6 +62,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 19-keyboard-foundation PP03 | 12 | 2 tasks | 4 files |
 | Phase 19 P04 | 3 | 2 tasks | 4 files |
 | Phase 19-keyboard-foundation P06 | 2 | 2 tasks | 2 files |
+| Phase 19-keyboard-foundation P05 | 1 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,7 @@ Key v1.3 constraints from research:
 - [Phase 19-keyboard-foundation]: No useHotkeys('escape') inside Dialog components — @base-ui/react/dialog handles Escape natively; adding it would cause double-fire
 - [Phase 19-keyboard-foundation]: defaultKey for show-shortcuts set to '⌘/' (display label) not 'mod+/' — avoids adding displayKey field to ShortcutEntry; useHotkeys arg hardcoded separately in main.tsx
 - [Phase 19]: Menu API built into tauri crate by default in v2.10.3 -- no feature flag needed
+- [Phase 19-keyboard-foundation]: Use 'mod+slash' (code name) instead of 'mod+/' (symbol) to bypass react-hotkeys-hook #1125 normalizer bug
 
 ### Pending Todos
 
@@ -107,6 +109,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-15T22:35:58.420Z
-Stopped at: Completed 19-06-PLAN.md
+Last session: 2026-03-15T22:38:15.226Z
+Stopped at: Completed 19-05-PLAN.md
 Resume: Run `/gsd:plan-phase 18` to begin Phase 18 planning
