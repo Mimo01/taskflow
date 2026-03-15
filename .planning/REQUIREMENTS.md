@@ -41,13 +41,13 @@ Requirements for the v1.3 UX & Branding milestone. Each maps to roadmap phases.
 
 ### Keyboard Shortcuts
 
-- [ ] **KEYS-01**: User can open a keyboard shortcuts reference panel with the ? key from anywhere in the app
-- [ ] **KEYS-02**: Shortcuts panel is dismissable with Escape
+- [x] **KEYS-01**: User can open a keyboard shortcuts reference panel with the ? key from anywhere in the app
+- [x] **KEYS-02**: Shortcuts panel is dismissable with Escape
 - [ ] **KEYS-03**: Global navigation shortcuts: G+S = Sprint Board, G+B = Backlog, G+N = Notifications
 - [ ] **KEYS-04**: J/K navigation works in My Tasks list (J/K moves focus, Enter opens detail)
 - [ ] **KEYS-05**: J/K navigation works in Notifications list (J/K moves focus, Enter opens detail)
 - [ ] **KEYS-06**: J/K navigation works in Backlog list (J/K moves focus, Enter opens detail)
-- [ ] **KEYS-07**: Keyboard shortcuts do not fire when focus is inside any text input or contenteditable
+- [x] **KEYS-07**: Keyboard shortcuts do not fire when focus is inside any text input or contenteditable
 
 ### Recent Items
 
@@ -98,9 +98,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SETTINGS-03 | Phase 18 | Complete |
 | SETTINGS-04 | Phase 18 | Complete |
 | SETTINGS-05 | Phase 18 | Complete |
-| KEYS-01 | Phase 19 | Pending |
-| KEYS-02 | Phase 19 | Pending |
-| KEYS-07 | Phase 19 | Pending |
+| KEYS-01 | Phase 19 | Complete |
+| KEYS-02 | Phase 19 | Complete |
+| KEYS-07 | Phase 19 | Complete |
 | PALETTE-01 | Phase 20 | Pending |
 | PALETTE-02 | Phase 20 | Pending |
 | PALETTE-03 | Phase 20 | Pending |
