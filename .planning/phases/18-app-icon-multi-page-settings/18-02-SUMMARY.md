@@ -94,11 +94,36 @@ Each task was committed atomically:
 
 ## Deviations from Plan
 
-None — plan executed exactly as written. The SVG-direct path (Step 1) worked on first attempt; the fallback PNG/sharp path (Step 2) was not needed.
+**1. macOS icon cache required manual clearing**
+
+The SVG-direct path worked on first attempt (no deviation there). However, during human verification (checkpoint Task 3), the user reported the old Tauri default icon was still visible in the Dock. Diagnosis confirmed:
+- All icon files on disk are valid (correct dimensions, non-empty, valid PNG/ICNS format)
+- No compiled app bundle existed yet — icons are only embedded when `tauri dev` or `tauri build` compiles the binary
+- macOS caches icon service data persistently in `/var/folders/*/com.apple.iconservices*`
+
+Resolution: User must run these commands in a terminal, then relaunch the app:
+```bash
+sudo find /var/folders -name "com.apple.iconservices*" -exec rm -rf {} + 2>/dev/null
+killall Dock
+cd /Users/mimo/Desktop/Tasker/taskflow && npm run tauri dev
+```
+
+This is expected macOS behavior — not a code issue. No source files required changes.
 
 ## Issues Encountered
 
-None.
+**macOS icon cache showed old icon after `tauri dev`**
+
+- **Found during:** Checkpoint Task 3 (human-verify)
+- **Diagnosis:** Icon files on disk are valid and correctly sized (icon.icns = 65KB, 32x32.png = 622B, all PNG dimensions confirmed). The compiled app binary did not yet exist in `src-tauri/target/debug/` — the Dock was showing a cached icon entry from a prior session.
+- **Root cause:** macOS icon services caches application bundle icons in `/var/folders/…/com.apple.iconservices*`. The new icon files are only embedded into the app bundle when Rust compiles the binary. No build had run since the icons were replaced.
+- **Fix required:** Two-step: (1) Run `npm run tauri dev` to compile with new icons embedded, (2) clear macOS icon cache and restart Dock so the cached entry is evicted.
+- **Cache clearing commands (must be run in a terminal with sudo access):**
+  ```bash
+  sudo find /var/folders -name "com.apple.iconservices*" -exec rm -rf {} + 2>/dev/null
+  killall Dock
+  ```
+- **No code changes needed** — icon source SVG and all generated platform icons are correct and committed.
 
 ## User Setup Required
 
