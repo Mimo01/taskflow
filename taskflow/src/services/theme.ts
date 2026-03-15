@@ -8,10 +8,26 @@
  * Source: https://v2.tauri.app/plugin/store/
  */
 import { LazyStore } from '@tauri-apps/plugin-store';
+import type { Density } from '../stores/settings.store';
 
 const settingsStore = new LazyStore('settings.json');
 
 export type Theme = 'dark' | 'light' | 'system';
+
+/**
+ * Apply a density tier by setting or removing the data-density attribute on
+ * document.documentElement. 'default' removes the attribute entirely so no
+ * density variant is active (CSS baseline). 'compact' and 'comfortable' set
+ * the attribute so @variant density-compact / density-comfortable rules fire.
+ * Does not persist — density is managed by the settings store.
+ */
+export function applyDensity(density: Density): void {
+  if (density === 'default') {
+    document.documentElement.removeAttribute('data-density');
+  } else {
+    document.documentElement.setAttribute('data-density', density);
+  }
+}
 
 /**
  * Apply a theme by toggling the 'dark' class on document.documentElement.

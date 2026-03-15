@@ -4,7 +4,7 @@ import ReactDOM from 'react-dom/client';
 import { createHashRouter, RouterProvider, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { loadTheme } from './services/theme';
+import { loadTheme, applyDensity } from './services/theme';
 import { useSettingsStore } from './stores/settings.store';
 import { useAuthStore } from './stores/auth.store';
 import Sidebar from './components/app/Sidebar';
@@ -201,6 +201,10 @@ const router = createHashRouter([
 
 // Apply persisted theme BEFORE first render to avoid flash of wrong theme.
 // loadTheme() falls back to 'system' if no preference is saved.
+// applyDensity('default') sets the density baseline synchronously — no flash
+// because 'default' means no data-density attribute (CSS baseline sizing).
+// After hydration, AppearanceSection's useEffect will apply the stored density.
+applyDensity('default');
 loadTheme().then(() => {
   ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <React.StrictMode>
