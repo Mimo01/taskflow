@@ -34,16 +34,15 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ My Tasks and Sprint Board group subtasks under parent story (collapsible hierarchy) — v1.1
 - ✓ MR Attention shows only open MRs assigned to me or linked to stories with my subtasks — v1.1
 - ✓ Full-page /notifications route with Bell sidebar link — v1.1
+- ✓ Full issue detail panel with rich text, editable fields (assignee/priority/story points/labels), subtask list, linked issues, comment thread, post comment, and Open in Jira deep link — v1.2
+- ✓ Sprint board redesigned: subtasks as first-class kanban cards grouped under collapsible parent story headers, all team members visible, drag-to-move status transitions with optimistic rollback, QuickCreateInput per column — v1.2
+- ✓ Backlog view: paginated unassigned issues, move-to-sprint, create new story, filter by epic/label/assignee — v1.2
+- ✓ Epic management: epic list with metrics, sprint board + backlog epic filter, epic detail slide-over (via IssueDetailSheet isEpic branch), create epic dialog — v1.2
+- ✓ Create/edit Jira issues with dynamically discovered fields from createmeta (account + all required custom fields), issue links with type selection — v1.2
 
 ### Active
 
-<!-- v1.2 Jira Parity — building toward these -->
-
-- [ ] Full-page issue detail view with rich-text description, editable fields, subtask list, comments, and linked issues
-- [ ] Sprint board redesigned: subtasks as kanban cards grouped under story headers, all team members visible, drag-to-move status transitions, inline issue detail
-- [ ] Backlog view: unassigned stories/subtasks, move-to-sprint, create new stories, filter by epic/label
-- [ ] Epic management: epic list, filter sprint/backlog by epic, epic detail page, create epics
-- [ ] Create and edit Jira issues: summary, description, assignee, story points, epic link, issue type, account custom field, issue links
+<!-- v1.3+ — no current milestone planned yet -->
 
 ### Out of Scope
 
@@ -61,14 +60,15 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 ## Context
 
 - **Shipped v1.0:** 2026-03-12 — 4 phases, 20 plans, ~11,017 lines TypeScript, 348 files
-- **Shipped v1.1:** 2026-03-13 — 4 phases, 24 plans, ~15,856 lines TypeScript (+ quick tasks)
-- **Tech stack:** Tauri 2, React 18, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest
-- **Jira instance:** On-premise (Jira Data Center v10.3.15) — no built-in notifications, REST API v2 with Bearer PAT auth
+- **Shipped v1.1:** 2026-03-13 — 4 phases, 24 plans, ~15,856 lines TypeScript (+ 20 quick tasks)
+- **Shipped v1.2:** 2026-03-15 — 9 phases, 29 plans, ~23,607 lines TypeScript, 222 files changed (+28,330/−1,730 lines)
+- **Tech stack:** Tauri 2, React 18, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, @dnd-kit/core, jira2md, react-markdown
+- **Jira instance:** On-premise (Jira Data Center v10.3.15) — REST API v2 with Bearer PAT auth; createmeta/workflow/transitions APIs used for issue management
 - **GitLab:** Self-hosted or gitlab.com — personal access token
 - **Team:** Orange eshop project — developers + project managers using the same app with role-based views
-- **Scale:** One Jira project + one GitLab project at a time (switched from group selection in v1.1 quick tasks)
+- **Scale:** One Jira project + one GitLab project at a time
 - **Build:** Portable executable — no installer, no admin rights; `createHashRouter` for SPA routing in production
-- **Known caveats (v1.1):** Time tracking columns gracefully hidden when admin-disabled on Jira instance; subtask two-query strategy validated against DC v10.3.15
+- **Known caveats (v1.2):** Time tracking columns gracefully hidden when admin-disabled; EPIC-01 story count and point totals removed from EpicsPage per user decision (load expensive data only on epic detail); EpicDetailSheet implemented as IssueDetailSheet isEpic=true branch (not a separate component) per user approval; 6 pre-existing Phase 8 test regressions unresolved; 13 human verification items deferred to live Jira environment
 
 ## Constraints
 
@@ -103,17 +103,14 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 | WorkloadTab conditional increment (not guard skip) for done stories | Done stories appear as sub-rows; excluded from count/pts only — matched UAT expectation | ✓ Good — done stories visible without inflating counts |
 | Dashboard panels receive props from thin index.tsx | Token loading centralized; panels own their queries — avoids prop drilling and keeps index.tsx testable | ✓ Good — clean separation |
 | Notifications store sanitized on rehydration | Numeric/null id values coerced to string — prevents row-click failures after store migration | ✓ Good — no crashes on existing persisted stores |
-
-## Current Milestone: v1.2 Jira Parity
-
-**Goal:** Replace the need to open Jira — full issue detail, backlog management, epic tracking, and task creation/editing from within the app.
-
-**Target features:**
-- Full-page issue detail view (rich text, editable fields, subtasks, comments, linked issues)
-- Sprint board redesign (subtask-card layout, all team members, drag-to-move)
-- Backlog view (unassigned issues, move-to-sprint, create/filter)
-- Epic management (list, filter, detail, create)
-- Create/edit tasks (all key fields including account custom field and issue links)
+| Global IssueDetailSheet lifted to AppLayout (not Dashboard) | Search and notifications live in TopBar (global shell), not inside a route — sheet must be at the same level | ✓ Good — all entry points accessible without context |
+| Prop threading for onIssueClick (not React context) | Codebase uses zero createContext/useContext — kept consistent with explicit prop threading | ✓ Good — data flow explicit; consistent with existing patterns |
+| EpicDetailSheet implemented as IssueDetailSheet isEpic=true branch | User approved during Phase 13 — avoids duplicate sheet component; epic issues are still issues | ✓ Good — user approved; reduces component surface area |
+| discoverCustomFields() + createmeta for issue creation | Hardcoded field IDs fail across Jira DC instances; createmeta returns required fields dynamically | ✓ Good — account field and all required custom fields discovered at runtime |
+| @dnd-kit for drag-and-drop (not react-beautiful-dnd) | react-beautiful-dnd deprecated and unmaintained; @dnd-kit has active support and better Tauri webview compat | ✓ Good — drag-and-drop works reliably |
+| jira2md + react-markdown pipeline for wiki markup | Jira DC stores descriptions as wiki markup (not ADF); jira2md converts to CommonMark for rendering | ✓ Good — rich text rendering without ADF editor complexity |
+| useAuthStore (not useSettingsStore) for Jira credentials in mutations | useSettingsStore holds UI preferences only; auth credentials live in useAuthStore + Stronghold | ✓ Good — fixed EPIC-04 credential bug; clear store separation |
+| EpicsPage uses fetchEpicsBasic (not fetchEpicsWithEnrichment) | Enrichment requires N story-count queries — too slow for list view per user preference | ✓ Good — user accepted trade-off; detail available on click |
 
 ---
-*Last updated: 2026-03-13 after v1.2 milestone start*
+*Last updated: 2026-03-15 after v1.2 milestone*
