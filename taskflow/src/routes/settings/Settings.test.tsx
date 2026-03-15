@@ -192,11 +192,10 @@ describe('WorkflowSection content', () => {
     expect(screen.getByText(/show subtasks in my tasks/i)).toBeInTheDocument();
   });
 
-  it('renders Advanced subsection heading with DebugModeSection', () => {
+  it('does not render DebugModeSection (moved to top-level Advanced section)', () => {
     render(<WorkflowSection />);
-    expect(screen.getByText(/advanced/i)).toBeInTheDocument();
-    // DebugModeSection renders "Enable API call logging"
-    expect(screen.getByText(/enable api call logging/i)).toBeInTheDocument();
+    // Debug controls live in Settings > Advanced, not inside WorkflowSection
+    expect(screen.queryByText(/enable api call logging/i)).not.toBeInTheDocument();
   });
 
   it('collapse toggle reflects sprintCollapseByDefault from store (false by default)', () => {
