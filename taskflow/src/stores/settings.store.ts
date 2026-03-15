@@ -9,6 +9,8 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { LazyStore } from '@tauri-apps/plugin-store';
 import type { Theme } from '../services/theme';
 
+export type Density = 'compact' | 'default' | 'comfortable';
+
 const tauriStore = new LazyStore('settings.json');
 
 /**
@@ -54,7 +56,16 @@ interface SettingsState {
   accountFieldKey: string | null;
   /** Enable API call logging for debug inspection. Default: false. */
   debugMode: boolean;
+  /** UI density preference. Default: 'default'. */
+  density: Density;
+  /** Collapse sprints by default in the board view. Default: false. */
+  sprintCollapseByDefault: boolean;
+  /** Show subtasks inside My Tasks view. Default: true. */
+  showSubtasksInMyTasks: boolean;
   setDebugMode: (v: boolean) => void;
+  setDensity: (d: Density) => void;
+  setSprintCollapseByDefault: (v: boolean) => void;
+  setShowSubtasksInMyTasks: (v: boolean) => void;
   setRole: (role: 'developer' | 'pm' | 'tech-lead') => void;
   setTheme: (theme: Theme) => void;
   setOnboardingComplete: (complete: boolean) => void;
@@ -86,7 +97,13 @@ export const useSettingsStore = create<SettingsState>()(
       sprintFieldKey: 'customfield_10020',
       accountFieldKey: null,
       debugMode: false,
+      density: 'default' as Density,
+      sprintCollapseByDefault: false,
+      showSubtasksInMyTasks: true,
       setDebugMode: (v) => set({ debugMode: v }),
+      setDensity: (d) => set({ density: d }),
+      setSprintCollapseByDefault: (v) => set({ sprintCollapseByDefault: v }),
+      setShowSubtasksInMyTasks: (v) => set({ showSubtasksInMyTasks: v }),
       setRole: (role) => set({ role }),
       setTheme: (theme) => set({ theme }),
       setOnboardingComplete: (complete) => set({ onboardingComplete: complete }),
@@ -104,6 +121,16 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: tauriStorage,
+      version: 1,
+      migrate: (persisted, version) => {
+        const s = persisted as Record<string, unknown>;
+        if (version < 1) {
+          if (s.density === undefined) s.density = 'default';
+          if (s.sprintCollapseByDefault === undefined) s.sprintCollapseByDefault = false;
+          if (s.showSubtasksInMyTasks === undefined) s.showSubtasksInMyTasks = true;
+        }
+        return s as unknown as SettingsState;
+      },
     },
   ),
 );
