@@ -50,7 +50,7 @@ export default function Sidebar({ onOpenCreate }: SidebarProps) {
       </div>
 
       {/* Nav links */}
-      <nav className="flex-1 px-2 py-4 flex flex-col gap-1">
+      <nav className="flex-1 min-h-0 overflow-y-auto px-2 py-4 flex flex-col gap-1">
         <NavLink to="/dashboard" className={navLinkClass}>
           <LayoutDashboard className="h-4 w-4 shrink-0" />
           <span className="hidden md:block">Dashboard</span>
