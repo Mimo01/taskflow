@@ -359,6 +359,7 @@ export function CreateEditIssueModal({
         })
       }
       queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] })
+      queryClient.invalidateQueries({ queryKey: ['jira-backlog-view'] })
       setApiError(null)
       onClose()
     },
