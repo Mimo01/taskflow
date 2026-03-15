@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: UX & Branding
 status: planning
-stopped_at: Completed 18-04 — density infrastructure and AppearanceSection implemented
-last_updated: "2026-03-15T19:08:56.701Z"
+stopped_at: Completed 18-05 — NotificationsSection + WorkflowSection with sprint board prefs implemented
+last_updated: "2026-03-15T19:13:10.249Z"
 last_activity: 2026-03-15 — v1.3 roadmap created, 32 requirements mapped across 5 phases
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 6
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -54,6 +54,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 18-app-icon-multi-page-settings P03 | 5 | 2 tasks | 5 files |
 | Phase 18-app-icon-multi-page-settings P02 | 5 | 2 tasks | 53 files |
 | Phase 18-app-icon-multi-page-settings PP04 | 7 | 2 tasks | 4 files |
+| Phase 18-app-icon-multi-page-settings P05 | 8 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,8 @@ Key v1.3 constraints from research:
 - [Phase 18-app-icon-multi-page-settings]: SVG pipeline for tauri icon works directly (no PNG intermediate or sharp needed); explicit rect background fill required to prevent transparent-area artifacts in macOS Dock
 - [Phase 18-app-icon-multi-page-settings]: applyDensity uses data-density DOM attribute; 'default' removes it for CSS baseline; compact/comfortable set it
 - [Phase 18-app-icon-multi-page-settings]: AppearanceSection calls setDensity + applyDensity together on user selection for immediate DOM + store update
+- [Phase 18-app-icon-multi-page-settings]: NotificationsSection is a pure wrapper — all notification UI lives in NotificationSettingsSection
+- [Phase 18-app-icon-multi-page-settings]: WorkflowSection uses aria-label on checkbox inputs for accessible-name test queries while keeping adjacent label layout
 
 ### Pending Todos
 
@@ -86,6 +89,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-15T19:08:56.696Z
-Stopped at: Completed 18-04 — density infrastructure and AppearanceSection implemented
+Last session: 2026-03-15T19:13:10.244Z
+Stopped at: Completed 18-05 — NotificationsSection + WorkflowSection with sprint board prefs implemented
 Resume: Run `/gsd:plan-phase 18` to begin Phase 18 planning
