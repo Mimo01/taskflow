@@ -1,10 +1,11 @@
 ---
 phase: 11
 slug: create-edit-issue-form
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-14
+updated: 2026-03-15
 ---
 
 # Phase 11 — Validation Strategy
@@ -38,16 +39,16 @@ created: 2026-03-14
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 11-W0-01 | 01 | 0 | CREATE-01,02,03,04 | unit | `npx vitest run src/routes/dashboard/CreateEditIssueModal.test.tsx` | ❌ W0 | ⬜ pending |
-| 11-W0-02 | 01 | 0 | CREATE-01,02,03,04 | unit | `npx vitest run src/services/jira.test.ts` | ✅ extend | ⬜ pending |
-| 11-01-01 | 01 | 1 | CREATE-01 | unit | `npx vitest run src/services/jira.test.ts` | ✅ extend | ⬜ pending |
-| 11-01-02 | 01 | 1 | CREATE-01 | unit | `npx vitest run src/routes/dashboard/CreateEditIssueModal.test.tsx` | ❌ W0 | ⬜ pending |
-| 11-02-01 | 02 | 1 | CREATE-02 | unit | `npx vitest run src/services/jira.test.ts` | ✅ extend | ⬜ pending |
-| 11-02-02 | 02 | 1 | CREATE-02 | unit | `npx vitest run src/routes/dashboard/CreateEditIssueModal.test.tsx` | ❌ W0 | ⬜ pending |
-| 11-03-01 | 03 | 2 | CREATE-03 | unit | `npx vitest run src/services/jira.test.ts` | ✅ extend | ⬜ pending |
-| 11-03-02 | 03 | 2 | CREATE-03 | unit | `npx vitest run src/routes/dashboard/CreateEditIssueModal.test.tsx` | ❌ W0 | ⬜ pending |
-| 11-04-01 | 04 | 2 | CREATE-04 | unit | `npx vitest run src/services/jira.test.ts` | ✅ extend | ⬜ pending |
-| 11-04-02 | 04 | 2 | CREATE-04 | unit | `npx vitest run src/routes/dashboard/CreateEditIssueModal.test.tsx` | ❌ W0 | ⬜ pending |
+| 11-W0-01 | 01 | 0 | CREATE-01,02,03,04 | unit | `npx vitest run src/routes/dashboard/CreateEditIssueModal.test.tsx` | ✅ | ✅ green |
+| 11-W0-02 | 01 | 0 | CREATE-01,02,03,04 | unit | `npx vitest run src/services/jira.test.ts` | ✅ | ✅ green |
+| 11-01-01 | 01 | 1 | CREATE-01 | unit | `npx vitest run src/services/jira.test.ts` | ✅ | ✅ green |
+| 11-01-02 | 01 | 1 | CREATE-01 | unit | `npx vitest run src/routes/dashboard/CreateEditIssueModal.test.tsx` | ✅ | ✅ green |
+| 11-02-01 | 02 | 1 | CREATE-02 | unit | `npx vitest run src/services/jira.test.ts` | ✅ | ✅ green |
+| 11-02-02 | 02 | 1 | CREATE-02 | unit | `npx vitest run src/routes/dashboard/CreateEditIssueModal.test.tsx` | ✅ | ✅ green |
+| 11-03-01 | 03 | 2 | CREATE-03 | unit | `npx vitest run src/services/jira.test.ts` | ✅ | ✅ green |
+| 11-03-02 | 03 | 2 | CREATE-03 | unit | `npx vitest run src/routes/dashboard/CreateEditIssueModal.test.tsx` | ✅ | ✅ green |
+| 11-04-01 | 04 | 2 | CREATE-04 | unit | `npx vitest run src/services/jira.test.ts` | ✅ | ✅ green |
+| 11-04-02 | 04 | 2 | CREATE-04 | unit | `npx vitest run src/routes/dashboard/CreateEditIssueModal.test.tsx` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -55,8 +56,8 @@ created: 2026-03-14
 
 ## Wave 0 Requirements
 
-- [ ] `src/routes/dashboard/CreateEditIssueModal.test.tsx` — stubs for CREATE-01, CREATE-02, CREATE-03, CREATE-04 component behavior
-- [ ] Extend `src/services/jira.test.ts` — stubs for fetchCreatemeta, bulkUpdateIssue, fetchIssueLinkTypes, createIssueLink
+- [x] `src/routes/dashboard/CreateEditIssueModal.test.tsx` — behavioral tests for CREATE-01, CREATE-02, CREATE-03, CREATE-04 component behavior (8 tests, all green)
+- [x] Extend `src/services/jira.test.ts` — tests for fetchCreatemeta, bulkUpdateIssue, fetchIssueLinkTypes, createIssueLink, extended createIssue (13 tests, all green)
 
 *No new framework install needed — Vitest + @testing-library/react already present.*
 
@@ -73,13 +74,27 @@ created: 2026-03-14
 
 ---
 
+## Nyquist Gap Closure (2026-03-15)
+
+The following gaps were filled by the Nyquist auditor:
+
+| Gap | Old Status | New Status | Tests Added |
+|-----|-----------|------------|-------------|
+| CREATE-01 component tests (3 stubs) | `it.todo()` | ✅ green | renders type switcher; Subtask shows Parent/hides Epic Link; Story shows Epic Link/hides Parent |
+| CREATE-02 component test (1 stub) | `it.todo()` | ✅ green | submit disabled when required custom field empty |
+| CREATE-03 component test (1 stub) | `it.todo()` | ✅ green | edit mode pre-fills summary + assignee + Save button |
+
+Service-layer tests (jira.test.ts) were already green for all CREATE-01..04 behaviors.
+
+---
+
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 15s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have automated verify commands
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all requirements
+- [x] No watch-mode flags
+- [x] Feedback latency < 15s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** nyquist-auditor 2026-03-15
