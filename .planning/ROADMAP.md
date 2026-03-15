@@ -152,7 +152,7 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22
 | 15. Fix BOARD-04 statusId Bug | v1.2 | — | Complete | 2026-03-15 |
 | 16. Write Missing Phase 10 + 11 VERIFICATION.md | v1.2 | — | Complete | 2026-03-15 |
 | 17. Nyquist Validation — Phases 9–14 | v1.2 | — | Complete | 2026-03-15 |
-| 18. App Icon + Multi-Page Settings | 3/6 | In Progress|  | - |
+| 18. App Icon + Multi-Page Settings | 4/6 | In Progress|  | - |
 | 19. Keyboard Foundation | v1.3 | 0/TBD | Not started | - |
 | 20. Command Palette + Recent Items | v1.3 | 0/TBD | Not started | - |
 | 21. Header Redesign + Pinned Issue Tabs | v1.3 | 0/TBD | Not started | - |
