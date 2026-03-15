@@ -56,7 +56,7 @@ See archive: `.planning/milestones/v1.2-ROADMAP.md`
 
 - [x] **Phase 18: App Icon + Multi-Page Settings** - New brand icon on all platforms and Settings restructured with sidebar navigation across four sections (completed 2026-03-15)
 - [x] **Phase 19: Keyboard Foundation** - Shortcut registry, global keydown hook, and `?` help panel that serves as the reference for all subsequent shortcut consumers (completed 2026-03-15)
-- [ ] **Phase 20: Command Palette + Recent Items** - Cmd+K overlay with fuzzy search across cached issues/MRs/nav actions, recent items popover in TopBar, and G+letter nav shortcuts
+- [ ] **Phase 20: Command Palette + Recent Items** - Cmd+K overlay with fuzzy search across cached issues/MRs/nav actions, recent items popover in TopBar, and Cmd+Shift+S/B/N nav shortcuts
 - [ ] **Phase 21: Header Redesign + Pinned Issue Tabs** - Redesigned TopBar with branding, pinned-issue tab strip below the top bar, and J/K keyboard navigation in list views
 - [ ] **Phase 22: Polish — Empty States + Error Recovery** - Illustrated empty states and actionable error recovery applied consistently across all data views
 
@@ -110,8 +110,14 @@ Plans:
   3. When fewer than 2 characters are typed, the palette default state shows recently opened issues/MRs
   4. Typing 2 or more characters produces a "Search Jira for X" tail item that fires a live query
   5. A clock icon in the TopBar opens a popover listing the last 10 recently opened issues/MRs; clicking any item opens that issue's detail panel
-  6. Pressing G then S navigates to Sprint Board, G then B to Backlog, and G then N to Notifications from anywhere in the app
-**Plans**: TBD
+  6. Pressing Cmd+Shift+S navigates to Sprint Board, Cmd+Shift+B to Backlog, and Cmd+Shift+N to Notifications from anywhere in the app
+**Plans**: 4 plans
+
+Plans:
+- [ ] 20-01-PLAN.md — Foundation: shadcn command install + recent-items store + shortcut registry entries
+- [ ] 20-02-PLAN.md — CommandPalette component with fuzzy search, groups, and live Jira search
+- [ ] 20-03-PLAN.md — RecentItemsPopover component (clock icon + popover)
+- [ ] 20-04-PLAN.md — TopBar + AppLayout wiring, nav shortcuts, recent item tracking, delete old search files
 
 ### Phase 21: Header Redesign + Pinned Issue Tabs
 **Goal**: The app header communicates Taskflow's brand identity and users can maintain quick access to multiple open issues via a persistent tab strip
@@ -162,6 +168,6 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22
 | 17. Nyquist Validation — Phases 9–14 | v1.2 | — | Complete | 2026-03-15 |
 | 18. App Icon + Multi-Page Settings | 6/6 | Complete    | 2026-03-15 | - |
 | 19. Keyboard Foundation | 6/6 | Complete   | 2026-03-15 |
-| 20. Command Palette + Recent Items | v1.3 | 0/TBD | Not started | - |
+| 20. Command Palette + Recent Items | v1.3 | 0/4 | Not started | - |
 | 21. Header Redesign + Pinned Issue Tabs | v1.3 | 0/TBD | Not started | - |
 | 22. Polish — Empty States + Error Recovery | v1.3 | 0/TBD | Not started | - |
