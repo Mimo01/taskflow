@@ -72,7 +72,15 @@ See archive: `.planning/milestones/v1.2-ROADMAP.md`
   3. Clicking each sidebar link reveals only that section's content without a page reload or route change
   4. Connections section shows Jira and GitLab credential fields with working test-connection buttons
   5. Appearance, Notifications, and Workflow sections each contain their respective controls (theme toggle + density; poll interval + per-event toggles; stale MR threshold + sprint board prefs)
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+- [ ] 18-01-PLAN.md — Wave 0: settings store migration + test scaffolds
+- [ ] 18-02-PLAN.md — App icon: node-graph SVG + tauri icon pipeline
+- [ ] 18-03-PLAN.md — Settings shell (sidebar nav) + ConnectionsSection
+- [ ] 18-04-PLAN.md — AppearanceSection + density infrastructure
+- [ ] 18-05-PLAN.md — NotificationsSection + WorkflowSection
+- [ ] 18-06-PLAN.md — Density rollout to all list/card surfaces + human verify
 
 ### Phase 19: Keyboard Foundation
 **Goal**: A centralized shortcut registry and global keyboard hook exist, and users can discover all shortcuts via the `?` help panel
@@ -144,7 +152,7 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22
 | 15. Fix BOARD-04 statusId Bug | v1.2 | — | Complete | 2026-03-15 |
 | 16. Write Missing Phase 10 + 11 VERIFICATION.md | v1.2 | — | Complete | 2026-03-15 |
 | 17. Nyquist Validation — Phases 9–14 | v1.2 | — | Complete | 2026-03-15 |
-| 18. App Icon + Multi-Page Settings | v1.3 | 0/TBD | Not started | - |
+| 18. App Icon + Multi-Page Settings | v1.3 | 0/6 | Not started | - |
 | 19. Keyboard Foundation | v1.3 | 0/TBD | Not started | - |
 | 20. Command Palette + Recent Items | v1.3 | 0/TBD | Not started | - |
 | 21. Header Redesign + Pinned Issue Tabs | v1.3 | 0/TBD | Not started | - |
