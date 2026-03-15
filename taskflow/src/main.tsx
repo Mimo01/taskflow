@@ -93,9 +93,9 @@ function AppLayout() {
   const queryClient = useQueryClient();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
-  // KEYS-01: mod+/ (Cmd+/ on macOS, Ctrl+/ elsewhere) opens shortcuts panel (layout-independent)
-  // KEYS-07: enableOnFormTags defaults to false — mod+/ in an input does NOT open the panel
-  useHotkeys('mod+/', () => setShortcutsOpen(true));
+  // KEYS-01: mod+slash (Cmd+/ on macOS, Ctrl+/ elsewhere) opens shortcuts panel — uses code name to bypass react-hotkeys-hook #1125
+  // KEYS-07: enableOnFormTags defaults to false — mod+slash in an input does NOT open the panel
+  useHotkeys('mod+slash', () => setShortcutsOpen(true));
 
   // KEYS-02: Listen for native menu "Help > Keyboard Shortcuts" click
   useEffect(() => {

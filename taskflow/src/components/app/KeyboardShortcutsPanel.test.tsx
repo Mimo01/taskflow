@@ -57,10 +57,10 @@ describe('KeyboardShortcutsPanel', () => {
     expect(keyTexts).toContain('Esc');
   });
 
-  it('KEYS-07: no enableOnFormTags used for mod+/ shortcut — satisfied by react-hotkeys-hook default', () => {
+  it('KEYS-07: no enableOnFormTags used for mod+slash shortcut — satisfied by react-hotkeys-hook default', () => {
     // This is a structural test: the component must not pass enableOnFormTags: true
-    // to the useHotkeys call for the mod+/ shortcut.
-    // Verified by code review: useHotkeys('mod+/', ...) with no options object (or enableOnFormTags absent/false)
+    // to the useHotkeys call for the mod+slash shortcut.
+    // Verified by code review: useHotkeys('mod+slash', ...) with no options object (or enableOnFormTags absent/false)
     // This test documents the requirement rather than testing runtime behavior.
     expect(true).toBe(true); // placeholder — see component implementation
   });
