@@ -42,9 +42,9 @@ See archive: `.planning/milestones/v1.1-ROADMAP.md`
 - [x] **Phase 12: Backlog View** - Backlog list with move-to-sprint, create story, and epic/label/assignee filters (completed 2026-03-14)
 - [x] **Phase 13: Epic Management** - Epic list, detail, cross-view filtering, and epic creation (completed 2026-03-14)
 - [x] **Phase 14: Fix v1.2 Wiring and Credential Bugs** - Wire BoardColumn/QuickCreateInput into SprintBoardTab, fix cache invalidation key, fix CreateEpicDialog credential store (completed 2026-03-15)
-- [ ] **Phase 15: Fix BOARD-04 statusId Bug** - Pass numeric Jira status ID to QuickCreateInput so new issues land in the clicked column
-- [ ] **Phase 16: Write Missing Phase 10 + 11 VERIFICATION.md** - Create formal verification artifacts so CREATE-01..04 and BOARD-01..05 are fully accounted for across all three verification sources
-- [ ] **Phase 17: Nyquist Validation — Phases 9–14** - Fill draft VALIDATION.md files to achieve Nyquist compliance across all v1.2 phases
+- [x] **Phase 15: Fix BOARD-04 statusId Bug** - Pass numeric Jira status ID to QuickCreateInput so new issues land in the clicked column (completed 2026-03-15)
+- [x] **Phase 16: Write Missing Phase 10 + 11 VERIFICATION.md** - Create formal verification artifacts so CREATE-01..04 and BOARD-01..05 are fully accounted for across all three verification sources (completed 2026-03-15)
+- [x] **Phase 17: Nyquist Validation — Phases 9–14** - Fill draft VALIDATION.md files to achieve Nyquist compliance across all v1.2 phases (completed 2026-03-15)
 
 ## Phase Details
 
