@@ -92,44 +92,44 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BRAND-01 | — | Pending |
-| HEADER-01 | — | Pending |
-| HEADER-02 | — | Pending |
-| HEADER-03 | — | Pending |
-| HEADER-04 | — | Pending |
-| HEADER-05 | — | Pending |
-| HEADER-06 | — | Pending |
-| HEADER-07 | — | Pending |
-| SETTINGS-01 | — | Pending |
-| SETTINGS-02 | — | Pending |
-| SETTINGS-03 | — | Pending |
-| SETTINGS-04 | — | Pending |
-| SETTINGS-05 | — | Pending |
-| PALETTE-01 | — | Pending |
-| PALETTE-02 | — | Pending |
-| PALETTE-03 | — | Pending |
-| PALETTE-04 | — | Pending |
-| PALETTE-05 | — | Pending |
-| PALETTE-06 | — | Pending |
-| PALETTE-07 | — | Pending |
-| KEYS-01 | — | Pending |
-| KEYS-02 | — | Pending |
-| KEYS-03 | — | Pending |
-| KEYS-04 | — | Pending |
-| KEYS-05 | — | Pending |
-| KEYS-06 | — | Pending |
-| KEYS-07 | — | Pending |
-| RECENT-01 | — | Pending |
-| RECENT-02 | — | Pending |
-| POLISH-01 | — | Pending |
-| POLISH-02 | — | Pending |
-| POLISH-03 | — | Pending |
+| BRAND-01 | Phase 18 | Pending |
+| SETTINGS-01 | Phase 18 | Pending |
+| SETTINGS-02 | Phase 18 | Pending |
+| SETTINGS-03 | Phase 18 | Pending |
+| SETTINGS-04 | Phase 18 | Pending |
+| SETTINGS-05 | Phase 18 | Pending |
+| KEYS-01 | Phase 19 | Pending |
+| KEYS-02 | Phase 19 | Pending |
+| KEYS-07 | Phase 19 | Pending |
+| PALETTE-01 | Phase 20 | Pending |
+| PALETTE-02 | Phase 20 | Pending |
+| PALETTE-03 | Phase 20 | Pending |
+| PALETTE-04 | Phase 20 | Pending |
+| PALETTE-05 | Phase 20 | Pending |
+| PALETTE-06 | Phase 20 | Pending |
+| PALETTE-07 | Phase 20 | Pending |
+| RECENT-01 | Phase 20 | Pending |
+| RECENT-02 | Phase 20 | Pending |
+| KEYS-03 | Phase 20 | Pending |
+| HEADER-01 | Phase 21 | Pending |
+| HEADER-02 | Phase 21 | Pending |
+| HEADER-03 | Phase 21 | Pending |
+| HEADER-04 | Phase 21 | Pending |
+| HEADER-05 | Phase 21 | Pending |
+| HEADER-06 | Phase 21 | Pending |
+| HEADER-07 | Phase 21 | Pending |
+| KEYS-04 | Phase 21 | Pending |
+| KEYS-05 | Phase 21 | Pending |
+| KEYS-06 | Phase 21 | Pending |
+| POLISH-01 | Phase 22 | Pending |
+| POLISH-02 | Phase 22 | Pending |
+| POLISH-03 | Phase 22 | Pending |
 
 **Coverage:**
 - v1.3 requirements: 32 total
-- Mapped to phases: 0
-- Unmapped: 32 ⚠️ (roadmap not yet created)
+- Mapped to phases: 32
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-15*
-*Last updated: 2026-03-15 after initial definition*
+*Last updated: 2026-03-15 after roadmap creation*
