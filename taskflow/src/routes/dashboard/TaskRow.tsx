@@ -78,7 +78,7 @@ export default function TaskRow({
       isSubtask && !notMine && 'ml-6 border-l-2 border-l-primary/50 bg-primary/5',
       isSubtask && notMine && 'ml-6 border-l-2 border-l-muted-foreground/15 bg-muted/20 opacity-40',
     )}>
-      <div className="flex items-center gap-2 py-2 px-3">
+      <div className="flex items-center gap-2 py-2 density-compact:py-1 density-comfortable:py-3 px-3">
         {/* Issue key */}
         <span className="w-28 flex-shrink-0 font-mono text-sm text-muted-foreground truncate">
           {isSubtask && <span className="mr-1 text-muted-foreground/40">↳</span>}

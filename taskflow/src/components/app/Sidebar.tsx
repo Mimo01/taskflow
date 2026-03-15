@@ -28,7 +28,7 @@ import {
 import { useSettingsStore } from '@/stores/settings.store';
 
 const NAV_LINK_CLASS =
-  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors';
+  'flex items-center gap-3 px-3 py-2 density-compact:py-1 density-comfortable:py-3 rounded-lg text-sm font-medium transition-colors';
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   isActive
     ? `${NAV_LINK_CLASS} bg-accent text-accent-foreground font-semibold`
