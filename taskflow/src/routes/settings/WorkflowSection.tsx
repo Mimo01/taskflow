@@ -8,7 +8,6 @@
  */
 import { useSettingsStore } from '../../stores/settings.store';
 import StaleMrThresholdSection from './StaleMrThresholdSection';
-import DebugModeSection from './DebugModeSection';
 
 export default function WorkflowSection() {
   const {
@@ -60,12 +59,6 @@ export default function WorkflowSection() {
         </label>
       </div>
 
-      <div className="flex flex-col gap-4">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          Advanced
-        </h3>
-        <DebugModeSection />
-      </div>
     </div>
   );
 }
