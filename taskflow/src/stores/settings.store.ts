@@ -62,6 +62,8 @@ interface SettingsState {
   sprintCollapseByDefault: boolean;
   /** Show subtasks inside My Tasks view. Default: true. */
   showSubtasksInMyTasks: boolean;
+  /** User-customized key overrides. Map of shortcut id → key string. Default: {}. Future: editable via Settings > Keyboard. */
+  keyboardOverrides: Record<string, string>;
   setDebugMode: (v: boolean) => void;
   setDensity: (d: Density) => void;
   setSprintCollapseByDefault: (v: boolean) => void;
@@ -100,6 +102,7 @@ export const useSettingsStore = create<SettingsState>()(
       density: 'default' as Density,
       sprintCollapseByDefault: false,
       showSubtasksInMyTasks: true,
+      keyboardOverrides: {},
       setDebugMode: (v) => set({ debugMode: v }),
       setDensity: (d) => set({ density: d }),
       setSprintCollapseByDefault: (v) => set({ sprintCollapseByDefault: v }),
@@ -121,13 +124,16 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: tauriStorage,
-      version: 1,
+      version: 2,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
           if (s.density === undefined) s.density = 'default';
           if (s.sprintCollapseByDefault === undefined) s.sprintCollapseByDefault = false;
           if (s.showSubtasksInMyTasks === undefined) s.showSubtasksInMyTasks = true;
+        }
+        if (version < 2) {
+          if (s.keyboardOverrides === undefined) s.keyboardOverrides = {};
         }
         return s as unknown as SettingsState;
       },
