@@ -5,6 +5,7 @@
 - ✅ **v1.0 MVP** — Phases 1-4 (shipped 2026-03-12)
 - ✅ **v1.1 Polish** — Phases 5-8 (shipped 2026-03-13)
 - ✅ **v1.2 Jira Parity** — Phases 9-17 (shipped 2026-03-15)
+- 🚧 **v1.3 UX & Branding** — Phases 18-22 (in progress)
 
 ## Phases
 
@@ -49,7 +50,80 @@ See archive: `.planning/milestones/v1.2-ROADMAP.md`
 
 </details>
 
+### 🚧 v1.3 UX & Branding (In Progress)
+
+**Milestone Goal:** Elevate visual identity and usability — new icon, redesigned header with pinned-issue tabs, multi-page settings, command palette, keyboard shortcuts, recent items, and improved empty/error states.
+
+- [ ] **Phase 18: App Icon + Multi-Page Settings** - New brand icon on all platforms and Settings restructured with sidebar navigation across four sections
+- [ ] **Phase 19: Keyboard Foundation** - Shortcut registry, global keydown hook, and `?` help panel that serves as the reference for all subsequent shortcut consumers
+- [ ] **Phase 20: Command Palette + Recent Items** - Cmd+K overlay with fuzzy search across cached issues/MRs/nav actions, recent items popover in TopBar, and G+letter nav shortcuts
+- [ ] **Phase 21: Header Redesign + Pinned Issue Tabs** - Redesigned TopBar with branding, pinned-issue tab strip below the top bar, and J/K keyboard navigation in list views
+- [ ] **Phase 22: Polish — Empty States + Error Recovery** - Illustrated empty states and actionable error recovery applied consistently across all data views
+
+## Phase Details
+
+### Phase 18: App Icon + Multi-Page Settings
+**Goal**: The app has a distinctive visual identity and Settings is navigable across four logical sections
+**Depends on**: Phase 17 (v1.2 complete)
+**Requirements**: BRAND-01, SETTINGS-01, SETTINGS-02, SETTINGS-03, SETTINGS-04, SETTINGS-05
+**Success Criteria** (what must be TRUE):
+  1. The app icon in the macOS Dock, Windows taskbar, and Linux is the new abstract/geometric design — not the Tauri default
+  2. Settings shows a persistent sidebar with Connections, Appearance, Notifications, and Workflow links
+  3. Clicking each sidebar link reveals only that section's content without a page reload or route change
+  4. Connections section shows Jira and GitLab credential fields with working test-connection buttons
+  5. Appearance, Notifications, and Workflow sections each contain their respective controls (theme toggle + density; poll interval + per-event toggles; stale MR threshold + sprint board prefs)
+**Plans**: TBD
+
+### Phase 19: Keyboard Foundation
+**Goal**: A centralized shortcut registry and global keyboard hook exist, and users can discover all shortcuts via the `?` help panel
+**Depends on**: Phase 18
+**Requirements**: KEYS-01, KEYS-02, KEYS-07
+**Success Criteria** (what must be TRUE):
+  1. Pressing `?` from any screen opens a dialog listing all registered keyboard shortcuts grouped by category
+  2. The shortcuts panel closes when the user presses Escape
+  3. Pressing `?` while typing in any text input or contenteditable does not open the panel
+**Plans**: TBD
+
+### Phase 20: Command Palette + Recent Items
+**Goal**: Users can reach any issue, MR, nav destination, or app action from the keyboard, and recently visited items are one click away in the header
+**Depends on**: Phase 19 (shortcut registry), Phase 18 (Settings sections exist for palette actions)
+**Requirements**: PALETTE-01, PALETTE-02, PALETTE-03, PALETTE-04, PALETTE-05, PALETTE-06, PALETTE-07, RECENT-01, RECENT-02, KEYS-03
+**Success Criteria** (what must be TRUE):
+  1. Pressing Cmd+K (macOS) / Ctrl+K (Windows/Linux) from any screen opens the command palette; Escape closes it
+  2. Typing in the palette fuzzy-matches cached Jira tasks and GitLab MRs by title and key, with navigation actions (Go to Sprint Board, Backlog, Notifications, Settings sections) and app actions (Toggle theme, Mark all read) visible as groups
+  3. When fewer than 2 characters are typed, the palette default state shows recently opened issues/MRs
+  4. Typing 2 or more characters produces a "Search Jira for X" tail item that fires a live query
+  5. A clock icon in the TopBar opens a popover listing the last 10 recently opened issues/MRs; clicking any item opens that issue's detail panel
+  6. Pressing G then S navigates to Sprint Board, G then B to Backlog, and G then N to Notifications from anywhere in the app
+**Plans**: TBD
+
+### Phase 21: Header Redesign + Pinned Issue Tabs
+**Goal**: The app header communicates Taskflow's brand identity and users can maintain quick access to multiple open issues via a persistent tab strip
+**Depends on**: Phase 20 (TopBar layout and handleIssueClick wrapper settled)
+**Requirements**: HEADER-01, HEADER-02, HEADER-03, HEADER-04, HEADER-05, HEADER-06, HEADER-07, KEYS-04, KEYS-05, KEYS-06
+**Success Criteria** (what must be TRUE):
+  1. The top bar on every route shows the Taskflow logo and app name consistently
+  2. The issue detail panel header has a pin button; clicking it adds the issue to a tab strip rendered below the top bar
+  3. Pinned tabs display the issue key and summary; clicking a tab opens that issue's detail panel
+  4. Each tab has an × button that removes it from the strip; when more than 7 issues are pinned a +N overflow indicator appears
+  5. Pinned tabs survive an app restart — the same tabs are visible after relaunching
+  6. In My Tasks, Notifications, and Backlog list views, pressing J or K moves keyboard focus between rows; pressing Enter opens the focused item's detail panel
+**Plans**: TBD
+
+### Phase 22: Polish — Empty States + Error Recovery
+**Goal**: Every data view communicates clearly when it has no content or has failed to load, and gives users a direct path to recover
+**Depends on**: Phase 21 (all views exist and are stable)
+**Requirements**: POLISH-01, POLISH-02, POLISH-03
+**Success Criteria** (what must be TRUE):
+  1. Every list view (My Tasks, Sprint Board columns, Backlog, Notifications, Search results, Releases, Workload) shows an illustrated empty state with a headline and a primary CTA when it contains no data
+  2. Every data view shows a plain-language error message and a Retry button when a fetch fails
+  3. When a request fails due to an authentication error, the error state includes a "Reconnect" button that navigates directly to Settings > Connections
+**Plans**: TBD
+
 ## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 18 → 19 → 20 → 21 → 22
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -70,3 +144,8 @@ See archive: `.planning/milestones/v1.2-ROADMAP.md`
 | 15. Fix BOARD-04 statusId Bug | v1.2 | — | Complete | 2026-03-15 |
 | 16. Write Missing Phase 10 + 11 VERIFICATION.md | v1.2 | — | Complete | 2026-03-15 |
 | 17. Nyquist Validation — Phases 9–14 | v1.2 | — | Complete | 2026-03-15 |
+| 18. App Icon + Multi-Page Settings | v1.3 | 0/TBD | Not started | - |
+| 19. Keyboard Foundation | v1.3 | 0/TBD | Not started | - |
+| 20. Command Palette + Recent Items | v1.3 | 0/TBD | Not started | - |
+| 21. Header Redesign + Pinned Issue Tabs | v1.3 | 0/TBD | Not started | - |
+| 22. Polish — Empty States + Error Recovery | v1.3 | 0/TBD | Not started | - |
