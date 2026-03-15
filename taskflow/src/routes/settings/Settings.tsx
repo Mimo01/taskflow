@@ -12,15 +12,16 @@
  *   - RoleSection: existing, unchanged
  */
 import { useState } from 'react';
-import { Link2, Palette, Bell, GitBranch, UserCog } from 'lucide-react';
+import { Link2, Palette, Bell, GitBranch, UserCog, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ConnectionsSection from './ConnectionsSection';
 import AppearanceSection from './AppearanceSection';
 import NotificationsSection from './NotificationsSection';
 import WorkflowSection from './WorkflowSection';
 import RoleSection from './RoleSection';
+import DebugModeSection from './DebugModeSection';
 
-type SettingsSection = 'connections' | 'appearance' | 'notifications' | 'workflow' | 'role';
+type SettingsSection = 'connections' | 'appearance' | 'notifications' | 'workflow' | 'role' | 'advanced';
 
 const SECTIONS: { id: SettingsSection; label: string; icon: React.ReactNode }[] = [
   { id: 'connections', label: 'Connections', icon: <Link2 className="h-4 w-4" /> },
@@ -28,6 +29,7 @@ const SECTIONS: { id: SettingsSection; label: string; icon: React.ReactNode }[] 
   { id: 'notifications', label: 'Notifications', icon: <Bell className="h-4 w-4" /> },
   { id: 'workflow', label: 'Workflow', icon: <GitBranch className="h-4 w-4" /> },
   { id: 'role', label: 'Role', icon: <UserCog className="h-4 w-4" /> },
+  { id: 'advanced', label: 'Advanced', icon: <Settings2 className="h-4 w-4" /> },
 ];
 
 export default function Settings() {
@@ -37,7 +39,7 @@ export default function Settings() {
     <div className="flex h-full min-h-0">
       <nav
         aria-label="Settings navigation"
-        className="w-52 shrink-0 border-r border-border flex flex-col gap-0.5 px-2 py-6"
+        className="w-52 shrink-0 border-r border-border flex flex-col gap-0.5 px-2 py-6 overflow-y-auto"
       >
         {SECTIONS.map(({ id, label, icon }) => (
           <button
@@ -69,6 +71,12 @@ export default function Settings() {
         {activeSection === 'role' && (
           <div data-testid="section-role">
             <RoleSection />
+          </div>
+        )}
+        {activeSection === 'advanced' && (
+          <div data-testid="section-advanced" className="flex flex-col gap-8">
+            <h2 className="text-lg font-semibold">Advanced</h2>
+            <DebugModeSection />
           </div>
         )}
       </div>
