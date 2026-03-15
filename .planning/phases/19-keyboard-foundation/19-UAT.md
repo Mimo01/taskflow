@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 19-keyboard-foundation
 source: 19-01-SUMMARY.md, 19-02-SUMMARY.md, 19-03-SUMMARY.md, 19-04-SUMMARY.md
 started: 2026-03-15T23:00:00Z
@@ -52,13 +52,28 @@ skipped: 3
   reason: "User reported: pressing it, nothing happens"
   severity: blocker
   test: 1
-  artifacts: []
-  missing: []
+  root_cause: "react-hotkeys-hook v5.2.4 key-naming bug: useHotkeys('mod+/') stores key as '/' but real KeyboardEvents produce event.code='Slash' which normalizes to 'slash'. '/' !== 'slash' so handler never fires. Tests pass because jsdom synthetic events bypass normalization."
+  artifacts:
+    - path: "taskflow/src/main.tsx"
+      issue: "useHotkeys('mod+/') uses wrong key name format — should be 'mod+slash'"
+    - path: "node_modules/react-hotkeys-hook/dist/index.js"
+      issue: "Library key normalization doesn't map '/' to 'slash' (GitHub issue #1125)"
+  missing:
+    - "Change useHotkeys('mod+/') to useHotkeys('mod+slash') in main.tsx"
+    - "Update tests to use 'mod+slash' binding string"
+  debug_session: ".planning/debug/mod-slash-hotkey-broken.md"
 
 - truth: "Keyboard shortcut discoverable via native app Help menu on macOS (and equivalents on Windows/Linux)"
   status: failed
   reason: "User requested: add the shortcut to the mac toolbar app help menu and equivalents on other platforms"
   severity: major
   test: 1
-  artifacts: []
-  missing: []
+  root_cause: "No native menu integration exists — Tauri backend has zero menu items registered in lib.rs and no menu plugin in Cargo.toml"
+  artifacts:
+    - path: "taskflow/src-tauri/src/lib.rs"
+      issue: "No native menu setup"
+    - path: "taskflow/src-tauri/Cargo.toml"
+      issue: "No tauri-plugin-global-shortcut or menu plugin"
+  missing:
+    - "Add Tauri menu plugin and create Help menu with 'Keyboard Shortcuts' item (Cmd+/ accelerator)"
+    - "Wire menu event to trigger the same panel-open action in the frontend"
