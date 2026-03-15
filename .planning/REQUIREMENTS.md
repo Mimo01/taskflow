@@ -23,11 +23,11 @@ Requirements for the v1.3 UX & Branding milestone. Each maps to roadmap phases.
 
 ### Settings
 
-- [ ] **SETTINGS-01**: Settings has sidebar navigation with Connections, Appearance, Notifications, and Workflow sections
-- [ ] **SETTINGS-02**: Connections section displays Jira and GitLab credentials with test connection buttons
-- [ ] **SETTINGS-03**: Appearance section includes theme toggle and display density options
-- [ ] **SETTINGS-04**: Notifications section includes poll interval and per-event desktop notification toggles
-- [ ] **SETTINGS-05**: Workflow section includes stale MR threshold and sprint board preferences
+- [x] **SETTINGS-01**: Settings has sidebar navigation with Connections, Appearance, Notifications, and Workflow sections
+- [x] **SETTINGS-02**: Connections section displays Jira and GitLab credentials with test connection buttons
+- [x] **SETTINGS-03**: Appearance section includes theme toggle and display density options
+- [x] **SETTINGS-04**: Notifications section includes poll interval and per-event desktop notification toggles
+- [x] **SETTINGS-05**: Workflow section includes stale MR threshold and sprint board preferences
 
 ### Command Palette
 
@@ -93,11 +93,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | BRAND-01 | Phase 18 | Pending |
-| SETTINGS-01 | Phase 18 | Pending |
-| SETTINGS-02 | Phase 18 | Pending |
-| SETTINGS-03 | Phase 18 | Pending |
-| SETTINGS-04 | Phase 18 | Pending |
-| SETTINGS-05 | Phase 18 | Pending |
+| SETTINGS-01 | Phase 18 | Complete |
+| SETTINGS-02 | Phase 18 | Complete |
+| SETTINGS-03 | Phase 18 | Complete |
+| SETTINGS-04 | Phase 18 | Complete |
+| SETTINGS-05 | Phase 18 | Complete |
 | KEYS-01 | Phase 19 | Pending |
 | KEYS-02 | Phase 19 | Pending |
 | KEYS-07 | Phase 19 | Pending |
