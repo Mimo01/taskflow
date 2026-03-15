@@ -9,6 +9,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Settings from './Settings';
+import WorkflowSection from './WorkflowSection';
 
 function renderWithQuery(ui: React.ReactElement) {
   const queryClient = new QueryClient({
@@ -163,5 +164,64 @@ describe('Settings sidebar nav', () => {
       'aria-current',
       'page',
     );
+  });
+});
+
+describe('WorkflowSection content', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders the Workflow heading', () => {
+    render(<WorkflowSection />);
+    expect(screen.getByRole('heading', { name: /workflow/i })).toBeInTheDocument();
+  });
+
+  it('renders Sprint Board subsection heading', () => {
+    render(<WorkflowSection />);
+    expect(screen.getByText(/sprint board/i)).toBeInTheDocument();
+  });
+
+  it('renders collapse parent stories toggle', () => {
+    render(<WorkflowSection />);
+    expect(screen.getByText(/collapse parent stories by default/i)).toBeInTheDocument();
+  });
+
+  it('renders show subtasks toggle', () => {
+    render(<WorkflowSection />);
+    expect(screen.getByText(/show subtasks in my tasks/i)).toBeInTheDocument();
+  });
+
+  it('renders Advanced subsection heading with DebugModeSection', () => {
+    render(<WorkflowSection />);
+    expect(screen.getByText(/advanced/i)).toBeInTheDocument();
+    // DebugModeSection renders "Enable API call logging"
+    expect(screen.getByText(/enable api call logging/i)).toBeInTheDocument();
+  });
+
+  it('collapse toggle reflects sprintCollapseByDefault from store (false by default)', () => {
+    render(<WorkflowSection />);
+    const collapseCheckbox = screen.getByRole('checkbox', { name: /collapse parent stories/i });
+    expect(collapseCheckbox).not.toBeChecked();
+  });
+
+  it('subtasks toggle reflects showSubtasksInMyTasks from store (true by default)', () => {
+    render(<WorkflowSection />);
+    const subtasksCheckbox = screen.getByRole('checkbox', { name: /show subtasks in my tasks/i });
+    expect(subtasksCheckbox).toBeChecked();
+  });
+
+  it('toggling collapse calls setSprintCollapseByDefault', () => {
+    render(<WorkflowSection />);
+    const collapseCheckbox = screen.getByRole('checkbox', { name: /collapse parent stories/i });
+    fireEvent.click(collapseCheckbox);
+    expect(mockSettingsStore.setSprintCollapseByDefault).toHaveBeenCalledWith(true);
+  });
+
+  it('toggling subtasks calls setShowSubtasksInMyTasks', () => {
+    render(<WorkflowSection />);
+    const subtasksCheckbox = screen.getByRole('checkbox', { name: /show subtasks in my tasks/i });
+    fireEvent.click(subtasksCheckbox);
+    expect(mockSettingsStore.setShowSubtasksInMyTasks).toHaveBeenCalledWith(false);
   });
 });
