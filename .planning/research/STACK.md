@@ -1,8 +1,198 @@
 # Technology Stack
 
 **Project:** Taskflow
-**Researched:** 2026-03-10 (v1.0 base), 2026-03-12 (v1.1 Jira API addendum), 2026-03-13 (v1.2 Jira Parity addendum)
-**Research mode:** v1.0 — training knowledge. v1.1 addendum — live web research (verified). v1.2 addendum — live npm registry + Atlassian official docs (verified).
+**Researched:** 2026-03-10 (v1.0 base), 2026-03-12 (v1.1 Jira API addendum), 2026-03-13 (v1.2 Jira Parity addendum), 2026-03-15 (v1.3 UX & Branding addendum)
+**Research mode:** v1.0 — training knowledge. v1.1 addendum — live web research (verified). v1.2 addendum — live npm registry + Atlassian official docs (verified). v1.3 addendum — live npm registry + official docs (verified).
+
+---
+
+## v1.3 Addendum: New Libraries for UX & Branding
+
+This section documents the specific new npm dependencies and tooling workflows required for v1.3 features: command palette (Cmd+K), keyboard shortcuts system + help panel, app icon redesign, and illustrated empty/error states. No changes to Tauri plugins, state management, or base UI library are needed.
+
+---
+
+### Actual Runtime Context (Verified 2026-03-15)
+
+```
+react: ^19.1.0
+@tauri-apps/cli: ^2 (already installed — includes icon generation command)
+shadcn CLI: ^4.0.5 (already installed)
+tailwindcss: ^4.2.1
+lucide-react: ^0.577.0 (already installed)
+zustand: ^5.0.11 (already installed, with persist middleware)
+```
+
+No version upgrades required. The existing stack handles all v1.3 features with two new npm packages and one shadcn code-gen step.
+
+---
+
+### 1. Command Palette (Cmd+K)
+
+#### Libraries
+
+| Library | Version | Purpose | Why |
+|---------|---------|---------|-----|
+| `cmdk` | `^1.1.1` | Headless command menu primitive | Powers the shadcn `<Command>` component. Built-in fuzzy scoring with ranking algorithm — no external search library needed. Supports grouping, empty states, keyboard navigation, and a custom `filter` prop for override. Used in production by Linear, Raycast, and Vercel. Peer dep confirmed via npm registry: `react ^18 || ^19`. React 19 support added in v1.0.4; v1.1.1 is current stable. |
+| shadcn `command` component | (code-gen) | Dialog-wrapped command palette | `npx shadcn@latest add command` generates `command.tsx` with `CommandDialog`, `CommandInput`, `CommandList`, `CommandGroup`, `CommandItem`, `CommandEmpty`, `CommandShortcut`. Includes the Cmd+K dialog pattern out of the box. Integrated with the project's Tailwind v4 + shadcn token system — no style conflicts. |
+
+**Note on `command.tsx` not being in `src/components/ui/` yet:** Confirmed missing from the project. Must be added via `npx shadcn@latest add command` before building the palette.
+
+**Why not kbar:** Unmaintained. Last commit and release approximately 2 years ago. No React 19 types. No active development.
+
+**Why not react-cmdk (albingroen):** Last published 3 years ago. Peer dep locked to React 18. No maintenance signals.
+
+**Why not fuse.js alongside cmdk:** Redundant. cmdk's built-in scoring handles fuzzy matching for issue/MR titles. The `filter` prop can be overridden if needed. Adding fuse.js adds ~25 kB for no benefit at this scale.
+
+#### Implementation Pattern
+
+```
+Cmd+K pressed
+  → useHotkeys('mod+k', ...) fires
+  → setOpen(true)
+  → <CommandDialog open={open}> renders
+  → <CommandInput> filters items via cmdk built-in scorer
+  → Select item → close dialog, navigate or trigger action
+```
+
+---
+
+### 2. Keyboard Shortcuts System + Help Panel
+
+#### Library
+
+| Library | Version | Purpose | Why |
+|---------|---------|---------|-----|
+| `react-hotkeys-hook` | `^5.2.4` | `useHotkeys` hook for declarative shortcut binding | Current major version (v5). Peer dep: `react >=16.8.0` — fully React 19 compatible (confirmed via npm registry). Supports scopes to prevent cross-view conflicts, `enableOnFormTags` option to block shortcuts inside inputs (critical: prevents `?` or `k` firing in the command palette input), and `isHotkeyPressed` for runtime status. TypeScript built-in — no `@types/*` needed. |
+
+**Why not tinykeys:** tinykeys (~400 bytes) lacks React lifecycle integration. Shortcuts don't auto-unmount with components, requiring manual cleanup. No scope management.
+
+**Why not @rwh/react-keyboard-manager:** Provider-based global state — over-engineered for this use case. react-hotkeys-hook's scope system achieves the same conflict prevention at lower complexity.
+
+**Why not a custom `useEffect(window.addEventListener)` approach:** Requires manual mount/unmount, no scope management, and does not compose well across components. react-hotkeys-hook handles all of this.
+
+#### Implementation Pattern for Help Panel
+
+```typescript
+// Static registry — define all shortcuts in one place
+// Used both for useHotkeys registration and for rendering the ? help panel
+
+const SHORTCUTS = [
+  { scope: 'global', keys: 'mod+k', description: 'Open command palette' },
+  { scope: 'global', keys: '?',     description: 'Show keyboard shortcuts' },
+  { scope: 'global', keys: 'mod+r', description: 'Refresh current view' },
+  // ... per-view shortcuts
+];
+
+// Register each:
+useHotkeys('mod+k', openCommandPalette, { enableOnFormTags: false });
+useHotkeys('?', openHelpPanel, { enableOnFormTags: false });
+
+// Help panel renders SHORTCUTS array as a table in a Dialog/Sheet
+```
+
+**`mod` modifier:** Maps to `Cmd` on macOS and `Ctrl` on Windows/Linux automatically — correct cross-platform behavior without conditional key detection.
+
+---
+
+### 3. App Icon (All Platforms)
+
+#### Tooling
+
+| Tool | Version | Purpose | Why |
+|------|---------|---------|-----|
+| `@tauri-apps/cli` icon command | already installed (`^2`) | Generates all platform icon variants from one source file | No additional npm package needed. `npm run tauri icon ./app-icon.png` generates all required output into `src-tauri/icons/` automatically. Covers: 32x32.png, 128x128.png, 128x128@2x.png, icon.png, icon.icns (macOS), icon.ico (Windows), and all Windows Store Square*Logo.png variants. The existing icon directory already has the correct structure — just replace the source and re-run the command. |
+
+**Source file requirements (from Tauri 2 official docs):**
+- Format: PNG or SVG, square (width == height), RGBA (RGB + transparency), 32-bit per pixel
+- Recommended size: 1024×1024px minimum for clean downscaling; SVG is best (infinite resolution)
+- Do NOT pre-apply rounded corners — each OS applies its own mask (macOS squircle, Windows square)
+- Transparency is required — do not use a white or colored background square
+
+**Design tooling (no npm install required):** Create the abstract/geometric design in any vector tool (Figma, Inkscape, Sketch, Affinity Designer). Export as 1024×1024 PNG with alpha channel. The Tauri CLI handles all platform derivations in one command.
+
+**Workflow:**
+```bash
+# Design the icon in Figma/Inkscape → export as app-icon.png (1024×1024 RGBA PNG)
+# Place it at: taskflow/app-icon.png
+# Run from taskflow/ directory:
+npm run tauri icon ./app-icon.png
+# All src-tauri/icons/* files are regenerated automatically
+```
+
+---
+
+### 4. Recent Items, Empty States, Error Recovery
+
+**No new libraries required** for any of these features.
+
+| Feature | Approach | Why No New Dependency |
+|---------|----------|----------------------|
+| Recent items quick-access | Zustand `persist` store (already used), cap at last 10 items by timestamp | Zustand persist is already in use for notifications readIds and settings; adding a `recentItems` slice is trivial |
+| Illustrated empty states | Inline SVG or lucide-react icons (already installed) + shadcn card/prose primitives | No illustration library needed — geometric SVGs composed from lucide icons + Tailwind classes match the design direction |
+| Actionable error recovery | Extend existing TanStack Query `isError` branch in each panel | Pattern already established in v1.0 (`last-refreshed timestamps and loading/error states on all data views`). Add a retry button that calls `queryClient.invalidateQueries` or `refetch()` |
+
+**Why not react-error-boundary:** This is a Tauri desktop app with hash routing and no SSR hydration. React 19 has improved built-in error handling. The existing error state pattern (`isError` + inline message) covers all cases. react-error-boundary adds complexity for catastrophic render failures that are unlikely in this app's component structure.
+
+---
+
+### 5. Installation Commands
+
+```bash
+# From: /Users/mimo/Desktop/Tasker/taskflow/
+
+# Command palette primitive
+npm install cmdk@^1.1.1
+
+# Keyboard shortcut hook
+npm install react-hotkeys-hook@^5.2.4
+
+# Add shadcn Command component (generates src/components/ui/command.tsx)
+npx shadcn@latest add command
+
+# App icon — no npm install; use existing Tauri CLI:
+# 1. Create 1024×1024 RGBA PNG → save as ./app-icon.png
+# 2. npm run tauri icon ./app-icon.png
+```
+
+---
+
+### 6. Version Compatibility Matrix (v1.3 additions)
+
+| Package | Version | React 19 Compatible | Notes |
+|---------|---------|---------------------|-------|
+| `cmdk` | `^1.1.1` | Yes | peerDep: `react ^18 || ^19` — confirmed via `npm view cmdk peerDependencies` (2026-03-15) |
+| `react-hotkeys-hook` | `^5.2.4` | Yes | peerDep: `react >=16.8.0` — confirmed via `npm view react-hotkeys-hook peerDependencies` (2026-03-15) |
+| shadcn `command` | (code-gen) | Yes | shadcn@4.x generates components compatible with Tailwind v4 and React 19 |
+| Tauri icon CLI | built into `@tauri-apps/cli ^2` | n/a | No JS runtime; pure CLI tool for icon generation |
+
+---
+
+### 7. What NOT to Add (v1.3)
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| `kbar` | Unmaintained ~2 years; no React 19 types; archived state | `cmdk` via shadcn |
+| `react-cmdk` (albingroen) | 3 years stale; React 18 peer dep only | `cmdk` via shadcn |
+| `fuse.js` | Redundant — cmdk has built-in fuzzy scoring + `filter` prop override | cmdk default filter |
+| `tauricon` (separate npm) | Tauri v1-era tool; incompatible with Tauri 2 project structure | `npm run tauri icon` (built into `@tauri-apps/cli ^2`) |
+| `react-error-boundary` | No SSR hydration errors in Tauri desktop app; React 19 improved error handling; existing `isError` pattern is sufficient | Extend existing TanStack Query error branches |
+| Any illustration library (e.g. `react-lottie`) | Heavy dependency for static empty states; Lottie adds ~40 kB + animation files | Inline SVG + lucide-react (already installed) |
+| `hotkeys-js` (direct) | No React lifecycle integration; requires manual cleanup | `react-hotkeys-hook` wraps hotkeys-js with React awareness |
+| `react-hotkeys` (greena13) | Deprecated 2020; no React 18+ support | `react-hotkeys-hook v5` |
+| `cmdk@1.0.0` (specific old version) | React 19 peer dep broken in 1.0.0; shadcn docs incorrectly referenced it | `cmdk@^1.1.1` |
+
+---
+
+### 8. Sources (v1.3 Research)
+
+- npm registry, live (2026-03-15): `npm view cmdk version` → `1.1.1`; `npm view cmdk peerDependencies` → `{ react: '^18 || ^19 || ^19.0.0-rc', 'react-dom': '^18 || ^19 || ^19.0.0-rc' }` — HIGH confidence
+- npm registry, live (2026-03-15): `npm view react-hotkeys-hook version` → `5.2.4`; peerDependencies → `{ react: '>=16.8.0', 'react-dom': '>=16.8.0' }` — HIGH confidence
+- [cmdk React 19 issue #266 (dip/cmdk)](https://github.com/dip/cmdk/issues/266) — v1.0.4+ resolves React 19 peer dep; issue closed July 4 2025 — MEDIUM confidence (GitHub content via WebFetch)
+- [Tauri 2 App Icons docs](https://v2.tauri.app/develop/icons/) — CLI command, source file requirements, output structure — HIGH confidence (official Tauri docs)
+- [shadcn/ui Command docs](https://ui.shadcn.com/docs/components/command) — CommandDialog variant, installation method, cmdk dependency confirmed — HIGH confidence (official shadcn docs)
+- [react-hotkeys-hook official docs](https://react-hotkeys-hook.vercel.app/) — hook API, `mod` modifier, scopes, `enableOnFormTags` — MEDIUM confidence (official project docs)
+- Project `package.json` inspection (live, 2026-03-15): confirmed `command.tsx` absent from `src/components/ui/`; React version is 19.1.0 (not 18); `@tauri-apps/cli ^2` already installed
 
 ---
 
@@ -567,6 +757,15 @@ The following stack is already validated and shipped in v1.0. Do not re-research
 
 ## Sources
 
+**v1.3 UX & Branding research (live, 2026-03-15):**
+- npm registry, live: `npm view cmdk version` → 1.1.1; peerDependencies → react ^18||^19 — HIGH confidence
+- npm registry, live: `npm view react-hotkeys-hook version` → 5.2.4; peerDependencies → react >=16.8.0 — HIGH confidence
+- [cmdk React 19 issue #266 (dip/cmdk)](https://github.com/dip/cmdk/issues/266) — v1.0.4+ fix confirmed, closed July 4 2025 — MEDIUM confidence
+- [Tauri 2 App Icons docs](https://v2.tauri.app/develop/icons/) — CLI, source requirements, output — HIGH confidence
+- [shadcn/ui Command docs](https://ui.shadcn.com/docs/components/command) — CommandDialog, installation — HIGH confidence
+- [react-hotkeys-hook docs](https://react-hotkeys-hook.vercel.app/) — hook API, mod modifier, scopes — MEDIUM confidence
+- Project `package.json` + `src/components/ui/` inspection (live, 2026-03-15) — confirmed command.tsx absent, React 19.1, @tauri-apps/cli ^2 installed — HIGH confidence
+
 **v1.2 Jira Parity research (live, 2026-03-13):**
 - npm registry (live): `@dnd-kit/core` 6.3.1, `@dnd-kit/sortable` 10.0.0, `@dnd-kit/utilities` 3.2.2, `react-hook-form` 7.71.2, `@hookform/resolvers` 5.2.2, `zod` 4.3.6 — peer deps verified via `npm info`
 - [clauderic/dnd-kit discussion #1842](https://github.com/clauderic/dnd-kit/discussions/1842) — `@dnd-kit/react` pre-stable status (Nov 2025)
@@ -594,4 +793,4 @@ The following stack is already validated and shipped in v1.0. Do not re-research
 ---
 
 *Stack research for: Taskflow — Jira/GitLab desktop integration (Tauri 2 + React + TypeScript)*
-*v1.0 researched: 2026-03-10 | v1.1 addendum: 2026-03-12 | v1.2 addendum: 2026-03-13*
+*v1.0 researched: 2026-03-10 | v1.1 addendum: 2026-03-12 | v1.2 addendum: 2026-03-13 | v1.3 addendum: 2026-03-15*
