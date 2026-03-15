@@ -42,7 +42,15 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ### Active
 
-<!-- v1.3+ — no current milestone planned yet -->
+<!-- v1.3 UX & Branding — in progress -->
+
+- [ ] New abstract/geometric app icon across all platforms
+- [ ] Redesigned app header with branding and pinned-issue tab bar
+- [ ] Multi-page Settings (Connections, Appearance, Notifications, Workflow)
+- [ ] Command palette (Cmd+K) — fuzzy search across issues, MRs, and nav actions
+- [ ] Keyboard shortcuts system with `?` help panel
+- [ ] Recent items quick-access in header
+- [ ] Illustrated empty states and actionable error recovery
 
 ### Out of Scope
 
@@ -112,5 +120,18 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 | useAuthStore (not useSettingsStore) for Jira credentials in mutations | useSettingsStore holds UI preferences only; auth credentials live in useAuthStore + Stronghold | ✓ Good — fixed EPIC-04 credential bug; clear store separation |
 | EpicsPage uses fetchEpicsBasic (not fetchEpicsWithEnrichment) | Enrichment requires N story-count queries — too slow for list view per user preference | ✓ Good — user accepted trade-off; detail available on click |
 
+## Current Milestone: v1.3 UX & Branding
+
+**Goal:** Elevate the app's visual identity and usability — new icon, redesigned header with pinned-issue tabs, multi-page settings, command palette, keyboard shortcuts, recent items, and improved empty/error states.
+
+**Target features:**
+- Abstract/geometric app icon (all platforms)
+- Header redesign with tab bar for pinned issues
+- Multi-page Settings (Connections, Appearance, Notifications, Workflow)
+- Command palette (Cmd+K)
+- Keyboard shortcuts + help panel
+- Recent items in header
+- Illustrated empty states + actionable error recovery
+
 ---
-*Last updated: 2026-03-15 after v1.2 milestone*
+*Last updated: 2026-03-15 after v1.3 milestone start*
