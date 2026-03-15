@@ -55,7 +55,7 @@ See archive: `.planning/milestones/v1.2-ROADMAP.md`
 **Milestone Goal:** Elevate visual identity and usability — new icon, redesigned header with pinned-issue tabs, multi-page settings, command palette, keyboard shortcuts, recent items, and improved empty/error states.
 
 - [x] **Phase 18: App Icon + Multi-Page Settings** - New brand icon on all platforms and Settings restructured with sidebar navigation across four sections (completed 2026-03-15)
-- [ ] **Phase 19: Keyboard Foundation** - Shortcut registry, global keydown hook, and `?` help panel that serves as the reference for all subsequent shortcut consumers
+- [x] **Phase 19: Keyboard Foundation** - Shortcut registry, global keydown hook, and `?` help panel that serves as the reference for all subsequent shortcut consumers (completed 2026-03-15)
 - [ ] **Phase 20: Command Palette + Recent Items** - Cmd+K overlay with fuzzy search across cached issues/MRs/nav actions, recent items popover in TopBar, and G+letter nav shortcuts
 - [ ] **Phase 21: Header Redesign + Pinned Issue Tabs** - Redesigned TopBar with branding, pinned-issue tab strip below the top bar, and J/K keyboard navigation in list views
 - [ ] **Phase 22: Polish — Empty States + Error Recovery** - Illustrated empty states and actionable error recovery applied consistently across all data views
@@ -158,7 +158,7 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22
 | 16. Write Missing Phase 10 + 11 VERIFICATION.md | v1.2 | — | Complete | 2026-03-15 |
 | 17. Nyquist Validation — Phases 9–14 | v1.2 | — | Complete | 2026-03-15 |
 | 18. App Icon + Multi-Page Settings | 6/6 | Complete    | 2026-03-15 | - |
-| 19. Keyboard Foundation | 2/3 | In Progress|  | - |
+| 19. Keyboard Foundation | 3/3 | Complete   | 2026-03-15 | - |
 | 20. Command Palette + Recent Items | v1.3 | 0/TBD | Not started | - |
 | 21. Header Redesign + Pinned Issue Tabs | v1.3 | 0/TBD | Not started | - |
 | 22. Polish — Empty States + Error Recovery | v1.3 | 0/TBD | Not started | - |
