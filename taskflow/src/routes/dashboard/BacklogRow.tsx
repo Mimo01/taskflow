@@ -66,7 +66,7 @@ export function BacklogRow({
       className="border-b border-border hover:bg-muted/30 transition-colors"
     >
       {/* Checkbox cell */}
-      <td className="w-8 px-3 py-2">
+      <td className="w-8 px-3 py-2 density-compact:py-1 density-comfortable:py-3">
         <input
           type="checkbox"
           data-testid={`row-checkbox-${issue.key}`}
@@ -81,12 +81,12 @@ export function BacklogRow({
       </td>
 
       {/* Key cell */}
-      <td className="w-24 px-2 py-2">
+      <td className="w-24 px-2 py-2 density-compact:py-1 density-comfortable:py-3">
         <span className="font-mono text-xs text-muted-foreground">{issue.key}</span>
       </td>
 
       {/* Epic badge cell — right after key */}
-      <td className="w-32 px-2 py-2">
+      <td className="w-32 px-2 py-2 density-compact:py-1 density-comfortable:py-3">
         {epicKey && epicName ? (
           <button
             type="button"
@@ -100,7 +100,7 @@ export function BacklogRow({
       </td>
 
       {/* Summary cell — clickable button */}
-      <td className="px-2 py-2 max-w-xs">
+      <td className="px-2 py-2 density-compact:py-1 density-comfortable:py-3 max-w-xs">
         <button
           type="button"
           onClick={() => onIssueClick(issue.key)}
@@ -111,7 +111,7 @@ export function BacklogRow({
       </td>
 
       {/* Story points cell */}
-      <td className="w-14 px-2 py-2 text-right">
+      <td className="w-14 px-2 py-2 density-compact:py-1 density-comfortable:py-3 text-right">
         {storyPoints !== null ? (
           <span className="inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-foreground">
             {storyPoints}
@@ -122,7 +122,7 @@ export function BacklogRow({
       </td>
 
       {/* Assignee cell */}
-      <td className="w-10 px-2 py-2">
+      <td className="w-10 px-2 py-2 density-compact:py-1 density-comfortable:py-3">
         {issue.fields.assignee ? (
           <img
             src={issue.fields.assignee.avatarUrls['48x48'] || undefined}

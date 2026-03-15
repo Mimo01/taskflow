@@ -44,7 +44,7 @@ export default function MrRow({ mr, linkedTask, staleMrThresholdDays, reviewHeal
   }
 
   return (
-    <div className="flex items-center gap-2 border-b border-border last:border-b-0 py-2 px-3">
+    <div className="flex items-center gap-2 border-b border-border last:border-b-0 py-2 density-compact:py-1 density-comfortable:py-3 px-3">
       {/* MR title — opens in browser */}
       <a
         href={mr.web_url}
