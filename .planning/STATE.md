@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: UX & Branding
 status: planning
-stopped_at: Completed 18-01-PLAN.md
-last_updated: "2026-03-15T12:27:10.578Z"
+stopped_at: Completed 18-03-PLAN.md
+last_updated: "2026-03-15T12:34:30.330Z"
 last_activity: 2026-03-15 — v1.3 roadmap created, 32 requirements mapped across 5 phases
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 6
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -51,6 +51,7 @@ Progress: [░░░░░░░░░░] 0%
 
 *Updated after each plan completion*
 | Phase 18-app-icon-multi-page-settings P01 | 3 | 2 tasks | 4 files |
+| Phase 18-app-icon-multi-page-settings P03 | 5 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -65,6 +66,8 @@ Key v1.3 constraints from research:
 - No `createContext`/`useContext` anywhere — prop threading only
 - [Phase 18-app-icon-multi-page-settings]: Settings store persist uses version:1 + migrate for backward-compatible evolution of persisted fields
 - [Phase 18-app-icon-multi-page-settings]: ConnectionsSection.tsx stub created at Wave 0 so test files compile with zero TS errors
+- [Phase 18-app-icon-multi-page-settings]: validateFn prop typed as Promise<any> to accept both validateJira/validateGitLab return types without duplication
+- [Phase 18-app-icon-multi-page-settings]: ConnectionsSection token input always editable (not readOnly) to satisfy onChange-based status reset test expectations
 
 ### Pending Todos
 
@@ -78,6 +81,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-15T12:27:10.575Z
-Stopped at: Completed 18-01-PLAN.md
+Last session: 2026-03-15T12:34:30.327Z
+Stopped at: Completed 18-03-PLAN.md
 Resume: Run `/gsd:plan-phase 18` to begin Phase 18 planning
