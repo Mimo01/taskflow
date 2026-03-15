@@ -90,7 +90,12 @@ Plans:
   1. Pressing `?` from any screen opens a dialog listing all registered keyboard shortcuts grouped by category
   2. The shortcuts panel closes when the user presses Escape
   3. Pressing `?` while typing in any text input or contenteditable does not open the panel
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 19-01-PLAN.md — Install react-hotkeys-hook + write RED test scaffolds for panel and settings store
+- [ ] 19-02-PLAN.md — Shortcut registry constants (src/lib/shortcuts.ts) + settings store keyboardOverrides migration
+- [ ] 19-03-PLAN.md — KeyboardShortcutsPanel component + AppLayout wiring + SearchOverlay migration
 
 ### Phase 20: Command Palette + Recent Items
 **Goal**: Users can reach any issue, MR, nav destination, or app action from the keyboard, and recently visited items are one click away in the header
@@ -153,7 +158,7 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22
 | 16. Write Missing Phase 10 + 11 VERIFICATION.md | v1.2 | — | Complete | 2026-03-15 |
 | 17. Nyquist Validation — Phases 9–14 | v1.2 | — | Complete | 2026-03-15 |
 | 18. App Icon + Multi-Page Settings | 6/6 | Complete    | 2026-03-15 | - |
-| 19. Keyboard Foundation | v1.3 | 0/TBD | Not started | - |
+| 19. Keyboard Foundation | v1.3 | 0/3 | Not started | - |
 | 20. Command Palette + Recent Items | v1.3 | 0/TBD | Not started | - |
 | 21. Header Redesign + Pinned Issue Tabs | v1.3 | 0/TBD | Not started | - |
 | 22. Polish — Empty States + Error Recovery | v1.3 | 0/TBD | Not started | - |
