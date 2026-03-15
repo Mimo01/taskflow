@@ -205,7 +205,7 @@ Accent reserved for: Keyboard focus ring on the active palette result row (cmdk 
                    | [              ] [Search icon] [Clock icon] [Bell icon + badge] |
 ```
 
-- Clock icon: `Clock` from lucide-react, same button sizing as Search and Bell (`w-8 h-8 rounded hover:bg-muted`)
+- Clock icon: `Clock` from lucide-react, same button sizing as Search and Bell (`w-8 h-8 rounded hover:bg-muted`). Must include `aria-label="Recent Items"` for screen reader accessibility and render a tooltip on hover with text "Recent Items".
 - Icon order left-to-right: Search, Clock (new), Bell
 
 ---
@@ -266,7 +266,7 @@ Accent reserved for: Keyboard focus ring on the active palette result row (cmdk 
 | Element | Copy |
 |---------|------|
 | Palette input placeholder | "Search issues, MRs, and actions..." |
-| Palette empty (no results, >=2 chars) | "No results found" |
+| Palette empty (no results, >=2 chars) | "No matches -- try different keywords" |
 | Palette empty (no recent items, <2 chars) | "No recent items" |
 | Palette group: cached issues | "Issues" |
 | Palette group: cached MRs | "Merge Requests" |
@@ -286,6 +286,8 @@ Accent reserved for: Keyboard focus ring on the active palette result row (cmdk 
 | Shortcut hint: notifications nav | macOS: "Cmd+Shift+N" / other: "Ctrl+Shift+N" |
 
 No destructive actions exist in this phase.
+
+Note on empty state: The "No matches" text appears inside CommandEmpty. The "Search Jira for {query}" tail item always renders below the list regardless of match count, so users always have a next action available even when cached results return nothing.
 
 ---
 
