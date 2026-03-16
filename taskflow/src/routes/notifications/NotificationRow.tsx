@@ -41,7 +41,7 @@ export default function NotificationRow({ item, isUnread = false, onClick }: Not
     <button
       type="button"
       onClick={onClick}
-      className={`w-full text-left border-l-4 ${borderClass} px-3 py-2 hover:bg-muted/80 active:bg-muted transition-all flex gap-3 items-start ${isUnread ? 'bg-accent/50' : 'opacity-75'}`}
+      className={`w-full text-left border-l-4 ${borderClass} px-3 py-2 hover:bg-muted active:bg-muted/50 transition-all flex gap-3 items-start ${isUnread ? 'bg-accent/50' : 'opacity-75'}`}
     >
       {/* Unread dot + source icon */}
       <div className="flex-shrink-0 mt-0.5 relative">
