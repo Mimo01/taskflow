@@ -102,36 +102,34 @@ export default function IssueDetailPage() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Back + breadcrumb header — only shown when there's a trail */}
-      {trail.length > 0 && (
-        <div className="px-6 py-3 border-b flex items-center gap-2 text-sm flex-shrink-0">
-          <button
-            type="button"
-            onClick={handleBack}
-            className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted"
-            aria-label="Go back"
-          >
-            <ArrowLeft className="size-4" />
-          </button>
-          {trail.map((entry, i) => (
-            <span key={entry.path} className="flex items-center gap-2">
-              {i > 0 && <span className="text-muted-foreground">/</span>}
-              <button
-                type="button"
-                onClick={() => {
-                  useBreadcrumbStore.setState({ trail: trail.slice(0, i) })
-                  navigate(entry.path, { replace: true })
-                }}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                {entry.label}
-              </button>
-            </span>
-          ))}
-          <span className="text-muted-foreground">/</span>
-          <span className="font-medium">{issueKey}</span>
-        </div>
-      )}
+      {/* Back + breadcrumb header */}
+      <div className="px-6 py-3 border-b flex items-center gap-2 text-sm flex-shrink-0">
+        <button
+          type="button"
+          onClick={handleBack}
+          className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted"
+          aria-label="Go back"
+        >
+          <ArrowLeft className="size-4" />
+        </button>
+        {trail.map((entry, i) => (
+          <span key={entry.path} className="flex items-center gap-2">
+            {i > 0 && <span className="text-muted-foreground">/</span>}
+            <button
+              type="button"
+              onClick={() => {
+                useBreadcrumbStore.setState({ trail: trail.slice(0, i) })
+                navigate(entry.path, { replace: true })
+              }}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              {entry.label}
+            </button>
+          </span>
+        ))}
+        {trail.length > 0 && <span className="text-muted-foreground">/</span>}
+        <span className="font-medium">{issueKey}</span>
+      </div>
 
       {/* Issue detail body */}
       {isLoading || !issue ? (
