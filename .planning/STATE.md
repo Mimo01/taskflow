@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: UX & Branding
 status: completed
-stopped_at: Phase 21 UI-SPEC approved
-last_updated: "2026-03-16T11:19:24.303Z"
-last_activity: "2026-03-16 — Phase 20 Plan 06 executed (UAT gap closure: navigation search + recent item titles)"
+stopped_at: Completed 21-02-PLAN.md
+last_updated: "2026-03-16T11:24:11.905Z"
+last_activity: 2026-03-16 — Phase 21 Plan 02 executed (TopBar branding, PinnedTabStrip component, Sidebar branding removed)
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 21
-  completed_plans: 19
-  percent: 100
+  completed_plans: 20
+  percent: 95
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 ## Current Position
 
 Phase: 21 of 22 (Header Redesign + Pinned Issue Tabs)
-Plan: 1 of 3
-Status: Plan 01 Complete
-Last activity: 2026-03-16 — Phase 21 Plan 01 executed (foundation: pinned-tabs store, useListNavigation hook, shortcut entries)
+Plan: 2 of 3
+Status: Plan 02 Complete
+Last activity: 2026-03-16 — Phase 21 Plan 02 executed (TopBar branding, PinnedTabStrip component, Sidebar branding removed)
 
-Progress: [█████████░] 90%
+Progress: [██████████] 95%
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Progress: [█████████░] 90%
 | Phase 20-command-palette-recent-items P05 | 2 | 2 tasks | 3 files |
 | Phase 20-command-palette-recent-items P06 | 2 | 2 tasks | 3 files |
 | Phase 21-header-redesign-pinned-issue-tabs P01 | 2 | 2 tasks | 3 files |
+| Phase 21-header-redesign-pinned-issue-tabs P02 | 2 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -115,6 +116,7 @@ Key v1.3 constraints from research:
 - [Phase 20-command-palette-recent-items]: Navigation and Actions groups rendered unconditionally outside isDefaultState ternary to fix cmdk unmount/remount race
 - [Phase 21-header-redesign-pinned-issue-tabs]: Pinned-tabs store follows exact same LazyStore persistence pattern as recent-items store
 - [Phase 21-header-redesign-pinned-issue-tabs]: useListNavigation focusIndex starts at -1 (no selection); J from -1 goes to 0
+- [Phase 21-header-redesign-pinned-issue-tabs]: PinnedTabStrip resolves issue metadata from react-query cache -- no extra API calls
 
 ### Pending Todos
 
@@ -128,6 +130,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-16T11:19:17Z
-Stopped at: Completed 21-01-PLAN.md
-Resume: Plan 01 complete. Continue with Plan 02 (header + pinned tabs UI) or Plan 03 (J/K navigation)
+Last session: 2026-03-16T11:24:11.899Z
+Stopped at: Completed 21-02-PLAN.md
+Resume: Plan 02 complete. Continue with Plan 03 (J/K list navigation + pin interaction from IssueDetailSheet)
