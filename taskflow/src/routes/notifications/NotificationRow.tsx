@@ -62,15 +62,32 @@ export default function NotificationRow({ item, isUnread = false, onClick }: Not
       {/* Content */}
       <div className="flex-1 min-w-0">
         {/* Type label badge */}
-        {item.notificationType && (
-          <span className="inline-block text-xs font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground mb-0.5">
-            {item.notificationType === 'comment-mention'
-              ? 'Comment mention'
-              : item.notificationType === 'issue-update'
-                ? 'Issue update'
-                : 'MR note'}
-          </span>
-        )}
+        {item.notificationType && (() => {
+          const labelMap: Record<string, string> = {
+            'comment-mention': 'Mentioned',
+            'issue-update': 'Issue update',
+            'mr-note': 'MR comment',
+            'gitlab-mention': 'Mentioned',
+            'jira-comment': 'Comment',
+            'mr-approval': 'Approval',
+            'pipeline-failure': 'Pipeline failed',
+            'issue-assignment': 'Assigned',
+            'due-date-reminder': 'Due soon',
+          };
+          const colorMap: Record<string, string> = {
+            'pipeline-failure': 'bg-red-100 text-red-700',
+            'mr-approval': 'bg-green-100 text-green-700',
+            'due-date-reminder': 'bg-amber-100 text-amber-700',
+            'issue-assignment': 'bg-blue-100 text-blue-700',
+          };
+          const label = labelMap[item.notificationType] ?? item.notificationType;
+          const color = colorMap[item.notificationType] ?? 'bg-muted text-muted-foreground';
+          return (
+            <span className={`inline-block text-xs font-medium px-1.5 py-0.5 rounded ${color} mb-0.5`}>
+              {label}
+            </span>
+          );
+        })()}
 
         {/* Entity title */}
         <p className={`text-sm truncate ${isUnread ? 'font-bold' : 'font-normal'}`}>
