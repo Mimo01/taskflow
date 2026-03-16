@@ -168,6 +168,6 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22
 | 17. Nyquist Validation — Phases 9–14 | v1.2 | — | Complete | 2026-03-15 |
 | 18. App Icon + Multi-Page Settings | 6/6 | Complete    | 2026-03-15 | - |
 | 19. Keyboard Foundation | 6/6 | Complete   | 2026-03-15 |
-| 20. Command Palette + Recent Items | 1/4 | In Progress|  | - |
+| 20. Command Palette + Recent Items | 2/4 | In Progress|  | - |
 | 21. Header Redesign + Pinned Issue Tabs | v1.3 | 0/TBD | Not started | - |
 | 22. Polish — Empty States + Error Recovery | v1.3 | 0/TBD | Not started | - |
