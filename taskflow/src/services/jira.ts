@@ -17,6 +17,7 @@
  * calling storeSecret('jira-pat', token) after successful validation.
  */
 import { apiFetch } from '../lib/apiFetch';
+import { ApiError } from '../lib/api-error';
 
 export interface JiraUser {
   displayName: string;
@@ -59,11 +60,11 @@ export async function validateJira(baseUrl: string, token: string): Promise<Jira
   }
 
   if (response.status === 401) {
-    throw new Error('Invalid token or token has expired');
+    throw new ApiError('Invalid token or token has expired', 401, 'jira');
   }
 
   if (response.status === 403) {
-    throw new Error('Token valid but lacks required permissions');
+    throw new ApiError('Token valid but lacks required permissions', 403, 'jira');
   }
 
   throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
@@ -97,11 +98,11 @@ export async function listJiraProjects(baseUrl: string, token: string): Promise<
   }
 
   if (response.status === 401) {
-    throw new Error('Invalid token or token has expired');
+    throw new ApiError('Invalid token or token has expired', 401, 'jira');
   }
 
   if (response.status === 403) {
-    throw new Error('Token valid but lacks required permissions');
+    throw new ApiError('Token valid but lacks required permissions', 403, 'jira');
   }
 
   throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
@@ -191,6 +192,14 @@ async function fetchAllSearchPages(
 
     if (!response.ok) {
       if (startAt === 0) {
+        // Throw ApiError for auth failures so downstream can detect them
+        if (response.status === 401 || response.status === 403) {
+          throw new ApiError(
+            response.status === 401 ? 'Token expired' : 'Insufficient permissions',
+            response.status,
+            'jira',
+          );
+        }
         // Throw the raw Response so the caller can inspect status + body.
         throw response;
       }
@@ -298,6 +307,8 @@ export async function fetchSprintIssues(
   try {
     parentIssues = await fetchAllSearchPages(baseSearchUrl, headers);
   } catch (err) {
+    // Re-throw ApiError directly (auth failures from fetchAllSearchPages)
+    if (err instanceof ApiError) throw err;
     // fetchAllSearchPages throws the raw Response on first-page failure
     // fetchAllSearchPages throws the raw Response (or a Response-like mock) on first-page
     // failure. Detect by checking for a numeric status property (duck-typing for both real
@@ -401,6 +412,8 @@ export async function fetchMyTasksHierarchy(
         .catch(() => [] as JiraIssue[]),
     ]);
   } catch (err) {
+    // Re-throw ApiError directly (auth failures from fetchAllSearchPages)
+    if (err instanceof ApiError) throw err;
     // fetchAllSearchPages throws the raw Response (or a Response-like mock) on first-page
     // failure. Detect by checking for a numeric status property (duck-typing for both real
     // Response objects and plain-object mocks used in tests).
@@ -504,6 +517,9 @@ export async function fetchTransitions(
   }
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError(`Failed to fetch transitions for ${issueKey}`, response.status, 'jira');
+    }
     throw new Error(`Failed to fetch transitions for ${issueKey}: status ${response.status}`);
   }
 
@@ -542,6 +558,9 @@ export async function postTransition(
   }
 
   if (!response.ok && response.status !== 204) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError(`Failed to transition ${issueKey}`, response.status, 'jira');
+    }
     throw new Error(`Failed to transition ${issueKey}: status ${response.status}`);
   }
 }
@@ -577,6 +596,9 @@ export async function postComment(
   }
 
   if (!response.ok && response.status !== 201) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError(`Failed to post comment on ${issueKey}`, response.status, 'jira');
+    }
     throw new Error(`Failed to post comment on ${issueKey}: status ${response.status}`);
   }
 }
@@ -604,6 +626,9 @@ export async function fetchComments(
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError(`Failed to fetch comments for ${issueKey}`, response.status, 'jira');
+    }
     throw new Error(`Failed to fetch comments for ${issueKey}: status ${response.status}`);
   }
   const data = await response.json() as { comments: JiraComment[] };
@@ -642,9 +667,11 @@ export async function fetchFixVersions(
 
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
-    throw new Error(
-      (data as { errorMessages?: string[] }).errorMessages?.[0] ?? 'Failed to fetch fix versions',
-    );
+    const msg = (data as { errorMessages?: string[] }).errorMessages?.[0] ?? 'Failed to fetch fix versions';
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError(msg, response.status, 'jira');
+    }
+    throw new Error(msg);
   }
 
   const data = await response.json();
@@ -879,7 +906,12 @@ export async function fetchIssueDetail(
   const response = await apiFetch('jira', url, {
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   })
-  if (!response.ok) throw new Error(`Failed to fetch issue ${issueKey}: ${response.status}`)
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError(`Failed to fetch issue ${issueKey}`, response.status, 'jira');
+    }
+    throw new Error(`Failed to fetch issue ${issueKey}: ${response.status}`);
+  }
   return response.json() as Promise<JiraIssueDetail>
 }
 
@@ -897,6 +929,9 @@ export async function updateIssueField(
     body: JSON.stringify({ fields: { [fieldName]: value } }),
   })
   if (!response.ok && response.status !== 204) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError(`Failed to update ${fieldName} on ${issueKey}`, response.status, 'jira');
+    }
     throw new Error(`Failed to update ${fieldName} on ${issueKey}: ${response.status}`)
   }
 }
@@ -932,6 +967,9 @@ export async function fetchProjectStatuses(
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   })
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to fetch project statuses', response.status, 'jira');
+    }
     throw new Error(`Failed to fetch project statuses: ${response.status}`)
   }
   const data: Array<{ statuses: JiraProjectStatus[] }> = await response.json()
@@ -1038,6 +1076,9 @@ export async function createIssue(
     body: JSON.stringify({ fields: baseFields }),
   })
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to create issue', response.status, 'jira');
+    }
     throw new Error(`Failed to create issue: ${response.status}`)
   }
   return response.json() as Promise<{ id: string; key: string }>
@@ -1171,6 +1212,9 @@ export async function createIssueLink(
     }),
   })
   if (!response.ok && response.status !== 201) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to create issue link', response.status, 'jira');
+    }
     throw new Error(`Failed to create issue link: ${response.status}`)
   }
 }
@@ -1203,6 +1247,9 @@ export async function bulkUpdateIssue(
     body: JSON.stringify({ fields }),
   })
   if (!response.ok && response.status !== 204) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError(`Failed to update ${issueKey}`, response.status, 'jira');
+    }
     const body = await response.json().catch(() => ({}))
     throw new Error(
       (body as { errorMessages?: string[] }).errorMessages?.[0]
@@ -1260,6 +1307,8 @@ export async function fetchBacklogIssues(
   try {
     return await fetchAllSearchPages(baseSearchUrl, headers)
   } catch (err) {
+    // Re-throw ApiError directly (auth failures from fetchAllSearchPages)
+    if (err instanceof ApiError) throw err;
     // fetchAllSearchPages throws the raw Response on first-page failure (duck-typed by status)
     if (err !== null && typeof err === 'object' && 'status' in err && typeof (err as { status: unknown }).status === 'number') {
       const errObj = err as unknown as { status: number; text?: () => Promise<string> }
@@ -1503,6 +1552,9 @@ export async function addIssuesToSprint(
   })
   // 204 No Content is the expected success response for this endpoint
   if (!response.ok && response.status !== 204) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to add issues to sprint', response.status, 'jira');
+    }
     throw new Error(`Failed to add issues to sprint: ${response.status}`)
   }
 }
