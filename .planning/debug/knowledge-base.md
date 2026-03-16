@@ -11,3 +11,11 @@ Resolved debug sessions. Used by `gsd-debugger` to surface known-pattern hypothe
 - **Fix:** Added fetchIssueSummary() lightweight endpoint (2 fields), useQueries in AppLayout to actively fetch for each pinned key, passed resolved map to PinnedTabStrip as prop. Simplified PinnedTabStrip to pure presentational component.
 - **Files changed:** taskflow/src/services/jira.ts, taskflow/src/main.tsx, taskflow/src/components/app/PinnedTabStrip.tsx
 ---
+
+## subtask-cards-shifted-right -- Subtask cards visually shifted right on sprint board
+- **Date:** 2026-03-16
+- **Error patterns:** subtask, shifted right, alignment, ml-4, margin-left, sprint board, TaskCard, isSubtask
+- **Root cause:** TaskCard.tsx applied `ml-4 border-l-2 border-l-muted` unconditionally when isSubtask=true. On the sprint board, subtasks are already grouped in swimlane columns under their parent story, so the 1rem left margin caused unwanted rightward shift.
+- **Fix:** Removed `ml-4` from the isSubtask styling in TaskCard, keeping only `border-l-2 border-l-muted` as a subtle visual indicator.
+- **Files changed:** taskflow/src/routes/dashboard/TaskCard.tsx
+---
