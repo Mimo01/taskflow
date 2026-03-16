@@ -13,6 +13,7 @@
 import { useState, useEffect } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { SearchX } from 'lucide-react';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import {
   Command,
@@ -203,7 +204,11 @@ export default function CommandPalette({
             autoFocus
           />
           <CommandList className="max-h-[300px]">
-            <CommandEmpty>No matches -- try different keywords</CommandEmpty>
+            <CommandEmpty className="flex flex-col items-center justify-center py-6 text-center">
+              <SearchX className="size-8 text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">No results found</p>
+              <p className="text-xs text-muted-foreground mt-1">Try a different search term or check your spelling</p>
+            </CommandEmpty>
 
             {isDefaultState ? (
               <>

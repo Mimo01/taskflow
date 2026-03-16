@@ -6,8 +6,11 @@
  * refetchInterval) where QueryClientProvider is always available.
  */
 import { useState } from 'react';
+import { Bell } from 'lucide-react';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Button } from '../../components/ui/button';
+import { EmptyState } from '../../components/ui/empty-state';
+import { ErrorState } from '../../components/ui/error-state';
 import { useNotificationsStore } from '../../stores/notifications.store';
 import NotificationRow from './NotificationRow';
 import NotificationDetail from './NotificationDetail';
@@ -45,6 +48,8 @@ export default function NotificationPopover({ onIssueClick }: NotificationPopove
     items,
     readIds,
     permissionDenied,
+    fetchError,
+    retryFetch,
     markAllRead,
     markAsRead,
     setPermissionDenied,
@@ -112,10 +117,12 @@ export default function NotificationPopover({ onIssueClick }: NotificationPopove
 
       {/* Feed */}
       <div className="overflow-y-auto max-h-[400px]">
-        {sortedItems.length === 0 ? (
-          <div className="p-6 text-center text-sm text-muted-foreground">
-            No notifications yet
+        {fetchError && items.length === 0 && retryFetch ? (
+          <div className="p-2">
+            <ErrorState error={fetchError} onRetry={retryFetch} viewName="notifications" />
           </div>
+        ) : sortedItems.length === 0 ? (
+          <EmptyState icon={Bell} title="No notifications yet" subtitle="Mentions and updates will appear here as they happen" />
         ) : (
           sortedItems.map((item) => (
             <div key={item.id}>
