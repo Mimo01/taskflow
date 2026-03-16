@@ -366,11 +366,9 @@ export function IssueDetailSidebar({
         return (
           <MetaRow label="Color">
             <span
-              className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${colorResult.className}`}
+              className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${colorResult.className}`}
               style={colorResult.style}
             >
-              <span className={`inline-block w-2.5 h-2.5 rounded-full ${colorResult.className}`}
-                style={colorResult.style ? { backgroundColor: colorResult.style.color } : undefined} />
               {epicColor ?? 'Default'}
             </span>
           </MetaRow>

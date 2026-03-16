@@ -127,9 +127,9 @@ export default function SprintBoardTab() {
   }, [jiraBaseUrl])
 
   const { data, isLoading, isError, error, dataUpdatedAt, refetch } = useQuery({
-    queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey],
+    queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey, epicLinkFieldKey],
     queryFn: () =>
-      fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false, storyPointsFieldKey),
+      fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false, storyPointsFieldKey, epicLinkFieldKey),
     refetchInterval: 60_000,
     refetchIntervalInBackground: true,
     staleTime: 30_000,
