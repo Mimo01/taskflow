@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: UX & Branding
 status: executing
-stopped_at: Completed 20-03-PLAN.md
-last_updated: "2026-03-16T07:54:40.948Z"
+stopped_at: Completed 20-02-PLAN.md
+last_updated: "2026-03-16T07:56:37.182Z"
 last_activity: 2026-03-16 — Phase 20 Plan 03 executed (RecentItemsPopover component)
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 16
-  completed_plans: 14
+  completed_plans: 15
   percent: 88
 ---
 
@@ -65,6 +65,7 @@ Progress: [█████████░] 88%
 | Phase 19-keyboard-foundation P05 | 1 | 1 tasks | 2 files |
 | Phase 20-command-palette-recent-items P01 | 3 | 2 tasks | 8 files |
 | Phase 20-command-palette-recent-items P03 | 2 | 2 tasks | 2 files |
+| Phase 20-command-palette-recent-items P02 | 4 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,8 @@ Key v1.3 constraints from research:
 - [Phase 20-command-palette-recent-items]: Recent items store uses same LazyStore persistence pattern as settings store
 - [Phase 20-command-palette-recent-items]: Cache-backed title lookup uses getQueriesData with prefix key for cross-query lookups
 - [Phase 20-command-palette-recent-items]: RecentItemRow is a private sub-component within RecentItemsPopover.tsx
+- [Phase 20-command-palette-recent-items]: Custom backdrop overlay instead of CommandDialog to avoid Radix Dialog conflict with @base-ui/react
+- [Phase 20-command-palette-recent-items]: cmdk tests require ResizeObserver and scrollIntoView polyfills in jsdom
 
 ### Pending Todos
 
@@ -115,6 +118,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-16T07:51:39Z
-Stopped at: Completed 20-03-PLAN.md
+Last session: 2026-03-16T07:56:37.176Z
+Stopped at: Completed 20-02-PLAN.md
 Resume: Run `/gsd:execute-phase 20` to continue Phase 20 execution (Plan 04 next)
