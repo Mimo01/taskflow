@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-16 - Completed quick task 260316-r0x: Redo issue detail as full page with back/breadcrumb nav
+Last activity: 2026-03-16 - Completed quick task 260316-r34: Better clarity in notifications - show context like status changes from/to
 
 Progress: [██████████] 100%
 
@@ -156,6 +156,7 @@ None.
 | 260316-qj3 | Add all relevant shortcuts to app toolbar menu bar | 2026-03-16 | cfe3a49 | | [260316-qj3-add-all-relevant-shortcuts-to-app-toolba](./quick/260316-qj3-add-all-relevant-shortcuts-to-app-toolba/) |
 | 260316-q9b | Better rich text rendering in issue detail | 2026-03-16 | 4e4be18 | Verified | [260316-q9b-better-rich-text-rendering-in-issue-deta](./quick/260316-q9b-better-rich-text-rendering-in-issue-deta/) |
 | 260316-r0x | Redo issue detail as full page with back/breadcrumb nav | 2026-03-16 | 6333799 | Verified | [260316-r0x-redo-issue-detail-as-full-page-with-back](./quick/260316-r0x-redo-issue-detail-as-full-page-with-back/) |
+| 260316-r34 | Better clarity in notifications - show context like status changes from/to | 2026-03-16 | b36eb0f | Verified | [260316-r34-better-clarity-in-notifications-show-con](./quick/260316-r34-better-clarity-in-notifications-show-con/) |
 
 ## Session Continuity
 
