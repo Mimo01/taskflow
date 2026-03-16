@@ -31,7 +31,13 @@ export default function TopBar({ onIssueClick, onPaletteOpen, notifPopoverOpen, 
   const unreadCount = useUnreadCount();
 
   return (
-    <header className="h-12 border-b flex items-center justify-end px-4 flex-shrink-0 gap-2">
+    <header className="h-12 border-b flex items-center px-4 flex-shrink-0 gap-2">
+      {/* Left: Branding */}
+      <div className="flex items-center gap-2 mr-auto">
+        <img src="/app-icon.svg" alt="Taskflow" className="w-5 h-5" />
+        <span className="text-base font-semibold text-foreground">Taskflow</span>
+      </div>
+
       {/* Search trigger — opens command palette via parent callback */}
       <button
         type="button"
