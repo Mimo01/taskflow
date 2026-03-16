@@ -6,8 +6,10 @@
  * - "Mark all read" action in the header
  * - Empty state when no notifications exist
  */
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNotificationsStore } from '@/stores/notifications.store';
+import { useListNavigation } from '@/hooks/useListNavigation';
+import { cn } from '@/lib/utils';
 import NotificationRow from './NotificationRow';
 import NotificationDetail from './NotificationDetail';
 
@@ -22,6 +24,21 @@ export default function NotificationsPage() {
     setExpandedId((prev) => (prev === id ? null : id));
     markAsRead(id);
   };
+
+  const { focusIndex } = useListNavigation({
+    itemCount: items.length,
+    onSelect: (index) => handleRowClick(items[index].id),
+    enabled: items.length > 0,
+  });
+
+  const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  useEffect(() => {
+    if (focusIndex >= 0 && focusIndex < items.length) {
+      const el = rowRefs.current.get(items[focusIndex].id);
+      el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }, [focusIndex, items]);
 
   return (
     <div className="flex flex-col gap-0 p-4 max-w-2xl mx-auto">
@@ -43,21 +60,29 @@ export default function NotificationsPage() {
         <p className="text-sm text-muted-foreground text-center py-8">No notifications yet</p>
       ) : (
         <div className="flex flex-col">
-          {items.map((item) => (
-            <div key={item.id}>
-              <NotificationRow
-                item={item}
-                isUnread={!readSet.has(item.id)}
-                onClick={() => handleRowClick(item.id)}
-              />
-              {expandedId === item.id && (
-                <NotificationDetail
+          {items.map((item) => {
+            const isFocused = focusIndex >= 0 && items[focusIndex]?.id === item.id;
+            return (
+              <div
+                key={item.id}
+                ref={(el) => { if (el) rowRefs.current.set(item.id, el); else rowRefs.current.delete(item.id); }}
+                className={cn(isFocused && 'bg-muted border-l-2 border-primary')}
+                aria-current={isFocused ? 'true' : undefined}
+              >
+                <NotificationRow
                   item={item}
-                  onClose={() => setExpandedId(null)}
+                  isUnread={!readSet.has(item.id)}
+                  onClick={() => handleRowClick(item.id)}
                 />
-              )}
-            </div>
-          ))}
+                {expandedId === item.id && (
+                  <NotificationDetail
+                    item={item}
+                    onClose={() => setExpandedId(null)}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

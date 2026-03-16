@@ -14,7 +14,7 @@
  * - transitionMutation: optimistic status update via postTransition
  * - commentMutation: post comment via postComment, collapses InlineComment on success
  */
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { RefreshCw } from 'lucide-react'
@@ -39,6 +39,8 @@ import {
 import type { ReviewHealth } from '@/services/linkEngine'
 import type { GitLabMR } from '@/services/gitlab'
 import TaskRow from './TaskRow'
+import { useListNavigation } from '@/hooks/useListNavigation'
+import { cn } from '@/lib/utils'
 
 export default function MyTasksTab() {
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, activeGitlabProject, gitlabUserId } = useAuthStore()
@@ -284,6 +286,37 @@ export default function MyTasksTab() {
     return { groups: parents.map((p) => ({ parent: p, subtasks: subtasksByParent.get(p.key) ?? [] })), orphans }
   }, [data])
 
+  // J/K navigation
+  const flatIssueKeys = useMemo(() => {
+    const keys: string[] = [];
+    for (const { parent, subtasks: children } of groupedData.groups) {
+      keys.push(parent.key);
+      for (const child of children) {
+        keys.push(child.key);
+      }
+    }
+    for (const orphan of groupedData.orphans) {
+      keys.push(orphan.key);
+    }
+    return keys;
+  }, [groupedData]);
+
+  const { focusIndex } = useListNavigation({
+    itemCount: flatIssueKeys.length,
+    onSelect: (index) => setSelectedIssueKey(flatIssueKeys[index]),
+    enabled: !isLoading && flatIssueKeys.length > 0,
+  });
+
+  const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  useEffect(() => {
+    if (focusIndex >= 0 && focusIndex < flatIssueKeys.length) {
+      const key = flatIssueKeys[focusIndex];
+      const el = rowRefs.current.get(key);
+      el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }, [focusIndex, flatIssueKeys]);
+
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
     : 'Refreshed: Never'
@@ -342,35 +375,42 @@ export default function MyTasksTab() {
                 mr,
                 health: healthMap.get(mr.iid) ?? ('waiting_for_review' as ReviewHealth),
               }))
+              const isFocused = flatIssueKeys[focusIndex] === issue.key
               return (
-                <TaskRow
+                <div
                   key={issue.id}
-                  issue={issue}
-                  isSubtask={isSubtask}
-                  notMine={isSubtask && !myIssueKeys.has(issue.key)}
-                  linkedMrResults={linkedMrResults}
-                  jiraBaseUrl={jiraBaseUrl ?? ''}
-                  jiraToken={jiraToken ?? ''}
-                  onIssueClick={(key) => setSelectedIssueKey(key)}
-                  onTransitionSelect={(issueKey, transitionId, toStatusName) => {
-                    setInlineErrors((prev) => { const next = { ...prev }; delete next[`${issueKey}-transition`]; return next })
-                    transitionMutation.mutate({ issueKey, transitionId, toStatusName })
-                  }}
-                  onCommentSubmit={(issueKey, comment) => {
-                    setInlineErrors((prev) => { const next = { ...prev }; delete next[`${issueKey}-comment`]; return next })
-                    commentMutation.mutate({ issueKey, comment })
-                  }}
-                  isTransitionPending={
-                    transitionMutation.isPending &&
-                    transitionMutation.variables?.issueKey === issue.key
-                  }
-                  isCommentPending={
-                    commentMutation.isPending &&
-                    commentMutation.variables?.issueKey === issue.key
-                  }
-                  transitionError={inlineErrors[`${issue.key}-transition`]}
-                  commentError={inlineErrors[`${issue.key}-comment`]}
-                />
+                  ref={(el) => { if (el) rowRefs.current.set(issue.key, el); else rowRefs.current.delete(issue.key); }}
+                  className={cn(isFocused && 'bg-muted border-l-2 border-primary')}
+                  aria-current={isFocused ? 'true' : undefined}
+                >
+                  <TaskRow
+                    issue={issue}
+                    isSubtask={isSubtask}
+                    notMine={isSubtask && !myIssueKeys.has(issue.key)}
+                    linkedMrResults={linkedMrResults}
+                    jiraBaseUrl={jiraBaseUrl ?? ''}
+                    jiraToken={jiraToken ?? ''}
+                    onIssueClick={(key) => setSelectedIssueKey(key)}
+                    onTransitionSelect={(issueKey, transitionId, toStatusName) => {
+                      setInlineErrors((prev) => { const next = { ...prev }; delete next[`${issueKey}-transition`]; return next })
+                      transitionMutation.mutate({ issueKey, transitionId, toStatusName })
+                    }}
+                    onCommentSubmit={(issueKey, comment) => {
+                      setInlineErrors((prev) => { const next = { ...prev }; delete next[`${issueKey}-comment`]; return next })
+                      commentMutation.mutate({ issueKey, comment })
+                    }}
+                    isTransitionPending={
+                      transitionMutation.isPending &&
+                      transitionMutation.variables?.issueKey === issue.key
+                    }
+                    isCommentPending={
+                      commentMutation.isPending &&
+                      commentMutation.variables?.issueKey === issue.key
+                    }
+                    transitionError={inlineErrors[`${issue.key}-transition`]}
+                    commentError={inlineErrors[`${issue.key}-comment`]}
+                  />
+                </div>
               )
             }
             return (
