@@ -132,7 +132,12 @@ Plans:
   4. Each tab has an x button that removes it from the strip; when more than 7 issues are pinned a +N overflow indicator appears
   5. Pinned tabs survive an app restart — the same tabs are visible after relaunching
   6. In My Tasks, Notifications, and Backlog list views, pressing J or K moves keyboard focus between rows; pressing Enter opens the focused item's detail panel
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 21-01-PLAN.md — Foundation: pinned-tabs store + useListNavigation hook + shortcut registry entries
+- [ ] 21-02-PLAN.md — TopBar branding redesign + PinnedTabStrip component + AppLayout wiring
+- [ ] 21-03-PLAN.md — Pin button in IssueDetailSheet + J/K navigation in My Tasks, Notifications, Backlog
 
 ### Phase 22: Polish — Empty States + Error Recovery
 **Goal**: Every data view communicates clearly when it has no content or has failed to load, and gives users a direct path to recover
@@ -171,5 +176,5 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22
 | 18. App Icon + Multi-Page Settings | 6/6 | Complete    | 2026-03-15 | - |
 | 19. Keyboard Foundation | 6/6 | Complete   | 2026-03-15 |
 | 20. Command Palette + Recent Items | 6/6 | Complete    | 2026-03-16 | - |
-| 21. Header Redesign + Pinned Issue Tabs | v1.3 | 0/TBD | Not started | - |
+| 21. Header Redesign + Pinned Issue Tabs | v1.3 | 0/3 | Not started | - |
 | 22. Polish — Empty States + Error Recovery | v1.3 | 0/TBD | Not started | - |
