@@ -12,8 +12,11 @@
  */
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
+import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { useAuthStore } from '@/stores/auth.store';
 import { fetchFixVersions } from '@/services/jira';
 import type { JiraFixVersion } from '@/services/jira';
@@ -87,6 +90,7 @@ export default function ReleasesTab() {
   const [jiraToken, setJiraToken] = useState<string | null>(null);
   const [gitlabToken, setGitlabToken] = useState<string | null>(null);
   const [releasedVisible, setReleasedVisible] = useState(RELEASED_PAGE_SIZE);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const loadMoreReleased = useCallback(() => setReleasedVisible((n) => n + RELEASED_LOAD_MORE), []);
 
   useEffect(() => {
@@ -204,6 +208,9 @@ export default function ReleasesTab() {
   const isLoading = loadingVersions;
   const isError = errorVersions;
 
+  // Reset banner dismissal when error state changes
+  useEffect(() => { setBannerDismissed(false); }, [isError]);
+
   return (
     <div className="flex flex-col gap-3 p-4">
       {/* Header row */}
@@ -234,20 +241,21 @@ export default function ReleasesTab() {
         </div>
       )}
 
-      {/* Error state */}
-      {isError && (
-        <div className="rounded border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {(versionError as Error)?.message ?? 'Failed to load fix versions'}
-        </div>
+      {/* Error state — full error when no cached data */}
+      {isError && !fixVersions && (
+        <ErrorState error={versionError} onRetry={refetch} viewName="releases" />
+      )}
+
+      {/* Stale data banner — error with cached data still visible */}
+      {isError && fixVersions && !bannerDismissed && (
+        <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
       )}
 
       {/* Content */}
       {!isLoading && !isError && (
         <>
           {undatedVersions.length === 0 && unreleasedVersions.length === 0 && releasedVersions.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              No fix versions configured for this project
-            </div>
+            <EmptyState icon={Package} title="No releases found" subtitle="Releases will appear once versions are created in Jira" />
           ) : (
             <div className="flex flex-col gap-1">
               {/* Render a single release row */}

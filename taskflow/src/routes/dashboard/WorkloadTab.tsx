@@ -12,7 +12,10 @@
  */
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { RefreshCw, ChevronRight } from 'lucide-react';
+import { RefreshCw, ChevronRight, Users } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
+import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { fetchSprintIssues, fetchIssueWorklogs } from '@/services/jira';
@@ -61,6 +64,7 @@ export default function WorkloadTab() {
   const { storyPointsFieldKey } = useSettingsStore();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   useEffect(() => {
     if (jiraBaseUrl) {
@@ -79,6 +83,9 @@ export default function WorkloadTab() {
     refetchInterval: 60_000,
     staleTime: 30_000,
   });
+
+  // Reset banner dismissal when error state changes
+  useEffect(() => { setBannerDismissed(false); }, [isError]);
 
   const sprintIssues = data ?? [];
 
@@ -325,20 +332,21 @@ export default function WorkloadTab() {
         </div>
       )}
 
-      {/* Error state */}
-      {isError && (
-        <div className="rounded border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {(error as Error)?.message ?? 'Failed to load sprint data'}
-        </div>
+      {/* Error state — full error when no cached data */}
+      {isError && !data && (
+        <ErrorState error={error} onRetry={refetch} viewName="workload" />
+      )}
+
+      {/* Stale data banner — error with cached data still visible */}
+      {isError && data && !bannerDismissed && (
+        <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
       )}
 
       {/* Content */}
       {!isLoading && !isError && (
         <>
           {rows.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              No sprint data available
-            </div>
+            <EmptyState icon={Users} title="No workload data" subtitle="Team workload will appear when sprint issues have assignees" />
           ) : (
             <table className="w-full text-sm">
               <thead>

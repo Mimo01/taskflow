@@ -88,7 +88,7 @@ describe('ReleasesTab', () => {
     const { default: ReleasesTab } = await import('./ReleasesTab');
     renderWithQuery(<ReleasesTab />);
 
-    await screen.findByText(/no fix versions configured/i);
+    await screen.findByText(/no releases found/i);
   });
 
   it('renders fix version rows with name and release date', async () => {
