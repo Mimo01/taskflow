@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-16 - Completed quick task 260316-tdk: Redo breadcrumb navigation on issue detail (context-aware stacking)
+Last activity: 2026-03-16 - Completed quick task 260316-tbl: Redo style for pinned task tabs (compact loading, stacked key/summary, inline close)
 
 Progress: [██████████] 100%
 
