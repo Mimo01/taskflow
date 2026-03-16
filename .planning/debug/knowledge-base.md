@@ -19,3 +19,11 @@ Resolved debug sessions. Used by `gsd-debugger` to surface known-pattern hypothe
 - **Fix:** Removed `ml-4` from the isSubtask styling in TaskCard, keeping only `border-l-2 border-l-muted` as a subtle visual indicator.
 - **Files changed:** taskflow/src/routes/dashboard/TaskCard.tsx
 ---
+
+## sprint-field-shows-dash -- Sprint field on issue detail shows dash instead of sprint name
+- **Date:** 2026-03-16
+- **Error patterns:** sprint, dash, No sprint, issue detail, sidebar, sprintFieldKey, customfield_10020, Jira DC, toString, parsing
+- **Root cause:** IssueDetailSidebar sprint parsing only handled Array<{name,state}> (Jira Cloud format). On Jira DC, REST API v2 returns sprint data as Java toString strings, single objects, or objects with uppercase state "ACTIVE" -- all causing sprintName to resolve to null.
+- **Fix:** Replaced inline parsing with robust extractSprintName() function handling all 5 Jira sprint field formats: array of objects, array of toString strings, single object, plain string, null/undefined. Includes case-insensitive state matching and regex name extraction from toString format.
+- **Files changed:** taskflow/src/routes/dashboard/IssueDetailSidebar.tsx, taskflow/src/routes/dashboard/IssueDetailSidebar.test.ts
+---
