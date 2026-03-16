@@ -261,6 +261,7 @@ export default function BacklogPage() {
     badge: string | null,
     issues: JiraIssue[],
     showCreateStory: boolean,
+    isSticky: boolean = false,
   ) {
     const isCollapsed = collapsedSections.has(sectionId);
     const filteredIssues = applyFilters(issues);
@@ -271,7 +272,11 @@ export default function BacklogPage() {
         <button
           type="button"
           onClick={() => toggleSection(sectionId)}
-          className="flex items-center gap-2 w-full px-4 py-2 bg-muted/40 hover:bg-muted/60 border-b border-border transition-colors text-left"
+          className={`flex items-center gap-2 w-full px-4 py-2 border-b border-border transition-colors text-left ${
+            isSticky
+              ? 'sticky top-0 z-[5] bg-muted shadow-[0_1px_3px_rgba(0,0,0,0.1)]'
+              : 'bg-muted/40'
+          } hover:bg-muted/60`}
           data-testid={`section-header-${sectionId}`}
         >
           {isCollapsed ? (
@@ -436,6 +441,7 @@ export default function BacklogPage() {
                 sprint.state === 'active' ? 'Active' : 'Future',
                 issues,
                 false,
+                sprint.state === 'active',
               ),
             )}
 
