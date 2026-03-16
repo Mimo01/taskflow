@@ -52,7 +52,7 @@ Requirements for the v1.3 UX & Branding milestone. Each maps to roadmap phases.
 ### Recent Items
 
 - [x] **RECENT-01**: User can view the last 10 recently opened issues/MRs from a header popover
-- [ ] **RECENT-02**: Clicking a recent item opens the issue detail panel for that issue
+- [x] **RECENT-02**: Clicking a recent item opens the issue detail panel for that issue
 
 ### Empty & Error States
 
@@ -109,7 +109,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PALETTE-06 | Phase 20 | Pending |
 | PALETTE-07 | Phase 20 | Pending |
 | RECENT-01 | Phase 20 | Complete |
-| RECENT-02 | Phase 20 | Pending |
+| RECENT-02 | Phase 20 | Complete |
 | KEYS-03 | Phase 20 | Complete |
 | HEADER-01 | Phase 21 | Pending |
 | HEADER-02 | Phase 21 | Pending |
