@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-16 - Completed quick task 260316-vhc: Make epic and backlog rows whole-row clickable
+Last activity: 2026-03-16 - Completed quick task 260316-wbp: Comment section redesign with sticky composer, edit/delete
 
 Progress: [██████████] 100%
 
@@ -169,9 +169,10 @@ None.
 | 260316-uxr | Match epic badge colors with Jira, show colors on epic detail | 2026-03-16 | 42f5d48 | | [260316-uxr-match-epic-badge-colors-with-jira-show-c](./quick/260316-uxr-match-epic-badge-colors-with-jira-show-c/) |
 | 260316-vhc | Make epic and backlog rows whole-row clickable | 2026-03-16 | c70bb2d | | [260316-vhc-on-epics-page-make-the-whole-row-clickab](./quick/260316-vhc-on-epics-page-make-the-whole-row-clickab/) |
 | 260316-vqx | Sticky active sprint header in backlog view | 2026-03-16 | 0dd4da6 | | [260316-vqx-in-backlog-view-make-the-current-sprint-](./quick/260316-vqx-in-backlog-view-make-the-current-sprint-/) |
+| 260316-wbp | Redesign comment section: sticky composer, card layout, edit/delete | 2026-03-16 | 5e2df26 | | [260316-wbp-make-comment-section-on-issue-detail-mor](./quick/260316-wbp-make-comment-section-on-issue-detail-mor/) |
 
 ## Session Continuity
 
-Last session: 2026-03-16T21:54:00Z
-Stopped at: Completed quick task 260316-vqx (sticky active sprint header in backlog view)
+Last session: 2026-03-16T22:34:36Z
+Stopped at: Completed quick task 260316-wbp (comment section redesign with sticky composer, edit/delete)
 Resume: Milestone v1.3 (UX & Branding) is fully executed. All 5 phases (18-22), 29 plans complete. Ready for /gsd:audit-milestone or /gsd:complete-milestone.
