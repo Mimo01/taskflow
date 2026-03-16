@@ -33,7 +33,6 @@ import WorkloadTab from './routes/dashboard/WorkloadTab';
 import ReleasesTab from './routes/dashboard/ReleasesTab';
 import BacklogPage from './routes/dashboard/BacklogPage';
 import EpicsPage from './routes/dashboard/EpicsPage';
-import NotificationsPage from './routes/notifications/index';
 import DebugLogs from './routes/debug-logs/index';
 import ErrorPage from './routes/error/ErrorPage';
 
@@ -103,6 +102,7 @@ function AppLayout() {
   const pushRecentItem = useRecentItemsStore((s) => s.pushItem);
   const pinnedKeys = usePinnedTabsStore((s) => s.pinnedKeys);
   const removePin = usePinnedTabsStore((s) => s.removePin);
+  const reorderPins = usePinnedTabsStore((s) => s.reorder);
   const isPinned = usePinnedTabsStore((s) => selectedIssueKey ? s.pinnedKeys.includes(selectedIssueKey) : false);
   const togglePin = usePinnedTabsStore((s) => s.togglePin);
 
@@ -283,6 +283,7 @@ function AppLayout() {
             activeKey={selectedIssueKey}
             onTabClick={handleIssueClick}
             onTabClose={removePin}
+            onReorder={reorderPins}
           />
         )}
         {_hasHydrated && !jiraConnected && <ReAuthBanner />}
@@ -342,7 +343,6 @@ const router = createHashRouter([
       { path: '/sprint-progress', element: <SprintProgressTab /> },
       { path: '/workload', element: <WorkloadTab /> },
       { path: '/releases', element: <ReleasesTab /> },
-      { path: '/notifications', element: <NotificationsPage /> },
       { path: '/debug-logs', element: <DebugLogs /> },
     ],
   },

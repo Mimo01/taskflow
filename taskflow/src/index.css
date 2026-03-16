@@ -48,6 +48,14 @@
   --font-sans: 'Geist Variable', sans-serif;
 }
 
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @layer base {
   :root {
     --background: oklch(1 0 0);

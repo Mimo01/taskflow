@@ -1,15 +1,17 @@
 /**
  * PinnedTabStrip -- renders a horizontal strip of pinned issue tabs below the
- * TopBar. Shows up to 7 visible tabs with an overflow "+N" popover for any
- * beyond that limit. Each tab displays the issue type icon, key, truncated
- * summary, and a close button.
+ * TopBar. All tabs are shown in a scrollable row with drag-to-reorder support
+ * via pointer events (HTML5 drag API is unreliable in Tauri WebView).
+ *
+ * A floating ghost clone follows the cursor during drag.
  *
  * Issue metadata (summary, type) is resolved from the react-query cache --
  * no additional network requests are made.
  */
+import { useRef, useState, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Bug, BookOpen, CheckSquare, CornerDownRight } from 'lucide-react';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
 
@@ -18,6 +20,7 @@ interface PinnedTabStripProps {
   activeKey: string | null;
   onTabClick: (issueKey: string) => void;
   onTabClose: (issueKey: string) => void;
+  onReorder: (fromIndex: number, toIndex: number) => void;
 }
 
 interface ResolvedIssue {
@@ -25,18 +28,12 @@ interface ResolvedIssue {
   issueTypeName: string;
 }
 
-/**
- * Search all react-query cache entries for a Jira issue by key and return
- * its summary + issue type. Handles multiple cache shapes (flat array,
- * { issues: [] }, backlog view, and direct detail cache).
- */
 function resolveIssueFromCache(
   queryClient: QueryClient,
   issueKey: string,
 ): ResolvedIssue | undefined {
   type CachedIssue = { key: string; fields: { summary: string; issuetype: { name: string } } };
 
-  // 1. jira-issues caches (sprint-board = flat array, my-tasks = { issues: [] })
   const queries = queryClient.getQueriesData<CachedIssue[] | { issues?: CachedIssue[] }>({
     queryKey: ['jira-issues'],
   });
@@ -51,7 +48,6 @@ function resolveIssueFromCache(
     }
   }
 
-  // 2. Backlog cache (sprints[].issues + backlog[])
   const backlogQueries = queryClient.getQueriesData<{
     sprints?: Array<{ issues: CachedIssue[] }>;
     backlog?: CachedIssue[];
@@ -70,7 +66,6 @@ function resolveIssueFromCache(
     }
   }
 
-  // 3. Issue detail cache (single issue)
   const detailQueries = queryClient.getQueriesData<CachedIssue>({
     queryKey: ['jira-issue-detail', issueKey],
   });
@@ -83,21 +78,29 @@ function resolveIssueFromCache(
   return undefined;
 }
 
-/** Map issue type name to a small colored lucide icon. */
 function IssueTypeIcon({ typeName }: { typeName: string }) {
+  const cls = 'w-4 h-4 shrink-0';
   switch (typeName) {
     case 'Bug':
-      return <Bug className="size-3.5 text-red-500" />;
+      return <Bug className={`${cls} text-red-500`} />;
     case 'Story':
-      return <BookOpen className="size-3.5 text-green-600" />;
+      return <BookOpen className={`${cls} text-green-600`} />;
     case 'Subtask':
     case 'Sub-task':
-      return <CornerDownRight className="size-3.5 text-blue-500" />;
+      return <CornerDownRight className={`${cls} text-blue-500`} />;
     case 'Epic':
-      return <BookOpen className="size-3.5 text-purple-500" />;
+      return <BookOpen className={`${cls} text-purple-500`} />;
     default:
-      return <CheckSquare className="size-3.5 text-blue-500" />;
+      return <CheckSquare className={`${cls} text-blue-500`} />;
   }
+}
+
+interface DragGhost {
+  index: number;
+  x: number;
+  y: number;
+  width: number;
+  offsetX: number;
 }
 
 export default function PinnedTabStrip({
@@ -105,96 +108,197 @@ export default function PinnedTabStrip({
   activeKey,
   onTabClick,
   onTabClose,
+  onReorder,
 }: PinnedTabStripProps) {
   const queryClient = useQueryClient();
-  const visibleKeys = pinnedKeys.slice(0, 7);
-  const overflowKeys = pinnedKeys.slice(7);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const dragState = useRef<{ index: number; startX: number; didMove: boolean; offsetX: number } | null>(null);
+  const didDragRef = useRef(false);
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+  const [dropTarget, setDropTarget] = useState<number | null>(null);
+  const [ghost, setGhost] = useState<DragGhost | null>(null);
+
+  const getDropIndex = useCallback((clientX: number): number | null => {
+    let closest: { index: number; dist: number } | null = null;
+    tabRefs.current.forEach((el, idx) => {
+      const rect = el.getBoundingClientRect();
+      const center = rect.left + rect.width / 2;
+      const dist = Math.abs(clientX - center);
+      if (!closest || dist < closest.dist) {
+        closest = { index: idx, dist };
+      }
+    });
+    return closest ? closest.index : null;
+  }, []);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent, index: number) => {
+    if ((e.target as HTMLElement).closest('[data-close-btn]')) return;
+    const el = tabRefs.current.get(index);
+    const rect = el?.getBoundingClientRect();
+    const offsetX = rect ? e.clientX - rect.left : 0;
+    dragState.current = { index, startX: e.clientX, didMove: false, offsetX };
+  }, []);
+
+  useEffect(() => {
+    const handlePointerMove = (e: PointerEvent) => {
+      const state = dragState.current;
+      if (!state) return;
+
+      if (!state.didMove && Math.abs(e.clientX - state.startX) < 5) return;
+
+      if (!state.didMove) {
+        state.didMove = true;
+        setDraggingIndex(state.index);
+        const el = tabRefs.current.get(state.index);
+        const width = el?.getBoundingClientRect().width ?? 160;
+        setGhost({ index: state.index, x: e.clientX, y: e.clientY, width, offsetX: state.offsetX });
+      } else {
+        setGhost((prev) => prev ? { ...prev, x: e.clientX, y: e.clientY } : null);
+      }
+
+      const target = getDropIndex(e.clientX);
+      setDropTarget(target);
+    };
+
+    const handlePointerUp = () => {
+      const state = dragState.current;
+      didDragRef.current = !!state?.didMove;
+      if (state?.didMove && dropTarget !== null && dropTarget !== state.index) {
+        onReorder(state.index, dropTarget);
+      }
+      dragState.current = null;
+      setDraggingIndex(null);
+      setDropTarget(null);
+      setGhost(null);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, [dropTarget, getDropIndex, onReorder]);
+
+  // Render the ghost tab content
+  const renderGhost = () => {
+    if (!ghost) return null;
+    const key = pinnedKeys[ghost.index];
+    if (!key) return null;
+    const resolved = resolveIssueFromCache(queryClient, key);
+
+    return createPortal(
+      <div
+        className="fixed z-50 pointer-events-none flex items-center gap-2 px-3 h-12 min-w-[130px] max-w-[220px] rounded-md text-xs font-medium bg-background border border-border shadow-lg opacity-90"
+        style={{
+          left: ghost.x - ghost.offsetX,
+          top: ghost.y - 24,
+          width: ghost.width,
+        }}
+      >
+        {resolved ? (
+          <IssueTypeIcon typeName={resolved.issueTypeName} />
+        ) : (
+          <Skeleton className="w-4 h-4 rounded shrink-0" />
+        )}
+        <div className="flex flex-col min-w-0 text-left">
+          <span className="font-mono text-[11px] leading-tight whitespace-nowrap">{key}</span>
+          {resolved ? (
+            <span className="truncate text-[10px] leading-tight text-muted-foreground">{resolved.summary}</span>
+          ) : (
+            <Skeleton className="h-2.5 w-16" />
+          )}
+        </div>
+      </div>,
+      document.body,
+    );
+  };
 
   return (
-    <div
-      className="h-14 border-b border-border flex items-end gap-1 px-4 flex-shrink-0 bg-background"
-      role="tablist"
-      aria-label="Pinned issues"
-    >
-      {visibleKeys.map((key) => {
-        const resolved = resolveIssueFromCache(queryClient, key);
-        return (
-          <button
-            key={key}
-            role="tab"
-            aria-selected={key === activeKey}
-            onClick={() => onTabClick(key)}
-            className={cn(
-              'flex items-center gap-1.5 px-2 h-12 min-w-[120px] max-w-[200px] rounded-t-md text-xs font-medium border-b-2 transition-colors group',
-              key === activeKey
-                ? 'border-primary text-foreground bg-muted/50'
-                : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
-            )}
-          >
-            {resolved ? (
-              <IssueTypeIcon typeName={resolved.issueTypeName} />
-            ) : (
-              <Skeleton className="size-3.5 rounded shrink-0" />
-            )}
-            <div className="flex flex-col min-w-0">
-              <span className="font-mono text-[11px] leading-tight">{key}</span>
-              {resolved ? (
-                <span className="truncate text-[10px] leading-tight text-muted-foreground">{resolved.summary}</span>
-              ) : (
-                <Skeleton className="h-2.5 w-16" />
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onTabClose(key);
-              }}
-              className="ml-auto self-start mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
-              aria-label={`Close ${key} tab`}
-            >
-              <X className="size-3.5 text-muted-foreground hover:text-foreground" />
-            </button>
-          </button>
-        );
-      })}
+    <>
+      <div
+        ref={containerRef}
+        className="h-14 border-b border-border flex items-end gap-1.5 px-4 flex-shrink-0 bg-background overflow-x-auto overflow-y-hidden no-scrollbar"
+        role="tablist"
+        aria-label="Pinned issues"
+      >
+        {pinnedKeys.map((key, index) => {
+          const resolved = resolveIssueFromCache(queryClient, key);
+          const isDragging = draggingIndex === index;
+          const showPlaceholderBefore =
+            draggingIndex !== null &&
+            dropTarget !== null &&
+            dropTarget !== draggingIndex &&
+            dropTarget === index &&
+            dropTarget < draggingIndex;
+          const showPlaceholderAfter =
+            draggingIndex !== null &&
+            dropTarget !== null &&
+            dropTarget !== draggingIndex &&
+            dropTarget === index &&
+            dropTarget > draggingIndex;
 
-      {overflowKeys.length > 0 && (
-        <Popover>
-          <PopoverTrigger
-            className="text-xs font-semibold px-2 py-1 rounded bg-muted text-muted-foreground hover:bg-accent"
-            aria-label={`Show ${overflowKeys.length} more pinned tabs`}
-          >
-            +{overflowKeys.length}
-          </PopoverTrigger>
-          <PopoverContent className="p-1 w-64 max-h-60 overflow-y-auto">
-            {overflowKeys.map((key) => {
-              const resolved = resolveIssueFromCache(queryClient, key);
-              return (
-                <button
-                  key={key}
-                  onClick={() => onTabClick(key)}
-                  className="flex items-center gap-2 w-full px-2 py-1.5 text-xs hover:bg-muted rounded transition-colors"
-                >
+          return (
+            <div key={key} className="flex items-end gap-1.5 shrink-0">
+              {showPlaceholderBefore && (
+                <div className="h-12 min-w-[130px] max-w-[220px] shrink-0 rounded-t-md border-2 border-dashed border-primary/30 bg-primary/5" style={{ width: ghost?.width }} />
+              )}
+              <div
+                ref={(el) => { if (el) tabRefs.current.set(index, el); else tabRefs.current.delete(index); }}
+                role="tab"
+                tabIndex={0}
+                aria-selected={key === activeKey}
+                onPointerDown={(e) => handlePointerDown(e, index)}
+                onClick={() => {
+                  if (didDragRef.current) { didDragRef.current = false; return; }
+                  onTabClick(key);
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onTabClick(key); }}
+                className={cn(
+                  'flex items-center gap-2 px-3 h-12 min-w-[130px] max-w-[220px] shrink-0 rounded-t-md text-xs font-medium border-b-2 transition-colors group select-none',
+                  key === activeKey
+                    ? 'border-primary text-foreground bg-muted/50'
+                    : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
+                  isDragging && dropTarget !== null && dropTarget !== draggingIndex && 'opacity-0 !min-w-0 !w-0 !px-0 !gap-0 !mx-0 overflow-hidden',
+                  isDragging && (dropTarget === null || dropTarget === draggingIndex) && 'opacity-30',
+                  draggingIndex !== null ? 'cursor-grabbing' : 'cursor-grab',
+                )}
+              >
+                {resolved ? (
+                  <IssueTypeIcon typeName={resolved.issueTypeName} />
+                ) : (
+                  <Skeleton className="w-4 h-4 rounded shrink-0" />
+                )}
+                <div className="flex flex-col min-w-0 text-left">
+                  <span className="font-mono text-[11px] leading-tight whitespace-nowrap">{key}</span>
                   {resolved ? (
-                    <IssueTypeIcon typeName={resolved.issueTypeName} />
-                  ) : (
-                    <Skeleton className="size-3.5 rounded shrink-0" />
-                  )}
-                  <span className="font-mono">{key}</span>
-                  {resolved ? (
-                    <span className="truncate text-muted-foreground">
-                      {resolved.summary}
-                    </span>
+                    <span className="truncate text-[10px] leading-tight text-muted-foreground">{resolved.summary}</span>
                   ) : (
                     <Skeleton className="h-2.5 w-16" />
                   )}
+                </div>
+                <button
+                  type="button"
+                  data-close-btn
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTabClose(key);
+                  }}
+                  className="ml-auto p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-muted-foreground/20 transition-opacity"
+                  aria-label={`Close ${key} tab`}
+                >
+                  <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
                 </button>
-              );
-            })}
-          </PopoverContent>
-        </Popover>
-      )}
-    </div>
+              </div>
+              {showPlaceholderAfter && (
+                <div className="h-12 min-w-[130px] max-w-[220px] shrink-0 rounded-t-md border-2 border-dashed border-primary/30 bg-primary/5" style={{ width: ghost?.width }} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {renderGhost()}
+    </>
   );
 }
