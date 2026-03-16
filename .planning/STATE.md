@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-16 - Completed quick task 260316-qj3: Add all relevant shortcuts to app toolbar menu bar
+Last activity: 2026-03-16 - Completed quick task 260316-q9b: Better rich text rendering in issue detail
 
 Progress: [██████████] 100%
 
@@ -149,12 +149,12 @@ None.
 
 ### Quick Tasks Completed
 
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 260316-q7o | I want to be able to open settings with a keyboard shortcut | 2026-03-16 | 41bffad | [260316-q7o-i-want-to-be-able-to-open-settings-with-](./quick/260316-q7o-i-want-to-be-able-to-open-settings-with-/) |
-| 260316-qc2 | Generalize navigation shortcuts to auto-appear in command palette | 2026-03-16 | 8a4a11a | [260316-qc2-generalize-navigation-shortcuts-to-auto-](./quick/260316-qc2-generalize-navigation-shortcuts-to-auto-/) |
-| 260316-qj3 | Add all relevant shortcuts to app toolbar menu bar | 2026-03-16 | cfe3a49 | [260316-qj3-add-all-relevant-shortcuts-to-app-toolba](./quick/260316-qj3-add-all-relevant-shortcuts-to-app-toolba/) |
-| 260316-q9b | Better rich text rendering in issue detail | 2026-03-16 | 7f947d1 | [260316-q9b-better-rich-text-rendering-in-issue-deta](./quick/260316-q9b-better-rich-text-rendering-in-issue-deta/) |
+| # | Description | Date | Commit | Status | Directory |
+|---|-------------|------|--------|--------|-----------|
+| 260316-q7o | I want to be able to open settings with a keyboard shortcut | 2026-03-16 | 41bffad | | [260316-q7o-i-want-to-be-able-to-open-settings-with-](./quick/260316-q7o-i-want-to-be-able-to-open-settings-with-/) |
+| 260316-qc2 | Generalize navigation shortcuts to auto-appear in command palette | 2026-03-16 | 8a4a11a | | [260316-qc2-generalize-navigation-shortcuts-to-auto-](./quick/260316-qc2-generalize-navigation-shortcuts-to-auto-/) |
+| 260316-qj3 | Add all relevant shortcuts to app toolbar menu bar | 2026-03-16 | cfe3a49 | | [260316-qj3-add-all-relevant-shortcuts-to-app-toolba](./quick/260316-qj3-add-all-relevant-shortcuts-to-app-toolba/) |
+| 260316-q9b | Better rich text rendering in issue detail | 2026-03-16 | 4e4be18 | Verified | [260316-q9b-better-rich-text-rendering-in-issue-deta](./quick/260316-q9b-better-rich-text-rendering-in-issue-deta/) |
 
 ## Session Continuity
 
