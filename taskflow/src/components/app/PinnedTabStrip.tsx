@@ -5,13 +5,13 @@
  *
  * A floating ghost clone follows the cursor during drag.
  *
- * Issue metadata (summary, type) is resolved from the react-query cache --
- * no additional network requests are made.
+ * Issue metadata (summary, type) comes from `resolvedIssues` -- a map
+ * populated by useQueries in AppLayout so each pinned tab actively fetches
+ * its own data on mount.
  */
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Bug, BookOpen, CheckSquare, CornerDownRight, Loader2 } from 'lucide-react';
-import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 
 interface PinnedTabStripProps {
@@ -20,61 +20,12 @@ interface PinnedTabStripProps {
   onTabClick: (issueKey: string) => void;
   onTabClose: (issueKey: string) => void;
   onReorder: (fromIndex: number, toIndex: number) => void;
+  resolvedIssues: Map<string, ResolvedIssue>;
 }
 
 interface ResolvedIssue {
   summary: string;
   issueTypeName: string;
-}
-
-function resolveIssueFromCache(
-  queryClient: QueryClient,
-  issueKey: string,
-): ResolvedIssue | undefined {
-  type CachedIssue = { key: string; fields: { summary: string; issuetype: { name: string } } };
-
-  const queries = queryClient.getQueriesData<CachedIssue[] | { issues?: CachedIssue[] }>({
-    queryKey: ['jira-issues'],
-  });
-  for (const [, data] of queries) {
-    if (!data) continue;
-    if ('issues' in data && Array.isArray(data.issues)) {
-      const match = data.issues.find((i) => i.key === issueKey);
-      if (match) return { summary: match.fields.summary, issueTypeName: match.fields.issuetype.name };
-    } else if (Array.isArray(data)) {
-      const match = data.find((i) => i.key === issueKey);
-      if (match) return { summary: match.fields.summary, issueTypeName: match.fields.issuetype.name };
-    }
-  }
-
-  const backlogQueries = queryClient.getQueriesData<{
-    sprints?: Array<{ issues: CachedIssue[] }>;
-    backlog?: CachedIssue[];
-  }>({
-    queryKey: ['jira-backlog-view'],
-  });
-  for (const [, data] of backlogQueries) {
-    if (!data) continue;
-    const match = data.backlog?.find((i) => i.key === issueKey);
-    if (match) return { summary: match.fields.summary, issueTypeName: match.fields.issuetype.name };
-    if (data.sprints) {
-      for (const s of data.sprints) {
-        const m = s.issues.find((i) => i.key === issueKey);
-        if (m) return { summary: m.fields.summary, issueTypeName: m.fields.issuetype.name };
-      }
-    }
-  }
-
-  const detailQueries = queryClient.getQueriesData<CachedIssue>({
-    queryKey: ['jira-issue-detail', issueKey],
-  });
-  for (const [, data] of detailQueries) {
-    if (data?.fields?.summary) {
-      return { summary: data.fields.summary, issueTypeName: data.fields.issuetype?.name ?? '' };
-    }
-  }
-
-  return undefined;
 }
 
 function IssueTypeIcon({ typeName }: { typeName: string }) {
@@ -108,8 +59,8 @@ export default function PinnedTabStrip({
   onTabClick,
   onTabClose,
   onReorder,
+  resolvedIssues,
 }: PinnedTabStripProps) {
-  const queryClient = useQueryClient();
   const containerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const dragState = useRef<{ index: number; startX: number; didMove: boolean; offsetX: number } | null>(null);
@@ -187,7 +138,7 @@ export default function PinnedTabStrip({
     if (!ghost) return null;
     const key = pinnedKeys[ghost.index];
     if (!key) return null;
-    const resolved = resolveIssueFromCache(queryClient, key);
+    const resolved = resolvedIssues.get(key);
 
     return createPortal(
       <div
@@ -226,7 +177,7 @@ export default function PinnedTabStrip({
         aria-label="Pinned issues"
       >
         {pinnedKeys.map((key, index) => {
-          const resolved = resolveIssueFromCache(queryClient, key);
+          const resolved = resolvedIssues.get(key);
           const isDragging = draggingIndex === index;
           const showPlaceholderBefore =
             draggingIndex !== null &&

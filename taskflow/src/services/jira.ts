@@ -924,6 +924,29 @@ export async function fetchIssueDetail(
   return response.json() as Promise<JiraIssueDetail>
 }
 
+/**
+ * Lightweight issue fetch — returns only summary + issuetype for pinned tab
+ * display. Much cheaper than fetchIssueDetail (2 fields vs 18+).
+ */
+export async function fetchIssueSummary(
+  baseUrl: string,
+  token: string,
+  issueKey: string,
+): Promise<{ key: string; fields: { summary: string; issuetype: { name: string } } }> {
+  const base = baseUrl.replace(/\/$/, '')
+  const url = `${base}/rest/api/2/issue/${issueKey}?fields=summary,issuetype`
+  const response = await apiFetch('jira', url, {
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+  })
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError(`Failed to fetch issue ${issueKey}`, response.status, 'jira');
+    }
+    throw new Error(`Failed to fetch issue ${issueKey}: ${response.status}`);
+  }
+  return response.json()
+}
+
 export async function updateIssueField(
   baseUrl: string,
   token: string,

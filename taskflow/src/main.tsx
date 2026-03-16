@@ -4,7 +4,7 @@ import { useHotkeys } from 'react-hotkeys-hook';
 import { KeyboardShortcutsPanel } from './components/app/KeyboardShortcutsPanel';
 import ReactDOM from 'react-dom/client';
 import { createHashRouter, RouterProvider, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQuery, useQueries, useQueryClient } from '@tanstack/react-query';
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
@@ -16,7 +16,7 @@ import ReAuthBanner, { GitLabReAuthBanner } from './components/app/ReAuthBanner'
 import TopBar from './components/app/TopBar';
 import { useNotificationPolling } from './hooks/useNotificationPolling';
 import { readSecret } from './services/stronghold';
-import { discoverCustomFields } from './services/jira';
+import { discoverCustomFields, fetchIssueSummary } from './services/jira';
 import { CreateEditIssueModal, type EditInitialValues } from './routes/dashboard/CreateEditIssueModal';
 import IssueDetailPage from './routes/dashboard/IssueDetailPage';
 import CommandPalette from './components/app/CommandPalette';
@@ -87,7 +87,7 @@ function useCustomFieldDiscovery() {
  */
 function AppLayout() {
   const { onboardingComplete } = useSettingsStore();
-  const { jiraConnected, gitlabConnected, _hasHydrated } = useAuthStore();
+  const { jiraConnected, jiraBaseUrl, gitlabConnected, _hasHydrated } = useAuthStore();
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createModalMode, setCreateModalMode] = useState<'create' | 'edit'>('create');
   const [createModalInitialValues, setCreateModalInitialValues] = useState<EditInitialValues | undefined>(undefined);
@@ -106,6 +106,36 @@ function AppLayout() {
   const reorderPins = usePinnedTabsStore((s) => s.reorder);
   const breadcrumbPush = useBreadcrumbStore((s) => s.push);
   const breadcrumbReset = useBreadcrumbStore((s) => s.reset);
+
+  // Actively fetch summary+type for each pinned issue key so tabs load
+  // independently on app start. Uses a lightweight 2-field endpoint.
+  // staleTime matches the default 5-min window; gcTime: Infinity keeps
+  // data around even when a tab is unpinned then re-pinned quickly.
+  const pinnedQueries = useQueries({
+    queries: pinnedKeys.map((issueKey) => ({
+      queryKey: ['jira-pinned-summary', issueKey, jiraBaseUrl],
+      queryFn: async () => {
+        const token = await readSecret('jira-pat').catch(() => null);
+        if (!token || !jiraBaseUrl) throw new Error('No credentials');
+        return fetchIssueSummary(jiraBaseUrl, token, issueKey);
+      },
+      staleTime: 5 * 60 * 1000,
+      gcTime: Infinity,
+      enabled: !!jiraBaseUrl && !!jiraConnected,
+    })),
+  });
+
+  // Build a resolved map for PinnedTabStrip: issueKey -> { summary, issueTypeName }
+  const resolvedPinnedTabs = new Map<string, { summary: string; issueTypeName: string }>();
+  pinnedKeys.forEach((key, i) => {
+    const data = pinnedQueries[i]?.data;
+    if (data?.fields) {
+      resolvedPinnedTabs.set(key, {
+        summary: data.fields.summary,
+        issueTypeName: data.fields.issuetype.name,
+      });
+    }
+  });
 
   // KEYS-01: mod+slash (Cmd+/ on macOS, Ctrl+/ elsewhere) opens shortcuts panel — uses code name to bypass react-hotkeys-hook #1125
   // KEYS-07: enableOnFormTags defaults to false — mod+slash in an input does NOT open the panel
@@ -340,6 +370,7 @@ function AppLayout() {
             onTabClick={(key) => handleIssueClick(key, true)}
             onTabClose={removePin}
             onReorder={reorderPins}
+            resolvedIssues={resolvedPinnedTabs}
           />
         )}
         {_hasHydrated && !jiraConnected && <ReAuthBanner />}
