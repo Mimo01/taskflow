@@ -5,7 +5,6 @@
  * source icon, type label badge, entity title (bold when unread, clickable when url present),
  * metadata chips, linkified body preview, and relative timestamp.
  */
-import { openUrl } from '@tauri-apps/plugin-opener';
 import type { NotificationItem } from '../../stores/notifications.store';
 
 interface NotificationRowProps {
@@ -71,21 +70,9 @@ export default function NotificationRow({ item, isUnread = false, onClick }: Not
           </span>
         )}
 
-        {/* Entity title — clickable when url present */}
+        {/* Entity title */}
         <p className={`text-sm truncate ${isUnread ? 'font-bold' : 'font-normal'}`}>
-          {item.url ? (
-            <span
-              onClick={(e) => {
-                e.stopPropagation();
-                openUrl(item.url!);
-              }}
-              className="hover:underline text-blue-600 cursor-pointer"
-            >
-              {item.entityTitle}
-            </span>
-          ) : (
-            item.entityTitle
-          )}
+          {item.entityTitle}
         </p>
 
         {/* Body preview — linkified, with multi-line support for arrow-format changes */}
