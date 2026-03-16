@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-16 - Completed quick task 260317-01r: In the notifications popup, replace J/G circles with avatar of person the notification is from
+Last activity: 2026-03-17 - Completed quick task 260317-06k: Match recent items popover width to notifications, increase notification max-height
 
 Progress: [██████████] 100%
 
