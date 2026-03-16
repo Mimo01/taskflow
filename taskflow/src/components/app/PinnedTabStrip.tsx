@@ -10,9 +10,8 @@
  */
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Bug, BookOpen, CheckSquare, CornerDownRight } from 'lucide-react';
+import { X, Bug, BookOpen, CheckSquare, CornerDownRight, Loader2 } from 'lucide-react';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
 
 interface PinnedTabStripProps {
@@ -79,7 +78,7 @@ function resolveIssueFromCache(
 }
 
 function IssueTypeIcon({ typeName }: { typeName: string }) {
-  const cls = 'w-4 h-4 shrink-0';
+  const cls = 'w-3.5 h-3.5 shrink-0';
   switch (typeName) {
     case 'Bug':
       return <Bug className={`${cls} text-red-500`} />;
@@ -190,26 +189,26 @@ export default function PinnedTabStrip({
 
     return createPortal(
       <div
-        className="fixed z-50 pointer-events-none flex items-center gap-2 px-3 h-12 min-w-[130px] max-w-[220px] rounded-md text-xs font-medium bg-background border border-border shadow-lg opacity-90"
+        className="fixed z-50 pointer-events-none flex items-center gap-1.5 px-2.5 h-9 rounded-md text-xs font-medium bg-background border border-border shadow-lg opacity-90"
         style={{
           left: ghost.x - ghost.offsetX,
-          top: ghost.y - 24,
+          top: ghost.y - 18,
           width: ghost.width,
         }}
       >
         {resolved ? (
-          <IssueTypeIcon typeName={resolved.issueTypeName} />
+          <>
+            <IssueTypeIcon typeName={resolved.issueTypeName} />
+            <span className="font-mono text-[11px] whitespace-nowrap">{key}</span>
+            <span className="text-muted-foreground/40">·</span>
+            <span className="truncate text-[11px] text-muted-foreground">{resolved.summary}</span>
+          </>
         ) : (
-          <Skeleton className="w-4 h-4 rounded shrink-0" />
+          <>
+            <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin text-muted-foreground" />
+            <span className="font-mono text-[11px] whitespace-nowrap">{key}</span>
+          </>
         )}
-        <div className="flex flex-col min-w-0 text-left">
-          <span className="font-mono text-[11px] leading-tight whitespace-nowrap">{key}</span>
-          {resolved ? (
-            <span className="truncate text-[10px] leading-tight text-muted-foreground">{resolved.summary}</span>
-          ) : (
-            <Skeleton className="h-2.5 w-16" />
-          )}
-        </div>
       </div>,
       document.body,
     );
@@ -219,7 +218,7 @@ export default function PinnedTabStrip({
     <>
       <div
         ref={containerRef}
-        className="h-14 border-b border-border flex items-end gap-1.5 px-4 flex-shrink-0 bg-background overflow-x-auto overflow-y-hidden no-scrollbar"
+        className="h-10 border-b border-border flex items-end gap-1 px-3 flex-shrink-0 bg-background overflow-x-auto overflow-y-hidden no-scrollbar"
         role="tablist"
         aria-label="Pinned issues"
       >
@@ -240,9 +239,9 @@ export default function PinnedTabStrip({
             dropTarget > draggingIndex;
 
           return (
-            <div key={key} className="flex items-end gap-1.5 shrink-0">
+            <div key={key} className="flex items-end gap-1 shrink-0">
               {showPlaceholderBefore && (
-                <div className="h-12 min-w-[130px] max-w-[220px] shrink-0 rounded-t-md border-2 border-dashed border-primary/30 bg-primary/5" style={{ width: ghost?.width }} />
+                <div className="h-9 w-[110px] shrink-0 rounded-t-md border-2 border-dashed border-primary/30 bg-primary/5" style={{ width: ghost?.width }} />
               )}
               <div
                 ref={(el) => { if (el) tabRefs.current.set(index, el); else tabRefs.current.delete(index); }}
@@ -256,28 +255,29 @@ export default function PinnedTabStrip({
                 }}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onTabClick(key); }}
                 className={cn(
-                  'flex items-center gap-2 px-3 h-12 min-w-[130px] max-w-[220px] shrink-0 rounded-t-md text-xs font-medium border-b-2 transition-colors group select-none',
+                  'flex items-center gap-1.5 px-2.5 h-9 shrink-0 rounded-t-md text-xs font-medium border-b-2 transition-all duration-150 ease-in-out group select-none',
+                  resolved ? 'max-w-[220px]' : 'w-[110px]',
                   key === activeKey
                     ? 'border-primary text-foreground bg-muted/50'
                     : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
-                  isDragging && dropTarget !== null && dropTarget !== draggingIndex && 'opacity-0 !min-w-0 !w-0 !px-0 !gap-0 !mx-0 overflow-hidden',
+                  isDragging && dropTarget !== null && dropTarget !== draggingIndex && 'opacity-0 !w-0 !px-0 !gap-0 !mx-0 overflow-hidden',
                   isDragging && (dropTarget === null || dropTarget === draggingIndex) && 'opacity-30',
                   draggingIndex !== null ? 'cursor-grabbing' : 'cursor-grab',
                 )}
               >
                 {resolved ? (
-                  <IssueTypeIcon typeName={resolved.issueTypeName} />
+                  <>
+                    <IssueTypeIcon typeName={resolved.issueTypeName} />
+                    <span className="font-mono text-[11px] whitespace-nowrap">{key}</span>
+                    <span className="text-muted-foreground/40">·</span>
+                    <span className="truncate text-[11px] text-muted-foreground">{resolved.summary}</span>
+                  </>
                 ) : (
-                  <Skeleton className="w-4 h-4 rounded shrink-0" />
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin text-muted-foreground" />
+                    <span className="font-mono text-[11px] whitespace-nowrap">{key}</span>
+                  </>
                 )}
-                <div className="flex flex-col min-w-0 text-left">
-                  <span className="font-mono text-[11px] leading-tight whitespace-nowrap">{key}</span>
-                  {resolved ? (
-                    <span className="truncate text-[10px] leading-tight text-muted-foreground">{resolved.summary}</span>
-                  ) : (
-                    <Skeleton className="h-2.5 w-16" />
-                  )}
-                </div>
                 <button
                   type="button"
                   data-close-btn
@@ -288,11 +288,11 @@ export default function PinnedTabStrip({
                   className="ml-auto p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-muted-foreground/20 transition-opacity"
                   aria-label={`Close ${key} tab`}
                 >
-                  <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                  <X className="w-3 h-3 text-muted-foreground hover:text-foreground" />
                 </button>
               </div>
               {showPlaceholderAfter && (
-                <div className="h-12 min-w-[130px] max-w-[220px] shrink-0 rounded-t-md border-2 border-dashed border-primary/30 bg-primary/5" style={{ width: ghost?.width }} />
+                <div className="h-9 w-[110px] shrink-0 rounded-t-md border-2 border-dashed border-primary/30 bg-primary/5" style={{ width: ghost?.width }} />
               )}
             </div>
           );
