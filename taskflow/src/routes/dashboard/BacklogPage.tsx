@@ -20,7 +20,7 @@ import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { Button } from '@/components/ui/button';
 import type { JiraIssue, JiraActiveSprint, BacklogViewData } from '@/services/jira';
-import { fetchBacklogView, fetchActiveSprint, addIssuesToSprint } from '@/services/jira';
+import { fetchBacklogView, fetchActiveSprint, addIssuesToSprint, fetchProjectStatuses, fetchEpicsBasic } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -81,6 +81,22 @@ export default function BacklogPage() {
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
 
+  // All project statuses (for filter dropdown — shows all that exist, not just visible)
+  const { data: projectStatuses } = useQuery({
+    queryKey: ['project-statuses', activeJiraProject, jiraBaseUrl],
+    queryFn: () => fetchProjectStatuses(jiraBaseUrl!, jiraToken!, activeJiraProject!),
+    staleTime: Infinity,
+    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
+  });
+
+  // All project epics (shared cache with EpicsPage and SprintBoardTab)
+  const { data: allEpics } = useQuery({
+    queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
+    queryFn: () => fetchEpicsBasic(jiraBaseUrl!, jiraToken!, activeJiraProject!, epicNameFieldKey, epicColorFieldKey),
+    staleTime: 5 * 60_000,
+    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
+  });
+
   // ── Stale data banner state ───────────────────────────────────────────────────
   const [bannerDismissed, setBannerDismissed] = useState(false);
   useEffect(() => { setBannerDismissed(false); }, [error]);
@@ -103,7 +119,7 @@ export default function BacklogPage() {
 
   // ── Filter state (shared across views) ──────────────────────────────────────
 
-  const { activeEpics, activeLabels, activeAssignees } = useFilterStore();
+  const { activeEpics, activeLabels, activeAssignees, activeStatuses } = useFilterStore();
 
   // ── Selection state ──────────────────────────────────────────────────────────
 
@@ -124,22 +140,35 @@ export default function BacklogPage() {
   // ── Filter options (derived from all issues across all sections) ──────────────
 
   const filterOptions = useMemo(() => {
-    // Epic names come from the batch-fetched epicNames map (actual epic summaries).
-    // Fall back to epicKey only when the epic issue wasn't found.
     const epicNames = backlogView?.epicNames ?? new Map<string, string>();
-    const epics = new Map<string, string>(); // epicKey → display name
+    // Epics: all project epics (not just those on current backlog issues)
+    const epics = new Map<string, string>();
+    for (const e of allEpics ?? []) epics.set(e.key, e.epicName);
+    // Also include any epic on current issues not yet in allEpics
+    for (const issue of allIssues) {
+      const epicKey = issue.fields[epicLinkFieldKey] as string | null;
+      if (epicKey && !epics.has(epicKey)) epics.set(epicKey, epicNames.get(epicKey) ?? epicKey);
+    }
     const labels = new Set<string>();
     const assignees = new Set<string>();
     for (const issue of allIssues) {
-      const epicKey = issue.fields[epicLinkFieldKey] as string | null;
-      if (epicKey) epics.set(epicKey, epicNames.get(epicKey) ?? epicKey);
       for (const label of (issue.fields.labels as string[] | undefined) ?? []) {
         labels.add(label);
       }
       if (issue.fields.assignee?.displayName) assignees.add(issue.fields.assignee.displayName);
     }
-    return { epics, labels: Array.from(labels), assignees: Array.from(assignees) };
-  }, [allIssues, epicLinkFieldKey, backlogView?.epicNames]);
+    // Statuses: all project workflow statuses (not just those on current issues)
+    const statuses = new Set<string>();
+    for (const s of projectStatuses ?? []) statuses.add(s.name);
+    // Also include any status on current issues not yet in projectStatuses
+    for (const issue of allIssues) {
+      if (issue.fields.status?.name) statuses.add(issue.fields.status.name);
+      for (const sub of issue.fields.subtasks ?? []) {
+        if (sub.fields.status?.name) statuses.add(sub.fields.status.name);
+      }
+    }
+    return { epics, labels: Array.from(labels), assignees: Array.from(assignees), statuses: Array.from(statuses).sort() };
+  }, [allIssues, epicLinkFieldKey, backlogView?.epicNames, allEpics, projectStatuses]);
 
   // ── Filter application helper ─────────────────────────────────────────────────
 
@@ -148,10 +177,7 @@ export default function BacklogPage() {
       const epicMatch = (() => {
         if (activeEpics.size === 0) return true;
         const epicKey = issue.fields[epicLinkFieldKey] as string | null;
-        const epicName = filterOptions.epics.get(epicKey ?? '') ?? epicKey ?? '';
-        return Array.from(activeEpics).some((q) =>
-          epicName.toLowerCase().includes(q.toLowerCase()),
-        );
+        return epicKey != null && activeEpics.has(epicKey);
       })();
       const labelMatch =
         activeLabels.size === 0 ||
@@ -163,7 +189,17 @@ export default function BacklogPage() {
           name.toLowerCase().includes(q.toLowerCase()),
         );
       })();
-      return epicMatch && labelMatch && assigneeMatch;
+      const statusMatch = (() => {
+        if (activeStatuses.size === 0) return true;
+        // Match on the story's own status
+        if (activeStatuses.has(issue.fields.status?.name ?? '')) return true;
+        // Also match if any subtask has a matching status
+        for (const sub of issue.fields.subtasks ?? []) {
+          if (activeStatuses.has(sub.fields.status?.name ?? '')) return true;
+        }
+        return false;
+      })();
+      return epicMatch && labelMatch && assigneeMatch && statusMatch;
     });
   }
 
@@ -187,7 +223,7 @@ export default function BacklogPage() {
       }
     }
     return keys;
-  }, [backlogView, collapsedSections, activeEpics, activeLabels, activeAssignees]);
+  }, [backlogView, collapsedSections, activeEpics, activeLabels, activeAssignees, activeStatuses]);
 
   const { focusIndex } = useListNavigation({
     itemCount: visibleIssueKeys.length,
@@ -304,7 +340,7 @@ export default function BacklogPage() {
         {!isCollapsed && (
           <div>
             {filteredIssues.length > 0 ? (
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-fixed">
                 <thead className="border-b bg-muted/10">
                   <tr>
                     <th className="w-8 px-3 py-2" />
