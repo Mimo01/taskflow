@@ -7,6 +7,7 @@
  * - Empty state when no notifications exist
  */
 import { useState, useRef, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { useNotificationsStore } from '@/stores/notifications.store';
 import { useListNavigation } from '@/hooks/useListNavigation';
 import { cn } from '@/lib/utils';
@@ -15,6 +16,7 @@ import NotificationDetail from './NotificationDetail';
 
 export default function NotificationsPage() {
   const { items, readIds, markAsRead, markAllRead } = useNotificationsStore();
+  const { selectedIssueKey } = useOutletContext<{ selectedIssueKey: string | null }>();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const readSet = new Set(readIds);
@@ -28,7 +30,7 @@ export default function NotificationsPage() {
   const { focusIndex } = useListNavigation({
     itemCount: items.length,
     onSelect: (index) => handleRowClick(items[index].id),
-    enabled: items.length > 0,
+    enabled: items.length > 0 && !selectedIssueKey,
   });
 
   const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
