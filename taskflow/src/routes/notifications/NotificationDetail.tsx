@@ -87,21 +87,8 @@ export default function NotificationDetail({ item, onClose }: NotificationDetail
       </p>
 
       {/* Metadata chips */}
-      <div className="flex flex-wrap gap-1 mb-2">
-        {item.priority && (
-          <span className="text-xs px-1.5 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-200">
-            {item.priority}
-          </span>
-        )}
-        {item.labels?.map((label) => (
-          <span
-            key={label}
-            className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground border"
-          >
-            {label}
-          </span>
-        ))}
-        {item.entityState && (
+      {item.entityState && (
+        <div className="flex flex-wrap gap-1 mb-2">
           <span
             className={`text-xs px-1.5 py-0.5 rounded border ${
               item.entityState === 'merged'
@@ -113,8 +100,8 @@ export default function NotificationDetail({ item, onClose }: NotificationDetail
           >
             {item.entityState}
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Open button */}
       {item.url && (
