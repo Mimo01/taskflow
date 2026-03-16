@@ -34,6 +34,7 @@ import { readSecret } from '@/services/stronghold';
 import { searchJira } from '@/services/jira';
 import type { JiraIssue } from '@/services/jira';
 import type { GitLabMR } from '@/services/gitlab';
+import { NAV_SHORTCUTS } from '@/lib/shortcuts';
 
 const THEME_CYCLE: Theme[] = ['light', 'dark', 'system'];
 
@@ -181,6 +182,11 @@ export default function CommandPalette({
     return title ? `!${item.id} ${title}` : `!${item.id}`;
   }
 
+  // ─── Navigation action handlers (for action-based nav items like notifications) ─
+  const navActionHandlers: Record<string, () => void> = {
+    'open-notifications': () => { onOpenNotifications(); onClose(); },
+  };
+
   // ─── Render ────────────────────────────────────────────────────────────────
 
   if (!open) return null;
@@ -305,31 +311,21 @@ export default function CommandPalette({
               </>
             )}
 
-            {/* Navigation group -- always rendered so cmdk keeps stable item refs across query threshold */}
+            {/* Navigation group -- dynamically derived from shortcuts registry (NAV_SHORTCUTS) */}
             <CommandGroup heading="Navigation">
-              <CommandItem
-                onSelect={() => { onNavigate('/sprint-board'); onClose(); }}
-              >
-                Sprint Board
-                <CommandShortcut>⌘⇧S</CommandShortcut>
-              </CommandItem>
-              <CommandItem
-                onSelect={() => { onNavigate('/backlog'); onClose(); }}
-              >
-                Backlog
-                <CommandShortcut>⌘⇧B</CommandShortcut>
-              </CommandItem>
-              <CommandItem
-                onSelect={() => { onOpenNotifications(); onClose(); }}
-              >
-                Notifications
-                <CommandShortcut>⌘⇧N</CommandShortcut>
-              </CommandItem>
-              <CommandItem
-                onSelect={() => { onNavigate('/settings'); onClose(); }}
-              >
-                Settings
-              </CommandItem>
+              {NAV_SHORTCUTS.map((s) => (
+                <CommandItem
+                  key={s.id}
+                  onSelect={
+                    s.navMeta.route
+                      ? () => { onNavigate(s.navMeta.route!); onClose(); }
+                      : () => { navActionHandlers[s.navMeta.action!]?.(); }
+                  }
+                >
+                  {s.navMeta.label}
+                  <CommandShortcut>{s.defaultKey}</CommandShortcut>
+                </CommandItem>
+              ))}
             </CommandGroup>
 
             {/* Actions group -- always rendered; only visible when cmdk matches keywords */}
