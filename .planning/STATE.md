@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: UX & Branding
 status: completed
-stopped_at: Phase 21 context gathered
-last_updated: "2026-03-16T10:26:01.800Z"
+stopped_at: Phase 21 UI-SPEC approved
+last_updated: "2026-03-16T11:19:24.303Z"
 last_activity: "2026-03-16 — Phase 20 Plan 06 executed (UAT gap closure: navigation search + recent item titles)"
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 18
-  completed_plans: 18
+  total_plans: 21
+  completed_plans: 19
   percent: 100
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Phase 20 complete — ready for Phase 21
+**Current focus:** Phase 21 in progress — foundation artifacts built
 
 ## Current Position
 
-Phase: 20 of 22 (Command Palette + Recent Items)
-Plan: 6 of 6
-Status: Phase 20 Complete
-Last activity: 2026-03-16 — Phase 20 Plan 06 executed (UAT gap closure: navigation search + recent item titles)
+Phase: 21 of 22 (Header Redesign + Pinned Issue Tabs)
+Plan: 1 of 3
+Status: Plan 01 Complete
+Last activity: 2026-03-16 — Phase 21 Plan 01 executed (foundation: pinned-tabs store, useListNavigation hook, shortcut entries)
 
-Progress: [██████████] 100%
+Progress: [█████████░] 90%
 
 ## Performance Metrics
 
@@ -69,6 +69,7 @@ Progress: [██████████] 100%
 | Phase 20-command-palette-recent-items P04 | 4 | 2 tasks | 7 files |
 | Phase 20-command-palette-recent-items P05 | 2 | 2 tasks | 3 files |
 | Phase 20-command-palette-recent-items P06 | 2 | 2 tasks | 3 files |
+| Phase 21-header-redesign-pinned-issue-tabs P01 | 2 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -112,6 +113,8 @@ Key v1.3 constraints from research:
 - [Phase 20-command-palette-recent-items]: Notification popover controlled from AppLayout via open/onOpenChange for Cmd+Shift+N programmatic open
 - [Phase 20-command-palette-recent-items]: Create issue action placed first in Actions group order
 - [Phase 20-command-palette-recent-items]: Navigation and Actions groups rendered unconditionally outside isDefaultState ternary to fix cmdk unmount/remount race
+- [Phase 21-header-redesign-pinned-issue-tabs]: Pinned-tabs store follows exact same LazyStore persistence pattern as recent-items store
+- [Phase 21-header-redesign-pinned-issue-tabs]: useListNavigation focusIndex starts at -1 (no selection); J from -1 goes to 0
 
 ### Pending Todos
 
@@ -125,6 +128,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-16T10:26:01.793Z
-Stopped at: Phase 21 context gathered
-Resume: Phase 20 gap closure complete. Run `/gsd:execute-phase 21` to begin Phase 21
+Last session: 2026-03-16T11:19:17Z
+Stopped at: Completed 21-01-PLAN.md
+Resume: Plan 01 complete. Continue with Plan 02 (header + pinned tabs UI) or Plan 03 (J/K navigation)
