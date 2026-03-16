@@ -435,8 +435,15 @@ export function IssueDetailSidebar({
               return (
                 <li key={link.id} className="text-xs">
                   <span className="text-muted-foreground">{label}: </span>
-                  <span className="font-mono">{target.key}</span>
-                  <span className="text-muted-foreground"> — {target.fields.summary}</span>
+                  <button
+                    type="button"
+                    onClick={() => onOpenIssue?.(target.key)}
+                    className="text-left hover:underline cursor-pointer inline"
+                  >
+                    <span className="font-mono">{target.key}</span>
+                    <span className="text-muted-foreground ml-1">— {target.fields.summary}</span>
+                  </button>
+                  <Badge variant="outline" className="text-[10px] ml-1.5 align-middle">{target.fields.status.name}</Badge>
                 </li>
               )
             })}
