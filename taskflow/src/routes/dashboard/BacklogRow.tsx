@@ -50,8 +50,9 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
     ? (epicNames?.get(epicKey) ?? (issue.fields[epicNameFieldKey] as string | null) ?? epicKey)
     : null;
   const storyPoints =
-    (issue.fields[storyPointsFieldKey] as number | null) ??
-    (issue.fields.customfield_10016 as number | null);
+    (issue.fields[storyPointsFieldKey] as number | null | undefined) ??
+    (issue.fields.customfield_10016 as number | null | undefined) ??
+    null;
 
   // Resolve epic badge color from Jira color map, with hash-based fallback
   const epicColorResult = epicKey
