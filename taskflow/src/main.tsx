@@ -23,6 +23,7 @@ import CommandPalette from './components/app/CommandPalette';
 import PinnedTabStrip from './components/app/PinnedTabStrip';
 import { useRecentItemsStore } from './stores/recent-items.store';
 import { usePinnedTabsStore } from './stores/pinned-tabs.store';
+import { useBreadcrumbStore } from './stores/breadcrumb.store';
 import Onboarding from './routes/onboarding/index';
 import Dashboard from './routes/dashboard/index';
 import Settings from './routes/settings/index';
@@ -103,6 +104,8 @@ function AppLayout() {
   const pinnedKeys = usePinnedTabsStore((s) => s.pinnedKeys);
   const removePin = usePinnedTabsStore((s) => s.removePin);
   const reorderPins = usePinnedTabsStore((s) => s.reorder);
+  const breadcrumbPush = useBreadcrumbStore((s) => s.push);
+  const breadcrumbReset = useBreadcrumbStore((s) => s.reset);
 
   // KEYS-01: mod+slash (Cmd+/ on macOS, Ctrl+/ elsewhere) opens shortcuts panel — uses code name to bypass react-hotkeys-hook #1125
   // KEYS-07: enableOnFormTags defaults to false — mod+slash in an input does NOT open the panel
@@ -158,25 +161,22 @@ function AppLayout() {
     : null;
 
   // Navigate to full-page issue detail + track recent item.
-  // Builds a breadcrumb trail that accumulates when drilling issue→issue.
-  // Pass resetTrail=true (pinned tabs, command palette) to start fresh.
+  // Trail is managed in breadcrumb store (not location state) so it's
+  // independent of browser history. resetTrail=true clears the trail
+  // (used by pinned tabs, sidebar, command palette, notifications).
   const handleIssueClick = (issueKey: string, resetTrail = false) => {
-    const currentState = location.state as { trail?: Array<{ path: string; label: string }> } | null;
-    const existingTrail = currentState?.trail ?? [];
-
-    let trail: Array<{ path: string; label: string }>;
     if (resetTrail) {
-      trail = [];
+      breadcrumbReset();
     } else if (location.pathname.startsWith('/issue/')) {
-      // Navigating from one issue to another — append current issue to trail
+      // Drilling issue→issue — push current issue onto trail
       const currentKey = location.pathname.replace('/issue/', '');
-      trail = [...existingTrail, { path: location.pathname, label: currentKey }];
+      breadcrumbPush({ path: location.pathname, label: currentKey });
     } else {
-      // Navigating from a list page — start fresh trail with that page
-      trail = [{ path: location.pathname, label: routeLabel(location.pathname) }];
+      // From a list page — reset trail (list pages don't appear in breadcrumbs)
+      breadcrumbReset();
     }
 
-    navigate(`/issue/${issueKey}`, { state: { trail } });
+    navigate(`/issue/${issueKey}`);
 
     // Resolve title from react-query cache for recent-items store.
     // Cache shapes vary: sprint-board is flat JiraIssue[], my-tasks is { issues: JiraIssue[] },
@@ -319,7 +319,7 @@ function AppLayout() {
       <Sidebar onOpenCreate={handleOpenCreate} />
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopBar
-          onIssueClick={handleIssueClick}
+          onIssueClick={(key) => handleIssueClick(key, true)}
           paletteOpen={paletteOpen}
           onPaletteOpen={() => setPaletteOpen(true)}
           notifPopoverOpen={notifPopoverOpen}

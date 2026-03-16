@@ -9,7 +9,7 @@
  * location.state.from (set by handleIssueClick in main.tsx).
  */
 import { useEffect } from 'react'
-import { useParams, useLocation, useNavigate, useOutletContext } from 'react-router-dom'
+import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
@@ -22,19 +22,15 @@ import type { JiraIssue } from '@/services/jira'
 import { IssueDetailContent } from './IssueDetailContent'
 import { IssueDetailSidebar } from './IssueDetailSidebar'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useBreadcrumbStore } from '@/stores/breadcrumb.store'
 import type { EditInitialValues } from './CreateEditIssueModal'
-
-interface TrailEntry {
-  path: string
-  label: string
-}
 
 export default function IssueDetailPage() {
   const { key: issueKey } = useParams<{ key: string }>()
-  const location = useLocation()
   const navigate = useNavigate()
 
-  const trail: TrailEntry[] = (location.state as { trail?: TrailEntry[] } | null)?.trail ?? []
+  const trail = useBreadcrumbStore((s) => s.trail)
+  const breadcrumbPop = useBreadcrumbStore((s) => s.pop)
 
   const { onIssueClick, openEdit, openAddSubtask } = useOutletContext<{
     onIssueClick: (key: string) => void
@@ -91,17 +87,8 @@ export default function IssueDetailPage() {
   }, [issueKey, issue?.fields.summary])
 
   const handleBack = () => {
-    if (trail.length <= 1) {
-      // No trail or just the origin page — go back in browser history
-      navigate(-1)
-      return
-    }
-    const prev = trail[trail.length - 1]
-    if (prev.path.startsWith('/issue/')) {
-      navigate(prev.path, { state: { trail: trail.slice(0, -1) } })
-    } else {
-      navigate(prev.path)
-    }
+    breadcrumbPop()
+    navigate(-1)
   }
 
   if (!issueKey) return null
@@ -118,7 +105,7 @@ export default function IssueDetailPage() {
         >
           <ArrowLeft className="size-4" />
         </button>
-        {trail.length > 1 ? (
+        {trail.length > 0 ? (
           <>
             {trail.map((entry, i) => (
               <span key={`${i}-${entry.path}`} className="flex items-center gap-2">
@@ -126,13 +113,9 @@ export default function IssueDetailPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (entry.path.startsWith('/issue/')) {
-                      // Navigate to this issue with trail truncated to entries before it
-                      navigate(entry.path, { state: { trail: trail.slice(0, i) } })
-                    } else {
-                      // Origin list page — navigate directly
-                      navigate(entry.path)
-                    }
+                    // Truncate trail to this entry and navigate
+                    useBreadcrumbStore.setState({ trail: trail.slice(0, i) })
+                    navigate(entry.path, { replace: true })
                   }}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
