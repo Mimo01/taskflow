@@ -267,4 +267,15 @@ describe('CommandPalette', () => {
     renderPalette();
     expect(screen.getByText('No recent items')).toBeInTheDocument();
   });
+
+  // UAT-3: Navigation items remain visible in search state (query >= 2 chars)
+  it('navigation items visible in search state', () => {
+    renderPalette();
+    const input = screen.getByPlaceholderText('Search issues, MRs, and actions...');
+    fireEvent.change(input, { target: { value: 'setti' } });
+
+    // Navigation items should still render because they are outside the ternary
+    // "setti" fuzzy-matches "Settings" so cmdk keeps it visible
+    expect(screen.getByText('Settings')).toBeInTheDocument();
+  });
 });
