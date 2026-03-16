@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: UX & Branding
 status: executing
-stopped_at: Phase 22 context gathered
-last_updated: "2026-03-16T14:51:09.074Z"
-last_activity: 2026-03-16 — Phase 21 Plan 05 executed (J/K nav fix + /notifications route)
+stopped_at: Completed 22-01-PLAN.md
+last_updated: "2026-03-16T15:30:02.891Z"
+last_activity: 2026-03-16 — Phase 22 Plan 01 executed (ApiError + EmptyState + ErrorState + StaleDataBanner)
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 23
-  completed_plans: 23
+  total_plans: 26
+  completed_plans: 26
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Phase 21 in progress — foundation artifacts built
+**Current focus:** Phase 22 complete — all 10 data views have shared empty/error/stale states
 
 ## Current Position
 
-Phase: 21 of 22 (Header Redesign + Pinned Issue Tabs)
-Plan: 5 of 6 (gap closure)
-Status: Phase 21 Gap Closure In Progress
-Last activity: 2026-03-16 — Phase 21 Plan 05 executed (J/K nav fix + /notifications route)
+Phase: 22 of 22 (Polish — Empty States + Error Recovery)
+Plan: 3 of 3
+Status: Executing
+Last activity: 2026-03-16 — Phase 22 Plan 03 executed (Remaining views retrofit: WorkloadTab, ReleasesTab, EpicsPage, NotificationPopover, CommandPalette)
 
 Progress: [██████████] 100%
 
@@ -74,6 +74,8 @@ Progress: [██████████] 100%
 | Phase 21-header-redesign-pinned-issue-tabs P03 | 5 | 2 tasks | 6 files |
 | Phase 21-header-redesign-pinned-issue-tabs P04 | 2 | 2 tasks | 4 files |
 | Phase 21-header-redesign-pinned-issue-tabs P05 | 2 | 2 tasks | 4 files |
+| Phase 22 P01 | 12 | 2 tasks | 11 files |
+| Phase 22 P03 | 7 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -126,6 +128,12 @@ Key v1.3 constraints from research:
 - [Phase 21-header-redesign-pinned-issue-tabs]: selectedIssueKey passed via outlet context (not React context) to stay consistent with prop-threading pattern; guards useListNavigation enabled in all list views
 - [Phase 21-header-redesign-pinned-issue-tabs]: Branding moved to Sidebar with hidden md:block for responsive text
 - [Phase 21-header-redesign-pinned-issue-tabs]: Pinned tab skeleton uses Skeleton component from ui/skeleton for consistency
+- [Phase 22]: ApiError extends Error with status + source fields for structured HTTP error propagation
+- [Phase 22]: isAuthError uses 3-tier detection: ApiError.status, raw object .status, Error.message heuristic
+- [Phase 22]: ErrorState auto-detects auth via isAuthError, shows Reconnect CTA to /settings for 401/403
+- [Phase 22]: NotificationPopover uses store-level error propagation (fetchError/retryFetch) from polling hook, not prop threading
+- [Phase 22]: CommandPalette uses inline SearchX JSX in CommandEmpty instead of EmptyState to avoid breaking cmdk visibility logic
+- [Phase 22]: StaleDataBanner shown only when isError + cached data; full ErrorState when isError + no data
 
 ### Pending Todos
 
@@ -139,6 +147,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-16T14:51:09.069Z
-Stopped at: Phase 22 context gathered
-Resume: Continue with Phase 21 Plan 06 (gap closure), then Phase 22 (Polish - Empty States + Error Recovery)
+Last session: 2026-03-16T17:36:07Z
+Stopped at: Completed 22-03-PLAN.md
+Resume: Phase 22 complete. All milestone v1.3 phases done.
