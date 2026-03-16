@@ -69,4 +69,22 @@ export const SHORTCUTS: ShortcutEntry[] = [
     description: 'Open Notifications',
     category: 'Navigation',
   },
+  {
+    id: 'list-next',
+    defaultKey: 'J',
+    description: 'Next item',
+    category: 'Lists',
+  },
+  {
+    id: 'list-prev',
+    defaultKey: 'K',
+    description: 'Previous item',
+    category: 'Lists',
+  },
+  {
+    id: 'list-open',
+    defaultKey: 'Enter',
+    description: 'Open item',
+    category: 'Lists',
+  },
 ];
