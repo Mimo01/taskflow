@@ -1,6 +1,28 @@
 use std::path::PathBuf;
+use std::sync::Mutex;
 use tauri::menu::{Menu, MenuItemBuilder, PredefinedMenuItem, Submenu};
 use tauri::{Emitter, Manager};
+
+struct DebugMenuState {
+    submenu: Submenu<tauri::Wry>,
+    visible: Mutex<bool>,
+}
+
+#[tauri::command]
+fn toggle_debug_menu(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
+    let state = app.state::<DebugMenuState>();
+    let menu = app.menu().ok_or("no menu")?;
+    let mut visible = state.visible.lock().map_err(|e| e.to_string())?;
+    if enabled && !*visible {
+        // Insert before Help (position 2: App=0, Go=1, Debug=2, Help=3)
+        menu.insert(&state.submenu, 2).map_err(|e| e.to_string())?;
+        *visible = true;
+    } else if !enabled && *visible {
+        menu.remove(&state.submenu).map_err(|e| e.to_string())?;
+        *visible = false;
+    }
+    Ok(())
+}
 
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -49,54 +71,6 @@ pub fn run() {
                 ],
             )?;
 
-            // --- File menu ---
-            let new_issue_item = MenuItemBuilder::new("New Issue")
-                .id("menu-new-issue")
-                .accelerator("CmdOrCtrl+N")
-                .build(handle)?;
-            let file_menu = Submenu::with_items(
-                handle,
-                "File",
-                true,
-                &[
-                    &new_issue_item,
-                    &PredefinedMenuItem::separator(handle)?,
-                    &PredefinedMenuItem::close_window(handle, None)?,
-                ],
-            )?;
-
-            // --- Edit menu (macOS standard predefined items) ---
-            let edit_menu = Submenu::with_items(
-                handle,
-                "Edit",
-                true,
-                &[
-                    &PredefinedMenuItem::undo(handle, None)?,
-                    &PredefinedMenuItem::redo(handle, None)?,
-                    &PredefinedMenuItem::separator(handle)?,
-                    &PredefinedMenuItem::cut(handle, None)?,
-                    &PredefinedMenuItem::copy(handle, None)?,
-                    &PredefinedMenuItem::paste(handle, None)?,
-                    &PredefinedMenuItem::select_all(handle, None)?,
-                ],
-            )?;
-
-            // --- View menu ---
-            let command_palette_item = MenuItemBuilder::new("Command Palette")
-                .id("menu-command-palette")
-                .accelerator("CmdOrCtrl+K")
-                .build(handle)?;
-            let view_menu = Submenu::with_items(
-                handle,
-                "View",
-                true,
-                &[
-                    &command_palette_item,
-                    &PredefinedMenuItem::separator(handle)?,
-                    &PredefinedMenuItem::fullscreen(handle, None)?,
-                ],
-            )?;
-
             // --- Go menu ---
             let nav_sprint_item = MenuItemBuilder::new("Sprint Board")
                 .id("menu-nav-sprint")
@@ -127,19 +101,26 @@ pub fn run() {
                 ],
             )?;
 
-            // --- Window menu (macOS standard) ---
-            let window_menu = Submenu::with_items(
+            // --- Debug menu (added/removed at runtime via toggle_debug_menu command) ---
+            let debug_logs_item = MenuItemBuilder::new("Debug Logs")
+                .id("menu-debug-logs")
+                .build(handle)?;
+            let debug_submenu = Submenu::with_items(
                 handle,
-                "Window",
+                "Debug",
                 true,
-                &[
-                    &PredefinedMenuItem::minimize(handle, None)?,
-                    &PredefinedMenuItem::separator(handle)?,
-                    &PredefinedMenuItem::close_window(handle, None)?,
-                ],
+                &[&debug_logs_item],
             )?;
+            app.manage(DebugMenuState {
+                submenu: debug_submenu,
+                visible: Mutex::new(false),
+            });
 
             // --- Help menu ---
+            let command_palette_item = MenuItemBuilder::new("Command Palette")
+                .id("menu-command-palette")
+                .accelerator("CmdOrCtrl+K")
+                .build(handle)?;
             let shortcuts_item = MenuItemBuilder::new("Keyboard Shortcuts")
                 .id("menu-keyboard-shortcuts")
                 .accelerator("CmdOrCtrl+/")
@@ -148,7 +129,7 @@ pub fn run() {
                 handle,
                 "Help",
                 true,
-                &[&shortcuts_item],
+                &[&command_palette_item, &shortcuts_item],
             )?;
 
             // Build full menu bar
@@ -156,11 +137,7 @@ pub fn run() {
                 handle,
                 &[
                     &app_menu,
-                    &file_menu,
-                    &edit_menu,
-                    &view_menu,
                     &go_menu,
-                    &window_menu,
                     &help_menu,
                 ],
             )?;
@@ -173,18 +150,18 @@ pub fn run() {
             let id = event.id().as_ref();
             match id {
                 "menu-keyboard-shortcuts"
-                | "menu-new-issue"
                 | "menu-command-palette"
                 | "menu-nav-sprint"
                 | "menu-nav-backlog"
                 | "menu-nav-notifications"
-                | "menu-nav-settings" => {
+                | "menu-nav-settings"
+                | "menu-debug-logs" => {
                     let _ = app.emit(id, ());
                 }
                 _ => {}
             }
         })
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![greet, toggle_debug_menu])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
