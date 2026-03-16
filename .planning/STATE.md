@@ -159,9 +159,10 @@ None.
 | 260316-r34 | Better clarity in notifications - show context like status changes from/to | 2026-03-16 | b36eb0f | Verified | [260316-r34-better-clarity-in-notifications-show-con](./quick/260316-r34-better-clarity-in-notifications-show-con/) |
 | 260316-rlb | Notification polish: remove priority/labels, Jira→issue detail, styled changes, hover contrast | 2026-03-16 | e79a9d5 | | [260316-rlb-remove-priority-and-labels-from-notifica](./quick/260316-rlb-remove-priority-and-labels-from-notifica/) |
 | 260316-s5u | Add comment mentions and expand notifications (6 new types, per-type toggles, color badges) | 2026-03-16 | f115824 | Verified | [260316-s5u-add-comment-mentions-and-expand-notifica](./quick/260316-s5u-add-comment-mentions-and-expand-notifica/) |
+| 260316-ssu | Remove "+ Add" quick-create buttons from sprint board columns | 2026-03-16 | cad6eff | | [260316-ssu-remove-add-buttons-from-sprint-board-col](./quick/260316-ssu-remove-add-buttons-from-sprint-board-col/) |
 
 ## Session Continuity
 
-Last session: 2026-03-16T19:36:00Z
-Stopped at: Completed quick task 260316-s5u
+Last session: 2026-03-16T19:48:00Z
+Stopped at: Completed quick task 260316-ssu
 Resume: Milestone v1.3 (UX & Branding) is fully executed. All 5 phases (18-22), 29 plans complete. Ready for /gsd:audit-milestone or /gsd:complete-milestone.
