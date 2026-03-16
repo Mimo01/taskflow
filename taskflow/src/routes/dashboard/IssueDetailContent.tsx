@@ -9,7 +9,6 @@ import { ExternalLink, Pencil, Pin, Plus } from 'lucide-react'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { useSettingsStore } from '@/stores/settings.store'
 import { cn } from '@/lib/utils'
-import { epicColorToTailwind } from '@/lib/epicColors'
 import type { EditInitialValues } from './CreateEditIssueModal'
 
 interface IssueDetailContentProps {
@@ -40,13 +39,9 @@ function relativeTime(iso: string): string {
 export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, onEdit, onAddSubtask, epicStories, isPinned, onTogglePin }: IssueDetailContentProps) {
   const { summary, description, subtasks } = issue.fields
   const comments = issue.fields.comment?.comments ?? []
-  const { storyPointsFieldKey, epicLinkFieldKey, epicColorFieldKey } = useSettingsStore()
+  const { storyPointsFieldKey, epicLinkFieldKey } = useSettingsStore()
   const isEpic = issue.fields.issuetype.name === 'Epic'
   const isSubtask = issue.fields.issuetype.subtask
-
-  // Epic color accent — always show for epics (uses hash fallback if no Jira color)
-  const epicColorValue = isEpic ? (issue.fields[epicColorFieldKey] as string | null) : null
-  const epicColorResult = isEpic ? epicColorToTailwind(epicColorValue, issueKey) : null
 
   // Build attachment filename → URL map for resolving !image.png! references
   const attachmentMap = useMemo<AttachmentMap>(() => {
@@ -81,14 +76,6 @@ export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, 
 
   return (
     <div className="space-y-6">
-      {/* Epic color accent bar */}
-      {epicColorResult && (
-        <div
-          className={cn('h-1.5 rounded-full', epicColorResult.className)}
-          style={epicColorResult.style ? { backgroundColor: epicColorResult.style.color } : undefined}
-        />
-      )}
-
       {/* Title */}
       <div>
         <p className="text-xs font-mono text-muted-foreground mb-1">{issue.key}</p>
