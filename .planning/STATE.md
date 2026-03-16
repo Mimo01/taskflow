@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-16 - Completed quick task 260316-uxr: Match epic badge colors with Jira
+Last activity: 2026-03-16 - Completed quick task 260316-vhc: Make epic and backlog rows whole-row clickable
 
 Progress: [██████████] 100%
 
