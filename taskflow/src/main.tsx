@@ -157,11 +157,25 @@ function AppLayout() {
     ? location.pathname.replace('/issue/', '')
     : null;
 
-  // Navigate to full-page issue detail + track recent item
+  // Navigate to full-page issue detail + track recent item.
+  // Builds a breadcrumb trail: when navigating from a list page, trail starts
+  // with that page. When navigating issue→issue, the current issue is appended
+  // to the existing trail so breadcrumbs accumulate (e.g. Sprint Board / PROJ-1 / PROJ-2).
   const handleIssueClick = (issueKey: string) => {
-    navigate(`/issue/${issueKey}`, {
-      state: { from: { path: location.pathname, label: routeLabel(location.pathname) } },
-    });
+    const currentState = location.state as { trail?: Array<{ path: string; label: string }> } | null;
+    const existingTrail = currentState?.trail ?? [];
+
+    let trail: Array<{ path: string; label: string }>;
+    if (location.pathname.startsWith('/issue/')) {
+      // Navigating from one issue to another — append current issue to trail
+      const currentKey = location.pathname.replace('/issue/', '');
+      trail = [...existingTrail, { path: location.pathname, label: currentKey }];
+    } else {
+      // Navigating from a list page — start fresh trail with that page
+      trail = [{ path: location.pathname, label: routeLabel(location.pathname) }];
+    }
+
+    navigate(`/issue/${issueKey}`, { state: { trail } });
 
     // Resolve title from react-query cache for recent-items store.
     // Cache shapes vary: sprint-board is flat JiraIssue[], my-tasks is { issues: JiraIssue[] },

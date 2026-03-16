@@ -24,7 +24,7 @@ import { IssueDetailSidebar } from './IssueDetailSidebar'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { EditInitialValues } from './CreateEditIssueModal'
 
-interface FromState {
+interface TrailEntry {
   path: string
   label: string
 }
@@ -34,7 +34,7 @@ export default function IssueDetailPage() {
   const location = useLocation()
   const navigate = useNavigate()
 
-  const from = (location.state as { from?: FromState } | null)?.from
+  const trail: TrailEntry[] = (location.state as { trail?: TrailEntry[] } | null)?.trail ?? []
 
   const { onIssueClick, openEdit, openAddSubtask } = useOutletContext<{
     onIssueClick: (key: string) => void
@@ -91,11 +91,7 @@ export default function IssueDetailPage() {
   }, [issueKey, issue?.fields.summary])
 
   const handleBack = () => {
-    if (from?.path) {
-      navigate(from.path)
-    } else {
-      navigate(-1)
-    }
+    navigate(-1)
   }
 
   if (!issueKey) return null
@@ -112,15 +108,20 @@ export default function IssueDetailPage() {
         >
           <ArrowLeft className="size-4" />
         </button>
-        {from?.label ? (
+        {trail.length > 0 ? (
           <>
-            <button
-              type="button"
-              onClick={handleBack}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {from.label}
-            </button>
+            {trail.map((entry, i) => (
+              <span key={`${i}-${entry.path}`} className="flex items-center gap-2">
+                {i > 0 && <span className="text-muted-foreground">/</span>}
+                <button
+                  type="button"
+                  onClick={() => navigate(-(trail.length - i))}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {entry.label}
+                </button>
+              </span>
+            ))}
             <span className="text-muted-foreground">/</span>
             <span className="font-medium">{issueKey}</span>
           </>
