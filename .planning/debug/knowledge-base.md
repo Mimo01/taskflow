@@ -27,3 +27,11 @@ Resolved debug sessions. Used by `gsd-debugger` to surface known-pattern hypothe
 - **Fix:** Replaced inline parsing with robust extractSprintName() function handling all 5 Jira sprint field formats: array of objects, array of toString strings, single object, plain string, null/undefined. Includes case-insensitive state matching and regex name extraction from toString format.
 - **Files changed:** taskflow/src/routes/dashboard/IssueDetailSidebar.tsx, taskflow/src/routes/dashboard/IssueDetailSidebar.test.ts
 ---
+
+## sprint-board-header-misalignment -- Sprint board column headers misaligned with card columns
+- **Date:** 2026-03-16
+- **Error patterns:** column headers, misaligned, offset, IN PROGRESS, DONE, sprint board, flex, alignment
+- **Root cause:** Header bar was a flat flex row with 4 children (3 flex-1 column headers + 1 refresh button area). Card rows below only have 3 flex-1 children. The refresh button area consumed space from the header flex distribution, making each header column narrower than its corresponding card column.
+- **Fix:** Wrapped the 3 column headers in their own inner flex container so they distribute space identically to card rows. Positioned the refresh button absolutely so it overlays the right edge without affecting column width calculation.
+- **Files changed:** taskflow/src/routes/dashboard/SprintBoardTab.tsx
+---
