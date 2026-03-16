@@ -165,9 +165,10 @@ None.
 | 260316-ulr | Make linked issues in issue detail sidebar clickable | 2026-03-16 | a013ec2 | | [260316-ulr-make-the-linked-issues-on-issue-detail-n](./quick/260316-ulr-make-the-linked-issues-on-issue-detail-n/) |
 | 260316-uqt | Sort MyTasks and SprintBoard by Jira rank order | 2026-03-16 | a7bff1a | | [260316-uqt-make-the-tasks-in-mytasks-backlog-and-sp](./quick/260316-uqt-make-the-tasks-in-mytasks-backlog-and-sp/) |
 | 260316-uv2 | Remove X button from pinned tabs, add right-click unpin | 2026-03-16 | 0510e20 | | [260316-uv2-keep-pinned-tabs-compact-when-populated-](./quick/260316-uv2-keep-pinned-tabs-compact-when-populated-/) |
+| 260316-v6i | Display ? for unassigned story points in backlog, nowrap keys | 2026-03-16 | 0bbcc51 | | [260316-v6i-display-for-unassigned-story-points-in-b](./quick/260316-v6i-display-for-unassigned-story-points-in-b/) |
 
 ## Session Continuity
 
-Last session: 2026-03-16T21:13:00Z
-Stopped at: Completed quick task 260316-uqt
+Last session: 2026-03-16T21:30:00Z
+Stopped at: Completed quick task 260316-v6i
 Resume: Milestone v1.3 (UX & Branding) is fully executed. All 5 phases (18-22), 29 plans complete. Ready for /gsd:audit-milestone or /gsd:complete-milestone.
