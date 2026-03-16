@@ -258,7 +258,7 @@ export default function PinnedTabStrip({
                 }}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onTabClick(key); }}
                 className={cn(
-                  'relative flex items-center gap-1.5 px-2.5 h-9 shrink-0 rounded-t-md text-xs font-medium border-b-2 transition-all duration-150 ease-in-out group select-none',
+                  'flex items-center gap-1.5 px-2.5 h-9 shrink-0 rounded-t-md text-xs font-medium border-b-2 transition-all duration-150 ease-in-out group select-none',
                   resolved ? 'max-w-[180px]' : 'w-[110px]',
                   key === activeKey
                     ? 'border-primary text-foreground bg-muted/50'
@@ -273,7 +273,21 @@ export default function PinnedTabStrip({
                     <IssueTypeIcon typeName={resolved.issueTypeName} />
                     <div className="flex flex-col min-w-0 leading-none">
                       <span className="font-mono text-[9px] text-muted-foreground/60 whitespace-nowrap">{key}</span>
-                      <span className="truncate text-[11px] leading-tight">{resolved.summary}</span>
+                      <span className="flex items-center gap-0.5 min-w-0">
+                        <span className="truncate text-[11px] leading-tight">{resolved.summary}</span>
+                        <button
+                          type="button"
+                          data-close-btn
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onTabClose(key);
+                          }}
+                          className="shrink-0 rounded p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent"
+                          aria-label={`Unpin ${key}`}
+                        >
+                          <X className="w-2.5 h-2.5 text-muted-foreground hover:text-foreground" />
+                        </button>
+                      </span>
                     </div>
                   </>
                 ) : (
@@ -282,18 +296,6 @@ export default function PinnedTabStrip({
                     <span className="font-mono text-[11px] whitespace-nowrap">{key}</span>
                   </>
                 )}
-                <button
-                  type="button"
-                  data-close-btn
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onTabClose(key);
-                  }}
-                  className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-muted-foreground/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
-                  aria-label={`Unpin ${key}`}
-                >
-                  <X className="w-2 h-2 text-background" />
-                </button>
               </div>
               {showPlaceholderAfter && (
                 <div className="h-9 w-[110px] shrink-0 rounded-t-md border-2 border-dashed border-primary/30 bg-primary/5" style={{ width: ghost?.width }} />
