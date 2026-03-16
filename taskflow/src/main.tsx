@@ -158,15 +158,16 @@ function AppLayout() {
     : null;
 
   // Navigate to full-page issue detail + track recent item.
-  // Builds a breadcrumb trail: when navigating from a list page, trail starts
-  // with that page. When navigating issue→issue, the current issue is appended
-  // to the existing trail so breadcrumbs accumulate (e.g. Sprint Board / PROJ-1 / PROJ-2).
-  const handleIssueClick = (issueKey: string) => {
+  // Builds a breadcrumb trail that accumulates when drilling issue→issue.
+  // Pass resetTrail=true (pinned tabs, command palette) to start fresh.
+  const handleIssueClick = (issueKey: string, resetTrail = false) => {
     const currentState = location.state as { trail?: Array<{ path: string; label: string }> } | null;
     const existingTrail = currentState?.trail ?? [];
 
     let trail: Array<{ path: string; label: string }>;
-    if (location.pathname.startsWith('/issue/')) {
+    if (resetTrail) {
+      trail = [];
+    } else if (location.pathname.startsWith('/issue/')) {
       // Navigating from one issue to another — append current issue to trail
       const currentKey = location.pathname.replace('/issue/', '');
       trail = [...existingTrail, { path: location.pathname, label: currentKey }];
@@ -328,7 +329,7 @@ function AppLayout() {
           <PinnedTabStrip
             pinnedKeys={pinnedKeys}
             activeKey={activeIssueKey}
-            onTabClick={handleIssueClick}
+            onTabClick={(key) => handleIssueClick(key, true)}
             onTabClose={removePin}
             onReorder={reorderPins}
           />
@@ -343,7 +344,7 @@ function AppLayout() {
       <CommandPalette
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
-        onIssueClick={(key) => { handleIssueClick(key); setPaletteOpen(false); }}
+        onIssueClick={(key) => { handleIssueClick(key, true); setPaletteOpen(false); }}
         onNavigate={handlePaletteNavigate}
         onOpenNotifications={handlePaletteOpenNotifications}
         onOpenCreate={handleOpenCreate}
