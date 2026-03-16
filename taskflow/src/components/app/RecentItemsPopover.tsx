@@ -139,7 +139,7 @@ export default function RecentItemsPopover({ onIssueClick }: RecentItemsPopoverP
       >
         <Clock className="w-5 h-5" />
       </PopoverTrigger>
-      <PopoverContent className="p-0 w-80">
+      <PopoverContent className="p-0 w-96">
         <div>
           {/* Header */}
           <div className="flex items-center justify-between p-3 border-b">
@@ -147,7 +147,7 @@ export default function RecentItemsPopover({ onIssueClick }: RecentItemsPopoverP
           </div>
 
           {/* List */}
-          <div className="overflow-y-auto max-h-[400px]">
+          <div className="overflow-y-auto max-h-[480px]">
             {items.length === 0 ? (
               <div className="p-6 text-center text-sm text-muted-foreground">
                 No recent items yet
