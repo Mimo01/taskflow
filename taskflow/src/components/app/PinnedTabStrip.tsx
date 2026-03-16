@@ -11,7 +11,7 @@
  */
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Bug, BookOpen, CheckSquare, CornerDownRight, Loader2 } from 'lucide-react';
+import { Bug, BookOpen, CheckSquare, CornerDownRight, Loader2, Pin, ArrowLeftToLine, ArrowRightToLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   ContextMenu,
@@ -243,7 +243,16 @@ export default function PinnedTabStrip({
                   </div>
                 </ContextMenuTrigger>
                 <ContextMenuContent>
+                  <ContextMenuItem onClick={() => onReorder(index, 0)} disabled={index === 0}>
+                    <ArrowLeftToLine className="w-3.5 h-3.5" />
+                    Send to front
+                  </ContextMenuItem>
+                  <ContextMenuItem onClick={() => onReorder(index, pinnedKeys.length - 1)} disabled={index === pinnedKeys.length - 1}>
+                    <ArrowRightToLine className="w-3.5 h-3.5" />
+                    Send to back
+                  </ContextMenuItem>
                   <ContextMenuItem onClick={() => onTabClose(key)}>
+                    <Pin className="w-3.5 h-3.5" />
                     Unpin {key}
                   </ContextMenuItem>
                 </ContextMenuContent>
