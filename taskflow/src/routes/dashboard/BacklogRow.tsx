@@ -68,18 +68,21 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       onClick={() => onIssueClick(issue.key)}
       aria-current={isFocused ? 'true' : undefined}
     >
-      {/* Checkbox cell */}
-      <td className="w-8 px-3 py-2 density-compact:py-1 density-comfortable:py-3">
+      {/* Checkbox cell — entire cell is click target */}
+      <td
+        className="w-8 px-3 py-2 density-compact:py-1 density-comfortable:py-3 cursor-pointer"
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect(issue.key, !selected);
+        }}
+      >
         <input
           type="checkbox"
           data-testid={`row-checkbox-${issue.key}`}
           aria-label={issue.key}
           checked={selected}
-          onChange={(e) => {
-            e.stopPropagation();
-            onSelect(issue.key, !selected);
-          }}
-          className="cursor-pointer"
+          readOnly
+          className="pointer-events-none"
         />
       </td>
 
@@ -89,7 +92,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       </td>
 
       {/* Epic badge cell -- right after key */}
-      <td className="w-32 px-2 py-2 density-compact:py-1 density-comfortable:py-3">
+      <td className="w-32 px-2 py-2 density-compact:py-1 density-comfortable:py-3 overflow-hidden">
         {epicKey && epicName && epicColorResult ? (
           <button
             type="button"
@@ -108,8 +111,8 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       </td>
 
       {/* Summary cell -- clickable button */}
-      <td className="px-2 py-2 density-compact:py-1 density-comfortable:py-3 max-w-xs">
-        <span className="text-sm text-left truncate w-full">
+      <td className="px-2 py-2 density-compact:py-1 density-comfortable:py-3 overflow-hidden">
+        <span className="block text-sm text-left truncate">
           {issue.fields.summary}
         </span>
       </td>
