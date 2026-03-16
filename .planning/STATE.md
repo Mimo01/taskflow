@@ -168,9 +168,10 @@ None.
 | 260316-v6i | Display ? for unassigned story points in backlog, nowrap keys | 2026-03-16 | 0bbcc51 | | [260316-v6i-display-for-unassigned-story-points-in-b](./quick/260316-v6i-display-for-unassigned-story-points-in-b/) |
 | 260316-uxr | Match epic badge colors with Jira, show colors on epic detail | 2026-03-16 | 42f5d48 | | [260316-uxr-match-epic-badge-colors-with-jira-show-c](./quick/260316-uxr-match-epic-badge-colors-with-jira-show-c/) |
 | 260316-vhc | Make epic and backlog rows whole-row clickable | 2026-03-16 | c70bb2d | | [260316-vhc-on-epics-page-make-the-whole-row-clickab](./quick/260316-vhc-on-epics-page-make-the-whole-row-clickab/) |
+| 260316-vqx | Sticky active sprint header in backlog view | 2026-03-16 | 0dd4da6 | | [260316-vqx-in-backlog-view-make-the-current-sprint-](./quick/260316-vqx-in-backlog-view-make-the-current-sprint-/) |
 
 ## Session Continuity
 
-Last session: 2026-03-16T21:57:00Z
-Stopped at: Completed quick task 260316-vhc (whole-row clickable epic and backlog rows)
+Last session: 2026-03-16T21:54:00Z
+Stopped at: Completed quick task 260316-vqx (sticky active sprint header in backlog view)
 Resume: Milestone v1.3 (UX & Branding) is fully executed. All 5 phases (18-22), 29 plans complete. Ready for /gsd:audit-milestone or /gsd:complete-milestone.
