@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { useSettingsStore } from '@/stores/settings.store'
 import { useAuthStore } from '@/stores/auth.store'
 import { readSecret } from '@/services/stronghold'
+import { epicColorToTailwind } from '@/lib/epicColors'
 import { CreateEpicDialog } from './CreateEpicDialog'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -38,17 +39,25 @@ interface EpicRowProps {
 }
 
 function EpicRow({ epic, onEpicClick }: EpicRowProps) {
+  const colorResult = epicColorToTailwind(epic.color ?? null, epic.key)
+
   return (
     <tr className="border-b border-border hover:bg-muted/30 transition-colors">
-      {/* Epic name */}
+      {/* Color indicator + Epic name */}
       <td className="px-4 py-3">
-        <button
-          type="button"
-          className="text-sm font-medium text-left hover:underline"
-          onClick={() => onEpicClick?.(epic.key)}
-        >
-          {epic.epicName}
-        </button>
+        <div className="flex items-center gap-2">
+          <span
+            className={`inline-block w-2.5 h-2.5 rounded-full shrink-0 ${colorResult.className}`}
+            style={colorResult.style ? { backgroundColor: colorResult.style.color } : undefined}
+          />
+          <button
+            type="button"
+            className="text-sm font-medium text-left hover:underline"
+            onClick={() => onEpicClick?.(epic.key)}
+          >
+            {epic.epicName}
+          </button>
+        </div>
       </td>
 
       {/* Epic key */}
@@ -99,7 +108,7 @@ export default function EpicsPage() {
   const onEpicClick = ctx.onEpicClick
 
   const { jiraBaseUrl, activeJiraProject } = useAuthStore()
-  const { epicNameFieldKey } = useSettingsStore()
+  const { epicNameFieldKey, epicColorFieldKey } = useSettingsStore()
 
   const [token, setToken] = useState<string | null>(null)
   useEffect(() => {
@@ -117,6 +126,7 @@ export default function EpicsPage() {
         token!,
         activeJiraProject!,
         epicNameFieldKey ?? undefined,
+        epicColorFieldKey ?? undefined,
       ),
     enabled: !!jiraBaseUrl && !!token && !!activeJiraProject,
   })

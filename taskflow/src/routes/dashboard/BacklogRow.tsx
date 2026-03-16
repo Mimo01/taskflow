@@ -1,34 +1,21 @@
 /**
- * BacklogRow — A single backlog issue row in the Backlog table.
+ * BacklogRow -- A single backlog issue row in the Backlog table.
  *
  * Displays: checkbox (multi-select), issue key (monospace), summary (clickable),
  * story points badge, assignee avatar, and colored epic badge.
  *
- * Row click (summary text) calls onIssueClick(issue.key) — NOT the entire row.
+ * Epic badge colors now come from Jira's actual epic color field (ghx-label-N),
+ * with hash-based fallback for epics missing a Jira color value.
+ *
+ * Row click (summary text) calls onIssueClick(issue.key) -- NOT the entire row.
  * Checkbox onChange stops propagation to avoid triggering the summary click.
  */
 import React from 'react';
 import type { JiraIssue } from '@/services/jira';
 import { cn } from '@/lib/utils';
+import { epicColorToTailwind } from '@/lib/epicColors';
 
-// ── Epic color helper ──────────────────────────────────────────────────────────
-
-const EPIC_COLORS = [
-  'bg-purple-100 text-purple-800 border-purple-300',
-  'bg-blue-100 text-blue-800 border-blue-300',
-  'bg-green-100 text-green-800 border-green-300',
-  'bg-orange-100 text-orange-800 border-orange-300',
-  'bg-pink-100 text-pink-800 border-pink-300',
-  'bg-teal-100 text-teal-800 border-teal-300',
-] as const;
-
-function epicColorClass(epicKey: string): string {
-  let hash = 0;
-  for (let i = 0; i < epicKey.length; i++) hash = (hash * 31 + epicKey.charCodeAt(i)) >>> 0;
-  return EPIC_COLORS[hash % EPIC_COLORS.length];
-}
-
-// ── Props ──────────────────────────────────────────────────────────────────────
+// -- Props --------------------------------------------------------------------
 
 export interface BacklogRowProps {
   issue: JiraIssue;
@@ -39,10 +26,11 @@ export interface BacklogRowProps {
   epicLinkFieldKey: string;
   epicNameFieldKey: string;
   epicNames?: Map<string, string>;
+  epicColors?: Map<string, string>;
   isFocused?: boolean;
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// -- Component ----------------------------------------------------------------
 
 export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>(function BacklogRow({
   issue,
@@ -53,6 +41,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
   epicLinkFieldKey,
   epicNameFieldKey,
   epicNames,
+  epicColors,
   isFocused,
 }, ref) {
   const epicKey = issue.fields[epicLinkFieldKey] as string | null;
@@ -63,6 +52,11 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
   const storyPoints =
     (issue.fields[storyPointsFieldKey] as number | null) ??
     (issue.fields.customfield_10016 as number | null);
+
+  // Resolve epic badge color from Jira color map, with hash-based fallback
+  const epicColorResult = epicKey
+    ? epicColorToTailwind(epicColors?.get(epicKey) ?? null, epicKey)
+    : null;
 
   return (
     <tr
@@ -91,21 +85,26 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
         <span className="font-mono text-xs text-muted-foreground">{issue.key}</span>
       </td>
 
-      {/* Epic badge cell — right after key */}
+      {/* Epic badge cell -- right after key */}
       <td className="w-32 px-2 py-2 density-compact:py-1 density-comfortable:py-3">
-        {epicKey && epicName ? (
+        {epicKey && epicName && epicColorResult ? (
           <button
             type="button"
             onClick={() => onIssueClick(epicKey)}
-            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium truncate max-w-full hover:opacity-80 transition-opacity ${epicColorClass(epicKey)}`}
-            title={epicName}
+            className={cn(
+              'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium truncate max-w-full hover:opacity-80 transition-opacity',
+              epicColorResult.className,
+            )}
+            style={epicColorResult.style}
+            title={`${epicKey}: ${epicName}`}
           >
-            {epicName}
+            <span className="opacity-70 mr-1">{epicKey}</span>
+            {epicName !== epicKey ? epicName : null}
           </button>
         ) : null}
       </td>
 
-      {/* Summary cell — clickable button */}
+      {/* Summary cell -- clickable button */}
       <td className="px-2 py-2 density-compact:py-1 density-comfortable:py-3 max-w-xs">
         <button
           type="button"
@@ -123,7 +122,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
             {storyPoints}
           </span>
         ) : (
-          <span className="text-xs text-muted-foreground">—</span>
+          <span className="text-xs text-muted-foreground">--</span>
         )}
       </td>
 
