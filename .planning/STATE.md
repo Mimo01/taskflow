@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: UX & Branding
 status: completed
-stopped_at: Completed 20-05-PLAN.md
-last_updated: "2026-03-16T09:05:35.804Z"
+stopped_at: Completed 20-06-PLAN.md
+last_updated: "2026-03-16T09:51:47.434Z"
 last_activity: 2026-03-16 — Phase 20 Plan 05 executed (Create issue action gap closure)
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 17
-  completed_plans: 17
+  total_plans: 18
+  completed_plans: 18
   percent: 100
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 ## Current Position
 
 Phase: 20 of 22 (Command Palette + Recent Items)
-Plan: 5 of 5
+Plan: 6 of 6
 Status: Phase 20 Complete
-Last activity: 2026-03-16 — Phase 20 Plan 05 executed (Create issue action gap closure)
+Last activity: 2026-03-16 — Phase 20 Plan 06 executed (UAT gap closure: navigation search + recent item titles)
 
 Progress: [██████████] 100%
 
@@ -68,6 +68,7 @@ Progress: [██████████] 100%
 | Phase 20-command-palette-recent-items P02 | 4 | 2 tasks | 2 files |
 | Phase 20-command-palette-recent-items P04 | 4 | 2 tasks | 7 files |
 | Phase 20-command-palette-recent-items P05 | 2 | 2 tasks | 3 files |
+| Phase 20-command-palette-recent-items P06 | 2 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -110,6 +111,7 @@ Key v1.3 constraints from research:
 - [Phase 20-command-palette-recent-items]: handleIssueClick wraps setSelectedIssueKey + pushRecentItem for all issue-opening entry points
 - [Phase 20-command-palette-recent-items]: Notification popover controlled from AppLayout via open/onOpenChange for Cmd+Shift+N programmatic open
 - [Phase 20-command-palette-recent-items]: Create issue action placed first in Actions group order
+- [Phase 20-command-palette-recent-items]: Navigation and Actions groups rendered unconditionally outside isDefaultState ternary to fix cmdk unmount/remount race
 
 ### Pending Todos
 
@@ -123,6 +125,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-16T08:23:49.579Z
-Stopped at: Completed 20-05-PLAN.md
-Resume: Phase 20 complete. Run `/gsd:execute-phase 21` to begin Phase 21
+Last session: 2026-03-16T09:51:47.428Z
+Stopped at: Completed 20-06-PLAN.md
+Resume: Phase 20 gap closure complete. Run `/gsd:execute-phase 21` to begin Phase 21
