@@ -35,3 +35,11 @@ Resolved debug sessions. Used by `gsd-debugger` to surface known-pattern hypothe
 - **Fix:** Wrapped the 3 column headers in their own inner flex container so they distribute space identically to card rows. Positioned the refresh button absolutely so it overlays the right edge without affecting column width calculation.
 - **Files changed:** taskflow/src/routes/dashboard/SprintBoardTab.tsx
 ---
+
+## notification-bell-image-rerender -- Images in issue detail reload when opening notification popover
+- **Date:** 2026-03-17
+- **Error patterns:** images reload, re-render, notification popover, bell icon, AuthImage, WikiRenderer, markdownComponents, remount, blobUrl
+- **Root cause:** WikiRenderer recreates markdownComponents object (including img component function) on every render. When AppLayout re-renders due to notifPopoverOpen state change, the cascade reaches WikiRenderer via Outlet context. react-markdown sees a new function reference for img component, unmounts old AuthImage instances and mounts new ones, resetting blobUrl state and re-fetching images.
+- **Fix:** Wrapped WikiRenderer in React.memo and memoized markdownComponents with useMemo (stable img component function reference via useCallback for handleImageClick). Prevents react-markdown from remounting AuthImage on unrelated parent re-renders.
+- **Files changed:** taskflow/src/routes/dashboard/WikiRenderer.tsx
+---
