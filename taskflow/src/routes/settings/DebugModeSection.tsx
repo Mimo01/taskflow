@@ -1,40 +1,117 @@
 /**
- * DebugModeSection — Settings section for API call logging.
+ * DebugModeSection — Settings section for API call logging and debug actions.
  *
  * When enabled, every Jira and GitLab API call is captured with full
  * request/response detail. View logs at /debug-logs.
  * Logs are in-memory only — cleared on app restart.
  */
+import { useState } from 'react';
+import { Trash2, Check } from 'lucide-react';
 import { useSettingsStore } from '../../stores/settings.store';
+import { useNotificationsStore } from '../../stores/notifications.store';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogClose,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 export default function DebugModeSection() {
   const { debugMode, setDebugMode } = useSettingsStore();
+  const clearAll = useNotificationsStore((s) => s.clearAll);
+  const itemCount = useNotificationsStore((s) => s.items.length);
+  const [cleared, setCleared] = useState(false);
+
+  function handleClear() {
+    clearAll();
+    setCleared(true);
+    setTimeout(() => setCleared(false), 3000);
+  }
 
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h3 className="text-base font-semibold">Debug</h3>
-        <p className="text-sm text-muted-foreground">
-          Capture API call logs for troubleshooting. Logs are in-memory and cleared on restart.
-        </p>
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          Diagnostics
+        </h3>
       </div>
 
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-3">
-          <input
-            id="debug-mode"
-            type="checkbox"
-            checked={debugMode}
-            onChange={(e) => setDebugMode(e.target.checked)}
-            className="h-4 w-4 rounded border-input accent-primary"
-          />
-          <label htmlFor="debug-mode" className="text-sm font-medium cursor-pointer">
-            Enable API call logging
-          </label>
+      {/* API logging toggle — same layout as WorkflowSection toggles */}
+      <label className="flex items-center justify-between gap-4 cursor-pointer">
+        <div>
+          <p className="text-sm font-medium">API call logging</p>
+          <p className="text-xs text-muted-foreground">
+            Capture every Jira and GitLab request with full detail. View on the Debug Logs page.
+          </p>
         </div>
-        <p className="text-xs text-muted-foreground pl-7">
-          View captured logs on the Debug Logs page in the sidebar.
-        </p>
+        <input
+          type="checkbox"
+          aria-label="Enable API call logging"
+          checked={debugMode}
+          onChange={(e) => setDebugMode(e.target.checked)}
+          className="h-4 w-4 accent-primary shrink-0"
+        />
+      </label>
+
+      {/* Clear notifications — same row layout, button instead of checkbox */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium">Clear notification cache</p>
+          <p className="text-xs text-muted-foreground">
+            {cleared
+              ? 'Done — next poll will re-fetch the last 24 hours'
+              : `${itemCount} notification${itemCount !== 1 ? 's' : ''} cached. Clears all and resets the polling cursor.`}
+          </p>
+        </div>
+        {cleared ? (
+          <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 shrink-0">
+            <Check className="h-3.5 w-3.5" />
+            Cleared
+          </div>
+        ) : (
+          <Dialog>
+            <DialogTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={itemCount === 0}
+                  className="shrink-0"
+                />
+              }
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+              Clear
+            </DialogTrigger>
+            <DialogContent showCloseButton={false}>
+              <DialogHeader>
+                <DialogTitle>Clear all notifications?</DialogTitle>
+                <DialogDescription>
+                  This removes all {itemCount} cached notification{itemCount !== 1 ? 's' : ''} and
+                  resets the polling cursor. The next poll cycle will re-fetch the last 24 hours of
+                  activity.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <DialogClose render={<Button variant="outline" />}>
+                  Cancel
+                </DialogClose>
+                <DialogClose
+                  render={
+                    <Button variant="destructive" onClick={handleClear} />
+                  }
+                >
+                  Clear all
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </div>
   );
