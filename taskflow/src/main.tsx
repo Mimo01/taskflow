@@ -55,7 +55,7 @@ const queryClient = new QueryClient({
  */
 function useCustomFieldDiscovery() {
   const { jiraConnected, jiraBaseUrl } = useAuthStore();
-  const { setStoryPointsFieldKey, setEpicLinkFieldKey, setEpicNameFieldKey, setSprintFieldKey } = useSettingsStore();
+  const { setStoryPointsFieldKey, setEpicLinkFieldKey, setEpicNameFieldKey, setSprintFieldKey, setEpicColorFieldKey } = useSettingsStore();
 
   const query = useQuery({
     queryKey: ['jira-custom-fields', jiraBaseUrl],
@@ -74,8 +74,9 @@ function useCustomFieldDiscovery() {
       setEpicLinkFieldKey(query.data.epicLinkFieldKey);
       setEpicNameFieldKey(query.data.epicNameFieldKey);
       setSprintFieldKey(query.data.sprintFieldKey);
+      setEpicColorFieldKey(query.data.epicColorFieldKey);
     }
-  }, [query.data, setStoryPointsFieldKey, setEpicLinkFieldKey, setEpicNameFieldKey, setSprintFieldKey]);
+  }, [query.data, setStoryPointsFieldKey, setEpicLinkFieldKey, setEpicNameFieldKey, setSprintFieldKey, setEpicColorFieldKey]);
 }
 
 /**
