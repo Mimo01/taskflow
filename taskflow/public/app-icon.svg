@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <!-- macOS squircle: 824×824 centered (100px gutter), rx=185.4 -->
+    <clipPath id="sq">
+      <rect x="100" y="100" width="824" height="824" rx="185" ry="185"/>
+    </clipPath>
+    <filter id="gC" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#0ea5e9" flood-opacity="0.55"/>
+    </filter>
+    <filter id="gO" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#f97316" flood-opacity="0.55"/>
+    </filter>
+    <filter id="gW" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="0" stdDeviation="7" flood-color="#94a3b8" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <g clip-path="url(#sq)">
+    <!-- Background fills the 824×824 squircle -->
+    <rect x="100" y="100" width="824" height="824" fill="#ffffff"/>
+    <!-- Outer cyan square +15°, 560px centered on 512,512 -->
+    <rect x="216" y="216" width="592" height="592" rx="80" fill="none" stroke="#0ea5e9" stroke-width="22" transform="rotate(15 512 512)" filter="url(#gC)"/>
+    <!-- Outer orange square -15°, 560px centered on 512,512 -->
+    <rect x="216" y="216" width="592" height="592" rx="80" fill="none" stroke="#f97316" stroke-width="22" transform="rotate(-15 512 512)" filter="url(#gO)"/>
+    <!-- Inner neutral square 0°, 280px centered on 512,512 -->
+    <rect x="372" y="372" width="280" height="280" rx="44" fill="none" stroke="#94a3b8" stroke-width="13" filter="url(#gW)"/>
+  </g>
+</svg>
