@@ -41,7 +41,6 @@ import { readSecret } from '@/services/stronghold'
 import DraggableCard from './DraggableCard'
 import TaskCard from './TaskCard'
 import { StoryHeaderRow } from './StoryHeaderRow'
-import QuickCreateInput from './QuickCreateInput'
 
 /** The three fixed columns — all Jira statuses map into one of these via statusCategory. */
 const CATEGORY_COLUMNS = [
@@ -468,18 +467,6 @@ export default function SprintBoardTab() {
                                   )}
                                 </React.Fragment>
                               ))}
-                              {jiraToken && activeJiraProject && (
-                                <QuickCreateInput
-                                  statusId={workflowStatuses?.find(s => s.statusCategory.key === col.key)?.id ?? col.key}
-                                  statusName={col.label}
-                                  projectKey={activeJiraProject}
-                                  jiraBaseUrl={jiraBaseUrl!}
-                                  jiraToken={jiraToken}
-                                  onCreated={() => {
-                                    queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] })
-                                  }}
-                                />
-                              )}
                             </DroppableCell>
                           )
                         })}

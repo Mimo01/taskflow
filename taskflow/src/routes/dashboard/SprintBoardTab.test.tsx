@@ -30,7 +30,6 @@ vi.mock('@/services/jira', () => ({
   fetchProjectStatuses: vi.fn().mockResolvedValue([]),
   fetchTransitions: vi.fn().mockResolvedValue([]),
   postTransition: vi.fn().mockResolvedValue(undefined),
-  createIssue: vi.fn().mockResolvedValue({ key: 'PROJ-99' }),
 }));
 
 // Mock auth store
@@ -647,72 +646,3 @@ describe('BOARD-05: clicking a card opens issue detail', () => {
   });
 });
 
-describe('BOARD-04 QuickCreateInput wiring', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('renders a QuickCreateInput in each column when data is loaded', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
-    // Provide one story so the board renders a swimlane with 3 DroppableCells
-    vi.mocked(fetchSprintIssues).mockResolvedValueOnce([
-      makeIssue('PROJ-1', 'Story 1', false, undefined, 'To Do'),
-    ]);
-
-    const { default: SprintBoardTab } = await import('./SprintBoardTab');
-    render(
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-        <SprintBoardTab />
-      </QueryClientProvider>
-    );
-    // Expect 3 "+ Add" buttons — one per column (new/indeterminate/done)
-    await waitFor(() => expect(screen.getAllByText(/\+ Add/i)).toHaveLength(3));
-  });
-
-  it('passes numeric Jira status ID (not category key) to QuickCreateInput so transition lookup succeeds', async () => {
-    // Regression test for BOARD-04 statusId bug:
-    // SprintBoardTab was passing col.key ('new'/'indeterminate'/'done') as statusId.
-    // QuickCreateInput compares tr.to.id === statusId; numeric IDs never matched category keys.
-    // Fix: pass workflowStatuses.find(s => s.statusCategory.key === col.key)?.id instead.
-    const { fetchSprintIssues, fetchProjectStatuses, fetchTransitions, postTransition, createIssue } =
-      await import('@/services/jira');
-
-    vi.mocked(fetchSprintIssues).mockResolvedValueOnce([
-      makeIssue('PROJ-1', 'Story 1', false, undefined, 'In Progress', '10001'),
-    ]);
-    // workflowStatuses returns numeric IDs for each category
-    vi.mocked(fetchProjectStatuses).mockResolvedValue([
-      { id: '10000', name: 'To Do', statusCategory: { key: 'new' } },
-      { id: '10001', name: 'In Progress', statusCategory: { key: 'indeterminate' } },
-      { id: '10002', name: 'Done', statusCategory: { key: 'done' } },
-    ]);
-    vi.mocked(createIssue).mockResolvedValue({ key: 'PROJ-99' });
-    // fetchTransitions returns a transition with numeric to.id matching 'new' category status
-    vi.mocked(fetchTransitions).mockResolvedValue([
-      { id: 'trans-1', name: 'To Do', to: { id: '10000', name: 'To Do' } } as ReturnType<typeof fetchTransitions> extends Promise<infer T> ? T[number] : never,
-    ]);
-
-    const { default: SprintBoardTab } = await import('./SprintBoardTab');
-    render(
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-        <SprintBoardTab />
-      </QueryClientProvider>
-    );
-
-    // Wait for "+ Add" buttons and click the first one (To Do column)
-    const addButtons = await waitFor(() => {
-      const btns = screen.getAllByText(/\+ Add/i);
-      expect(btns.length).toBeGreaterThanOrEqual(1);
-      return btns;
-    });
-    fireEvent.click(addButtons[0]);
-
-    // Type a summary and submit
-    const input = screen.getByRole('textbox');
-    fireEvent.change(input, { target: { value: 'New issue' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-
-    // postTransition must be called — confirms the numeric statusId '10000' matched tr.to.id '10000'
-    await waitFor(() => expect(postTransition).toHaveBeenCalled());
-  });
-});
