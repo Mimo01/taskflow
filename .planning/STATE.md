@@ -158,9 +158,10 @@ None.
 | 260316-r0x | Redo issue detail as full page with back/breadcrumb nav | 2026-03-16 | 6333799 | Verified | [260316-r0x-redo-issue-detail-as-full-page-with-back](./quick/260316-r0x-redo-issue-detail-as-full-page-with-back/) |
 | 260316-r34 | Better clarity in notifications - show context like status changes from/to | 2026-03-16 | b36eb0f | Verified | [260316-r34-better-clarity-in-notifications-show-con](./quick/260316-r34-better-clarity-in-notifications-show-con/) |
 | 260316-rlb | Notification polish: remove priority/labels, Jira→issue detail, styled changes, hover contrast | 2026-03-16 | e79a9d5 | | [260316-rlb-remove-priority-and-labels-from-notifica](./quick/260316-rlb-remove-priority-and-labels-from-notifica/) |
+| 260316-s5u | Add comment mentions and expand notifications (6 new types, per-type toggles, color badges) | 2026-03-16 | c66ce09 | | [260316-s5u-add-comment-mentions-and-expand-notifica](./quick/260316-s5u-add-comment-mentions-and-expand-notifica/) |
 
 ## Session Continuity
 
-Last session: 2026-03-16T18:37:00Z
-Stopped at: Completed quick task 260316-r0x
+Last session: 2026-03-16T19:36:00Z
+Stopped at: Completed quick task 260316-s5u
 Resume: Milestone v1.3 (UX & Branding) is fully executed. All 5 phases (18-22), 29 plans complete. Ready for /gsd:audit-milestone or /gsd:complete-milestone.
