@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-16 - Completed quick task 260316-wbp: Comment section redesign with sticky composer, edit/delete (Verified)
+Last activity: 2026-03-16 - Completed quick task 260316-wfe: Unify filters in backlog and sprint view with saveable quickfilters (Verified)
 
 Progress: [██████████] 100%
 
@@ -170,7 +170,7 @@ None.
 | 260316-vhc | Make epic and backlog rows whole-row clickable | 2026-03-16 | c70bb2d | | [260316-vhc-on-epics-page-make-the-whole-row-clickab](./quick/260316-vhc-on-epics-page-make-the-whole-row-clickab/) |
 | 260316-vqx | Sticky active sprint header in backlog view | 2026-03-16 | 0dd4da6 | | [260316-vqx-in-backlog-view-make-the-current-sprint-](./quick/260316-vqx-in-backlog-view-make-the-current-sprint-/) |
 | 260316-wbp | Redesign comment section: sticky composer, card layout, edit/delete | 2026-03-16 | 5e2df26 | Verified | [260316-wbp-make-comment-section-on-issue-detail-mor](./quick/260316-wbp-make-comment-section-on-issue-detail-mor/) |
-| 260316-wfe | Unify filters in backlog and sprint view with shared state and quickfilters | 2026-03-16 | 67eb23b | | [260316-wfe-unify-filters-in-backlog-and-sprint-view](./quick/260316-wfe-unify-filters-in-backlog-and-sprint-view/) |
+| 260316-wfe | Unify filters in backlog and sprint view with shared state and quickfilters | 2026-03-16 | 67eb23b | Verified | [260316-wfe-unify-filters-in-backlog-and-sprint-view](./quick/260316-wfe-unify-filters-in-backlog-and-sprint-view/) |
 
 ## Session Continuity
 
