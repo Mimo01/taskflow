@@ -84,7 +84,7 @@ async function fetchNewJiraComments(
       ` AND (assignee = "${username}" OR reporter = "${username}" OR watcher = "${username}")` +
       ` AND updatedDate >= "${sinceJql}"` +
       ` ORDER BY updated DESC`;
-    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee,reporter,updated,priority,labels&maxResults=20`;
+    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee,reporter,updated,priority,labels&expand=changelog&maxResults=20`;
 
     let response: Response;
     try {
@@ -110,21 +110,57 @@ async function fetchNewJiraComments(
           priority?: { name: string } | null;
           labels?: string[];
         };
+        changelog?: {
+          histories: Array<{
+            created: string;
+            author: { displayName: string };
+            items: Array<{
+              field: string;
+              fromString: string | null;
+              toString: string | null;
+            }>;
+          }>;
+        };
       };
 
+      // Extract changelog entries within the polling window
+      const changeLines: string[] = [];
+      let changeAuthor: string | undefined;
+      const histories = issue.changelog?.histories ?? [];
+      for (const history of histories) {
+        if (history.created <= since) continue;
+        for (const item of history.items) {
+          if (item.field === 'status') {
+            changeLines.push(`Status: ${item.fromString ?? '(none)'} \u2192 ${item.toString ?? '(none)'}`);
+            changeAuthor = changeAuthor ?? history.author.displayName;
+          } else if (item.field === 'assignee') {
+            changeLines.push(`Assignee: ${item.fromString || '(none)'} \u2192 ${item.toString || '(none)'}`);
+            changeAuthor = changeAuthor ?? history.author.displayName;
+          }
+        }
+      }
+
       const statusName = issue.fields.status?.name ?? 'Unknown';
-      const author =
+      const fallbackAuthor =
         issue.fields.assignee?.displayName ??
         issue.fields.reporter?.displayName ??
         'Unknown';
+
+      const bodyPreview = changeLines.length > 0
+        ? changeLines.join(' | ').substring(0, 120)
+        : `Status: ${statusName}`;
+      const fullBody = changeLines.length > 0
+        ? changeLines.join('\n')
+        : `Status: ${statusName}`;
+      const author = changeAuthor ?? fallbackAuthor;
 
       results.push({
         id: `jira-issue-${issue.key}-${issue.fields.updated}`,
         source: 'jira',
         entityTitle: `${issue.key}: ${issue.fields.summary}`,
         author,
-        bodyPreview: `Status: ${statusName}`,
-        fullBody: `Status: ${statusName}`,
+        bodyPreview,
+        fullBody,
         createdAt: issue.fields.updated,
         url: `${base}/browse/${issue.key}`,
         notificationType: 'issue-update',
@@ -250,11 +286,46 @@ async function fetchNewGitlabNotes(
     const notes = await response.json();
 
     for (const note of notes) {
-      if (note.system === true) continue;              // skip system notes
       if (note.author?.id === currentUserId) continue; // skip own notes
       if (note.created_at <= since) break;             // notes sorted desc — stop at cursor
 
       const body: string = note.body ?? '';
+
+      if (note.system === true) {
+        // Parse actionable system notes instead of skipping all
+        let parsedBody: string | null = null;
+
+        if (/^(closed|merged|reopened)/i.test(body)) {
+          // State change — infer previous state from action
+          const action = body.match(/^(\w+)/i)?.[1]?.toLowerCase() ?? '';
+          let fromState = 'opened';
+          if (action === 'reopened') fromState = 'closed';
+          parsedBody = `State: ${fromState} \u2192 ${action}`;
+        } else if (/^requested review from/i.test(body) || /^removed review request/i.test(body)) {
+          parsedBody = body;
+        } else if (/^(added|removed) ~"/i.test(body)) {
+          parsedBody = body;
+        }
+
+        if (!parsedBody) continue; // non-actionable system note — skip
+
+        results.push({
+          id: `gitlab-system-${note.id}`,
+          source: 'gitlab',
+          entityTitle: mr.title,
+          author: note.author?.name ?? 'Unknown',
+          bodyPreview: parsedBody.substring(0, 120),
+          fullBody: parsedBody,
+          createdAt: note.created_at,
+          url: mr.web_url,
+          notificationType: 'mr-note',
+          priority: undefined,
+          labels: undefined,
+          entityState: mr.state,
+        });
+        continue;
+      }
+
       results.push({
         id: `gitlab-note-${note.id}`,
         source: 'gitlab',
