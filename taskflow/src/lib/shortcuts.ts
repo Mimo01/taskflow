@@ -45,4 +45,28 @@ export const SHORTCUTS: ShortcutEntry[] = [
     description: 'Dismiss shortcuts panel',
     category: 'General',
   },
+  {
+    id: 'open-palette',
+    defaultKey: '⌘K',
+    description: 'Open command palette',
+    category: 'General',
+  },
+  {
+    id: 'nav-sprint',
+    defaultKey: '⌘⇧S',
+    description: 'Go to Sprint Board',
+    category: 'Navigation',
+  },
+  {
+    id: 'nav-backlog',
+    defaultKey: '⌘⇧B',
+    description: 'Go to Backlog',
+    category: 'Navigation',
+  },
+  {
+    id: 'nav-notifications',
+    defaultKey: '⌘⇧N',
+    description: 'Open Notifications',
+    category: 'Navigation',
+  },
 ];
