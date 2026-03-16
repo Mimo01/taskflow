@@ -3,9 +3,10 @@ import { WikiRenderer } from './WikiRenderer'
 import { CommentComposer } from './CommentComposer'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ExternalLink, Pencil, Plus } from 'lucide-react'
+import { ExternalLink, Pencil, Pin, Plus } from 'lucide-react'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { useSettingsStore } from '@/stores/settings.store'
+import { cn } from '@/lib/utils'
 import type { EditInitialValues } from './CreateEditIssueModal'
 
 interface IssueDetailContentProps {
@@ -19,6 +20,8 @@ interface IssueDetailContentProps {
   onEdit?: (initialValues: EditInitialValues) => void
   onAddSubtask?: (parentKey: string) => void
   epicStories?: JiraIssue[]
+  isPinned?: boolean
+  onTogglePin?: (key: string) => void
 }
 
 function relativeTime(iso: string): string {
@@ -31,7 +34,7 @@ function relativeTime(iso: string): string {
   return rtf.format(-Math.floor(diffSecs / 86400), 'day')
 }
 
-export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, onEdit, onAddSubtask, epicStories }: IssueDetailContentProps) {
+export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, onEdit, onAddSubtask, epicStories, isPinned, onTogglePin }: IssueDetailContentProps) {
   const { summary, description, subtasks } = issue.fields
   const comments = issue.fields.comment?.comments ?? []
   const { storyPointsFieldKey, epicLinkFieldKey } = useSettingsStore()
@@ -124,8 +127,19 @@ export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, 
         </section>
       )}
 
-      {/* Open in Jira + Edit */}
+      {/* Pin + Edit + Open in Jira */}
       <div className="flex justify-end gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onTogglePin?.(issueKey)}
+          aria-label={isPinned ? `Unpin issue ${issueKey}` : `Pin issue ${issueKey}`}
+          title={isPinned ? 'Unpin from tabs' : 'Pin to tabs'}
+          className="gap-1.5 text-xs"
+        >
+          <Pin className={cn('size-3.5', isPinned && 'fill-current text-primary')} />
+          {isPinned ? 'Unpin' : 'Pin'}
+        </Button>
         <Button
           variant="outline"
           size="sm"
