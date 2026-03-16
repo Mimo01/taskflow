@@ -6,6 +6,7 @@ import ReactDOM from 'react-dom/client';
 import { createHashRouter, RouterProvider, Outlet, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
 import { listen } from '@tauri-apps/api/event';
+import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { loadTheme, applyDensity } from './services/theme';
 import { useSettingsStore } from './stores/settings.store';
@@ -120,18 +121,24 @@ function AppLayout() {
   useHotkeys('mod+comma', () => navigate('/settings'));
 
   // Listen for all native menu bar item clicks and route to existing handlers
+  const debugMode = useSettingsStore((s) => s.debugMode);
   useEffect(() => {
     const listeners = [
       listen('menu-keyboard-shortcuts', () => setShortcutsOpen(true)),
       listen('menu-command-palette', () => setPaletteOpen(true)),
-      listen('menu-new-issue', () => handleOpenCreate()),
       listen('menu-nav-sprint', () => navigate('/sprint-board')),
       listen('menu-nav-backlog', () => navigate('/backlog')),
       listen('menu-nav-notifications', () => setNotifPopoverOpen(true)),
       listen('menu-nav-settings', () => navigate('/settings')),
+      listen('menu-debug-logs', () => navigate('/debug-logs')),
     ];
     return () => { listeners.forEach((p) => p.then((fn) => fn())); };
   }, []);
+
+  // Show/hide Debug menu in native toolbar when debugMode changes
+  useEffect(() => {
+    invoke('toggle_debug_menu', { enabled: debugMode }).catch(() => {});
+  }, [debugMode]);
 
   // Track recent items whenever an issue is opened from any entry point
   const handleIssueClick = (issueKey: string) => {
