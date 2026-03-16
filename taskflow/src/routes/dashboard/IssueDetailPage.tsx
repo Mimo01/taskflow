@@ -91,7 +91,17 @@ export default function IssueDetailPage() {
   }, [issueKey, issue?.fields.summary])
 
   const handleBack = () => {
-    navigate(-1)
+    if (trail.length <= 1) {
+      // No trail or just the origin page — go back in browser history
+      navigate(-1)
+      return
+    }
+    const prev = trail[trail.length - 1]
+    if (prev.path.startsWith('/issue/')) {
+      navigate(prev.path, { state: { trail: trail.slice(0, -1) } })
+    } else {
+      navigate(prev.path)
+    }
   }
 
   if (!issueKey) return null
@@ -108,14 +118,22 @@ export default function IssueDetailPage() {
         >
           <ArrowLeft className="size-4" />
         </button>
-        {trail.length > 0 ? (
+        {trail.length > 1 ? (
           <>
             {trail.map((entry, i) => (
               <span key={`${i}-${entry.path}`} className="flex items-center gap-2">
                 {i > 0 && <span className="text-muted-foreground">/</span>}
                 <button
                   type="button"
-                  onClick={() => navigate(-(trail.length - i))}
+                  onClick={() => {
+                    if (entry.path.startsWith('/issue/')) {
+                      // Navigate to this issue with trail truncated to entries before it
+                      navigate(entry.path, { state: { trail: trail.slice(0, i) } })
+                    } else {
+                      // Origin list page — navigate directly
+                      navigate(entry.path)
+                    }
+                  }}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {entry.label}
