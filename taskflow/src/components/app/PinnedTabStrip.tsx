@@ -289,10 +289,10 @@ export default function PinnedTabStrip({
                     e.stopPropagation();
                     onTabClose(key);
                   }}
-                  className="absolute -top-1 -right-1 p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent hover:text-destructive"
+                  className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-muted-foreground/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
                   aria-label={`Unpin ${key}`}
                 >
-                  <X className="w-3 h-3 text-muted-foreground hover:text-destructive" />
+                  <X className="w-2 h-2 text-background" />
                 </button>
               </div>
               {showPlaceholderAfter && (
