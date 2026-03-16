@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: UX & Branding
 status: executing
-stopped_at: Completed 20-02-PLAN.md
-last_updated: "2026-03-16T07:56:37.182Z"
-last_activity: 2026-03-16 — Phase 20 Plan 03 executed (RecentItemsPopover component)
+stopped_at: Completed 20-04-PLAN.md
+last_updated: "2026-03-16T08:02:42.746Z"
+last_activity: 2026-03-16 — Phase 20 Plan 04 executed (integration wiring)
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 16
-  completed_plans: 15
-  percent: 88
+  completed_plans: 16
+  percent: 100
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Phase 20 — Command Palette + Recent Items
+**Current focus:** Phase 20 complete — ready for Phase 21
 
 ## Current Position
 
 Phase: 20 of 22 (Command Palette + Recent Items)
-Plan: 3 of 4
-Status: Executing
-Last activity: 2026-03-16 — Phase 20 Plan 03 executed (RecentItemsPopover component)
+Plan: 4 of 4
+Status: Phase 20 Complete
+Last activity: 2026-03-16 — Phase 20 Plan 04 executed (integration wiring)
 
-Progress: [█████████░] 88%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -66,6 +66,7 @@ Progress: [█████████░] 88%
 | Phase 20-command-palette-recent-items P01 | 3 | 2 tasks | 8 files |
 | Phase 20-command-palette-recent-items P03 | 2 | 2 tasks | 2 files |
 | Phase 20-command-palette-recent-items P02 | 4 | 2 tasks | 2 files |
+| Phase 20-command-palette-recent-items P04 | 4 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,8 @@ Key v1.3 constraints from research:
 - [Phase 20-command-palette-recent-items]: RecentItemRow is a private sub-component within RecentItemsPopover.tsx
 - [Phase 20-command-palette-recent-items]: Custom backdrop overlay instead of CommandDialog to avoid Radix Dialog conflict with @base-ui/react
 - [Phase 20-command-palette-recent-items]: cmdk tests require ResizeObserver and scrollIntoView polyfills in jsdom
+- [Phase 20-command-palette-recent-items]: handleIssueClick wraps setSelectedIssueKey + pushRecentItem for all issue-opening entry points
+- [Phase 20-command-palette-recent-items]: Notification popover controlled from AppLayout via open/onOpenChange for Cmd+Shift+N programmatic open
 
 ### Pending Todos
 
@@ -118,6 +121,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-16T07:56:37.176Z
-Stopped at: Completed 20-02-PLAN.md
-Resume: Run `/gsd:execute-phase 20` to continue Phase 20 execution (Plan 04 next)
+Last session: 2026-03-16T08:02:42.742Z
+Stopped at: Completed 20-04-PLAN.md
+Resume: Phase 20 complete. Run `/gsd:execute-phase 21` to begin Phase 21
