@@ -1,6 +1,22 @@
 import { render, screen } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { WikiRenderer } from './WikiRenderer'
+
+vi.mock('@/services/stronghold', () => ({
+  readSecret: vi.fn().mockResolvedValue('test-token'),
+}))
+
+vi.mock('@tauri-apps/plugin-http', () => ({
+  fetch: vi.fn().mockResolvedValue({ ok: false }),
+}))
+
+vi.mock('@/stores/auth.store', () => ({
+  useAuthStore: Object.assign(
+    (selector: (s: { jiraBaseUrl: string | null }) => unknown) =>
+      selector({ jiraBaseUrl: null }),
+    { getState: () => ({ jiraBaseUrl: null }) },
+  ),
+}))
 
 describe('WikiRenderer', () => {
   describe('ISSUE-02: wiki markup rendering', () => {

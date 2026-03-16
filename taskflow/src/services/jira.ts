@@ -605,7 +605,7 @@ export async function postComment(
 
 export interface JiraComment {
   id: string;
-  author: { displayName: string };
+  author: { displayName: string; name?: string };
   body: string;
   created: string; // ISO 8601
   updated: string;
@@ -828,6 +828,14 @@ export interface JiraIssueLink {
   outwardIssue?: { id: string; key: string; fields: { summary: string; status: { name: string } } }
 }
 
+export interface JiraAttachment {
+  id: string
+  filename: string
+  content: string
+  thumbnail?: string
+  mimeType: string
+}
+
 export interface JiraIssueDetail {
   id: string
   key: string
@@ -838,10 +846,11 @@ export interface JiraIssueDetail {
     issuetype: { name: string; subtask: boolean }
     priority: { name: string; iconUrl?: string } | null
     assignee: { displayName: string; name: string; avatarUrls: { '48x48': string } } | null
-    reporter: { displayName: string; avatarUrls: { '48x48': string } } | null
+    reporter: { displayName: string; name?: string; avatarUrls: { '48x48': string } } | null
     subtasks: Array<{ id: string; key: string; fields: { summary: string; status: { name: string } } }>
     issuelinks: JiraIssueLink[]
     comment: { comments: JiraComment[] }
+    attachment?: JiraAttachment[]
     labels: string[]
     fixVersions: Array<{ id: string; name: string }>
     parent?: { id: string; key: string; fields: { summary: string } }
@@ -895,7 +904,7 @@ export async function fetchIssueDetail(
   const base = baseUrl.replace(/\/$/, '')
   const fields = [
     'summary', 'status', 'assignee', 'reporter', 'priority', 'issuetype',
-    'description', 'comment', 'issuelinks', 'subtasks', 'labels',
+    'description', 'comment', 'attachment', 'issuelinks', 'subtasks', 'labels',
     'fixVersions', 'parent', 'timetracking', 'created', 'updated', 'duedate',
     customFields.epicLinkFieldKey,
     customFields.epicNameFieldKey,

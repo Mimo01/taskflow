@@ -6,10 +6,21 @@ import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import { cn } from '@/lib/utils'
 import { ImageLightbox } from './ImageLightbox'
+import { AuthImage } from './AuthImage'
+
+/** Map from filename → full URL for resolving Jira !filename.png! references */
+export type AttachmentMap = Record<string, string>
+
+/** Map from username/accountId → display name for resolving [~user] mentions */
+export type UserMap = Record<string, string>
 
 interface WikiRendererProps {
   wikiText: string | null | undefined
   className?: string
+  /** Attachment filename→URL map for resolving inline images */
+  attachments?: AttachmentMap
+  /** Username/accountId→displayName map for resolving mentions */
+  users?: UserMap
 }
 
 /**
@@ -17,14 +28,39 @@ interface WikiRendererProps {
  * - User mentions: [~username] and [~accountId:xxx]
  * - Info/warning/note panels
  * - Panel blocks with optional title
+ * - Inline images: !filename.png! → resolved via attachment map
  */
-export function preprocessJiraMarkup(wiki: string): string {
+export function preprocessJiraMarkup(wiki: string, attachments?: AttachmentMap, users?: UserMap): string {
   let result = wiki
 
-  // Mentions: [~accountId:XXX] -> <mention>XXX</mention>
-  result = result.replace(/\[~accountId:([^\]]+)\]/g, '<mention>$1</mention>')
-  // Mentions: [~username] -> <mention>username</mention>
-  result = result.replace(/\[~([^\]]+)\]/g, '<mention>$1</mention>')
+  // Images: !filename.png|options! or !filename.png! → resolve via attachment map
+  // Must run BEFORE jira2md which also handles !...! syntax
+  if (attachments && Object.keys(attachments).length > 0) {
+    result = result.replace(/!([^!\n]+?)(?:\|[^!]*)?\!/g, (_match, ref: string) => {
+      // If it's already a full URL, keep it
+      if (ref.startsWith('http://') || ref.startsWith('https://')) {
+        return `!${ref}!`
+      }
+      // Look up in attachment map
+      const url = attachments[ref]
+      if (url) {
+        return `!${url}!`
+      }
+      // Not found — leave as-is for jira2md
+      return `!${ref}!`
+    })
+  }
+
+  // Mentions: [~accountId:XXX] -> <mention data-id="XXX">DisplayName</mention>
+  result = result.replace(/\[~accountId:([^\]]+)\]/g, (_match, id: string) => {
+    const name = users?.[id] ?? id
+    return `<mention data-id="${id}">${name}</mention>`
+  })
+  // Mentions: [~username] -> <mention data-id="username">DisplayName</mention>
+  result = result.replace(/\[~([^\]]+)\]/g, (_match, username: string) => {
+    const name = users?.[username] ?? username
+    return `<mention data-id="${username}">${name}</mention>`
+  })
 
   // Panels with title: {panel:title=TITLE}...{panel}
   result = result.replace(
@@ -65,22 +101,21 @@ const calloutStyles: Record<string, string> = {
   panel: 'border-l-4 border-border bg-muted/50 p-3 rounded-r-md my-2',
 }
 
-export function WikiRenderer({ wikiText, className }: WikiRendererProps) {
+export function WikiRenderer({ wikiText, className, attachments, users }: WikiRendererProps) {
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
 
-  const preprocessed = wikiText ? preprocessJiraMarkup(wikiText) : ''
+  const preprocessed = wikiText ? preprocessJiraMarkup(wikiText, attachments, users) : ''
   const markdown = preprocessed ? j2m.to_markdown(preprocessed) : ''
 
   // Components map includes 'mention' which is a custom HTML element not in
   // the standard Components type — use Record<string, unknown> intersection
   const markdownComponents: Record<string, unknown> = {
-    img: ({ src, alt, ...rest }: ComponentPropsWithoutRef<'img'>) => (
-      <img
-        src={src}
+    img: ({ src, alt }: ComponentPropsWithoutRef<'img'>) => (
+      <AuthImage
+        src={src ?? ''}
         alt={alt ?? ''}
         className="max-w-full rounded-md cursor-pointer"
         onClick={() => src && setLightboxSrc(src)}
-        {...rest}
       />
     ),
     div: ({ node, children, ...rest }: ComponentPropsWithoutRef<'div'> & { node?: unknown }) => {

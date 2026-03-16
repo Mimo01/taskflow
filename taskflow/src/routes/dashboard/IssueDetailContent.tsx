@@ -1,5 +1,7 @@
+import { useMemo } from 'react'
 import type { JiraIssueDetail, JiraIssue } from '@/services/jira'
 import { WikiRenderer } from './WikiRenderer'
+import type { AttachmentMap, UserMap } from './WikiRenderer'
 import { CommentComposer } from './CommentComposer'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -41,6 +43,37 @@ export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, 
   const isEpic = issue.fields.issuetype.name === 'Epic'
   const isSubtask = issue.fields.issuetype.subtask
 
+  // Build attachment filename → URL map for resolving !image.png! references
+  const attachmentMap = useMemo<AttachmentMap>(() => {
+    const map: AttachmentMap = {}
+    for (const att of issue.fields.attachment ?? []) {
+      map[att.filename] = att.content
+    }
+    return map
+  }, [issue.fields.attachment])
+
+  // Build user lookup map from available issue data (assignee, reporter, comment authors)
+  const userMap = useMemo<UserMap>(() => {
+    const map: UserMap = {}
+    const { assignee, reporter } = issue.fields
+    if (assignee) {
+      map[assignee.name] = assignee.displayName
+    }
+    if (reporter) {
+      if (reporter.name) map[reporter.name] = reporter.displayName
+      map[reporter.displayName] = reporter.displayName
+    }
+    for (const c of comments) {
+      if (c.author?.displayName) {
+        // Comment author may have name field in some Jira versions
+        const authorObj = c.author as { displayName: string; name?: string }
+        if (authorObj.name) map[authorObj.name] = authorObj.displayName
+        map[authorObj.displayName] = authorObj.displayName
+      }
+    }
+    return map
+  }, [issue.fields.assignee, issue.fields.reporter, comments])
+
   return (
     <div className="space-y-6">
       {/* Title */}
@@ -53,7 +86,7 @@ export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, 
       <section>
         <h3 className="text-sm font-medium text-muted-foreground mb-2">Description</h3>
         {description ? (
-          <WikiRenderer wikiText={description} />
+          <WikiRenderer wikiText={description} attachments={attachmentMap} users={userMap} />
         ) : (
           <p className="text-sm text-muted-foreground italic">No description</p>
         )}
@@ -189,7 +222,7 @@ export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, 
                   <span>•</span>
                   <span>{relativeTime(comment.created)}</span>
                 </div>
-                <WikiRenderer wikiText={comment.body} />
+                <WikiRenderer wikiText={comment.body} attachments={attachmentMap} users={userMap} />
               </div>
             ))
           )}
