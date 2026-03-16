@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-16 - Completed quick task 260316-s5u: Add comment mentions and expand notification types
+Last activity: 2026-03-16 - Completed quick task 260316-ssu: Remove Add buttons from Sprint Board columns
 
 Progress: [██████████] 100%
 
