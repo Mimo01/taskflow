@@ -8,6 +8,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { LazyStore } from '@tauri-apps/plugin-store';
 import type { Theme } from '../services/theme';
+import type { QuickFilter } from './filter.store';
 
 export type Density = 'compact' | 'default' | 'comfortable';
 
@@ -66,6 +67,10 @@ interface SettingsState {
   showSubtasksInMyTasks: boolean;
   /** User-customized key overrides. Map of shortcut id → key string. Default: {}. Future: editable via Settings > Keyboard. */
   keyboardOverrides: Record<string, string>;
+  /** Saved quickfilter presets. Default: []. */
+  quickFilters: QuickFilter[];
+  addQuickFilter: (qf: QuickFilter) => void;
+  removeQuickFilter: (id: string) => void;
   /** Per-type notification toggles. All default to true. */
   notifCommentMentionEnabled: boolean;
   notifIssueUpdateEnabled: boolean;
@@ -126,6 +131,9 @@ export const useSettingsStore = create<SettingsState>()(
       sprintCollapseByDefault: false,
       showSubtasksInMyTasks: true,
       keyboardOverrides: {},
+      quickFilters: [],
+      addQuickFilter: (qf) => set((state) => ({ quickFilters: [...state.quickFilters, qf] })),
+      removeQuickFilter: (id) => set((state) => ({ quickFilters: state.quickFilters.filter((q) => q.id !== id) })),
       notifCommentMentionEnabled: true,
       notifIssueUpdateEnabled: true,
       notifMrNoteEnabled: true,
@@ -166,7 +174,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: tauriStorage,
-      version: 4,
+      version: 5,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -190,6 +198,9 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 4) {
           if (s.epicColorFieldKey === undefined) s.epicColorFieldKey = 'customfield_10013';
+        }
+        if (version < 5) {
+          if (s.quickFilters === undefined) s.quickFilters = [];
         }
         return s as unknown as SettingsState;
       },
