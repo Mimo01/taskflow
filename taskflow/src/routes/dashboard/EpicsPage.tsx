@@ -42,7 +42,7 @@ function EpicRow({ epic, onEpicClick }: EpicRowProps) {
   const colorResult = epicColorToTailwind(epic.color ?? null, epic.key)
 
   return (
-    <tr className="border-b border-border hover:bg-muted/30 transition-colors">
+    <tr className="border-b border-border hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => onEpicClick?.(epic.key)}>
       {/* Color bar — prominent left border */}
       <td className="w-1 p-0">
         <div
@@ -53,14 +53,12 @@ function EpicRow({ epic, onEpicClick }: EpicRowProps) {
 
       {/* Epic name as colored badge */}
       <td className="px-4 py-3">
-        <button
-          type="button"
-          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-medium text-left hover:opacity-80 transition-opacity ${colorResult.className}`}
+        <span
+          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-medium text-left ${colorResult.className}`}
           style={colorResult.style}
-          onClick={() => onEpicClick?.(epic.key)}
         >
           {epic.epicName}
-        </button>
+        </span>
       </td>
 
       {/* Epic key */}
