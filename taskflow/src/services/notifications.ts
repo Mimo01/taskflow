@@ -25,6 +25,7 @@ export interface NotificationItem {
   source: 'jira' | 'gitlab';
   entityTitle: string;   // "PROJ-123: Fix login bug"
   author: string;        // "J.Smith"
+  authorAvatarUrl?: string; // avatar image URL from Jira/GitLab API
   bodyPreview: string;   // first ~80 chars of body
   fullBody: string;
   createdAt: string;     // ISO 8601
@@ -110,7 +111,7 @@ async function fetchNewJiraComments(
         changelog?: {
           histories: Array<{
             created: string;
-            author: { displayName: string };
+            author: { displayName: string; avatarUrls?: { '48x48'?: string } };
             items: Array<{
               field: string;
               fromString: string | null;
@@ -123,6 +124,7 @@ async function fetchNewJiraComments(
       // Extract changelog entries within the polling window
       const changeLines: string[] = [];
       let changeAuthor: string | undefined;
+      let changeAuthorAvatar: string | undefined;
       const histories = issue.changelog?.histories ?? [];
       for (const history of histories) {
         if (history.created <= since) continue;
@@ -130,9 +132,11 @@ async function fetchNewJiraComments(
           if (item.field === 'status') {
             changeLines.push(`Status: ${item.fromString ?? '(none)'} \u2192 ${item.toString ?? '(none)'}`);
             changeAuthor = changeAuthor ?? history.author.displayName;
+            changeAuthorAvatar = changeAuthorAvatar ?? history.author.avatarUrls?.['48x48'];
           } else if (item.field === 'assignee') {
             changeLines.push(`Assignee: ${item.fromString || '(none)'} \u2192 ${item.toString || '(none)'}`);
             changeAuthor = changeAuthor ?? history.author.displayName;
+            changeAuthorAvatar = changeAuthorAvatar ?? history.author.avatarUrls?.['48x48'];
 
             // Emit separate issue-assignment notification when newly assigned to current user
             if (
@@ -145,6 +149,7 @@ async function fetchNewJiraComments(
                 source: 'jira',
                 entityTitle: `${issue.key}: ${issue.fields.summary}`,
                 author: history.author.displayName,
+                authorAvatarUrl: history.author.avatarUrls?.['48x48'],
                 bodyPreview: `Assigned to you by ${history.author.displayName}`,
                 fullBody: `Assigned to you by ${history.author.displayName}`,
                 createdAt: history.created,
@@ -176,6 +181,7 @@ async function fetchNewJiraComments(
         source: 'jira',
         entityTitle: `${issue.key}: ${issue.fields.summary}`,
         author,
+        authorAvatarUrl: changeAuthorAvatar,
         bodyPreview,
         fullBody,
         createdAt: issue.fields.updated,
@@ -213,7 +219,7 @@ async function fetchNewJiraComments(
           summary: string;
           comment?: { comments: Array<{
             id: string;
-            author?: { displayName?: string };
+            author?: { displayName?: string; avatarUrls?: { '48x48'?: string } };
             body?: string;
             updated: string;
             created: string;
@@ -237,6 +243,7 @@ async function fetchNewJiraComments(
           source: 'jira',
           entityTitle: `${issue.key}: ${issue.fields.summary}`,
           author: comment.author?.displayName ?? 'Unknown',
+          authorAvatarUrl: comment.author?.avatarUrls?.['48x48'],
           bodyPreview: body.substring(0, 80),
           fullBody: body,
           createdAt: comment.created,
@@ -280,7 +287,7 @@ async function fetchNewJiraComments(
           summary: string;
           comment?: { comments: Array<{
             id: string;
-            author?: { displayName?: string };
+            author?: { displayName?: string; avatarUrls?: { '48x48'?: string } };
             body?: string;
             updated: string;
             created: string;
@@ -300,6 +307,7 @@ async function fetchNewJiraComments(
           source: 'jira',
           entityTitle: `${issue.key}: ${issue.fields.summary}`,
           author: comment.author?.displayName ?? 'Unknown',
+          authorAvatarUrl: comment.author?.avatarUrls?.['48x48'],
           bodyPreview: body.substring(0, 80),
           fullBody: body,
           createdAt: comment.created,
@@ -359,6 +367,7 @@ async function fetchNewJiraComments(
         source: 'jira',
         entityTitle: `${issue.key}: ${issue.fields.summary}`,
         author: '',
+        authorAvatarUrl: undefined,
         bodyPreview: dueLabel,
         fullBody: `${dueLabel} (${issue.fields.duedate})`,
         createdAt: new Date().toISOString(),
@@ -452,6 +461,7 @@ async function fetchNewGitlabNotes(
           source: 'gitlab',
           entityTitle: mr.title,
           author: note.author?.name ?? 'Unknown',
+          authorAvatarUrl: note.author?.avatar_url,
           bodyPreview: parsedBody.substring(0, 120),
           fullBody: parsedBody,
           createdAt: note.created_at,
@@ -470,6 +480,7 @@ async function fetchNewGitlabNotes(
         source: 'gitlab',
         entityTitle: mr.title,
         author: note.author?.name ?? 'Unknown',
+        authorAvatarUrl: note.author?.avatar_url,
         bodyPreview: body.substring(0, 80),
         fullBody: body,
         createdAt: note.created_at,
@@ -520,7 +531,7 @@ async function fetchGitlabApprovals(
 
     const data = await response.json();
     const approvedBy: Array<{
-      user: { id: number; name: string; username: string };
+      user: { id: number; name: string; username: string; avatar_url?: string };
       approved_at?: string;
     }> = data.approved_by ?? [];
 
@@ -533,6 +544,7 @@ async function fetchGitlabApprovals(
         source: 'gitlab',
         entityTitle: mr.title,
         author: entry.user.name,
+        authorAvatarUrl: entry.user.avatar_url,
         bodyPreview: `Approved by ${entry.user.name}`,
         fullBody: `Approved by ${entry.user.name}`,
         createdAt: approvedAt,
@@ -597,6 +609,7 @@ async function fetchGitlabPipelineFailures(
         source: 'gitlab',
         entityTitle: mr.title,
         author: '',
+        authorAvatarUrl: undefined,
         bodyPreview: `Pipeline #${pipeline.id} failed on ${mr.source_branch}`,
         fullBody: `Pipeline #${pipeline.id} failed on ${mr.source_branch}`,
         createdAt: pipeline.updated_at,

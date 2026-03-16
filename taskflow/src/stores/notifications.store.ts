@@ -46,6 +46,7 @@ export interface NotificationItem {
   source: 'jira' | 'gitlab';
   entityTitle: string;   // "PROJ-123: Fix login bug"
   author: string;        // "J.Smith"
+  authorAvatarUrl?: string; // avatar image URL from Jira/GitLab API
   bodyPreview: string;   // first ~80 chars of body
   fullBody: string;
   createdAt: string;     // ISO 8601
