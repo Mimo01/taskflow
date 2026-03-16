@@ -149,7 +149,12 @@ Plans:
   1. Every list view (My Tasks, Sprint Board columns, Backlog, Notifications, Search results, Releases, Workload) shows an illustrated empty state with a headline and a primary CTA when it contains no data
   2. Every data view shows a plain-language error message and a Retry button when a fetch fails
   3. When a request fails due to an authentication error, the error state includes a "Reconnect" button that navigates directly to Settings > Connections
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 22-01-PLAN.md — Foundation: ApiError class + EmptyState + ErrorState + StaleDataBanner shared components
+- [ ] 22-02-PLAN.md — Sweep views 1-5: MyTasks, SprintBoard, SprintProgress, Backlog, MrAttention
+- [ ] 22-03-PLAN.md — Sweep views 6-10: Workload, Releases, Epics, Notifications, CommandPalette
 
 ## Progress
 
@@ -179,4 +184,4 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22
 | 19. Keyboard Foundation | 6/6 | Complete   | 2026-03-15 |
 | 20. Command Palette + Recent Items | 6/6 | Complete    | 2026-03-16 | - |
 | 21. Header Redesign + Pinned Issue Tabs | 5/5 | Complete    | 2026-03-16 | - |
-| 22. Polish — Empty States + Error Recovery | v1.3 | 0/TBD | Not started | - |
+| 22. Polish — Empty States + Error Recovery | v1.3 | 0/3 | Not started | - |
