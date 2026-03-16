@@ -17,11 +17,9 @@ interface DraggableCardProps {
   issue: JiraIssue
   isSubtask?: boolean
   onOpenDetail: (key: string) => void
-  epicKey?: string | null
-  epicColor?: string | null
 }
 
-export default function DraggableCard({ issue, isSubtask, onOpenDetail, epicKey, epicColor }: DraggableCardProps) {
+export default function DraggableCard({ issue, isSubtask, onOpenDetail }: DraggableCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: issue.key,
     data: { issueKey: issue.key, currentStatusId: issue.fields.status.id },
@@ -41,9 +39,7 @@ export default function DraggableCard({ issue, isSubtask, onOpenDetail, epicKey,
         issue={issue}
         isSubtask={isSubtask}
         onClick={() => onOpenDetail(issue.key)}
-        epicKey={epicKey}
-        epicColor={epicColor}
-      />
+/>
     </div>
   )
 }

@@ -35,7 +35,6 @@ import {
   fetchProjectStatuses,
   fetchTransitions,
   postTransition,
-  fetchEpicsBasic,
 } from '@/services/jira'
 import type { JiraIssue, JiraTransition } from '@/services/jira'
 import { readSecret } from '@/services/stronghold'
@@ -96,7 +95,7 @@ function DroppableCell({
 
 export default function SprintBoardTab() {
   const { jiraBaseUrl, activeJiraProject } = useAuthStore()
-  const { storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey, epicColorFieldKey } = useSettingsStore()
+  const { storyPointsFieldKey, epicLinkFieldKey } = useSettingsStore()
   const [jiraToken, setJiraToken] = useState<string | null>(null)
   const { onIssueClick: setSelectedIssueKey } = useOutletContext<{ onIssueClick: (key: string) => void }>()
   const queryClient = useQueryClient()
@@ -137,22 +136,6 @@ export default function SprintBoardTab() {
   })
 
   // Fetch epic colors for sprint board badges
-  const { data: epicsData } = useQuery({
-    queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
-    queryFn: () =>
-      fetchEpicsBasic(jiraBaseUrl!, jiraToken!, activeJiraProject!, epicNameFieldKey, epicColorFieldKey),
-    staleTime: 5 * 60_000,
-    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
-  })
-
-  const epicColorsMap = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const epic of epicsData ?? []) {
-      if (epic.color) map.set(epic.key, epic.color)
-    }
-    return map
-  }, [epicsData])
-
   const [bannerDismissed, setBannerDismissed] = useState(false)
   useEffect(() => { setBannerDismissed(false) }, [error])
 
@@ -477,8 +460,6 @@ export default function SprintBoardTab() {
                                     issue={card}
                                     isSubtask={card.fields.issuetype.subtask}
                                     onOpenDetail={setSelectedIssueKey}
-                                    epicKey={card.fields[epicLinkFieldKey] as string | null ?? null}
-                                    epicColor={epicColorsMap.get((card.fields[epicLinkFieldKey] as string) ?? '') ?? null}
                                   />
                                   {cardErrors.get(card.key) && (
                                     <p className="text-xs text-destructive px-1">
