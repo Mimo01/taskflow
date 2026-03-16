@@ -79,6 +79,8 @@ export default function NotificationRow({ item, isUnread = false, onClick }: Not
             'mr-approval': 'bg-green-100 text-green-700',
             'due-date-reminder': 'bg-amber-100 text-amber-700',
             'issue-assignment': 'bg-blue-100 text-blue-700',
+            'issue-update': 'bg-teal-100 text-teal-700',
+            'jira-comment': 'bg-violet-100 text-violet-700',
           };
           const label = labelMap[item.notificationType] ?? item.notificationType;
           const color = colorMap[item.notificationType] ?? 'bg-muted text-muted-foreground';

@@ -67,6 +67,7 @@ interface NotificationsState {
   prependItems: (newItems: NotificationItem[]) => void;
   markAsRead: (id: string) => void;
   markAllRead: () => void;
+  clearAll: () => void;
   setLastSeenCursor: (ts: string) => void;
   setPermissionDenied: (v: boolean) => void;
   setFetchError: (err: Error | null) => void;
@@ -104,6 +105,9 @@ export const useNotificationsStore = create<NotificationsState>()(
         set((s) => ({
           readIds: s.items.map((i) => i.id),
         })),
+
+      clearAll: () =>
+        set({ items: [], readIds: [], lastSeenCursor: null }),
 
       setLastSeenCursor: (ts) => set({ lastSeenCursor: ts }),
 

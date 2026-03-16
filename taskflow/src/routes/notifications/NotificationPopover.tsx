@@ -86,7 +86,7 @@ export default function NotificationPopover({ onIssueClick }: NotificationPopove
   }
 
   return (
-    <div className="w-80">
+    <div className="w-96">
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b">
         <span className="font-semibold text-sm">Notifications</span>
@@ -116,7 +116,7 @@ export default function NotificationPopover({ onIssueClick }: NotificationPopove
       )}
 
       {/* Feed */}
-      <div className="overflow-y-auto max-h-[400px]">
+      <div className="overflow-y-auto max-h-[480px]">
         {fetchError && items.length === 0 && retryFetch ? (
           <div className="p-2">
             <ErrorState error={fetchError} onRetry={retryFetch} viewName="notifications" />
