@@ -73,6 +73,13 @@ describe('WikiRenderer', () => {
       expect(badges[0]?.textContent).toContain('@alice')
       expect(badges[1]?.textContent).toContain('@bob')
     })
+
+    it('renders mention inside bold markup correctly', () => {
+      const { container } = render(<WikiRenderer wikiText="*[~jane]*" />)
+      const badge = container.querySelector('span.mention-badge')
+      expect(badge).not.toBeNull()
+      expect(badge?.textContent).toContain('@jane')
+    })
   })
 
   describe('panel/callout rendering', () => {
@@ -121,6 +128,44 @@ describe('WikiRenderer', () => {
       expect(img).not.toBeNull()
       expect(img?.className).toContain('max-w-full')
       expect(img?.className).toContain('cursor-pointer')
+    })
+
+    it('renders img element for Jira image syntax', () => {
+      const { container } = render(<WikiRenderer wikiText="!screenshot.png!" />)
+      const img = container.querySelector('img')
+      expect(img).not.toBeNull()
+      expect(img?.getAttribute('src')).toContain('screenshot.png')
+    })
+  })
+
+  describe('integration: mixed content', () => {
+    it('renders mentions, panels, images, bold, and lists together without errors', () => {
+      const mixedContent = [
+        '*bold text*',
+        '',
+        '[~john.doe] mentioned this',
+        '',
+        '{info}important info{info}',
+        '',
+        '!image.png!',
+        '',
+        '* list item one',
+        '* list item two',
+      ].join('\n')
+
+      const { container } = render(<WikiRenderer wikiText={mixedContent} />)
+
+      // Bold renders
+      expect(container.querySelector('strong')).not.toBeNull()
+      // Mention renders
+      expect(container.querySelector('span.mention-badge')).not.toBeNull()
+      // Info callout renders
+      expect(container.querySelector('[data-callout="info"]')).not.toBeNull()
+      // Image renders
+      expect(container.querySelector('img')).not.toBeNull()
+      // List items render
+      const listItems = container.querySelectorAll('li')
+      expect(listItems.length).toBeGreaterThanOrEqual(2)
     })
   })
 
