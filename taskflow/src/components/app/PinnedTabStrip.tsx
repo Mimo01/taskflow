@@ -119,16 +119,18 @@ export default function PinnedTabStrip({
   const [ghost, setGhost] = useState<DragGhost | null>(null);
 
   const getDropIndex = useCallback((clientX: number): number | null => {
-    let closest: { index: number; dist: number } | null = null;
+    let closestIndex: number | null = null;
+    let closestDist = Infinity;
     tabRefs.current.forEach((el, idx) => {
       const rect = el.getBoundingClientRect();
       const center = rect.left + rect.width / 2;
       const dist = Math.abs(clientX - center);
-      if (!closest || dist < closest.dist) {
-        closest = { index: idx, dist };
+      if (dist < closestDist) {
+        closestDist = dist;
+        closestIndex = idx;
       }
     });
-    return closest ? closest.index : null;
+    return closestIndex;
   }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent, index: number) => {
@@ -256,7 +258,7 @@ export default function PinnedTabStrip({
                 }}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onTabClick(key); }}
                 className={cn(
-                  'flex items-center gap-1.5 px-2.5 h-9 shrink-0 rounded-t-md text-xs font-medium border-b-2 transition-all duration-150 ease-in-out group select-none',
+                  'relative flex items-center gap-1.5 px-2.5 h-9 shrink-0 rounded-t-md text-xs font-medium border-b-2 transition-all duration-150 ease-in-out group select-none',
                   resolved ? 'max-w-[180px]' : 'w-[110px]',
                   key === activeKey
                     ? 'border-primary text-foreground bg-muted/50'
@@ -287,10 +289,10 @@ export default function PinnedTabStrip({
                     e.stopPropagation();
                     onTabClose(key);
                   }}
-                  className="ml-auto p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-muted-foreground/20 transition-opacity"
-                  aria-label={`Close ${key} tab`}
+                  className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-muted-foreground/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
+                  aria-label={`Unpin ${key}`}
                 >
-                  <X className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                  <X className="w-2 h-2 text-background" />
                 </button>
               </div>
               {showPlaceholderAfter && (
