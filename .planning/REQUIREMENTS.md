@@ -43,7 +43,7 @@ Requirements for the v1.3 UX & Branding milestone. Each maps to roadmap phases.
 
 - [x] **KEYS-01**: User can open a keyboard shortcuts reference panel with the ? key from anywhere in the app
 - [x] **KEYS-02**: Shortcuts panel is dismissable with Escape
-- [x] **KEYS-03**: Global navigation shortcuts: G+S = Sprint Board, G+B = Backlog, G+N = Notifications
+- [x] **KEYS-03**: Global navigation shortcuts: ⌘⇧S = Sprint Board, ⌘⇧B = Backlog, ⌘⇧N = Notifications
 - [ ] **KEYS-04**: J/K navigation works in My Tasks list (J/K moves focus, Enter opens detail)
 - [ ] **KEYS-05**: J/K navigation works in Notifications list (J/K moves focus, Enter opens detail)
 - [ ] **KEYS-06**: J/K navigation works in Backlog list (J/K moves focus, Enter opens detail)
