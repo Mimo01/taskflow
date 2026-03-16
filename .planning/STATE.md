@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-16 - Completed quick task 260316-ulr: Make linked issues in issue detail sidebar clickable
+Last activity: 2026-03-16 - Completed quick task 260316-uqt: Sort MyTasks and SprintBoard by Jira rank order
 
 Progress: [██████████] 100%
 
@@ -163,9 +163,10 @@ None.
 | 260316-tdk | Redo breadcrumb navigation on issue detail (context-aware stacking) | 2026-03-16 | 0437ed4 | Verified | [260316-tdk-redo-breadcrumb-navigation-on-issue-deta](./quick/260316-tdk-redo-breadcrumb-navigation-on-issue-deta/) |
 | 260316-tbl | Redo style for pinned task tabs (compact) | 2026-03-16 | 3a07d4e | Verified | [260316-tbl-redo-style-for-pinned-task-tabs-compact-](./quick/260316-tbl-redo-style-for-pinned-task-tabs-compact-/) |
 | 260316-ulr | Make linked issues in issue detail sidebar clickable | 2026-03-16 | a013ec2 | | [260316-ulr-make-the-linked-issues-on-issue-detail-n](./quick/260316-ulr-make-the-linked-issues-on-issue-detail-n/) |
+| 260316-uqt | Sort MyTasks and SprintBoard by Jira rank order | 2026-03-16 | a7bff1a | | [260316-uqt-make-the-tasks-in-mytasks-backlog-and-sp](./quick/260316-uqt-make-the-tasks-in-mytasks-backlog-and-sp/) |
 
 ## Session Continuity
 
-Last session: 2026-03-16T20:30:00Z
-Stopped at: Completed quick task 260316-ulr
+Last session: 2026-03-16T21:13:00Z
+Stopped at: Completed quick task 260316-uqt
 Resume: Milestone v1.3 (UX & Branding) is fully executed. All 5 phases (18-22), 29 plans complete. Ready for /gsd:audit-milestone or /gsd:complete-milestone.
