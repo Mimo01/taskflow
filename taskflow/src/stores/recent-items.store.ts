@@ -6,6 +6,7 @@ export interface RecentItem {
   type: 'jira' | 'gitlab';
   id: string;        // Issue key (PROJ-123) or MR iid string
   url?: string;      // For GitLab MRs -- browser open URL
+  title?: string;    // Cached display title so it survives across sessions
   timestamp: number;  // Date.now() when opened
 }
 
@@ -37,8 +38,11 @@ export const useRecentItemsStore = create<RecentItemsState>()(
       items: [],
       pushItem: (item) =>
         set((s) => {
+          const existing = s.items.find((i) => i.type === item.type && i.id === item.id);
           const filtered = s.items.filter((i) => !(i.type === item.type && i.id === item.id));
-          return { items: [{ ...item, timestamp: Date.now() }, ...filtered].slice(0, 10) };
+          // Preserve existing title if caller didn't provide one
+          const title = item.title ?? existing?.title;
+          return { items: [{ ...item, ...(title ? { title } : {}), timestamp: Date.now() }, ...filtered].slice(0, 10) };
         }),
     }),
     {

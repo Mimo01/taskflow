@@ -132,14 +132,15 @@ export default function CommandPalette({
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
-  function handleIssueSelect(issueKey: string) {
-    pushRecentItem({ type: 'jira', id: issueKey });
+  function handleIssueSelect(issueKey: string, title?: string) {
+    const resolvedTitle = title ?? issuesMap.get(issueKey)?.fields.summary;
+    pushRecentItem({ type: 'jira', id: issueKey, title: resolvedTitle });
     onIssueClick(issueKey);
     onClose();
   }
 
   function handleMRSelect(mr: GitLabMR) {
-    pushRecentItem({ type: 'gitlab', id: String(mr.iid), url: mr.web_url });
+    pushRecentItem({ type: 'gitlab', id: String(mr.iid), url: mr.web_url, title: mr.title });
     openUrl(mr.web_url);
     onClose();
   }
@@ -168,13 +169,15 @@ export default function CommandPalette({
 
   // ─── Helpers for recent items display ──────────────────────────────────────
 
-  function getRecentItemLabel(item: { type: 'jira' | 'gitlab'; id: string }) {
+  function getRecentItemLabel(item: { type: 'jira' | 'gitlab'; id: string; title?: string }) {
     if (item.type === 'jira') {
       const cached = issuesMap.get(item.id);
-      return cached ? `${item.id} ${cached.fields.summary}` : item.id;
+      const title = cached?.fields.summary ?? item.title;
+      return title ? `${item.id} ${title}` : item.id;
     }
     const cachedMR = allMRs.find((mr) => String(mr.iid) === item.id);
-    return cachedMR ? `!${item.id} ${cachedMR.title}` : `!${item.id}`;
+    const title = cachedMR?.title ?? item.title;
+    return title ? `!${item.id} ${title}` : `!${item.id}`;
   }
 
   // ─── Render ────────────────────────────────────────────────────────────────
@@ -197,6 +200,7 @@ export default function CommandPalette({
             placeholder="Search issues, MRs, and actions..."
             value={query}
             onValueChange={setQuery}
+            autoFocus
           />
           <CommandList className="max-h-[300px]">
             <CommandEmpty>No matches -- try different keywords</CommandEmpty>
@@ -316,18 +320,21 @@ export default function CommandPalette({
                 {/* Actions group */}
                 <CommandGroup heading="Actions">
                   <CommandItem
+                    value="create issue"
                     keywords={['new', 'add', 'create', 'issue', 'task', 'ticket']}
                     onSelect={handleCreateIssue}
                   >
                     Create issue
                   </CommandItem>
                   <CommandItem
+                    value="toggle theme"
                     keywords={['theme', 'dark', 'light', 'appearance']}
                     onSelect={handleToggleTheme}
                   >
                     Toggle theme
                   </CommandItem>
                   <CommandItem
+                    value="mark all notifications read"
                     keywords={['notification', 'unread', 'clear']}
                     onSelect={handleMarkAllRead}
                   >
@@ -361,7 +368,7 @@ export default function CommandPalette({
                       <CommandItem
                         key={`live-${issue.key}`}
                         value={`live-${issue.key} ${issue.fields.summary}`}
-                        onSelect={() => handleIssueSelect(issue.key)}
+                        onSelect={() => handleIssueSelect(issue.key, issue.fields.summary)}
                       >
                         <span className="text-muted-foreground font-mono">{issue.key}</span>
                         <span className="truncate">{issue.fields.summary}</span>

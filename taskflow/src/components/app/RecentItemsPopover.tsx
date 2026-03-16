@@ -66,11 +66,11 @@ function RecentItemRow({
   if (item.type === 'jira') {
     const cached = findJiraIssueInCache(queryClient, item.id);
     label = item.id;
-    title = cached ? cached.fields.summary : undefined;
+    title = cached?.fields.summary ?? item.title;
   } else {
     const cached = findGitLabMRInCache(queryClient, item.id);
     label = `!${item.id}`;
-    title = cached ? cached.title : undefined;
+    title = cached?.title ?? item.title;
   }
 
   function handleClick() {
