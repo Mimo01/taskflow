@@ -34,17 +34,21 @@ export function preprocessJiraMarkup(wiki: string, attachments?: AttachmentMap, 
   let result = wiki
 
   // Images: !filename.png|options! or !filename.png! → resolve via attachment map
-  // Must run BEFORE jira2md which also handles !...! syntax
+  // Must run BEFORE jira2md which also handles !...! syntax.
+  // Resolved URLs are output as markdown ![](url) instead of Jira !url! to
+  // prevent jira2md from mangling URLs that contain + characters (Jira encodes
+  // spaces as + in attachment URLs, and jira2md interprets +text+ as <ins>).
   if (attachments && Object.keys(attachments).length > 0) {
     result = result.replace(/!([^!\n]+?)(?:\|[^!]*)?\!/g, (_match, ref: string) => {
-      // If it's already a full URL, keep it
+      // If it's already a full URL, output as raw HTML <img> to bypass jira2md.
+      // Replace + with %20 so jira2md doesn't interpret +text+ as underline.
       if (ref.startsWith('http://') || ref.startsWith('https://')) {
-        return `!${ref}!`
+        return `<img src="${ref.replace(/\+/g, '%20')}" alt="" />`
       }
-      // Look up in attachment map
+      // Look up in attachment map — same treatment
       const url = attachments[ref]
       if (url) {
-        return `!${url}!`
+        return `<img src="${url.replace(/\+/g, '%20')}" alt="" />`
       }
       // Not found — leave as-is for jira2md
       return `!${ref}!`
@@ -110,14 +114,17 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
   // Components map includes 'mention' which is a custom HTML element not in
   // the standard Components type — use Record<string, unknown> intersection
   const markdownComponents: Record<string, unknown> = {
-    img: ({ src, alt }: ComponentPropsWithoutRef<'img'>) => (
-      <AuthImage
-        src={src ?? ''}
-        alt={alt ?? ''}
-        className="max-w-full rounded-md cursor-pointer"
-        onClick={() => src && setLightboxSrc(src)}
-      />
-    ),
+    img: ({ src, alt }: ComponentPropsWithoutRef<'img'>) => {
+      if (!src) return null
+      return (
+        <AuthImage
+          src={src}
+          alt={alt ?? ''}
+          className="max-w-full rounded-md cursor-pointer"
+          onClick={() => setLightboxSrc(src)}
+        />
+      )
+    },
     div: ({ node, children, ...rest }: ComponentPropsWithoutRef<'div'> & { node?: unknown }) => {
       const props = rest as Record<string, unknown>
       const calloutType = props['data-callout'] as string | undefined
@@ -149,11 +156,13 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
       >
         {markdown}
       </Markdown>
-      <ImageLightbox
-        src={lightboxSrc ?? ''}
-        open={lightboxSrc !== null}
-        onClose={() => setLightboxSrc(null)}
-      />
+      {lightboxSrc && (
+        <ImageLightbox
+          src={lightboxSrc}
+          open
+          onClose={() => setLightboxSrc(null)}
+        />
+      )}
     </article>
   )
 }
