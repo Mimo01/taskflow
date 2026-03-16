@@ -122,7 +122,21 @@ function AppLayout() {
   // Track recent items whenever an issue is opened from any entry point
   const handleIssueClick = (issueKey: string) => {
     setSelectedIssueKey(issueKey);
-    pushRecentItem({ type: 'jira', id: issueKey });
+
+    // Resolve title from react-query cache for recent-items store
+    let resolvedTitle: string | undefined;
+    const entries = queryClient.getQueriesData<{ issues: Array<{ key: string; fields: { summary: string } }> }>({
+      queryKey: ['jira-issues'],
+    });
+    for (const [, data] of entries) {
+      const match = data?.issues?.find((i) => i.key === issueKey);
+      if (match) {
+        resolvedTitle = match.fields.summary;
+        break;
+      }
+    }
+
+    pushRecentItem({ type: 'jira', id: issueKey, title: resolvedTitle });
   };
 
   const handlePaletteNavigate = (path: string) => {

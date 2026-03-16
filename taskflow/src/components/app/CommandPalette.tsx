@@ -207,7 +207,7 @@ export default function CommandPalette({
 
             {isDefaultState ? (
               <>
-                {/* Recent Items group */}
+                {/* Recent Items group -- only in default state */}
                 <CommandGroup heading="Recent Items">
                   {recentItems.length === 0 ? (
                     <CommandItem disabled>No recent items</CommandItem>
@@ -232,37 +232,10 @@ export default function CommandPalette({
                     ))
                   )}
                 </CommandGroup>
-
-                {/* Navigation group */}
-                <CommandGroup heading="Navigation">
-                  <CommandItem
-                    onSelect={() => { onNavigate('/sprint-board'); onClose(); }}
-                  >
-                    Sprint Board
-                    <CommandShortcut>⌘⇧S</CommandShortcut>
-                  </CommandItem>
-                  <CommandItem
-                    onSelect={() => { onNavigate('/backlog'); onClose(); }}
-                  >
-                    Backlog
-                    <CommandShortcut>⌘⇧B</CommandShortcut>
-                  </CommandItem>
-                  <CommandItem
-                    onSelect={() => { onOpenNotifications(); onClose(); }}
-                  >
-                    Notifications
-                    <CommandShortcut>⌘⇧N</CommandShortcut>
-                  </CommandItem>
-                  <CommandItem
-                    onSelect={() => { onNavigate('/settings'); onClose(); }}
-                  >
-                    Settings
-                  </CommandItem>
-                </CommandGroup>
               </>
             ) : (
               <>
-                {/* Issues group */}
+                {/* Issues group -- only in search state */}
                 <CommandGroup heading="Issues">
                   {allIssues.map((issue) => (
                     <CommandItem
@@ -276,7 +249,7 @@ export default function CommandPalette({
                   ))}
                 </CommandGroup>
 
-                {/* Merge Requests group */}
+                {/* Merge Requests group -- only in search state */}
                 <CommandGroup heading="Merge Requests">
                   {allMRs.map((mr) => (
                     <CommandItem
@@ -290,59 +263,7 @@ export default function CommandPalette({
                   ))}
                 </CommandGroup>
 
-                {/* Navigation group */}
-                <CommandGroup heading="Navigation">
-                  <CommandItem
-                    onSelect={() => { onNavigate('/sprint-board'); onClose(); }}
-                  >
-                    Sprint Board
-                    <CommandShortcut>⌘⇧S</CommandShortcut>
-                  </CommandItem>
-                  <CommandItem
-                    onSelect={() => { onNavigate('/backlog'); onClose(); }}
-                  >
-                    Backlog
-                    <CommandShortcut>⌘⇧B</CommandShortcut>
-                  </CommandItem>
-                  <CommandItem
-                    onSelect={() => { onOpenNotifications(); onClose(); }}
-                  >
-                    Notifications
-                    <CommandShortcut>⌘⇧N</CommandShortcut>
-                  </CommandItem>
-                  <CommandItem
-                    onSelect={() => { onNavigate('/settings'); onClose(); }}
-                  >
-                    Settings
-                  </CommandItem>
-                </CommandGroup>
-
-                {/* Actions group */}
-                <CommandGroup heading="Actions">
-                  <CommandItem
-                    value="create issue"
-                    keywords={['new', 'add', 'create', 'issue', 'task', 'ticket']}
-                    onSelect={handleCreateIssue}
-                  >
-                    Create issue
-                  </CommandItem>
-                  <CommandItem
-                    value="toggle theme"
-                    keywords={['theme', 'dark', 'light', 'appearance']}
-                    onSelect={handleToggleTheme}
-                  >
-                    Toggle theme
-                  </CommandItem>
-                  <CommandItem
-                    value="mark all notifications read"
-                    keywords={['notification', 'unread', 'clear']}
-                    onSelect={handleMarkAllRead}
-                  >
-                    Mark all notifications read
-                  </CommandItem>
-                </CommandGroup>
-
-                {/* Live search tail item */}
+                {/* Live search tail item -- only in search state */}
                 <CommandSeparator />
                 <CommandGroup>
                   <CommandItem
@@ -354,7 +275,7 @@ export default function CommandPalette({
                   </CommandItem>
                 </CommandGroup>
 
-                {/* Live search results */}
+                {/* Live search results -- only in search state */}
                 {liveSearchTriggered && liveSearchLoading && (
                   <div className="flex flex-col gap-2 p-2">
                     {[1, 2, 3].map((i) => (
@@ -378,6 +299,58 @@ export default function CommandPalette({
                 )}
               </>
             )}
+
+            {/* Navigation group -- always rendered so cmdk keeps stable item refs across query threshold */}
+            <CommandGroup heading="Navigation">
+              <CommandItem
+                onSelect={() => { onNavigate('/sprint-board'); onClose(); }}
+              >
+                Sprint Board
+                <CommandShortcut>⌘⇧S</CommandShortcut>
+              </CommandItem>
+              <CommandItem
+                onSelect={() => { onNavigate('/backlog'); onClose(); }}
+              >
+                Backlog
+                <CommandShortcut>⌘⇧B</CommandShortcut>
+              </CommandItem>
+              <CommandItem
+                onSelect={() => { onOpenNotifications(); onClose(); }}
+              >
+                Notifications
+                <CommandShortcut>⌘⇧N</CommandShortcut>
+              </CommandItem>
+              <CommandItem
+                onSelect={() => { onNavigate('/settings'); onClose(); }}
+              >
+                Settings
+              </CommandItem>
+            </CommandGroup>
+
+            {/* Actions group -- always rendered; only visible when cmdk matches keywords */}
+            <CommandGroup heading="Actions">
+              <CommandItem
+                value="create issue"
+                keywords={['new', 'add', 'create', 'issue', 'task', 'ticket']}
+                onSelect={handleCreateIssue}
+              >
+                Create issue
+              </CommandItem>
+              <CommandItem
+                value="toggle theme"
+                keywords={['theme', 'dark', 'light', 'appearance']}
+                onSelect={handleToggleTheme}
+              >
+                Toggle theme
+              </CommandItem>
+              <CommandItem
+                value="mark all notifications read"
+                keywords={['notification', 'unread', 'clear']}
+                onSelect={handleMarkAllRead}
+              >
+                Mark all notifications read
+              </CommandItem>
+            </CommandGroup>
           </CommandList>
         </Command>
       </div>

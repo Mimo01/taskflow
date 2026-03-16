@@ -191,11 +191,12 @@ describe('CommandPalette', () => {
     expect(screen.getByText('⌘⇧N')).toBeInTheDocument();
   });
 
-  // PALETTE-04: actions group not visible in default state
-  it('actions group not visible in default state', () => {
+  // PALETTE-04: actions group visible in both states (always rendered for stable cmdk refs)
+  it('actions group visible in default state', () => {
     renderPalette();
-    // With empty query (default state), actions should not be shown
-    expect(screen.queryByText('Toggle theme')).not.toBeInTheDocument();
+    // Actions group is always rendered to avoid cmdk unmount/remount race
+    expect(screen.getByText('Create issue')).toBeInTheDocument();
+    expect(screen.getByText('Toggle theme')).toBeInTheDocument();
   });
 
   // PALETTE-04: "Create issue" action appears in search state
