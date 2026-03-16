@@ -41,7 +41,7 @@ export default function BacklogPage() {
 
   // ── Auth / settings ─────────────────────────────────────────────────────────
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
-  const { storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey } = useSettingsStore();
+  const { storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey, epicColorFieldKey } = useSettingsStore();
 
   const [jiraToken, setJiraToken] = useState<string | null>(null);
 
@@ -67,6 +67,7 @@ export default function BacklogPage() {
         storyPointsFieldKey,
         epicLinkFieldKey,
         epicNameFieldKey,
+        epicColorFieldKey,
       ),
     staleTime: 60_000,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
@@ -333,6 +334,7 @@ export default function BacklogPage() {
                       epicLinkFieldKey={epicLinkFieldKey}
                       epicNameFieldKey={epicNameFieldKey}
                       epicNames={backlogView?.epicNames}
+                      epicColors={backlogView?.epicColors}
                       isFocused={visibleIssueKeys[focusIndex] === issue.key}
                     />
                   ))}

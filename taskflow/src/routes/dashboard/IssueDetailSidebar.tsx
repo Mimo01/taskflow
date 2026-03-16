@@ -15,6 +15,8 @@ import {
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { readSecret } from '@/services/stronghold'
 import { useAuthStore } from '@/stores/auth.store'
+import { useSettingsStore } from '@/stores/settings.store'
+import { epicColorToTailwind } from '@/lib/epicColors'
 
 interface IssueDetailSidebarProps {
   issue: JiraIssueDetail
@@ -102,6 +104,7 @@ export function IssueDetailSidebar({
       : null
 
   const { jiraBaseUrl: storeJiraBaseUrl, jiraConnected } = useAuthStore()
+  const { epicColorFieldKey } = useSettingsStore()
   const effectiveJiraBaseUrl = jiraBaseUrl || storeJiraBaseUrl || ''
 
   // Fetch epic name for stories — lightweight single-issue fetch
@@ -110,7 +113,7 @@ export function IssueDetailSidebar({
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null)
       if (!token) return null
-      const url = `${effectiveJiraBaseUrl.replace(/\/$/, '')}/rest/api/2/issue/${epicLink}?fields=summary,${epicNameFieldKey}`
+      const url = `${effectiveJiraBaseUrl.replace(/\/$/, '')}/rest/api/2/issue/${epicLink}?fields=summary,${epicNameFieldKey},${epicColorFieldKey}`
       const resp = await apiFetch('jira', url, { headers: { Authorization: `Bearer ${token}` } })
       if (!resp.ok) return null
       return resp.json() as Promise<{ fields: { summary: string; [k: string]: unknown } }>
@@ -335,21 +338,43 @@ export function IssueDetailSidebar({
         </MetaRow>
       )}
 
-      {/* Epic — stories only: key + name, navigable */}
+      {/* Epic — stories only: key + name with color, navigable */}
       {isStory && (
         <MetaRow label="Epic">
-          {epicLink ? (
-            <button
-              type="button"
-              onClick={() => onOpenIssue?.(epicLink)}
-              className="text-left hover:underline cursor-pointer"
-            >
-              <span className="font-mono text-xs">{epicLink}</span>
-              {epicName && <span className="text-xs text-muted-foreground ml-1">— {epicName}</span>}
-            </button>
-          ) : '—'}
+          {epicLink ? (() => {
+            const epicColor = epicIssue?.fields[epicColorFieldKey] as string | null ?? null
+            const colorResult = epicColorToTailwind(epicColor, epicLink)
+            return (
+              <button
+                type="button"
+                onClick={() => onOpenIssue?.(epicLink)}
+                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium hover:opacity-80 transition-opacity ${colorResult.className}`}
+                style={colorResult.style}
+              >
+                <span className="opacity-70 mr-1">{epicLink}</span>
+                {epicName && epicName !== epicLink ? epicName : null}
+              </button>
+            )
+          })() : '—'}
         </MetaRow>
       )}
+
+      {/* Color — epics only: show color swatch */}
+      {isEpic && (() => {
+        const epicColor = f[epicColorFieldKey] as string | null
+        if (!epicColor) return null
+        const colorResult = epicColorToTailwind(epicColor, issue.key)
+        return (
+          <MetaRow label="Color">
+            <span
+              className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${colorResult.className}`}
+              style={colorResult.style}
+            >
+              {epicColor}
+            </span>
+          </MetaRow>
+        )
+      })()}
 
       {/* Parent — subtasks only, navigable */}
       {isSubtask && f.parent && (

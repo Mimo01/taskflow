@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import type { JiraIssue } from '@/services/jira'
 import type { ReviewHealth } from '@/services/linkEngine'
+import { epicColorToTailwind } from '@/lib/epicColors'
 
 const HEALTH_COLORS: Record<ReviewHealth, string> = {
   approved: 'bg-green-500',
@@ -46,9 +47,11 @@ interface TaskCardProps {
   isSubtask?: boolean
   showStatus?: boolean
   onClick?: () => void
+  epicKey?: string | null
+  epicColor?: string | null
 }
 
-export default function TaskCard({ issue, healthDot, subtaskCount, isExpanded, onToggle, isSubtask, showStatus, onClick }: TaskCardProps) {
+export default function TaskCard({ issue, healthDot, subtaskCount, isExpanded, onToggle, isSubtask, showStatus, onClick, epicKey, epicColor }: TaskCardProps) {
   const assignee = issue.fields.assignee
   const avatarUrl = assignee?.avatarUrls['48x48']
   const displayName = assignee?.displayName ?? ''
@@ -82,7 +85,23 @@ export default function TaskCard({ issue, healthDot, subtaskCount, isExpanded, o
         {issue.fields.summary}
       </div>
 
-      {/* Status badge — shown when not in a column context */}
+      {/* Epic badge -- colored pill with epic key */}
+      {epicKey && (() => {
+        const colorResult = epicColorToTailwind(epicColor ?? null, epicKey)
+        return (
+          <span
+            className={cn(
+              'self-start inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] font-medium truncate max-w-full',
+              colorResult.className,
+            )}
+            style={colorResult.style}
+          >
+            {epicKey}
+          </span>
+        )
+      })()}
+
+      {/* Status badge -- shown when not in a column context */}
       {showStatus && (
         <span className={cn(
           'self-start rounded px-1.5 py-0.5 text-xs font-medium',
