@@ -16,9 +16,13 @@ interface IssueDetailSheetProps {
   onOpenIssue?: (key: string) => void
   onEdit?: (initialValues: EditInitialValues) => void
   onAddSubtask?: (parentKey: string) => void
+  /** Whether the current issue is pinned (Plan 03 will add UI for this). */
+  isPinned?: boolean
+  /** Toggle pin state for the current issue (Plan 03 will add UI for this). */
+  onTogglePin?: (key: string) => void
 }
 
-export function IssueDetailSheet({ issueKey, onClose, onOpenIssue, onEdit, onAddSubtask }: IssueDetailSheetProps) {
+export function IssueDetailSheet({ issueKey, onClose, onOpenIssue, onEdit, onAddSubtask, isPinned: _isPinned, onTogglePin: _onTogglePin }: IssueDetailSheetProps) {
   return (
     <Sheet open={issueKey !== null} onOpenChange={(open) => { if (!open) onClose() }}>
       <SheetContent side="right" className="p-0 flex flex-col overflow-hidden" style={{ width: '75vw', maxWidth: '75vw' }}>

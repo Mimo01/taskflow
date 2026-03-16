@@ -19,7 +19,9 @@ import { discoverCustomFields } from './services/jira';
 import { IssueDetailSheet } from './routes/dashboard/IssueDetailSheet';
 import { CreateEditIssueModal, type EditInitialValues } from './routes/dashboard/CreateEditIssueModal';
 import CommandPalette from './components/app/CommandPalette';
+import PinnedTabStrip from './components/app/PinnedTabStrip';
 import { useRecentItemsStore } from './stores/recent-items.store';
+import { usePinnedTabsStore } from './stores/pinned-tabs.store';
 import Onboarding from './routes/onboarding/index';
 import Dashboard from './routes/dashboard/index';
 import Settings from './routes/settings/index';
@@ -98,6 +100,10 @@ function AppLayout() {
   const [notifPopoverOpen, setNotifPopoverOpen] = useState(false);
   const navigate = useNavigate();
   const pushRecentItem = useRecentItemsStore((s) => s.pushItem);
+  const pinnedKeys = usePinnedTabsStore((s) => s.pinnedKeys);
+  const removePin = usePinnedTabsStore((s) => s.removePin);
+  const isPinned = usePinnedTabsStore((s) => selectedIssueKey ? s.pinnedKeys.includes(selectedIssueKey) : false);
+  const togglePin = usePinnedTabsStore((s) => s.togglePin);
 
   // KEYS-01: mod+slash (Cmd+/ on macOS, Ctrl+/ elsewhere) opens shortcuts panel — uses code name to bypass react-hotkeys-hook #1125
   // KEYS-07: enableOnFormTags defaults to false — mod+slash in an input does NOT open the panel
@@ -270,6 +276,14 @@ function AppLayout() {
           notifPopoverOpen={notifPopoverOpen}
           onNotifPopoverChange={setNotifPopoverOpen}
         />
+        {pinnedKeys.length > 0 && (
+          <PinnedTabStrip
+            pinnedKeys={pinnedKeys}
+            activeKey={selectedIssueKey}
+            onTabClick={handleIssueClick}
+            onTabClose={removePin}
+          />
+        )}
         {_hasHydrated && !jiraConnected && <ReAuthBanner />}
         {_hasHydrated && !gitlabConnected && <GitLabReAuthBanner />}
         <main className="flex-1 overflow-auto">
@@ -292,6 +306,8 @@ function AppLayout() {
         onOpenIssue={handleIssueClick}
         onEdit={handleOpenEdit}
         onAddSubtask={handleOpenAddSubtask}
+        isPinned={isPinned}
+        onTogglePin={togglePin}
       />
       <CreateEditIssueModal
         open={createModalOpen}
