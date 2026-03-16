@@ -13,6 +13,7 @@
  * calling storeSecret('gitlab-pat', token) after successful validation.
  */
 import { apiFetch } from '../lib/apiFetch';
+import { ApiError } from '../lib/api-error';
 
 export interface GitLabUser {
   id: number;
@@ -62,11 +63,11 @@ export async function validateGitLab(baseUrl: string, token: string): Promise<Gi
   }
 
   if (response.status === 401) {
-    throw new Error('Invalid token or token has expired');
+    throw new ApiError('Invalid token or token has expired', 401, 'gitlab');
   }
 
   if (response.status === 403) {
-    throw new Error('Token valid but lacks required permissions');
+    throw new ApiError('Token valid but lacks required permissions', 403, 'gitlab');
   }
 
   throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
@@ -100,11 +101,11 @@ export async function listGitLabGroups(baseUrl: string, token: string): Promise<
   }
 
   if (response.status === 401) {
-    throw new Error('Invalid token or token has expired');
+    throw new ApiError('Invalid token or token has expired', 401, 'gitlab');
   }
 
   if (response.status === 403) {
-    throw new Error('Token valid but lacks required permissions');
+    throw new ApiError('Token valid but lacks required permissions', 403, 'gitlab');
   }
 
   throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
@@ -138,11 +139,11 @@ export async function listGitLabProjects(baseUrl: string, token: string): Promis
   }
 
   if (response.status === 401) {
-    throw new Error('Invalid token or token has expired');
+    throw new ApiError('Invalid token or token has expired', 401, 'gitlab');
   }
 
   if (response.status === 403) {
-    throw new Error('Token valid but lacks required permissions');
+    throw new ApiError('Token valid but lacks required permissions', 403, 'gitlab');
   }
 
   throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
@@ -225,6 +226,9 @@ export async function fetchAssignedMRs(baseUrl: string, token: string): Promise<
   }
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to fetch assigned MRs', response.status, 'gitlab');
+    }
     throw new Error(`Failed to fetch assigned MRs: status ${response.status}`);
   }
 
@@ -260,6 +264,9 @@ export async function fetchReviewerMRs(
   }
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to fetch reviewer MRs', response.status, 'gitlab');
+    }
     throw new Error(`Failed to fetch reviewer MRs: status ${response.status}`);
   }
 
@@ -297,6 +304,9 @@ export async function fetchMRCommits(
   }
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to fetch MR commits', response.status, 'gitlab');
+    }
     throw new Error(`Failed to fetch MR commits: status ${response.status}`);
   }
 
@@ -334,6 +344,9 @@ export async function fetchMRApprovals(
   }
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to fetch MR approvals', response.status, 'gitlab');
+    }
     throw new Error(`Failed to fetch MR approvals: status ${response.status}`);
   }
 
@@ -371,6 +384,9 @@ export async function fetchMRDiscussions(
   }
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to fetch MR discussions', response.status, 'gitlab');
+    }
     throw new Error(`Failed to fetch MR discussions: status ${response.status}`);
   }
 
@@ -410,6 +426,9 @@ export async function fetchGroupMilestones(
   }
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to fetch milestones', response.status, 'gitlab');
+    }
     throw new Error('Failed to fetch milestones');
   }
 
@@ -446,6 +465,9 @@ export async function fetchProjectMilestones(
   }
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to fetch milestones', response.status, 'gitlab');
+    }
     throw new Error('Failed to fetch milestones');
   }
 
@@ -509,6 +531,9 @@ export async function fetchProjectTags(
   }
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to fetch tags', response.status, 'gitlab');
+    }
     throw new Error('Failed to fetch tags');
   }
 
@@ -541,6 +566,9 @@ export async function fetchProjectMRs(
   }
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to fetch project MRs', response.status, 'gitlab');
+    }
     throw new Error(`Failed to fetch project MRs: status ${response.status}`);
   }
 

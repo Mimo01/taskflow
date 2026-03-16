@@ -962,7 +962,7 @@ describe('jira service', () => {
       const { fetchProjectStatuses } = await import('./jira');
       await expect(
         fetchProjectStatuses('https://jira.example.com', 'token', 'PROJ'),
-      ).rejects.toThrow('Failed to fetch project statuses: 403');
+      ).rejects.toThrow('Failed to fetch project statuses');
     });
   });
 
