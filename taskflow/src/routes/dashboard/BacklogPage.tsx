@@ -387,19 +387,18 @@ export default function BacklogPage() {
         </button>
       </div>
 
-      {/* Filter bar */}
-      <BacklogFilterBar
-        filterOptions={filterOptions}
-        activeEpics={activeEpics}
-        activeLabels={activeLabels}
-        activeAssignees={activeAssignees}
-        onEpicsChange={setActiveEpics}
-        onLabelsChange={setActiveLabels}
-        onAssigneesChange={setActiveAssignees}
-      />
-
       {/* Main content */}
       <div className="flex-1 overflow-auto">
+        {/* Filter bar — scrolls with content */}
+        <BacklogFilterBar
+          filterOptions={filterOptions}
+          activeEpics={activeEpics}
+          activeLabels={activeLabels}
+          activeAssignees={activeAssignees}
+          onEpicsChange={setActiveEpics}
+          onLabelsChange={setActiveLabels}
+          onAssigneesChange={setActiveAssignees}
+        />
         {/* Error state — no cached data */}
         {isError && !backlogView && (
           <div className="p-4">
