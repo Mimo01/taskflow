@@ -1500,7 +1500,7 @@ export async function fetchBacklogView(
 
   const issueFields = [
     ...new Set([
-      'summary', 'status', 'assignee', 'issuetype', 'labels',
+      'summary', 'status', 'assignee', 'issuetype', 'labels', 'subtasks',
       'customfield_10016', 'customfield_10014', 'customfield_10015',
       storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey,
     ]),
@@ -1689,7 +1689,7 @@ export async function fetchEpicsBasic(
   const base = baseUrl.replace(/\/$/, '')
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
   const epicFields = [...new Set(['summary', 'status', 'assignee', epicNameFieldKey, epicColorFieldKey])].join(',')
-  const epicJql = encodeURIComponent(`project = ${projectKey} AND issuetype = Epic ORDER BY updated DESC`)
+  const epicJql = encodeURIComponent(`project = ${projectKey} AND issuetype = Epic AND statusCategory != Done ORDER BY updated DESC`)
   const epicIssues = await fetchAllSearchPages(
     `${base}/rest/api/2/search?jql=${epicJql}&fields=${epicFields}`, headers,
   )
@@ -1766,7 +1766,7 @@ export async function fetchEpicsWithEnrichment(
     'summary', 'status', 'assignee', 'priority', 'description', 'created', 'updated',
     epicNameFieldKey,
   ])].join(',')
-  const epicJql = encodeURIComponent(`project = ${projectKey} AND issuetype = Epic ORDER BY updated DESC`)
+  const epicJql = encodeURIComponent(`project = ${projectKey} AND issuetype = Epic AND statusCategory != Done ORDER BY updated DESC`)
   const epicIssues = await fetchAllSearchPages(
     `${base}/rest/api/2/search?jql=${epicJql}&fields=${epicFields}`, headers,
   )
