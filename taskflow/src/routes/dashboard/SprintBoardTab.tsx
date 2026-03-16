@@ -324,25 +324,27 @@ export default function SprintBoardTab() {
            * h-10 = 40px. Story headers use top-10 to sit directly below this.
            * Sticks relative to <main> — no inner overflow container.
            */}
-          <div className="sticky top-0 z-20 bg-background border-b border-border flex h-10">
-            {CATEGORY_COLUMNS.map(col => {
-              const count = localIssues.filter(
-                i => i.fields.issuetype.subtask && categoryOf(i) === col.key
-              ).length
-              return (
-                <div
-                  key={col.key}
-                  className="flex-1 px-3 flex items-center gap-1.5 border-l border-border/20 first:border-l-0"
-                >
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {col.label}
-                  </span>
-                  <span className="text-xs text-muted-foreground/70">({count})</span>
-                </div>
-              )
-            })}
-            {/* Refresh tucked into the right end of the header bar */}
-            <div className="px-3 flex items-center gap-2 shrink-0 border-l border-border/20">
+          <div className="sticky top-0 z-20 bg-background border-b border-border relative h-10">
+            <div className="flex h-full">
+              {CATEGORY_COLUMNS.map(col => {
+                const count = localIssues.filter(
+                  i => i.fields.issuetype.subtask && categoryOf(i) === col.key
+                ).length
+                return (
+                  <div
+                    key={col.key}
+                    className="flex-1 px-3 flex items-center gap-1.5 border-l border-border/20 first:border-l-0"
+                  >
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {col.label}
+                    </span>
+                    <span className="text-xs text-muted-foreground/70">({count})</span>
+                  </div>
+                )
+              })}
+            </div>
+            {/* Refresh positioned absolutely so it doesn't affect column width distribution */}
+            <div className="absolute right-0 top-0 h-full px-3 flex items-center gap-2 bg-background border-l border-border/20">
               <span className="text-xs text-muted-foreground hidden sm:inline">{lastRefreshed}</span>
               <button
                 type="button"
