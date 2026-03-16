@@ -137,6 +137,7 @@ export default function TokenSection() {
     activeGitlabProjectPath,
     setActiveGitlabProject,
     setGitlabUserId,
+    setGitlabUsername,
   } = useAuthStore();
 
   const [jiraUrl, setJiraUrl] = useState(jiraBaseUrl ?? '');
@@ -238,11 +239,12 @@ export default function TokenSection() {
     mutationFn: async () => {
       const pat = await readSecret('gitlab-pat');
       const user = await validateGitLab(gitlabUrl, pat);
-      return { url: gitlabUrl, userId: user.id };
+      return { url: gitlabUrl, userId: user.id, username: user.username };
     },
-    onSuccess: ({ url, userId }) => {
+    onSuccess: ({ url, userId, username }) => {
       setGitlabConnected(true, url);
       setGitlabUserId(userId);
+      setGitlabUsername(username);
     },
   });
 
@@ -251,11 +253,12 @@ export default function TokenSection() {
     mutationFn: async (newToken: string) => {
       const user = await validateGitLab(gitlabUrl, newToken);
       await storeSecret('gitlab-pat', newToken);
-      return { url: gitlabUrl, userId: user.id };
+      return { url: gitlabUrl, userId: user.id, username: user.username };
     },
-    onSuccess: ({ url, userId }) => {
+    onSuccess: ({ url, userId, username }) => {
       setGitlabConnected(true, url);
       setGitlabUserId(userId);
+      setGitlabUsername(username);
     },
   });
 

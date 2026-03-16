@@ -25,7 +25,7 @@ import { useAuthStore } from '@/stores/auth.store';
 
 export default function GitLabStep() {
   const { gitlabUrl, gitlabToken, gitlabProject, gitlabProjects, set, goBack, goNext } = useOnboardingStore();
-  const { setGitlabConnected, setActiveGitlabProject, setGitlabUserId } = useAuthStore();
+  const { setGitlabConnected, setActiveGitlabProject, setGitlabUserId, setGitlabUsername } = useAuthStore();
 
   const projects = gitlabProjects;
   const selectedProjectId = gitlabProject;
@@ -40,8 +40,9 @@ export default function GitLabStep() {
     onSuccess: async ({ user, projectList }) => {
       // Store PAT in Stronghold — NEVER in Zustand
       await storeSecret('gitlab-pat', gitlabToken);
-      // Persist user ID so MrAttentionTab can skip the validateGitLab round-trip
+      // Persist user ID and username for MR filtering and @mention detection
       setGitlabUserId(user.id);
+      setGitlabUsername(user.username);
       set({ gitlabProjects: projectList });
     },
   });
