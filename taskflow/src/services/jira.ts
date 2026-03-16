@@ -864,12 +864,13 @@ export interface JiraIssueDetail {
 export async function discoverCustomFields(
   baseUrl: string,
   token: string,
-): Promise<{ storyPointsFieldKey: string; epicLinkFieldKey: string; epicNameFieldKey: string; sprintFieldKey: string }> {
+): Promise<{ storyPointsFieldKey: string; epicLinkFieldKey: string; epicNameFieldKey: string; sprintFieldKey: string; epicColorFieldKey: string }> {
   const defaults = {
     storyPointsFieldKey: 'customfield_10016',
     epicLinkFieldKey: 'customfield_10014',
     epicNameFieldKey: 'customfield_10015',
     sprintFieldKey: 'customfield_10020',
+    epicColorFieldKey: 'customfield_10013',
   }
   try {
     const response = await apiFetch('jira', `${baseUrl.replace(/\/$/, '')}/rest/api/2/field`, {
@@ -883,6 +884,7 @@ export async function discoverCustomFields(
       if (custom === 'com.pyxis.greenhopper.jira:gh-epic-link') result.epicLinkFieldKey = f.id
       if (custom === 'com.pyxis.greenhopper.jira:gh-epic-label') result.epicNameFieldKey = f.id
       if (custom === 'com.pyxis.greenhopper.jira:gh-sprint') result.sprintFieldKey = f.id
+      if (custom === 'com.pyxis.greenhopper.jira:gh-epic-color') result.epicColorFieldKey = f.id
       if (
         custom === 'com.atlassian.jira.plugin.system.customfieldtypes:float' &&
         (f.name === 'Story Points' || f.name === 'story_points')
@@ -1399,6 +1401,7 @@ export interface BacklogViewData {
   sprints: Array<{ sprint: JiraActiveSprint; issues: JiraIssue[] }>
   backlog: JiraIssue[]
   epicNames: Map<string, string> // epicKey → epic summary (display name)
+  epicColors: Map<string, string> // epicKey → Jira color string (e.g. "ghx-label-5")
 }
 
 /**
@@ -1429,6 +1432,7 @@ export async function fetchBacklogView(
   storyPointsFieldKey = 'customfield_10016',
   epicLinkFieldKey = 'customfield_10014',
   epicNameFieldKey = 'customfield_10015',
+  epicColorFieldKey = 'customfield_10013',
 ): Promise<BacklogViewData> {
   const base = baseUrl.replace(/\/$/, '')
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
@@ -1543,18 +1547,22 @@ export async function fetchBacklogView(
       .filter((k): k is string => !!k),
   )
   const epicNames = new Map<string, string>()
+  const epicColors = new Map<string, string>()
   if (epicKeys.size > 0) {
+    const epicFetchFields = [...new Set(['summary', epicColorFieldKey])].join(',')
     const epicJql = encodeURIComponent(`issuekey in (${Array.from(epicKeys).join(',')})`)
     const epicIssues = await fetchAllSearchPages(
-      `${base}/rest/api/2/search?jql=${epicJql}&fields=summary`,
+      `${base}/rest/api/2/search?jql=${epicJql}&fields=${epicFetchFields}`,
       headers,
     ).catch(() => [] as JiraIssue[])
     for (const epic of epicIssues) {
       epicNames.set(epic.key, epic.fields.summary)
+      const color = epic.fields[epicColorFieldKey] as string | null
+      if (color) epicColors.set(epic.key, color)
     }
   }
 
-  return { sprints, backlog, epicNames }
+  return { sprints, backlog, epicNames, epicColors }
 }
 
 /**
@@ -1604,6 +1612,7 @@ export interface EpicEnriched {
   totalStories: number
   doneStories: number
   totalPoints: number
+  color?: string | null
 }
 
 /**
@@ -1614,10 +1623,11 @@ export async function fetchEpicsBasic(
   token: string,
   projectKey: string,
   epicNameFieldKey = 'customfield_10015',
+  epicColorFieldKey = 'customfield_10013',
 ): Promise<EpicEnriched[]> {
   const base = baseUrl.replace(/\/$/, '')
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-  const epicFields = [...new Set(['summary', 'status', 'assignee', epicNameFieldKey])].join(',')
+  const epicFields = [...new Set(['summary', 'status', 'assignee', epicNameFieldKey, epicColorFieldKey])].join(',')
   const epicJql = encodeURIComponent(`project = ${projectKey} AND issuetype = Epic ORDER BY updated DESC`)
   const epicIssues = await fetchAllSearchPages(
     `${base}/rest/api/2/search?jql=${epicJql}&fields=${epicFields}`, headers,
@@ -1631,6 +1641,7 @@ export async function fetchEpicsBasic(
     totalStories: 0,
     doneStories: 0,
     totalPoints: 0,
+    color: (epic.fields[epicColorFieldKey] as string | null) ?? null,
   }))
 }
 

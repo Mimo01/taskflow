@@ -52,6 +52,8 @@ interface SettingsState {
   epicNameFieldKey: string;
   /** Discovered sprint custom field key. Defaults to customfield_10020. */
   sprintFieldKey: string;
+  /** Discovered epic color custom field key. Defaults to customfield_10013. */
+  epicColorFieldKey: string;
   /** Discovered account custom field key. Reserved for Phase 11. */
   accountFieldKey: string | null;
   /** Enable API call logging for debug inspection. Default: false. */
@@ -99,6 +101,7 @@ interface SettingsState {
   setEpicLinkFieldKey: (key: string) => void;
   setEpicNameFieldKey: (key: string) => void;
   setSprintFieldKey: (key: string) => void;
+  setEpicColorFieldKey: (key: string) => void;
   setAccountFieldKey: (key: string | null) => void;
 }
 
@@ -116,6 +119,7 @@ export const useSettingsStore = create<SettingsState>()(
       epicLinkFieldKey: 'customfield_10014',
       epicNameFieldKey: 'customfield_10015',
       sprintFieldKey: 'customfield_10020',
+      epicColorFieldKey: 'customfield_10013',
       accountFieldKey: null,
       debugMode: false,
       density: 'default' as Density,
@@ -156,12 +160,13 @@ export const useSettingsStore = create<SettingsState>()(
       setEpicLinkFieldKey: (key) => set({ epicLinkFieldKey: key }),
       setEpicNameFieldKey: (key) => set({ epicNameFieldKey: key }),
       setSprintFieldKey: (key) => set({ sprintFieldKey: key }),
+      setEpicColorFieldKey: (key) => set({ epicColorFieldKey: key }),
       setAccountFieldKey: (key) => set({ accountFieldKey: key }),
     }),
     {
       name: 'settings-store',
       storage: tauriStorage,
-      version: 3,
+      version: 4,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -182,6 +187,9 @@ export const useSettingsStore = create<SettingsState>()(
           if (s.notifPipelineFailureEnabled === undefined) s.notifPipelineFailureEnabled = true;
           if (s.notifIssueAssignmentEnabled === undefined) s.notifIssueAssignmentEnabled = true;
           if (s.notifDueDateReminderEnabled === undefined) s.notifDueDateReminderEnabled = true;
+        }
+        if (version < 4) {
+          if (s.epicColorFieldKey === undefined) s.epicColorFieldKey = 'customfield_10013';
         }
         return s as unknown as SettingsState;
       },

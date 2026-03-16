@@ -30,7 +30,7 @@ vi.mock('@/services/stronghold', () => ({
 }));
 
 vi.mock('@/services/jira', () => ({
-  fetchBacklogView: vi.fn().mockResolvedValue({ sprints: [], backlog: [], epicNames: new Map() }),
+  fetchBacklogView: vi.fn().mockResolvedValue({ sprints: [], backlog: [], epicNames: new Map(), epicColors: new Map() }),
   addIssuesToSprint: vi.fn().mockResolvedValue(undefined),
   fetchActiveSprint: vi.fn().mockResolvedValue(null),
 }));
@@ -122,7 +122,7 @@ describe('BACK-01 List', () => {
         },
       ],
       backlog: [makeIssue('PROJ-2', 'Backlog story two')],
-      epicNames: new Map(),
+      epicNames: new Map(), epicColors: new Map(),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -157,7 +157,7 @@ describe('BACK-01 List', () => {
 
   it('renders empty state message when fetchBacklogView resolves with no issues', async () => {
     const { fetchBacklogView } = await import('@/services/jira');
-    vi.mocked(fetchBacklogView).mockResolvedValue({ sprints: [], backlog: [], epicNames: new Map() });
+    vi.mocked(fetchBacklogView).mockResolvedValue({ sprints: [], backlog: [], epicNames: new Map(), epicColors: new Map() });
 
     const { default: BacklogPage } = await import('./BacklogPage');
     renderBacklogPage(<BacklogPage />);
@@ -177,7 +177,7 @@ describe('BACK-01 List', () => {
         { sprint: makeSprint(2, 'Sprint 2', 'future'), issues: [] },
       ],
       backlog: [],
-      epicNames: new Map(),
+      epicNames: new Map(), epicColors: new Map(),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -200,7 +200,7 @@ describe('BACK-02 Move to sprint', () => {
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [],
       backlog: [makeIssue('PROJ-1', 'Build login page')],
-      epicNames: new Map(),
+      epicNames: new Map(), epicColors: new Map(),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -219,7 +219,7 @@ describe('BACK-02 Move to sprint', () => {
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [],
       backlog: [makeIssue('PROJ-1', 'Build login page')],
-      epicNames: new Map(),
+      epicNames: new Map(), epicColors: new Map(),
     });
     vi.mocked(fetchActiveSprint).mockResolvedValue(null);
 
@@ -244,7 +244,7 @@ describe('BACK-02 Move to sprint', () => {
         makeIssue('PROJ-1', 'Build login page'),
         makeIssue('PROJ-2', 'Fix signup flow'),
       ],
-      epicNames: new Map(),
+      epicNames: new Map(), epicColors: new Map(),
     });
     vi.mocked(fetchActiveSprint).mockResolvedValue({
       id: 42,
@@ -283,7 +283,7 @@ describe('BACK-02 Move to sprint', () => {
         },
       ],
       backlog: [],
-      epicNames: new Map(),
+      epicNames: new Map(), epicColors: new Map(),
     });
     vi.mocked(fetchActiveSprint).mockResolvedValue({ id: 1, name: 'Sprint 1', state: 'active' });
     vi.mocked(addIssuesToSprint).mockResolvedValue(undefined);
@@ -310,7 +310,7 @@ describe('BACK-02 Move to sprint', () => {
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [],
       backlog: [makeIssue('PROJ-1', 'Build login page')],
-      epicNames: new Map(),
+      epicNames: new Map(), epicColors: new Map(),
     });
     vi.mocked(fetchActiveSprint).mockResolvedValue({
       id: 42,
@@ -350,7 +350,7 @@ describe('BACK-03 Create story', () => {
     vi.mocked(useOutletContext).mockReturnValue({ onIssueClick: vi.fn(), openCreateStory });
 
     const { fetchBacklogView } = await import('@/services/jira');
-    vi.mocked(fetchBacklogView).mockResolvedValue({ sprints: [], backlog: [], epicNames: new Map() });
+    vi.mocked(fetchBacklogView).mockResolvedValue({ sprints: [], backlog: [], epicNames: new Map(), epicColors: new Map() });
 
     const { default: BacklogPage } = await import('./BacklogPage');
     renderBacklogPage(<BacklogPage />);
@@ -378,7 +378,7 @@ describe('BACK-04 Filters', () => {
         },
       ],
       backlog: [makeIssue('PROJ-2', 'Story in Epic B', 'EPIC-2')],
-      epicNames: new Map([['EPIC-1', 'EPIC-1'], ['EPIC-2', 'EPIC-2']]),
+      epicNames: new Map([['EPIC-1', 'EPIC-1'], ['EPIC-2', 'EPIC-2']]), epicColors: new Map(),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -407,7 +407,7 @@ describe('BACK-04 Filters', () => {
         makeIssue('PROJ-1', 'Alice story', undefined, 'Alice'),
         makeIssue('PROJ-2', 'Bob story', undefined, 'Bob'),
       ],
-      epicNames: new Map(),
+      epicNames: new Map(), epicColors: new Map(),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -436,7 +436,7 @@ describe('BACK-04 Filters', () => {
         makeIssue('PROJ-2', 'Alice + Epic B', 'EPIC-2', 'Alice'),
         makeIssue('PROJ-3', 'Bob + Epic A', 'EPIC-1', 'Bob'),
       ],
-      epicNames: new Map([['EPIC-1', 'EPIC-1'], ['EPIC-2', 'EPIC-2']]),
+      epicNames: new Map([['EPIC-1', 'EPIC-1'], ['EPIC-2', 'EPIC-2']]), epicColors: new Map(),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -471,7 +471,7 @@ describe('BACK-04 Filters', () => {
         makeIssue('PROJ-1', 'Story in Epic A', 'EPIC-1'),
         makeIssue('PROJ-2', 'Story in Epic B', 'EPIC-2'),
       ],
-      epicNames: new Map([['EPIC-1', 'EPIC-1'], ['EPIC-2', 'EPIC-2']]),
+      epicNames: new Map([['EPIC-1', 'EPIC-1'], ['EPIC-2', 'EPIC-2']]), epicColors: new Map(),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -513,7 +513,7 @@ describe('BACK-05 Row click', () => {
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [],
       backlog: [makeIssue('PROJ-1', 'Build login page')],
-      epicNames: new Map(),
+      epicNames: new Map(), epicColors: new Map(),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -541,7 +541,7 @@ describe('BACK-05 Row click', () => {
         },
       ],
       backlog: [],
-      epicNames: new Map(),
+      epicNames: new Map(), epicColors: new Map(),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');
