@@ -13,13 +13,13 @@ Requirements for the v1.3 UX & Branding milestone. Each maps to roadmap phases.
 
 ### Header & Tabs
 
-- [ ] **HEADER-01**: App header is redesigned with consistent branding (logo + app name) visible on all routes
+- [x] **HEADER-01**: App header is redesigned with consistent branding (logo + app name) visible on all routes
 - [ ] **HEADER-02**: User can pin any open issue to the tab strip from the issue detail panel header
-- [ ] **HEADER-03**: Pinned issue tabs are displayed in a tab strip below the top bar
-- [ ] **HEADER-04**: User can close a pinned tab by clicking its × button
+- [x] **HEADER-03**: Pinned issue tabs are displayed in a tab strip below the top bar
+- [x] **HEADER-04**: User can close a pinned tab by clicking its × button
 - [x] **HEADER-05**: Pinned tabs persist across app restarts
-- [ ] **HEADER-06**: Tab strip shows a +N overflow indicator when more than 7 issues are pinned
-- [ ] **HEADER-07**: Clicking a pinned tab opens the issue detail panel for that issue
+- [x] **HEADER-06**: Tab strip shows a +N overflow indicator when more than 7 issues are pinned
+- [x] **HEADER-07**: Clicking a pinned tab opens the issue detail panel for that issue
 
 ### Settings
 
@@ -111,13 +111,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RECENT-01 | Phase 20 | Complete |
 | RECENT-02 | Phase 20 | Complete |
 | KEYS-03 | Phase 20 | Complete |
-| HEADER-01 | Phase 21 | Pending |
+| HEADER-01 | Phase 21 | Complete |
 | HEADER-02 | Phase 21 | Pending |
-| HEADER-03 | Phase 21 | Pending |
-| HEADER-04 | Phase 21 | Pending |
+| HEADER-03 | Phase 21 | Complete |
+| HEADER-04 | Phase 21 | Complete |
 | HEADER-05 | Phase 21 | Complete |
-| HEADER-06 | Phase 21 | Pending |
-| HEADER-07 | Phase 21 | Pending |
+| HEADER-06 | Phase 21 | Complete |
+| HEADER-07 | Phase 21 | Complete |
 | KEYS-04 | Phase 21 | Complete |
 | KEYS-05 | Phase 21 | Complete |
 | KEYS-06 | Phase 21 | Complete |
