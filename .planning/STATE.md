@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: UX & Branding
-status: completed
-stopped_at: Completed 21-03-PLAN.md
-last_updated: "2026-03-16T11:36:24.701Z"
-last_activity: 2026-03-16 — Phase 21 Plan 03 executed (Pin button + J/K navigation in My Tasks, Notifications, Backlog)
+status: executing
+stopped_at: Completed 21-04-PLAN.md
+last_updated: "2026-03-16T12:19:36.675Z"
+last_activity: 2026-03-16 — Phase 21 Plan 05 executed (J/K nav fix + /notifications route)
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 21
-  completed_plans: 21
+  total_plans: 23
+  completed_plans: 23
   percent: 100
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 ## Current Position
 
 Phase: 21 of 22 (Header Redesign + Pinned Issue Tabs)
-Plan: 3 of 3
-Status: Phase 21 Complete
-Last activity: 2026-03-16 — Phase 21 Plan 03 executed (Pin button + J/K navigation in My Tasks, Notifications, Backlog)
+Plan: 5 of 6 (gap closure)
+Status: Phase 21 Gap Closure In Progress
+Last activity: 2026-03-16 — Phase 21 Plan 05 executed (J/K nav fix + /notifications route)
 
 Progress: [██████████] 100%
 
@@ -72,6 +72,8 @@ Progress: [██████████] 100%
 | Phase 21-header-redesign-pinned-issue-tabs P01 | 2 | 2 tasks | 3 files |
 | Phase 21-header-redesign-pinned-issue-tabs P02 | 2 | 2 tasks | 5 files |
 | Phase 21-header-redesign-pinned-issue-tabs P03 | 5 | 2 tasks | 6 files |
+| Phase 21-header-redesign-pinned-issue-tabs P04 | 2 | 2 tasks | 4 files |
+| Phase 21-header-redesign-pinned-issue-tabs P05 | 2 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -121,6 +123,9 @@ Key v1.3 constraints from research:
 - [Phase 21-header-redesign-pinned-issue-tabs]: BacklogRow converted to React.forwardRef for scrollIntoView support from parent
 - [Phase 21-header-redesign-pinned-issue-tabs]: Ref map pattern (useRef<Map<string, Element>>) used for dynamic row ref tracking in J/K navigation
 - [Phase 21-header-redesign-pinned-issue-tabs]: Focus highlight uses bg-muted + border-l-2 border-primary + aria-current across all list views
+- [Phase 21-header-redesign-pinned-issue-tabs]: selectedIssueKey passed via outlet context (not React context) to stay consistent with prop-threading pattern; guards useListNavigation enabled in all list views
+- [Phase 21-header-redesign-pinned-issue-tabs]: Branding moved to Sidebar with hidden md:block for responsive text
+- [Phase 21-header-redesign-pinned-issue-tabs]: Pinned tab skeleton uses Skeleton component from ui/skeleton for consistency
 
 ### Pending Todos
 
@@ -134,6 +139,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-16T11:29:47Z
-Stopped at: Completed 21-03-PLAN.md
-Resume: Phase 21 complete (all 3 plans). Continue with Phase 22 (Polish - Empty States + Error Recovery)
+Last session: 2026-03-16T12:19:36.669Z
+Stopped at: Completed 21-04-PLAN.md
+Resume: Continue with Phase 21 Plan 06 (gap closure), then Phase 22 (Polish - Empty States + Error Recovery)
