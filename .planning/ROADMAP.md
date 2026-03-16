@@ -111,7 +111,7 @@ Plans:
   4. Typing 2 or more characters produces a "Search Jira for X" tail item that fires a live query
   5. A clock icon in the TopBar opens a popover listing the last 10 recently opened issues/MRs; clicking any item opens that issue's detail panel
   6. Pressing Cmd+Shift+S navigates to Sprint Board, Cmd+Shift+B to Backlog, and Cmd+Shift+N to Notifications from anywhere in the app
-**Plans**: 5 plans
+**Plans**: 6 plans
 
 Plans:
 - [ ] 20-01-PLAN.md — Foundation: shadcn command install + recent-items store + shortcut registry entries
@@ -119,6 +119,7 @@ Plans:
 - [ ] 20-03-PLAN.md — RecentItemsPopover component (clock icon + popover)
 - [ ] 20-04-PLAN.md — TopBar + AppLayout wiring, nav shortcuts, recent item tracking, delete old search files
 - [ ] 20-05-PLAN.md — Gap closure: add "Create issue" action to CommandPalette (PALETTE-04)
+- [ ] 20-06-PLAN.md — Gap closure: fix navigation search filtering + recent item titles (UAT)
 
 ### Phase 21: Header Redesign + Pinned Issue Tabs
 **Goal**: The app header communicates Taskflow's brand identity and users can maintain quick access to multiple open issues via a persistent tab strip
@@ -128,7 +129,7 @@ Plans:
   1. The top bar on every route shows the Taskflow logo and app name consistently
   2. The issue detail panel header has a pin button; clicking it adds the issue to a tab strip rendered below the top bar
   3. Pinned tabs display the issue key and summary; clicking a tab opens that issue's detail panel
-  4. Each tab has an × button that removes it from the strip; when more than 7 issues are pinned a +N overflow indicator appears
+  4. Each tab has an x button that removes it from the strip; when more than 7 issues are pinned a +N overflow indicator appears
   5. Pinned tabs survive an app restart — the same tabs are visible after relaunching
   6. In My Tasks, Notifications, and Backlog list views, pressing J or K moves keyboard focus between rows; pressing Enter opens the focused item's detail panel
 **Plans**: TBD
@@ -169,6 +170,6 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22
 | 17. Nyquist Validation — Phases 9–14 | v1.2 | — | Complete | 2026-03-15 |
 | 18. App Icon + Multi-Page Settings | 6/6 | Complete    | 2026-03-15 | - |
 | 19. Keyboard Foundation | 6/6 | Complete   | 2026-03-15 |
-| 20. Command Palette + Recent Items | 5/5 | Complete    | 2026-03-16 | - |
+| 20. Command Palette + Recent Items | 6/6 | In Progress | 2026-03-16 | - |
 | 21. Header Redesign + Pinned Issue Tabs | v1.3 | 0/TBD | Not started | - |
 | 22. Polish — Empty States + Error Recovery | v1.3 | 0/TBD | Not started | - |
