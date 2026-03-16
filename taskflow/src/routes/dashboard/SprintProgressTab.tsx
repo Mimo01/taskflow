@@ -14,7 +14,10 @@
  */
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, BarChart3 } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
+import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { fetchSprintIssues } from '@/services/jira';
@@ -49,6 +52,9 @@ export default function SprintProgressTab() {
     refetchInterval: 60_000,
     staleTime: 30_000,
   });
+
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  useEffect(() => { setBannerDismissed(false); }, [error]);
 
   const computed = useMemo(() => {
     const issues = data ?? [];
@@ -185,15 +191,21 @@ export default function SprintProgressTab() {
         </div>
       )}
 
-      {/* Error state */}
-      {isError && (
-        <div className="rounded border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {(error as Error)?.message ?? 'Failed to load sprint data'}
-        </div>
+      {/* Error state — no cached data */}
+      {isError && !data && <ErrorState error={error} onRetry={refetch} viewName="sprint progress" />}
+
+      {/* Stale data banner — error with cached data */}
+      {isError && data && !bannerDismissed && (
+        <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
+      )}
+
+      {/* Empty state — no issues in sprint */}
+      {!isLoading && !isError && data && data.length === 0 && (
+        <EmptyState icon={BarChart3} title="No sprint data yet" subtitle="Sprint progress will appear once a sprint is active" />
       )}
 
       {/* Content */}
-      {!isLoading && !isError && (
+      {!isLoading && !isError && data && data.length > 0 && (
         <div className="flex flex-col gap-4">
           {/* Status bucket rows — unchanged labels, unchanged dot colors */}
           <div className="flex flex-col gap-2">

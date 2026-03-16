@@ -11,6 +11,7 @@ import React from 'react';
 
 vi.mock('react-router-dom', () => ({
   useOutletContext: () => ({ onIssueClick: vi.fn() }),
+  useNavigate: vi.fn(() => vi.fn()),
 }));
 
 // Mock stronghold — avoid real Tauri vault calls
@@ -169,7 +170,7 @@ describe('MyTasksTab', () => {
     const { default: MyTasksTab } = await import('./MyTasksTab');
     renderWithQuery(<MyTasksTab />);
 
-    await screen.findByText(/Failed to fetch tasks/i);
+    await screen.findByText(/Couldn't load tasks/i);
   });
 
   it('renders last-refreshed time when data loads', async () => {
@@ -187,7 +188,7 @@ describe('MyTasksTab', () => {
     renderWithQuery(<MyTasksTab />);
 
     // Wait for data to finish loading, then last-refreshed should appear
-    await screen.findByText(/no tasks/i);
+    await screen.findByText(/all caught up/i);
     // Should show a time, not "Never" since data loaded successfully
     const refreshedEl = screen.getByText(/refreshed:/i);
     expect(refreshedEl).toBeTruthy();

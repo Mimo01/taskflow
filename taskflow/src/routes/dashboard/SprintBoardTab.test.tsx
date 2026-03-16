@@ -16,6 +16,7 @@ let onIssueClickShared = vi.fn();
 
 vi.mock('react-router-dom', () => ({
   useOutletContext: vi.fn(() => ({ onIssueClick: onIssueClickShared })),
+  useNavigate: vi.fn(() => vi.fn()),
 }));
 
 // Mock stronghold — avoid real Tauri vault calls
@@ -158,7 +159,7 @@ describe('SprintBoardTab', () => {
     const { default: SprintBoardTab } = await import('./SprintBoardTab');
     renderWithQuery(<SprintBoardTab />);
 
-    await screen.findByText(/Failed to load sprint board/i);
+    await screen.findByText(/Couldn't load sprint board/i);
   });
 
   it('renders empty state when data is empty array', async () => {
@@ -175,7 +176,7 @@ describe('SprintBoardTab', () => {
     const { default: SprintBoardTab } = await import('./SprintBoardTab');
     renderWithQuery(<SprintBoardTab />);
 
-    await screen.findByText(/No issues in the current sprint/i);
+    await screen.findByText(/No sprint issues/i);
   });
 
   // ─── HIER-02 behavior stubs (RED state — FAIL against current implementation) ─

@@ -17,7 +17,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, ClipboardList } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState } from '@/components/ui/error-state'
+import { StaleDataBanner } from '@/components/ui/stale-data-banner'
 import { useAuthStore } from '@/stores/auth.store'
 import { useSettingsStore } from '@/stores/settings.store'
 import { fetchMyTasksHierarchy, postTransition, postComment } from '@/services/jira'
@@ -214,6 +217,10 @@ export default function MyTasksTab() {
 
   const queryClient = useQueryClient()
 
+  // Banner dismissed state for stale data banner
+  const [bannerDismissed, setBannerDismissed] = useState(false)
+  useEffect(() => { setBannerDismissed(false) }, [error])
+
   // Per-row inline errors: keyed by `${issueKey}-transition` or `${issueKey}-comment`
   const [inlineErrors, setInlineErrors] = useState<Record<string, string>>({})
   const { onIssueClick: setSelectedIssueKey, selectedIssueKey } = useOutletContext<{ onIssueClick: (key: string) => void; selectedIssueKey: string | null }>()
@@ -351,18 +358,17 @@ export default function MyTasksTab() {
         </div>
       )}
 
-      {/* Error state */}
-      {isError && (
-        <div className="rounded border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {(error as Error)?.message ?? 'Failed to load tasks'}
-        </div>
+      {/* Error state — no cached data */}
+      {isError && !data && <ErrorState error={error} onRetry={refetch} viewName="tasks" />}
+
+      {/* Stale data banner — error with cached data */}
+      {isError && data && !bannerDismissed && (
+        <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
       )}
 
       {/* Empty state */}
       {!isLoading && !isError && data && data.length === 0 && (
-        <div className="py-8 text-center text-sm text-muted-foreground">
-          No tasks — you are all caught up!
-        </div>
+        <EmptyState icon={ClipboardList} title="You're all caught up!" subtitle="No tasks assigned to you in the active sprint" />
       )}
 
       {/* Task list — grouped by parent→subtasks */}

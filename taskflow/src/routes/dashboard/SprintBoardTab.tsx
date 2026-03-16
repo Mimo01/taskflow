@@ -15,7 +15,10 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Columns3 } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState } from '@/components/ui/error-state'
+import { StaleDataBanner } from '@/components/ui/stale-data-banner'
 import {
   DndContext,
   DragOverlay,
@@ -132,6 +135,9 @@ export default function SprintBoardTab() {
     staleTime: 30_000,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   })
+
+  const [bannerDismissed, setBannerDismissed] = useState(false)
+  useEffect(() => { setBannerDismissed(false) }, [error])
 
   /** Used to map transition target status IDs → category keys for drag-and-drop */
   const { data: workflowStatuses } = useQuery({
@@ -365,10 +371,17 @@ export default function SprintBoardTab() {
             </div>
           )}
 
-          {/* Error */}
-          {isError && (
-            <div className="m-4 rounded border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {(error as Error)?.message ?? 'Failed to load sprint board'}
+          {/* Error state — no cached data */}
+          {isError && !data && (
+            <div className="m-4">
+              <ErrorState error={error} onRetry={refetch} viewName="sprint board" />
+            </div>
+          )}
+
+          {/* Stale data banner — error with cached data */}
+          {isError && data && !bannerDismissed && (
+            <div className="m-4">
+              <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
             </div>
           )}
 
@@ -397,9 +410,7 @@ export default function SprintBoardTab() {
 
           {/* Empty */}
           {!isLoading && !isError && data && swimlanes.length === 0 && (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              No issues in the current sprint.
-            </div>
+            <EmptyState icon={Columns3} title="No sprint issues" subtitle="This board will populate when issues are added to the active sprint" />
           )}
 
           {/* Swimlane rows */}
