@@ -147,7 +147,7 @@ export default function RecentItemsPopover({ onIssueClick }: RecentItemsPopoverP
           </div>
 
           {/* List */}
-          <div className="overflow-y-auto max-h-[480px]">
+          <div className="overflow-y-auto max-h-[420px]">
             {items.length === 0 ? (
               <div className="p-6 text-center text-sm text-muted-foreground">
                 No recent items yet
