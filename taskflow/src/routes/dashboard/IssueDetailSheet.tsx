@@ -22,7 +22,7 @@ interface IssueDetailSheetProps {
   onTogglePin?: (key: string) => void
 }
 
-export function IssueDetailSheet({ issueKey, onClose, onOpenIssue, onEdit, onAddSubtask, isPinned: _isPinned, onTogglePin: _onTogglePin }: IssueDetailSheetProps) {
+export function IssueDetailSheet({ issueKey, onClose, onOpenIssue, onEdit, onAddSubtask, isPinned, onTogglePin }: IssueDetailSheetProps) {
   return (
     <Sheet open={issueKey !== null} onOpenChange={(open) => { if (!open) onClose() }}>
       <SheetContent side="right" className="p-0 flex flex-col overflow-hidden" style={{ width: '75vw', maxWidth: '75vw' }}>
@@ -33,6 +33,8 @@ export function IssueDetailSheet({ issueKey, onClose, onOpenIssue, onEdit, onAdd
             onOpenIssue={onOpenIssue}
             onEdit={onEdit}
             onAddSubtask={onAddSubtask}
+            isPinned={isPinned}
+            onTogglePin={onTogglePin}
           />
         )}
       </SheetContent>
@@ -45,12 +47,16 @@ function IssueDetailBody({
   onOpenIssue,
   onEdit,
   onAddSubtask,
+  isPinned,
+  onTogglePin,
 }: {
   'data-testid'?: string
   issueKey: string
   onOpenIssue?: (key: string) => void
   onEdit?: (initialValues: EditInitialValues) => void
   onAddSubtask?: (parentKey: string) => void
+  isPinned?: boolean
+  onTogglePin?: (key: string) => void
 }) {
   const { jiraBaseUrl, jiraConnected } = useAuthStore()
   const { epicLinkFieldKey, epicNameFieldKey, sprintFieldKey, storyPointsFieldKey } = useSettingsStore()
@@ -103,6 +109,8 @@ function IssueDetailBody({
           sprintFieldKey={sprintFieldKey}
           epicLinkFieldKey={epicLinkFieldKey}
           epicStories={epicStories}
+          isPinned={isPinned}
+          onTogglePin={onTogglePin}
         />
       </div>
       {/* Right sidebar: ~42% */}
