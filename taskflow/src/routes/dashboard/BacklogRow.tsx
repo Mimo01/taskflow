@@ -81,7 +81,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       </td>
 
       {/* Key cell */}
-      <td className="w-24 px-2 py-2 density-compact:py-1 density-comfortable:py-3">
+      <td className="w-24 px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap">
         <span className="font-mono text-xs text-muted-foreground">{issue.key}</span>
       </td>
 
@@ -122,7 +122,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
             {storyPoints}
           </span>
         ) : (
-          <span className="text-xs text-muted-foreground">--</span>
+          <span className="inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">?</span>
         )}
       </td>
 

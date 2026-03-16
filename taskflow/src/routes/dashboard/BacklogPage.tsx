@@ -304,7 +304,7 @@ export default function BacklogPage() {
                 <thead className="border-b bg-muted/10">
                   <tr>
                     <th className="w-8 px-3 py-2" />
-                    <th className="w-24 px-2 py-2 text-left text-xs font-medium text-muted-foreground">
+                    <th className="w-24 px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                       Key
                     </th>
                     <th className="w-32 px-2 py-2 text-left text-xs font-medium text-muted-foreground">
