@@ -8,7 +8,7 @@
  * Reads issueKey from route params. Origin page info comes via
  * location.state.from (set by handleIssueClick in main.tsx).
  */
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, MoreVertical } from 'lucide-react'
@@ -179,9 +179,9 @@ export default function IssueDetailPage() {
         <IssueDetailSkeleton />
       ) : (
         <div className="flex flex-1 overflow-hidden">
-          {/* Left column: scrollable content + sticky composer */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-auto p-6">
+          {/* Left column: scrollable content */}
+          <div className="flex-1 overflow-auto">
+            <div className="p-6">
               <IssueDetailContent
                 issue={issue}
                 issueKey={issueKey}
@@ -196,8 +196,10 @@ export default function IssueDetailPage() {
                 isPinned={isPinned}
                 onTogglePin={togglePin}
               />
+            </div>
 
-              {/* Comment thread */}
+            {/* Comment section — composer sticks to bottom only while this wrapper is in view */}
+            <div className="px-6">
               <CommentThread
                 comments={comments}
                 issueKey={issueKey}
@@ -206,11 +208,10 @@ export default function IssueDetailPage() {
                 attachmentMap={attachmentMap}
                 userMap={userMap}
               />
-            </div>
 
-            {/* Sticky composer */}
-            <div className="border-t p-4 bg-background shrink-0">
-              <CommentComposer issueKey={issueKey} jiraBaseUrl={jiraBaseUrl!} />
+              <div className="sticky bottom-0 border-t py-3 -mx-6 px-6 bg-background">
+                <CommentComposer issueKey={issueKey} jiraBaseUrl={jiraBaseUrl!} />
+              </div>
             </div>
           </div>
 
@@ -246,24 +247,10 @@ interface CommentThreadProps {
 
 function CommentThread({ comments, issueKey, jiraBaseUrl, jiraUserDisplayName, attachmentMap, userMap }: CommentThreadProps) {
   const queryClient = useQueryClient()
-  const [showMenuId, setShowMenuId] = useState<string | null>(null)
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
   const [editError, setEditError] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
-
-  // Close menu on outside click
-  useEffect(() => {
-    if (!showMenuId) return
-    function handleClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setShowMenuId(null)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [showMenuId])
 
   const editMutation = useMutation({
     mutationFn: async ({ commentId, body }: { commentId: string; body: string }) => {
@@ -297,30 +284,37 @@ function CommentThread({ comments, issueKey, jiraBaseUrl, jiraUserDisplayName, a
     },
   })
 
-  function handleEdit(comment: JiraComment) {
-    setShowMenuId(null)
+  // Use refs so callbacks are stable across renders (don't break memo)
+  const editMutateRef = useRef(editMutation.mutate)
+  editMutateRef.current = editMutation.mutate
+  const deleteMutateRef = useRef(deleteMutation.mutate)
+  deleteMutateRef.current = deleteMutation.mutate
+  const editTextRef = useRef(editText)
+  editTextRef.current = editText
+
+  const handleEdit = useCallback((comment: JiraComment) => {
     setEditingCommentId(comment.id)
     setEditText(comment.body)
     setEditError(null)
-  }
+  }, [])
 
-  function handleDelete(comment: JiraComment) {
-    setShowMenuId(null)
+  const handleDelete = useCallback((comment: JiraComment) => {
     if (!window.confirm('Delete this comment? This cannot be undone.')) return
     setDeleteError(null)
-    deleteMutation.mutate(comment.id)
-  }
+    deleteMutateRef.current(comment.id)
+  }, [])
 
-  function handleSaveEdit(commentId: string) {
-    if (!editText.trim()) return
-    editMutation.mutate({ commentId, body: editText.trim() })
-  }
+  const handleSaveEdit = useCallback((commentId: string) => {
+    const text = editTextRef.current.trim()
+    if (!text) return
+    editMutateRef.current({ commentId, body: text })
+  }, [])
 
-  function handleCancelEdit() {
+  const handleCancelEdit = useCallback(() => {
     setEditingCommentId(null)
     setEditText('')
     setEditError(null)
-  }
+  }, [])
 
   return (
     <section className="mt-6 pb-4">
@@ -337,89 +331,24 @@ function CommentThread({ comments, issueKey, jiraBaseUrl, jiraUserDisplayName, a
             const isEditing = editingCommentId === comment.id
 
             return (
-              <div key={comment.id} className="rounded-lg border bg-card p-3 space-y-2">
-                {/* Card header */}
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="font-medium text-sm">{comment.author.displayName}</span>
-                  <span className="text-muted-foreground">{relativeTime(comment.created)}</span>
-                  {comment.updated !== comment.created && (
-                    <span className="text-muted-foreground italic">(edited)</span>
-                  )}
-
-                  {/* 3-dot menu for own comments */}
-                  {isOwn && !isEditing && (
-                    <div className="ml-auto relative">
-                      <button
-                        type="button"
-                        onClick={() => setShowMenuId(showMenuId === comment.id ? null : comment.id)}
-                        className="p-1 rounded hover:bg-accent"
-                        aria-label="Comment actions"
-                      >
-                        <MoreVertical className="size-4" />
-                      </button>
-                      {showMenuId === comment.id && (
-                        <div
-                          ref={menuRef}
-                          className="absolute right-0 top-8 z-50 bg-popover border rounded-md shadow-md py-1 min-w-[100px]"
-                        >
-                          <button
-                            type="button"
-                            onClick={() => handleEdit(comment)}
-                            className="px-3 py-1.5 text-sm hover:bg-accent cursor-pointer w-full text-left"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(comment)}
-                            className="px-3 py-1.5 text-sm hover:bg-accent cursor-pointer w-full text-left text-destructive"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Card body */}
-                {isEditing ? (
-                  <div className="space-y-2">
-                    <Textarea
-                      value={editText}
-                      onChange={(e) => setEditText(e.target.value)}
-                      className="min-h-[80px] resize-none"
-                    />
-                    {editError && (
-                      <p className="text-xs text-destructive">{editError}</p>
-                    )}
-                    <div className="flex gap-2 justify-end">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCancelEdit}
-                        disabled={editMutation.isPending}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => handleSaveEdit(comment.id)}
-                        disabled={!editText.trim() || editMutation.isPending}
-                      >
-                        {editMutation.isPending ? 'Saving...' : 'Save'}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <WikiRenderer wikiText={comment.body} attachments={attachmentMap} users={userMap} />
-                )}
-
-                {/* Delete error inline */}
-                {deleteError && deleteMutation.variables === comment.id && (
-                  <p className="text-xs text-destructive">{deleteError}</p>
-                )}
-              </div>
+              <CommentCard
+                key={comment.id}
+                comment={comment}
+                isOwn={isOwn}
+                isEditing={isEditing}
+                editText={isEditing ? editText : ''}
+                editError={isEditing ? editError : null}
+                deleteError={isEditing ? deleteError : null}
+                deletingCommentId={deleteMutation.variables ?? null}
+                editPending={isEditing ? editMutation.isPending : false}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onSaveEdit={handleSaveEdit}
+                onCancelEdit={handleCancelEdit}
+                onEditTextChange={setEditText}
+                attachmentMap={attachmentMap}
+                userMap={userMap}
+              />
             )
           })}
         </div>
@@ -427,6 +356,133 @@ function CommentThread({ comments, issueKey, jiraBaseUrl, jiraUserDisplayName, a
     </section>
   )
 }
+
+// ─── Comment Card (memoized to prevent re-renders on sibling menu/edit state) ──
+
+interface CommentCardProps {
+  comment: JiraComment
+  isOwn: boolean
+  isEditing: boolean
+  editText: string
+  editError: string | null
+  deleteError: string | null
+  deletingCommentId: string | null
+  editPending: boolean
+  onEdit: (comment: JiraComment) => void
+  onDelete: (comment: JiraComment) => void
+  onSaveEdit: (commentId: string) => void
+  onCancelEdit: () => void
+  onEditTextChange: (text: string) => void
+  attachmentMap: AttachmentMap
+  userMap: UserMap
+}
+
+const CommentCard = memo(function CommentCard({
+  comment, isOwn, isEditing, editText, editError, deleteError, deletingCommentId,
+  editPending, onEdit, onDelete, onSaveEdit, onCancelEdit, onEditTextChange,
+  attachmentMap, userMap,
+}: CommentCardProps) {
+  const [showMenu, setShowMenu] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!showMenu) return
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showMenu])
+
+  return (
+    <div className="rounded-lg border bg-card p-3 space-y-2">
+      {/* Card header */}
+      <div className="flex items-center gap-2 text-xs">
+        <span className="font-medium text-sm">{comment.author.displayName}</span>
+        <span className="text-muted-foreground">{relativeTime(comment.created)}</span>
+        {comment.updated !== comment.created && (
+          <span className="text-muted-foreground italic">(edited)</span>
+        )}
+
+        {/* 3-dot menu for own comments */}
+        {isOwn && !isEditing && (
+          <div className="ml-auto relative">
+            <button
+              type="button"
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-1 rounded hover:bg-accent"
+              aria-label="Comment actions"
+            >
+              <MoreVertical className="size-4" />
+            </button>
+            {showMenu && (
+              <div
+                ref={menuRef}
+                className="absolute right-0 top-8 z-50 bg-popover border rounded-md shadow-md py-1 min-w-[100px]"
+              >
+                <button
+                  type="button"
+                  onClick={() => { setShowMenu(false); onEdit(comment) }}
+                  className="px-3 py-1.5 text-sm hover:bg-accent cursor-pointer w-full text-left"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowMenu(false); onDelete(comment) }}
+                  className="px-3 py-1.5 text-sm hover:bg-accent cursor-pointer w-full text-left text-destructive"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Card body */}
+      {isEditing ? (
+        <div className="space-y-2">
+          <Textarea
+            value={editText}
+            onChange={(e) => onEditTextChange(e.target.value)}
+            className="min-h-[80px] resize-none"
+          />
+          {editError && (
+            <p className="text-xs text-destructive">{editError}</p>
+          )}
+          <div className="flex gap-2 justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onCancelEdit}
+              disabled={editPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => onSaveEdit(comment.id)}
+              disabled={!editText.trim() || editPending}
+            >
+              {editPending ? 'Saving...' : 'Save'}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <WikiRenderer wikiText={comment.body} attachments={attachmentMap} users={userMap} />
+      )}
+
+      {/* Delete error inline */}
+      {deleteError && deletingCommentId === comment.id && (
+        <p className="text-xs text-destructive">{deleteError}</p>
+      )}
+    </div>
+  )
+})
 
 // ─── Skeleton ──────────────────────────────────────────────────────────────────
 
