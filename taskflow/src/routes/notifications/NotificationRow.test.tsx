@@ -51,9 +51,9 @@ describe('NotificationRow', () => {
     expect(screen.getByText('Comment mention')).toBeInTheDocument();
   });
 
-  it('renders priority chip when priority is provided', () => {
-    const item: NotificationItem = { ...makeItem('jira'), priority: 'High' };
+  it('renders entityState chip when entityState is provided', () => {
+    const item: NotificationItem = { ...makeItem('gitlab'), entityState: 'merged' };
     render(<NotificationRow item={item} onClick={() => {}} />);
-    expect(screen.getByText('High')).toBeInTheDocument();
+    expect(screen.getByText('merged')).toBeInTheDocument();
   });
 });

@@ -29,8 +29,6 @@ export interface NotificationItem {
   createdAt: string;     // ISO 8601
   url?: string;              // browser-openable URL for the entity
   notificationType?: 'comment-mention' | 'issue-update' | 'mr-note';
-  priority?: string;         // Jira: "High" / "Medium" / "Low" etc.
-  labels?: string[];         // Jira: issue label names
   entityState?: string;      // GitLab: "opened" | "merged" | "closed"
 }
 
@@ -84,7 +82,7 @@ async function fetchNewJiraComments(
       ` AND (assignee = "${username}" OR reporter = "${username}" OR watcher = "${username}")` +
       ` AND updatedDate >= "${sinceJql}"` +
       ` ORDER BY updated DESC`;
-    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee,reporter,updated,priority,labels&expand=changelog&maxResults=20`;
+    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee,reporter,updated&expand=changelog&maxResults=20`;
 
     let response: Response;
     try {
@@ -107,8 +105,6 @@ async function fetchNewJiraComments(
           assignee?: { displayName: string } | null;
           reporter?: { displayName: string } | null;
           updated: string;
-          priority?: { name: string } | null;
-          labels?: string[];
         };
         changelog?: {
           histories: Array<{
@@ -164,8 +160,6 @@ async function fetchNewJiraComments(
         createdAt: issue.fields.updated,
         url: `${base}/browse/${issue.key}`,
         notificationType: 'issue-update',
-        priority: issue.fields.priority?.name,
-        labels: issue.fields.labels ?? [],
         entityState: undefined,
       });
     }
@@ -227,8 +221,6 @@ async function fetchNewJiraComments(
           createdAt: comment.created,
           url: `${base}/browse/${issue.key}`,
           notificationType: 'comment-mention',
-          priority: undefined,
-          labels: undefined,
           entityState: undefined,
         });
       }
@@ -319,8 +311,6 @@ async function fetchNewGitlabNotes(
           createdAt: note.created_at,
           url: mr.web_url,
           notificationType: 'mr-note',
-          priority: undefined,
-          labels: undefined,
           entityState: mr.state,
         });
         continue;
@@ -336,8 +326,6 @@ async function fetchNewGitlabNotes(
         createdAt: note.created_at,
         url: mr.web_url,
         notificationType: 'mr-note',
-        priority: undefined,
-        labels: undefined,
         entityState: mr.state,
       });
     }
