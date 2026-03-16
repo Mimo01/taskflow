@@ -119,12 +119,18 @@ function AppLayout() {
   useHotkeys('mod+shift+n', () => setNotifPopoverOpen(true));
   useHotkeys('mod+comma', () => navigate('/settings'));
 
-  // KEYS-02: Listen for native menu "Help > Keyboard Shortcuts" click
+  // Listen for all native menu bar item clicks and route to existing handlers
   useEffect(() => {
-    const unlisten = listen('menu-keyboard-shortcuts', () => {
-      setShortcutsOpen(true);
-    });
-    return () => { unlisten.then((fn) => fn()); };
+    const listeners = [
+      listen('menu-keyboard-shortcuts', () => setShortcutsOpen(true)),
+      listen('menu-command-palette', () => setPaletteOpen(true)),
+      listen('menu-new-issue', () => handleOpenCreate()),
+      listen('menu-nav-sprint', () => navigate('/sprint-board')),
+      listen('menu-nav-backlog', () => navigate('/backlog')),
+      listen('menu-nav-notifications', () => setNotifPopoverOpen(true)),
+      listen('menu-nav-settings', () => navigate('/settings')),
+    ];
+    return () => { listeners.forEach((p) => p.then((fn) => fn())); };
   }, []);
 
   // Track recent items whenever an issue is opened from any entry point
