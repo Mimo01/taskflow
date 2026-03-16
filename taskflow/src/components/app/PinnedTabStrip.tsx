@@ -11,8 +11,14 @@
  */
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Bug, BookOpen, CheckSquare, CornerDownRight, Loader2 } from 'lucide-react';
+import { Bug, BookOpen, CheckSquare, CornerDownRight, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 
 interface PinnedTabStripProps {
   pinnedKeys: string[];
@@ -85,7 +91,6 @@ export default function PinnedTabStrip({
   }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent, index: number) => {
-    if ((e.target as HTMLElement).closest('[data-close-btn]')) return;
     const el = tabRefs.current.get(index);
     const rect = el?.getBoundingClientRect();
     const offsetX = rect ? e.clientX - rect.left : 0;
@@ -197,55 +202,52 @@ export default function PinnedTabStrip({
               {showPlaceholderBefore && (
                 <div className="h-9 w-[110px] shrink-0 rounded-t-md border-2 border-dashed border-primary/30 bg-primary/5" style={{ width: ghost?.width }} />
               )}
-              <div
-                ref={(el) => { if (el) tabRefs.current.set(index, el); else tabRefs.current.delete(index); }}
-                role="tab"
-                tabIndex={0}
-                aria-selected={key === activeKey}
-                onPointerDown={(e) => handlePointerDown(e, index)}
-                onClick={() => {
-                  if (didDragRef.current) { didDragRef.current = false; return; }
-                  onTabClick(key);
-                }}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onTabClick(key); }}
-                className={cn(
-                  'flex items-center gap-1.5 px-2.5 h-9 shrink-0 rounded-t-md text-xs font-medium border-b-2 transition-all duration-150 ease-in-out group select-none',
-                  resolved ? 'max-w-[180px]' : 'w-[110px]',
-                  key === activeKey
-                    ? 'border-primary text-foreground bg-muted/50'
-                    : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
-                  isDragging && dropTarget !== null && dropTarget !== draggingIndex && 'opacity-0 !w-0 !px-0 !gap-0 !mx-0 overflow-hidden',
-                  isDragging && (dropTarget === null || dropTarget === draggingIndex) && 'opacity-30',
-                  draggingIndex !== null ? 'cursor-grabbing' : 'cursor-grab',
-                )}
-              >
-                {resolved ? (
-                  <>
-                    <IssueTypeIcon typeName={resolved.issueTypeName} />
-                    <div className="flex flex-col min-w-0 leading-none">
-                      <span className="font-mono text-[9px] text-muted-foreground/60 whitespace-nowrap">{key}</span>
-                      <span className="truncate text-[11px] leading-tight">{resolved.summary}</span>
-                    </div>
-                    <button
-                      type="button"
-                      data-close-btn
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onTabClose(key);
-                      }}
-                      className="shrink-0 rounded p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent"
-                      aria-label={`Unpin ${key}`}
-                    >
-                      <X className="w-3 h-3 text-muted-foreground hover:text-foreground" />
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin text-muted-foreground" />
-                    <span className="font-mono text-[11px] whitespace-nowrap">{key}</span>
-                  </>
-                )}
-              </div>
+              <ContextMenu>
+                <ContextMenuTrigger>
+                  <div
+                    ref={(el) => { if (el) tabRefs.current.set(index, el); else tabRefs.current.delete(index); }}
+                    role="tab"
+                    tabIndex={0}
+                    aria-selected={key === activeKey}
+                    onPointerDown={(e) => handlePointerDown(e, index)}
+                    onClick={() => {
+                      if (didDragRef.current) { didDragRef.current = false; return; }
+                      onTabClick(key);
+                    }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onTabClick(key); }}
+                    className={cn(
+                      'flex items-center gap-1.5 px-2.5 h-9 shrink-0 rounded-t-md text-xs font-medium border-b-2 transition-all duration-150 ease-in-out group select-none',
+                      resolved ? 'max-w-[180px]' : 'w-[110px]',
+                      key === activeKey
+                        ? 'border-primary text-foreground bg-muted/50'
+                        : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
+                      isDragging && dropTarget !== null && dropTarget !== draggingIndex && 'opacity-0 !w-0 !px-0 !gap-0 !mx-0 overflow-hidden',
+                      isDragging && (dropTarget === null || dropTarget === draggingIndex) && 'opacity-30',
+                      draggingIndex !== null ? 'cursor-grabbing' : 'cursor-grab',
+                    )}
+                  >
+                    {resolved ? (
+                      <>
+                        <IssueTypeIcon typeName={resolved.issueTypeName} />
+                        <div className="flex flex-col min-w-0 leading-none">
+                          <span className="font-mono text-[9px] text-muted-foreground/60 whitespace-nowrap">{key}</span>
+                          <span className="truncate text-[11px] leading-tight">{resolved.summary}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin text-muted-foreground" />
+                        <span className="font-mono text-[11px] whitespace-nowrap">{key}</span>
+                      </>
+                    )}
+                  </div>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem onClick={() => onTabClose(key)}>
+                    Unpin {key}
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
               {showPlaceholderAfter && (
                 <div className="h-9 w-[110px] shrink-0 rounded-t-md border-2 border-dashed border-primary/30 bg-primary/5" style={{ width: ghost?.width }} />
               )}
