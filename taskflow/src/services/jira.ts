@@ -299,7 +299,7 @@ export async function fetchSprintIssues(
   const spFields = [...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey])].join(',');
   const fields = `summary,status,assignee,issuetype,${spFields},parent,subtasks,timetracking`;
   const jql = encodeURIComponent(
-    `project = ${projectKey} AND sprint in openSprints()${assigneeClause} AND issuetype not in subtaskIssueTypes() ORDER BY updated DESC`,
+    `project = ${projectKey} AND sprint in openSprints()${assigneeClause} AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`,
   );
   const baseSearchUrl = `${base}/rest/api/2/search?jql=${jql}&fields=${fields}`;
 
@@ -395,7 +395,7 @@ export async function fetchMyTasksHierarchy(
 
   // Step 1: my stories + my subtasks in parallel — both fully paginated
   const myStoriesJql = encodeURIComponent(
-    `project = ${projectKey} AND sprint in openSprints() AND issuetype not in subtaskIssueTypes() AND assignee = currentUser() ORDER BY updated DESC`,
+    `project = ${projectKey} AND sprint in openSprints() AND issuetype not in subtaskIssueTypes() AND assignee = currentUser() ORDER BY rank ASC`,
   );
   // Note: sprint in openSprints() does not work for subtasks on Jira DC — use statusCategory filter instead.
   // Sprint membership is validated downstream by checking parent key against sprintKeySet.
