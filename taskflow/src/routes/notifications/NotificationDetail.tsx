@@ -114,18 +114,46 @@ export default function NotificationDetail({ item, onClose }: NotificationDetail
         </button>
       )}
 
-      {/* Full body — linkified, with structured display for arrow-format changes */}
-      <pre className="whitespace-pre-wrap text-sm overflow-auto max-h-48 bg-muted/30 p-2 rounded text-foreground">
-        {(item.notificationType === 'issue-update' || item.notificationType === 'mr-note') &&
-         item.fullBody.includes('\u2192')
-          ? item.fullBody.split('\n').map((line, i) => (
-              <div key={i} className="py-0.5">
-                <span className="text-sm">{line}</span>
-              </div>
-            ))
-          : <span dangerouslySetInnerHTML={{ __html: linkifyText(item.fullBody) }} />
-        }
-      </pre>
+      {/* Full body — structured change cards for arrow-format, linkified for plain text */}
+      {(item.notificationType === 'issue-update' || item.notificationType === 'mr-note') &&
+       item.fullBody.includes('\u2192')
+        ? (
+          <div className="flex flex-col gap-1.5">
+            {item.fullBody.split('\n').filter(Boolean).map((line, i) => {
+              const colonIdx = line.indexOf(':');
+              const field = colonIdx > 0 ? line.slice(0, colonIdx).trim() : null;
+              const rest = colonIdx > 0 ? line.slice(colonIdx + 1).trim() : line;
+              const arrowIdx = rest.indexOf('\u2192');
+              const from = arrowIdx >= 0 ? rest.slice(0, arrowIdx).trim() : null;
+              const to = arrowIdx >= 0 ? rest.slice(arrowIdx + 1).trim() : rest;
+
+              return (
+                <div key={i} className="flex items-center gap-2 rounded-md bg-muted/50 border border-border px-3 py-2">
+                  {field && (
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide shrink-0">
+                      {field}
+                    </span>
+                  )}
+                  {from !== null ? (
+                    <div className="flex items-center gap-1.5 text-sm min-w-0">
+                      <span className="text-muted-foreground line-through truncate">{from || '(none)'}</span>
+                      <span className="text-muted-foreground shrink-0">→</span>
+                      <span className="font-medium text-foreground truncate">{to || '(none)'}</span>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-foreground">{to}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )
+        : (
+          <pre className="whitespace-pre-wrap text-sm overflow-auto max-h-48 bg-muted/30 p-2 rounded text-foreground">
+            <span dangerouslySetInnerHTML={{ __html: linkifyText(item.fullBody) }} />
+          </pre>
+        )
+      }
     </div>
   );
 }

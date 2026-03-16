@@ -77,19 +77,42 @@ export default function NotificationRow({ item, isUnread = false, onClick }: Not
           {item.entityTitle}
         </p>
 
-        {/* Body preview — linkified, with multi-line support for arrow-format changes */}
-        <p className={`text-xs line-clamp-2 ${isUnread ? 'text-foreground/70' : 'text-muted-foreground'}`}>
-          {(item.notificationType === 'issue-update' || item.notificationType === 'mr-note') &&
-           item.bodyPreview.includes('\u2192')
-            ? (item.bodyPreview.includes(' | ')
-                ? item.bodyPreview.split(' | ').map((line, i) => (
-                    <span key={i} className="block">{line}</span>
-                  ))
-                : <span>{item.bodyPreview}</span>
-              )
-            : <span dangerouslySetInnerHTML={{ __html: linkifyText(item.bodyPreview) }} />
-          }
-        </p>
+        {/* Body preview — styled change lines for arrow-format, linkified for plain text */}
+        {(item.notificationType === 'issue-update' || item.notificationType === 'mr-note') &&
+         item.bodyPreview.includes('\u2192')
+          ? (
+            <div className="flex flex-col gap-0.5 mt-0.5">
+              {(item.bodyPreview.includes(' | ') ? item.bodyPreview.split(' | ') : [item.bodyPreview]).map((line, i) => {
+                const colonIdx = line.indexOf(':');
+                const field = colonIdx > 0 ? line.slice(0, colonIdx).trim() : null;
+                const rest = colonIdx > 0 ? line.slice(colonIdx + 1).trim() : line;
+                const arrowIdx = rest.indexOf('\u2192');
+                const from = arrowIdx >= 0 ? rest.slice(0, arrowIdx).trim() : null;
+                const to = arrowIdx >= 0 ? rest.slice(arrowIdx + 1).trim() : rest;
+
+                return (
+                  <span key={i} className="flex items-center gap-1 text-xs">
+                    {field && <span className="font-semibold text-muted-foreground">{field}:</span>}
+                    {from !== null ? (
+                      <>
+                        <span className="text-muted-foreground">{from || '(none)'}</span>
+                        <span className="text-muted-foreground">→</span>
+                        <span className={`font-medium ${isUnread ? 'text-foreground' : 'text-foreground/70'}`}>{to || '(none)'}</span>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">{to}</span>
+                    )}
+                  </span>
+                );
+              })}
+            </div>
+          )
+          : (
+            <p className={`text-xs line-clamp-2 ${isUnread ? 'text-foreground/70' : 'text-muted-foreground'}`}>
+              <span dangerouslySetInnerHTML={{ __html: linkifyText(item.bodyPreview) }} />
+            </p>
+          )
+        }
 
         {/* Metadata chips */}
         {item.entityState && (
