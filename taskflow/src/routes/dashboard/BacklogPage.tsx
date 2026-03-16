@@ -11,7 +11,7 @@
  * Bulk "Move to sprint" action bar and handleMoveToSprint remain unchanged.
  * Create story entry point via Outlet context remains unchanged.
  */
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight } from 'lucide-react';
@@ -22,6 +22,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { BacklogRow } from './BacklogRow';
 import { BacklogFilterBar } from './BacklogFilterBar';
+import { useListNavigation } from '@/hooks/useListNavigation';
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -155,6 +156,44 @@ export default function BacklogPage() {
     });
   }
 
+  // ── J/K navigation ──────────────────────────────────────────────────────────
+
+  const visibleIssueKeys = useMemo(() => {
+    if (!backlogView) return [];
+    const keys: string[] = [];
+    for (const { sprint, issues } of backlogView.sprints) {
+      const sectionId = `sprint-${sprint.id}`;
+      if (collapsedSections.has(sectionId)) continue;
+      const filtered = applyFilters(issues);
+      for (const issue of filtered) {
+        keys.push(issue.key);
+      }
+    }
+    if (!collapsedSections.has('backlog')) {
+      const filtered = applyFilters(backlogView.backlog);
+      for (const issue of filtered) {
+        keys.push(issue.key);
+      }
+    }
+    return keys;
+  }, [backlogView, collapsedSections, activeEpics, activeLabels, activeAssignees]);
+
+  const { focusIndex } = useListNavigation({
+    itemCount: visibleIssueKeys.length,
+    onSelect: (index) => onIssueClick(visibleIssueKeys[index]),
+    enabled: !isLoading && visibleIssueKeys.length > 0,
+  });
+
+  const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
+
+  useEffect(() => {
+    if (focusIndex >= 0 && focusIndex < visibleIssueKeys.length) {
+      const key = visibleIssueKeys[focusIndex];
+      const el = rowRefs.current.get(key);
+      el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }, [focusIndex, visibleIssueKeys]);
+
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
   function handleSelect(key: string, isSelected: boolean) {
@@ -274,6 +313,7 @@ export default function BacklogPage() {
                   {filteredIssues.map((issue) => (
                     <BacklogRow
                       key={issue.key}
+                      ref={(el: HTMLTableRowElement | null) => { if (el) rowRefs.current.set(issue.key, el); else rowRefs.current.delete(issue.key); }}
                       issue={issue}
                       selected={selectedKeys.has(issue.key)}
                       onSelect={handleSelect}
@@ -282,6 +322,7 @@ export default function BacklogPage() {
                       epicLinkFieldKey={epicLinkFieldKey}
                       epicNameFieldKey={epicNameFieldKey}
                       epicNames={backlogView?.epicNames}
+                      isFocused={visibleIssueKeys[focusIndex] === issue.key}
                     />
                   ))}
                 </tbody>

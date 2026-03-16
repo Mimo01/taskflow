@@ -7,7 +7,9 @@
  * Row click (summary text) calls onIssueClick(issue.key) — NOT the entire row.
  * Checkbox onChange stops propagation to avoid triggering the summary click.
  */
+import React from 'react';
 import type { JiraIssue } from '@/services/jira';
+import { cn } from '@/lib/utils';
 
 // ── Epic color helper ──────────────────────────────────────────────────────────
 
@@ -37,11 +39,12 @@ export interface BacklogRowProps {
   epicLinkFieldKey: string;
   epicNameFieldKey: string;
   epicNames?: Map<string, string>;
+  isFocused?: boolean;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function BacklogRow({
+export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>(function BacklogRow({
   issue,
   selected,
   onSelect,
@@ -50,7 +53,8 @@ export function BacklogRow({
   epicLinkFieldKey,
   epicNameFieldKey,
   epicNames,
-}: BacklogRowProps) {
+  isFocused,
+}, ref) {
   const epicKey = issue.fields[epicLinkFieldKey] as string | null;
   // Prefer fetched epic name from the epicNames map; fall back to customfield_10015, then key
   const epicName = epicKey
@@ -62,8 +66,10 @@ export function BacklogRow({
 
   return (
     <tr
+      ref={ref}
       data-testid={`backlog-row-${issue.key}`}
-      className="border-b border-border hover:bg-muted/30 transition-colors"
+      className={cn('border-b border-border hover:bg-muted/30 transition-colors', isFocused && 'bg-muted border-l-2 border-primary')}
+      aria-current={isFocused ? 'true' : undefined}
     >
       {/* Checkbox cell */}
       <td className="w-8 px-3 py-2 density-compact:py-1 density-comfortable:py-3">
@@ -143,6 +149,6 @@ export function BacklogRow({
 
     </tr>
   );
-}
+});
 
 export default BacklogRow;
