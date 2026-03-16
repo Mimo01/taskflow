@@ -223,7 +223,7 @@ export default function MyTasksTab() {
 
   // Per-row inline errors: keyed by `${issueKey}-transition` or `${issueKey}-comment`
   const [inlineErrors, setInlineErrors] = useState<Record<string, string>>({})
-  const { onIssueClick: setSelectedIssueKey, selectedIssueKey } = useOutletContext<{ onIssueClick: (key: string) => void; selectedIssueKey: string | null }>()
+  const { onIssueClick: setSelectedIssueKey } = useOutletContext<{ onIssueClick: (key: string) => void }>()
 
   // Transition mutation with optimistic update
   const transitionMutation = useMutation({
@@ -311,7 +311,7 @@ export default function MyTasksTab() {
   const { focusIndex } = useListNavigation({
     itemCount: flatIssueKeys.length,
     onSelect: (index) => setSelectedIssueKey(flatIssueKeys[index]),
-    enabled: !isLoading && flatIssueKeys.length > 0 && !selectedIssueKey,
+    enabled: !isLoading && flatIssueKeys.length > 0,
   });
 
   const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map());

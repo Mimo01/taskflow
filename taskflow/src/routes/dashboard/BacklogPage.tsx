@@ -31,10 +31,9 @@ import { useListNavigation } from '@/hooks/useListNavigation';
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function BacklogPage() {
-  const { onIssueClick, openCreateStory, selectedIssueKey } = useOutletContext<{
+  const { onIssueClick, openCreateStory } = useOutletContext<{
     onIssueClick: (key: string) => void;
     openCreateStory: () => void;
-    selectedIssueKey: string | null;
   }>();
 
   // ── Query client ────────────────────────────────────────────────────────────
@@ -193,7 +192,7 @@ export default function BacklogPage() {
   const { focusIndex } = useListNavigation({
     itemCount: visibleIssueKeys.length,
     onSelect: (index) => onIssueClick(visibleIssueKeys[index]),
-    enabled: !isLoading && visibleIssueKeys.length > 0 && !selectedIssueKey,
+    enabled: !isLoading && visibleIssueKeys.length > 0,
   });
 
   const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());

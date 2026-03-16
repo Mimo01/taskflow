@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { KeyboardShortcutsPanel } from './components/app/KeyboardShortcutsPanel';
 import ReactDOM from 'react-dom/client';
-import { createHashRouter, RouterProvider, Outlet, useNavigate } from 'react-router-dom';
+import { createHashRouter, RouterProvider, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
@@ -17,8 +17,8 @@ import TopBar from './components/app/TopBar';
 import { useNotificationPolling } from './hooks/useNotificationPolling';
 import { readSecret } from './services/stronghold';
 import { discoverCustomFields } from './services/jira';
-import { IssueDetailSheet } from './routes/dashboard/IssueDetailSheet';
 import { CreateEditIssueModal, type EditInitialValues } from './routes/dashboard/CreateEditIssueModal';
+import IssueDetailPage from './routes/dashboard/IssueDetailPage';
 import CommandPalette from './components/app/CommandPalette';
 import PinnedTabStrip from './components/app/PinnedTabStrip';
 import { useRecentItemsStore } from './stores/recent-items.store';
@@ -81,14 +81,12 @@ function useCustomFieldDiscovery() {
  * AppLayout — renders Sidebar + main content when user has completed onboarding.
  * Shows ReAuthBanner if jiraConnected is false but onboarding is complete.
  *
- * Owns global selectedIssueKey state so IssueDetailSheet is accessible from
- * any entry point in the app (search results, notifications, sprint board,
- * my tasks, dashboard panels) without nesting sheets.
+ * Issue clicks navigate to /issue/:key route (full-page detail view).
+ * All app chrome (Sidebar, TopBar, PinnedTabStrip) remains visible.
  */
 function AppLayout() {
   const { onboardingComplete } = useSettingsStore();
   const { jiraConnected, gitlabConnected, _hasHydrated } = useAuthStore();
-  const [selectedIssueKey, setSelectedIssueKey] = useState<string | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createModalMode, setCreateModalMode] = useState<'create' | 'edit'>('create');
   const [createModalInitialValues, setCreateModalInitialValues] = useState<EditInitialValues | undefined>(undefined);
@@ -100,12 +98,11 @@ function AppLayout() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [notifPopoverOpen, setNotifPopoverOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const pushRecentItem = useRecentItemsStore((s) => s.pushItem);
   const pinnedKeys = usePinnedTabsStore((s) => s.pinnedKeys);
   const removePin = usePinnedTabsStore((s) => s.removePin);
   const reorderPins = usePinnedTabsStore((s) => s.reorder);
-  const isPinned = usePinnedTabsStore((s) => selectedIssueKey ? s.pinnedKeys.includes(selectedIssueKey) : false);
-  const togglePin = usePinnedTabsStore((s) => s.togglePin);
 
   // KEYS-01: mod+slash (Cmd+/ on macOS, Ctrl+/ elsewhere) opens shortcuts panel — uses code name to bypass react-hotkeys-hook #1125
   // KEYS-07: enableOnFormTags defaults to false — mod+slash in an input does NOT open the panel
@@ -140,9 +137,31 @@ function AppLayout() {
     invoke('toggle_debug_menu', { enabled: debugMode }).catch(() => {});
   }, [debugMode]);
 
-  // Track recent items whenever an issue is opened from any entry point
+  /** Maps pathname to a human-readable label for breadcrumb display. */
+  function routeLabel(pathname: string): string {
+    if (pathname.startsWith('/sprint-board')) return 'Sprint Board';
+    if (pathname.startsWith('/backlog')) return 'Backlog';
+    if (pathname.startsWith('/my-tasks')) return 'My Tasks';
+    if (pathname.startsWith('/epics')) return 'Epics';
+    if (pathname.startsWith('/dashboard')) return 'Overview';
+    if (pathname.startsWith('/mr-attention')) return 'MR Attention';
+    if (pathname.startsWith('/sprint-progress')) return 'Sprint Progress';
+    if (pathname.startsWith('/workload')) return 'Workload';
+    if (pathname.startsWith('/releases')) return 'Releases';
+    if (pathname.startsWith('/issue/')) return 'Issue';
+    return 'Home';
+  }
+
+  // Derive active issue key from current URL for PinnedTabStrip highlight
+  const activeIssueKey = location.pathname.startsWith('/issue/')
+    ? location.pathname.replace('/issue/', '')
+    : null;
+
+  // Navigate to full-page issue detail + track recent item
   const handleIssueClick = (issueKey: string) => {
-    setSelectedIssueKey(issueKey);
+    navigate(`/issue/${issueKey}`, {
+      state: { from: { path: location.pathname, label: routeLabel(location.pathname) } },
+    });
 
     // Resolve title from react-query cache for recent-items store.
     // Cache shapes vary: sprint-board is flat JiraIssue[], my-tasks is { issues: JiraIssue[] },
@@ -294,7 +313,7 @@ function AppLayout() {
         {pinnedKeys.length > 0 && (
           <PinnedTabStrip
             pinnedKeys={pinnedKeys}
-            activeKey={selectedIssueKey}
+            activeKey={activeIssueKey}
             onTabClick={handleIssueClick}
             onTabClose={removePin}
             onReorder={reorderPins}
@@ -303,7 +322,7 @@ function AppLayout() {
         {_hasHydrated && !jiraConnected && <ReAuthBanner />}
         {_hasHydrated && !gitlabConnected && <GitLabReAuthBanner />}
         <main className="flex-1 overflow-auto">
-          <Outlet context={{ onIssueClick: handleIssueClick, onEpicClick: handleIssueClick, openEdit: handleOpenEdit, openAddSubtask: handleOpenAddSubtask, openCreateStory: handleOpenCreateStory, selectedIssueKey }} />
+          <Outlet context={{ onIssueClick: handleIssueClick, onEpicClick: handleIssueClick, openEdit: handleOpenEdit, openAddSubtask: handleOpenAddSubtask, openCreateStory: handleOpenCreateStory }} />
         </main>
       </div>
       {/* Command palette overlay */}
@@ -314,16 +333,6 @@ function AppLayout() {
         onNavigate={handlePaletteNavigate}
         onOpenNotifications={handlePaletteOpenNotifications}
         onOpenCreate={handleOpenCreate}
-      />
-      {/* Global IssueDetailSheet — accessible from search, notifications, and all route views */}
-      <IssueDetailSheet
-        issueKey={selectedIssueKey}
-        onClose={() => setSelectedIssueKey(null)}
-        onOpenIssue={handleIssueClick}
-        onEdit={handleOpenEdit}
-        onAddSubtask={handleOpenAddSubtask}
-        isPinned={isPinned}
-        onTogglePin={togglePin}
       />
       <CreateEditIssueModal
         open={createModalOpen}
@@ -358,6 +367,7 @@ const router = createHashRouter([
       { path: '/workload', element: <WorkloadTab /> },
       { path: '/releases', element: <ReleasesTab /> },
       { path: '/debug-logs', element: <DebugLogs /> },
+      { path: '/issue/:key', element: <IssueDetailPage /> },
     ],
   },
 ]);
