@@ -8,19 +8,24 @@
  * Reads issueKey from route params. Origin page info comes via
  * location.state.from (set by handleIssueClick in main.tsx).
  */
-import { useEffect } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { ArrowLeft, MoreVertical } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
 import { useSettingsStore } from '@/stores/settings.store'
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store'
 import { useRecentItemsStore } from '@/stores/recent-items.store'
 import { readSecret } from '@/services/stronghold'
-import { fetchIssueDetail, fetchEpicStories } from '@/services/jira'
-import type { JiraIssue } from '@/services/jira'
-import { IssueDetailContent } from './IssueDetailContent'
+import { fetchIssueDetail, fetchEpicStories, updateComment, deleteComment } from '@/services/jira'
+import type { JiraIssue, JiraComment } from '@/services/jira'
+import { IssueDetailContent, relativeTime } from './IssueDetailContent'
 import { IssueDetailSidebar } from './IssueDetailSidebar'
+import { CommentComposer } from './CommentComposer'
+import { WikiRenderer } from './WikiRenderer'
+import type { AttachmentMap, UserMap } from './WikiRenderer'
+import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store'
 import type { EditInitialValues } from './CreateEditIssueModal'
@@ -40,6 +45,7 @@ export default function IssueDetailPage() {
 
   // Auth + settings
   const { jiraBaseUrl, jiraConnected } = useAuthStore()
+  const jiraUserDisplayName = useAuthStore((s) => s.jiraUserDisplayName)
   const { epicLinkFieldKey, epicNameFieldKey, sprintFieldKey, storyPointsFieldKey, epicColorFieldKey } = useSettingsStore()
 
   // Pinned state
@@ -99,6 +105,40 @@ export default function IssueDetailPage() {
     }
   }
 
+  // Comment data
+  const comments: JiraComment[] = issue?.fields.comment?.comments ?? []
+
+  // Build attachment filename -> URL map for resolving !image.png! references
+  const attachmentMap = useMemo<AttachmentMap>(() => {
+    const map: AttachmentMap = {}
+    for (const att of issue?.fields.attachment ?? []) {
+      map[att.filename] = att.content
+    }
+    return map
+  }, [issue?.fields.attachment])
+
+  // Build user lookup map from available issue data
+  const userMap = useMemo<UserMap>(() => {
+    const map: UserMap = {}
+    const assignee = issue?.fields.assignee
+    const reporter = issue?.fields.reporter
+    if (assignee) {
+      map[assignee.name] = assignee.displayName
+    }
+    if (reporter) {
+      if (reporter.name) map[reporter.name] = reporter.displayName
+      map[reporter.displayName] = reporter.displayName
+    }
+    for (const c of comments) {
+      if (c.author?.displayName) {
+        const authorObj = c.author as { displayName: string; name?: string }
+        if (authorObj.name) map[authorObj.name] = authorObj.displayName
+        map[authorObj.displayName] = authorObj.displayName
+      }
+    }
+    return map
+  }, [issue?.fields.assignee, issue?.fields.reporter, comments])
+
   if (!issueKey) return null
 
   return (
@@ -139,23 +179,41 @@ export default function IssueDetailPage() {
         <IssueDetailSkeleton />
       ) : (
         <div className="flex flex-1 overflow-hidden">
-          {/* Left column */}
-          <div className="flex-1 overflow-auto p-6">
-            <IssueDetailContent
-              issue={issue}
-              issueKey={issueKey}
-              jiraBaseUrl={jiraBaseUrl!}
-              onOpenIssue={onIssueClick}
-              onEdit={openEdit}
-              onAddSubtask={openAddSubtask}
-              storyPointsFieldKey={storyPointsFieldKey}
-              sprintFieldKey={sprintFieldKey}
-              epicLinkFieldKey={epicLinkFieldKey}
-              epicStories={epicStories}
-              isPinned={isPinned}
-              onTogglePin={togglePin}
-            />
+          {/* Left column: scrollable content + sticky composer */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-auto p-6">
+              <IssueDetailContent
+                issue={issue}
+                issueKey={issueKey}
+                jiraBaseUrl={jiraBaseUrl!}
+                onOpenIssue={onIssueClick}
+                onEdit={openEdit}
+                onAddSubtask={openAddSubtask}
+                storyPointsFieldKey={storyPointsFieldKey}
+                sprintFieldKey={sprintFieldKey}
+                epicLinkFieldKey={epicLinkFieldKey}
+                epicStories={epicStories}
+                isPinned={isPinned}
+                onTogglePin={togglePin}
+              />
+
+              {/* Comment thread */}
+              <CommentThread
+                comments={comments}
+                issueKey={issueKey}
+                jiraBaseUrl={jiraBaseUrl!}
+                jiraUserDisplayName={jiraUserDisplayName}
+                attachmentMap={attachmentMap}
+                userMap={userMap}
+              />
+            </div>
+
+            {/* Sticky composer */}
+            <div className="border-t p-4 bg-background shrink-0">
+              <CommentComposer issueKey={issueKey} jiraBaseUrl={jiraBaseUrl!} />
+            </div>
           </div>
+
           {/* Right sidebar */}
           <div className="w-[42%] border-l overflow-auto p-4 shrink-0">
             <IssueDetailSidebar
@@ -174,6 +232,203 @@ export default function IssueDetailPage() {
     </div>
   )
 }
+
+// ─── Comment Thread ────────────────────────────────────────────────────────────
+
+interface CommentThreadProps {
+  comments: JiraComment[]
+  issueKey: string
+  jiraBaseUrl: string
+  jiraUserDisplayName: string | null
+  attachmentMap: AttachmentMap
+  userMap: UserMap
+}
+
+function CommentThread({ comments, issueKey, jiraBaseUrl, jiraUserDisplayName, attachmentMap, userMap }: CommentThreadProps) {
+  const queryClient = useQueryClient()
+  const [showMenuId, setShowMenuId] = useState<string | null>(null)
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  const [editText, setEditText] = useState('')
+  const [editError, setEditError] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!showMenuId) return
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenuId(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showMenuId])
+
+  const editMutation = useMutation({
+    mutationFn: async ({ commentId, body }: { commentId: string; body: string }) => {
+      const token = await readSecret('jira-pat').catch(() => null)
+      if (!token) throw new Error('No token')
+      return updateComment(jiraBaseUrl, token, issueKey, commentId, body)
+    },
+    onSuccess: () => {
+      setEditingCommentId(null)
+      setEditText('')
+      setEditError(null)
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] })
+    },
+    onError: (err: Error) => {
+      setEditError(err.message)
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: async (commentId: string) => {
+      const token = await readSecret('jira-pat').catch(() => null)
+      if (!token) throw new Error('No token')
+      return deleteComment(jiraBaseUrl, token, issueKey, commentId)
+    },
+    onSuccess: () => {
+      setDeleteError(null)
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] })
+    },
+    onError: (err: Error) => {
+      setDeleteError(err.message)
+    },
+  })
+
+  function handleEdit(comment: JiraComment) {
+    setShowMenuId(null)
+    setEditingCommentId(comment.id)
+    setEditText(comment.body)
+    setEditError(null)
+  }
+
+  function handleDelete(comment: JiraComment) {
+    setShowMenuId(null)
+    if (!window.confirm('Delete this comment? This cannot be undone.')) return
+    setDeleteError(null)
+    deleteMutation.mutate(comment.id)
+  }
+
+  function handleSaveEdit(commentId: string) {
+    if (!editText.trim()) return
+    editMutation.mutate({ commentId, body: editText.trim() })
+  }
+
+  function handleCancelEdit() {
+    setEditingCommentId(null)
+    setEditText('')
+    setEditError(null)
+  }
+
+  return (
+    <section className="mt-6 pb-4">
+      <h3 className="text-sm font-medium text-muted-foreground mb-3">
+        Comments ({comments.length})
+      </h3>
+
+      {comments.length === 0 ? (
+        <p className="text-sm text-muted-foreground italic">No comments yet</p>
+      ) : (
+        <div className="space-y-3 mt-3">
+          {comments.map((comment) => {
+            const isOwn = comment.author.displayName === jiraUserDisplayName
+            const isEditing = editingCommentId === comment.id
+
+            return (
+              <div key={comment.id} className="rounded-lg border bg-card p-3 space-y-2">
+                {/* Card header */}
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="font-medium text-sm">{comment.author.displayName}</span>
+                  <span className="text-muted-foreground">{relativeTime(comment.created)}</span>
+                  {comment.updated !== comment.created && (
+                    <span className="text-muted-foreground italic">(edited)</span>
+                  )}
+
+                  {/* 3-dot menu for own comments */}
+                  {isOwn && !isEditing && (
+                    <div className="ml-auto relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowMenuId(showMenuId === comment.id ? null : comment.id)}
+                        className="p-1 rounded hover:bg-accent"
+                        aria-label="Comment actions"
+                      >
+                        <MoreVertical className="size-4" />
+                      </button>
+                      {showMenuId === comment.id && (
+                        <div
+                          ref={menuRef}
+                          className="absolute right-0 top-8 z-50 bg-popover border rounded-md shadow-md py-1 min-w-[100px]"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(comment)}
+                            className="px-3 py-1.5 text-sm hover:bg-accent cursor-pointer w-full text-left"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(comment)}
+                            className="px-3 py-1.5 text-sm hover:bg-accent cursor-pointer w-full text-left text-destructive"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Card body */}
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <Textarea
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      className="min-h-[80px] resize-none"
+                    />
+                    {editError && (
+                      <p className="text-xs text-destructive">{editError}</p>
+                    )}
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCancelEdit}
+                        disabled={editMutation.isPending}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleSaveEdit(comment.id)}
+                        disabled={!editText.trim() || editMutation.isPending}
+                      >
+                        {editMutation.isPending ? 'Saving...' : 'Save'}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <WikiRenderer wikiText={comment.body} attachments={attachmentMap} users={userMap} />
+                )}
+
+                {/* Delete error inline */}
+                {deleteError && deleteMutation.variables === comment.id && (
+                  <p className="text-xs text-destructive">{deleteError}</p>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </section>
+  )
+}
+
+// ─── Skeleton ──────────────────────────────────────────────────────────────────
 
 function IssueDetailSkeleton() {
   return (

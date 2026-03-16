@@ -2,7 +2,6 @@ import { useMemo } from 'react'
 import type { JiraIssueDetail, JiraIssue } from '@/services/jira'
 import { WikiRenderer } from './WikiRenderer'
 import type { AttachmentMap, UserMap } from './WikiRenderer'
-import { CommentComposer } from './CommentComposer'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ExternalLink, Pencil, Pin, Plus } from 'lucide-react'
@@ -26,7 +25,7 @@ interface IssueDetailContentProps {
   onTogglePin?: (key: string) => void
 }
 
-function relativeTime(iso: string): string {
+export function relativeTime(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime()
   const diffSecs = Math.floor(diffMs / 1000)
   const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
@@ -200,34 +199,6 @@ export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, 
           Open in Jira
         </Button>
       </div>
-
-      {/* Comment thread */}
-      <section>
-        <h3 className="text-sm font-medium text-muted-foreground mb-3">
-          Comments ({comments.length})
-        </h3>
-
-        {/* Compose box */}
-        <CommentComposer issueKey={issueKey} jiraBaseUrl={jiraBaseUrl} />
-
-        {/* Thread — newest first */}
-        <div className="mt-4 space-y-4">
-          {comments.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic">No comments yet</p>
-          ) : (
-            [...comments].reverse().map(comment => (
-              <div key={comment.id} className="space-y-1">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground">{comment.author.displayName}</span>
-                  <span>•</span>
-                  <span>{relativeTime(comment.created)}</span>
-                </div>
-                <WikiRenderer wikiText={comment.body} attachments={attachmentMap} users={userMap} />
-              </div>
-            ))
-          )}
-        </div>
-      </section>
     </div>
   )
 }
