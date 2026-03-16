@@ -3,21 +3,69 @@
  *
  * Controls:
  * - Poll interval (seconds) — clamped [30, 300] by setter in settings store
- * - Jira OS notification toggle
- * - GitLab OS notification toggle
+ * - Per-type notification toggles grouped by source (Jira / GitLab)
+ * - OS desktop notification toggles (Jira / GitLab)
  *
  * Follows the same layout pattern as StaleMrThresholdSection.
  */
 import { useSettingsStore } from '../../stores/settings.store';
+
+interface ToggleRowProps {
+  id: string;
+  label: string;
+  description?: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}
+
+function ToggleRow({ id, label, description, checked, onChange }: ToggleRowProps) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <div className="flex items-center gap-3">
+        <input
+          id={id}
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className="h-4 w-4 rounded border-input accent-primary"
+        />
+        <label htmlFor={id} className="text-sm font-medium cursor-pointer">
+          {label}
+        </label>
+      </div>
+      {description && (
+        <p className="text-xs text-muted-foreground pl-7">{description}</p>
+      )}
+    </div>
+  );
+}
 
 export default function NotificationSettingsSection() {
   const {
     notificationPollIntervalSecs,
     osNotifJiraEnabled,
     osNotifGitlabEnabled,
+    notifCommentMentionEnabled,
+    notifIssueUpdateEnabled,
+    notifMrNoteEnabled,
+    notifGitlabMentionEnabled,
+    notifJiraCommentEnabled,
+    notifMrApprovalEnabled,
+    notifPipelineFailureEnabled,
+    notifIssueAssignmentEnabled,
+    notifDueDateReminderEnabled,
     setNotificationPollIntervalSecs,
     setOsNotifJiraEnabled,
     setOsNotifGitlabEnabled,
+    setNotifCommentMentionEnabled,
+    setNotifIssueUpdateEnabled,
+    setNotifMrNoteEnabled,
+    setNotifGitlabMentionEnabled,
+    setNotifJiraCommentEnabled,
+    setNotifMrApprovalEnabled,
+    setNotifPipelineFailureEnabled,
+    setNotifIssueAssignmentEnabled,
+    setNotifDueDateReminderEnabled,
   } = useSettingsStore();
 
   return (
@@ -47,42 +95,102 @@ export default function NotificationSettingsSection() {
         <p className="text-xs text-muted-foreground">Minimum 30 seconds, maximum 300 seconds.</p>
       </div>
 
-      {/* Jira OS notifications toggle */}
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-3">
-          <input
-            id="jira-os-notif"
-            type="checkbox"
-            checked={osNotifJiraEnabled}
-            onChange={(e) => setOsNotifJiraEnabled(e.target.checked)}
-            className="h-4 w-4 rounded border-input accent-primary"
-          />
-          <label htmlFor="jira-os-notif" className="text-sm font-medium cursor-pointer">
-            Jira desktop notifications
-          </label>
-        </div>
-        <p className="text-xs text-muted-foreground pl-7">
-          Requires OS notification permission to be granted
-        </p>
+      {/* Jira Notifications */}
+      <div className="flex flex-col gap-2">
+        <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          Jira Notifications
+        </h4>
+        <ToggleRow
+          id="notif-comment-mention"
+          label="Comment mentions"
+          description="When you're @mentioned in a comment"
+          checked={notifCommentMentionEnabled}
+          onChange={setNotifCommentMentionEnabled}
+        />
+        <ToggleRow
+          id="notif-jira-comment"
+          label="All comments"
+          description="On issues you're involved in (assignee, reporter, watcher)"
+          checked={notifJiraCommentEnabled}
+          onChange={setNotifJiraCommentEnabled}
+        />
+        <ToggleRow
+          id="notif-issue-update"
+          label="Issue updates"
+          description="Status and assignee changes"
+          checked={notifIssueUpdateEnabled}
+          onChange={setNotifIssueUpdateEnabled}
+        />
+        <ToggleRow
+          id="notif-issue-assignment"
+          label="Issue assignments"
+          description="When an issue is assigned to you"
+          checked={notifIssueAssignmentEnabled}
+          onChange={setNotifIssueAssignmentEnabled}
+        />
+        <ToggleRow
+          id="notif-due-date"
+          label="Due date reminders"
+          description="Issues due within 1 day"
+          checked={notifDueDateReminderEnabled}
+          onChange={setNotifDueDateReminderEnabled}
+        />
       </div>
 
-      {/* GitLab OS notifications toggle */}
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-3">
-          <input
-            id="gitlab-os-notif"
-            type="checkbox"
-            checked={osNotifGitlabEnabled}
-            onChange={(e) => setOsNotifGitlabEnabled(e.target.checked)}
-            className="h-4 w-4 rounded border-input accent-primary"
-          />
-          <label htmlFor="gitlab-os-notif" className="text-sm font-medium cursor-pointer">
-            GitLab desktop notifications
-          </label>
-        </div>
-        <p className="text-xs text-muted-foreground pl-7">
-          Requires OS notification permission to be granted
-        </p>
+      {/* GitLab Notifications */}
+      <div className="flex flex-col gap-2">
+        <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          GitLab Notifications
+        </h4>
+        <ToggleRow
+          id="notif-mr-note"
+          label="MR notes"
+          description="Comments on your merge requests"
+          checked={notifMrNoteEnabled}
+          onChange={setNotifMrNoteEnabled}
+        />
+        <ToggleRow
+          id="notif-gitlab-mention"
+          label="@Mentions"
+          description="When mentioned in MR comments"
+          checked={notifGitlabMentionEnabled}
+          onChange={setNotifGitlabMentionEnabled}
+        />
+        <ToggleRow
+          id="notif-mr-approval"
+          label="MR approvals"
+          description="Approval or changes requested on your MRs"
+          checked={notifMrApprovalEnabled}
+          onChange={setNotifMrApprovalEnabled}
+        />
+        <ToggleRow
+          id="notif-pipeline-failure"
+          label="Pipeline failures"
+          description="CI failures on your merge requests"
+          checked={notifPipelineFailureEnabled}
+          onChange={setNotifPipelineFailureEnabled}
+        />
+      </div>
+
+      {/* Desktop Notifications */}
+      <div className="flex flex-col gap-2">
+        <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          Desktop Notifications
+        </h4>
+        <ToggleRow
+          id="jira-os-notif"
+          label="Jira desktop notifications"
+          description="Requires OS notification permission to be granted"
+          checked={osNotifJiraEnabled}
+          onChange={setOsNotifJiraEnabled}
+        />
+        <ToggleRow
+          id="gitlab-os-notif"
+          label="GitLab desktop notifications"
+          description="Requires OS notification permission to be granted"
+          checked={osNotifGitlabEnabled}
+          onChange={setOsNotifGitlabEnabled}
+        />
       </div>
     </div>
   );

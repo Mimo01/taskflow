@@ -42,6 +42,8 @@ interface AuthState {
   jiraUsername: string | null;
   /** GitLab user ID from validation response .id — for self-exclusion in MR notes. */
   gitlabUserId: number | null;
+  /** GitLab username from validation response .username — for @mention detection. */
+  gitlabUsername: string | null;
   /**
    * True once the Tauri async storage rehydration has completed.
    * Transient — not persisted. Used by components to avoid collapsing
@@ -56,6 +58,8 @@ interface AuthState {
   setJiraUser: (displayName: string, username: string) => void;
   /** Set GitLab user ID for self-exclusion in MR notes. */
   setGitlabUserId: (id: number) => void;
+  /** Set GitLab username for @mention detection. */
+  setGitlabUsername: (username: string | null) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -71,6 +75,7 @@ export const useAuthStore = create<AuthState>()(
       jiraUserDisplayName: null,
       jiraUsername: null,
       gitlabUserId: null,
+      gitlabUsername: null,
       _hasHydrated: false,
       setJiraConnected: (connected, baseUrl) =>
         set((state) => ({
@@ -87,6 +92,7 @@ export const useAuthStore = create<AuthState>()(
       setJiraUser: (displayName, username) =>
         set({ jiraUserDisplayName: displayName, jiraUsername: username }),
       setGitlabUserId: (id) => set({ gitlabUserId: id }),
+      setGitlabUsername: (username) => set({ gitlabUsername: username }),
     }),
     {
       name: 'auth-store',
