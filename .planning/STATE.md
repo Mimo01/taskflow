@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-16 - Completed quick task 260316-uqt: Sort MyTasks and SprintBoard by Jira rank order
+Last activity: 2026-03-16 - Completed quick task 260316-uv2: Remove X button from pinned tabs, add right-click unpin
 
 Progress: [██████████] 100%
 
@@ -164,6 +164,7 @@ None.
 | 260316-tbl | Redo style for pinned task tabs (compact) | 2026-03-16 | 3a07d4e | Verified | [260316-tbl-redo-style-for-pinned-task-tabs-compact-](./quick/260316-tbl-redo-style-for-pinned-task-tabs-compact-/) |
 | 260316-ulr | Make linked issues in issue detail sidebar clickable | 2026-03-16 | a013ec2 | | [260316-ulr-make-the-linked-issues-on-issue-detail-n](./quick/260316-ulr-make-the-linked-issues-on-issue-detail-n/) |
 | 260316-uqt | Sort MyTasks and SprintBoard by Jira rank order | 2026-03-16 | a7bff1a | | [260316-uqt-make-the-tasks-in-mytasks-backlog-and-sp](./quick/260316-uqt-make-the-tasks-in-mytasks-backlog-and-sp/) |
+| 260316-uv2 | Remove X button from pinned tabs, add right-click unpin | 2026-03-16 | 0510e20 | | [260316-uv2-keep-pinned-tabs-compact-when-populated-](./quick/260316-uv2-keep-pinned-tabs-compact-when-populated-/) |
 
 ## Session Continuity
 
