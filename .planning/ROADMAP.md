@@ -58,7 +58,7 @@ See archive: `.planning/milestones/v1.2-ROADMAP.md`
 - [x] **Phase 19: Keyboard Foundation** - Shortcut registry, global keydown hook, and `?` help panel that serves as the reference for all subsequent shortcut consumers (completed 2026-03-15)
 - [x] **Phase 20: Command Palette + Recent Items** - Cmd+K overlay with fuzzy search across cached issues/MRs/nav actions, recent items popover in TopBar, and Cmd+Shift+S/B/N nav shortcuts (completed 2026-03-16)
 - [x] **Phase 21: Header Redesign + Pinned Issue Tabs** - Redesigned TopBar with branding, pinned-issue tab strip below the top bar, and J/K keyboard navigation in list views (UAT gap closure in progress) (completed 2026-03-16)
-- [ ] **Phase 22: Polish — Empty States + Error Recovery** - Illustrated empty states and actionable error recovery applied consistently across all data views
+- [x] **Phase 22: Polish — Empty States + Error Recovery** - Illustrated empty states and actionable error recovery applied consistently across all data views (completed 2026-03-16)
 
 ## Phase Details
 
@@ -184,4 +184,4 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22
 | 19. Keyboard Foundation | 6/6 | Complete   | 2026-03-15 |
 | 20. Command Palette + Recent Items | 6/6 | Complete    | 2026-03-16 | - |
 | 21. Header Redesign + Pinned Issue Tabs | 5/5 | Complete    | 2026-03-16 | - |
-| 22. Polish — Empty States + Error Recovery | 2/3 | In Progress|  | - |
+| 22. Polish — Empty States + Error Recovery | 3/3 | Complete   | 2026-03-16 | - |
