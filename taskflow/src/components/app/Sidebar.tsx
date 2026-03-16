@@ -43,6 +43,12 @@ export default function Sidebar({ onOpenCreate }: SidebarProps) {
 
   return (
     <aside className="flex flex-col h-full w-16 md:w-56 border-r border-border bg-background shrink-0">
+      {/* Branding */}
+      <div className="flex items-center gap-3 px-3 py-4 border-b border-border">
+        <img src="/app-icon.svg" alt="Taskflow" className="w-6 h-6 shrink-0" />
+        <span className="text-base font-semibold text-foreground hidden md:block">Taskflow</span>
+      </div>
+
       {/* Nav links */}
       <nav className="flex-1 min-h-0 overflow-y-auto px-2 py-4 flex flex-col gap-1">
         <NavLink to="/dashboard" className={navLinkClass}>
