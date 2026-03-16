@@ -87,8 +87,15 @@ export default function IssueDetailPage() {
   }, [issueKey, issue?.fields.summary])
 
   const handleBack = () => {
-    breadcrumbPop()
-    navigate(-1)
+    if (trail.length > 0) {
+      // Pop the last entry and navigate to it
+      const target = trail[trail.length - 1]
+      breadcrumbPop()
+      navigate(target.path, { replace: true })
+    } else {
+      // No trail — go to a sensible default
+      navigate('/dashboard')
+    }
   }
 
   if (!issueKey) return null
