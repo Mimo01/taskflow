@@ -116,7 +116,7 @@ export default function NotificationPopover({ onIssueClick }: NotificationPopove
       )}
 
       {/* Feed */}
-      <div className="overflow-y-auto max-h-[600px]">
+      <div className="overflow-y-auto max-h-[520px]">
         {fetchError && items.length === 0 && retryFetch ? (
           <div className="p-2">
             <ErrorState error={fetchError} onRetry={retryFetch} viewName="notifications" />
