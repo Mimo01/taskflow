@@ -199,9 +199,10 @@ export default function PinnedTabStrip({
         {resolved ? (
           <>
             <IssueTypeIcon typeName={resolved.issueTypeName} />
-            <span className="font-mono text-[11px] whitespace-nowrap">{key}</span>
-            <span className="text-muted-foreground/40">·</span>
-            <span className="truncate text-[11px] text-muted-foreground">{resolved.summary}</span>
+            <div className="flex flex-col min-w-0 leading-none">
+              <span className="font-mono text-[9px] text-muted-foreground/60 whitespace-nowrap">{key}</span>
+              <span className="truncate text-[11px] leading-tight">{resolved.summary}</span>
+            </div>
           </>
         ) : (
           <>
@@ -256,7 +257,7 @@ export default function PinnedTabStrip({
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onTabClick(key); }}
                 className={cn(
                   'flex items-center gap-1.5 px-2.5 h-9 shrink-0 rounded-t-md text-xs font-medium border-b-2 transition-all duration-150 ease-in-out group select-none',
-                  resolved ? 'max-w-[220px]' : 'w-[110px]',
+                  resolved ? 'max-w-[180px]' : 'w-[110px]',
                   key === activeKey
                     ? 'border-primary text-foreground bg-muted/50'
                     : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -268,9 +269,10 @@ export default function PinnedTabStrip({
                 {resolved ? (
                   <>
                     <IssueTypeIcon typeName={resolved.issueTypeName} />
-                    <span className="font-mono text-[11px] whitespace-nowrap">{key}</span>
-                    <span className="text-muted-foreground/40">·</span>
-                    <span className="truncate text-[11px] text-muted-foreground">{resolved.summary}</span>
+                    <div className="flex flex-col min-w-0 leading-none">
+                      <span className="font-mono text-[9px] text-muted-foreground/60 whitespace-nowrap">{key}</span>
+                      <span className="truncate text-[11px] leading-tight">{resolved.summary}</span>
+                    </div>
                   </>
                 ) : (
                   <>
