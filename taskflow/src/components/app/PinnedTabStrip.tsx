@@ -11,12 +11,13 @@
  */
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Bug, BookOpen, CheckSquare, CornerDownRight, Loader2, Pin, ArrowLeftToLine, ArrowRightToLine } from 'lucide-react';
+import { Bug, BookOpen, CheckSquare, CornerDownRight, Loader2, PinOff, ArrowLeftToLine, ArrowRightToLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 
@@ -242,18 +243,19 @@ export default function PinnedTabStrip({
                     )}
                   </div>
                 </ContextMenuTrigger>
-                <ContextMenuContent>
+                <ContextMenuContent className="min-w-[160px]">
                   <ContextMenuItem onClick={() => onReorder(index, 0)} disabled={index === 0}>
                     <ArrowLeftToLine className="w-3.5 h-3.5" />
-                    Send to front
+                    Move to start
                   </ContextMenuItem>
                   <ContextMenuItem onClick={() => onReorder(index, pinnedKeys.length - 1)} disabled={index === pinnedKeys.length - 1}>
                     <ArrowRightToLine className="w-3.5 h-3.5" />
-                    Send to back
+                    Move to end
                   </ContextMenuItem>
-                  <ContextMenuItem onClick={() => onTabClose(key)}>
-                    <Pin className="w-3.5 h-3.5" />
-                    Unpin {key}
+                  <ContextMenuSeparator />
+                  <ContextMenuItem variant="destructive" onClick={() => onTabClose(key)}>
+                    <PinOff className="w-3.5 h-3.5" />
+                    Unpin
                   </ContextMenuItem>
                 </ContextMenuContent>
               </ContextMenu>
