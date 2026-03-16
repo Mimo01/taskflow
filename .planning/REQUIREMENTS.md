@@ -43,7 +43,7 @@ Requirements for the v1.3 UX & Branding milestone. Each maps to roadmap phases.
 
 - [x] **KEYS-01**: User can open a keyboard shortcuts reference panel with the ? key from anywhere in the app
 - [x] **KEYS-02**: Shortcuts panel is dismissable with Escape
-- [ ] **KEYS-03**: Global navigation shortcuts: G+S = Sprint Board, G+B = Backlog, G+N = Notifications
+- [x] **KEYS-03**: Global navigation shortcuts: G+S = Sprint Board, G+B = Backlog, G+N = Notifications
 - [ ] **KEYS-04**: J/K navigation works in My Tasks list (J/K moves focus, Enter opens detail)
 - [ ] **KEYS-05**: J/K navigation works in Notifications list (J/K moves focus, Enter opens detail)
 - [ ] **KEYS-06**: J/K navigation works in Backlog list (J/K moves focus, Enter opens detail)
@@ -51,7 +51,7 @@ Requirements for the v1.3 UX & Branding milestone. Each maps to roadmap phases.
 
 ### Recent Items
 
-- [ ] **RECENT-01**: User can view the last 10 recently opened issues/MRs from a header popover
+- [x] **RECENT-01**: User can view the last 10 recently opened issues/MRs from a header popover
 - [ ] **RECENT-02**: Clicking a recent item opens the issue detail panel for that issue
 
 ### Empty & Error States
@@ -108,9 +108,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PALETTE-05 | Phase 20 | Pending |
 | PALETTE-06 | Phase 20 | Pending |
 | PALETTE-07 | Phase 20 | Pending |
-| RECENT-01 | Phase 20 | Pending |
+| RECENT-01 | Phase 20 | Complete |
 | RECENT-02 | Phase 20 | Pending |
-| KEYS-03 | Phase 20 | Pending |
+| KEYS-03 | Phase 20 | Complete |
 | HEADER-01 | Phase 21 | Pending |
 | HEADER-02 | Phase 21 | Pending |
 | HEADER-03 | Phase 21 | Pending |
