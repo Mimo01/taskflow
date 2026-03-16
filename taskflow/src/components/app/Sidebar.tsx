@@ -26,6 +26,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { useSettingsStore } from '@/stores/settings.store';
+import AppIcon from './AppIcon';
 
 const NAV_LINK_CLASS =
   'flex items-center gap-3 px-3 py-2 density-compact:py-1 density-comfortable:py-3 rounded-lg text-sm font-medium transition-colors';
@@ -45,7 +46,7 @@ export default function Sidebar({ onOpenCreate }: SidebarProps) {
     <aside className="flex flex-col h-full w-16 md:w-56 border-r border-border bg-background shrink-0">
       {/* Branding */}
       <div className="flex items-center gap-3 px-3 py-4 border-b border-border">
-        <img src="/app-icon.svg" alt="Taskflow" className="w-6 h-6 shrink-0" />
+        <AppIcon className="w-8 h-8 shrink-0" />
         <span className="text-base font-semibold text-foreground hidden md:block">Taskflow</span>
       </div>
 
