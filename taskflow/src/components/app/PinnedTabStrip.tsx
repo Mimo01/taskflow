@@ -119,16 +119,18 @@ export default function PinnedTabStrip({
   const [ghost, setGhost] = useState<DragGhost | null>(null);
 
   const getDropIndex = useCallback((clientX: number): number | null => {
-    let closest: { index: number; dist: number } | null = null;
+    let closestIndex: number | null = null;
+    let closestDist = Infinity;
     tabRefs.current.forEach((el, idx) => {
       const rect = el.getBoundingClientRect();
       const center = rect.left + rect.width / 2;
       const dist = Math.abs(clientX - center);
-      if (!closest || dist < closest.dist) {
-        closest = { index: idx, dist };
+      if (dist < closestDist) {
+        closestDist = dist;
+        closestIndex = idx;
       }
     });
-    return closest ? closest.index : null;
+    return closestIndex;
   }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent, index: number) => {
@@ -268,7 +270,21 @@ export default function PinnedTabStrip({
               >
                 {resolved ? (
                   <>
-                    <IssueTypeIcon typeName={resolved.issueTypeName} />
+                    <button
+                      type="button"
+                      data-close-btn
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onTabClose(key);
+                      }}
+                      className="relative shrink-0 w-3.5 h-3.5 rounded-sm hover:bg-muted-foreground/20"
+                      aria-label={`Unpin ${key}`}
+                    >
+                      <span className="group-hover:opacity-0 transition-opacity">
+                        <IssueTypeIcon typeName={resolved.issueTypeName} />
+                      </span>
+                      <X className="w-3.5 h-3.5 absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground" />
+                    </button>
                     <div className="flex flex-col min-w-0 leading-none">
                       <span className="font-mono text-[9px] text-muted-foreground/60 whitespace-nowrap">{key}</span>
                       <span className="truncate text-[11px] leading-tight">{resolved.summary}</span>
@@ -280,18 +296,6 @@ export default function PinnedTabStrip({
                     <span className="font-mono text-[11px] whitespace-nowrap">{key}</span>
                   </>
                 )}
-                <button
-                  type="button"
-                  data-close-btn
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onTabClose(key);
-                  }}
-                  className="ml-auto p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-muted-foreground/20 transition-opacity"
-                  aria-label={`Close ${key} tab`}
-                >
-                  <X className="w-3 h-3 text-muted-foreground hover:text-foreground" />
-                </button>
               </div>
               {showPlaceholderAfter && (
                 <div className="h-9 w-[110px] shrink-0 rounded-t-md border-2 border-dashed border-primary/30 bg-primary/5" style={{ width: ghost?.width }} />
