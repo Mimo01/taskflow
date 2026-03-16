@@ -171,9 +171,10 @@ None.
 | 260316-vqx | Sticky active sprint header in backlog view | 2026-03-16 | 0dd4da6 | | [260316-vqx-in-backlog-view-make-the-current-sprint-](./quick/260316-vqx-in-backlog-view-make-the-current-sprint-/) |
 | 260316-wbp | Redesign comment section: sticky composer, card layout, edit/delete | 2026-03-16 | 5e2df26 | Verified | [260316-wbp-make-comment-section-on-issue-detail-mor](./quick/260316-wbp-make-comment-section-on-issue-detail-mor/) |
 | 260316-wfe | Unify filters in backlog and sprint view with shared state and quickfilters | 2026-03-16 | 67eb23b | Verified | [260316-wfe-unify-filters-in-backlog-and-sprint-view](./quick/260316-wfe-unify-filters-in-backlog-and-sprint-view/) |
+| 260317-01r | Replace J/GL circles with author avatars in notifications | 2026-03-17 | daa2547 | | [260317-01r-in-the-notifications-popup-replace-j-g-c](./quick/260317-01r-in-the-notifications-popup-replace-j-g-c/) |
 
 ## Session Continuity
 
-Last session: 2026-03-16T22:36:00Z
-Stopped at: Completed quick task 260316-wfe (unified filters across backlog and sprint board)
+Last session: 2026-03-16T23:09:00Z
+Stopped at: Completed quick task 260317-01r (author avatars in notification popup)
 Resume: Milestone v1.3 (UX & Branding) is fully executed. All 5 phases (18-22), 29 plans complete. Ready for /gsd:audit-milestone or /gsd:complete-milestone.
