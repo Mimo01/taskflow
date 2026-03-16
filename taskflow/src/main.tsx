@@ -123,45 +123,70 @@ function AppLayout() {
   const handleIssueClick = (issueKey: string) => {
     setSelectedIssueKey(issueKey);
 
-    // Resolve title from react-query cache for recent-items store
+    // Resolve title from react-query cache for recent-items store.
+    // Cache shapes vary: sprint-board is flat JiraIssue[], my-tasks is { issues: JiraIssue[] },
+    // backlog is { sprints: [{ issues }], backlog: JiraIssue[] }, epics is EpicEnriched[],
+    // issue-detail is a single JiraIssueDetail object.
     let resolvedTitle: string | undefined;
 
-    // 1. Search jira-issues caches (sprint-board, my-tasks — stories/subtasks)
-    const issueEntries = queryClient.getQueriesData<{ issues: Array<{ key: string; fields: { summary: string } }> }>({
+    type CachedIssue = { key: string; fields: { summary: string } };
+
+    // Helper: search an array of issues for a matching key
+    const findTitle = (issues: CachedIssue[] | undefined) =>
+      issues?.find((i) => i.key === issueKey)?.fields.summary;
+
+    // 1. Search all jira-issues caches (sprint-board = flat array, my-tasks = { issues: [] })
+    const issueEntries = queryClient.getQueriesData<CachedIssue[] | { issues?: CachedIssue[] }>({
       queryKey: ['jira-issues'],
     });
     for (const [, data] of issueEntries) {
-      const match = data?.issues?.find((i) => i.key === issueKey);
-      if (match) {
-        resolvedTitle = match.fields.summary;
-        break;
+      if (!data) continue;
+      // my-tasks shape: { issues: [...] }
+      if ('issues' in data && Array.isArray(data.issues)) {
+        resolvedTitle = findTitle(data.issues);
+      } else if (Array.isArray(data)) {
+        // sprint-board shape: flat JiraIssue[]
+        resolvedTitle = findTitle(data);
+      }
+      if (resolvedTitle) break;
+    }
+
+    // 2. Search backlog cache (sprints[].issues + backlog[])
+    if (!resolvedTitle) {
+      const backlogEntries = queryClient.getQueriesData<{ sprints?: Array<{ issues: CachedIssue[] }>; backlog?: CachedIssue[] }>({
+        queryKey: ['jira-backlog-view'],
+      });
+      for (const [, data] of backlogEntries) {
+        if (!data) continue;
+        resolvedTitle = findTitle(data.backlog);
+        if (!resolvedTitle && data.sprints) {
+          for (const s of data.sprints) {
+            resolvedTitle = findTitle(s.issues);
+            if (resolvedTitle) break;
+          }
+        }
+        if (resolvedTitle) break;
       }
     }
 
-    // 2. Search jira-epics-basic cache (epics have summary at top level)
+    // 3. Search jira-epics-basic cache (flat array with summary at top level)
     if (!resolvedTitle) {
       const epicEntries = queryClient.getQueriesData<Array<{ key: string; summary: string }>>({
         queryKey: ['jira-epics-basic'],
       });
       for (const [, data] of epicEntries) {
         const match = data?.find((e) => e.key === issueKey);
-        if (match) {
-          resolvedTitle = match.summary;
-          break;
-        }
+        if (match) { resolvedTitle = match.summary; break; }
       }
     }
 
-    // 3. Check jira-issue-detail cache (individually fetched issues)
+    // 4. Check jira-issue-detail cache (single issue, key includes baseUrl)
     if (!resolvedTitle) {
-      const detailEntries = queryClient.getQueriesData<{ key: string; fields: { summary: string } }>({
+      const detailEntries = queryClient.getQueriesData<CachedIssue>({
         queryKey: ['jira-issue-detail', issueKey],
       });
       for (const [, data] of detailEntries) {
-        if (data?.fields?.summary) {
-          resolvedTitle = data.fields.summary;
-          break;
-        }
+        if (data?.fields?.summary) { resolvedTitle = data.fields.summary; break; }
       }
     }
 
