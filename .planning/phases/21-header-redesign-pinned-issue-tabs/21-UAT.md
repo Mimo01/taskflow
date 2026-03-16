@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: resolved
 phase: 21-header-redesign-pinned-issue-tabs
 source: 21-01-SUMMARY.md, 21-02-SUMMARY.md, 21-03-SUMMARY.md
 started: 2026-03-16T12:00:00Z
-updated: 2026-03-16T12:15:00Z
+updated: 2026-03-16T18:00:00Z
 ---
 
 ## Current Test
@@ -74,7 +74,7 @@ skipped: 0
 ## Gaps
 
 - truth: "TopBar displays app icon and Taskflow text on left side"
-  status: failed
+  status: resolved
   reason: "User reported: I liked the app name and brand above sidebar better. Also the app logo image is not found, it is rendered as ?"
   severity: major
   test: 1
@@ -91,7 +91,7 @@ skipped: 0
     - "Move branding block from TopBar.tsx to Sidebar.tsx"
   debug_session: ""
 - truth: "J/K navigation should not operate when issue detail is open"
-  status: failed
+  status: resolved
   reason: "User reported: Works but when I open the story the j/k still switches the selected story in the background even though the focus is already on the issue detail"
   severity: major
   test: 7
@@ -106,7 +106,7 @@ skipped: 0
     - "Add && !selectedIssueKey to useListNavigation enabled condition in all list views"
   debug_session: ".planning/debug/jk-nav-issues-phase21.md"
 - truth: "J/K navigation works in Notifications view with Enter to toggle accordion"
-  status: failed
+  status: resolved
   reason: "User reported: I don't know how to test it or it doesn't work"
   severity: major
   test: 8
@@ -120,7 +120,7 @@ skipped: 0
     - "Add /notifications route to router config in main.tsx"
   debug_session: ".planning/debug/jk-nav-issues-phase21.md"
 - truth: "Pinned tabs show loading state while data is being fetched after reload"
-  status: failed
+  status: resolved
   reason: "User reported: works, but until the data is loaded there is only the issue key and check. I'd like some sort of visual representation, that the data is still loading"
   severity: minor
   test: 10
@@ -133,7 +133,7 @@ skipped: 0
     - "Replace empty summary with <Skeleton className='h-3 w-20' />"
   debug_session: ".planning/debug/pinned-tab-loading-state.md"
 - truth: "Pinned tabs show issue info clearly without awkward wrapping"
-  status: failed
+  status: resolved
   reason: "User reported: wants two-line layout — key on first line, summary on second line. Current text wrapping looks weird."
   severity: minor
   test: 3
