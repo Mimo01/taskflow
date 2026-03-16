@@ -1,45 +1,52 @@
 /**
- * TopBar — persistent top bar with search icon, bell icon, unread badge, and notification popover trigger.
+ * TopBar — persistent top bar with search icon (opens palette), clock icon
+ * (recent items popover), and bell icon (controlled notification popover).
  *
- * Pure UI component: renders badge from unread count, wraps bell in Popover trigger.
+ * Pure UI component: renders badge from unread count, delegates all state to AppLayout.
  * Polling is performed by useNotificationPolling hook called from AppLayout in main.tsx
  * (requires QueryClientProvider — separated so TopBar tests work without a QueryClient wrapper).
  *
- * Search: useState(searchOpen) only — SearchOverlay child handles all search logic including useQuery.
  * CRITICAL: TopBar must NOT use useQuery directly.
- *
- * Rendered as first child of the flex-col div inside AppLayout (after onboarding check).
- * Bell badge shows unread count capped at 99+. Zero = badge hidden.
  */
-import { useState } from 'react';
 import { Bell, Search } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { useUnreadCount } from '../../stores/notifications.store';
 import NotificationPopover from '../../routes/notifications/NotificationPopover';
-import SearchOverlay from './SearchOverlay';
+import RecentItemsPopover from './RecentItemsPopover';
 
 interface TopBarProps {
   /** Called with the Jira issue key when a Jira result in search or notifications is clicked. */
   onIssueClick?: (issueKey: string) => void;
+  /** Whether the command palette is currently open (reserved for future visual feedback). */
+  paletteOpen: boolean;
+  /** Callback to open the command palette. */
+  onPaletteOpen: () => void;
+  /** Controlled open state for the notification popover. */
+  notifPopoverOpen: boolean;
+  /** Callback when notification popover open state changes. */
+  onNotifPopoverChange: (open: boolean) => void;
 }
 
-export default function TopBar({ onIssueClick }: TopBarProps) {
+export default function TopBar({ onIssueClick, onPaletteOpen, notifPopoverOpen, onNotifPopoverChange }: TopBarProps) {
   const unreadCount = useUnreadCount();
-  const [searchOpen, setSearchOpen] = useState(false);
 
   return (
     <header className="h-12 border-b flex items-center justify-end px-4 flex-shrink-0 gap-2">
-      {/* Search trigger */}
+      {/* Search trigger — opens command palette via parent callback */}
       <button
         type="button"
-        onClick={() => setSearchOpen(true)}
+        onClick={onPaletteOpen}
         aria-label="Search"
         className="relative flex items-center justify-center w-8 h-8 rounded hover:bg-muted transition-colors"
       >
         <Search className="w-5 h-5" />
       </button>
 
-      <Popover>
+      {/* Recent items popover — clock icon */}
+      <RecentItemsPopover onIssueClick={onIssueClick} />
+
+      {/* Notification popover — controlled from AppLayout for Cmd+Shift+N */}
+      <Popover open={notifPopoverOpen} onOpenChange={onNotifPopoverChange}>
         <PopoverTrigger
           className="relative flex items-center justify-center w-8 h-8 rounded hover:bg-muted transition-colors"
           aria-label="Notifications"
@@ -55,14 +62,6 @@ export default function TopBar({ onIssueClick }: TopBarProps) {
           <NotificationPopover onIssueClick={onIssueClick} />
         </PopoverContent>
       </Popover>
-
-      {/* Search overlay — rendered outside Popover so it can cover full screen */}
-      {searchOpen && (
-        <SearchOverlay
-          onClose={() => setSearchOpen(false)}
-          onIssueClick={onIssueClick}
-        />
-      )}
     </header>
   );
 }
