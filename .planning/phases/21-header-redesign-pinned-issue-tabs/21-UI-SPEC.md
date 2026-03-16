@@ -47,15 +47,21 @@ Exceptions: Tab strip height is 36px (not a spacing token -- it is a component d
 
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
-| Body | 14px (text-sm) | 400 (normal) | 1.5 |
-| Label | 12px (text-xs) | 500 (medium) | 1.4 |
+| Body | 14px (text-sm) | 500 (medium) | 1.5 |
+| Label / Tab text | 12px (text-xs) | 500 (medium) | 1.4 |
 | Heading | 20px (text-xl) | 600 (semibold) | 1.2 |
-| Tab text | 13px (text-[13px]) | 500 (medium) | 1.0 |
+| Branding | 16px (text-base) | 600 (semibold) | 1.2 |
 
 Notes:
-- Tab text uses 13px to fit key + truncated summary in compact horizontal space
-- "Taskflow" branding text in TopBar: 16px (text-base), weight 700 (bold)
+- 2 weights only: 500 (medium) for body, labels, and tab text; 600 (semibold) for headings, branding, and overflow badge
 - Overflow badge (+N): 12px (text-xs), weight 600 (semibold)
+- Tab text uses the same 12px size as labels for a compact, consistent scale
+
+---
+
+## Visuals
+
+**Primary focal point:** The active tab bottom border (2px accent) draws first attention in the tab strip; the filled pin icon is the primary new affordance signaling pinned state.
 
 ---
 
@@ -135,7 +141,7 @@ Additional semantic colors:
 | Max visible tabs | 7 |
 | Tab min-width | 120px |
 | Tab max-width | 200px |
-| Tab content | Issue type icon (16px) + key (font-mono text-xs) + summary (truncated, text-[13px]) |
+| Tab content | Issue type icon (16px) + key (font-mono text-xs) + summary (truncated, text-xs) |
 | Summary truncation | CSS `truncate` (text-overflow: ellipsis), approximately 20 characters visible |
 | Close button | Lucide `X` icon, 14px, visible on hover, `text-muted-foreground hover:text-foreground` |
 | Active tab | `border-b-2 border-primary text-foreground bg-muted/50` |
@@ -175,7 +181,7 @@ Additional semantic colors:
 | Property | Specification |
 |----------|--------------|
 | Logo | App icon SVG inline or img, 20px x 20px |
-| App name | "Taskflow", text-base (16px), font-bold (700), `text-foreground` |
+| App name | "Taskflow", text-base (16px), font-semibold (600), `text-foreground` |
 | Layout | `flex items-center gap-2` on the left side of the header |
 | Separator | No explicit separator; existing border-b on header suffices |
 
