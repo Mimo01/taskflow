@@ -155,7 +155,7 @@ None.
 | 260316-qc2 | Generalize navigation shortcuts to auto-appear in command palette | 2026-03-16 | 8a4a11a | | [260316-qc2-generalize-navigation-shortcuts-to-auto-](./quick/260316-qc2-generalize-navigation-shortcuts-to-auto-/) |
 | 260316-qj3 | Add all relevant shortcuts to app toolbar menu bar | 2026-03-16 | cfe3a49 | | [260316-qj3-add-all-relevant-shortcuts-to-app-toolba](./quick/260316-qj3-add-all-relevant-shortcuts-to-app-toolba/) |
 | 260316-q9b | Better rich text rendering in issue detail | 2026-03-16 | 4e4be18 | Verified | [260316-q9b-better-rich-text-rendering-in-issue-deta](./quick/260316-q9b-better-rich-text-rendering-in-issue-deta/) |
-| 260316-r0x | Redo issue detail as full page with back/breadcrumb nav | 2026-03-16 | 6333799 | | [260316-r0x-redo-issue-detail-as-full-page-with-back](./quick/260316-r0x-redo-issue-detail-as-full-page-with-back/) |
+| 260316-r0x | Redo issue detail as full page with back/breadcrumb nav | 2026-03-16 | 6333799 | Verified | [260316-r0x-redo-issue-detail-as-full-page-with-back](./quick/260316-r0x-redo-issue-detail-as-full-page-with-back/) |
 
 ## Session Continuity
 
