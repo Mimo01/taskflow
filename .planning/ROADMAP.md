@@ -176,5 +176,5 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22
 | 18. App Icon + Multi-Page Settings | 6/6 | Complete    | 2026-03-15 | - |
 | 19. Keyboard Foundation | 6/6 | Complete   | 2026-03-15 |
 | 20. Command Palette + Recent Items | 6/6 | Complete    | 2026-03-16 | - |
-| 21. Header Redesign + Pinned Issue Tabs | v1.3 | 0/3 | Not started | - |
+| 21. Header Redesign + Pinned Issue Tabs | 1/3 | In Progress|  | - |
 | 22. Polish — Empty States + Error Recovery | v1.3 | 0/TBD | Not started | - |
