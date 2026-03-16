@@ -1,4 +1,5 @@
 import { useEffect, useCallback } from 'react'
+import { AuthImage } from './AuthImage'
 
 interface ImageLightboxProps {
   src: string
@@ -39,11 +40,11 @@ export function ImageLightbox({ src, alt, open, onClose }: ImageLightboxProps) {
       >
         &times;
       </button>
-      <img
+      <AuthImage
         src={src}
         alt={alt ?? ''}
         className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
       />
     </div>
   )
