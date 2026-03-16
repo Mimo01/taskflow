@@ -215,6 +215,7 @@ function AppLayout() {
         onIssueClick={(key) => { handleIssueClick(key); setPaletteOpen(false); }}
         onNavigate={handlePaletteNavigate}
         onOpenNotifications={handlePaletteOpenNotifications}
+        onOpenCreate={handleOpenCreate}
       />
       {/* Global IssueDetailSheet — accessible from search, notifications, and all route views */}
       <IssueDetailSheet

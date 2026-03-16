@@ -42,6 +42,7 @@ interface CommandPaletteProps {
   onIssueClick: (issueKey: string) => void;
   onNavigate: (path: string) => void;
   onOpenNotifications: () => void;
+  onOpenCreate: () => void;
 }
 
 export default function CommandPalette({
@@ -50,6 +51,7 @@ export default function CommandPalette({
   onIssueClick,
   onNavigate,
   onOpenNotifications,
+  onOpenCreate,
 }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [liveSearchTriggered, setLiveSearchTriggered] = useState(false);
@@ -152,6 +154,11 @@ export default function CommandPalette({
 
   function handleMarkAllRead() {
     useNotificationsStore.getState().markAllRead();
+    onClose();
+  }
+
+  function handleCreateIssue() {
+    onOpenCreate();
     onClose();
   }
 
@@ -308,6 +315,12 @@ export default function CommandPalette({
 
                 {/* Actions group */}
                 <CommandGroup heading="Actions">
+                  <CommandItem
+                    keywords={['new', 'add', 'create', 'issue', 'task', 'ticket']}
+                    onSelect={handleCreateIssue}
+                  >
+                    Create issue
+                  </CommandItem>
                   <CommandItem
                     keywords={['theme', 'dark', 'light', 'appearance']}
                     onSelect={handleToggleTheme}
