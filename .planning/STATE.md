@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-16 - Completed quick task 260316-rlb: Remove priority/labels + Jira links to issue detail
+Last activity: 2026-03-16 - Notification polish: styled change cards, hover/unread contrast, Jira links to issue detail
 
 Progress: [██████████] 100%
 
@@ -157,7 +157,7 @@ None.
 | 260316-q9b | Better rich text rendering in issue detail | 2026-03-16 | 4e4be18 | Verified | [260316-q9b-better-rich-text-rendering-in-issue-deta](./quick/260316-q9b-better-rich-text-rendering-in-issue-deta/) |
 | 260316-r0x | Redo issue detail as full page with back/breadcrumb nav | 2026-03-16 | 6333799 | Verified | [260316-r0x-redo-issue-detail-as-full-page-with-back](./quick/260316-r0x-redo-issue-detail-as-full-page-with-back/) |
 | 260316-r34 | Better clarity in notifications - show context like status changes from/to | 2026-03-16 | b36eb0f | Verified | [260316-r34-better-clarity-in-notifications-show-con](./quick/260316-r34-better-clarity-in-notifications-show-con/) |
-| 260316-rlb | Remove priority/labels + Jira links to issue detail | 2026-03-16 | 67cfcea | | [260316-rlb-remove-priority-and-labels-from-notifica](./quick/260316-rlb-remove-priority-and-labels-from-notifica/) |
+| 260316-rlb | Notification polish: remove priority/labels, Jira→issue detail, styled changes, hover contrast | 2026-03-16 | e79a9d5 | | [260316-rlb-remove-priority-and-labels-from-notifica](./quick/260316-rlb-remove-priority-and-labels-from-notifica/) |
 
 ## Session Continuity
 
