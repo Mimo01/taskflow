@@ -22,6 +22,7 @@ import React from 'react';
 
 vi.mock('react-router-dom', () => ({
   useOutletContext: vi.fn(() => ({ onIssueClick: vi.fn(), openCreateStory: vi.fn() })),
+  useNavigate: vi.fn(() => vi.fn()),
 }));
 
 vi.mock('@/services/stronghold', () => ({
