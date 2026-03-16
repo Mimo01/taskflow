@@ -298,7 +298,7 @@ export async function fetchSprintIssues(
   // Include both common story-point field IDs plus the discovered key (deduplicated) so
   // the response contains whichever one this Jira instance uses.
   const spFields = [...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey])].join(',');
-  const fields = `summary,status,assignee,issuetype,${spFields},${epicLinkFieldKey},parent,subtasks,timetracking`;
+  const fields = `summary,status,assignee,issuetype,labels,${spFields},${epicLinkFieldKey},parent,subtasks,timetracking`;
   const jql = encodeURIComponent(
     `project = ${projectKey} AND sprint in openSprints()${assigneeClause} AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`,
   );

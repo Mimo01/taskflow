@@ -24,8 +24,9 @@ import { fetchBacklogView, fetchActiveSprint, addIssuesToSprint } from '@/servic
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { useFilterStore } from '@/stores/filter.store';
 import { BacklogRow } from './BacklogRow';
-import { BacklogFilterBar } from './BacklogFilterBar';
+import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
 import { useListNavigation } from '@/hooks/useListNavigation';
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -100,11 +101,9 @@ export default function BacklogPage() {
     });
   }
 
-  // ── Filter state ─────────────────────────────────────────────────────────────
+  // ── Filter state (shared across views) ──────────────────────────────────────
 
-  const [activeEpics, setActiveEpics] = useState<Set<string>>(new Set());
-  const [activeLabels, setActiveLabels] = useState<Set<string>>(new Set());
-  const [activeAssignees, setActiveAssignees] = useState<Set<string>>(new Set());
+  const { activeEpics, activeLabels, activeAssignees } = useFilterStore();
 
   // ── Selection state ──────────────────────────────────────────────────────────
 
@@ -390,15 +389,7 @@ export default function BacklogPage() {
       {/* Main content */}
       <div className="flex-1 overflow-auto">
         {/* Filter bar — scrolls with content */}
-        <BacklogFilterBar
-          filterOptions={filterOptions}
-          activeEpics={activeEpics}
-          activeLabels={activeLabels}
-          activeAssignees={activeAssignees}
-          onEpicsChange={setActiveEpics}
-          onLabelsChange={setActiveLabels}
-          onAssigneesChange={setActiveAssignees}
-        />
+        <UnifiedFilterBar filterOptions={filterOptions} />
         {/* Error state — no cached data */}
         {isError && !backlogView && (
           <div className="p-4">

@@ -30,6 +30,8 @@ import {
 import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core'
 import { useAuthStore } from '@/stores/auth.store'
 import { useSettingsStore } from '@/stores/settings.store'
+import { useFilterStore } from '@/stores/filter.store'
+import { UnifiedFilterBar } from '@/components/UnifiedFilterBar'
 import {
   fetchSprintIssues,
   fetchProjectStatuses,
@@ -283,24 +285,53 @@ export default function SprintBoardTab() {
     }))
   }, [localIssues])
 
-  const [activeEpicFilter, setActiveEpicFilter] = useState<string | null>(null)
+  const { activeEpics, activeLabels, activeAssignees } = useFilterStore()
 
-  const epicOptions = useMemo(() => {
-    const seen = new Set<string>()
-    for (const { story } of swimlanes) {
-      const ek = story.fields[epicLinkFieldKey as string] as string | null | undefined
-      if (ek) seen.add(ek)
+  const filterOptions = useMemo(() => {
+    const epics = new Map<string, string>()
+    const labels = new Set<string>()
+    const assignees = new Set<string>()
+    for (const issue of localIssues) {
+      const epicKey = issue.fields[epicLinkFieldKey] as string | null
+      if (epicKey) epics.set(epicKey, epicKey)
+      for (const label of (issue.fields.labels as string[] | undefined) ?? []) labels.add(label)
+      if (issue.fields.assignee?.displayName) assignees.add(issue.fields.assignee.displayName)
     }
-    return Array.from(seen).sort()
-  }, [swimlanes, epicLinkFieldKey])
+    return { epics, labels: Array.from(labels), assignees: Array.from(assignees) }
+  }, [localIssues, epicLinkFieldKey])
+
+  function applyFilters(issues: JiraIssue[]): JiraIssue[] {
+    return issues.filter((issue) => {
+      const epicMatch = activeEpics.size === 0 || (() => {
+        const epicKey = issue.fields[epicLinkFieldKey] as string | null
+        const epicName = filterOptions.epics.get(epicKey ?? '') ?? epicKey ?? ''
+        return Array.from(activeEpics).some(q => epicName.toLowerCase().includes(q.toLowerCase()))
+      })()
+      const labelMatch = activeLabels.size === 0 ||
+        ((issue.fields.labels as string[] | undefined) ?? []).some(l => activeLabels.has(l))
+      const assigneeMatch = activeAssignees.size === 0 || (() => {
+        const name = issue.fields.assignee?.displayName ?? ''
+        return Array.from(activeAssignees).some(q => name.toLowerCase().includes(q.toLowerCase()))
+      })()
+      return epicMatch && labelMatch && assigneeMatch
+    })
+  }
 
   const filteredSwimlanes = useMemo(() => {
-    if (!activeEpicFilter) return swimlanes
-    return swimlanes.filter(({ story }) => {
-      const ek = story.fields[epicLinkFieldKey as string] as string | null | undefined
-      return !!ek && ek === activeEpicFilter
-    })
-  }, [swimlanes, activeEpicFilter, epicLinkFieldKey])
+    if (activeEpics.size === 0 && activeLabels.size === 0 && activeAssignees.size === 0) return swimlanes
+    return swimlanes
+      .map(({ story, subtasks }) => {
+        if (subtasks.length > 0) {
+          const filtered = applyFilters(subtasks)
+          if (filtered.length === 0) return null
+          return { story, subtasks: filtered }
+        }
+        // No subtasks — check story itself
+        if (applyFilters([story]).length === 0) return null
+        return { story, subtasks }
+      })
+      .filter((s): s is { story: JiraIssue; subtasks: JiraIssue[] } => s !== null)
+  }, [swimlanes, activeEpics, activeLabels, activeAssignees, filterOptions])
 
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
@@ -387,27 +418,9 @@ export default function SprintBoardTab() {
             </div>
           )}
 
-          {/* Epic filter bar */}
-          {!isLoading && !isError && data && epicOptions.length > 0 && (
-            <div className="px-4 py-2 border-b flex items-center gap-2" data-testid="sprint-epic-filter">
-              <label htmlFor="sprint-epic-select" className="text-xs text-muted-foreground">Epic:</label>
-              <select
-                id="sprint-epic-select"
-                value={activeEpicFilter ?? ''}
-                onChange={e => setActiveEpicFilter(e.target.value || null)}
-                className="text-xs border rounded px-2 py-1 bg-background"
-                aria-label="Filter by epic"
-              >
-                <option value="">All epics</option>
-                {epicOptions.map(key => (
-                  <option key={key} value={key}>{key}</option>
-                ))}
-              </select>
-              {activeEpicFilter && (
-                <button type="button" onClick={() => setActiveEpicFilter(null)}
-                  className="text-xs text-muted-foreground hover:text-foreground">Clear</button>
-              )}
-            </div>
+          {/* Unified filter bar */}
+          {!isLoading && !isError && data && (
+            <UnifiedFilterBar filterOptions={filterOptions} />
           )}
 
           {/* Empty */}
