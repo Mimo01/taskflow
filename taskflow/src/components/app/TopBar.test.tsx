@@ -1,7 +1,10 @@
 // NOTF-04: TopBar renders badge with unread count
-import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+// PALETTE-01: Search icon calls onPaletteOpen
+// RECENT-01: Clock icon (RecentItemsPopover) rendered
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { act } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import TopBar from './TopBar';
 import { useNotificationsStore } from '../../stores/notifications.store';
 import type { NotificationItem } from '../../stores/notifications.store';
@@ -18,8 +21,25 @@ function makeItem(id: string): NotificationItem {
   };
 }
 
+const defaultProps = {
+  paletteOpen: false,
+  onPaletteOpen: vi.fn(),
+  notifPopoverOpen: false,
+  onNotifPopoverChange: vi.fn(),
+};
+
+function renderTopBar(overrides: Partial<typeof defaultProps> = {}) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={qc}>
+      <TopBar {...defaultProps} {...overrides} />
+    </QueryClientProvider>,
+  );
+}
+
 describe('TopBar', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     act(() => {
       useNotificationsStore.setState({
         items: [],
@@ -36,7 +56,7 @@ describe('TopBar', () => {
       useNotificationsStore.setState({ items, readIds: [] });
     });
 
-    render(<TopBar />);
+    renderTopBar();
 
     expect(screen.getByText('3')).toBeInTheDocument();
   });
@@ -47,7 +67,7 @@ describe('TopBar', () => {
       useNotificationsStore.setState({ items, readIds: [] });
     });
 
-    render(<TopBar />);
+    renderTopBar();
 
     expect(screen.getByText('99+')).toBeInTheDocument();
   });
@@ -57,8 +77,23 @@ describe('TopBar', () => {
       useNotificationsStore.setState({ items: [], readIds: [] });
     });
 
-    render(<TopBar />);
+    renderTopBar();
 
     expect(screen.queryByText('0')).not.toBeInTheDocument();
+  });
+
+  it('clicking search icon calls onPaletteOpen', () => {
+    const onPaletteOpen = vi.fn();
+    renderTopBar({ onPaletteOpen });
+
+    fireEvent.click(screen.getByLabelText('Search'));
+
+    expect(onPaletteOpen).toHaveBeenCalledOnce();
+  });
+
+  it('renders clock icon for recent items', () => {
+    renderTopBar();
+
+    expect(screen.getByLabelText('Recent Items')).toBeInTheDocument();
   });
 });

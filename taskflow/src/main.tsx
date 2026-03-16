@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { KeyboardShortcutsPanel } from './components/app/KeyboardShortcutsPanel';
 import ReactDOM from 'react-dom/client';
-import { createHashRouter, RouterProvider, Outlet } from 'react-router-dom';
+import { createHashRouter, RouterProvider, Outlet, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
@@ -18,6 +18,8 @@ import { readSecret } from './services/stronghold';
 import { discoverCustomFields } from './services/jira';
 import { IssueDetailSheet } from './routes/dashboard/IssueDetailSheet';
 import { CreateEditIssueModal, type EditInitialValues } from './routes/dashboard/CreateEditIssueModal';
+import CommandPalette from './components/app/CommandPalette';
+import { useRecentItemsStore } from './stores/recent-items.store';
 import Onboarding from './routes/onboarding/index';
 import Dashboard from './routes/dashboard/index';
 import Settings from './routes/settings/index';
@@ -92,10 +94,22 @@ function AppLayout() {
   const wasStoryCreate = useRef(false);
   const queryClient = useQueryClient();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [notifPopoverOpen, setNotifPopoverOpen] = useState(false);
+  const navigate = useNavigate();
+  const pushRecentItem = useRecentItemsStore((s) => s.pushItem);
 
   // KEYS-01: mod+slash (Cmd+/ on macOS, Ctrl+/ elsewhere) opens shortcuts panel — uses code name to bypass react-hotkeys-hook #1125
   // KEYS-07: enableOnFormTags defaults to false — mod+slash in an input does NOT open the panel
   useHotkeys('mod+slash', () => setShortcutsOpen(true));
+
+  // PALETTE-01: Cmd+K opens command palette
+  useHotkeys('mod+k', (e) => { e.preventDefault(); setPaletteOpen(true); });
+
+  // KEYS-03: Navigation shortcuts
+  useHotkeys('mod+shift+s', () => navigate('/sprint-board'));
+  useHotkeys('mod+shift+b', () => navigate('/backlog'));
+  useHotkeys('mod+shift+n', () => setNotifPopoverOpen(true));
 
   // KEYS-02: Listen for native menu "Help > Keyboard Shortcuts" click
   useEffect(() => {
@@ -104,6 +118,20 @@ function AppLayout() {
     });
     return () => { unlisten.then((fn) => fn()); };
   }, []);
+
+  // Track recent items whenever an issue is opened from any entry point
+  const handleIssueClick = (issueKey: string) => {
+    setSelectedIssueKey(issueKey);
+    pushRecentItem({ type: 'jira', id: issueKey });
+  };
+
+  const handlePaletteNavigate = (path: string) => {
+    navigate(path);
+  };
+
+  const handlePaletteOpenNotifications = () => {
+    setNotifPopoverOpen(true);
+  };
 
   const handleOpenCreate = () => {
     wasStoryCreate.current = false;
@@ -167,18 +195,32 @@ function AppLayout() {
     <div className="flex h-screen overflow-hidden">
       <Sidebar onOpenCreate={handleOpenCreate} />
       <div className="flex flex-col flex-1 overflow-hidden">
-        <TopBar onIssueClick={setSelectedIssueKey} />
+        <TopBar
+          onIssueClick={handleIssueClick}
+          paletteOpen={paletteOpen}
+          onPaletteOpen={() => setPaletteOpen(true)}
+          notifPopoverOpen={notifPopoverOpen}
+          onNotifPopoverChange={setNotifPopoverOpen}
+        />
         {_hasHydrated && !jiraConnected && <ReAuthBanner />}
         {_hasHydrated && !gitlabConnected && <GitLabReAuthBanner />}
         <main className="flex-1 overflow-auto">
-          <Outlet context={{ onIssueClick: setSelectedIssueKey, onEpicClick: setSelectedIssueKey, openEdit: handleOpenEdit, openAddSubtask: handleOpenAddSubtask, openCreateStory: handleOpenCreateStory }} />
+          <Outlet context={{ onIssueClick: handleIssueClick, onEpicClick: handleIssueClick, openEdit: handleOpenEdit, openAddSubtask: handleOpenAddSubtask, openCreateStory: handleOpenCreateStory }} />
         </main>
       </div>
+      {/* Command palette overlay */}
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        onIssueClick={(key) => { handleIssueClick(key); setPaletteOpen(false); }}
+        onNavigate={handlePaletteNavigate}
+        onOpenNotifications={handlePaletteOpenNotifications}
+      />
       {/* Global IssueDetailSheet — accessible from search, notifications, and all route views */}
       <IssueDetailSheet
         issueKey={selectedIssueKey}
         onClose={() => setSelectedIssueKey(null)}
-        onOpenIssue={setSelectedIssueKey}
+        onOpenIssue={handleIssueClick}
         onEdit={handleOpenEdit}
         onAddSubtask={handleOpenAddSubtask}
       />
