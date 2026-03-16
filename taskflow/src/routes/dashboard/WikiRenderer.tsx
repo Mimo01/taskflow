@@ -1,6 +1,6 @@
 // @ts-expect-error — jira2md has no default export type declarations
 import j2m from 'jira2md'
-import { useState, type ComponentPropsWithoutRef } from 'react'
+import { memo, useCallback, useMemo, useState, type ComponentPropsWithoutRef } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
@@ -105,15 +105,21 @@ const calloutStyles: Record<string, string> = {
   panel: 'border-l-4 border-border bg-muted/50 p-3 rounded-r-md my-2',
 }
 
-export function WikiRenderer({ wikiText, className, attachments, users }: WikiRendererProps) {
+export const WikiRenderer = memo(function WikiRenderer({ wikiText, className, attachments, users }: WikiRendererProps) {
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
 
   const preprocessed = wikiText ? preprocessJiraMarkup(wikiText, attachments, users) : ''
   const markdown = preprocessed ? j2m.to_markdown(preprocessed) : ''
 
-  // Components map includes 'mention' which is a custom HTML element not in
-  // the standard Components type — use Record<string, unknown> intersection
-  const markdownComponents: Record<string, unknown> = {
+  // Stable callback so img component reference doesn't change between renders
+  const handleImageClick = useCallback((src: string) => {
+    setLightboxSrc(src)
+  }, [])
+
+  // Memoize components map so react-markdown doesn't remount elements (e.g. AuthImage)
+  // on parent re-renders. The img component must use a stable function reference
+  // to prevent AuthImage unmount/remount which resets blob URLs and re-fetches images.
+  const markdownComponents: Record<string, unknown> = useMemo(() => ({
     img: ({ src, alt }: ComponentPropsWithoutRef<'img'>) => {
       if (!src) return null
       return (
@@ -121,7 +127,7 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
           src={src}
           alt={alt ?? ''}
           className="max-w-full rounded-md cursor-pointer"
-          onClick={() => setLightboxSrc(src)}
+          onClick={() => handleImageClick(src)}
         />
       )
     },
@@ -145,7 +151,7 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
         @{children}
       </span>
     ),
-  }
+  }), [handleImageClick])
 
   return (
     <article className={cn('prose prose-sm dark:prose-invert max-w-none', className)}>
@@ -165,4 +171,4 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
       )}
     </article>
   )
-}
+})
