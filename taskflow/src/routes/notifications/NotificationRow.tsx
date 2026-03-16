@@ -36,16 +36,19 @@ function linkifyText(text: string): string {
 
 export default function NotificationRow({ item, isUnread = false, onClick }: NotificationRowProps) {
   const borderClass = item.source === 'jira' ? 'border-orange-500' : 'border-purple-500';
-  const bgClass = isUnread ? 'bg-muted/50' : '';
+  const bgClass = isUnread ? 'bg-accent/60' : '';
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`w-full text-left border-l-4 ${borderClass} ${bgClass} px-3 py-2 hover:bg-muted/70 transition-colors flex gap-3 items-start`}
+      className={`w-full text-left border-l-4 ${borderClass} ${bgClass} px-3 py-2 hover:bg-accent transition-colors flex gap-3 items-start`}
     >
-      {/* Source icon */}
-      <div className="flex-shrink-0 mt-0.5">
+      {/* Unread dot + source icon */}
+      <div className="flex-shrink-0 mt-0.5 relative">
+        {isUnread && (
+          <span className="absolute -top-0.5 -left-0.5 w-2 h-2 rounded-full bg-blue-500" />
+        )}
         {item.source === 'jira' ? (
           <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">
             J
@@ -76,7 +79,7 @@ export default function NotificationRow({ item, isUnread = false, onClick }: Not
         </p>
 
         {/* Body preview — linkified, with multi-line support for arrow-format changes */}
-        <p className="text-xs text-muted-foreground line-clamp-2">
+        <p className={`text-xs line-clamp-2 ${isUnread ? 'text-foreground/70' : 'text-muted-foreground'}`}>
           {(item.notificationType === 'issue-update' || item.notificationType === 'mr-note') &&
            item.bodyPreview.includes('\u2192')
             ? (item.bodyPreview.includes(' | ')
