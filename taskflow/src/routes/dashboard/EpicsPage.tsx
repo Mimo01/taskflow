@@ -43,21 +43,24 @@ function EpicRow({ epic, onEpicClick }: EpicRowProps) {
 
   return (
     <tr className="border-b border-border hover:bg-muted/30 transition-colors">
-      {/* Color indicator + Epic name */}
+      {/* Color bar — prominent left border */}
+      <td className="w-1 p-0">
+        <div
+          className={`w-1 h-full min-h-[3rem] ${colorResult.className}`}
+          style={colorResult.style ? { backgroundColor: colorResult.style.color } : undefined}
+        />
+      </td>
+
+      {/* Epic name as colored badge */}
       <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span
-            className={`inline-block w-2.5 h-2.5 rounded-full shrink-0 ${colorResult.className}`}
-            style={colorResult.style ? { backgroundColor: colorResult.style.color } : undefined}
-          />
-          <button
-            type="button"
-            className="text-sm font-medium text-left hover:underline"
-            onClick={() => onEpicClick?.(epic.key)}
-          >
-            {epic.epicName}
-          </button>
-        </div>
+        <button
+          type="button"
+          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-medium text-left hover:opacity-80 transition-opacity ${colorResult.className}`}
+          style={colorResult.style}
+          onClick={() => onEpicClick?.(epic.key)}
+        >
+          {epic.epicName}
+        </button>
       </td>
 
       {/* Epic key */}
@@ -177,6 +180,7 @@ export default function EpicsPage() {
               <table className="w-full text-sm">
                 <thead className="border-b bg-muted/10">
                   <tr>
+                    <th className="w-1 p-0" />
                     <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Name
                     </th>
