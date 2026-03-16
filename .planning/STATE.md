@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: UX & Branding
-status: completed
-stopped_at: Completed 21-02-PLAN.md
+status: in_progress
+stopped_at: Completed 21-03-PLAN.md
 last_updated: "2026-03-16T11:24:11.905Z"
-last_activity: 2026-03-16 — Phase 21 Plan 02 executed (TopBar branding, PinnedTabStrip component, Sidebar branding removed)
+last_activity: 2026-03-16 — Phase 21 Plan 03 executed (Pin button + J/K navigation in My Tasks, Notifications, Backlog)
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 21
-  completed_plans: 20
-  percent: 95
+  completed_plans: 21
+  percent: 100
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 ## Current Position
 
 Phase: 21 of 22 (Header Redesign + Pinned Issue Tabs)
-Plan: 2 of 3
-Status: Plan 02 Complete
-Last activity: 2026-03-16 — Phase 21 Plan 02 executed (TopBar branding, PinnedTabStrip component, Sidebar branding removed)
+Plan: 3 of 3
+Status: Phase 21 Complete
+Last activity: 2026-03-16 — Phase 21 Plan 03 executed (Pin button + J/K navigation in My Tasks, Notifications, Backlog)
 
-Progress: [██████████] 95%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -71,6 +71,7 @@ Progress: [██████████] 95%
 | Phase 20-command-palette-recent-items P06 | 2 | 2 tasks | 3 files |
 | Phase 21-header-redesign-pinned-issue-tabs P01 | 2 | 2 tasks | 3 files |
 | Phase 21-header-redesign-pinned-issue-tabs P02 | 2 | 2 tasks | 5 files |
+| Phase 21-header-redesign-pinned-issue-tabs P03 | 5 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -117,6 +118,9 @@ Key v1.3 constraints from research:
 - [Phase 21-header-redesign-pinned-issue-tabs]: Pinned-tabs store follows exact same LazyStore persistence pattern as recent-items store
 - [Phase 21-header-redesign-pinned-issue-tabs]: useListNavigation focusIndex starts at -1 (no selection); J from -1 goes to 0
 - [Phase 21-header-redesign-pinned-issue-tabs]: PinnedTabStrip resolves issue metadata from react-query cache -- no extra API calls
+- [Phase 21-header-redesign-pinned-issue-tabs]: BacklogRow converted to React.forwardRef for scrollIntoView support from parent
+- [Phase 21-header-redesign-pinned-issue-tabs]: Ref map pattern (useRef<Map<string, Element>>) used for dynamic row ref tracking in J/K navigation
+- [Phase 21-header-redesign-pinned-issue-tabs]: Focus highlight uses bg-muted + border-l-2 border-primary + aria-current across all list views
 
 ### Pending Todos
 
@@ -130,6 +134,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-16T11:24:11.899Z
-Stopped at: Completed 21-02-PLAN.md
-Resume: Plan 02 complete. Continue with Plan 03 (J/K list navigation + pin interaction from IssueDetailSheet)
+Last session: 2026-03-16T11:29:47Z
+Stopped at: Completed 21-03-PLAN.md
+Resume: Phase 21 complete (all 3 plans). Continue with Phase 22 (Polish - Empty States + Error Recovery)

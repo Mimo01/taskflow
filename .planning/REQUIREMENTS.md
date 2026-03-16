@@ -14,7 +14,7 @@ Requirements for the v1.3 UX & Branding milestone. Each maps to roadmap phases.
 ### Header & Tabs
 
 - [x] **HEADER-01**: App header is redesigned with consistent branding (logo + app name) visible on all routes
-- [ ] **HEADER-02**: User can pin any open issue to the tab strip from the issue detail panel header
+- [x] **HEADER-02**: User can pin any open issue to the tab strip from the issue detail panel header
 - [x] **HEADER-03**: Pinned issue tabs are displayed in a tab strip below the top bar
 - [x] **HEADER-04**: User can close a pinned tab by clicking its × button
 - [x] **HEADER-05**: Pinned tabs persist across app restarts
@@ -112,7 +112,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RECENT-02 | Phase 20 | Complete |
 | KEYS-03 | Phase 20 | Complete |
 | HEADER-01 | Phase 21 | Complete |
-| HEADER-02 | Phase 21 | Pending |
+| HEADER-02 | Phase 21 | Complete |
 | HEADER-03 | Phase 21 | Complete |
 | HEADER-04 | Phase 21 | Complete |
 | HEADER-05 | Phase 21 | Complete |
