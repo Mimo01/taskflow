@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-17 - Completed quick task 260317-0sw: Exclude Done epics from epic listing queries
+Last activity: 2026-03-17 - Completed quick task 260317-0ys: Fix backlog table horizontal overflow
 
 Progress: [██████████] 100%
 
@@ -174,9 +174,10 @@ None.
 | 260317-01r | Replace J/GL circles with author avatars in notifications | 2026-03-17 | daa2547 | | [260317-01r-in-the-notifications-popup-replace-j-g-c](./quick/260317-01r-in-the-notifications-popup-replace-j-g-c/) |
 | 260317-06k | Match recent items popover width to notifications, increase notification max-height | 2026-03-17 | f7954d4 | | [260317-06k-make-the-popover-size-of-recent-items-th](./quick/260317-06k-make-the-popover-size-of-recent-items-th/) |
 | 260317-0sw | Exclude Done epics from epic listing queries | 2026-03-17 | 54d7947 | | [260317-0sw-i-only-ever-want-to-see-epics-that-are-n](./quick/260317-0sw-i-only-ever-want-to-see-epics-that-are-n/) |
+| 260317-0ys | Fix backlog table horizontal overflow with long text | 2026-03-17 | b5feee5 | | [260317-0ys-in-the-backlog-there-is-a-problem-with-o](./quick/260317-0ys-in-the-backlog-there-is-a-problem-with-o/) |
 
 ## Session Continuity
 
 Last session: 2026-03-17T00:00:00Z
-Stopped at: Completed quick task 260317-0sw (exclude Done epics from listings)
+Stopped at: Completed quick task 260317-0ys (fix backlog table overflow)
 Resume: Milestone v1.3 (UX & Branding) is fully executed. All 5 phases (18-22), 29 plans complete. Ready for /gsd:audit-milestone or /gsd:complete-milestone.
