@@ -4,6 +4,11 @@ import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
+// Mock react-router-dom — ErrorState uses useNavigate
+vi.mock('react-router-dom', () => ({
+  useNavigate: vi.fn(() => vi.fn()),
+}));
+
 // Mock stronghold
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-jira-token'),
@@ -117,7 +122,8 @@ describe('SprintProgressTab', () => {
     const { default: SprintProgressTab } = await import('./SprintProgressTab');
     renderWithQuery(<SprintProgressTab />);
 
-    await screen.findByText(/to do/i);
+    // Wait for content to render — use findAllByText since "to do" appears in bucket label and bar label
+    await screen.findAllByText(/to do/i);
     // Stacked bar is still shown (total > 0), old progress-bar testid should be gone
     const oldProgressBar = document.querySelector('[data-testid="progress-bar"]');
     expect(oldProgressBar).toBeNull();
@@ -203,7 +209,8 @@ describe('SprintProgressTab', () => {
     const { default: SprintProgressTab } = await import('./SprintProgressTab');
     renderWithQuery(<SprintProgressTab />);
 
-    await screen.findByText(/to do/i);
+    // Empty state now shows instead of bucket rows
+    await screen.findByText(/No sprint data yet/i);
     const stackedBar = document.querySelector('[data-testid="stacked-bar"]');
     expect(stackedBar).toBeNull();
   });
@@ -233,7 +240,7 @@ describe('SprintProgressTab', () => {
     const { default: SprintProgressTab } = await import('./SprintProgressTab');
     renderWithQuery(<SprintProgressTab />);
 
-    await screen.findByText(/to do/i);
+    await screen.findAllByText(/to do/i);
     const timeSummary = document.querySelector('[data-testid="time-summary"]');
     expect(timeSummary).toBeNull();
   });
