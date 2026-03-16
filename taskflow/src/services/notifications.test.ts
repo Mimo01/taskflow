@@ -79,9 +79,13 @@ describe('notifications service', () => {
         }),
       };
 
+      const emptyJiraResp = { ok: true, status: 200, json: async () => ({ issues: [] }) };
+
       vi.mocked(mockFetch)
-        .mockResolvedValueOnce(emptyIssuesResp as unknown as Response)
-        .mockResolvedValueOnce(jiraSearchResp as unknown as Response);
+        .mockResolvedValueOnce(emptyIssuesResp as unknown as Response)   // Query A
+        .mockResolvedValueOnce(jiraSearchResp as unknown as Response)    // Query B
+        .mockResolvedValueOnce(emptyJiraResp as unknown as Response)     // Query C: all comments
+        .mockResolvedValueOnce(emptyJiraResp as unknown as Response);    // Query D: due date
 
       const result = await fetchNewNotifications(
         'https://jira.example.com',
@@ -92,6 +96,7 @@ describe('notifications service', () => {
           jiraUserDisplayName: 'John Doe',
           jiraUsername: 'jdoe',
           gitlabUserId: null,
+          gitlabUsername: null,
           mrList: [],
           lastSeenCursor: '2026-03-11T10:00:00.000Z',
         },
@@ -141,9 +146,13 @@ describe('notifications service', () => {
         }),
       };
 
+      const emptyJiraResp2 = { ok: true, status: 200, json: async () => ({ issues: [] }) };
+
       vi.mocked(mockFetch)
-        .mockResolvedValueOnce(emptyIssuesResp as unknown as Response)
-        .mockResolvedValueOnce(jiraSearchResp as unknown as Response);
+        .mockResolvedValueOnce(emptyIssuesResp as unknown as Response)   // Query A
+        .mockResolvedValueOnce(jiraSearchResp as unknown as Response)    // Query B
+        .mockResolvedValueOnce(emptyJiraResp2 as unknown as Response)    // Query C
+        .mockResolvedValueOnce(emptyJiraResp2 as unknown as Response);   // Query D
 
       const result = await fetchNewNotifications(
         'https://jira.example.com',
@@ -154,6 +163,7 @@ describe('notifications service', () => {
           jiraUserDisplayName: 'A.User',
           jiraUsername: 'auser',
           gitlabUserId: null,
+          gitlabUsername: null,
           mrList: [],
           lastSeenCursor: '2026-03-11T10:00:00.000Z',
         },
@@ -214,6 +224,7 @@ describe('notifications service', () => {
           jiraUserDisplayName: null,
           jiraUsername: null,
           gitlabUserId: 42,
+          gitlabUsername: null,
           mrList: [mockJiraMR],
           lastSeenCursor: '2026-03-11T10:00:00.000Z',
         },
@@ -274,10 +285,21 @@ describe('notifications service', () => {
         ]),
       };
 
+      // Empty response for additional Jira/GitLab queries (all-comments, due-date, approvals, pipelines)
+      const emptyResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({ issues: [] }),
+      };
+
       vi.mocked(mockFetch)
-        .mockResolvedValueOnce(emptyIssuesResp as unknown as Response)
-        .mockResolvedValueOnce(jiraResp as unknown as Response)
-        .mockResolvedValueOnce(notesResp as unknown as Response);
+        .mockResolvedValueOnce(emptyIssuesResp as unknown as Response)   // Query A: issue updates
+        .mockResolvedValueOnce(jiraResp as unknown as Response)          // Query B: comment mentions
+        .mockResolvedValueOnce(emptyResp as unknown as Response)         // Query C: all comments
+        .mockResolvedValueOnce(emptyResp as unknown as Response)         // Query D: due date reminders
+        .mockResolvedValueOnce(notesResp as unknown as Response)         // GitLab: notes
+        .mockResolvedValueOnce(emptyResp as unknown as Response)         // GitLab: approvals
+        .mockResolvedValueOnce(emptyResp as unknown as Response);        // GitLab: pipelines
 
       const result = await fetchNewNotifications(
         'https://jira.example.com',
@@ -288,6 +310,7 @@ describe('notifications service', () => {
           jiraUserDisplayName: 'John Doe',
           jiraUsername: 'jdoe',
           gitlabUserId: 42,
+          gitlabUsername: null,
           mrList: [mockJiraMR],
           lastSeenCursor: '2026-03-11T10:00:00.000Z',
         },
@@ -373,9 +396,13 @@ describe('notifications service', () => {
         json: async () => ({ issues: [] }),
       };
 
+      const emptyJiraR = { ok: true, status: 200, json: async () => ({ issues: [] }) };
+
       vi.mocked(mockFetch)
-        .mockResolvedValueOnce(issueUpdatesResp as unknown as Response)
-        .mockResolvedValueOnce(commentResp as unknown as Response);
+        .mockResolvedValueOnce(issueUpdatesResp as unknown as Response)  // Query A
+        .mockResolvedValueOnce(commentResp as unknown as Response)       // Query B
+        .mockResolvedValueOnce(emptyJiraR as unknown as Response)        // Query C
+        .mockResolvedValueOnce(emptyJiraR as unknown as Response);       // Query D
 
       const result = await fetchNewNotifications(
         'https://jira.example.com',
@@ -386,6 +413,7 @@ describe('notifications service', () => {
           jiraUserDisplayName: 'Jane Doe',
           jiraUsername: 'jdoe',
           gitlabUserId: null,
+          gitlabUsername: null,
           mrList: [],
           lastSeenCursor: '2026-03-11T10:00:00.000Z',
         },
@@ -423,9 +451,13 @@ describe('notifications service', () => {
         json: async () => ({ issues: [] }),
       };
 
+      const emptyJR = { ok: true, status: 200, json: async () => ({ issues: [] }) };
+
       vi.mocked(mockFetch)
         .mockResolvedValueOnce(issueUpdatesResp as unknown as Response)
-        .mockResolvedValueOnce(commentResp as unknown as Response);
+        .mockResolvedValueOnce(commentResp as unknown as Response)
+        .mockResolvedValueOnce(emptyJR as unknown as Response)
+        .mockResolvedValueOnce(emptyJR as unknown as Response);
 
       const result = await fetchNewNotifications(
         'https://jira.example.com',
@@ -436,6 +468,7 @@ describe('notifications service', () => {
           jiraUserDisplayName: 'Jane Doe',
           jiraUsername: 'jdoe',
           gitlabUserId: null,
+          gitlabUsername: null,
           mrList: [],
           lastSeenCursor: '2026-03-11T10:00:00.000Z',
         },
@@ -472,9 +505,13 @@ describe('notifications service', () => {
         json: async () => ({ issues: [] }),
       };
 
+      const emptyJR2 = { ok: true, status: 200, json: async () => ({ issues: [] }) };
+
       vi.mocked(mockFetch)
         .mockResolvedValueOnce(issueUpdatesResp as unknown as Response)
-        .mockResolvedValueOnce(commentResp as unknown as Response);
+        .mockResolvedValueOnce(commentResp as unknown as Response)
+        .mockResolvedValueOnce(emptyJR2 as unknown as Response)
+        .mockResolvedValueOnce(emptyJR2 as unknown as Response);
 
       const result = await fetchNewNotifications(
         'https://jira.example.com',
@@ -485,6 +522,7 @@ describe('notifications service', () => {
           jiraUserDisplayName: 'Jane Doe',
           jiraUsername: 'jdoe',
           gitlabUserId: null,
+          gitlabUsername: null,
           mrList: [],
           lastSeenCursor: '2026-03-11T10:00:00.000Z',
         },
@@ -530,9 +568,13 @@ describe('notifications service', () => {
         }),
       };
 
+      const emptyJR3 = { ok: true, status: 200, json: async () => ({ issues: [] }) };
+
       vi.mocked(mockFetch)
         .mockResolvedValueOnce(issueUpdatesResp as unknown as Response)
-        .mockResolvedValueOnce(commentResp as unknown as Response);
+        .mockResolvedValueOnce(commentResp as unknown as Response)
+        .mockResolvedValueOnce(emptyJR3 as unknown as Response)
+        .mockResolvedValueOnce(emptyJR3 as unknown as Response);
 
       const result = await fetchNewNotifications(
         'https://jira.example.com',
@@ -543,6 +585,7 @@ describe('notifications service', () => {
           jiraUserDisplayName: 'John Doe',
           jiraUsername: 'jdoe',
           gitlabUserId: null,
+          gitlabUsername: null,
           mrList: [],
           lastSeenCursor: '2026-03-11T10:00:00.000Z',
         },
@@ -600,9 +643,13 @@ describe('notifications service', () => {
         }),
       };
 
+      const emptyJR4 = { ok: true, status: 200, json: async () => ({ issues: [] }) };
+
       vi.mocked(mockFetch)
         .mockResolvedValueOnce(issueUpdatesResp as unknown as Response)
-        .mockResolvedValueOnce(commentResp as unknown as Response);
+        .mockResolvedValueOnce(commentResp as unknown as Response)
+        .mockResolvedValueOnce(emptyJR4 as unknown as Response)
+        .mockResolvedValueOnce(emptyJR4 as unknown as Response);
 
       const result = await fetchNewNotifications(
         'https://jira.example.com',
@@ -613,6 +660,7 @@ describe('notifications service', () => {
           jiraUserDisplayName: 'Jane Doe',
           jiraUsername: 'jdoe',
           gitlabUserId: null,
+          gitlabUsername: null,
           mrList: [],
           lastSeenCursor: '2026-03-11T10:00:00.000Z',
         },
@@ -637,6 +685,7 @@ describe('notifications service', () => {
           jiraUserDisplayName: null,
           jiraUsername: null,
           gitlabUserId: null,
+          gitlabUsername: null,
           mrList: [],
           lastSeenCursor: '2026-03-11T10:00:00.000Z',
         },

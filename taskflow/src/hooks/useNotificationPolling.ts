@@ -68,6 +68,7 @@ export function useNotificationPolling() {
         jiraUserDisplayName,
         jiraUsername,
         gitlabUserId,
+        gitlabUsername: null, // Will be wired to auth store in Task 2
         mrList,
         lastSeenCursor: store.lastSeenCursor,
       });

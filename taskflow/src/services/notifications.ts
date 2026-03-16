@@ -16,6 +16,7 @@ import {
   sendNotification,
 } from '@tauri-apps/plugin-notification';
 import type { GitLabMR } from './gitlab';
+import type { NotificationType } from '../stores/notifications.store';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,7 +29,7 @@ export interface NotificationItem {
   fullBody: string;
   createdAt: string;     // ISO 8601
   url?: string;              // browser-openable URL for the entity
-  notificationType?: 'comment-mention' | 'issue-update' | 'mr-note';
+  notificationType?: NotificationType;
   entityState?: string;      // GitLab: "opened" | "merged" | "closed"
 }
 
@@ -132,6 +133,26 @@ async function fetchNewJiraComments(
           } else if (item.field === 'assignee') {
             changeLines.push(`Assignee: ${item.fromString || '(none)'} \u2192 ${item.toString || '(none)'}`);
             changeAuthor = changeAuthor ?? history.author.displayName;
+
+            // Emit separate issue-assignment notification when newly assigned to current user
+            if (
+              displayName &&
+              item.toString === displayName &&
+              item.fromString !== displayName
+            ) {
+              results.push({
+                id: `jira-assign-${issue.key}-${history.created}`,
+                source: 'jira',
+                entityTitle: `${issue.key}: ${issue.fields.summary}`,
+                author: history.author.displayName,
+                bodyPreview: `Assigned to you by ${history.author.displayName}`,
+                fullBody: `Assigned to you by ${history.author.displayName}`,
+                createdAt: history.created,
+                url: `${base}/browse/${issue.key}`,
+                notificationType: 'issue-assignment',
+                entityState: undefined,
+              });
+            }
           }
         }
       }
@@ -229,15 +250,139 @@ async function fetchNewJiraComments(
     return results;
   }
 
-  // Run both queries in parallel; failure of one doesn't break the other
-  const [issueResult, commentResult] = await Promise.allSettled([
+  // ── Query C: all comments on issues user is involved in ───────────────────
+  async function fetchAllComments(): Promise<NotificationItem[]> {
+    if (!username) return [];
+
+    const jql =
+      `project = ${projectKey}` +
+      ` AND (assignee = "${username}" OR reporter = "${username}" OR watcher = "${username}")` +
+      ` AND updatedDate >= "${sinceJql}"` +
+      ` ORDER BY updated DESC`;
+    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,comment&maxResults=20`;
+
+    let response: Response;
+    try {
+      response = await apiFetch('jira', url, { headers });
+    } catch {
+      return [];
+    }
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    const issues: unknown[] = data.issues ?? [];
+    const results: NotificationItem[] = [];
+
+    for (const rawIssue of issues) {
+      const issue = rawIssue as {
+        key: string;
+        fields: {
+          summary: string;
+          comment?: { comments: Array<{
+            id: string;
+            author?: { displayName?: string };
+            body?: string;
+            updated: string;
+            created: string;
+          }> };
+        };
+      };
+
+      const comments = issue.fields?.comment?.comments ?? [];
+      for (const comment of comments) {
+        if (comment.updated <= since) continue;
+        // Skip self-authored comments
+        if (displayName && comment.author?.displayName === displayName) continue;
+
+        const body: string = comment.body ?? '';
+        results.push({
+          id: `jira-allcomment-${comment.id}`,
+          source: 'jira',
+          entityTitle: `${issue.key}: ${issue.fields.summary}`,
+          author: comment.author?.displayName ?? 'Unknown',
+          bodyPreview: body.substring(0, 80),
+          fullBody: body,
+          createdAt: comment.created,
+          url: `${base}/browse/${issue.key}`,
+          notificationType: 'jira-comment',
+          entityState: undefined,
+        });
+      }
+    }
+
+    return results;
+  }
+
+  // ── Query D: due date reminders (issues due within 1 day) ─────────────────
+  async function fetchDueDateReminders(): Promise<NotificationItem[]> {
+    if (!username) return [];
+
+    const jql =
+      `assignee = "${username}" AND duedate >= now() AND duedate <= endOfDay("+1")` +
+      ` ORDER BY duedate ASC`;
+    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,duedate,status&maxResults=20`;
+
+    let response: Response;
+    try {
+      response = await apiFetch('jira', url, { headers });
+    } catch {
+      return [];
+    }
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    const issues: unknown[] = data.issues ?? [];
+    const results: NotificationItem[] = [];
+
+    for (const rawIssue of issues) {
+      const issue = rawIssue as {
+        key: string;
+        fields: {
+          summary: string;
+          duedate: string | null;
+          status?: { name: string };
+        };
+      };
+
+      if (!issue.fields.duedate) continue;
+
+      // Determine relative label
+      const dueDate = new Date(issue.fields.duedate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const dueLabel = dueDate <= today ? 'Due today' : 'Due tomorrow';
+
+      results.push({
+        id: `jira-duedate-${issue.key}`,
+        source: 'jira',
+        entityTitle: `${issue.key}: ${issue.fields.summary}`,
+        author: '',
+        bodyPreview: dueLabel,
+        fullBody: `${dueLabel} (${issue.fields.duedate})`,
+        createdAt: new Date().toISOString(),
+        url: `${base}/browse/${issue.key}`,
+        notificationType: 'due-date-reminder',
+        entityState: undefined,
+      });
+    }
+
+    return results;
+  }
+
+  // Run all queries in parallel; failure of one doesn't break the others
+  const settled = await Promise.allSettled([
     fetchIssueUpdates(),
     fetchCommentMentions(),
+    fetchAllComments(),
+    fetchDueDateReminders(),
   ]);
 
   const results: NotificationItem[] = [];
-  if (issueResult.status === 'fulfilled') results.push(...issueResult.value);
-  if (commentResult.status === 'fulfilled') results.push(...commentResult.value);
+  for (const result of settled) {
+    if (result.status === 'fulfilled') results.push(...result.value);
+  }
 
   return results;
 }
@@ -254,6 +399,7 @@ async function fetchNewGitlabNotes(
   currentUserId: number,
   mrList: GitLabMR[],
   lastSeenCursor: string | null,
+  currentUsername: string | null,
 ): Promise<NotificationItem[]> {
   const since = lastSeenCursor ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const results: NotificationItem[] = [];
@@ -316,6 +462,9 @@ async function fetchNewGitlabNotes(
         continue;
       }
 
+      // Detect @mention of current user in the note body
+      const isMentioned = currentUsername ? body.includes(`@${currentUsername}`) : false;
+
       results.push({
         id: `gitlab-note-${note.id}`,
         source: 'gitlab',
@@ -325,7 +474,134 @@ async function fetchNewGitlabNotes(
         fullBody: body,
         createdAt: note.created_at,
         url: mr.web_url,
-        notificationType: 'mr-note',
+        notificationType: isMentioned ? 'gitlab-mention' : 'mr-note',
+        entityState: mr.state,
+      });
+    }
+  }
+
+  return results;
+}
+
+// ─── GitLab Approval Fetcher ──────────────────────────────────────────────────
+
+/**
+ * Fetch MR approval notifications for MRs authored by the current user.
+ */
+async function fetchGitlabApprovals(
+  baseUrl: string,
+  token: string,
+  currentUserId: number,
+  mrList: GitLabMR[],
+  lastSeenCursor: string | null,
+): Promise<NotificationItem[]> {
+  const since = lastSeenCursor ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const results: NotificationItem[] = [];
+  const base = baseUrl.replace(/\/$/, '');
+
+  for (const mr of mrList) {
+    if (mr.author.id !== currentUserId) continue;
+
+    const url = `${base}/api/v4/projects/${mr.project_id}/merge_requests/${mr.iid}/approvals`;
+
+    let response: Response;
+    try {
+      response = await apiFetch('gitlab', url, {
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
+      });
+    } catch {
+      continue;
+    }
+
+    if (!response.ok) continue;
+
+    const data = await response.json();
+    const approvedBy: Array<{
+      user: { id: number; name: string; username: string };
+      approved_at?: string;
+    }> = data.approved_by ?? [];
+
+    for (const entry of approvedBy) {
+      const approvedAt = entry.approved_at ?? mr.updated_at;
+      if (approvedAt <= since) continue;
+
+      results.push({
+        id: `gitlab-approval-${mr.iid}-${entry.user.id}`,
+        source: 'gitlab',
+        entityTitle: mr.title,
+        author: entry.user.name,
+        bodyPreview: `Approved by ${entry.user.name}`,
+        fullBody: `Approved by ${entry.user.name}`,
+        createdAt: approvedAt,
+        url: mr.web_url,
+        notificationType: 'mr-approval',
+        entityState: mr.state,
+      });
+    }
+  }
+
+  return results;
+}
+
+// ─── GitLab Pipeline Failure Fetcher ─────────────────────────────────────────
+
+/**
+ * Fetch pipeline failure notifications for MRs authored by the current user.
+ */
+async function fetchGitlabPipelineFailures(
+  baseUrl: string,
+  token: string,
+  currentUserId: number,
+  mrList: GitLabMR[],
+  lastSeenCursor: string | null,
+): Promise<NotificationItem[]> {
+  const since = lastSeenCursor ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const results: NotificationItem[] = [];
+  const base = baseUrl.replace(/\/$/, '');
+
+  for (const mr of mrList) {
+    if (mr.author.id !== currentUserId) continue;
+
+    const url = `${base}/api/v4/projects/${mr.project_id}/merge_requests/${mr.iid}/pipelines?per_page=5&sort=desc`;
+
+    let response: Response;
+    try {
+      response = await apiFetch('gitlab', url, {
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
+      });
+    } catch {
+      continue;
+    }
+
+    if (!response.ok) continue;
+
+    const pipelines: Array<{
+      id: number;
+      status: string;
+      updated_at: string;
+      ref: string;
+    }> = await response.json();
+
+    for (const pipeline of pipelines) {
+      if (pipeline.status !== 'failed') continue;
+      if (pipeline.updated_at <= since) continue;
+
+      results.push({
+        id: `gitlab-pipeline-${pipeline.id}`,
+        source: 'gitlab',
+        entityTitle: mr.title,
+        author: '',
+        bodyPreview: `Pipeline #${pipeline.id} failed on ${mr.source_branch}`,
+        fullBody: `Pipeline #${pipeline.id} failed on ${mr.source_branch}`,
+        createdAt: pipeline.updated_at,
+        url: mr.web_url,
+        notificationType: 'pipeline-failure',
         entityState: mr.state,
       });
     }
@@ -351,6 +627,7 @@ export async function fetchNewNotifications(
     jiraUserDisplayName: string | null;
     jiraUsername: string | null;
     gitlabUserId: number | null;
+    gitlabUsername: string | null;
     mrList: GitLabMR[];
     lastSeenCursor: string | null;
   },
@@ -371,10 +648,29 @@ export async function fetchNewNotifications(
     );
   }
 
-  // GitLab task
+  // GitLab tasks
   if (gitlabBaseUrl && tokens.gitlab && opts.gitlabUserId !== null && opts.mrList.length > 0) {
     tasks.push(
       fetchNewGitlabNotes(
+        gitlabBaseUrl,
+        tokens.gitlab,
+        opts.gitlabUserId,
+        opts.mrList,
+        opts.lastSeenCursor,
+        opts.gitlabUsername,
+      ),
+    );
+    tasks.push(
+      fetchGitlabApprovals(
+        gitlabBaseUrl,
+        tokens.gitlab,
+        opts.gitlabUserId,
+        opts.mrList,
+        opts.lastSeenCursor,
+      ),
+    );
+    tasks.push(
+      fetchGitlabPipelineFailures(
         gitlabBaseUrl,
         tokens.gitlab,
         opts.gitlabUserId,

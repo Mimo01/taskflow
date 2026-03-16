@@ -30,6 +30,17 @@ const tauriStorage = createJSONStorage(() => ({
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export type NotificationType =
+  | 'comment-mention'
+  | 'issue-update'
+  | 'mr-note'
+  | 'gitlab-mention'
+  | 'jira-comment'
+  | 'mr-approval'
+  | 'pipeline-failure'
+  | 'issue-assignment'
+  | 'due-date-reminder';
+
 export interface NotificationItem {
   id: string;            // 'jira-comment-{id}' | 'gitlab-note-{id}'
   source: 'jira' | 'gitlab';
@@ -39,7 +50,7 @@ export interface NotificationItem {
   fullBody: string;
   createdAt: string;     // ISO 8601
   url?: string;              // browser-openable URL for the entity
-  notificationType?: 'comment-mention' | 'issue-update' | 'mr-note';
+  notificationType?: NotificationType;
   entityState?: string;      // GitLab: "opened" | "merged" | "closed"
 }
 
