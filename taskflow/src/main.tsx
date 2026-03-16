@@ -125,14 +125,43 @@ function AppLayout() {
 
     // Resolve title from react-query cache for recent-items store
     let resolvedTitle: string | undefined;
-    const entries = queryClient.getQueriesData<{ issues: Array<{ key: string; fields: { summary: string } }> }>({
+
+    // 1. Search jira-issues caches (sprint-board, my-tasks — stories/subtasks)
+    const issueEntries = queryClient.getQueriesData<{ issues: Array<{ key: string; fields: { summary: string } }> }>({
       queryKey: ['jira-issues'],
     });
-    for (const [, data] of entries) {
+    for (const [, data] of issueEntries) {
       const match = data?.issues?.find((i) => i.key === issueKey);
       if (match) {
         resolvedTitle = match.fields.summary;
         break;
+      }
+    }
+
+    // 2. Search jira-epics-basic cache (epics have summary at top level)
+    if (!resolvedTitle) {
+      const epicEntries = queryClient.getQueriesData<Array<{ key: string; summary: string }>>({
+        queryKey: ['jira-epics-basic'],
+      });
+      for (const [, data] of epicEntries) {
+        const match = data?.find((e) => e.key === issueKey);
+        if (match) {
+          resolvedTitle = match.summary;
+          break;
+        }
+      }
+    }
+
+    // 3. Check jira-issue-detail cache (individually fetched issues)
+    if (!resolvedTitle) {
+      const detailEntries = queryClient.getQueriesData<{ key: string; fields: { summary: string } }>({
+        queryKey: ['jira-issue-detail', issueKey],
+      });
+      for (const [, data] of detailEntries) {
+        if (data?.fields?.summary) {
+          resolvedTitle = data.fields.summary;
+          break;
+        }
       }
     }
 
