@@ -154,9 +154,10 @@ None.
 | 260316-q7o | I want to be able to open settings with a keyboard shortcut | 2026-03-16 | 41bffad | [260316-q7o-i-want-to-be-able-to-open-settings-with-](./quick/260316-q7o-i-want-to-be-able-to-open-settings-with-/) |
 | 260316-qc2 | Generalize navigation shortcuts to auto-appear in command palette | 2026-03-16 | 8a4a11a | [260316-qc2-generalize-navigation-shortcuts-to-auto-](./quick/260316-qc2-generalize-navigation-shortcuts-to-auto-/) |
 | 260316-qj3 | Add all relevant shortcuts to app toolbar menu bar | 2026-03-16 | cfe3a49 | [260316-qj3-add-all-relevant-shortcuts-to-app-toolba](./quick/260316-qj3-add-all-relevant-shortcuts-to-app-toolba/) |
+| 260316-q9b | Better rich text rendering in issue detail | 2026-03-16 | 7f947d1 | [260316-q9b-better-rich-text-rendering-in-issue-deta](./quick/260316-q9b-better-rich-text-rendering-in-issue-deta/) |
 
 ## Session Continuity
 
-Last session: 2026-03-16T18:10:59Z
-Stopped at: Completed quick task 260316-qj3
+Last session: 2026-03-16T18:23:00Z
+Stopped at: Completed quick task 260316-q9b
 Resume: Milestone v1.3 (UX & Branding) is fully executed. All 5 phases (18-22), 29 plans complete. Ready for /gsd:audit-milestone or /gsd:complete-milestone.
