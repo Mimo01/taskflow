@@ -50,7 +50,7 @@ export function useNotificationPolling() {
   const pollIntervalMs = Math.max(30_000, notificationPollIntervalSecs * 1000);
   const queryClient = useQueryClient();
 
-  useQuery({
+  const queryResult = useQuery({
     queryKey: ['notifications', jiraBaseUrl, gitlabBaseUrl, activeJiraProject],
     queryFn: async () => {
       const tokens = {
@@ -98,4 +98,15 @@ export function useNotificationPolling() {
     staleTime: pollIntervalMs - 5_000,
     enabled: !!(jiraBaseUrl || gitlabBaseUrl),
   });
+
+  // Propagate error state to store so NotificationPopover can display it
+  useEffect(() => {
+    store.setFetchError(queryResult.isError ? (queryResult.error as Error) : null);
+  }, [queryResult.isError, queryResult.error]);
+
+  // Expose refetch via store so NotificationPopover can trigger retry
+  useEffect(() => {
+    store.setRetryFetch(() => { queryResult.refetch(); });
+    return () => { store.setRetryFetch(null); };
+  }, [queryResult.refetch]);
 }

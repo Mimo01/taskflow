@@ -50,6 +50,8 @@ interface NotificationsState {
   readIds: string[];               // string[] NOT Set — JSON-serializable
   lastSeenCursor: string | null;   // ISO timestamp of last seen notification
   permissionDenied: boolean;       // transient — not persisted
+  fetchError: Error | null;        // transient — propagated from polling hook
+  retryFetch: (() => void) | null; // transient — refetch function from polling hook
 
   // Actions
   setItems: (items: NotificationItem[]) => void;
@@ -58,6 +60,8 @@ interface NotificationsState {
   markAllRead: () => void;
   setLastSeenCursor: (ts: string) => void;
   setPermissionDenied: (v: boolean) => void;
+  setFetchError: (err: Error | null) => void;
+  setRetryFetch: (fn: (() => void) | null) => void;
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -69,6 +73,8 @@ export const useNotificationsStore = create<NotificationsState>()(
       readIds: [],
       lastSeenCursor: null,
       permissionDenied: false,
+      fetchError: null,
+      retryFetch: null,
 
       setItems: (items) => set({ items }),
 
@@ -93,6 +99,9 @@ export const useNotificationsStore = create<NotificationsState>()(
       setLastSeenCursor: (ts) => set({ lastSeenCursor: ts }),
 
       setPermissionDenied: (v) => set({ permissionDenied: v }),
+
+      setFetchError: (err) => set({ fetchError: err }),
+      setRetryFetch: (fn) => set({ retryFetch: fn }),
     }),
     {
       name: 'notifications-store',
