@@ -10,7 +10,7 @@
  */
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Bug, BookOpen, CheckSquare, CornerDownRight, Loader2 } from 'lucide-react';
+import { X, Bug, BookOpen, CheckSquare, CornerDownRight, Loader2 } from 'lucide-react';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 
@@ -112,44 +112,39 @@ export default function PinnedTabStrip({
   const queryClient = useQueryClient();
   const containerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Map<number, HTMLDivElement>>(new Map());
-  const dragState = useRef<{ index: number; startX: number; startY: number; didMove: boolean; offsetX: number } | null>(null);
+  const dragState = useRef<{ index: number; startX: number; didMove: boolean; offsetX: number } | null>(null);
   const didDragRef = useRef(false);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [dropTarget, setDropTarget] = useState<number | null>(null);
   const [ghost, setGhost] = useState<DragGhost | null>(null);
-  const [draggedOff, setDraggedOff] = useState(false);
 
   const getDropIndex = useCallback((clientX: number): number | null => {
-    let closestIndex: number | null = null;
-    let closestDist = Infinity;
+    let closest: { index: number; dist: number } | null = null;
     tabRefs.current.forEach((el, idx) => {
       const rect = el.getBoundingClientRect();
       const center = rect.left + rect.width / 2;
       const dist = Math.abs(clientX - center);
-      if (dist < closestDist) {
-        closestDist = dist;
-        closestIndex = idx;
+      if (!closest || dist < closest.dist) {
+        closest = { index: idx, dist };
       }
     });
-    return closestIndex;
+    return closest ? closest.index : null;
   }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent, index: number) => {
+    if ((e.target as HTMLElement).closest('[data-close-btn]')) return;
     const el = tabRefs.current.get(index);
     const rect = el?.getBoundingClientRect();
     const offsetX = rect ? e.clientX - rect.left : 0;
-    dragState.current = { index, startX: e.clientX, startY: e.clientY, didMove: false, offsetX };
+    dragState.current = { index, startX: e.clientX, didMove: false, offsetX };
   }, []);
-
-  const DRAG_OFF_THRESHOLD = 40; // pixels below the strip to trigger unpin
 
   useEffect(() => {
     const handlePointerMove = (e: PointerEvent) => {
       const state = dragState.current;
       if (!state) return;
 
-      const dist = Math.sqrt((e.clientX - state.startX) ** 2 + (e.clientY - state.startY) ** 2);
-      if (!state.didMove && dist < 5) return;
+      if (!state.didMove && Math.abs(e.clientX - state.startX) < 5) return;
 
       if (!state.didMove) {
         state.didMove = true;
@@ -161,13 +156,6 @@ export default function PinnedTabStrip({
         setGhost((prev) => prev ? { ...prev, x: e.clientX, y: e.clientY } : null);
       }
 
-      // Check if dragged below the strip
-      const container = containerRef.current;
-      if (container) {
-        const stripBottom = container.getBoundingClientRect().bottom;
-        setDraggedOff(e.clientY > stripBottom + DRAG_OFF_THRESHOLD);
-      }
-
       const target = getDropIndex(e.clientX);
       setDropTarget(target);
     };
@@ -175,20 +163,13 @@ export default function PinnedTabStrip({
     const handlePointerUp = () => {
       const state = dragState.current;
       didDragRef.current = !!state?.didMove;
-
-      if (state?.didMove && draggedOff) {
-        // Dragged off strip — unpin
-        const key = pinnedKeys[state.index];
-        if (key) onTabClose(key);
-      } else if (state?.didMove && dropTarget !== null && dropTarget !== state.index) {
+      if (state?.didMove && dropTarget !== null && dropTarget !== state.index) {
         onReorder(state.index, dropTarget);
       }
-
       dragState.current = null;
       setDraggingIndex(null);
       setDropTarget(null);
       setGhost(null);
-      setDraggedOff(false);
     };
 
     window.addEventListener('pointermove', handlePointerMove);
@@ -197,7 +178,7 @@ export default function PinnedTabStrip({
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
     };
-  }, [dropTarget, draggedOff, getDropIndex, onReorder, onTabClose, pinnedKeys]);
+  }, [dropTarget, getDropIndex, onReorder]);
 
   // Render the ghost tab content
   const renderGhost = () => {
@@ -208,17 +189,11 @@ export default function PinnedTabStrip({
 
     return createPortal(
       <div
-        className={cn(
-          'fixed z-50 pointer-events-none flex items-center gap-1.5 px-2.5 h-9 rounded-md text-xs font-medium bg-background border shadow-lg transition-opacity duration-100',
-          draggedOff
-            ? 'border-destructive/50 opacity-50 scale-90'
-            : 'border-border opacity-90',
-        )}
+        className="fixed z-50 pointer-events-none flex items-center gap-1.5 px-2.5 h-9 rounded-md text-xs font-medium bg-background border border-border shadow-lg opacity-90"
         style={{
           left: ghost.x - ghost.offsetX,
           top: ghost.y - 18,
           width: ghost.width,
-          transform: draggedOff ? 'scale(0.9)' : undefined,
         }}
       >
         {resolved ? (
@@ -305,6 +280,18 @@ export default function PinnedTabStrip({
                     <span className="font-mono text-[11px] whitespace-nowrap">{key}</span>
                   </>
                 )}
+                <button
+                  type="button"
+                  data-close-btn
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTabClose(key);
+                  }}
+                  className="ml-auto p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-muted-foreground/20 transition-opacity"
+                  aria-label={`Close ${key} tab`}
+                >
+                  <X className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                </button>
               </div>
               {showPlaceholderAfter && (
                 <div className="h-9 w-[110px] shrink-0 rounded-t-md border-2 border-dashed border-primary/30 bg-primary/5" style={{ width: ghost?.width }} />
