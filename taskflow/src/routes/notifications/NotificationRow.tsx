@@ -36,13 +36,12 @@ function linkifyText(text: string): string {
 
 export default function NotificationRow({ item, isUnread = false, onClick }: NotificationRowProps) {
   const borderClass = item.source === 'jira' ? 'border-orange-500' : 'border-purple-500';
-  const bgClass = isUnread ? 'bg-accent/60' : '';
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`w-full text-left border-l-4 ${borderClass} ${bgClass} px-3 py-2 hover:bg-accent-foreground/10 transition-colors flex gap-3 items-start`}
+      className={`w-full text-left border-l-4 ${borderClass} px-3 py-2 hover:bg-muted transition-all flex gap-3 items-start ${isUnread ? 'bg-accent/50 border-l-[5px]' : 'opacity-75'}`}
     >
       {/* Unread dot + source icon */}
       <div className="flex-shrink-0 mt-0.5 relative">
