@@ -27,6 +27,13 @@ function getRelativeTime(isoTimestamp: string): string {
   return `${diffDays}d ago`;
 }
 
+function getInitials(name: string): string {
+  if (!name || name === 'Unknown') return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0][0]?.toUpperCase() ?? '?';
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 function linkifyText(text: string): string {
   return text.replace(
     /(https?:\/\/[^\s]+)/g,
@@ -43,20 +50,34 @@ export default function NotificationRow({ item, isUnread = false, onClick }: Not
       onClick={onClick}
       className={`w-full text-left border-l-4 ${borderClass} px-3 py-2 transition-all flex gap-3 items-start ${isUnread ? 'bg-accent/50 hover:bg-accent' : 'hover:bg-muted'}`}
     >
-      {/* Unread dot + source icon */}
+      {/* Unread dot + avatar */}
       <div className="flex-shrink-0 mt-0.5 relative">
         {isUnread && (
-          <span className="absolute -top-0.5 -left-0.5 w-2 h-2 rounded-full bg-blue-500" />
+          <span className="absolute -top-0.5 -left-0.5 w-2 h-2 rounded-full bg-blue-500 z-10" />
         )}
-        {item.source === 'jira' ? (
-          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">
-            J
-          </span>
-        ) : (
-          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-purple-100 text-purple-700 text-xs font-bold">
-            GL
-          </span>
-        )}
+        {item.authorAvatarUrl ? (
+          <img
+            src={item.authorAvatarUrl}
+            alt={item.author}
+            className="w-6 h-6 rounded-full object-cover"
+            onError={(e) => {
+              const img = e.currentTarget;
+              img.style.display = 'none';
+              const sibling = img.nextElementSibling as HTMLElement | null;
+              if (sibling) sibling.style.display = 'flex';
+            }}
+          />
+        ) : null}
+        <span
+          className={`items-center justify-center w-6 h-6 rounded-full text-[10px] font-medium ${
+            item.source === 'jira'
+              ? 'bg-orange-100 text-orange-700'
+              : 'bg-purple-100 text-purple-700'
+          }`}
+          style={{ display: item.authorAvatarUrl ? 'none' : 'flex' }}
+        >
+          {getInitials(item.author)}
+        </span>
       </div>
 
       {/* Content */}
