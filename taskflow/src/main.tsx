@@ -140,6 +140,13 @@ function AppLayout() {
     invoke('toggle_debug_menu', { enabled: debugMode }).catch(() => {});
   }, [debugMode]);
 
+  // Reset breadcrumb trail when navigating away from issue detail
+  useEffect(() => {
+    if (!location.pathname.startsWith('/issue/')) {
+      breadcrumbReset();
+    }
+  }, [location.pathname]);
+
   /** Maps pathname to a human-readable label for breadcrumb display. */
   function routeLabel(pathname: string): string {
     if (pathname.startsWith('/sprint-board')) return 'Sprint Board';
@@ -172,8 +179,9 @@ function AppLayout() {
       const currentKey = location.pathname.replace('/issue/', '');
       breadcrumbPush({ path: location.pathname, label: currentKey });
     } else {
-      // From a list page — reset trail (list pages don't appear in breadcrumbs)
+      // From a list page — push source page name as first breadcrumb entry
       breadcrumbReset();
+      breadcrumbPush({ path: location.pathname, label: routeLabel(location.pathname) });
     }
 
     navigate(`/issue/${issueKey}`);
