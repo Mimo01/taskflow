@@ -10,6 +10,7 @@
 import { X, Bug, BookOpen, CheckSquare, CornerDownRight } from 'lucide-react';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
+import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
 
 interface PinnedTabStripProps {
@@ -111,7 +112,7 @@ export default function PinnedTabStrip({
 
   return (
     <div
-      className="h-9 border-b border-border flex items-center gap-1 px-4 flex-shrink-0 bg-background"
+      className="h-14 border-b border-border flex items-end gap-1 px-4 flex-shrink-0 bg-background"
       role="tablist"
       aria-label="Pinned issues"
     >
@@ -124,22 +125,32 @@ export default function PinnedTabStrip({
             aria-selected={key === activeKey}
             onClick={() => onTabClick(key)}
             className={cn(
-              'flex items-center gap-1 px-2 h-7 min-w-[120px] max-w-[200px] rounded-t-md text-xs font-medium border-b-2 transition-colors group',
+              'flex items-center gap-1.5 px-2 h-12 min-w-[120px] max-w-[200px] rounded-t-md text-xs font-medium border-b-2 transition-colors group',
               key === activeKey
                 ? 'border-primary text-foreground bg-muted/50'
                 : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
             )}
           >
-            <IssueTypeIcon typeName={resolved?.issueTypeName ?? ''} />
-            <span className="font-mono">{key}</span>
-            <span className="truncate">{resolved?.summary ?? ''}</span>
+            {resolved ? (
+              <IssueTypeIcon typeName={resolved.issueTypeName} />
+            ) : (
+              <Skeleton className="size-3.5 rounded shrink-0" />
+            )}
+            <div className="flex flex-col min-w-0">
+              <span className="font-mono text-[11px] leading-tight">{key}</span>
+              {resolved ? (
+                <span className="truncate text-[10px] leading-tight text-muted-foreground">{resolved.summary}</span>
+              ) : (
+                <Skeleton className="h-2.5 w-16" />
+              )}
+            </div>
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onTabClose(key);
               }}
-              className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
+              className="ml-auto self-start mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
               aria-label={`Close ${key} tab`}
             >
               <X className="size-3.5 text-muted-foreground hover:text-foreground" />
@@ -165,11 +176,19 @@ export default function PinnedTabStrip({
                   onClick={() => onTabClick(key)}
                   className="flex items-center gap-2 w-full px-2 py-1.5 text-xs hover:bg-muted rounded transition-colors"
                 >
-                  <IssueTypeIcon typeName={resolved?.issueTypeName ?? ''} />
+                  {resolved ? (
+                    <IssueTypeIcon typeName={resolved.issueTypeName} />
+                  ) : (
+                    <Skeleton className="size-3.5 rounded shrink-0" />
+                  )}
                   <span className="font-mono">{key}</span>
-                  <span className="truncate text-muted-foreground">
-                    {resolved?.summary ?? ''}
-                  </span>
+                  {resolved ? (
+                    <span className="truncate text-muted-foreground">
+                      {resolved.summary}
+                    </span>
+                  ) : (
+                    <Skeleton className="h-2.5 w-16" />
+                  )}
                 </button>
               );
             })}
