@@ -17,20 +17,53 @@ interface RecentItemsPopoverProps {
 }
 
 /**
- * Search all react-query cache entries whose key starts with the given prefix
- * and return the first matching item from the data.
+ * Search all react-query cache entries for a Jira issue by key.
+ * Handles different cache shapes: sprint-board (flat JiraIssue[]),
+ * my-tasks ({ issues: JiraIssue[] }), and backlog ({ sprints, backlog }).
  */
 function findJiraIssueInCache(
   queryClient: ReturnType<typeof useQueryClient>,
   issueKey: string,
 ): JiraIssue | undefined {
-  const queries = queryClient.getQueriesData<{ issues: JiraIssue[] }>({
+  // 1. jira-issues caches (sprint-board = flat array, my-tasks = { issues: [] })
+  const queries = queryClient.getQueriesData<JiraIssue[] | { issues?: JiraIssue[] }>({
     queryKey: ['jira-issues'],
   });
   for (const [, data] of queries) {
-    const match = data?.issues?.find((issue) => issue.key === issueKey);
-    if (match) return match;
+    if (!data) continue;
+    if ('issues' in data && Array.isArray(data.issues)) {
+      const match = data.issues.find((issue) => issue.key === issueKey);
+      if (match) return match;
+    } else if (Array.isArray(data)) {
+      const match = data.find((issue) => issue.key === issueKey);
+      if (match) return match;
+    }
   }
+
+  // 2. Backlog cache (sprints[].issues + backlog[])
+  const backlogQueries = queryClient.getQueriesData<{ sprints?: Array<{ issues: JiraIssue[] }>; backlog?: JiraIssue[] }>({
+    queryKey: ['jira-backlog-view'],
+  });
+  for (const [, data] of backlogQueries) {
+    if (!data) continue;
+    const match = data.backlog?.find((issue) => issue.key === issueKey);
+    if (match) return match;
+    if (data.sprints) {
+      for (const s of data.sprints) {
+        const m = s.issues.find((issue) => issue.key === issueKey);
+        if (m) return m;
+      }
+    }
+  }
+
+  // 3. Issue detail cache (single issue)
+  const detailQueries = queryClient.getQueriesData<JiraIssue>({
+    queryKey: ['jira-issue-detail', issueKey],
+  });
+  for (const [, data] of detailQueries) {
+    if (data?.fields?.summary) return data;
+  }
+
   return undefined;
 }
 
