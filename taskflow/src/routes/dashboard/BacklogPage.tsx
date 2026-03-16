@@ -14,7 +14,11 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Inbox } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
+import { StaleDataBanner } from '@/components/ui/stale-data-banner';
+import { Button } from '@/components/ui/button';
 import type { JiraIssue, JiraActiveSprint, BacklogViewData } from '@/services/jira';
 import { fetchBacklogView, fetchActiveSprint, addIssuesToSprint } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
@@ -51,6 +55,9 @@ export default function BacklogPage() {
   const {
     data: backlogView,
     isLoading,
+    isError,
+    error,
+    refetch,
   } = useQuery<BacklogViewData>({
     queryKey: ['jira-backlog-view', activeJiraProject, jiraBaseUrl],
     queryFn: () =>
@@ -72,6 +79,10 @@ export default function BacklogPage() {
     staleTime: 5 * 60_000,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
+
+  // ── Stale data banner state ───────────────────────────────────────────────────
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  useEffect(() => { setBannerDismissed(false); }, [error]);
 
   // ── Collapse state (all sections open by default) ────────────────────────────
 
@@ -383,6 +394,20 @@ export default function BacklogPage() {
 
       {/* Main content */}
       <div className="flex-1 overflow-auto">
+        {/* Error state — no cached data */}
+        {isError && !backlogView && (
+          <div className="p-4">
+            <ErrorState error={error} onRetry={refetch} viewName="backlog" />
+          </div>
+        )}
+
+        {/* Stale data banner — error with cached data */}
+        {isError && backlogView && !bannerDismissed && (
+          <div className="px-4 pt-4">
+            <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
+          </div>
+        )}
+
         {isLoading ? (
           /* Skeleton loading state */
           <div className="p-4 space-y-2">
@@ -390,16 +415,16 @@ export default function BacklogPage() {
               <div key={i} className="h-10 animate-pulse rounded bg-muted" />
             ))}
           </div>
-        ) : !backlogView ||
-          (backlogView.sprints.length === 0 && backlogView.backlog.length === 0) ? (
+        ) : !isError && (!backlogView ||
+          (backlogView.sprints.length === 0 && backlogView.backlog.length === 0)) ? (
           /* Empty state */
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <p className="text-base font-medium text-foreground">No backlog issues</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              All stories are assigned to a sprint
-            </p>
-          </div>
-        ) : (
+          <EmptyState
+            icon={Inbox}
+            title="Backlog is empty"
+            subtitle="All issues are assigned to sprints"
+            action={<Button onClick={() => openCreateStory()}>Create Issue</Button>}
+          />
+        ) : backlogView ? (
           /* Sprint sections + backlog section */
           <div>
             {/* Sprint sections (active first, then future) */}
@@ -422,7 +447,7 @@ export default function BacklogPage() {
               true,
             )}
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Bulk action bar — only shown when issues are selected */}

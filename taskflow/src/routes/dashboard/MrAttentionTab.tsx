@@ -16,8 +16,13 @@
  * - "via [subtask-key]" label shown only on MRs entering list exclusively via subtask path
  */
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, GitMerge } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState } from '@/components/ui/error-state'
+import { StaleDataBanner } from '@/components/ui/stale-data-banner'
+import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth.store'
 import { useSettingsStore } from '@/stores/settings.store'
 import {
@@ -145,6 +150,10 @@ export default function MrAttentionTab() {
     staleTime: 30_000,
     enabled: !!gitlabBaseUrl && !!gitlabToken && !!userId,
   })
+
+  const navigate = useNavigate()
+  const [bannerDismissed, setBannerDismissed] = useState(false)
+  useEffect(() => { setBannerDismissed(false) }, [error])
 
   // Build sprint issue key set and issue lookup map
   const { sprintIssueKeySet, issueByKey } = useMemo(() => {
@@ -307,18 +316,22 @@ export default function MrAttentionTab() {
         </div>
       )}
 
-      {/* Error state */}
-      {isError && (
-        <div className="rounded border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {(error as Error)?.message ?? 'Failed to load MRs'}
-        </div>
+      {/* Error state — no cached data */}
+      {isError && !mrQueryData && <ErrorState error={error} onRetry={refetch} viewName="merge requests" />}
+
+      {/* Stale data banner — error with cached data */}
+      {isError && mrQueryData && !bannerDismissed && (
+        <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
       )}
 
       {/* Empty state */}
       {!gitlabTokenLoading && !isLoading && !isError && mrQueryData && data.length === 0 && (
-        <div className="py-8 text-center text-sm text-muted-foreground">
-          No MRs requiring attention.
-        </div>
+        <EmptyState
+          icon={GitMerge}
+          title="No merge requests need attention"
+          subtitle="MRs requiring your review will appear here"
+          action={!gitlabBaseUrl ? <Button onClick={() => navigate('/settings')}>Connect GitLab</Button> : undefined}
+        />
       )}
 
       {/* MR list */}
