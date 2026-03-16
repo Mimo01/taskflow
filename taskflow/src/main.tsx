@@ -117,6 +117,7 @@ function AppLayout() {
   useHotkeys('mod+shift+s', () => navigate('/sprint-board'));
   useHotkeys('mod+shift+b', () => navigate('/backlog'));
   useHotkeys('mod+shift+n', () => setNotifPopoverOpen(true));
+  useHotkeys('mod+comma', () => navigate('/settings'));
 
   // KEYS-02: Listen for native menu "Help > Keyboard Shortcuts" click
   useEffect(() => {

@@ -70,6 +70,12 @@ export const SHORTCUTS: ShortcutEntry[] = [
     category: 'Navigation',
   },
   {
+    id: 'nav-settings',
+    defaultKey: '⌘,',
+    description: 'Open Settings',
+    category: 'Navigation',
+  },
+  {
     id: 'list-next',
     defaultKey: 'J',
     description: 'Next item',
