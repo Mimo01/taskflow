@@ -44,9 +44,9 @@ export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, 
   const isEpic = issue.fields.issuetype.name === 'Epic'
   const isSubtask = issue.fields.issuetype.subtask
 
-  // Epic color accent
+  // Epic color accent — always show for epics (uses hash fallback if no Jira color)
   const epicColorValue = isEpic ? (issue.fields[epicColorFieldKey] as string | null) : null
-  const epicColorResult = epicColorValue ? epicColorToTailwind(epicColorValue, issueKey) : null
+  const epicColorResult = isEpic ? epicColorToTailwind(epicColorValue, issueKey) : null
 
   // Build attachment filename → URL map for resolving !image.png! references
   const attachmentMap = useMemo<AttachmentMap>(() => {
@@ -84,7 +84,7 @@ export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, 
       {/* Epic color accent bar */}
       {epicColorResult && (
         <div
-          className={cn('h-1 rounded-full -mb-4', epicColorResult.className)}
+          className={cn('h-1.5 rounded-full', epicColorResult.className)}
           style={epicColorResult.style ? { backgroundColor: epicColorResult.style.color } : undefined}
         />
       )}

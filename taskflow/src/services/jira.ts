@@ -901,7 +901,7 @@ export async function fetchIssueDetail(
   baseUrl: string,
   token: string,
   issueKey: string,
-  customFields: { epicLinkFieldKey: string; epicNameFieldKey: string; sprintFieldKey: string; storyPointsFieldKey: string },
+  customFields: { epicLinkFieldKey: string; epicNameFieldKey: string; sprintFieldKey: string; storyPointsFieldKey: string; epicColorFieldKey?: string },
 ): Promise<JiraIssueDetail> {
   const base = baseUrl.replace(/\/$/, '')
   const fields = [
@@ -912,7 +912,8 @@ export async function fetchIssueDetail(
     customFields.epicNameFieldKey,
     customFields.sprintFieldKey,
     customFields.storyPointsFieldKey,
-  ].join(',')
+    customFields.epicColorFieldKey,
+  ].filter(Boolean).join(',')
   const url = `${base}/rest/api/2/issue/${issueKey}?fields=${fields}`
   const response = await apiFetch('jira', url, {
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },

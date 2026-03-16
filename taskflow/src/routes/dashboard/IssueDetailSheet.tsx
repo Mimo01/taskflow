@@ -59,7 +59,7 @@ function IssueDetailBody({
   onTogglePin?: (key: string) => void
 }) {
   const { jiraBaseUrl, jiraConnected } = useAuthStore()
-  const { epicLinkFieldKey, epicNameFieldKey, sprintFieldKey, storyPointsFieldKey } = useSettingsStore()
+  const { epicLinkFieldKey, epicNameFieldKey, sprintFieldKey, storyPointsFieldKey, epicColorFieldKey } = useSettingsStore()
 
   const { data: issue, isLoading } = useQuery({
     queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl],
@@ -71,6 +71,7 @@ function IssueDetailBody({
         epicNameFieldKey,
         sprintFieldKey,
         storyPointsFieldKey,
+        epicColorFieldKey,
       })
     },
     staleTime: 30_000,

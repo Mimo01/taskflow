@@ -40,7 +40,7 @@ export default function IssueDetailPage() {
 
   // Auth + settings
   const { jiraBaseUrl, jiraConnected } = useAuthStore()
-  const { epicLinkFieldKey, epicNameFieldKey, sprintFieldKey, storyPointsFieldKey } = useSettingsStore()
+  const { epicLinkFieldKey, epicNameFieldKey, sprintFieldKey, storyPointsFieldKey, epicColorFieldKey } = useSettingsStore()
 
   // Pinned state
   const isPinned = usePinnedTabsStore((s) => issueKey ? s.pinnedKeys.includes(issueKey) : false)
@@ -60,6 +60,7 @@ export default function IssueDetailPage() {
         epicNameFieldKey,
         sprintFieldKey,
         storyPointsFieldKey,
+        epicColorFieldKey,
       })
     },
     staleTime: 30_000,
