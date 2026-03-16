@@ -127,9 +127,17 @@ export default function NotificationDetail({ item, onClose }: NotificationDetail
         </button>
       )}
 
-      {/* Full body — linkified */}
+      {/* Full body — linkified, with structured display for arrow-format changes */}
       <pre className="whitespace-pre-wrap text-sm overflow-auto max-h-48 bg-muted/30 p-2 rounded text-foreground">
-        <span dangerouslySetInnerHTML={{ __html: linkifyText(item.fullBody) }} />
+        {(item.notificationType === 'issue-update' || item.notificationType === 'mr-note') &&
+         item.fullBody.includes('\u2192')
+          ? item.fullBody.split('\n').map((line, i) => (
+              <div key={i} className="py-0.5">
+                <span className="text-sm">{line}</span>
+              </div>
+            ))
+          : <span dangerouslySetInnerHTML={{ __html: linkifyText(item.fullBody) }} />
+        }
       </pre>
     </div>
   );

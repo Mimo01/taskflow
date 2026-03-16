@@ -88,9 +88,18 @@ export default function NotificationRow({ item, isUnread = false, onClick }: Not
           )}
         </p>
 
-        {/* Body preview — linkified */}
+        {/* Body preview — linkified, with multi-line support for arrow-format changes */}
         <p className="text-xs text-muted-foreground line-clamp-2">
-          <span dangerouslySetInnerHTML={{ __html: linkifyText(item.bodyPreview) }} />
+          {(item.notificationType === 'issue-update' || item.notificationType === 'mr-note') &&
+           item.bodyPreview.includes('\u2192')
+            ? (item.bodyPreview.includes(' | ')
+                ? item.bodyPreview.split(' | ').map((line, i) => (
+                    <span key={i} className="block">{line}</span>
+                  ))
+                : <span>{item.bodyPreview}</span>
+              )
+            : <span dangerouslySetInnerHTML={{ __html: linkifyText(item.bodyPreview) }} />
+          }
         </p>
 
         {/* Metadata chips */}
