@@ -254,7 +254,7 @@ describe('WorkloadTab', () => {
     const { default: WorkloadTab } = await import('./WorkloadTab');
     renderWithQuery(<WorkloadTab />);
 
-    await screen.findByText(/no sprint data available/i);
+    await screen.findByText(/no workload data/i);
   });
 
   describe('WORK-01: excludes subtasks from point and task totals', () => {

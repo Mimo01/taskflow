@@ -7,8 +7,13 @@
 import { useState, useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { Layers } from 'lucide-react'
 import type { EpicEnriched } from '@/services/jira'
 import { fetchEpicsBasic } from '@/services/jira'
+import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState } from '@/components/ui/error-state'
+import { StaleDataBanner } from '@/components/ui/stale-data-banner'
+import { Button } from '@/components/ui/button'
 import { useSettingsStore } from '@/stores/settings.store'
 import { useAuthStore } from '@/stores/auth.store'
 import { readSecret } from '@/services/stronghold'
@@ -102,8 +107,9 @@ export default function EpicsPage() {
   }, [])
 
   const [createOpen, setCreateOpen] = useState(false)
+  const [bannerDismissed, setBannerDismissed] = useState(false)
 
-  const { data: epicsData, isLoading } = useQuery<EpicEnriched[]>({
+  const { data: epicsData, isLoading, isError, error, refetch } = useQuery<EpicEnriched[]>({
     queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
     queryFn: () =>
       fetchEpicsBasic(
@@ -115,6 +121,9 @@ export default function EpicsPage() {
     enabled: !!jiraBaseUrl && !!token && !!activeJiraProject,
   })
   const epics = epicsData ?? []
+
+  // Reset banner dismissal when error state changes
+  useEffect(() => { setBannerDismissed(false) }, [isError])
 
   return (
     <div className="flex flex-col h-full">
@@ -132,13 +141,27 @@ export default function EpicsPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
+        {/* Error state -- full error when no cached data */}
+        {isError && !epicsData && (
+          <div className="p-4">
+            <ErrorState error={error} onRetry={refetch} viewName="epics" />
+          </div>
+        )}
+
+        {/* Stale data banner -- error with cached data still visible */}
+        {isError && epicsData && !bannerDismissed && (
+          <div className="px-4 pt-4">
+            <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
+          </div>
+        )}
+
         {isLoading ? (
           <div className="p-4 space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="h-10 animate-pulse rounded bg-muted" />
             ))}
           </div>
-        ) : (
+        ) : !isError ? (
           <>
             {epics.length > 0 ? (
               <table className="w-full text-sm">
@@ -167,12 +190,15 @@ export default function EpicsPage() {
             ) : null}
 
             {epicsData !== undefined && epics.length === 0 && (
-              <p className="text-center text-muted-foreground py-12">
-                No epics found for this project.
-              </p>
+              <EmptyState
+                icon={Layers}
+                title="No epics yet"
+                subtitle="Epics will appear once they are created in your project"
+                action={<Button onClick={() => setCreateOpen(true)}>Create Epic</Button>}
+              />
             )}
           </>
-        )}
+        ) : null}
       </div>
 
       <CreateEpicDialog open={createOpen} onClose={() => setCreateOpen(false)} />
