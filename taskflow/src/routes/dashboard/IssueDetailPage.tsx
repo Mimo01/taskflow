@@ -107,35 +107,28 @@ export default function IssueDetailPage() {
         <button
           type="button"
           onClick={handleBack}
-          className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted transition-colors"
+          className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted"
           aria-label="Go back"
         >
           <ArrowLeft className="size-4" />
         </button>
-        {trail.length > 0 ? (
-          <>
-            {trail.map((entry, i) => (
-              <span key={`${i}-${entry.path}`} className="flex items-center gap-2">
-                {i > 0 && <span className="text-muted-foreground">/</span>}
-                <button
-                  type="button"
-                  onClick={() => {
-                    // Truncate trail to this entry and navigate
-                    useBreadcrumbStore.setState({ trail: trail.slice(0, i) })
-                    navigate(entry.path, { replace: true })
-                  }}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {entry.label}
-                </button>
-              </span>
-            ))}
-            <span className="text-muted-foreground">/</span>
-            <span className="font-medium">{issueKey}</span>
-          </>
-        ) : (
-          <span className="font-medium">{issueKey}</span>
-        )}
+        {trail.map((entry, i) => (
+          <span key={entry.path} className="flex items-center gap-2">
+            {i > 0 && <span className="text-muted-foreground">/</span>}
+            <button
+              type="button"
+              onClick={() => {
+                useBreadcrumbStore.setState({ trail: trail.slice(0, i) })
+                navigate(entry.path, { replace: true })
+              }}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              {entry.label}
+            </button>
+          </span>
+        ))}
+        {trail.length > 0 && <span className="text-muted-foreground">/</span>}
+        <span className="font-medium">{issueKey}</span>
       </div>
 
       {/* Issue detail body */}
