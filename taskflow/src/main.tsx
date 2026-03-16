@@ -33,6 +33,7 @@ import WorkloadTab from './routes/dashboard/WorkloadTab';
 import ReleasesTab from './routes/dashboard/ReleasesTab';
 import BacklogPage from './routes/dashboard/BacklogPage';
 import EpicsPage from './routes/dashboard/EpicsPage';
+import NotificationsPage from './routes/notifications/index';
 import DebugLogs from './routes/debug-logs/index';
 import ErrorPage from './routes/error/ErrorPage';
 
@@ -287,7 +288,7 @@ function AppLayout() {
         {_hasHydrated && !jiraConnected && <ReAuthBanner />}
         {_hasHydrated && !gitlabConnected && <GitLabReAuthBanner />}
         <main className="flex-1 overflow-auto">
-          <Outlet context={{ onIssueClick: handleIssueClick, onEpicClick: handleIssueClick, openEdit: handleOpenEdit, openAddSubtask: handleOpenAddSubtask, openCreateStory: handleOpenCreateStory }} />
+          <Outlet context={{ onIssueClick: handleIssueClick, onEpicClick: handleIssueClick, openEdit: handleOpenEdit, openAddSubtask: handleOpenAddSubtask, openCreateStory: handleOpenCreateStory, selectedIssueKey }} />
         </main>
       </div>
       {/* Command palette overlay */}
@@ -341,6 +342,7 @@ const router = createHashRouter([
       { path: '/sprint-progress', element: <SprintProgressTab /> },
       { path: '/workload', element: <WorkloadTab /> },
       { path: '/releases', element: <ReleasesTab /> },
+      { path: '/notifications', element: <NotificationsPage /> },
       { path: '/debug-logs', element: <DebugLogs /> },
     ],
   },
