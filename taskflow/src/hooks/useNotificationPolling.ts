@@ -10,6 +10,7 @@
 import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNotificationsStore } from '../stores/notifications.store';
+import type { NotificationType } from '../stores/notifications.store';
 import { useSettingsStore } from '../stores/settings.store';
 import { useAuthStore } from '../stores/auth.store';
 import { readSecret } from '../services/stronghold';
@@ -22,8 +23,20 @@ import type { GitLabMR } from '../services/gitlab';
 
 export function useNotificationPolling() {
   const store = useNotificationsStore();
-  const { notificationPollIntervalSecs, osNotifJiraEnabled, osNotifGitlabEnabled } =
-    useSettingsStore();
+  const {
+    notificationPollIntervalSecs,
+    osNotifJiraEnabled,
+    osNotifGitlabEnabled,
+    notifCommentMentionEnabled,
+    notifIssueUpdateEnabled,
+    notifMrNoteEnabled,
+    notifGitlabMentionEnabled,
+    notifJiraCommentEnabled,
+    notifMrApprovalEnabled,
+    notifPipelineFailureEnabled,
+    notifIssueAssignmentEnabled,
+    notifDueDateReminderEnabled,
+  } = useSettingsStore();
   const {
     jiraBaseUrl,
     gitlabBaseUrl,
@@ -31,9 +44,23 @@ export function useNotificationPolling() {
     jiraUserDisplayName,
     jiraUsername,
     gitlabUserId,
+    gitlabUsername,
     activeGitlabProject,
     setJiraUser,
   } = useAuthStore();
+
+  // Build per-type enabled lookup map
+  const typeEnabledMap: Record<string, boolean> = {
+    'comment-mention': notifCommentMentionEnabled,
+    'issue-update': notifIssueUpdateEnabled,
+    'mr-note': notifMrNoteEnabled,
+    'gitlab-mention': notifGitlabMentionEnabled,
+    'jira-comment': notifJiraCommentEnabled,
+    'mr-approval': notifMrApprovalEnabled,
+    'pipeline-failure': notifPipelineFailureEnabled,
+    'issue-assignment': notifIssueAssignmentEnabled,
+    'due-date-reminder': notifDueDateReminderEnabled,
+  };
 
   // Bootstrap identity for existing sessions where jiraUsername was never persisted.
   // Runs once when Jira is connected but identity fields are missing.
@@ -63,25 +90,33 @@ export function useNotificationPolling() {
         queryClient.getQueryData<GitLabMR[]>(['gitlab-mrs', gitlabBaseUrl, activeGitlabProject]) ??
         [];
 
-      const newItems = await fetchNewNotifications(jiraBaseUrl, gitlabBaseUrl, tokens, {
+      const allItems = await fetchNewNotifications(jiraBaseUrl, gitlabBaseUrl, tokens, {
         activeJiraProject,
         jiraUserDisplayName,
         jiraUsername,
         gitlabUserId,
-        gitlabUsername: null, // Will be wired to auth store in Task 2
+        gitlabUsername,
         mrList,
         lastSeenCursor: store.lastSeenCursor,
       });
 
+      // Filter out items whose notification type toggle is disabled
+      const newItems = allItems.filter((item) => {
+        const nType: NotificationType | undefined = item.notificationType;
+        if (!nType) return true; // items without type are always shown
+        return typeEnabledMap[nType] !== false;
+      });
+
       if (newItems.length > 0) {
         store.prependItems(newItems);
-        // Update cursor to newest item
-        const newest = newItems.reduce((a, b) => (a.createdAt > b.createdAt ? a : b));
+        // Update cursor to newest item (use allItems to avoid cursor drift from filtered items)
+        const newest = allItems.reduce((a, b) => (a.createdAt > b.createdAt ? a : b));
         store.setLastSeenCursor(newest.createdAt);
         // Dispatch OS notifications for new items
         for (const item of newItems) {
           const sourceEnabled =
             item.source === 'jira' ? osNotifJiraEnabled : osNotifGitlabEnabled;
+          // Per-type check already passed via filter above
           if (sourceEnabled) {
             const result = await tryDispatchOsNotification(
               `${item.source === 'jira' ? 'Jira' : 'GitLab'} — ${item.entityTitle}`,
@@ -90,6 +125,10 @@ export function useNotificationPolling() {
             if (result === 'denied') store.setPermissionDenied(true);
           }
         }
+      } else if (allItems.length > 0) {
+        // Even if all items were filtered, advance cursor so we don't refetch them
+        const newest = allItems.reduce((a, b) => (a.createdAt > b.createdAt ? a : b));
+        store.setLastSeenCursor(newest.createdAt);
       }
 
       return newItems;

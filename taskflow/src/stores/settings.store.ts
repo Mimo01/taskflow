@@ -64,6 +64,25 @@ interface SettingsState {
   showSubtasksInMyTasks: boolean;
   /** User-customized key overrides. Map of shortcut id → key string. Default: {}. Future: editable via Settings > Keyboard. */
   keyboardOverrides: Record<string, string>;
+  /** Per-type notification toggles. All default to true. */
+  notifCommentMentionEnabled: boolean;
+  notifIssueUpdateEnabled: boolean;
+  notifMrNoteEnabled: boolean;
+  notifGitlabMentionEnabled: boolean;
+  notifJiraCommentEnabled: boolean;
+  notifMrApprovalEnabled: boolean;
+  notifPipelineFailureEnabled: boolean;
+  notifIssueAssignmentEnabled: boolean;
+  notifDueDateReminderEnabled: boolean;
+  setNotifCommentMentionEnabled: (v: boolean) => void;
+  setNotifIssueUpdateEnabled: (v: boolean) => void;
+  setNotifMrNoteEnabled: (v: boolean) => void;
+  setNotifGitlabMentionEnabled: (v: boolean) => void;
+  setNotifJiraCommentEnabled: (v: boolean) => void;
+  setNotifMrApprovalEnabled: (v: boolean) => void;
+  setNotifPipelineFailureEnabled: (v: boolean) => void;
+  setNotifIssueAssignmentEnabled: (v: boolean) => void;
+  setNotifDueDateReminderEnabled: (v: boolean) => void;
   setDebugMode: (v: boolean) => void;
   setDensity: (d: Density) => void;
   setSprintCollapseByDefault: (v: boolean) => void;
@@ -103,6 +122,24 @@ export const useSettingsStore = create<SettingsState>()(
       sprintCollapseByDefault: false,
       showSubtasksInMyTasks: true,
       keyboardOverrides: {},
+      notifCommentMentionEnabled: true,
+      notifIssueUpdateEnabled: true,
+      notifMrNoteEnabled: true,
+      notifGitlabMentionEnabled: true,
+      notifJiraCommentEnabled: true,
+      notifMrApprovalEnabled: true,
+      notifPipelineFailureEnabled: true,
+      notifIssueAssignmentEnabled: true,
+      notifDueDateReminderEnabled: true,
+      setNotifCommentMentionEnabled: (v) => set({ notifCommentMentionEnabled: v }),
+      setNotifIssueUpdateEnabled: (v) => set({ notifIssueUpdateEnabled: v }),
+      setNotifMrNoteEnabled: (v) => set({ notifMrNoteEnabled: v }),
+      setNotifGitlabMentionEnabled: (v) => set({ notifGitlabMentionEnabled: v }),
+      setNotifJiraCommentEnabled: (v) => set({ notifJiraCommentEnabled: v }),
+      setNotifMrApprovalEnabled: (v) => set({ notifMrApprovalEnabled: v }),
+      setNotifPipelineFailureEnabled: (v) => set({ notifPipelineFailureEnabled: v }),
+      setNotifIssueAssignmentEnabled: (v) => set({ notifIssueAssignmentEnabled: v }),
+      setNotifDueDateReminderEnabled: (v) => set({ notifDueDateReminderEnabled: v }),
       setDebugMode: (v) => set({ debugMode: v }),
       setDensity: (d) => set({ density: d }),
       setSprintCollapseByDefault: (v) => set({ sprintCollapseByDefault: v }),
@@ -124,7 +161,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: tauriStorage,
-      version: 2,
+      version: 3,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -134,6 +171,17 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 2) {
           if (s.keyboardOverrides === undefined) s.keyboardOverrides = {};
+        }
+        if (version < 3) {
+          if (s.notifCommentMentionEnabled === undefined) s.notifCommentMentionEnabled = true;
+          if (s.notifIssueUpdateEnabled === undefined) s.notifIssueUpdateEnabled = true;
+          if (s.notifMrNoteEnabled === undefined) s.notifMrNoteEnabled = true;
+          if (s.notifGitlabMentionEnabled === undefined) s.notifGitlabMentionEnabled = true;
+          if (s.notifJiraCommentEnabled === undefined) s.notifJiraCommentEnabled = true;
+          if (s.notifMrApprovalEnabled === undefined) s.notifMrApprovalEnabled = true;
+          if (s.notifPipelineFailureEnabled === undefined) s.notifPipelineFailureEnabled = true;
+          if (s.notifIssueAssignmentEnabled === undefined) s.notifIssueAssignmentEnabled = true;
+          if (s.notifDueDateReminderEnabled === undefined) s.notifDueDateReminderEnabled = true;
         }
         return s as unknown as SettingsState;
       },
