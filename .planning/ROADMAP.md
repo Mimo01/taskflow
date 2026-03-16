@@ -111,13 +111,14 @@ Plans:
   4. Typing 2 or more characters produces a "Search Jira for X" tail item that fires a live query
   5. A clock icon in the TopBar opens a popover listing the last 10 recently opened issues/MRs; clicking any item opens that issue's detail panel
   6. Pressing Cmd+Shift+S navigates to Sprint Board, Cmd+Shift+B to Backlog, and Cmd+Shift+N to Notifications from anywhere in the app
-**Plans**: 4 plans
+**Plans**: 5 plans
 
 Plans:
 - [ ] 20-01-PLAN.md — Foundation: shadcn command install + recent-items store + shortcut registry entries
 - [ ] 20-02-PLAN.md — CommandPalette component with fuzzy search, groups, and live Jira search
 - [ ] 20-03-PLAN.md — RecentItemsPopover component (clock icon + popover)
 - [ ] 20-04-PLAN.md — TopBar + AppLayout wiring, nav shortcuts, recent item tracking, delete old search files
+- [ ] 20-05-PLAN.md — Gap closure: add "Create issue" action to CommandPalette (PALETTE-04)
 
 ### Phase 21: Header Redesign + Pinned Issue Tabs
 **Goal**: The app header communicates Taskflow's brand identity and users can maintain quick access to multiple open issues via a persistent tab strip
@@ -168,6 +169,6 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22
 | 17. Nyquist Validation — Phases 9–14 | v1.2 | — | Complete | 2026-03-15 |
 | 18. App Icon + Multi-Page Settings | 6/6 | Complete    | 2026-03-15 | - |
 | 19. Keyboard Foundation | 6/6 | Complete   | 2026-03-15 |
-| 20. Command Palette + Recent Items | 4/4 | Complete   | 2026-03-16 | - |
+| 20. Command Palette + Recent Items | 4/5 | Gap closure   | 2026-03-16 | - |
 | 21. Header Redesign + Pinned Issue Tabs | v1.3 | 0/TBD | Not started | - |
 | 22. Polish — Empty States + Error Recovery | v1.3 | 0/TBD | Not started | - |
