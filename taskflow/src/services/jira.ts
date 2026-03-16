@@ -636,6 +636,65 @@ export async function fetchComments(
   return data.comments ?? [];
 }
 
+export async function updateComment(
+  baseUrl: string,
+  token: string,
+  issueKey: string,
+  commentId: string,
+  body: string,
+): Promise<void> {
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/comment/${commentId}`;
+
+  let response: Response;
+  try {
+    response = await apiFetch('jira', url, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ body }),
+    });
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError(`Failed to update comment on ${issueKey}`, response.status, 'jira');
+    }
+    throw new Error(`Failed to update comment on ${issueKey}: status ${response.status}`);
+  }
+}
+
+export async function deleteComment(
+  baseUrl: string,
+  token: string,
+  issueKey: string,
+  commentId: string,
+): Promise<void> {
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/comment/${commentId}`;
+
+  let response: Response;
+  try {
+    response = await apiFetch('jira', url, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError(`Failed to delete comment on ${issueKey}`, response.status, 'jira');
+    }
+    throw new Error(`Failed to delete comment on ${issueKey}: status ${response.status}`);
+  }
+}
+
 // ─── Phase 4: PM Dashboard & Search ──────────────────────────────────────────
 
 /**
