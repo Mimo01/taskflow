@@ -31,13 +31,13 @@ Requirements for the v1.3 UX & Branding milestone. Each maps to roadmap phases.
 
 ### Command Palette
 
-- [ ] **PALETTE-01**: User can open the command palette with Cmd+K (macOS) / Ctrl+K (Windows/Linux) from anywhere
-- [ ] **PALETTE-02**: Palette searches cached Jira tasks and GitLab MRs by title/key with fuzzy matching
-- [ ] **PALETTE-03**: Palette includes navigation actions (Go to Sprint Board, Backlog, Notifications, Settings sections)
-- [ ] **PALETTE-04**: Palette includes app actions (Create issue, Mark all read, Toggle theme)
-- [ ] **PALETTE-05**: Palette shows a "Search Jira for X" tail item that fires a live query for typed text ≥2 chars
-- [ ] **PALETTE-06**: Palette default state (before typing) shows recent items
-- [ ] **PALETTE-07**: User can dismiss the palette with Escape
+- [x] **PALETTE-01**: User can open the command palette with Cmd+K (macOS) / Ctrl+K (Windows/Linux) from anywhere
+- [x] **PALETTE-02**: Palette searches cached Jira tasks and GitLab MRs by title/key with fuzzy matching
+- [x] **PALETTE-03**: Palette includes navigation actions (Go to Sprint Board, Backlog, Notifications, Settings sections)
+- [x] **PALETTE-04**: Palette includes app actions (Create issue, Mark all read, Toggle theme)
+- [x] **PALETTE-05**: Palette shows a "Search Jira for X" tail item that fires a live query for typed text ≥2 chars
+- [x] **PALETTE-06**: Palette default state (before typing) shows recent items
+- [x] **PALETTE-07**: User can dismiss the palette with Escape
 
 ### Keyboard Shortcuts
 
@@ -101,13 +101,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | KEYS-01 | Phase 19 | Complete |
 | KEYS-02 | Phase 19 | Complete |
 | KEYS-07 | Phase 19 | Complete |
-| PALETTE-01 | Phase 20 | Pending |
-| PALETTE-02 | Phase 20 | Pending |
-| PALETTE-03 | Phase 20 | Pending |
-| PALETTE-04 | Phase 20 | Pending |
-| PALETTE-05 | Phase 20 | Pending |
-| PALETTE-06 | Phase 20 | Pending |
-| PALETTE-07 | Phase 20 | Pending |
+| PALETTE-01 | Phase 20 | Complete |
+| PALETTE-02 | Phase 20 | Complete |
+| PALETTE-03 | Phase 20 | Complete |
+| PALETTE-04 | Phase 20 | Complete |
+| PALETTE-05 | Phase 20 | Complete |
+| PALETTE-06 | Phase 20 | Complete |
+| PALETTE-07 | Phase 20 | Complete |
 | RECENT-01 | Phase 20 | Complete |
 | RECENT-02 | Phase 20 | Complete |
 | KEYS-03 | Phase 20 | Complete |
