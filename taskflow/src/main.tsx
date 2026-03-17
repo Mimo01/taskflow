@@ -368,7 +368,7 @@ function AppLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar onOpenCreate={handleOpenCreate} />
+      <Sidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopBar
           onIssueClick={(key) => handleIssueClick(key, true)}

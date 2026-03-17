@@ -178,7 +178,7 @@ export interface GitLabMR {
   reviewers: Array<{ id: number; name: string; username: string }>;
   updated_at: string; // ISO 8601 UTC
   web_url: string;
-  labels: string[];  // plain label names from list API
+  labels: GitLabLabel[];  // label objects with colors
   milestone: { id: number; title: string } | null;
 }
 
@@ -658,8 +658,53 @@ export async function fetchProjectMRs(
     throw new Error(`Failed to fetch project MRs: status ${response.status}`);
   }
 
-  const data = await response.json();
-  return data as GitLabMR[];
+  const data = (await response.json()) as Array<Record<string, unknown>>;
+
+  // Enrich labels with colors (same pattern as fetchMRDetail)
+  const allLabelNames = new Set<string>();
+  for (const mr of data) {
+    if (Array.isArray(mr.labels)) {
+      for (const l of mr.labels) {
+        if (typeof l === 'string') allLabelNames.add(l);
+      }
+    }
+  }
+
+  let labelColorMap: Record<string, { color: string; text_color: string }> = {};
+  if (allLabelNames.size > 0) {
+    try {
+      const labelsUrl = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/labels?per_page=100`;
+      const labelsResp = await apiFetch('gitlab', labelsUrl, {
+        headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+      });
+      if (labelsResp.ok) {
+        const projectLabels = await labelsResp.json() as Array<{ name: string; color: string; text_color: string }>;
+        for (const pl of projectLabels) {
+          labelColorMap[pl.name] = { color: pl.color, text_color: pl.text_color };
+        }
+      }
+    } catch {
+      // If labels fetch fails, fall back to default colors
+    }
+  }
+
+  for (const mr of data) {
+    if (Array.isArray(mr.labels)) {
+      mr.labels = mr.labels.map((l: string | GitLabLabel) => {
+        if (typeof l === 'string') {
+          const colors = labelColorMap[l];
+          return {
+            name: l,
+            color: colors?.color ?? '#6b7280',
+            text_color: colors?.text_color ?? '#FFFFFF',
+          };
+        }
+        return l;
+      });
+    }
+  }
+
+  return data as unknown as GitLabMR[];
 }
 
 /**
@@ -694,6 +739,19 @@ export async function searchGitLabMRs(
     return [];
   }
 
-  const data = await response.json();
-  return data as GitLabMR[];
+  const data = (await response.json()) as Array<Record<string, unknown>>;
+
+  // Convert string labels to GitLabLabel with default gray (search spans multiple projects)
+  for (const mr of data) {
+    if (Array.isArray(mr.labels)) {
+      mr.labels = mr.labels.map((l: string | GitLabLabel) => {
+        if (typeof l === 'string') {
+          return { name: l, color: '#6b7280', text_color: '#FFFFFF' };
+        }
+        return l;
+      });
+    }
+  }
+
+  return data as unknown as GitLabMR[];
 }

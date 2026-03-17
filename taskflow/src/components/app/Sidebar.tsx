@@ -22,7 +22,6 @@ import {
   Users,
   Tag,
   Bug,
-  PlusSquare,
   List,
   BookOpen,
   ChevronLeft,
@@ -43,20 +42,13 @@ function navLinkClassFn(collapsed: boolean) {
       : `${base} hover:bg-accent`;
 }
 
-interface SidebarProps {
-  onOpenCreate: () => void;
-}
-
-export default function Sidebar({ onOpenCreate }: SidebarProps) {
+export default function Sidebar() {
   const { role, debugMode } = useSettingsStore();
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);
   const toggleSidebarCollapsed = useSettingsStore((s) => s.toggleSidebarCollapsed);
   const [hovered, setHovered] = useState(false);
 
   const navLinkClass = navLinkClassFn(sidebarCollapsed);
-  const btnBase = sidebarCollapsed
-    ? `${NAV_LINK_BASE} justify-center px-2`
-    : `${NAV_LINK_BASE} gap-3 px-3`;
   const labelClass = sidebarCollapsed ? 'hidden' : 'hidden md:block';
   const sectionLabelClass = sidebarCollapsed
     ? 'px-1 py-1 text-[10px] font-semibold uppercase tracking-tight text-muted-foreground text-center'
@@ -90,16 +82,6 @@ export default function Sidebar({ onOpenCreate }: SidebarProps) {
           <LayoutDashboard className="h-4 w-4 shrink-0" />
           <span className={labelClass}>Dashboard</span>
         </NavLink>
-
-        <button
-          type="button"
-          onClick={onOpenCreate}
-          className={`${btnBase} hover:bg-accent`}
-          title={sidebarCollapsed ? 'Create Issue' : undefined}
-        >
-          <PlusSquare className="h-4 w-4 shrink-0" />
-          <span className={labelClass}>Create Issue</span>
-        </button>
 
         {/* Shared: Epics (visible for all roles) */}
         <NavLink to="/epics" className={navLinkClass} title={sidebarCollapsed ? 'Epics' : undefined}>
