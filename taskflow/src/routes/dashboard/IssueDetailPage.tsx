@@ -247,6 +247,11 @@ interface CommentThreadProps {
 
 function CommentThread({ comments, issueKey, jiraBaseUrl, jiraUserDisplayName, attachmentMap, userMap }: CommentThreadProps) {
   const queryClient = useQueryClient()
+  const commentSortOrder = useSettingsStore((s) => s.commentSortOrder)
+  const sortedComments = useMemo(() => {
+    if (commentSortOrder === 'newest') return [...comments].reverse()
+    return comments
+  }, [comments, commentSortOrder])
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
   const [editError, setEditError] = useState<string | null>(null)
@@ -326,7 +331,7 @@ function CommentThread({ comments, issueKey, jiraBaseUrl, jiraUserDisplayName, a
         <p className="text-sm text-muted-foreground italic">No comments yet</p>
       ) : (
         <div className="space-y-3 mt-3">
-          {comments.map((comment) => {
+          {sortedComments.map((comment) => {
             const isOwn = comment.author.displayName === jiraUserDisplayName
             const isEditing = editingCommentId === comment.id
 

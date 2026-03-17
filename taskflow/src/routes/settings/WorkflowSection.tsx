@@ -15,6 +15,8 @@ export default function WorkflowSection() {
     setSprintCollapseByDefault,
     showSubtasksInMyTasks,
     setShowSubtasksInMyTasks,
+    commentSortOrder,
+    setCommentSortOrder,
   } = useSettingsStore();
 
   return (
@@ -54,6 +56,27 @@ export default function WorkflowSection() {
             aria-label="Show subtasks in My Tasks"
             checked={showSubtasksInMyTasks}
             onChange={(e) => setShowSubtasksInMyTasks(e.target.checked)}
+            className="h-4 w-4 accent-primary"
+          />
+        </label>
+      </div>
+
+      <div className="flex flex-col gap-4">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          Comments
+        </h3>
+        <label className="flex items-center justify-between gap-4 cursor-pointer">
+          <div>
+            <p className="text-sm font-medium">Show newest comments first</p>
+            <p className="text-xs text-muted-foreground">
+              Display most recent comments at the top of comment threads
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            aria-label="Show newest comments first"
+            checked={commentSortOrder === 'newest'}
+            onChange={(e) => setCommentSortOrder(e.target.checked ? 'newest' : 'oldest')}
             className="h-4 w-4 accent-primary"
           />
         </label>
