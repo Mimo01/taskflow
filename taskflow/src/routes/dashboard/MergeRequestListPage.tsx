@@ -8,7 +8,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { GitMerge, GitBranch, Search } from 'lucide-react'
+import { GitMerge, GitBranch, Search, Flag } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
 import { useRecentItemsStore } from '@/stores/recent-items.store'
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store'
@@ -192,6 +192,25 @@ export default function MergeRequestListPage() {
                     <span className="text-muted-foreground/50">·</span>
                     <span className="shrink-0">{relativeTime(mr.updated_at)}</span>
                   </div>
+                  {/* Labels + Milestone */}
+                  {(mr.labels?.length > 0 || mr.milestone) && (
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      {mr.labels?.map((label) => (
+                        <span
+                          key={label}
+                          className="inline-flex items-center rounded-full bg-muted px-1.5 py-0 text-[10px] font-medium text-muted-foreground"
+                        >
+                          {label}
+                        </span>
+                      ))}
+                      {mr.milestone && (
+                        <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <Flag className="size-2.5" />
+                          {mr.milestone.title}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </button>
             ))}
