@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-17 - Completed quick task 260317-wes: Remove create issue from the sidebar, keep it everywhere else
+Last activity: 2026-03-17 - Completed quick task 260317-wdi: Make MR labels match GitLab colors on detail and list pages
 
 Progress: [██████████] 100%
 
