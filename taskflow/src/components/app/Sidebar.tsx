@@ -107,6 +107,12 @@ export default function Sidebar({ onOpenCreate }: SidebarProps) {
           <span className={labelClass}>Epics</span>
         </NavLink>
 
+        {/* Shared: Merge Requests (visible for all roles) */}
+        <NavLink to="/merge-requests" className={navLinkClass} title={sidebarCollapsed ? 'Merge Requests' : undefined}>
+          <GitMerge className="h-4 w-4 shrink-0" />
+          <span className={labelClass}>Merge Requests</span>
+        </NavLink>
+
         {/* Work section (role-specific) */}
         {(role === 'developer' || role === 'pm' || role === 'tech-lead') && (
           <div className="mt-2">
