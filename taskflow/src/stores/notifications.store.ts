@@ -53,6 +53,8 @@ export interface NotificationItem {
   url?: string;              // browser-openable URL for the entity
   notificationType?: NotificationType;
   entityState?: string;      // GitLab: "opened" | "merged" | "closed"
+  parentKey?: string;        // Jira subtask parent key, e.g. "PROJ-100"
+  parentSummary?: string;    // Jira subtask parent summary, e.g. "User Login Flow"
 }
 
 interface NotificationsState {

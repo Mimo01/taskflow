@@ -32,6 +32,8 @@ export interface NotificationItem {
   url?: string;              // browser-openable URL for the entity
   notificationType?: NotificationType;
   entityState?: string;      // GitLab: "opened" | "merged" | "closed"
+  parentKey?: string;        // Jira subtask parent key, e.g. "PROJ-100"
+  parentSummary?: string;    // Jira subtask parent summary, e.g. "User Login Flow"
 }
 
 // ─── Jira Comment Fetcher ─────────────────────────────────────────────────────
@@ -84,7 +86,7 @@ async function fetchNewJiraComments(
       ` AND (assignee = "${username}" OR reporter = "${username}" OR watcher = "${username}")` +
       ` AND updatedDate >= "${sinceJql}"` +
       ` ORDER BY updated DESC`;
-    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee,reporter,updated&expand=changelog&maxResults=20`;
+    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee,reporter,updated,parent,issuetype&expand=changelog&maxResults=20`;
 
     let response: Response;
     try {
@@ -107,6 +109,8 @@ async function fetchNewJiraComments(
           assignee?: { displayName: string } | null;
           reporter?: { displayName: string } | null;
           updated: string;
+          parent?: { id: string; key: string; fields: { summary: string } };
+          issuetype?: { name: string; subtask: boolean };
         };
         changelog?: {
           histories: Array<{
@@ -156,6 +160,8 @@ async function fetchNewJiraComments(
                 url: `${base}/browse/${issue.key}`,
                 notificationType: 'issue-assignment',
                 entityState: undefined,
+                parentKey: issue.fields.parent?.key,
+                parentSummary: issue.fields.parent?.fields?.summary,
               });
             }
           }
@@ -188,6 +194,8 @@ async function fetchNewJiraComments(
         url: `${base}/browse/${issue.key}`,
         notificationType: 'issue-update',
         entityState: undefined,
+        parentKey: issue.fields.parent?.key,
+        parentSummary: issue.fields.parent?.fields?.summary,
       });
     }
 
@@ -198,7 +206,7 @@ async function fetchNewJiraComments(
   async function fetchCommentMentions(): Promise<NotificationItem[]> {
     const mentionTarget = displayName ?? username ?? '';
     const jql = `project = ${projectKey} AND comment ~ "${mentionTarget}" AND updatedDate >= "${sinceJql}" ORDER BY updated DESC`;
-    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,comment&maxResults=20`;
+    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,comment,parent,issuetype&maxResults=20`;
 
     let response: Response;
     try {
@@ -224,6 +232,8 @@ async function fetchNewJiraComments(
             updated: string;
             created: string;
           }> };
+          parent?: { id: string; key: string; fields: { summary: string } };
+          issuetype?: { name: string; subtask: boolean };
         };
       };
 
@@ -250,6 +260,8 @@ async function fetchNewJiraComments(
           url: `${base}/browse/${issue.key}`,
           notificationType: 'comment-mention',
           entityState: undefined,
+          parentKey: issue.fields.parent?.key,
+          parentSummary: issue.fields.parent?.fields?.summary,
         });
       }
     }
@@ -266,7 +278,7 @@ async function fetchNewJiraComments(
       ` AND (assignee = "${username}" OR reporter = "${username}" OR watcher = "${username}")` +
       ` AND updatedDate >= "${sinceJql}"` +
       ` ORDER BY updated DESC`;
-    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,comment&maxResults=20`;
+    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,comment,parent,issuetype&maxResults=20`;
 
     let response: Response;
     try {
@@ -292,6 +304,8 @@ async function fetchNewJiraComments(
             updated: string;
             created: string;
           }> };
+          parent?: { id: string; key: string; fields: { summary: string } };
+          issuetype?: { name: string; subtask: boolean };
         };
       };
 
@@ -314,6 +328,8 @@ async function fetchNewJiraComments(
           url: `${base}/browse/${issue.key}`,
           notificationType: 'jira-comment',
           entityState: undefined,
+          parentKey: issue.fields.parent?.key,
+          parentSummary: issue.fields.parent?.fields?.summary,
         });
       }
     }
@@ -328,7 +344,7 @@ async function fetchNewJiraComments(
     const jql =
       `assignee = "${username}" AND duedate >= now() AND duedate <= endOfDay("+1")` +
       ` ORDER BY duedate ASC`;
-    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,duedate,status&maxResults=20`;
+    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,duedate,status,parent,issuetype&maxResults=20`;
 
     let response: Response;
     try {
@@ -349,6 +365,8 @@ async function fetchNewJiraComments(
           summary: string;
           duedate: string | null;
           status?: { name: string };
+          parent?: { id: string; key: string; fields: { summary: string } };
+          issuetype?: { name: string; subtask: boolean };
         };
       };
 
@@ -374,6 +392,8 @@ async function fetchNewJiraComments(
         url: `${base}/browse/${issue.key}`,
         notificationType: 'due-date-reminder',
         entityState: undefined,
+        parentKey: issue.fields.parent?.key,
+        parentSummary: issue.fields.parent?.fields?.summary,
       });
     }
 
