@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: UX & Branding
 status: completed
-stopped_at: Completed quick task 260317-c37 (keyboard shortcuts modal redesign)
-last_updated: "2026-03-17T07:46:58.859Z"
-last_activity: "2026-03-17 - Completed quick task 260317-c5s: Improve notifications for subtasks with parent story context"
+stopped_at: Completed quick task 260317-tdr (MR detail page + MR list page)
+last_updated: "2026-03-17T20:29:00Z"
+last_activity: "2026-03-17 - Completed quick task 260317-tdr: Add MR detail page and MR list page"
 progress:
   total_phases: 5
   completed_phases: 5
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-17 - Completed quick task 260317-ric: Redesign linked issues and merge requests on issue detail
+Last activity: 2026-03-17 - Completed quick task 260317-tdr: Add MR detail page and MR list page
 
 Progress: [██████████] 100%
 
@@ -184,9 +184,10 @@ None.
 | 260317-rc8 | Show linked GitLab MRs in issue detail sidebar | 2026-03-17 | 0096dc9 | | [260317-rc8-on-issue-detail-in-the-sidebar-i-want-to](./quick/260317-rc8-on-issue-detail-in-the-sidebar-i-want-to/) |
 | 260317-rg0 | Switch comment sort order to newest-first with settings toggle | 2026-03-17 | 1353043 | Verified | [260317-rg0-switch-comment-sort-order-to-newest-firs](./quick/260317-rg0-switch-comment-sort-order-to-newest-firs/) |
 | 260317-ric | Redesign linked issues and MR sections with compact cards | 2026-03-17 | cbb797e | Verified | [260317-ric-redesign-linked-issues-and-merge-request](./quick/260317-ric-redesign-linked-issues-and-merge-request/) |
+| 260317-tdr | Add MR detail page and MR list page | 2026-03-17 | 4a21d91 | | [260317-tdr-add-a-merge-request-detail-page-similar-](./quick/260317-tdr-add-a-merge-request-detail-page-similar-/) |
 
 ## Session Continuity
 
 Last session: 2026-03-17T19:17:00Z
-Stopped at: Completed quick task 260317-ric (Redesign linked issues and MR sections)
+Stopped at: Completed quick task 260317-tdr (MR detail page + MR list page)
 Resume: Milestone v1.3 (UX & Branding) is fully executed. All 5 phases (18-22), 29 plans complete. Ready for /gsd:audit-milestone or /gsd:complete-milestone.
