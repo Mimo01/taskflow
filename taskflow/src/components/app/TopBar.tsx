@@ -64,7 +64,7 @@ export default function TopBar({ onIssueClick, onMRClick, onPaletteOpen, notifPo
           )}
         </PopoverTrigger>
         <PopoverContent className="p-0 w-[28rem]">
-          <NotificationPopover onIssueClick={onIssueClick} onMRClick={onMRClick} />
+          <NotificationPopover onIssueClick={onIssueClick} onMRClick={onMRClick} onClose={() => onNotifPopoverChange(false)} />
         </PopoverContent>
       </Popover>
     </header>

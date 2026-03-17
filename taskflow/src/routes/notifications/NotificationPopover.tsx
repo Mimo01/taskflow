@@ -2,10 +2,9 @@
  * NotificationPopover — notification feed rendered inside TopBar's Popover.
  *
  * Pure UI component: reads from notifications store, renders feed, mark-all-read header,
- * and permission-denied Alert banner. Polling logic lives in TopBar (useQuery with
- * refetchInterval) where QueryClientProvider is always available.
+ * and permission-denied Alert banner. All notification clicks navigate directly to the
+ * relevant detail page (Jira issue or GitLab MR) and close the popover.
  */
-import { useState } from 'react';
 import { Bell } from 'lucide-react';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Button } from '../../components/ui/button';
@@ -13,7 +12,6 @@ import { EmptyState } from '../../components/ui/empty-state';
 import { ErrorState } from '../../components/ui/error-state';
 import { useNotificationsStore } from '../../stores/notifications.store';
 import NotificationRow from './NotificationRow';
-import NotificationDetail from './NotificationDetail';
 
 /**
  * Extracts a Jira issue key from a notification item.
@@ -38,14 +36,15 @@ function extractJiraIssueKey(item: { source: string; entityTitle: string; url?: 
 }
 
 interface NotificationPopoverProps {
-  /** Called with the Jira issue key when a Jira notification row is clicked. When provided,
-   *  Jira notifications open the IssueDetailSheet instead of the inline NotificationDetail. */
+  /** Called with the Jira issue key when a Jira notification row is clicked. */
   onIssueClick?: (issueKey: string) => void;
   /** Called with "projectId/iid" when a GitLab MR notification is clicked. */
   onMRClick?: (projectIdAndIid: string) => void;
+  /** Called to close the popover after a navigation click. */
+  onClose?: () => void;
 }
 
-export default function NotificationPopover({ onIssueClick, onMRClick }: NotificationPopoverProps) {
+export default function NotificationPopover({ onIssueClick, onMRClick, onClose }: NotificationPopoverProps) {
   const {
     items,
     readIds,
@@ -57,8 +56,6 @@ export default function NotificationPopover({ onIssueClick, onMRClick }: Notific
     setPermissionDenied,
   } = useNotificationsStore();
 
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-
   const readSet = new Set(readIds);
 
   // Sort newest-first
@@ -66,31 +63,22 @@ export default function NotificationPopover({ onIssueClick, onMRClick }: Notific
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
-  const selectedItem = selectedItemId
-    ? items.find((i) => i.id === selectedItemId) ?? null
-    : null;
-
   function handleRowClick(item: (typeof sortedItems)[0]) {
     const issueKey = extractJiraIssueKey(item);
     if (issueKey && onIssueClick) {
-      // Open Jira issue in the issue detail page
       markAsRead(item.id);
       onIssueClick(issueKey);
+      onClose?.();
       return;
     }
-    // GitLab MR notifications — navigate to internal MR detail page
     if (item.source === 'gitlab' && item.mrProjectId && item.mrIid && onMRClick) {
       markAsRead(item.id);
       onMRClick(`${item.mrProjectId}/${item.mrIid}`);
+      onClose?.();
       return;
     }
-    // Fallback: show inline NotificationDetail
-    setSelectedItemId(item.id);
+    // No matching callback — just mark as read
     markAsRead(item.id);
-  }
-
-  function handleDetailClose() {
-    setSelectedItemId(null);
   }
 
   return (
@@ -133,16 +121,12 @@ export default function NotificationPopover({ onIssueClick, onMRClick }: Notific
           <EmptyState icon={Bell} title="No notifications yet" subtitle="Mentions and updates will appear here as they happen" />
         ) : (
           sortedItems.map((item) => (
-            <div key={item.id}>
-              <NotificationRow
-                item={item}
-                isUnread={!readSet.has(item.id)}
-                onClick={() => handleRowClick(item)}
-              />
-              {selectedItemId === item.id && selectedItem && (
-                <NotificationDetail item={selectedItem} onClose={handleDetailClose} />
-              )}
-            </div>
+            <NotificationRow
+              key={item.id}
+              item={item}
+              isUnread={!readSet.has(item.id)}
+              onClick={() => handleRowClick(item)}
+            />
           ))
         )}
       </div>
