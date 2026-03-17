@@ -188,9 +188,10 @@ None.
 | 260317-uai | Make GitLab label colors match those in GitLab | 2026-03-17 | 3416a23 | | [260317-uai-make-the-gitlab-label-colors-match-those](./quick/260317-uai-make-the-gitlab-label-colors-match-those/) |
 | 260317-uo1 | Remove inline notification detail, direct navigation only | 2026-03-17 | 6bc2a0a | | [260317-uo1-redo-the-notifications-for-gitlab-ui-rem](./quick/260317-uo1-redo-the-notifications-for-gitlab-ui-rem/) |
 | 260317-w2i | Add distinct badge colors for MR comment notification types | 2026-03-17 | 4f22263 | | [260317-w2i-make-the-mr-comment-badge-color-differen](./quick/260317-w2i-make-the-mr-comment-badge-color-differen/) |
+| 260317-w6p | Show labels and milestones on MR detail and list pages | 2026-03-17 | a98deb0 | | [260317-w6p-on-the-merge-request-page-i-want-to-see-](./quick/260317-w6p-on-the-merge-request-page-i-want-to-see-/) |
 
 ## Session Continuity
 
-Last session: 2026-03-17T22:02:55Z
-Stopped at: Completed quick task 260317-w2i (MR comment badge colors)
+Last session: 2026-03-17T22:15:50Z
+Stopped at: Completed quick task 260317-w6p (MR labels and milestones)
 Resume: Milestone v1.3 (UX & Branding) is fully executed. All 5 phases (18-22), 29 plans complete. Ready for /gsd:audit-milestone or /gsd:complete-milestone.
