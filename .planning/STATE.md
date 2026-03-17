@@ -179,7 +179,7 @@ None.
 | 260317-c37 | Redesign keyboard shortcuts modal with keycap badges and search | 2026-03-17 | 007b1cb | | [260317-c37-i-want-to-redesign-and-make-nicer-keyboa](./quick/260317-c37-i-want-to-redesign-and-make-nicer-keyboa/) |
 | 260317-c5s | Improve notifications for subtasks by enriching with parent story context | 2026-03-17 | 089efe8 | | [260317-c5s-improve-notifications-for-subtasks-by-en](./quick/260317-c5s-improve-notifications-for-subtasks-by-en/) |
 | 260317-cei | Make notifications and recents popover wider to fit more information | 2026-03-17 | 134efaa | | [260317-cei-make-notifications-and-recents-popover-w](./quick/260317-cei-make-notifications-and-recents-popover-w/) |
-| 260317-k7o | Rich comments in My Tasks with WikiRenderer, edit/delete, formatting toolbar | 2026-03-17 | 13ed287 | | [260317-k7o-in-my-tasks-section-there-are-comments-i](./quick/260317-k7o-in-my-tasks-section-there-are-comments-i/) |
+| 260317-k7o | Rich comments in My Tasks with WikiRenderer, edit/delete, formatting toolbar | 2026-03-17 | 13ed287 | Verified | [260317-k7o-in-my-tasks-section-there-are-comments-i](./quick/260317-k7o-in-my-tasks-section-there-are-comments-i/) |
 
 ## Session Continuity
 
