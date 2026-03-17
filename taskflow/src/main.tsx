@@ -19,6 +19,8 @@ import { readSecret } from './services/stronghold';
 import { discoverCustomFields, fetchIssueSummary } from './services/jira';
 import { CreateEditIssueModal, type EditInitialValues } from './routes/dashboard/CreateEditIssueModal';
 import IssueDetailPage from './routes/dashboard/IssueDetailPage';
+import MergeRequestDetailPage from './routes/dashboard/MergeRequestDetailPage';
+import MergeRequestListPage from './routes/dashboard/MergeRequestListPage';
 import CommandPalette from './components/app/CommandPalette';
 import PinnedTabStrip from './components/app/PinnedTabStrip';
 import { useRecentItemsStore } from './stores/recent-items.store';
@@ -177,7 +179,7 @@ function AppLayout() {
 
   // Reset breadcrumb trail when navigating away from issue detail
   useEffect(() => {
-    if (!location.pathname.startsWith('/issue/')) {
+    if (!location.pathname.startsWith('/issue/') && !location.pathname.startsWith('/mr/')) {
       breadcrumbReset();
     }
   }, [location.pathname]);
@@ -194,6 +196,8 @@ function AppLayout() {
     if (pathname.startsWith('/workload')) return 'Workload';
     if (pathname.startsWith('/releases')) return 'Releases';
     if (pathname.startsWith('/issue/')) return 'Issue';
+    if (pathname.startsWith('/merge-requests')) return 'Merge Requests';
+    if (pathname.startsWith('/mr/')) return 'MR Detail';
     return 'Home';
   }
 
@@ -427,6 +431,8 @@ const router = createHashRouter([
       { path: '/releases', element: <ReleasesTab /> },
       { path: '/debug-logs', element: <DebugLogs /> },
       { path: '/issue/:key', element: <IssueDetailPage /> },
+      { path: '/merge-requests', element: <MergeRequestListPage /> },
+      { path: '/mr/:projectId/:iid', element: <MergeRequestDetailPage /> },
     ],
   },
 ]);
