@@ -86,7 +86,7 @@ export default function NotificationPopover({ onIssueClick }: NotificationPopove
   }
 
   return (
-    <div className="w-[28rem]">
+    <div>
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b">
         <span className="font-semibold text-sm">Notifications</span>
