@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-17 - Completed quick task 260317-tdr: Add a merge request detail page similar to the Jira detail page
+Last activity: 2026-03-17 - Polish MR detail page and replace external GitLab links with internal routes
 
 Progress: [██████████] 100%
 
