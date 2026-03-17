@@ -45,7 +45,6 @@ export function useNotificationPolling() {
     jiraUsername,
     gitlabUserId,
     gitlabUsername,
-    activeGitlabProject,
     setJiraUser,
   } = useAuthStore();
 
@@ -85,10 +84,11 @@ export function useNotificationPolling() {
         gitlab: gitlabBaseUrl ? await readSecret('gitlab-pat').catch(() => null) : null,
       };
 
-      // Read cached MR list (same pattern as SprintBoardTab)
-      const mrList =
-        queryClient.getQueryData<GitLabMR[]>(['gitlab-mrs', gitlabBaseUrl, activeGitlabProject]) ??
-        [];
+      // Read cached MR list — the MR query (MrHealthPanel / MyTasksTab / MrAttentionTab)
+      // stores { filtered, merged } so we must read the correct shape and extract the array.
+      const mrCacheData =
+        queryClient.getQueryData<{ filtered: GitLabMR[]; merged: GitLabMR[] }>(['gitlab-mrs', gitlabBaseUrl, gitlabUserId]);
+      const mrList: GitLabMR[] = mrCacheData?.merged ?? [];
 
       const allItems = await fetchNewNotifications(jiraBaseUrl, gitlabBaseUrl, tokens, {
         activeJiraProject,
