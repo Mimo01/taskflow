@@ -190,7 +190,7 @@ export interface GitLabMRDetail extends GitLabMR {
   description: string | null;
   target_branch: string;
   created_at: string;
-  labels: GitLabLabel[];
+  labels: GitLabLabel[];  // normalized from string[] or object[] by fetchMRDetail
   draft: boolean;
   merge_status: string;
   has_conflicts: boolean;
@@ -576,7 +576,7 @@ export async function fetchMRDetail(
   projectId: number,
   mrIid: number,
 ): Promise<GitLabMRDetail> {
-  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/merge_requests/${mrIid}?include_labels_details=true`;
+  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/merge_requests/${mrIid}`;
 
   let response: Response;
   try {
@@ -595,6 +595,39 @@ export async function fetchMRDetail(
   }
 
   const data = await response.json();
+
+  // Fetch project labels to get colors (MR endpoint only returns label names as strings)
+  let labelColorMap: Record<string, { color: string; text_color: string }> = {};
+  if (Array.isArray(data.labels) && data.labels.length > 0) {
+    try {
+      const labelsUrl = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/labels?per_page=100`;
+      const labelsResp = await apiFetch('gitlab', labelsUrl, {
+        headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+      });
+      if (labelsResp.ok) {
+        const projectLabels = await labelsResp.json() as Array<{ name: string; color: string; text_color: string }>;
+        for (const pl of projectLabels) {
+          labelColorMap[pl.name] = { color: pl.color, text_color: pl.text_color };
+        }
+      }
+    } catch {
+      // If labels fetch fails, fall back to default colors
+    }
+
+    // Normalize labels: if they're strings, convert to GitLabLabel objects
+    data.labels = data.labels.map((l: string | GitLabLabel) => {
+      if (typeof l === 'string') {
+        const colors = labelColorMap[l];
+        return {
+          name: l,
+          color: colors?.color ?? '#6b7280',
+          text_color: colors?.text_color ?? '#FFFFFF',
+        };
+      }
+      return l;
+    });
+  }
+
   return data as GitLabMRDetail;
 }
 
