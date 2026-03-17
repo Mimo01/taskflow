@@ -180,6 +180,21 @@ export interface GitLabMR {
   web_url: string;
 }
 
+export interface GitLabMRDetail extends GitLabMR {
+  description: string | null;
+  target_branch: string;
+  created_at: string;
+  labels: string[];
+  draft: boolean;
+  merge_status: string;
+  has_conflicts: boolean;
+  changes_count: string;
+  merged_at: string | null;
+  closed_at: string | null;
+  pipeline: { id: number; status: string; web_url: string } | null;
+  assignee: { id: number; name: string; username: string; avatar_url: string } | null;
+}
+
 export interface MRCommit {
   id: string;
   title: string;
@@ -549,12 +564,41 @@ export async function fetchProjectTags(
  * @param projectId - GitLab numeric project ID
  * @returns Array of open MRs for the project (up to 100)
  */
+export async function fetchMRDetail(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+  mrIid: number,
+): Promise<GitLabMRDetail> {
+  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/merge_requests/${mrIid}`;
+
+  let response: Response;
+  try {
+    response = await apiFetch('gitlab', url, {
+      headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+    });
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to fetch MR detail', response.status, 'gitlab');
+    }
+    throw new Error(`Failed to fetch MR detail: status ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data as GitLabMRDetail;
+}
+
 export async function fetchProjectMRs(
   baseUrl: string,
   token: string,
   projectId: number,
+  state: 'opened' | 'merged' | 'closed' | 'all' = 'opened',
 ): Promise<GitLabMR[]> {
-  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/merge_requests?state=opened&per_page=100`;
+  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/merge_requests?state=${state}&per_page=100`;
 
   let response: Response;
   try {
