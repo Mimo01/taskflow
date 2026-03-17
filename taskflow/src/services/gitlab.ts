@@ -180,11 +180,17 @@ export interface GitLabMR {
   web_url: string;
 }
 
+export interface GitLabLabel {
+  name: string;
+  color: string;       // hex like "#428BCA"
+  text_color: string;  // hex like "#FFFFFF"
+}
+
 export interface GitLabMRDetail extends GitLabMR {
   description: string | null;
   target_branch: string;
   created_at: string;
-  labels: string[];
+  labels: GitLabLabel[];
   draft: boolean;
   merge_status: string;
   has_conflicts: boolean;
@@ -570,7 +576,7 @@ export async function fetchMRDetail(
   projectId: number,
   mrIid: number,
 ): Promise<GitLabMRDetail> {
-  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/merge_requests/${mrIid}`;
+  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/merge_requests/${mrIid}?include_labels_details=true`;
 
   let response: Response;
   try {
