@@ -139,7 +139,7 @@ export default function RecentItemsPopover({ onIssueClick }: RecentItemsPopoverP
       >
         <Clock className="w-5 h-5" />
       </PopoverTrigger>
-      <PopoverContent className="p-0 w-96">
+      <PopoverContent className="p-0 w-[28rem]">
         <div>
           {/* Header */}
           <div className="flex items-center justify-between p-3 border-b">
