@@ -142,29 +142,30 @@ function useDebounce<T extends unknown[]>(fn: (...args: T) => void, delay: numbe
 }
 
 // Status color helpers for linked issues
-function statusDotColor(statusName: string): string {
-  if (/done|closed|resolved/i.test(statusName)) return 'text-green-500'
-  if (/in progress|in review|in development/i.test(statusName)) return 'text-blue-500'
-  return 'text-gray-400'
+function statusDot(statusName: string): string {
+  if (/done|closed|resolved/i.test(statusName)) return 'bg-green-500'
+  if (/in progress|in review|in development/i.test(statusName)) return 'bg-blue-500'
+  if (/to do|open|backlog|new/i.test(statusName)) return 'bg-gray-400'
+  return 'bg-gray-400'
 }
 
 function statusBadgeClasses(statusName: string): string {
-  if (/done|closed|resolved/i.test(statusName)) return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-  if (/in progress|in review|in development/i.test(statusName)) return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-  return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+  if (/done|closed|resolved/i.test(statusName)) return 'bg-green-500/10 text-green-700 dark:text-green-400'
+  if (/in progress|in review|in development/i.test(statusName)) return 'bg-blue-500/10 text-blue-700 dark:text-blue-400'
+  return 'bg-muted text-muted-foreground'
 }
 
 // MR state color helpers
 function mrStateClasses(state: GitLabMR['state']): string {
-  if (state === 'opened') return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-  if (state === 'merged') return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
-  return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+  if (state === 'opened') return 'bg-green-500/10 text-green-700 dark:text-green-400'
+  if (state === 'merged') return 'bg-purple-500/10 text-purple-700 dark:text-purple-400'
+  return 'bg-muted text-muted-foreground'
 }
 
-function mrDotColor(state: GitLabMR['state']): string {
-  if (state === 'opened') return 'text-green-500'
-  if (state === 'merged') return 'text-purple-500'
-  return 'text-gray-400'
+function mrDot(state: GitLabMR['state']): string {
+  if (state === 'opened') return 'bg-green-500'
+  if (state === 'merged') return 'bg-purple-500'
+  return 'bg-gray-400'
 }
 
 interface AssignableUser {
@@ -591,28 +592,28 @@ export function IssueDetailSidebar({
       {/* Linked issues — grouped by link type */}
       {f.issuelinks.length > 0 && (
         <section>
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Linked Issues</p>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Linked Issues</p>
           <div className="space-y-2">
             {Array.from(groupedLinks.entries()).map(([label, items]) => (
               <div key={label}>
-                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
-                <div className="space-y-1">
-                  {items.map(({ link, target }) => (
-                    <button
-                      key={link.id}
-                      type="button"
-                      onClick={() => onOpenIssue?.(target.key)}
-                      className="w-full text-left rounded-md border border-border/50 bg-muted/30 px-2.5 py-1.5 hover:bg-muted/60 transition-colors cursor-pointer flex items-center gap-2"
-                    >
-                      <span className={`size-2 rounded-full shrink-0 bg-current ${statusDotColor(target.fields.status.name)}`} />
-                      <span className="font-mono text-xs font-medium shrink-0">{target.key}</span>
-                      <span className="text-xs text-muted-foreground truncate flex-1">{target.fields.summary}</span>
-                      <Badge className={`text-[10px] shrink-0 border-0 ${statusBadgeClasses(target.fields.status.name)}`}>
+                <p className="text-[10px] text-muted-foreground capitalize mb-0.5 pl-1">{label}</p>
+                {items.map(({ link, target }) => (
+                  <button
+                    key={link.id}
+                    type="button"
+                    onClick={() => onOpenIssue?.(target.key)}
+                    className="w-full text-left rounded px-1 py-1 hover:bg-accent transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span className={`size-1.5 rounded-full shrink-0 ${statusDot(target.fields.status.name)}`} />
+                      <span className="font-mono text-xs">{target.key}</span>
+                      <Badge className={`text-[10px] h-4 px-1.5 border-0 font-normal ${statusBadgeClasses(target.fields.status.name)}`}>
                         {target.fields.status.name}
                       </Badge>
-                    </button>
-                  ))}
-                </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate pl-[18px]">{target.fields.summary}</p>
+                  </button>
+                ))}
               </div>
             ))}
           </div>
@@ -622,48 +623,33 @@ export function IssueDetailSidebar({
       {/* Merge Requests — GitLab MRs linked to this issue */}
       {gitlabConnected && gitlabBaseUrl && (
         <section>
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Merge Requests</p>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Merge Requests</p>
           {mrsLoading && (
-            <div className="space-y-1">
-              <div className="h-12 rounded-md bg-muted animate-pulse" />
-              <div className="h-12 rounded-md bg-muted animate-pulse" />
-            </div>
+            <div className="h-5 rounded bg-muted animate-pulse" />
           )}
-          {!mrsLoading && linkedMRs.length > 0 && (
-            <div className="space-y-1">
-              {linkedMRs.map(mr => (
-                <button
-                  key={mr.iid}
-                  type="button"
-                  onClick={() => openUrl(mr.web_url)}
-                  className="w-full text-left rounded-md border border-border/50 bg-muted/30 px-2.5 py-1.5 hover:bg-muted/60 transition-colors cursor-pointer space-y-1"
-                >
-                  {/* Row 1: state dot + title + state badge */}
-                  <div className="flex items-center gap-2">
-                    <span className={`size-2 rounded-full shrink-0 bg-current ${mrDotColor(mr.state)}`} />
-                    <span className="text-xs font-medium truncate flex-1">!{mr.iid} {mr.title}</span>
-                    <Badge className={`text-[10px] shrink-0 border-0 ${mrStateClasses(mr.state)}`}>
-                      {mr.state === 'merged' ? 'Merged' : mr.state === 'opened' ? 'Open' : mr.state}
-                    </Badge>
-                  </div>
-                  {/* Row 2: author avatar + branch + reviewers count */}
-                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground pl-4">
-                    <img src={mr.author.avatar_url} alt={mr.author.name} className="size-4 rounded-full shrink-0" />
-                    <span className="truncate">{mr.author.name}</span>
-                    <span className="text-muted-foreground/50 mx-0.5">&middot;</span>
-                    <GitBranch className="size-3 shrink-0" />
-                    <span className="font-mono truncate max-w-[120px]">{mr.source_branch}</span>
-                    {mr.reviewers.length > 0 && (
-                      <>
-                        <span className="text-muted-foreground/50 mx-0.5">&middot;</span>
-                        <span>{mr.reviewers.length} reviewer{mr.reviewers.length > 1 ? 's' : ''}</span>
-                      </>
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+          {!mrsLoading && linkedMRs.length > 0 && linkedMRs.map(mr => (
+            <button
+              key={mr.iid}
+              type="button"
+              onClick={() => openUrl(mr.web_url)}
+              className="w-full text-left rounded px-1 py-1 hover:bg-accent transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-1.5">
+                <span className={`size-1.5 rounded-full shrink-0 ${mrDot(mr.state)}`} />
+                <span className="text-xs font-mono">!{mr.iid}</span>
+                <Badge className={`text-[10px] h-4 px-1.5 border-0 font-normal ${mrStateClasses(mr.state)}`}>
+                  {mr.state === 'merged' ? 'Merged' : mr.state === 'opened' ? 'Open' : mr.state}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground truncate pl-[18px]">{mr.title}</p>
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground pl-[18px] mt-0.5">
+                <img src={mr.author.avatar_url} alt="" className="size-3 rounded-full shrink-0" />
+                <span className="truncate">{mr.author.name}</span>
+                <GitBranch className="size-2.5 shrink-0 opacity-50" />
+                <span className="font-mono truncate">{mr.source_branch}</span>
+              </div>
+            </button>
+          ))}
           {!mrsLoading && linkedMRs.length === 0 && (
             <p className="text-xs text-muted-foreground">None</p>
           )}
