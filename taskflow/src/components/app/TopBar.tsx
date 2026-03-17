@@ -61,7 +61,7 @@ export default function TopBar({ onIssueClick, onPaletteOpen, notifPopoverOpen, 
             </span>
           )}
         </PopoverTrigger>
-        <PopoverContent className="p-0 w-96">
+        <PopoverContent className="p-0 w-[28rem]">
           <NotificationPopover onIssueClick={onIssueClick} />
         </PopoverContent>
       </Popover>
