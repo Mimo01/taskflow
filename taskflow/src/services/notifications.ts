@@ -34,6 +34,8 @@ export interface NotificationItem {
   entityState?: string;      // GitLab: "opened" | "merged" | "closed"
   parentKey?: string;        // Jira subtask parent key, e.g. "PROJ-100"
   parentSummary?: string;    // Jira subtask parent summary, e.g. "User Login Flow"
+  mrProjectId?: number;      // GitLab MR project ID — for internal /mr/:projectId/:iid routing
+  mrIid?: number;            // GitLab MR iid — for internal /mr/:projectId/:iid routing
 }
 
 // ─── Jira Comment Fetcher ─────────────────────────────────────────────────────
@@ -488,6 +490,8 @@ async function fetchNewGitlabNotes(
           url: mr.web_url,
           notificationType: 'mr-note',
           entityState: mr.state,
+          mrProjectId: mr.project_id,
+          mrIid: mr.iid,
         });
         continue;
       }
@@ -507,6 +511,8 @@ async function fetchNewGitlabNotes(
         url: mr.web_url,
         notificationType: isMentioned ? 'gitlab-mention' : 'mr-note',
         entityState: mr.state,
+        mrProjectId: mr.project_id,
+        mrIid: mr.iid,
       });
     }
   }
@@ -571,6 +577,8 @@ async function fetchGitlabApprovals(
         url: mr.web_url,
         notificationType: 'mr-approval',
         entityState: mr.state,
+        mrProjectId: mr.project_id,
+        mrIid: mr.iid,
       });
     }
   }
@@ -636,6 +644,8 @@ async function fetchGitlabPipelineFailures(
         url: mr.web_url,
         notificationType: 'pipeline-failure',
         entityState: mr.state,
+        mrProjectId: mr.project_id,
+        mrIid: mr.iid,
       });
     }
   }

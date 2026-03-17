@@ -5,7 +5,6 @@
  */
 import { Clock } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { useRecentItemsStore } from '@/stores/recent-items.store';
 import type { RecentItem } from '@/stores/recent-items.store';
@@ -14,6 +13,7 @@ import type { GitLabMR } from '@/services/gitlab';
 
 interface RecentItemsPopoverProps {
   onIssueClick?: (issueKey: string) => void;
+  onMRClick?: (projectIdAndIid: string) => void;
 }
 
 /**
@@ -88,10 +88,12 @@ function RecentItemRow({
   item,
   queryClient,
   onIssueClick,
+  onMRClick,
 }: {
   item: RecentItem;
   queryClient: ReturnType<typeof useQueryClient>;
   onIssueClick?: (issueKey: string) => void;
+  onMRClick?: (projectIdAndIid: string) => void;
 }) {
   let label: string;
   let title: string | undefined;
@@ -109,8 +111,8 @@ function RecentItemRow({
   function handleClick() {
     if (item.type === 'jira') {
       onIssueClick?.(item.id);
-    } else if (item.url) {
-      openUrl(item.url);
+    } else {
+      onMRClick?.(item.id);
     }
   }
 
@@ -127,7 +129,7 @@ function RecentItemRow({
   );
 }
 
-export default function RecentItemsPopover({ onIssueClick }: RecentItemsPopoverProps) {
+export default function RecentItemsPopover({ onIssueClick, onMRClick }: RecentItemsPopoverProps) {
   const { items } = useRecentItemsStore();
   const queryClient = useQueryClient();
 
@@ -159,6 +161,7 @@ export default function RecentItemsPopover({ onIssueClick }: RecentItemsPopoverP
                   item={item}
                   queryClient={queryClient}
                   onIssueClick={onIssueClick}
+                  onMRClick={onMRClick}
                 />
               ))
             )}

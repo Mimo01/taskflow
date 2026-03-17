@@ -41,9 +41,11 @@ interface NotificationPopoverProps {
   /** Called with the Jira issue key when a Jira notification row is clicked. When provided,
    *  Jira notifications open the IssueDetailSheet instead of the inline NotificationDetail. */
   onIssueClick?: (issueKey: string) => void;
+  /** Called with "projectId/iid" when a GitLab MR notification is clicked. */
+  onMRClick?: (projectIdAndIid: string) => void;
 }
 
-export default function NotificationPopover({ onIssueClick }: NotificationPopoverProps) {
+export default function NotificationPopover({ onIssueClick, onMRClick }: NotificationPopoverProps) {
   const {
     items,
     readIds,
@@ -71,9 +73,15 @@ export default function NotificationPopover({ onIssueClick }: NotificationPopove
   function handleRowClick(item: (typeof sortedItems)[0]) {
     const issueKey = extractJiraIssueKey(item);
     if (issueKey && onIssueClick) {
-      // Open Jira issue in the global IssueDetailSheet
+      // Open Jira issue in the issue detail page
       markAsRead(item.id);
       onIssueClick(issueKey);
+      return;
+    }
+    // GitLab MR notifications — navigate to internal MR detail page
+    if (item.source === 'gitlab' && item.mrProjectId && item.mrIid && onMRClick) {
+      markAsRead(item.id);
+      onMRClick(`${item.mrProjectId}/${item.mrIid}`);
       return;
     }
     // Fallback: show inline NotificationDetail
