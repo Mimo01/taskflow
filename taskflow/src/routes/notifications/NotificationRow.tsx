@@ -102,6 +102,9 @@ export default function NotificationRow({ item, isUnread = false, onClick }: Not
             'issue-assignment': 'bg-blue-100 text-blue-700',
             'issue-update': 'bg-teal-100 text-teal-700',
             'jira-comment': 'bg-violet-100 text-violet-700',
+            'mr-note': 'bg-indigo-100 text-indigo-700',
+            'comment-mention': 'bg-pink-100 text-pink-700',
+            'gitlab-mention': 'bg-pink-100 text-pink-700',
           };
           const label = labelMap[item.notificationType] ?? item.notificationType;
           const color = colorMap[item.notificationType] ?? 'bg-muted text-muted-foreground';
