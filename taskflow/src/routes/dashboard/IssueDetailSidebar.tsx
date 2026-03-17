@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useMemo } from 'react'
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query'
 import type { JiraIssueDetail } from '@/services/jira'
 import { updateIssueField } from '@/services/jira'
@@ -13,10 +13,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import { GitMerge } from 'lucide-react'
+import { openUrl } from '@tauri-apps/plugin-opener'
 import { readSecret } from '@/services/stronghold'
 import { useAuthStore } from '@/stores/auth.store'
 import { useSettingsStore } from '@/stores/settings.store'
 import { epicColorToTailwind } from '@/lib/epicColors'
+import { extractTicketKeys } from '@/services/linkEngine'
+import type { GitLabMR } from '@/services/gitlab'
 
 interface IssueDetailSidebarProps {
   issue: JiraIssueDetail
@@ -169,7 +173,7 @@ export function IssueDetailSidebar({
   const rawSprint = f[sprintFieldKey] as unknown
   const sprintName = extractSprintName(rawSprint)
 
-  const { jiraBaseUrl: storeJiraBaseUrl, jiraConnected } = useAuthStore()
+  const { jiraBaseUrl: storeJiraBaseUrl, jiraConnected, gitlabBaseUrl, gitlabConnected, activeGitlabProject } = useAuthStore()
   const { epicColorFieldKey } = useSettingsStore()
   const effectiveJiraBaseUrl = jiraBaseUrl || storeJiraBaseUrl || ''
 
@@ -190,6 +194,38 @@ export function IssueDetailSidebar({
   const epicName = epicIssue
     ? ((epicIssue.fields[epicNameFieldKey] as string | null) ?? epicIssue.fields.summary)
     : null
+
+  // Fetch GitLab MRs for the active project (all states, recent 20)
+  const { data: projectMRs, isLoading: mrsLoading } = useQuery({
+    queryKey: ['gitlab-project-mrs', gitlabBaseUrl, activeGitlabProject],
+    queryFn: async () => {
+      const token = await readSecret('gitlab-pat').catch(() => null)
+      if (!token || !gitlabBaseUrl || !activeGitlabProject) return [] as GitLabMR[]
+      const base = gitlabBaseUrl.replace(/\/$/, '')
+      const url = `${base}/api/v4/projects/${activeGitlabProject}/merge_requests?per_page=20&order_by=updated_at&sort=desc`
+      try {
+        const resp = await apiFetch('gitlab', url, {
+          headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+        })
+        if (!resp.ok) return [] as GitLabMR[]
+        return (await resp.json()) as GitLabMR[]
+      } catch {
+        return [] as GitLabMR[]
+      }
+    },
+    staleTime: 60_000,
+    enabled: !!gitlabBaseUrl && !!gitlabConnected && !!activeGitlabProject,
+  })
+
+  // Filter MRs linked to the current issue key
+  const linkedMRs = useMemo(() => {
+    if (!projectMRs) return []
+    return projectMRs.filter(mr => {
+      const titleKeys = extractTicketKeys(mr.title)
+      const branchKeys = extractTicketKeys(mr.source_branch)
+      return titleKeys.includes(issueKey) || branchKeys.includes(issueKey)
+    })
+  }, [projectMRs, issueKey])
 
   const mutation = useFieldMutation(issueKey, effectiveJiraBaseUrl)
 
@@ -537,6 +573,38 @@ export function IssueDetailSidebar({
               )
             })}
           </ul>
+        </section>
+      )}
+
+      {/* Merge Requests — GitLab MRs linked to this issue */}
+      {gitlabConnected && gitlabBaseUrl && (
+        <section>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Merge Requests</p>
+          {mrsLoading && (
+            <div className="h-5 rounded bg-muted animate-pulse" />
+          )}
+          {!mrsLoading && linkedMRs.length > 0 && (
+            <ul className="space-y-1">
+              {linkedMRs.map(mr => (
+                <li key={mr.iid} className="text-xs flex items-center gap-1.5">
+                  <GitMerge className="size-3 shrink-0 text-muted-foreground" />
+                  <button
+                    type="button"
+                    onClick={() => openUrl(mr.web_url)}
+                    className="text-left hover:underline cursor-pointer truncate flex-1"
+                  >
+                    !{mr.iid} {mr.title}
+                  </button>
+                  <Badge variant="outline" className="text-[10px] shrink-0">
+                    {mr.state === 'merged' ? 'Merged' : mr.state === 'opened' ? 'Open' : mr.state}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+          {!mrsLoading && linkedMRs.length === 0 && (
+            <p className="text-xs text-muted-foreground">None</p>
+          )}
         </section>
       )}
     </div>
