@@ -195,12 +195,17 @@ export default function MergeRequestListPage() {
                   {/* Labels + Milestone */}
                   {(mr.labels?.length > 0 || mr.milestone) && (
                     <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                      {mr.labels?.map((label) => (
+                      {mr.labels?.map((l) => (
                         <span
-                          key={label}
-                          className="inline-flex items-center rounded-full bg-muted px-1.5 py-0 text-[10px] font-medium text-muted-foreground"
+                          key={l.name}
+                          className="inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] font-medium"
+                          style={{
+                            backgroundColor: l.color,
+                            color: l.text_color,
+                            borderColor: `${l.color}80`,
+                          }}
                         >
-                          {label}
+                          {l.name}
                         </span>
                       ))}
                       {mr.milestone && (
