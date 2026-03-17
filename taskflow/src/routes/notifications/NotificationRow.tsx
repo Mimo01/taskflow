@@ -2,8 +2,8 @@
  * NotificationRow — single notification row in the feed.
  *
  * Shows source-specific left border (orange=Jira, purple=GitLab),
- * source icon, type label badge, entity title (bold when unread, clickable when url present),
- * metadata chips, linkified body preview, and relative timestamp.
+ * prominent source badge, type label badge, entity title (bold when unread, clickable when url present),
+ * metadata chips, linkified body preview, and relative timestamp on the metadata line.
  */
 import type { NotificationItem } from '../../stores/notifications.store';
 
@@ -41,20 +41,43 @@ function linkifyText(text: string): string {
   );
 }
 
+const labelMap: Record<string, string> = {
+  'comment-mention': 'Mentioned',
+  'issue-update': 'Issue update',
+  'mr-note': 'MR comment',
+  'gitlab-mention': 'Mentioned',
+  'jira-comment': 'Comment',
+  'mr-approval': 'Approval',
+  'pipeline-failure': 'Pipeline failed',
+  'issue-assignment': 'Assigned',
+  'due-date-reminder': 'Due soon',
+};
+
+const colorMap: Record<string, string> = {
+  'pipeline-failure': 'bg-red-100 text-red-700',
+  'mr-approval': 'bg-green-100 text-green-700',
+  'due-date-reminder': 'bg-amber-100 text-amber-700',
+  'issue-assignment': 'bg-blue-100 text-blue-700',
+  'issue-update': 'bg-teal-100 text-teal-700',
+  'jira-comment': 'bg-violet-100 text-violet-700',
+  'mr-note': 'bg-indigo-100 text-indigo-700',
+  'comment-mention': 'bg-pink-100 text-pink-700',
+  'gitlab-mention': 'bg-pink-100 text-pink-700',
+};
+
 export default function NotificationRow({ item, isUnread = false, onClick }: NotificationRowProps) {
   const borderClass = item.source === 'jira' ? 'border-orange-500' : 'border-purple-500';
+  const typeLabel = item.notificationType ? (labelMap[item.notificationType] ?? item.notificationType) : null;
+  const typeColor = item.notificationType ? (colorMap[item.notificationType] ?? 'bg-muted text-muted-foreground') : null;
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`w-full text-left border-l-4 ${borderClass} px-3 py-2 transition-all flex gap-3 items-start ${isUnread ? 'bg-accent/50 hover:bg-accent' : 'hover:bg-muted'}`}
+      className={`w-full text-left border-l-4 ${borderClass} px-3 py-2 transition-colors duration-150 flex gap-3 items-start ${isUnread ? 'bg-accent/50 hover:bg-accent/80' : 'hover:bg-accent/60'}`}
     >
-      {/* Unread dot + avatar */}
+      {/* Avatar */}
       <div className="flex-shrink-0 mt-0.5 relative">
-        {isUnread && (
-          <span className="absolute -top-0.5 -left-0.5 w-2 h-2 rounded-full bg-blue-500 z-10" />
-        )}
         {item.authorAvatarUrl ? (
           <img
             src={item.authorAvatarUrl}
@@ -82,38 +105,40 @@ export default function NotificationRow({ item, isUnread = false, onClick }: Not
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        {/* Type label badge */}
-        {item.notificationType && (() => {
-          const labelMap: Record<string, string> = {
-            'comment-mention': 'Mentioned',
-            'issue-update': 'Issue update',
-            'mr-note': 'MR comment',
-            'gitlab-mention': 'Mentioned',
-            'jira-comment': 'Comment',
-            'mr-approval': 'Approval',
-            'pipeline-failure': 'Pipeline failed',
-            'issue-assignment': 'Assigned',
-            'due-date-reminder': 'Due soon',
-          };
-          const colorMap: Record<string, string> = {
-            'pipeline-failure': 'bg-red-100 text-red-700',
-            'mr-approval': 'bg-green-100 text-green-700',
-            'due-date-reminder': 'bg-amber-100 text-amber-700',
-            'issue-assignment': 'bg-blue-100 text-blue-700',
-            'issue-update': 'bg-teal-100 text-teal-700',
-            'jira-comment': 'bg-violet-100 text-violet-700',
-            'mr-note': 'bg-indigo-100 text-indigo-700',
-            'comment-mention': 'bg-pink-100 text-pink-700',
-            'gitlab-mention': 'bg-pink-100 text-pink-700',
-          };
-          const label = labelMap[item.notificationType] ?? item.notificationType;
-          const color = colorMap[item.notificationType] ?? 'bg-muted text-muted-foreground';
-          return (
-            <span className={`inline-block text-xs font-medium px-1.5 py-0.5 rounded ${color} mb-0.5`}>
-              {label}
+        {/* Metadata line: source badge + type badge + timestamp */}
+        <div className="flex items-center gap-1.5 mb-0.5">
+          {/* Source badge */}
+          {item.source === 'jira' ? (
+            <span className="relative inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-orange-500 text-white">
+              {isUnread && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-blue-500 ring-1 ring-white z-10" />
+              )}
+              Jira
             </span>
-          );
-        })()}
+          ) : (
+            <span className="relative inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-purple-600 text-white">
+              {isUnread && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-blue-500 ring-1 ring-white z-10" />
+              )}
+              GitLab
+            </span>
+          )}
+
+          {/* Type badge */}
+          {typeLabel && typeColor && (
+            <span className={`inline-block text-[10px] font-medium px-1.5 py-0.5 rounded ${typeColor}`}>
+              {typeLabel}
+            </span>
+          )}
+
+          {/* Timestamp (right-aligned) */}
+          <span className="ml-auto text-[10px] text-muted-foreground whitespace-nowrap">
+            {getRelativeTime(item.createdAt)}
+          </span>
+        </div>
+
+        {/* Author line */}
+        <p className="text-xs text-muted-foreground mb-0.5">by {item.author}</p>
 
         {/* Parent story context for subtasks */}
         {item.parentKey && (
@@ -147,7 +172,7 @@ export default function NotificationRow({ item, isUnread = false, onClick }: Not
                     {from !== null ? (
                       <>
                         <span className="text-muted-foreground">{from || '(none)'}</span>
-                        <span className="text-muted-foreground">→</span>
+                        <span className="text-muted-foreground">{'\u2192'}</span>
                         <span className={`font-medium ${isUnread ? 'text-foreground' : 'text-foreground/70'}`}>{to || '(none)'}</span>
                       </>
                     ) : (
@@ -165,7 +190,7 @@ export default function NotificationRow({ item, isUnread = false, onClick }: Not
           )
         }
 
-        {/* Metadata chips */}
+        {/* Entity state chip */}
         {item.entityState && (
           <div className="flex flex-wrap gap-1 mt-0.5">
             <span
@@ -181,9 +206,6 @@ export default function NotificationRow({ item, isUnread = false, onClick }: Not
             </span>
           </div>
         )}
-
-        {/* Timestamp */}
-        <p className="text-xs text-muted-foreground mt-0.5">{getRelativeTime(item.createdAt)}</p>
       </div>
     </button>
   );
