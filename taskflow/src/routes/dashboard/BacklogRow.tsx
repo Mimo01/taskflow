@@ -92,27 +92,26 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       </td>
 
       {/* Epic badge cell -- right after key */}
-      <td className="w-32 px-2 py-2 density-compact:py-1 density-comfortable:py-3 overflow-hidden">
+      <td className="px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap">
         {epicKey && epicName && epicColorResult ? (
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onIssueClick(epicKey); }}
             className={cn(
-              'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium truncate max-w-full hover:opacity-80 transition-opacity',
+              'inline-flex items-center rounded-full border px-1.5 py-0 text-[11px] font-medium hover:opacity-80 transition-opacity',
               epicColorResult.className,
             )}
             style={epicColorResult.style}
             title={`${epicKey}: ${epicName}`}
           >
-            <span className="opacity-70 mr-1">{epicKey}</span>
-            {epicName !== epicKey ? epicName : null}
+            {epicName}
           </button>
         ) : null}
       </td>
 
-      {/* Summary cell -- clickable button */}
-      <td className="px-2 py-2 density-compact:py-1 density-comfortable:py-3 overflow-hidden">
-        <span className="block text-sm text-left truncate">
+      {/* Summary cell -- takes remaining space, truncates on overflow */}
+      <td className="max-w-0 w-full px-2 py-2 density-compact:py-1 density-comfortable:py-3 overflow-hidden whitespace-nowrap text-ellipsis">
+        <span className="text-sm text-left">
           {issue.fields.summary}
         </span>
       </td>
