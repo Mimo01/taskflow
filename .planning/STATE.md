@@ -180,9 +180,10 @@ None.
 | 260317-c5s | Improve notifications for subtasks by enriching with parent story context | 2026-03-17 | 089efe8 | | [260317-c5s-improve-notifications-for-subtasks-by-en](./quick/260317-c5s-improve-notifications-for-subtasks-by-en/) |
 | 260317-cei | Make notifications and recents popover wider to fit more information | 2026-03-17 | 134efaa | | [260317-cei-make-notifications-and-recents-popover-w](./quick/260317-cei-make-notifications-and-recents-popover-w/) |
 | 260317-k7o | Rich comments in My Tasks with WikiRenderer, edit/delete, formatting toolbar | 2026-03-17 | 13ed287 | Verified | [260317-k7o-in-my-tasks-section-there-are-comments-i](./quick/260317-k7o-in-my-tasks-section-there-are-comments-i/) |
+| 260317-rb7 | Show only epic title in epic badge on issue detail sidebar | 2026-03-17 | 7010b71 | | [260317-rb7-show-only-epic-title-in-epic-badge-on-is](./quick/260317-rb7-show-only-epic-title-in-epic-badge-on-is/) |
 
 ## Session Continuity
 
-Last session: 2026-03-17T13:42:02Z
-Stopped at: Completed quick task 260317-k7o (rich comments in My Tasks)
+Last session: 2026-03-17T18:43:03Z
+Stopped at: Completed quick task 260317-rb7 (epic badge title only)
 Resume: Milestone v1.3 (UX & Branding) is fully executed. All 5 phases (18-22), 29 plans complete. Ready for /gsd:audit-milestone or /gsd:complete-milestone.
