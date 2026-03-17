@@ -181,9 +181,10 @@ None.
 | 260317-cei | Make notifications and recents popover wider to fit more information | 2026-03-17 | 134efaa | | [260317-cei-make-notifications-and-recents-popover-w](./quick/260317-cei-make-notifications-and-recents-popover-w/) |
 | 260317-k7o | Rich comments in My Tasks with WikiRenderer, edit/delete, formatting toolbar | 2026-03-17 | 13ed287 | Verified | [260317-k7o-in-my-tasks-section-there-are-comments-i](./quick/260317-k7o-in-my-tasks-section-there-are-comments-i/) |
 | 260317-rb7 | Show only epic title in epic badge on issue detail sidebar | 2026-03-17 | 7010b71 | | [260317-rb7-show-only-epic-title-in-epic-badge-on-is](./quick/260317-rb7-show-only-epic-title-in-epic-badge-on-is/) |
+| 260317-rc8 | Show linked GitLab MRs in issue detail sidebar | 2026-03-17 | 0096dc9 | | [260317-rc8-on-issue-detail-in-the-sidebar-i-want-to](./quick/260317-rc8-on-issue-detail-in-the-sidebar-i-want-to/) |
 
 ## Session Continuity
 
-Last session: 2026-03-17T18:43:03Z
-Stopped at: Completed quick task 260317-rb7 (epic badge title only)
+Last session: 2026-03-17T18:44:03Z
+Stopped at: Completed quick task 260317-rc8 (GitLab MRs in issue detail sidebar)
 Resume: Milestone v1.3 (UX & Branding) is fully executed. All 5 phases (18-22), 29 plans complete. Ready for /gsd:audit-milestone or /gsd:complete-milestone.
