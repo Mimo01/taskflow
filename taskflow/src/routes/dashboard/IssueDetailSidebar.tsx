@@ -417,8 +417,7 @@ export function IssueDetailSidebar({
                 className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium hover:opacity-80 transition-opacity ${colorResult.className}`}
                 style={colorResult.style}
               >
-                <span className="opacity-70 mr-1">{epicLink}</span>
-                {epicName && epicName !== epicLink ? epicName : null}
+                {epicName || epicLink}
               </button>
             )
           })() : '—'}
