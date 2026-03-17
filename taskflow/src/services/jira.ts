@@ -1586,7 +1586,60 @@ export async function fetchBacklogView(
         ? groups.filter(g => g.sprint.originBoardId === projectBoardId)
         : groups
 
-    sprints = [...filterByBoard(activeSprints), ...filterByBoard(futureSprints)]
+    const filteredActive = filterByBoard(activeSprints)
+    const filteredFuture = filterByBoard(futureSprints)
+
+    // Fetch all active+future sprints from the canonical board to include empty sprints.
+    // Use projectBoardId if known (authoritative), otherwise fall back to discovered boardId.
+    const sprintListBoardId = projectBoardId ?? boardId
+    const sprintIdsWithIssues = new Set([
+      ...filteredActive.map(g => g.sprint.id),
+      ...filteredFuture.map(g => g.sprint.id),
+    ])
+    try {
+      const sprintListRes = await apiFetch(
+        'jira',
+        `${base}/rest/agile/1.0/board/${sprintListBoardId}/sprint?state=active,future`,
+        { headers },
+      )
+      if (sprintListRes.ok) {
+        const sprintListData = await sprintListRes.json()
+        // Use the sprint list order as authoritative (Jira board order).
+        // Rebuild sprints array: for each sprint in the list, use existing
+        // issue group if available, otherwise create an empty entry.
+        const issueGroupById = new Map<number, { sprint: JiraActiveSprint; issues: JiraIssue[] }>()
+        for (const g of [...filteredActive, ...filteredFuture]) {
+          issueGroupById.set(g.sprint.id, g)
+        }
+        sprints = []
+        for (const s of sprintListData?.values ?? []) {
+          // Filter out sprints from other boards
+          if (projectBoardId !== undefined && typeof s.originBoardId === 'number' && s.originBoardId !== projectBoardId) continue
+          const existing = issueGroupById.get(s.id)
+          if (existing) {
+            sprints.push(existing)
+          } else {
+            sprints.push({
+              sprint: {
+                id: s.id,
+                name: String(s.name ?? ''),
+                state: String(s.state ?? '').toLowerCase() as 'active' | 'future' | 'closed',
+                startDate: typeof s.startDate === 'string' ? s.startDate : undefined,
+                endDate: typeof s.endDate === 'string' ? s.endDate : undefined,
+                originBoardId: typeof s.originBoardId === 'number' ? s.originBoardId : undefined,
+              },
+              issues: [],
+            })
+          }
+        }
+      } else {
+        // Sprint list failed — fall back to issue-derived order
+        sprints = [...filteredActive, ...filteredFuture]
+      }
+    } catch {
+      // Sprint list failed — fall back to issue-derived order
+      sprints = [...filteredActive, ...filteredFuture]
+    }
   }
 
   // Step 3: Fetch backlog (unassigned to any sprint) via regular search API

@@ -20,7 +20,7 @@ import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { Button } from '@/components/ui/button';
 import type { JiraIssue, JiraActiveSprint, BacklogViewData } from '@/services/jira';
-import { fetchBacklogView, fetchActiveSprint, addIssuesToSprint, fetchProjectStatuses, fetchEpicsBasic } from '@/services/jira';
+import { fetchBacklogView, fetchActiveSprint, addIssuesToSprint, fetchProjectStatuses, fetchEpicsBasic, fetchSprintIssues } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -97,6 +97,34 @@ export default function BacklogPage() {
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
 
+  // Sprint issues (shared cache with SprintBoardTab) — includes subtasks as
+  // separate issues with their own status. Used to build parentKey → subtask
+  // statuses map for status filtering.
+  const { data: sprintIssues } = useQuery({
+    queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey, epicLinkFieldKey],
+    queryFn: () => fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false, storyPointsFieldKey, epicLinkFieldKey),
+    staleTime: 30_000,
+    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
+  });
+
+  // Map parentKey → Set of subtask status names (from sprint board data)
+  const subtaskStatusMap = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    const issues = sprintIssues ?? [];
+    console.log('[subtaskStatusMap] sprintIssues count:', issues.length,
+      'subtasks:', issues.filter(i => i.fields.issuetype.subtask).length);
+    for (const issue of issues) {
+      if (issue.fields.issuetype.subtask && issue.fields.parent?.key) {
+        const parentKey = issue.fields.parent.key;
+        if (!map.has(parentKey)) map.set(parentKey, new Set());
+        map.get(parentKey)!.add(issue.fields.status.name);
+      }
+    }
+    console.log('[subtaskStatusMap] parents with subtasks:', map.size,
+      'sample:', Array.from(map.entries()).slice(0, 3).map(([k, v]) => `${k}: ${Array.from(v).join(',')}`));
+    return map;
+  }, [sprintIssues]);
+
   // ── Stale data banner state ───────────────────────────────────────────────────
   const [bannerDismissed, setBannerDismissed] = useState(false);
   useEffect(() => { setBannerDismissed(false); }, [error]);
@@ -160,15 +188,15 @@ export default function BacklogPage() {
     // Statuses: all project workflow statuses (not just those on current issues)
     const statuses = new Set<string>();
     for (const s of projectStatuses ?? []) statuses.add(s.name);
-    // Also include any status on current issues not yet in projectStatuses
     for (const issue of allIssues) {
       if (issue.fields.status?.name) statuses.add(issue.fields.status.name);
-      for (const sub of issue.fields.subtasks ?? []) {
-        if (sub.fields.status?.name) statuses.add(sub.fields.status.name);
-      }
+    }
+    // Also include subtask statuses from sprint board data
+    for (const statusSet of subtaskStatusMap.values()) {
+      for (const s of statusSet) statuses.add(s);
     }
     return { epics, labels: Array.from(labels), assignees: Array.from(assignees), statuses: Array.from(statuses).sort() };
-  }, [allIssues, epicLinkFieldKey, backlogView?.epicNames, allEpics, projectStatuses]);
+  }, [allIssues, epicLinkFieldKey, backlogView?.epicNames, allEpics, projectStatuses, subtaskStatusMap]);
 
   // ── Filter application helper ─────────────────────────────────────────────────
 
@@ -191,15 +219,26 @@ export default function BacklogPage() {
       })();
       const statusMatch = (() => {
         if (activeStatuses.size === 0) return true;
-        // Match on the story's own status
-        if (activeStatuses.has(issue.fields.status?.name ?? '')) return true;
-        // Also match if any subtask has a matching status
-        for (const sub of issue.fields.subtasks ?? []) {
-          if (activeStatuses.has(sub.fields.status?.name ?? '')) return true;
+        const activeLC = new Set(Array.from(activeStatuses).map(s => s.toLowerCase()));
+        // Match on the story's own status (case-insensitive)
+        const storyStatus = (issue.fields.status?.name ?? '').toLowerCase();
+        if (storyStatus && activeLC.has(storyStatus)) return true;
+        // Match on subtask statuses from sprint board data
+        const subStatuses = subtaskStatusMap.get(issue.key);
+        if (subStatuses) {
+          for (const s of subStatuses) {
+            if (activeLC.has(s.toLowerCase())) return true;
+          }
         }
         return false;
       })();
-      return epicMatch && labelMatch && assigneeMatch && statusMatch;
+      const result = epicMatch && labelMatch && assigneeMatch && statusMatch;
+      if (activeStatuses.size > 0 && !result && (issue.fields.status?.name ?? '').toLowerCase().includes('review')) {
+        console.log('[FILTER MISS]', issue.key, 'status:', issue.fields.status?.name,
+          'epicMatch:', epicMatch, 'labelMatch:', labelMatch, 'assigneeMatch:', assigneeMatch, 'statusMatch:', statusMatch,
+          'activeStatuses:', Array.from(activeStatuses));
+      }
+      return result;
     });
   }
 
@@ -340,14 +379,14 @@ export default function BacklogPage() {
         {!isCollapsed && (
           <div>
             {filteredIssues.length > 0 ? (
-              <table className="w-full text-sm table-fixed">
+              <table className="w-full text-sm">
                 <thead className="border-b bg-muted/10">
                   <tr>
                     <th className="w-8 px-3 py-2" />
                     <th className="w-24 px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                       Key
                     </th>
-                    <th className="w-32 px-2 py-2 text-left text-xs font-medium text-muted-foreground">
+                    <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                       Epic
                     </th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
