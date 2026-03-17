@@ -112,6 +112,14 @@ export default function NotificationRow({ item, isUnread = false, onClick }: Not
           );
         })()}
 
+        {/* Parent story context for subtasks */}
+        {item.parentKey && (
+          <p className="text-xs text-muted-foreground truncate">
+            <span className="font-medium">{item.parentKey}</span>
+            {item.parentSummary && <span>: {item.parentSummary}</span>}
+          </p>
+        )}
+
         {/* Entity title */}
         <p className={`text-sm truncate ${isUnread ? 'font-bold' : 'font-normal'}`}>
           {item.entityTitle}
