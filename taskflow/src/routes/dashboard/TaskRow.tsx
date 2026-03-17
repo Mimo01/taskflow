@@ -162,6 +162,7 @@ export default function TaskRow({
       {/* Inline comment composer */}
       <InlineComment
         issueKey={issue.key}
+        jiraBaseUrl={jiraBaseUrl}
         isOpen={commentOpen}
         onCancel={() => setCommentOpen(false)}
         onSubmit={(comment) => {
