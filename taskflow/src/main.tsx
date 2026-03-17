@@ -151,6 +151,10 @@ function AppLayout() {
   useHotkeys('mod+shift+n', () => setNotifPopoverOpen(true));
   useHotkeys('mod+comma', () => navigate('/settings'));
 
+  // SIDEBAR: Cmd+B toggles sidebar collapsed/expanded
+  const toggleSidebarCollapsed = useSettingsStore((s) => s.toggleSidebarCollapsed);
+  useHotkeys('mod+b', (e) => { e.preventDefault(); toggleSidebarCollapsed(); });
+
   // Listen for all native menu bar item clicks and route to existing handlers
   const debugMode = useSettingsStore((s) => s.debugMode);
   useEffect(() => {
