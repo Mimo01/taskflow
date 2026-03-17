@@ -4,12 +4,15 @@
  * Pure UI component: reads from notifications store, renders feed, mark-all-read header,
  * and permission-denied Alert banner. All notification clicks navigate directly to the
  * relevant detail page (Jira issue or GitLab MR) and close the popover.
+ *
+ * When both Jira and GitLab items are present, groups them under sticky section headers.
  */
 import { Bell } from 'lucide-react';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Button } from '../../components/ui/button';
 import { EmptyState } from '../../components/ui/empty-state';
 import { ErrorState } from '../../components/ui/error-state';
+import type { NotificationItem } from '../../stores/notifications.store';
 import { useNotificationsStore } from '../../stores/notifications.store';
 import NotificationRow from './NotificationRow';
 
@@ -44,6 +47,12 @@ interface NotificationPopoverProps {
   onClose?: () => void;
 }
 
+function sortNewestFirst(items: NotificationItem[]): NotificationItem[] {
+  return [...items].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+}
+
 export default function NotificationPopover({ onIssueClick, onMRClick, onClose }: NotificationPopoverProps) {
   const {
     items,
@@ -58,12 +67,15 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
 
   const readSet = new Set(readIds);
 
-  // Sort newest-first
-  const sortedItems = [...items].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
+  // Group by source
+  const jiraItems = sortNewestFirst(items.filter((i) => i.source === 'jira'));
+  const gitlabItems = sortNewestFirst(items.filter((i) => i.source === 'gitlab'));
+  const hasBothSources = jiraItems.length > 0 && gitlabItems.length > 0;
 
-  function handleRowClick(item: (typeof sortedItems)[0]) {
+  // When only one source, just sort all newest-first
+  const singleSourceItems = !hasBothSources ? sortNewestFirst(items) : [];
+
+  function handleRowClick(item: NotificationItem) {
     const issueKey = extractJiraIssueKey(item);
     if (issueKey && onIssueClick) {
       markAsRead(item.id);
@@ -81,10 +93,21 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
     markAsRead(item.id);
   }
 
+  function renderRows(rowItems: NotificationItem[]) {
+    return rowItems.map((item) => (
+      <NotificationRow
+        key={item.id}
+        item={item}
+        isUnread={!readSet.has(item.id)}
+        onClick={() => handleRowClick(item)}
+      />
+    ));
+  }
+
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b">
+      <div className="flex items-center justify-between p-3 bg-muted/30 border-b">
         <span className="font-semibold text-sm">Notifications</span>
         <Button variant="ghost" size="sm" onClick={markAllRead}>
           Mark all as read
@@ -117,17 +140,24 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
           <div className="p-2">
             <ErrorState error={fetchError} onRetry={retryFetch} viewName="notifications" />
           </div>
-        ) : sortedItems.length === 0 ? (
+        ) : items.length === 0 ? (
           <EmptyState icon={Bell} title="No notifications yet" subtitle="Mentions and updates will appear here as they happen" />
+        ) : hasBothSources ? (
+          <>
+            {/* Jira section */}
+            <div className="sticky top-0 z-10 bg-background border-b px-3 py-1.5">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Jira</span>
+            </div>
+            {renderRows(jiraItems)}
+
+            {/* GitLab section */}
+            <div className="sticky top-0 z-10 bg-background border-b px-3 py-1.5">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">GitLab</span>
+            </div>
+            {renderRows(gitlabItems)}
+          </>
         ) : (
-          sortedItems.map((item) => (
-            <NotificationRow
-              key={item.id}
-              item={item}
-              isUnread={!readSet.has(item.id)}
-              onClick={() => handleRowClick(item)}
-            />
-          ))
+          renderRows(singleSourceItems)
         )}
       </div>
     </div>
