@@ -178,6 +178,8 @@ export interface GitLabMR {
   reviewers: Array<{ id: number; name: string; username: string }>;
   updated_at: string; // ISO 8601 UTC
   web_url: string;
+  labels: string[];  // plain label names from list API
+  milestone: { id: number; title: string } | null;
 }
 
 export interface GitLabLabel {
@@ -186,7 +188,7 @@ export interface GitLabLabel {
   text_color: string;  // hex like "#FFFFFF"
 }
 
-export interface GitLabMRDetail extends GitLabMR {
+export interface GitLabMRDetail extends Omit<GitLabMR, 'labels' | 'milestone'> {
   description: string | null;
   target_branch: string;
   created_at: string;
@@ -199,6 +201,7 @@ export interface GitLabMRDetail extends GitLabMR {
   closed_at: string | null;
   pipeline: { id: number; status: string; web_url: string } | null;
   assignee: { id: number; name: string; username: string; avatar_url: string } | null;
+  milestone: GitLabMilestone | null;
 }
 
 export interface MRCommit {

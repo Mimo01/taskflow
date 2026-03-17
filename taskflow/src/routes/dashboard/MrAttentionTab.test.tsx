@@ -76,6 +76,8 @@ function makeMR(iid: number, updatedAt: string, title = `MR ${iid}`, source_bran
     reviewers: [],
     updated_at: updatedAt,
     web_url: `https://gitlab.example.com/mr/${iid}`,
+    labels: [],
+    milestone: null,
   };
 }
 

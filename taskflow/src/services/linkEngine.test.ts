@@ -21,6 +21,8 @@ const baseMR: GitLabMR = {
   reviewers: [],
   updated_at: new Date().toISOString(),
   web_url: 'https://gitlab.example.com/mr/1',
+  labels: [],
+  milestone: null,
 };
 
 describe('linkEngine', () => {

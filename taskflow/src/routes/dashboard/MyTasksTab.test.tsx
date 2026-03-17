@@ -100,6 +100,8 @@ function makeMR(iid: number, title: string, source_branch = `feature/branch-${ii
     reviewers: [],
     updated_at: new Date().toISOString(),
     web_url: `https://gitlab.example.com/mr/${iid}`,
+    labels: [],
+    milestone: null,
   };
 }
 
