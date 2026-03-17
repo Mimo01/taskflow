@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: UX & Branding
-status: complete
-stopped_at: Phase 22 complete — all v1.3 phases done
-last_updated: "2026-03-16T17:40:27.271Z"
-last_activity: "2026-03-16 — Phase 22 Plan 02 executed (Dashboard view retrofit: MyTasksTab, SprintBoardTab, SprintProgressTab, BacklogPage, MrAttentionTab)"
+status: completed
+stopped_at: Completed quick task 260317-c37 (keyboard shortcuts modal redesign)
+last_updated: "2026-03-17T07:46:58.859Z"
+last_activity: "2026-03-17 - Completed quick task 260317-bh3: Add collapsible left sidebar with slim icon-only mode"
 progress:
   total_phases: 5
   completed_phases: 5
   total_plans: 26
-  completed_plans: 29
+  completed_plans: 26
   percent: 100
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-17 - Completed quick task 260317-bh3: Add collapsible left sidebar with slim icon-only mode
+Last activity: 2026-03-17 - Completed quick task 260317-c37: Redesign keyboard shortcuts modal with keycap badges and search
 
 Progress: [██████████] 100%
 
@@ -176,9 +176,10 @@ None.
 | 260317-0sw | Exclude Done epics from epic listing queries | 2026-03-17 | 54d7947 | | [260317-0sw-i-only-ever-want-to-see-epics-that-are-n](./quick/260317-0sw-i-only-ever-want-to-see-epics-that-are-n/) |
 | 260317-0ys | Fix backlog table horizontal overflow with long text | 2026-03-17 | b5feee5 | | [260317-0ys-in-the-backlog-there-is-a-problem-with-o](./quick/260317-0ys-in-the-backlog-there-is-a-problem-with-o/) |
 | 260317-bh3 | Add collapsible left sidebar with slim icon-only mode | 2026-03-17 | 69d1621 | | [260317-bh3-add-collapsible-left-sidebar-with-slim-i](./quick/260317-bh3-add-collapsible-left-sidebar-with-slim-i/) |
+| 260317-c37 | Redesign keyboard shortcuts modal with keycap badges and search | 2026-03-17 | 007b1cb | | [260317-c37-i-want-to-redesign-and-make-nicer-keyboa](./quick/260317-c37-i-want-to-redesign-and-make-nicer-keyboa/) |
 
 ## Session Continuity
 
-Last session: 2026-03-17T07:22:25Z
-Stopped at: Completed quick task 260317-bh3 (collapsible sidebar)
+Last session: 2026-03-17T07:46:58.853Z
+Stopped at: Completed quick task 260317-c37 (keyboard shortcuts modal redesign)
 Resume: Milestone v1.3 (UX & Branding) is fully executed. All 5 phases (18-22), 29 plans complete. Ready for /gsd:audit-milestone or /gsd:complete-milestone.
