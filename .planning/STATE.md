@@ -5,7 +5,7 @@ milestone_name: UX & Branding
 status: completed
 stopped_at: Completed quick task 260317-c37 (keyboard shortcuts modal redesign)
 last_updated: "2026-03-17T07:46:58.859Z"
-last_activity: "2026-03-17 - Completed quick task 260317-bh3: Add collapsible left sidebar with slim icon-only mode"
+last_activity: "2026-03-17 - Completed quick task 260317-c5s: Improve notifications for subtasks with parent story context"
 progress:
   total_phases: 5
   completed_phases: 5
@@ -177,9 +177,10 @@ None.
 | 260317-0ys | Fix backlog table horizontal overflow with long text | 2026-03-17 | b5feee5 | | [260317-0ys-in-the-backlog-there-is-a-problem-with-o](./quick/260317-0ys-in-the-backlog-there-is-a-problem-with-o/) |
 | 260317-bh3 | Add collapsible left sidebar with slim icon-only mode | 2026-03-17 | 69d1621 | | [260317-bh3-add-collapsible-left-sidebar-with-slim-i](./quick/260317-bh3-add-collapsible-left-sidebar-with-slim-i/) |
 | 260317-c37 | Redesign keyboard shortcuts modal with keycap badges and search | 2026-03-17 | 007b1cb | | [260317-c37-i-want-to-redesign-and-make-nicer-keyboa](./quick/260317-c37-i-want-to-redesign-and-make-nicer-keyboa/) |
+| 260317-c5s | Improve notifications for subtasks by enriching with parent story context | 2026-03-17 | 089efe8 | | [260317-c5s-improve-notifications-for-subtasks-by-en](./quick/260317-c5s-improve-notifications-for-subtasks-by-en/) |
 
 ## Session Continuity
 
-Last session: 2026-03-17T07:46:58.853Z
-Stopped at: Completed quick task 260317-c37 (keyboard shortcuts modal redesign)
+Last session: 2026-03-17T07:51:22Z
+Stopped at: Completed quick task 260317-c5s (subtask notification parent context)
 Resume: Milestone v1.3 (UX & Branding) is fully executed. All 5 phases (18-22), 29 plans complete. Ready for /gsd:audit-milestone or /gsd:complete-milestone.
