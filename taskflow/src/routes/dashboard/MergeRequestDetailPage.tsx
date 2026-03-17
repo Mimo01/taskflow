@@ -312,7 +312,17 @@ export default function MergeRequestDetailPage() {
                 <MetaRow label="Labels">
                   <div className="flex flex-wrap gap-1">
                     {mr.labels.map((l) => (
-                      <Badge key={l} variant="secondary" className="text-xs">{l}</Badge>
+                      <span
+                        key={l.name}
+                        className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium"
+                        style={{
+                          backgroundColor: l.color,
+                          color: l.text_color,
+                          borderColor: `${l.color}80`,
+                        }}
+                      >
+                        {l.name}
+                      </span>
                     ))}
                   </div>
                 </MetaRow>
