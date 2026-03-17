@@ -67,6 +67,9 @@ interface SettingsState {
   showSubtasksInMyTasks: boolean;
   /** User-customized key overrides. Map of shortcut id → key string. Default: {}. Future: editable via Settings > Keyboard. */
   keyboardOverrides: Record<string, string>;
+  /** Whether the sidebar is collapsed to icon-only mode. Default: false. */
+  sidebarCollapsed: boolean;
+  toggleSidebarCollapsed: () => void;
   /** Saved quickfilter presets. Default: []. */
   quickFilters: QuickFilter[];
   addQuickFilter: (qf: QuickFilter) => void;
@@ -133,6 +136,8 @@ export const useSettingsStore = create<SettingsState>()(
       sprintCollapseByDefault: false,
       showSubtasksInMyTasks: true,
       keyboardOverrides: {},
+      sidebarCollapsed: false,
+      toggleSidebarCollapsed: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       quickFilters: [],
       addQuickFilter: (qf) => set((state) => ({ quickFilters: [...state.quickFilters, qf] })),
       removeQuickFilter: (id) => set((state) => ({ quickFilters: state.quickFilters.filter((q) => q.id !== id) })),
@@ -192,7 +197,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: tauriStorage,
-      version: 5,
+      version: 6,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -219,6 +224,9 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 5) {
           if (s.quickFilters === undefined) s.quickFilters = [];
+        }
+        if (version < 6) {
+          if (s.sidebarCollapsed === undefined) s.sidebarCollapsed = false;
         }
         return s as unknown as SettingsState;
       },
