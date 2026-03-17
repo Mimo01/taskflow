@@ -35,6 +35,8 @@ const mockJiraMR = {
   reviewers: [],
   updated_at: '2026-03-11T10:00:00Z',
   web_url: 'https://gitlab.example.com/project/mr/1',
+  labels: [],
+  milestone: null,
 };
 
 describe('notifications service', () => {
