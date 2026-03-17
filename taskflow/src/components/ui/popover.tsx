@@ -21,7 +21,7 @@ function PopoverTrigger({ className, ...props }: PopoverPrimitive.Trigger.Props)
 function PopoverContent({ className, ...props }: PopoverPrimitive.Popup.Props) {
   return (
     <PopoverPrimitive.Portal>
-      <PopoverPrimitive.Positioner>
+      <PopoverPrimitive.Positioner className="z-50">
         <PopoverPrimitive.Popup
           data-slot="popover-content"
           className={cn(

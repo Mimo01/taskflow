@@ -71,6 +71,8 @@ interface SettingsState {
   quickFilters: QuickFilter[];
   addQuickFilter: (qf: QuickFilter) => void;
   removeQuickFilter: (id: string) => void;
+  renameQuickFilter: (id: string, name: string) => void;
+  moveQuickFilter: (id: string, to: 'left' | 'right' | 'front' | 'back') => void;
   /** Per-type notification toggles. All default to true. */
   notifCommentMentionEnabled: boolean;
   notifIssueUpdateEnabled: boolean;
@@ -134,6 +136,22 @@ export const useSettingsStore = create<SettingsState>()(
       quickFilters: [],
       addQuickFilter: (qf) => set((state) => ({ quickFilters: [...state.quickFilters, qf] })),
       removeQuickFilter: (id) => set((state) => ({ quickFilters: state.quickFilters.filter((q) => q.id !== id) })),
+      renameQuickFilter: (id, name) => set((state) => ({
+        quickFilters: state.quickFilters.map((q) => q.id === id ? { ...q, name } : q),
+      })),
+      moveQuickFilter: (id, to) => set((state) => {
+        const arr = [...state.quickFilters]
+        const idx = arr.findIndex((q) => q.id === id)
+        if (idx === -1) return state
+        const [item] = arr.splice(idx, 1)
+        switch (to) {
+          case 'front': arr.unshift(item); break
+          case 'back': arr.push(item); break
+          case 'left': arr.splice(Math.max(0, idx - 1), 0, item); break
+          case 'right': arr.splice(Math.min(arr.length, idx + 1), 0, item); break
+        }
+        return { quickFilters: arr }
+      }),
       notifCommentMentionEnabled: true,
       notifIssueUpdateEnabled: true,
       notifMrNoteEnabled: true,

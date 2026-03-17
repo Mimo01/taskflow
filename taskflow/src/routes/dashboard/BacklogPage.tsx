@@ -110,18 +110,13 @@ export default function BacklogPage() {
   // Map parentKey → Set of subtask status names (from sprint board data)
   const subtaskStatusMap = useMemo(() => {
     const map = new Map<string, Set<string>>();
-    const issues = sprintIssues ?? [];
-    console.log('[subtaskStatusMap] sprintIssues count:', issues.length,
-      'subtasks:', issues.filter(i => i.fields.issuetype.subtask).length);
-    for (const issue of issues) {
+    for (const issue of sprintIssues ?? []) {
       if (issue.fields.issuetype.subtask && issue.fields.parent?.key) {
         const parentKey = issue.fields.parent.key;
         if (!map.has(parentKey)) map.set(parentKey, new Set());
         map.get(parentKey)!.add(issue.fields.status.name);
       }
     }
-    console.log('[subtaskStatusMap] parents with subtasks:', map.size,
-      'sample:', Array.from(map.entries()).slice(0, 3).map(([k, v]) => `${k}: ${Array.from(v).join(',')}`));
     return map;
   }, [sprintIssues]);
 
@@ -158,12 +153,38 @@ export default function BacklogPage() {
   const [bulkError, setBulkError] = useState<string | null>(null);
 
   // ── All issues combined (for filter options) ─────────────────────────────────
+  // Merge backlog view issues with sprint board parent stories.
+  // The Agile board API may exclude some stories (board-level JQL filter),
+  // but fetchSprintIssues (REST API) returns all. Merge to ensure all sprint
+  // stories are available for filtering.
+
+  // Merge sprint board stories into backlog sprint sections.
+  // The Agile board API may exclude stories (board-level filter), but
+  // fetchSprintIssues (REST API) returns all. Merge missing stories into
+  // the active sprint section so they're visible and filterable.
+  const mergedSprints = useMemo(() => {
+    if (!backlogView) return [];
+    const existingKeys = new Set(
+      backlogView.sprints.flatMap(s => s.issues.map(i => i.key)),
+    );
+    const extraStories = (sprintIssues ?? []).filter(
+      i => !i.fields.issuetype.subtask && !existingKeys.has(i.key),
+    );
+    if (extraStories.length === 0) return backlogView.sprints;
+    // Add extra stories to the active sprint (or first sprint if none active)
+    return backlogView.sprints.map(({ sprint, issues }) => {
+      if (sprint.state === 'active') {
+        return { sprint, issues: [...issues, ...extraStories] };
+      }
+      return { sprint, issues };
+    });
+  }, [backlogView, sprintIssues]);
 
   const allIssues = useMemo<JiraIssue[]>(() => {
-    if (!backlogView) return [];
-    const sprintIssues = backlogView.sprints.flatMap((s) => s.issues);
-    return [...sprintIssues, ...backlogView.backlog];
-  }, [backlogView]);
+    const sprintIssuesList = mergedSprints.flatMap((s) => s.issues);
+    const backlogList = backlogView?.backlog ?? [];
+    return [...sprintIssuesList, ...backlogList];
+  }, [mergedSprints, backlogView?.backlog]);
 
   // ── Filter options (derived from all issues across all sections) ──────────────
 
@@ -233,11 +254,6 @@ export default function BacklogPage() {
         return false;
       })();
       const result = epicMatch && labelMatch && assigneeMatch && statusMatch;
-      if (activeStatuses.size > 0 && !result && (issue.fields.status?.name ?? '').toLowerCase().includes('review')) {
-        console.log('[FILTER MISS]', issue.key, 'status:', issue.fields.status?.name,
-          'epicMatch:', epicMatch, 'labelMatch:', labelMatch, 'assigneeMatch:', assigneeMatch, 'statusMatch:', statusMatch,
-          'activeStatuses:', Array.from(activeStatuses));
-      }
       return result;
     });
   }
@@ -247,7 +263,7 @@ export default function BacklogPage() {
   const visibleIssueKeys = useMemo(() => {
     if (!backlogView) return [];
     const keys: string[] = [];
-    for (const { sprint, issues } of backlogView.sprints) {
+    for (const { sprint, issues } of mergedSprints) {
       const sectionId = `sprint-${sprint.id}`;
       if (collapsedSections.has(sectionId)) continue;
       const filtered = applyFilters(issues);
@@ -348,9 +364,9 @@ export default function BacklogPage() {
           onClick={() => toggleSection(sectionId)}
           className={`flex items-center gap-2 w-full px-4 py-2 border-b border-border transition-colors text-left ${
             isSticky
-              ? 'sticky top-0 z-[5] bg-muted shadow-[0_1px_3px_rgba(0,0,0,0.1)]'
-              : 'bg-muted/40'
-          } hover:bg-muted/60`}
+              ? 'sticky top-0 z-[5] bg-muted shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:bg-muted'
+              : 'bg-muted/40 hover:bg-muted/60'
+          }`}
           data-testid={`section-header-${sectionId}`}
         >
           {isCollapsed ? (
@@ -424,7 +440,12 @@ export default function BacklogPage() {
               <p className="px-4 py-3 text-sm text-muted-foreground">
                 No issues match the current filters
               </p>
-            ) : null}
+            ) : (
+              /* Sprint has no stories */
+              <p className="px-4 py-3 text-sm text-muted-foreground italic">
+                No issues in this sprint
+              </p>
+            )}
 
             {/* Create story button at the bottom of the section */}
             {showCreateStory && (
@@ -499,14 +520,14 @@ export default function BacklogPage() {
           /* Sprint sections + backlog section */
           <div>
             {/* Sprint sections (active first, then future) */}
-            {backlogView.sprints.map(({ sprint, issues }) =>
+            {mergedSprints.map(({ sprint, issues }) =>
               renderSection(
                 `sprint-${sprint.id}`,
                 sprint.name,
                 sprint.state === 'active' ? 'Active' : 'Future',
                 issues,
                 false,
-                sprint.state === 'active',
+                true,
               ),
             )}
 

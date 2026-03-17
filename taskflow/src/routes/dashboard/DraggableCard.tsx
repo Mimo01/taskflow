@@ -16,10 +16,11 @@ import type { JiraIssue } from '@/services/jira'
 interface DraggableCardProps {
   issue: JiraIssue
   isSubtask?: boolean
+  showStatus?: boolean
   onOpenDetail: (key: string) => void
 }
 
-export default function DraggableCard({ issue, isSubtask, onOpenDetail }: DraggableCardProps) {
+export default function DraggableCard({ issue, isSubtask, showStatus, onOpenDetail }: DraggableCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: issue.key,
     data: { issueKey: issue.key, currentStatusId: issue.fields.status.id },
@@ -38,6 +39,7 @@ export default function DraggableCard({ issue, isSubtask, onOpenDetail }: Dragga
       <TaskCard
         issue={issue}
         isSubtask={isSubtask}
+        showStatus={showStatus}
         onClick={() => onOpenDetail(issue.key)}
 />
     </div>
