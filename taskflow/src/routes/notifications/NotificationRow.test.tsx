@@ -1,4 +1,4 @@
-// NOTF-01: NotificationRow renders source-specific left border accent
+// NOTF-01: NotificationRow renders source-specific left border accent and source badges
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import NotificationRow from './NotificationRow';
@@ -45,15 +45,42 @@ describe('NotificationRow', () => {
     expect(screen.getByText('The issue was caused by a race condition')).toBeInTheDocument();
   });
 
-  it('renders type label Comment mention when notificationType is comment-mention', () => {
+  it('renders type label Mentioned when notificationType is comment-mention', () => {
     const item: NotificationItem = { ...makeItem('jira'), notificationType: 'comment-mention' };
     render(<NotificationRow item={item} onClick={() => {}} />);
-    expect(screen.getByText('Comment mention')).toBeInTheDocument();
+    expect(screen.getByText('Mentioned')).toBeInTheDocument();
   });
 
   it('renders entityState chip when entityState is provided', () => {
     const item: NotificationItem = { ...makeItem('gitlab'), entityState: 'merged' };
     render(<NotificationRow item={item} onClick={() => {}} />);
     expect(screen.getByText('merged')).toBeInTheDocument();
+  });
+
+  // New tests for redesigned layout
+
+  it('renders source badge text "Jira" for jira source', () => {
+    const item = makeItem('jira');
+    render(<NotificationRow item={item} onClick={() => {}} />);
+    expect(screen.getByText('Jira')).toBeInTheDocument();
+  });
+
+  it('renders source badge text "GitLab" for gitlab source', () => {
+    const item = makeItem('gitlab');
+    render(<NotificationRow item={item} onClick={() => {}} />);
+    expect(screen.getByText('GitLab')).toBeInTheDocument();
+  });
+
+  it('renders the relative timestamp in the metadata line', () => {
+    const item = makeItem('jira');
+    render(<NotificationRow item={item} onClick={() => {}} />);
+    // The item is from March 11, so it should show "Xd ago"
+    expect(screen.getByText(/\d+d ago/)).toBeInTheDocument();
+  });
+
+  it('renders author name in the row', () => {
+    const item = makeItem('jira');
+    render(<NotificationRow item={item} onClick={() => {}} />);
+    expect(screen.getByText('by J.Smith')).toBeInTheDocument();
   });
 });
