@@ -22,6 +22,7 @@ import {
   CircleDot,
   Ban,
   Loader2,
+  Flag,
 } from 'lucide-react'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { useAuthStore } from '@/stores/auth.store'
@@ -324,6 +325,19 @@ export default function MergeRequestDetailPage() {
                         {l.name}
                       </span>
                     ))}
+                  </div>
+                </MetaRow>
+              )}
+
+              {/* Milestone */}
+              {mr.milestone && (
+                <MetaRow label="Milestone">
+                  <div className="flex items-center gap-1.5">
+                    <Flag className="size-3 text-muted-foreground shrink-0" />
+                    <span className="text-sm">{mr.milestone.title}</span>
+                    {mr.milestone.state === 'closed' && (
+                      <span className="text-xs text-muted-foreground">(closed)</span>
+                    )}
                   </div>
                 </MetaRow>
               )}
