@@ -91,6 +91,12 @@ export const SHORTCUTS: ShortcutEntry[] = [
     navMeta: { label: 'Settings', route: '/settings' },
   },
   {
+    id: 'toggle-sidebar',
+    defaultKey: '⌘B',
+    description: 'Toggle sidebar',
+    category: 'General',
+  },
+  {
     id: 'list-next',
     defaultKey: 'J',
     description: 'Next item',
