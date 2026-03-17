@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-17 - Completed quick task 260317-c37: Redesign keyboard shortcuts modal with keycap badges and search
+Last activity: 2026-03-17 - Completed quick task 260317-cei: Widen notifications and recents popovers
 
 Progress: [██████████] 100%
 
@@ -178,6 +178,7 @@ None.
 | 260317-bh3 | Add collapsible left sidebar with slim icon-only mode | 2026-03-17 | 69d1621 | | [260317-bh3-add-collapsible-left-sidebar-with-slim-i](./quick/260317-bh3-add-collapsible-left-sidebar-with-slim-i/) |
 | 260317-c37 | Redesign keyboard shortcuts modal with keycap badges and search | 2026-03-17 | 007b1cb | | [260317-c37-i-want-to-redesign-and-make-nicer-keyboa](./quick/260317-c37-i-want-to-redesign-and-make-nicer-keyboa/) |
 | 260317-c5s | Improve notifications for subtasks by enriching with parent story context | 2026-03-17 | 089efe8 | | [260317-c5s-improve-notifications-for-subtasks-by-en](./quick/260317-c5s-improve-notifications-for-subtasks-by-en/) |
+| 260317-cei | Make notifications and recents popover wider to fit more information | 2026-03-17 | 134efaa | | [260317-cei-make-notifications-and-recents-popover-w](./quick/260317-cei-make-notifications-and-recents-popover-w/) |
 
 ## Session Continuity
 
