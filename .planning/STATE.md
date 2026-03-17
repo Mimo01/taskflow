@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-17 - Completed quick task 260317-k7o: Rich comments in My Tasks with edit/delete
+Last activity: 2026-03-17 - Completed quick task 260317-rc8: Show linked GitLab MRs in issue detail sidebar
 
 Progress: [██████████] 100%
 
@@ -186,5 +186,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-17T18:44:03Z
-Stopped at: Completed quick task 260317-rc8 (GitLab MRs in issue detail sidebar)
+Stopped at: Completed quick task 260317-rc8 (Show linked GitLab MRs in issue detail sidebar)
 Resume: Milestone v1.3 (UX & Branding) is fully executed. All 5 phases (18-22), 29 plans complete. Ready for /gsd:audit-milestone or /gsd:complete-milestone.
