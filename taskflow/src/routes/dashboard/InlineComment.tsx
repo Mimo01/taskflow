@@ -4,10 +4,11 @@
  *
  * Matches the CommentCard design from IssueDetailPage exactly.
  */
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { MoreVertical, Bold, Italic, Code, List } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
+import { useSettingsStore } from '@/stores/settings.store'
 import { readSecret } from '@/services/stronghold'
 import { updateComment, deleteComment } from '@/services/jira'
 import type { JiraComment } from '@/services/jira'
@@ -53,6 +54,12 @@ export default function InlineComment({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const queryClient = useQueryClient()
   const jiraUserDisplayName = useAuthStore((s) => s.jiraUserDisplayName)
+  const commentSortOrder = useSettingsStore((s) => s.commentSortOrder)
+  const sortedComments = useMemo(() => {
+    if (!existingComments) return undefined
+    if (commentSortOrder === 'newest') return [...existingComments].reverse()
+    return existingComments
+  }, [existingComments, commentSortOrder])
 
   // Edit state
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
@@ -163,9 +170,9 @@ export default function InlineComment({
       {isLoadingComments && (
         <p className="text-xs text-muted-foreground py-1">Loading comments...</p>
       )}
-      {!isLoadingComments && existingComments && existingComments.length > 0 && (
+      {!isLoadingComments && sortedComments && sortedComments.length > 0 && (
         <div className="flex flex-col gap-2 mb-2 max-h-64 overflow-y-auto">
-          {existingComments.map((c) => {
+          {sortedComments.map((c) => {
             const isOwn = c.author.displayName === jiraUserDisplayName
             const isEditing = editingCommentId === c.id
 
