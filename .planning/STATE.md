@@ -183,9 +183,10 @@ None.
 | 260317-rb7 | Show only epic title in epic badge on issue detail sidebar | 2026-03-17 | 7010b71 | | [260317-rb7-show-only-epic-title-in-epic-badge-on-is](./quick/260317-rb7-show-only-epic-title-in-epic-badge-on-is/) |
 | 260317-rc8 | Show linked GitLab MRs in issue detail sidebar | 2026-03-17 | 0096dc9 | | [260317-rc8-on-issue-detail-in-the-sidebar-i-want-to](./quick/260317-rc8-on-issue-detail-in-the-sidebar-i-want-to/) |
 | 260317-rg0 | Switch comment sort order to newest-first with settings toggle | 2026-03-17 | 1353043 | Verified | [260317-rg0-switch-comment-sort-order-to-newest-firs](./quick/260317-rg0-switch-comment-sort-order-to-newest-firs/) |
+| 260317-ric | Redesign linked issues and MR sections with compact cards | 2026-03-17 | cbb797e | | [260317-ric-redesign-linked-issues-and-merge-request](./quick/260317-ric-redesign-linked-issues-and-merge-request/) |
 
 ## Session Continuity
 
-Last session: 2026-03-17T18:52:00Z
-Stopped at: Completed quick task 260317-rg0 (Switch comment sort order to newest-first)
+Last session: 2026-03-17T19:17:00Z
+Stopped at: Completed quick task 260317-ric (Redesign linked issues and MR sections)
 Resume: Milestone v1.3 (UX & Branding) is fully executed. All 5 phases (18-22), 29 plans complete. Ready for /gsd:audit-milestone or /gsd:complete-milestone.
