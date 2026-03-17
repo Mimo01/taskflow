@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-17 - Completed quick task 260317-rg0: Switch comment sort order to newest-first
+Last activity: 2026-03-17 - Completed quick task 260317-rg0: Switch comment sort order to newest-first with settings toggle
 
 Progress: [██████████] 100%
 
@@ -182,7 +182,7 @@ None.
 | 260317-k7o | Rich comments in My Tasks with WikiRenderer, edit/delete, formatting toolbar | 2026-03-17 | 13ed287 | Verified | [260317-k7o-in-my-tasks-section-there-are-comments-i](./quick/260317-k7o-in-my-tasks-section-there-are-comments-i/) |
 | 260317-rb7 | Show only epic title in epic badge on issue detail sidebar | 2026-03-17 | 7010b71 | | [260317-rb7-show-only-epic-title-in-epic-badge-on-is](./quick/260317-rb7-show-only-epic-title-in-epic-badge-on-is/) |
 | 260317-rc8 | Show linked GitLab MRs in issue detail sidebar | 2026-03-17 | 0096dc9 | | [260317-rc8-on-issue-detail-in-the-sidebar-i-want-to](./quick/260317-rc8-on-issue-detail-in-the-sidebar-i-want-to/) |
-| 260317-rg0 | Switch comment sort order to newest-first with settings toggle | 2026-03-17 | cad1752 | | [260317-rg0-switch-comment-sort-order-to-newest-firs](./quick/260317-rg0-switch-comment-sort-order-to-newest-firs/) |
+| 260317-rg0 | Switch comment sort order to newest-first with settings toggle | 2026-03-17 | 1353043 | Verified | [260317-rg0-switch-comment-sort-order-to-newest-firs](./quick/260317-rg0-switch-comment-sort-order-to-newest-firs/) |
 
 ## Session Continuity
 
