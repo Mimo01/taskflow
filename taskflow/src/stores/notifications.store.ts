@@ -55,6 +55,8 @@ export interface NotificationItem {
   entityState?: string;      // GitLab: "opened" | "merged" | "closed"
   parentKey?: string;        // Jira subtask parent key, e.g. "PROJ-100"
   parentSummary?: string;    // Jira subtask parent summary, e.g. "User Login Flow"
+  mrProjectId?: number;      // GitLab MR project ID — for internal /mr/:projectId/:iid routing
+  mrIid?: number;            // GitLab MR iid — for internal /mr/:projectId/:iid routing
 }
 
 interface NotificationsState {

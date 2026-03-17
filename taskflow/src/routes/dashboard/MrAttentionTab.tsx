@@ -15,8 +15,8 @@
  * - Subtask-linked story MRs included unconditionally (bypass reviewer discussion filter)
  * - "via [subtask-key]" label shown only on MRs entering list exclusively via subtask path
  */
-import { useState, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query'
 import { RefreshCw, GitMerge } from 'lucide-react'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -25,6 +25,8 @@ import { StaleDataBanner } from '@/components/ui/stale-data-banner'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth.store'
 import { useSettingsStore } from '@/stores/settings.store'
+import { useBreadcrumbStore } from '@/stores/breadcrumb.store'
+import { useRecentItemsStore } from '@/stores/recent-items.store'
 import {
   fetchAssignedMRs,
   fetchReviewerMRs,
@@ -152,6 +154,18 @@ export default function MrAttentionTab() {
   })
 
   const navigate = useNavigate()
+  const location = useLocation()
+  const breadcrumbReset = useBreadcrumbStore((s) => s.reset)
+  const breadcrumbPush = useBreadcrumbStore((s) => s.push)
+  const pushRecentItem = useRecentItemsStore((s) => s.pushItem)
+
+  const handleMRClick = useCallback((mr: import('@/services/gitlab').GitLabMR) => {
+    breadcrumbReset()
+    breadcrumbPush({ path: location.pathname, label: 'MR Attention' })
+    pushRecentItem({ type: 'gitlab', id: `${mr.project_id}/${mr.iid}`, title: mr.title })
+    navigate(`/mr/${mr.project_id}/${mr.iid}`)
+  }, [navigate, location.pathname, breadcrumbReset, breadcrumbPush, pushRecentItem])
+
   const [bannerDismissed, setBannerDismissed] = useState(false)
   useEffect(() => { setBannerDismissed(false) }, [error])
 
@@ -345,6 +359,7 @@ export default function MrAttentionTab() {
               staleMrThresholdDays={staleMrThresholdDays}
               reviewHealth={healthMap.get(mr.iid)}
               viaSubtaskKey={mrViaSubtaskKey.get(mr.iid)}
+              onMRClick={handleMRClick}
             />
           ))}
         </div>

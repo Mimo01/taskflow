@@ -14,7 +14,6 @@ import { useState, useEffect } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { SearchX } from 'lucide-react';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import {
   Command,
   CommandInput,
@@ -142,8 +141,8 @@ export default function CommandPalette({
   }
 
   function handleMRSelect(mr: GitLabMR) {
-    pushRecentItem({ type: 'gitlab', id: String(mr.iid), url: mr.web_url, title: mr.title });
-    openUrl(mr.web_url);
+    pushRecentItem({ type: 'gitlab', id: `${mr.project_id}/${mr.iid}`, title: mr.title });
+    onNavigate(`/mr/${mr.project_id}/${mr.iid}`);
     onClose();
   }
 
@@ -232,8 +231,8 @@ export default function CommandPalette({
                           if (item.type === 'jira') {
                             handleIssueSelect(item.id);
                           } else {
-                            pushRecentItem({ type: 'gitlab', id: item.id, url: item.url });
-                            openUrl(item.url!);
+                            pushRecentItem({ type: 'gitlab', id: item.id, title: item.title });
+                            onNavigate(`/mr/${item.id}`);
                             onClose();
                           }
                         }}

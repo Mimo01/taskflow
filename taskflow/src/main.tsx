@@ -295,6 +295,11 @@ function AppLayout() {
     pushRecentItem({ type: 'jira', id: issueKey, title: resolvedTitle });
   };
 
+  const handleMRClick = (projectIdAndIid: string) => {
+    breadcrumbReset();
+    navigate(`/mr/${projectIdAndIid}`);
+  };
+
   const handlePaletteNavigate = (path: string) => {
     navigate(path);
   };
@@ -367,6 +372,7 @@ function AppLayout() {
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopBar
           onIssueClick={(key) => handleIssueClick(key, true)}
+          onMRClick={handleMRClick}
           paletteOpen={paletteOpen}
           onPaletteOpen={() => setPaletteOpen(true)}
           notifPopoverOpen={notifPopoverOpen}

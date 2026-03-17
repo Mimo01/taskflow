@@ -17,6 +17,8 @@ import RecentItemsPopover from './RecentItemsPopover';
 interface TopBarProps {
   /** Called with the Jira issue key when a Jira result in search or notifications is clicked. */
   onIssueClick?: (issueKey: string) => void;
+  /** Called with "projectId/iid" when a GitLab MR is clicked from recent items. */
+  onMRClick?: (projectIdAndIid: string) => void;
   /** Whether the command palette is currently open (reserved for future visual feedback). */
   paletteOpen: boolean;
   /** Callback to open the command palette. */
@@ -27,7 +29,7 @@ interface TopBarProps {
   onNotifPopoverChange: (open: boolean) => void;
 }
 
-export default function TopBar({ onIssueClick, onPaletteOpen, notifPopoverOpen, onNotifPopoverChange }: TopBarProps) {
+export default function TopBar({ onIssueClick, onMRClick, onPaletteOpen, notifPopoverOpen, onNotifPopoverChange }: TopBarProps) {
   const unreadCount = useUnreadCount();
 
   return (
@@ -46,7 +48,7 @@ export default function TopBar({ onIssueClick, onPaletteOpen, notifPopoverOpen, 
       </button>
 
       {/* Recent items popover — clock icon */}
-      <RecentItemsPopover onIssueClick={onIssueClick} />
+      <RecentItemsPopover onIssueClick={onIssueClick} onMRClick={onMRClick} />
 
       {/* Notification popover — controlled from AppLayout for Cmd+Shift+N */}
       <Popover open={notifPopoverOpen} onOpenChange={onNotifPopoverChange}>
@@ -62,7 +64,7 @@ export default function TopBar({ onIssueClick, onPaletteOpen, notifPopoverOpen, 
           )}
         </PopoverTrigger>
         <PopoverContent className="p-0 w-[28rem]">
-          <NotificationPopover onIssueClick={onIssueClick} />
+          <NotificationPopover onIssueClick={onIssueClick} onMRClick={onMRClick} />
         </PopoverContent>
       </Popover>
     </header>

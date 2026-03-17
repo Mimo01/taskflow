@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query'
 import type { JiraIssueDetail } from '@/services/jira'
 import { updateIssueField } from '@/services/jira'
@@ -14,7 +15,6 @@ import {
 } from '@/components/ui/select'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { GitBranch } from 'lucide-react'
-import { openUrl } from '@tauri-apps/plugin-opener'
 import { readSecret } from '@/services/stronghold'
 import { useAuthStore } from '@/stores/auth.store'
 import { useSettingsStore } from '@/stores/settings.store'
@@ -184,6 +184,7 @@ export function IssueDetailSidebar({
   sprintFieldKey,
   onOpenIssue,
 }: IssueDetailSidebarProps) {
+  const navigate = useNavigate()
   const f = issue.fields
   const isEpic = f.issuetype.name === 'Epic'
   const isSubtask = f.issuetype.subtask
@@ -631,7 +632,7 @@ export function IssueDetailSidebar({
             <button
               key={mr.iid}
               type="button"
-              onClick={() => openUrl(mr.web_url)}
+              onClick={() => navigate(`/mr/${mr.project_id}/${mr.iid}`)}
               className="w-full text-left rounded px-1 py-1 hover:bg-accent transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-1.5">
