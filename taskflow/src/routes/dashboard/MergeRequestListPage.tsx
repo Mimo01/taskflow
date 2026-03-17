@@ -8,7 +8,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { GitMerge, Search } from 'lucide-react'
+import { GitMerge, GitBranch, Search } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
 import { useRecentItemsStore } from '@/stores/recent-items.store'
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store'
@@ -179,16 +179,18 @@ export default function MergeRequestListPage() {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="font-mono text-xs text-muted-foreground">!{mr.iid}</span>
+                    <span className="font-mono text-xs text-muted-foreground shrink-0">!{mr.iid}</span>
                     <MRStateBadge state={mr.state} />
                     <span className="text-sm font-medium truncate">{mr.title}</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{mr.author.name}</span>
-                    <span className="text-muted-foreground/50">|</span>
-                    <code className="text-xs">{mr.source_branch}</code>
-                    <span className="text-muted-foreground/50">|</span>
-                    <span>{relativeTime(mr.updated_at)}</span>
+                    <img src={mr.author.avatar_url} alt="" className="size-4 rounded-full shrink-0" />
+                    <span className="shrink-0">{mr.author.name}</span>
+                    <span className="text-muted-foreground/50">·</span>
+                    <GitBranch className="size-3 shrink-0 opacity-50" />
+                    <code className="text-xs truncate">{mr.source_branch}</code>
+                    <span className="text-muted-foreground/50">·</span>
+                    <span className="shrink-0">{relativeTime(mr.updated_at)}</span>
                   </div>
                 </div>
               </button>
@@ -200,6 +202,13 @@ export default function MergeRequestListPage() {
   )
 }
 
+const STATE_LABELS: Record<string, string> = {
+  opened: 'Open',
+  merged: 'Merged',
+  closed: 'Closed',
+  locked: 'Locked',
+}
+
 function MRStateBadge({ state }: { state: GitLabMR['state'] }) {
   const colors: Record<string, string> = {
     opened: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
@@ -209,7 +218,7 @@ function MRStateBadge({ state }: { state: GitLabMR['state'] }) {
   }
   return (
     <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium shrink-0 ${colors[state] ?? colors.locked}`}>
-      {state}
+      {STATE_LABELS[state] ?? state}
     </span>
   )
 }
