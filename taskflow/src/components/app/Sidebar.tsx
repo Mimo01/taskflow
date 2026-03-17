@@ -10,6 +10,7 @@
  *
  * Gear icon is always one click away from anywhere in the app.
  */
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   Settings,
@@ -24,18 +25,23 @@ import {
   PlusSquare,
   List,
   BookOpen,
-  PanelLeftClose,
-  PanelLeftOpen,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useSettingsStore } from '@/stores/settings.store';
 import AppIcon from './AppIcon';
 
-const NAV_LINK_CLASS =
-  'flex items-center gap-3 px-3 py-2 density-compact:py-1 density-comfortable:py-3 rounded-lg text-sm font-medium transition-colors';
-const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-  isActive
-    ? `${NAV_LINK_CLASS} bg-accent text-accent-foreground font-semibold`
-    : `${NAV_LINK_CLASS} hover:bg-accent`;
+const NAV_LINK_BASE =
+  'flex items-center py-2 density-compact:py-1 density-comfortable:py-3 rounded-lg text-sm font-medium transition-colors';
+function navLinkClassFn(collapsed: boolean) {
+  const base = collapsed
+    ? `${NAV_LINK_BASE} justify-center px-2`
+    : `${NAV_LINK_BASE} gap-3 px-3`;
+  return ({ isActive }: { isActive: boolean }) =>
+    isActive
+      ? `${base} bg-accent text-accent-foreground font-semibold`
+      : `${base} hover:bg-accent`;
+}
 
 interface SidebarProps {
   onOpenCreate: () => void;
@@ -45,14 +51,33 @@ export default function Sidebar({ onOpenCreate }: SidebarProps) {
   const { role, debugMode } = useSettingsStore();
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);
   const toggleSidebarCollapsed = useSettingsStore((s) => s.toggleSidebarCollapsed);
+  const [hovered, setHovered] = useState(false);
 
+  const navLinkClass = navLinkClassFn(sidebarCollapsed);
+  const btnBase = sidebarCollapsed
+    ? `${NAV_LINK_BASE} justify-center px-2`
+    : `${NAV_LINK_BASE} gap-3 px-3`;
   const labelClass = sidebarCollapsed ? 'hidden' : 'hidden md:block';
   const sectionLabelClass = sidebarCollapsed
-    ? 'hidden'
+    ? 'px-1 py-1 text-[10px] font-semibold uppercase tracking-tight text-muted-foreground text-center'
     : 'px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:block';
 
   return (
-    <aside className={`flex flex-col h-full ${sidebarCollapsed ? 'w-16' : 'w-16 md:w-56'} border-r border-border bg-background shrink-0 transition-all duration-200`}>
+    <aside
+      className={`relative flex flex-col h-full ${sidebarCollapsed ? 'w-16' : 'w-16 md:w-56'} border-r border-border bg-background shrink-0 transition-all duration-200`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Hover chevron toggle */}
+      <button
+        type="button"
+        onClick={toggleSidebarCollapsed}
+        className={`absolute -right-3 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-6 h-6 rounded-full border border-border bg-background shadow-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-opacity duration-150 ${hovered ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      >
+        {sidebarCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
+      </button>
+
       {/* Branding */}
       <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-4 border-b border-border`}>
         <AppIcon className="w-8 h-8 shrink-0" />
@@ -69,7 +94,7 @@ export default function Sidebar({ onOpenCreate }: SidebarProps) {
         <button
           type="button"
           onClick={onOpenCreate}
-          className={`${NAV_LINK_CLASS} hover:bg-accent`}
+          className={`${btnBase} hover:bg-accent`}
           title={sidebarCollapsed ? 'Create Issue' : undefined}
         >
           <PlusSquare className="h-4 w-4 shrink-0" />
@@ -88,7 +113,7 @@ export default function Sidebar({ onOpenCreate }: SidebarProps) {
             {/* Developer and PM roles: single "Work" label */}
             {(role === 'developer' || role === 'pm') && (
               <p className={sectionLabelClass}>
-                Work
+                {sidebarCollapsed ? 'WRK' : 'Work'}
               </p>
             )}
 
@@ -97,7 +122,7 @@ export default function Sidebar({ onOpenCreate }: SidebarProps) {
               <>
                 {role === 'tech-lead' && (
                   <p className={sectionLabelClass}>
-                    Developer
+                    {sidebarCollapsed ? 'DEV' : 'Developer'}
                   </p>
                 )}
                 <NavLink to="/my-tasks" className={navLinkClass} title={sidebarCollapsed ? 'My Tasks' : undefined}>
@@ -149,17 +174,6 @@ export default function Sidebar({ onOpenCreate }: SidebarProps) {
         )}
 
       </nav>
-
-      {/* Toggle button */}
-      <button
-        type="button"
-        onClick={toggleSidebarCollapsed}
-        className="mx-2 mb-1 flex items-center justify-center p-2 rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-        aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      >
-        {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-      </button>
 
       {/* Bottom: Debug Logs (when enabled) + Settings */}
       <div className="px-2 py-4 border-t border-border flex flex-col gap-1">
