@@ -37,6 +37,7 @@ import {
   fetchProjectStatuses,
   fetchTransitions,
   postTransition,
+  fetchEpicsBasic,
 } from '@/services/jira'
 import type { JiraIssue, JiraTransition } from '@/services/jira'
 import { readSecret } from '@/services/stronghold'
@@ -97,7 +98,7 @@ function DroppableCell({
 
 export default function SprintBoardTab() {
   const { jiraBaseUrl, activeJiraProject } = useAuthStore()
-  const { storyPointsFieldKey, epicLinkFieldKey } = useSettingsStore()
+  const { storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey, epicColorFieldKey } = useSettingsStore()
   const [jiraToken, setJiraToken] = useState<string | null>(null)
   const { onIssueClick: setSelectedIssueKey } = useOutletContext<{ onIssueClick: (key: string) => void }>()
   const queryClient = useQueryClient()
@@ -137,7 +138,19 @@ export default function SprintBoardTab() {
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   })
 
-  // Fetch epic colors for sprint board badges
+  // Fetch epic names for filter display (shared cache with EpicsPage)
+  const { data: epicsBasic } = useQuery({
+    queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
+    queryFn: () => fetchEpicsBasic(jiraBaseUrl!, jiraToken!, activeJiraProject!, epicNameFieldKey, epicColorFieldKey),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
+  })
+  const epicNameMap = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const e of epicsBasic ?? []) m.set(e.key, e.epicName)
+    return m
+  }, [epicsBasic])
+
   const [bannerDismissed, setBannerDismissed] = useState(false)
   useEffect(() => { setBannerDismissed(false) }, [error])
 
@@ -285,27 +298,38 @@ export default function SprintBoardTab() {
     }))
   }, [localIssues])
 
-  const { activeEpics, activeLabels, activeAssignees } = useFilterStore()
+  const { activeEpics, activeLabels, activeAssignees, activeStatuses } = useFilterStore()
 
   const filterOptions = useMemo(() => {
+    // Epics: all project epics (not just those on current sprint issues)
     const epics = new Map<string, string>()
+    for (const e of epicsBasic ?? []) epics.set(e.key, e.epicName)
+    // Also include any epic on current issues not yet in epicsBasic
+    for (const issue of localIssues) {
+      const epicKey = issue.fields[epicLinkFieldKey] as string | null
+      if (epicKey && !epics.has(epicKey)) epics.set(epicKey, epicNameMap.get(epicKey) ?? epicKey)
+    }
     const labels = new Set<string>()
     const assignees = new Set<string>()
     for (const issue of localIssues) {
-      const epicKey = issue.fields[epicLinkFieldKey] as string | null
-      if (epicKey) epics.set(epicKey, epicKey)
       for (const label of (issue.fields.labels as string[] | undefined) ?? []) labels.add(label)
       if (issue.fields.assignee?.displayName) assignees.add(issue.fields.assignee.displayName)
     }
-    return { epics, labels: Array.from(labels), assignees: Array.from(assignees) }
-  }, [localIssues, epicLinkFieldKey])
+    // Statuses: all project workflow statuses (not just those on current issues)
+    const statuses = new Set<string>()
+    for (const s of workflowStatuses ?? []) statuses.add(s.name)
+    // Also include any status on current issues not yet in workflowStatuses
+    for (const issue of localIssues) {
+      if (issue.fields.status?.name) statuses.add(issue.fields.status.name)
+    }
+    return { epics, labels: Array.from(labels), assignees: Array.from(assignees), statuses: Array.from(statuses).sort() }
+  }, [localIssues, epicLinkFieldKey, epicNameMap, epicsBasic, workflowStatuses])
 
   function applyFilters(issues: JiraIssue[]): JiraIssue[] {
     return issues.filter((issue) => {
       const epicMatch = activeEpics.size === 0 || (() => {
         const epicKey = issue.fields[epicLinkFieldKey] as string | null
-        const epicName = filterOptions.epics.get(epicKey ?? '') ?? epicKey ?? ''
-        return Array.from(activeEpics).some(q => epicName.toLowerCase().includes(q.toLowerCase()))
+        return epicKey != null && activeEpics.has(epicKey)
       })()
       const labelMatch = activeLabels.size === 0 ||
         ((issue.fields.labels as string[] | undefined) ?? []).some(l => activeLabels.has(l))
@@ -313,25 +337,27 @@ export default function SprintBoardTab() {
         const name = issue.fields.assignee?.displayName ?? ''
         return Array.from(activeAssignees).some(q => name.toLowerCase().includes(q.toLowerCase()))
       })()
-      return epicMatch && labelMatch && assigneeMatch
+      const statusMatch =
+        activeStatuses.size === 0 || (() => {
+          const issueStatus = (issue.fields.status?.name ?? '').toLowerCase()
+          return Array.from(activeStatuses).some(s => s.toLowerCase() === issueStatus)
+        })()
+      return epicMatch && labelMatch && assigneeMatch && statusMatch
     })
   }
 
   const filteredSwimlanes = useMemo(() => {
-    if (activeEpics.size === 0 && activeLabels.size === 0 && activeAssignees.size === 0) return swimlanes
+    if (activeEpics.size === 0 && activeLabels.size === 0 && activeAssignees.size === 0 && activeStatuses.size === 0) return swimlanes
     return swimlanes
       .map(({ story, subtasks }) => {
-        if (subtasks.length > 0) {
-          const filtered = applyFilters(subtasks)
-          if (filtered.length === 0) return null
-          return { story, subtasks: filtered }
-        }
-        // No subtasks — check story itself
-        if (applyFilters([story]).length === 0) return null
-        return { story, subtasks }
+        // Filter both story and subtasks — keep swimlane if either matches
+        const storyMatches = applyFilters([story]).length > 0
+        const filteredSubtasks = applyFilters(subtasks)
+        if (!storyMatches && filteredSubtasks.length === 0) return null
+        return { story, subtasks: filteredSubtasks }
       })
       .filter((s): s is { story: JiraIssue; subtasks: JiraIssue[] } => s !== null)
-  }, [swimlanes, activeEpics, activeLabels, activeAssignees, filterOptions])
+  }, [swimlanes, activeEpics, activeLabels, activeAssignees, activeStatuses, filterOptions])
 
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
@@ -474,6 +500,7 @@ export default function SprintBoardTab() {
                                   <DraggableCard
                                     issue={card}
                                     isSubtask={card.fields.issuetype.subtask}
+                                    showStatus
                                     onOpenDetail={setSelectedIssueKey}
                                   />
                                   {cardErrors.get(card.key) && (
