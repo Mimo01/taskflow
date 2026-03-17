@@ -11,6 +11,7 @@ import type { Theme } from '../services/theme';
 import type { QuickFilter } from './filter.store';
 
 export type Density = 'compact' | 'default' | 'comfortable';
+export type CommentSortOrder = 'newest' | 'oldest';
 
 const tauriStore = new LazyStore('settings.json');
 
@@ -67,6 +68,9 @@ interface SettingsState {
   showSubtasksInMyTasks: boolean;
   /** User-customized key overrides. Map of shortcut id → key string. Default: {}. Future: editable via Settings > Keyboard. */
   keyboardOverrides: Record<string, string>;
+  /** Comment sort order. Default: 'newest'. */
+  commentSortOrder: CommentSortOrder;
+  setCommentSortOrder: (order: CommentSortOrder) => void;
   /** Whether the sidebar is collapsed to icon-only mode. Default: false. */
   sidebarCollapsed: boolean;
   toggleSidebarCollapsed: () => void;
@@ -136,6 +140,8 @@ export const useSettingsStore = create<SettingsState>()(
       sprintCollapseByDefault: false,
       showSubtasksInMyTasks: true,
       keyboardOverrides: {},
+      commentSortOrder: 'newest' as CommentSortOrder,
+      setCommentSortOrder: (order) => set({ commentSortOrder: order }),
       sidebarCollapsed: false,
       toggleSidebarCollapsed: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       quickFilters: [],
@@ -197,7 +203,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: tauriStorage,
-      version: 6,
+      version: 7,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -227,6 +233,9 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 6) {
           if (s.sidebarCollapsed === undefined) s.sidebarCollapsed = false;
+        }
+        if (version < 7) {
+          if (s.commentSortOrder === undefined) s.commentSortOrder = 'newest';
         }
         return s as unknown as SettingsState;
       },
