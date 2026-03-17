@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-17 - Completed quick task 260317-w5e: Redesign notification UI for clear source identification and improved styling
+Last activity: 2026-03-17 - Completed quick task 260317-wes: Remove create issue from the sidebar, keep it everywhere else
 
 Progress: [██████████] 100%
 
@@ -194,6 +194,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-17T22:24:00Z
+Last session: 2026-03-17T22:20:00Z
 Stopped at: Completed quick task 260317-wes (Remove Create Issue from sidebar)
 Resume: Milestone v1.3 (UX & Branding) is fully executed. All 5 phases (18-22), 29 plans complete. Ready for /gsd:audit-milestone or /gsd:complete-milestone.
