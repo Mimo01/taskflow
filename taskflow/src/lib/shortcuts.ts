@@ -31,6 +31,8 @@ export interface ShortcutEntry {
   description: string;
   /** Category grouping in the shortcuts panel */
   category: ShortcutCategory;
+  /** Individual keycap strings for split-badge rendering (e.g., ['⌘', '/'] instead of '⌘/') */
+  displayKeys?: string[];
   /** Navigation metadata -- only present on Navigation category entries */
   navMeta?: NavMeta;
 }
@@ -49,24 +51,28 @@ export const SHORTCUTS: ShortcutEntry[] = [
     defaultKey: '⌘/',
     description: 'Show keyboard shortcuts',
     category: 'General',
+    displayKeys: ['⌘', '/'],
   },
   {
     id: 'dismiss',
     defaultKey: 'Esc',
     description: 'Dismiss shortcuts panel',
     category: 'General',
+    displayKeys: ['Esc'],
   },
   {
     id: 'open-palette',
     defaultKey: '⌘K',
     description: 'Open command palette',
     category: 'General',
+    displayKeys: ['⌘', 'K'],
   },
   {
     id: 'nav-sprint',
     defaultKey: '⌘⇧S',
     description: 'Go to Sprint Board',
     category: 'Navigation',
+    displayKeys: ['⌘', '⇧', 'S'],
     navMeta: { label: 'Sprint Board', route: '/sprint-board' },
   },
   {
@@ -74,6 +80,7 @@ export const SHORTCUTS: ShortcutEntry[] = [
     defaultKey: '⌘⇧B',
     description: 'Go to Backlog',
     category: 'Navigation',
+    displayKeys: ['⌘', '⇧', 'B'],
     navMeta: { label: 'Backlog', route: '/backlog' },
   },
   {
@@ -81,6 +88,7 @@ export const SHORTCUTS: ShortcutEntry[] = [
     defaultKey: '⌘⇧N',
     description: 'Open Notifications',
     category: 'Navigation',
+    displayKeys: ['⌘', '⇧', 'N'],
     navMeta: { label: 'Notifications', action: 'open-notifications' },
   },
   {
@@ -88,6 +96,7 @@ export const SHORTCUTS: ShortcutEntry[] = [
     defaultKey: '⌘,',
     description: 'Open Settings',
     category: 'Navigation',
+    displayKeys: ['⌘', ','],
     navMeta: { label: 'Settings', route: '/settings' },
   },
   {
@@ -95,24 +104,28 @@ export const SHORTCUTS: ShortcutEntry[] = [
     defaultKey: '⌘B',
     description: 'Toggle sidebar',
     category: 'General',
+    displayKeys: ['⌘', 'B'],
   },
   {
     id: 'list-next',
     defaultKey: 'J',
     description: 'Next item',
     category: 'Lists',
+    displayKeys: ['J'],
   },
   {
     id: 'list-prev',
     defaultKey: 'K',
     description: 'Previous item',
     category: 'Lists',
+    displayKeys: ['K'],
   },
   {
     id: 'list-open',
     defaultKey: 'Enter',
     description: 'Open item',
     category: 'Lists',
+    displayKeys: ['Enter'],
   },
 ];
 
