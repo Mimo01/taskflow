@@ -33,18 +33,17 @@ describe('NotificationRow', () => {
     expect(screen.getByText('JS')).toBeInTheDocument(); // Jane Smith → JS
   });
 
-  // Source dot on avatar
-  it('renders J source dot for jira', () => {
+  // Source identification via left border
+  it('renders orange left border for jira', () => {
     const { container } = render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
-    const dot = container.querySelector('[data-testid="source-dot"]');
-    expect(dot).toBeInTheDocument();
-    expect(dot?.textContent).toBe('J');
+    const btn = container.querySelector('[data-testid="notification-row"]');
+    expect(btn?.className).toContain('border-orange-500');
   });
 
-  it('renders G source dot for gitlab', () => {
+  it('renders purple left border for gitlab', () => {
     const { container } = render(<NotificationRow item={makeItem('gitlab')} onClick={() => {}} />);
-    const dot = container.querySelector('[data-testid="source-dot"]');
-    expect(dot?.textContent).toBe('G');
+    const btn = container.querySelector('[data-testid="notification-row"]');
+    expect(btn?.className).toContain('border-purple-500');
   });
 
   // Author + verb sentence
@@ -98,22 +97,25 @@ describe('NotificationRow', () => {
     expect(screen.getByText(/\d+[dwh]|\d+m|just now/)).toBeInTheDocument();
   });
 
-  // Unread state — left accent bar
-  it('renders unread bar when unread', () => {
+  // Unread state — blue tinted background + ring on avatar
+  it('applies blue tint background when unread', () => {
     const { container } = render(<NotificationRow item={makeItem('jira')} isUnread onClick={() => {}} />);
-    expect(container.querySelector('[data-testid="unread-bar"]')).toBeInTheDocument();
+    const btn = container.querySelector('[data-testid="notification-row"]');
+    expect(btn?.className).toContain('bg-blue-500');
   });
 
-  it('does not render unread bar when read', () => {
+  it('does not apply blue tint when read', () => {
     const { container } = render(<NotificationRow item={makeItem('jira')} isUnread={false} onClick={() => {}} />);
-    expect(container.querySelector('[data-testid="unread-bar"]')).not.toBeInTheDocument();
+    const btn = container.querySelector('[data-testid="notification-row"]');
+    expect(btn?.className).not.toContain('bg-blue-500');
   });
 
-  // Parent context
-  it('renders parent context when parentKey and issueKey present', () => {
+  // Parent story chip
+  it('renders parent story chip when parentKey present', () => {
     render(<NotificationRow item={makeItem('jira', { parentKey: 'PROJ-100', parentSummary: 'User Login Flow' })} onClick={() => {}} />);
     expect(screen.getByText('PROJ-100')).toBeInTheDocument();
-    expect(screen.getByText(/User Login Flow/)).toBeInTheDocument();
+    expect(screen.getByText('User Login Flow')).toBeInTheDocument();
+    expect(screen.getByText('Parent')).toBeInTheDocument();
   });
 
   // Click
