@@ -98,15 +98,15 @@ describe('NotificationRow', () => {
     expect(screen.getByText(/\d+[dwh]|\d+m|just now/)).toBeInTheDocument();
   });
 
-  // Unread state
-  it('renders unread dot when unread', () => {
+  // Unread state — left accent bar
+  it('renders unread bar when unread', () => {
     const { container } = render(<NotificationRow item={makeItem('jira')} isUnread onClick={() => {}} />);
-    expect(container.querySelector('[data-testid="unread-dot"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-testid="unread-bar"]')).toBeInTheDocument();
   });
 
-  it('does not render unread dot when read', () => {
+  it('does not render unread bar when read', () => {
     const { container } = render(<NotificationRow item={makeItem('jira')} isUnread={false} onClick={() => {}} />);
-    expect(container.querySelector('[data-testid="unread-dot"]')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-testid="unread-bar"]')).not.toBeInTheDocument();
   });
 
   // Parent context

@@ -130,12 +130,17 @@ export default function NotificationRow({
       type="button"
       onClick={onClick}
       data-testid="notification-row"
-      className={`group w-full text-left flex gap-3 px-3 py-2.5 density-compact:py-2 density-comfortable:py-3 transition-colors duration-150 cursor-pointer ${
+      className={`group w-full text-left flex gap-3 pl-0 pr-3 py-2.5 density-compact:py-2 density-comfortable:py-3 transition-colors duration-150 cursor-pointer ${
         isUnread
           ? 'bg-primary/[0.03] hover:bg-primary/[0.07]'
           : 'hover:bg-muted/50'
       }`}
     >
+      {/* Unread accent bar — left edge */}
+      <div className={`flex-shrink-0 w-[3px] self-stretch rounded-r-full transition-colors ${
+        isUnread ? 'bg-blue-500' : 'bg-transparent'
+      }`} data-testid={isUnread ? 'unread-bar' : undefined} />
+
       {/* Avatar with source indicator */}
       <div className="flex-shrink-0 relative mt-0.5">
         {item.authorAvatarUrl ? (
@@ -229,11 +234,11 @@ export default function NotificationRow({
           )}
         </div>
 
-        {/* Line 3: body preview */}
+        {/* Line 3: changes or body — more prominent */}
         {item.bodyPreview && (
-          <p className="mt-0.5 text-[11px] text-muted-foreground/40 truncate leading-snug">
-            {isChange ? (
-              (item.bodyPreview.includes(' | ') ? item.bodyPreview.split(' | ') : [item.bodyPreview]).map((seg, i) => {
+          isChange ? (
+            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+              {(item.bodyPreview.includes(' | ') ? item.bodyPreview.split(' | ') : [item.bodyPreview]).map((seg, i) => {
                 const ci = seg.indexOf(':');
                 const field = ci > 0 ? seg.slice(0, ci).trim() : null;
                 const rest = ci > 0 ? seg.slice(ci + 1).trim() : seg;
@@ -241,28 +246,29 @@ export default function NotificationRow({
                 const from = ai >= 0 ? rest.slice(0, ai).trim() : null;
                 const to = ai >= 0 ? rest.slice(ai + 1).trim() : rest;
                 return (
-                  <span key={i}>
-                    {i > 0 && <span className="mx-1 text-muted-foreground/20">·</span>}
-                    {field && <span className="text-muted-foreground/50">{field}: </span>}
+                  <span key={i} className="inline-flex items-center gap-1 text-[11px] leading-snug">
+                    {field && <span className="text-muted-foreground/60 font-medium">{field}</span>}
                     {from !== null ? (
                       <>
-                        <span className="line-through decoration-muted-foreground/20">{from || '–'}</span>
-                        <span className="mx-0.5">→</span>
-                        <span className="text-muted-foreground/60 font-medium">{to || '–'}</span>
+                        <span className="text-muted-foreground/40 bg-red-500/8 px-1 rounded line-through decoration-1">{from || '–'}</span>
+                        <span className="text-muted-foreground/30">→</span>
+                        <span className="text-foreground/70 bg-green-500/8 px-1 rounded font-medium">{to || '–'}</span>
                       </>
                     ) : (
-                      <span>{to}</span>
+                      <span className="text-muted-foreground/50">{to}</span>
                     )}
                   </span>
                 );
-              })
-            ) : (
-              item.bodyPreview
-            )}
-          </p>
+              })}
+            </div>
+          ) : (
+            <p className="mt-0.5 text-[11px] text-muted-foreground/50 line-clamp-2 leading-relaxed">
+              {item.bodyPreview}
+            </p>
+          )
         )}
 
-        {/* Parent context — subtle, only when both issue key and parent */}
+        {/* Parent context */}
         {issueKey && item.parentKey && (
           <div className="mt-0.5 text-[10px] text-muted-foreground/30 truncate">
             in <span className="font-mono">{item.parentKey}</span>
@@ -270,13 +276,6 @@ export default function NotificationRow({
           </div>
         )}
       </div>
-
-      {/* Unread indicator — right edge dot */}
-      {isUnread && (
-        <div className="flex-shrink-0 flex items-start pt-2">
-          <span className="w-2 h-2 rounded-full bg-blue-500" data-testid="unread-dot" />
-        </div>
-      )}
     </button>
   );
 }
