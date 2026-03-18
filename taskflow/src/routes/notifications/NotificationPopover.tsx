@@ -87,6 +87,7 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
     markAllRead,
     markAllReadBySource,
     markAsRead,
+    removeItem,
     setPermissionDenied,
   } = useNotificationsStore();
 
@@ -163,7 +164,7 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
             item={item}
             isUnread={!readSet.has(item.id)}
             onClick={() => handleRowClick(item)}
-            onMarkRead={() => markAsRead(item.id)}
+            onDismiss={() => removeItem(item.id)}
             onOpenInBrowser={item.url ? () => { openUrl(item.url!).catch(() => {}); markAsRead(item.id); } : undefined}
           />
         ))}

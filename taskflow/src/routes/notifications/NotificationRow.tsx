@@ -5,17 +5,17 @@
  * prominent source badge, type label badge, entity title (bold when unread, clickable when url present),
  * metadata chips, linkified body preview, and relative timestamp on the metadata line.
  *
- * Quick actions (mark read, open in browser) appear on hover as a right-edge
- * overlay with a gradient fade so they don't obscure content abruptly.
+ * Quick actions (open in browser, dismiss) appear on hover, swapping
+ * with the timestamp in the metadata line.
  */
-import { ExternalLink, Eye } from 'lucide-react';
+import { ExternalLink, X } from 'lucide-react';
 import type { NotificationItem } from '../../stores/notifications.store';
 
 interface NotificationRowProps {
   item: NotificationItem;
   isUnread?: boolean;
   onClick: () => void;
-  onMarkRead?: () => void;
+  onDismiss?: () => void;
   onOpenInBrowser?: () => void;
 }
 
@@ -71,11 +71,11 @@ const colorMap: Record<string, string> = {
   'gitlab-mention': 'bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-300',
 };
 
-export default function NotificationRow({ item, isUnread = false, onClick, onMarkRead, onOpenInBrowser }: NotificationRowProps) {
+export default function NotificationRow({ item, isUnread = false, onClick, onDismiss, onOpenInBrowser }: NotificationRowProps) {
   const borderClass = item.source === 'jira' ? 'border-orange-500' : 'border-purple-500';
   const typeLabel = item.notificationType ? (labelMap[item.notificationType] ?? item.notificationType) : null;
   const typeColor = item.notificationType ? (colorMap[item.notificationType] ?? 'bg-muted text-muted-foreground') : null;
-  const hasActions = (isUnread && onMarkRead) || (item.url && onOpenInBrowser);
+  const hasActions = onDismiss || (item.url && onOpenInBrowser);
 
   return (
     <div className="group relative">
@@ -146,28 +146,28 @@ export default function NotificationRow({ item, isUnread = false, onClick, onMar
               </span>
               {hasActions && (
                 <span className="hidden group-hover:flex items-center gap-0.5">
-                  {isUnread && onMarkRead && (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => { e.stopPropagation(); onMarkRead(); }}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onMarkRead(); } }}
-                      className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                      title="Mark as read"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                    </span>
-                  )}
                   {item.url && onOpenInBrowser && (
                     <span
                       role="button"
                       tabIndex={0}
                       onClick={(e) => { e.stopPropagation(); onOpenInBrowser(); }}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onOpenInBrowser(); } }}
-                      className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                      title="Open in browser"
+                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                      title={item.source === 'jira' ? 'Open in Jira' : 'Open in GitLab'}
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
+                    </span>
+                  )}
+                  {onDismiss && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); onDismiss(); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onDismiss(); } }}
+                      className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                      title="Dismiss"
+                    >
+                      <X className="w-3.5 h-3.5" />
                     </span>
                   )}
                 </span>

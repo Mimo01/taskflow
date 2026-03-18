@@ -73,6 +73,7 @@ interface NotificationsState {
   markAsRead: (id: string) => void;
   markAllRead: () => void;
   markAllReadBySource: (source: 'jira' | 'gitlab') => void;
+  removeItem: (id: string) => void;
   clearAll: () => void;
   setLastSeenCursor: (ts: string) => void;
   setPermissionDenied: (v: boolean) => void;
@@ -115,6 +116,12 @@ export const useNotificationsStore = create<NotificationsState>()(
       markAllReadBySource: (source) =>
         set((s) => ({
           readIds: [...new Set([...s.readIds, ...s.items.filter((i) => i.source === source).map((i) => i.id)])],
+        })),
+
+      removeItem: (id) =>
+        set((s) => ({
+          items: s.items.filter((i) => i.id !== id),
+          readIds: s.readIds.filter((rid) => rid !== id),
         })),
 
       clearAll: () =>
