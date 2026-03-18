@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-18 - Completed quick task 260318-td7: Split gitlab and jira notifications into separate views/icons
+Last activity: 2026-03-18 - Completed quick task 260318-td7: Notification overhaul — tabbed popover, time groups, unread filter, bell pulse, click-to-read actions
 
 Progress: [██████████] 100%
 
@@ -192,10 +192,10 @@ None.
 | 260317-w5e | Redesign notification UI for clear source identification and improved styling | 2026-03-17 | bc48b2a | Verified | [260317-w5e-redesign-notification-ui-for-clear-sourc](./quick/260317-w5e-redesign-notification-ui-for-clear-sourc/) |
 | 260317-wes | Remove Create Issue button from sidebar, keep in Command Palette | 2026-03-17 | 6c7951b | | [260317-wes-remove-create-issue-from-the-sidebar-kee](./quick/260317-wes-remove-create-issue-from-the-sidebar-kee/) |
 | 260317-wdi | Make MR labels match GitLab colors on list page | 2026-03-17 | 9ff7e56 | | [260317-wdi-make-mr-labels-match-gitlab-colors-on-de](./quick/260317-wdi-make-mr-labels-match-gitlab-colors-on-de/) |
-| 260318-td7 | Split GitLab and Jira notifications into separate icons | 2026-03-18 | a7ba1b5 | Needs Review | [260318-td7-split-gitlab-and-jira-notifications-into](./quick/260318-td7-split-gitlab-and-jira-notifications-into/) |
+| 260318-td7 | Split GitLab and Jira notifications into separate views with tabbed popover, time groups, unread filter, bell pulse, and redesigned actions | 2026-03-18 | ad0571d | | [260318-td7-split-gitlab-and-jira-notifications-into](./quick/260318-td7-split-gitlab-and-jira-notifications-into/) |
 
 ## Session Continuity
 
-Last session: 2026-03-18T20:15:00Z
-Stopped at: Completed quick task 260318-td7 (Split Jira/GitLab notifications into separate TopBar icons)
+Last session: 2026-03-18T21:50:00Z
+Stopped at: Completed notification overhaul — tabbed popover, time groups, unread filter, bell pulse, redesigned click-to-read actions
 Resume: Milestone v1.3 (UX & Branding) is fully executed. All 5 phases (18-22), 29 plans complete. Ready for /gsd:audit-milestone or /gsd:complete-milestone.
