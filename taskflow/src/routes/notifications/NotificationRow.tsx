@@ -139,9 +139,39 @@ export default function NotificationRow({ item, isUnread = false, onClick, onMar
               </span>
             )}
 
-            {/* Timestamp (right-aligned) */}
-            <span className="ml-auto text-[10px] text-muted-foreground whitespace-nowrap group-hover:opacity-0 transition-opacity">
-              {getRelativeTime(item.createdAt)}
+            {/* Timestamp + hover actions (right-aligned, swap on hover) */}
+            <span className="ml-auto flex items-center gap-1">
+              <span className="text-[10px] text-muted-foreground whitespace-nowrap group-hover:hidden">
+                {getRelativeTime(item.createdAt)}
+              </span>
+              {hasActions && (
+                <span className="hidden group-hover:flex items-center gap-0.5">
+                  {isUnread && onMarkRead && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); onMarkRead(); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onMarkRead(); } }}
+                      className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                      title="Mark as read"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                    </span>
+                  )}
+                  {item.url && onOpenInBrowser && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); onOpenInBrowser(); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onOpenInBrowser(); } }}
+                      className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                      title="Open in browser"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </span>
+                  )}
+                </span>
+              )}
             </span>
           </div>
 
@@ -217,31 +247,6 @@ export default function NotificationRow({ item, isUnread = false, onClick, onMar
         </div>
       </button>
 
-      {/* Quick actions — appear on hover, replace timestamp area */}
-      {hasActions && (
-        <div className="absolute top-2 right-3 hidden group-hover:flex items-center gap-1 bg-background/90 backdrop-blur-sm rounded-md border shadow-sm px-1 py-0.5">
-          {isUnread && onMarkRead && (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onMarkRead(); }}
-              className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-              title="Mark as read"
-            >
-              <Eye className="w-3.5 h-3.5" />
-            </button>
-          )}
-          {item.url && onOpenInBrowser && (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onOpenInBrowser(); }}
-              className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-              title="Open in browser"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-      )}
     </div>
   );
 }
