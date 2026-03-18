@@ -5,68 +5,100 @@ import type { NotificationItem } from '../../stores/notifications.store';
 
 vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: vi.fn() }));
 
-function makeItem(source: 'jira' | 'gitlab'): NotificationItem {
+function makeItem(source: 'jira' | 'gitlab', overrides?: Partial<NotificationItem>): NotificationItem {
   return {
     id: `${source}-item-1`,
     source,
     entityTitle: 'PROJ-123: Fix login bug',
-    author: 'J.Smith',
+    author: 'Jane Smith',
+    authorAvatarUrl: 'https://example.com/avatar.jpg',
     bodyPreview: 'The issue was caused by a race condition',
     fullBody: 'The issue was caused by a race condition in the auth flow',
     createdAt: '2026-03-11T10:00:00.000Z',
+    ...overrides,
   };
 }
 
 describe('NotificationRow', () => {
+  // Avatar rendering
+  it('renders author avatar image when authorAvatarUrl is provided', () => {
+    const { container } = render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
+    const img = container.querySelector('img');
+    expect(img).toBeInTheDocument();
+    expect(img?.src).toContain('avatar.jpg');
+  });
+
+  it('renders initials fallback when no avatar', () => {
+    render(<NotificationRow item={makeItem('jira', { authorAvatarUrl: undefined })} onClick={() => {}} />);
+    expect(screen.getByText('JS')).toBeInTheDocument(); // Jane Smith → JS
+  });
+
+  // Source dot on avatar
+  it('renders J source dot for jira', () => {
+    const { container } = render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
+    const dot = container.querySelector('[data-testid="source-dot"]');
+    expect(dot).toBeInTheDocument();
+    expect(dot?.textContent).toBe('J');
+  });
+
+  it('renders G source dot for gitlab', () => {
+    const { container } = render(<NotificationRow item={makeItem('gitlab')} onClick={() => {}} />);
+    const dot = container.querySelector('[data-testid="source-dot"]');
+    expect(dot?.textContent).toBe('G');
+  });
+
+  // Author + verb sentence
+  it('renders author name prominently', () => {
+    render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
+    expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+  });
+
+  it('renders action verb for comment-mention', () => {
+    render(<NotificationRow item={makeItem('jira', { notificationType: 'comment-mention' })} onClick={() => {}} />);
+    expect(screen.getByText('mentioned you in')).toBeInTheDocument();
+  });
+
+  it('renders action verb for mr-approval', () => {
+    render(<NotificationRow item={makeItem('gitlab', { notificationType: 'mr-approval' })} onClick={() => {}} />);
+    expect(screen.getByText('approved')).toBeInTheDocument();
+  });
+
+  it('renders action verb for issue-assignment', () => {
+    render(<NotificationRow item={makeItem('jira', { notificationType: 'issue-assignment' })} onClick={() => {}} />);
+    expect(screen.getByText('assigned you to')).toBeInTheDocument();
+  });
+
+  // Issue key + title
   it('extracts and renders issue key separately from title', () => {
     render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
     expect(screen.getByText('PROJ-123')).toBeInTheDocument();
     expect(screen.getByText('Fix login bug')).toBeInTheDocument();
   });
 
-  it('renders full title when no issue key pattern', () => {
-    const item: NotificationItem = { ...makeItem('gitlab'), entityTitle: 'Some MR title' };
-    render(<NotificationRow item={item} onClick={() => {}} />);
+  it('renders full title when no issue key', () => {
+    render(<NotificationRow item={makeItem('gitlab', { entityTitle: 'Some MR title' })} onClick={() => {}} />);
     expect(screen.getByText('Some MR title')).toBeInTheDocument();
   });
 
-  it('renders J source badge for jira', () => {
-    render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
-    expect(screen.getByText('J')).toBeInTheDocument();
+  // Entity state badge
+  it('renders entity state badge when present', () => {
+    render(<NotificationRow item={makeItem('gitlab', { entityState: 'merged' })} onClick={() => {}} />);
+    expect(screen.getByText('Merged')).toBeInTheDocument();
   });
 
-  it('renders GL source badge for gitlab', () => {
-    render(<NotificationRow item={makeItem('gitlab')} onClick={() => {}} />);
-    expect(screen.getByText('GL')).toBeInTheDocument();
-  });
-
-  it('renders type pill when notificationType is set', () => {
-    const item: NotificationItem = { ...makeItem('jira'), notificationType: 'comment-mention' };
-    render(<NotificationRow item={item} onClick={() => {}} />);
-    expect(screen.getByText('Mentioned')).toBeInTheDocument();
-  });
-
+  // Body preview
   it('renders body preview', () => {
     render(<NotificationRow item={makeItem('gitlab')} onClick={() => {}} />);
     expect(screen.getByText('The issue was caused by a race condition')).toBeInTheDocument();
   });
 
-  it('renders entityState', () => {
-    const item: NotificationItem = { ...makeItem('gitlab'), entityState: 'merged' };
-    render(<NotificationRow item={item} onClick={() => {}} />);
-    expect(screen.getByText('merged')).toBeInTheDocument();
-  });
-
+  // Timestamp
   it('renders relative timestamp', () => {
     render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
-    expect(screen.getByText(/\d+d/)).toBeInTheDocument();
+    expect(screen.getByText(/\d+[dwh]|\d+m|just now/)).toBeInTheDocument();
   });
 
-  it('renders author name', () => {
-    render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
-    expect(screen.getByText('J.Smith')).toBeInTheDocument();
-  });
-
+  // Unread state
   it('renders unread dot when unread', () => {
     const { container } = render(<NotificationRow item={makeItem('jira')} isUnread onClick={() => {}} />);
     expect(container.querySelector('[data-testid="unread-dot"]')).toBeInTheDocument();
@@ -77,17 +109,14 @@ describe('NotificationRow', () => {
     expect(container.querySelector('[data-testid="unread-dot"]')).not.toBeInTheDocument();
   });
 
-  it('applies font-medium to title when unread', () => {
-    render(<NotificationRow item={makeItem('jira')} isUnread onClick={() => {}} />);
-    expect(screen.getByText('Fix login bug').className).toContain('font-medium');
-  });
-
-  it('renders parent key when parentKey and issueKey present', () => {
-    const item: NotificationItem = { ...makeItem('jira'), parentKey: 'PROJ-100' };
-    render(<NotificationRow item={item} onClick={() => {}} />);
+  // Parent context
+  it('renders parent context when parentKey and issueKey present', () => {
+    render(<NotificationRow item={makeItem('jira', { parentKey: 'PROJ-100', parentSummary: 'User Login Flow' })} onClick={() => {}} />);
     expect(screen.getByText('PROJ-100')).toBeInTheDocument();
+    expect(screen.getByText(/User Login Flow/)).toBeInTheDocument();
   });
 
+  // Click
   it('fires onClick on click', () => {
     const fn = vi.fn();
     render(<NotificationRow item={makeItem('jira')} onClick={fn} />);
@@ -95,10 +124,11 @@ describe('NotificationRow', () => {
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
+  // Action tray
   it('renders action tray when actions provided', () => {
     const { container } = render(
       <NotificationRow
-        item={{ ...makeItem('jira'), url: 'https://jira.example.com/PROJ-123' }}
+        item={makeItem('jira', { url: 'https://jira.example.com/PROJ-123' })}
         onClick={() => {}}
         onMarkRead={() => {}}
         onDismiss={() => {}}
@@ -113,13 +143,12 @@ describe('NotificationRow', () => {
     expect(container.querySelector('[data-testid="action-tray"]')).not.toBeInTheDocument();
   });
 
+  // Status change formatting
   it('renders status changes with arrow formatting', () => {
-    const item: NotificationItem = {
-      ...makeItem('jira'),
+    render(<NotificationRow item={makeItem('jira', {
       notificationType: 'issue-update',
       bodyPreview: 'Status: In Progress \u2192 Done',
-    };
-    render(<NotificationRow item={item} onClick={() => {}} />);
+    })} onClick={() => {}} />);
     expect(screen.getByText('Done')).toBeInTheDocument();
   });
 });
