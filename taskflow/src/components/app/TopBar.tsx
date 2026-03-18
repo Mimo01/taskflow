@@ -8,6 +8,7 @@
  *
  * CRITICAL: TopBar must NOT use useQuery directly.
  */
+import { useEffect, useRef, useState } from 'react';
 import { Bell, Search } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { useUnreadCount } from '../../stores/notifications.store';
@@ -31,6 +32,26 @@ interface TopBarProps {
 
 export default function TopBar({ onIssueClick, onMRClick, onPaletteOpen, notifPopoverOpen, onNotifPopoverChange }: TopBarProps) {
   const unreadCount = useUnreadCount();
+  const prevCountRef = useRef(unreadCount);
+  const [bellPulse, setBellPulse] = useState(false);
+
+  // Trigger pulse animation when unread count increases (new notifications arrived)
+  useEffect(() => {
+    if (unreadCount > prevCountRef.current) {
+      setBellPulse(true);
+      const timer = setTimeout(() => setBellPulse(false), 2000);
+      return () => clearTimeout(timer);
+    }
+    prevCountRef.current = unreadCount;
+  }, [unreadCount]);
+
+  // Clear pulse when popover is opened
+  useEffect(() => {
+    if (notifPopoverOpen) {
+      setBellPulse(false);
+      prevCountRef.current = unreadCount;
+    }
+  }, [notifPopoverOpen, unreadCount]);
 
   return (
     <header className="h-12 border-b flex items-center px-4 flex-shrink-0 gap-2">
@@ -56,9 +77,9 @@ export default function TopBar({ onIssueClick, onMRClick, onPaletteOpen, notifPo
           className="relative flex items-center justify-center w-8 h-8 rounded hover:bg-muted transition-colors"
           aria-label="Notifications"
         >
-          <Bell className="w-5 h-5" />
+          <Bell className={`w-5 h-5 transition-transform ${bellPulse ? 'animate-bell-ring' : ''}`} />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[1.1rem] h-[1.1rem] flex items-center justify-center px-0.5">
+            <span className={`absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[1.1rem] h-[1.1rem] flex items-center justify-center px-0.5 ${bellPulse ? 'animate-pulse' : ''}`}>
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}

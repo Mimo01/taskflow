@@ -1,12 +1,17 @@
 /**
  * NotificationPopover — tabbed notification feed rendered inside TopBar's Popover.
  *
- * Pure UI component: reads from notifications store, renders feed with tabs
- * (All / Jira / GitLab), mark-all-read header, and permission-denied Alert banner.
- * All notification clicks navigate directly to the relevant detail page and close the popover.
+ * Features:
+ * - Source tabs (All / Jira / GitLab) with unread count badges
+ * - Unread-only filter toggle
+ * - Time-grouped sections (Today / Yesterday / Earlier)
+ * - Open-in-browser action on hover
+ * - Mark-all-read header + per-item mark-as-read on hover
+ * - Source-specific empty states
  */
 import { useState } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, BellOff, ExternalLink, Eye, GitMerge, TicketCheck } from 'lucide-react';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Button } from '../../components/ui/button';
 import { EmptyState } from '../../components/ui/empty-state';
@@ -19,8 +24,6 @@ type SourceFilter = 'all' | 'jira' | 'gitlab';
 
 /**
  * Extracts a Jira issue key from a notification item.
- * entityTitle is formatted as "PROJ-123: Fix login bug" for Jira items.
- * Falls back to extracting from the url path (/browse/PROJ-123) if entityTitle parsing fails.
  */
 function extractJiraIssueKey(item: { source: string; entityTitle: string; url?: string }): string | null {
   if (item.source !== 'jira') return null;
@@ -37,11 +40,8 @@ function extractJiraIssueKey(item: { source: string; entityTitle: string; url?: 
 }
 
 interface NotificationPopoverProps {
-  /** Called with the Jira issue key when a Jira notification row is clicked. */
   onIssueClick?: (issueKey: string) => void;
-  /** Called with "projectId/iid" when a GitLab MR notification is clicked. */
   onMRClick?: (projectIdAndIid: string) => void;
-  /** Called to close the popover after a navigation click. */
   onClose?: () => void;
 }
 
@@ -57,8 +57,27 @@ const tabs: { key: SourceFilter; label: string }[] = [
   { key: 'gitlab', label: 'GitLab' },
 ];
 
+/** Classify a timestamp into a day group. */
+function getTimeGroup(isoTimestamp: string): 'today' | 'yesterday' | 'earlier' {
+  const now = new Date();
+  const then = new Date(isoTimestamp);
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterdayStart = new Date(todayStart.getTime() - 86400000);
+
+  if (then >= todayStart) return 'today';
+  if (then >= yesterdayStart) return 'yesterday';
+  return 'earlier';
+}
+
+const groupLabels: Record<string, string> = {
+  today: 'Today',
+  yesterday: 'Yesterday',
+  earlier: 'Earlier',
+};
+
 export default function NotificationPopover({ onIssueClick, onMRClick, onClose }: NotificationPopoverProps) {
   const [activeTab, setActiveTab] = useState<SourceFilter>('all');
+  const [unreadOnly, setUnreadOnly] = useState(false);
   const {
     items,
     readIds,
@@ -73,19 +92,23 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
 
   const readSet = new Set(readIds);
 
-  // Filter by active tab and sort newest-first
-  const filteredItems = sortNewestFirst(
-    activeTab === 'all' ? items : items.filter((i) => i.source === activeTab),
+  // Filter by active tab
+  const tabFiltered = activeTab === 'all' ? items : items.filter((i) => i.source === activeTab);
+
+  // Optionally filter to unread only
+  const visibleItems = sortNewestFirst(
+    unreadOnly ? tabFiltered.filter((i) => !readSet.has(i.id)) : tabFiltered,
   );
 
   // Unread counts per tab for badges
   const jiraUnread = items.filter((i) => i.source === 'jira' && !readSet.has(i.id)).length;
   const gitlabUnread = items.filter((i) => i.source === 'gitlab' && !readSet.has(i.id)).length;
+  const totalUnread = jiraUnread + gitlabUnread;
 
   function getTabCount(key: SourceFilter): number {
     if (key === 'jira') return jiraUnread;
     if (key === 'gitlab') return gitlabUnread;
-    return jiraUnread + gitlabUnread;
+    return totalUnread;
   }
 
   function handleMarkAllRead() {
@@ -113,15 +136,116 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
     markAsRead(item.id);
   }
 
-  function renderRows(rowItems: NotificationItem[]) {
-    return rowItems.map((item) => (
-      <NotificationRow
-        key={item.id}
-        item={item}
-        isUnread={!readSet.has(item.id)}
-        onClick={() => handleRowClick(item)}
-      />
+  function handleOpenInBrowser(e: React.MouseEvent, item: NotificationItem) {
+    e.stopPropagation();
+    if (item.url) {
+      openUrl(item.url).catch(() => {});
+      markAsRead(item.id);
+    }
+  }
+
+  function handleMarkRead(e: React.MouseEvent, item: NotificationItem) {
+    e.stopPropagation();
+    markAsRead(item.id);
+  }
+
+  // Group items by time
+  function renderGroupedRows(rowItems: NotificationItem[]) {
+    const groups: { key: string; label: string; items: NotificationItem[] }[] = [];
+    let currentGroup: string | null = null;
+
+    for (const item of rowItems) {
+      const group = getTimeGroup(item.createdAt);
+      if (group !== currentGroup) {
+        currentGroup = group;
+        groups.push({ key: group, label: groupLabels[group], items: [] });
+      }
+      groups[groups.length - 1].items.push(item);
+    }
+
+    return groups.map((group) => (
+      <div key={group.key}>
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-3 py-1.5 border-b">
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+            {group.label}
+          </span>
+        </div>
+        {group.items.map((item) => {
+          const isUnread = !readSet.has(item.id);
+          return (
+            <div key={item.id} className="group relative">
+              <NotificationRow
+                item={item}
+                isUnread={isUnread}
+                onClick={() => handleRowClick(item)}
+              />
+              {/* Hover actions */}
+              <div className="absolute top-1.5 right-2 hidden group-hover:flex items-center gap-0.5">
+                {isUnread && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleMarkRead(e, item)}
+                    className="p-1 rounded hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+                    title="Mark as read"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                {item.url && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleOpenInBrowser(e, item)}
+                    className="p-1 rounded hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+                    title="Open in browser"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     ));
+  }
+
+  function renderEmptyState() {
+    if (unreadOnly) {
+      return (
+        <EmptyState
+          icon={BellOff}
+          title="All caught up"
+          subtitle={activeTab === 'all'
+            ? 'No unread notifications'
+            : `No unread ${activeTab === 'jira' ? 'Jira' : 'GitLab'} notifications`}
+        />
+      );
+    }
+    if (activeTab === 'jira') {
+      return (
+        <EmptyState
+          icon={TicketCheck}
+          title="No Jira notifications"
+          subtitle="Comments, mentions, and issue updates from Jira will appear here"
+        />
+      );
+    }
+    if (activeTab === 'gitlab') {
+      return (
+        <EmptyState
+          icon={GitMerge}
+          title="No GitLab notifications"
+          subtitle="MR comments, approvals, and pipeline alerts will appear here"
+        />
+      );
+    }
+    return (
+      <EmptyState
+        icon={Bell}
+        title="No notifications yet"
+        subtitle="Mentions and updates from Jira and GitLab will appear here"
+      />
+    );
   }
 
   return (
@@ -129,9 +253,31 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
       {/* Header */}
       <div className="flex items-center justify-between p-3 bg-muted/30 border-b">
         <span className="font-semibold text-sm">Notifications</span>
-        <Button variant="ghost" size="sm" onClick={handleMarkAllRead}>
-          Mark all as read
-        </Button>
+        <div className="flex items-center gap-1">
+          {/* Unread-only toggle */}
+          <Button
+            variant={unreadOnly ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setUnreadOnly(!unreadOnly)}
+            className="text-xs h-7 px-2"
+            title={unreadOnly ? 'Show all' : 'Show unread only'}
+          >
+            {unreadOnly ? (
+              <>
+                <BellOff className="w-3.5 h-3.5 mr-1" />
+                Unread
+              </>
+            ) : (
+              <>
+                <Bell className="w-3.5 h-3.5 mr-1" />
+                All
+              </>
+            )}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleMarkAllRead} className="text-xs h-7">
+            Mark all read
+          </Button>
+        </div>
       </div>
 
       {/* Source tabs */}
@@ -189,14 +335,14 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
 
       {/* Feed */}
       <div className="overflow-y-auto max-h-[520px]">
-        {fetchError && filteredItems.length === 0 && retryFetch ? (
+        {fetchError && visibleItems.length === 0 && retryFetch ? (
           <div className="p-2">
             <ErrorState error={fetchError} onRetry={retryFetch} viewName="notifications" />
           </div>
-        ) : filteredItems.length === 0 ? (
-          <EmptyState icon={Bell} title="No notifications yet" subtitle="Mentions and updates will appear here as they happen" />
+        ) : visibleItems.length === 0 ? (
+          renderEmptyState()
         ) : (
-          renderRows(filteredItems)
+          renderGroupedRows(visibleItems)
         )}
       </div>
     </div>

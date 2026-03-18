@@ -1,9 +1,11 @@
-// Tests for NotificationPopover — permission banner + navigation click behavior
+// Tests for NotificationPopover — permission banner, navigation clicks, tabs, unread filter
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { act } from '@testing-library/react';
 import NotificationPopover from './NotificationPopover';
 import { useNotificationsStore } from '../../stores/notifications.store';
+
+vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: vi.fn() }));
 
 describe('NotificationPopover', () => {
   beforeEach(() => {
@@ -106,10 +108,82 @@ describe('NotificationPopover', () => {
       />,
     );
 
-    // GitLab items show under "All" tab by default
+    // All items visible under "All" tab by default
     fireEvent.click(screen.getByText('Add dark mode support'));
 
     expect(onMRClick).toHaveBeenCalledWith('99/7');
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders source tabs (All, Jira, GitLab)', () => {
+    render(<NotificationPopover />);
+
+    expect(screen.getByText('All')).toBeInTheDocument();
+    expect(screen.getByText('Jira')).toBeInTheDocument();
+    expect(screen.getByText('GitLab')).toBeInTheDocument();
+  });
+
+  it('shows contextual empty state for Jira tab', () => {
+    render(<NotificationPopover />);
+
+    fireEvent.click(screen.getByText('Jira'));
+
+    expect(screen.getByText('No Jira notifications')).toBeInTheDocument();
+  });
+
+  it('shows contextual empty state for GitLab tab', () => {
+    render(<NotificationPopover />);
+
+    fireEvent.click(screen.getByText('GitLab'));
+
+    expect(screen.getByText('No GitLab notifications')).toBeInTheDocument();
+  });
+
+  it('shows "All caught up" when unread filter is active and no unread items', () => {
+    act(() => {
+      useNotificationsStore.setState({
+        items: [
+          {
+            id: 'jira-1',
+            source: 'jira',
+            entityTitle: 'PROJ-1: Done item',
+            author: 'Jane',
+            bodyPreview: 'done',
+            fullBody: 'done',
+            createdAt: new Date().toISOString(),
+          },
+        ],
+        readIds: ['jira-1'],
+      });
+    });
+
+    render(<NotificationPopover />);
+
+    // Toggle unread filter
+    fireEvent.click(screen.getByTitle('Show unread only'));
+
+    expect(screen.getByText('All caught up')).toBeInTheDocument();
+  });
+
+  it('renders time group headers for notifications', () => {
+    act(() => {
+      useNotificationsStore.setState({
+        items: [
+          {
+            id: 'jira-today',
+            source: 'jira',
+            entityTitle: 'PROJ-1: Today item',
+            author: 'Jane',
+            bodyPreview: 'today',
+            fullBody: 'today',
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      });
+    });
+
+    render(<NotificationPopover />);
+
+    expect(screen.getByText('Today')).toBeInTheDocument();
   });
 });
