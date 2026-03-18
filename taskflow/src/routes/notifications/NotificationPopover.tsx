@@ -120,7 +120,22 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
     }
   }
 
+  /** Click row = toggle read/unread. Stay in the popover. */
   function handleRowClick(item: NotificationItem) {
+    const isRead = readSet.has(item.id);
+    if (isRead) {
+      // "Unread" it by removing from readIds — store doesn't have unmarkAsRead,
+      // so we set the full readIds minus this id.
+      useNotificationsStore.setState((s) => ({
+        readIds: s.readIds.filter((rid) => rid !== item.id),
+      }));
+    } else {
+      markAsRead(item.id);
+    }
+  }
+
+  /** Hover action: navigate to issue/MR detail in the app. */
+  function handleNavigate(item: NotificationItem) {
     const issueKey = extractJiraIssueKey(item);
     if (issueKey && onIssueClick) {
       markAsRead(item.id);
@@ -134,7 +149,6 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
       onClose?.();
       return;
     }
-    markAsRead(item.id);
   }
 
   // Group items by time
@@ -164,6 +178,7 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
             item={item}
             isUnread={!readSet.has(item.id)}
             onClick={() => handleRowClick(item)}
+            onNavigate={() => handleNavigate(item)}
             onDismiss={() => removeItem(item.id)}
             onOpenInBrowser={item.url ? () => { openUrl(item.url!).catch(() => {}); markAsRead(item.id); } : undefined}
           />

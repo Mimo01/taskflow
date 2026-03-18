@@ -1,20 +1,20 @@
 /**
  * NotificationRow — single notification row in the feed.
  *
- * Shows source-specific left border (orange=Jira, purple=GitLab),
- * prominent source badge, type label badge, entity title (bold when unread, clickable when url present),
- * metadata chips, linkified body preview, and relative timestamp on the metadata line.
- *
- * Quick actions (open in browser, dismiss) appear on hover, swapping
- * with the timestamp in the metadata line.
+ * Click = toggle read/unread (stay in popover).
+ * Hover actions appear where the timestamp is:
+ *   - Arrow: navigate to detail in app
+ *   - External link: open in Jira/GitLab browser
+ *   - X: dismiss notification
  */
-import { ExternalLink, X } from 'lucide-react';
+import { ArrowRight, ExternalLink, X } from 'lucide-react';
 import type { NotificationItem } from '../../stores/notifications.store';
 
 interface NotificationRowProps {
   item: NotificationItem;
   isUnread?: boolean;
   onClick: () => void;
+  onNavigate?: () => void;
   onDismiss?: () => void;
   onOpenInBrowser?: () => void;
 }
@@ -71,11 +71,31 @@ const colorMap: Record<string, string> = {
   'gitlab-mention': 'bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-300',
 };
 
-export default function NotificationRow({ item, isUnread = false, onClick, onDismiss, onOpenInBrowser }: NotificationRowProps) {
+function ActionButton({ onClick, title, className, children }: {
+  onClick: (e: React.MouseEvent) => void;
+  title: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter') onClick(e as unknown as React.MouseEvent); }}
+      className={`p-1 rounded transition-colors cursor-pointer ${className ?? 'hover:bg-muted text-muted-foreground hover:text-foreground'}`}
+      title={title}
+    >
+      {children}
+    </span>
+  );
+}
+
+export default function NotificationRow({ item, isUnread = false, onClick, onNavigate, onDismiss, onOpenInBrowser }: NotificationRowProps) {
   const borderClass = item.source === 'jira' ? 'border-orange-500' : 'border-purple-500';
   const typeLabel = item.notificationType ? (labelMap[item.notificationType] ?? item.notificationType) : null;
   const typeColor = item.notificationType ? (colorMap[item.notificationType] ?? 'bg-muted text-muted-foreground') : null;
-  const hasActions = onDismiss || (item.url && onOpenInBrowser);
+  const hasActions = onNavigate || onDismiss || (item.url && onOpenInBrowser);
 
   return (
     <div className="group relative">
@@ -113,7 +133,7 @@ export default function NotificationRow({ item, isUnread = false, onClick, onDis
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          {/* Metadata line: source badge + type badge + timestamp */}
+          {/* Metadata line: source badge + type badge + timestamp/actions */}
           <div className="flex items-center gap-1.5 mb-0.5">
             {/* Source badge */}
             {item.source === 'jira' ? (
@@ -139,36 +159,37 @@ export default function NotificationRow({ item, isUnread = false, onClick, onDis
               </span>
             )}
 
-            {/* Timestamp + hover actions (right-aligned, swap on hover) */}
-            <span className="ml-auto flex items-center gap-1">
+            {/* Right side: timestamp (default) / actions (hover) */}
+            <span className="ml-auto flex items-center">
               <span className="text-[10px] text-muted-foreground whitespace-nowrap group-hover:hidden">
                 {getRelativeTime(item.createdAt)}
               </span>
               {hasActions && (
                 <span className="hidden group-hover:flex items-center gap-0.5">
+                  {onNavigate && (
+                    <ActionButton
+                      onClick={(e) => { e.stopPropagation(); onNavigate(); }}
+                      title="Open in app"
+                    >
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </ActionButton>
+                  )}
                   {item.url && onOpenInBrowser && (
-                    <span
-                      role="button"
-                      tabIndex={0}
+                    <ActionButton
                       onClick={(e) => { e.stopPropagation(); onOpenInBrowser(); }}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onOpenInBrowser(); } }}
-                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                       title={item.source === 'jira' ? 'Open in Jira' : 'Open in GitLab'}
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
-                    </span>
+                    </ActionButton>
                   )}
                   {onDismiss && (
-                    <span
-                      role="button"
-                      tabIndex={0}
+                    <ActionButton
                       onClick={(e) => { e.stopPropagation(); onDismiss(); }}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onDismiss(); } }}
-                      className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
                       title="Dismiss"
+                      className="hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
                     >
                       <X className="w-3.5 h-3.5" />
-                    </span>
+                    </ActionButton>
                   )}
                 </span>
               )}
@@ -246,7 +267,6 @@ export default function NotificationRow({ item, isUnread = false, onClick, onDis
           )}
         </div>
       </button>
-
     </div>
   );
 }

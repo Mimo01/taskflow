@@ -1,4 +1,4 @@
-// Tests for NotificationPopover — permission banner, navigation clicks, tabs, unread filter
+// Tests for NotificationPopover — permission banner, read toggle, tabs, unread filter
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { act } from '@testing-library/react';
@@ -45,10 +45,7 @@ describe('NotificationPopover', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('calls onIssueClick and onClose when a Jira notification is clicked', () => {
-    const onIssueClick = vi.fn();
-    const onClose = vi.fn();
-
+  it('clicking a row toggles read status (marks as read)', () => {
     act(() => {
       useNotificationsStore.setState({
         items: [
@@ -63,56 +60,42 @@ describe('NotificationPopover', () => {
             url: 'https://jira.example.com/browse/PROJ-42',
           },
         ],
+        readIds: [],
       });
     });
 
-    render(
-      <NotificationPopover
-        onIssueClick={onIssueClick}
-        onClose={onClose}
-      />,
-    );
+    render(<NotificationPopover />);
 
     fireEvent.click(screen.getByText('PROJ-42: Fix login bug'));
 
-    expect(onIssueClick).toHaveBeenCalledWith('PROJ-42');
-    expect(onClose).toHaveBeenCalledTimes(1);
+    // Should now be in readIds
+    expect(useNotificationsStore.getState().readIds).toContain('jira-1');
   });
 
-  it('calls onMRClick and onClose when a GitLab notification is clicked', () => {
-    const onMRClick = vi.fn();
-    const onClose = vi.fn();
-
+  it('clicking a read row toggles it back to unread', () => {
     act(() => {
       useNotificationsStore.setState({
         items: [
           {
-            id: 'gitlab-1',
-            source: 'gitlab',
-            entityTitle: 'Add dark mode support',
-            author: 'Bob',
-            bodyPreview: 'Merged MR',
-            fullBody: 'Merged MR',
+            id: 'jira-1',
+            source: 'jira',
+            entityTitle: 'PROJ-42: Fix login bug',
+            author: 'Jane',
+            bodyPreview: 'Updated status',
+            fullBody: 'Updated status',
             createdAt: new Date().toISOString(),
-            mrProjectId: 99,
-            mrIid: 7,
           },
         ],
+        readIds: ['jira-1'],
       });
     });
 
-    render(
-      <NotificationPopover
-        onMRClick={onMRClick}
-        onClose={onClose}
-      />,
-    );
+    render(<NotificationPopover />);
 
-    // All items visible under "All" tab by default
-    fireEvent.click(screen.getByText('Add dark mode support'));
+    fireEvent.click(screen.getByText('PROJ-42: Fix login bug'));
 
-    expect(onMRClick).toHaveBeenCalledWith('99/7');
-    expect(onClose).toHaveBeenCalledTimes(1);
+    // Should be removed from readIds
+    expect(useNotificationsStore.getState().readIds).not.toContain('jira-1');
   });
 
   it('renders source tabs (All, Jira, GitLab)', () => {
