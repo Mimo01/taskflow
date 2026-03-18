@@ -3,11 +3,11 @@
  *
  * Design:
  * - Left border = source color (orange Jira, purple GitLab)
- * - Unread = bolder text + tinted background
+ * - Unread = blue tinted bg + avatar ring
  * - Avatar with profile picture
- * - Sentence: "Author verb · time"
+ * - Action type as colored badge, then author name, then timestamp
  * - Entity title on second line
- * - Body/changes in tinted chip style
+ * - Body/changes always in tinted chip style
  * - Parent story as visible chip
  * - Hover: actions float top-right over timestamp
  */
@@ -54,27 +54,18 @@ function splitKey(raw: string): { key: string | null; title: string } {
   return { key: null, title: raw };
 }
 
-/* ── type config ────────────────────────────────────── */
+/* ── type config — each type gets a colored badge ───── */
 
-const actionVerb: Record<string, string> = {
-  'comment-mention': 'mentioned you in',
-  'gitlab-mention': 'mentioned you in',
-  'issue-update': 'updated',
-  'mr-note': 'commented on',
-  'jira-comment': 'commented on',
-  'mr-approval': 'approved',
-  'pipeline-failure': 'pipeline failed on',
-  'issue-assignment': 'assigned you to',
-  'due-date-reminder': 'is due soon:',
-};
-
-const verbColor: Record<string, string> = {
-  'comment-mention': 'text-pink-600 dark:text-pink-400',
-  'gitlab-mention': 'text-pink-600 dark:text-pink-400',
-  'mr-approval': 'text-green-600 dark:text-green-400',
-  'pipeline-failure': 'text-red-600 dark:text-red-400',
-  'issue-assignment': 'text-blue-600 dark:text-blue-400',
-  'due-date-reminder': 'text-amber-600 dark:text-amber-400',
+const typeConfig: Record<string, { label: string; badge: string }> = {
+  'comment-mention':  { label: 'Mentioned you',  badge: 'bg-pink-500/15 text-pink-600 dark:text-pink-400' },
+  'gitlab-mention':   { label: 'Mentioned you',  badge: 'bg-pink-500/15 text-pink-600 dark:text-pink-400' },
+  'issue-update':     { label: 'Updated',        badge: 'bg-teal-500/15 text-teal-600 dark:text-teal-400' },
+  'mr-note':          { label: 'Commented',       badge: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400' },
+  'jira-comment':     { label: 'Commented',       badge: 'bg-violet-500/15 text-violet-600 dark:text-violet-400' },
+  'mr-approval':      { label: 'Approved',        badge: 'bg-green-500/15 text-green-600 dark:text-green-400' },
+  'pipeline-failure': { label: 'Pipeline failed', badge: 'bg-red-500/15 text-red-600 dark:text-red-400' },
+  'issue-assignment': { label: 'Assigned to you', badge: 'bg-blue-500/15 text-blue-600 dark:text-blue-400' },
+  'due-date-reminder':{ label: 'Due soon',        badge: 'bg-amber-500/15 text-amber-600 dark:text-amber-400' },
 };
 
 const stateConfig: Record<string, { label: string; color: string }> = {
@@ -82,6 +73,36 @@ const stateConfig: Record<string, { label: string; color: string }> = {
   closed: { label: 'Closed', color: 'bg-red-500/15 text-red-600 dark:text-red-400' },
   opened: { label: 'Open', color: 'bg-green-500/15 text-green-600 dark:text-green-400' },
 };
+
+/* ── body parsing ───────────────────────────────────── */
+
+interface ParsedChange { field: string | null; from: string | null; to: string }
+
+/** Parse body into structured changes. Handles both "field: old → new" and "field: value" */
+function parseBody(body: string): { isStructured: boolean; changes: ParsedChange[] } {
+  const segments = body.includes(' | ') ? body.split(' | ') : [body];
+  const changes: ParsedChange[] = [];
+  let hasStructure = false;
+
+  for (const seg of segments) {
+    const ci = seg.indexOf(':');
+    const field = ci > 0 ? seg.slice(0, ci).trim() : null;
+    const rest = ci > 0 ? seg.slice(ci + 1).trim() : seg;
+    const ai = rest.indexOf('\u2192');
+
+    if (ai >= 0) {
+      hasStructure = true;
+      changes.push({ field, from: rest.slice(0, ai).trim() || null, to: rest.slice(ai + 1).trim() });
+    } else if (field) {
+      hasStructure = true;
+      changes.push({ field, from: null, to: rest });
+    } else {
+      changes.push({ field: null, from: null, to: seg.trim() });
+    }
+  }
+
+  return { isStructured: hasStructure, changes };
+}
 
 /* ── action button ──────────────────────────────────── */
 
@@ -120,15 +141,14 @@ export default function NotificationRow({
   onOpenInBrowser,
 }: NotificationRowProps) {
   const { key: issueKey, title } = splitKey(item.entityTitle);
-  const verb = item.notificationType ? actionVerb[item.notificationType] ?? null : null;
-  const vColor = item.notificationType ? verbColor[item.notificationType] ?? '' : '';
+  const tc = item.notificationType ? typeConfig[item.notificationType] : null;
   const entityState = item.entityState ? stateConfig[item.entityState] : null;
   const hasActions = onMarkRead || onDismiss || (item.url && onOpenInBrowser);
 
-  const isChange = (item.notificationType === 'issue-update' || item.notificationType === 'mr-note') &&
-    item.bodyPreview.includes('\u2192');
-
   const sourceColor = item.source === 'jira' ? 'border-orange-500' : 'border-purple-500';
+
+  // Parse body into structured changes
+  const body = item.bodyPreview ? parseBody(item.bodyPreview) : null;
 
   return (
     <button
@@ -172,29 +192,28 @@ export default function NotificationRow({
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        {/* Line 1: "Author verb" + timestamp/actions top-right */}
-        <div className="flex items-start gap-1">
-          <div className="flex-1 min-w-0 flex flex-wrap items-baseline gap-x-1 text-[12px] leading-snug">
-            <span className={`font-semibold ${isUnread ? 'text-foreground' : 'text-foreground/75'}`}>
-              {item.author}
-            </span>
-            {verb && (
-              <span className={`${vColor || 'text-muted-foreground/60'}`}>
-                {verb}
+        {/* Line 1: type badge + author + timestamp/actions */}
+        <div className="flex items-start gap-1.5">
+          <div className="flex-1 min-w-0 flex flex-wrap items-center gap-1.5 text-[12px] leading-snug">
+            {/* Type badge */}
+            {tc && (
+              <span className={`flex-shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-semibold leading-none ${tc.badge}`} data-testid="type-badge">
+                {tc.label}
               </span>
             )}
+            <span className={`font-semibold truncate ${isUnread ? 'text-foreground' : 'text-foreground/75'}`}>
+              {item.author}
+            </span>
           </div>
 
           {/* Top-right: timestamp by default, actions on hover */}
           <div className="flex-shrink-0 relative flex items-center h-5">
-            {/* Timestamp */}
             <span className="text-[10px] text-muted-foreground/40 tabular-nums group-hover:opacity-0 transition-opacity duration-100">
               {relTime(item.createdAt)}
             </span>
-            {/* Actions — absolutely positioned over timestamp */}
             {hasActions && (
               <span
-                className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity duration-100 bg-inherit"
+                className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity duration-100"
                 data-testid="action-tray"
               >
                 {onMarkRead && (
@@ -232,32 +251,24 @@ export default function NotificationRow({
           )}
         </div>
 
-        {/* Line 3: body — tinted chip style for all types */}
-        {item.bodyPreview && (
-          isChange ? (
-            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
-              {(item.bodyPreview.includes(' | ') ? item.bodyPreview.split(' | ') : [item.bodyPreview]).map((seg, i) => {
-                const ci = seg.indexOf(':');
-                const field = ci > 0 ? seg.slice(0, ci).trim() : null;
-                const rest = ci > 0 ? seg.slice(ci + 1).trim() : seg;
-                const ai = rest.indexOf('\u2192');
-                const from = ai >= 0 ? rest.slice(0, ai).trim() : null;
-                const to = ai >= 0 ? rest.slice(ai + 1).trim() : rest;
-                return (
-                  <span key={i} className="inline-flex items-center gap-1 text-[11px] leading-snug">
-                    {field && <span className="text-muted-foreground/60 font-medium">{field}</span>}
-                    {from !== null ? (
-                      <>
-                        <span className="text-muted-foreground/50 bg-red-500/8 px-1 rounded line-through decoration-1">{from || '–'}</span>
-                        <span className="text-muted-foreground/30">→</span>
-                        <span className="text-foreground/70 bg-green-500/8 px-1 rounded font-medium">{to || '–'}</span>
-                      </>
-                    ) : (
-                      <span className="text-muted-foreground/50">{to}</span>
-                    )}
-                  </span>
-                );
-              })}
+        {/* Line 3: body — always chip style, structured when possible */}
+        {body && (
+          body.isStructured ? (
+            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+              {body.changes.map((c, i) => (
+                <span key={i} className="inline-flex items-center gap-1 text-[11px] leading-snug">
+                  {c.field && <span className="text-muted-foreground/60 font-medium">{c.field}</span>}
+                  {c.from !== null ? (
+                    <>
+                      <span className="text-muted-foreground/50 bg-red-500/8 px-1 rounded line-through decoration-1">{c.from || '–'}</span>
+                      <span className="text-muted-foreground/30">→</span>
+                      <span className="text-foreground/70 bg-green-500/8 px-1 rounded font-medium">{c.to || '–'}</span>
+                    </>
+                  ) : (
+                    <span className="text-foreground/60 bg-muted/50 px-1 rounded">{c.to}</span>
+                  )}
+                </span>
+              ))}
             </div>
           ) : (
             <p className="mt-1 text-[11px] text-muted-foreground/70 bg-muted/40 rounded px-2 py-1 line-clamp-2 leading-relaxed">
