@@ -24,8 +24,10 @@ function makeItem(id: string): NotificationItem {
 const defaultProps = {
   paletteOpen: false,
   onPaletteOpen: vi.fn(),
-  notifPopoverOpen: false,
-  onNotifPopoverChange: vi.fn(),
+  jiraNotifOpen: false,
+  onJiraNotifChange: vi.fn(),
+  gitlabNotifOpen: false,
+  onGitlabNotifChange: vi.fn(),
 };
 
 function renderTopBar(overrides: Partial<typeof defaultProps> = {}) {
