@@ -62,7 +62,9 @@ export interface NotificationItem {
 interface NotificationsState {
   items: NotificationItem[];
   readIds: string[];               // string[] NOT Set — JSON-serializable
-  lastSeenCursor: string | null;   // ISO timestamp of last seen notification
+  lastSeenCursor: string | null;         // DEPRECATED — kept for migration
+  lastSeenJiraCursor: string | null;     // ISO timestamp of last seen Jira notification
+  lastSeenGitlabCursor: string | null;   // ISO timestamp of last seen GitLab notification
   permissionDenied: boolean;       // transient — not persisted
   fetchError: Error | null;        // transient — propagated from polling hook
   retryFetch: (() => void) | null; // transient — refetch function from polling hook
@@ -71,11 +73,14 @@ interface NotificationsState {
   setItems: (items: NotificationItem[]) => void;
   prependItems: (newItems: NotificationItem[]) => void;
   markAsRead: (id: string) => void;
+  markAsUnread: (id: string) => void;
   markAllRead: () => void;
   markAllReadBySource: (source: 'jira' | 'gitlab') => void;
   removeItem: (id: string) => void;
   clearAll: () => void;
   setLastSeenCursor: (ts: string) => void;
+  setLastSeenJiraCursor: (ts: string) => void;
+  setLastSeenGitlabCursor: (ts: string) => void;
   setPermissionDenied: (v: boolean) => void;
   setFetchError: (err: Error | null) => void;
   setRetryFetch: (fn: (() => void) | null) => void;
@@ -89,6 +94,8 @@ export const useNotificationsStore = create<NotificationsState>()(
       items: [],
       readIds: [],
       lastSeenCursor: null,
+      lastSeenJiraCursor: null,
+      lastSeenGitlabCursor: null,
       permissionDenied: false,
       fetchError: null,
       retryFetch: null,
@@ -108,6 +115,11 @@ export const useNotificationsStore = create<NotificationsState>()(
           readIds: s.readIds.includes(id) ? s.readIds : [...s.readIds, id],
         })),
 
+      markAsUnread: (id) =>
+        set((s) => ({
+          readIds: s.readIds.filter((rid) => rid !== id),
+        })),
+
       markAllRead: () =>
         set((s) => ({
           readIds: s.items.map((i) => i.id),
@@ -125,9 +137,11 @@ export const useNotificationsStore = create<NotificationsState>()(
         })),
 
       clearAll: () =>
-        set({ items: [], readIds: [], lastSeenCursor: null }),
+        set({ items: [], readIds: [], lastSeenCursor: null, lastSeenJiraCursor: null, lastSeenGitlabCursor: null }),
 
       setLastSeenCursor: (ts) => set({ lastSeenCursor: ts }),
+      setLastSeenJiraCursor: (ts) => set({ lastSeenJiraCursor: ts }),
+      setLastSeenGitlabCursor: (ts) => set({ lastSeenGitlabCursor: ts }),
 
       setPermissionDenied: (v) => set({ permissionDenied: v }),
 
@@ -141,17 +155,24 @@ export const useNotificationsStore = create<NotificationsState>()(
         // Only persist these fields; permissionDenied is transient
         items: s.items,
         readIds: s.readIds,
-        lastSeenCursor: s.lastSeenCursor,
+        lastSeenJiraCursor: s.lastSeenJiraCursor,
+        lastSeenGitlabCursor: s.lastSeenGitlabCursor,
       }),
       // Sanitize rehydrated data — old store versions serialized readIds/items as Set,
       // which JSON-stringifies to {}. Guard both fields so new Set(readIds) never throws.
       merge: (persisted, current) => {
-        const p = persisted as Partial<NotificationsState>;
+        const p = persisted as Partial<NotificationsState> & { lastSeenCursor?: string | null };
+        // Migrate: if old shared cursor exists but per-source cursors don't, seed both
+        const jiraCursor = p.lastSeenJiraCursor ?? p.lastSeenCursor ?? null;
+        const gitlabCursor = p.lastSeenGitlabCursor ?? p.lastSeenCursor ?? null;
         return {
           ...current,
           ...p,
           readIds: Array.isArray(p.readIds) ? p.readIds : [],
           items: Array.isArray(p.items) ? p.items : [],
+          lastSeenJiraCursor: jiraCursor,
+          lastSeenGitlabCursor: gitlabCursor,
+          lastSeenCursor: null, // deprecated
         };
       },
     },
