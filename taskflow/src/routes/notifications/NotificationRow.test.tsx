@@ -33,10 +33,11 @@ describe('NotificationRow', () => {
     expect(button?.className).toContain('border-purple-500');
   });
 
-  it('renders the entity title', () => {
+  it('extracts and renders issue key separately from title', () => {
     const item = makeItem('jira');
     render(<NotificationRow item={item} onClick={() => {}} />);
-    expect(screen.getByText('PROJ-123: Fix login bug')).toBeInTheDocument();
+    expect(screen.getByText('PROJ-123')).toBeInTheDocument();
+    expect(screen.getByText('Fix login bug')).toBeInTheDocument();
   });
 
   it('renders the body preview', () => {
@@ -57,7 +58,7 @@ describe('NotificationRow', () => {
     expect(screen.getByText('merged')).toBeInTheDocument();
   });
 
-  // New tests for redesigned layout
+  // Source badge text tests
 
   it('renders source badge text "Jira" for jira source', () => {
     const item = makeItem('jira');
@@ -78,9 +79,40 @@ describe('NotificationRow', () => {
     expect(screen.getByText(/\d+d ago/)).toBeInTheDocument();
   });
 
-  it('renders author name in the row', () => {
+  it('renders author name without "by" prefix', () => {
     const item = makeItem('jira');
     render(<NotificationRow item={item} onClick={() => {}} />);
-    expect(screen.getByText('by J.Smith')).toBeInTheDocument();
+    expect(screen.getByText('J.Smith')).toBeInTheDocument();
+    expect(screen.queryByText('by J.Smith')).not.toBeInTheDocument();
+  });
+
+  it('renders unread dot indicator when isUnread is true', () => {
+    const item = makeItem('jira');
+    const { container } = render(<NotificationRow item={item} isUnread={true} onClick={() => {}} />);
+    const dot = container.querySelector('[data-testid="unread-dot"]');
+    expect(dot).toBeInTheDocument();
+    expect(dot?.className).toContain('bg-blue-500');
+  });
+
+  it('does not render unread dot when isUnread is false', () => {
+    const item = makeItem('jira');
+    const { container } = render(<NotificationRow item={item} isUnread={false} onClick={() => {}} />);
+    const dot = container.querySelector('[data-testid="unread-dot"]');
+    expect(dot).not.toBeInTheDocument();
+  });
+
+  it('renders parent key when parentKey is provided', () => {
+    const item: NotificationItem = { ...makeItem('jira'), parentKey: 'PROJ-100' };
+    render(<NotificationRow item={item} onClick={() => {}} />);
+    expect(screen.getByText('PROJ-100')).toBeInTheDocument();
+  });
+
+  it('renders full title when no issue key pattern present', () => {
+    const item: NotificationItem = {
+      ...makeItem('gitlab'),
+      entityTitle: 'Some merge request title without key',
+    };
+    render(<NotificationRow item={item} onClick={() => {}} />);
+    expect(screen.getByText('Some merge request title without key')).toBeInTheDocument();
   });
 });
