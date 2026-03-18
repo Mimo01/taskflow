@@ -52,19 +52,20 @@ describe('NotificationRow', () => {
     expect(screen.getByText('Jane Smith')).toBeInTheDocument();
   });
 
-  it('renders action verb for comment-mention', () => {
+  it('renders type badge for comment-mention', () => {
     render(<NotificationRow item={makeItem('jira', { notificationType: 'comment-mention' })} onClick={() => {}} />);
-    expect(screen.getByText('mentioned you in')).toBeInTheDocument();
+    expect(screen.getByText('Mentioned you')).toBeInTheDocument();
+    expect(screen.getByTestId('type-badge')).toBeInTheDocument();
   });
 
-  it('renders action verb for mr-approval', () => {
+  it('renders type badge for mr-approval', () => {
     render(<NotificationRow item={makeItem('gitlab', { notificationType: 'mr-approval' })} onClick={() => {}} />);
-    expect(screen.getByText('approved')).toBeInTheDocument();
+    expect(screen.getByText('Approved')).toBeInTheDocument();
   });
 
-  it('renders action verb for issue-assignment', () => {
+  it('renders type badge for issue-assignment', () => {
     render(<NotificationRow item={makeItem('jira', { notificationType: 'issue-assignment' })} onClick={() => {}} />);
-    expect(screen.getByText('assigned you to')).toBeInTheDocument();
+    expect(screen.getByText('Assigned to you')).toBeInTheDocument();
   });
 
   // Issue key + title
@@ -146,11 +147,23 @@ describe('NotificationRow', () => {
   });
 
   // Status change formatting
-  it('renders status changes with arrow formatting', () => {
+  it('renders status changes with old→new chip style', () => {
     render(<NotificationRow item={makeItem('jira', {
       notificationType: 'issue-update',
       bodyPreview: 'Status: In Progress \u2192 Done',
     })} onClick={() => {}} />);
+    expect(screen.getByText('Status')).toBeInTheDocument();
+    expect(screen.getByText('In Progress')).toBeInTheDocument();
     expect(screen.getByText('Done')).toBeInTheDocument();
+  });
+
+  // Structured field:value without arrow
+  it('renders field:value updates in chip style', () => {
+    render(<NotificationRow item={makeItem('jira', {
+      notificationType: 'issue-update',
+      bodyPreview: 'Priority: High',
+    })} onClick={() => {}} />);
+    expect(screen.getByText('Priority')).toBeInTheDocument();
+    expect(screen.getByText('High')).toBeInTheDocument();
   });
 });
