@@ -3,13 +3,13 @@
  *
  * Interactions:
  * - Click       → mark as read + open detail
- * - Swipe right → reveals "Read" action; full swipe auto-triggers
- * - Swipe left  → reveals "Delete" action; full swipe auto-triggers
+ * - Trackpad swipe right → reveals "Read" action; full swipe auto-triggers
+ * - Trackpad swipe left  → reveals "Delete" action; full swipe auto-triggers
  * - Hover       → small external-link icon (only when url exists)
  *
- * Swipe uses mousedown + document mousemove/mouseup for reliable
- * drag tracking in Tauri webview. All drag state is in refs to avoid
- * re-render per pixel; only visual offset uses state via rAF.
+ * Swipe uses the `wheel` event (deltaX) which is what macOS trackpad
+ * two-finger swipe generates. Mouse drag is NOT used — trackpad is the
+ * primary input on macOS Tauri apps.
  */
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { ExternalLink, CheckCheck, Trash2, BookOpen } from 'lucide-react';
@@ -68,12 +68,11 @@ const stateStyle: Record<string, string> = {
 /* ── swipe constants ────────────────────────────────── */
 
 const ACTION_WIDTH = 80;
-const FULL_SWIPE_RATIO = 0.45;
-const DEADZONE = 5;
+const FULL_SWIPE_THRESHOLD = 160;
+const GESTURE_END_MS = 200;     // ms of no wheel events = gesture ended
 const SPRING = 'transform 400ms cubic-bezier(0.25, 1, 0.5, 1)';
-const COLLAPSE = 'max-height 300ms cubic-bezier(0.25, 1, 0.5, 1), opacity 200ms ease-out';
 
-type VisualState = 'idle' | 'snapped-right' | 'snapped-left' | 'completing' | 'dismissed';
+type VisualState = 'idle' | 'swiping' | 'snapped-right' | 'snapped-left' | 'completing' | 'dismissed';
 
 /* ── component ──────────────────────────────────────── */
 
@@ -88,192 +87,203 @@ export default function NotificationRow({
   const { key: issueKey, title } = splitKey(item.entityTitle);
   const tc = item.notificationType ? typeConfig[item.notificationType] : null;
 
-  // Visual state (not drag tracking — that's all refs)
-  const [offsetX, setOffsetX] = useState(0);
   const [visualState, setVisualState] = useState<VisualState>('idle');
-  const [animate, setAnimate] = useState(false);
 
-  // Refs for drag tracking — no re-renders during drag
+  // All swipe tracking in refs for zero re-renders during gesture
   const rowRef = useRef<HTMLDivElement>(null);
   const slideRef = useRef<HTMLDivElement>(null);
   const rightBgRef = useRef<HTMLDivElement>(null);
   const leftBgRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{
-    startX: number;
-    startY: number;
-    decided: boolean;
-    isSwiping: boolean;
-    currentX: number;
-  } | null>(null);
+  const offsetRef = useRef(0);
+  const gestureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stateRef = useRef<VisualState>('idle');
+  // Track cumulative vertical vs horizontal to decide scroll vs swipe
+  const gestureRef = useRef<{ totalDx: number; totalDy: number; decided: boolean; isSwipe: boolean }>({
+    totalDx: 0, totalDy: 0, decided: false, isSwipe: false,
+  });
 
-  const getRowWidth = useCallback(() => rowRef.current?.offsetWidth ?? 400, []);
+  // Keep stateRef in sync
+  useEffect(() => { stateRef.current = visualState; }, [visualState]);
 
-  // Apply transform directly to DOM during drag (no React re-render)
   const applyOffset = useCallback((x: number) => {
     if (slideRef.current) {
       slideRef.current.style.transform = `translateX(${x}px)`;
+      slideRef.current.style.transition = 'none';
     }
     if (rightBgRef.current) {
       rightBgRef.current.style.display = x > 0 ? 'flex' : 'none';
-      rightBgRef.current.style.width = `${Math.max(x, ACTION_WIDTH)}px`;
+      if (x > 0) rightBgRef.current.style.width = `${Math.max(x, ACTION_WIDTH)}px`;
     }
     if (leftBgRef.current) {
       leftBgRef.current.style.display = x < 0 ? 'flex' : 'none';
+      if (x < 0) leftBgRef.current.style.width = `${Math.max(Math.abs(x), ACTION_WIDTH)}px`;
+    }
+    offsetRef.current = x;
+  }, []);
+
+  const animateTo = useCallback((x: number, then?: () => void) => {
+    if (slideRef.current) {
+      slideRef.current.style.transition = SPRING;
+      slideRef.current.style.transform = `translateX(${x}px)`;
+    }
+    if (rightBgRef.current && x > 0) {
+      rightBgRef.current.style.width = `${Math.max(x, ACTION_WIDTH)}px`;
+    }
+    if (leftBgRef.current && x < 0) {
       leftBgRef.current.style.width = `${Math.max(Math.abs(x), ACTION_WIDTH)}px`;
     }
+    offsetRef.current = x;
+    if (then) setTimeout(then, 420);
   }, []);
 
   const snapBack = useCallback(() => {
-    setAnimate(true);
-    setOffsetX(0);
+    animateTo(0);
+    // Hide backgrounds after animation
+    setTimeout(() => {
+      if (rightBgRef.current) rightBgRef.current.style.display = 'none';
+      if (leftBgRef.current) leftBgRef.current.style.display = 'none';
+    }, 420);
     setVisualState('idle');
-  }, []);
+  }, [animateTo]);
 
   const completeAction = useCallback((action: 'read' | 'dismiss') => {
-    setAnimate(true);
     setVisualState('completing');
-    setOffsetX(action === 'read' ? getRowWidth() + 20 : -(getRowWidth() + 20));
+    const rowWidth = rowRef.current?.offsetWidth ?? 400;
+    const target = action === 'read' ? rowWidth + 20 : -(rowWidth + 20);
+    animateTo(target, () => {
+      // Collapse height
+      if (rowRef.current) {
+        rowRef.current.style.transition = 'max-height 300ms cubic-bezier(0.25,1,0.5,1), opacity 200ms ease-out';
+        rowRef.current.style.maxHeight = '0px';
+        rowRef.current.style.opacity = '0';
+        rowRef.current.style.overflow = 'hidden';
+      }
+      setTimeout(() => {
+        setVisualState('dismissed');
+        if (action === 'read') onMarkRead?.();
+        else onDismiss?.();
+      }, 300);
+    });
+  }, [animateTo, onMarkRead, onDismiss]);
 
-    setTimeout(() => {
-      setVisualState('dismissed');
-      if (action === 'read') onMarkRead?.();
-      else onDismiss?.();
-    }, 400);
-  }, [getRowWidth, onMarkRead, onDismiss]);
+  const settleGesture = useCallback(() => {
+    const x = offsetRef.current;
+    const absX = Math.abs(x);
 
-  /* ── mouse-based drag ────────────────────────────── */
+    // Full swipe → auto-trigger
+    if (x > FULL_SWIPE_THRESHOLD && onMarkRead) {
+      completeAction('read');
+      return;
+    }
+    if (x < -FULL_SWIPE_THRESHOLD && onDismiss) {
+      completeAction('dismiss');
+      return;
+    }
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button !== 0) return;
+    // Past action width → snap to show tappable button
+    if (x > ACTION_WIDTH * 0.6 && onMarkRead) {
+      animateTo(ACTION_WIDTH);
+      setVisualState('snapped-right');
+      return;
+    }
+    if (x < -(ACTION_WIDTH * 0.6) && onDismiss) {
+      animateTo(-ACTION_WIDTH);
+      setVisualState('snapped-left');
+      return;
+    }
 
-    // If snapped open, tap closes it
-    if (visualState === 'snapped-right' || visualState === 'snapped-left') {
+    // Below threshold → snap back
+    if (absX > 0) {
       snapBack();
-      e.preventDefault();
-      return;
-    }
-    if (visualState !== 'idle') return;
-
-    dragRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      decided: false,
-      isSwiping: false,
-      currentX: 0,
-    };
-
-    // Disable transition during drag
-    if (slideRef.current) slideRef.current.style.transition = 'none';
-
-    const onMouseMove = (me: MouseEvent) => {
-      const drag = dragRef.current;
-      if (!drag) return;
-
-      const dx = me.clientX - drag.startX;
-      const dy = me.clientY - drag.startY;
-
-      if (!drag.decided) {
-        if (Math.abs(dy) > DEADZONE) {
-          // Vertical — bail, let scroll handle it
-          dragRef.current = null;
-          return;
-        }
-        if (Math.abs(dx) > DEADZONE) {
-          drag.decided = true;
-          drag.isSwiping = true;
-          // Prevent text selection during swipe
-          e.preventDefault();
-        } else {
-          return;
-        }
-      }
-
-      // Clamp directions that have no handler
-      let clamped = dx;
-      if (dx > 0 && !onMarkRead) clamped = 0;
-      if (dx < 0 && !onDismiss) clamped = 0;
-
-      drag.currentX = clamped;
-      applyOffset(clamped);
-    };
-
-    const onMouseUp = () => {
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-
-      const drag = dragRef.current;
-      dragRef.current = null;
-
-      if (!drag || !drag.isSwiping) return;
-
-      const x = drag.currentX;
-      const rowWidth = getRowWidth();
-      const absX = Math.abs(x);
-
-      // Re-enable transitions
-      if (slideRef.current) slideRef.current.style.transition = SPRING;
-
-      // Full swipe past threshold → auto-trigger
-      if (x > 0 && absX > rowWidth * FULL_SWIPE_RATIO && onMarkRead) {
-        setOffsetX(x); // sync React state
-        completeAction('read');
-        return;
-      }
-      if (x < 0 && absX > rowWidth * FULL_SWIPE_RATIO && onDismiss) {
-        setOffsetX(x);
-        completeAction('dismiss');
-        return;
-      }
-
-      // Past action width → snap to show action button
-      if (x > ACTION_WIDTH && onMarkRead) {
-        setAnimate(true);
-        setOffsetX(ACTION_WIDTH);
-        setVisualState('snapped-right');
-        return;
-      }
-      if (x < -ACTION_WIDTH && onDismiss) {
-        setAnimate(true);
-        setOffsetX(-ACTION_WIDTH);
-        setVisualState('snapped-left');
-        return;
-      }
-
-      // Below threshold → snap back
-      setAnimate(true);
-      setOffsetX(0);
+    } else {
       setVisualState('idle');
-    };
-
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-  }, [visualState, snapBack, onMarkRead, onDismiss, applyOffset, getRowWidth, completeAction]);
-
-  // Sync React state → DOM for animated transitions (snap, complete)
-  useEffect(() => {
-    if (!animate) return;
-    applyOffset(offsetX);
-    const id = setTimeout(() => setAnimate(false), 450);
-    return () => clearTimeout(id);
-  }, [offsetX, animate, applyOffset]);
-
-  // Re-enable transition when animate is true
-  useEffect(() => {
-    if (animate && slideRef.current) {
-      slideRef.current.style.transition = SPRING;
     }
-  }, [animate]);
+  }, [onMarkRead, onDismiss, completeAction, animateTo, snapBack]);
 
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    // Don't fire click if we were swiping
-    const drag = dragRef.current;
-    if (drag?.isSwiping) {
-      e.preventDefault();
+  /* ── wheel handler (trackpad swipe) ──────────────── */
+
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    const st = stateRef.current;
+
+    // If completing/dismissed, ignore
+    if (st === 'completing' || st === 'dismissed') return;
+
+    // If snapped, any wheel should close it
+    if (st === 'snapped-right' || st === 'snapped-left') {
+      snapBack();
       return;
     }
-    if (visualState !== 'idle') return;
+
+    const dx = e.deltaX;
+    const dy = e.deltaY;
+
+    // Accumulate for direction decision
+    const g = gestureRef.current;
+    g.totalDx += Math.abs(dx);
+    g.totalDy += Math.abs(dy);
+
+    if (!g.decided) {
+      // Need enough movement to decide
+      if (g.totalDx + g.totalDy < 10) return;
+      g.decided = true;
+      g.isSwipe = g.totalDx > g.totalDy * 1.5; // Horizontal-dominant = swipe
+      if (!g.isSwipe) return; // Vertical scroll — let it through
+    }
+
+    if (!g.isSwipe) return; // Vertical scroll gesture
+
+    // It's a horizontal swipe — prevent vertical scroll
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (st === 'idle') setVisualState('swiping');
+
+    // deltaX is inverted on macOS (natural scrolling): positive = scroll right = swipe left content
+    // We want: swipe right on trackpad = content moves right = positive offset
+    // macOS trackpad: two fingers moving right → deltaX is negative (natural scrolling)
+    let newOffset = offsetRef.current - dx;
+
+    // Clamp to allowed directions
+    if (newOffset > 0 && !onMarkRead) newOffset = 0;
+    if (newOffset < 0 && !onDismiss) newOffset = 0;
+
+    // Rubber-band past full swipe threshold
+    const limit = FULL_SWIPE_THRESHOLD + 40;
+    if (Math.abs(newOffset) > limit) {
+      const sign = newOffset > 0 ? 1 : -1;
+      const over = Math.abs(newOffset) - limit;
+      newOffset = sign * (limit + over * 0.15);
+    }
+
+    applyOffset(newOffset);
+
+    // Reset gesture-end timer
+    if (gestureTimerRef.current) clearTimeout(gestureTimerRef.current);
+    gestureTimerRef.current = setTimeout(() => {
+      gestureTimerRef.current = null;
+      // Reset gesture tracking
+      gestureRef.current = { totalDx: 0, totalDy: 0, decided: false, isSwipe: false };
+      settleGesture();
+    }, GESTURE_END_MS);
+  }, [applyOffset, settleGesture, snapBack, onMarkRead, onDismiss]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (gestureTimerRef.current) clearTimeout(gestureTimerRef.current);
+    };
+  }, []);
+
+  const handleClick = useCallback(() => {
+    if (stateRef.current !== 'idle') {
+      // If snapped, close on click
+      if (stateRef.current === 'snapped-right' || stateRef.current === 'snapped-left') {
+        snapBack();
+      }
+      return;
+    }
     onClick();
-  }, [visualState, onClick]);
+  }, [onClick, snapBack]);
 
   /* ── render ──────────────────────────────────────── */
 
@@ -287,19 +297,9 @@ export default function NotificationRow({
       ref={rowRef}
       className="relative overflow-hidden"
       data-testid="notification-row"
-      style={visualState === 'completing' ? {
-        maxHeight: rowRef.current?.offsetHeight ?? 100,
-        transition: COLLAPSE,
-        overflow: 'hidden',
-      } : undefined}
-      onTransitionEnd={visualState === 'completing' ? () => {
-        if (rowRef.current) {
-          rowRef.current.style.maxHeight = '0px';
-          rowRef.current.style.opacity = '0';
-        }
-      } : undefined}
+      onWheel={handleWheel}
     >
-      {/* Right action: Mark Read (blue) — behind, left-aligned */}
+      {/* Right action: Mark Read (blue) — behind row, left-aligned */}
       <div
         ref={rightBgRef}
         className="absolute inset-y-0 left-0 items-center bg-blue-500"
@@ -308,21 +308,15 @@ export default function NotificationRow({
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); completeAction('read'); }}
-          className="flex flex-col items-center justify-center gap-1 w-[80px] h-full text-white active:bg-blue-600"
+          className="flex flex-col items-center justify-center gap-1 w-[80px] h-full text-white active:bg-blue-600 transition-colors"
           data-testid="action-mark-read"
         >
-          {isUnread ? (
-            <CheckCheck className="w-5 h-5" />
-          ) : (
-            <BookOpen className="w-5 h-5" />
-          )}
-          <span className="text-[10px] font-medium leading-none">
-            {isUnread ? 'Read' : 'Unread'}
-          </span>
+          {isUnread ? <CheckCheck className="w-5 h-5" /> : <BookOpen className="w-5 h-5" />}
+          <span className="text-[10px] font-medium leading-none">{isUnread ? 'Read' : 'Unread'}</span>
         </button>
       </div>
 
-      {/* Left action: Delete (red) — behind, right-aligned */}
+      {/* Left action: Delete (red) — behind row, right-aligned */}
       <div
         ref={leftBgRef}
         className="absolute inset-y-0 right-0 items-center justify-end bg-red-500"
@@ -331,7 +325,7 @@ export default function NotificationRow({
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); completeAction('dismiss'); }}
-          className="flex flex-col items-center justify-center gap-1 w-[80px] h-full text-white active:bg-red-600"
+          className="flex flex-col items-center justify-center gap-1 w-[80px] h-full text-white active:bg-red-600 transition-colors"
           data-testid="action-dismiss"
         >
           <Trash2 className="w-5 h-5" />
@@ -339,14 +333,13 @@ export default function NotificationRow({
         </button>
       </div>
 
-      {/* Slideable row content */}
+      {/* Row content — slides left/right */}
       <div
         ref={slideRef}
         role="button"
         tabIndex={0}
         onClick={handleClick}
-        onKeyDown={(e) => { if (e.key === 'Enter' && visualState === 'idle') onClick(); }}
-        onMouseDown={handleMouseDown}
+        onKeyDown={(e) => { if (e.key === 'Enter' && stateRef.current === 'idle') onClick(); }}
         className={`group relative w-full text-left flex gap-2.5 px-3 py-2.5 density-compact:py-2 density-comfortable:py-3 cursor-pointer select-none ${
           isUnread
             ? 'bg-background hover:bg-muted/40'
@@ -449,7 +442,7 @@ export default function NotificationRow({
           )}
         </div>
 
-        {/* Hover: open in browser — zero space when hidden */}
+        {/* Hover: open in browser */}
         {item.url && onOpenInBrowser && (
           <div
             className="flex-shrink-0 flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-150"
