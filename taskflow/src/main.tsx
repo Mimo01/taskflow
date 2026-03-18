@@ -100,8 +100,7 @@ function AppLayout() {
   const queryClient = useQueryClient();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [jiraNotifOpen, setJiraNotifOpen] = useState(false);
-  const [gitlabNotifOpen, setGitlabNotifOpen] = useState(false);
+  const [notifPopoverOpen, setNotifPopoverOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const pushRecentItem = useRecentItemsStore((s) => s.pushItem);
@@ -151,7 +150,7 @@ function AppLayout() {
   // KEYS-03: Navigation shortcuts
   useHotkeys('mod+shift+s', () => navigate('/sprint-board'));
   useHotkeys('mod+shift+b', () => navigate('/backlog'));
-  useHotkeys('mod+shift+n', () => setJiraNotifOpen((prev) => !prev));
+  useHotkeys('mod+shift+n', () => setNotifPopoverOpen((prev) => !prev));
   useHotkeys('mod+comma', () => navigate('/settings'));
 
   // SIDEBAR: Cmd+B toggles sidebar collapsed/expanded
@@ -166,7 +165,7 @@ function AppLayout() {
       listen('menu-command-palette', () => setPaletteOpen(true)),
       listen('menu-nav-sprint', () => navigate('/sprint-board')),
       listen('menu-nav-backlog', () => navigate('/backlog')),
-      listen('menu-nav-notifications', () => setJiraNotifOpen(true)),
+      listen('menu-nav-notifications', () => setNotifPopoverOpen(true)),
       listen('menu-nav-settings', () => navigate('/settings')),
       listen('menu-debug-logs', () => navigate('/debug-logs')),
     ];
@@ -306,7 +305,7 @@ function AppLayout() {
   };
 
   const handlePaletteOpenNotifications = () => {
-    setJiraNotifOpen(true);
+    setNotifPopoverOpen(true);
   };
 
   const handleOpenCreate = () => {
@@ -376,10 +375,8 @@ function AppLayout() {
           onMRClick={handleMRClick}
           paletteOpen={paletteOpen}
           onPaletteOpen={() => setPaletteOpen(true)}
-          jiraNotifOpen={jiraNotifOpen}
-          onJiraNotifChange={setJiraNotifOpen}
-          gitlabNotifOpen={gitlabNotifOpen}
-          onGitlabNotifChange={setGitlabNotifOpen}
+          notifPopoverOpen={notifPopoverOpen}
+          onNotifPopoverChange={setNotifPopoverOpen}
         />
         {pinnedKeys.length > 0 && (
           <PinnedTabStrip
