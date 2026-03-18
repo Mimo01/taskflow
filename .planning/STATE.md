@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-18 - Completed quick task 260318-x3d: Expand Jira changelog field extraction for richer notifications
+Last activity: 2026-03-19 - Completed quick task 260319-0yd: Fix unread notification toggle + button padding
 
 Progress: [██████████] 100%
 
@@ -195,9 +195,10 @@ None.
 | 260318-td7 | Split GitLab and Jira notifications into separate views with tabbed popover, time groups, unread filter, bell pulse, and redesigned actions | 2026-03-18 | ad0571d | | [260318-td7-split-gitlab-and-jira-notifications-into](./quick/260318-td7-split-gitlab-and-jira-notifications-into/) |
 | 260318-uth | Redesign notification row — avatar-led layout, source borders, type badges, smart body parsing | 2026-03-18 | 7c00bf0 | Verified | [260318-uth-redesign-the-notification-row-to-look-sl](./quick/260318-uth-redesign-the-notification-row-to-look-sl/) |
 | 260318-x3d | Expand Jira changelog field extraction for richer notifications (8+ fields) | 2026-03-18 | c6efff1 | | [260318-x3d-show-more-detail-in-nira-notifications-f](./quick/260318-x3d-show-more-detail-in-nira-notifications-f/) |
+| 260319-0yd | Fix unread notification toggle + button padding | 2026-03-19 | 25efc51 | | [260319-0yd-unread-a-notification-doesn-t-work-all-a](./quick/260319-0yd-unread-a-notification-doesn-t-work-all-a/) |
 
 ## Session Continuity
 
-Last session: 2026-03-18T24:00:00Z
-Stopped at: Completed quick task 260318-x3d — expanded Jira changelog extraction to 10 fields (description, priority, story points, sprint, fix version, labels, resolution, type)
+Last session: 2026-03-19T00:00:00Z
+Stopped at: Completed quick task 260319-0yd — fix unread notification toggle + button padding
 Resume: Milestone v1.3 (UX & Branding) is fully executed. All 5 phases (18-22), 29 plans complete. Ready for /gsd:audit-milestone or /gsd:complete-milestone.
