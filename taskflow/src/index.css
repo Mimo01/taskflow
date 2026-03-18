@@ -48,6 +48,23 @@
   --font-sans: 'Geist Variable', sans-serif;
 }
 
+@keyframes bell-ring {
+  0%, 100% { transform: rotate(0deg); }
+  10% { transform: rotate(14deg); }
+  20% { transform: rotate(-12deg); }
+  30% { transform: rotate(10deg); }
+  40% { transform: rotate(-8deg); }
+  50% { transform: rotate(6deg); }
+  60% { transform: rotate(-4deg); }
+  70% { transform: rotate(2deg); }
+  80% { transform: rotate(0deg); }
+}
+
+@utility animate-bell-ring {
+  animation: bell-ring 0.8s ease-in-out;
+  transform-origin: top center;
+}
+
 @utility no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
