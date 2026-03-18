@@ -72,6 +72,7 @@ interface NotificationsState {
   prependItems: (newItems: NotificationItem[]) => void;
   markAsRead: (id: string) => void;
   markAllRead: () => void;
+  markAllReadBySource: (source: 'jira' | 'gitlab') => void;
   clearAll: () => void;
   setLastSeenCursor: (ts: string) => void;
   setPermissionDenied: (v: boolean) => void;
@@ -109,6 +110,11 @@ export const useNotificationsStore = create<NotificationsState>()(
       markAllRead: () =>
         set((s) => ({
           readIds: s.items.map((i) => i.id),
+        })),
+
+      markAllReadBySource: (source) =>
+        set((s) => ({
+          readIds: [...new Set([...s.readIds, ...s.items.filter((i) => i.source === source).map((i) => i.id)])],
         })),
 
       clearAll: () =>
@@ -156,4 +162,16 @@ export const useUnreadCount = () =>
   useNotificationsStore((s) => {
     const readSet = new Set(s.readIds);
     return s.items.filter((i) => !readSet.has(i.id)).length;
+  });
+
+export const useJiraUnreadCount = () =>
+  useNotificationsStore((s) => {
+    const readSet = new Set(s.readIds);
+    return s.items.filter((i) => i.source === 'jira' && !readSet.has(i.id)).length;
+  });
+
+export const useGitlabUnreadCount = () =>
+  useNotificationsStore((s) => {
+    const readSet = new Set(s.readIds);
+    return s.items.filter((i) => i.source === 'gitlab' && !readSet.has(i.id)).length;
   });
