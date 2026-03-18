@@ -299,7 +299,7 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
       )}
 
       {/* Feed */}
-      <div className="overflow-y-auto max-h-[520px] overscroll-x-contain">
+      <div className="overflow-y-auto max-h-[520px]">
         {fetchError && visibleItems.length === 0 && retryFetch ? (
           <div className="p-2">
             <ErrorState error={fetchError} onRetry={retryFetch} viewName="notifications" />
