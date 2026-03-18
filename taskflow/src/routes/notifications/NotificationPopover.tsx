@@ -87,6 +87,7 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
     markAllRead,
     markAllReadBySource,
     markAsRead,
+    markAsUnread,
     removeItem,
     setPermissionDenied,
   } = useNotificationsStore();
@@ -165,7 +166,7 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
             item={item}
             isUnread={!readSet.has(item.id)}
             onClick={() => handleRowClick(item)}
-            onMarkRead={() => markAsRead(item.id)}
+            onMarkRead={() => readSet.has(item.id) ? markAsUnread(item.id) : markAsRead(item.id)}
             onDismiss={() => removeItem(item.id)}
             onOpenInBrowser={item.url ? () => { openUrl(item.url!).catch(() => {}); markAsRead(item.id); } : undefined}
           />
@@ -239,7 +240,7 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
               </>
             )}
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleMarkAllRead} className="text-xs h-7">
+          <Button variant="ghost" size="sm" onClick={handleMarkAllRead} className="text-xs h-7 px-2">
             Mark all read
           </Button>
         </div>
