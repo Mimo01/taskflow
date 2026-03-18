@@ -1,4 +1,3 @@
-// NOTF-01: NotificationRow renders sleek card layout with source accents, metadata, and action tray
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import NotificationRow from './NotificationRow';
@@ -19,25 +18,9 @@ function makeItem(source: 'jira' | 'gitlab'): NotificationItem {
 }
 
 describe('NotificationRow', () => {
-  // Source accent border
-  it('renders with border-orange-500 for jira source', () => {
-    const item = makeItem('jira');
-    const { container } = render(<NotificationRow item={item} onClick={() => {}} />);
-    const button = container.querySelector('button');
-    expect(button?.className).toContain('border-orange-500');
-  });
-
-  it('renders with border-purple-500 for gitlab source', () => {
-    const item = makeItem('gitlab');
-    const { container } = render(<NotificationRow item={item} onClick={() => {}} />);
-    const button = container.querySelector('button');
-    expect(button?.className).toContain('border-purple-500');
-  });
-
-  // Title and issue key extraction
+  // Issue key extraction
   it('extracts and renders issue key separately from title', () => {
-    const item = makeItem('jira');
-    render(<NotificationRow item={item} onClick={() => {}} />);
+    render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
     expect(screen.getByText('PROJ-123')).toBeInTheDocument();
     expect(screen.getByText('Fix login bug')).toBeInTheDocument();
   });
@@ -53,90 +36,81 @@ describe('NotificationRow', () => {
 
   // Body preview
   it('renders the body preview', () => {
-    const item = makeItem('gitlab');
-    render(<NotificationRow item={item} onClick={() => {}} />);
+    render(<NotificationRow item={makeItem('gitlab')} onClick={() => {}} />);
     expect(screen.getByText('The issue was caused by a race condition')).toBeInTheDocument();
   });
 
-  // Type badge
-  it('renders type label Mentioned when notificationType is comment-mention', () => {
+  // Type label
+  it('renders type label when notificationType is set', () => {
     const item: NotificationItem = { ...makeItem('jira'), notificationType: 'comment-mention' };
     render(<NotificationRow item={item} onClick={() => {}} />);
     expect(screen.getByText('Mentioned')).toBeInTheDocument();
   });
 
-  // Entity state chip
-  it('renders entityState chip when entityState is provided', () => {
+  // Entity state
+  it('renders entityState when provided', () => {
     const item: NotificationItem = { ...makeItem('gitlab'), entityState: 'merged' };
     render(<NotificationRow item={item} onClick={() => {}} />);
     expect(screen.getByText('merged')).toBeInTheDocument();
   });
 
-  // Source badge text
-  it('renders source badge text "Jira" for jira source', () => {
-    const item = makeItem('jira');
-    render(<NotificationRow item={item} onClick={() => {}} />);
-    expect(screen.getByText('Jira')).toBeInTheDocument();
+  // Source dot on avatar
+  it('renders source indicator dot for jira (orange)', () => {
+    const { container } = render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
+    const dot = container.querySelector('.bg-orange-500');
+    expect(dot).toBeInTheDocument();
   });
 
-  it('renders source badge text "GitLab" for gitlab source', () => {
-    const item = makeItem('gitlab');
-    render(<NotificationRow item={item} onClick={() => {}} />);
-    expect(screen.getByText('GitLab')).toBeInTheDocument();
+  it('renders source indicator dot for gitlab (purple)', () => {
+    const { container } = render(<NotificationRow item={makeItem('gitlab')} onClick={() => {}} />);
+    const dot = container.querySelector('.bg-purple-500');
+    expect(dot).toBeInTheDocument();
   });
 
   // Timestamp
-  it('renders the relative timestamp', () => {
-    const item = makeItem('jira');
-    render(<NotificationRow item={item} onClick={() => {}} />);
-    // Compact format without "ago" — e.g. "7d"
+  it('renders relative timestamp', () => {
+    render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
     expect(screen.getByText(/\d+d/)).toBeInTheDocument();
   });
 
   // Author
-  it('renders author name without "by" prefix', () => {
-    const item = makeItem('jira');
-    render(<NotificationRow item={item} onClick={() => {}} />);
+  it('renders author name', () => {
+    render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
     expect(screen.getByText('J.Smith')).toBeInTheDocument();
-    expect(screen.queryByText('by J.Smith')).not.toBeInTheDocument();
   });
 
-  // Unread indicator
-  it('renders unread dot indicator when isUnread is true', () => {
-    const item = makeItem('jira');
-    const { container } = render(<NotificationRow item={item} isUnread={true} onClick={() => {}} />);
-    const dot = container.querySelector('[data-testid="unread-dot"]');
-    expect(dot).toBeInTheDocument();
-    expect(dot?.className).toContain('bg-blue-500');
+  // Unread state
+  it('renders blue left accent when unread', () => {
+    const { container } = render(<NotificationRow item={makeItem('jira')} isUnread onClick={() => {}} />);
+    const accent = container.querySelector('.bg-blue-500');
+    expect(accent).toBeInTheDocument();
   });
 
-  it('does not render unread dot when isUnread is false', () => {
-    const item = makeItem('jira');
-    const { container } = render(<NotificationRow item={item} isUnread={false} onClick={() => {}} />);
-    const dot = container.querySelector('[data-testid="unread-dot"]');
-    expect(dot).not.toBeInTheDocument();
+  it('does not render blue accent when read', () => {
+    const { container } = render(<NotificationRow item={makeItem('jira')} isUnread={false} onClick={() => {}} />);
+    const accent = container.querySelector('.bg-blue-500');
+    // Source dot is orange for jira, no blue accent
+    expect(accent).not.toBeInTheDocument();
   });
 
-  it('applies font-semibold to title when unread', () => {
-    const item = makeItem('jira');
-    render(<NotificationRow item={item} isUnread={true} onClick={() => {}} />);
+  it('applies font-medium to title when unread', () => {
+    render(<NotificationRow item={makeItem('jira')} isUnread onClick={() => {}} />);
     const title = screen.getByText('Fix login bug');
-    expect(title.className).toContain('font-semibold');
+    expect(title.className).toContain('font-medium');
   });
 
   // Parent key
-  it('renders parent key when parentKey is provided', () => {
+  it('renders parent key context when parentKey and issueKey are present', () => {
     const item: NotificationItem = { ...makeItem('jira'), parentKey: 'PROJ-100' };
     render(<NotificationRow item={item} onClick={() => {}} />);
     expect(screen.getByText('PROJ-100')).toBeInTheDocument();
   });
 
   // Action tray
-  it('renders action tray with labeled buttons when actions are provided', () => {
-    const item = makeItem('jira');
+  it('renders action tray with icon buttons when actions are provided', () => {
     const { container } = render(
       <NotificationRow
-        item={{ ...item, url: 'https://jira.example.com/browse/PROJ-123' }}
+        item={{ ...makeItem('jira'), url: 'https://jira.example.com/browse/PROJ-123' }}
         onClick={() => {}}
         onNavigate={() => {}}
         onDismiss={() => {}}
@@ -145,14 +119,24 @@ describe('NotificationRow', () => {
     );
     const tray = container.querySelector('[data-testid="action-tray"]');
     expect(tray).toBeInTheDocument();
-    expect(screen.getByText('Open')).toBeInTheDocument();
-    expect(screen.getByText('Dismiss')).toBeInTheDocument();
+    // 3 action buttons
+    const buttons = tray?.querySelectorAll('[role="button"]');
+    expect(buttons?.length).toBe(3);
   });
 
   it('does not render action tray when no actions provided', () => {
-    const item = makeItem('jira');
-    const { container } = render(<NotificationRow item={item} onClick={() => {}} />);
-    const tray = container.querySelector('[data-testid="action-tray"]');
-    expect(tray).not.toBeInTheDocument();
+    const { container } = render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
+    expect(container.querySelector('[data-testid="action-tray"]')).not.toBeInTheDocument();
+  });
+
+  // Change formatting
+  it('renders status changes with arrow formatting', () => {
+    const item: NotificationItem = {
+      ...makeItem('jira'),
+      notificationType: 'issue-update',
+      bodyPreview: 'Status: In Progress → Done',
+    };
+    render(<NotificationRow item={item} onClick={() => {}} />);
+    expect(screen.getByText('Done')).toBeInTheDocument();
   });
 });
