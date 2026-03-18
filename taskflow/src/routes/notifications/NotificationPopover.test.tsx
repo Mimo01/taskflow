@@ -24,7 +24,7 @@ describe('NotificationPopover', () => {
       useNotificationsStore.setState({ permissionDenied: true });
     });
 
-    render(<NotificationPopover source="jira" />);
+    render(<NotificationPopover />);
 
     expect(
       screen.getByText(/Desktop notifications are blocked/i),
@@ -36,7 +36,7 @@ describe('NotificationPopover', () => {
       useNotificationsStore.setState({ permissionDenied: false });
     });
 
-    render(<NotificationPopover source="jira" />);
+    render(<NotificationPopover />);
 
     expect(
       screen.queryByText(/Desktop notifications are blocked/i),
@@ -66,7 +66,6 @@ describe('NotificationPopover', () => {
 
     render(
       <NotificationPopover
-        source="jira"
         onIssueClick={onIssueClick}
         onClose={onClose}
       />,
@@ -102,12 +101,12 @@ describe('NotificationPopover', () => {
 
     render(
       <NotificationPopover
-        source="gitlab"
         onMRClick={onMRClick}
         onClose={onClose}
       />,
     );
 
+    // GitLab items show under "All" tab by default
     fireEvent.click(screen.getByText('Add dark mode support'));
 
     expect(onMRClick).toHaveBeenCalledWith('99/7');
