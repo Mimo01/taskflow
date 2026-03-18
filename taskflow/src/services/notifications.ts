@@ -18,6 +18,24 @@ import {
 import type { GitLabMR } from './gitlab';
 import type { NotificationType } from '../stores/notifications.store';
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Normalize any ISO 8601 timestamp to UTC (Z-suffix) format.
+ *
+ * Jira returns timestamps with timezone offsets like "2026-03-18T13:45:00.123+0100"
+ * while GitLab always returns UTC "2026-03-18T12:45:00.000Z". Raw string comparison
+ * of these is INCORRECT — the Jira local-time digits appear "later" than the GitLab
+ * UTC digits even when they represent the same instant. Normalizing to UTC ensures
+ * correct cross-source cursor comparisons.
+ */
+function toUtcIso(ts: string): string {
+  const d = new Date(ts);
+  // Guard against Invalid Date — return original to avoid silent data loss
+  if (Number.isNaN(d.getTime())) return ts;
+  return d.toISOString();
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface NotificationItem {
@@ -69,7 +87,7 @@ async function fetchNewJiraComments(
 ): Promise<NotificationItem[]> {
   if (!displayName && !username) return [];
 
-  const since = lastSeenCursor ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const since = toUtcIso(lastSeenCursor ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
   // JQL requires "YYYY-MM-DD HH:mm" format (no seconds, space not T)
   const sinceJql = since.substring(0, 16).replace('T', ' ');
   const base = baseUrl.replace(/\/$/, '');
@@ -77,6 +95,19 @@ async function fetchNewJiraComments(
   const headers = {
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json',
+  };
+
+  // Map of Jira changelog field names to display labels for tracked fields.
+  // These produce "Label: old → new" change lines in notification bodies.
+  const TRACKED_FIELDS: Record<string, string> = {
+    'priority': 'Priority',
+    'Story Points': 'Story Points',
+    'Sprint': 'Sprint',
+    'Fix Version': 'Fix Version',
+    'Fix Version/s': 'Fix Version',
+    'labels': 'Labels',
+    'resolution': 'Resolution',
+    'issuetype': 'Type',
   };
 
   // ── Query A: issue updates (assignee / reporter / watcher) ──────────────────
@@ -133,7 +164,7 @@ async function fetchNewJiraComments(
       let changeAuthorAvatar: string | undefined;
       const histories = issue.changelog?.histories ?? [];
       for (const history of histories) {
-        if (history.created <= since) continue;
+        if (toUtcIso(history.created) <= since) continue;
         for (const item of history.items) {
           if (item.field === 'status') {
             changeLines.push(`Status: ${item.fromString ?? '(none)'} \u2192 ${item.toString ?? '(none)'}`);
@@ -158,7 +189,7 @@ async function fetchNewJiraComments(
                 authorAvatarUrl: history.author.avatarUrls?.['48x48'],
                 bodyPreview: `Assigned to you by ${history.author.displayName}`,
                 fullBody: `Assigned to you by ${history.author.displayName}`,
-                createdAt: history.created,
+                createdAt: toUtcIso(history.created),
                 url: `${base}/browse/${issue.key}`,
                 notificationType: 'issue-assignment',
                 entityState: undefined,
@@ -166,6 +197,15 @@ async function fetchNewJiraComments(
                 parentSummary: issue.fields.parent?.fields?.summary,
               });
             }
+          } else if (item.field === 'description') {
+            changeLines.push(`Description: ${item.fromString ? 'updated' : 'set'}`);
+            changeAuthor = changeAuthor ?? history.author.displayName;
+            changeAuthorAvatar = changeAuthorAvatar ?? history.author.avatarUrls?.['48x48'];
+          } else if (TRACKED_FIELDS[item.field]) {
+            const label = TRACKED_FIELDS[item.field];
+            changeLines.push(`${label}: ${item.fromString ?? '(none)'} \u2192 ${item.toString ?? '(none)'}`);
+            changeAuthor = changeAuthor ?? history.author.displayName;
+            changeAuthorAvatar = changeAuthorAvatar ?? history.author.avatarUrls?.['48x48'];
           }
         }
       }
@@ -192,7 +232,7 @@ async function fetchNewJiraComments(
         authorAvatarUrl: changeAuthorAvatar,
         bodyPreview,
         fullBody,
-        createdAt: issue.fields.updated,
+        createdAt: toUtcIso(issue.fields.updated),
         url: `${base}/browse/${issue.key}`,
         notificationType: 'issue-update',
         entityState: undefined,
@@ -242,7 +282,7 @@ async function fetchNewJiraComments(
       const comments = issue.fields?.comment?.comments ?? [];
       for (const comment of comments) {
         // Client-side cursor filter
-        if (comment.updated <= since) continue;
+        if (toUtcIso(comment.updated) <= since) continue;
 
         // Must mention the current user (Jira uses [~username] or @displayName)
         const body: string = comment.body ?? '';
@@ -258,7 +298,7 @@ async function fetchNewJiraComments(
           authorAvatarUrl: comment.author?.avatarUrls?.['48x48'],
           bodyPreview: body.substring(0, 80),
           fullBody: body,
-          createdAt: comment.created,
+          createdAt: toUtcIso(comment.created),
           url: `${base}/browse/${issue.key}`,
           notificationType: 'comment-mention',
           entityState: undefined,
@@ -313,7 +353,7 @@ async function fetchNewJiraComments(
 
       const comments = issue.fields?.comment?.comments ?? [];
       for (const comment of comments) {
-        if (comment.updated <= since) continue;
+        if (toUtcIso(comment.updated) <= since) continue;
         // Skip self-authored comments
         if (displayName && comment.author?.displayName === displayName) continue;
 
@@ -326,7 +366,7 @@ async function fetchNewJiraComments(
           authorAvatarUrl: comment.author?.avatarUrls?.['48x48'],
           bodyPreview: body.substring(0, 80),
           fullBody: body,
-          createdAt: comment.created,
+          createdAt: toUtcIso(comment.created),
           url: `${base}/browse/${issue.key}`,
           notificationType: 'jira-comment',
           entityState: undefined,
@@ -432,7 +472,7 @@ async function fetchNewGitlabNotes(
   lastSeenCursor: string | null,
   currentUsername: string | null,
 ): Promise<NotificationItem[]> {
-  const since = lastSeenCursor ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const since = toUtcIso(lastSeenCursor ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
   const results: NotificationItem[] = [];
 
   for (const mr of mrList) {
@@ -456,7 +496,7 @@ async function fetchNewGitlabNotes(
 
     for (const note of notes) {
       if (note.author?.id === currentUserId) continue; // skip own notes
-      if (note.created_at <= since) break;             // notes sorted desc — stop at cursor
+      if (toUtcIso(note.created_at) <= since) break;    // notes sorted desc — stop at cursor
 
       const body: string = note.body ?? '';
 
@@ -486,7 +526,7 @@ async function fetchNewGitlabNotes(
           authorAvatarUrl: note.author?.avatar_url,
           bodyPreview: parsedBody.substring(0, 120),
           fullBody: parsedBody,
-          createdAt: note.created_at,
+          createdAt: toUtcIso(note.created_at),
           url: mr.web_url,
           notificationType: 'mr-note',
           entityState: mr.state,
@@ -507,7 +547,7 @@ async function fetchNewGitlabNotes(
         authorAvatarUrl: note.author?.avatar_url,
         bodyPreview: body.substring(0, 80),
         fullBody: body,
-        createdAt: note.created_at,
+        createdAt: toUtcIso(note.created_at),
         url: mr.web_url,
         notificationType: isMentioned ? 'gitlab-mention' : 'mr-note',
         entityState: mr.state,
@@ -532,7 +572,7 @@ async function fetchGitlabApprovals(
   mrList: GitLabMR[],
   lastSeenCursor: string | null,
 ): Promise<NotificationItem[]> {
-  const since = lastSeenCursor ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const since = toUtcIso(lastSeenCursor ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
   const results: NotificationItem[] = [];
   const base = baseUrl.replace(/\/$/, '');
 
@@ -562,7 +602,7 @@ async function fetchGitlabApprovals(
     }> = data.approved_by ?? [];
 
     for (const entry of approvedBy) {
-      const approvedAt = entry.approved_at ?? mr.updated_at;
+      const approvedAt = toUtcIso(entry.approved_at ?? mr.updated_at);
       if (approvedAt <= since) continue;
 
       results.push({
@@ -598,7 +638,7 @@ async function fetchGitlabPipelineFailures(
   mrList: GitLabMR[],
   lastSeenCursor: string | null,
 ): Promise<NotificationItem[]> {
-  const since = lastSeenCursor ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const since = toUtcIso(lastSeenCursor ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
   const results: NotificationItem[] = [];
   const base = baseUrl.replace(/\/$/, '');
 
@@ -630,7 +670,7 @@ async function fetchGitlabPipelineFailures(
 
     for (const pipeline of pipelines) {
       if (pipeline.status !== 'failed') continue;
-      if (pipeline.updated_at <= since) continue;
+      if (toUtcIso(pipeline.updated_at) <= since) continue;
 
       results.push({
         id: `gitlab-pipeline-${pipeline.id}`,
@@ -640,7 +680,7 @@ async function fetchGitlabPipelineFailures(
         authorAvatarUrl: undefined,
         bodyPreview: `Pipeline #${pipeline.id} failed on ${mr.source_branch}`,
         fullBody: `Pipeline #${pipeline.id} failed on ${mr.source_branch}`,
-        createdAt: pipeline.updated_at,
+        createdAt: toUtcIso(pipeline.updated_at),
         url: mr.web_url,
         notificationType: 'pipeline-failure',
         entityState: mr.state,
