@@ -1,16 +1,20 @@
 /**
- * NotificationRow — single notification in the feed.
+ * NotificationRow — Apple-style swipeable notification.
  *
  * Interactions:
- * - Click      → mark as read + open detail
- * - Swipe right → mark as read (without opening)
- * - Swipe left  → dismiss / delete
- * - Hover       → small "open in browser" icon (only if url exists)
+ * - Click       → mark as read + open detail
+ * - Swipe right → reveals "Read" action button; full swipe auto-triggers
+ * - Swipe left  → reveals "Delete" action button; full swipe auto-triggers
+ * - Hover       → small external-link icon (only when url exists)
  *
- * No actions take space when not active.
+ * Swipe behaviour mirrors iOS Mail:
+ * - Short swipe snaps open to reveal tappable action button
+ * - Full swipe past 50% auto-triggers the action
+ * - Tap action button or tap elsewhere to close
+ * - Row slides out on delete with height collapse
  */
-import { useRef, useState, useCallback } from 'react';
-import { ExternalLink, Check, Trash2 } from 'lucide-react';
+import { useRef, useState, useCallback, useEffect } from 'react';
+import { ExternalLink, CheckCheck, Trash2, BookOpen } from 'lucide-react';
 import type { NotificationItem } from '../../stores/notifications.store';
 
 /* ── props ──────────────────────────────────────────── */
@@ -18,13 +22,9 @@ import type { NotificationItem } from '../../stores/notifications.store';
 interface NotificationRowProps {
   item: NotificationItem;
   isUnread?: boolean;
-  /** Click = mark read + navigate to detail */
   onClick: () => void;
-  /** Swipe-right = mark as read without navigating */
   onMarkRead?: () => void;
-  /** Swipe-left = dismiss notification */
   onDismiss?: () => void;
-  /** Hover action = open in external browser */
   onOpenInBrowser?: () => void;
 }
 
@@ -69,9 +69,13 @@ const stateStyle: Record<string, string> = {
 
 /* ── swipe constants ────────────────────────────────── */
 
-const SWIPE_THRESHOLD = 72;   // px to trigger action
-const SWIPE_DEADZONE = 6;     // px before we decide it's a swipe
-const SPRING_DURATION = 250;  // ms for snap-back
+const ACTION_WIDTH = 72;       // px — width of the revealed action button
+const FULL_SWIPE_RATIO = 0.5;  // swipe past 50% of row width → auto-trigger
+const DEADZONE = 6;            // px before deciding swipe vs scroll
+const SPRING = 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)'; // Apple-style spring
+const COLLAPSE = 'height 300ms cubic-bezier(0.32, 0.72, 0, 1), opacity 300ms ease-out';
+
+type SwipeState = 'idle' | 'dragging' | 'snapped-right' | 'snapped-left' | 'completing' | 'dismissed';
 
 /* ── component ──────────────────────────────────────── */
 
@@ -86,149 +90,216 @@ export default function NotificationRow({
   const { key: issueKey, title } = splitKey(item.entityTitle);
   const tc = item.notificationType ? typeConfig[item.notificationType] : null;
 
-  // Swipe state
   const [offsetX, setOffsetX] = useState(0);
-  const [transitioning, setTransitioning] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  const pointerRef = useRef<{ startX: number; startY: number; swiping: boolean; pointerId: number } | null>(null);
+  const [state, setState] = useState<SwipeState>('idle');
+  const [rowHeight, setRowHeight] = useState<number | undefined>(undefined);
+  const pointerRef = useRef<{
+    startX: number;
+    startY: number;
+    decided: boolean;
+    isSwiping: boolean;
+    pointerId: number;
+  } | null>(null);
   const rowRef = useRef<HTMLDivElement>(null);
 
-  const resetSwipe = useCallback(() => {
-    setTransitioning(true);
+  // Measure row height for collapse animation
+  useEffect(() => {
+    if (state === 'completing' && rowRef.current && rowHeight === undefined) {
+      setRowHeight(rowRef.current.offsetHeight);
+    }
+  }, [state, rowHeight]);
+
+  const getRowWidth = useCallback(() => rowRef.current?.offsetWidth ?? 400, []);
+
+  const snapBack = useCallback(() => {
+    setState('idle');
     setOffsetX(0);
-    setTimeout(() => setTransitioning(false), SPRING_DURATION);
   }, []);
 
+  const completeAction = useCallback((action: 'read' | 'dismiss') => {
+    setState('completing');
+    // Slide fully off-screen in the action direction
+    setOffsetX(action === 'read' ? getRowWidth() : -getRowWidth());
+
+    const el = rowRef.current;
+    if (el) setRowHeight(el.offsetHeight);
+
+    setTimeout(() => {
+      setState('dismissed');
+      if (action === 'read') onMarkRead?.();
+      else onDismiss?.();
+    }, 350);
+  }, [getRowWidth, onMarkRead, onDismiss]);
+
+  /* ── pointer handlers ────────────────────────────── */
+
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    // Only primary button (left click / single touch)
     if (e.button !== 0) return;
-    pointerRef.current = { startX: e.clientX, startY: e.clientY, swiping: false, pointerId: e.pointerId };
+    // If snapped open, a tap elsewhere should close it
+    if (state === 'snapped-right' || state === 'snapped-left') {
+      snapBack();
+      e.preventDefault();
+      return;
+    }
+    if (state !== 'idle') return;
+    pointerRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      decided: false,
+      isSwiping: false,
+      pointerId: e.pointerId,
+    };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  }, []);
+  }, [state, snapBack]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     const ref = pointerRef.current;
-    if (!ref) return;
+    if (!ref || state !== 'idle') return;
 
     const dx = e.clientX - ref.startX;
     const dy = e.clientY - ref.startY;
 
-    // Decide if this is a swipe or scroll
-    if (!ref.swiping) {
-      if (Math.abs(dy) > SWIPE_DEADZONE) {
-        // Vertical — let the scroll container handle it
+    if (!ref.decided) {
+      if (Math.abs(dy) > DEADZONE) {
+        // Vertical scroll — bail
         pointerRef.current = null;
         return;
       }
-      if (Math.abs(dx) > SWIPE_DEADZONE) {
-        ref.swiping = true;
+      if (Math.abs(dx) > DEADZONE) {
+        ref.decided = true;
+        ref.isSwiping = true;
+        setState('dragging');
       } else {
         return;
       }
     }
 
-    // Clamp: right swipe only if onMarkRead, left only if onDismiss
+    // Only allow directions that have handlers
     let clamped = dx;
     if (dx > 0 && !onMarkRead) clamped = 0;
     if (dx < 0 && !onDismiss) clamped = 0;
-    // Rubber-band past threshold
-    if (Math.abs(clamped) > SWIPE_THRESHOLD) {
-      const over = Math.abs(clamped) - SWIPE_THRESHOLD;
-      clamped = (clamped > 0 ? 1 : -1) * (SWIPE_THRESHOLD + over * 0.3);
-    }
 
     setOffsetX(clamped);
-  }, [onMarkRead, onDismiss]);
+  }, [state, onMarkRead, onDismiss]);
 
   const handlePointerUp = useCallback(() => {
     const ref = pointerRef.current;
-    const wasSwiping = ref?.swiping ?? false;
+    const wasSwiping = ref?.isSwiping ?? false;
     pointerRef.current = null;
 
-    if (!wasSwiping) {
-      setOffsetX(0);
-      return; // Was a click — onClick handled by the button
-    }
-
-    // Swipe right → mark read
-    if (offsetX >= SWIPE_THRESHOLD && onMarkRead) {
-      onMarkRead();
-      resetSwipe();
+    if (!wasSwiping || state !== 'dragging') {
+      if (state === 'dragging') snapBack();
       return;
     }
 
-    // Swipe left → dismiss with slide-out animation
-    if (offsetX <= -SWIPE_THRESHOLD && onDismiss) {
-      setTransitioning(true);
-      setOffsetX(-400);
-      setTimeout(() => {
-        setDismissed(true);
-        onDismiss();
-      }, SPRING_DURATION);
+    const rowWidth = getRowWidth();
+    const absX = Math.abs(offsetX);
+
+    // Full swipe past 50% → auto-trigger
+    if (offsetX > 0 && absX > rowWidth * FULL_SWIPE_RATIO && onMarkRead) {
+      completeAction('read');
+      return;
+    }
+    if (offsetX < 0 && absX > rowWidth * FULL_SWIPE_RATIO && onDismiss) {
+      completeAction('dismiss');
       return;
     }
 
-    // Below threshold — snap back
-    resetSwipe();
-  }, [offsetX, onMarkRead, onDismiss, resetSwipe]);
+    // Past action button width → snap to show action button
+    if (offsetX > ACTION_WIDTH && onMarkRead) {
+      setState('snapped-right');
+      setOffsetX(ACTION_WIDTH);
+      return;
+    }
+    if (offsetX < -ACTION_WIDTH && onDismiss) {
+      setState('snapped-left');
+      setOffsetX(-ACTION_WIDTH);
+      return;
+    }
 
-  // Prevent click when swiping
+    // Below threshold → snap back
+    snapBack();
+  }, [state, offsetX, getRowWidth, onMarkRead, onDismiss, completeAction, snapBack]);
+
   const handleClick = useCallback(() => {
-    // If we were swiping, don't fire click
-    if (Math.abs(offsetX) > SWIPE_DEADZONE) return;
+    if (state !== 'idle') return;
     onClick();
-  }, [onClick, offsetX]);
+  }, [state, onClick]);
 
-  if (dismissed) return null;
+  /* ── render ──────────────────────────────────────── */
 
-  // Format body for status changes
+  if (state === 'dismissed') return null;
+
   const isChange = (item.notificationType === 'issue-update' || item.notificationType === 'mr-note') &&
     item.bodyPreview.includes('\u2192');
 
-  const swipeActive = Math.abs(offsetX) > SWIPE_DEADZONE;
-  const rightRevealed = offsetX > SWIPE_DEADZONE;
-  const leftRevealed = offsetX < -SWIPE_DEADZONE;
-  const rightTriggered = offsetX >= SWIPE_THRESHOLD;
-  const leftTriggered = offsetX <= -SWIPE_THRESHOLD;
+  const animating = state !== 'dragging';
+  const showRight = offsetX > 0;
+  const showLeft = offsetX < 0;
 
   return (
     <div
       ref={rowRef}
       className="relative overflow-hidden"
       data-testid="notification-row"
+      style={state === 'completing' ? {
+        height: rowHeight,
+        transition: COLLAPSE,
+        ...(rowHeight !== undefined ? { height: 0, opacity: 0 } : {}),
+      } : undefined}
     >
-      {/* Swipe-right background: Mark read (blue) */}
-      {rightRevealed && (
-        <div className={`absolute inset-0 flex items-center pl-4 transition-colors duration-150 ${
-          rightTriggered ? 'bg-blue-500' : 'bg-blue-500/20'
-        }`}>
-          <Check className={`w-4 h-4 transition-colors ${rightTriggered ? 'text-white' : 'text-blue-500'}`} />
-          <span className={`ml-2 text-xs font-medium transition-colors ${rightTriggered ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`}>
-            Mark read
-          </span>
+      {/* Right action: Mark Read (blue) — behind, left-aligned */}
+      {showRight && (
+        <div
+          className="absolute inset-y-0 left-0 flex items-center bg-blue-500"
+          style={{ width: Math.max(offsetX, ACTION_WIDTH) }}
+        >
+          <button
+            type="button"
+            onClick={() => completeAction('read')}
+            className="flex flex-col items-center justify-center gap-1 w-[72px] h-full text-white"
+            data-testid="action-mark-read"
+          >
+            {isUnread ? (
+              <CheckCheck className="w-5 h-5" />
+            ) : (
+              <BookOpen className="w-5 h-5" />
+            )}
+            <span className="text-[10px] font-medium leading-none">
+              {isUnread ? 'Read' : 'Unread'}
+            </span>
+          </button>
         </div>
       )}
 
-      {/* Swipe-left background: Dismiss (red) */}
-      {leftRevealed && (
-        <div className={`absolute inset-0 flex items-center justify-end pr-4 transition-colors duration-150 ${
-          leftTriggered ? 'bg-red-500' : 'bg-red-500/20'
-        }`}>
-          <span className={`mr-2 text-xs font-medium transition-colors ${leftTriggered ? 'text-white' : 'text-red-600 dark:text-red-400'}`}>
-            Dismiss
-          </span>
-          <Trash2 className={`w-4 h-4 transition-colors ${leftTriggered ? 'text-white' : 'text-red-500'}`} />
+      {/* Left action: Delete (red) — behind, right-aligned */}
+      {showLeft && (
+        <div
+          className="absolute inset-y-0 right-0 flex items-center justify-end bg-red-500 transition-colors duration-150"
+          style={{ width: Math.max(Math.abs(offsetX), ACTION_WIDTH) }}
+        >
+          <button
+            type="button"
+            onClick={() => completeAction('dismiss')}
+            className="flex flex-col items-center justify-center gap-1 w-[72px] h-full text-white"
+            data-testid="action-dismiss"
+          >
+            <Trash2 className="w-5 h-5" />
+            <span className="text-[10px] font-medium leading-none">Delete</span>
+          </button>
         </div>
       )}
 
       {/* Slideable row content */}
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={handleClick}
+        onKeyDown={(e) => { if (e.key === 'Enter') handleClick(); }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerCancel={() => { pointerRef.current = null; resetSwipe(); }}
+        onPointerCancel={() => { pointerRef.current = null; snapBack(); }}
         className={`group relative w-full text-left flex gap-2.5 px-3 py-2.5 density-compact:py-2 density-comfortable:py-3 cursor-pointer select-none ${
           isUnread
             ? 'bg-background hover:bg-muted/40'
@@ -236,13 +307,12 @@ export default function NotificationRow({
         }`}
         style={{
           transform: `translateX(${offsetX}px)`,
-          transition: transitioning ? `transform ${SPRING_DURATION}ms cubic-bezier(0.25, 1, 0.5, 1)` : 'none',
-          touchAction: swipeActive ? 'none' : 'pan-y',
+          transition: animating ? SPRING : 'none',
+          touchAction: state === 'dragging' ? 'none' : 'pan-y',
         }}
       >
         {/* Left: Source + unread indicator */}
         <div className="flex-shrink-0 flex flex-col items-center gap-1 pt-0.5">
-          {/* Source badge — always visible, colored */}
           <span className={`flex items-center justify-center w-6 h-6 rounded-md text-[9px] font-bold tracking-tight leading-none ${
             item.source === 'jira'
               ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400'
@@ -250,7 +320,6 @@ export default function NotificationRow({
           }`}>
             {item.source === 'jira' ? 'J' : 'GL'}
           </span>
-          {/* Unread dot */}
           {isUnread && (
             <span className="w-1.5 h-1.5 rounded-full bg-blue-500" data-testid="unread-dot" />
           )}
@@ -337,7 +406,7 @@ export default function NotificationRow({
           )}
         </div>
 
-        {/* Hover: open in browser — only icon, zero width when hidden */}
+        {/* Hover: open in browser — zero space when hidden */}
         {item.url && onOpenInBrowser && (
           <div
             className="flex-shrink-0 flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-150"
@@ -355,7 +424,7 @@ export default function NotificationRow({
             </span>
           </div>
         )}
-      </button>
+      </div>
     </div>
   );
 }
