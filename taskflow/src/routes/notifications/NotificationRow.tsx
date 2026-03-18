@@ -4,13 +4,19 @@
  * Shows source-specific left border (orange=Jira, purple=GitLab),
  * prominent source badge, type label badge, entity title (bold when unread, clickable when url present),
  * metadata chips, linkified body preview, and relative timestamp on the metadata line.
+ *
+ * Quick actions (mark read, open in browser) appear on hover as a right-edge
+ * overlay with a gradient fade so they don't obscure content abruptly.
  */
+import { ExternalLink, Eye } from 'lucide-react';
 import type { NotificationItem } from '../../stores/notifications.store';
 
 interface NotificationRowProps {
   item: NotificationItem;
   isUnread?: boolean;
   onClick: () => void;
+  onMarkRead?: () => void;
+  onOpenInBrowser?: () => void;
 }
 
 function getRelativeTime(isoTimestamp: string): string {
@@ -54,159 +60,188 @@ const labelMap: Record<string, string> = {
 };
 
 const colorMap: Record<string, string> = {
-  'pipeline-failure': 'bg-red-100 text-red-700',
-  'mr-approval': 'bg-green-100 text-green-700',
-  'due-date-reminder': 'bg-amber-100 text-amber-700',
-  'issue-assignment': 'bg-blue-100 text-blue-700',
-  'issue-update': 'bg-teal-100 text-teal-700',
-  'jira-comment': 'bg-violet-100 text-violet-700',
-  'mr-note': 'bg-indigo-100 text-indigo-700',
-  'comment-mention': 'bg-pink-100 text-pink-700',
-  'gitlab-mention': 'bg-pink-100 text-pink-700',
+  'pipeline-failure': 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
+  'mr-approval': 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300',
+  'due-date-reminder': 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
+  'issue-assignment': 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
+  'issue-update': 'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300',
+  'jira-comment': 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300',
+  'mr-note': 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300',
+  'comment-mention': 'bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-300',
+  'gitlab-mention': 'bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-300',
 };
 
-export default function NotificationRow({ item, isUnread = false, onClick }: NotificationRowProps) {
+export default function NotificationRow({ item, isUnread = false, onClick, onMarkRead, onOpenInBrowser }: NotificationRowProps) {
   const borderClass = item.source === 'jira' ? 'border-orange-500' : 'border-purple-500';
   const typeLabel = item.notificationType ? (labelMap[item.notificationType] ?? item.notificationType) : null;
   const typeColor = item.notificationType ? (colorMap[item.notificationType] ?? 'bg-muted text-muted-foreground') : null;
+  const hasActions = (isUnread && onMarkRead) || (item.url && onOpenInBrowser);
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`w-full text-left border-l-4 ${borderClass} px-3 py-2 transition-colors duration-150 flex gap-3 items-start ${isUnread ? 'bg-accent/50 hover:bg-accent/80' : 'hover:bg-accent/60'}`}
-    >
-      {/* Avatar */}
-      <div className="flex-shrink-0 mt-0.5 relative">
-        {item.authorAvatarUrl ? (
-          <img
-            src={item.authorAvatarUrl}
-            alt={item.author}
-            className="w-6 h-6 rounded-full object-cover"
-            onError={(e) => {
-              const img = e.currentTarget;
-              img.style.display = 'none';
-              const sibling = img.nextElementSibling as HTMLElement | null;
-              if (sibling) sibling.style.display = 'flex';
-            }}
-          />
-        ) : null}
-        <span
-          className={`items-center justify-center w-6 h-6 rounded-full text-[10px] font-medium ${
-            item.source === 'jira'
-              ? 'bg-orange-100 text-orange-700'
-              : 'bg-purple-100 text-purple-700'
-          }`}
-          style={{ display: item.authorAvatarUrl ? 'none' : 'flex' }}
-        >
-          {getInitials(item.author)}
-        </span>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        {/* Metadata line: source badge + type badge + timestamp */}
-        <div className="flex items-center gap-1.5 mb-0.5">
-          {/* Source badge */}
-          {item.source === 'jira' ? (
-            <span className="relative inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-orange-500 text-white">
-              {isUnread && (
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-blue-500 ring-1 ring-white z-10" />
-              )}
-              Jira
-            </span>
-          ) : (
-            <span className="relative inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-purple-600 text-white">
-              {isUnread && (
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-blue-500 ring-1 ring-white z-10" />
-              )}
-              GitLab
-            </span>
-          )}
-
-          {/* Type badge */}
-          {typeLabel && typeColor && (
-            <span className={`inline-block text-[10px] font-medium px-1.5 py-0.5 rounded ${typeColor}`}>
-              {typeLabel}
-            </span>
-          )}
-
-          {/* Timestamp (right-aligned) */}
-          <span className="ml-auto text-[10px] text-muted-foreground whitespace-nowrap">
-            {getRelativeTime(item.createdAt)}
+    <div className="group relative">
+      <button
+        type="button"
+        onClick={onClick}
+        className={`w-full text-left border-l-4 ${borderClass} px-3 py-2 transition-colors duration-150 flex gap-3 items-start ${isUnread ? 'bg-accent/50 hover:bg-accent/80' : 'hover:bg-accent/60'}`}
+      >
+        {/* Avatar */}
+        <div className="flex-shrink-0 mt-0.5 relative">
+          {item.authorAvatarUrl ? (
+            <img
+              src={item.authorAvatarUrl}
+              alt={item.author}
+              className="w-6 h-6 rounded-full object-cover"
+              onError={(e) => {
+                const img = e.currentTarget;
+                img.style.display = 'none';
+                const sibling = img.nextElementSibling as HTMLElement | null;
+                if (sibling) sibling.style.display = 'flex';
+              }}
+            />
+          ) : null}
+          <span
+            className={`items-center justify-center w-6 h-6 rounded-full text-[10px] font-medium ${
+              item.source === 'jira'
+                ? 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300'
+                : 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300'
+            }`}
+            style={{ display: item.authorAvatarUrl ? 'none' : 'flex' }}
+          >
+            {getInitials(item.author)}
           </span>
         </div>
 
-        {/* Author line */}
-        <p className="text-xs text-muted-foreground mb-0.5">by {item.author}</p>
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          {/* Metadata line: source badge + type badge + timestamp */}
+          <div className="flex items-center gap-1.5 mb-0.5">
+            {/* Source badge */}
+            {item.source === 'jira' ? (
+              <span className="relative inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-orange-500 text-white">
+                {isUnread && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-blue-500 ring-1 ring-white z-10" />
+                )}
+                Jira
+              </span>
+            ) : (
+              <span className="relative inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-purple-600 text-white">
+                {isUnread && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-blue-500 ring-1 ring-white z-10" />
+                )}
+                GitLab
+              </span>
+            )}
 
-        {/* Parent story context for subtasks */}
-        {item.parentKey && (
-          <p className="text-xs text-muted-foreground truncate">
-            <span className="font-medium">{item.parentKey}</span>
-            {item.parentSummary && <span>: {item.parentSummary}</span>}
-          </p>
-        )}
+            {/* Type badge */}
+            {typeLabel && typeColor && (
+              <span className={`inline-block text-[10px] font-medium px-1.5 py-0.5 rounded ${typeColor}`}>
+                {typeLabel}
+              </span>
+            )}
 
-        {/* Entity title */}
-        <p className={`text-sm truncate ${isUnread ? 'font-bold' : 'font-normal'}`}>
-          {item.entityTitle}
-        </p>
-
-        {/* Body preview — styled change lines for arrow-format, linkified for plain text */}
-        {(item.notificationType === 'issue-update' || item.notificationType === 'mr-note') &&
-         item.bodyPreview.includes('\u2192')
-          ? (
-            <div className="flex flex-col gap-0.5 mt-0.5">
-              {(item.bodyPreview.includes(' | ') ? item.bodyPreview.split(' | ') : [item.bodyPreview]).map((line, i) => {
-                const colonIdx = line.indexOf(':');
-                const field = colonIdx > 0 ? line.slice(0, colonIdx).trim() : null;
-                const rest = colonIdx > 0 ? line.slice(colonIdx + 1).trim() : line;
-                const arrowIdx = rest.indexOf('\u2192');
-                const from = arrowIdx >= 0 ? rest.slice(0, arrowIdx).trim() : null;
-                const to = arrowIdx >= 0 ? rest.slice(arrowIdx + 1).trim() : rest;
-
-                return (
-                  <span key={i} className="flex items-center gap-1 text-xs">
-                    {field && <span className="font-semibold text-muted-foreground">{field}:</span>}
-                    {from !== null ? (
-                      <>
-                        <span className="text-muted-foreground">{from || '(none)'}</span>
-                        <span className="text-muted-foreground">{'\u2192'}</span>
-                        <span className={`font-medium ${isUnread ? 'text-foreground' : 'text-foreground/70'}`}>{to || '(none)'}</span>
-                      </>
-                    ) : (
-                      <span className="text-muted-foreground">{to}</span>
-                    )}
-                  </span>
-                );
-              })}
-            </div>
-          )
-          : (
-            <p className={`text-xs line-clamp-2 ${isUnread ? 'text-foreground/70' : 'text-muted-foreground'}`}>
-              <span dangerouslySetInnerHTML={{ __html: linkifyText(item.bodyPreview) }} />
-            </p>
-          )
-        }
-
-        {/* Entity state chip */}
-        {item.entityState && (
-          <div className="flex flex-wrap gap-1 mt-0.5">
-            <span
-              className={`text-xs px-1.5 py-0.5 rounded border ${
-                item.entityState === 'merged'
-                  ? 'bg-purple-50 text-purple-700 border-purple-200'
-                  : item.entityState === 'closed'
-                    ? 'bg-red-50 text-red-700 border-red-200'
-                    : 'bg-green-50 text-green-700 border-green-200'
-              }`}
-            >
-              {item.entityState}
+            {/* Timestamp (right-aligned) */}
+            <span className="ml-auto text-[10px] text-muted-foreground whitespace-nowrap group-hover:opacity-0 transition-opacity">
+              {getRelativeTime(item.createdAt)}
             </span>
           </div>
-        )}
-      </div>
-    </button>
+
+          {/* Author line */}
+          <p className="text-xs text-muted-foreground mb-0.5">by {item.author}</p>
+
+          {/* Parent story context for subtasks */}
+          {item.parentKey && (
+            <p className="text-xs text-muted-foreground truncate">
+              <span className="font-medium">{item.parentKey}</span>
+              {item.parentSummary && <span>: {item.parentSummary}</span>}
+            </p>
+          )}
+
+          {/* Entity title */}
+          <p className={`text-sm truncate ${isUnread ? 'font-bold' : 'font-normal'}`}>
+            {item.entityTitle}
+          </p>
+
+          {/* Body preview — styled change lines for arrow-format, linkified for plain text */}
+          {(item.notificationType === 'issue-update' || item.notificationType === 'mr-note') &&
+           item.bodyPreview.includes('\u2192')
+            ? (
+              <div className="flex flex-col gap-0.5 mt-0.5">
+                {(item.bodyPreview.includes(' | ') ? item.bodyPreview.split(' | ') : [item.bodyPreview]).map((line, i) => {
+                  const colonIdx = line.indexOf(':');
+                  const field = colonIdx > 0 ? line.slice(0, colonIdx).trim() : null;
+                  const rest = colonIdx > 0 ? line.slice(colonIdx + 1).trim() : line;
+                  const arrowIdx = rest.indexOf('\u2192');
+                  const from = arrowIdx >= 0 ? rest.slice(0, arrowIdx).trim() : null;
+                  const to = arrowIdx >= 0 ? rest.slice(arrowIdx + 1).trim() : rest;
+
+                  return (
+                    <span key={i} className="flex items-center gap-1 text-xs">
+                      {field && <span className="font-semibold text-muted-foreground">{field}:</span>}
+                      {from !== null ? (
+                        <>
+                          <span className="text-muted-foreground">{from || '(none)'}</span>
+                          <span className="text-muted-foreground">{'\u2192'}</span>
+                          <span className={`font-medium ${isUnread ? 'text-foreground' : 'text-foreground/70'}`}>{to || '(none)'}</span>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground">{to}</span>
+                      )}
+                    </span>
+                  );
+                })}
+              </div>
+            )
+            : (
+              <p className={`text-xs line-clamp-2 ${isUnread ? 'text-foreground/70' : 'text-muted-foreground'}`}>
+                <span dangerouslySetInnerHTML={{ __html: linkifyText(item.bodyPreview) }} />
+              </p>
+            )
+          }
+
+          {/* Entity state chip */}
+          {item.entityState && (
+            <div className="flex flex-wrap gap-1 mt-0.5">
+              <span
+                className={`text-xs px-1.5 py-0.5 rounded border ${
+                  item.entityState === 'merged'
+                    ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800'
+                    : item.entityState === 'closed'
+                      ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800'
+                      : 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800'
+                }`}
+              >
+                {item.entityState}
+              </span>
+            </div>
+          )}
+        </div>
+      </button>
+
+      {/* Quick actions — appear on hover, replace timestamp area */}
+      {hasActions && (
+        <div className="absolute top-2 right-3 hidden group-hover:flex items-center gap-1 bg-background/90 backdrop-blur-sm rounded-md border shadow-sm px-1 py-0.5">
+          {isUnread && onMarkRead && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onMarkRead(); }}
+              className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+              title="Mark as read"
+            >
+              <Eye className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {item.url && onOpenInBrowser && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onOpenInBrowser(); }}
+              className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+              title="Open in browser"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

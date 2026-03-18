@@ -10,7 +10,7 @@
  * - Source-specific empty states
  */
 import { useState } from 'react';
-import { Bell, BellOff, ExternalLink, Eye, GitMerge, TicketCheck } from 'lucide-react';
+import { Bell, BellOff, GitMerge, TicketCheck } from 'lucide-react';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Button } from '../../components/ui/button';
@@ -136,19 +136,6 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
     markAsRead(item.id);
   }
 
-  function handleOpenInBrowser(e: React.MouseEvent, item: NotificationItem) {
-    e.stopPropagation();
-    if (item.url) {
-      openUrl(item.url).catch(() => {});
-      markAsRead(item.id);
-    }
-  }
-
-  function handleMarkRead(e: React.MouseEvent, item: NotificationItem) {
-    e.stopPropagation();
-    markAsRead(item.id);
-  }
-
   // Group items by time
   function renderGroupedRows(rowItems: NotificationItem[]) {
     const groups: { key: string; label: string; items: NotificationItem[] }[] = [];
@@ -170,41 +157,16 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
             {group.label}
           </span>
         </div>
-        {group.items.map((item) => {
-          const isUnread = !readSet.has(item.id);
-          return (
-            <div key={item.id} className="group relative">
-              <NotificationRow
-                item={item}
-                isUnread={isUnread}
-                onClick={() => handleRowClick(item)}
-              />
-              {/* Hover actions */}
-              <div className="absolute top-1.5 right-2 hidden group-hover:flex items-center gap-0.5">
-                {isUnread && (
-                  <button
-                    type="button"
-                    onClick={(e) => handleMarkRead(e, item)}
-                    className="p-1 rounded hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
-                    title="Mark as read"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                  </button>
-                )}
-                {item.url && (
-                  <button
-                    type="button"
-                    onClick={(e) => handleOpenInBrowser(e, item)}
-                    className="p-1 rounded hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
-                    title="Open in browser"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })}
+        {group.items.map((item) => (
+          <NotificationRow
+            key={item.id}
+            item={item}
+            isUnread={!readSet.has(item.id)}
+            onClick={() => handleRowClick(item)}
+            onMarkRead={() => markAsRead(item.id)}
+            onOpenInBrowser={item.url ? () => { openUrl(item.url!).catch(() => {}); markAsRead(item.id); } : undefined}
+          />
+        ))}
       </div>
     ));
   }

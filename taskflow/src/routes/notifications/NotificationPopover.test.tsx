@@ -118,7 +118,8 @@ describe('NotificationPopover', () => {
   it('renders source tabs (All, Jira, GitLab)', () => {
     render(<NotificationPopover />);
 
-    expect(screen.getByText('All')).toBeInTheDocument();
+    // "All" appears both as a tab and in the unread filter button — use getAllByText
+    expect(screen.getAllByText('All').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Jira')).toBeInTheDocument();
     expect(screen.getByText('GitLab')).toBeInTheDocument();
   });

@@ -22,15 +22,15 @@ describe('NotificationRow', () => {
   it('renders with border-orange-500 for jira source', () => {
     const item = makeItem('jira');
     const { container } = render(<NotificationRow item={item} onClick={() => {}} />);
-    const row = container.firstElementChild;
-    expect(row?.className).toContain('border-orange-500');
+    const button = container.querySelector('button');
+    expect(button?.className).toContain('border-orange-500');
   });
 
   it('renders with border-purple-500 for gitlab source', () => {
     const item = makeItem('gitlab');
     const { container } = render(<NotificationRow item={item} onClick={() => {}} />);
-    const row = container.firstElementChild;
-    expect(row?.className).toContain('border-purple-500');
+    const button = container.querySelector('button');
+    expect(button?.className).toContain('border-purple-500');
   });
 
   it('renders the entity title', () => {
