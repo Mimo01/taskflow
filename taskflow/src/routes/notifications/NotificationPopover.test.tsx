@@ -24,7 +24,7 @@ describe('NotificationPopover', () => {
       useNotificationsStore.setState({ permissionDenied: true });
     });
 
-    render(<NotificationPopover />);
+    render(<NotificationPopover source="jira" />);
 
     expect(
       screen.getByText(/Desktop notifications are blocked/i),
@@ -36,7 +36,7 @@ describe('NotificationPopover', () => {
       useNotificationsStore.setState({ permissionDenied: false });
     });
 
-    render(<NotificationPopover />);
+    render(<NotificationPopover source="jira" />);
 
     expect(
       screen.queryByText(/Desktop notifications are blocked/i),
@@ -66,6 +66,7 @@ describe('NotificationPopover', () => {
 
     render(
       <NotificationPopover
+        source="jira"
         onIssueClick={onIssueClick}
         onClose={onClose}
       />,
@@ -101,6 +102,7 @@ describe('NotificationPopover', () => {
 
     render(
       <NotificationPopover
+        source="gitlab"
         onMRClick={onMRClick}
         onClose={onClose}
       />,

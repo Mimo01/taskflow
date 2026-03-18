@@ -1,11 +1,9 @@
 /**
- * NotificationPopover — notification feed rendered inside TopBar's Popover.
+ * NotificationPopover — source-filtered notification feed rendered inside TopBar's Popover.
  *
- * Pure UI component: reads from notifications store, renders feed, mark-all-read header,
- * and permission-denied Alert banner. All notification clicks navigate directly to the
- * relevant detail page (Jira issue or GitLab MR) and close the popover.
- *
- * When both Jira and GitLab items are present, groups them under sticky section headers.
+ * Pure UI component: reads from notifications store, renders feed for a single source,
+ * mark-all-read header, and permission-denied Alert banner. All notification clicks
+ * navigate directly to the relevant detail page (Jira issue or GitLab MR) and close the popover.
  */
 import { Bell } from 'lucide-react';
 import { Alert, AlertDescription } from '../../components/ui/alert';
@@ -39,6 +37,8 @@ function extractJiraIssueKey(item: { source: string; entityTitle: string; url?: 
 }
 
 interface NotificationPopoverProps {
+  /** Which source to display notifications for. */
+  source: 'jira' | 'gitlab';
   /** Called with the Jira issue key when a Jira notification row is clicked. */
   onIssueClick?: (issueKey: string) => void;
   /** Called with "projectId/iid" when a GitLab MR notification is clicked. */
@@ -53,27 +53,24 @@ function sortNewestFirst(items: NotificationItem[]): NotificationItem[] {
   );
 }
 
-export default function NotificationPopover({ onIssueClick, onMRClick, onClose }: NotificationPopoverProps) {
+export default function NotificationPopover({ source, onIssueClick, onMRClick, onClose }: NotificationPopoverProps) {
   const {
     items,
     readIds,
     permissionDenied,
     fetchError,
     retryFetch,
-    markAllRead,
+    markAllReadBySource,
     markAsRead,
     setPermissionDenied,
   } = useNotificationsStore();
 
   const readSet = new Set(readIds);
 
-  // Group by source
-  const jiraItems = sortNewestFirst(items.filter((i) => i.source === 'jira'));
-  const gitlabItems = sortNewestFirst(items.filter((i) => i.source === 'gitlab'));
-  const hasBothSources = jiraItems.length > 0 && gitlabItems.length > 0;
+  // Filter by source and sort newest-first
+  const sourceItems = sortNewestFirst(items.filter((i) => i.source === source));
 
-  // When only one source, just sort all newest-first
-  const singleSourceItems = !hasBothSources ? sortNewestFirst(items) : [];
+  const headerLabel = source === 'jira' ? 'Jira Notifications' : 'GitLab Notifications';
 
   function handleRowClick(item: NotificationItem) {
     const issueKey = extractJiraIssueKey(item);
@@ -108,8 +105,8 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
     <div>
       {/* Header */}
       <div className="flex items-center justify-between p-3 bg-muted/30 border-b">
-        <span className="font-semibold text-sm">Notifications</span>
-        <Button variant="ghost" size="sm" onClick={markAllRead}>
+        <span className="font-semibold text-sm">{headerLabel}</span>
+        <Button variant="ghost" size="sm" onClick={() => markAllReadBySource(source)}>
           Mark all as read
         </Button>
       </div>
@@ -136,28 +133,14 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
 
       {/* Feed */}
       <div className="overflow-y-auto max-h-[520px]">
-        {fetchError && items.length === 0 && retryFetch ? (
+        {fetchError && sourceItems.length === 0 && retryFetch ? (
           <div className="p-2">
             <ErrorState error={fetchError} onRetry={retryFetch} viewName="notifications" />
           </div>
-        ) : items.length === 0 ? (
+        ) : sourceItems.length === 0 ? (
           <EmptyState icon={Bell} title="No notifications yet" subtitle="Mentions and updates will appear here as they happen" />
-        ) : hasBothSources ? (
-          <>
-            {/* Jira section */}
-            <div className="sticky top-0 z-10 bg-background border-b px-3 py-1.5">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Jira</span>
-            </div>
-            {renderRows(jiraItems)}
-
-            {/* GitLab section */}
-            <div className="sticky top-0 z-10 bg-background border-b px-3 py-1.5">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">GitLab</span>
-            </div>
-            {renderRows(gitlabItems)}
-          </>
         ) : (
-          renderRows(singleSourceItems)
+          renderRows(sourceItems)
         )}
       </div>
     </div>
