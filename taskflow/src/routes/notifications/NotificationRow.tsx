@@ -1,12 +1,15 @@
 /**
- * NotificationRow — GitHub/Linear-style notification.
+ * NotificationRow — notification with source-colored left border.
  *
  * Design:
- * - Avatar as primary visual anchor, with source dot overlay
- * - First line reads as a sentence: "John mentioned you · 3m"
- * - Entity title is prominent on second line
- * - Body preview as subtle third line
- * - Hover reveals actions in place of timestamp
+ * - Left border = source color (orange Jira, purple GitLab)
+ * - Unread = bolder text + tinted background
+ * - Avatar with profile picture
+ * - Sentence: "Author verb · time"
+ * - Entity title on second line
+ * - Body/changes in tinted chip style
+ * - Parent story as visible chip
+ * - Hover: actions float top-right over timestamp
  */
 import { ExternalLink, Check, X, MailOpen } from 'lucide-react';
 import type { NotificationItem } from '../../stores/notifications.store';
@@ -51,7 +54,8 @@ function splitKey(raw: string): { key: string | null; title: string } {
   return { key: null, title: raw };
 }
 
-/** Human-readable verb for the notification type */
+/* ── type config ────────────────────────────────────── */
+
 const actionVerb: Record<string, string> = {
   'comment-mention': 'mentioned you in',
   'gitlab-mention': 'mentioned you in',
@@ -64,7 +68,6 @@ const actionVerb: Record<string, string> = {
   'due-date-reminder': 'is due soon:',
 };
 
-/** Color for the notification type verb */
 const verbColor: Record<string, string> = {
   'comment-mention': 'text-pink-600 dark:text-pink-400',
   'gitlab-mention': 'text-pink-600 dark:text-pink-400',
@@ -95,10 +98,10 @@ function ActionIcon({ onClick, title, children, variant = 'default' }: {
       onClick={(e) => { e.stopPropagation(); onClick(e); }}
       onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onClick(e as unknown as React.MouseEvent); } }}
       title={title}
-      className={`inline-flex items-center justify-center w-6 h-6 rounded-md transition-colors cursor-pointer ${
+      className={`inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors cursor-pointer ${
         variant === 'destructive'
-          ? 'text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10'
-          : 'text-muted-foreground/50 hover:text-foreground hover:bg-accent'
+          ? 'text-muted-foreground hover:text-destructive hover:bg-destructive/10'
+          : 'text-muted-foreground hover:text-foreground hover:bg-accent'
       }`}
     >
       {children}
@@ -119,35 +122,32 @@ export default function NotificationRow({
   const { key: issueKey, title } = splitKey(item.entityTitle);
   const verb = item.notificationType ? actionVerb[item.notificationType] ?? null : null;
   const vColor = item.notificationType ? verbColor[item.notificationType] ?? '' : '';
-  const state = item.entityState ? stateConfig[item.entityState] : null;
+  const entityState = item.entityState ? stateConfig[item.entityState] : null;
   const hasActions = onMarkRead || onDismiss || (item.url && onOpenInBrowser);
 
   const isChange = (item.notificationType === 'issue-update' || item.notificationType === 'mr-note') &&
     item.bodyPreview.includes('\u2192');
+
+  const sourceColor = item.source === 'jira' ? 'border-orange-500' : 'border-purple-500';
 
   return (
     <button
       type="button"
       onClick={onClick}
       data-testid="notification-row"
-      className={`group w-full text-left flex gap-3 pl-0 pr-3 py-2.5 density-compact:py-2 density-comfortable:py-3 transition-colors duration-150 cursor-pointer ${
+      className={`group w-full text-left flex gap-3 border-l-[3px] ${sourceColor} pl-3 pr-3 py-2.5 density-compact:py-2 density-comfortable:py-3 transition-colors duration-150 cursor-pointer ${
         isUnread
-          ? 'bg-primary/[0.03] hover:bg-primary/[0.07]'
+          ? 'bg-blue-500/[0.04] hover:bg-blue-500/[0.08]'
           : 'hover:bg-muted/50'
       }`}
     >
-      {/* Unread accent bar — left edge */}
-      <div className={`flex-shrink-0 w-[3px] self-stretch rounded-r-full transition-colors ${
-        isUnread ? 'bg-blue-500' : 'bg-transparent'
-      }`} data-testid={isUnread ? 'unread-bar' : undefined} />
-
-      {/* Avatar with source indicator */}
+      {/* Avatar */}
       <div className="flex-shrink-0 relative mt-0.5">
         {item.authorAvatarUrl ? (
           <img
             src={item.authorAvatarUrl}
             alt=""
-            className="w-8 h-8 rounded-full object-cover"
+            className={`w-8 h-8 rounded-full object-cover ${isUnread ? 'ring-2 ring-blue-500/30' : ''}`}
             onError={(e) => {
               const img = e.currentTarget;
               img.style.display = 'none';
@@ -158,6 +158,8 @@ export default function NotificationRow({
         ) : null}
         <span
           className={`items-center justify-center w-8 h-8 rounded-full text-[11px] font-semibold ${
+            isUnread ? 'ring-2 ring-blue-500/30' : ''
+          } ${
             item.source === 'jira'
               ? 'bg-orange-500/10 text-orange-700 dark:text-orange-300'
               : 'bg-purple-500/10 text-purple-700 dark:text-purple-300'
@@ -166,39 +168,35 @@ export default function NotificationRow({
         >
           {initials(item.author)}
         </span>
-        {/* Source dot overlay — bottom-right */}
-        <span
-          className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-[2px] border-background flex items-center justify-center text-[6px] font-bold text-white ${
-            item.source === 'jira' ? 'bg-orange-500' : 'bg-purple-500'
-          }`}
-          data-testid="source-dot"
-        >
-          {item.source === 'jira' ? 'J' : 'G'}
-        </span>
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        {/* Line 1: "Author verb · time" — reads as a sentence */}
-        <div className="flex items-center gap-0 text-[12px] leading-snug">
-          <span className="flex items-center gap-1 min-w-0">
-            <span className={`font-semibold truncate max-w-[130px] ${isUnread ? 'text-foreground' : 'text-foreground/80'}`}>
+        {/* Line 1: "Author verb" + timestamp/actions top-right */}
+        <div className="flex items-start gap-1">
+          <div className="flex-1 min-w-0 flex flex-wrap items-baseline gap-x-1 text-[12px] leading-snug">
+            <span className={`font-semibold ${isUnread ? 'text-foreground' : 'text-foreground/75'}`}>
               {item.author}
             </span>
             {verb && (
-              <span className={`flex-shrink-0 ${vColor || 'text-muted-foreground/70'}`}>
+              <span className={`${vColor || 'text-muted-foreground/60'}`}>
                 {verb}
               </span>
             )}
-          </span>
+          </div>
 
-          {/* Right: timestamp / actions */}
-          <span className="flex-shrink-0 ml-auto flex items-center pl-2">
-            <span className="text-[10px] text-muted-foreground/40 tabular-nums group-hover:hidden">
+          {/* Top-right: timestamp by default, actions on hover */}
+          <div className="flex-shrink-0 relative flex items-center h-5">
+            {/* Timestamp */}
+            <span className="text-[10px] text-muted-foreground/40 tabular-nums group-hover:opacity-0 transition-opacity duration-100">
               {relTime(item.createdAt)}
             </span>
+            {/* Actions — absolutely positioned over timestamp */}
             {hasActions && (
-              <span className="hidden group-hover:inline-flex items-center gap-0.5" data-testid="action-tray">
+              <span
+                className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity duration-100 bg-inherit"
+                data-testid="action-tray"
+              >
                 {onMarkRead && (
                   <ActionIcon onClick={() => onMarkRead()} title={isUnread ? 'Mark as read' : 'Mark as unread'}>
                     {isUnread ? <Check className="w-3.5 h-3.5" /> : <MailOpen className="w-3.5 h-3.5" />}
@@ -216,25 +214,25 @@ export default function NotificationRow({
                 )}
               </span>
             )}
-          </span>
+          </div>
         </div>
 
         {/* Line 2: entity — key + title + state badge */}
         <div className="flex items-center gap-1.5 mt-0.5">
           {issueKey && (
-            <span className="flex-shrink-0 font-mono text-[10px] text-muted-foreground/50">{issueKey}</span>
+            <span className={`flex-shrink-0 font-mono text-[10px] ${isUnread ? 'text-muted-foreground/60' : 'text-muted-foreground/40'}`}>{issueKey}</span>
           )}
-          <span className={`truncate text-[12.5px] leading-snug ${isUnread ? 'font-medium text-foreground' : 'text-foreground/65'}`}>
+          <span className={`truncate text-[12.5px] leading-snug ${isUnread ? 'font-medium text-foreground' : 'text-foreground/60'}`}>
             {title}
           </span>
-          {state && (
-            <span className={`flex-shrink-0 px-1.5 py-0.5 rounded text-[8px] font-semibold leading-none uppercase tracking-wide ${state.color}`}>
-              {state.label}
+          {entityState && (
+            <span className={`flex-shrink-0 px-1.5 py-0.5 rounded text-[8px] font-semibold leading-none uppercase tracking-wide ${entityState.color}`}>
+              {entityState.label}
             </span>
           )}
         </div>
 
-        {/* Line 3: changes or body — more prominent */}
+        {/* Line 3: body — tinted chip style for all types */}
         {item.bodyPreview && (
           isChange ? (
             <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
@@ -250,7 +248,7 @@ export default function NotificationRow({
                     {field && <span className="text-muted-foreground/60 font-medium">{field}</span>}
                     {from !== null ? (
                       <>
-                        <span className="text-muted-foreground/40 bg-red-500/8 px-1 rounded line-through decoration-1">{from || '–'}</span>
+                        <span className="text-muted-foreground/50 bg-red-500/8 px-1 rounded line-through decoration-1">{from || '–'}</span>
                         <span className="text-muted-foreground/30">→</span>
                         <span className="text-foreground/70 bg-green-500/8 px-1 rounded font-medium">{to || '–'}</span>
                       </>
@@ -262,17 +260,20 @@ export default function NotificationRow({
               })}
             </div>
           ) : (
-            <p className="mt-0.5 text-[11px] text-muted-foreground/50 line-clamp-2 leading-relaxed">
+            <p className="mt-1 text-[11px] text-muted-foreground/70 bg-muted/40 rounded px-2 py-1 line-clamp-2 leading-relaxed">
               {item.bodyPreview}
             </p>
           )
         )}
 
-        {/* Parent context */}
-        {issueKey && item.parentKey && (
-          <div className="mt-0.5 text-[10px] text-muted-foreground/30 truncate">
-            in <span className="font-mono">{item.parentKey}</span>
-            {item.parentSummary && <span> {item.parentSummary}</span>}
+        {/* Parent story — visible chip */}
+        {item.parentKey && (
+          <div className="mt-1.5 inline-flex items-center gap-1.5 text-[10px] bg-muted/50 rounded-md px-2 py-0.5">
+            <span className="text-muted-foreground/50">Parent</span>
+            <span className="font-mono font-medium text-foreground/60">{item.parentKey}</span>
+            {item.parentSummary && (
+              <span className="text-muted-foreground/60 truncate max-w-[180px]">{item.parentSummary}</span>
+            )}
           </div>
         )}
       </div>
