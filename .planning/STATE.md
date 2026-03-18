@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 Phase: 22 of 22 (Polish — Empty States + Error Recovery)
 Plan: 3 of 3
 Status: Complete
-Last activity: 2026-03-18 - Completed quick task 260318-td7: Notification overhaul — tabbed popover, time groups, unread filter, bell pulse, click-to-read actions
+Last activity: 2026-03-18 - Completed quick task 260318-uth: Premium notification row redesign with hero title layout and action tray overlay
 
 Progress: [██████████] 100%
 
@@ -193,9 +193,10 @@ None.
 | 260317-wes | Remove Create Issue button from sidebar, keep in Command Palette | 2026-03-17 | 6c7951b | | [260317-wes-remove-create-issue-from-the-sidebar-kee](./quick/260317-wes-remove-create-issue-from-the-sidebar-kee/) |
 | 260317-wdi | Make MR labels match GitLab colors on list page | 2026-03-17 | 9ff7e56 | | [260317-wdi-make-mr-labels-match-gitlab-colors-on-de](./quick/260317-wdi-make-mr-labels-match-gitlab-colors-on-de/) |
 | 260318-td7 | Split GitLab and Jira notifications into separate views with tabbed popover, time groups, unread filter, bell pulse, and redesigned actions | 2026-03-18 | ad0571d | | [260318-td7-split-gitlab-and-jira-notifications-into](./quick/260318-td7-split-gitlab-and-jira-notifications-into/) |
+| 260318-uth | Redesign notification row — premium layout with hero title, metadata strip, labeled action tray | 2026-03-18 | 266fa61 | | [260318-uth-redesign-the-notification-row-to-look-sl](./quick/260318-uth-redesign-the-notification-row-to-look-sl/) |
 
 ## Session Continuity
 
-Last session: 2026-03-18T21:50:00Z
-Stopped at: Completed notification overhaul — tabbed popover, time groups, unread filter, bell pulse, redesigned click-to-read actions
+Last session: 2026-03-18T22:25:00Z
+Stopped at: Completed quick task 260318-uth — premium notification row redesign with hero title layout and action tray overlay
 Resume: Milestone v1.3 (UX & Branding) is fully executed. All 5 phases (18-22), 29 plans complete. Ready for /gsd:audit-milestone or /gsd:complete-milestone.
