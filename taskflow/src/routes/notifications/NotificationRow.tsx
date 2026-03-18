@@ -1,11 +1,9 @@
 /**
- * NotificationRow — single notification row in the feed.
+ * NotificationRow — single notification in the feed.
  *
- * Design: Two-layer card with source accent, hero title, inline metadata,
- * and a slide-in action tray on hover that overlays the body line.
- *
- * Click = toggle read/unread (stay in popover).
- * Hover reveals action tray with labeled buttons.
+ * Design: Minimal, high-density row with clear visual hierarchy.
+ * Unread = bold title + blue left accent. Read = muted.
+ * Click = mark read/unread. Hover = reveal icon actions on right.
  */
 import { ArrowRight, ExternalLink, X } from 'lucide-react';
 import type { NotificationItem } from '../../stores/notifications.store';
@@ -19,288 +17,250 @@ interface NotificationRowProps {
   onOpenInBrowser?: () => void;
 }
 
-function getRelativeTime(isoTimestamp: string): string {
-  const now = Date.now();
-  const then = new Date(isoTimestamp).getTime();
-  const diffSecs = Math.floor((now - then) / 1000);
+/* ── helpers ────────────────────────────────────────── */
 
-  if (diffSecs < 60) return `${diffSecs}s`;
-  const diffMins = Math.floor(diffSecs / 60);
-  if (diffMins < 60) return `${diffMins}m`;
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h`;
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}d`;
+function relTime(iso: string): string {
+  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  return `${Math.floor(h / 24)}d`;
 }
 
-function getInitials(name: string): string {
+function initials(name: string): string {
   if (!name || name === 'Unknown') return '?';
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0][0]?.toUpperCase() ?? '?';
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  const p = name.trim().split(/\s+/);
+  return p.length === 1
+    ? (p[0][0]?.toUpperCase() ?? '?')
+    : (p[0][0] + p[p.length - 1][0]).toUpperCase();
 }
 
-function linkifyText(text: string): string {
-  return text.replace(
-    /(https?:\/\/[^\s]+)/g,
-    '<a href="$1" target="_blank" rel="noopener noreferrer" class="underline text-blue-500 hover:text-blue-700">$1</a>',
-  );
+/** "PROJ-123: Fix login" → { key, title } */
+function splitKey(raw: string): { key: string | null; title: string } {
+  const i = raw.indexOf(':');
+  if (i > 0 && /^[A-Z]+-\d+$/.test(raw.slice(0, i).trim()))
+    return { key: raw.slice(0, i).trim(), title: raw.slice(i + 1).trim() };
+  return { key: null, title: raw };
 }
 
-/**
- * Extract issue key from entityTitle.
- * "PROJ-123: Fix login bug" -> { key: "PROJ-123", title: "Fix login bug" }
- */
-function extractIssueKey(entityTitle: string): { key: string | null; title: string } {
-  const colonIdx = entityTitle.indexOf(':');
-  if (colonIdx > 0) {
-    const candidate = entityTitle.slice(0, colonIdx).trim();
-    if (/^[A-Z]+-\d+$/.test(candidate)) {
-      return { key: candidate, title: entityTitle.slice(colonIdx + 1).trim() };
-    }
-  }
-  return { key: null, title: entityTitle };
-}
-
-const labelMap: Record<string, string> = {
+const typeLabel: Record<string, string> = {
   'comment-mention': 'Mentioned',
   'issue-update': 'Updated',
-  'mr-note': 'MR comment',
+  'mr-note': 'Comment',
   'gitlab-mention': 'Mentioned',
   'jira-comment': 'Comment',
   'mr-approval': 'Approved',
-  'pipeline-failure': 'Pipeline',
+  'pipeline-failure': 'Pipeline failed',
   'issue-assignment': 'Assigned',
   'due-date-reminder': 'Due soon',
 };
 
-const colorMap: Record<string, string> = {
-  'pipeline-failure': 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
-  'mr-approval': 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300',
-  'due-date-reminder': 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
-  'issue-assignment': 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
-  'issue-update': 'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300',
-  'jira-comment': 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300',
-  'mr-note': 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300',
-  'comment-mention': 'bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-300',
-  'gitlab-mention': 'bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-300',
+const typeStyle: Record<string, string> = {
+  'pipeline-failure': 'text-red-600 dark:text-red-400',
+  'mr-approval': 'text-green-600 dark:text-green-400',
+  'due-date-reminder': 'text-amber-600 dark:text-amber-400',
+  'issue-assignment': 'text-blue-600 dark:text-blue-400',
 };
 
-function ActionButton({ onClick, label, icon: Icon, variant = 'default' }: {
-  onClick: (e: React.MouseEvent) => void;
-  label: string;
-  icon: React.FC<{ className?: string }>;
-  variant?: 'default' | 'destructive';
-}) {
-  return (
-    <span
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => { if (e.key === 'Enter') onClick(e as unknown as React.MouseEvent); }}
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium transition-all cursor-pointer ${
-        variant === 'destructive'
-          ? 'text-muted-foreground hover:text-destructive hover:bg-destructive/10'
-          : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-      }`}
-    >
-      <Icon className="w-3 h-3" />
-      {label}
-    </span>
-  );
-}
+const stateStyle: Record<string, string> = {
+  merged: 'text-purple-600 dark:text-purple-400',
+  closed: 'text-red-600 dark:text-red-400',
+  opened: 'text-green-600 dark:text-green-400',
+};
 
-export default function NotificationRow({ item, isUnread = false, onClick, onNavigate, onDismiss, onOpenInBrowser }: NotificationRowProps) {
-  const accentColor = item.source === 'jira' ? 'border-orange-500' : 'border-purple-500';
-  const typeLabel = item.notificationType ? (labelMap[item.notificationType] ?? item.notificationType) : null;
-  const typeColor = item.notificationType ? (colorMap[item.notificationType] ?? 'bg-muted text-muted-foreground') : null;
+/* ── component ──────────────────────────────────────── */
+
+export default function NotificationRow({
+  item,
+  isUnread = false,
+  onClick,
+  onNavigate,
+  onDismiss,
+  onOpenInBrowser,
+}: NotificationRowProps) {
+  const { key: issueKey, title } = splitKey(item.entityTitle);
+  const tLabel = item.notificationType ? typeLabel[item.notificationType] ?? item.notificationType : null;
+  const tStyle = item.notificationType ? typeStyle[item.notificationType] ?? '' : '';
   const hasActions = onNavigate || onDismiss || (item.url && onOpenInBrowser);
-  const { key: issueKey, title: titleText } = extractIssueKey(item.entityTitle);
 
-  const isArrowFormat = (item.notificationType === 'issue-update' || item.notificationType === 'mr-note') &&
+  // Format body for status changes (field: old → new)
+  const isChange = (item.notificationType === 'issue-update' || item.notificationType === 'mr-note') &&
     item.bodyPreview.includes('\u2192');
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`group w-full text-left border-l-2 ${accentColor} px-3 py-2 density-compact:py-1.5 density-comfortable:py-2.5 transition-all duration-200 relative ${
+      className={`group w-full text-left relative flex gap-3 px-3 py-2.5 density-compact:py-2 density-comfortable:py-3 transition-colors duration-150 ${
         isUnread
-          ? 'bg-accent/20 hover:bg-accent/40'
-          : 'hover:bg-accent/30'
+          ? 'bg-primary/[0.03] hover:bg-primary/[0.06]'
+          : 'hover:bg-muted/50'
       }`}
     >
-      {/* Row 1: Title line — the hero */}
-      <div className="flex items-start gap-2">
-        {/* Unread indicator */}
-        <div className="flex-shrink-0 w-1.5 mt-[5px]">
-          {isUnread && (
-            <span className="block w-1.5 h-1.5 rounded-full bg-blue-500" data-testid="unread-dot" />
+      {/* Left accent — thin bar for unread */}
+      <div className={`absolute left-0 top-2 bottom-2 w-[2px] rounded-full transition-colors duration-150 ${
+        isUnread ? 'bg-blue-500' : 'bg-transparent'
+      }`} />
+
+      {/* Avatar */}
+      <div className="flex-shrink-0 relative mt-0.5">
+        {item.authorAvatarUrl ? (
+          <img
+            src={item.authorAvatarUrl}
+            alt={item.author}
+            className="w-7 h-7 rounded-full object-cover ring-1 ring-border"
+            onError={(e) => {
+              const img = e.currentTarget;
+              img.style.display = 'none';
+              const sib = img.nextElementSibling as HTMLElement | null;
+              if (sib) sib.style.display = 'flex';
+            }}
+          />
+        ) : null}
+        <span
+          className={`items-center justify-center w-7 h-7 rounded-full text-[10px] font-semibold ring-1 ring-border ${
+            item.source === 'jira'
+              ? 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
+              : 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
+          }`}
+          style={{ display: item.authorAvatarUrl ? 'none' : 'flex' }}
+        >
+          {initials(item.author)}
+        </span>
+        {/* Source dot — bottom-right of avatar */}
+        <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${
+          item.source === 'jira' ? 'bg-orange-500' : 'bg-purple-500'
+        }`} />
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        {/* Line 1: author · type · time */}
+        <div className="flex items-center gap-1.5 text-[11px] leading-none">
+          <span className={`truncate max-w-[120px] ${isUnread ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground'}`}>
+            {item.author}
+          </span>
+          {tLabel && (
+            <>
+              <span className="text-muted-foreground/30">·</span>
+              <span className={`flex-shrink-0 ${tStyle || 'text-muted-foreground'}`}>{tLabel}</span>
+            </>
           )}
+          {item.entityState && (
+            <>
+              <span className="text-muted-foreground/30">·</span>
+              <span className={`flex-shrink-0 capitalize ${stateStyle[item.entityState] || 'text-muted-foreground'}`}>
+                {item.entityState}
+              </span>
+            </>
+          )}
+          <span className="flex-shrink-0 ml-auto text-[10px] text-muted-foreground/40 tabular-nums">
+            {relTime(item.createdAt)}
+          </span>
         </div>
 
-        {/* Title content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-1.5">
-            {issueKey && (
-              <span className="flex-shrink-0 font-mono text-[10px] text-muted-foreground/70">{issueKey}</span>
+        {/* Line 2: issue key + title */}
+        <div className="flex items-baseline gap-1.5 mt-1">
+          {issueKey && (
+            <span className="flex-shrink-0 font-mono text-[10px] text-muted-foreground/60">{issueKey}</span>
+          )}
+          {item.parentKey && !issueKey && (
+            <span className="flex-shrink-0 font-mono text-[10px] text-muted-foreground/50">{item.parentKey}</span>
+          )}
+          <span className={`truncate text-[12.5px] leading-snug ${isUnread ? 'font-medium text-foreground' : 'text-foreground/70'}`}>
+            {title}
+          </span>
+        </div>
+
+        {/* Line 3: body preview */}
+        {item.bodyPreview && (
+          <div className="mt-0.5">
+            {isChange ? (
+              <p className="text-[11px] text-muted-foreground/50 truncate leading-snug">
+                {(item.bodyPreview.includes(' | ') ? item.bodyPreview.split(' | ') : [item.bodyPreview]).map((seg, i) => {
+                  const ci = seg.indexOf(':');
+                  const field = ci > 0 ? seg.slice(0, ci).trim() : null;
+                  const rest = ci > 0 ? seg.slice(ci + 1).trim() : seg;
+                  const ai = rest.indexOf('\u2192');
+                  const from = ai >= 0 ? rest.slice(0, ai).trim() : null;
+                  const to = ai >= 0 ? rest.slice(ai + 1).trim() : rest;
+                  return (
+                    <span key={i}>
+                      {i > 0 && <span className="mx-1 text-muted-foreground/25">·</span>}
+                      {field && <span className="text-muted-foreground/60">{field}: </span>}
+                      {from !== null ? (
+                        <>
+                          <span className="line-through decoration-muted-foreground/30">{from || '–'}</span>
+                          <span className="mx-0.5 text-muted-foreground/40">→</span>
+                          <span className="text-muted-foreground/70 font-medium">{to || '–'}</span>
+                        </>
+                      ) : (
+                        <span>{to}</span>
+                      )}
+                    </span>
+                  );
+                })}
+              </p>
+            ) : (
+              <p className="text-[11px] text-muted-foreground/50 truncate leading-snug">
+                {item.bodyPreview}
+              </p>
             )}
-            <span className={`truncate text-[13px] leading-tight ${isUnread ? 'font-semibold text-foreground' : 'font-normal text-foreground/80'}`}>
-              {titleText}
+          </div>
+        )}
+
+        {/* Parent context — shown below body when issue key is present and parent exists */}
+        {issueKey && item.parentKey && (
+          <div className="mt-0.5 text-[10px] text-muted-foreground/40">
+            <span className="font-mono">{item.parentKey}</span>
+            {item.parentSummary && <span className="ml-1">{item.parentSummary}</span>}
+          </div>
+        )}
+      </div>
+
+      {/* Actions — appear on right on hover */}
+      {hasActions && (
+        <div className="flex-shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 -mr-1" data-testid="action-tray">
+          {onNavigate && (
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => { e.stopPropagation(); onNavigate(); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onNavigate(); } }}
+              title="Open in app"
+              className="flex items-center justify-center w-6 h-6 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+            >
+              <ArrowRight className="w-3.5 h-3.5" />
             </span>
-          </div>
-        </div>
-
-        {/* Timestamp — always visible, top-right */}
-        <span className="flex-shrink-0 text-[10px] text-muted-foreground/50 tabular-nums mt-0.5">
-          {getRelativeTime(item.createdAt)}
-        </span>
-      </div>
-
-      {/* Row 2: Metadata strip — author, source, type, state, parent */}
-      <div className="flex items-center gap-1.5 ml-3.5 mt-0.5">
-        {/* Avatar */}
-        <span className="flex-shrink-0 relative">
-          {item.authorAvatarUrl ? (
-            <img
-              src={item.authorAvatarUrl}
-              alt={item.author}
-              className="w-4 h-4 rounded-full object-cover"
-              onError={(e) => {
-                const img = e.currentTarget;
-                img.style.display = 'none';
-                const sibling = img.nextElementSibling as HTMLElement | null;
-                if (sibling) sibling.style.display = 'flex';
-              }}
-            />
-          ) : null}
-          <span
-            className={`items-center justify-center w-4 h-4 rounded-full text-[8px] font-medium ${
-              item.source === 'jira'
-                ? 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300'
-                : 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300'
-            }`}
-            style={{ display: item.authorAvatarUrl ? 'none' : 'flex' }}
-          >
-            {getInitials(item.author)}
-          </span>
-        </span>
-
-        <span className="text-[10px] text-muted-foreground/70 truncate max-w-[72px]">{item.author}</span>
-
-        <span className="text-muted-foreground/20">|</span>
-
-        {/* Source pill */}
-        {item.source === 'jira' ? (
-          <span className="text-[9px] font-semibold px-1 py-0 leading-tight rounded bg-orange-500/15 text-orange-600 dark:text-orange-400">
-            Jira
-          </span>
-        ) : (
-          <span className="text-[9px] font-semibold px-1 py-0 leading-tight rounded bg-purple-500/15 text-purple-600 dark:text-purple-400">
-            GitLab
-          </span>
-        )}
-
-        {/* Type badge */}
-        {typeLabel && typeColor && (
-          <span className={`text-[9px] font-medium px-1 py-0 rounded ${typeColor}`}>
-            {typeLabel}
-          </span>
-        )}
-
-        {/* Entity state chip */}
-        {item.entityState && (
-          <span
-            className={`text-[9px] px-1 py-0 rounded border leading-tight ${
-              item.entityState === 'merged'
-                ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800'
-                : item.entityState === 'closed'
-                  ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800'
-                  : 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800'
-            }`}
-          >
-            {item.entityState}
-          </span>
-        )}
-
-        {/* Parent key */}
-        {item.parentKey && (
-          <>
-            <span className="text-muted-foreground/20">|</span>
-            <span className="text-[9px] font-mono text-muted-foreground/50">{item.parentKey}</span>
-          </>
-        )}
-      </div>
-
-      {/* Row 3: Body preview + action tray overlay */}
-      <div className="relative ml-3.5 mt-0.5 min-h-[18px]">
-        {/* Body preview — visible by default, hidden on hover when actions exist */}
-        <div className={`transition-opacity duration-150 ${hasActions ? 'group-hover:opacity-0' : ''}`}>
-          {isArrowFormat ? (
-            <p className="text-[11px] text-muted-foreground/60 line-clamp-1">
-              {(item.bodyPreview.includes(' | ') ? item.bodyPreview.split(' | ') : [item.bodyPreview]).map((line, i) => {
-                const colonIdx = line.indexOf(':');
-                const field = colonIdx > 0 ? line.slice(0, colonIdx).trim() : null;
-                const rest = colonIdx > 0 ? line.slice(colonIdx + 1).trim() : line;
-                const arrowIdx = rest.indexOf('\u2192');
-                const from = arrowIdx >= 0 ? rest.slice(0, arrowIdx).trim() : null;
-                const to = arrowIdx >= 0 ? rest.slice(arrowIdx + 1).trim() : rest;
-
-                return (
-                  <span key={i}>
-                    {i > 0 && <span className="mx-1 text-muted-foreground/30">{'\u00B7'}</span>}
-                    {field && <span className="font-medium text-muted-foreground/70">{field}: </span>}
-                    {from !== null ? (
-                      <>
-                        <span>{from || '(none)'}</span>
-                        <span className="mx-0.5">{'\u2192'}</span>
-                        <span className="font-medium text-muted-foreground/80">{to || '(none)'}</span>
-                      </>
-                    ) : (
-                      <span>{to}</span>
-                    )}
-                  </span>
-                );
-              })}
-            </p>
-          ) : (
-            <p className="text-[11px] text-muted-foreground/60 line-clamp-1">
-              <span dangerouslySetInnerHTML={{ __html: linkifyText(item.bodyPreview) }} />
-            </p>
+          )}
+          {item.url && onOpenInBrowser && (
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => { e.stopPropagation(); onOpenInBrowser(); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onOpenInBrowser(); } }}
+              title={`Open in ${item.source === 'jira' ? 'Jira' : 'GitLab'}`}
+              className="flex items-center justify-center w-6 h-6 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+            </span>
+          )}
+          {onDismiss && (
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => { e.stopPropagation(); onDismiss(); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onDismiss(); } }}
+              title="Dismiss"
+              className="flex items-center justify-center w-6 h-6 rounded-md text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </span>
           )}
         </div>
-
-        {/* Action tray — overlays body on hover */}
-        {hasActions && (
-          <div
-            className="absolute inset-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-            data-testid="action-tray"
-          >
-            {onNavigate && (
-              <ActionButton
-                onClick={(e) => { e.stopPropagation(); onNavigate(); }}
-                label="Open"
-                icon={ArrowRight}
-              />
-            )}
-            {item.url && onOpenInBrowser && (
-              <ActionButton
-                onClick={(e) => { e.stopPropagation(); onOpenInBrowser(); }}
-                label={item.source === 'jira' ? 'Jira' : 'GitLab'}
-                icon={ExternalLink}
-              />
-            )}
-            {onDismiss && (
-              <ActionButton
-                onClick={(e) => { e.stopPropagation(); onDismiss(); }}
-                label="Dismiss"
-                icon={X}
-                variant="destructive"
-              />
-            )}
-          </div>
-        )}
-      </div>
+      )}
     </button>
   );
 }
