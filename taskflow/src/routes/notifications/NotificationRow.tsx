@@ -1,18 +1,13 @@
 /**
- * NotificationRow — Apple-style swipeable notification.
+ * NotificationRow — clean notification row.
  *
  * Interactions:
- * - Click       → mark as read + open detail
- * - Trackpad swipe right → reveals "Read" action; full swipe auto-triggers
- * - Trackpad swipe left  → reveals "Delete" action; full swipe auto-triggers
- * - Hover       → small external-link icon (only when url exists)
+ * - Click  → mark as read + open detail
+ * - Hover  → timestamp replaced by action icons (mark read, open external, dismiss)
  *
- * Swipe uses the `wheel` event (deltaX) which is what macOS trackpad
- * two-finger swipe generates. Mouse drag is NOT used — trackpad is the
- * primary input on macOS Tauri apps.
+ * Actions take zero space when not hovered.
  */
-import { useRef, useState, useCallback, useEffect } from 'react';
-import { ExternalLink, CheckCheck, Trash2, BookOpen } from 'lucide-react';
+import { ExternalLink, Check, X, MailOpen } from 'lucide-react';
 import type { NotificationItem } from '../../stores/notifications.store';
 
 /* ── props ──────────────────────────────────────────── */
@@ -20,9 +15,13 @@ import type { NotificationItem } from '../../stores/notifications.store';
 interface NotificationRowProps {
   item: NotificationItem;
   isUnread?: boolean;
+  /** Click = mark read + navigate to detail */
   onClick: () => void;
+  /** Mark as read without navigating */
   onMarkRead?: () => void;
+  /** Dismiss / remove notification */
   onDismiss?: () => void;
+  /** Open in external browser */
   onOpenInBrowser?: () => void;
 }
 
@@ -65,14 +64,31 @@ const stateStyle: Record<string, string> = {
   opened: 'text-green-600 dark:text-green-400',
 };
 
-/* ── swipe constants ────────────────────────────────── */
+/* ── action button ──────────────────────────────────── */
 
-const ACTION_WIDTH = 80;
-const FULL_SWIPE_THRESHOLD = 160;
-const GESTURE_END_MS = 200;     // ms of no wheel events = gesture ended
-const SPRING = 'transform 400ms cubic-bezier(0.25, 1, 0.5, 1)';
-
-type VisualState = 'idle' | 'swiping' | 'snapped-right' | 'snapped-left' | 'completing' | 'dismissed';
+function ActionIcon({ onClick, title, children, variant = 'default' }: {
+  onClick: (e: React.MouseEvent) => void;
+  title: string;
+  children: React.ReactNode;
+  variant?: 'default' | 'destructive';
+}) {
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      onClick={(e) => { e.stopPropagation(); onClick(e); }}
+      onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onClick(e as unknown as React.MouseEvent); } }}
+      title={title}
+      className={`inline-flex items-center justify-center w-6 h-6 rounded-md transition-colors cursor-pointer ${
+        variant === 'destructive'
+          ? 'text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10'
+          : 'text-muted-foreground/50 hover:text-foreground hover:bg-accent'
+      }`}
+    >
+      {children}
+    </span>
+  );
+}
 
 /* ── component ──────────────────────────────────────── */
 
@@ -86,381 +102,141 @@ export default function NotificationRow({
 }: NotificationRowProps) {
   const { key: issueKey, title } = splitKey(item.entityTitle);
   const tc = item.notificationType ? typeConfig[item.notificationType] : null;
-
-  const [visualState, setVisualState] = useState<VisualState>('idle');
-
-  // All swipe tracking in refs for zero re-renders during gesture
-  const rowRef = useRef<HTMLDivElement>(null);
-  const slideRef = useRef<HTMLDivElement>(null);
-  const rightBgRef = useRef<HTMLDivElement>(null);
-  const leftBgRef = useRef<HTMLDivElement>(null);
-  const offsetRef = useRef(0);
-  const gestureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const stateRef = useRef<VisualState>('idle');
-  // Track cumulative vertical vs horizontal to decide scroll vs swipe
-  const gestureRef = useRef<{ totalDx: number; totalDy: number; decided: boolean; isSwipe: boolean }>({
-    totalDx: 0, totalDy: 0, decided: false, isSwipe: false,
-  });
-
-  // Keep stateRef in sync
-  useEffect(() => { stateRef.current = visualState; }, [visualState]);
-
-  const applyOffset = useCallback((x: number) => {
-    if (slideRef.current) {
-      slideRef.current.style.transform = `translateX(${x}px)`;
-      slideRef.current.style.transition = 'none';
-    }
-    if (rightBgRef.current) {
-      rightBgRef.current.style.display = x > 0 ? 'flex' : 'none';
-      if (x > 0) rightBgRef.current.style.width = `${Math.max(x, ACTION_WIDTH)}px`;
-    }
-    if (leftBgRef.current) {
-      leftBgRef.current.style.display = x < 0 ? 'flex' : 'none';
-      if (x < 0) leftBgRef.current.style.width = `${Math.max(Math.abs(x), ACTION_WIDTH)}px`;
-    }
-    offsetRef.current = x;
-  }, []);
-
-  const animateTo = useCallback((x: number, then?: () => void) => {
-    if (slideRef.current) {
-      slideRef.current.style.transition = SPRING;
-      slideRef.current.style.transform = `translateX(${x}px)`;
-    }
-    if (rightBgRef.current && x > 0) {
-      rightBgRef.current.style.width = `${Math.max(x, ACTION_WIDTH)}px`;
-    }
-    if (leftBgRef.current && x < 0) {
-      leftBgRef.current.style.width = `${Math.max(Math.abs(x), ACTION_WIDTH)}px`;
-    }
-    offsetRef.current = x;
-    if (then) setTimeout(then, 420);
-  }, []);
-
-  const snapBack = useCallback(() => {
-    animateTo(0);
-    // Hide backgrounds after animation
-    setTimeout(() => {
-      if (rightBgRef.current) rightBgRef.current.style.display = 'none';
-      if (leftBgRef.current) leftBgRef.current.style.display = 'none';
-    }, 420);
-    setVisualState('idle');
-  }, [animateTo]);
-
-  const completeAction = useCallback((action: 'read' | 'dismiss') => {
-    setVisualState('completing');
-    const rowWidth = rowRef.current?.offsetWidth ?? 400;
-    const target = action === 'read' ? rowWidth + 20 : -(rowWidth + 20);
-    animateTo(target, () => {
-      // Collapse height
-      if (rowRef.current) {
-        rowRef.current.style.transition = 'max-height 300ms cubic-bezier(0.25,1,0.5,1), opacity 200ms ease-out';
-        rowRef.current.style.maxHeight = '0px';
-        rowRef.current.style.opacity = '0';
-        rowRef.current.style.overflow = 'hidden';
-      }
-      setTimeout(() => {
-        setVisualState('dismissed');
-        if (action === 'read') onMarkRead?.();
-        else onDismiss?.();
-      }, 300);
-    });
-  }, [animateTo, onMarkRead, onDismiss]);
-
-  const settleGesture = useCallback(() => {
-    const x = offsetRef.current;
-    const absX = Math.abs(x);
-
-    // Full swipe → auto-trigger
-    if (x > FULL_SWIPE_THRESHOLD && onMarkRead) {
-      completeAction('read');
-      return;
-    }
-    if (x < -FULL_SWIPE_THRESHOLD && onDismiss) {
-      completeAction('dismiss');
-      return;
-    }
-
-    // Past action width → snap to show tappable button
-    if (x > ACTION_WIDTH * 0.6 && onMarkRead) {
-      animateTo(ACTION_WIDTH);
-      setVisualState('snapped-right');
-      return;
-    }
-    if (x < -(ACTION_WIDTH * 0.6) && onDismiss) {
-      animateTo(-ACTION_WIDTH);
-      setVisualState('snapped-left');
-      return;
-    }
-
-    // Below threshold → snap back
-    if (absX > 0) {
-      snapBack();
-    } else {
-      setVisualState('idle');
-    }
-  }, [onMarkRead, onDismiss, completeAction, animateTo, snapBack]);
-
-  /* ── wheel handler (trackpad swipe) ──────────────── */
-
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    const st = stateRef.current;
-
-    // If completing/dismissed, ignore
-    if (st === 'completing' || st === 'dismissed') return;
-
-    // If snapped, any wheel should close it
-    if (st === 'snapped-right' || st === 'snapped-left') {
-      snapBack();
-      return;
-    }
-
-    const dx = e.deltaX;
-    const dy = e.deltaY;
-
-    // Accumulate for direction decision
-    const g = gestureRef.current;
-    g.totalDx += Math.abs(dx);
-    g.totalDy += Math.abs(dy);
-
-    if (!g.decided) {
-      // Need enough movement to decide
-      if (g.totalDx + g.totalDy < 10) return;
-      g.decided = true;
-      g.isSwipe = g.totalDx > g.totalDy * 1.5; // Horizontal-dominant = swipe
-      if (!g.isSwipe) return; // Vertical scroll — let it through
-    }
-
-    if (!g.isSwipe) return; // Vertical scroll gesture
-
-    // It's a horizontal swipe — prevent vertical scroll
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (st === 'idle') setVisualState('swiping');
-
-    // deltaX is inverted on macOS (natural scrolling): positive = scroll right = swipe left content
-    // We want: swipe right on trackpad = content moves right = positive offset
-    // macOS trackpad: two fingers moving right → deltaX is negative (natural scrolling)
-    let newOffset = offsetRef.current - dx;
-
-    // Clamp to allowed directions
-    if (newOffset > 0 && !onMarkRead) newOffset = 0;
-    if (newOffset < 0 && !onDismiss) newOffset = 0;
-
-    // Rubber-band past full swipe threshold
-    const limit = FULL_SWIPE_THRESHOLD + 40;
-    if (Math.abs(newOffset) > limit) {
-      const sign = newOffset > 0 ? 1 : -1;
-      const over = Math.abs(newOffset) - limit;
-      newOffset = sign * (limit + over * 0.15);
-    }
-
-    applyOffset(newOffset);
-
-    // Reset gesture-end timer
-    if (gestureTimerRef.current) clearTimeout(gestureTimerRef.current);
-    gestureTimerRef.current = setTimeout(() => {
-      gestureTimerRef.current = null;
-      // Reset gesture tracking
-      gestureRef.current = { totalDx: 0, totalDy: 0, decided: false, isSwipe: false };
-      settleGesture();
-    }, GESTURE_END_MS);
-  }, [applyOffset, settleGesture, snapBack, onMarkRead, onDismiss]);
-
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      if (gestureTimerRef.current) clearTimeout(gestureTimerRef.current);
-    };
-  }, []);
-
-  const handleClick = useCallback(() => {
-    if (stateRef.current !== 'idle') {
-      // If snapped, close on click
-      if (stateRef.current === 'snapped-right' || stateRef.current === 'snapped-left') {
-        snapBack();
-      }
-      return;
-    }
-    onClick();
-  }, [onClick, snapBack]);
-
-  /* ── render ──────────────────────────────────────── */
-
-  if (visualState === 'dismissed') return null;
+  const hasActions = onMarkRead || onDismiss || (item.url && onOpenInBrowser);
 
   const isChange = (item.notificationType === 'issue-update' || item.notificationType === 'mr-note') &&
     item.bodyPreview.includes('\u2192');
 
   return (
-    <div
-      ref={rowRef}
-      className="relative overflow-hidden"
+    <button
+      type="button"
+      onClick={onClick}
       data-testid="notification-row"
-      onWheel={handleWheel}
+      className={`group w-full text-left flex gap-2.5 px-3 py-2.5 density-compact:py-2 density-comfortable:py-3 transition-colors duration-150 cursor-pointer ${
+        isUnread
+          ? 'bg-primary/[0.03] hover:bg-primary/[0.06]'
+          : 'hover:bg-muted/50'
+      }`}
     >
-      {/* Right action: Mark Read (blue) — behind row, left-aligned */}
-      <div
-        ref={rightBgRef}
-        className="absolute inset-y-0 left-0 items-center bg-blue-500"
-        style={{ display: 'none', width: ACTION_WIDTH }}
-      >
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); completeAction('read'); }}
-          className="flex flex-col items-center justify-center gap-1 w-[80px] h-full text-white active:bg-blue-600 transition-colors"
-          data-testid="action-mark-read"
-        >
-          {isUnread ? <CheckCheck className="w-5 h-5" /> : <BookOpen className="w-5 h-5" />}
-          <span className="text-[10px] font-medium leading-none">{isUnread ? 'Read' : 'Unread'}</span>
-        </button>
+      {/* Left: Source badge + unread dot */}
+      <div className="flex-shrink-0 flex flex-col items-center gap-1 pt-0.5">
+        <span className={`flex items-center justify-center w-6 h-6 rounded-md text-[9px] font-bold tracking-tight leading-none ${
+          item.source === 'jira'
+            ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400'
+            : 'bg-purple-500/15 text-purple-600 dark:text-purple-400'
+        }`}>
+          {item.source === 'jira' ? 'J' : 'GL'}
+        </span>
+        {isUnread && (
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" data-testid="unread-dot" />
+        )}
       </div>
 
-      {/* Left action: Delete (red) — behind row, right-aligned */}
-      <div
-        ref={leftBgRef}
-        className="absolute inset-y-0 right-0 items-center justify-end bg-red-500"
-        style={{ display: 'none', width: ACTION_WIDTH }}
-      >
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); completeAction('dismiss'); }}
-          className="flex flex-col items-center justify-center gap-1 w-[80px] h-full text-white active:bg-red-600 transition-colors"
-          data-testid="action-dismiss"
-        >
-          <Trash2 className="w-5 h-5" />
-          <span className="text-[10px] font-medium leading-none">Delete</span>
-        </button>
-      </div>
-
-      {/* Row content — slides left/right */}
-      <div
-        ref={slideRef}
-        role="button"
-        tabIndex={0}
-        onClick={handleClick}
-        onKeyDown={(e) => { if (e.key === 'Enter' && stateRef.current === 'idle') onClick(); }}
-        className={`group relative w-full text-left flex gap-2.5 px-3 py-2.5 density-compact:py-2 density-comfortable:py-3 cursor-pointer select-none ${
-          isUnread
-            ? 'bg-background hover:bg-muted/40'
-            : 'bg-background hover:bg-muted/30'
-        }`}
-        style={{ transform: 'translateX(0px)', willChange: 'transform' }}
-      >
-        {/* Left: Source + unread indicator */}
-        <div className="flex-shrink-0 flex flex-col items-center gap-1 pt-0.5">
-          <span className={`flex items-center justify-center w-6 h-6 rounded-md text-[9px] font-bold tracking-tight leading-none ${
-            item.source === 'jira'
-              ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400'
-              : 'bg-purple-500/15 text-purple-600 dark:text-purple-400'
-          }`}>
-            {item.source === 'jira' ? 'J' : 'GL'}
-          </span>
-          {isUnread && (
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" data-testid="unread-dot" />
-          )}
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          {/* Line 1: type pill + author + time */}
-          <div className="flex items-center gap-1.5 text-[11px] leading-none">
-            {tc && (
-              <span className={`flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] font-semibold leading-none ${tc.color}`}>
-                {tc.label}
-              </span>
-            )}
-            <span className="text-muted-foreground/40">from</span>
-            <span className={`truncate ${isUnread ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground'}`}>
-              {item.author}
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        {/* Line 1: type pill + author + time / actions */}
+        <div className="flex items-center gap-1.5 text-[11px] leading-none">
+          {tc && (
+            <span className={`flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] font-semibold leading-none ${tc.color}`}>
+              {tc.label}
             </span>
-            {item.entityState && (
-              <>
-                <span className="text-muted-foreground/25">·</span>
-                <span className={`flex-shrink-0 text-[10px] capitalize ${stateStyle[item.entityState] || 'text-muted-foreground'}`}>
-                  {item.entityState}
-                </span>
-              </>
-            )}
-            <span className="flex-shrink-0 ml-auto text-[10px] text-muted-foreground/40 tabular-nums">
+          )}
+          <span className="text-muted-foreground/40">from</span>
+          <span className={`truncate ${isUnread ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground'}`}>
+            {item.author}
+          </span>
+          {item.entityState && (
+            <>
+              <span className="text-muted-foreground/25">·</span>
+              <span className={`flex-shrink-0 text-[10px] capitalize ${stateStyle[item.entityState] || 'text-muted-foreground'}`}>
+                {item.entityState}
+              </span>
+            </>
+          )}
+
+          {/* Right side: timestamp (default) / action icons (hover) */}
+          <span className="flex-shrink-0 ml-auto flex items-center">
+            {/* Timestamp — visible by default, hidden on hover */}
+            <span className="text-[10px] text-muted-foreground/40 tabular-nums group-hover:hidden">
               {relTime(item.createdAt)}
             </span>
-          </div>
-
-          {/* Line 2: issue key + title */}
-          <div className="flex items-baseline gap-1.5 mt-1">
-            {issueKey && (
-              <span className="flex-shrink-0 font-mono text-[10px] text-muted-foreground/50">{issueKey}</span>
+            {/* Actions — hidden by default, visible on hover */}
+            {hasActions && (
+              <span className="hidden group-hover:inline-flex items-center gap-0.5" data-testid="action-tray">
+                {onMarkRead && (
+                  <ActionIcon onClick={() => onMarkRead()} title={isUnread ? 'Mark as read' : 'Mark as unread'}>
+                    {isUnread ? <Check className="w-3.5 h-3.5" /> : <MailOpen className="w-3.5 h-3.5" />}
+                  </ActionIcon>
+                )}
+                {item.url && onOpenInBrowser && (
+                  <ActionIcon onClick={() => onOpenInBrowser()} title={`Open in ${item.source === 'jira' ? 'Jira' : 'GitLab'}`}>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </ActionIcon>
+                )}
+                {onDismiss && (
+                  <ActionIcon onClick={() => onDismiss()} title="Dismiss" variant="destructive">
+                    <X className="w-3.5 h-3.5" />
+                  </ActionIcon>
+                )}
+              </span>
             )}
-            {item.parentKey && !issueKey && (
-              <span className="flex-shrink-0 font-mono text-[10px] text-muted-foreground/40">{item.parentKey}</span>
-            )}
-            <span className={`truncate text-[12.5px] leading-snug ${isUnread ? 'font-medium text-foreground' : 'text-foreground/70'}`}>
-              {title}
-            </span>
-          </div>
-
-          {/* Line 3: body preview */}
-          {item.bodyPreview && (
-            <p className="mt-0.5 text-[11px] text-muted-foreground/45 truncate leading-snug">
-              {isChange ? (
-                (item.bodyPreview.includes(' | ') ? item.bodyPreview.split(' | ') : [item.bodyPreview]).map((seg, i) => {
-                  const ci = seg.indexOf(':');
-                  const field = ci > 0 ? seg.slice(0, ci).trim() : null;
-                  const rest = ci > 0 ? seg.slice(ci + 1).trim() : seg;
-                  const ai = rest.indexOf('\u2192');
-                  const from = ai >= 0 ? rest.slice(0, ai).trim() : null;
-                  const to = ai >= 0 ? rest.slice(ai + 1).trim() : rest;
-                  return (
-                    <span key={i}>
-                      {i > 0 && <span className="mx-1 text-muted-foreground/20">·</span>}
-                      {field && <span className="text-muted-foreground/55">{field}: </span>}
-                      {from !== null ? (
-                        <>
-                          <span className="line-through decoration-muted-foreground/25">{from || '–'}</span>
-                          <span className="mx-0.5">→</span>
-                          <span className="text-muted-foreground/65 font-medium">{to || '–'}</span>
-                        </>
-                      ) : (
-                        <span>{to}</span>
-                      )}
-                    </span>
-                  );
-                })
-              ) : (
-                item.bodyPreview
-              )}
-            </p>
-          )}
-
-          {/* Parent context */}
-          {issueKey && item.parentKey && (
-            <div className="mt-0.5 text-[10px] text-muted-foreground/35">
-              <span className="font-mono">{item.parentKey}</span>
-              {item.parentSummary && <span className="ml-1">{item.parentSummary}</span>}
-            </div>
-          )}
+          </span>
         </div>
 
-        {/* Hover: open in browser */}
-        {item.url && onOpenInBrowser && (
-          <div
-            className="flex-shrink-0 flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-            data-testid="external-action"
-          >
-            <span
-              role="button"
-              tabIndex={0}
-              onClick={(e) => { e.stopPropagation(); onOpenInBrowser(); }}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onOpenInBrowser(); } }}
-              title={`Open in ${item.source === 'jira' ? 'Jira' : 'GitLab'}`}
-              className="flex items-center justify-center w-6 h-6 rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-            </span>
+        {/* Line 2: issue key + title */}
+        <div className="flex items-baseline gap-1.5 mt-1">
+          {issueKey && (
+            <span className="flex-shrink-0 font-mono text-[10px] text-muted-foreground/50">{issueKey}</span>
+          )}
+          {item.parentKey && !issueKey && (
+            <span className="flex-shrink-0 font-mono text-[10px] text-muted-foreground/40">{item.parentKey}</span>
+          )}
+          <span className={`truncate text-[12.5px] leading-snug ${isUnread ? 'font-medium text-foreground' : 'text-foreground/70'}`}>
+            {title}
+          </span>
+        </div>
+
+        {/* Line 3: body preview */}
+        {item.bodyPreview && (
+          <p className="mt-0.5 text-[11px] text-muted-foreground/45 truncate leading-snug">
+            {isChange ? (
+              (item.bodyPreview.includes(' | ') ? item.bodyPreview.split(' | ') : [item.bodyPreview]).map((seg, i) => {
+                const ci = seg.indexOf(':');
+                const field = ci > 0 ? seg.slice(0, ci).trim() : null;
+                const rest = ci > 0 ? seg.slice(ci + 1).trim() : seg;
+                const ai = rest.indexOf('\u2192');
+                const from = ai >= 0 ? rest.slice(0, ai).trim() : null;
+                const to = ai >= 0 ? rest.slice(ai + 1).trim() : rest;
+                return (
+                  <span key={i}>
+                    {i > 0 && <span className="mx-1 text-muted-foreground/20">·</span>}
+                    {field && <span className="text-muted-foreground/55">{field}: </span>}
+                    {from !== null ? (
+                      <>
+                        <span className="line-through decoration-muted-foreground/25">{from || '–'}</span>
+                        <span className="mx-0.5">→</span>
+                        <span className="text-muted-foreground/65 font-medium">{to || '–'}</span>
+                      </>
+                    ) : (
+                      <span>{to}</span>
+                    )}
+                  </span>
+                );
+              })
+            ) : (
+              item.bodyPreview
+            )}
+          </p>
+        )}
+
+        {/* Parent context */}
+        {issueKey && item.parentKey && (
+          <div className="mt-0.5 text-[10px] text-muted-foreground/35">
+            <span className="font-mono">{item.parentKey}</span>
+            {item.parentSummary && <span className="ml-1">{item.parentSummary}</span>}
           </div>
         )}
       </div>
-    </div>
+    </button>
   );
 }
