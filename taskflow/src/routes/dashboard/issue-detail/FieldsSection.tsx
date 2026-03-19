@@ -14,8 +14,8 @@ import { apiFetch } from '@/lib/apiFetch';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import type { JiraIssueDetail } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
-import { useDebounce } from './useFieldMutation';
 import { MetaRow } from './MetaRow';
+import { useDebounce } from './useFieldMutation';
 import { extractSprintName } from './utils';
 
 const PRIORITY_OPTIONS = ['Highest', 'High', 'Medium', 'Low', 'Lowest'];
