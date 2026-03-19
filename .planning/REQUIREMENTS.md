@@ -37,8 +37,8 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 
 ### Type Safety
 
-- [ ] **TYPE-01**: All `as unknown as X` double-casts replaced with proper typing
-- [ ] **TYPE-02**: All `any` types in production code replaced with specific types
+- [x] **TYPE-01**: All `as unknown as X` double-casts replaced with proper typing
+- [x] **TYPE-02**: All `any` types in production code replaced with specific types
 
 ### Performance
 
@@ -95,8 +95,8 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 | REFAC-06 | Phase 27 | Complete |
 | REFAC-07 | Phase 27 | Complete |
 | REFAC-08 | Phase 27 | Complete |
-| TYPE-01 | Phase 27 | Pending |
-| TYPE-02 | Phase 27 | Pending |
+| TYPE-01 | Phase 27 | Complete |
+| TYPE-02 | Phase 27 | Complete |
 | PERF-01 | Phase 28 | Pending |
 | PERF-02 | Phase 28 | Pending |
 | A11Y-01 | Phase 28 | Pending |
