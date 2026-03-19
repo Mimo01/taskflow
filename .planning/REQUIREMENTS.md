@@ -17,8 +17,8 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 
 ### Tooling
 
-- [ ] **TOOL-01**: Biome configured for linting and formatting with CI-ready check script
-- [ ] **TOOL-02**: All existing source files pass Biome lint and format checks
+- [x] **TOOL-01**: Biome configured for linting and formatting with CI-ready check script
+- [x] **TOOL-02**: All existing source files pass Biome lint and format checks
 
 ### Dependencies
 
@@ -84,8 +84,8 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 | TEST-03 | Phase 26 | Pending |
 | TEST-04 | Phase 26 | Pending |
 | TEST-05 | Phase 26 | Pending |
-| TOOL-01 | Phase 25 | Pending |
-| TOOL-02 | Phase 25 | Pending |
+| TOOL-01 | Phase 25 | Complete |
+| TOOL-02 | Phase 25 | Complete |
 | DEPS-01 | Phase 25 | Pending |
 | REFAC-01 | Phase 27 | Pending |
 | REFAC-02 | Phase 27 | Pending |

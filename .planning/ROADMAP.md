@@ -167,7 +167,7 @@ Plans:
 | 22. Polish — Empty States + Error Recovery | v1.3 | 3/3 | Complete | 2026-03-16 |
 | 23. Fix J/K Guard | v1.3 | — | Complete | 2026-03-19 |
 | 24. Verify Phase 22 | v1.3 | 1/1 | Complete | 2026-03-19 |
-| 25. Tooling & Dependencies | v1.4 | 0/2 | Not started | - |
+| 25. Tooling & Dependencies | 1/2 | In Progress|  | - |
 | 26. Test Regression Fixes | v1.4 | 0/? | Not started | - |
 | 27. Refactoring & Type Safety | v1.4 | 0/? | Not started | - |
 | 28. Test Coverage, Performance & Accessibility | v1.4 | 0/? | Not started | - |
