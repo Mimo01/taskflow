@@ -50,7 +50,13 @@ vi.mock('@/stores/settings.store', () => ({
     storyPointsFieldKey: 'customfield_10016',
     epicLinkFieldKey: 'customfield_10014',
     epicNameFieldKey: 'customfield_10015',
+    epicColorFieldKey: 'customfield_10013',
     accountFieldKey: null,
+    quickFilters: [],
+    addQuickFilter: vi.fn(),
+    removeQuickFilter: vi.fn(),
+    renameQuickFilter: vi.fn(),
+    moveQuickFilter: vi.fn(),
   })),
 }));
 
@@ -382,8 +388,10 @@ describe('BACK-03 Create story', () => {
 });
 
 describe('BACK-04 Filters', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    const { useFilterStore } = await import('@/stores/filter.store');
+    useFilterStore.getState().clearAll();
   });
 
   it('selecting an epic filter hides rows with a different epic (across sections)', async () => {
@@ -408,12 +416,9 @@ describe('BACK-04 Filters', () => {
 
     await waitFor(() => screen.getByText('PROJ-1'));
 
-    // Type to filter options, then click the option to select it
-    const epicFilter = screen.getByRole('combobox', { name: /epic/i });
-    fireEvent.focus(epicFilter);
-    fireEvent.change(epicFilter, { target: { value: 'EPIC-1' } });
-    const option = await screen.findByRole('option', { name: 'EPIC-1' });
-    fireEvent.mouseDown(option.querySelector('button')!);
+    // Apply epic filter via the filter store (UnifiedFilterBar uses popover UI)
+    const { useFilterStore } = await import('@/stores/filter.store');
+    useFilterStore.getState().setActiveEpics(new Set(['EPIC-1']));
 
     await waitFor(() => {
       expect(screen.getByText('PROJ-1')).toBeInTheDocument();
@@ -438,11 +443,9 @@ describe('BACK-04 Filters', () => {
 
     await waitFor(() => screen.getByText('PROJ-1'));
 
-    const assigneeFilter = screen.getByRole('combobox', { name: /assignee/i });
-    fireEvent.focus(assigneeFilter);
-    fireEvent.change(assigneeFilter, { target: { value: 'Alice' } });
-    const option = await screen.findByRole('option', { name: 'Alice' });
-    fireEvent.mouseDown(option.querySelector('button')!);
+    // Apply assignee filter via the filter store
+    const { useFilterStore } = await import('@/stores/filter.store');
+    useFilterStore.getState().setActiveAssignees(new Set(['Alice']));
 
     await waitFor(() => {
       expect(screen.getByText('PROJ-1')).toBeInTheDocument();
@@ -471,17 +474,10 @@ describe('BACK-04 Filters', () => {
 
     await waitFor(() => screen.getByText('PROJ-1'));
 
-    const epicFilter = screen.getByRole('combobox', { name: /epic/i });
-    fireEvent.focus(epicFilter);
-    fireEvent.change(epicFilter, { target: { value: 'EPIC-1' } });
-    const epicOption = await screen.findByRole('option', { name: 'EPIC-1' });
-    fireEvent.mouseDown(epicOption.querySelector('button')!);
-
-    const assigneeFilter = screen.getByRole('combobox', { name: /assignee/i });
-    fireEvent.focus(assigneeFilter);
-    fireEvent.change(assigneeFilter, { target: { value: 'Alice' } });
-    const assigneeOption = await screen.findByRole('option', { name: 'Alice' });
-    fireEvent.mouseDown(assigneeOption.querySelector('button')!);
+    // Apply both filters via the filter store
+    const { useFilterStore } = await import('@/stores/filter.store');
+    useFilterStore.getState().setActiveEpics(new Set(['EPIC-1']));
+    useFilterStore.getState().setActiveAssignees(new Set(['Alice']));
 
     await waitFor(() => {
       expect(screen.getByText('PROJ-1')).toBeInTheDocument(); // Alice + EPIC-1 — shown
@@ -510,18 +506,14 @@ describe('BACK-04 Filters', () => {
 
     await waitFor(() => screen.getByText('PROJ-1'));
 
-    // Apply epic filter by typing + clicking option
-    const epicFilter = screen.getByRole('combobox', { name: /epic/i });
-    fireEvent.focus(epicFilter);
-    fireEvent.change(epicFilter, { target: { value: 'EPIC-1' } });
-    const option = await screen.findByRole('option', { name: 'EPIC-1' });
-    fireEvent.mouseDown(option.querySelector('button')!);
+    // Apply epic filter via the filter store
+    const { useFilterStore } = await import('@/stores/filter.store');
+    useFilterStore.getState().setActiveEpics(new Set(['EPIC-1']));
 
     await waitFor(() => expect(screen.queryByText('PROJ-2')).not.toBeInTheDocument());
 
-    // Dismiss the active filter chip
-    const dismissChip = screen.getByRole('button', { name: /clear epic filter/i });
-    fireEvent.click(dismissChip);
+    // Clear filter via the store
+    useFilterStore.getState().clearAll();
 
     await waitFor(() => {
       expect(screen.getByText('PROJ-1')).toBeInTheDocument();
@@ -531,8 +523,10 @@ describe('BACK-04 Filters', () => {
 });
 
 describe('BACK-05 Row click', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    const { useFilterStore } = await import('@/stores/filter.store');
+    useFilterStore.getState().clearAll();
   });
 
   it('clicking a row (not checkbox) calls onIssueClick with the issue key', async () => {
