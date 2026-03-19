@@ -29,11 +29,11 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 - [ ] **REFAC-01**: jira.ts decomposed into focused domain modules (issues, sprints, fields, projects, epics, backlog)
 - [ ] **REFAC-02**: CreateEditIssueModal decomposed into smaller composable components with useReducer for form state
 - [ ] **REFAC-03**: IssueDetailSidebar decomposed into focused sub-components
-- [ ] **REFAC-04**: Shared `createTauriStorage()` utility replaces duplicated LazyStore adapter across 4 stores
+- [x] **REFAC-04**: Shared `createTauriStorage()` utility replaces duplicated LazyStore adapter across 4 stores
 - [ ] **REFAC-05**: API error handling boilerplate extracted into shared utility (try/catch + status check pattern)
-- [ ] **REFAC-06**: Notifications store split into persisted data store and transient UI state store
-- [ ] **REFAC-07**: Route definitions extracted from main.tsx into dedicated routes config
-- [ ] **REFAC-08**: Inline styles replaced with Tailwind classes (SprintBoardTab gradient)
+- [x] **REFAC-06**: Notifications store split into persisted data store and transient UI state store
+- [x] **REFAC-07**: Route definitions extracted from main.tsx into dedicated routes config
+- [x] **REFAC-08**: Inline styles replaced with Tailwind classes (SprintBoardTab gradient)
 
 ### Type Safety
 
@@ -90,11 +90,11 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 | REFAC-01 | Phase 27 | Pending |
 | REFAC-02 | Phase 27 | Pending |
 | REFAC-03 | Phase 27 | Pending |
-| REFAC-04 | Phase 27 | Pending |
+| REFAC-04 | Phase 27 | Complete |
 | REFAC-05 | Phase 27 | Pending |
-| REFAC-06 | Phase 27 | Pending |
-| REFAC-07 | Phase 27 | Pending |
-| REFAC-08 | Phase 27 | Pending |
+| REFAC-06 | Phase 27 | Complete |
+| REFAC-07 | Phase 27 | Complete |
+| REFAC-08 | Phase 27 | Complete |
 | TYPE-01 | Phase 27 | Pending |
 | TYPE-02 | Phase 27 | Pending |
 | PERF-01 | Phase 28 | Pending |
