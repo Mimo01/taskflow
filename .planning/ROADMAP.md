@@ -117,7 +117,13 @@ Plans:
   3. A single `createTauriStorage()` utility is used by all 4 stores that currently duplicate LazyStore adapter code
   4. Zero `as unknown as X` double-casts and zero `any` types remain in production source files
   5. All existing tests still pass after refactoring (no regressions introduced)
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 27-01-PLAN.md — Shared utilities (createTauriStorage), route extraction, inline style cleanup
+- [ ] 27-02-PLAN.md — jira.ts decomposition into domain modules with barrel export
+- [ ] 27-03-PLAN.md — CreateEditIssueModal decomposition with useReducer
+- [ ] 27-04-PLAN.md — IssueDetailSidebar decomposition into section sub-components
+- [ ] 27-05-PLAN.md — Double-cast fixes, TYPE-02 verification, Biome strict rules
 
 ### Phase 28: Test Coverage, Performance & Accessibility
 **Goal**: Service and store layers have comprehensive tests, long lists are virtualized, and forms are accessible
@@ -173,6 +179,6 @@ Plans:
 | 24. Verify Phase 22 | v1.3 | 1/1 | Complete | 2026-03-19 |
 | 25. Tooling & Dependencies | 2/2 | Complete    | 2026-03-19 | - |
 | 26. Test Regression Fixes | 3/3 | Complete    | 2026-03-19 | - |
-| 27. Refactoring & Type Safety | v1.4 | 0/? | Not started | - |
+| 27. Refactoring & Type Safety | v1.4 | 0/5 | Not started | - |
 | 28. Test Coverage, Performance & Accessibility | v1.4 | 0/? | Not started | - |
 | 29. Developer Tools | v1.4 | 0/? | Not started | - |
