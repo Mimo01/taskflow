@@ -3,6 +3,12 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
+// Mock react-router-dom
+vi.mock('react-router-dom', () => ({
+  useNavigate: vi.fn(() => vi.fn()),
+  useLocation: vi.fn(() => ({ pathname: '/dashboard', search: '', hash: '', state: null, key: 'default' })),
+}));
+
 // Mock stronghold
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-jira-token'),
@@ -19,23 +25,36 @@ vi.mock('@tauri-apps/plugin-opener', () => ({
   openUrl: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Mock auth store
-vi.mock('@/stores/auth.store', () => ({
-  useAuthStore: vi.fn(() => ({
+// Mock auth store — supports both full-object and selector-based calls
+vi.mock('@/stores/auth.store', () => {
+  const state = {
     jiraBaseUrl: 'https://jira.example.com',
     jiraConnected: true,
-  })),
-}));
+    jiraUserDisplayName: 'Test User',
+  };
+  const useAuthStore = vi.fn((selector?: (s: typeof state) => unknown) =>
+    selector ? selector(state) : state,
+  );
+  (useAuthStore as any).getState = () => state;
+  return { useAuthStore };
+});
 
-// Mock settings store
-vi.mock('@/stores/settings.store', () => ({
-  useSettingsStore: vi.fn(() => ({
+// Mock settings store — supports both full-object and selector-based calls
+vi.mock('@/stores/settings.store', () => {
+  const state = {
     epicLinkFieldKey: 'customfield_10014',
     epicNameFieldKey: 'customfield_10015',
     sprintFieldKey: 'customfield_10020',
     storyPointsFieldKey: 'customfield_10016',
-  })),
-}));
+    epicColorFieldKey: 'customfield_10013',
+    commentSortOrder: 'newest' as const,
+  };
+  return {
+    useSettingsStore: vi.fn((selector?: (s: typeof state) => unknown) =>
+      selector ? selector(state) : state,
+    ),
+  };
+});
 
 // Mock WikiRenderer — avoids jira2md complexity in unit tests
 vi.mock('./WikiRenderer', () => ({
@@ -389,7 +408,7 @@ describe('IssueDetailSheet', () => {
       );
 
       // inward link: type.inward = 'is blocked by' + PROJ-10
-      expect(screen.getByText('is blocked by:')).toBeTruthy();
+      expect(screen.getByText('is blocked by')).toBeTruthy();
       expect(screen.getByText('PROJ-10')).toBeTruthy();
     });
 
@@ -410,44 +429,40 @@ describe('IssueDetailSheet', () => {
       );
 
       // outward link: type.outward = 'blocks' + PROJ-45
-      expect(screen.getByText('blocks:')).toBeTruthy();
+      expect(screen.getByText('blocks')).toBeTruthy();
       expect(screen.getByText('PROJ-45')).toBeTruthy();
     });
   });
 
   describe('ISSUE-07: comment thread', () => {
     it('renders comments ordered newest-first', async () => {
-      const { IssueDetailContent } = await import('./IssueDetailContent');
-      const issue = makeIssueDetail({
-        comment: {
-          comments: [
-            {
-              id: 'c1',
-              author: { displayName: 'Alice' },
-              body: 'First comment',
-              created: '2026-01-01T10:00:00.000Z',
-              updated: '2026-01-01T10:00:00.000Z',
-            },
-            {
-              id: 'c2',
-              author: { displayName: 'Bob' },
-              body: 'Second comment',
-              created: '2026-01-02T10:00:00.000Z',
-              updated: '2026-01-02T10:00:00.000Z',
-            },
-          ],
+      const { default: InlineComment } = await import('./InlineComment');
+      const comments = [
+        {
+          id: 'c1',
+          author: { displayName: 'Alice' },
+          body: 'First comment',
+          created: '2026-01-01T10:00:00.000Z',
+          updated: '2026-01-01T10:00:00.000Z',
         },
-      });
+        {
+          id: 'c2',
+          author: { displayName: 'Bob' },
+          body: 'Second comment',
+          created: '2026-01-02T10:00:00.000Z',
+          updated: '2026-01-02T10:00:00.000Z',
+        },
+      ];
 
       render(
-        <IssueDetailContent
-          issue={issue as never}
+        <InlineComment
           issueKey="PROJ-1"
           jiraBaseUrl="https://jira.example.com"
-          onOpenIssue={vi.fn()}
-          storyPointsFieldKey="customfield_10016"
-          sprintFieldKey="customfield_10020"
-          epicLinkFieldKey="customfield_10014"
+          isOpen={true}
+          onCancel={vi.fn()}
+          onSubmit={vi.fn()}
+          isSubmitting={false}
+          existingComments={comments as never[]}
         />,
         { wrapper },
       );
@@ -460,30 +475,26 @@ describe('IssueDetailSheet', () => {
     });
 
     it('each comment shows author displayName and relative timestamp', async () => {
-      const { IssueDetailContent } = await import('./IssueDetailContent');
-      const issue = makeIssueDetail({
-        comment: {
-          comments: [
-            {
-              id: 'c1',
-              author: { displayName: 'Alice' },
-              body: 'Hello world',
-              created: '2026-01-01T10:00:00.000Z',
-              updated: '2026-01-01T10:00:00.000Z',
-            },
-          ],
+      const { default: InlineComment } = await import('./InlineComment');
+      const comments = [
+        {
+          id: 'c1',
+          author: { displayName: 'Alice' },
+          body: 'Hello world',
+          created: '2026-01-01T10:00:00.000Z',
+          updated: '2026-01-01T10:00:00.000Z',
         },
-      });
+      ];
 
       render(
-        <IssueDetailContent
-          issue={issue as never}
+        <InlineComment
           issueKey="PROJ-1"
           jiraBaseUrl="https://jira.example.com"
-          onOpenIssue={vi.fn()}
-          storyPointsFieldKey="customfield_10016"
-          sprintFieldKey="customfield_10020"
-          epicLinkFieldKey="customfield_10014"
+          isOpen={true}
+          onCancel={vi.fn()}
+          onSubmit={vi.fn()}
+          isSubmitting={false}
+          existingComments={comments as never[]}
         />,
         { wrapper },
       );
@@ -492,30 +503,26 @@ describe('IssueDetailSheet', () => {
     });
 
     it('renders comment body through WikiRenderer (wiki markup converted)', async () => {
-      const { IssueDetailContent } = await import('./IssueDetailContent');
-      const issue = makeIssueDetail({
-        comment: {
-          comments: [
-            {
-              id: 'c1',
-              author: { displayName: 'Alice' },
-              body: '*bold text*',
-              created: '2026-01-01T10:00:00.000Z',
-              updated: '2026-01-01T10:00:00.000Z',
-            },
-          ],
+      const { default: InlineComment } = await import('./InlineComment');
+      const comments = [
+        {
+          id: 'c1',
+          author: { displayName: 'Alice' },
+          body: '*bold text*',
+          created: '2026-01-01T10:00:00.000Z',
+          updated: '2026-01-01T10:00:00.000Z',
         },
-      });
+      ];
 
       render(
-        <IssueDetailContent
-          issue={issue as never}
+        <InlineComment
           issueKey="PROJ-1"
           jiraBaseUrl="https://jira.example.com"
-          onOpenIssue={vi.fn()}
-          storyPointsFieldKey="customfield_10016"
-          sprintFieldKey="customfield_10020"
-          epicLinkFieldKey="customfield_10014"
+          isOpen={true}
+          onCancel={vi.fn()}
+          onSubmit={vi.fn()}
+          isSubmitting={false}
+          existingComments={comments as never[]}
         />,
         { wrapper },
       );

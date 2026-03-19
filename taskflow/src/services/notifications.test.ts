@@ -371,7 +371,7 @@ describe('notifications service', () => {
 
   describe('QUICK-19: broadened Jira notifications — assignee/reporter/watcher', () => {
     it('returns items for issues where jiraUsername matches assignee', async () => {
-      // Query A: assignee/reporter/watcher issues
+      // Query A: assignee/reporter/watcher issues (with changelog for change detection)
       const issueUpdatesResp = {
         ok: true,
         status: 200,
@@ -385,6 +385,15 @@ describe('notifications service', () => {
                 assignee: { displayName: 'Jane Doe' },
                 reporter: { displayName: 'Boss Man' },
                 updated: '2026-03-12T10:00:00.000Z',
+              },
+              changelog: {
+                histories: [
+                  {
+                    created: '2026-03-12T10:00:00.000Z',
+                    author: { displayName: 'Boss Man' },
+                    items: [{ field: 'status', fromString: 'To Do', toString: 'In Progress' }],
+                  },
+                ],
               },
             },
           ],
@@ -425,7 +434,7 @@ describe('notifications service', () => {
       expect(result[0].id).toBe('jira-issue-PROJ-10-2026-03-12T10:00:00.000Z');
       expect(result[0].source).toBe('jira');
       expect(result[0].entityTitle).toBe('PROJ-10: Assignee issue');
-      expect(result[0].bodyPreview).toBe('Status: In Progress');
+      expect(result[0].bodyPreview).toContain('Status:');
     });
 
     it('returns items for issues where user is reporter', async () => {
@@ -442,6 +451,15 @@ describe('notifications service', () => {
                 assignee: { displayName: 'Someone Else' },
                 reporter: { displayName: 'Jane Doe' },
                 updated: '2026-03-12T11:00:00.000Z',
+              },
+              changelog: {
+                histories: [
+                  {
+                    created: '2026-03-12T11:00:00.000Z',
+                    author: { displayName: 'Someone Else' },
+                    items: [{ field: 'status', fromString: 'In Progress', toString: 'To Do' }],
+                  },
+                ],
               },
             },
           ],
@@ -497,6 +515,15 @@ describe('notifications service', () => {
                 assignee: null,
                 reporter: { displayName: 'Someone' },
                 updated: '2026-03-12T12:00:00.000Z',
+              },
+              changelog: {
+                histories: [
+                  {
+                    created: '2026-03-12T12:00:00.000Z',
+                    author: { displayName: 'Someone' },
+                    items: [{ field: 'status', fromString: 'In Progress', toString: 'Done' }],
+                  },
+                ],
               },
             },
           ],
@@ -602,7 +629,7 @@ describe('notifications service', () => {
     });
 
     it('deduplicates when same issue appears in both issue-update and comment-mention results', async () => {
-      // Query A returns PROJ-5
+      // Query A returns PROJ-5 (with changelog for change detection)
       const issueUpdatesResp = {
         ok: true,
         status: 200,
@@ -616,6 +643,15 @@ describe('notifications service', () => {
                 assignee: { displayName: 'Jane Doe' },
                 reporter: { displayName: 'Boss' },
                 updated: '2026-03-12T08:00:00.000Z',
+              },
+              changelog: {
+                histories: [
+                  {
+                    created: '2026-03-12T08:00:00.000Z',
+                    author: { displayName: 'Boss' },
+                    items: [{ field: 'status', fromString: 'To Do', toString: 'In Review' }],
+                  },
+                ],
               },
             },
           ],

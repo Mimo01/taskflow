@@ -905,6 +905,7 @@ describe('jira service', () => {
         epicLinkFieldKey: 'customfield_10014',
         epicNameFieldKey: 'customfield_10015',
         sprintFieldKey: 'customfield_10020',
+        epicColorFieldKey: 'customfield_10013',
       });
     });
 
@@ -921,6 +922,7 @@ describe('jira service', () => {
         epicLinkFieldKey: 'customfield_10014',
         epicNameFieldKey: 'customfield_10015',
         sprintFieldKey: 'customfield_10020',
+        epicColorFieldKey: 'customfield_10013',
       });
     });
   });

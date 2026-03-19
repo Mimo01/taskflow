@@ -63,13 +63,14 @@ describe('NotificationPopover', () => {
 
     render(<NotificationPopover />);
 
-    fireEvent.click(screen.getByText('PROJ-42: Fix login bug'));
+    // NotificationRow splits entityTitle into key + title spans — click the row button
+    fireEvent.click(screen.getByTestId('notification-row'));
 
     // Should now be in readIds
     expect(useNotificationsStore.getState().readIds).toContain('jira-1');
   });
 
-  it('clicking a read row toggles it back to unread', () => {
+  it('clicking a read row keeps it read (row click always marks read)', () => {
     act(() => {
       useNotificationsStore.setState({
         items: [
@@ -89,10 +90,11 @@ describe('NotificationPopover', () => {
 
     render(<NotificationPopover />);
 
-    fireEvent.click(screen.getByText('PROJ-42: Fix login bug'));
+    // NotificationRow splits entityTitle into key + title spans — click the row button
+    fireEvent.click(screen.getByTestId('notification-row'));
 
-    // Should be removed from readIds
-    expect(useNotificationsStore.getState().readIds).not.toContain('jira-1');
+    // Row click always calls markAsRead — already-read stays read
+    expect(useNotificationsStore.getState().readIds).toContain('jira-1');
   });
 
   it('renders source tabs (All, Jira, GitLab)', () => {

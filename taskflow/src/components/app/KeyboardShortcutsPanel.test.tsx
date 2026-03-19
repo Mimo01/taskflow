@@ -42,10 +42,11 @@ describe('KeyboardShortcutsPanel', () => {
   it('renders "Show keyboard shortcuts" entry with ⌘/ key badge', () => {
     render(<KeyboardShortcutsPanel open={true} onClose={vi.fn()} />);
     expect(screen.getByText('Show keyboard shortcuts')).toBeInTheDocument();
-    // ⌘/ key badge rendered as <kbd>
+    // ⌘ and / key badges rendered as separate <kbd> elements
     const kbdElements = document.querySelectorAll('kbd');
     const keyTexts = Array.from(kbdElements).map((el) => el.textContent);
-    expect(keyTexts).toContain('⌘/');
+    expect(keyTexts).toContain('⌘');
+    expect(keyTexts).toContain('/');
   });
 
   it('renders "Dismiss shortcuts panel" entry with Esc key badge', () => {
