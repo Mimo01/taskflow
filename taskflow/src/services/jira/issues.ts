@@ -4,7 +4,7 @@
 
 import { ApiError } from '../../lib/api-error';
 import { apiFetch } from '../../lib/apiFetch';
-import { SUBTASK_CHUNK_SIZE, fetchAllSearchPages, isResponseLikeError } from './client';
+import { fetchAllSearchPages, isResponseLikeError, SUBTASK_CHUNK_SIZE } from './client';
 import type { CreatemetaField, JiraIssue, JiraIssueDetail } from './types';
 
 /**
