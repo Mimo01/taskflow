@@ -2,9 +2,9 @@
  * Jira field discovery and metadata operations.
  */
 
+import { ApiError } from '../../lib/api-error';
 import { apiFetch } from '../../lib/apiFetch';
 import type { CreatemetaField, JiraProjectStatus } from './types';
-import { ApiError } from '../../lib/api-error';
 
 /**
  * Discover the custom field IDs for this Jira instance.
