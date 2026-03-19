@@ -82,6 +82,7 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
     items,
     readIds,
     permissionDenied,
+    notificationSendError,
     fetchError,
     retryFetch,
     markAllRead,
@@ -90,6 +91,7 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
     markAsUnread,
     removeItem,
     setPermissionDenied,
+    setNotificationSendError,
   } = useNotificationsStore();
 
   const readSet = new Set(readIds);
@@ -291,6 +293,26 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
               type="button"
               aria-label="Dismiss"
               onClick={() => setPermissionDenied(false)}
+              className="absolute top-2 right-2 text-muted-foreground hover:text-foreground text-xs"
+            >
+              ✕
+            </button>
+          </Alert>
+        </div>
+      )}
+
+      {/* Notification send error banner (e.g. dev mode on macOS) */}
+      {notificationSendError && !permissionDenied && (
+        <div className="m-2">
+          <Alert>
+            <AlertDescription>
+              Desktop notifications failed to send. If running in dev mode, this is expected —
+              macOS requires a signed app bundle. Try a production build to verify.
+            </AlertDescription>
+            <button
+              type="button"
+              aria-label="Dismiss"
+              onClick={() => setNotificationSendError(false)}
               className="absolute top-2 right-2 text-muted-foreground hover:text-foreground text-xs"
             >
               ✕

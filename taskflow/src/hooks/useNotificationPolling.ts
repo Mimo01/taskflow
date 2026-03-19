@@ -19,6 +19,7 @@ import {
   tryDispatchOsNotification,
 } from '../services/notifications';
 import { validateJira } from '../services/jira';
+import { fetchAssignedMRs, fetchAuthoredMRs, fetchReviewerMRs } from '../services/gitlab';
 import type { GitLabMR } from '../services/gitlab';
 
 export function useNotificationPolling() {
@@ -84,11 +85,40 @@ export function useNotificationPolling() {
         gitlab: gitlabBaseUrl ? await readSecret('gitlab-pat').catch(() => null) : null,
       };
 
-      // Read cached MR list — the MR query (MrHealthPanel / MyTasksTab / MrAttentionTab)
-      // stores { filtered, merged } so we must read the correct shape and extract the array.
-      const mrCacheData =
-        queryClient.getQueryData<{ filtered: GitLabMR[]; merged: GitLabMR[] }>(['gitlab-mrs', gitlabBaseUrl, gitlabUserId]);
-      const mrList: GitLabMR[] = mrCacheData?.merged ?? [];
+      // Get MR list for GitLab notification fetchers.
+      // Try cache first (populated by dashboard components), otherwise fetch directly.
+      let mrList: GitLabMR[] = [];
+      if (gitlabBaseUrl && tokens.gitlab && gitlabUserId) {
+        const mrCacheData =
+          queryClient.getQueryData<{ filtered: GitLabMR[]; merged: GitLabMR[] }>(['gitlab-mrs', gitlabBaseUrl, gitlabUserId]);
+        if (mrCacheData?.merged && mrCacheData.merged.length > 0) {
+          mrList = mrCacheData.merged;
+        } else {
+          // Cache miss — fetch MRs directly so GitLab notifications work
+          // even if the user hasn't visited the dashboard yet.
+          try {
+            const [assigned, authored, reviewer] = await Promise.all([
+              fetchAssignedMRs(gitlabBaseUrl, tokens.gitlab),
+              fetchAuthoredMRs(gitlabBaseUrl, tokens.gitlab, gitlabUserId),
+              fetchReviewerMRs(gitlabBaseUrl, tokens.gitlab, gitlabUserId),
+            ]);
+            const seen = new Set<number>();
+            mrList = [...assigned, ...authored, ...reviewer].filter(
+              (mr) => !seen.has(mr.iid) && seen.add(mr.iid),
+            );
+            // Populate cache so dashboard components can reuse this data
+            if (mrList.length > 0) {
+              queryClient.setQueryData(
+                ['gitlab-mrs', gitlabBaseUrl, gitlabUserId],
+                { filtered: mrList, merged: mrList },
+              );
+            }
+          } catch {
+            // MR fetch failed — proceed without GitLab notifications this cycle
+            mrList = [];
+          }
+        }
+      }
 
       const allItems = await fetchNewNotifications(jiraBaseUrl, gitlabBaseUrl, tokens, {
         activeJiraProject,
@@ -97,7 +127,8 @@ export function useNotificationPolling() {
         gitlabUserId,
         gitlabUsername,
         mrList,
-        lastSeenCursor: store.lastSeenCursor,
+        lastSeenJiraCursor: store.lastSeenJiraCursor,
+        lastSeenGitlabCursor: store.lastSeenGitlabCursor,
       });
 
       // Filter out items whose notification type toggle is disabled
@@ -107,11 +138,25 @@ export function useNotificationPolling() {
         return typeEnabledMap[nType] !== false;
       });
 
+      // Advance per-source cursors independently so one source's failure
+      // doesn't skip the other source's unseen notifications.
+      const advanceCursors = (items: typeof allItems) => {
+        const jiraItems = items.filter((i) => i.source === 'jira');
+        const gitlabItems = items.filter((i) => i.source === 'gitlab');
+        if (jiraItems.length > 0) {
+          const newestJira = jiraItems.reduce((a, b) => (a.createdAt > b.createdAt ? a : b));
+          store.setLastSeenJiraCursor(newestJira.createdAt);
+        }
+        if (gitlabItems.length > 0) {
+          const newestGitlab = gitlabItems.reduce((a, b) => (a.createdAt > b.createdAt ? a : b));
+          store.setLastSeenGitlabCursor(newestGitlab.createdAt);
+        }
+      };
+
       if (newItems.length > 0) {
         store.prependItems(newItems);
-        // Update cursor to newest item (use allItems to avoid cursor drift from filtered items)
-        const newest = allItems.reduce((a, b) => (a.createdAt > b.createdAt ? a : b));
-        store.setLastSeenCursor(newest.createdAt);
+        // Use allItems to advance cursors (avoid cursor drift from filtered items)
+        advanceCursors(allItems);
         // Dispatch OS notifications for new items
         for (const item of newItems) {
           const sourceEnabled =
@@ -123,12 +168,12 @@ export function useNotificationPolling() {
               `${item.author}: ${item.bodyPreview}`,
             );
             if (result === 'denied') store.setPermissionDenied(true);
+            if (result === 'error') store.setNotificationSendError(true);
           }
         }
       } else if (allItems.length > 0) {
-        // Even if all items were filtered, advance cursor so we don't refetch them
-        const newest = allItems.reduce((a, b) => (a.createdAt > b.createdAt ? a : b));
-        store.setLastSeenCursor(newest.createdAt);
+        // Even if all items were filtered, advance cursors so we don't refetch them
+        advanceCursors(allItems);
       }
 
       return newItems;

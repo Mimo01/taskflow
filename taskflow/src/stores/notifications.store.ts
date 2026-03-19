@@ -66,6 +66,7 @@ interface NotificationsState {
   lastSeenJiraCursor: string | null;     // ISO timestamp of last seen Jira notification
   lastSeenGitlabCursor: string | null;   // ISO timestamp of last seen GitLab notification
   permissionDenied: boolean;       // transient — not persisted
+  notificationSendError: boolean;  // transient — OS notification dispatch failed (e.g. dev mode)
   fetchError: Error | null;        // transient — propagated from polling hook
   retryFetch: (() => void) | null; // transient — refetch function from polling hook
 
@@ -82,6 +83,7 @@ interface NotificationsState {
   setLastSeenJiraCursor: (ts: string) => void;
   setLastSeenGitlabCursor: (ts: string) => void;
   setPermissionDenied: (v: boolean) => void;
+  setNotificationSendError: (v: boolean) => void;
   setFetchError: (err: Error | null) => void;
   setRetryFetch: (fn: (() => void) | null) => void;
 }
@@ -97,6 +99,7 @@ export const useNotificationsStore = create<NotificationsState>()(
       lastSeenJiraCursor: null,
       lastSeenGitlabCursor: null,
       permissionDenied: false,
+      notificationSendError: false,
       fetchError: null,
       retryFetch: null,
 
@@ -144,6 +147,7 @@ export const useNotificationsStore = create<NotificationsState>()(
       setLastSeenGitlabCursor: (ts) => set({ lastSeenGitlabCursor: ts }),
 
       setPermissionDenied: (v) => set({ permissionDenied: v }),
+      setNotificationSendError: (v) => set({ notificationSendError: v }),
 
       setFetchError: (err) => set({ fetchError: err }),
       setRetryFetch: (fn) => set({ retryFetch: fn }),
