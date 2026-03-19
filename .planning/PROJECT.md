@@ -49,7 +49,10 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ### Active
 
-(No active requirements — define next milestone with `/gsd:new-milestone`)
+- [ ] Codebase hardened with comprehensive test coverage, consistent patterns, and automated linting
+- [ ] API services decomposed into focused domain modules
+- [ ] Unified Developer Tools with request logging, operation profiling, and granular settings
+- [ ] All dependencies updated to latest compatible versions
 
 ### Out of Scope
 
@@ -139,5 +142,18 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - **Build:** Portable executable — no installer, no admin rights; `createHashRouter` for SPA routing in production
 - **Known caveats (v1.3):** 10 non-blocking tech debt items from milestone audit; Cmd+Shift nav shortcut deviation needs product owner sign-off; 8 pre-existing LazyStore teardown warnings in tests
 
+## Current Milestone: v1.4 Internal Quality & Performance
+
+**Goal:** Harden the codebase with tests, consistent patterns, tooling, and API profiling — no new user-facing features.
+
+**Target features:**
+- Comprehensive test coverage and regression fixes
+- Service decomposition (jira.ts, large components)
+- Biome linter/formatter
+- Unified Developer Tools (debug logs + API profiler + granular settings)
+- Dependency updates
+- Performance improvements (virtualization, memoization)
+- Accessibility fixes
+
 ---
-*Last updated: 2026-03-19 after v1.3 milestone*
+*Last updated: 2026-03-19 after v1.4 milestone start*
