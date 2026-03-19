@@ -157,14 +157,66 @@
 
 ---
 
+## Milestone: v1.3 — UX & Branding
+
+**Shipped:** 2026-03-19
+**Phases:** 7 (18-24) | **Plans:** 27 | **Quick Tasks:** 40+
+
+### What Was Built
+
+- Custom abstract/geometric app icon via SVG-to-icon pipeline across all platforms (macOS .icns, Windows .ico, Linux PNG, Android, iOS)
+- Multi-page Settings with sidebar navigation: Connections (test-connection feedback), Appearance (theme + density), Notifications (poll interval + per-event toggles), Workflow (stale MR threshold + sprint prefs)
+- Keyboard shortcuts system: centralized registry (shortcuts.ts), react-hotkeys-hook global listener, Cmd+/ help panel, J/K list navigation in My Tasks and Backlog
+- Command palette (Cmd+K): fuzzy search across cached issues/MRs, navigation actions, app actions (create issue, toggle theme), live Jira search tail item, recent items default state
+- Header redesign: Taskflow branding moved to sidebar, PinnedTabStrip below top bar with persistence via LazyStore, overflow indicator at 7+ tabs
+- Recent items: RecentItemsPopover (clock icon) showing last 10 opened issues/MRs with cache-backed title resolution
+- Illustrated empty states (EmptyState component) and actionable error recovery (ApiError class, ErrorState with auth detection, StaleDataBanner) across 10+ data views
+- 40+ quick tasks shipped in parallel: full-page issue detail with breadcrumb navigation, MR detail/list pages, collapsible sidebar, redesigned notifications (tabbed, time-grouped, avatar-led), rich comments with wiki rendering, unified filters, and many UI polish items
+
+### What Worked
+
+- **Audit-driven gap closure (again)** — milestone audit found 3 gaps (J/K guard, missing VERIFICATION.md, KEYS-05 scope); phases 23+24 closed them cleanly; audit status escalated from `gaps_found` to `tech_debt` (all requirements met)
+- **Architectural resolution over code patches** — Phase 23 (J/K guard) was resolved by recognizing that quick task 260316-r0x (full-page routes) already eliminated the problem; zero code changes needed
+- **LazyStore persistence pattern reuse** — pinned tabs and recent items stores both copied the exact same Tauri Store pattern from settings store; zero new patterns to learn or debug
+- **Quick tasks as rapid iteration** — 40+ quick tasks during v1.3 allowed fast user-driven polish without blocking the phase pipeline; quick tasks like breadcrumb navigation and sidebar redesign significantly improved UX
+- **Three-state error detection pattern** — isError && !data → ErrorState, isError && data → StaleDataBanner, !isError && empty → EmptyState — applied consistently across 10+ views with no edge cases
+
+### What Was Inefficient
+
+- **Phase 23 created as a formal phase for zero code changes** — the J/K guard issue was architecturally resolved by a prior quick task; Phase 23 exists only as a CONTEXT.md documenting this; could have been a note in the audit instead
+- **VERIFICATION.md backfill (again)** — Phase 22 completed without VERIFICATION.md; Phase 24 was a dedicated phase to create it; same v1.2 lesson not yet baked into the execution workflow
+- **SUMMARY.md missing one_liner field** — the summary-extract CLI couldn't extract accomplishments because no SUMMARY.md files had one_liner in their frontmatter; had to read phases manually
+- **Nyquist validation partial across all phases** — all VALIDATION.md files are draft with nyquist_compliant: false; the validation step isn't being completed within phase execution
+
+### Patterns Established
+
+- **react-hotkeys-hook with code-name bindings** — use `mod+slash` (code name) not `mod+/` (symbol) to bypass the normalizer bug (#1125); input suppression via `enableOnFormTags: false`
+- **cmdk custom backdrop** — use a custom overlay div instead of CommandDialog to avoid Radix Dialog conflicts with @base-ui/react
+- **ApiError structured propagation** — `throw new ApiError(message, status, source)` at API layer; consumers use `isAuthError()` for auth detection, `getErrorSource()` for Jira/GitLab identification
+- **Phase goals resolved by prior work need documentation, not code** — when a quick task or architectural change already satisfies a phase goal, document it in CONTEXT.md rather than writing code
+
+### Key Lessons
+
+1. **Bake VERIFICATION.md into phase execution** — two milestones in a row required dedicated gap-closure phases for missing VERIFICATION.md files; make it the final plan of every phase
+2. **Quick tasks can architecturally resolve planned phases** — the full-page route migration (260316-r0x) eliminated the J/K guard requirement entirely; check quick task impact before planning gap-closure phases
+3. **Populate one_liner in SUMMARY.md frontmatter** — the CLI summary-extract tool expects this field; without it, milestone accomplishment extraction fails silently
+4. **Complete Nyquist validation within phase execution** — all v1.3 phases have draft VALIDATION.md; the validation step should be mandatory before phase completion
+
+### Cost Observations
+
+- Sessions: 27 plans + 40+ quick tasks across 5 days
+- Notable: Phases 23+24 were both zero/minimal code — one architectural resolution, one documentation gap fill; plan for ~10% documentation overhead per milestone
+
+---
+
 ## Cross-Milestone Trends
 
-| Metric | v1.0 | v1.1 | v1.2 |
-|--------|------|------|------|
-| Phases | 4 | 4 (5-8) | 9 (9-17) |
-| Plans | 20 | 24 | 29 |
-| Quick tasks | 0 | 20 | 0 |
-| Timeline (days) | 2 | 2 | 2 |
-| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 |
-| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) |
-| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) |
+| Metric | v1.0 | v1.1 | v1.2 | v1.3 |
+|--------|------|------|------|------|
+| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) |
+| Plans | 20 | 24 | 29 | 27 |
+| Quick tasks | 0 | 20 | 0 | 40+ |
+| Timeline (days) | 2 | 2 | 2 | 5 |
+| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 |
+| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) |
+| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) |
