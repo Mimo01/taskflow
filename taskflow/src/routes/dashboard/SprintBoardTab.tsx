@@ -85,18 +85,10 @@ function DroppableCell({
       className={[
         'flex-1 min-h-[80px] flex flex-col gap-1.5 p-2 border-l border-border/20 transition-colors',
         isOver && !isDisabled ? 'bg-primary/5 ring-inset ring-1 ring-primary/40' : '',
-        isDisabled ? 'opacity-40 pointer-events-none' : '',
+        isDisabled ? 'opacity-40 pointer-events-none bg-disabled-stripe' : '',
       ]
         .filter(Boolean)
         .join(' ')}
-      style={
-        isDisabled
-          ? {
-              background:
-                'repeating-linear-gradient(45deg,transparent,transparent 4px,hsl(var(--muted)) 4px,hsl(var(--muted)) 8px)',
-            }
-          : undefined
-      }
     >
       {children}
     </div>
