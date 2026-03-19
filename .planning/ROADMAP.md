@@ -135,7 +135,13 @@ Plans:
   3. Notification list, backlog list, and sprint board render 200+ items without visible scroll jank (virtualized)
   4. All form inputs in CreateEditIssueModal and ConnectionsSection have associated aria labels (verifiable via accessibility audit)
   5. Custom dropdowns use proper ARIA roles (listbox/option or equivalent)
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 28-01-PLAN.md — Unit tests for 6 smaller Jira service modules (comments, transitions, versions, worklogs, links, projects)
+- [ ] 28-02-PLAN.md — Unit tests for 6 larger Jira service modules (issues, sprints, epics, fields, backlog, client)
+- [ ] 28-03-PLAN.md — Unit tests for 6 untested Zustand stores + PERF-02 memoized unread count
+- [ ] 28-04-PLAN.md — Install @tanstack/react-virtual, virtualize BacklogPage, NotificationPopover, SprintBoardTab
+- [ ] 28-05-PLAN.md — ARIA labels for form inputs + listbox/option roles for custom dropdowns
 
 ### Phase 29: Developer Tools
 **Goal**: Developers have a unified hidden tools page for API debugging, operation profiling, and performance analysis
@@ -180,5 +186,5 @@ Plans:
 | 25. Tooling & Dependencies | 2/2 | Complete    | 2026-03-19 | - |
 | 26. Test Regression Fixes | 3/3 | Complete    | 2026-03-19 | - |
 | 27. Refactoring & Type Safety | 5/5 | Complete    | 2026-03-19 | - |
-| 28. Test Coverage, Performance & Accessibility | v1.4 | 0/? | Not started | - |
+| 28. Test Coverage, Performance & Accessibility | v1.4 | 0/5 | Not started | - |
 | 29. Developer Tools | v1.4 | 0/? | Not started | - |
