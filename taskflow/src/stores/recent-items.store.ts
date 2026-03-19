@@ -1,13 +1,13 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 import { LazyStore } from '@tauri-apps/plugin-store';
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 export interface RecentItem {
   type: 'jira' | 'gitlab';
-  id: string;        // Issue key (PROJ-123) or MR iid string
-  url?: string;      // For GitLab MRs -- browser open URL
-  title?: string;    // Cached display title so it survives across sessions
-  timestamp: number;  // Date.now() when opened
+  id: string; // Issue key (PROJ-123) or MR iid string
+  url?: string; // For GitLab MRs -- browser open URL
+  title?: string; // Cached display title so it survives across sessions
+  timestamp: number; // Date.now() when opened
 }
 
 const tauriStore = new LazyStore('recent-items.json');
@@ -42,7 +42,12 @@ export const useRecentItemsStore = create<RecentItemsState>()(
           const filtered = s.items.filter((i) => !(i.type === item.type && i.id === item.id));
           // Preserve existing title if caller didn't provide one
           const title = item.title ?? existing?.title;
-          return { items: [{ ...item, ...(title ? { title } : {}), timestamp: Date.now() }, ...filtered].slice(0, 10) };
+          return {
+            items: [
+              { ...item, ...(title ? { title } : {}), timestamp: Date.now() },
+              ...filtered,
+            ].slice(0, 10),
+          };
         }),
     }),
     {

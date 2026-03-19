@@ -4,10 +4,11 @@
  * Tests stale badge logic, no-stale-badge for fresh MRs,
  * MR-to-task linking behavior, and subtask-linked story MR inclusion.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import type React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock react-router-dom — ErrorState uses useNavigate, EmptyState CTA uses navigate
 vi.mock('react-router-dom', () => ({
@@ -64,13 +65,18 @@ vi.mock('@/services/jira', () => ({
 }));
 
 // Helper to create an MR with given updated_at
-function makeMR(iid: number, updatedAt: string, title = `MR ${iid}`, source_branch = `feature/branch-${iid}`) {
+function makeMR(
+  iid: number,
+  updatedAt: string,
+  title = `MR ${iid}`,
+  sourceBranch = `feature/branch-${iid}`,
+) {
   return {
     id: iid,
     iid,
     project_id: 1,
     title,
-    source_branch,
+    source_branch: sourceBranch,
     state: 'opened' as const,
     author: { id: 1, name: 'Author', username: 'author', avatar_url: '' },
     reviewers: [],
@@ -127,10 +133,11 @@ function renderWithQueryAndUser(ui: React.ReactElement) {
       queries: { retry: false, staleTime: 0 },
     },
   });
-  queryClient.setQueryData(
-    ['gitlab-current-user', 'https://gitlab.example.com'],
-    { id: 42, name: 'Test User', username: 'testuser' },
-  );
+  queryClient.setQueryData(['gitlab-current-user', 'https://gitlab.example.com'], {
+    id: 42,
+    name: 'Test User',
+    username: 'testuser',
+  });
   return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
 }
 
@@ -149,10 +156,18 @@ describe('MrAttentionTab', () => {
     vi.mocked(isStale).mockReturnValue(true);
 
     const { useSettingsStore } = await import('@/stores/settings.store');
-    vi.mocked(useSettingsStore).mockReturnValue({ staleMrThresholdDays: 3 } as ReturnType<typeof useSettingsStore>);
+    vi.mocked(useSettingsStore).mockReturnValue({ staleMrThresholdDays: 3 } as ReturnType<
+      typeof useSettingsStore
+    >);
 
     const { useAuthStore } = await import('@/stores/auth.store');
-    vi.mocked(useAuthStore).mockReturnValue({ gitlabBaseUrl: 'https://gitlab.example.com', jiraBaseUrl: 'https://jira.example.com', activeJiraProject: 'PROJ', gitlabUserId: 42, _hasHydrated: true } as ReturnType<typeof useAuthStore>);
+    vi.mocked(useAuthStore).mockReturnValue({
+      gitlabBaseUrl: 'https://gitlab.example.com',
+      jiraBaseUrl: 'https://jira.example.com',
+      activeJiraProject: 'PROJ',
+      gitlabUserId: 42,
+      _hasHydrated: true,
+    } as ReturnType<typeof useAuthStore>);
 
     const { default: MrAttentionTab } = await import('./MrAttentionTab');
     renderWithQueryAndUser(<MrAttentionTab />);
@@ -170,10 +185,18 @@ describe('MrAttentionTab', () => {
     vi.mocked(isStale).mockReturnValue(false);
 
     const { useSettingsStore } = await import('@/stores/settings.store');
-    vi.mocked(useSettingsStore).mockReturnValue({ staleMrThresholdDays: 3 } as ReturnType<typeof useSettingsStore>);
+    vi.mocked(useSettingsStore).mockReturnValue({ staleMrThresholdDays: 3 } as ReturnType<
+      typeof useSettingsStore
+    >);
 
     const { useAuthStore } = await import('@/stores/auth.store');
-    vi.mocked(useAuthStore).mockReturnValue({ gitlabBaseUrl: 'https://gitlab.example.com', jiraBaseUrl: 'https://jira.example.com', activeJiraProject: 'PROJ', gitlabUserId: 42, _hasHydrated: true } as ReturnType<typeof useAuthStore>);
+    vi.mocked(useAuthStore).mockReturnValue({
+      gitlabBaseUrl: 'https://gitlab.example.com',
+      jiraBaseUrl: 'https://jira.example.com',
+      activeJiraProject: 'PROJ',
+      gitlabUserId: 42,
+      _hasHydrated: true,
+    } as ReturnType<typeof useAuthStore>);
 
     const { default: MrAttentionTab } = await import('./MrAttentionTab');
     renderWithQueryAndUser(<MrAttentionTab />);
@@ -224,10 +247,13 @@ describe('MrAttentionTab', () => {
       // User is not assignee/reviewer. MR only appears via fetchProjectMRs.
       // MR title contains sprint issue key PROJ-99.
       const now = new Date().toISOString();
-      const { fetchAssignedMRs, fetchReviewerMRs, fetchProjectMRs, fetchMRDiscussions } = await import('@/services/gitlab');
+      const { fetchAssignedMRs, fetchReviewerMRs, fetchProjectMRs, fetchMRDiscussions } =
+        await import('@/services/gitlab');
       vi.mocked(fetchAssignedMRs).mockResolvedValue([]);
       vi.mocked(fetchReviewerMRs).mockResolvedValue([]);
-      vi.mocked(fetchProjectMRs).mockResolvedValue([makeMR(88, now, 'PROJ-99 feature from project pool')]);
+      vi.mocked(fetchProjectMRs).mockResolvedValue([
+        makeMR(88, now, 'PROJ-99 feature from project pool'),
+      ]);
       vi.mocked(fetchMRDiscussions).mockResolvedValue([]);
 
       const { linkMRToTask } = await import('@/services/linkEngine');
@@ -263,7 +289,9 @@ describe('MrAttentionTab', () => {
       // Without subtask path: this MR would be excluded (no unresolved discussions).
       // With subtask path: should be included unconditionally.
       const now = new Date().toISOString();
-      const { fetchAssignedMRs, fetchReviewerMRs, fetchMRDiscussions } = await import('@/services/gitlab');
+      const { fetchAssignedMRs, fetchReviewerMRs, fetchMRDiscussions } = await import(
+        '@/services/gitlab'
+      );
       vi.mocked(fetchAssignedMRs).mockResolvedValue([]);
       vi.mocked(fetchReviewerMRs).mockResolvedValue([makeMR(20, now, 'STORY-1 some fix')]);
       // No unresolved discussions — would normally exclude this reviewer MR
@@ -301,7 +329,9 @@ describe('MrAttentionTab', () => {
     it('shows "via [subtask-key]" label on subtask-path-only MRs', async () => {
       // MR is only in list because of subtask path — should show "via SUB-1"
       const now = new Date().toISOString();
-      const { fetchAssignedMRs, fetchReviewerMRs, fetchMRDiscussions } = await import('@/services/gitlab');
+      const { fetchAssignedMRs, fetchReviewerMRs, fetchMRDiscussions } = await import(
+        '@/services/gitlab'
+      );
       vi.mocked(fetchAssignedMRs).mockResolvedValue([]);
       vi.mocked(fetchReviewerMRs).mockResolvedValue([makeMR(21, now, 'STORY-2 feature branch')]);
       vi.mocked(fetchMRDiscussions).mockResolvedValue([]);
@@ -374,9 +404,12 @@ describe('MrAttentionTab', () => {
       await screen.findByText(/STORY-3 assigned mr/i, {}, { timeout: 3000 });
 
       // No "via" label since it's already included via assignment/sprint
-      await waitFor(() => {
-        expect(screen.queryByText(/via SUB-3/i)).toBeNull();
-      }, { timeout: 3000 });
+      await waitFor(
+        () => {
+          expect(screen.queryByText(/via SUB-3/i)).toBeNull();
+        },
+        { timeout: 3000 },
+      );
     });
 
     it('gracefully shows base MR list when subtask data is unavailable', async () => {

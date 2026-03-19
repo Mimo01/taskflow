@@ -6,8 +6,8 @@
  * (Anti-pattern to avoid: useState for wizard fields — see RESEARCH.md Pitfall 4)
  */
 import { create } from 'zustand';
-import type { JiraProject } from '@/services/jira';
 import type { GitLabProject } from '@/services/gitlab';
+import type { JiraProject } from '@/services/jira';
 
 interface OnboardingState {
   step: number;

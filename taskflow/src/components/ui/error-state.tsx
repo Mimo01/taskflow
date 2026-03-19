@@ -1,9 +1,9 @@
+import { AlertCircle, ShieldAlert } from 'lucide-react';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, ShieldAlert } from 'lucide-react';
-import { Alert, AlertTitle, AlertDescription, AlertAction } from '@/components/ui/alert';
+import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { isAuthError, getErrorSource } from '@/lib/api-error';
+import { getErrorSource, isAuthError } from '@/lib/api-error';
 
 interface ErrorStateProps {
   error: Error | unknown;

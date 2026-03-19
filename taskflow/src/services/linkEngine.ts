@@ -10,7 +10,7 @@
  * - Review health: approved > changes_requested > waiting_for_review priority order
  */
 
-import type { GitLabMR, MRApprovals, Discussion, MRCommit } from './gitlab';
+import type { Discussion, GitLabMR, MRApprovals, MRCommit } from './gitlab';
 
 /** Health state of a merge request based on approvals and unresolved discussions. */
 export type ReviewHealth = 'approved' | 'changes_requested' | 'waiting_for_review';
@@ -94,14 +94,15 @@ export function linkMRToTaskViaCommits(
  * @param discussions - MR discussion threads from fetchMRDiscussions
  * @returns Review health status
  */
-export function deriveReviewHealth(approvals: MRApprovals, discussions: Discussion[]): ReviewHealth {
+export function deriveReviewHealth(
+  approvals: MRApprovals,
+  discussions: Discussion[],
+): ReviewHealth {
   if (approvals.approved_by.length > 0) {
     return 'approved';
   }
 
-  const hasUnresolved = discussions.some((d) =>
-    d.notes.some((n) => n.resolvable && !n.resolved),
-  );
+  const hasUnresolved = discussions.some((d) => d.notes.some((n) => n.resolvable && !n.resolved));
 
   if (hasUnresolved) {
     return 'changes_requested';

@@ -5,18 +5,19 @@
  * Calls onSelect(transitionId, toStatusName) when user picks a transition.
  * disabled prop prevents opening while a mutation is in-flight.
  */
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
-import { fetchTransitions } from '@/services/jira'
+
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { fetchTransitions } from '@/services/jira';
 
 interface StatusPopoverProps {
-  issueKey: string
-  currentStatus: string
-  jiraBaseUrl: string
-  token: string
-  onSelect: (transitionId: string, toStatusName: string) => void
-  disabled?: boolean
+  issueKey: string;
+  currentStatus: string;
+  jiraBaseUrl: string;
+  token: string;
+  onSelect: (transitionId: string, toStatusName: string) => void;
+  disabled?: boolean;
 }
 
 export default function StatusPopover({
@@ -27,25 +28,30 @@ export default function StatusPopover({
   onSelect,
   disabled = false,
 }: StatusPopoverProps) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(false);
 
-  const { data: transitions, isLoading, isError, refetch } = useQuery({
+  const {
+    data: transitions,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ['transitions', issueKey],
     queryFn: () => fetchTransitions(jiraBaseUrl, token, issueKey),
     enabled: false, // Lazy — only fetch when popover opens
-  })
+  });
 
   function handleOpenChange(newOpen: boolean) {
-    if (disabled) return
-    setOpen(newOpen)
+    if (disabled) return;
+    setOpen(newOpen);
     if (newOpen) {
-      refetch()
+      refetch();
     }
   }
 
   function handleSelect(transitionId: string, toStatusName: string) {
-    onSelect(transitionId, toStatusName)
-    setOpen(false)
+    onSelect(transitionId, toStatusName);
+    setOpen(false);
   }
 
   return (
@@ -58,23 +64,23 @@ export default function StatusPopover({
         {currentStatus}
       </PopoverTrigger>
       <PopoverContent className="p-1 min-w-[160px]">
-        {isLoading && (
-          <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>
-        )}
+        {isLoading && <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>}
         {isError && (
           <div className="px-3 py-2 text-sm text-destructive">Unable to load transitions</div>
         )}
-        {!isLoading && !isError && transitions && transitions.map((transition) => (
-          <button
-            key={transition.id}
-            type="button"
-            onClick={() => handleSelect(transition.id, transition.to.name)}
-            className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent rounded"
-          >
-            → {transition.name}
-          </button>
-        ))}
+        {!isLoading &&
+          !isError &&
+          transitions?.map((transition) => (
+            <button
+              key={transition.id}
+              type="button"
+              onClick={() => handleSelect(transition.id, transition.to.name)}
+              className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent rounded"
+            >
+              → {transition.name}
+            </button>
+          ))}
       </PopoverContent>
     </Popover>
-  )
+  );
 }

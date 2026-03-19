@@ -1,8 +1,9 @@
 // KEYS-01: mod+/ (Cmd+/ on macOS, Ctrl+/ elsewhere) opens the shortcuts panel
 // KEYS-02: Escape closes the shortcuts panel (handled by @base-ui/react/dialog natively)
 // KEYS-07: mod+/ does not fire in text inputs (react-hotkeys-hook default — enableOnFormTags: false)
-import { describe, it, expect, vi } from 'vitest';
+
 import { render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
 // Mock @tauri-apps/plugin-store — required by any module that transitively imports useSettingsStore
 vi.mock('@tauri-apps/plugin-store', () => {
@@ -30,9 +31,7 @@ describe('KeyboardShortcutsPanel', () => {
 
   it('KEYS-02: renders a close button with accessible label', () => {
     render(<KeyboardShortcutsPanel open={true} onClose={vi.fn()} />);
-    expect(
-      screen.getByRole('button', { name: 'Close keyboard shortcuts' })
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Close keyboard shortcuts' })).toBeInTheDocument();
   });
 
   it('renders "General" category heading', () => {

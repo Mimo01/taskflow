@@ -9,18 +9,18 @@
  * All state lives in BacklogPage — this component is purely presentational.
  */
 
-import { useState, useRef, useCallback } from 'react'
+import { useCallback, useRef, useState } from 'react';
 
 // ─── MultiFilterCombobox ───────────────────────────────────────────────────────
 
 interface MultiFilterComboboxProps {
-  id: string
-  label: string
-  placeholder: string
-  noun: string // singular noun for the count chip e.g. "epic", "assignee", "label"
-  options: string[]
-  selected: Set<string>
-  onToggle: (value: string) => void
+  id: string;
+  label: string;
+  placeholder: string;
+  noun: string; // singular noun for the count chip e.g. "epic", "assignee", "label"
+  options: string[];
+  selected: Set<string>;
+  onToggle: (value: string) => void;
 }
 
 function MultiFilterCombobox({
@@ -32,31 +32,29 @@ function MultiFilterCombobox({
   selected,
   onToggle,
 }: MultiFilterComboboxProps) {
-  const [query, setQuery] = useState('')
-  const [open, setOpen] = useState(false)
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const filtered = options.filter((o) =>
-    !query || o.toLowerCase().includes(query.toLowerCase()),
-  )
+  const filtered = options.filter((o) => !query || o.toLowerCase().includes(query.toLowerCase()));
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setQuery(e.target.value)
-    setOpen(true)
+    setQuery(e.target.value);
+    setOpen(true);
   }
 
   function handleFocus() {
-    if (closeTimer.current) clearTimeout(closeTimer.current)
-    setOpen(true)
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setOpen(true);
   }
 
   const handleBlur = useCallback(() => {
-    closeTimer.current = setTimeout(() => setOpen(false), 150)
-  }, [])
+    closeTimer.current = setTimeout(() => setOpen(false), 150);
+  }, []);
 
   function handleSelect(option: string) {
-    onToggle(option)
-    setQuery('')
+    onToggle(option);
+    setQuery('');
   }
 
   return (
@@ -71,19 +69,20 @@ function MultiFilterCombobox({
         aria-autocomplete="list"
         aria-expanded={open}
         value={query}
-        placeholder={selected.size > 0 ? `${selected.size} ${noun}${selected.size > 1 ? 's' : ''}` : placeholder}
+        placeholder={
+          selected.size > 0
+            ? `${selected.size} ${noun}${selected.size > 1 ? 's' : ''}`
+            : placeholder
+        }
         onChange={handleChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
         className="rounded border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-32"
       />
       {open && filtered.length > 0 && (
-        <ul
-          role="listbox"
-          className="absolute z-20 mt-1 w-max min-w-full max-h-48 overflow-y-auto rounded border border-border bg-background shadow-md"
-        >
+        <ul className="absolute z-20 mt-1 w-max min-w-full max-h-48 overflow-y-auto rounded border border-border bg-background shadow-md">
           {filtered.map((option) => (
-            <li key={option} role="option" aria-selected={selected.has(option)}>
+            <li key={option} aria-selected={selected.has(option)}>
               <button
                 type="button"
                 className="w-full px-3 py-1.5 text-left text-xs hover:bg-accent flex items-center gap-2"
@@ -97,30 +96,30 @@ function MultiFilterCombobox({
         </ul>
       )}
     </div>
-  )
+  );
 }
 
 // ─── BacklogFilterBar ──────────────────────────────────────────────────────────
 
 export interface BacklogFilterBarProps {
   filterOptions: {
-    epics: Map<string, string> // epicKey → epicName
-    labels: string[]
-    assignees: string[]
-  }
-  activeEpics: Set<string>
-  activeLabels: Set<string>
-  activeAssignees: Set<string>
-  onEpicsChange: (epics: Set<string>) => void
-  onLabelsChange: (labels: Set<string>) => void
-  onAssigneesChange: (assignees: Set<string>) => void
+    epics: Map<string, string>; // epicKey → epicName
+    labels: string[];
+    assignees: string[];
+  };
+  activeEpics: Set<string>;
+  activeLabels: Set<string>;
+  activeAssignees: Set<string>;
+  onEpicsChange: (epics: Set<string>) => void;
+  onLabelsChange: (labels: Set<string>) => void;
+  onAssigneesChange: (assignees: Set<string>) => void;
 }
 
 function toggle(set: Set<string>, value: string): Set<string> {
-  const next = new Set(set)
-  if (next.has(value)) next.delete(value)
-  else next.add(value)
-  return next
+  const next = new Set(set);
+  if (next.has(value)) next.delete(value);
+  else next.add(value);
+  return next;
 }
 
 export function BacklogFilterBar({
@@ -132,13 +131,10 @@ export function BacklogFilterBar({
   onLabelsChange,
   onAssigneesChange,
 }: BacklogFilterBarProps) {
-  const epicNames = Array.from(filterOptions.epics.values())
+  const epicNames = Array.from(filterOptions.epics.values());
 
   return (
-    <div
-      data-testid="filter-bar"
-      className="flex flex-wrap gap-2 items-center px-4 py-2 border-b"
-    >
+    <div data-testid="filter-bar" className="flex flex-wrap gap-2 items-center px-4 py-2 border-b">
       <MultiFilterCombobox
         id="epic-filter"
         label="Epic"
@@ -225,7 +221,7 @@ export function BacklogFilterBar({
         </span>
       ))}
     </div>
-  )
+  );
 }
 
-export default BacklogFilterBar
+export default BacklogFilterBar;

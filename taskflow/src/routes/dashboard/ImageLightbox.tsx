@@ -1,28 +1,28 @@
-import { useEffect, useCallback } from 'react'
-import { AuthImage } from './AuthImage'
+import { useCallback, useEffect } from 'react';
+import { AuthImage } from './AuthImage';
 
 interface ImageLightboxProps {
-  src: string
-  alt?: string
-  open: boolean
-  onClose: () => void
+  src: string;
+  alt?: string;
+  open: boolean;
+  onClose: () => void;
 }
 
 export function ImageLightbox({ src, alt, open, onClose }: ImageLightboxProps) {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') onClose();
     },
     [onClose],
-  )
+  );
 
   useEffect(() => {
-    if (!open) return
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [open, handleKeyDown])
+    if (!open) return;
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open, handleKeyDown]);
 
-  if (!open) return null
+  if (!open) return null;
 
   return (
     <div
@@ -47,5 +47,5 @@ export function ImageLightbox({ src, alt, open, onClose }: ImageLightboxProps) {
         onClick={(e: React.MouseEvent) => e.stopPropagation()}
       />
     </div>
-  )
+  );
 }

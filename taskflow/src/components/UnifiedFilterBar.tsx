@@ -6,33 +6,48 @@
  * Button, and Badge components for visual consistency.
  */
 
-import { useState, useRef, useMemo } from 'react'
-import { Filter, X, Check, ChevronDown, Bookmark, BookmarkPlus, Search, Pencil, Trash2, ArrowLeft, ArrowRight, ChevronsLeft, ChevronsRight, Info } from 'lucide-react'
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
-import { Button } from '@/components/ui/button'
+import {
+  ArrowLeft,
+  ArrowRight,
+  Bookmark,
+  BookmarkPlus,
+  Check,
+  ChevronDown,
+  ChevronsLeft,
+  ChevronsRight,
+  Filter,
+  Info,
+  Pencil,
+  Search,
+  Trash2,
+  X,
+} from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   ContextMenu,
-  ContextMenuTrigger,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
-} from '@/components/ui/context-menu'
-import { useFilterStore } from '@/stores/filter.store'
-import { useSettingsStore } from '@/stores/settings.store'
-import type { QuickFilter } from '@/stores/filter.store'
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import type { QuickFilter } from '@/stores/filter.store';
+import { useFilterStore } from '@/stores/filter.store';
+import { useSettingsStore } from '@/stores/settings.store';
 
 // ── FilterDropdown ──────────────────────────────────────────────────────────
 
 interface FilterDropdownProps {
-  label: string
-  icon?: React.ReactNode
+  label: string;
+  icon?: React.ReactNode;
   /** Values to toggle. For epics, these are keys; for others, display strings. */
-  options: string[]
-  selected: Set<string>
-  onToggle: (value: string) => void
+  options: string[];
+  selected: Set<string>;
+  onToggle: (value: string) => void;
   /** Optional map from value → display name (e.g. epicKey → epicName). */
-  displayMap?: Map<string, string>
-  colorDot?: (value: string) => string | undefined
+  displayMap?: Map<string, string>;
+  colorDot?: (value: string) => string | undefined;
 }
 
 function FilterDropdown({
@@ -43,26 +58,22 @@ function FilterDropdown({
   displayMap,
   colorDot,
 }: FilterDropdownProps) {
-  const [query, setQuery] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [query, setQuery] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const display = (value: string) => displayMap?.get(value) ?? value
+  const display = (value: string) => displayMap?.get(value) ?? value;
 
   const filtered = useMemo(() => {
-    if (!query) return options
-    const q = query.toLowerCase()
-    return options.filter((o) => display(o).toLowerCase().includes(q))
-  }, [options, query, displayMap])
+    if (!query) return options;
+    const q = query.toLowerCase();
+    return options.filter((o) => display(o).toLowerCase().includes(q));
+  }, [options, query, display]);
 
-  const count = selected.size
+  const count = selected.size;
 
   return (
     <Popover>
-      <PopoverTrigger
-        render={
-          <Button variant={count > 0 ? 'secondary' : 'outline'} size="xs" />
-        }
-      >
+      <PopoverTrigger render={<Button variant={count > 0 ? 'secondary' : 'outline'} size="xs" />}>
         {label}
         {count > 0 && (
           <span className="ml-0.5 inline-flex items-center justify-center size-4 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold leading-none">
@@ -100,8 +111,8 @@ function FilterDropdown({
             <p className="px-3 py-2 text-xs text-muted-foreground">No results</p>
           ) : (
             filtered.map((option) => {
-              const isSelected = selected.has(option)
-              const dot = colorDot?.(option)
+              const isSelected = selected.has(option);
+              const dot = colorDot?.(option);
               return (
                 <button
                   key={option}
@@ -126,7 +137,7 @@ function FilterDropdown({
                   )}
                   <span className="truncate">{display(option)}</span>
                 </button>
-              )
+              );
             })
           )}
         </div>
@@ -137,7 +148,9 @@ function FilterDropdown({
             <button
               type="button"
               onClick={() => {
-                selected.forEach((v) => onToggle(v))
+                selected.forEach((v) => {
+                  onToggle(v);
+                });
               }}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
@@ -147,19 +160,19 @@ function FilterDropdown({
         )}
       </PopoverContent>
     </Popover>
-  )
+  );
 }
 
 // ── UnifiedFilterBar ────────────────────────────────────────────────────────
 
 export interface UnifiedFilterBarProps {
   filterOptions: {
-    epics: Map<string, string>
-    labels: string[]
-    assignees: string[]
-    statuses: string[]
-    epicColors?: Map<string, string>
-  }
+    epics: Map<string, string>;
+    labels: string[];
+    assignees: string[];
+    statuses: string[];
+    epicColors?: Map<string, string>;
+  };
 }
 
 export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
@@ -174,29 +187,30 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
     toggleStatus,
     clearAll,
     applyQuickFilter,
-  } = useFilterStore()
+  } = useFilterStore();
 
   const { quickFilters, addQuickFilter, removeQuickFilter, renameQuickFilter, moveQuickFilter } =
-    useSettingsStore()
+    useSettingsStore();
 
-  const [savingName, setSavingName] = useState(false)
-  const [nameInput, setNameInput] = useState('')
-  const [renamingId, setRenamingId] = useState<string | null>(null)
-  const [renameInput, setRenameInput] = useState('')
-  const renameInputRef = useRef<HTMLInputElement>(null)
-  const nameInputRef = useRef<HTMLInputElement>(null)
+  const [savingName, setSavingName] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameInput, setRenameInput] = useState('');
+  const renameInputRef = useRef<HTMLInputElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
-  const epicKeys = useMemo(
-    () => Array.from(filterOptions.epics.keys()),
-    [filterOptions.epics],
-  )
+  const epicKeys = useMemo(() => Array.from(filterOptions.epics.keys()), [filterOptions.epics]);
   const hasActiveFilters =
-    activeEpics.size > 0 || activeLabels.size > 0 || activeAssignees.size > 0 || activeStatuses.size > 0
+    activeEpics.size > 0 ||
+    activeLabels.size > 0 ||
+    activeAssignees.size > 0 ||
+    activeStatuses.size > 0;
 
-  const activeCount = activeEpics.size + activeLabels.size + activeAssignees.size + activeStatuses.size
+  const activeCount =
+    activeEpics.size + activeLabels.size + activeAssignees.size + activeStatuses.size;
 
   function handleSaveQuickFilter() {
-    if (!nameInput.trim()) return
+    if (!nameInput.trim()) return;
     const qf: QuickFilter = {
       id: Date.now().toString(),
       name: nameInput.trim(),
@@ -204,41 +218,39 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
       labels: Array.from(activeLabels),
       assignees: Array.from(activeAssignees),
       statuses: Array.from(activeStatuses),
-    }
-    addQuickFilter(qf)
-    setNameInput('')
-    setSavingName(false)
+    };
+    addQuickFilter(qf);
+    setNameInput('');
+    setSavingName(false);
   }
 
   function handleStartSave() {
-    setSavingName(true)
-    setTimeout(() => nameInputRef.current?.focus(), 0)
+    setSavingName(true);
+    setTimeout(() => nameInputRef.current?.focus(), 0);
   }
 
   // Check if a quickfilter matches the current active filters
   function isQuickFilterActive(qf: QuickFilter): boolean {
     const epicMatch =
-      qf.epics.length === activeEpics.size &&
-      qf.epics.every((e) => activeEpics.has(e))
+      qf.epics.length === activeEpics.size && qf.epics.every((e) => activeEpics.has(e));
     const labelMatch =
-      qf.labels.length === activeLabels.size &&
-      qf.labels.every((l) => activeLabels.has(l))
+      qf.labels.length === activeLabels.size && qf.labels.every((l) => activeLabels.has(l));
     const assigneeMatch =
       qf.assignees.length === activeAssignees.size &&
-      qf.assignees.every((a) => activeAssignees.has(a))
+      qf.assignees.every((a) => activeAssignees.has(a));
     const statusMatch =
       (qf.statuses ?? []).length === activeStatuses.size &&
-      (qf.statuses ?? []).every((s) => activeStatuses.has(s))
-    return epicMatch && labelMatch && assigneeMatch && statusMatch
+      (qf.statuses ?? []).every((s) => activeStatuses.has(s));
+    return epicMatch && labelMatch && assigneeMatch && statusMatch;
   }
 
   // Collect all active chips in one flat list with category labels
   const activeChips: Array<{
-    key: string
-    label: string
-    category: string
-    onRemove: () => void
-  }> = []
+    key: string;
+    label: string;
+    category: string;
+    onRemove: () => void;
+  }> = [];
 
   activeEpics.forEach((epicKey) => {
     activeChips.push({
@@ -246,34 +258,34 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
       label: filterOptions.epics.get(epicKey) ?? epicKey,
       category: 'Epic',
       onRemove: () => toggleEpic(epicKey),
-    })
-  })
+    });
+  });
   activeLabels.forEach((label) => {
     activeChips.push({
       key: `label-${label}`,
       label,
       category: 'Label',
       onRemove: () => toggleLabel(label),
-    })
-  })
+    });
+  });
   activeAssignees.forEach((assignee) => {
     activeChips.push({
       key: `assignee-${assignee}`,
       label: assignee,
       category: 'Assignee',
       onRemove: () => toggleAssignee(assignee),
-    })
-  })
+    });
+  });
   activeStatuses.forEach((status) => {
     activeChips.push({
       key: `status-${status}`,
       label: status,
       category: 'Status',
       onRemove: () => toggleStatus(status),
-    })
-  })
+    });
+  });
 
-  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Auto-open selectors when there are active filters but no quickfilters yet
   // (so user can see what's active and save it)
@@ -292,10 +304,10 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
         )}
 
         {quickFilters.map((qf, qfIndex) => {
-          const active = isQuickFilterActive(qf)
-          const isFirst = qfIndex === 0
-          const isLast = qfIndex === quickFilters.length - 1
-          const isRenaming = renamingId === qf.id
+          const active = isQuickFilterActive(qf);
+          const isFirst = qfIndex === 0;
+          const isLast = qfIndex === quickFilters.length - 1;
+          const isRenaming = renamingId === qf.id;
 
           if (isRenaming) {
             return (
@@ -311,19 +323,19 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
                   onChange={(e) => setRenameInput(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && renameInput.trim()) {
-                      renameQuickFilter(qf.id, renameInput.trim())
-                      setRenamingId(null)
+                      renameQuickFilter(qf.id, renameInput.trim());
+                      setRenamingId(null);
                     }
-                    if (e.key === 'Escape') setRenamingId(null)
+                    if (e.key === 'Escape') setRenamingId(null);
                   }}
                   onBlur={() => {
-                    if (renameInput.trim()) renameQuickFilter(qf.id, renameInput.trim())
-                    setRenamingId(null)
+                    if (renameInput.trim()) renameQuickFilter(qf.id, renameInput.trim());
+                    setRenamingId(null);
                   }}
                   className="bg-transparent text-xs w-24 outline-none"
                 />
               </span>
-            )
+            );
           }
 
           return (
@@ -332,7 +344,7 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
                 render={
                   <button
                     type="button"
-                    onClick={() => active ? clearAll() : applyQuickFilter(qf)}
+                    onClick={() => (active ? clearAll() : applyQuickFilter(qf))}
                     className={`inline-flex items-center gap-1 rounded-md text-xs leading-tight pl-2 pr-2.5 py-1 transition-colors cursor-pointer ${
                       active
                         ? 'bg-primary/15 text-primary border border-primary/30'
@@ -347,9 +359,9 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
               <ContextMenuContent>
                 <ContextMenuItem
                   onClick={() => {
-                    setRenamingId(qf.id)
-                    setRenameInput(qf.name)
-                    setTimeout(() => renameInputRef.current?.select(), 0)
+                    setRenamingId(qf.id);
+                    setRenameInput(qf.name);
+                    setTimeout(() => renameInputRef.current?.select(), 0);
                   }}
                 >
                   <Pencil className="size-3.5" />
@@ -389,16 +401,13 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
                   </>
                 )}
                 <ContextMenuSeparator />
-                <ContextMenuItem
-                  variant="destructive"
-                  onClick={() => removeQuickFilter(qf.id)}
-                >
+                <ContextMenuItem variant="destructive" onClick={() => removeQuickFilter(qf.id)}>
                   <Trash2 className="size-3.5" />
                   Delete
                 </ContextMenuItem>
               </ContextMenuContent>
             </ContextMenu>
-          )
+          );
         })}
 
         {/* Active filter chips (shown in primary row when selectors are closed) */}
@@ -412,9 +421,7 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
                   data-testid={`${chip.key.replace(/^(epic|label|assignee|status)-/, '$1-chip-')}`}
                   className="inline-flex items-center gap-1 rounded-md bg-secondary text-secondary-foreground pl-1.5 pr-1 py-0.5 text-[11px] leading-tight"
                 >
-                  <span className="text-muted-foreground font-medium">
-                    {chip.category}:
-                  </span>
+                  <span className="text-muted-foreground font-medium">{chip.category}:</span>
                   <span className="max-w-[120px] truncate">{chip.label}</span>
                   <button
                     type="button"
@@ -461,10 +468,10 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
               value={nameInput}
               onChange={(e) => setNameInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSaveQuickFilter()
+                if (e.key === 'Enter') handleSaveQuickFilter();
                 if (e.key === 'Escape') {
-                  setSavingName(false)
-                  setNameInput('')
+                  setSavingName(false);
+                  setNameInput('');
                 }
               }}
               placeholder="Filter name..."
@@ -482,8 +489,8 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
               variant="ghost"
               size="xs"
               onClick={() => {
-                setSavingName(false)
-                setNameInput('')
+                setSavingName(false);
+                setNameInput('');
               }}
             >
               <X className="size-3" />
@@ -548,9 +555,7 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
                     data-testid={`${chip.key.replace(/^(epic|label|assignee|status)-/, '$1-chip-')}`}
                     className="inline-flex items-center gap-1 rounded-md bg-secondary text-secondary-foreground pl-1.5 pr-1 py-0.5 text-[11px] leading-tight"
                   >
-                    <span className="text-muted-foreground font-medium">
-                      {chip.category}:
-                    </span>
+                    <span className="text-muted-foreground font-medium">{chip.category}:</span>
                     <span className="max-w-[120px] truncate">{chip.label}</span>
                     <button
                       type="button"
@@ -575,7 +580,7 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
         </div>
       )}
     </div>
-  )
+  );
 }
 
-export default UnifiedFilterBar
+export default UnifiedFilterBar;

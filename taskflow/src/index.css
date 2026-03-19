@@ -4,7 +4,9 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 
-@variant dark (&:is(.dark *));
+@variant dark
+(
+&:is(.dark *));
 @variant density-compact (&:is([data-density="compact"] *));
 @variant density-comfortable (&:is([data-density="comfortable"] *));
 
@@ -154,4 +156,3 @@
     @apply font-sans;
   }
 }
-

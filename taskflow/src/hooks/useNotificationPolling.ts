@@ -7,20 +7,18 @@
  * Must be rendered inside QueryClientProvider (called from AppLayout in main.tsx).
  * Separated from TopBar so TopBar tests don't require a QueryClientProvider wrapper.
  */
-import { useEffect } from 'react';
+
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNotificationsStore } from '../stores/notifications.store';
-import type { NotificationType } from '../stores/notifications.store';
-import { useSettingsStore } from '../stores/settings.store';
-import { useAuthStore } from '../stores/auth.store';
-import { readSecret } from '../services/stronghold';
-import {
-  fetchNewNotifications,
-  tryDispatchOsNotification,
-} from '../services/notifications';
-import { validateJira } from '../services/jira';
-import { fetchAssignedMRs, fetchAuthoredMRs, fetchReviewerMRs } from '../services/gitlab';
+import { useEffect } from 'react';
 import type { GitLabMR } from '../services/gitlab';
+import { fetchAssignedMRs, fetchAuthoredMRs, fetchReviewerMRs } from '../services/gitlab';
+import { validateJira } from '../services/jira';
+import { fetchNewNotifications, tryDispatchOsNotification } from '../services/notifications';
+import { readSecret } from '../services/stronghold';
+import { useAuthStore } from '../stores/auth.store';
+import type { NotificationType } from '../stores/notifications.store';
+import { useNotificationsStore } from '../stores/notifications.store';
+import { useSettingsStore } from '../stores/settings.store';
 
 export function useNotificationPolling() {
   const store = useNotificationsStore();
@@ -89,8 +87,11 @@ export function useNotificationPolling() {
       // Try cache first (populated by dashboard components), otherwise fetch directly.
       let mrList: GitLabMR[] = [];
       if (gitlabBaseUrl && tokens.gitlab && gitlabUserId) {
-        const mrCacheData =
-          queryClient.getQueryData<{ filtered: GitLabMR[]; merged: GitLabMR[] }>(['gitlab-mrs', gitlabBaseUrl, gitlabUserId]);
+        const mrCacheData = queryClient.getQueryData<{ filtered: GitLabMR[]; merged: GitLabMR[] }>([
+          'gitlab-mrs',
+          gitlabBaseUrl,
+          gitlabUserId,
+        ]);
         if (mrCacheData?.merged && mrCacheData.merged.length > 0) {
           mrList = mrCacheData.merged;
         } else {
@@ -108,10 +109,10 @@ export function useNotificationPolling() {
             );
             // Populate cache so dashboard components can reuse this data
             if (mrList.length > 0) {
-              queryClient.setQueryData(
-                ['gitlab-mrs', gitlabBaseUrl, gitlabUserId],
-                { filtered: mrList, merged: mrList },
-              );
+              queryClient.setQueryData(['gitlab-mrs', gitlabBaseUrl, gitlabUserId], {
+                filtered: mrList,
+                merged: mrList,
+              });
             }
           } catch {
             // MR fetch failed — proceed without GitLab notifications this cycle
@@ -159,8 +160,7 @@ export function useNotificationPolling() {
         advanceCursors(allItems);
         // Dispatch OS notifications for new items
         for (const item of newItems) {
-          const sourceEnabled =
-            item.source === 'jira' ? osNotifJiraEnabled : osNotifGitlabEnabled;
+          const sourceEnabled = item.source === 'jira' ? osNotifJiraEnabled : osNotifGitlabEnabled;
           // Per-type check already passed via filter above
           if (sourceEnabled) {
             const result = await tryDispatchOsNotification(
@@ -187,11 +187,15 @@ export function useNotificationPolling() {
   // Propagate error state to store so NotificationPopover can display it
   useEffect(() => {
     store.setFetchError(queryResult.isError ? (queryResult.error as Error) : null);
-  }, [queryResult.isError, queryResult.error]);
+  }, [queryResult.isError, queryResult.error, store.setFetchError]);
 
   // Expose refetch via store so NotificationPopover can trigger retry
   useEffect(() => {
-    store.setRetryFetch(() => { queryResult.refetch(); });
-    return () => { store.setRetryFetch(null); };
-  }, [queryResult.refetch]);
+    store.setRetryFetch(() => {
+      queryResult.refetch();
+    });
+    return () => {
+      store.setRetryFetch(null);
+    };
+  }, [queryResult.refetch, store.setRetryFetch]);
 }

@@ -1,13 +1,13 @@
-import { useRef } from 'react'
-import { Bold, Italic, Code, List } from 'lucide-react'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Textarea } from '@/components/ui/textarea'
-import { WikiRenderer } from './WikiRenderer'
+import { Bold, Code, Italic, List } from 'lucide-react';
+import { useRef } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { WikiRenderer } from './WikiRenderer';
 
 interface DescriptionEditorProps {
-  value: string
-  onChange: (v: string) => void
-  disabled?: boolean
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
 }
 
 function insertAtCursor(
@@ -17,26 +17,26 @@ function insertAtCursor(
   setValue: (v: string) => void,
   currentValue: string,
 ) {
-  const el = textareaRef.current
-  if (!el) return
-  const start = el.selectionStart
-  const end = el.selectionEnd
+  const el = textareaRef.current;
+  if (!el) return;
+  const start = el.selectionStart;
+  const end = el.selectionEnd;
   const newText =
     currentValue.slice(0, start) +
     before +
     currentValue.slice(start, end) +
     after +
-    currentValue.slice(end)
-  setValue(newText)
+    currentValue.slice(end);
+  setValue(newText);
   requestAnimationFrame(() => {
-    el.selectionStart = start + before.length
-    el.selectionEnd = end + before.length
-    el.focus()
-  })
+    el.selectionStart = start + before.length;
+    el.selectionEnd = end + before.length;
+    el.focus();
+  });
 }
 
 export function DescriptionEditor({ value, onChange, disabled }: DescriptionEditorProps) {
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   return (
     <Tabs defaultValue="edit" className="w-full">
@@ -106,5 +106,5 @@ export function DescriptionEditor({ value, onChange, disabled }: DescriptionEdit
         )}
       </TabsContent>
     </Tabs>
-  )
+  );
 }

@@ -10,16 +10,17 @@
  * Each assignee row is expandable to reveal per-story sub-rows, with subtasks nested under each story.
  * People who appear only in worklogs (not assigned to any story) get a workload row (count=0, pts=0).
  */
-import React, { useState, useEffect, useMemo } from 'react';
+
 import { useQuery } from '@tanstack/react-query';
-import { RefreshCw, ChevronRight, Users } from 'lucide-react';
+import { ChevronRight, RefreshCw, Users } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
+import { fetchIssueWorklogs, fetchSprintIssues } from '@/services/jira';
+import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import { fetchSprintIssues, fetchIssueWorklogs } from '@/services/jira';
-import { readSecret } from '@/services/stronghold';
 
 interface WorkloadSubtaskRow {
   key: string;
@@ -42,12 +43,12 @@ interface WorkloadStoryRow {
 
 interface WorkloadRow {
   name: string;
-  count: number;         // all stories (in-progress + done)
-  points: number;        // story points (all stories including done, no subtasks)
-  estSecs: number;       // stories + subtasks aggregated
+  count: number; // all stories (in-progress + done)
+  points: number; // story points (all stories including done, no subtasks)
+  estSecs: number; // stories + subtasks aggregated
   spentSecs: number;
   remainSecs: number;
-  stories: WorkloadStoryRow[];  // for expandable detail
+  stories: WorkloadStoryRow[]; // for expandable detail
 }
 
 function formatSeconds(secs: number): string {
@@ -78,14 +79,17 @@ export default function WorkloadTab() {
     // Include storyPointsFieldKey in cache key: when discovery changes the key, the query
     // re-fires with the updated fields list so the response actually contains the value.
     queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey],
-    queryFn: () => fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false, storyPointsFieldKey),
+    queryFn: () =>
+      fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false, storyPointsFieldKey),
     enabled: !!jiraBaseUrl && !!activeJiraProject && !!jiraToken,
     refetchInterval: 60_000,
     staleTime: 30_000,
   });
 
   // Reset banner dismissal when error state changes
-  useEffect(() => { setBannerDismissed(false); }, [isError]);
+  useEffect(() => {
+    setBannerDismissed(false);
+  }, []);
 
   const sprintIssues = data ?? [];
 
@@ -298,7 +302,9 @@ export default function WorkloadTab() {
       }
     }
 
-    const rows = Array.from(map.values()).sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+    const rows = Array.from(map.values()).sort(
+      (a, b) => b.points - a.points || a.name.localeCompare(b.name),
+    );
     const hasTimeData = rows.some((r) => r.estSecs > 0 || r.spentSecs > 0 || r.remainSecs > 0);
     return { rows, hasTimeData };
   }, [data, storyPointsFieldKey, worklogMap]);
@@ -327,15 +333,17 @@ export default function WorkloadTab() {
       {isLoading && (
         <div className="flex flex-col gap-2">
           {[0, 1, 2].map((i) => (
-            <div key={i} data-testid="skeleton-row" className="h-8 rounded bg-muted animate-pulse" />
+            <div
+              key={i}
+              data-testid="skeleton-row"
+              className="h-8 rounded bg-muted animate-pulse"
+            />
           ))}
         </div>
       )}
 
       {/* Error state — full error when no cached data */}
-      {isError && !data && (
-        <ErrorState error={error} onRetry={refetch} viewName="workload" />
-      )}
+      {isError && !data && <ErrorState error={error} onRetry={refetch} viewName="workload" />}
 
       {/* Stale data banner — error with cached data still visible */}
       {isError && data && !bannerDismissed && (
@@ -343,91 +351,151 @@ export default function WorkloadTab() {
       )}
 
       {/* Content */}
-      {!isLoading && !isError && (
-        <>
-          {rows.length === 0 ? (
-            <EmptyState icon={Users} title="No workload data" subtitle="Team workload will appear when sprint issues have assignees" />
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-xs text-muted-foreground border-b">
-                  <th className="pb-2 text-left font-normal">Assignee</th>
-                  <th className="pb-2 text-right font-normal">Tasks</th>
-                  <th className="pb-2 text-right font-normal">Pts</th>
-                  {hasTimeData && <th className="pb-2 text-right font-normal">Est</th>}
-                  {hasTimeData && <th className="pb-2 text-right font-normal">Spent</th>}
-                  {hasTimeData && <th className="pb-2 text-right font-normal">Remaining</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => {
-                  const isOpen = expandedRows.has(row.name);
-                  return (
-                    <React.Fragment key={row.name}>
-                      {/* Summary row */}
-                      <tr
-                        data-testid="workload-row"
-                        className="hover:bg-muted/50 cursor-pointer"
-                        onClick={() => toggleRow(row.name)}
-                      >
-                        <td className="py-2 pr-2">
-                          <div className="flex items-center gap-1">
-                            <ChevronRight
-                              className={`size-3 text-muted-foreground transition-transform ${isOpen ? 'rotate-90' : ''}`}
-                              aria-label={isOpen ? 'Collapse' : 'Expand'}
-                            />
-                            <span className="font-medium">{row.name}</span>
-                          </div>
-                        </td>
+      {!isLoading &&
+        !isError &&
+        (rows.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title="No workload data"
+            subtitle="Team workload will appear when sprint issues have assignees"
+          />
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-xs text-muted-foreground border-b">
+                <th className="pb-2 text-left font-normal">Assignee</th>
+                <th className="pb-2 text-right font-normal">Tasks</th>
+                <th className="pb-2 text-right font-normal">Pts</th>
+                {hasTimeData && <th className="pb-2 text-right font-normal">Est</th>}
+                {hasTimeData && <th className="pb-2 text-right font-normal">Spent</th>}
+                {hasTimeData && <th className="pb-2 text-right font-normal">Remaining</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => {
+                const isOpen = expandedRows.has(row.name);
+                return (
+                  <React.Fragment key={row.name}>
+                    {/* Summary row */}
+                    <tr
+                      data-testid="workload-row"
+                      className="hover:bg-muted/50 cursor-pointer"
+                      onClick={() => toggleRow(row.name)}
+                    >
+                      <td className="py-2 pr-2">
+                        <div className="flex items-center gap-1">
+                          <ChevronRight
+                            className={`size-3 text-muted-foreground transition-transform ${isOpen ? 'rotate-90' : ''}`}
+                            aria-label={isOpen ? 'Collapse' : 'Expand'}
+                          />
+                          <span className="font-medium">{row.name}</span>
+                        </div>
+                      </td>
+                      <td className="py-2 text-right tabular-nums text-muted-foreground">
+                        {row.count} {row.count === 1 ? 'task' : 'tasks'}
+                      </td>
+                      <td className="py-2 text-right tabular-nums">{row.points} pts</td>
+                      {hasTimeData && (
                         <td className="py-2 text-right tabular-nums text-muted-foreground">
-                          {row.count} {row.count === 1 ? 'task' : 'tasks'}
+                          {formatSeconds(row.estSecs)}
                         </td>
-                        <td className="py-2 text-right tabular-nums">{row.points} pts</td>
-                        {hasTimeData && <td className="py-2 text-right tabular-nums text-muted-foreground">{formatSeconds(row.estSecs)}</td>}
-                        {hasTimeData && <td className="py-2 text-right tabular-nums text-muted-foreground">{formatSeconds(row.spentSecs)}</td>}
-                        {hasTimeData && <td className="py-2 text-right tabular-nums text-muted-foreground">{formatSeconds(row.remainSecs)}</td>}
-                      </tr>
-                      {/* Per-story rows — only shown when expanded */}
-                      {isOpen && row.stories.map((story) => (
+                      )}
+                      {hasTimeData && (
+                        <td className="py-2 text-right tabular-nums text-muted-foreground">
+                          {formatSeconds(row.spentSecs)}
+                        </td>
+                      )}
+                      {hasTimeData && (
+                        <td className="py-2 text-right tabular-nums text-muted-foreground">
+                          {formatSeconds(row.remainSecs)}
+                        </td>
+                      )}
+                    </tr>
+                    {/* Per-story rows — only shown when expanded */}
+                    {isOpen &&
+                      row.stories.map((story) => (
                         <React.Fragment key={story.key}>
-                          <tr key={story.key} data-testid="workload-story-row" className="bg-muted/20">
+                          <tr
+                            key={story.key}
+                            data-testid="workload-story-row"
+                            className="bg-muted/20"
+                          >
                             <td className="py-1 pl-6 pr-2 text-xs text-muted-foreground">
                               <span className="font-mono">{story.key}</span>
                               <span className="ml-2 truncate">{story.summary}</span>
                               {story.isDone && (
-                                <span data-testid="done-badge" className="ml-1 text-xs text-green-600 font-medium">Done</span>
+                                <span
+                                  data-testid="done-badge"
+                                  className="ml-1 text-xs text-green-600 font-medium"
+                                >
+                                  Done
+                                </span>
                               )}
                             </td>
-                            <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">—</td>
-                            <td className="py-1 text-right tabular-nums text-xs">{story.points} pts</td>
-                            {hasTimeData && <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">{formatSeconds(story.estSecs)}</td>}
-                            {hasTimeData && <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">{formatSeconds(story.spentSecs)}</td>}
-                            {hasTimeData && <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">{formatSeconds(story.remainSecs)}</td>}
+                            <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">
+                              —
+                            </td>
+                            <td className="py-1 text-right tabular-nums text-xs">
+                              {story.points} pts
+                            </td>
+                            {hasTimeData && (
+                              <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">
+                                {formatSeconds(story.estSecs)}
+                              </td>
+                            )}
+                            {hasTimeData && (
+                              <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">
+                                {formatSeconds(story.spentSecs)}
+                              </td>
+                            )}
+                            {hasTimeData && (
+                              <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">
+                                {formatSeconds(story.remainSecs)}
+                              </td>
+                            )}
                           </tr>
                           {/* Subtask rows — nested under parent story */}
                           {story.subtasks.map((sub) => (
-                            <tr key={sub.key} data-testid="workload-subtask-row" className="bg-muted/10">
+                            <tr
+                              key={sub.key}
+                              data-testid="workload-subtask-row"
+                              className="bg-muted/10"
+                            >
                               <td className="py-1 pl-12 pr-2 text-xs text-muted-foreground">
                                 <span className="font-mono">{sub.key}</span>
                                 <span className="ml-2 truncate">{sub.summary}</span>
                               </td>
-                              <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">—</td>
-                              <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">—</td>
-                              {hasTimeData && <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">{formatSeconds(sub.estSecs)}</td>}
-                              {hasTimeData && <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">{formatSeconds(sub.spentSecs)}</td>}
-                              {hasTimeData && <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">{formatSeconds(sub.remainSecs)}</td>}
+                              <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">
+                                —
+                              </td>
+                              <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">
+                                —
+                              </td>
+                              {hasTimeData && (
+                                <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">
+                                  {formatSeconds(sub.estSecs)}
+                                </td>
+                              )}
+                              {hasTimeData && (
+                                <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">
+                                  {formatSeconds(sub.spentSecs)}
+                                </td>
+                              )}
+                              {hasTimeData && (
+                                <td className="py-1 text-right tabular-nums text-xs text-muted-foreground">
+                                  {formatSeconds(sub.remainSecs)}
+                                </td>
+                              )}
                             </tr>
                           ))}
                         </React.Fragment>
                       ))}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </>
-      )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        ))}
     </div>
   );
 }

@@ -9,10 +9,19 @@
  * populated by useQueries in AppLayout so each pinned tab actively fetches
  * its own data on mount.
  */
-import { useRef, useState, useCallback, useEffect } from 'react';
+
+import {
+  ArrowLeftToLine,
+  ArrowRightToLine,
+  BookOpen,
+  Bug,
+  CheckSquare,
+  CornerDownRight,
+  Loader2,
+  PinOff,
+} from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Bug, BookOpen, CheckSquare, CornerDownRight, Loader2, PinOff, ArrowLeftToLine, ArrowRightToLine } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -20,6 +29,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import { cn } from '@/lib/utils';
 
 interface PinnedTabStripProps {
   pinnedKeys: string[];
@@ -70,7 +80,12 @@ export default function PinnedTabStrip({
 }: PinnedTabStripProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Map<number, HTMLDivElement>>(new Map());
-  const dragState = useRef<{ index: number; startX: number; didMove: boolean; offsetX: number } | null>(null);
+  const dragState = useRef<{
+    index: number;
+    startX: number;
+    didMove: boolean;
+    offsetX: number;
+  } | null>(null);
   const didDragRef = useRef(false);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [dropTarget, setDropTarget] = useState<number | null>(null);
@@ -112,7 +127,7 @@ export default function PinnedTabStrip({
         const width = el?.getBoundingClientRect().width ?? 160;
         setGhost({ index: state.index, x: e.clientX, y: e.clientY, width, offsetX: state.offsetX });
       } else {
-        setGhost((prev) => prev ? { ...prev, x: e.clientX, y: e.clientY } : null);
+        setGhost((prev) => (prev ? { ...prev, x: e.clientX, y: e.clientY } : null));
       }
 
       const target = getDropIndex(e.clientX);
@@ -159,7 +174,9 @@ export default function PinnedTabStrip({
           <>
             <IssueTypeIcon typeName={resolved.issueTypeName} />
             <div className="flex flex-col min-w-0 leading-none">
-              <span className="font-mono text-[9px] text-muted-foreground/60 whitespace-nowrap">{key}</span>
+              <span className="font-mono text-[9px] text-muted-foreground/60 whitespace-nowrap">
+                {key}
+              </span>
               <span className="truncate text-[11px] leading-tight">{resolved.summary}</span>
             </div>
           </>
@@ -201,29 +218,45 @@ export default function PinnedTabStrip({
           return (
             <div key={key} className="flex items-end gap-1 shrink-0">
               {showPlaceholderBefore && (
-                <div className="h-9 w-[110px] shrink-0 rounded-t-md border-2 border-dashed border-primary/30 bg-primary/5" style={{ width: ghost?.width }} />
+                <div
+                  className="h-9 w-[110px] shrink-0 rounded-t-md border-2 border-dashed border-primary/30 bg-primary/5"
+                  style={{ width: ghost?.width }}
+                />
               )}
               <ContextMenu>
                 <ContextMenuTrigger>
                   <div
-                    ref={(el) => { if (el) tabRefs.current.set(index, el); else tabRefs.current.delete(index); }}
+                    ref={(el) => {
+                      if (el) tabRefs.current.set(index, el);
+                      else tabRefs.current.delete(index);
+                    }}
                     role="tab"
                     tabIndex={0}
                     aria-selected={key === activeKey}
                     onPointerDown={(e) => handlePointerDown(e, index)}
                     onClick={() => {
-                      if (didDragRef.current) { didDragRef.current = false; return; }
+                      if (didDragRef.current) {
+                        didDragRef.current = false;
+                        return;
+                      }
                       onTabClick(key);
                     }}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onTabClick(key); }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') onTabClick(key);
+                    }}
                     className={cn(
                       'flex items-center gap-1.5 px-2.5 h-9 shrink-0 rounded-t-md text-xs font-medium border-b-2 transition-all duration-150 ease-in-out group select-none',
                       resolved ? 'max-w-[180px]' : 'w-[110px]',
                       key === activeKey
                         ? 'border-primary text-foreground bg-muted/50'
                         : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
-                      isDragging && dropTarget !== null && dropTarget !== draggingIndex && 'opacity-0 !w-0 !px-0 !gap-0 !mx-0 overflow-hidden',
-                      isDragging && (dropTarget === null || dropTarget === draggingIndex) && 'opacity-30',
+                      isDragging &&
+                        dropTarget !== null &&
+                        dropTarget !== draggingIndex &&
+                        'opacity-0 !w-0 !px-0 !gap-0 !mx-0 overflow-hidden',
+                      isDragging &&
+                        (dropTarget === null || dropTarget === draggingIndex) &&
+                        'opacity-30',
                       draggingIndex !== null ? 'cursor-grabbing' : 'cursor-grab',
                     )}
                   >
@@ -231,8 +264,12 @@ export default function PinnedTabStrip({
                       <>
                         <IssueTypeIcon typeName={resolved.issueTypeName} />
                         <div className="flex flex-col min-w-0 leading-none">
-                          <span className="font-mono text-[9px] text-muted-foreground/60 whitespace-nowrap">{key}</span>
-                          <span className="truncate text-[11px] leading-tight">{resolved.summary}</span>
+                          <span className="font-mono text-[9px] text-muted-foreground/60 whitespace-nowrap">
+                            {key}
+                          </span>
+                          <span className="truncate text-[11px] leading-tight">
+                            {resolved.summary}
+                          </span>
                         </div>
                       </>
                     ) : (
@@ -248,7 +285,10 @@ export default function PinnedTabStrip({
                     <ArrowLeftToLine className="w-3.5 h-3.5" />
                     Move to start
                   </ContextMenuItem>
-                  <ContextMenuItem onClick={() => onReorder(index, pinnedKeys.length - 1)} disabled={index === pinnedKeys.length - 1}>
+                  <ContextMenuItem
+                    onClick={() => onReorder(index, pinnedKeys.length - 1)}
+                    disabled={index === pinnedKeys.length - 1}
+                  >
                     <ArrowRightToLine className="w-3.5 h-3.5" />
                     Move to end
                   </ContextMenuItem>
@@ -260,7 +300,10 @@ export default function PinnedTabStrip({
                 </ContextMenuContent>
               </ContextMenu>
               {showPlaceholderAfter && (
-                <div className="h-9 w-[110px] shrink-0 rounded-t-md border-2 border-dashed border-primary/30 bg-primary/5" style={{ width: ghost?.width }} />
+                <div
+                  className="h-9 w-[110px] shrink-0 rounded-t-md border-2 border-dashed border-primary/30 bg-primary/5"
+                  style={{ width: ghost?.width }}
+                />
               )}
             </div>
           );

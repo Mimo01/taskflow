@@ -3,9 +3,10 @@
 // PALETTE-03: Navigation items show shortcut hints
 // PALETTE-06: Default state shows Recent Items + Navigation groups
 // PALETTE-07: Escape/backdrop close behavior
-import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // cmdk uses ResizeObserver and scrollIntoView internally -- polyfill for jsdom
 beforeAll(() => {
@@ -80,20 +81,31 @@ vi.mock('@/stores/settings.store', () => ({
 vi.mock('@/stores/notifications.store', () => ({
   useNotificationsStore: Object.assign(
     vi.fn((selector?: (s: Record<string, unknown>) => unknown) =>
-      selector ? selector({ items: [], readIds: [], markAllRead: vi.fn() }) : { items: [], readIds: [], markAllRead: vi.fn() },
+      selector
+        ? selector({ items: [], readIds: [], markAllRead: vi.fn() })
+        : { items: [], readIds: [], markAllRead: vi.fn() },
     ),
     { getState: vi.fn(() => ({ markAllRead: vi.fn() })) },
   ),
 }));
 
 // Mock recent items store -- configurable per test
-let mockRecentItems: Array<{ type: 'jira' | 'gitlab'; id: string; url?: string; timestamp: number }> = [];
+let mockRecentItems: Array<{
+  type: 'jira' | 'gitlab';
+  id: string;
+  url?: string;
+  timestamp: number;
+}> = [];
 const mockPushItem = vi.fn();
 vi.mock('@/stores/recent-items.store', () => ({
-  useRecentItemsStore: vi.fn((selector?: (s: { items: typeof mockRecentItems; pushItem: typeof mockPushItem }) => unknown) => {
-    const state = { items: mockRecentItems, pushItem: mockPushItem };
-    return selector ? selector(state) : state;
-  }),
+  useRecentItemsStore: vi.fn(
+    (
+      selector?: (s: { items: typeof mockRecentItems; pushItem: typeof mockPushItem }) => unknown,
+    ) => {
+      const state = { items: mockRecentItems, pushItem: mockPushItem };
+      return selector ? selector(state) : state;
+    },
+  ),
 }));
 
 import CommandPalette from './CommandPalette';
@@ -137,7 +149,9 @@ describe('CommandPalette', () => {
   // PALETTE-01: does not render when open=false
   it('does not render when open=false', () => {
     renderPalette({ open: false });
-    expect(screen.queryByPlaceholderText('Search issues, MRs, and actions...')).not.toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText('Search issues, MRs, and actions...'),
+    ).not.toBeInTheDocument();
   });
 
   // PALETTE-07: calls onClose on Escape
@@ -220,24 +234,21 @@ describe('CommandPalette', () => {
     const qc = makeQueryClient();
 
     // Seed query client with cached issues
-    qc.setQueryData(
-      ['jira-issues', 'my-tasks', 'TEST', 'customfield_10016'],
-      {
-        issues: [
-          {
-            id: '1',
-            key: 'TEST-1',
-            fields: {
-              summary: 'Fix login bug',
-              status: { id: '1', name: 'Open' },
-              assignee: null,
-              customfield_10016: null,
-              issuetype: { name: 'Bug', subtask: false },
-            },
+    qc.setQueryData(['jira-issues', 'my-tasks', 'TEST', 'customfield_10016'], {
+      issues: [
+        {
+          id: '1',
+          key: 'TEST-1',
+          fields: {
+            summary: 'Fix login bug',
+            status: { id: '1', name: 'Open' },
+            assignee: null,
+            customfield_10016: null,
+            issuetype: { name: 'Bug', subtask: false },
           },
-        ],
-      },
-    );
+        },
+      ],
+    });
 
     renderPalette({ onIssueClick, onClose }, qc);
 

@@ -1,31 +1,48 @@
-import { Sheet, SheetContent } from '@/components/ui/sheet'
-import { useQuery } from '@tanstack/react-query'
-import { useAuthStore } from '@/stores/auth.store'
-import { useSettingsStore } from '@/stores/settings.store'
-import { readSecret } from '@/services/stronghold'
-import { fetchIssueDetail, fetchEpicStories } from '@/services/jira'
-import type { JiraIssue } from '@/services/jira'
-import { IssueDetailContent } from './IssueDetailContent'
-import { IssueDetailSidebar } from './IssueDetailSidebar'
-import { Skeleton } from '@/components/ui/skeleton'
-import type { EditInitialValues } from './CreateEditIssueModal'
+import { useQuery } from '@tanstack/react-query';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { Skeleton } from '@/components/ui/skeleton';
+import type { JiraIssue } from '@/services/jira';
+import { fetchEpicStories, fetchIssueDetail } from '@/services/jira';
+import { readSecret } from '@/services/stronghold';
+import { useAuthStore } from '@/stores/auth.store';
+import { useSettingsStore } from '@/stores/settings.store';
+import type { EditInitialValues } from './CreateEditIssueModal';
+import { IssueDetailContent } from './IssueDetailContent';
+import { IssueDetailSidebar } from './IssueDetailSidebar';
 
 interface IssueDetailSheetProps {
-  issueKey: string | null
-  onClose: () => void
-  onOpenIssue?: (key: string) => void
-  onEdit?: (initialValues: EditInitialValues) => void
-  onAddSubtask?: (parentKey: string) => void
+  issueKey: string | null;
+  onClose: () => void;
+  onOpenIssue?: (key: string) => void;
+  onEdit?: (initialValues: EditInitialValues) => void;
+  onAddSubtask?: (parentKey: string) => void;
   /** Whether the current issue is pinned (Plan 03 will add UI for this). */
-  isPinned?: boolean
+  isPinned?: boolean;
   /** Toggle pin state for the current issue (Plan 03 will add UI for this). */
-  onTogglePin?: (key: string) => void
+  onTogglePin?: (key: string) => void;
 }
 
-export function IssueDetailSheet({ issueKey, onClose, onOpenIssue, onEdit, onAddSubtask, isPinned, onTogglePin }: IssueDetailSheetProps) {
+export function IssueDetailSheet({
+  issueKey,
+  onClose,
+  onOpenIssue,
+  onEdit,
+  onAddSubtask,
+  isPinned,
+  onTogglePin,
+}: IssueDetailSheetProps) {
   return (
-    <Sheet open={issueKey !== null} onOpenChange={(open) => { if (!open) onClose() }}>
-      <SheetContent side="right" className="p-0 flex flex-col overflow-hidden" style={{ width: '75vw', maxWidth: '75vw' }}>
+    <Sheet
+      open={issueKey !== null}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <SheetContent
+        side="right"
+        className="p-0 flex flex-col overflow-hidden"
+        style={{ width: '75vw', maxWidth: '75vw' }}
+      >
         {issueKey && (
           <IssueDetailBody
             data-testid="sheet-open"
@@ -39,7 +56,7 @@ export function IssueDetailSheet({ issueKey, onClose, onOpenIssue, onEdit, onAdd
         )}
       </SheetContent>
     </Sheet>
-  )
+  );
 }
 
 function IssueDetailBody({
@@ -50,49 +67,55 @@ function IssueDetailBody({
   isPinned,
   onTogglePin,
 }: {
-  'data-testid'?: string
-  issueKey: string
-  onOpenIssue?: (key: string) => void
-  onEdit?: (initialValues: EditInitialValues) => void
-  onAddSubtask?: (parentKey: string) => void
-  isPinned?: boolean
-  onTogglePin?: (key: string) => void
+  'data-testid'?: string;
+  issueKey: string;
+  onOpenIssue?: (key: string) => void;
+  onEdit?: (initialValues: EditInitialValues) => void;
+  onAddSubtask?: (parentKey: string) => void;
+  isPinned?: boolean;
+  onTogglePin?: (key: string) => void;
 }) {
-  const { jiraBaseUrl, jiraConnected } = useAuthStore()
-  const { epicLinkFieldKey, epicNameFieldKey, sprintFieldKey, storyPointsFieldKey, epicColorFieldKey } = useSettingsStore()
+  const { jiraBaseUrl, jiraConnected } = useAuthStore();
+  const {
+    epicLinkFieldKey,
+    epicNameFieldKey,
+    sprintFieldKey,
+    storyPointsFieldKey,
+    epicColorFieldKey,
+  } = useSettingsStore();
 
   const { data: issue, isLoading } = useQuery({
     queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl],
     queryFn: async () => {
-      const token = await readSecret('jira-pat').catch(() => null)
-      if (!token || !jiraBaseUrl) throw new Error('No credentials')
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token || !jiraBaseUrl) throw new Error('No credentials');
       return fetchIssueDetail(jiraBaseUrl, token, issueKey, {
         epicLinkFieldKey,
         epicNameFieldKey,
         sprintFieldKey,
         storyPointsFieldKey,
         epicColorFieldKey,
-      })
+      });
     },
     staleTime: 30_000,
     enabled: !!issueKey && !!jiraBaseUrl && !!jiraConnected,
-  })
+  });
 
-  const isEpic = issue?.fields.issuetype.name === 'Epic'
+  const isEpic = issue?.fields.issuetype.name === 'Epic';
 
   const { data: epicStories } = useQuery<JiraIssue[]>({
     queryKey: ['jira-epic-stories', issueKey, jiraBaseUrl],
     queryFn: async () => {
-      const token = await readSecret('jira-pat').catch(() => null)
-      if (!token || !jiraBaseUrl) return []
-      return fetchEpicStories(jiraBaseUrl, token, issueKey, '', storyPointsFieldKey)
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token || !jiraBaseUrl) return [];
+      return fetchEpicStories(jiraBaseUrl, token, issueKey, '', storyPointsFieldKey);
     },
     staleTime: 30_000,
     enabled: isEpic && !!jiraBaseUrl && !!jiraConnected,
-  })
+  });
 
   if (isLoading || !issue) {
-    return <IssueDetailSkeleton data-testid="issue-detail-skeleton" />
+    return <IssueDetailSkeleton data-testid="issue-detail-skeleton" />;
   }
 
   return (
@@ -128,7 +151,7 @@ function IssueDetailBody({
         />
       </div>
     </div>
-  )
+  );
 }
 
 function IssueDetailSkeleton({ 'data-testid': testId }: { 'data-testid'?: string }) {
@@ -147,5 +170,5 @@ function IssueDetailSkeleton({ 'data-testid': testId }: { 'data-testid'?: string
         <Skeleton className="h-5 w-3/4" />
       </div>
     </div>
-  )
+  );
 }

@@ -4,39 +4,40 @@
  *
  * Matches the CommentCard design from IssueDetailPage exactly.
  */
-import { useState, useRef, useEffect, useMemo } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { MoreVertical, Bold, Italic, Code, List } from 'lucide-react'
-import { useAuthStore } from '@/stores/auth.store'
-import { useSettingsStore } from '@/stores/settings.store'
-import { readSecret } from '@/services/stronghold'
-import { updateComment, deleteComment } from '@/services/jira'
-import type { JiraComment } from '@/services/jira'
-import { WikiRenderer } from './WikiRenderer'
-import { relativeTime } from './IssueDetailContent'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Bold, Code, Italic, List, MoreVertical } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import type { JiraComment } from '@/services/jira';
+import { deleteComment, updateComment } from '@/services/jira';
+import { readSecret } from '@/services/stronghold';
+import { useAuthStore } from '@/stores/auth.store';
+import { useSettingsStore } from '@/stores/settings.store';
+import { relativeTime } from './IssueDetailContent';
+import { WikiRenderer } from './WikiRenderer';
 
 interface InlineCommentProps {
-  issueKey: string
-  jiraBaseUrl: string
-  isOpen: boolean
-  onCancel: () => void
-  onSubmit: (comment: string) => void
-  isSubmitting: boolean
-  error?: string
-  existingComments?: JiraComment[]
-  isLoadingComments?: boolean
+  issueKey: string;
+  jiraBaseUrl: string;
+  isOpen: boolean;
+  onCancel: () => void;
+  onSubmit: (comment: string) => void;
+  isSubmitting: boolean;
+  error?: string;
+  existingComments?: JiraComment[];
+  isLoadingComments?: boolean;
 }
 
 function applyMarkup(textarea: HTMLTextAreaElement, prefix: string, suffix: string) {
-  const { selectionStart, selectionEnd, value } = textarea
-  const selected = value.slice(selectionStart, selectionEnd)
-  const before = value.slice(0, selectionStart)
-  const after = value.slice(selectionEnd)
-  const newValue = `${before}${prefix}${selected}${suffix}${after}`
-  const cursorPos = selectionStart + prefix.length + selected.length + suffix.length
-  return { newValue, cursorPos }
+  const { selectionStart, selectionEnd, value } = textarea;
+  const selected = value.slice(selectionStart, selectionEnd);
+  const before = value.slice(0, selectionStart);
+  const after = value.slice(selectionEnd);
+  const newValue = `${before}${prefix}${selected}${suffix}${after}`;
+  const cursorPos = selectionStart + prefix.length + selected.length + suffix.length;
+  return { newValue, cursorPos };
 }
 
 export default function InlineComment({
@@ -50,119 +51,119 @@ export default function InlineComment({
   existingComments,
   isLoadingComments,
 }: InlineCommentProps) {
-  const [text, setText] = useState('')
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const queryClient = useQueryClient()
-  const jiraUserDisplayName = useAuthStore((s) => s.jiraUserDisplayName)
-  const commentSortOrder = useSettingsStore((s) => s.commentSortOrder)
+  const [text, setText] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const queryClient = useQueryClient();
+  const jiraUserDisplayName = useAuthStore((s) => s.jiraUserDisplayName);
+  const commentSortOrder = useSettingsStore((s) => s.commentSortOrder);
   const sortedComments = useMemo(() => {
-    if (!existingComments) return undefined
-    if (commentSortOrder === 'newest') return [...existingComments].reverse()
-    return existingComments
-  }, [existingComments, commentSortOrder])
+    if (!existingComments) return undefined;
+    if (commentSortOrder === 'newest') return [...existingComments].reverse();
+    return existingComments;
+  }, [existingComments, commentSortOrder]);
 
   // Edit state
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
-  const [editText, setEditText] = useState('')
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
 
   // Menu state
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
-      textareaRef.current?.focus()
+      textareaRef.current?.focus();
     } else {
-      setText('')
-      setEditingCommentId(null)
-      setEditText('')
-      setOpenMenuId(null)
+      setText('');
+      setEditingCommentId(null);
+      setEditText('');
+      setOpenMenuId(null);
     }
-  }, [isOpen])
+  }, [isOpen]);
 
   // Close menu on outside click
   useEffect(() => {
-    if (!openMenuId) return
+    if (!openMenuId) return;
     function handleClick(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpenMenuId(null)
+        setOpenMenuId(null);
       }
     }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [openMenuId])
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [openMenuId]);
 
   // Edit mutation
   const editMutation = useMutation({
     mutationFn: async ({ commentId, body }: { commentId: string; body: string }) => {
-      const token = await readSecret('jira-pat').catch(() => null)
-      if (!token) throw new Error('No token')
-      return updateComment(jiraBaseUrl, token, issueKey, commentId, body)
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token) throw new Error('No token');
+      return updateComment(jiraBaseUrl, token, issueKey, commentId, body);
     },
     onSuccess: () => {
-      setEditingCommentId(null)
-      setEditText('')
-      queryClient.invalidateQueries({ queryKey: ['jira-comments', issueKey] })
+      setEditingCommentId(null);
+      setEditText('');
+      queryClient.invalidateQueries({ queryKey: ['jira-comments', issueKey] });
     },
-  })
+  });
 
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (commentId: string) => {
-      const token = await readSecret('jira-pat').catch(() => null)
-      if (!token) throw new Error('No token')
-      return deleteComment(jiraBaseUrl, token, issueKey, commentId)
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token) throw new Error('No token');
+      return deleteComment(jiraBaseUrl, token, issueKey, commentId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['jira-comments', issueKey] })
+      queryClient.invalidateQueries({ queryKey: ['jira-comments', issueKey] });
     },
-  })
+  });
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   function handleCancel() {
-    setText('')
-    onCancel()
+    setText('');
+    onCancel();
   }
 
   function handleSubmit() {
     if (text.trim()) {
-      onSubmit(text.trim())
+      onSubmit(text.trim());
     }
   }
 
   function handleMarkup(prefix: string, suffix: string) {
-    const textarea = textareaRef.current
-    if (!textarea) return
-    const { newValue, cursorPos } = applyMarkup(textarea, prefix, suffix)
-    setText(newValue)
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const { newValue, cursorPos } = applyMarkup(textarea, prefix, suffix);
+    setText(newValue);
     requestAnimationFrame(() => {
-      textarea.focus()
-      textarea.setSelectionRange(cursorPos, cursorPos)
-    })
+      textarea.focus();
+      textarea.setSelectionRange(cursorPos, cursorPos);
+    });
   }
 
   function handleEditStart(comment: JiraComment) {
-    setEditingCommentId(comment.id)
-    setEditText(comment.body)
-    setOpenMenuId(null)
+    setEditingCommentId(comment.id);
+    setEditText(comment.body);
+    setOpenMenuId(null);
   }
 
   function handleEditSave(commentId: string) {
-    const trimmed = editText.trim()
-    if (!trimmed) return
-    editMutation.mutate({ commentId, body: trimmed })
+    const trimmed = editText.trim();
+    if (!trimmed) return;
+    editMutation.mutate({ commentId, body: trimmed });
   }
 
   function handleEditCancel() {
-    setEditingCommentId(null)
-    setEditText('')
+    setEditingCommentId(null);
+    setEditText('');
   }
 
   function handleDelete(comment: JiraComment) {
-    setOpenMenuId(null)
-    if (!window.confirm('Delete this comment? This cannot be undone.')) return
-    deleteMutation.mutate(comment.id)
+    setOpenMenuId(null);
+    if (!window.confirm('Delete this comment? This cannot be undone.')) return;
+    deleteMutation.mutate(comment.id);
   }
 
   return (
@@ -173,8 +174,8 @@ export default function InlineComment({
       {!isLoadingComments && sortedComments && sortedComments.length > 0 && (
         <div className="flex flex-col gap-2 mb-2 max-h-64 overflow-y-auto">
           {sortedComments.map((c) => {
-            const isOwn = c.author.displayName === jiraUserDisplayName
-            const isEditing = editingCommentId === c.id
+            const isOwn = c.author.displayName === jiraUserDisplayName;
+            const isEditing = editingCommentId === c.id;
 
             return (
               <div key={c.id} className="rounded-lg border bg-card p-3 space-y-2">
@@ -231,7 +232,9 @@ export default function InlineComment({
                       className="min-h-[80px] resize-none"
                     />
                     {editMutation.isError && (
-                      <p className="text-xs text-destructive">{(editMutation.error as Error).message}</p>
+                      <p className="text-xs text-destructive">
+                        {(editMutation.error as Error).message}
+                      </p>
                     )}
                     <div className="flex gap-2 justify-end">
                       <Button
@@ -257,26 +260,48 @@ export default function InlineComment({
 
                 {/* Delete error */}
                 {deleteMutation.isError && deleteMutation.variables === c.id && (
-                  <p className="text-xs text-destructive">{(deleteMutation.error as Error).message}</p>
+                  <p className="text-xs text-destructive">
+                    {(deleteMutation.error as Error).message}
+                  </p>
                 )}
               </div>
-            )
+            );
           })}
         </div>
       )}
 
       {/* Formatting toolbar */}
       <div className="flex items-center gap-1 border rounded-t-md px-2 py-1 bg-muted/30">
-        <button type="button" onClick={() => handleMarkup('*', '*')} title="Bold" className="p-1 rounded hover:bg-accent">
+        <button
+          type="button"
+          onClick={() => handleMarkup('*', '*')}
+          title="Bold"
+          className="p-1 rounded hover:bg-accent"
+        >
           <Bold className="size-3.5" />
         </button>
-        <button type="button" onClick={() => handleMarkup('_', '_')} title="Italic" className="p-1 rounded hover:bg-accent">
+        <button
+          type="button"
+          onClick={() => handleMarkup('_', '_')}
+          title="Italic"
+          className="p-1 rounded hover:bg-accent"
+        >
           <Italic className="size-3.5" />
         </button>
-        <button type="button" onClick={() => handleMarkup('{code}', '{code}')} title="Code block" className="p-1 rounded hover:bg-accent">
+        <button
+          type="button"
+          onClick={() => handleMarkup('{code}', '{code}')}
+          title="Code block"
+          className="p-1 rounded hover:bg-accent"
+        >
           <Code className="size-3.5" />
         </button>
-        <button type="button" onClick={() => handleMarkup('* ', '')} title="Bullet list" className="p-1 rounded hover:bg-accent">
+        <button
+          type="button"
+          onClick={() => handleMarkup('* ', '')}
+          title="Bullet list"
+          className="p-1 rounded hover:bg-accent"
+        >
           <List className="size-3.5" />
         </button>
       </div>
@@ -290,9 +315,7 @@ export default function InlineComment({
         onChange={(e) => setText(e.target.value)}
         className="w-full resize-none rounded-t-none rounded-b border border-t-0 border-border bg-background px-2 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
       />
-      {error && (
-        <p className="text-xs text-destructive">Failed to add comment -- try again</p>
-      )}
+      {error && <p className="text-xs text-destructive">Failed to add comment -- try again</p>}
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -311,5 +334,5 @@ export default function InlineComment({
         </button>
       </div>
     </div>
-  )
+  );
 }

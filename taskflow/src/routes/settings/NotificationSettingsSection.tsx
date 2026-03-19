@@ -8,9 +8,10 @@
  *
  * Follows the same layout pattern as StaleMrThresholdSection.
  */
-import { useSettingsStore } from '../../stores/settings.store';
-import { useNotificationsStore } from '../../stores/notifications.store';
+
 import { Alert, AlertDescription } from '../../components/ui/alert';
+import { useNotificationsStore } from '../../stores/notifications.store';
+import { useSettingsStore } from '../../stores/settings.store';
 
 interface ToggleRowProps {
   id: string;
@@ -35,9 +36,7 @@ function ToggleRow({ id, label, description, checked, onChange }: ToggleRowProps
           {label}
         </label>
       </div>
-      {description && (
-        <p className="text-xs text-muted-foreground pl-7">{description}</p>
-      )}
+      {description && <p className="text-xs text-muted-foreground pl-7">{description}</p>}
     </div>
   );
 }
@@ -181,7 +180,10 @@ export default function NotificationSettingsSection() {
         <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
           Desktop Notifications
         </h4>
-        {(notificationSendError || (import.meta.env.DEV && navigator.platform.startsWith('Mac') && (osNotifJiraEnabled || osNotifGitlabEnabled))) && (
+        {(notificationSendError ||
+          (import.meta.env.DEV &&
+            navigator.platform.startsWith('Mac') &&
+            (osNotifJiraEnabled || osNotifGitlabEnabled))) && (
           <Alert>
             <AlertDescription>
               {notificationSendError

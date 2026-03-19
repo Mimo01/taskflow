@@ -1,44 +1,59 @@
 import './index.css';
-import React, { useEffect, useRef, useState } from 'react';
-import { useHotkeys } from 'react-hotkeys-hook';
-import { KeyboardShortcutsPanel } from './components/app/KeyboardShortcutsPanel';
-import ReactDOM from 'react-dom/client';
-import { createHashRouter, RouterProvider, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { QueryClient, QueryClientProvider, useQuery, useQueries, useQueryClient } from '@tanstack/react-query';
-import { listen } from '@tauri-apps/api/event';
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { loadTheme, applyDensity } from './services/theme';
-import { useSettingsStore } from './stores/settings.store';
-import { useAuthStore } from './stores/auth.store';
-import Sidebar from './components/app/Sidebar';
+import React, { useEffect, useRef, useState } from 'react';
+import ReactDOM from 'react-dom/client';
+import { useHotkeys } from 'react-hotkeys-hook';
+import {
+  createHashRouter,
+  Outlet,
+  RouterProvider,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
+import CommandPalette from './components/app/CommandPalette';
+import { KeyboardShortcutsPanel } from './components/app/KeyboardShortcutsPanel';
+import PinnedTabStrip from './components/app/PinnedTabStrip';
 import ReAuthBanner, { GitLabReAuthBanner } from './components/app/ReAuthBanner';
+import Sidebar from './components/app/Sidebar';
 import TopBar from './components/app/TopBar';
 import { useNotificationPolling } from './hooks/useNotificationPolling';
-import { readSecret } from './services/stronghold';
-import { discoverCustomFields, fetchIssueSummary } from './services/jira';
-import { CreateEditIssueModal, type EditInitialValues } from './routes/dashboard/CreateEditIssueModal';
+import BacklogPage from './routes/dashboard/BacklogPage';
+import {
+  CreateEditIssueModal,
+  type EditInitialValues,
+} from './routes/dashboard/CreateEditIssueModal';
+import EpicsPage from './routes/dashboard/EpicsPage';
 import IssueDetailPage from './routes/dashboard/IssueDetailPage';
+import Dashboard from './routes/dashboard/index';
 import MergeRequestDetailPage from './routes/dashboard/MergeRequestDetailPage';
 import MergeRequestListPage from './routes/dashboard/MergeRequestListPage';
-import CommandPalette from './components/app/CommandPalette';
-import PinnedTabStrip from './components/app/PinnedTabStrip';
-import { useRecentItemsStore } from './stores/recent-items.store';
-import { usePinnedTabsStore } from './stores/pinned-tabs.store';
-import { useBreadcrumbStore } from './stores/breadcrumb.store';
-import Onboarding from './routes/onboarding/index';
-import Dashboard from './routes/dashboard/index';
-import Settings from './routes/settings/index';
-import MyTasksTab from './routes/dashboard/MyTasksTab';
-import SprintBoardTab from './routes/dashboard/SprintBoardTab';
 import MrAttentionTab from './routes/dashboard/MrAttentionTab';
+import MyTasksTab from './routes/dashboard/MyTasksTab';
+import ReleasesTab from './routes/dashboard/ReleasesTab';
+import SprintBoardTab from './routes/dashboard/SprintBoardTab';
 import SprintProgressTab from './routes/dashboard/SprintProgressTab';
 import WorkloadTab from './routes/dashboard/WorkloadTab';
-import ReleasesTab from './routes/dashboard/ReleasesTab';
-import BacklogPage from './routes/dashboard/BacklogPage';
-import EpicsPage from './routes/dashboard/EpicsPage';
 import DebugLogs from './routes/debug-logs/index';
 import ErrorPage from './routes/error/ErrorPage';
+import Onboarding from './routes/onboarding/index';
+import Settings from './routes/settings/index';
+import { discoverCustomFields, fetchIssueSummary } from './services/jira';
+import { readSecret } from './services/stronghold';
+import { applyDensity, loadTheme } from './services/theme';
+import { useAuthStore } from './stores/auth.store';
+import { useBreadcrumbStore } from './stores/breadcrumb.store';
+import { usePinnedTabsStore } from './stores/pinned-tabs.store';
+import { useRecentItemsStore } from './stores/recent-items.store';
+import { useSettingsStore } from './stores/settings.store';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -57,7 +72,13 @@ const queryClient = new QueryClient({
  */
 function useCustomFieldDiscovery() {
   const { jiraConnected, jiraBaseUrl } = useAuthStore();
-  const { setStoryPointsFieldKey, setEpicLinkFieldKey, setEpicNameFieldKey, setSprintFieldKey, setEpicColorFieldKey } = useSettingsStore();
+  const {
+    setStoryPointsFieldKey,
+    setEpicLinkFieldKey,
+    setEpicNameFieldKey,
+    setSprintFieldKey,
+    setEpicColorFieldKey,
+  } = useSettingsStore();
 
   const query = useQuery({
     queryKey: ['jira-custom-fields', jiraBaseUrl],
@@ -78,7 +99,14 @@ function useCustomFieldDiscovery() {
       setSprintFieldKey(query.data.sprintFieldKey);
       setEpicColorFieldKey(query.data.epicColorFieldKey);
     }
-  }, [query.data, setStoryPointsFieldKey, setEpicLinkFieldKey, setEpicNameFieldKey, setSprintFieldKey, setEpicColorFieldKey]);
+  }, [
+    query.data,
+    setStoryPointsFieldKey,
+    setEpicLinkFieldKey,
+    setEpicNameFieldKey,
+    setSprintFieldKey,
+    setEpicColorFieldKey,
+  ]);
 }
 
 /**
@@ -93,9 +121,15 @@ function AppLayout() {
   const { jiraConnected, jiraBaseUrl, gitlabConnected, _hasHydrated } = useAuthStore();
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createModalMode, setCreateModalMode] = useState<'create' | 'edit'>('create');
-  const [createModalInitialValues, setCreateModalInitialValues] = useState<EditInitialValues | undefined>(undefined);
-  const [createModalDefaultType, setCreateModalDefaultType] = useState<'Story' | 'Subtask' | 'Bug' | undefined>(undefined);
-  const [createModalDefaultParent, setCreateModalDefaultParent] = useState<string | undefined>(undefined);
+  const [createModalInitialValues, setCreateModalInitialValues] = useState<
+    EditInitialValues | undefined
+  >(undefined);
+  const [createModalDefaultType, setCreateModalDefaultType] = useState<
+    'Story' | 'Subtask' | 'Bug' | undefined
+  >(undefined);
+  const [createModalDefaultParent, setCreateModalDefaultParent] = useState<string | undefined>(
+    undefined,
+  );
   const wasStoryCreate = useRef(false);
   const queryClient = useQueryClient();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -145,7 +179,10 @@ function AppLayout() {
   useHotkeys('mod+slash', () => setShortcutsOpen(true));
 
   // PALETTE-01: Cmd+K opens command palette
-  useHotkeys('mod+k', (e) => { e.preventDefault(); setPaletteOpen(true); });
+  useHotkeys('mod+k', (e) => {
+    e.preventDefault();
+    setPaletteOpen(true);
+  });
 
   // KEYS-03: Navigation shortcuts
   useHotkeys('mod+shift+s', () => navigate('/sprint-board'));
@@ -155,7 +192,10 @@ function AppLayout() {
 
   // SIDEBAR: Cmd+B toggles sidebar collapsed/expanded
   const toggleSidebarCollapsed = useSettingsStore((s) => s.toggleSidebarCollapsed);
-  useHotkeys('mod+b', (e) => { e.preventDefault(); toggleSidebarCollapsed(); });
+  useHotkeys('mod+b', (e) => {
+    e.preventDefault();
+    toggleSidebarCollapsed();
+  });
 
   // Listen for all native menu bar item clicks and route to existing handlers
   const debugMode = useSettingsStore((s) => s.debugMode);
@@ -169,8 +209,12 @@ function AppLayout() {
       listen('menu-nav-settings', () => navigate('/settings')),
       listen('menu-debug-logs', () => navigate('/debug-logs')),
     ];
-    return () => { listeners.forEach((p) => p.then((fn) => fn())); };
-  }, []);
+    return () => {
+      listeners.forEach((p) => {
+        p.then((fn) => fn());
+      });
+    };
+  }, [navigate]);
 
   // Show/hide Debug menu in native toolbar when debugMode changes
   useEffect(() => {
@@ -182,7 +226,7 @@ function AppLayout() {
     if (!location.pathname.startsWith('/issue/') && !location.pathname.startsWith('/mr/')) {
       breadcrumbReset();
     }
-  }, [location.pathname]);
+  }, [location.pathname, breadcrumbReset]);
 
   /** Maps pathname to a human-readable label for breadcrumb display. */
   function routeLabel(pathname: string): string {
@@ -255,7 +299,10 @@ function AppLayout() {
 
     // 2. Search backlog cache (sprints[].issues + backlog[])
     if (!resolvedTitle) {
-      const backlogEntries = queryClient.getQueriesData<{ sprints?: Array<{ issues: CachedIssue[] }>; backlog?: CachedIssue[] }>({
+      const backlogEntries = queryClient.getQueriesData<{
+        sprints?: Array<{ issues: CachedIssue[] }>;
+        backlog?: CachedIssue[];
+      }>({
         queryKey: ['jira-backlog-view'],
       });
       for (const [, data] of backlogEntries) {
@@ -278,7 +325,10 @@ function AppLayout() {
       });
       for (const [, data] of epicEntries) {
         const match = data?.find((e) => e.key === issueKey);
-        if (match) { resolvedTitle = match.summary; break; }
+        if (match) {
+          resolvedTitle = match.summary;
+          break;
+        }
       }
     }
 
@@ -288,7 +338,10 @@ function AppLayout() {
         queryKey: ['jira-issue-detail', issueKey],
       });
       for (const [, data] of detailEntries) {
-        if (data?.fields?.summary) { resolvedTitle = data.fields.summary; break; }
+        if (data?.fields?.summary) {
+          resolvedTitle = data.fields.summary;
+          break;
+        }
       }
     }
 
@@ -354,7 +407,9 @@ function AppLayout() {
 
   // Bring window to front when OS notification click activates the app
   useEffect(() => {
-    getCurrentWindow().setFocus().catch(() => {});
+    getCurrentWindow()
+      .setFocus()
+      .catch(() => {});
   }, []);
 
   // Notification polling — runs inside QueryClientProvider context
@@ -391,14 +446,25 @@ function AppLayout() {
         {_hasHydrated && !jiraConnected && <ReAuthBanner />}
         {_hasHydrated && !gitlabConnected && <GitLabReAuthBanner />}
         <main className="flex-1 overflow-auto">
-          <Outlet context={{ onIssueClick: handleIssueClick, onEpicClick: handleIssueClick, openEdit: handleOpenEdit, openAddSubtask: handleOpenAddSubtask, openCreateStory: handleOpenCreateStory }} />
+          <Outlet
+            context={{
+              onIssueClick: handleIssueClick,
+              onEpicClick: handleIssueClick,
+              openEdit: handleOpenEdit,
+              openAddSubtask: handleOpenAddSubtask,
+              openCreateStory: handleOpenCreateStory,
+            }}
+          />
         </main>
       </div>
       {/* Command palette overlay */}
       <CommandPalette
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
-        onIssueClick={(key) => { handleIssueClick(key, true); setPaletteOpen(false); }}
+        onIssueClick={(key) => {
+          handleIssueClick(key, true);
+          setPaletteOpen(false);
+        }}
         onNavigate={handlePaletteNavigate}
         onOpenNotifications={handlePaletteOpenNotifications}
         onOpenCreate={handleOpenCreate}
@@ -411,10 +477,7 @@ function AppLayout() {
         defaultIssueType={createModalDefaultType}
         defaultParentKey={createModalDefaultParent}
       />
-      <KeyboardShortcutsPanel
-        open={shortcutsOpen}
-        onClose={() => setShortcutsOpen(false)}
-      />
+      <KeyboardShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </div>
   );
 }

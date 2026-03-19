@@ -12,50 +12,51 @@
  * Layout: sticky column headers → collapsible story swimlanes → card cells.
  * Drag-and-drop: optimistic update + rollback on API failure.
  */
-import React, { useState, useEffect, useMemo } from 'react'
-import { useOutletContext } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw, Columns3 } from 'lucide-react'
-import { EmptyState } from '@/components/ui/empty-state'
-import { ErrorState } from '@/components/ui/error-state'
-import { StaleDataBanner } from '@/components/ui/stale-data-banner'
+
+import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  useDroppable,
   useSensor,
   useSensors,
-  useDroppable,
-} from '@dnd-kit/core'
-import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core'
-import { useAuthStore } from '@/stores/auth.store'
-import { useSettingsStore } from '@/stores/settings.store'
-import { useFilterStore } from '@/stores/filter.store'
-import { UnifiedFilterBar } from '@/components/UnifiedFilterBar'
+} from '@dnd-kit/core';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Columns3, RefreshCw } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
+import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
+import { StaleDataBanner } from '@/components/ui/stale-data-banner';
+import type { JiraIssue, JiraTransition } from '@/services/jira';
 import {
-  fetchSprintIssues,
+  fetchEpicsBasic,
   fetchProjectStatuses,
+  fetchSprintIssues,
   fetchTransitions,
   postTransition,
-  fetchEpicsBasic,
-} from '@/services/jira'
-import type { JiraIssue, JiraTransition } from '@/services/jira'
-import { readSecret } from '@/services/stronghold'
-import DraggableCard from './DraggableCard'
-import TaskCard from './TaskCard'
-import { StoryHeaderRow } from './StoryHeaderRow'
+} from '@/services/jira';
+import { readSecret } from '@/services/stronghold';
+import { useAuthStore } from '@/stores/auth.store';
+import { useFilterStore } from '@/stores/filter.store';
+import { useSettingsStore } from '@/stores/settings.store';
+import DraggableCard from './DraggableCard';
+import { StoryHeaderRow } from './StoryHeaderRow';
+import TaskCard from './TaskCard';
 
 /** The three fixed columns — all Jira statuses map into one of these via statusCategory. */
 const CATEGORY_COLUMNS = [
   { key: 'new', label: 'To Do' },
   { key: 'indeterminate', label: 'In Progress' },
   { key: 'done', label: 'Done' },
-] as const
+] as const;
 
-type CategoryKey = (typeof CATEGORY_COLUMNS)[number]['key']
+type CategoryKey = (typeof CATEGORY_COLUMNS)[number]['key'];
 
 function categoryOf(issue: JiraIssue): CategoryKey {
-  return (issue.fields.status.statusCategory?.key as CategoryKey) ?? 'new'
+  return (issue.fields.status.statusCategory?.key as CategoryKey) ?? 'new';
 }
 
 /**
@@ -68,15 +69,15 @@ function DroppableCell({
   isDisabled,
   children,
 }: {
-  storyKey: string
-  categoryKey: string
-  isDisabled: boolean
-  children: React.ReactNode
+  storyKey: string;
+  categoryKey: string;
+  isDisabled: boolean;
+  children: React.ReactNode;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `${storyKey}|${categoryKey}`,
     disabled: isDisabled,
-  })
+  });
 
   return (
     <div
@@ -85,74 +86,103 @@ function DroppableCell({
         'flex-1 min-h-[80px] flex flex-col gap-1.5 p-2 border-l border-border/20 transition-colors',
         isOver && !isDisabled ? 'bg-primary/5 ring-inset ring-1 ring-primary/40' : '',
         isDisabled ? 'opacity-40 pointer-events-none' : '',
-      ].filter(Boolean).join(' ')}
-      style={isDisabled ? {
-        background:
-          'repeating-linear-gradient(45deg,transparent,transparent 4px,hsl(var(--muted)) 4px,hsl(var(--muted)) 8px)',
-      } : undefined}
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      style={
+        isDisabled
+          ? {
+              background:
+                'repeating-linear-gradient(45deg,transparent,transparent 4px,hsl(var(--muted)) 4px,hsl(var(--muted)) 8px)',
+            }
+          : undefined
+      }
     >
       {children}
     </div>
-  )
+  );
 }
 
 export default function SprintBoardTab() {
-  const { jiraBaseUrl, activeJiraProject } = useAuthStore()
-  const { storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey, epicColorFieldKey } = useSettingsStore()
-  const [jiraToken, setJiraToken] = useState<string | null>(null)
-  const { onIssueClick: setSelectedIssueKey } = useOutletContext<{ onIssueClick: (key: string) => void }>()
-  const queryClient = useQueryClient()
+  const { jiraBaseUrl, activeJiraProject } = useAuthStore();
+  const { storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey, epicColorFieldKey } =
+    useSettingsStore();
+  const [jiraToken, setJiraToken] = useState<string | null>(null);
+  const { onIssueClick: setSelectedIssueKey } = useOutletContext<{
+    onIssueClick: (key: string) => void;
+  }>();
+  const queryClient = useQueryClient();
 
-  const [collapsedStories, setCollapsedStories] = useState<Set<string>>(new Set())
+  const [collapsedStories, setCollapsedStories] = useState<Set<string>>(new Set());
   const toggleStory = (key: string) =>
-    setCollapsedStories(prev => {
-      const next = new Set(prev)
-      next.has(key) ? next.delete(key) : next.add(key)
-      return next
-    })
+    setCollapsedStories((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
 
-  const [localIssues, setLocalIssues] = useState<JiraIssue[]>([])
-  const [isDragging, setIsDragging] = useState(false)
-  const [activeIssue, setActiveIssue] = useState<JiraIssue | null>(null)
-  const [cardErrors, setCardErrors] = useState<Map<string, string>>(new Map())
+  const [localIssues, setLocalIssues] = useState<JiraIssue[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [activeIssue, setActiveIssue] = useState<JiraIssue | null>(null);
+  const [cardErrors, setCardErrors] = useState<Map<string, string>>(new Map());
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
-  )
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   useEffect(() => {
     if (jiraBaseUrl) {
       readSecret('jira-pat')
-        .then(t => setJiraToken(t))
-        .catch(() => setJiraToken(null))
+        .then((t) => setJiraToken(t))
+        .catch(() => setJiraToken(null));
     }
-  }, [jiraBaseUrl])
+  }, [jiraBaseUrl]);
 
   const { data, isLoading, isError, error, dataUpdatedAt, refetch } = useQuery({
-    queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey, epicLinkFieldKey],
+    queryKey: [
+      'jira-issues',
+      'sprint-board',
+      activeJiraProject,
+      storyPointsFieldKey,
+      epicLinkFieldKey,
+    ],
     queryFn: () =>
-      fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false, storyPointsFieldKey, epicLinkFieldKey),
+      fetchSprintIssues(
+        jiraBaseUrl!,
+        jiraToken!,
+        activeJiraProject!,
+        false,
+        storyPointsFieldKey,
+        epicLinkFieldKey,
+      ),
     refetchInterval: 60_000,
     refetchIntervalInBackground: true,
     staleTime: 30_000,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
-  })
+  });
 
   // Fetch epic names for filter display (shared cache with EpicsPage)
   const { data: epicsBasic } = useQuery({
     queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
-    queryFn: () => fetchEpicsBasic(jiraBaseUrl!, jiraToken!, activeJiraProject!, epicNameFieldKey, epicColorFieldKey),
+    queryFn: () =>
+      fetchEpicsBasic(
+        jiraBaseUrl!,
+        jiraToken!,
+        activeJiraProject!,
+        epicNameFieldKey,
+        epicColorFieldKey,
+      ),
     staleTime: 5 * 60 * 1000,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
-  })
+  });
   const epicNameMap = useMemo(() => {
-    const m = new Map<string, string>()
-    for (const e of epicsBasic ?? []) m.set(e.key, e.epicName)
-    return m
-  }, [epicsBasic])
+    const m = new Map<string, string>();
+    for (const e of epicsBasic ?? []) m.set(e.key, e.epicName);
+    return m;
+  }, [epicsBasic]);
 
-  const [bannerDismissed, setBannerDismissed] = useState(false)
-  useEffect(() => { setBannerDismissed(false) }, [error])
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  useEffect(() => {
+    setBannerDismissed(false);
+  }, []);
 
   /** Used to map transition target status IDs → category keys for drag-and-drop */
   const { data: workflowStatuses } = useQuery({
@@ -160,85 +190,90 @@ export default function SprintBoardTab() {
     queryFn: () => fetchProjectStatuses(jiraBaseUrl!, jiraToken!, activeJiraProject!),
     staleTime: Infinity,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
-  })
+  });
 
   useEffect(() => {
-    if (!isDragging) setLocalIssues(data ?? [])
-  }, [data, isDragging])
+    if (!isDragging) setLocalIssues(data ?? []);
+  }, [data, isDragging]);
 
   // Pre-fetch transitions for all draggable cards
   useEffect(() => {
-    if (!jiraBaseUrl || !jiraToken || !localIssues.length) return
+    if (!jiraBaseUrl || !jiraToken || !localIssues.length) return;
     const subtaskParentKeys = new Set(
       localIssues
-        .filter(i => i.fields.issuetype.subtask && i.fields.parent?.key)
-        .map(i => i.fields.parent!.key)
-    )
+        .filter((i) => i.fields.issuetype.subtask && i.fields.parent?.key)
+        .map((i) => i.fields.parent?.key),
+    );
     const draggable = localIssues.filter(
-      i => i.fields.issuetype.subtask || !subtaskParentKeys.has(i.key)
-    )
+      (i) => i.fields.issuetype.subtask || !subtaskParentKeys.has(i.key),
+    );
     void Promise.allSettled(
-      draggable.map(issue =>
+      draggable.map((issue) =>
         queryClient.fetchQuery({
           queryKey: ['transitions', issue.key],
           queryFn: () => fetchTransitions(jiraBaseUrl, jiraToken!, issue.key),
           staleTime: 5 * 60 * 1000,
-        })
-      )
-    )
-  }, [jiraBaseUrl, jiraToken, localIssues.length])
+        }),
+      ),
+    );
+  }, [jiraBaseUrl, jiraToken, localIssues.length, localIssues.filter, queryClient.fetchQuery]);
 
   /**
    * Maps status ID → category key.
    * Built from workflowStatuses (authoritative) + any categories already on local issues.
    */
   const statusCategoryMap = useMemo(() => {
-    const map = new Map<string, CategoryKey>()
+    const map = new Map<string, CategoryKey>();
     for (const s of workflowStatuses ?? []) {
-      map.set(s.id, s.statusCategory.key as CategoryKey)
+      map.set(s.id, s.statusCategory.key as CategoryKey);
     }
     for (const issue of localIssues) {
       if (issue.fields.status.statusCategory) {
-        map.set(issue.fields.status.id, issue.fields.status.statusCategory.key as CategoryKey)
+        map.set(issue.fields.status.id, issue.fields.status.statusCategory.key as CategoryKey);
       }
     }
-    return map
-  }, [workflowStatuses, localIssues])
+    return map;
+  }, [workflowStatuses, localIssues]);
 
   function handleDragStart(event: DragStartEvent) {
-    const issue = localIssues.find(i => i.key === String(event.active.id))
-    if (issue) { setActiveIssue(issue); setIsDragging(true) }
+    const issue = localIssues.find((i) => i.key === String(event.active.id));
+    if (issue) {
+      setActiveIssue(issue);
+      setIsDragging(true);
+    }
   }
 
   async function handleDragEnd(event: DragEndEvent) {
-    setIsDragging(false)
-    setActiveIssue(null)
-    const { active, over } = event
-    if (!over) return
+    setIsDragging(false);
+    setActiveIssue(null);
+    const { active, over } = event;
+    if (!over) return;
 
-    const issueKey = String(active.id)
+    const issueKey = String(active.id);
     // Droppable ID: "{storyKey}|{categoryKey}"
-    const targetCategory = String(over.id).split('|')[1] as CategoryKey
+    const targetCategory = String(over.id).split('|')[1] as CategoryKey;
 
-    const originalIssue = localIssues.find(i => i.key === issueKey)
-    if (!originalIssue) return
-    if (categoryOf(originalIssue) === targetCategory) return
+    const originalIssue = localIssues.find((i) => i.key === issueKey);
+    if (!originalIssue) return;
+    if (categoryOf(originalIssue) === targetCategory) return;
 
     // Find a transition whose target status belongs to the dropped category
-    const transitions = queryClient.getQueryData<JiraTransition[]>(['transitions', issueKey])
+    const transitions = queryClient.getQueryData<JiraTransition[]>(['transitions', issueKey]);
     const transition = transitions?.find(
-      t => (statusCategoryMap.get(t.to.id) ?? 'new') === targetCategory
-    )
+      (t) => (statusCategoryMap.get(t.to.id) ?? 'new') === targetCategory,
+    );
     if (!transition) {
-      setCardErrors(prev => new Map(prev).set(issueKey, 'No valid transition'))
-      return
+      setCardErrors((prev) => new Map(prev).set(issueKey, 'No valid transition'));
+      return;
     }
 
-    const targetStatusCategory = workflowStatuses?.find(s => s.id === transition.to.id)?.statusCategory
+    const targetStatusCategory = workflowStatuses?.find(
+      (s) => s.id === transition.to.id,
+    )?.statusCategory;
 
     // Optimistic update — move card into the target category column immediately
-    setLocalIssues(prev =>
-      prev.map(i =>
+    setLocalIssues((prev) =>
+      prev.map((i) =>
         i.key === issueKey
           ? {
               ...i,
@@ -247,121 +282,149 @@ export default function SprintBoardTab() {
                 status: {
                   id: transition.to.id,
                   name: transition.to.name,
-                  statusCategory: (targetStatusCategory ?? { key: targetCategory }) as { key: 'new' | 'indeterminate' | 'done' },
+                  statusCategory: (targetStatusCategory ?? { key: targetCategory }) as {
+                    key: 'new' | 'indeterminate' | 'done';
+                  },
                 },
               },
             }
-          : i
-      )
-    )
-    setCardErrors(prev => { const m = new Map(prev); m.delete(issueKey); return m })
+          : i,
+      ),
+    );
+    setCardErrors((prev) => {
+      const m = new Map(prev);
+      m.delete(issueKey);
+      return m;
+    });
 
     try {
-      await postTransition(jiraBaseUrl!, jiraToken!, issueKey, transition.id)
-      queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] })
+      await postTransition(jiraBaseUrl!, jiraToken!, issueKey, transition.id);
+      queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
     } catch {
       // Rollback to original status
-      setLocalIssues(prev =>
-        prev.map(i =>
+      setLocalIssues((prev) =>
+        prev.map((i) =>
           i.key === issueKey
             ? { ...i, fields: { ...i.fields, status: originalIssue.fields.status } }
-            : i
-        )
-      )
-      setCardErrors(prev => new Map(prev).set(issueKey, 'Transition failed'))
+            : i,
+        ),
+      );
+      setCardErrors((prev) => new Map(prev).set(issueKey, 'Transition failed'));
     }
   }
 
   /** Set of category keys reachable by the currently dragged card */
   const validTargetCategories = useMemo((): Set<CategoryKey> => {
-    if (!activeIssue) return new Set()
-    const transitions = queryClient.getQueryData<JiraTransition[]>(['transitions', activeIssue.key])
-    const cats = new Set<CategoryKey>()
+    if (!activeIssue) return new Set();
+    const transitions = queryClient.getQueryData<JiraTransition[]>([
+      'transitions',
+      activeIssue.key,
+    ]);
+    const cats = new Set<CategoryKey>();
     for (const t of transitions ?? []) {
-      const cat = statusCategoryMap.get(t.to.id)
-      if (cat) cats.add(cat)
+      const cat = statusCategoryMap.get(t.to.id);
+      if (cat) cats.add(cat);
     }
-    return cats
-  }, [activeIssue, queryClient, statusCategoryMap])
+    return cats;
+  }, [activeIssue, queryClient, statusCategoryMap]);
 
   const swimlanes = useMemo(() => {
-    const stories = localIssues.filter(i => !i.fields.issuetype.subtask)
-    const subtasks = localIssues.filter(i => i.fields.issuetype.subtask)
-    const subtasksByParent = new Map<string, JiraIssue[]>()
+    const stories = localIssues.filter((i) => !i.fields.issuetype.subtask);
+    const subtasks = localIssues.filter((i) => i.fields.issuetype.subtask);
+    const subtasksByParent = new Map<string, JiraIssue[]>();
     for (const sub of subtasks) {
-      const pk = sub.fields.parent?.key
-      if (pk) subtasksByParent.set(pk, [...(subtasksByParent.get(pk) ?? []), sub])
+      const pk = sub.fields.parent?.key;
+      if (pk) subtasksByParent.set(pk, [...(subtasksByParent.get(pk) ?? []), sub]);
     }
-    return stories.map(story => ({
+    return stories.map((story) => ({
       story,
       subtasks: subtasksByParent.get(story.key) ?? [],
-    }))
-  }, [localIssues])
+    }));
+  }, [localIssues]);
 
-  const { activeEpics, activeLabels, activeAssignees, activeStatuses } = useFilterStore()
+  const { activeEpics, activeLabels, activeAssignees, activeStatuses } = useFilterStore();
 
   const filterOptions = useMemo(() => {
     // Epics: all project epics (not just those on current sprint issues)
-    const epics = new Map<string, string>()
-    for (const e of epicsBasic ?? []) epics.set(e.key, e.epicName)
+    const epics = new Map<string, string>();
+    for (const e of epicsBasic ?? []) epics.set(e.key, e.epicName);
     // Also include any epic on current issues not yet in epicsBasic
     for (const issue of localIssues) {
-      const epicKey = issue.fields[epicLinkFieldKey] as string | null
-      if (epicKey && !epics.has(epicKey)) epics.set(epicKey, epicNameMap.get(epicKey) ?? epicKey)
+      const epicKey = issue.fields[epicLinkFieldKey] as string | null;
+      if (epicKey && !epics.has(epicKey)) epics.set(epicKey, epicNameMap.get(epicKey) ?? epicKey);
     }
-    const labels = new Set<string>()
-    const assignees = new Set<string>()
+    const labels = new Set<string>();
+    const assignees = new Set<string>();
     for (const issue of localIssues) {
-      for (const label of (issue.fields.labels as string[] | undefined) ?? []) labels.add(label)
-      if (issue.fields.assignee?.displayName) assignees.add(issue.fields.assignee.displayName)
+      for (const label of (issue.fields.labels as string[] | undefined) ?? []) labels.add(label);
+      if (issue.fields.assignee?.displayName) assignees.add(issue.fields.assignee.displayName);
     }
     // Statuses: all project workflow statuses (not just those on current issues)
-    const statuses = new Set<string>()
-    for (const s of workflowStatuses ?? []) statuses.add(s.name)
+    const statuses = new Set<string>();
+    for (const s of workflowStatuses ?? []) statuses.add(s.name);
     // Also include any status on current issues not yet in workflowStatuses
     for (const issue of localIssues) {
-      if (issue.fields.status?.name) statuses.add(issue.fields.status.name)
+      if (issue.fields.status?.name) statuses.add(issue.fields.status.name);
     }
-    return { epics, labels: Array.from(labels), assignees: Array.from(assignees), statuses: Array.from(statuses).sort() }
-  }, [localIssues, epicLinkFieldKey, epicNameMap, epicsBasic, workflowStatuses])
+    return {
+      epics,
+      labels: Array.from(labels),
+      assignees: Array.from(assignees),
+      statuses: Array.from(statuses).sort(),
+    };
+  }, [localIssues, epicLinkFieldKey, epicNameMap, epicsBasic, workflowStatuses]);
 
   function applyFilters(issues: JiraIssue[]): JiraIssue[] {
     return issues.filter((issue) => {
-      const epicMatch = activeEpics.size === 0 || (() => {
-        const epicKey = issue.fields[epicLinkFieldKey] as string | null
-        return epicKey != null && activeEpics.has(epicKey)
-      })()
-      const labelMatch = activeLabels.size === 0 ||
-        ((issue.fields.labels as string[] | undefined) ?? []).some(l => activeLabels.has(l))
-      const assigneeMatch = activeAssignees.size === 0 || (() => {
-        const name = issue.fields.assignee?.displayName ?? ''
-        return Array.from(activeAssignees).some(q => name.toLowerCase().includes(q.toLowerCase()))
-      })()
+      const epicMatch =
+        activeEpics.size === 0 ||
+        (() => {
+          const epicKey = issue.fields[epicLinkFieldKey] as string | null;
+          return epicKey != null && activeEpics.has(epicKey);
+        })();
+      const labelMatch =
+        activeLabels.size === 0 ||
+        ((issue.fields.labels as string[] | undefined) ?? []).some((l) => activeLabels.has(l));
+      const assigneeMatch =
+        activeAssignees.size === 0 ||
+        (() => {
+          const name = issue.fields.assignee?.displayName ?? '';
+          return Array.from(activeAssignees).some((q) =>
+            name.toLowerCase().includes(q.toLowerCase()),
+          );
+        })();
       const statusMatch =
-        activeStatuses.size === 0 || (() => {
-          const issueStatus = (issue.fields.status?.name ?? '').toLowerCase()
-          return Array.from(activeStatuses).some(s => s.toLowerCase() === issueStatus)
-        })()
-      return epicMatch && labelMatch && assigneeMatch && statusMatch
-    })
+        activeStatuses.size === 0 ||
+        (() => {
+          const issueStatus = (issue.fields.status?.name ?? '').toLowerCase();
+          return Array.from(activeStatuses).some((s) => s.toLowerCase() === issueStatus);
+        })();
+      return epicMatch && labelMatch && assigneeMatch && statusMatch;
+    });
   }
 
   const filteredSwimlanes = useMemo(() => {
-    if (activeEpics.size === 0 && activeLabels.size === 0 && activeAssignees.size === 0 && activeStatuses.size === 0) return swimlanes
+    if (
+      activeEpics.size === 0 &&
+      activeLabels.size === 0 &&
+      activeAssignees.size === 0 &&
+      activeStatuses.size === 0
+    )
+      return swimlanes;
     return swimlanes
       .map(({ story, subtasks }) => {
         // Filter both story and subtasks — keep swimlane if either matches
-        const storyMatches = applyFilters([story]).length > 0
-        const filteredSubtasks = applyFilters(subtasks)
-        if (!storyMatches && filteredSubtasks.length === 0) return null
-        return { story, subtasks: filteredSubtasks }
+        const storyMatches = applyFilters([story]).length > 0;
+        const filteredSubtasks = applyFilters(subtasks);
+        if (!storyMatches && filteredSubtasks.length === 0) return null;
+        return { story, subtasks: filteredSubtasks };
       })
-      .filter((s): s is { story: JiraIssue; subtasks: JiraIssue[] } => s !== null)
-  }, [swimlanes, activeEpics, activeLabels, activeAssignees, activeStatuses, filterOptions])
+      .filter((s): s is { story: JiraIssue; subtasks: JiraIssue[] } => s !== null);
+  }, [swimlanes, activeEpics, activeLabels, activeAssignees, activeStatuses, applyFilters]);
 
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
-    : 'Refreshed: Never'
+    : 'Refreshed: Never';
 
   return (
     <>
@@ -373,7 +436,10 @@ export default function SprintBoardTab() {
         sensors={sensors}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
-        onDragCancel={() => { setActiveIssue(null); setIsDragging(false) }}
+        onDragCancel={() => {
+          setActiveIssue(null);
+          setIsDragging(false);
+        }}
       >
         <div>
           {/*
@@ -383,10 +449,10 @@ export default function SprintBoardTab() {
            */}
           <div className="sticky top-0 z-20 bg-background border-b border-border relative h-10">
             <div className="flex h-full">
-              {CATEGORY_COLUMNS.map(col => {
+              {CATEGORY_COLUMNS.map((col) => {
                 const count = localIssues.filter(
-                  i => i.fields.issuetype.subtask && categoryOf(i) === col.key
-                ).length
+                  (i) => i.fields.issuetype.subtask && categoryOf(i) === col.key,
+                ).length;
                 return (
                   <div
                     key={col.key}
@@ -397,12 +463,14 @@ export default function SprintBoardTab() {
                     </span>
                     <span className="text-xs text-muted-foreground/70">({count})</span>
                   </div>
-                )
+                );
               })}
             </div>
             {/* Refresh positioned absolutely so it doesn't affect column width distribution */}
             <div className="absolute right-0 top-0 h-full px-3 flex items-center gap-2 bg-background border-l border-border/20">
-              <span className="text-xs text-muted-foreground hidden sm:inline">{lastRefreshed}</span>
+              <span className="text-xs text-muted-foreground hidden sm:inline">
+                {lastRefreshed}
+              </span>
               <button
                 type="button"
                 onClick={() => refetch()}
@@ -417,11 +485,11 @@ export default function SprintBoardTab() {
           {/* Loading skeleton */}
           {isLoading && (
             <div className="p-4 flex flex-col gap-3">
-              {[0, 1].map(i => (
+              {[0, 1].map((i) => (
                 <div key={i} className="flex flex-col gap-0.5">
                   <div className="h-9 rounded bg-muted animate-pulse" />
                   <div className="flex">
-                    {CATEGORY_COLUMNS.map(col => (
+                    {CATEGORY_COLUMNS.map((col) => (
                       <div key={col.key} className="flex-1 h-20 bg-muted/50 animate-pulse" />
                     ))}
                   </div>
@@ -445,21 +513,23 @@ export default function SprintBoardTab() {
           )}
 
           {/* Unified filter bar */}
-          {!isLoading && !isError && data && (
-            <UnifiedFilterBar filterOptions={filterOptions} />
-          )}
+          {!isLoading && !isError && data && <UnifiedFilterBar filterOptions={filterOptions} />}
 
           {/* Empty */}
           {!isLoading && !isError && data && swimlanes.length === 0 && (
-            <EmptyState icon={Columns3} title="No sprint issues" subtitle="This board will populate when issues are added to the active sprint" />
+            <EmptyState
+              icon={Columns3}
+              title="No sprint issues"
+              subtitle="This board will populate when issues are added to the active sprint"
+            />
           )}
 
           {/* Swimlane rows */}
           {!isLoading && !isError && data && (
             <div className="flex flex-col divide-y divide-border/40">
               {filteredSwimlanes.map(({ story, subtasks }) => {
-                const isExpanded = !collapsedStories.has(story.key)
-                const cards = subtasks.length > 0 ? subtasks : [story]
+                const isExpanded = !collapsedStories.has(story.key);
+                const cards = subtasks.length > 0 ? subtasks : [story];
                 return (
                   <div key={story.key}>
                     {/*
@@ -482,12 +552,12 @@ export default function SprintBoardTab() {
                     </div>
                     {isExpanded && (
                       <div className="flex bg-muted/10">
-                        {CATEGORY_COLUMNS.map(col => {
-                          const colCards = cards.filter(c => categoryOf(c) === col.key)
+                        {CATEGORY_COLUMNS.map((col) => {
+                          const colCards = cards.filter((c) => categoryOf(c) === col.key);
                           const isDisabled =
                             activeIssue !== null &&
                             validTargetCategories.size > 0 &&
-                            !validTargetCategories.has(col.key)
+                            !validTargetCategories.has(col.key);
                           return (
                             <DroppableCell
                               key={col.key}
@@ -495,7 +565,7 @@ export default function SprintBoardTab() {
                               categoryKey={col.key}
                               isDisabled={isDisabled}
                             >
-                              {colCards.map(card => (
+                              {colCards.map((card) => (
                                 <React.Fragment key={card.key}>
                                   <DraggableCard
                                     issue={card}
@@ -511,22 +581,19 @@ export default function SprintBoardTab() {
                                 </React.Fragment>
                               ))}
                             </DroppableCell>
-                          )
+                          );
                         })}
                       </div>
                     )}
                   </div>
-                )
+                );
               })}
             </div>
           )}
         </div>
 
-        <DragOverlay>
-          {activeIssue ? <TaskCard issue={activeIssue} /> : null}
-        </DragOverlay>
+        <DragOverlay>{activeIssue ? <TaskCard issue={activeIssue} /> : null}</DragOverlay>
       </DndContext>
-
     </>
-  )
+  );
 }

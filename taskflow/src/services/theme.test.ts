@@ -1,11 +1,13 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@tauri-apps/plugin-store', () => {
   const map = new Map<string, unknown>();
   function LazyStore(_name: string) {
     return {
       get: async (key: string) => map.get(key) ?? null,
-      set: async (key: string, val: unknown) => { map.set(key, val); },
+      set: async (key: string, val: unknown) => {
+        map.set(key, val);
+      },
       save: async () => {},
     };
   }

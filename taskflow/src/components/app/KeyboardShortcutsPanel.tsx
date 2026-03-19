@@ -8,9 +8,10 @@
  * To add more shortcuts in future phases: append entries to src/lib/shortcuts.ts.
  * This component reads from the SHORTCUTS constant and needs no changes.
  */
-import { useState } from 'react';
+
 import { Dialog } from '@base-ui/react/dialog';
-import { Keyboard, Compass, List, Zap } from 'lucide-react';
+import { Compass, Keyboard, List, Zap } from 'lucide-react';
+import { useState } from 'react';
 import { SHORTCUTS, type ShortcutCategory } from '@/lib/shortcuts';
 
 const CATEGORIES: { key: ShortcutCategory; icon: React.ReactNode }[] = [
@@ -59,9 +60,7 @@ export function KeyboardShortcutsPanel({ open, onClose }: KeyboardShortcutsPanel
         >
           {/* Header */}
           <div className="px-6 pt-6 pb-3 space-y-3">
-            <Dialog.Title className="text-base font-semibold">
-              Keyboard Shortcuts
-            </Dialog.Title>
+            <Dialog.Title className="text-base font-semibold">Keyboard Shortcuts</Dialog.Title>
             <p id="kbd-panel-desc" className="sr-only">
               A list of all available keyboard shortcuts grouped by category.
             </p>
@@ -97,7 +96,7 @@ export function KeyboardShortcutsPanel({ open, onClose }: KeyboardShortcutsPanel
                 const entries = SHORTCUTS.filter(
                   (s) =>
                     s.category === cat &&
-                    (query === '' || s.description.toLowerCase().includes(query))
+                    (query === '' || s.description.toLowerCase().includes(query)),
                 );
                 if (entries.length === 0) return null;
                 hasAnyMatch = true;
@@ -152,11 +151,7 @@ export function KeyboardShortcutsPanel({ open, onClose }: KeyboardShortcutsPanel
 
           <Dialog.Close
             render={
-              <button
-                type="button"
-                className="sr-only"
-                aria-label="Close keyboard shortcuts"
-              />
+              <button type="button" className="sr-only" aria-label="Close keyboard shortcuts" />
             }
           />
         </Dialog.Popup>

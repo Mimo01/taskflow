@@ -1,22 +1,22 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { clearMocks } from '@tauri-apps/api/mocks';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // In-memory store shared across mock instances
-const _mockVault = new Map<string, number[]>();
-const _mockMeta = new Map<string, unknown>();
+const MockVault = new Map<string, number[]>();
+const MockMeta = new Map<string, unknown>();
 
 vi.mock('@tauri-apps/plugin-stronghold', () => {
   const mockStore = {
     insert: vi.fn(async (key: string, data: number[]) => {
-      _mockVault.set(key, [...data]);
+      MockVault.set(key, [...data]);
     }),
     get: vi.fn(async (key: string) => {
-      const val = _mockVault.get(key);
+      const val = MockVault.get(key);
       if (!val) throw new Error(`Key not found: ${key}`);
       return [...val];
     }),
     remove: vi.fn(async (key: string) => {
-      _mockVault.delete(key);
+      MockVault.delete(key);
     }),
   };
 
@@ -45,10 +45,14 @@ vi.mock('@tauri-apps/api/path', () => ({
 vi.mock('@tauri-apps/plugin-store', () => {
   function LazyStore(_name: string) {
     return {
-      get: async (key: string) => _mockMeta.get(key) ?? null,
-      set: async (key: string, val: unknown) => { _mockMeta.set(key, val); },
+      get: async (key: string) => MockMeta.get(key) ?? null,
+      set: async (key: string, val: unknown) => {
+        MockMeta.set(key, val);
+      },
       save: async () => {},
-      delete: async (key: string) => { _mockMeta.delete(key); },
+      delete: async (key: string) => {
+        MockMeta.delete(key);
+      },
     };
   }
   return { LazyStore };
@@ -56,8 +60,8 @@ vi.mock('@tauri-apps/plugin-store', () => {
 
 describe('stronghold service', () => {
   beforeEach(() => {
-    _mockVault.clear();
-    _mockMeta.clear();
+    MockVault.clear();
+    MockMeta.clear();
     vi.resetModules();
   });
 

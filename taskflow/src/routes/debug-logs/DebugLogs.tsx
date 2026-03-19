@@ -8,7 +8,7 @@
  * Log store is in-memory — cleared on app restart or via the Clear button.
  */
 import { useState } from 'react';
-import { useDebugLogStore, type ApiLogEntry } from '../../stores/debug-log.store';
+import { type ApiLogEntry, useDebugLogStore } from '../../stores/debug-log.store';
 import { useSettingsStore } from '../../stores/settings.store';
 
 function formatBody(raw: string): string {

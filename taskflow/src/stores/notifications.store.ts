@@ -7,9 +7,10 @@
  * IMPORTANT: readIds is stored as string[] (not Set) because Zustand JSON persist
  * middleware does not serialize Set correctly (serializes as {}).
  */
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+
 import { LazyStore } from '@tauri-apps/plugin-store';
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 const tauriStore = new LazyStore('notifications.json');
 
@@ -42,32 +43,32 @@ export type NotificationType =
   | 'due-date-reminder';
 
 export interface NotificationItem {
-  id: string;            // 'jira-comment-{id}' | 'gitlab-note-{id}'
+  id: string; // 'jira-comment-{id}' | 'gitlab-note-{id}'
   source: 'jira' | 'gitlab';
-  entityTitle: string;   // "PROJ-123: Fix login bug"
-  author: string;        // "J.Smith"
+  entityTitle: string; // "PROJ-123: Fix login bug"
+  author: string; // "J.Smith"
   authorAvatarUrl?: string; // avatar image URL from Jira/GitLab API
-  bodyPreview: string;   // first ~80 chars of body
+  bodyPreview: string; // first ~80 chars of body
   fullBody: string;
-  createdAt: string;     // ISO 8601
-  url?: string;              // browser-openable URL for the entity
+  createdAt: string; // ISO 8601
+  url?: string; // browser-openable URL for the entity
   notificationType?: NotificationType;
-  entityState?: string;      // GitLab: "opened" | "merged" | "closed"
-  parentKey?: string;        // Jira subtask parent key, e.g. "PROJ-100"
-  parentSummary?: string;    // Jira subtask parent summary, e.g. "User Login Flow"
-  mrProjectId?: number;      // GitLab MR project ID — for internal /mr/:projectId/:iid routing
-  mrIid?: number;            // GitLab MR iid — for internal /mr/:projectId/:iid routing
+  entityState?: string; // GitLab: "opened" | "merged" | "closed"
+  parentKey?: string; // Jira subtask parent key, e.g. "PROJ-100"
+  parentSummary?: string; // Jira subtask parent summary, e.g. "User Login Flow"
+  mrProjectId?: number; // GitLab MR project ID — for internal /mr/:projectId/:iid routing
+  mrIid?: number; // GitLab MR iid — for internal /mr/:projectId/:iid routing
 }
 
 interface NotificationsState {
   items: NotificationItem[];
-  readIds: string[];               // string[] NOT Set — JSON-serializable
-  lastSeenCursor: string | null;         // DEPRECATED — kept for migration
-  lastSeenJiraCursor: string | null;     // ISO timestamp of last seen Jira notification
-  lastSeenGitlabCursor: string | null;   // ISO timestamp of last seen GitLab notification
-  permissionDenied: boolean;       // transient — not persisted
-  notificationSendError: boolean;  // transient — OS notification dispatch failed (e.g. dev mode)
-  fetchError: Error | null;        // transient — propagated from polling hook
+  readIds: string[]; // string[] NOT Set — JSON-serializable
+  lastSeenCursor: string | null; // DEPRECATED — kept for migration
+  lastSeenJiraCursor: string | null; // ISO timestamp of last seen Jira notification
+  lastSeenGitlabCursor: string | null; // ISO timestamp of last seen GitLab notification
+  permissionDenied: boolean; // transient — not persisted
+  notificationSendError: boolean; // transient — OS notification dispatch failed (e.g. dev mode)
+  fetchError: Error | null; // transient — propagated from polling hook
   retryFetch: (() => void) | null; // transient — refetch function from polling hook
 
   // Actions
@@ -130,7 +131,12 @@ export const useNotificationsStore = create<NotificationsState>()(
 
       markAllReadBySource: (source) =>
         set((s) => ({
-          readIds: [...new Set([...s.readIds, ...s.items.filter((i) => i.source === source).map((i) => i.id)])],
+          readIds: [
+            ...new Set([
+              ...s.readIds,
+              ...s.items.filter((i) => i.source === source).map((i) => i.id),
+            ]),
+          ],
         })),
 
       removeItem: (id) =>
@@ -140,7 +146,13 @@ export const useNotificationsStore = create<NotificationsState>()(
         })),
 
       clearAll: () =>
-        set({ items: [], readIds: [], lastSeenCursor: null, lastSeenJiraCursor: null, lastSeenGitlabCursor: null }),
+        set({
+          items: [],
+          readIds: [],
+          lastSeenCursor: null,
+          lastSeenJiraCursor: null,
+          lastSeenGitlabCursor: null,
+        }),
 
       setLastSeenCursor: (ts) => set({ lastSeenCursor: ts }),
       setLastSeenJiraCursor: (ts) => set({ lastSeenJiraCursor: ts }),

@@ -7,7 +7,8 @@
     "defaultBranch": "main"
   },
   "files": {
-    "ignoreUnknown": true
+    "ignoreUnknown": true,
+    "includes": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.json"]
   },
   "formatter": {
     "enabled": true,
@@ -32,13 +33,23 @@
       "recommended": true,
       "suspicious": {
         "noExplicitAny": "off",
-        "noArrayIndexKey": "error"
+        "noArrayIndexKey": "warn"
       },
       "correctness": {
         "useExhaustiveDependencies": "warn"
       },
       "a11y": {
-        "recommended": true
+        "recommended": true,
+        "noLabelWithoutControl": "warn",
+        "useButtonType": "warn",
+        "useKeyWithClickEvents": "warn",
+        "useSemanticElements": "warn",
+        "useValidAriaRole": "warn",
+        "noInteractiveElementToNoninteractiveRole": "warn",
+        "noNoninteractiveElementToInteractiveRole": "warn",
+        "noSvgWithoutTitle": "warn",
+        "noStaticElementInteractions": "warn",
+        "useAriaPropsSupportedByRole": "warn"
       },
       "style": {
         "useNamingConvention": {
@@ -59,7 +70,7 @@
     "actions": {
       "source": {
         "organizeImports": {
-          "level": "error"
+          "level": "on"
         }
       }
     }

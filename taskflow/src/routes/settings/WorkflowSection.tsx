@@ -81,7 +81,6 @@ export default function WorkflowSection() {
           />
         </label>
       </div>
-
     </div>
   );
 }

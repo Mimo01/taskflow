@@ -4,8 +4,9 @@
  * Reads/writes useSettingsStore().role directly.
  * No save button — change takes effect immediately.
  */
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useSettingsStore } from '@/stores/settings.store';
 
 export default function RoleSection() {

@@ -13,10 +13,11 @@
  *   BACK-04 — Epic / assignee filters (AND logic, applies across all sections, dismiss chip)
  *   BACK-05 — Row click opens issue detail
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ── Mocks ──────────────────────────────────────────────────────────────────────
 
@@ -30,7 +31,9 @@ vi.mock('@/services/stronghold', () => ({
 }));
 
 vi.mock('@/services/jira', () => ({
-  fetchBacklogView: vi.fn().mockResolvedValue({ sprints: [], backlog: [], epicNames: new Map(), epicColors: new Map() }),
+  fetchBacklogView: vi
+    .fn()
+    .mockResolvedValue({ sprints: [], backlog: [], epicNames: new Map(), epicColors: new Map() }),
   addIssuesToSprint: vi.fn().mockResolvedValue(undefined),
   fetchActiveSprint: vi.fn().mockResolvedValue(null),
 }));
@@ -68,12 +71,7 @@ vi.mock('lucide-react', async (importOriginal) => {
  * Build a minimal JiraIssue fixture sufficient for BacklogPage rendering and filter tests.
  * epicKey populates customfield_10014 (epicLinkFieldKey).
  */
-function makeIssue(
-  key: string,
-  summary: string,
-  epicKey?: string,
-  assigneeDisplayName?: string,
-) {
+function makeIssue(key: string, summary: string, epicKey?: string, assigneeDisplayName?: string) {
   return {
     id: key,
     key,
@@ -122,7 +120,8 @@ describe('BACK-01 List', () => {
         },
       ],
       backlog: [makeIssue('PROJ-2', 'Backlog story two')],
-      epicNames: new Map(), epicColors: new Map(),
+      epicNames: new Map(),
+      epicColors: new Map(),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -157,15 +156,18 @@ describe('BACK-01 List', () => {
 
   it('renders empty state message when fetchBacklogView resolves with no issues', async () => {
     const { fetchBacklogView } = await import('@/services/jira');
-    vi.mocked(fetchBacklogView).mockResolvedValue({ sprints: [], backlog: [], epicNames: new Map(), epicColors: new Map() });
+    vi.mocked(fetchBacklogView).mockResolvedValue({
+      sprints: [],
+      backlog: [],
+      epicNames: new Map(),
+      epicColors: new Map(),
+    });
 
     const { default: BacklogPage } = await import('./BacklogPage');
     renderBacklogPage(<BacklogPage />);
 
     await waitFor(() => {
-      expect(
-        screen.getByText(/no backlog issues|backlog is empty/i),
-      ).toBeInTheDocument();
+      expect(screen.getByText(/no backlog issues|backlog is empty/i)).toBeInTheDocument();
     });
   });
 
@@ -177,7 +179,8 @@ describe('BACK-01 List', () => {
         { sprint: makeSprint(2, 'Sprint 2', 'future'), issues: [] },
       ],
       backlog: [],
-      epicNames: new Map(), epicColors: new Map(),
+      epicNames: new Map(),
+      epicColors: new Map(),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -200,7 +203,8 @@ describe('BACK-02 Move to sprint', () => {
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [],
       backlog: [makeIssue('PROJ-1', 'Build login page')],
-      epicNames: new Map(), epicColors: new Map(),
+      epicNames: new Map(),
+      epicColors: new Map(),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -219,7 +223,8 @@ describe('BACK-02 Move to sprint', () => {
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [],
       backlog: [makeIssue('PROJ-1', 'Build login page')],
-      epicNames: new Map(), epicColors: new Map(),
+      epicNames: new Map(),
+      epicColors: new Map(),
     });
     vi.mocked(fetchActiveSprint).mockResolvedValue(null);
 
@@ -237,14 +242,14 @@ describe('BACK-02 Move to sprint', () => {
   });
 
   it('clicking "Move to sprint" removes selected backlog issues optimistically from the list', async () => {
-    const { fetchBacklogView, fetchActiveSprint, addIssuesToSprint } = await import('@/services/jira');
+    const { fetchBacklogView, fetchActiveSprint, addIssuesToSprint } = await import(
+      '@/services/jira'
+    );
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [],
-      backlog: [
-        makeIssue('PROJ-1', 'Build login page'),
-        makeIssue('PROJ-2', 'Fix signup flow'),
-      ],
-      epicNames: new Map(), epicColors: new Map(),
+      backlog: [makeIssue('PROJ-1', 'Build login page'), makeIssue('PROJ-2', 'Fix signup flow')],
+      epicNames: new Map(),
+      epicColors: new Map(),
     });
     vi.mocked(fetchActiveSprint).mockResolvedValue({
       id: 42,
@@ -271,7 +276,9 @@ describe('BACK-02 Move to sprint', () => {
   });
 
   it('clicking "Move to sprint" removes selected sprint issues optimistically from the list', async () => {
-    const { fetchBacklogView, fetchActiveSprint, addIssuesToSprint } = await import('@/services/jira');
+    const { fetchBacklogView, fetchActiveSprint, addIssuesToSprint } = await import(
+      '@/services/jira'
+    );
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [
         {
@@ -283,7 +290,8 @@ describe('BACK-02 Move to sprint', () => {
         },
       ],
       backlog: [],
-      epicNames: new Map(), epicColors: new Map(),
+      epicNames: new Map(),
+      epicColors: new Map(),
     });
     vi.mocked(fetchActiveSprint).mockResolvedValue({ id: 1, name: 'Sprint 1', state: 'active' });
     vi.mocked(addIssuesToSprint).mockResolvedValue(undefined);
@@ -306,18 +314,23 @@ describe('BACK-02 Move to sprint', () => {
   });
 
   it('when addIssuesToSprint rejects, issues reappear and error message is shown', async () => {
-    const { fetchBacklogView, fetchActiveSprint, addIssuesToSprint } = await import('@/services/jira');
+    const { fetchBacklogView, fetchActiveSprint, addIssuesToSprint } = await import(
+      '@/services/jira'
+    );
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [],
       backlog: [makeIssue('PROJ-1', 'Build login page')],
-      epicNames: new Map(), epicColors: new Map(),
+      epicNames: new Map(),
+      epicColors: new Map(),
     });
     vi.mocked(fetchActiveSprint).mockResolvedValue({
       id: 42,
       name: 'Sprint 1',
       state: 'active',
     });
-    vi.mocked(addIssuesToSprint).mockRejectedValue(new Error('Failed to add issues to sprint: 500'));
+    vi.mocked(addIssuesToSprint).mockRejectedValue(
+      new Error('Failed to add issues to sprint: 500'),
+    );
 
     const { default: BacklogPage } = await import('./BacklogPage');
     renderBacklogPage(<BacklogPage />);
@@ -350,7 +363,12 @@ describe('BACK-03 Create story', () => {
     vi.mocked(useOutletContext).mockReturnValue({ onIssueClick: vi.fn(), openCreateStory });
 
     const { fetchBacklogView } = await import('@/services/jira');
-    vi.mocked(fetchBacklogView).mockResolvedValue({ sprints: [], backlog: [], epicNames: new Map(), epicColors: new Map() });
+    vi.mocked(fetchBacklogView).mockResolvedValue({
+      sprints: [],
+      backlog: [],
+      epicNames: new Map(),
+      epicColors: new Map(),
+    });
 
     const { default: BacklogPage } = await import('./BacklogPage');
     renderBacklogPage(<BacklogPage />);
@@ -378,7 +396,11 @@ describe('BACK-04 Filters', () => {
         },
       ],
       backlog: [makeIssue('PROJ-2', 'Story in Epic B', 'EPIC-2')],
-      epicNames: new Map([['EPIC-1', 'EPIC-1'], ['EPIC-2', 'EPIC-2']]), epicColors: new Map(),
+      epicNames: new Map([
+        ['EPIC-1', 'EPIC-1'],
+        ['EPIC-2', 'EPIC-2'],
+      ]),
+      epicColors: new Map(),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -407,7 +429,8 @@ describe('BACK-04 Filters', () => {
         makeIssue('PROJ-1', 'Alice story', undefined, 'Alice'),
         makeIssue('PROJ-2', 'Bob story', undefined, 'Bob'),
       ],
-      epicNames: new Map(), epicColors: new Map(),
+      epicNames: new Map(),
+      epicColors: new Map(),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -436,7 +459,11 @@ describe('BACK-04 Filters', () => {
         makeIssue('PROJ-2', 'Alice + Epic B', 'EPIC-2', 'Alice'),
         makeIssue('PROJ-3', 'Bob + Epic A', 'EPIC-1', 'Bob'),
       ],
-      epicNames: new Map([['EPIC-1', 'EPIC-1'], ['EPIC-2', 'EPIC-2']]), epicColors: new Map(),
+      epicNames: new Map([
+        ['EPIC-1', 'EPIC-1'],
+        ['EPIC-2', 'EPIC-2'],
+      ]),
+      epicColors: new Map(),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -457,7 +484,7 @@ describe('BACK-04 Filters', () => {
     fireEvent.mouseDown(assigneeOption.querySelector('button')!);
 
     await waitFor(() => {
-      expect(screen.getByText('PROJ-1')).toBeInTheDocument();      // Alice + EPIC-1 — shown
+      expect(screen.getByText('PROJ-1')).toBeInTheDocument(); // Alice + EPIC-1 — shown
       expect(screen.queryByText('PROJ-2')).not.toBeInTheDocument(); // Alice + EPIC-2 — hidden
       expect(screen.queryByText('PROJ-3')).not.toBeInTheDocument(); // Bob + EPIC-1 — hidden
     });
@@ -471,7 +498,11 @@ describe('BACK-04 Filters', () => {
         makeIssue('PROJ-1', 'Story in Epic A', 'EPIC-1'),
         makeIssue('PROJ-2', 'Story in Epic B', 'EPIC-2'),
       ],
-      epicNames: new Map([['EPIC-1', 'EPIC-1'], ['EPIC-2', 'EPIC-2']]), epicColors: new Map(),
+      epicNames: new Map([
+        ['EPIC-1', 'EPIC-1'],
+        ['EPIC-2', 'EPIC-2'],
+      ]),
+      epicColors: new Map(),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -513,7 +544,8 @@ describe('BACK-05 Row click', () => {
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [],
       backlog: [makeIssue('PROJ-1', 'Build login page')],
-      epicNames: new Map(), epicColors: new Map(),
+      epicNames: new Map(),
+      epicColors: new Map(),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -541,7 +573,8 @@ describe('BACK-05 Row click', () => {
         },
       ],
       backlog: [],
-      epicNames: new Map(), epicColors: new Map(),
+      epicNames: new Map(),
+      epicColors: new Map(),
     });
 
     const { default: BacklogPage } = await import('./BacklogPage');

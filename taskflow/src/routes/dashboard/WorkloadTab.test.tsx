@@ -1,10 +1,11 @@
 // PM-02: Workload grouped by assignee
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchIssueWorklogs } from '@/services/jira';
-import React from 'react';
 
 // Mock stronghold
 vi.mock('@/services/stronghold', () => ({
@@ -54,16 +55,30 @@ function makeIssue(
       summary: `Summary ${key}`,
       status: {
         id: '1',
-        name: statusCategoryKey === 'done' ? 'Done' : statusCategoryKey === 'indeterminate' ? 'In Progress' : 'To Do',
+        name:
+          statusCategoryKey === 'done'
+            ? 'Done'
+            : statusCategoryKey === 'indeterminate'
+              ? 'In Progress'
+              : 'To Do',
         statusCategory: { key: statusCategoryKey },
       },
-      assignee: assigneeName
-        ? { displayName: assigneeName, avatarUrls: { '48x48': '' } }
-        : null,
+      assignee: assigneeName ? { displayName: assigneeName, avatarUrls: { '48x48': '' } } : null,
       customfield_10016: pts,
-      issuetype: { name: options?.subtask ? 'Sub-task' : 'Story', subtask: options?.subtask ?? false },
+      issuetype: {
+        name: options?.subtask ? 'Sub-task' : 'Story',
+        subtask: options?.subtask ?? false,
+      },
       timetracking: options?.timetracking ?? undefined,
-      ...(options?.parentKey ? { parent: { id: options.parentKey, key: options.parentKey, fields: { summary: `Summary ${options.parentKey}` } } } : {}),
+      ...(options?.parentKey
+        ? {
+            parent: {
+              id: options.parentKey,
+              key: options.parentKey,
+              fields: { summary: `Summary ${options.parentKey}` },
+            },
+          }
+        : {}),
     },
   };
 }
@@ -97,8 +112,8 @@ describe('WorkloadTab', () => {
     const { fetchSprintIssues } = await import('@/services/jira');
     vi.mocked(fetchSprintIssues).mockResolvedValue([
       makeIssue('P-1', 'Alice', 'indeterminate', 5),
-      makeIssue('P-2', 'Alice', 'done', 3),       // done — counted in tasks and pts
-      makeIssue('P-3', null, 'new', 2),            // unassigned
+      makeIssue('P-2', 'Alice', 'done', 3), // done — counted in tasks and pts
+      makeIssue('P-3', null, 'new', 2), // unassigned
     ]);
     // Alice has worklogs on both her stories so they appear in drill-down
     vi.mocked(fetchIssueWorklogs).mockImplementation(async (_base, _token, issueKey) => {
@@ -132,7 +147,7 @@ describe('WorkloadTab', () => {
     vi.mocked(fetchSprintIssues).mockResolvedValue([
       makeIssue('P-1', 'Bob', 'new', 8),
       makeIssue('P-2', 'Bob', 'indeterminate', 5),
-      makeIssue('P-3', 'Bob', 'done', 13),         // done — points included in total
+      makeIssue('P-3', 'Bob', 'done', 13), // done — points included in total
     ]);
     // Bob has worklogs on all his stories so they appear in drill-down
     vi.mocked(fetchIssueWorklogs).mockImplementation(async (_base, _token, issueKey) => {
@@ -156,9 +171,7 @@ describe('WorkloadTab', () => {
   it('shows assignee row for person with only done stories', async () => {
     const user = userEvent.setup();
     const { fetchSprintIssues } = await import('@/services/jira');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([
-      makeIssue('P-1', 'Carol', 'done', 5),
-    ]);
+    vi.mocked(fetchSprintIssues).mockResolvedValue([makeIssue('P-1', 'Carol', 'done', 5)]);
     // Carol has a worklog on her done story so it appears in drill-down
     vi.mocked(fetchIssueWorklogs).mockImplementation(async (_base, _token, issueKey) => {
       if (issueKey === 'P-1') return ['Carol'];
@@ -185,8 +198,8 @@ describe('WorkloadTab', () => {
   it('counts done stories in task total', async () => {
     const { fetchSprintIssues } = await import('@/services/jira');
     vi.mocked(fetchSprintIssues).mockResolvedValue([
-      makeIssue('P-1', 'Alice', 'indeterminate', 5),  // in-progress: 5 pts
-      makeIssue('P-2', 'Alice', 'done', 3),            // done: 3 pts, counted
+      makeIssue('P-1', 'Alice', 'indeterminate', 5), // in-progress: 5 pts
+      makeIssue('P-2', 'Alice', 'done', 3), // done: 3 pts, counted
     ]);
 
     const { default: WorkloadTab } = await import('./WorkloadTab');
@@ -205,8 +218,8 @@ describe('WorkloadTab', () => {
     const user = userEvent.setup();
     const { fetchSprintIssues } = await import('@/services/jira');
     vi.mocked(fetchSprintIssues).mockResolvedValue([
-      makeIssue('P-1', 'Alice', 'indeterminate', 5),  // in-progress: no badge
-      makeIssue('P-2', 'Alice', 'done', 3),            // done: should have badge
+      makeIssue('P-1', 'Alice', 'indeterminate', 5), // in-progress: no badge
+      makeIssue('P-2', 'Alice', 'done', 3), // done: should have badge
     ]);
     // Alice has worklogs on both stories so they appear in drill-down
     vi.mocked(fetchIssueWorklogs).mockImplementation(async (_base, _token, issueKey) => {
@@ -237,9 +250,7 @@ describe('WorkloadTab', () => {
 
   it('shows Unassigned bucket for issues with null assignee', async () => {
     const { fetchSprintIssues } = await import('@/services/jira');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([
-      makeIssue('P-1', null, 'new', 2),
-    ]);
+    vi.mocked(fetchSprintIssues).mockResolvedValue([makeIssue('P-1', null, 'new', 2)]);
 
     const { default: WorkloadTab } = await import('./WorkloadTab');
     renderWithQuery(<WorkloadTab />);
@@ -261,8 +272,8 @@ describe('WorkloadTab', () => {
     it('excludes subtask points from assignee story point total', async () => {
       const { fetchSprintIssues } = await import('@/services/jira');
       vi.mocked(fetchSprintIssues).mockResolvedValue([
-        makeIssue('P-1', 'Alice', 'indeterminate', 5),                      // story: 5pts
-        makeIssue('P-2', 'Alice', 'indeterminate', 8, { subtask: true }),   // subtask: excluded from pts
+        makeIssue('P-1', 'Alice', 'indeterminate', 5), // story: 5pts
+        makeIssue('P-2', 'Alice', 'indeterminate', 8, { subtask: true }), // subtask: excluded from pts
       ]);
 
       const { default: WorkloadTab } = await import('./WorkloadTab');
@@ -279,8 +290,8 @@ describe('WorkloadTab', () => {
     it('excludes subtasks from task count', async () => {
       const { fetchSprintIssues } = await import('@/services/jira');
       vi.mocked(fetchSprintIssues).mockResolvedValue([
-        makeIssue('P-1', 'Alice', 'indeterminate', 5),                      // story: counts
-        makeIssue('P-2', 'Alice', 'indeterminate', 8, { subtask: true }),   // subtask: excluded from count
+        makeIssue('P-1', 'Alice', 'indeterminate', 5), // story: counts
+        makeIssue('P-2', 'Alice', 'indeterminate', 8, { subtask: true }), // subtask: excluded from count
       ]);
 
       const { default: WorkloadTab } = await import('./WorkloadTab');
@@ -541,11 +552,11 @@ describe('WorkloadTab', () => {
       const user = userEvent.setup();
       const { fetchSprintIssues } = await import('@/services/jira');
       vi.mocked(fetchSprintIssues).mockResolvedValue([
-        makeIssue('P-1', 'Alice', 'indeterminate', 5),  // Alice assigned; Bob also logged time
-        makeIssue('P-2', 'Alice', 'indeterminate', 3),  // Alice assigned AND logged time
+        makeIssue('P-1', 'Alice', 'indeterminate', 5), // Alice assigned; Bob also logged time
+        makeIssue('P-2', 'Alice', 'indeterminate', 3), // Alice assigned AND logged time
       ]);
       vi.mocked(fetchIssueWorklogs).mockImplementation(async (_base, _token, issueKey) => {
-        if (issueKey === 'P-1') return ['Bob'];  // only Bob has a worklog on P-1
+        if (issueKey === 'P-1') return ['Bob']; // only Bob has a worklog on P-1
         if (issueKey === 'P-2') return ['Alice']; // only Alice has a worklog on P-2
         return [];
       });

@@ -5,9 +5,10 @@
  * (persisted preference). Persisting to settings store here means the
  * role survives app restarts without re-running onboarding.
  */
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
+
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useOnboardingStore } from '@/stores/onboarding.store';
 import { useSettingsStore } from '@/stores/settings.store';
 
@@ -46,7 +47,9 @@ export default function RoleStep() {
           <RadioGroupItem value="pm" id="role-pm" />
           <Label htmlFor="role-pm" className="cursor-pointer flex-1">
             <span className="font-medium">Project Manager</span>
-            <p className="text-sm text-muted-foreground">View sprint progress, tickets, and team velocity</p>
+            <p className="text-sm text-muted-foreground">
+              View sprint progress, tickets, and team velocity
+            </p>
           </Label>
         </div>
 

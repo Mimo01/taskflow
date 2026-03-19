@@ -1,8 +1,9 @@
 // AUTH-04: Project dropdown appears after successful Jira validation — Plan 02
 // AUTH-06: Error banners on validation failure — Plan 02
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import JiraStep from './JiraStep';
 
 // Mock the jira service module
@@ -41,7 +42,7 @@ vi.mock('@/stores/auth.store', () => ({
   }),
 }));
 
-import { validateJira, listJiraProjects } from '@/services/jira';
+import { listJiraProjects, validateJira } from '@/services/jira';
 
 function renderWithQuery(ui: React.ReactElement) {
   const queryClient = new QueryClient({
@@ -58,7 +59,9 @@ describe('JiraStep', () => {
     mockStore.jiraValidated = false;
     mockStore.jiraProject = null;
     mockStore.jiraProjects = [];
-    mockStore.set.mockImplementation((updates: Partial<typeof mockStore>) => Object.assign(mockStore, updates));
+    mockStore.set.mockImplementation((updates: Partial<typeof mockStore>) =>
+      Object.assign(mockStore, updates),
+    );
   });
 
   it('AUTH-04: renders URL input, token input, and Test & Continue button', () => {
@@ -136,7 +139,11 @@ describe('JiraStep', () => {
     vi.mocked(validateJira).mockReturnValue(
       new Promise((resolve) => {
         resolveValidate = () =>
-          resolve({ displayName: 'Jane Smith', emailAddress: 'jane@example.com', name: 'janesmith' });
+          resolve({
+            displayName: 'Jane Smith',
+            emailAddress: 'jane@example.com',
+            name: 'janesmith',
+          });
       }),
     );
 
@@ -155,7 +162,11 @@ describe('JiraStep', () => {
     vi.mocked(validateJira).mockReturnValue(
       new Promise((resolve) => {
         resolveValidate = () =>
-          resolve({ displayName: 'Jane Smith', emailAddress: 'jane@example.com', name: 'janesmith' });
+          resolve({
+            displayName: 'Jane Smith',
+            emailAddress: 'jane@example.com',
+            name: 'janesmith',
+          });
       }),
     );
 

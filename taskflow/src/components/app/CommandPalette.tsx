@@ -10,30 +10,31 @@
  *   Default state (<2 chars): Recent Items, Navigation
  *   Search state (>=2 chars): Issues, Merge Requests, Navigation, Actions, + "Search Jira" tail
  */
-import { useState, useEffect } from 'react';
-import { useHotkeys } from 'react-hotkeys-hook';
-import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { SearchX } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useHotkeys } from 'react-hotkeys-hook';
 import {
   Command,
-  CommandInput,
-  CommandList,
   CommandEmpty,
   CommandGroup,
+  CommandInput,
   CommandItem,
+  CommandList,
   CommandSeparator,
   CommandShortcut,
 } from '@/components/ui/command';
-import { useRecentItemsStore } from '@/stores/recent-items.store';
-import { useSettingsStore } from '@/stores/settings.store';
+import { NAV_SHORTCUTS } from '@/lib/shortcuts';
+import type { GitLabMR } from '@/services/gitlab';
+import type { JiraIssue } from '@/services/jira';
+import { searchJira } from '@/services/jira';
+import { readSecret } from '@/services/stronghold';
+import { applyTheme, saveTheme, type Theme } from '@/services/theme';
 import { useAuthStore } from '@/stores/auth.store';
 import { useNotificationsStore } from '@/stores/notifications.store';
-import { applyTheme, saveTheme, type Theme } from '@/services/theme';
-import { readSecret } from '@/services/stronghold';
-import { searchJira } from '@/services/jira';
-import type { JiraIssue } from '@/services/jira';
-import type { GitLabMR } from '@/services/gitlab';
-import { NAV_SHORTCUTS } from '@/lib/shortcuts';
+import { useRecentItemsStore } from '@/stores/recent-items.store';
+import { useSettingsStore } from '@/stores/settings.store';
 
 const THEME_CYCLE: Theme[] = ['light', 'dark', 'system'];
 
@@ -183,7 +184,10 @@ export default function CommandPalette({
 
   // ─── Navigation action handlers (for action-based nav items like notifications) ─
   const navActionHandlers: Record<string, () => void> = {
-    'open-notifications': () => { onOpenNotifications(); onClose(); },
+    'open-notifications': () => {
+      onOpenNotifications();
+      onClose();
+    },
   };
 
   // ─── Render ────────────────────────────────────────────────────────────────
@@ -193,14 +197,8 @@ export default function CommandPalette({
   const isDefaultState = query.length < 2;
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="max-w-xl mt-16 mx-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" onClick={onClose}>
+      <div className="max-w-xl mt-16 mx-auto" onClick={(e) => e.stopPropagation()}>
         <Command className="rounded-lg border shadow-lg bg-popover">
           <CommandInput
             placeholder="Search issues, MRs, and actions..."
@@ -212,7 +210,9 @@ export default function CommandPalette({
             <CommandEmpty className="flex flex-col items-center justify-center py-6 text-center">
               <SearchX className="size-8 text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">No results found</p>
-              <p className="text-xs text-muted-foreground mt-1">Try a different search term or check your spelling</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Try a different search term or check your spelling
+              </p>
             </CommandEmpty>
 
             {isDefaultState ? (
@@ -317,8 +317,13 @@ export default function CommandPalette({
                   key={s.id}
                   onSelect={
                     s.navMeta.route
-                      ? () => { onNavigate(s.navMeta.route!); onClose(); }
-                      : () => { navActionHandlers[s.navMeta.action!]?.(); }
+                      ? () => {
+                          onNavigate(s.navMeta.route!);
+                          onClose();
+                        }
+                      : () => {
+                          navActionHandlers[s.navMeta.action!]?.();
+                        }
                   }
                 >
                   {s.navMeta.label}

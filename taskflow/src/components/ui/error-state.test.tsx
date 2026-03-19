@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/api-error';
 
 const mockNavigate = vi.fn();
@@ -60,11 +60,7 @@ describe('ErrorState — auth error', () => {
 
   it('description contains "GitLab" for gitlab source', () => {
     render(
-      <ErrorState
-        error={new ApiError('x', 403, 'gitlab')}
-        onRetry={vi.fn()}
-        viewName="MRs"
-      />,
+      <ErrorState error={new ApiError('x', 403, 'gitlab')} onRetry={vi.fn()} viewName="MRs" />,
     );
     expect(screen.getByText(/GitLab/)).toBeTruthy();
   });
@@ -80,9 +76,7 @@ describe('ErrorState — auth error', () => {
 
 describe('ErrorState — plain Error (non-auth)', () => {
   it('renders Retry, not Reconnect', () => {
-    render(
-      <ErrorState error={new Error('network failure')} onRetry={vi.fn()} viewName="Sprint" />,
-    );
+    render(<ErrorState error={new Error('network failure')} onRetry={vi.fn()} viewName="Sprint" />);
     expect(screen.getByText('Retry')).toBeTruthy();
     expect(screen.queryByText('Reconnect')).toBeNull();
   });

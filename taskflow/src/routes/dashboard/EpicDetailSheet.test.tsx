@@ -12,10 +12,11 @@
  *   EPIC-03-C: Clicking a story calls onOpenIssue with the story key
  *   EPIC-03-D: Non-epic issues do NOT show a Stories section
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import React from 'react'
+
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { fireEvent, render, screen } from '@testing-library/react';
+import type React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock auth store — prevents Tauri storage init error in jsdom
 vi.mock('@/stores/auth.store', () => ({
@@ -24,7 +25,7 @@ vi.mock('@/stores/auth.store', () => ({
     jiraConnected: true,
     activeJiraProject: 'PROJ',
   })),
-}))
+}));
 
 // Mock settings store
 vi.mock('@/stores/settings.store', () => ({
@@ -34,21 +35,21 @@ vi.mock('@/stores/settings.store', () => ({
     sprintFieldKey: 'customfield_10020',
     storyPointsFieldKey: 'customfield_10016',
   })),
-}))
+}));
 
 // Mock @tauri-apps/plugin-opener — not needed but prevents module errors
 vi.mock('@tauri-apps/plugin-opener', () => ({
   openUrl: vi.fn().mockResolvedValue(undefined),
-}))
+}));
 
 // Mock WikiRenderer
 vi.mock('./WikiRenderer', () => ({
   WikiRenderer: ({ wikiText }: { wikiText: string | null }) => (
     <div data-testid="wiki-renderer">{wikiText}</div>
   ),
-}))
+}));
 
-function makeEpicIssue(epicStoryOverrides?: object[]) {
+function makeEpicIssue(_epicStoryOverrides?: object[]) {
   return {
     id: 'PROJ-42',
     key: 'PROJ-42',
@@ -73,7 +74,7 @@ function makeEpicIssue(epicStoryOverrides?: object[]) {
       customfield_10015: 'My Epic Issue',
       customfield_10020: [],
     },
-  }
+  };
 }
 
 function makeStory(key: string, summary: string, statusName: string) {
@@ -88,23 +89,23 @@ function makeStory(key: string, summary: string, statusName: string) {
       priority: null,
       customfield_10016: 3,
     },
-  }
+  };
 }
 
 function wrapper({ children }: { children: React.ReactNode }) {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
 }
 
 describe('EPIC-03: epic stories list in IssueDetailContent (isEpic branch)', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
-  })
+    vi.clearAllMocks();
+  });
 
   it('EPIC-03-A: renders Stories section heading when issue is of type Epic', async () => {
-    const { IssueDetailContent } = await import('./IssueDetailContent')
-    const epicIssue = makeEpicIssue()
-    const epicStories = [makeStory('PROJ-5', 'Story One', 'In Progress')]
+    const { IssueDetailContent } = await import('./IssueDetailContent');
+    const epicIssue = makeEpicIssue();
+    const epicStories = [makeStory('PROJ-5', 'Story One', 'In Progress')];
 
     render(
       <IssueDetailContent
@@ -117,20 +118,20 @@ describe('EPIC-03: epic stories list in IssueDetailContent (isEpic branch)', () 
         epicLinkFieldKey="customfield_10014"
         epicStories={epicStories as never}
       />,
-      { wrapper }
-    )
+      { wrapper },
+    );
 
     // Stories heading must be visible
-    expect(screen.getByText(/Stories/)).toBeInTheDocument()
-  })
+    expect(screen.getByText(/Stories/)).toBeInTheDocument();
+  });
 
   it('EPIC-03-B: renders story key, summary, and status badge for each story', async () => {
-    const { IssueDetailContent } = await import('./IssueDetailContent')
-    const epicIssue = makeEpicIssue()
+    const { IssueDetailContent } = await import('./IssueDetailContent');
+    const epicIssue = makeEpicIssue();
     const epicStories = [
       makeStory('PROJ-5', 'Story One', 'In Progress'),
       makeStory('PROJ-6', 'Story Two', 'Done'),
-    ]
+    ];
 
     render(
       <IssueDetailContent
@@ -143,25 +144,25 @@ describe('EPIC-03: epic stories list in IssueDetailContent (isEpic branch)', () 
         epicLinkFieldKey="customfield_10014"
         epicStories={epicStories as never}
       />,
-      { wrapper }
-    )
+      { wrapper },
+    );
 
     // First story
-    expect(screen.getByText('PROJ-5')).toBeInTheDocument()
-    expect(screen.getByText('Story One')).toBeInTheDocument()
-    expect(screen.getByText('In Progress')).toBeInTheDocument()
+    expect(screen.getByText('PROJ-5')).toBeInTheDocument();
+    expect(screen.getByText('Story One')).toBeInTheDocument();
+    expect(screen.getByText('In Progress')).toBeInTheDocument();
 
     // Second story
-    expect(screen.getByText('PROJ-6')).toBeInTheDocument()
-    expect(screen.getByText('Story Two')).toBeInTheDocument()
-    expect(screen.getByText('Done')).toBeInTheDocument()
-  })
+    expect(screen.getByText('PROJ-6')).toBeInTheDocument();
+    expect(screen.getByText('Story Two')).toBeInTheDocument();
+    expect(screen.getByText('Done')).toBeInTheDocument();
+  });
 
   it('EPIC-03-C: clicking a story row calls onOpenIssue with the story key', async () => {
-    const { IssueDetailContent } = await import('./IssueDetailContent')
-    const onOpenIssue = vi.fn()
-    const epicIssue = makeEpicIssue()
-    const epicStories = [makeStory('PROJ-5', 'Story One', 'To Do')]
+    const { IssueDetailContent } = await import('./IssueDetailContent');
+    const onOpenIssue = vi.fn();
+    const epicIssue = makeEpicIssue();
+    const epicStories = [makeStory('PROJ-5', 'Story One', 'To Do')];
 
     render(
       <IssueDetailContent
@@ -174,16 +175,16 @@ describe('EPIC-03: epic stories list in IssueDetailContent (isEpic branch)', () 
         epicLinkFieldKey="customfield_10014"
         epicStories={epicStories as never}
       />,
-      { wrapper }
-    )
+      { wrapper },
+    );
 
-    const storyButton = screen.getByText('Story One').closest('button')!
-    fireEvent.click(storyButton)
-    expect(onOpenIssue).toHaveBeenCalledWith('PROJ-5')
-  })
+    const storyButton = screen.getByText('Story One').closest('button')!;
+    fireEvent.click(storyButton);
+    expect(onOpenIssue).toHaveBeenCalledWith('PROJ-5');
+  });
 
   it('EPIC-03-D: non-epic issue does NOT render a Stories section', async () => {
-    const { IssueDetailContent } = await import('./IssueDetailContent')
+    const { IssueDetailContent } = await import('./IssueDetailContent');
     const storyIssue = {
       id: 'PROJ-7',
       key: 'PROJ-7',
@@ -208,7 +209,7 @@ describe('EPIC-03: epic stories list in IssueDetailContent (isEpic branch)', () 
         customfield_10015: null,
         customfield_10020: [],
       },
-    }
+    };
 
     render(
       <IssueDetailContent
@@ -220,20 +221,20 @@ describe('EPIC-03: epic stories list in IssueDetailContent (isEpic branch)', () 
         sprintFieldKey="customfield_10020"
         epicLinkFieldKey="customfield_10014"
       />,
-      { wrapper }
-    )
+      { wrapper },
+    );
 
     // Stories section must NOT appear for non-epic issues
-    expect(screen.queryByText(/^Stories/)).toBeNull()
-  })
+    expect(screen.queryByText(/^Stories/)).toBeNull();
+  });
 
   it('EPIC-03-E: shows story count in Stories heading when stories are present', async () => {
-    const { IssueDetailContent } = await import('./IssueDetailContent')
-    const epicIssue = makeEpicIssue()
+    const { IssueDetailContent } = await import('./IssueDetailContent');
+    const epicIssue = makeEpicIssue();
     const epicStories = [
       makeStory('PROJ-5', 'Story One', 'Done'),
       makeStory('PROJ-6', 'Story Two', 'In Progress'),
-    ]
+    ];
 
     render(
       <IssueDetailContent
@@ -246,10 +247,10 @@ describe('EPIC-03: epic stories list in IssueDetailContent (isEpic branch)', () 
         epicLinkFieldKey="customfield_10014"
         epicStories={epicStories as never}
       />,
-      { wrapper }
-    )
+      { wrapper },
+    );
 
     // Heading shows "Stories (2)"
-    expect(screen.getByText('Stories (2)')).toBeInTheDocument()
-  })
-})
+    expect(screen.getByText('Stories (2)')).toBeInTheDocument();
+  });
+});

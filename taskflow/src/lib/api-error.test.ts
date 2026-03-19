@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { ApiError, isAuthError, getErrorSource } from './api-error';
+import { describe, expect, it } from 'vitest';
+import { ApiError, getErrorSource, isAuthError } from './api-error';
 
 describe('ApiError', () => {
   it('extends Error with name ApiError', () => {

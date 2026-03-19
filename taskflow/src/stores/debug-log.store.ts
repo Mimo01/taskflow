@@ -7,16 +7,16 @@
 import { create } from 'zustand';
 
 export interface ApiLogEntry {
-  id: string;             // crypto.randomUUID()
-  timestamp: string;      // ISO string, new Date().toISOString()
+  id: string; // crypto.randomUUID()
+  timestamp: string; // ISO string, new Date().toISOString()
   source: 'jira' | 'gitlab';
-  method: string;         // e.g. "GET", "POST"
+  method: string; // e.g. "GET", "POST"
   url: string;
   requestHeaders: Record<string, string>;
-  status: number | null;  // null if network error
+  status: number | null; // null if network error
   durationMs: number;
-  responseBody: string;   // raw text, truncated to 10_000 chars if longer
-  error?: string;         // set only on network-level failure (catch block)
+  responseBody: string; // raw text, truncated to 10_000 chars if longer
+  error?: string; // set only on network-level failure (catch block)
 }
 
 interface DebugLogState {

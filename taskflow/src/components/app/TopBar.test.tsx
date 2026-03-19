@@ -1,13 +1,13 @@
 // NOTF-04: TopBar renders badge with unread count
 // PALETTE-01: Search icon calls onPaletteOpen
 // RECENT-01: Clock icon (RecentItemsPopover) rendered
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { act } from '@testing-library/react';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import TopBar from './TopBar';
-import { useNotificationsStore } from '../../stores/notifications.store';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NotificationItem } from '../../stores/notifications.store';
+import { useNotificationsStore } from '../../stores/notifications.store';
+import TopBar from './TopBar';
 
 function makeItem(id: string): NotificationItem {
   return {

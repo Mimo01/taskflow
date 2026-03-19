@@ -1,17 +1,17 @@
 // AUTH-02: GitLab PAT validation
 // DEV-05: Phase 2 GitLab MR functions
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  validateGitLab,
-  listGitLabGroups,
-  listGitLabProjects,
   fetchAssignedMRs,
-  fetchReviewerMRs,
-  fetchMRCommits,
   fetchMRApprovals,
+  fetchMRCommits,
   fetchMRDiscussions,
   fetchProjectMilestones,
+  fetchReviewerMRs,
+  listGitLabGroups,
+  listGitLabProjects,
   searchGitLabMRs,
+  validateGitLab,
 } from './gitlab';
 
 vi.mock('@tauri-apps/plugin-http', () => ({
@@ -108,7 +108,12 @@ describe('gitlab service', () => {
       title: '[PROJ-42] Fix login bug',
       source_branch: 'feature/PROJ-42-fix-login',
       state: 'opened' as const,
-      author: { id: 1, name: 'Alice', username: 'alice', avatar_url: 'https://example.com/alice.png' },
+      author: {
+        id: 1,
+        name: 'Alice',
+        username: 'alice',
+        avatar_url: 'https://example.com/alice.png',
+      },
       reviewers: [{ id: 2, name: 'Bob', username: 'bob' }],
       updated_at: '2026-03-10T12:00:00Z',
       web_url: 'https://gitlab.example.com/project/mr/1',
@@ -199,9 +204,18 @@ describe('gitlab service', () => {
   describe('listGitLabProjects', () => {
     it('listGitLabProjects returns project list on success', async () => {
       const mockProjects = [
-        { id: 1, name: 'Frontend', name_with_namespace: 'Org / Frontend', path_with_namespace: 'org/frontend' },
+        {
+          id: 1,
+          name: 'Frontend',
+          name_with_namespace: 'Org / Frontend',
+          path_with_namespace: 'org/frontend',
+        },
       ];
-      vi.mocked(mockFetch).mockResolvedValue({ ok: true, status: 200, json: async () => mockProjects } as Response);
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockProjects,
+      } as Response);
       const result = await listGitLabProjects('https://gitlab.example.com', 'my-token');
       expect(result).toEqual(mockProjects);
     });
@@ -209,11 +223,27 @@ describe('gitlab service', () => {
 
   describe('fetchProjectMilestones', () => {
     it('fetchProjectMilestones returns milestones for a project', async () => {
-      const mockMilestones = [{ id: 10, iid: 1, title: 'Sprint 1', due_date: '2026-04-01', state: 'active', web_url: 'https://gitlab.example.com/project/-/milestones/1' }];
-      vi.mocked(mockFetch).mockResolvedValue({ ok: true, status: 200, json: async () => mockMilestones } as Response);
+      const mockMilestones = [
+        {
+          id: 10,
+          iid: 1,
+          title: 'Sprint 1',
+          due_date: '2026-04-01',
+          state: 'active',
+          web_url: 'https://gitlab.example.com/project/-/milestones/1',
+        },
+      ];
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockMilestones,
+      } as Response);
       const result = await fetchProjectMilestones('https://gitlab.example.com', 'my-token', 42);
       expect(result).toEqual(mockMilestones);
-      expect(vi.mocked(mockFetch)).toHaveBeenCalledWith(expect.stringContaining('/projects/42/milestones'), expect.any(Object));
+      expect(vi.mocked(mockFetch)).toHaveBeenCalledWith(
+        expect.stringContaining('/projects/42/milestones'),
+        expect.any(Object),
+      );
     });
   });
 

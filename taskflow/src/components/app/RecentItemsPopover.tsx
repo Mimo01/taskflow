@@ -3,13 +3,14 @@
  * recently opened issues/MRs. Reads from useRecentItemsStore and resolves
  * display titles from the react-query cache when available.
  */
-import { Clock } from 'lucide-react';
+
 import { useQueryClient } from '@tanstack/react-query';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { useRecentItemsStore } from '@/stores/recent-items.store';
-import type { RecentItem } from '@/stores/recent-items.store';
-import type { JiraIssue } from '@/services/jira';
+import { Clock } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { GitLabMR } from '@/services/gitlab';
+import type { JiraIssue } from '@/services/jira';
+import type { RecentItem } from '@/stores/recent-items.store';
+import { useRecentItemsStore } from '@/stores/recent-items.store';
 
 interface RecentItemsPopoverProps {
   onIssueClick?: (issueKey: string) => void;
@@ -41,7 +42,10 @@ function findJiraIssueInCache(
   }
 
   // 2. Backlog cache (sprints[].issues + backlog[])
-  const backlogQueries = queryClient.getQueriesData<{ sprints?: Array<{ issues: JiraIssue[] }>; backlog?: JiraIssue[] }>({
+  const backlogQueries = queryClient.getQueriesData<{
+    sprints?: Array<{ issues: JiraIssue[] }>;
+    backlog?: JiraIssue[];
+  }>({
     queryKey: ['jira-backlog-view'],
   });
   for (const [, data] of backlogQueries) {

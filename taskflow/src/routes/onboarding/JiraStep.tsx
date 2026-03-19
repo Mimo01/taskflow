@@ -16,19 +16,15 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from '@/components/ui/select';
-import { validateJira, listJiraProjects } from '@/services/jira';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { listJiraProjects, validateJira } from '@/services/jira';
 import { storeSecret } from '@/services/stronghold';
-import { useOnboardingStore } from '@/stores/onboarding.store';
 import { useAuthStore } from '@/stores/auth.store';
+import { useOnboardingStore } from '@/stores/onboarding.store';
 
 export default function JiraStep() {
-  const { jiraUrl, jiraToken, jiraProject, jiraProjects, set, goBack, goNext } = useOnboardingStore();
+  const { jiraUrl, jiraToken, jiraProject, jiraProjects, set, goBack, goNext } =
+    useOnboardingStore();
   const { setJiraConnected, setActiveJiraProject, setJiraUser } = useAuthStore();
 
   const projects = jiraProjects;
@@ -113,10 +109,14 @@ export default function JiraStep() {
             <Select value={selectedProject} onValueChange={(v) => v && setSelectedProject(v)}>
               <SelectTrigger id="jira-project" className="w-full">
                 <span className="flex flex-1 text-left text-sm">
-                  {selectedProject
-                    ? (() => { const p = projects.find(p => p.key === selectedProject); return p ? `${p.key} — ${p.name}` : selectedProject; })()
-                    : <span className="text-muted-foreground">Choose a project...</span>
-                  }
+                  {selectedProject ? (
+                    (() => {
+                      const p = projects.find((p) => p.key === selectedProject);
+                      return p ? `${p.key} — ${p.name}` : selectedProject;
+                    })()
+                  ) : (
+                    <span className="text-muted-foreground">Choose a project...</span>
+                  )}
                 </span>
               </SelectTrigger>
               <SelectContent>

@@ -1,11 +1,8 @@
 // NOTF-01: Unified notification feed (Jira + GitLab)
 // NOTF-02: Polling with configurable interval, clamped to [30, 300] seconds
 // NOTF-03: OS desktop notification dispatch
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  fetchNewNotifications,
-  tryDispatchOsNotification,
-} from './notifications';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fetchNewNotifications, tryDispatchOsNotification } from './notifications';
 
 vi.mock('@tauri-apps/plugin-notification', () => ({
   isPermissionGranted: vi.fn(),
@@ -84,10 +81,10 @@ describe('notifications service', () => {
       const emptyJiraResp = { ok: true, status: 200, json: async () => ({ issues: [] }) };
 
       vi.mocked(mockFetch)
-        .mockResolvedValueOnce(emptyIssuesResp as unknown as Response)   // Query A
-        .mockResolvedValueOnce(jiraSearchResp as unknown as Response)    // Query B
-        .mockResolvedValueOnce(emptyJiraResp as unknown as Response)     // Query C: all comments
-        .mockResolvedValueOnce(emptyJiraResp as unknown as Response);    // Query D: due date
+        .mockResolvedValueOnce(emptyIssuesResp as unknown as Response) // Query A
+        .mockResolvedValueOnce(jiraSearchResp as unknown as Response) // Query B
+        .mockResolvedValueOnce(emptyJiraResp as unknown as Response) // Query C: all comments
+        .mockResolvedValueOnce(emptyJiraResp as unknown as Response); // Query D: due date
 
       const result = await fetchNewNotifications(
         'https://jira.example.com',
@@ -152,10 +149,10 @@ describe('notifications service', () => {
       const emptyJiraResp2 = { ok: true, status: 200, json: async () => ({ issues: [] }) };
 
       vi.mocked(mockFetch)
-        .mockResolvedValueOnce(emptyIssuesResp as unknown as Response)   // Query A
-        .mockResolvedValueOnce(jiraSearchResp as unknown as Response)    // Query B
-        .mockResolvedValueOnce(emptyJiraResp2 as unknown as Response)    // Query C
-        .mockResolvedValueOnce(emptyJiraResp2 as unknown as Response);   // Query D
+        .mockResolvedValueOnce(emptyIssuesResp as unknown as Response) // Query A
+        .mockResolvedValueOnce(jiraSearchResp as unknown as Response) // Query B
+        .mockResolvedValueOnce(emptyJiraResp2 as unknown as Response) // Query C
+        .mockResolvedValueOnce(emptyJiraResp2 as unknown as Response); // Query D
 
       const result = await fetchNewNotifications(
         'https://jira.example.com',
@@ -184,7 +181,7 @@ describe('notifications service', () => {
       const notesResp = {
         ok: true,
         status: 200,
-        json: async () => ([
+        json: async () => [
           {
             id: 'n001',
             system: false,
@@ -213,11 +210,10 @@ describe('notifications service', () => {
             body: 'Old note',
             created_at: '2026-03-10T08:00:00.000Z', // older than cursor — should stop
           },
-        ]),
+        ],
       };
 
-      vi.mocked(mockFetch)
-        .mockResolvedValueOnce(notesResp as unknown as Response);
+      vi.mocked(mockFetch).mockResolvedValueOnce(notesResp as unknown as Response);
 
       const result = await fetchNewNotifications(
         null,
@@ -279,7 +275,7 @@ describe('notifications service', () => {
       const notesResp = {
         ok: true,
         status: 200,
-        json: async () => ([
+        json: async () => [
           {
             id: 'n001',
             system: false,
@@ -287,7 +283,7 @@ describe('notifications service', () => {
             body: 'GitLab comment',
             created_at: '2026-03-11T13:00:00.000Z',
           },
-        ]),
+        ],
       };
 
       // Empty response for additional Jira queries (all-comments, due-date)
@@ -299,11 +295,11 @@ describe('notifications service', () => {
 
       // MR author.id=1, gitlabUserId=42 → not author → only notes fetched (no approvals/pipelines)
       vi.mocked(mockFetch)
-        .mockResolvedValueOnce(emptyIssuesResp as unknown as Response)   // Query A: issue updates
-        .mockResolvedValueOnce(jiraResp as unknown as Response)          // Query B: comment mentions
-        .mockResolvedValueOnce(emptyResp as unknown as Response)         // Query C: all comments
-        .mockResolvedValueOnce(emptyResp as unknown as Response)         // Query D: due date reminders
-        .mockResolvedValueOnce(notesResp as unknown as Response);        // GitLab: notes (only call — not author)
+        .mockResolvedValueOnce(emptyIssuesResp as unknown as Response) // Query A: issue updates
+        .mockResolvedValueOnce(jiraResp as unknown as Response) // Query B: comment mentions
+        .mockResolvedValueOnce(emptyResp as unknown as Response) // Query C: all comments
+        .mockResolvedValueOnce(emptyResp as unknown as Response) // Query D: due date reminders
+        .mockResolvedValueOnce(notesResp as unknown as Response); // GitLab: notes (only call — not author)
 
       const result = await fetchNewNotifications(
         'https://jira.example.com',
@@ -404,10 +400,10 @@ describe('notifications service', () => {
       const emptyJiraR = { ok: true, status: 200, json: async () => ({ issues: [] }) };
 
       vi.mocked(mockFetch)
-        .mockResolvedValueOnce(issueUpdatesResp as unknown as Response)  // Query A
-        .mockResolvedValueOnce(commentResp as unknown as Response)       // Query B
-        .mockResolvedValueOnce(emptyJiraR as unknown as Response)        // Query C
-        .mockResolvedValueOnce(emptyJiraR as unknown as Response);       // Query D
+        .mockResolvedValueOnce(issueUpdatesResp as unknown as Response) // Query A
+        .mockResolvedValueOnce(commentResp as unknown as Response) // Query B
+        .mockResolvedValueOnce(emptyJiraR as unknown as Response) // Query C
+        .mockResolvedValueOnce(emptyJiraR as unknown as Response); // Query D
 
       const result = await fetchNewNotifications(
         'https://jira.example.com',

@@ -1,6 +1,7 @@
 // RECENT-01 / Phase 20: recent-items store — pushItem, dedup, 10-item cap
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+
 import { act, renderHook } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock Tauri plugin-store so LazyStore doesn't attempt IPC calls in jsdom
 vi.mock('@tauri-apps/plugin-store', () => {
@@ -84,8 +85,6 @@ describe('recent-items.store (Phase 20)', () => {
 
     expect(result.current.items[0].type).toBe('gitlab');
     expect(result.current.items[0].id).toBe('42');
-    expect(result.current.items[0].url).toBe(
-      'https://gitlab.com/org/repo/-/merge_requests/42',
-    );
+    expect(result.current.items[0].url).toBe('https://gitlab.com/org/repo/-/merge_requests/42');
   });
 });

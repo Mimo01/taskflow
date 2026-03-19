@@ -5,10 +5,11 @@
  * graceful hiding when endDate is absent, at-risk items list,
  * and no-at-risk state.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
+import { render, screen } from '@testing-library/react';
+import type React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock @tanstack/react-query (useQuery, useQueryClient)
 vi.mock('@tanstack/react-query', async () => {
@@ -61,7 +62,12 @@ function makeSprintIssue(
       summary: `Story ${key}`,
       status: {
         id: '3',
-        name: statusCategoryKey === 'done' ? 'Done' : statusCategoryKey === 'indeterminate' ? 'In Progress' : 'To Do',
+        name:
+          statusCategoryKey === 'done'
+            ? 'Done'
+            : statusCategoryKey === 'indeterminate'
+              ? 'In Progress'
+              : 'To Do',
         statusCategory: { key: statusCategoryKey },
       },
       assignee: null,

@@ -12,16 +12,17 @@
  * Time totals (estimate/spent/remaining) sum all issues including subtasks.
  * Story points field key comes from useSettingsStore (not hardcoded).
  */
-import { useState, useEffect, useMemo } from 'react';
+
 import { useQuery } from '@tanstack/react-query';
-import { RefreshCw, BarChart3 } from 'lucide-react';
+import { BarChart3, RefreshCw } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
-import { useAuthStore } from '@/stores/auth.store';
-import { useSettingsStore } from '@/stores/settings.store';
 import { fetchSprintIssues } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
+import { useAuthStore } from '@/stores/auth.store';
+import { useSettingsStore } from '@/stores/settings.store';
 
 function formatSeconds(secs: number): string {
   if (secs === 0) return '0h';
@@ -47,14 +48,17 @@ export default function SprintProgressTab() {
 
   const { data, isLoading, isError, error, dataUpdatedAt, refetch } = useQuery({
     queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey],
-    queryFn: () => fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false, storyPointsFieldKey),
+    queryFn: () =>
+      fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false, storyPointsFieldKey),
     enabled: !!jiraBaseUrl && !!activeJiraProject && !!jiraToken,
     refetchInterval: 60_000,
     staleTime: 30_000,
   });
 
   const [bannerDismissed, setBannerDismissed] = useState(false);
-  useEffect(() => { setBannerDismissed(false); }, [error]);
+  useEffect(() => {
+    setBannerDismissed(false);
+  }, []);
 
   const computed = useMemo(() => {
     const issues = data ?? [];
@@ -70,13 +74,17 @@ export default function SprintProgressTab() {
     let ptsDone = 0;
 
     // Per-assignee map: name -> { todo, inProgress, done, stories, subtasks }
-    const assigneeMap = new Map<string, { todo: number; inProgress: number; done: number; stories: number; subtasks: number }>();
+    const assigneeMap = new Map<
+      string,
+      { todo: number; inProgress: number; done: number; stories: number; subtasks: number }
+    >();
 
     for (const story of stories) {
       const cat = story.fields.status.statusCategory?.key ?? 'new';
       const pts = (story.fields[storyPointsFieldKey] as number | null | undefined) ?? 0;
 
-      const assigneeName = (story.fields.assignee as { displayName: string } | null)?.displayName ?? 'Unassigned';
+      const assigneeName =
+        (story.fields.assignee as { displayName: string } | null)?.displayName ?? 'Unassigned';
 
       if (!assigneeMap.has(assigneeName)) {
         assigneeMap.set(assigneeName, { todo: 0, inProgress: 0, done: 0, stories: 0, subtasks: 0 });
@@ -103,7 +111,8 @@ export default function SprintProgressTab() {
     // Count subtasks per assignee using issuetype.subtask boolean
     for (const issue of issues) {
       if (!issue.fields.issuetype?.subtask) continue;
-      const assigneeName = (issue.fields.assignee as { displayName: string } | null)?.displayName ?? 'Unassigned';
+      const assigneeName =
+        (issue.fields.assignee as { displayName: string } | null)?.displayName ?? 'Unassigned';
       if (!assigneeMap.has(assigneeName)) {
         assigneeMap.set(assigneeName, { todo: 0, inProgress: 0, done: 0, stories: 0, subtasks: 0 });
       }
@@ -121,11 +130,14 @@ export default function SprintProgressTab() {
     let totalRemainSecs = 0;
 
     for (const issue of issues) {
-      const tt = issue.fields.timetracking as {
-        originalEstimateSeconds?: number;
-        timeSpentSeconds?: number;
-        remainingEstimateSeconds?: number;
-      } | null | undefined;
+      const tt = issue.fields.timetracking as
+        | {
+            originalEstimateSeconds?: number;
+            timeSpentSeconds?: number;
+            remainingEstimateSeconds?: number;
+          }
+        | null
+        | undefined;
       if (tt) {
         totalEstSecs += tt.originalEstimateSeconds ?? 0;
         totalSpentSecs += tt.timeSpentSeconds ?? 0;
@@ -134,13 +146,25 @@ export default function SprintProgressTab() {
     }
 
     const hasTimeData = totalEstSecs > 0 || totalSpentSecs > 0 || totalRemainSecs > 0;
-    const hasPoints = stories.some((s) => ((s.fields[storyPointsFieldKey] as number | null | undefined) ?? 0) > 0);
+    const hasPoints = stories.some(
+      (s) => ((s.fields[storyPointsFieldKey] as number | null | undefined) ?? 0) > 0,
+    );
 
     // Assignee rows sorted by total pts desc, alphabetical tiebreaker
     const assigneeRows = Array.from(assigneeMap.entries())
-      .map(([name, buckets]) => ({ name, buckets, points: buckets.todo + buckets.inProgress + buckets.done }))
+      .map(([name, buckets]) => ({
+        name,
+        buckets,
+        points: buckets.todo + buckets.inProgress + buckets.done,
+      }))
       .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name))
-      .map(({ name, buckets }) => [name, buckets] as [string, { todo: number; inProgress: number; done: number; stories: number; subtasks: number }]);
+      .map(
+        ({ name, buckets }) =>
+          [name, buckets] as [
+            string,
+            { todo: number; inProgress: number; done: number; stories: number; subtasks: number },
+          ],
+      );
 
     return {
       todo: todoCount,
@@ -186,13 +210,19 @@ export default function SprintProgressTab() {
       {isLoading && (
         <div className="flex flex-col gap-2">
           {[0, 1, 2].map((i) => (
-            <div key={i} data-testid="skeleton-row" className="h-8 rounded bg-muted animate-pulse" />
+            <div
+              key={i}
+              data-testid="skeleton-row"
+              className="h-8 rounded bg-muted animate-pulse"
+            />
           ))}
         </div>
       )}
 
       {/* Error state — no cached data */}
-      {isError && !data && <ErrorState error={error} onRetry={refetch} viewName="sprint progress" />}
+      {isError && !data && (
+        <ErrorState error={error} onRetry={refetch} viewName="sprint progress" />
+      )}
 
       {/* Stale data banner — error with cached data */}
       {isError && data && !bannerDismissed && (
@@ -201,7 +231,11 @@ export default function SprintProgressTab() {
 
       {/* Empty state — no issues in sprint */}
       {!isLoading && !isError && data && data.length === 0 && (
-        <EmptyState icon={BarChart3} title="No sprint data yet" subtitle="Sprint progress will appear once a sprint is active" />
+        <EmptyState
+          icon={BarChart3}
+          title="No sprint data yet"
+          subtitle="Sprint progress will appear once a sprint is active"
+        />
       )}
 
       {/* Content */}
@@ -241,7 +275,8 @@ export default function SprintProgressTab() {
                 <div style={{ width: `${computed.donePct}%` }} className="bg-green-500" />
               </div>
               <p className="text-xs text-muted-foreground">
-                {computed.todoPct}% to do · {computed.inProgPct}% in progress · {computed.donePct}% done
+                {computed.todoPct}% to do · {computed.inProgPct}% in progress · {computed.donePct}%
+                done
               </p>
             </div>
           )}
@@ -251,7 +286,9 @@ export default function SprintProgressTab() {
             <div className="text-xs text-muted-foreground" data-testid="time-summary">
               <span className="font-medium text-foreground">Sprint Time</span>
               {'  '}
-              Total Est: {formatSeconds(computed.totalEstSecs)} · Spent: {formatSeconds(computed.totalSpentSecs)} · Remaining: {formatSeconds(computed.totalRemainSecs)}
+              Total Est: {formatSeconds(computed.totalEstSecs)} · Spent:{' '}
+              {formatSeconds(computed.totalSpentSecs)} · Remaining:{' '}
+              {formatSeconds(computed.totalRemainSecs)}
             </div>
           )}
 
@@ -272,11 +309,21 @@ export default function SprintProgressTab() {
                 {computed.assigneeRows.map(([name, buckets]) => (
                   <tr key={name} data-testid="assignee-row" className="hover:bg-muted/50">
                     <td className="py-1.5 text-sm">{name}</td>
-                    <td className="py-1.5 text-right tabular-nums text-muted-foreground">{buckets.stories}</td>
-                    <td className="py-1.5 text-right tabular-nums text-muted-foreground">{buckets.subtasks}</td>
-                    <td className="py-1.5 text-right tabular-nums text-muted-foreground">{buckets.todo}</td>
-                    <td className="py-1.5 text-right tabular-nums text-muted-foreground">{buckets.inProgress}</td>
-                    <td className="py-1.5 text-right tabular-nums text-muted-foreground">{buckets.done}</td>
+                    <td className="py-1.5 text-right tabular-nums text-muted-foreground">
+                      {buckets.stories}
+                    </td>
+                    <td className="py-1.5 text-right tabular-nums text-muted-foreground">
+                      {buckets.subtasks}
+                    </td>
+                    <td className="py-1.5 text-right tabular-nums text-muted-foreground">
+                      {buckets.todo}
+                    </td>
+                    <td className="py-1.5 text-right tabular-nums text-muted-foreground">
+                      {buckets.inProgress}
+                    </td>
+                    <td className="py-1.5 text-right tabular-nums text-muted-foreground">
+                      {buckets.done}
+                    </td>
                   </tr>
                 ))}
               </tbody>

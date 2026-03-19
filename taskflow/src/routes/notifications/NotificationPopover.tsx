@@ -9,9 +9,10 @@
  * - Mark-all-read header + per-item mark-as-read on hover
  * - Source-specific empty states
  */
-import { useState } from 'react';
-import { Bell, BellOff, GitMerge, TicketCheck } from 'lucide-react';
+
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { Bell, BellOff, GitMerge, TicketCheck } from 'lucide-react';
+import { useState } from 'react';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Button } from '../../components/ui/button';
 import { EmptyState } from '../../components/ui/empty-state';
@@ -25,7 +26,11 @@ type SourceFilter = 'all' | 'jira' | 'gitlab';
 /**
  * Extracts a Jira issue key from a notification item.
  */
-function extractJiraIssueKey(item: { source: string; entityTitle: string; url?: string }): string | null {
+function extractJiraIssueKey(item: {
+  source: string;
+  entityTitle: string;
+  url?: string;
+}): string | null {
   if (item.source !== 'jira') return null;
   const colonIdx = item.entityTitle.indexOf(':');
   if (colonIdx > 0) {
@@ -75,7 +80,11 @@ const groupLabels: Record<string, string> = {
   earlier: 'Earlier',
 };
 
-export default function NotificationPopover({ onIssueClick, onMRClick, onClose }: NotificationPopoverProps) {
+export default function NotificationPopover({
+  onIssueClick,
+  onMRClick,
+  onClose,
+}: NotificationPopoverProps) {
   const [activeTab, setActiveTab] = useState<SourceFilter>('all');
   const [unreadOnly, setUnreadOnly] = useState(false);
   const {
@@ -168,9 +177,16 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
             item={item}
             isUnread={!readSet.has(item.id)}
             onClick={() => handleRowClick(item)}
-            onMarkRead={() => readSet.has(item.id) ? markAsUnread(item.id) : markAsRead(item.id)}
+            onMarkRead={() => (readSet.has(item.id) ? markAsUnread(item.id) : markAsRead(item.id))}
             onDismiss={() => removeItem(item.id)}
-            onOpenInBrowser={item.url ? () => { openUrl(item.url!).catch(() => {}); markAsRead(item.id); } : undefined}
+            onOpenInBrowser={
+              item.url
+                ? () => {
+                    openUrl(item.url!).catch(() => {});
+                    markAsRead(item.id);
+                  }
+                : undefined
+            }
           />
         ))}
       </div>
@@ -183,9 +199,11 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
         <EmptyState
           icon={BellOff}
           title="All caught up"
-          subtitle={activeTab === 'all'
-            ? 'No unread notifications'
-            : `No unread ${activeTab === 'jira' ? 'Jira' : 'GitLab'} notifications`}
+          subtitle={
+            activeTab === 'all'
+              ? 'No unread notifications'
+              : `No unread ${activeTab === 'jira' ? 'Jira' : 'GitLab'} notifications`
+          }
         />
       );
     }
@@ -242,7 +260,12 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
               </>
             )}
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleMarkAllRead} className="text-xs h-7 px-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleMarkAllRead}
+            className="text-xs h-7 px-2"
+          >
             Mark all read
           </Button>
         </div>
@@ -266,13 +289,15 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
             >
               {tab.label}
               {count > 0 && (
-                <span className={`ml-1.5 inline-flex items-center justify-center min-w-[1.1rem] h-[1.1rem] rounded-full text-[10px] px-1 ${
-                  tab.key === 'jira'
-                    ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400'
-                    : tab.key === 'gitlab'
-                      ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400'
-                      : 'bg-red-500/15 text-red-600 dark:text-red-400'
-                }`}>
+                <span
+                  className={`ml-1.5 inline-flex items-center justify-center min-w-[1.1rem] h-[1.1rem] rounded-full text-[10px] px-1 ${
+                    tab.key === 'jira'
+                      ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400'
+                      : tab.key === 'gitlab'
+                        ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400'
+                        : 'bg-red-500/15 text-red-600 dark:text-red-400'
+                  }`}
+                >
                   {count > 99 ? '99+' : count}
                 </span>
               )}
@@ -306,8 +331,8 @@ export default function NotificationPopover({ onIssueClick, onMRClick, onClose }
         <div className="m-2">
           <Alert>
             <AlertDescription>
-              Desktop notifications failed to send. If running in dev mode, this is expected —
-              macOS requires a signed app bundle. Try a production build to verify.
+              Desktop notifications failed to send. If running in dev mode, this is expected — macOS
+              requires a signed app bundle. Try a production build to verify.
             </AlertDescription>
             <button
               type="button"

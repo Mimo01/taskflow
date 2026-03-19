@@ -11,9 +11,9 @@
  * Uses ['jira-active-sprint', activeJiraProject] for endDate.
  */
 import { useQuery } from '@tanstack/react-query';
-import { useSettingsStore } from '@/stores/settings.store';
-import { fetchSprintIssues, fetchActiveSprint } from '@/services/jira';
 import type { JiraIssue } from '@/services/jira';
+import { fetchActiveSprint, fetchSprintIssues } from '@/services/jira';
+import { useSettingsStore } from '@/stores/settings.store';
 
 export interface SprintHealthPanelProps {
   jiraBaseUrl: string;
@@ -24,16 +24,21 @@ export interface SprintHealthPanelProps {
 function getDaysRemaining(endDateIso: string | undefined): number | null {
   if (!endDateIso) return null;
   const ms = new Date(endDateIso).getTime() - Date.now();
-  if (isNaN(ms)) return null;
+  if (Number.isNaN(ms)) return null;
   return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
 }
 
-export default function SprintHealthPanel({ jiraBaseUrl, jiraToken, activeJiraProject }: SprintHealthPanelProps) {
+export default function SprintHealthPanel({
+  jiraBaseUrl,
+  jiraToken,
+  activeJiraProject,
+}: SprintHealthPanelProps) {
   const { storyPointsFieldKey } = useSettingsStore();
 
   const { data: sprintIssuesRaw, isLoading: issuesLoading } = useQuery({
     queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey],
-    queryFn: () => fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false, storyPointsFieldKey),
+    queryFn: () =>
+      fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false, storyPointsFieldKey),
     staleTime: 30_000,
     enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject,
   });

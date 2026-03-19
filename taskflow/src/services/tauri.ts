@@ -8,6 +8,5 @@
 import { invoke } from '@tauri-apps/api/core';
 
 export const tauriService = {
-  invoke: <T>(cmd: string, args?: Record<string, unknown>): Promise<T> =>
-    invoke<T>(cmd, args),
+  invoke: <T>(cmd: string, args?: Record<string, unknown>): Promise<T> => invoke<T>(cmd, args),
 };

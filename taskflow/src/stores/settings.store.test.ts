@@ -1,6 +1,7 @@
 // KEYS-01 / Phase 19: settings store — keyboardOverrides field + v1→v2 migration
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+
 import { act, renderHook } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock Tauri plugin-store so LazyStore doesn't attempt IPC calls in jsdom
 vi.mock('@tauri-apps/plugin-store', () => {

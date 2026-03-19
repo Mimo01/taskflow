@@ -7,115 +7,116 @@
  *
  * Read-only with "Open in GitLab" for actions.
  */
-import { useEffect, useMemo } from 'react'
-import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+
+import { useQuery } from '@tanstack/react-query';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import {
+  AlertTriangle,
   ArrowLeft,
+  Ban,
+  CheckCircle2,
+  CircleDot,
+  Clock,
   ExternalLink,
+  Flag,
   GitBranch,
   GitCommitHorizontal,
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  CircleDot,
-  Ban,
   Loader2,
-  Flag,
-} from 'lucide-react'
-import { openUrl } from '@tauri-apps/plugin-opener'
-import { useAuthStore } from '@/stores/auth.store'
-import { useRecentItemsStore } from '@/stores/recent-items.store'
-import { useBreadcrumbStore } from '@/stores/breadcrumb.store'
-import { readSecret } from '@/services/stronghold'
-import { fetchMRDetail, fetchMRCommits, fetchMRApprovals } from '@/services/gitlab'
-import type { GitLabMRDetail, MRCommit } from '@/services/gitlab'
-import { extractTicketKeys } from '@/services/linkEngine'
-import { WikiRenderer } from './WikiRenderer'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
+  XCircle,
+} from 'lucide-react';
+import { useEffect, useMemo } from 'react';
+import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import type { GitLabMRDetail, MRCommit } from '@/services/gitlab';
+import { fetchMRApprovals, fetchMRCommits, fetchMRDetail } from '@/services/gitlab';
+import { extractTicketKeys } from '@/services/linkEngine';
+import { readSecret } from '@/services/stronghold';
+import { useAuthStore } from '@/stores/auth.store';
+import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
+import { useRecentItemsStore } from '@/stores/recent-items.store';
+import { WikiRenderer } from './WikiRenderer';
 
 export default function MergeRequestDetailPage() {
-  const { projectId, iid } = useParams<{ projectId: string; iid: string }>()
-  const navigate = useNavigate()
+  const { projectId, iid } = useParams<{ projectId: string; iid: string }>();
+  const navigate = useNavigate();
 
-  const trail = useBreadcrumbStore((s) => s.trail)
-  const breadcrumbPop = useBreadcrumbStore((s) => s.pop)
+  const trail = useBreadcrumbStore((s) => s.trail);
+  const breadcrumbPop = useBreadcrumbStore((s) => s.pop);
 
   const { onIssueClick } = useOutletContext<{
-    onIssueClick: (key: string) => void
-  }>()
+    onIssueClick: (key: string) => void;
+  }>();
 
-  const { gitlabBaseUrl } = useAuthStore()
-  const pushRecentItem = useRecentItemsStore((s) => s.pushItem)
+  const { gitlabBaseUrl } = useAuthStore();
+  const pushRecentItem = useRecentItemsStore((s) => s.pushItem);
 
-  const numericProjectId = projectId ? Number(projectId) : 0
-  const numericIid = iid ? Number(iid) : 0
+  const numericProjectId = projectId ? Number(projectId) : 0;
+  const numericIid = iid ? Number(iid) : 0;
 
   // Fetch MR detail
   const { data: mr, isLoading } = useQuery({
     queryKey: ['gitlab-mr-detail', projectId, iid],
     queryFn: async () => {
-      const token = await readSecret('gitlab-pat').catch(() => null)
-      if (!token || !gitlabBaseUrl) throw new Error('No credentials')
-      return fetchMRDetail(gitlabBaseUrl, token, numericProjectId, numericIid)
+      const token = await readSecret('gitlab-pat').catch(() => null);
+      if (!token || !gitlabBaseUrl) throw new Error('No credentials');
+      return fetchMRDetail(gitlabBaseUrl, token, numericProjectId, numericIid);
     },
     staleTime: 30_000,
     enabled: !!projectId && !!iid && !!gitlabBaseUrl,
-  })
+  });
 
   // Fetch commits
   const { data: commits } = useQuery({
     queryKey: ['gitlab-mr-commits', projectId, iid],
     queryFn: async () => {
-      const token = await readSecret('gitlab-pat').catch(() => null)
-      if (!token || !gitlabBaseUrl) return []
-      return fetchMRCommits(gitlabBaseUrl, token, numericProjectId, numericIid)
+      const token = await readSecret('gitlab-pat').catch(() => null);
+      if (!token || !gitlabBaseUrl) return [];
+      return fetchMRCommits(gitlabBaseUrl, token, numericProjectId, numericIid);
     },
     staleTime: 30_000,
     enabled: !!projectId && !!iid && !!gitlabBaseUrl,
-  })
+  });
 
   // Fetch approvals
   const { data: approvals } = useQuery({
     queryKey: ['gitlab-mr-approvals', projectId, iid],
     queryFn: async () => {
-      const token = await readSecret('gitlab-pat').catch(() => null)
-      if (!token || !gitlabBaseUrl) return { approved_by: [], approved: false }
-      return fetchMRApprovals(gitlabBaseUrl, token, numericProjectId, numericIid)
+      const token = await readSecret('gitlab-pat').catch(() => null);
+      if (!token || !gitlabBaseUrl) return { approved_by: [], approved: false };
+      return fetchMRApprovals(gitlabBaseUrl, token, numericProjectId, numericIid);
     },
     staleTime: 30_000,
     enabled: !!projectId && !!iid && !!gitlabBaseUrl,
-  })
+  });
 
   // Track recent item
   useEffect(() => {
     if (iid && mr) {
-      pushRecentItem({ type: 'gitlab', id: `${projectId}/${iid}`, title: mr.title })
+      pushRecentItem({ type: 'gitlab', id: `${projectId}/${iid}`, title: mr.title });
     }
-  }, [iid, mr?.title])
+  }, [iid, mr?.title, projectId, mr, pushRecentItem]);
 
   // Extract linked Jira issue keys from title + branch
   const linkedJiraKeys = useMemo(() => {
-    if (!mr) return []
-    const fromTitle = extractTicketKeys(mr.title)
-    const fromBranch = extractTicketKeys(mr.source_branch)
-    return [...new Set([...fromTitle, ...fromBranch])]
-  }, [mr?.title, mr?.source_branch])
+    if (!mr) return [];
+    const fromTitle = extractTicketKeys(mr.title);
+    const fromBranch = extractTicketKeys(mr.source_branch);
+    return [...new Set([...fromTitle, ...fromBranch])];
+  }, [mr?.title, mr?.source_branch, mr]);
 
   const handleBack = () => {
     if (trail.length > 0) {
-      const target = trail[trail.length - 1]
-      breadcrumbPop()
-      navigate(target.path, { replace: true })
+      const target = trail[trail.length - 1];
+      breadcrumbPop();
+      navigate(target.path, { replace: true });
     } else {
-      navigate('/merge-requests')
+      navigate('/merge-requests');
     }
-  }
+  };
 
-  if (!projectId || !iid) return null
+  if (!projectId || !iid) return null;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -136,8 +137,8 @@ export default function MergeRequestDetailPage() {
               <button
                 type="button"
                 onClick={() => {
-                  useBreadcrumbStore.setState({ trail: trail.slice(0, i) })
-                  navigate(entry.path, { replace: true })
+                  useBreadcrumbStore.setState({ trail: trail.slice(0, i) });
+                  navigate(entry.path, { replace: true });
                 }}
                 className="text-muted-foreground hover:text-foreground"
               >
@@ -191,7 +192,9 @@ export default function MergeRequestDetailPage() {
               {/* Linked Jira Issues — styled like linked issues in Jira sidebar */}
               {linkedJiraKeys.length > 0 && (
                 <section>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2">Linked Jira Issues</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                    Linked Jira Issues
+                  </h3>
                   <div className="space-y-0.5">
                     {linkedJiraKeys.map((key) => (
                       <button
@@ -200,7 +203,9 @@ export default function MergeRequestDetailPage() {
                         onClick={() => onIssueClick(key)}
                         className="w-full text-left rounded px-2 py-1.5 hover:bg-accent transition-colors cursor-pointer flex items-center gap-2"
                       >
-                        <span className="font-mono text-xs text-muted-foreground shrink-0">{key}</span>
+                        <span className="font-mono text-xs text-muted-foreground shrink-0">
+                          {key}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -232,19 +237,13 @@ export default function MergeRequestDetailPage() {
 
               {/* Author */}
               <MetaRow label="Author">
-                <PersonDisplay
-                  name={mr.author.name}
-                  avatarUrl={mr.author.avatar_url}
-                />
+                <PersonDisplay name={mr.author.name} avatarUrl={mr.author.avatar_url} />
               </MetaRow>
 
               {/* Assignee */}
               <MetaRow label="Assignee">
                 {mr.assignee ? (
-                  <PersonDisplay
-                    name={mr.assignee.name}
-                    avatarUrl={mr.assignee.avatar_url}
-                  />
+                  <PersonDisplay name={mr.assignee.name} avatarUrl={mr.assignee.avatar_url} />
                 ) : (
                   <span className="text-muted-foreground">Unassigned</span>
                 )}
@@ -255,7 +254,9 @@ export default function MergeRequestDetailPage() {
                 {mr.reviewers.length > 0 ? (
                   <div className="flex flex-col gap-1">
                     {mr.reviewers.map((r) => (
-                      <span key={r.id} className="text-sm">{r.name}</span>
+                      <span key={r.id} className="text-sm">
+                        {r.name}
+                      </span>
                     ))}
                   </div>
                 ) : (
@@ -292,9 +293,19 @@ export default function MergeRequestDetailPage() {
               <MetaRow label="Branches">
                 <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                   <GitBranch className="size-3 text-muted-foreground shrink-0" />
-                  <code className="text-xs bg-muted px-1.5 py-0.5 rounded truncate max-w-[120px]" title={mr.source_branch}>{mr.source_branch}</code>
+                  <code
+                    className="text-xs bg-muted px-1.5 py-0.5 rounded truncate max-w-[120px]"
+                    title={mr.source_branch}
+                  >
+                    {mr.source_branch}
+                  </code>
                   <span className="text-muted-foreground shrink-0">&#8594;</span>
-                  <code className="text-xs bg-muted px-1.5 py-0.5 rounded truncate max-w-[120px]" title={mr.target_branch}>{mr.target_branch}</code>
+                  <code
+                    className="text-xs bg-muted px-1.5 py-0.5 rounded truncate max-w-[120px]"
+                    title={mr.target_branch}
+                  >
+                    {mr.target_branch}
+                  </code>
                 </div>
               </MetaRow>
 
@@ -343,20 +354,20 @@ export default function MergeRequestDetailPage() {
               )}
 
               {/* Changes */}
-              <MetaRow label="Changes">
-                {mr.changes_count} files changed
-              </MetaRow>
+              <MetaRow label="Changes">{mr.changes_count} files changed</MetaRow>
 
               {/* Dates */}
               <MetaRow label="Created">{new Date(mr.created_at).toLocaleDateString()}</MetaRow>
               <MetaRow label="Updated">{new Date(mr.updated_at).toLocaleDateString()}</MetaRow>
-              {mr.merged_at && <MetaRow label="Merged">{new Date(mr.merged_at).toLocaleDateString()}</MetaRow>}
+              {mr.merged_at && (
+                <MetaRow label="Merged">{new Date(mr.merged_at).toLocaleDateString()}</MetaRow>
+              )}
             </div>
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }
 
 // ---- Shared layout components (matching IssueDetailSidebar) ----
@@ -367,7 +378,7 @@ function MetaRow({ label, children }: { label: string; children: React.ReactNode
       <span className="text-xs text-muted-foreground w-28 shrink-0 pt-0.5">{label}</span>
       <span className="flex-1 min-w-0">{children}</span>
     </div>
-  )
+  );
 }
 
 function PersonDisplay({ name, avatarUrl }: { name: string; avatarUrl?: string }) {
@@ -380,7 +391,7 @@ function PersonDisplay({ name, avatarUrl }: { name: string; avatarUrl?: string }
       )}
       <span className="text-sm truncate">{name}</span>
     </div>
-  )
+  );
 }
 
 // ---- State & status badges ----
@@ -392,39 +403,45 @@ function MRStateBadge({ state, draft }: { state: GitLabMRDetail['state']; draft?
         <CircleDot className="size-3" />
         Draft
       </Badge>
-    )
+    );
   }
 
   const config: Record<string, { className: string; label: string; icon: React.ReactNode }> = {
     opened: {
-      className: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800',
+      className:
+        'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800',
       label: 'Open',
       icon: <CircleDot className="size-3" />,
     },
     merged: {
-      className: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
+      className:
+        'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
       label: 'Merged',
       icon: <CheckCircle2 className="size-3" />,
     },
     closed: {
-      className: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
+      className:
+        'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
       label: 'Closed',
       icon: <XCircle className="size-3" />,
     },
     locked: {
-      className: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800',
+      className:
+        'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800',
       label: 'Locked',
       icon: <Ban className="size-3" />,
     },
-  }
+  };
 
-  const c = config[state] ?? config.locked
+  const c = config[state] ?? config.locked;
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${c.className}`}>
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${c.className}`}
+    >
       {c.icon}
       {c.label}
     </span>
-  )
+  );
 }
 
 function PipelineStatus({ status }: { status: string }) {
@@ -449,15 +466,15 @@ function PipelineStatus({ status }: { status: string }) {
       className: 'text-muted-foreground',
       icon: <Ban className="size-3.5" />,
     },
-  }
+  };
 
-  const c = config[status] ?? config.canceled
+  const c = config[status] ?? config.canceled;
   return (
     <div className={`flex items-center gap-1.5 ${c.className}`}>
       {c.icon}
       <span className="text-sm font-medium capitalize">{status}</span>
     </div>
-  )
+  );
 }
 
 // ---- Commit row (matches subtask row styling from IssueDetailContent) ----
@@ -471,7 +488,7 @@ function CommitRow({ commit }: { commit: MRCommit }) {
       </code>
       <span className="truncate">{commit.title}</span>
     </li>
-  )
+  );
 }
 
 // ---- Skeleton ----
@@ -495,5 +512,5 @@ function MRDetailSkeleton() {
         <Skeleton className="h-5 w-2/3" />
       </div>
     </div>
-  )
+  );
 }

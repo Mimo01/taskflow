@@ -12,20 +12,17 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from '@/components/ui/select';
-import { validateGitLab, listGitLabProjects, type GitLabProject } from '@/services/gitlab';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { type GitLabProject, listGitLabProjects, validateGitLab } from '@/services/gitlab';
 import { storeSecret } from '@/services/stronghold';
-import { useOnboardingStore } from '@/stores/onboarding.store';
 import { useAuthStore } from '@/stores/auth.store';
+import { useOnboardingStore } from '@/stores/onboarding.store';
 
 export default function GitLabStep() {
-  const { gitlabUrl, gitlabToken, gitlabProject, gitlabProjects, set, goBack, goNext } = useOnboardingStore();
-  const { setGitlabConnected, setActiveGitlabProject, setGitlabUserId, setGitlabUsername } = useAuthStore();
+  const { gitlabUrl, gitlabToken, gitlabProject, gitlabProjects, set, goBack, goNext } =
+    useOnboardingStore();
+  const { setGitlabConnected, setActiveGitlabProject, setGitlabUserId, setGitlabUsername } =
+    useAuthStore();
 
   const projects = gitlabProjects;
   const selectedProjectId = gitlabProject;
@@ -54,7 +51,9 @@ export default function GitLabStep() {
 
   const handleContinue = () => {
     if (!selectedProjectId) return;
-    const selectedProject: GitLabProject | undefined = projects.find(p => p.id === selectedProjectId);
+    const selectedProject: GitLabProject | undefined = projects.find(
+      (p) => p.id === selectedProjectId,
+    );
     if (!selectedProject) return;
     set({ gitlabValidated: true });
     setGitlabConnected(true, gitlabUrl);
@@ -109,13 +108,20 @@ export default function GitLabStep() {
         {showProjectDropdown && (
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="gitlab-project">Select Project</Label>
-            <Select value={selectedProjectId ? String(selectedProjectId) : ''} onValueChange={(v) => v && setSelectedProject(v)}>
+            <Select
+              value={selectedProjectId ? String(selectedProjectId) : ''}
+              onValueChange={(v) => v && setSelectedProject(v)}
+            >
               <SelectTrigger id="gitlab-project" className="w-full">
                 <span className="flex flex-1 text-left text-sm">
-                  {selectedProjectId
-                    ? (() => { const p = projects.find(p => p.id === selectedProjectId); return p ? p.name_with_namespace : String(selectedProjectId); })()
-                    : <span className="text-muted-foreground">Choose a project...</span>
-                  }
+                  {selectedProjectId ? (
+                    (() => {
+                      const p = projects.find((p) => p.id === selectedProjectId);
+                      return p ? p.name_with_namespace : String(selectedProjectId);
+                    })()
+                  ) : (
+                    <span className="text-muted-foreground">Choose a project...</span>
+                  )}
                 </span>
               </SelectTrigger>
               <SelectContent>

@@ -8,21 +8,17 @@
  * - 'Update Token' validates before writing to Stronghold (same flow as onboarding)
  * - Switching active Jira project calls queryClient.clear() to purge stale data
  */
-import { useState, useEffect } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Eye, EyeOff } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { type GitLabProject, listGitLabProjects, validateGitLab } from '@/services/gitlab';
+import { type JiraProject, listJiraProjects, validateJira } from '@/services/jira';
 import { readSecret, storeSecret } from '@/services/stronghold';
-import { validateJira, listJiraProjects, type JiraProject } from '@/services/jira';
-import { validateGitLab, listGitLabProjects, type GitLabProject } from '@/services/gitlab';
 import { useAuthStore } from '@/stores/auth.store';
 
 // Masked placeholder — never show the real token on render
@@ -153,7 +149,7 @@ export default function TokenSection() {
     if (!jiraBaseUrl) return;
     setJiraProjectsLoading(true);
     setJiraProjectsError(null);
-    ;(async () => {
+    (async () => {
       try {
         const pat = await readSecret('jira-pat').catch(() => null);
         if (!pat) {
@@ -164,7 +160,11 @@ export default function TokenSection() {
         setJiraProjects(list);
       } catch (err) {
         const msg = (err as Error)?.message ?? '';
-        setJiraProjectsError(msg.includes('error sending request') ? 'Could not reach Jira — check the URL and your network connection' : (msg || 'Failed to load projects'));
+        setJiraProjectsError(
+          msg.includes('error sending request')
+            ? 'Could not reach Jira — check the URL and your network connection'
+            : msg || 'Failed to load projects',
+        );
         setJiraProjects([]);
       } finally {
         setJiraProjectsLoading(false);
@@ -176,7 +176,7 @@ export default function TokenSection() {
     if (!gitlabBaseUrl) return;
     setGitlabProjectsLoading(true);
     setGitlabProjectsError(null);
-    ;(async () => {
+    (async () => {
       try {
         const pat = await readSecret('gitlab-pat').catch(() => null);
         if (!pat) {
@@ -187,7 +187,11 @@ export default function TokenSection() {
         setGitlabProjects(list);
       } catch (err) {
         const msg = (err as Error)?.message ?? '';
-        setGitlabProjectsError(msg.includes('error sending request') ? 'Could not reach GitLab — check the URL and your network connection' : (msg || 'Failed to load projects'));
+        setGitlabProjectsError(
+          msg.includes('error sending request')
+            ? 'Could not reach GitLab — check the URL and your network connection'
+            : msg || 'Failed to load projects',
+        );
         setGitlabProjects([]);
       } finally {
         setGitlabProjectsLoading(false);
@@ -200,9 +204,9 @@ export default function TokenSection() {
     queryClient.clear();
   };
 
-  const handleProjectChange_gitlab = (value: string) => {
+  const handleProjectChangeGitlab = (value: string) => {
     const id = parseInt(value, 10);
-    const project = gitlabProjects.find(p => p.id === id);
+    const project = gitlabProjects.find((p) => p.id === id);
     const path = project?.name_with_namespace ?? null;
     setActiveGitlabProject(id, path);
     queryClient.clear();
@@ -292,8 +296,12 @@ export default function TokenSection() {
               {jiraUrlMutation.isPending ? 'Saving...' : 'Save'}
             </Button>
           </div>
-          {jiraUrlMutation.isSuccess && <p className="text-sm text-green-600 dark:text-green-400">URL updated.</p>}
-          {jiraUrlMutation.isError && <p className="text-sm text-destructive">{jiraUrlMutation.error?.message}</p>}
+          {jiraUrlMutation.isSuccess && (
+            <p className="text-sm text-green-600 dark:text-green-400">URL updated.</p>
+          )}
+          {jiraUrlMutation.isError && (
+            <p className="text-sm text-destructive">{jiraUrlMutation.error?.message}</p>
+          )}
         </div>
 
         {jiraBaseUrl && (
@@ -306,13 +314,22 @@ export default function TokenSection() {
               <p className="text-sm text-destructive">{jiraProjectsError}</p>
             )}
             {!jiraProjectsLoading && !jiraProjectsError && (
-              <Select value={activeJiraProject ?? ''} onValueChange={(v) => v && handleProjectChange(v)}>
+              <Select
+                value={activeJiraProject ?? ''}
+                onValueChange={(v) => v && handleProjectChange(v)}
+              >
                 <SelectTrigger id="active-jira-project" className="w-full">
                   <span className="flex flex-1 text-left text-sm">
-                    {activeJiraProject
-                      ? (() => { const p = jiraProjects.find(p => p.key === activeJiraProject); return p ? `${p.key} — ${p.name}` : activeJiraProject; })()
-                      : <span className="text-muted-foreground">{jiraProjects.length === 0 ? 'No projects found' : 'Select project...'}</span>
-                    }
+                    {activeJiraProject ? (
+                      (() => {
+                        const p = jiraProjects.find((p) => p.key === activeJiraProject);
+                        return p ? `${p.key} — ${p.name}` : activeJiraProject;
+                      })()
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {jiraProjects.length === 0 ? 'No projects found' : 'Select project...'}
+                      </span>
+                    )}
                   </span>
                 </SelectTrigger>
                 <SelectContent>
@@ -333,7 +350,7 @@ export default function TokenSection() {
           onValidate={(token) => jiraMutation.mutate(token)}
           validating={jiraMutation.isPending}
           succeeded={jiraMutation.isSuccess}
-          errorMessage={jiraMutation.isError ? jiraMutation.error?.message ?? null : null}
+          errorMessage={jiraMutation.isError ? (jiraMutation.error?.message ?? null) : null}
         />
       </div>
 
@@ -358,8 +375,12 @@ export default function TokenSection() {
               {gitlabUrlMutation.isPending ? 'Saving...' : 'Save'}
             </Button>
           </div>
-          {gitlabUrlMutation.isSuccess && <p className="text-sm text-green-600 dark:text-green-400">URL updated.</p>}
-          {gitlabUrlMutation.isError && <p className="text-sm text-destructive">{gitlabUrlMutation.error?.message}</p>}
+          {gitlabUrlMutation.isSuccess && (
+            <p className="text-sm text-green-600 dark:text-green-400">URL updated.</p>
+          )}
+          {gitlabUrlMutation.isError && (
+            <p className="text-sm text-destructive">{gitlabUrlMutation.error?.message}</p>
+          )}
         </div>
 
         {gitlabBaseUrl && (
@@ -372,13 +393,19 @@ export default function TokenSection() {
               <p className="text-sm text-destructive">{gitlabProjectsError}</p>
             )}
             {!gitlabProjectsLoading && !gitlabProjectsError && (
-              <Select value={activeGitlabProject !== null ? String(activeGitlabProject) : ''} onValueChange={(v) => v && handleProjectChange_gitlab(v)}>
+              <Select
+                value={activeGitlabProject !== null ? String(activeGitlabProject) : ''}
+                onValueChange={(v) => v && handleProjectChangeGitlab(v)}
+              >
                 <SelectTrigger id="active-gitlab-project" className="w-full">
                   <span className="flex flex-1 text-left text-sm">
-                    {activeGitlabProject !== null
-                      ? (activeGitlabProjectPath ?? String(activeGitlabProject))
-                      : <span className="text-muted-foreground">{gitlabProjects.length === 0 ? 'No projects found' : 'Select project...'}</span>
-                    }
+                    {activeGitlabProject !== null ? (
+                      (activeGitlabProjectPath ?? String(activeGitlabProject))
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {gitlabProjects.length === 0 ? 'No projects found' : 'Select project...'}
+                      </span>
+                    )}
                   </span>
                 </SelectTrigger>
                 <SelectContent>
@@ -399,7 +426,7 @@ export default function TokenSection() {
           onValidate={(token) => gitlabMutation.mutate(token)}
           validating={gitlabMutation.isPending}
           succeeded={gitlabMutation.isSuccess}
-          errorMessage={gitlabMutation.isError ? gitlabMutation.error?.message ?? null : null}
+          errorMessage={gitlabMutation.isError ? (gitlabMutation.error?.message ?? null) : null}
         />
       </div>
     </div>

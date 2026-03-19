@@ -1,8 +1,9 @@
 // PM-01: Sprint progress buckets from statusCategory
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
+import { render, screen } from '@testing-library/react';
+import type React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock react-router-dom — ErrorState uses useNavigate
 vi.mock('react-router-dom', () => ({
@@ -53,7 +54,12 @@ function makeIssue(
       summary: `Summary ${key}`,
       status: {
         id: '1',
-        name: statusCategoryKey === 'done' ? 'Done' : statusCategoryKey === 'indeterminate' ? 'In Progress' : 'To Do',
+        name:
+          statusCategoryKey === 'done'
+            ? 'Done'
+            : statusCategoryKey === 'indeterminate'
+              ? 'In Progress'
+              : 'To Do',
         statusCategory: statusCategoryKey ? { key: statusCategoryKey } : undefined,
       },
       assignee: options?.assigneeName
@@ -86,7 +92,9 @@ describe('SprintProgressTab', () => {
     vi.mocked(stronghold.readSecret).mockResolvedValue('test-jira-token');
     // Re-establish settings store mock
     const settingsStore = await import('@/stores/settings.store');
-    vi.mocked(settingsStore.useSettingsStore).mockReturnValue({ storyPointsFieldKey: 'customfield_10016' } as ReturnType<typeof settingsStore.useSettingsStore>);
+    vi.mocked(settingsStore.useSettingsStore).mockReturnValue({
+      storyPointsFieldKey: 'customfield_10016',
+    } as ReturnType<typeof settingsStore.useSettingsStore>);
   });
 
   it('groups issues into To Do / In Progress / Done buckets using statusCategory.key', async () => {
@@ -148,9 +156,7 @@ describe('SprintProgressTab', () => {
 
   it('defaults missing statusCategory.key to todo bucket (does not crash)', async () => {
     const { fetchSprintIssues } = await import('@/services/jira');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([
-      makeIssue('P-1', undefined, null),
-    ]);
+    vi.mocked(fetchSprintIssues).mockResolvedValue([makeIssue('P-1', undefined, null)]);
 
     const { default: SprintProgressTab } = await import('./SprintProgressTab');
     renderWithQuery(<SprintProgressTab />);
@@ -252,7 +258,7 @@ describe('SprintProgressTab', () => {
       makeIssue('P-1', 'new', 5, { assigneeName: 'Alice' }),
       makeIssue('P-2', 'done', 3, { assigneeName: 'Bob' }),
       makeIssue('P-3', 'indeterminate', 8, { assigneeName: 'Charlie' }),
-      makeIssue('P-4', 'new', 5, { assigneeName: 'Zara' }),  // tie with Alice — alpha second
+      makeIssue('P-4', 'new', 5, { assigneeName: 'Zara' }), // tie with Alice — alpha second
     ]);
 
     const { default: SprintProgressTab } = await import('./SprintProgressTab');
@@ -261,9 +267,9 @@ describe('SprintProgressTab', () => {
     await screen.findByText('Charlie');
     const rows = screen.getAllByTestId('assignee-row');
     expect(rows[0].querySelector('td')?.textContent).toBe('Charlie'); // 8 pts
-    expect(rows[1].querySelector('td')?.textContent).toBe('Alice');   // 5 pts, alpha before Zara
-    expect(rows[2].querySelector('td')?.textContent).toBe('Zara');    // 5 pts, alpha after Alice
-    expect(rows[3].querySelector('td')?.textContent).toBe('Bob');     // 3 pts
+    expect(rows[1].querySelector('td')?.textContent).toBe('Alice'); // 5 pts, alpha before Zara
+    expect(rows[2].querySelector('td')?.textContent).toBe('Zara'); // 5 pts, alpha after Alice
+    expect(rows[3].querySelector('td')?.textContent).toBe('Bob'); // 3 pts
   });
 
   it('SPPG-03: per-assignee breakdown table shows correct pts buckets', async () => {
@@ -298,7 +304,9 @@ describe('SPPG-07: assignee stories and subtasks columns', () => {
     const stronghold = await import('@/services/stronghold');
     vi.mocked(stronghold.readSecret).mockResolvedValue('test-jira-token');
     const settingsStore = await import('@/stores/settings.store');
-    vi.mocked(settingsStore.useSettingsStore).mockReturnValue({ storyPointsFieldKey: 'customfield_10016' } as ReturnType<typeof settingsStore.useSettingsStore>);
+    vi.mocked(settingsStore.useSettingsStore).mockReturnValue({
+      storyPointsFieldKey: 'customfield_10016',
+    } as ReturnType<typeof settingsStore.useSettingsStore>);
   });
 
   it('Test A: assignee with 2 stories (any status) and 1 subtask shows Stories=2, Subtasks=1', async () => {
@@ -351,7 +359,7 @@ describe('SPPG-07: assignee stories and subtasks columns', () => {
         customfield_10016: null,
         issuetype: {
           name: 'Sub-task', // name says Sub-task
-          subtask: false,   // but boolean is false
+          subtask: false, // but boolean is false
         },
         timetracking: undefined,
       },

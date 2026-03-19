@@ -10,22 +10,23 @@
  * Fuzzy matches show a dashed underline indicator with hover tooltip.
  * Name-based matching is not used — only date proximity determines the link.
  */
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useQuery, useQueries } from '@tanstack/react-query';
-import { RefreshCw, Package } from 'lucide-react';
+
+import { useQueries, useQuery } from '@tanstack/react-query';
+import { fetch } from '@tauri-apps/plugin-http';
+import { Package, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
-import { useAuthStore } from '@/stores/auth.store';
-import { fetchFixVersions } from '@/services/jira';
-import type { JiraFixVersion } from '@/services/jira';
-import { fetchProjectMilestonesInRange } from '@/services/gitlab';
 import type { GitLabMilestone } from '@/services/gitlab';
-import { matchGitLabToFixVersion } from '@/services/releaseLinker';
+import { fetchProjectMilestonesInRange } from '@/services/gitlab';
+import type { JiraFixVersion } from '@/services/jira';
+import { fetchFixVersions } from '@/services/jira';
 import type { ReleaseMatch } from '@/services/releaseLinker';
+import { matchGitLabToFixVersion } from '@/services/releaseLinker';
 import { readSecret } from '@/services/stronghold';
-import { fetch } from '@tauri-apps/plugin-http';
+import { useAuthStore } from '@/stores/auth.store';
 
 interface VersionIssueCounts {
   issuesFixed: number;
@@ -51,8 +52,12 @@ async function fetchVersionIssueCounts(
   const doneUrl = `${base}/rest/api/2/search?jql=${doneJql}&maxResults=0&fields=`;
 
   const [totalResult, doneResult] = await Promise.allSettled([
-    fetch(totalUrl, { headers }).then((r) => (r.ok ? (r.json() as Promise<{ total?: number }>) : ({ total: 0 }))),
-    fetch(doneUrl, { headers }).then((r) => (r.ok ? (r.json() as Promise<{ total?: number }>) : ({ total: 0 }))),
+    fetch(totalUrl, { headers }).then((r) =>
+      r.ok ? (r.json() as Promise<{ total?: number }>) : { total: 0 },
+    ),
+    fetch(doneUrl, { headers }).then((r) =>
+      r.ok ? (r.json() as Promise<{ total?: number }>) : { total: 0 },
+    ),
   ]);
 
   const issuesTotal = totalResult.status === 'fulfilled' ? (totalResult.value.total ?? 0) : 0;
@@ -76,9 +81,7 @@ function getReleaseTimingLabel(releaseDate: string | undefined, released: boolea
   if (releaseDate < today) return 'overdue';
   if (releaseDate === today) return 'due-today';
   const msPerDay = 86_400_000;
-  const days = Math.round(
-    (new Date(releaseDate).getTime() - new Date(today).getTime()) / msPerDay,
-  );
+  const days = Math.round((new Date(releaseDate).getTime() - new Date(today).getTime()) / msPerDay);
   return { daysUntil: days };
 }
 
@@ -143,14 +146,19 @@ export default function ReleasesTab() {
   // Fetch GitLab milestones scoped to the fix-version date window.
   // Uses paginated sorted fetch so large milestone lists don't miss relevant entries.
   const { data: milestones, isError: milestonesError } = useQuery({
-    queryKey: ['gitlab-milestones', activeGitlabProject, milestoneWindow?.from, milestoneWindow?.to],
+    queryKey: [
+      'gitlab-milestones',
+      activeGitlabProject,
+      milestoneWindow?.from,
+      milestoneWindow?.to,
+    ],
     queryFn: () =>
       fetchProjectMilestonesInRange(
         gitlabBaseUrl!,
         gitlabToken!,
         activeGitlabProject!,
-        milestoneWindow!.from,
-        milestoneWindow!.to,
+        milestoneWindow?.from ?? '',
+        milestoneWindow?.to ?? '',
       ),
     enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken && milestoneWindow !== null,
     staleTime: 5 * 60_000,
@@ -177,12 +185,22 @@ export default function ReleasesTab() {
       let bestMatch: ReleaseMatch = { type: 'none', candidateName: '', candidateUrl: '' };
       for (const cand of candidates) {
         const match = matchGitLabToFixVersion(version.releaseDate, cand);
-        if (match.type === 'exact') { bestMatch = match; break; }
+        if (match.type === 'exact') {
+          bestMatch = match;
+          break;
+        }
         if (match.type === 'fuzzy' && bestMatch.type === 'none') bestMatch = match;
       }
-      const countQuery = versionCountQueries.find((_, i) => (fixVersions ?? [])[i]?.id === version.id);
+      const countQuery = versionCountQueries.find(
+        (_, i) => (fixVersions ?? [])[i]?.id === version.id,
+      );
       const counts = countQuery?.data;
-      return { version, match: bestMatch, issuesFixed: counts?.issuesFixed ?? 0, issuesTotal: counts?.issuesTotal ?? 0 };
+      return {
+        version,
+        match: bestMatch,
+        issuesFixed: counts?.issuesFixed ?? 0,
+        issuesTotal: counts?.issuesTotal ?? 0,
+      };
     };
 
     const dateDesc = (a: JiraFixVersion, b: JiraFixVersion) =>
@@ -209,14 +227,19 @@ export default function ReleasesTab() {
   const isError = errorVersions;
 
   // Reset banner dismissal when error state changes
-  useEffect(() => { setBannerDismissed(false); }, [isError]);
+  useEffect(() => {
+    setBannerDismissed(false);
+  }, []);
 
   return (
     <div className="flex flex-col gap-3 p-4">
       {/* Header row */}
       <div className="flex items-center justify-end gap-2 pb-2">
         {milestonesError && (
-          <span className="text-xs text-amber-600 dark:text-amber-400" title="GitLab milestone data unavailable — links may not appear">
+          <span
+            className="text-xs text-amber-600 dark:text-amber-400"
+            title="GitLab milestone data unavailable — links may not appear"
+          >
             GitLab unavailable
           </span>
         )}
@@ -236,7 +259,11 @@ export default function ReleasesTab() {
       {isLoading && (
         <div className="flex flex-col gap-2">
           {[0, 1, 2].map((i) => (
-            <div key={i} data-testid="skeleton-row" className="h-10 rounded bg-muted animate-pulse" />
+            <div
+              key={i}
+              data-testid="skeleton-row"
+              className="h-10 rounded bg-muted animate-pulse"
+            />
           ))}
         </div>
       )}
@@ -252,147 +279,169 @@ export default function ReleasesTab() {
       )}
 
       {/* Content */}
-      {!isLoading && !isError && (
-        <>
-          {undatedVersions.length === 0 && unreleasedVersions.length === 0 && releasedVersions.length === 0 ? (
-            <EmptyState icon={Package} title="No releases found" subtitle="Releases will appear once versions are created in Jira" />
-          ) : (
-            <div className="flex flex-col gap-1">
-              {/* Render a single release row */}
-              {([...undatedVersions, ...unreleasedVersions, ...releasedVersions.slice(0, releasedVisible)] as MatchedVersion[]).map(({ version, match, issuesFixed, issuesTotal }) => (
-                <div
-                  key={version.id}
-                  data-testid="release-row"
-                  className="flex items-center justify-between rounded px-3 py-2 hover:bg-muted/50 gap-3"
-                >
-                  {/* Version name + badges */}
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-sm font-medium truncate">{version.name}</span>
-                    {/* Status badge — Released or Unreleased + timing */}
-                    {(() => {
-                      const timing = getReleaseTimingLabel(version.releaseDate, version.released);
-                      if (version.released) {
-                        return (
-                          <Badge variant="default" className="bg-green-600 text-white shrink-0">
-                            Released
-                          </Badge>
-                        );
-                      }
-                      if (timing === 'overdue') {
-                        return (
-                          <>
-                            <Badge variant="destructive" className="shrink-0">Unreleased</Badge>
-                            <Badge variant="destructive" className="shrink-0">Overdue</Badge>
-                          </>
-                        );
-                      }
-                      if (timing === 'due-today') {
-                        return (
-                          <>
-                            <Badge variant="default" className="bg-blue-600 text-white shrink-0">Unreleased</Badge>
-                            <Badge variant="default" className="bg-blue-600 text-white shrink-0">Due today</Badge>
-                          </>
-                        );
-                      }
-                      if (timing && typeof timing === 'object' && 'daysUntil' in timing) {
-                        return (
-                          <>
-                            <Badge variant="default" className="bg-amber-500 text-white shrink-0">Unreleased</Badge>
-                            <span className="text-xs text-muted-foreground shrink-0">In {timing.daysUntil} days</span>
-                          </>
-                        );
-                      }
-                      // Unreleased with no date
+      {!isLoading &&
+        !isError &&
+        (undatedVersions.length === 0 &&
+        unreleasedVersions.length === 0 &&
+        releasedVersions.length === 0 ? (
+          <EmptyState
+            icon={Package}
+            title="No releases found"
+            subtitle="Releases will appear once versions are created in Jira"
+          />
+        ) : (
+          <div className="flex flex-col gap-1">
+            {/* Render a single release row */}
+            {(
+              [
+                ...undatedVersions,
+                ...unreleasedVersions,
+                ...releasedVersions.slice(0, releasedVisible),
+              ] as MatchedVersion[]
+            ).map(({ version, match, issuesFixed, issuesTotal }) => (
+              <div
+                key={version.id}
+                data-testid="release-row"
+                className="flex items-center justify-between rounded px-3 py-2 hover:bg-muted/50 gap-3"
+              >
+                {/* Version name + badges */}
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-sm font-medium truncate">{version.name}</span>
+                  {/* Status badge — Released or Unreleased + timing */}
+                  {(() => {
+                    const timing = getReleaseTimingLabel(version.releaseDate, version.released);
+                    if (version.released) {
                       return (
-                        <Badge variant="default" className="bg-amber-500 text-white shrink-0">Unreleased</Badge>
+                        <Badge variant="default" className="bg-green-600 text-white shrink-0">
+                          Released
+                        </Badge>
                       );
-                    })()}
-                    {/* No date warning — solid badge after status, only for undated unreleased */}
-                    {!version.releaseDate && !version.released && (
-                      <Badge variant="default" className="shrink-0 bg-orange-500 text-white">
-                        ⚠ No date set
+                    }
+                    if (timing === 'overdue') {
+                      return (
+                        <>
+                          <Badge variant="destructive" className="shrink-0">
+                            Unreleased
+                          </Badge>
+                          <Badge variant="destructive" className="shrink-0">
+                            Overdue
+                          </Badge>
+                        </>
+                      );
+                    }
+                    if (timing === 'due-today') {
+                      return (
+                        <>
+                          <Badge variant="default" className="bg-blue-600 text-white shrink-0">
+                            Unreleased
+                          </Badge>
+                          <Badge variant="default" className="bg-blue-600 text-white shrink-0">
+                            Due today
+                          </Badge>
+                        </>
+                      );
+                    }
+                    if (timing && typeof timing === 'object' && 'daysUntil' in timing) {
+                      return (
+                        <>
+                          <Badge variant="default" className="bg-amber-500 text-white shrink-0">
+                            Unreleased
+                          </Badge>
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            In {timing.daysUntil} days
+                          </span>
+                        </>
+                      );
+                    }
+                    // Unreleased with no date
+                    return (
+                      <Badge variant="default" className="bg-amber-500 text-white shrink-0">
+                        Unreleased
                       </Badge>
-                    )}
-                    {version.releaseDate && (
-                      <span className="text-xs text-muted-foreground shrink-0">
-                        {version.releaseDate}
-                      </span>
-                    )}
-                  </div>
+                    );
+                  })()}
+                  {/* No date warning — solid badge after status, only for undated unreleased */}
+                  {!version.releaseDate && !version.released && (
+                    <Badge variant="default" className="shrink-0 bg-orange-500 text-white">
+                      ⚠ No date set
+                    </Badge>
+                  )}
+                  {version.releaseDate && (
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {version.releaseDate}
+                    </span>
+                  )}
+                </div>
 
-                  {/* GitLab match indicator */}
-                  <div className="flex items-center gap-3 shrink-0">
-                    {match.type === 'exact' ? (
-                      match.candidateUrl ? (
-                        <a
-                          href={match.candidateUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-primary hover:underline truncate max-w-[150px]"
-                          data-testid="gitlab-link-exact"
-                        >
-                          {match.candidateName}
-                        </a>
-                      ) : (
-                        <span
-                          className="text-xs text-foreground truncate max-w-[150px]"
-                          data-testid="gitlab-link-exact"
-                        >
-                          {match.candidateName}
-                        </span>
-                      )
-                    ) : match.type === 'fuzzy' ? (
-                      match.candidateUrl ? (
-                        <a
-                          href={match.candidateUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs border-b border-dashed border-muted-foreground hover:text-foreground truncate max-w-[150px]"
-                          title={`Fuzzy match: ${match.candidateName}`}
-                          data-testid="gitlab-link-fuzzy"
-                        >
-                          {match.candidateName}
-                        </a>
-                      ) : (
-                        <span
-                          className="text-xs border-b border-dashed border-muted-foreground cursor-default truncate max-w-[150px]"
-                          title={`Fuzzy match: ${match.candidateName}`}
-                          data-testid="gitlab-link-fuzzy"
-                        >
-                          {match.candidateName}
-                        </span>
-                      )
+                {/* GitLab match indicator */}
+                <div className="flex items-center gap-3 shrink-0">
+                  {match.type === 'exact' ? (
+                    match.candidateUrl ? (
+                      <a
+                        href={match.candidateUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline truncate max-w-[150px]"
+                        data-testid="gitlab-link-exact"
+                      >
+                        {match.candidateName}
+                      </a>
                     ) : (
                       <span
-                        className="text-xs text-muted-foreground"
-                        data-testid="gitlab-link-none"
+                        className="text-xs text-foreground truncate max-w-[150px]"
+                        data-testid="gitlab-link-exact"
                       >
-                        No GitLab link
+                        {match.candidateName}
                       </span>
-                    )}
-
-                    {/* Task count */}
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {issuesFixed} / {issuesTotal} done
+                    )
+                  ) : match.type === 'fuzzy' ? (
+                    match.candidateUrl ? (
+                      <a
+                        href={match.candidateUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs border-b border-dashed border-muted-foreground hover:text-foreground truncate max-w-[150px]"
+                        title={`Fuzzy match: ${match.candidateName}`}
+                        data-testid="gitlab-link-fuzzy"
+                      >
+                        {match.candidateName}
+                      </a>
+                    ) : (
+                      <span
+                        className="text-xs border-b border-dashed border-muted-foreground cursor-default truncate max-w-[150px]"
+                        title={`Fuzzy match: ${match.candidateName}`}
+                        data-testid="gitlab-link-fuzzy"
+                      >
+                        {match.candidateName}
+                      </span>
+                    )
+                  ) : (
+                    <span className="text-xs text-muted-foreground" data-testid="gitlab-link-none">
+                      No GitLab link
                     </span>
-                  </div>
-                </div>
-              ))}
+                  )}
 
-              {/* Load more released */}
-              {releasedVersions.length > releasedVisible && (
-                <button
-                  type="button"
-                  onClick={loadMoreReleased}
-                  className="mt-1 w-full rounded px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors text-center"
-                >
-                  Load {Math.min(RELEASED_LOAD_MORE, releasedVersions.length - releasedVisible)} more released
-                </button>
-              )}
-            </div>
-          )}
-        </>
-      )}
+                  {/* Task count */}
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {issuesFixed} / {issuesTotal} done
+                  </span>
+                </div>
+              </div>
+            ))}
+
+            {/* Load more released */}
+            {releasedVersions.length > releasedVisible && (
+              <button
+                type="button"
+                onClick={loadMoreReleased}
+                className="mt-1 w-full rounded px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors text-center"
+              >
+                Load {Math.min(RELEASED_LOAD_MORE, releasedVersions.length - releasedVisible)} more
+                released
+              </button>
+            )}
+          </div>
+        ))}
     </div>
   );
 }
