@@ -28,7 +28,7 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 
 - [ ] **REFAC-01**: jira.ts decomposed into focused domain modules (issues, sprints, fields, projects, epics, backlog)
 - [ ] **REFAC-02**: CreateEditIssueModal decomposed into smaller composable components with useReducer for form state
-- [ ] **REFAC-03**: IssueDetailSidebar decomposed into focused sub-components
+- [x] **REFAC-03**: IssueDetailSidebar decomposed into focused sub-components
 - [x] **REFAC-04**: Shared `createTauriStorage()` utility replaces duplicated LazyStore adapter across 4 stores
 - [ ] **REFAC-05**: API error handling boilerplate extracted into shared utility (try/catch + status check pattern)
 - [x] **REFAC-06**: Notifications store split into persisted data store and transient UI state store
@@ -89,7 +89,7 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 | DEPS-01 | Phase 25 | Complete |
 | REFAC-01 | Phase 27 | Pending |
 | REFAC-02 | Phase 27 | Pending |
-| REFAC-03 | Phase 27 | Pending |
+| REFAC-03 | Phase 27 | Complete |
 | REFAC-04 | Phase 27 | Complete |
 | REFAC-05 | Phase 27 | Pending |
 | REFAC-06 | Phase 27 | Complete |
