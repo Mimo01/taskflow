@@ -37,7 +37,7 @@ export const useRecentItemsStore = create<RecentItemsState>()(
       name: 'recent-items-store',
       storage: createTauriStorage('recent-items.json'),
       version: 0,
-      migrate: (persisted, _version) => persisted as unknown as RecentItemsState,
+      migrate: (persisted, _version) => persisted as RecentItemsState,
     },
   ),
 );
