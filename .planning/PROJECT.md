@@ -49,10 +49,10 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ### Active
 
-- [ ] Codebase hardened with comprehensive test coverage, consistent patterns, and automated linting
+- [ ] Codebase hardened with comprehensive test coverage, consistent patterns, and automated linting (Biome linting validated in Phase 25)
 - [ ] API services decomposed into focused domain modules
 - [ ] Unified Developer Tools with request logging, operation profiling, and granular settings
-- [ ] All dependencies updated to latest compatible versions
+- ✓ All dependencies updated to latest compatible versions — Validated in Phase 25: tooling-dependencies
 
 ### Out of Scope
 
@@ -156,4 +156,4 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - Accessibility fixes
 
 ---
-*Last updated: 2026-03-19 after v1.4 milestone start*
+*Last updated: 2026-03-19 after Phase 25 (tooling-dependencies) complete*
