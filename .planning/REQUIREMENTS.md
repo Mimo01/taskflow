@@ -44,9 +44,9 @@ Requirements for the v1.3 UX & Branding milestone. Each maps to roadmap phases.
 - [x] **KEYS-01**: User can open a keyboard shortcuts reference panel with the ? key from anywhere in the app
 - [x] **KEYS-02**: Shortcuts panel is dismissable with Escape
 - [x] **KEYS-03**: Global navigation shortcuts: ⌘⇧S = Sprint Board, ⌘⇧B = Backlog, ⌘⇧N = Notifications
-- [x] **KEYS-04**: J/K navigation works in My Tasks list (J/K moves focus, Enter opens detail)
-- [x] **KEYS-05**: J/K navigation works in Notifications list (J/K moves focus, Enter opens detail)
-- [x] **KEYS-06**: J/K navigation works in Backlog list (J/K moves focus, Enter opens detail)
+- [ ] **KEYS-04**: J/K navigation works in My Tasks list (J/K moves focus, Enter opens detail)
+- ~~**KEYS-05**: J/K navigation works in Notifications list (J/K moves focus, Enter opens detail)~~ — **descoped** (notifications route intentionally removed)
+- [ ] **KEYS-06**: J/K navigation works in Backlog list (J/K moves focus, Enter opens detail)
 - [x] **KEYS-07**: Keyboard shortcuts do not fire when focus is inside any text input or contenteditable
 
 ### Recent Items
@@ -118,16 +118,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | HEADER-05 | Phase 21 | Complete |
 | HEADER-06 | Phase 21 | Complete |
 | HEADER-07 | Phase 21 | Complete |
-| KEYS-04 | Phase 21 | Complete |
-| KEYS-05 | Phase 21 | Complete |
-| KEYS-06 | Phase 21 | Complete |
-| POLISH-01 | Phase 22 | Pending |
-| POLISH-02 | Phase 22 | Pending |
-| POLISH-03 | Phase 22 | Pending |
+| KEYS-04 | Phase 23 | Pending |
+| KEYS-05 | — | Descoped |
+| KEYS-06 | Phase 23 | Pending |
+| POLISH-01 | Phase 24 | Pending |
+| POLISH-02 | Phase 24 | Pending |
+| POLISH-03 | Phase 24 | Pending |
 
 **Coverage:**
 - v1.3 requirements: 32 total
-- Mapped to phases: 32
+- Mapped to phases: 31
+- Descoped: 1 (KEYS-05)
 - Unmapped: 0 ✓
 
 ---

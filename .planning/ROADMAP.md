@@ -59,6 +59,8 @@ See archive: `.planning/milestones/v1.2-ROADMAP.md`
 - [x] **Phase 20: Command Palette + Recent Items** - Cmd+K overlay with fuzzy search across cached issues/MRs/nav actions, recent items popover in TopBar, and Cmd+Shift+S/B/N nav shortcuts (completed 2026-03-16)
 - [x] **Phase 21: Header Redesign + Pinned Issue Tabs** - Redesigned TopBar with branding, pinned-issue tab strip below the top bar, and J/K keyboard navigation in list views (UAT gap closure in progress) (completed 2026-03-16)
 - [x] **Phase 22: Polish — Empty States + Error Recovery** - Illustrated empty states and actionable error recovery applied consistently across all data views (completed 2026-03-16)
+- [ ] **Phase 23: Fix J/K Guard When Detail Sheet Open** - Pass selectedIssueKey via Outlet context and add guard so J/K navigation is disabled while issue detail sheet is open (gap closure)
+- [ ] **Phase 24: Verify Phase 22 (Empty States + Error Recovery)** - Write missing VERIFICATION.md for Phase 22 to confirm POLISH-01/02/03 satisfaction (gap closure)
 
 ## Phase Details
 
@@ -155,6 +157,25 @@ Plans:
 - [ ] 22-01-PLAN.md — Foundation: ApiError class + EmptyState + ErrorState + StaleDataBanner shared components
 - [ ] 22-02-PLAN.md — Sweep views 1-5: MyTasks, SprintBoard, SprintProgress, Backlog, MrAttention
 - [ ] 22-03-PLAN.md — Sweep views 6-10: Workload, Releases, Epics, Notifications, CommandPalette
+
+### Phase 23: Fix J/K Guard When Detail Sheet Open
+**Goal**: J/K list navigation is suppressed whenever the issue detail sheet is open, preventing unintended row changes behind the sheet
+**Depends on**: Phase 21 (useListNavigation hook exists)
+**Requirements**: KEYS-04, KEYS-06
+**Gap Closure:** Closes gaps from v1.3 audit
+**Success Criteria** (what must be TRUE):
+  1. When the issue detail sheet is open in My Tasks, pressing J or K does not change the focused row
+  2. When the issue detail sheet is open in Backlog, pressing J or K does not change the focused row
+  3. selectedIssueKey is available in Outlet context for child routes to consume
+
+### Phase 24: Verify Phase 22 (Empty States + Error Recovery)
+**Goal**: Phase 22 has a complete VERIFICATION.md confirming all empty state and error recovery requirements are satisfied
+**Depends on**: Phase 22 (code complete)
+**Requirements**: POLISH-01, POLISH-02, POLISH-03
+**Gap Closure:** Closes gaps from v1.3 audit
+**Success Criteria** (what must be TRUE):
+  1. VERIFICATION.md exists in .planning/phases/22-polish-empty-states-error-recovery/
+  2. All 3 POLISH requirements are individually verified with evidence
 
 ## Progress
 
