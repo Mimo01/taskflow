@@ -87,7 +87,10 @@ See archive: `.planning/milestones/v1.3-ROADMAP.md`
   2. A CI-ready script exists that fails on lint/format violations
   3. All npm dependencies are at their latest compatible versions with no runtime regressions
   4. `npm audit` shows no high/critical vulnerabilities introduced by updates
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 25-01-PLAN.md — Install Biome, configure linting/formatting, auto-fix entire codebase
+- [ ] 25-02-PLAN.md — Update all npm dependencies (minor/patch + 4 major jumps)
 
 ### Phase 26: Test Regression Fixes
 **Goal**: All pre-existing test failures and warnings are resolved so the test suite runs clean
@@ -164,7 +167,7 @@ See archive: `.planning/milestones/v1.3-ROADMAP.md`
 | 22. Polish — Empty States + Error Recovery | v1.3 | 3/3 | Complete | 2026-03-16 |
 | 23. Fix J/K Guard | v1.3 | — | Complete | 2026-03-19 |
 | 24. Verify Phase 22 | v1.3 | 1/1 | Complete | 2026-03-19 |
-| 25. Tooling & Dependencies | v1.4 | 0/? | Not started | - |
+| 25. Tooling & Dependencies | v1.4 | 0/2 | Not started | - |
 | 26. Test Regression Fixes | v1.4 | 0/? | Not started | - |
 | 27. Refactoring & Type Safety | v1.4 | 0/? | Not started | - |
 | 28. Test Coverage, Performance & Accessibility | v1.4 | 0/? | Not started | - |
