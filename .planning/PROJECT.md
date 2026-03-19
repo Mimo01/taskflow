@@ -140,7 +140,7 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - **Team:** Orange eshop project — developers + project managers using the same app with role-based views
 - **Scale:** One Jira project + one GitLab project at a time
 - **Build:** Portable executable — no installer, no admin rights; `createHashRouter` for SPA routing in production
-- **Known caveats (v1.3):** 10 non-blocking tech debt items from milestone audit; Cmd+Shift nav shortcut deviation needs product owner sign-off; 8 pre-existing LazyStore teardown warnings in tests
+- **Known caveats (v1.3):** 10 non-blocking tech debt items from milestone audit; Cmd+Shift nav shortcut deviation needs product owner sign-off
 
 ## Current Milestone: v1.4 Internal Quality & Performance
 
@@ -156,4 +156,4 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - Accessibility fixes
 
 ---
-*Last updated: 2026-03-19 after Phase 25 (tooling-dependencies) complete*
+*Last updated: 2026-03-19 after Phase 26 (test-regression-fixes) complete — all test failures resolved, tsc --noEmit passes clean*
