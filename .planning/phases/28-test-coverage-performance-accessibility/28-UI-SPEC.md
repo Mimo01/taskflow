@@ -47,14 +47,16 @@ Exceptions: Virtualized row height estimates -- BacklogRow 44px, NotificationIte
 
 ## Typography
 
-No typography changes in this phase. Existing values preserved:
+No typography changes in this phase. Existing values preserved (2-weight scale: 400 regular, 600 semibold):
 
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 14px | 400 | 1.5 |
-| Label | 12px | 500 | 1.4 |
+| Label | 12px | 400 | 1.4 |
 | Heading | 20px | 600 | 1.2 |
 | Display | 28px | 600 | 1.2 |
+
+Label is differentiated from Body by size (12px vs 14px), not weight. Two weights only: 400 (Body, Label) and 600 (Heading, Display).
 
 Source: Inherited from existing project. No modifications in this phase.
 
@@ -232,7 +234,7 @@ No new shadcn components added in this phase. No third-party registries.
 - [ ] Dimension 1 Copywriting: PASS (no new copy -- N/A confirmation)
 - [ ] Dimension 2 Visuals: PASS (no visual changes -- virtualization is invisible)
 - [ ] Dimension 3 Color: PASS (no color changes)
-- [ ] Dimension 4 Typography: PASS (no typography changes)
+- [ ] Dimension 4 Typography: PASS (2 weights: 400, 600)
 - [ ] Dimension 5 Spacing: PASS (row height estimates documented)
 - [ ] Dimension 6 Registry Safety: PASS (no new registries)
 
