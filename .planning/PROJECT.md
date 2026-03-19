@@ -49,8 +49,8 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ### Active
 
-- [ ] Codebase hardened with comprehensive test coverage, consistent patterns, and automated linting (Biome linting validated in Phase 25)
-- [ ] API services decomposed into focused domain modules
+- [ ] Codebase hardened with comprehensive test coverage, consistent patterns, and automated linting (Biome linting validated in Phase 25; refactoring & type safety validated in Phase 27)
+- ✓ API services decomposed into focused domain modules — Validated in Phase 27: refactoring-type-safety
 - [ ] Unified Developer Tools with request logging, operation profiling, and granular settings
 - ✓ All dependencies updated to latest compatible versions — Validated in Phase 25: tooling-dependencies
 
@@ -156,4 +156,4 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - Accessibility fixes
 
 ---
-*Last updated: 2026-03-19 after Phase 26 (test-regression-fixes) complete — all test failures resolved, tsc --noEmit passes clean*
+*Last updated: 2026-03-19 after Phase 27 (refactoring-type-safety) complete — jira.ts decomposed into 14 modules, 2 large components split, all double-casts eliminated, noExplicitAny enforced*
