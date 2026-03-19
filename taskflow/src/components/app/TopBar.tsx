@@ -8,11 +8,12 @@
  *
  * CRITICAL: TopBar must NOT use useQuery directly.
  */
-import { useEffect, useRef, useState } from 'react';
+
 import { Bell, Search } from 'lucide-react';
-import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
-import { useUnreadCount } from '../../stores/notifications.store';
+import { useEffect, useRef, useState } from 'react';
 import NotificationPopover from '../../routes/notifications/NotificationPopover';
+import { useUnreadCount } from '../../stores/notifications.store';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import RecentItemsPopover from './RecentItemsPopover';
 
 interface TopBarProps {
@@ -30,7 +31,13 @@ interface TopBarProps {
   onNotifPopoverChange: (open: boolean) => void;
 }
 
-export default function TopBar({ onIssueClick, onMRClick, onPaletteOpen, notifPopoverOpen, onNotifPopoverChange }: TopBarProps) {
+export default function TopBar({
+  onIssueClick,
+  onMRClick,
+  onPaletteOpen,
+  notifPopoverOpen,
+  onNotifPopoverChange,
+}: TopBarProps) {
   const unreadCount = useUnreadCount();
   const prevCountRef = useRef(unreadCount);
   const [bellPulse, setBellPulse] = useState(false);
@@ -77,15 +84,23 @@ export default function TopBar({ onIssueClick, onMRClick, onPaletteOpen, notifPo
           className="relative flex items-center justify-center w-8 h-8 rounded hover:bg-muted transition-colors"
           aria-label="Notifications"
         >
-          <Bell className={`w-5 h-5 transition-transform ${bellPulse ? 'animate-bell-ring' : ''}`} />
+          <Bell
+            className={`w-5 h-5 transition-transform ${bellPulse ? 'animate-bell-ring' : ''}`}
+          />
           {unreadCount > 0 && (
-            <span className={`absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[1.1rem] h-[1.1rem] flex items-center justify-center px-0.5 ${bellPulse ? 'animate-pulse' : ''}`}>
+            <span
+              className={`absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[1.1rem] h-[1.1rem] flex items-center justify-center px-0.5 ${bellPulse ? 'animate-pulse' : ''}`}
+            >
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
         </PopoverTrigger>
         <PopoverContent className="p-0 w-[28rem]">
-          <NotificationPopover onIssueClick={onIssueClick} onMRClick={onMRClick} onClose={() => onNotifPopoverChange(false)} />
+          <NotificationPopover
+            onIssueClick={onIssueClick}
+            onMRClick={onMRClick}
+            onClose={() => onNotifPopoverChange(false)}
+          />
         </PopoverContent>
       </Popover>
     </header>

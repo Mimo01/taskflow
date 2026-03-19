@@ -5,9 +5,10 @@
  * in Plans 18-03 through 18-05. They are RED at Wave 0 (component not yet
  * restructured) and will turn GREEN as plans land.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Settings from './Settings';
 import WorkflowSection from './WorkflowSection';
 
@@ -26,7 +27,11 @@ vi.mock('@/services/stronghold', () => ({
 
 // Mock jira service
 vi.mock('@/services/jira', () => ({
-  validateJira: vi.fn().mockResolvedValue({ displayName: 'Jane Smith', emailAddress: 'jane@example.com', name: 'janesmith' }),
+  validateJira: vi.fn().mockResolvedValue({
+    displayName: 'Jane Smith',
+    emailAddress: 'jane@example.com',
+    name: 'janesmith',
+  }),
   listJiraProjects: vi.fn().mockResolvedValue([]),
 }));
 

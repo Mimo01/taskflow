@@ -1,77 +1,87 @@
-import { useMemo } from 'react'
-import type { JiraIssueDetail, JiraIssue } from '@/services/jira'
-import { WikiRenderer } from './WikiRenderer'
-import type { AttachmentMap, UserMap } from './WikiRenderer'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { ExternalLink, Pencil, Pin, Plus } from 'lucide-react'
-import { openUrl } from '@tauri-apps/plugin-opener'
-import { useSettingsStore } from '@/stores/settings.store'
-import { cn } from '@/lib/utils'
-import type { EditInitialValues } from './CreateEditIssueModal'
+import { openUrl } from '@tauri-apps/plugin-opener';
+import { ExternalLink, Pencil, Pin, Plus } from 'lucide-react';
+import { useMemo } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import type { JiraIssue, JiraIssueDetail } from '@/services/jira';
+import { useSettingsStore } from '@/stores/settings.store';
+import type { EditInitialValues } from './CreateEditIssueModal';
+import type { AttachmentMap, UserMap } from './WikiRenderer';
+import { WikiRenderer } from './WikiRenderer';
 
 interface IssueDetailContentProps {
-  issue: JiraIssueDetail
-  issueKey: string
-  jiraBaseUrl: string
-  onOpenIssue?: (key: string) => void
-  storyPointsFieldKey: string
-  sprintFieldKey: string
-  epicLinkFieldKey: string
-  onEdit?: (initialValues: EditInitialValues) => void
-  onAddSubtask?: (parentKey: string) => void
-  epicStories?: JiraIssue[]
-  isPinned?: boolean
-  onTogglePin?: (key: string) => void
+  issue: JiraIssueDetail;
+  issueKey: string;
+  jiraBaseUrl: string;
+  onOpenIssue?: (key: string) => void;
+  storyPointsFieldKey: string;
+  sprintFieldKey: string;
+  epicLinkFieldKey: string;
+  onEdit?: (initialValues: EditInitialValues) => void;
+  onAddSubtask?: (parentKey: string) => void;
+  epicStories?: JiraIssue[];
+  isPinned?: boolean;
+  onTogglePin?: (key: string) => void;
 }
 
 export function relativeTime(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime()
-  const diffSecs = Math.floor(diffMs / 1000)
-  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
-  if (diffSecs < 60) return rtf.format(-diffSecs, 'second')
-  if (diffSecs < 3600) return rtf.format(-Math.floor(diffSecs / 60), 'minute')
-  if (diffSecs < 86400) return rtf.format(-Math.floor(diffSecs / 3600), 'hour')
-  return rtf.format(-Math.floor(diffSecs / 86400), 'day')
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
+  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+  if (diffSecs < 60) return rtf.format(-diffSecs, 'second');
+  if (diffSecs < 3600) return rtf.format(-Math.floor(diffSecs / 60), 'minute');
+  if (diffSecs < 86400) return rtf.format(-Math.floor(diffSecs / 3600), 'hour');
+  return rtf.format(-Math.floor(diffSecs / 86400), 'day');
 }
 
-export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, onEdit, onAddSubtask, epicStories, isPinned, onTogglePin }: IssueDetailContentProps) {
-  const { summary, description, subtasks } = issue.fields
-  const comments = issue.fields.comment?.comments ?? []
-  const { storyPointsFieldKey, epicLinkFieldKey } = useSettingsStore()
-  const isEpic = issue.fields.issuetype.name === 'Epic'
-  const isSubtask = issue.fields.issuetype.subtask
+export function IssueDetailContent({
+  issue,
+  issueKey,
+  jiraBaseUrl,
+  onOpenIssue,
+  onEdit,
+  onAddSubtask,
+  epicStories,
+  isPinned,
+  onTogglePin,
+}: IssueDetailContentProps) {
+  const { summary, description, subtasks } = issue.fields;
+  const comments = issue.fields.comment?.comments ?? [];
+  const { storyPointsFieldKey, epicLinkFieldKey } = useSettingsStore();
+  const isEpic = issue.fields.issuetype.name === 'Epic';
+  const isSubtask = issue.fields.issuetype.subtask;
 
   // Build attachment filename → URL map for resolving !image.png! references
   const attachmentMap = useMemo<AttachmentMap>(() => {
-    const map: AttachmentMap = {}
+    const map: AttachmentMap = {};
     for (const att of issue.fields.attachment ?? []) {
-      map[att.filename] = att.content
+      map[att.filename] = att.content;
     }
-    return map
-  }, [issue.fields.attachment])
+    return map;
+  }, [issue.fields.attachment]);
 
   // Build user lookup map from available issue data (assignee, reporter, comment authors)
   const userMap = useMemo<UserMap>(() => {
-    const map: UserMap = {}
-    const { assignee, reporter } = issue.fields
+    const map: UserMap = {};
+    const { assignee, reporter } = issue.fields;
     if (assignee) {
-      map[assignee.name] = assignee.displayName
+      map[assignee.name] = assignee.displayName;
     }
     if (reporter) {
-      if (reporter.name) map[reporter.name] = reporter.displayName
-      map[reporter.displayName] = reporter.displayName
+      if (reporter.name) map[reporter.name] = reporter.displayName;
+      map[reporter.displayName] = reporter.displayName;
     }
     for (const c of comments) {
       if (c.author?.displayName) {
         // Comment author may have name field in some Jira versions
-        const authorObj = c.author as { displayName: string; name?: string }
-        if (authorObj.name) map[authorObj.name] = authorObj.displayName
-        map[authorObj.displayName] = authorObj.displayName
+        const authorObj = c.author as { displayName: string; name?: string };
+        if (authorObj.name) map[authorObj.name] = authorObj.displayName;
+        map[authorObj.displayName] = authorObj.displayName;
       }
     }
-    return map
-  }, [issue.fields.assignee, issue.fields.reporter, comments])
+    return map;
+  }, [issue.fields.assignee, issue.fields.reporter, comments, issue.fields]);
 
   return (
     <div className="space-y-6">
@@ -97,9 +107,7 @@ export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, 
           <h3 className="text-sm font-medium text-muted-foreground mb-2">
             Stories{epicStories && epicStories.length > 0 ? ` (${epicStories.length})` : ''}
           </h3>
-          {!epicStories && (
-            <p className="text-sm text-muted-foreground">Loading stories…</p>
-          )}
+          {!epicStories && <p className="text-sm text-muted-foreground">Loading stories…</p>}
           {epicStories && epicStories.length === 0 && (
             <p className="text-sm text-muted-foreground italic">No stories in this epic</p>
           )}
@@ -112,9 +120,13 @@ export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, 
                     onClick={() => onOpenIssue?.(story.key)}
                     className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent text-sm text-left"
                   >
-                    <span className="font-mono text-xs text-muted-foreground shrink-0">{story.key}</span>
+                    <span className="font-mono text-xs text-muted-foreground shrink-0">
+                      {story.key}
+                    </span>
                     <span className="flex-1 truncate">{story.fields.summary}</span>
-                    <Badge variant="outline" className="text-xs shrink-0">{story.fields.status.name}</Badge>
+                    <Badge variant="outline" className="text-xs shrink-0">
+                      {story.fields.status.name}
+                    </Badge>
                   </button>
                 </li>
               ))}
@@ -139,9 +151,13 @@ export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, 
                       onClick={() => onOpenIssue?.(sub.key)}
                       className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent text-sm text-left"
                     >
-                      <span className="font-mono text-xs text-muted-foreground shrink-0">{sub.key}</span>
+                      <span className="font-mono text-xs text-muted-foreground shrink-0">
+                        {sub.key}
+                      </span>
                       <span className="flex-1 truncate">{sub.fields.summary}</span>
-                      <Badge variant="outline" className="text-xs shrink-0">{sub.fields.status.name}</Badge>
+                      <Badge variant="outline" className="text-xs shrink-0">
+                        {sub.fields.status.name}
+                      </Badge>
                     </button>
                   </li>
                 ))}
@@ -175,15 +191,17 @@ export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, 
         <Button
           variant="outline"
           size="sm"
-          onClick={() => onEdit?.({
-            issueKey,
-            summary: issue.fields.summary,
-            description: issue.fields.description ?? '',
-            assigneeName: issue.fields.assignee?.name ?? null,
-            priority: issue.fields.priority?.name ?? null,
-            storyPoints: issue.fields[storyPointsFieldKey] as number ?? null,
-            epicLinkKey: issue.fields[epicLinkFieldKey] as string ?? null,
-          })}
+          onClick={() =>
+            onEdit?.({
+              issueKey,
+              summary: issue.fields.summary,
+              description: issue.fields.description ?? '',
+              assigneeName: issue.fields.assignee?.name ?? null,
+              priority: issue.fields.priority?.name ?? null,
+              storyPoints: (issue.fields[storyPointsFieldKey] as number) ?? null,
+              epicLinkKey: (issue.fields[epicLinkFieldKey] as string) ?? null,
+            })
+          }
           className="gap-1.5 text-xs"
         >
           <Pencil className="size-3.5" />
@@ -192,7 +210,9 @@ export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, 
         <Button
           variant="outline"
           size="sm"
-          onClick={() => openUrl(`${jiraBaseUrl.replace(/\/$/, '')}/browse/${issueKey}`).catch(() => {})}
+          onClick={() =>
+            openUrl(`${jiraBaseUrl.replace(/\/$/, '')}/browse/${issueKey}`).catch(() => {})
+          }
           className="gap-1.5 text-xs"
         >
           <ExternalLink className="size-3.5" />
@@ -200,5 +220,5 @@ export function IssueDetailContent({ issue, issueKey, jiraBaseUrl, onOpenIssue, 
         </Button>
       </div>
     </div>
-  )
+  );
 }

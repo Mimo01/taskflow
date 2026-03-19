@@ -3,23 +3,23 @@
 // DEV-01, DEV-02, DEV-03, DEV-04: Phase 2 Jira sprint & transition functions
 // CREATE-01..04: Phase 11 new service functions (Wave 0 RED tests)
 // EPIC-01, EPIC-03: Phase 13 epic service functions
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  validateJira,
-  listJiraProjects,
+  bulkUpdateIssue,
+  createIssue,
+  createIssueLink,
+  fetchCreatemeta,
+  fetchEpicStories,
+  fetchEpicsWithEnrichment,
+  fetchFixVersions,
+  fetchIssueLinkTypes,
   fetchSprintIssues,
   fetchTransitions,
-  postTransition,
-  postComment,
-  fetchFixVersions,
-  fetchCreatemeta,
-  bulkUpdateIssue,
-  fetchIssueLinkTypes,
-  createIssueLink,
-  createIssue,
-  fetchEpicsWithEnrichment,
-  fetchEpicStories,
   type JiraIssue,
+  listJiraProjects,
+  postComment,
+  postTransition,
+  validateJira,
 } from './jira';
 
 vi.mock('@tauri-apps/plugin-http', () => ({
@@ -35,7 +35,11 @@ describe('jira service', () => {
 
   describe('validateJira', () => {
     it('AUTH-01: validateJira returns user data on 200 response', async () => {
-      const mockUser = { displayName: 'Jane Smith', emailAddress: 'jane@example.com', name: 'janesmith' };
+      const mockUser = {
+        displayName: 'Jane Smith',
+        emailAddress: 'jane@example.com',
+        name: 'janesmith',
+      };
       vi.mocked(mockFetch).mockResolvedValue({
         ok: true,
         status: 200,
@@ -43,7 +47,11 @@ describe('jira service', () => {
       } as Response);
 
       const result = await validateJira('https://jira.example.com', 'my-token');
-      expect(result).toEqual({ displayName: 'Jane Smith', emailAddress: 'jane@example.com', name: 'janesmith' });
+      expect(result).toEqual({
+        displayName: 'Jane Smith',
+        emailAddress: 'jane@example.com',
+        name: 'janesmith',
+      });
     });
 
     it('AUTH-01: validateJira throws "Invalid token or token has expired" on 401', async () => {
@@ -127,7 +135,10 @@ describe('jira service', () => {
       fields: {
         summary: 'Fix login bug',
         status: { id: '10001', name: 'In Progress' },
-        assignee: { displayName: 'Jane Smith', avatarUrls: { '48x48': 'https://example.com/avatar.png' } },
+        assignee: {
+          displayName: 'Jane Smith',
+          avatarUrls: { '48x48': 'https://example.com/avatar.png' },
+        },
         customfield_10016: 5,
         issuetype: { name: 'Story', subtask: false },
       },
@@ -241,7 +252,12 @@ describe('jira service', () => {
         status: 201,
       } as Response);
 
-      const result = await postComment('https://jira.example.com', 'my-token', 'PROJ-1', 'Great work!');
+      const result = await postComment(
+        'https://jira.example.com',
+        'my-token',
+        'PROJ-1',
+        'Great work!',
+      );
       expect(result).toBeUndefined();
 
       const [, options] = vi.mocked(mockFetch).mock.calls[0];
@@ -273,7 +289,9 @@ describe('jira service', () => {
           customfield_10016: 5,
           issuetype: { name: 'Story', subtask: false },
           parent: { id: '2', key: 'PROJ-0', fields: { summary: 'Parent' } },
-          subtasks: [{ id: '3', key: 'PROJ-2', fields: { summary: 'Sub', status: { name: 'To Do' } } }],
+          subtasks: [
+            { id: '3', key: 'PROJ-2', fields: { summary: 'Sub', status: { name: 'To Do' } } },
+          ],
           timetracking: { originalEstimate: '2h', timeSpent: '1h', remainingEstimate: '1h' },
         },
       };
@@ -307,7 +325,11 @@ describe('jira service', () => {
         ok: true,
         status: 200,
         json: async () => [
-          { id: 'customfield_10016', name: 'Story Points', schema: { custom: 'com.atlassian.jira.plugin.system.customfieldtypes:float' } },
+          {
+            id: 'customfield_10016',
+            name: 'Story Points',
+            schema: { custom: 'com.atlassian.jira.plugin.system.customfieldtypes:float' },
+          },
           { id: 'summary', name: 'Summary' },
         ],
       } as Response);
@@ -346,18 +368,24 @@ describe('jira service', () => {
 
   describe('APIF-02: fetchSprintIssues two-query subtask strategy', () => {
     const parentIssue = {
-      id: '1', key: 'PROJ-1',
+      id: '1',
+      key: 'PROJ-1',
       fields: {
-        summary: 'Story', status: { id: '1', name: 'In Progress' },
-        assignee: null, customfield_10016: 5,
+        summary: 'Story',
+        status: { id: '1', name: 'In Progress' },
+        assignee: null,
+        customfield_10016: 5,
         issuetype: { name: 'Story', subtask: false },
       },
     };
     const subtaskIssue = {
-      id: '10', key: 'PROJ-10',
+      id: '10',
+      key: 'PROJ-10',
       fields: {
-        summary: 'Subtask', status: { id: '2', name: 'To Do' },
-        assignee: null, customfield_10016: null,
+        summary: 'Subtask',
+        status: { id: '2', name: 'To Do' },
+        assignee: null,
+        customfield_10016: null,
         issuetype: { name: 'Sub-task', subtask: true },
         parent: { id: '1', key: 'PROJ-1', fields: { summary: 'Story' } },
       },
@@ -366,11 +394,13 @@ describe('jira service', () => {
     it('merges parent issues and subtasks into one array', async () => {
       vi.mocked(mockFetch)
         .mockResolvedValueOnce({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: async () => ({ issues: [parentIssue] }),
         } as Response)
         .mockResolvedValueOnce({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: async () => ({ issues: [subtaskIssue] }),
         } as Response);
 
@@ -383,7 +413,8 @@ describe('jira service', () => {
     it('returns parent issues only when subtask query throws', async () => {
       vi.mocked(mockFetch)
         .mockResolvedValueOnce({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: async () => ({ issues: [parentIssue] }),
         } as Response)
         .mockRejectedValueOnce(new Error('network'));
@@ -396,7 +427,8 @@ describe('jira service', () => {
     it('returns parent issues only when subtask query returns non-OK', async () => {
       vi.mocked(mockFetch)
         .mockResolvedValueOnce({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: async () => ({ issues: [parentIssue] }),
         } as Response)
         .mockResolvedValueOnce({ ok: false, status: 400 } as Response);
@@ -407,7 +439,8 @@ describe('jira service', () => {
 
     it('guard: first query JQL contains issuetype not in subtaskIssueTypes()', async () => {
       vi.mocked(mockFetch).mockResolvedValueOnce({
-        ok: true, status: 200,
+        ok: true,
+        status: 200,
         json: async () => ({ issues: [] }),
       } as Response);
 
@@ -425,13 +458,15 @@ describe('jira service', () => {
       }));
 
       const emptySubtaskResponse = {
-        ok: true, status: 200,
+        ok: true,
+        status: 200,
         json: async () => ({ issues: [] }),
       } as Response;
 
       vi.mocked(mockFetch)
         .mockResolvedValueOnce({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: async () => ({ issues: manyParents }),
         } as Response)
         .mockResolvedValueOnce(emptySubtaskResponse)
@@ -445,11 +480,13 @@ describe('jira service', () => {
     it('assignedToMe=true: subtask query JQL contains assignee = currentUser()', async () => {
       vi.mocked(mockFetch)
         .mockResolvedValueOnce({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: async () => ({ issues: [parentIssue] }),
         } as Response)
         .mockResolvedValueOnce({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: async () => ({ issues: [] }),
         } as Response);
 
@@ -460,7 +497,8 @@ describe('jira service', () => {
 
     it('regression: parent query URL includes maxResults=200 so done stories are not truncated', async () => {
       vi.mocked(mockFetch).mockResolvedValueOnce({
-        ok: true, status: 200,
+        ok: true,
+        status: 200,
         json: async () => ({ issues: [] }),
       } as Response);
 
@@ -472,11 +510,13 @@ describe('jira service', () => {
     it('assignedToMe=false: subtask query JQL does NOT contain currentUser()', async () => {
       vi.mocked(mockFetch)
         .mockResolvedValueOnce({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: async () => ({ issues: [parentIssue] }),
         } as Response)
         .mockResolvedValueOnce({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: async () => ({ issues: [] }),
         } as Response);
 
@@ -492,10 +532,7 @@ describe('jira service', () => {
         ok: true,
         status: 200,
         json: async () => ({
-          worklogs: [
-            { author: { displayName: 'Alice' } },
-            { author: { displayName: 'Alice' } },
-          ],
+          worklogs: [{ author: { displayName: 'Alice' } }, { author: { displayName: 'Alice' } }],
         }),
       } as Response);
 
@@ -509,10 +546,7 @@ describe('jira service', () => {
         ok: true,
         status: 200,
         json: async () => ({
-          worklogs: [
-            { author: { displayName: 'Alice' } },
-            { author: { displayName: 'Bob' } },
-          ],
+          worklogs: [{ author: { displayName: 'Alice' } }, { author: { displayName: 'Bob' } }],
         }),
       } as Response);
 
@@ -608,7 +642,8 @@ describe('jira service', () => {
 
   describe('PAGI-01: fetchSprintIssues pagination — fetches all pages when total > PAGE_SIZE', () => {
     const makeParent = (key: string) => ({
-      id: key, key,
+      id: key,
+      key,
       fields: {
         summary: `Story ${key}`,
         status: { id: '1', name: 'In Progress' },
@@ -625,17 +660,20 @@ describe('jira service', () => {
       vi.mocked(mockFetch)
         // Page 1 of parent issues (startAt=0)
         .mockResolvedValueOnce({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: async () => ({ issues: page1Issues, total: 250, startAt: 0, maxResults: 200 }),
         } as Response)
         // Page 2 of parent issues (startAt=200)
         .mockResolvedValueOnce({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: async () => ({ issues: page2Issues, total: 250, startAt: 200, maxResults: 200 }),
         } as Response)
         // Subtask chunks — return empty so we can count calls without complication
         .mockResolvedValue({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: async () => ({ issues: [], total: 0, startAt: 0, maxResults: 200 }),
         } as Response);
 
@@ -656,12 +694,14 @@ describe('jira service', () => {
       vi.mocked(mockFetch)
         // Single page — total=50, PAGE_SIZE=200 so no second page needed
         .mockResolvedValueOnce({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: async () => ({ issues, total: 50, startAt: 0, maxResults: 200 }),
         } as Response)
         // Subtask chunk query
         .mockResolvedValueOnce({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: async () => ({ issues: [], total: 0, startAt: 0, maxResults: 200 }),
         } as Response);
 
@@ -674,7 +714,8 @@ describe('jira service', () => {
     it('fetches multiple pages of subtasks when a chunk has >200 subtasks', async () => {
       const parent = makeParent('P-1');
       const subtaskPage1 = Array.from({ length: 200 }, (_, i) => ({
-        id: `ST-${i}`, key: `ST-${i}`,
+        id: `ST-${i}`,
+        key: `ST-${i}`,
         fields: {
           summary: `Sub ${i}`,
           status: { id: '2', name: 'To Do' },
@@ -685,7 +726,8 @@ describe('jira service', () => {
         },
       }));
       const subtaskPage2 = Array.from({ length: 30 }, (_, i) => ({
-        id: `ST-${200 + i}`, key: `ST-${200 + i}`,
+        id: `ST-${200 + i}`,
+        key: `ST-${200 + i}`,
         fields: {
           summary: `Sub ${200 + i}`,
           status: { id: '2', name: 'To Do' },
@@ -699,17 +741,20 @@ describe('jira service', () => {
       vi.mocked(mockFetch)
         // Parent query: 1 parent, total=1
         .mockResolvedValueOnce({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: async () => ({ issues: [parent], total: 1, startAt: 0, maxResults: 200 }),
         } as Response)
         // Subtask page 1: 200 subtasks, total=230
         .mockResolvedValueOnce({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: async () => ({ issues: subtaskPage1, total: 230, startAt: 0, maxResults: 200 }),
         } as Response)
         // Subtask page 2: remaining 30 subtasks
         .mockResolvedValueOnce({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: async () => ({ issues: subtaskPage2, total: 230, startAt: 200, maxResults: 200 }),
         } as Response);
 
@@ -721,16 +766,22 @@ describe('jira service', () => {
 
   describe('PAGI-02: fetchIssueWorklogs pagination — fetches all pages', () => {
     it('fetches page 2 when total=300 and first page returns 200 worklogs', async () => {
-      const page1 = Array.from({ length: 200 }, (_, i) => ({ author: { displayName: `Author${i}` } }));
-      const page2 = Array.from({ length: 100 }, (_, i) => ({ author: { displayName: `Author${200 + i}` } }));
+      const page1 = Array.from({ length: 200 }, (_, i) => ({
+        author: { displayName: `Author${i}` },
+      }));
+      const page2 = Array.from({ length: 100 }, (_, i) => ({
+        author: { displayName: `Author${200 + i}` },
+      }));
 
       vi.mocked(mockFetch)
         .mockResolvedValueOnce({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: async () => ({ worklogs: page1, total: 300, startAt: 0, maxResults: 200 }),
         } as Response)
         .mockResolvedValueOnce({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: async () => ({ worklogs: page2, total: 300, startAt: 200, maxResults: 200 }),
         } as Response);
 
@@ -752,7 +803,8 @@ describe('jira service', () => {
     it('deduplicates authors across pages — same author on multiple pages counted once', async () => {
       vi.mocked(mockFetch)
         .mockResolvedValueOnce({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: async () => ({
             worklogs: [{ author: { displayName: 'Alice' } }],
             total: 2,
@@ -761,7 +813,8 @@ describe('jira service', () => {
           }),
         } as Response)
         .mockResolvedValueOnce({
-          ok: true, status: 200,
+          ok: true,
+          status: 200,
           json: async () => ({
             worklogs: [{ author: { displayName: 'Alice' } }],
             total: 2,
@@ -782,10 +835,26 @@ describe('jira service', () => {
         ok: true,
         status: 200,
         json: async () => [
-          { id: 'customfield_10100', name: 'Epic Link', schema: { custom: 'com.pyxis.greenhopper.jira:gh-epic-link' } },
-          { id: 'customfield_10016', name: 'Story Points', schema: { custom: 'com.atlassian.jira.plugin.system.customfieldtypes:float' } },
-          { id: 'customfield_10020', name: 'Sprint', schema: { custom: 'com.pyxis.greenhopper.jira:gh-sprint' } },
-          { id: 'customfield_10015', name: 'Epic Name', schema: { custom: 'com.pyxis.greenhopper.jira:gh-epic-label' } },
+          {
+            id: 'customfield_10100',
+            name: 'Epic Link',
+            schema: { custom: 'com.pyxis.greenhopper.jira:gh-epic-link' },
+          },
+          {
+            id: 'customfield_10016',
+            name: 'Story Points',
+            schema: { custom: 'com.atlassian.jira.plugin.system.customfieldtypes:float' },
+          },
+          {
+            id: 'customfield_10020',
+            name: 'Sprint',
+            schema: { custom: 'com.pyxis.greenhopper.jira:gh-sprint' },
+          },
+          {
+            id: 'customfield_10015',
+            name: 'Epic Name',
+            schema: { custom: 'com.pyxis.greenhopper.jira:gh-epic-label' },
+          },
         ],
       } as Response);
       const { discoverCustomFields } = await import('./jira');
@@ -798,7 +867,11 @@ describe('jira service', () => {
         ok: true,
         status: 200,
         json: async () => [
-          { id: 'customfield_10055', name: 'Sprint', schema: { custom: 'com.pyxis.greenhopper.jira:gh-sprint' } },
+          {
+            id: 'customfield_10055',
+            name: 'Sprint',
+            schema: { custom: 'com.pyxis.greenhopper.jira:gh-sprint' },
+          },
         ],
       } as Response);
       const { discoverCustomFields } = await import('./jira');
@@ -811,7 +884,11 @@ describe('jira service', () => {
         ok: true,
         status: 200,
         json: async () => [
-          { id: 'customfield_10028', name: 'Story Points', schema: { custom: 'com.atlassian.jira.plugin.system.customfieldtypes:float' } },
+          {
+            id: 'customfield_10028',
+            name: 'Story Points',
+            schema: { custom: 'com.atlassian.jira.plugin.system.customfieldtypes:float' },
+          },
         ],
       } as Response);
       const { discoverCustomFields } = await import('./jira');
@@ -911,12 +988,16 @@ describe('jira service', () => {
         json: async () => ({}),
       } as Response);
       const { updateIssueField } = await import('./jira');
-      await updateIssueField('https://jira.example.com', 'token', 'PROJ-1', 'priority', { name: 'High' });
+      await updateIssueField('https://jira.example.com', 'token', 'PROJ-1', 'priority', {
+        name: 'High',
+      });
       const call = vi.mocked(mockFetch).mock.calls[0];
       expect(call[0]).toContain('/rest/api/2/issue/PROJ-1');
       const options = call[1] as RequestInit;
       expect(options.method).toBe('PUT');
-      expect(JSON.parse(options.body as string)).toEqual({ fields: { priority: { name: 'High' } } });
+      expect(JSON.parse(options.body as string)).toEqual({
+        fields: { priority: { name: 'High' } },
+      });
     });
 
     it('does not throw on 204 response (Jira DC success)', async () => {
@@ -1052,7 +1133,12 @@ describe('jira service', () => {
     it('returns required fields from new 8.4+ endpoint (mock 200 with values array)', async () => {
       const mockFields = [
         { fieldId: 'summary', name: 'Summary', required: true, schema: { type: 'string' } },
-        { fieldId: 'customfield_10200', name: 'Account', required: true, schema: { type: 'option', custom: 'com.example:account' } },
+        {
+          fieldId: 'customfield_10200',
+          name: 'Account',
+          required: true,
+          schema: { type: 'option', custom: 'com.example:account' },
+        },
       ];
       vi.mocked(mockFetch).mockResolvedValue({
         ok: true,
@@ -1060,7 +1146,13 @@ describe('jira service', () => {
         json: async () => ({ values: mockFields }),
       } as Response);
 
-      const result = await fetchCreatemeta('https://jira.example.com', 'token', 'PROJ', '10001', 'Story');
+      const result = await fetchCreatemeta(
+        'https://jira.example.com',
+        'token',
+        'PROJ',
+        '10001',
+        'Story',
+      );
 
       const callUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
       expect(callUrl).toContain('/rest/api/2/issue/createmeta/PROJ/issuetypes/10001');
@@ -1069,8 +1161,18 @@ describe('jira service', () => {
 
     it('falls back to legacy flat endpoint when new endpoint returns 404', async () => {
       const legacyFields = {
-        summary: { fieldId: 'summary', name: 'Summary', required: true, schema: { type: 'string' } },
-        customfield_10200: { fieldId: 'customfield_10200', name: 'Account', required: true, schema: { type: 'option' } },
+        summary: {
+          fieldId: 'summary',
+          name: 'Summary',
+          required: true,
+          schema: { type: 'string' },
+        },
+        customfield_10200: {
+          fieldId: 'customfield_10200',
+          name: 'Account',
+          required: true,
+          schema: { type: 'option' },
+        },
       };
       vi.mocked(mockFetch)
         .mockResolvedValueOnce({
@@ -1081,15 +1183,25 @@ describe('jira service', () => {
           ok: true,
           status: 200,
           json: async () => ({
-            projects: [{
-              issuetypes: [{
-                fields: legacyFields,
-              }],
-            }],
+            projects: [
+              {
+                issuetypes: [
+                  {
+                    fields: legacyFields,
+                  },
+                ],
+              },
+            ],
           }),
         } as Response);
 
-      const result = await fetchCreatemeta('https://jira.example.com', 'token', 'PROJ', '10001', 'Story');
+      const result = await fetchCreatemeta(
+        'https://jira.example.com',
+        'token',
+        'PROJ',
+        '10001',
+        'Story',
+      );
 
       const secondCallUrl = vi.mocked(mockFetch).mock.calls[1][0] as string;
       expect(secondCallUrl).toContain('/rest/api/2/issue/createmeta');
@@ -1142,7 +1254,9 @@ describe('jira service', () => {
       } as Response);
 
       await expect(
-        bulkUpdateIssue('https://jira.example.com', 'token', 'PROJ-5', { customfield_99999: 'bad' }),
+        bulkUpdateIssue('https://jira.example.com', 'token', 'PROJ-5', {
+          customfield_99999: 'bad',
+        }),
       ).rejects.toThrow('Field not on screen: customfield_99999');
     });
   });
@@ -1227,7 +1341,12 @@ describe('jira service', () => {
       };
     }
 
-    function makeStoryIssue(key: string, epicKey: string, done = false, points: number | null = 0): JiraIssue {
+    function makeStoryIssue(
+      key: string,
+      epicKey: string,
+      done = false,
+      points: number | null = 0,
+    ): JiraIssue {
       return {
         id: key,
         key,
@@ -1270,18 +1389,22 @@ describe('jira service', () => {
         .mockResolvedValueOnce(makeJsonResponse({ issues: stories, total: 5 }));
 
       const result = await fetchEpicsWithEnrichment(
-        'https://jira.example.com', 'token', 'PROJ',
-        'customfield_10016', 'customfield_10014', 'customfield_10015',
+        'https://jira.example.com',
+        'token',
+        'PROJ',
+        'customfield_10016',
+        'customfield_10014',
+        'customfield_10015',
       );
 
       expect(result).toHaveLength(2);
-      const alpha = result.find(e => e.key === 'PROJ-10')!;
+      const alpha = result.find((e) => e.key === 'PROJ-10')!;
       expect(alpha.epicName).toBe('Epic Alpha');
       expect(alpha.totalStories).toBe(3);
       expect(alpha.doneStories).toBe(1);
       expect(alpha.totalPoints).toBe(8);
 
-      const beta = result.find(e => e.key === 'PROJ-11')!;
+      const beta = result.find((e) => e.key === 'PROJ-11')!;
       expect(beta.totalStories).toBe(2);
       expect(beta.doneStories).toBe(1);
       expect(beta.totalPoints).toBe(2);
@@ -1294,8 +1417,12 @@ describe('jira service', () => {
         .mockResolvedValueOnce(makeJsonResponse({ issues: [], total: 0 }));
 
       const result = await fetchEpicsWithEnrichment(
-        'https://jira.example.com', 'token', 'PROJ',
-        'customfield_10016', 'customfield_10014', 'customfield_10015',
+        'https://jira.example.com',
+        'token',
+        'PROJ',
+        'customfield_10016',
+        'customfield_10014',
+        'customfield_10015',
       );
       expect(result[0].epicName).toBe('Summary of PROJ-10');
     });
@@ -1307,8 +1434,12 @@ describe('jira service', () => {
         .mockRejectedValueOnce(new Error('network failure'));
 
       const result = await fetchEpicsWithEnrichment(
-        'https://jira.example.com', 'token', 'PROJ',
-        'customfield_10016', 'customfield_10014', 'customfield_10015',
+        'https://jira.example.com',
+        'token',
+        'PROJ',
+        'customfield_10016',
+        'customfield_10014',
+        'customfield_10015',
       );
       expect(result).toHaveLength(1);
       expect(result[0].totalStories).toBe(0);
@@ -1323,8 +1454,12 @@ describe('jira service', () => {
         .mockResolvedValueOnce(makeJsonResponse({ issues: [], total: 0 }));
 
       await fetchEpicsWithEnrichment(
-        'https://jira.example.com', 'token', 'PROJ',
-        'customfield_10016', 'customfield_10014', 'customfield_10015',
+        'https://jira.example.com',
+        'token',
+        'PROJ',
+        'customfield_10016',
+        'customfield_10014',
+        'customfield_10015',
       );
 
       const calls = vi.mocked(mockFetch).mock.calls;
@@ -1335,9 +1470,7 @@ describe('jira service', () => {
     it('returns empty array when no epics found', async () => {
       vi.mocked(mockFetch).mockResolvedValueOnce(makeJsonResponse({ issues: [], total: 0 }));
 
-      const result = await fetchEpicsWithEnrichment(
-        'https://jira.example.com', 'token', 'PROJ',
-      );
+      const result = await fetchEpicsWithEnrichment('https://jira.example.com', 'token', 'PROJ');
       expect(result).toEqual([]);
     });
   });
@@ -1365,9 +1498,7 @@ describe('jira service', () => {
         json: () => Promise.resolve({ issues: stories, total: 2 }),
       } as unknown as Response);
 
-      const result = await fetchEpicStories(
-        'https://jira.example.com', 'token', 'PROJ-42', 'PROJ',
-      );
+      const result = await fetchEpicStories('https://jira.example.com', 'token', 'PROJ-42', 'PROJ');
       expect(result).toHaveLength(2);
       expect(result[0].key).toBe('PROJ-1');
 
@@ -1379,9 +1510,7 @@ describe('jira service', () => {
     it('returns empty array on fetch failure without throwing', async () => {
       vi.mocked(mockFetch).mockRejectedValue(new Error('network error'));
 
-      const result = await fetchEpicStories(
-        'https://jira.example.com', 'token', 'PROJ-42', 'PROJ',
-      );
+      const result = await fetchEpicStories('https://jira.example.com', 'token', 'PROJ-42', 'PROJ');
       expect(result).toEqual([]);
     });
   });

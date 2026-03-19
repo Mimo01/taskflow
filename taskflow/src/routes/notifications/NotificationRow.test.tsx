@@ -1,11 +1,14 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import NotificationRow from './NotificationRow';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import type { NotificationItem } from '../../stores/notifications.store';
+import NotificationRow from './NotificationRow';
 
 vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: vi.fn() }));
 
-function makeItem(source: 'jira' | 'gitlab', overrides?: Partial<NotificationItem>): NotificationItem {
+function makeItem(
+  source: 'jira' | 'gitlab',
+  overrides?: Partial<NotificationItem>,
+): NotificationItem {
   return {
     id: `${source}-item-1`,
     source,
@@ -29,7 +32,12 @@ describe('NotificationRow', () => {
   });
 
   it('renders initials fallback when no avatar', () => {
-    render(<NotificationRow item={makeItem('jira', { authorAvatarUrl: undefined })} onClick={() => {}} />);
+    render(
+      <NotificationRow
+        item={makeItem('jira', { authorAvatarUrl: undefined })}
+        onClick={() => {}}
+      />,
+    );
     expect(screen.getByText('JS')).toBeInTheDocument(); // Jane Smith → JS
   });
 
@@ -53,18 +61,33 @@ describe('NotificationRow', () => {
   });
 
   it('renders type badge for comment-mention', () => {
-    render(<NotificationRow item={makeItem('jira', { notificationType: 'comment-mention' })} onClick={() => {}} />);
+    render(
+      <NotificationRow
+        item={makeItem('jira', { notificationType: 'comment-mention' })}
+        onClick={() => {}}
+      />,
+    );
     expect(screen.getByText('Mentioned you')).toBeInTheDocument();
     expect(screen.getByTestId('type-badge')).toBeInTheDocument();
   });
 
   it('renders type badge for mr-approval', () => {
-    render(<NotificationRow item={makeItem('gitlab', { notificationType: 'mr-approval' })} onClick={() => {}} />);
+    render(
+      <NotificationRow
+        item={makeItem('gitlab', { notificationType: 'mr-approval' })}
+        onClick={() => {}}
+      />,
+    );
     expect(screen.getByText('Approved')).toBeInTheDocument();
   });
 
   it('renders type badge for issue-assignment', () => {
-    render(<NotificationRow item={makeItem('jira', { notificationType: 'issue-assignment' })} onClick={() => {}} />);
+    render(
+      <NotificationRow
+        item={makeItem('jira', { notificationType: 'issue-assignment' })}
+        onClick={() => {}}
+      />,
+    );
     expect(screen.getByText('Assigned to you')).toBeInTheDocument();
   });
 
@@ -76,13 +99,20 @@ describe('NotificationRow', () => {
   });
 
   it('renders full title when no issue key', () => {
-    render(<NotificationRow item={makeItem('gitlab', { entityTitle: 'Some MR title' })} onClick={() => {}} />);
+    render(
+      <NotificationRow
+        item={makeItem('gitlab', { entityTitle: 'Some MR title' })}
+        onClick={() => {}}
+      />,
+    );
     expect(screen.getByText('Some MR title')).toBeInTheDocument();
   });
 
   // Entity state badge
   it('renders entity state badge when present', () => {
-    render(<NotificationRow item={makeItem('gitlab', { entityState: 'merged' })} onClick={() => {}} />);
+    render(
+      <NotificationRow item={makeItem('gitlab', { entityState: 'merged' })} onClick={() => {}} />,
+    );
     expect(screen.getByText('Merged')).toBeInTheDocument();
   });
 
@@ -100,20 +130,29 @@ describe('NotificationRow', () => {
 
   // Unread state — blue tinted background + ring on avatar
   it('applies blue tint background when unread', () => {
-    const { container } = render(<NotificationRow item={makeItem('jira')} isUnread onClick={() => {}} />);
+    const { container } = render(
+      <NotificationRow item={makeItem('jira')} isUnread onClick={() => {}} />,
+    );
     const btn = container.querySelector('[data-testid="notification-row"]');
     expect(btn?.className).toContain('bg-blue-500');
   });
 
   it('does not apply blue tint when read', () => {
-    const { container } = render(<NotificationRow item={makeItem('jira')} isUnread={false} onClick={() => {}} />);
+    const { container } = render(
+      <NotificationRow item={makeItem('jira')} isUnread={false} onClick={() => {}} />,
+    );
     const btn = container.querySelector('[data-testid="notification-row"]');
     expect(btn?.className).not.toContain('bg-blue-500');
   });
 
   // Parent story chip
   it('renders parent story chip when parentKey present', () => {
-    render(<NotificationRow item={makeItem('jira', { parentKey: 'PROJ-100', parentSummary: 'User Login Flow' })} onClick={() => {}} />);
+    render(
+      <NotificationRow
+        item={makeItem('jira', { parentKey: 'PROJ-100', parentSummary: 'User Login Flow' })}
+        onClick={() => {}}
+      />,
+    );
     expect(screen.getByText('PROJ-100')).toBeInTheDocument();
     expect(screen.getByText('User Login Flow')).toBeInTheDocument();
     expect(screen.getByText('Parent')).toBeInTheDocument();
@@ -148,10 +187,15 @@ describe('NotificationRow', () => {
 
   // Status change formatting
   it('renders status changes with old→new chip style', () => {
-    render(<NotificationRow item={makeItem('jira', {
-      notificationType: 'issue-update',
-      bodyPreview: 'Status: In Progress \u2192 Done',
-    })} onClick={() => {}} />);
+    render(
+      <NotificationRow
+        item={makeItem('jira', {
+          notificationType: 'issue-update',
+          bodyPreview: 'Status: In Progress \u2192 Done',
+        })}
+        onClick={() => {}}
+      />,
+    );
     expect(screen.getByText('Status')).toBeInTheDocument();
     expect(screen.getByText('In Progress')).toBeInTheDocument();
     expect(screen.getByText('Done')).toBeInTheDocument();
@@ -159,10 +203,15 @@ describe('NotificationRow', () => {
 
   // Structured field:value without arrow
   it('renders field:value updates in chip style', () => {
-    render(<NotificationRow item={makeItem('jira', {
-      notificationType: 'issue-update',
-      bodyPreview: 'Priority: High',
-    })} onClick={() => {}} />);
+    render(
+      <NotificationRow
+        item={makeItem('jira', {
+          notificationType: 'issue-update',
+          bodyPreview: 'Priority: High',
+        })}
+        onClick={() => {}}
+      />,
+    );
     expect(screen.getByText('Priority')).toBeInTheDocument();
     expect(screen.getByText('High')).toBeInTheDocument();
   });

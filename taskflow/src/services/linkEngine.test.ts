@@ -1,14 +1,14 @@
 // LINK-01, LINK-02: Ticket-key extraction and MR-to-task linking
 // DEV-03: Review health derivation and stale detection
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import type { Discussion, GitLabMR, MRApprovals } from './gitlab';
 import {
+  deriveReviewHealth,
   extractTicketKeys,
+  isStale,
   linkMRToTask,
   linkMRToTaskViaCommits,
-  deriveReviewHealth,
-  isStale,
 } from './linkEngine';
-import type { GitLabMR, MRApprovals, Discussion } from './gitlab';
 
 const baseMR: GitLabMR = {
   id: 101,
@@ -71,13 +71,21 @@ describe('linkEngine', () => {
     });
 
     it('LINK-02: returns null when key in title not in sprint set', () => {
-      const mr = { ...baseMR, title: '[PROJ-99] something', source_branch: 'feature/PROJ-99-something' };
+      const mr = {
+        ...baseMR,
+        title: '[PROJ-99] something',
+        source_branch: 'feature/PROJ-99-something',
+      };
       const result = linkMRToTask(mr, new Set(['PROJ-42']));
       expect(result).toBeNull();
     });
 
     it('LINK-02: returns key from source_branch when title has no matching key', () => {
-      const mr = { ...baseMR, title: 'Implement feature', source_branch: 'feature/PROJ-42-implement-feature' };
+      const mr = {
+        ...baseMR,
+        title: 'Implement feature',
+        source_branch: 'feature/PROJ-42-implement-feature',
+      };
       const result = linkMRToTask(mr, new Set(['PROJ-42']));
       expect(result).toBe('PROJ-42');
     });

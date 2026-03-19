@@ -50,19 +50,19 @@ export function matchGitLabToFixVersion(
   }
 
   // Parse fixVersionDate as UTC midnight (always "YYYY-MM-DD" format from Jira)
-  const fixMs = new Date(fixVersionDate + 'T00:00:00Z').getTime();
+  const fixMs = new Date(`${fixVersionDate}T00:00:00Z`).getTime();
 
   // Parse candidate date — detect if it's a date-only string or a full ISO 8601 string
   let candMs: number;
   if (/^\d{4}-\d{2}-\d{2}$/.test(candidate.date)) {
     // Date-only string: parse as UTC midnight to prevent timezone drift
-    candMs = new Date(candidate.date + 'T00:00:00Z').getTime();
+    candMs = new Date(`${candidate.date}T00:00:00Z`).getTime();
   } else {
     // Full ISO 8601 with timezone: floor to UTC midnight
     candMs = Math.floor(new Date(candidate.date).getTime() / 86400000) * 86400000;
   }
 
-  if (isNaN(fixMs) || isNaN(candMs)) {
+  if (Number.isNaN(fixMs) || Number.isNaN(candMs)) {
     return none;
   }
 

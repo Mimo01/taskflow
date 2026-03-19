@@ -8,138 +8,145 @@
  * Reads issueKey from route params. Origin page info comes via
  * location.state.from (set by handleIssueClick in main.tsx).
  */
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, MoreVertical } from 'lucide-react'
-import { useAuthStore } from '@/stores/auth.store'
-import { useSettingsStore } from '@/stores/settings.store'
-import { usePinnedTabsStore } from '@/stores/pinned-tabs.store'
-import { useRecentItemsStore } from '@/stores/recent-items.store'
-import { readSecret } from '@/services/stronghold'
-import { fetchIssueDetail, fetchEpicStories, updateComment, deleteComment } from '@/services/jira'
-import type { JiraIssue, JiraComment } from '@/services/jira'
-import { IssueDetailContent, relativeTime } from './IssueDetailContent'
-import { IssueDetailSidebar } from './IssueDetailSidebar'
-import { CommentComposer } from './CommentComposer'
-import { WikiRenderer } from './WikiRenderer'
-import type { AttachmentMap, UserMap } from './WikiRenderer'
-import { Textarea } from '@/components/ui/textarea'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
-import { useBreadcrumbStore } from '@/stores/breadcrumb.store'
-import type { EditInitialValues } from './CreateEditIssueModal'
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, MoreVertical } from 'lucide-react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
+import type { JiraComment, JiraIssue } from '@/services/jira';
+import { deleteComment, fetchEpicStories, fetchIssueDetail, updateComment } from '@/services/jira';
+import { readSecret } from '@/services/stronghold';
+import { useAuthStore } from '@/stores/auth.store';
+import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
+import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
+import { useRecentItemsStore } from '@/stores/recent-items.store';
+import { useSettingsStore } from '@/stores/settings.store';
+import { CommentComposer } from './CommentComposer';
+import type { EditInitialValues } from './CreateEditIssueModal';
+import { IssueDetailContent, relativeTime } from './IssueDetailContent';
+import { IssueDetailSidebar } from './IssueDetailSidebar';
+import type { AttachmentMap, UserMap } from './WikiRenderer';
+import { WikiRenderer } from './WikiRenderer';
 
 export default function IssueDetailPage() {
-  const { key: issueKey } = useParams<{ key: string }>()
-  const navigate = useNavigate()
+  const { key: issueKey } = useParams<{ key: string }>();
+  const navigate = useNavigate();
 
-  const trail = useBreadcrumbStore((s) => s.trail)
-  const breadcrumbPop = useBreadcrumbStore((s) => s.pop)
+  const trail = useBreadcrumbStore((s) => s.trail);
+  const breadcrumbPop = useBreadcrumbStore((s) => s.pop);
 
   const { onIssueClick, openEdit, openAddSubtask } = useOutletContext<{
-    onIssueClick: (key: string) => void
-    openEdit: (vals: EditInitialValues) => void
-    openAddSubtask: (parentKey: string) => void
-  }>()
+    onIssueClick: (key: string) => void;
+    openEdit: (vals: EditInitialValues) => void;
+    openAddSubtask: (parentKey: string) => void;
+  }>();
 
   // Auth + settings
-  const { jiraBaseUrl, jiraConnected } = useAuthStore()
-  const jiraUserDisplayName = useAuthStore((s) => s.jiraUserDisplayName)
-  const { epicLinkFieldKey, epicNameFieldKey, sprintFieldKey, storyPointsFieldKey, epicColorFieldKey } = useSettingsStore()
+  const { jiraBaseUrl, jiraConnected } = useAuthStore();
+  const jiraUserDisplayName = useAuthStore((s) => s.jiraUserDisplayName);
+  const {
+    epicLinkFieldKey,
+    epicNameFieldKey,
+    sprintFieldKey,
+    storyPointsFieldKey,
+    epicColorFieldKey,
+  } = useSettingsStore();
 
   // Pinned state
-  const isPinned = usePinnedTabsStore((s) => issueKey ? s.pinnedKeys.includes(issueKey) : false)
-  const togglePin = usePinnedTabsStore((s) => s.togglePin)
+  const isPinned = usePinnedTabsStore((s) => (issueKey ? s.pinnedKeys.includes(issueKey) : false));
+  const togglePin = usePinnedTabsStore((s) => s.togglePin);
 
   // Recent items
-  const pushRecentItem = useRecentItemsStore((s) => s.pushItem)
+  const pushRecentItem = useRecentItemsStore((s) => s.pushItem);
 
   // Fetch issue detail
   const { data: issue, isLoading } = useQuery({
     queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl],
     queryFn: async () => {
-      const token = await readSecret('jira-pat').catch(() => null)
-      if (!token || !jiraBaseUrl) throw new Error('No credentials')
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token || !jiraBaseUrl) throw new Error('No credentials');
       return fetchIssueDetail(jiraBaseUrl, token, issueKey!, {
         epicLinkFieldKey,
         epicNameFieldKey,
         sprintFieldKey,
         storyPointsFieldKey,
         epicColorFieldKey,
-      })
+      });
     },
     staleTime: 30_000,
     enabled: !!issueKey && !!jiraBaseUrl && !!jiraConnected,
-  })
+  });
 
-  const isEpic = issue?.fields.issuetype.name === 'Epic'
+  const isEpic = issue?.fields.issuetype.name === 'Epic';
 
   const { data: epicStories } = useQuery<JiraIssue[]>({
     queryKey: ['jira-epic-stories', issueKey, jiraBaseUrl],
     queryFn: async () => {
-      const token = await readSecret('jira-pat').catch(() => null)
-      if (!token || !jiraBaseUrl) return []
-      return fetchEpicStories(jiraBaseUrl, token, issueKey!, '', storyPointsFieldKey)
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token || !jiraBaseUrl) return [];
+      return fetchEpicStories(jiraBaseUrl, token, issueKey!, '', storyPointsFieldKey);
     },
     staleTime: 30_000,
     enabled: isEpic && !!jiraBaseUrl && !!jiraConnected,
-  })
+  });
 
   // Track recent item when issue data is available
   useEffect(() => {
     if (issueKey && issue) {
-      pushRecentItem({ type: 'jira', id: issueKey, title: issue.fields.summary })
+      pushRecentItem({ type: 'jira', id: issueKey, title: issue.fields.summary });
     }
-  }, [issueKey, issue?.fields.summary])
+  }, [issueKey, issue?.fields.summary, issue, pushRecentItem]);
 
   const handleBack = () => {
     if (trail.length > 0) {
       // Pop the last entry and navigate to it
-      const target = trail[trail.length - 1]
-      breadcrumbPop()
-      navigate(target.path, { replace: true })
+      const target = trail[trail.length - 1];
+      breadcrumbPop();
+      navigate(target.path, { replace: true });
     } else {
       // No trail — go to a sensible default
-      navigate('/dashboard')
+      navigate('/dashboard');
     }
-  }
+  };
 
   // Comment data
-  const comments: JiraComment[] = issue?.fields.comment?.comments ?? []
+  const comments: JiraComment[] = issue?.fields.comment?.comments ?? [];
 
   // Build attachment filename -> URL map for resolving !image.png! references
   const attachmentMap = useMemo<AttachmentMap>(() => {
-    const map: AttachmentMap = {}
+    const map: AttachmentMap = {};
     for (const att of issue?.fields.attachment ?? []) {
-      map[att.filename] = att.content
+      map[att.filename] = att.content;
     }
-    return map
-  }, [issue?.fields.attachment])
+    return map;
+  }, [issue?.fields.attachment]);
 
   // Build user lookup map from available issue data
   const userMap = useMemo<UserMap>(() => {
-    const map: UserMap = {}
-    const assignee = issue?.fields.assignee
-    const reporter = issue?.fields.reporter
+    const map: UserMap = {};
+    const assignee = issue?.fields.assignee;
+    const reporter = issue?.fields.reporter;
     if (assignee) {
-      map[assignee.name] = assignee.displayName
+      map[assignee.name] = assignee.displayName;
     }
     if (reporter) {
-      if (reporter.name) map[reporter.name] = reporter.displayName
-      map[reporter.displayName] = reporter.displayName
+      if (reporter.name) map[reporter.name] = reporter.displayName;
+      map[reporter.displayName] = reporter.displayName;
     }
     for (const c of comments) {
       if (c.author?.displayName) {
-        const authorObj = c.author as { displayName: string; name?: string }
-        if (authorObj.name) map[authorObj.name] = authorObj.displayName
-        map[authorObj.displayName] = authorObj.displayName
+        const authorObj = c.author as { displayName: string; name?: string };
+        if (authorObj.name) map[authorObj.name] = authorObj.displayName;
+        map[authorObj.displayName] = authorObj.displayName;
       }
     }
-    return map
-  }, [issue?.fields.assignee, issue?.fields.reporter, comments])
+    return map;
+  }, [issue?.fields.assignee, issue?.fields.reporter, comments]);
 
-  if (!issueKey) return null
+  if (!issueKey) return null;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -160,8 +167,8 @@ export default function IssueDetailPage() {
               <button
                 type="button"
                 onClick={() => {
-                  useBreadcrumbStore.setState({ trail: trail.slice(0, i) })
-                  navigate(entry.path, { replace: true })
+                  useBreadcrumbStore.setState({ trail: trail.slice(0, i) });
+                  navigate(entry.path, { replace: true });
                 }}
                 className="text-muted-foreground hover:text-foreground"
               >
@@ -231,95 +238,102 @@ export default function IssueDetailPage() {
         </div>
       )}
     </div>
-  )
+  );
 }
 
 // ─── Comment Thread ────────────────────────────────────────────────────────────
 
 interface CommentThreadProps {
-  comments: JiraComment[]
-  issueKey: string
-  jiraBaseUrl: string
-  jiraUserDisplayName: string | null
-  attachmentMap: AttachmentMap
-  userMap: UserMap
+  comments: JiraComment[];
+  issueKey: string;
+  jiraBaseUrl: string;
+  jiraUserDisplayName: string | null;
+  attachmentMap: AttachmentMap;
+  userMap: UserMap;
 }
 
-function CommentThread({ comments, issueKey, jiraBaseUrl, jiraUserDisplayName, attachmentMap, userMap }: CommentThreadProps) {
-  const queryClient = useQueryClient()
-  const commentSortOrder = useSettingsStore((s) => s.commentSortOrder)
+function CommentThread({
+  comments,
+  issueKey,
+  jiraBaseUrl,
+  jiraUserDisplayName,
+  attachmentMap,
+  userMap,
+}: CommentThreadProps) {
+  const queryClient = useQueryClient();
+  const commentSortOrder = useSettingsStore((s) => s.commentSortOrder);
   const sortedComments = useMemo(() => {
-    if (commentSortOrder === 'newest') return [...comments].reverse()
-    return comments
-  }, [comments, commentSortOrder])
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
-  const [editText, setEditText] = useState('')
-  const [editError, setEditError] = useState<string | null>(null)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
+    if (commentSortOrder === 'newest') return [...comments].reverse();
+    return comments;
+  }, [comments, commentSortOrder]);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
+  const [editError, setEditError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const editMutation = useMutation({
     mutationFn: async ({ commentId, body }: { commentId: string; body: string }) => {
-      const token = await readSecret('jira-pat').catch(() => null)
-      if (!token) throw new Error('No token')
-      return updateComment(jiraBaseUrl, token, issueKey, commentId, body)
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token) throw new Error('No token');
+      return updateComment(jiraBaseUrl, token, issueKey, commentId, body);
     },
     onSuccess: () => {
-      setEditingCommentId(null)
-      setEditText('')
-      setEditError(null)
-      queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] })
+      setEditingCommentId(null);
+      setEditText('');
+      setEditError(null);
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
     },
     onError: (err: Error) => {
-      setEditError(err.message)
+      setEditError(err.message);
     },
-  })
+  });
 
   const deleteMutation = useMutation({
     mutationFn: async (commentId: string) => {
-      const token = await readSecret('jira-pat').catch(() => null)
-      if (!token) throw new Error('No token')
-      return deleteComment(jiraBaseUrl, token, issueKey, commentId)
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token) throw new Error('No token');
+      return deleteComment(jiraBaseUrl, token, issueKey, commentId);
     },
     onSuccess: () => {
-      setDeleteError(null)
-      queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] })
+      setDeleteError(null);
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
     },
     onError: (err: Error) => {
-      setDeleteError(err.message)
+      setDeleteError(err.message);
     },
-  })
+  });
 
   // Use refs so callbacks are stable across renders (don't break memo)
-  const editMutateRef = useRef(editMutation.mutate)
-  editMutateRef.current = editMutation.mutate
-  const deleteMutateRef = useRef(deleteMutation.mutate)
-  deleteMutateRef.current = deleteMutation.mutate
-  const editTextRef = useRef(editText)
-  editTextRef.current = editText
+  const editMutateRef = useRef(editMutation.mutate);
+  editMutateRef.current = editMutation.mutate;
+  const deleteMutateRef = useRef(deleteMutation.mutate);
+  deleteMutateRef.current = deleteMutation.mutate;
+  const editTextRef = useRef(editText);
+  editTextRef.current = editText;
 
   const handleEdit = useCallback((comment: JiraComment) => {
-    setEditingCommentId(comment.id)
-    setEditText(comment.body)
-    setEditError(null)
-  }, [])
+    setEditingCommentId(comment.id);
+    setEditText(comment.body);
+    setEditError(null);
+  }, []);
 
   const handleDelete = useCallback((comment: JiraComment) => {
-    if (!window.confirm('Delete this comment? This cannot be undone.')) return
-    setDeleteError(null)
-    deleteMutateRef.current(comment.id)
-  }, [])
+    if (!window.confirm('Delete this comment? This cannot be undone.')) return;
+    setDeleteError(null);
+    deleteMutateRef.current(comment.id);
+  }, []);
 
   const handleSaveEdit = useCallback((commentId: string) => {
-    const text = editTextRef.current.trim()
-    if (!text) return
-    editMutateRef.current({ commentId, body: text })
-  }, [])
+    const text = editTextRef.current.trim();
+    if (!text) return;
+    editMutateRef.current({ commentId, body: text });
+  }, []);
 
   const handleCancelEdit = useCallback(() => {
-    setEditingCommentId(null)
-    setEditText('')
-    setEditError(null)
-  }, [])
+    setEditingCommentId(null);
+    setEditText('');
+    setEditError(null);
+  }, []);
 
   return (
     <section className="mt-6 pb-4">
@@ -332,8 +346,8 @@ function CommentThread({ comments, issueKey, jiraBaseUrl, jiraUserDisplayName, a
       ) : (
         <div className="space-y-3 mt-3">
           {sortedComments.map((comment) => {
-            const isOwn = comment.author.displayName === jiraUserDisplayName
-            const isEditing = editingCommentId === comment.id
+            const isOwn = comment.author.displayName === jiraUserDisplayName;
+            const isEditing = editingCommentId === comment.id;
 
             return (
               <CommentCard
@@ -354,53 +368,65 @@ function CommentThread({ comments, issueKey, jiraBaseUrl, jiraUserDisplayName, a
                 attachmentMap={attachmentMap}
                 userMap={userMap}
               />
-            )
+            );
           })}
         </div>
       )}
     </section>
-  )
+  );
 }
 
 // ─── Comment Card (memoized to prevent re-renders on sibling menu/edit state) ──
 
 interface CommentCardProps {
-  comment: JiraComment
-  isOwn: boolean
-  isEditing: boolean
-  editText: string
-  editError: string | null
-  deleteError: string | null
-  deletingCommentId: string | null
-  editPending: boolean
-  onEdit: (comment: JiraComment) => void
-  onDelete: (comment: JiraComment) => void
-  onSaveEdit: (commentId: string) => void
-  onCancelEdit: () => void
-  onEditTextChange: (text: string) => void
-  attachmentMap: AttachmentMap
-  userMap: UserMap
+  comment: JiraComment;
+  isOwn: boolean;
+  isEditing: boolean;
+  editText: string;
+  editError: string | null;
+  deleteError: string | null;
+  deletingCommentId: string | null;
+  editPending: boolean;
+  onEdit: (comment: JiraComment) => void;
+  onDelete: (comment: JiraComment) => void;
+  onSaveEdit: (commentId: string) => void;
+  onCancelEdit: () => void;
+  onEditTextChange: (text: string) => void;
+  attachmentMap: AttachmentMap;
+  userMap: UserMap;
 }
 
 const CommentCard = memo(function CommentCard({
-  comment, isOwn, isEditing, editText, editError, deleteError, deletingCommentId,
-  editPending, onEdit, onDelete, onSaveEdit, onCancelEdit, onEditTextChange,
-  attachmentMap, userMap,
+  comment,
+  isOwn,
+  isEditing,
+  editText,
+  editError,
+  deleteError,
+  deletingCommentId,
+  editPending,
+  onEdit,
+  onDelete,
+  onSaveEdit,
+  onCancelEdit,
+  onEditTextChange,
+  attachmentMap,
+  userMap,
 }: CommentCardProps) {
-  const [showMenu, setShowMenu] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   // Close menu on outside click
   useEffect(() => {
-    if (!showMenu) return
+    if (!showMenu) return;
     function handleClick(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setShowMenu(false)
+        setShowMenu(false);
       }
     }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [showMenu])
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showMenu]);
 
   return (
     <div className="rounded-lg border bg-card p-3 space-y-2">
@@ -430,14 +456,20 @@ const CommentCard = memo(function CommentCard({
               >
                 <button
                   type="button"
-                  onClick={() => { setShowMenu(false); onEdit(comment) }}
+                  onClick={() => {
+                    setShowMenu(false);
+                    onEdit(comment);
+                  }}
                   className="px-3 py-1.5 text-sm hover:bg-accent cursor-pointer w-full text-left"
                 >
                   Edit
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setShowMenu(false); onDelete(comment) }}
+                  onClick={() => {
+                    setShowMenu(false);
+                    onDelete(comment);
+                  }}
                   className="px-3 py-1.5 text-sm hover:bg-accent cursor-pointer w-full text-left text-destructive"
                 >
                   Delete
@@ -456,16 +488,9 @@ const CommentCard = memo(function CommentCard({
             onChange={(e) => onEditTextChange(e.target.value)}
             className="min-h-[80px] resize-none"
           />
-          {editError && (
-            <p className="text-xs text-destructive">{editError}</p>
-          )}
+          {editError && <p className="text-xs text-destructive">{editError}</p>}
           <div className="flex gap-2 justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onCancelEdit}
-              disabled={editPending}
-            >
+            <Button variant="outline" size="sm" onClick={onCancelEdit} disabled={editPending}>
               Cancel
             </Button>
             <Button
@@ -486,8 +511,8 @@ const CommentCard = memo(function CommentCard({
         <p className="text-xs text-destructive">{deleteError}</p>
       )}
     </div>
-  )
-})
+  );
+});
 
 // ─── Skeleton ──────────────────────────────────────────────────────────────────
 
@@ -507,5 +532,5 @@ function IssueDetailSkeleton() {
         <Skeleton className="h-5 w-3/4" />
       </div>
     </div>
-  )
+  );
 }

@@ -5,10 +5,10 @@
  * Calls applyTheme() immediately (instant DOM update) then saveTheme() to persist.
  * Reads/writes useSettingsStore().theme as the controlled value.
  */
-import { Sun, Moon, Monitor } from 'lucide-react';
+import { Monitor, Moon, Sun } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { applyTheme, saveTheme, type Theme } from '@/services/theme';
 import { useSettingsStore } from '@/stores/settings.store';
-import { cn } from '@/lib/utils';
 
 const THEME_OPTIONS: { value: Theme; label: string; icon: React.ReactNode }[] = [
   { value: 'light', label: 'Light', icon: <Sun className="h-5 w-5" /> },
@@ -29,9 +29,7 @@ export default function ThemeSection() {
     <div className="flex flex-col gap-4">
       <div>
         <h3 className="text-base font-semibold">Appearance</h3>
-        <p className="text-sm text-muted-foreground">
-          Choose your preferred color scheme.
-        </p>
+        <p className="text-sm text-muted-foreground">Choose your preferred color scheme.</p>
       </div>
 
       <div className="grid grid-cols-3 gap-3">

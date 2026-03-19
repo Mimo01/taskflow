@@ -8,9 +8,9 @@
  * sync after store hydration, and on every user selection.
  */
 import { useEffect } from 'react';
-import { useSettingsStore, type Density } from '@/stores/settings.store';
-import { applyDensity } from '@/services/theme';
 import { cn } from '@/lib/utils';
+import { applyDensity } from '@/services/theme';
+import { type Density, useSettingsStore } from '@/stores/settings.store';
 import ThemeSection from './ThemeSection';
 
 const DENSITY_OPTIONS: { value: Density; label: string; description: string }[] = [

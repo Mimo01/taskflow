@@ -10,16 +10,17 @@
  * Panel components manage their own data fetching via React Query.
  * This file only handles token loading and passing credentials as props.
  */
-import { useState, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
+
 import { useQueryClient } from '@tanstack/react-query';
 import { RefreshCw } from 'lucide-react';
-import { useSettingsStore } from '@/stores/settings.store';
-import { useAuthStore } from '@/stores/auth.store';
+import { useEffect, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { readSecret } from '@/services/stronghold';
-import SubtasksPanel from './SubtasksPanel';
+import { useAuthStore } from '@/stores/auth.store';
+import { useSettingsStore } from '@/stores/settings.store';
 import MrHealthPanel from './MrHealthPanel';
 import SprintHealthPanel from './SprintHealthPanel';
+import SubtasksPanel from './SubtasksPanel';
 
 export default function Dashboard() {
   const role = useSettingsStore((s) => s.role);
@@ -27,7 +28,9 @@ export default function Dashboard() {
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, _hasHydrated } = useAuthStore();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
   const [gitlabToken, setGitlabToken] = useState<string | null>(null);
-  const { onIssueClick: setSelectedIssueKey } = useOutletContext<{ onIssueClick: (key: string) => void }>();
+  const { onIssueClick: setSelectedIssueKey } = useOutletContext<{
+    onIssueClick: (key: string) => void;
+  }>();
   // Track whether the GitLab token read from Stronghold has settled so panels
   // can show a skeleton immediately rather than a premature empty state.
   const [gitlabTokenLoading, setGitlabTokenLoading] = useState(true);
@@ -35,11 +38,18 @@ export default function Dashboard() {
 
   // Track last-refreshed time by subscribing to the my-tasks query (shared cache with SubtasksPanel)
   const [updatedAt, setUpdatedAt] = useState<number>(
-    () => queryClient.getQueryState(['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey])?.dataUpdatedAt ?? 0
+    () =>
+      queryClient.getQueryState(['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey])
+        ?.dataUpdatedAt ?? 0,
   );
   useEffect(() => {
     return queryClient.getQueryCache().subscribe(() => {
-      const ts = queryClient.getQueryState(['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey])?.dataUpdatedAt;
+      const ts = queryClient.getQueryState([
+        'jira-issues',
+        'my-tasks',
+        activeJiraProject,
+        storyPointsFieldKey,
+      ])?.dataUpdatedAt;
       if (ts) setUpdatedAt(ts);
     });
   }, [queryClient, activeJiraProject, storyPointsFieldKey]);
@@ -48,14 +58,17 @@ export default function Dashboard() {
     : 'Refreshed: Never';
 
   useEffect(() => {
-    if (jiraBaseUrl) readSecret('jira-pat').then(t => setJiraToken(t)).catch(() => setJiraToken(null));
+    if (jiraBaseUrl)
+      readSecret('jira-pat')
+        .then((t) => setJiraToken(t))
+        .catch(() => setJiraToken(null));
   }, [jiraBaseUrl]);
 
   useEffect(() => {
     if (gitlabBaseUrl) {
       setGitlabTokenLoading(true);
       readSecret('gitlab-pat')
-        .then(t => setGitlabToken(t))
+        .then((t) => setGitlabToken(t))
         .catch(() => setGitlabToken(null))
         .finally(() => setGitlabTokenLoading(false));
     } else if (_hasHydrated) {
@@ -90,38 +103,9 @@ export default function Dashboard() {
 
   if (role === 'pm') {
     return (
-      <>
-        <div className="flex flex-col h-full p-4 gap-4 overflow-y-auto">
-          {header}
-          <div className="grid grid-cols-1 gap-4">
-            <SprintHealthPanel
-              jiraBaseUrl={jiraBaseUrl ?? ''}
-              jiraToken={jiraToken ?? ''}
-              activeJiraProject={activeJiraProject ?? ''}
-            />
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  // Developer / tech-lead (default)
-  return (
-    <>
       <div className="flex flex-col h-full p-4 gap-4 overflow-y-auto">
         {header}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <SubtasksPanel
-            jiraBaseUrl={jiraBaseUrl ?? ''}
-            jiraToken={jiraToken ?? ''}
-            activeJiraProject={activeJiraProject ?? ''}
-            onIssueClick={setSelectedIssueKey}
-          />
-          <MrHealthPanel
-            gitlabBaseUrl={gitlabBaseUrl ?? ''}
-            gitlabToken={gitlabToken ?? ''}
-            tokenLoading={gitlabTokenLoading}
-          />
+        <div className="grid grid-cols-1 gap-4">
           <SprintHealthPanel
             jiraBaseUrl={jiraBaseUrl ?? ''}
             jiraToken={jiraToken ?? ''}
@@ -129,6 +113,31 @@ export default function Dashboard() {
           />
         </div>
       </div>
-    </>
+    );
+  }
+
+  // Developer / tech-lead (default)
+  return (
+    <div className="flex flex-col h-full p-4 gap-4 overflow-y-auto">
+      {header}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <SubtasksPanel
+          jiraBaseUrl={jiraBaseUrl ?? ''}
+          jiraToken={jiraToken ?? ''}
+          activeJiraProject={activeJiraProject ?? ''}
+          onIssueClick={setSelectedIssueKey}
+        />
+        <MrHealthPanel
+          gitlabBaseUrl={gitlabBaseUrl ?? ''}
+          gitlabToken={gitlabToken ?? ''}
+          tokenLoading={gitlabTokenLoading}
+        />
+        <SprintHealthPanel
+          jiraBaseUrl={jiraBaseUrl ?? ''}
+          jiraToken={jiraToken ?? ''}
+          activeJiraProject={activeJiraProject ?? ''}
+        />
+      </div>
+    </div>
   );
 }

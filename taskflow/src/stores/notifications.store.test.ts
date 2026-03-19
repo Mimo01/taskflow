@@ -1,8 +1,9 @@
 // NOTF-04: Unread badge count derived from store
 // NOTF-05: markAsRead(id) — individual notification read state
 // NOTF-06: markAllRead() — bulk read state
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+
 import { act, renderHook } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock Tauri plugin-store so LazyStore doesn't attempt IPC calls in jsdom
 vi.mock('@tauri-apps/plugin-store', () => {
@@ -14,8 +15,9 @@ vi.mock('@tauri-apps/plugin-store', () => {
   }
   return { LazyStore };
 });
-import { useNotificationsStore, useUnreadCount } from './notifications.store';
+
 import type { NotificationItem } from './notifications.store';
+import { useNotificationsStore, useUnreadCount } from './notifications.store';
 
 function makeItem(id: string, createdAt = '2026-03-11T10:00:00.000Z'): NotificationItem {
   return {
@@ -141,11 +143,9 @@ describe('notifications.store', () => {
   describe('NOTF-06: markAllRead', () => {
     it('sets readIds to all current item IDs', () => {
       act(() => {
-        useNotificationsStore.getState().setItems([
-          makeItem('item-1'),
-          makeItem('item-2'),
-          makeItem('item-3'),
-        ]);
+        useNotificationsStore
+          .getState()
+          .setItems([makeItem('item-1'), makeItem('item-2'), makeItem('item-3')]);
       });
 
       act(() => {
@@ -163,11 +163,9 @@ describe('notifications.store', () => {
   describe('NOTF-04: useUnreadCount', () => {
     it('returns items.length minus readIds.length', () => {
       act(() => {
-        useNotificationsStore.getState().setItems([
-          makeItem('item-1'),
-          makeItem('item-2'),
-          makeItem('item-3'),
-        ]);
+        useNotificationsStore
+          .getState()
+          .setItems([makeItem('item-1'), makeItem('item-2'), makeItem('item-3')]);
         useNotificationsStore.getState().markAsRead('item-1');
       });
 

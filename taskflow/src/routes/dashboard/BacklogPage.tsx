@@ -11,23 +11,31 @@
  * Bulk "Move to sprint" action bar and handleMoveToSprint remain unchanged.
  * Create story entry point via Outlet context remains unchanged.
  */
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { useOutletContext } from 'react-router-dom';
+
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight, Inbox } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
+import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
-import { Button } from '@/components/ui/button';
-import type { JiraIssue, JiraActiveSprint, BacklogViewData } from '@/services/jira';
-import { fetchBacklogView, fetchActiveSprint, addIssuesToSprint, fetchProjectStatuses, fetchEpicsBasic, fetchSprintIssues } from '@/services/jira';
+import { useListNavigation } from '@/hooks/useListNavigation';
+import type { BacklogViewData, JiraActiveSprint, JiraIssue } from '@/services/jira';
+import {
+  addIssuesToSprint,
+  fetchActiveSprint,
+  fetchBacklogView,
+  fetchEpicsBasic,
+  fetchProjectStatuses,
+  fetchSprintIssues,
+} from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
-import { useSettingsStore } from '@/stores/settings.store';
 import { useFilterStore } from '@/stores/filter.store';
+import { useSettingsStore } from '@/stores/settings.store';
 import { BacklogRow } from './BacklogRow';
-import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
-import { useListNavigation } from '@/hooks/useListNavigation';
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -42,12 +50,15 @@ export default function BacklogPage() {
 
   // ── Auth / settings ─────────────────────────────────────────────────────────
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
-  const { storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey, epicColorFieldKey } = useSettingsStore();
+  const { storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey, epicColorFieldKey } =
+    useSettingsStore();
 
   const [jiraToken, setJiraToken] = useState<string | null>(null);
 
   useEffect(() => {
-    readSecret('jira-pat').then(setJiraToken).catch(() => setJiraToken(null));
+    readSecret('jira-pat')
+      .then(setJiraToken)
+      .catch(() => setJiraToken(null));
   }, []);
 
   // ── Queries ─────────────────────────────────────────────────────────────────
@@ -92,7 +103,14 @@ export default function BacklogPage() {
   // All project epics (shared cache with EpicsPage and SprintBoardTab)
   const { data: allEpics } = useQuery({
     queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
-    queryFn: () => fetchEpicsBasic(jiraBaseUrl!, jiraToken!, activeJiraProject!, epicNameFieldKey, epicColorFieldKey),
+    queryFn: () =>
+      fetchEpicsBasic(
+        jiraBaseUrl!,
+        jiraToken!,
+        activeJiraProject!,
+        epicNameFieldKey,
+        epicColorFieldKey,
+      ),
     staleTime: 5 * 60_000,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
@@ -101,8 +119,22 @@ export default function BacklogPage() {
   // separate issues with their own status. Used to build parentKey → subtask
   // statuses map for status filtering.
   const { data: sprintIssues } = useQuery({
-    queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey, epicLinkFieldKey],
-    queryFn: () => fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false, storyPointsFieldKey, epicLinkFieldKey),
+    queryKey: [
+      'jira-issues',
+      'sprint-board',
+      activeJiraProject,
+      storyPointsFieldKey,
+      epicLinkFieldKey,
+    ],
+    queryFn: () =>
+      fetchSprintIssues(
+        jiraBaseUrl!,
+        jiraToken!,
+        activeJiraProject!,
+        false,
+        storyPointsFieldKey,
+        epicLinkFieldKey,
+      ),
     staleTime: 30_000,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
@@ -114,7 +146,7 @@ export default function BacklogPage() {
       if (issue.fields.issuetype.subtask && issue.fields.parent?.key) {
         const parentKey = issue.fields.parent.key;
         if (!map.has(parentKey)) map.set(parentKey, new Set());
-        map.get(parentKey)!.add(issue.fields.status.name);
+        map.get(parentKey)?.add(issue.fields.status.name);
       }
     }
     return map;
@@ -122,7 +154,9 @@ export default function BacklogPage() {
 
   // ── Stale data banner state ───────────────────────────────────────────────────
   const [bannerDismissed, setBannerDismissed] = useState(false);
-  useEffect(() => { setBannerDismissed(false); }, [error]);
+  useEffect(() => {
+    setBannerDismissed(false);
+  }, []);
 
   // ── Collapse state (all sections open by default) ────────────────────────────
 
@@ -164,11 +198,9 @@ export default function BacklogPage() {
   // the active sprint section so they're visible and filterable.
   const mergedSprints = useMemo(() => {
     if (!backlogView) return [];
-    const existingKeys = new Set(
-      backlogView.sprints.flatMap(s => s.issues.map(i => i.key)),
-    );
+    const existingKeys = new Set(backlogView.sprints.flatMap((s) => s.issues.map((i) => i.key)));
     const extraStories = (sprintIssues ?? []).filter(
-      i => !i.fields.issuetype.subtask && !existingKeys.has(i.key),
+      (i) => !i.fields.issuetype.subtask && !existingKeys.has(i.key),
     );
     if (extraStories.length === 0) return backlogView.sprints;
     // Add extra stories to the active sprint (or first sprint if none active)
@@ -216,8 +248,20 @@ export default function BacklogPage() {
     for (const statusSet of subtaskStatusMap.values()) {
       for (const s of statusSet) statuses.add(s);
     }
-    return { epics, labels: Array.from(labels), assignees: Array.from(assignees), statuses: Array.from(statuses).sort() };
-  }, [allIssues, epicLinkFieldKey, backlogView?.epicNames, allEpics, projectStatuses, subtaskStatusMap]);
+    return {
+      epics,
+      labels: Array.from(labels),
+      assignees: Array.from(assignees),
+      statuses: Array.from(statuses).sort(),
+    };
+  }, [
+    allIssues,
+    epicLinkFieldKey,
+    backlogView?.epicNames,
+    allEpics,
+    projectStatuses,
+    subtaskStatusMap,
+  ]);
 
   // ── Filter application helper ─────────────────────────────────────────────────
 
@@ -230,7 +274,7 @@ export default function BacklogPage() {
       })();
       const labelMatch =
         activeLabels.size === 0 ||
-        (issue.fields.labels as string[] | undefined ?? []).some((l) => activeLabels.has(l));
+        ((issue.fields.labels as string[] | undefined) ?? []).some((l) => activeLabels.has(l));
       const assigneeMatch = (() => {
         if (activeAssignees.size === 0) return true;
         const name = issue.fields.assignee?.displayName ?? '';
@@ -240,7 +284,7 @@ export default function BacklogPage() {
       })();
       const statusMatch = (() => {
         if (activeStatuses.size === 0) return true;
-        const activeLC = new Set(Array.from(activeStatuses).map(s => s.toLowerCase()));
+        const activeLC = new Set(Array.from(activeStatuses).map((s) => s.toLowerCase()));
         // Match on the story's own status (case-insensitive)
         const storyStatus = (issue.fields.status?.name ?? '').toLowerCase();
         if (storyStatus && activeLC.has(storyStatus)) return true;
@@ -278,7 +322,7 @@ export default function BacklogPage() {
       }
     }
     return keys;
-  }, [backlogView, collapsedSections, activeEpics, activeLabels, activeAssignees, activeStatuses]);
+  }, [backlogView, collapsedSections, applyFilters, mergedSprints]);
 
   const { focusIndex } = useListNavigation({
     itemCount: visibleIssueKeys.length,
@@ -314,7 +358,11 @@ export default function BacklogPage() {
     if (!activeSprint || selectedKeys.size === 0) return;
     const keysToMove = Array.from(selectedKeys);
     // Optimistic removal from cache
-    const previousView = queryClient.getQueryData<BacklogViewData>(['jira-backlog-view', activeJiraProject, jiraBaseUrl]);
+    const previousView = queryClient.getQueryData<BacklogViewData>([
+      'jira-backlog-view',
+      activeJiraProject,
+      jiraBaseUrl,
+    ]);
     queryClient.setQueryData<BacklogViewData>(
       ['jira-backlog-view', activeJiraProject, jiraBaseUrl],
       (old) => {
@@ -420,7 +468,10 @@ export default function BacklogPage() {
                   {filteredIssues.map((issue) => (
                     <BacklogRow
                       key={issue.key}
-                      ref={(el: HTMLTableRowElement | null) => { if (el) rowRefs.current.set(issue.key, el); else rowRefs.current.delete(issue.key); }}
+                      ref={(el: HTMLTableRowElement | null) => {
+                        if (el) rowRefs.current.set(issue.key, el);
+                        else rowRefs.current.delete(issue.key);
+                      }}
                       issue={issue}
                       selected={selectedKeys.has(issue.key)}
                       onSelect={handleSelect}
@@ -507,8 +558,9 @@ export default function BacklogPage() {
               <div key={i} className="h-10 animate-pulse rounded bg-muted" />
             ))}
           </div>
-        ) : !isError && (!backlogView ||
-          (backlogView.sprints.length === 0 && backlogView.backlog.length === 0)) ? (
+        ) : !isError &&
+          (!backlogView ||
+            (backlogView.sprints.length === 0 && backlogView.backlog.length === 0)) ? (
           /* Empty state */
           <EmptyState
             icon={Inbox}
@@ -532,13 +584,7 @@ export default function BacklogPage() {
             )}
 
             {/* Backlog section — always last */}
-            {renderSection(
-              'backlog',
-              'Backlog',
-              null,
-              backlogView.backlog,
-              true,
-            )}
+            {renderSection('backlog', 'Backlog', null, backlogView.backlog, true)}
           </div>
         ) : null}
       </div>

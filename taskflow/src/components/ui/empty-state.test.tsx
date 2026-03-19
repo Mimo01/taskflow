@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { EmptyState } from './empty-state';
 import { Inbox } from 'lucide-react';
+import { describe, expect, it } from 'vitest';
+import { EmptyState } from './empty-state';
 
 describe('EmptyState', () => {
   it('renders an svg icon element', () => {

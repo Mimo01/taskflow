@@ -1,5 +1,5 @@
 // PM-03: Release linker — date matching between Jira fix versions and GitLab milestones/tags
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { matchGitLabToFixVersion } from './releaseLinker';
 
 describe('matchGitLabToFixVersion — date matching', () => {

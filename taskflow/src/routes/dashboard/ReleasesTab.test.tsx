@@ -1,9 +1,10 @@
 // PM-03: Fix version rows with date and GitLab release links
 // PM-04: Completion status per fix version row
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
+import { render, screen } from '@testing-library/react';
+import type React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock stronghold
 vi.mock('@/services/stronghold', () => ({
@@ -23,7 +24,9 @@ vi.mock('@/services/gitlab', () => ({
 
 // Mock releaseLinker
 vi.mock('@/services/releaseLinker', () => ({
-  matchGitLabToFixVersion: vi.fn().mockReturnValue({ type: 'none', candidateName: '', candidateUrl: '' }),
+  matchGitLabToFixVersion: vi
+    .fn()
+    .mockReturnValue({ type: 'none', candidateName: '', candidateUrl: '' }),
 }));
 
 // Mock auth store
@@ -44,11 +47,7 @@ vi.mock('@tauri-apps/plugin-http', () => ({
   }),
 }));
 
-function makeFixVersion(
-  id: string,
-  name: string,
-  releaseDate: string | undefined,
-) {
+function makeFixVersion(id: string, name: string, releaseDate: string | undefined) {
   return { id, name, releaseDate, released: false };
 }
 
@@ -78,7 +77,11 @@ describe('ReleasesTab', () => {
     vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([]);
     vi.mocked(fetchProjectTags).mockResolvedValue([]);
     const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
-    vi.mocked(matchGitLabToFixVersion).mockReturnValue({ type: 'none', candidateName: '', candidateUrl: '' });
+    vi.mocked(matchGitLabToFixVersion).mockReturnValue({
+      type: 'none',
+      candidateName: '',
+      candidateUrl: '',
+    });
   });
 
   it('renders empty state when no fix versions exist', async () => {
@@ -93,9 +96,7 @@ describe('ReleasesTab', () => {
 
   it('renders fix version rows with name and release date', async () => {
     const { fetchFixVersions } = await import('@/services/jira');
-    vi.mocked(fetchFixVersions).mockResolvedValue([
-      makeFixVersion('v1', 'v2.1.0', '2026-03-15'),
-    ]);
+    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v2.1.0', '2026-03-15')]);
 
     const { default: ReleasesTab } = await import('./ReleasesTab');
     renderWithQuery(<ReleasesTab />);
@@ -106,14 +107,20 @@ describe('ReleasesTab', () => {
 
   it('shows linked GitLab milestone name for exact date match', async () => {
     const { fetchFixVersions } = await import('@/services/jira');
-    vi.mocked(fetchFixVersions).mockResolvedValue([
-      makeFixVersion('v1', 'v2.1.0', '2026-03-15'),
-    ]);
+    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v2.1.0', '2026-03-15')]);
 
     // Provide a milestone so the matching function is called with a candidate
     const { fetchProjectMilestonesInRange } = await import('@/services/gitlab');
     vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([
-      { id: 1, iid: 1, title: 'sprint-15', start_date: null, due_date: '2026-03-15', state: 'active', web_url: 'https://gitlab.example.com/milestone/1' },
+      {
+        id: 1,
+        iid: 1,
+        title: 'sprint-15',
+        start_date: null,
+        due_date: '2026-03-15',
+        state: 'active',
+        web_url: 'https://gitlab.example.com/milestone/1',
+      },
     ]);
 
     const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
@@ -134,14 +141,20 @@ describe('ReleasesTab', () => {
 
   it('shows dashed border indicator for fuzzy date match', async () => {
     const { fetchFixVersions } = await import('@/services/jira');
-    vi.mocked(fetchFixVersions).mockResolvedValue([
-      makeFixVersion('v1', 'v2.1.0', '2026-03-15'),
-    ]);
+    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v2.1.0', '2026-03-15')]);
 
     // Provide a milestone candidate so the matching function is invoked
     const { fetchProjectMilestonesInRange } = await import('@/services/gitlab');
     vi.mocked(fetchProjectMilestonesInRange).mockResolvedValue([
-      { id: 1, iid: 1, title: 'sprint-15', start_date: null, due_date: '2026-03-14', state: 'active', web_url: 'https://gitlab.example.com/milestone/1' },
+      {
+        id: 1,
+        iid: 1,
+        title: 'sprint-15',
+        start_date: null,
+        due_date: '2026-03-14',
+        state: 'active',
+        web_url: 'https://gitlab.example.com/milestone/1',
+      },
     ]);
 
     const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
@@ -163,12 +176,14 @@ describe('ReleasesTab', () => {
 
   it('shows No GitLab link label when no match within 1 day', async () => {
     const { fetchFixVersions } = await import('@/services/jira');
-    vi.mocked(fetchFixVersions).mockResolvedValue([
-      makeFixVersion('v1', 'v2.1.0', '2026-03-15'),
-    ]);
+    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v2.1.0', '2026-03-15')]);
 
     const { matchGitLabToFixVersion } = await import('@/services/releaseLinker');
-    vi.mocked(matchGitLabToFixVersion).mockReturnValue({ type: 'none', candidateName: '', candidateUrl: '' });
+    vi.mocked(matchGitLabToFixVersion).mockReturnValue({
+      type: 'none',
+      candidateName: '',
+      candidateUrl: '',
+    });
 
     const { default: ReleasesTab } = await import('./ReleasesTab');
     renderWithQuery(<ReleasesTab />);
@@ -179,9 +194,7 @@ describe('ReleasesTab', () => {
 
   it('shows No GitLab link when fix version has no releaseDate', async () => {
     const { fetchFixVersions } = await import('@/services/jira');
-    vi.mocked(fetchFixVersions).mockResolvedValue([
-      makeFixVersion('v1', 'v2.0.0', undefined),
-    ]);
+    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v2.0.0', undefined)]);
 
     const { default: ReleasesTab } = await import('./ReleasesTab');
     renderWithQuery(<ReleasesTab />);
@@ -192,9 +205,7 @@ describe('ReleasesTab', () => {
 
   it('shows task count and completion status per fix version row', async () => {
     const { fetchFixVersions } = await import('@/services/jira');
-    vi.mocked(fetchFixVersions).mockResolvedValue([
-      makeFixVersion('v1', 'v2.1.0', '2026-03-15'),
-    ]);
+    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v2.1.0', '2026-03-15')]);
 
     // fetchVersionIssueCounts makes two parallel JQL search calls:
     //   1. GET /rest/api/2/search?jql=fixVersion=...&maxResults=0 → { total: 8 } (all issues)
@@ -202,7 +213,8 @@ describe('ReleasesTab', () => {
     // We distinguish by checking for statusCategory in the URL.
     const { fetch: mockFetch } = await import('@tauri-apps/plugin-http');
     vi.mocked(mockFetch).mockImplementation(async (url: string | URL | Request) => {
-      const urlStr = typeof url === 'string' ? url : url instanceof URL ? url.toString() : (url as Request).url;
+      const urlStr =
+        typeof url === 'string' ? url : url instanceof URL ? url.toString() : (url as Request).url;
       if (urlStr.includes('statusCategory')) {
         // Done-only JQL endpoint → total=3 fixed
         return { ok: true, json: async () => ({ total: 3 }) } as Response;
@@ -229,12 +241,18 @@ describe('REL-01: sort order', () => {
       makeFixVersion('v3', 'Release C', '2025-12-01'),
     ]);
 
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 0 } },
+    });
     const { default: ReleasesTab } = await import('./ReleasesTab');
-    render(<QueryClientProvider client={queryClient}><ReleasesTab /></QueryClientProvider>);
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ReleasesTab />
+      </QueryClientProvider>,
+    );
 
     const rows = await screen.findAllByTestId('release-row');
-    const names = rows.map(r => r.getAttribute('data-name') ?? r.textContent ?? '');
+    const names = rows.map((r) => r.getAttribute('data-name') ?? r.textContent ?? '');
     // Expect newest first: B (2026-03-15), A (2026-01-01), C (2025-12-01)
     expect(names[0]).toContain('Release B');
     expect(names[1]).toContain('Release A');
@@ -248,9 +266,15 @@ describe('REL-01: sort order', () => {
       makeFixVersion('v2', 'Dated Release', '2026-03-15'),
     ]);
 
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 0 } },
+    });
     const { default: ReleasesTab } = await import('./ReleasesTab');
-    render(<QueryClientProvider client={queryClient}><ReleasesTab /></QueryClientProvider>);
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ReleasesTab />
+      </QueryClientProvider>,
+    );
 
     const rows = await screen.findAllByTestId('release-row');
     expect(rows[0].textContent).toContain('No Date Release');
@@ -266,9 +290,15 @@ describe('REL-02: status badges', () => {
       { id: 'v1', name: 'v1.0.0', releaseDate: '2026-01-01', released: true },
     ]);
 
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 0 } },
+    });
     const { default: ReleasesTab } = await import('./ReleasesTab');
-    render(<QueryClientProvider client={queryClient}><ReleasesTab /></QueryClientProvider>);
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ReleasesTab />
+      </QueryClientProvider>,
+    );
 
     await screen.findByText('v1.0.0');
     expect(screen.getByText('Released')).toBeTruthy();
@@ -276,13 +306,17 @@ describe('REL-02: status badges', () => {
 
   it('unreleased version shows Unreleased badge', async () => {
     const { fetchFixVersions } = await import('@/services/jira');
-    vi.mocked(fetchFixVersions).mockResolvedValue([
-      makeFixVersion('v1', 'v2.0.0', '2026-06-01'),
-    ]);
+    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'v2.0.0', '2026-06-01')]);
 
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 0 } },
+    });
     const { default: ReleasesTab } = await import('./ReleasesTab');
-    render(<QueryClientProvider client={queryClient}><ReleasesTab /></QueryClientProvider>);
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ReleasesTab />
+      </QueryClientProvider>,
+    );
 
     await screen.findByText('v2.0.0');
     expect(screen.getByText('Unreleased')).toBeTruthy();
@@ -294,14 +328,18 @@ describe('REL-03: timing labels', () => {
     const today = new Date().toISOString().slice(0, 10);
     const pastDate = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const { fetchFixVersions } = await import('@/services/jira');
-    vi.mocked(fetchFixVersions).mockResolvedValue([
-      makeFixVersion('v1', 'Past Release', pastDate),
-    ]);
+    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'Past Release', pastDate)]);
     void today; // used for reference
 
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 0 } },
+    });
     const { default: ReleasesTab } = await import('./ReleasesTab');
-    render(<QueryClientProvider client={queryClient}><ReleasesTab /></QueryClientProvider>);
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ReleasesTab />
+      </QueryClientProvider>,
+    );
 
     await screen.findByText('Past Release');
     expect(screen.getByText(/overdue/i)).toBeTruthy();
@@ -310,13 +348,17 @@ describe('REL-03: timing labels', () => {
   it('same-day unreleased shows Due today label', async () => {
     const today = new Date().toISOString().slice(0, 10);
     const { fetchFixVersions } = await import('@/services/jira');
-    vi.mocked(fetchFixVersions).mockResolvedValue([
-      makeFixVersion('v1', 'Today Release', today),
-    ]);
+    vi.mocked(fetchFixVersions).mockResolvedValue([makeFixVersion('v1', 'Today Release', today)]);
 
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 0 } },
+    });
     const { default: ReleasesTab } = await import('./ReleasesTab');
-    render(<QueryClientProvider client={queryClient}><ReleasesTab /></QueryClientProvider>);
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ReleasesTab />
+      </QueryClientProvider>,
+    );
 
     await screen.findByText('Today Release');
     expect(screen.getByText(/due today/i)).toBeTruthy();
@@ -329,9 +371,15 @@ describe('REL-03: timing labels', () => {
       makeFixVersion('v1', 'Future Release', futureDate),
     ]);
 
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 0 } },
+    });
     const { default: ReleasesTab } = await import('./ReleasesTab');
-    render(<QueryClientProvider client={queryClient}><ReleasesTab /></QueryClientProvider>);
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ReleasesTab />
+      </QueryClientProvider>,
+    );
 
     await screen.findByText('Future Release');
     expect(screen.getByText(/in \d+ days/i)).toBeTruthy();

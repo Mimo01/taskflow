@@ -4,10 +4,11 @@
  * Tests Needs Review / Approved / Changes Requested count display
  * and empty state when no assigned MRs exist.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
+import { render, screen } from '@testing-library/react';
+import type React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock @tanstack/react-query (useQuery, useQueryClient)
 vi.mock('@tanstack/react-query', async () => {
@@ -107,14 +108,13 @@ describe('MrHealthPanel (DASH-02)', () => {
         }
         return undefined;
       });
-      vi.mocked(useQueryClient).mockReturnValue({ getQueryData } as unknown as ReturnType<typeof useQueryClient>);
+      vi.mocked(useQueryClient).mockReturnValue({ getQueryData } as unknown as ReturnType<
+        typeof useQueryClient
+      >);
 
       const { default: MrHealthPanel } = await import('./MrHealthPanel');
       renderWithQuery(
-        <MrHealthPanel
-          gitlabBaseUrl="https://gitlab.example.com"
-          gitlabToken="token"
-        />,
+        <MrHealthPanel gitlabBaseUrl="https://gitlab.example.com" gitlabToken="token" />,
       );
 
       expect(screen.getByText('Needs Review')).toBeDefined();
@@ -122,7 +122,9 @@ describe('MrHealthPanel (DASH-02)', () => {
       expect(screen.getByText('Changes Requested')).toBeDefined();
 
       // Count values: 1 approved, 1 changes_requested, 1 needs review
-      const countEls = screen.getAllByRole('generic').filter((el) => /^\d+$/.test(el.textContent ?? ''));
+      const countEls = screen
+        .getAllByRole('generic')
+        .filter((el) => /^\d+$/.test(el.textContent ?? ''));
       const counts = countEls.map((el) => Number(el.textContent));
       expect(counts).toContain(1); // each bucket has 1
     });
@@ -144,10 +146,7 @@ describe('MrHealthPanel (DASH-02)', () => {
 
       const { default: MrHealthPanel } = await import('./MrHealthPanel');
       renderWithQuery(
-        <MrHealthPanel
-          gitlabBaseUrl="https://gitlab.example.com"
-          gitlabToken="token"
-        />,
+        <MrHealthPanel gitlabBaseUrl="https://gitlab.example.com" gitlabToken="token" />,
       );
 
       expect(screen.getByText('No open MRs')).toBeDefined();

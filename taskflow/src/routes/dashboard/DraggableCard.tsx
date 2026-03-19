@@ -8,23 +8,28 @@
  * Opacity is set to 0.4 while this card is the active drag source, giving
  * the user a "ghost left behind" visual cue.
  */
-import { useDraggable } from '@dnd-kit/core'
-import { CSS } from '@dnd-kit/utilities'
-import TaskCard from './TaskCard'
-import type { JiraIssue } from '@/services/jira'
+import { useDraggable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
+import type { JiraIssue } from '@/services/jira';
+import TaskCard from './TaskCard';
 
 interface DraggableCardProps {
-  issue: JiraIssue
-  isSubtask?: boolean
-  showStatus?: boolean
-  onOpenDetail: (key: string) => void
+  issue: JiraIssue;
+  isSubtask?: boolean;
+  showStatus?: boolean;
+  onOpenDetail: (key: string) => void;
 }
 
-export default function DraggableCard({ issue, isSubtask, showStatus, onOpenDetail }: DraggableCardProps) {
+export default function DraggableCard({
+  issue,
+  isSubtask,
+  showStatus,
+  onOpenDetail,
+}: DraggableCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: issue.key,
     data: { issueKey: issue.key, currentStatusId: issue.fields.status.id },
-  })
+  });
 
   return (
     <div
@@ -41,7 +46,7 @@ export default function DraggableCard({ issue, isSubtask, showStatus, onOpenDeta
         isSubtask={isSubtask}
         showStatus={showStatus}
         onClick={() => onOpenDetail(issue.key)}
-/>
+      />
     </div>
-  )
+  );
 }

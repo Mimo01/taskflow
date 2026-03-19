@@ -10,23 +10,23 @@
  * - onToggle: called when chevron is clicked (stopPropagation included)
  * - isSubtask: adds left indent and muted left border for visual nesting
  */
-import { ChevronDown, ChevronRight } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { Badge } from '@/components/ui/badge'
-import type { JiraIssue } from '@/services/jira'
-import type { ReviewHealth } from '@/services/linkEngine'
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import type { JiraIssue } from '@/services/jira';
+import type { ReviewHealth } from '@/services/linkEngine';
 
 const HEALTH_COLORS: Record<ReviewHealth, string> = {
   approved: 'bg-green-500',
   changes_requested: 'bg-red-500',
   waiting_for_review: 'bg-amber-400',
-}
+};
 
 const STATUS_CATEGORY_STYLES: Record<string, string> = {
   new: 'bg-muted text-muted-foreground',
   indeterminate: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
   done: 'bg-green-500/15 text-green-600 dark:text-green-400',
-}
+};
 
 function getInitials(name: string): string {
   return name
@@ -34,26 +34,35 @@ function getInitials(name: string): string {
     .map((n) => n[0])
     .join('')
     .toUpperCase()
-    .slice(0, 2)
+    .slice(0, 2);
 }
 
 interface TaskCardProps {
-  issue: JiraIssue
-  healthDot?: ReviewHealth
-  subtaskCount?: number
-  isExpanded?: boolean
-  onToggle?: () => void
-  isSubtask?: boolean
-  showStatus?: boolean
-  onClick?: () => void
+  issue: JiraIssue;
+  healthDot?: ReviewHealth;
+  subtaskCount?: number;
+  isExpanded?: boolean;
+  onToggle?: () => void;
+  isSubtask?: boolean;
+  showStatus?: boolean;
+  onClick?: () => void;
 }
 
-export default function TaskCard({ issue, healthDot, subtaskCount, isExpanded, onToggle, isSubtask, showStatus, onClick }: TaskCardProps) {
-  const assignee = issue.fields.assignee
-  const avatarUrl = assignee?.avatarUrls['48x48']
-  const displayName = assignee?.displayName ?? ''
+export default function TaskCard({
+  issue,
+  healthDot,
+  subtaskCount,
+  isExpanded,
+  onToggle,
+  isSubtask,
+  showStatus,
+  onClick,
+}: TaskCardProps) {
+  const assignee = issue.fields.assignee;
+  const avatarUrl = assignee?.avatarUrls['48x48'];
+  const displayName = assignee?.displayName ?? '';
 
-  const dotColor = healthDot ? HEALTH_COLORS[healthDot] : 'bg-muted-foreground/40'
+  const dotColor = healthDot ? HEALTH_COLORS[healthDot] : 'bg-muted-foreground/40';
 
   return (
     <div
@@ -64,7 +73,9 @@ export default function TaskCard({ issue, healthDot, subtaskCount, isExpanded, o
       role="button"
       tabIndex={0}
       onClick={onClick}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick?.() }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') onClick?.();
+      }}
     >
       {/* Issue key */}
       <div className="text-xs font-mono text-muted-foreground">{issue.key}</div>
@@ -82,13 +93,15 @@ export default function TaskCard({ issue, healthDot, subtaskCount, isExpanded, o
         {issue.fields.summary}
       </div>
 
-
       {/* Status badge -- shown when not in a column context */}
       {showStatus && (
-        <span className={cn(
-          'self-start rounded px-1.5 py-0.5 text-xs font-medium',
-          STATUS_CATEGORY_STYLES[issue.fields.status.statusCategory?.key ?? 'new'] ?? STATUS_CATEGORY_STYLES.new,
-        )}>
+        <span
+          className={cn(
+            'self-start rounded px-1.5 py-0.5 text-xs font-medium',
+            STATUS_CATEGORY_STYLES[issue.fields.status.statusCategory?.key ?? 'new'] ??
+              STATUS_CATEGORY_STYLES.new,
+          )}
+        >
           {issue.fields.status.name}
         </span>
       )}
@@ -104,10 +117,10 @@ export default function TaskCard({ issue, healthDot, subtaskCount, isExpanded, o
                 className="size-5 rounded-full"
                 onError={(e) => {
                   // Fallback to initials on broken image
-                  const target = e.currentTarget
-                  target.style.display = 'none'
-                  const sibling = target.nextElementSibling as HTMLElement | null
-                  if (sibling) sibling.style.display = 'flex'
+                  const target = e.currentTarget;
+                  target.style.display = 'none';
+                  const sibling = target.nextElementSibling as HTMLElement | null;
+                  if (sibling) sibling.style.display = 'flex';
                 }}
               />
             ) : null
@@ -132,20 +145,19 @@ export default function TaskCard({ issue, healthDot, subtaskCount, isExpanded, o
       {subtaskCount != null && subtaskCount > 0 && (
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); onToggle?.() }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle?.();
+          }}
           className="flex items-center gap-1 p-1 -mx-1 rounded text-muted-foreground hover:text-foreground transition-colors"
           aria-label={isExpanded ? 'Collapse subtasks' : 'Expand subtasks'}
         >
           <Badge variant="secondary" className="text-xs py-0 pointer-events-none">
             {subtaskCount} subtask{subtaskCount !== 1 ? 's' : ''}
           </Badge>
-          {isExpanded ? (
-            <ChevronDown className="size-4" />
-          ) : (
-            <ChevronRight className="size-4" />
-          )}
+          {isExpanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
         </button>
       )}
     </div>
-  )
+  );
 }

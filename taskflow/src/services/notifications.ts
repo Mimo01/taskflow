@@ -9,14 +9,15 @@
  *  - Jira: JQL comment ~ displayName + client-side cursor filtering
  *  - GitLab: Per-MR notes endpoint, client-side cursor + system/own-note filtering
  */
-import { apiFetch } from '../lib/apiFetch';
+
 import {
   isPermissionGranted,
   requestPermission,
   sendNotification,
 } from '@tauri-apps/plugin-notification';
-import type { GitLabMR } from './gitlab';
+import { apiFetch } from '../lib/apiFetch';
 import type { NotificationType } from '../stores/notifications.store';
+import type { GitLabMR } from './gitlab';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -39,21 +40,21 @@ function toUtcIso(ts: string): string {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface NotificationItem {
-  id: string;            // 'jira-comment-{id}' | 'gitlab-note-{id}'
+  id: string; // 'jira-comment-{id}' | 'gitlab-note-{id}'
   source: 'jira' | 'gitlab';
-  entityTitle: string;   // "PROJ-123: Fix login bug"
-  author: string;        // "J.Smith"
+  entityTitle: string; // "PROJ-123: Fix login bug"
+  author: string; // "J.Smith"
   authorAvatarUrl?: string; // avatar image URL from Jira/GitLab API
-  bodyPreview: string;   // first ~80 chars of body
+  bodyPreview: string; // first ~80 chars of body
   fullBody: string;
-  createdAt: string;     // ISO 8601
-  url?: string;              // browser-openable URL for the entity
+  createdAt: string; // ISO 8601
+  url?: string; // browser-openable URL for the entity
   notificationType?: NotificationType;
-  entityState?: string;      // GitLab: "opened" | "merged" | "closed"
-  parentKey?: string;        // Jira subtask parent key, e.g. "PROJ-100"
-  parentSummary?: string;    // Jira subtask parent summary, e.g. "User Login Flow"
-  mrProjectId?: number;      // GitLab MR project ID — for internal /mr/:projectId/:iid routing
-  mrIid?: number;            // GitLab MR iid — for internal /mr/:projectId/:iid routing
+  entityState?: string; // GitLab: "opened" | "merged" | "closed"
+  parentKey?: string; // Jira subtask parent key, e.g. "PROJ-100"
+  parentSummary?: string; // Jira subtask parent summary, e.g. "User Login Flow"
+  mrProjectId?: number; // GitLab MR project ID — for internal /mr/:projectId/:iid routing
+  mrIid?: number; // GitLab MR iid — for internal /mr/:projectId/:iid routing
 }
 
 // ─── Jira Comment Fetcher ─────────────────────────────────────────────────────
@@ -87,7 +88,9 @@ async function fetchNewJiraComments(
 ): Promise<NotificationItem[]> {
   if (!displayName && !username) return [];
 
-  const since = toUtcIso(lastSeenCursor ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+  const since = toUtcIso(
+    lastSeenCursor ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+  );
   // JQL requires "YYYY-MM-DD HH:mm" format (no seconds, space not T)
   const sinceJql = since.substring(0, 16).replace('T', ' ');
   const base = baseUrl.replace(/\/$/, '');
@@ -100,22 +103,22 @@ async function fetchNewJiraComments(
   // Map of Jira changelog field names to display labels for tracked fields.
   // These produce "Label: old \u2192 new" change lines in notification bodies.
   const TRACKED_FIELDS: Record<string, string> = {
-    'summary': 'Title',
-    'priority': 'Priority',
+    summary: 'Title',
+    priority: 'Priority',
     'Story Points': 'Story Points',
-    'story_points': 'Story Points',
-    'Sprint': 'Sprint',
+    story_points: 'Story Points',
+    Sprint: 'Sprint',
     'Fix Version': 'Fix Version',
     'Fix Version/s': 'Fix Version',
-    'labels': 'Labels',
-    'Label': 'Labels',
-    'resolution': 'Resolution',
-    'issuetype': 'Type',
-    'Component': 'Component',
+    labels: 'Labels',
+    Label: 'Labels',
+    resolution: 'Resolution',
+    issuetype: 'Type',
+    Component: 'Component',
     'Component/s': 'Component',
-    'reporter': 'Reporter',
-    'duedate': 'Due Date',
-    'timeoriginalestimate': 'Estimate',
+    reporter: 'Reporter',
+    duedate: 'Due Date',
+    timeoriginalestimate: 'Estimate',
   };
 
   // ── Query A: issue updates (assignee / reporter / watcher) ──────────────────
@@ -175,20 +178,20 @@ async function fetchNewJiraComments(
         if (toUtcIso(history.created) <= since) continue;
         for (const item of history.items) {
           if (item.field === 'status') {
-            changeLines.push(`Status: ${item.fromString ?? '(none)'} \u2192 ${item.toString ?? '(none)'}`);
+            changeLines.push(
+              `Status: ${item.fromString ?? '(none)'} \u2192 ${item.toString ?? '(none)'}`,
+            );
             changeAuthor = changeAuthor ?? history.author.displayName;
             changeAuthorAvatar = changeAuthorAvatar ?? history.author.avatarUrls?.['48x48'];
           } else if (item.field === 'assignee') {
-            changeLines.push(`Assignee: ${item.fromString || '(none)'} \u2192 ${item.toString || '(none)'}`);
+            changeLines.push(
+              `Assignee: ${item.fromString || '(none)'} \u2192 ${item.toString || '(none)'}`,
+            );
             changeAuthor = changeAuthor ?? history.author.displayName;
             changeAuthorAvatar = changeAuthorAvatar ?? history.author.avatarUrls?.['48x48'];
 
             // Emit separate issue-assignment notification when newly assigned to current user
-            if (
-              displayName &&
-              item.toString === displayName &&
-              item.fromString !== displayName
-            ) {
+            if (displayName && item.toString === displayName && item.fromString !== displayName) {
               results.push({
                 id: `jira-assign-${issue.key}-${history.created}`,
                 source: 'jira',
@@ -211,7 +214,9 @@ async function fetchNewJiraComments(
             changeAuthorAvatar = changeAuthorAvatar ?? history.author.avatarUrls?.['48x48'];
           } else if (TRACKED_FIELDS[item.field]) {
             const label = TRACKED_FIELDS[item.field];
-            changeLines.push(`${label}: ${item.fromString ?? '(none)'} \u2192 ${item.toString ?? '(none)'}`);
+            changeLines.push(
+              `${label}: ${item.fromString ?? '(none)'} \u2192 ${item.toString ?? '(none)'}`,
+            );
             changeAuthor = changeAuthor ?? history.author.displayName;
             changeAuthorAvatar = changeAuthorAvatar ?? history.author.avatarUrls?.['48x48'];
           }
@@ -222,9 +227,7 @@ async function fetchNewJiraComments(
       if (changeLines.length === 0) continue;
 
       const fallbackAuthor =
-        issue.fields.assignee?.displayName ??
-        issue.fields.reporter?.displayName ??
-        'Unknown';
+        issue.fields.assignee?.displayName ?? issue.fields.reporter?.displayName ?? 'Unknown';
 
       const bodyPreview = changeLines.join('\n');
       const fullBody = changeLines.join('\n');
@@ -273,13 +276,15 @@ async function fetchNewJiraComments(
         key: string;
         fields: {
           summary: string;
-          comment?: { comments: Array<{
-            id: string;
-            author?: { displayName?: string; avatarUrls?: { '48x48'?: string } };
-            body?: string;
-            updated: string;
-            created: string;
-          }> };
+          comment?: {
+            comments: Array<{
+              id: string;
+              author?: { displayName?: string; avatarUrls?: { '48x48'?: string } };
+              body?: string;
+              updated: string;
+              created: string;
+            }>;
+          };
           parent?: { id: string; key: string; fields: { summary: string } };
           issuetype?: { name: string; subtask: boolean };
         };
@@ -345,13 +350,15 @@ async function fetchNewJiraComments(
         key: string;
         fields: {
           summary: string;
-          comment?: { comments: Array<{
-            id: string;
-            author?: { displayName?: string; avatarUrls?: { '48x48'?: string } };
-            body?: string;
-            updated: string;
-            created: string;
-          }> };
+          comment?: {
+            comments: Array<{
+              id: string;
+              author?: { displayName?: string; avatarUrls?: { '48x48'?: string } };
+              body?: string;
+              updated: string;
+              created: string;
+            }>;
+          };
           parent?: { id: string; key: string; fields: { summary: string } };
           issuetype?: { name: string; subtask: boolean };
         };
@@ -489,7 +496,9 @@ async function fetchAllGitlabNotifications(
   lastSeenCursor: string | null,
   currentUsername: string | null,
 ): Promise<NotificationItem[]> {
-  const since = toUtcIso(lastSeenCursor ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+  const since = toUtcIso(
+    lastSeenCursor ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+  );
   const base = baseUrl.replace(/\/$/, '');
   const headers = { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' };
 
@@ -509,8 +518,16 @@ async function fetchAllGitlabNotifications(
     ];
     if (isAuthor) {
       fetches.push(
-        apiFetch('gitlab', `${base}/api/v4/projects/${mr.project_id}/merge_requests/${mr.iid}/approvals`, { headers }).catch(() => null),
-        apiFetch('gitlab', `${base}/api/v4/projects/${mr.project_id}/merge_requests/${mr.iid}/pipelines?per_page=5&sort=desc`, { headers }).catch(() => null),
+        apiFetch(
+          'gitlab',
+          `${base}/api/v4/projects/${mr.project_id}/merge_requests/${mr.iid}/approvals`,
+          { headers },
+        ).catch(() => null),
+        apiFetch(
+          'gitlab',
+          `${base}/api/v4/projects/${mr.project_id}/merge_requests/${mr.iid}/pipelines?per_page=5&sort=desc`,
+          { headers },
+        ).catch(() => null),
       );
     }
 
@@ -652,24 +669,24 @@ function parseSystemNote(body: string): string | null {
     return `State: ${fromState} \u2192 ${action}`;
   }
   if (/^requested review from/i.test(body)) {
-    const names = [...body.matchAll(/@(\w[\w.-]*)/g)].map(m => m[1]);
+    const names = [...body.matchAll(/@(\w[\w.-]*)/g)].map((m) => m[1]);
     return names.length > 0 ? `Review requested: ${names.join(', ')}` : body;
   }
   if (/^removed review request for/i.test(body)) {
-    const names = [...body.matchAll(/@(\w[\w.-]*)/g)].map(m => m[1]);
+    const names = [...body.matchAll(/@(\w[\w.-]*)/g)].map((m) => m[1]);
     return names.length > 0 ? `Review removed: ${names.join(', ')}` : body;
   }
   if (/^(added|removed) ~"/i.test(body)) {
     const action = /^added/i.test(body) ? 'added' : 'removed';
-    const labels = [...body.matchAll(/~"([^"]+)"/g)].map(m => m[1]);
+    const labels = [...body.matchAll(/~"([^"]+)"/g)].map((m) => m[1]);
     return labels.length > 0 ? `Labels ${action}: ${labels.join(', ')}` : body;
   }
   if (/^assigned to/i.test(body)) {
-    const names = [...body.matchAll(/@(\w[\w.-]*)/g)].map(m => m[1]);
+    const names = [...body.matchAll(/@(\w[\w.-]*)/g)].map((m) => m[1]);
     return names.length > 0 ? `Assigned: ${names.join(', ')}` : body;
   }
   if (/^unassigned/i.test(body)) {
-    const names = [...body.matchAll(/@(\w[\w.-]*)/g)].map(m => m[1]);
+    const names = [...body.matchAll(/@(\w[\w.-]*)/g)].map((m) => m[1]);
     return names.length > 0 ? `Unassigned: ${names.join(', ')}` : 'Assignee: removed';
   }
   if (/^changed title from/i.test(body)) {
@@ -690,7 +707,8 @@ function parseSystemNote(body: string): string | null {
     const isDraft = /draft/i.test(body);
     return `Status: ${isDraft ? 'ready \u2192 draft' : 'draft \u2192 ready'}`;
   }
-  if (/^enabled an automatic merge/i.test(body) || /^merge when pipeline succeeds/i.test(body)) return 'Auto-merge: enabled';
+  if (/^enabled an automatic merge/i.test(body) || /^merge when pipeline succeeds/i.test(body))
+    return 'Auto-merge: enabled';
   if (/^canceled an automatic merge/i.test(body)) return 'Auto-merge: canceled';
   return null;
 }

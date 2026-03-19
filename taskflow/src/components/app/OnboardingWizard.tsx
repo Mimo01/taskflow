@@ -11,23 +11,18 @@
  * StepIndicator sits above the current step and reflects completed/current/future state.
  * Completed steps are derived from the Zustand onboarding store (jiraValidated, gitlabValidated).
  */
+
+import DoneStep from '@/routes/onboarding/DoneStep';
+import GitLabStep from '@/routes/onboarding/GitLabStep';
+import JiraStep from '@/routes/onboarding/JiraStep';
+import RoleStep from '@/routes/onboarding/RoleStep';
+import WelcomeStep from '@/routes/onboarding/WelcomeStep';
 import { useOnboardingStore } from '@/stores/onboarding.store';
 import StepIndicator from './StepIndicator';
-import WelcomeStep from '@/routes/onboarding/WelcomeStep';
-import JiraStep from '@/routes/onboarding/JiraStep';
-import GitLabStep from '@/routes/onboarding/GitLabStep';
-import RoleStep from '@/routes/onboarding/RoleStep';
-import DoneStep from '@/routes/onboarding/DoneStep';
 
 const STEP_LABELS = ['Welcome', 'Jira', 'GitLab', 'Role', 'Done'];
 
-const STEP_COMPONENTS = [
-  WelcomeStep,
-  JiraStep,
-  GitLabStep,
-  RoleStep,
-  DoneStep,
-];
+const STEP_COMPONENTS = [WelcomeStep, JiraStep, GitLabStep, RoleStep, DoneStep];
 
 export default function OnboardingWizard() {
   const { step, jiraValidated, gitlabValidated, role } = useOnboardingStore();
@@ -43,11 +38,7 @@ export default function OnboardingWizard() {
     <div className="min-h-screen flex flex-col">
       {/* Step progress indicator */}
       <div className="py-6 px-4 border-b border-border">
-        <StepIndicator
-          steps={STEP_LABELS}
-          currentStep={step}
-          completedSteps={completedSteps}
-        />
+        <StepIndicator steps={STEP_LABELS} currentStep={step} completedSteps={completedSteps} />
       </div>
 
       {/* Current step content */}

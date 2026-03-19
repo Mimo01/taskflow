@@ -5,21 +5,22 @@
  * request/response detail. View logs at /debug-logs.
  * Logs are in-memory only — cleared on app restart.
  */
+
+import { Check, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { Trash2, Check } from 'lucide-react';
-import { useSettingsStore } from '../../stores/settings.store';
-import { useNotificationsStore } from '../../stores/notifications.store';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
-  DialogContent,
   DialogClose,
+  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { useNotificationsStore } from '../../stores/notifications.store';
+import { useSettingsStore } from '../../stores/settings.store';
 
 export default function DebugModeSection() {
   const { debugMode, setDebugMode } = useSettingsStore();
@@ -98,14 +99,8 @@ export default function DebugModeSection() {
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
-                <DialogClose render={<Button variant="outline" />}>
-                  Cancel
-                </DialogClose>
-                <DialogClose
-                  render={
-                    <Button variant="destructive" onClick={handleClear} />
-                  }
-                >
+                <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+                <DialogClose render={<Button variant="destructive" onClick={handleClear} />}>
                   Clear all
                 </DialogClose>
               </DialogFooter>

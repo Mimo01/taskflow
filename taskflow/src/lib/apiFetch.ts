@@ -12,10 +12,10 @@
  * and the error is re-thrown so existing callers surface the failure correctly.
  */
 import { fetch } from '@tauri-apps/plugin-http';
-import { useSettingsStore } from '../stores/settings.store';
-import { useDebugLogStore } from '../stores/debug-log.store';
-import type { ApiLogEntry } from '../stores/debug-log.store';
 import { useAuthStore } from '../stores/auth.store';
+import type { ApiLogEntry } from '../stores/debug-log.store';
+import { useDebugLogStore } from '../stores/debug-log.store';
+import { useSettingsStore } from '../stores/settings.store';
 
 function markDisconnected(source: 'jira' | 'gitlab') {
   const auth = useAuthStore.getState();
@@ -96,9 +96,9 @@ export async function apiFetch(
     const text = await clone.text().catch(() => '');
     try {
       const pretty = JSON.stringify(JSON.parse(text), null, 2);
-      responseBody = pretty.length > 10_000 ? pretty.slice(0, 10_000) + '\n[truncated]' : pretty;
+      responseBody = pretty.length > 10_000 ? `${pretty.slice(0, 10_000)}\n[truncated]` : pretty;
     } catch {
-      responseBody = text.length > 10_000 ? text.slice(0, 10_000) + '\n[truncated]' : text;
+      responseBody = text.length > 10_000 ? `${text.slice(0, 10_000)}\n[truncated]` : text;
     }
   } catch (err) {
     const durationMs = Math.round(performance.now() - start);

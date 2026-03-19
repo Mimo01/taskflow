@@ -13,16 +13,16 @@
  * If postTransition has no valid transition, the issue lands in its default
  * status; the board re-fetch will show it in the correct column.
  */
-import { useState } from 'react'
-import { createIssue, fetchTransitions, postTransition } from '@/services/jira'
+import { useState } from 'react';
+import { createIssue, fetchTransitions, postTransition } from '@/services/jira';
 
 interface QuickCreateInputProps {
-  statusId: string
-  statusName: string
-  projectKey: string
-  jiraBaseUrl: string
-  jiraToken: string
-  onCreated: () => void
+  statusId: string;
+  statusName: string;
+  projectKey: string;
+  jiraBaseUrl: string;
+  jiraToken: string;
+  onCreated: () => void;
 }
 
 export default function QuickCreateInput({
@@ -33,34 +33,34 @@ export default function QuickCreateInput({
   jiraToken,
   onCreated,
 }: QuickCreateInputProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [value, setValue] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [isOpen, setIsOpen] = useState(false);
+  const [value, setValue] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit() {
-    if (!value.trim()) return
+    if (!value.trim()) return;
 
-    setIsSubmitting(true)
-    setError(null)
+    setIsSubmitting(true);
+    setError(null);
 
     try {
-      const { key: newKey } = await createIssue(jiraBaseUrl, jiraToken, projectKey, value.trim())
+      const { key: newKey } = await createIssue(jiraBaseUrl, jiraToken, projectKey, value.trim());
 
       // Attempt to move the new issue to the target column
-      const transitions = await fetchTransitions(jiraBaseUrl, jiraToken, newKey)
-      const t = transitions.find(tr => tr.to.id === statusId)
+      const transitions = await fetchTransitions(jiraBaseUrl, jiraToken, newKey);
+      const t = transitions.find((tr) => tr.to.id === statusId);
       if (t) {
-        await postTransition(jiraBaseUrl, jiraToken, newKey, t.id)
+        await postTransition(jiraBaseUrl, jiraToken, newKey, t.id);
       }
 
-      setValue('')
-      setIsOpen(false)
-      setIsSubmitting(false)
-      onCreated()
+      setValue('');
+      setIsOpen(false);
+      setIsSubmitting(false);
+      onCreated();
     } catch (err) {
-      setIsSubmitting(false)
-      setError(err instanceof Error ? err.message : 'Failed to create issue')
+      setIsSubmitting(false);
+      setError(err instanceof Error ? err.message : 'Failed to create issue');
     }
   }
 
@@ -73,7 +73,7 @@ export default function QuickCreateInput({
       >
         + Add
       </button>
-    )
+    );
   }
 
   return (
@@ -83,28 +83,23 @@ export default function QuickCreateInput({
           type="text"
           className="flex-1 text-xs border rounded px-2 py-1 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
           placeholder={`Issue summary...`}
-          autoFocus
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
-              void handleSubmit()
+              void handleSubmit();
             } else if (e.key === 'Escape') {
-              setIsOpen(false)
-              setValue('')
-              setError(null)
+              setIsOpen(false);
+              setValue('');
+              setError(null);
             }
           }}
           disabled={isSubmitting}
           aria-label={`Add issue to ${statusName}`}
         />
-        {isSubmitting && (
-          <span className="text-xs text-muted-foreground">Creating...</span>
-        )}
+        {isSubmitting && <span className="text-xs text-muted-foreground">Creating...</span>}
       </div>
-      {error && (
-        <p className="text-xs text-destructive px-1">{error}</p>
-      )}
+      {error && <p className="text-xs text-destructive px-1">{error}</p>}
     </div>
-  )
+  );
 }

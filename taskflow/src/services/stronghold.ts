@@ -15,15 +15,16 @@
  *
  * Source: https://v2.tauri.app/plugin/stronghold/
  */
-import { Stronghold, Client } from '@tauri-apps/plugin-stronghold';
+
 import { appDataDir } from '@tauri-apps/api/path';
 import { LazyStore } from '@tauri-apps/plugin-store';
+import { type Client, Stronghold } from '@tauri-apps/plugin-stronghold';
 
 const metaStore = new LazyStore('stronghold-meta.json');
 
 let _stronghold: Stronghold | null = null;
-let _store: ReturnType<Client['getStore']> | null = null;
-let _initPromise: Promise<ReturnType<Client['getStore']>> | null = null;
+let Store: ReturnType<Client['getStore']> | null = null;
+let InitPromise: Promise<ReturnType<Client['getStore']>> | null = null;
 
 async function getVaultPassword(): Promise<string> {
   const existing = await metaStore.get<string>('vault-password');
@@ -41,21 +42,21 @@ async function getVaultPassword(): Promise<string> {
 }
 
 async function getStore(): Promise<ReturnType<Client['getStore']>> {
-  if (_store) return _store;
-  if (_initPromise) return _initPromise;
+  if (Store) return Store;
+  if (InitPromise) return InitPromise;
 
-  _initPromise = (async () => {
+  InitPromise = (async () => {
     const vaultPath = `${await appDataDir()}/vault.hold`;
     const password = await getVaultPassword();
     _stronghold = await Stronghold.load(vaultPath, password);
     const client = await _stronghold
       .loadClient('taskflow')
-      .catch(() => _stronghold!.createClient('taskflow'));
-    _store = client.getStore();
-    return _store;
+      .catch(() => _stronghold?.createClient('taskflow'));
+    Store = client!.getStore();
+    return Store;
   })();
 
-  return _initPromise;
+  return InitPromise;
 }
 
 /**
@@ -66,7 +67,7 @@ export async function storeSecret(key: string, value: string): Promise<void> {
   const store = await getStore();
   const data = Array.from(new TextEncoder().encode(value));
   await store.insert(key, data);
-  await _stronghold!.save();
+  await _stronghold?.save();
 }
 
 /**
@@ -86,5 +87,5 @@ export async function readSecret(key: string): Promise<string> {
 export async function removeSecret(key: string): Promise<void> {
   const store = await getStore();
   await store.remove(key);
-  await _stronghold!.save();
+  await _stronghold?.save();
 }

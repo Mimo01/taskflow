@@ -9,14 +9,14 @@
  * panel benefits from background polling without issuing redundant requests.
  */
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { useSettingsStore } from '@/stores/settings.store';
-import { fetchMyTasksHierarchy, fetchSprintIssues } from '@/services/jira';
+import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
+import { fetchMyTasksHierarchy, fetchSprintIssues } from '@/services/jira';
+import { useSettingsStore } from '@/stores/settings.store';
 
 async function openJiraIssue(jiraBaseUrl: string, issueKey: string) {
-  const url = jiraBaseUrl.replace(/\/$/, '') + '/browse/' + issueKey;
+  const url = `${jiraBaseUrl.replace(/\/$/, '')}/browse/${issueKey}`;
   try {
     await openUrl(url);
   } catch {
@@ -46,7 +46,8 @@ export default function SubtasksPanel({
   // Shared cache with MyTasksTab — same query key, same queryFn
   const { data: taskData, isLoading: isLoadingTasks } = useQuery({
     queryKey: ['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey],
-    queryFn: () => fetchMyTasksHierarchy(jiraBaseUrl, jiraToken, activeJiraProject, storyPointsFieldKey),
+    queryFn: () =>
+      fetchMyTasksHierarchy(jiraBaseUrl, jiraToken, activeJiraProject, storyPointsFieldKey),
     staleTime: 30_000,
     enabled,
   });
@@ -54,7 +55,8 @@ export default function SubtasksPanel({
   // Sprint board data — used to build the set of sprint issue keys for orphan detection
   const { data: sprintData, isLoading: isLoadingSprint } = useQuery({
     queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey],
-    queryFn: () => fetchSprintIssues(jiraBaseUrl, jiraToken, activeJiraProject, false, storyPointsFieldKey),
+    queryFn: () =>
+      fetchSprintIssues(jiraBaseUrl, jiraToken, activeJiraProject, false, storyPointsFieldKey),
     staleTime: 30_000,
     enabled,
   });
@@ -69,7 +71,7 @@ export default function SubtasksPanel({
   const mySubtasks = (taskData?.issues ?? []).filter(
     (i) =>
       i.fields.issuetype.subtask === true &&
-      taskData!.myIssueKeys.has(i.key) &&
+      taskData?.myIssueKeys.has(i.key) &&
       i.fields.parent?.key &&
       sprintKeySet.has(i.fields.parent.key),
   );

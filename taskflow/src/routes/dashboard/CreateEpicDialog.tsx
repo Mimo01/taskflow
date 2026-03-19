@@ -1,53 +1,58 @@
-import { useState } from 'react'
-import { Dialog } from '@base-ui/react/dialog'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createIssue } from '@/services/jira'
-import { useSettingsStore } from '@/stores/settings.store'
-import { useAuthStore } from '@/stores/auth.store'
-import { readSecret } from '@/services/stronghold'
+import { Dialog } from '@base-ui/react/dialog';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { createIssue } from '@/services/jira';
+import { readSecret } from '@/services/stronghold';
+import { useAuthStore } from '@/stores/auth.store';
+import { useSettingsStore } from '@/stores/settings.store';
 
 export interface CreateEpicDialogProps {
-  open: boolean
-  onClose: () => void
+  open: boolean;
+  onClose: () => void;
 }
 
 export function CreateEpicDialog({ open, onClose }: CreateEpicDialogProps) {
-  const { epicNameFieldKey } = useSettingsStore()
-  const { jiraBaseUrl, activeJiraProject } = useAuthStore()
+  const { epicNameFieldKey } = useSettingsStore();
+  const { jiraBaseUrl, activeJiraProject } = useAuthStore();
 
-  const [epicName, setEpicName] = useState('')
-  const [description, setDescription] = useState('')
+  const [epicName, setEpicName] = useState('');
+  const [description, setDescription] = useState('');
 
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const jiraToken = await readSecret('jira-pat').catch(() => null)
+      const jiraToken = await readSecret('jira-pat').catch(() => null);
       if (!jiraBaseUrl || !jiraToken || !activeJiraProject || !epicNameFieldKey) {
-        throw new Error('Not configured')
+        throw new Error('Not configured');
       }
       return createIssue(jiraBaseUrl, jiraToken, activeJiraProject, epicName, {
         issuetype: 'Epic',
         description: description || undefined,
         [epicNameFieldKey]: epicName,
-      })
+      });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['jira-epics-basic'] })
-      setEpicName('')
-      setDescription('')
-      onClose()
+      queryClient.invalidateQueries({ queryKey: ['jira-epics-basic'] });
+      setEpicName('');
+      setDescription('');
+      onClose();
     },
-  })
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!epicName.trim()) return
-    mutation.mutate()
-  }
+    e.preventDefault();
+    if (!epicName.trim()) return;
+    mutation.mutate();
+  };
 
   return (
-    <Dialog.Root open={open} onOpenChange={(o) => { if (!o) onClose() }}>
+    <Dialog.Root
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+    >
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 bg-black/50 z-40" />
         <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-background rounded-lg shadow-lg p-6">
@@ -58,7 +63,7 @@ export function CreateEpicDialog({ open, onClose }: CreateEpicDialogProps) {
               <input
                 aria-label="Epic Name"
                 value={epicName}
-                onChange={e => setEpicName(e.target.value)}
+                onChange={(e) => setEpicName(e.target.value)}
                 className="border rounded px-3 py-2 text-sm"
                 required
               />
@@ -67,7 +72,7 @@ export function CreateEpicDialog({ open, onClose }: CreateEpicDialogProps) {
               <span className="text-sm font-medium">Description</span>
               <textarea
                 value={description}
-                onChange={e => setDescription(e.target.value)}
+                onChange={(e) => setDescription(e.target.value)}
                 className="border rounded px-3 py-2 text-sm resize-y min-h-[80px]"
                 placeholder="Optional description"
               />
@@ -75,7 +80,10 @@ export function CreateEpicDialog({ open, onClose }: CreateEpicDialogProps) {
             <div className="flex justify-end gap-2 mt-2">
               <Dialog.Close
                 render={
-                  <button type="button" className="px-4 py-2 text-sm rounded border border-border hover:bg-muted">
+                  <button
+                    type="button"
+                    className="px-4 py-2 text-sm rounded border border-border hover:bg-muted"
+                  >
                     Cancel
                   </button>
                 }
@@ -93,5 +101,5 @@ export function CreateEpicDialog({ open, onClose }: CreateEpicDialogProps) {
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>
-  )
+  );
 }

@@ -20,8 +20,8 @@ export default function WelcomeStep() {
       </div>
 
       <p className="text-sm text-muted-foreground max-w-lg">
-        Connect your Jira and GitLab accounts to see tasks, merge requests, and sprint state
-        without switching between tools.
+        Connect your Jira and GitLab accounts to see tasks, merge requests, and sprint state without
+        switching between tools.
       </p>
 
       <Button size="lg" onClick={goNext}>

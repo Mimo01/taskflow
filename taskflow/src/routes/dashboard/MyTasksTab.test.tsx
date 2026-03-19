@@ -4,10 +4,11 @@
  * Tests loading/error/empty/success states, last-refreshed display,
  * and MR linking behavior via linkEngine.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
+import { render, screen } from '@testing-library/react';
+import type React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('react-router-dom', () => ({
   useOutletContext: () => ({ onIssueClick: vi.fn() }),
@@ -65,7 +66,9 @@ vi.mock('@/services/linkEngine', () => ({
 // Mock StatusPopover and InlineComment to avoid TanStack Query dependency in unit tests
 vi.mock('./StatusPopover', () => ({
   default: ({ currentStatus }: { currentStatus: string }) => (
-    <button type="button" aria-label={currentStatus}>{currentStatus}</button>
+    <button type="button" aria-label={currentStatus}>
+      {currentStatus}
+    </button>
   ),
 }));
 
@@ -88,13 +91,13 @@ function makeIssue(key: string) {
   };
 }
 
-function makeMR(iid: number, title: string, source_branch = `feature/branch-${iid}`) {
+function makeMR(iid: number, title: string, sourceBranch = `feature/branch-${iid}`) {
   return {
     id: iid,
     iid,
     project_id: 1,
     title,
-    source_branch,
+    source_branch: sourceBranch,
     state: 'opened' as const,
     author: { id: 1, name: 'Author', username: 'author', avatar_url: '' },
     reviewers: [],
@@ -198,12 +201,20 @@ describe('MyTasksTab', () => {
 
   it('passes linkedMrResults with matched MR to TaskRow when MR title contains sprint issue key', async () => {
     const { fetchMyTasksHierarchy } = await import('@/services/jira');
-    vi.mocked(fetchMyTasksHierarchy).mockResolvedValue({ issues: [makeIssue('PROJ-1')], myIssueKeys: new Set(['PROJ-1']) });
+    vi.mocked(fetchMyTasksHierarchy).mockResolvedValue({
+      issues: [makeIssue('PROJ-1')],
+      myIssueKeys: new Set(['PROJ-1']),
+    });
 
-    const { fetchAssignedMRs, fetchMRApprovals, fetchMRDiscussions } = await import('@/services/gitlab');
+    const { fetchAssignedMRs, fetchMRApprovals, fetchMRDiscussions } = await import(
+      '@/services/gitlab'
+    );
     const mr = makeMR(42, 'PROJ-1 fix the thing');
     vi.mocked(fetchAssignedMRs).mockResolvedValue([mr]);
-    vi.mocked(fetchMRApprovals).mockResolvedValue({ approved_by: [{ user: { id: 1, name: 'Reviewer' } }], approved: true });
+    vi.mocked(fetchMRApprovals).mockResolvedValue({
+      approved_by: [{ user: { id: 1, name: 'Reviewer' } }],
+      approved: true,
+    });
     vi.mocked(fetchMRDiscussions).mockResolvedValue([]);
 
     const { linkMRToTask, deriveReviewHealth } = await import('@/services/linkEngine');
@@ -229,9 +240,18 @@ describe('MyTasksTab', () => {
 
   it('includes project-level MR in link map when MR title references a sprint task', async () => {
     const { fetchMyTasksHierarchy } = await import('@/services/jira');
-    vi.mocked(fetchMyTasksHierarchy).mockResolvedValue({ issues: [makeIssue('PROJ-1')], myIssueKeys: new Set(['PROJ-1']) });
+    vi.mocked(fetchMyTasksHierarchy).mockResolvedValue({
+      issues: [makeIssue('PROJ-1')],
+      myIssueKeys: new Set(['PROJ-1']),
+    });
 
-    const { fetchAssignedMRs, fetchReviewerMRs, fetchProjectMRs, fetchMRApprovals, fetchMRDiscussions } = await import('@/services/gitlab');
+    const {
+      fetchAssignedMRs,
+      fetchReviewerMRs,
+      fetchProjectMRs,
+      fetchMRApprovals,
+      fetchMRDiscussions,
+    } = await import('@/services/gitlab');
     const projectMr = makeMR(99, 'PROJ-1 fix via project fetch');
     vi.mocked(fetchAssignedMRs).mockResolvedValue([]);
     vi.mocked(fetchReviewerMRs).mockResolvedValue([]);
@@ -263,7 +283,10 @@ describe('MyTasksTab', () => {
 
   it('TaskRow shows "— no MR" when no MR links to the task', async () => {
     const { fetchMyTasksHierarchy } = await import('@/services/jira');
-    vi.mocked(fetchMyTasksHierarchy).mockResolvedValue({ issues: [makeIssue('PROJ-2')], myIssueKeys: new Set(['PROJ-2']) });
+    vi.mocked(fetchMyTasksHierarchy).mockResolvedValue({
+      issues: [makeIssue('PROJ-2')],
+      myIssueKeys: new Set(['PROJ-2']),
+    });
 
     const { fetchAssignedMRs } = await import('@/services/gitlab');
     vi.mocked(fetchAssignedMRs).mockResolvedValue([]);

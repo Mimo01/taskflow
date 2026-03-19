@@ -5,7 +5,7 @@
  * cycles on each click: light → dark → system → light.
  * Calls applyTheme() immediately then saveTheme() to persist.
  */
-import { Sun, Moon, Monitor } from 'lucide-react';
+import { Monitor, Moon, Sun } from 'lucide-react';
 import { applyTheme, saveTheme, type Theme } from '@/services/theme';
 import { useSettingsStore } from '@/stores/settings.store';
 

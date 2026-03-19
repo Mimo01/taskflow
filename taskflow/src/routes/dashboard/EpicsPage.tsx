@@ -4,21 +4,22 @@
  * Loads only basic epic data (name, status, assignee). Story counts and
  * progress are deferred to EpicDetailSheet — no expensive bulk story query here.
  */
-import { useState, useEffect } from 'react'
-import { useOutletContext } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { Layers } from 'lucide-react'
-import type { EpicEnriched } from '@/services/jira'
-import { fetchEpicsBasic } from '@/services/jira'
-import { EmptyState } from '@/components/ui/empty-state'
-import { ErrorState } from '@/components/ui/error-state'
-import { StaleDataBanner } from '@/components/ui/stale-data-banner'
-import { Button } from '@/components/ui/button'
-import { useSettingsStore } from '@/stores/settings.store'
-import { useAuthStore } from '@/stores/auth.store'
-import { readSecret } from '@/services/stronghold'
-import { epicColorToTailwind } from '@/lib/epicColors'
-import { CreateEpicDialog } from './CreateEpicDialog'
+
+import { useQuery } from '@tanstack/react-query';
+import { Layers } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
+import { StaleDataBanner } from '@/components/ui/stale-data-banner';
+import { epicColorToTailwind } from '@/lib/epicColors';
+import type { EpicEnriched } from '@/services/jira';
+import { fetchEpicsBasic } from '@/services/jira';
+import { readSecret } from '@/services/stronghold';
+import { useAuthStore } from '@/stores/auth.store';
+import { useSettingsStore } from '@/stores/settings.store';
+import { CreateEpicDialog } from './CreateEpicDialog';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -28,21 +29,24 @@ function getInitials(displayName: string): string {
     .map((p) => p[0])
     .join('')
     .slice(0, 2)
-    .toUpperCase()
+    .toUpperCase();
 }
 
 // ── EpicRow ───────────────────────────────────────────────────────────────────
 
 interface EpicRowProps {
-  epic: EpicEnriched
-  onEpicClick?: (key: string) => void
+  epic: EpicEnriched;
+  onEpicClick?: (key: string) => void;
 }
 
 function EpicRow({ epic, onEpicClick }: EpicRowProps) {
-  const colorResult = epicColorToTailwind(epic.color ?? null, epic.key)
+  const colorResult = epicColorToTailwind(epic.color ?? null, epic.key);
 
   return (
-    <tr className="border-b border-border hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => onEpicClick?.(epic.key)}>
+    <tr
+      className="border-b border-border hover:bg-muted/30 transition-colors cursor-pointer"
+      onClick={() => onEpicClick?.(epic.key)}
+    >
       {/* Color bar — prominent left border */}
       <td className="w-1 p-0">
         <div
@@ -62,9 +66,7 @@ function EpicRow({ epic, onEpicClick }: EpicRowProps) {
       </td>
 
       {/* Epic key */}
-      <td className="px-3 py-3 text-xs text-muted-foreground font-mono">
-        {epic.key}
-      </td>
+      <td className="px-3 py-3 text-xs text-muted-foreground font-mono">{epic.key}</td>
 
       {/* Status badge */}
       <td className="px-3 py-3">
@@ -83,9 +85,9 @@ function EpicRow({ epic, onEpicClick }: EpicRowProps) {
                 alt={epic.assignee.displayName}
                 className="h-6 w-6 rounded-full"
                 onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                  const sib = e.currentTarget.nextElementSibling as HTMLElement | null
-                  if (sib) sib.style.display = 'flex'
+                  e.currentTarget.style.display = 'none';
+                  const sib = e.currentTarget.nextElementSibling as HTMLElement | null;
+                  if (sib) sib.style.display = 'flex';
                 }}
               />
             )}
@@ -99,27 +101,36 @@ function EpicRow({ epic, onEpicClick }: EpicRowProps) {
         ) : null}
       </td>
     </tr>
-  )
+  );
 }
 
 // ── EpicsPage ─────────────────────────────────────────────────────────────────
 
 export default function EpicsPage() {
-  const ctx = useOutletContext<{ onEpicClick?: (key: string) => void; [key: string]: unknown }>() ?? {}
-  const onEpicClick = ctx.onEpicClick
+  const ctx =
+    useOutletContext<{ onEpicClick?: (key: string) => void; [key: string]: unknown }>() ?? {};
+  const onEpicClick = ctx.onEpicClick;
 
-  const { jiraBaseUrl, activeJiraProject } = useAuthStore()
-  const { epicNameFieldKey, epicColorFieldKey } = useSettingsStore()
+  const { jiraBaseUrl, activeJiraProject } = useAuthStore();
+  const { epicNameFieldKey, epicColorFieldKey } = useSettingsStore();
 
-  const [token, setToken] = useState<string | null>(null)
+  const [token, setToken] = useState<string | null>(null);
   useEffect(() => {
-    readSecret('jira-pat').then(setToken).catch(() => setToken(null))
-  }, [])
+    readSecret('jira-pat')
+      .then(setToken)
+      .catch(() => setToken(null));
+  }, []);
 
-  const [createOpen, setCreateOpen] = useState(false)
-  const [bannerDismissed, setBannerDismissed] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
-  const { data: epicsData, isLoading, isError, error, refetch } = useQuery<EpicEnriched[]>({
+  const {
+    data: epicsData,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery<EpicEnriched[]>({
     queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
     queryFn: () =>
       fetchEpicsBasic(
@@ -130,11 +141,13 @@ export default function EpicsPage() {
         epicColorFieldKey ?? undefined,
       ),
     enabled: !!jiraBaseUrl && !!token && !!activeJiraProject,
-  })
-  const epics = epicsData ?? []
+  });
+  const epics = epicsData ?? [];
 
   // Reset banner dismissal when error state changes
-  useEffect(() => { setBannerDismissed(false) }, [isError])
+  useEffect(() => {
+    setBannerDismissed(false);
+  }, []);
 
   return (
     <div className="flex flex-col h-full">
@@ -215,5 +228,5 @@ export default function EpicsPage() {
 
       <CreateEpicDialog open={createOpen} onClose={() => setCreateOpen(false)} />
     </div>
-  )
+  );
 }

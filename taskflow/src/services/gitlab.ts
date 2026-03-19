@@ -12,8 +12,9 @@
  * IMPORTANT: This module does NOT store secrets. Callers are responsible for
  * calling storeSecret('gitlab-pat', token) after successful validation.
  */
-import { apiFetch } from '../lib/apiFetch';
+
 import { ApiError } from '../lib/api-error';
+import { apiFetch } from '../lib/apiFetch';
 
 export interface GitLabUser {
   id: number;
@@ -178,21 +179,21 @@ export interface GitLabMR {
   reviewers: Array<{ id: number; name: string; username: string }>;
   updated_at: string; // ISO 8601 UTC
   web_url: string;
-  labels: GitLabLabel[];  // label objects with colors
+  labels: GitLabLabel[]; // label objects with colors
   milestone: { id: number; title: string } | null;
 }
 
 export interface GitLabLabel {
   name: string;
-  color: string;       // hex like "#428BCA"
-  text_color: string;  // hex like "#FFFFFF"
+  color: string; // hex like "#428BCA"
+  text_color: string; // hex like "#FFFFFF"
 }
 
 export interface GitLabMRDetail extends Omit<GitLabMR, 'labels' | 'milestone'> {
   description: string | null;
   target_branch: string;
   created_at: string;
-  labels: GitLabLabel[];  // normalized from string[] or object[] by fetchMRDetail
+  labels: GitLabLabel[]; // normalized from string[] or object[] by fetchMRDetail
   draft: boolean;
   merge_status: string;
   has_conflicts: boolean;
@@ -638,7 +639,7 @@ export async function fetchMRDetail(
   const data = await response.json();
 
   // Fetch project labels to get colors (MR endpoint only returns label names as strings)
-  let labelColorMap: Record<string, { color: string; text_color: string }> = {};
+  const labelColorMap: Record<string, { color: string; text_color: string }> = {};
   if (Array.isArray(data.labels) && data.labels.length > 0) {
     try {
       const labelsUrl = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/labels?per_page=100`;
@@ -646,7 +647,11 @@ export async function fetchMRDetail(
         headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
       });
       if (labelsResp.ok) {
-        const projectLabels = await labelsResp.json() as Array<{ name: string; color: string; text_color: string }>;
+        const projectLabels = (await labelsResp.json()) as Array<{
+          name: string;
+          color: string;
+          text_color: string;
+        }>;
         for (const pl of projectLabels) {
           labelColorMap[pl.name] = { color: pl.color, text_color: pl.text_color };
         }
@@ -708,7 +713,7 @@ export async function fetchProjectMRs(
     }
   }
 
-  let labelColorMap: Record<string, { color: string; text_color: string }> = {};
+  const labelColorMap: Record<string, { color: string; text_color: string }> = {};
   if (allLabelNames.size > 0) {
     try {
       const labelsUrl = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/labels?per_page=100`;
@@ -716,7 +721,11 @@ export async function fetchProjectMRs(
         headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
       });
       if (labelsResp.ok) {
-        const projectLabels = await labelsResp.json() as Array<{ name: string; color: string; text_color: string }>;
+        const projectLabels = (await labelsResp.json()) as Array<{
+          name: string;
+          color: string;
+          text_color: string;
+        }>;
         for (const pl of projectLabels) {
           labelColorMap[pl.name] = { color: pl.color, text_color: pl.text_color };
         }

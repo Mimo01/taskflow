@@ -6,38 +6,39 @@
  *
  * linkedMrResults comes from MyTasksTab after link engine computation (Plan 03).
  */
-import { useState, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { MessageCircle } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import type { JiraIssue } from '@/services/jira'
-import { fetchComments } from '@/services/jira'
-import type { GitLabMR } from '@/services/gitlab'
-import type { ReviewHealth } from '@/services/linkEngine'
-import { useSettingsStore } from '@/stores/settings.store'
-import StatusPopover from './StatusPopover'
-import InlineComment from './InlineComment'
+
+import { useQuery } from '@tanstack/react-query';
+import { MessageCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { cn } from '@/lib/utils';
+import type { GitLabMR } from '@/services/gitlab';
+import type { JiraIssue } from '@/services/jira';
+import { fetchComments } from '@/services/jira';
+import type { ReviewHealth } from '@/services/linkEngine';
+import { useSettingsStore } from '@/stores/settings.store';
+import InlineComment from './InlineComment';
+import StatusPopover from './StatusPopover';
 
 const HEALTH_DOT_COLORS: Record<ReviewHealth, string> = {
   approved: 'bg-green-500',
   changes_requested: 'bg-red-500',
   waiting_for_review: 'bg-yellow-400',
-}
+};
 
 interface TaskRowProps {
-  issue: JiraIssue
-  linkedMrResults: Array<{ mr: GitLabMR; health: ReviewHealth }>
-  jiraBaseUrl: string
-  jiraToken: string
-  onTransitionSelect: (issueKey: string, transitionId: string, toStatusName: string) => void
-  onCommentSubmit: (issueKey: string, comment: string) => void
-  isTransitionPending?: boolean
-  isCommentPending?: boolean
-  transitionError?: string
-  commentError?: string
-  isSubtask?: boolean
-  notMine?: boolean
-  onIssueClick?: (issueKey: string) => void
+  issue: JiraIssue;
+  linkedMrResults: Array<{ mr: GitLabMR; health: ReviewHealth }>;
+  jiraBaseUrl: string;
+  jiraToken: string;
+  onTransitionSelect: (issueKey: string, transitionId: string, toStatusName: string) => void;
+  onCommentSubmit: (issueKey: string, comment: string) => void;
+  isTransitionPending?: boolean;
+  isCommentPending?: boolean;
+  transitionError?: string;
+  commentError?: string;
+  isSubtask?: boolean;
+  notMine?: boolean;
+  onIssueClick?: (issueKey: string) => void;
 }
 
 export default function TaskRow({
@@ -55,29 +56,33 @@ export default function TaskRow({
   notMine = false,
   onIssueClick,
 }: TaskRowProps) {
-  const [commentOpen, setCommentOpen] = useState(false)
-  const [commentCount, setCommentCount] = useState<number | null>(null)
-  const { storyPointsFieldKey } = useSettingsStore()
+  const [commentOpen, setCommentOpen] = useState(false);
+  const [commentCount, setCommentCount] = useState<number | null>(null);
+  const { storyPointsFieldKey } = useSettingsStore();
 
   const { data: comments, isLoading: isLoadingComments } = useQuery({
     queryKey: ['jira-comments', issue.key],
     queryFn: () => fetchComments(jiraBaseUrl ?? '', jiraToken ?? '', issue.key),
     staleTime: 60_000,
     enabled: commentOpen && !!jiraBaseUrl && !!jiraToken,
-  })
+  });
 
   useEffect(() => {
     if (comments) {
-      setCommentCount(comments.length)
+      setCommentCount(comments.length);
     }
-  }, [comments])
+  }, [comments]);
 
   return (
-    <div className={cn(
-      'border-b border-border last:border-b-0',
-      isSubtask && !notMine && 'ml-6 border-l-2 border-l-primary/50 bg-primary/5',
-      isSubtask && notMine && 'ml-6 border-l-2 border-l-muted-foreground/15 bg-muted/20 opacity-40',
-    )}>
+    <div
+      className={cn(
+        'border-b border-border last:border-b-0',
+        isSubtask && !notMine && 'ml-6 border-l-2 border-l-primary/50 bg-primary/5',
+        isSubtask &&
+          notMine &&
+          'ml-6 border-l-2 border-l-muted-foreground/15 bg-muted/20 opacity-40',
+      )}
+    >
       <div className="flex items-center gap-2 py-2 density-compact:py-1 density-comfortable:py-3 px-3">
         {/* Issue key */}
         <span className="w-28 flex-shrink-0 font-mono text-sm text-muted-foreground truncate">
@@ -133,10 +138,7 @@ export default function TaskRow({
               >
                 MR !{mr.iid}
                 <span
-                  className={cn(
-                    'inline-block size-1.5 rounded-full',
-                    HEALTH_DOT_COLORS[health],
-                  )}
+                  className={cn('inline-block size-1.5 rounded-full', HEALTH_DOT_COLORS[health])}
                 />
               </span>
             ))
@@ -166,9 +168,9 @@ export default function TaskRow({
         isOpen={commentOpen}
         onCancel={() => setCommentOpen(false)}
         onSubmit={(comment) => {
-            onCommentSubmit(issue.key, comment)
-            setCommentOpen(false)
-          }}
+          onCommentSubmit(issue.key, comment);
+          setCommentOpen(false);
+        }}
         isSubmitting={!!isCommentPending}
         error={commentError}
         existingComments={comments}
@@ -177,10 +179,8 @@ export default function TaskRow({
 
       {/* Transition inline error */}
       {transitionError && (
-        <div className="px-3 pb-1 text-xs text-destructive">
-          {transitionError}
-        </div>
+        <div className="px-3 pb-1 text-xs text-destructive">{transitionError}</div>
       )}
     </div>
-  )
+  );
 }

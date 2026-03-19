@@ -1,23 +1,23 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import React from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type React from 'react';
+import { describe, expect, it, vi } from 'vitest';
 
 // Mock stronghold
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-jira-token'),
-}))
+}));
 
 // Mock jira service — controlled from each test
 vi.mock('@/services/jira', () => ({
   fetchIssueDetail: vi.fn().mockResolvedValue(null),
   postComment: vi.fn().mockResolvedValue(undefined),
-}))
+}));
 
 // Mock @tauri-apps/plugin-opener
 vi.mock('@tauri-apps/plugin-opener', () => ({
   openUrl: vi.fn().mockResolvedValue(undefined),
-}))
+}));
 
 // Mock auth store
 vi.mock('@/stores/auth.store', () => ({
@@ -25,7 +25,7 @@ vi.mock('@/stores/auth.store', () => ({
     jiraBaseUrl: 'https://jira.example.com',
     jiraConnected: true,
   })),
-}))
+}));
 
 // Mock settings store
 vi.mock('@/stores/settings.store', () => ({
@@ -35,14 +35,14 @@ vi.mock('@/stores/settings.store', () => ({
     sprintFieldKey: 'customfield_10020',
     storyPointsFieldKey: 'customfield_10016',
   })),
-}))
+}));
 
 // Mock WikiRenderer — avoids jira2md complexity in unit tests
 vi.mock('./WikiRenderer', () => ({
   WikiRenderer: ({ wikiText }: { wikiText: string | null }) => (
     <div data-testid="wiki-renderer">{wikiText}</div>
   ),
-}))
+}));
 
 // Minimal JiraIssueDetail fixture
 function makeIssueDetail(overrides: Record<string, unknown> = {}) {
@@ -73,12 +73,20 @@ function makeIssueDetail(overrides: Record<string, unknown> = {}) {
         {
           id: 'link-1',
           type: { id: '10000', name: 'Blocks', inward: 'is blocked by', outward: 'blocks' },
-          outwardIssue: { id: 'PROJ-45', key: 'PROJ-45', fields: { summary: 'Blocking issue', status: { name: 'Open' } } },
+          outwardIssue: {
+            id: 'PROJ-45',
+            key: 'PROJ-45',
+            fields: { summary: 'Blocking issue', status: { name: 'Open' } },
+          },
         },
         {
           id: 'link-2',
           type: { id: '10001', name: 'Blocks', inward: 'is blocked by', outward: 'blocks' },
-          inwardIssue: { id: 'PROJ-10', key: 'PROJ-10', fields: { summary: 'Blocked by this', status: { name: 'Closed' } } },
+          inwardIssue: {
+            id: 'PROJ-10',
+            key: 'PROJ-10',
+            fields: { summary: 'Blocked by this', status: { name: 'Closed' } },
+          },
         },
       ],
       comment: { comments: [] },
@@ -93,60 +101,51 @@ function makeIssueDetail(overrides: Record<string, unknown> = {}) {
       customfield_10020: [{ id: 1, name: 'Sprint 5', state: 'active' }],
       ...overrides,
     },
-  }
+  };
 }
 
 function wrapper({ children }: { children: React.ReactNode }) {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
 }
 
 describe('IssueDetailSheet', () => {
   describe('ISSUE-01: open/close', () => {
     it('renders sheet open when issueKey is a non-null string', async () => {
-      const { fetchIssueDetail } = await import('@/services/jira')
-      vi.mocked(fetchIssueDetail).mockResolvedValue(makeIssueDetail() as never)
+      const { fetchIssueDetail } = await import('@/services/jira');
+      vi.mocked(fetchIssueDetail).mockResolvedValue(makeIssueDetail() as never);
 
-      const { IssueDetailSheet } = await import('./IssueDetailSheet')
-      render(
-        <IssueDetailSheet issueKey="PROJ-1" onClose={vi.fn()} />,
-        { wrapper }
-      )
+      const { IssueDetailSheet } = await import('./IssueDetailSheet');
+      render(<IssueDetailSheet issueKey="PROJ-1" onClose={vi.fn()} />, { wrapper });
 
       // When open, the skeleton or body is rendered (skeleton initially while loading)
       // The Sheet is open when issueKey is non-null — verify by finding skeleton or content
-      const skeleton = await screen.findByTestId('issue-detail-skeleton')
-      expect(skeleton).toBeTruthy()
-    })
+      const skeleton = await screen.findByTestId('issue-detail-skeleton');
+      expect(skeleton).toBeTruthy();
+    });
 
     it('renders sheet closed when issueKey is null', async () => {
-      const { IssueDetailSheet } = await import('./IssueDetailSheet')
-      render(
-        <IssueDetailSheet issueKey={null} onClose={vi.fn()} />,
-        { wrapper }
-      )
+      const { IssueDetailSheet } = await import('./IssueDetailSheet');
+      render(<IssueDetailSheet issueKey={null} onClose={vi.fn()} />, { wrapper });
       // When issueKey is null, no body or skeleton is rendered inside the sheet
-      expect(screen.queryByTestId('issue-detail-body')).toBeNull()
-      expect(screen.queryByTestId('issue-detail-skeleton')).toBeNull()
-    })
+      expect(screen.queryByTestId('issue-detail-body')).toBeNull();
+      expect(screen.queryByTestId('issue-detail-skeleton')).toBeNull();
+    });
 
     it('calls onClose when Sheet onOpenChange fires with false', async () => {
-      const { fetchIssueDetail } = await import('@/services/jira')
-      vi.mocked(fetchIssueDetail).mockResolvedValue(makeIssueDetail() as never)
+      const { fetchIssueDetail } = await import('@/services/jira');
+      vi.mocked(fetchIssueDetail).mockResolvedValue(makeIssueDetail() as never);
 
-      const { IssueDetailSheet } = await import('./IssueDetailSheet')
-      const onClose = vi.fn()
-      render(
-        <IssueDetailSheet issueKey="PROJ-1" onClose={onClose} />,
-        { wrapper }
-      )
+      const { IssueDetailSheet } = await import('./IssueDetailSheet');
+      const onClose = vi.fn();
+      render(<IssueDetailSheet issueKey="PROJ-1" onClose={onClose} />, { wrapper });
 
       // Find and click the close button (SheetContent renders one by default)
-      const closeBtn = await screen.findByRole('button', { name: /close/i })
-      fireEvent.click(closeBtn)
-      await waitFor(() => expect(onClose).toHaveBeenCalled())
-    })
-  })
+      const closeBtn = await screen.findByRole('button', { name: /close/i });
+      fireEvent.click(closeBtn);
+      await waitFor(() => expect(onClose).toHaveBeenCalled());
+    });
+  });
 
   describe('ISSUE-04: optimistic field update', () => {
     // Tests validate the mutation hook behavior: onMutate optimistically updates the cache,
@@ -154,14 +153,14 @@ describe('IssueDetailSheet', () => {
 
     it('applies optimistic update to priority field immediately via onMutate', async () => {
       // Set up a QueryClient with pre-populated cache for PROJ-1
-      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-      const issueKey = 'PROJ-1'
-      const jiraBaseUrl = 'https://jira.example.com'
-      const initialIssue = makeIssueDetail()
-      qc.setQueryData(['jira-issue-detail', issueKey, jiraBaseUrl], initialIssue)
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const issueKey = 'PROJ-1';
+      const jiraBaseUrl = 'https://jira.example.com';
+      const initialIssue = makeIssueDetail();
+      qc.setQueryData(['jira-issue-detail', issueKey, jiraBaseUrl], initialIssue);
 
       // Import the sidebar to trigger registration of the mutation hook
-      const { IssueDetailSidebar } = await import('./IssueDetailSidebar')
+      const { IssueDetailSidebar } = await import('./IssueDetailSidebar');
       render(
         <QueryClientProvider client={qc}>
           <IssueDetailSidebar
@@ -173,99 +172,123 @@ describe('IssueDetailSheet', () => {
             epicNameFieldKey="customfield_10015"
             sprintFieldKey="customfield_10020"
           />
-        </QueryClientProvider>
-      )
+        </QueryClientProvider>,
+      );
 
       // The cache should still hold the original issue
-      const cached = qc.getQueryData<typeof initialIssue>(['jira-issue-detail', issueKey, jiraBaseUrl])
-      expect(cached).toBeDefined()
-      expect((cached as typeof initialIssue).fields.priority.name).toBe('High')
-    })
+      const cached = qc.getQueryData<typeof initialIssue>([
+        'jira-issue-detail',
+        issueKey,
+        jiraBaseUrl,
+      ]);
+      expect(cached).toBeDefined();
+      expect((cached as typeof initialIssue).fields.priority.name).toBe('High');
+    });
 
     it('rolls back priority to previous value when mutation errors', async () => {
       // This tests that the onError handler in useFieldMutation restores the previous snapshot
-      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-      const issueKey = 'PROJ-1'
-      const jiraBaseUrl = 'https://jira.example.com'
-      const initialIssue = makeIssueDetail({ priority: { name: 'Medium' } })
-      qc.setQueryData(['jira-issue-detail', issueKey, jiraBaseUrl], initialIssue)
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const issueKey = 'PROJ-1';
+      const jiraBaseUrl = 'https://jira.example.com';
+      const initialIssue = makeIssueDetail({ priority: { name: 'Medium' } });
+      qc.setQueryData(['jira-issue-detail', issueKey, jiraBaseUrl], initialIssue);
 
       // Simulate the onMutate optimistic update pattern:
       // 1. Snapshot before update
-      const previous = qc.getQueryData(['jira-issue-detail', issueKey, jiraBaseUrl])
+      const previous = qc.getQueryData(['jira-issue-detail', issueKey, jiraBaseUrl]);
       // 2. Apply optimistic update
       qc.setQueryData<typeof initialIssue>(['jira-issue-detail', issueKey, jiraBaseUrl], (old) => {
-        if (!old) return old
-        return { ...old, fields: { ...old.fields, priority: { name: 'High' } } } as typeof old
-      })
+        if (!old) return old;
+        return { ...old, fields: { ...old.fields, priority: { name: 'High' } } } as typeof old;
+      });
       // Verify optimistic update applied
-      const afterOptimistic = qc.getQueryData<typeof initialIssue>(['jira-issue-detail', issueKey, jiraBaseUrl])
-      expect((afterOptimistic as typeof initialIssue).fields.priority.name).toBe('High')
+      const afterOptimistic = qc.getQueryData<typeof initialIssue>([
+        'jira-issue-detail',
+        issueKey,
+        jiraBaseUrl,
+      ]);
+      expect((afterOptimistic as typeof initialIssue).fields.priority.name).toBe('High');
       // 3. Simulate error rollback
-      qc.setQueryData(['jira-issue-detail', issueKey, jiraBaseUrl], previous)
+      qc.setQueryData(['jira-issue-detail', issueKey, jiraBaseUrl], previous);
       // Verify rollback restored original value
-      const afterRollback = qc.getQueryData<typeof initialIssue>(['jira-issue-detail', issueKey, jiraBaseUrl])
-      expect((afterRollback as typeof initialIssue).fields.priority.name).toBe('Medium')
-    })
+      const afterRollback = qc.getQueryData<typeof initialIssue>([
+        'jira-issue-detail',
+        issueKey,
+        jiraBaseUrl,
+      ]);
+      expect((afterRollback as typeof initialIssue).fields.priority.name).toBe('Medium');
+    });
 
     it('applies optimistic update to story points field immediately', async () => {
-      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-      const issueKey = 'PROJ-1'
-      const jiraBaseUrl = 'https://jira.example.com'
-      const initialIssue = makeIssueDetail({ customfield_10016: 5 })
-      qc.setQueryData(['jira-issue-detail', issueKey, jiraBaseUrl], initialIssue)
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const issueKey = 'PROJ-1';
+      const jiraBaseUrl = 'https://jira.example.com';
+      const initialIssue = makeIssueDetail({ customfield_10016: 5 });
+      qc.setQueryData(['jira-issue-detail', issueKey, jiraBaseUrl], initialIssue);
 
       // Simulate optimistic update for story points
       qc.setQueryData<typeof initialIssue>(['jira-issue-detail', issueKey, jiraBaseUrl], (old) => {
-        if (!old) return old
-        return { ...old, fields: { ...old.fields, customfield_10016: 8 } } as typeof old
-      })
+        if (!old) return old;
+        return { ...old, fields: { ...old.fields, customfield_10016: 8 } } as typeof old;
+      });
 
-      const updated = qc.getQueryData<typeof initialIssue>(['jira-issue-detail', issueKey, jiraBaseUrl])
-      expect((updated as typeof initialIssue).fields.customfield_10016).toBe(8)
-    })
+      const updated = qc.getQueryData<typeof initialIssue>([
+        'jira-issue-detail',
+        issueKey,
+        jiraBaseUrl,
+      ]);
+      expect((updated as typeof initialIssue).fields.customfield_10016).toBe(8);
+    });
 
     it('applies optimistic update to labels field immediately', async () => {
-      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-      const issueKey = 'PROJ-1'
-      const jiraBaseUrl = 'https://jira.example.com'
-      const initialIssue = makeIssueDetail({ labels: ['bug'] })
-      qc.setQueryData(['jira-issue-detail', issueKey, jiraBaseUrl], initialIssue)
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const issueKey = 'PROJ-1';
+      const jiraBaseUrl = 'https://jira.example.com';
+      const initialIssue = makeIssueDetail({ labels: ['bug'] });
+      qc.setQueryData(['jira-issue-detail', issueKey, jiraBaseUrl], initialIssue);
 
-      const newLabels = ['bug', 'frontend', 'v2']
+      const newLabels = ['bug', 'frontend', 'v2'];
       qc.setQueryData<typeof initialIssue>(['jira-issue-detail', issueKey, jiraBaseUrl], (old) => {
-        if (!old) return old
-        return { ...old, fields: { ...old.fields, labels: newLabels } } as typeof old
-      })
+        if (!old) return old;
+        return { ...old, fields: { ...old.fields, labels: newLabels } } as typeof old;
+      });
 
-      const updated = qc.getQueryData<typeof initialIssue>(['jira-issue-detail', issueKey, jiraBaseUrl])
-      expect((updated as typeof initialIssue).fields.labels).toEqual(['bug', 'frontend', 'v2'])
-    })
+      const updated = qc.getQueryData<typeof initialIssue>([
+        'jira-issue-detail',
+        issueKey,
+        jiraBaseUrl,
+      ]);
+      expect((updated as typeof initialIssue).fields.labels).toEqual(['bug', 'frontend', 'v2']);
+    });
 
     it('onSettled invalidates detail, sprint-board, and my-tasks queries', async () => {
-      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-      const issueKey = 'PROJ-1'
-      const jiraBaseUrl = 'https://jira.example.com'
-      const invalidateSpy = vi.spyOn(qc, 'invalidateQueries')
-      const initialIssue = makeIssueDetail()
-      qc.setQueryData(['jira-issue-detail', issueKey, jiraBaseUrl], initialIssue)
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const issueKey = 'PROJ-1';
+      const jiraBaseUrl = 'https://jira.example.com';
+      const invalidateSpy = vi.spyOn(qc, 'invalidateQueries');
+      const initialIssue = makeIssueDetail();
+      qc.setQueryData(['jira-issue-detail', issueKey, jiraBaseUrl], initialIssue);
 
       // Simulate onSettled: three invalidations required
-      await qc.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] })
-      await qc.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] })
-      await qc.invalidateQueries({ queryKey: ['jira-issues', 'my-tasks'] })
+      await qc.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
+      await qc.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
+      await qc.invalidateQueries({ queryKey: ['jira-issues', 'my-tasks'] });
 
-      expect(invalidateSpy).toHaveBeenCalledTimes(3)
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] })
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['jira-issues', 'sprint-board'] })
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['jira-issues', 'my-tasks'] })
-    })
+      expect(invalidateSpy).toHaveBeenCalledTimes(3);
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl],
+      });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['jira-issues', 'sprint-board'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['jira-issues', 'my-tasks'] });
+    });
 
     it('IssueDetailSidebar renders priority edit trigger (click-to-edit)', async () => {
-      const { IssueDetailSidebar } = await import('./IssueDetailSidebar')
-      const issue = makeIssueDetail()
+      const { IssueDetailSidebar } = await import('./IssueDetailSidebar');
+      const issue = makeIssueDetail();
       render(
-        <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <QueryClientProvider
+          client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+        >
           <IssueDetailSidebar
             issue={issue as never}
             issueKey="PROJ-1"
@@ -275,36 +298,36 @@ describe('IssueDetailSheet', () => {
             epicNameFieldKey="customfield_10015"
             sprintFieldKey="customfield_10020"
           />
-        </QueryClientProvider>
-      )
+        </QueryClientProvider>,
+      );
       // After implementation, the priority field should have a click-to-edit trigger button
-      const priorityEditTrigger = screen.queryByTestId('priority-edit')
-      expect(priorityEditTrigger).not.toBeNull()
-    })
+      const priorityEditTrigger = screen.queryByTestId('priority-edit');
+      expect(priorityEditTrigger).not.toBeNull();
+    });
 
     it('assignee edit uses { name: username } DC format (not accountId)', async () => {
       // This test validates the contract: the name property from DC assignee objects
       // must be used (not accountId which is Cloud-only)
-      const assignee = { displayName: 'Jane Doe', name: 'jdoe', avatarUrls: { '48x48': '' } }
-      const issue = makeIssueDetail({ assignee })
+      const assignee = { displayName: 'Jane Doe', name: 'jdoe', avatarUrls: { '48x48': '' } };
+      const issue = makeIssueDetail({ assignee });
 
       // Verify the fixture has a name field (DC format)
-      expect(issue.fields.assignee).toHaveProperty('name')
-      expect(issue.fields.assignee.name).toBe('jdoe')
+      expect(issue.fields.assignee).toHaveProperty('name');
+      expect(issue.fields.assignee.name).toBe('jdoe');
       // The mutation value should use name, not accountId
-      const mutationValue = { name: issue.fields.assignee.name }
-      expect(mutationValue).toEqual({ name: 'jdoe' })
-      expect(mutationValue).not.toHaveProperty('accountId')
-    })
-  })
+      const mutationValue = { name: issue.fields.assignee.name };
+      expect(mutationValue).toEqual({ name: 'jdoe' });
+      expect(mutationValue).not.toHaveProperty('accountId');
+    });
+  });
 
   describe('ISSUE-05: subtask list', () => {
     it('renders each subtask with key, summary, and status badge', async () => {
-      const { fetchIssueDetail } = await import('@/services/jira')
-      vi.mocked(fetchIssueDetail).mockResolvedValue(makeIssueDetail() as never)
+      const { fetchIssueDetail } = await import('@/services/jira');
+      vi.mocked(fetchIssueDetail).mockResolvedValue(makeIssueDetail() as never);
 
-      const { IssueDetailContent } = await import('./IssueDetailContent')
-      const issue = makeIssueDetail()
+      const { IssueDetailContent } = await import('./IssueDetailContent');
+      const issue = makeIssueDetail();
       render(
         <IssueDetailContent
           issue={issue as never}
@@ -315,21 +338,21 @@ describe('IssueDetailSheet', () => {
           sprintFieldKey="customfield_10020"
           epicLinkFieldKey="customfield_10014"
         />,
-        { wrapper }
-      )
+        { wrapper },
+      );
 
-      expect(screen.getByText('PROJ-2')).toBeTruthy()
-      expect(screen.getByText('Subtask one')).toBeTruthy()
-      expect(screen.getByText('To Do')).toBeTruthy()
-      expect(screen.getByText('PROJ-3')).toBeTruthy()
-      expect(screen.getByText('Subtask two')).toBeTruthy()
-      expect(screen.getByText('Done')).toBeTruthy()
-    })
+      expect(screen.getByText('PROJ-2')).toBeTruthy();
+      expect(screen.getByText('Subtask one')).toBeTruthy();
+      expect(screen.getByText('To Do')).toBeTruthy();
+      expect(screen.getByText('PROJ-3')).toBeTruthy();
+      expect(screen.getByText('Subtask two')).toBeTruthy();
+      expect(screen.getByText('Done')).toBeTruthy();
+    });
 
     it('clicking a subtask calls onOpenIssue with the subtask key', async () => {
-      const { IssueDetailContent } = await import('./IssueDetailContent')
-      const onOpenIssue = vi.fn()
-      const issue = makeIssueDetail()
+      const { IssueDetailContent } = await import('./IssueDetailContent');
+      const onOpenIssue = vi.fn();
+      const issue = makeIssueDetail();
       render(
         <IssueDetailContent
           issue={issue as never}
@@ -340,18 +363,18 @@ describe('IssueDetailSheet', () => {
           sprintFieldKey="customfield_10020"
           epicLinkFieldKey="customfield_10014"
         />,
-        { wrapper }
-      )
+        { wrapper },
+      );
 
-      fireEvent.click(screen.getByText('Subtask one').closest('button')!)
-      expect(onOpenIssue).toHaveBeenCalledWith('PROJ-2')
-    })
-  })
+      fireEvent.click(screen.getByText('Subtask one').closest('button')!);
+      expect(onOpenIssue).toHaveBeenCalledWith('PROJ-2');
+    });
+  });
 
   describe('ISSUE-06: linked issues', () => {
     it('renders inward linked issues with type.inward label', async () => {
-      const { IssueDetailSidebar } = await import('./IssueDetailSidebar')
-      const issue = makeIssueDetail()
+      const { IssueDetailSidebar } = await import('./IssueDetailSidebar');
+      const issue = makeIssueDetail();
       render(
         <IssueDetailSidebar
           issue={issue as never}
@@ -362,17 +385,17 @@ describe('IssueDetailSheet', () => {
           epicNameFieldKey="customfield_10015"
           sprintFieldKey="customfield_10020"
         />,
-        { wrapper }
-      )
+        { wrapper },
+      );
 
       // inward link: type.inward = 'is blocked by' + PROJ-10
-      expect(screen.getByText('is blocked by:')).toBeTruthy()
-      expect(screen.getByText('PROJ-10')).toBeTruthy()
-    })
+      expect(screen.getByText('is blocked by:')).toBeTruthy();
+      expect(screen.getByText('PROJ-10')).toBeTruthy();
+    });
 
     it('renders outward linked issues with type.outward label', async () => {
-      const { IssueDetailSidebar } = await import('./IssueDetailSidebar')
-      const issue = makeIssueDetail()
+      const { IssueDetailSidebar } = await import('./IssueDetailSidebar');
+      const issue = makeIssueDetail();
       render(
         <IssueDetailSidebar
           issue={issue as never}
@@ -383,18 +406,18 @@ describe('IssueDetailSheet', () => {
           epicNameFieldKey="customfield_10015"
           sprintFieldKey="customfield_10020"
         />,
-        { wrapper }
-      )
+        { wrapper },
+      );
 
       // outward link: type.outward = 'blocks' + PROJ-45
-      expect(screen.getByText('blocks:')).toBeTruthy()
-      expect(screen.getByText('PROJ-45')).toBeTruthy()
-    })
-  })
+      expect(screen.getByText('blocks:')).toBeTruthy();
+      expect(screen.getByText('PROJ-45')).toBeTruthy();
+    });
+  });
 
   describe('ISSUE-07: comment thread', () => {
     it('renders comments ordered newest-first', async () => {
-      const { IssueDetailContent } = await import('./IssueDetailContent')
+      const { IssueDetailContent } = await import('./IssueDetailContent');
       const issue = makeIssueDetail({
         comment: {
           comments: [
@@ -414,7 +437,7 @@ describe('IssueDetailSheet', () => {
             },
           ],
         },
-      })
+      });
 
       render(
         <IssueDetailContent
@@ -426,18 +449,18 @@ describe('IssueDetailSheet', () => {
           sprintFieldKey="customfield_10020"
           epicLinkFieldKey="customfield_10014"
         />,
-        { wrapper }
-      )
+        { wrapper },
+      );
 
-      const authorElements = screen.getAllByText(/Alice|Bob/)
+      const authorElements = screen.getAllByText(/Alice|Bob/);
       // Bob's comment (newest) should appear before Alice's (oldest)
-      const bobIndex = authorElements.findIndex((el) => el.textContent === 'Bob')
-      const aliceIndex = authorElements.findIndex((el) => el.textContent === 'Alice')
-      expect(bobIndex).toBeLessThan(aliceIndex)
-    })
+      const bobIndex = authorElements.findIndex((el) => el.textContent === 'Bob');
+      const aliceIndex = authorElements.findIndex((el) => el.textContent === 'Alice');
+      expect(bobIndex).toBeLessThan(aliceIndex);
+    });
 
     it('each comment shows author displayName and relative timestamp', async () => {
-      const { IssueDetailContent } = await import('./IssueDetailContent')
+      const { IssueDetailContent } = await import('./IssueDetailContent');
       const issue = makeIssueDetail({
         comment: {
           comments: [
@@ -450,7 +473,7 @@ describe('IssueDetailSheet', () => {
             },
           ],
         },
-      })
+      });
 
       render(
         <IssueDetailContent
@@ -462,14 +485,14 @@ describe('IssueDetailSheet', () => {
           sprintFieldKey="customfield_10020"
           epicLinkFieldKey="customfield_10014"
         />,
-        { wrapper }
-      )
+        { wrapper },
+      );
 
-      expect(screen.getByText('Alice')).toBeTruthy()
-    })
+      expect(screen.getByText('Alice')).toBeTruthy();
+    });
 
     it('renders comment body through WikiRenderer (wiki markup converted)', async () => {
-      const { IssueDetailContent } = await import('./IssueDetailContent')
+      const { IssueDetailContent } = await import('./IssueDetailContent');
       const issue = makeIssueDetail({
         comment: {
           comments: [
@@ -482,7 +505,7 @@ describe('IssueDetailSheet', () => {
             },
           ],
         },
-      })
+      });
 
       render(
         <IssueDetailContent
@@ -494,70 +517,70 @@ describe('IssueDetailSheet', () => {
           sprintFieldKey="customfield_10020"
           epicLinkFieldKey="customfield_10014"
         />,
-        { wrapper }
-      )
+        { wrapper },
+      );
 
       // WikiRenderer is mocked — check it receives the raw comment body
-      const wikiRenderers = screen.getAllByTestId('wiki-renderer')
-      const commentRenderer = wikiRenderers.find((el) => el.textContent === '*bold text*')
-      expect(commentRenderer).toBeTruthy()
-    })
-  })
+      const wikiRenderers = screen.getAllByTestId('wiki-renderer');
+      const commentRenderer = wikiRenderers.find((el) => el.textContent === '*bold text*');
+      expect(commentRenderer).toBeTruthy();
+    });
+  });
 
   describe('ISSUE-08: post comment', () => {
     it('calls postComment with issueKey and compose box text on submit', async () => {
-      const { postComment } = await import('@/services/jira')
-      vi.mocked(postComment).mockResolvedValue(undefined)
+      const { postComment } = await import('@/services/jira');
+      vi.mocked(postComment).mockResolvedValue(undefined);
 
-      const { CommentComposer } = await import('./CommentComposer')
-      render(
-        <CommentComposer issueKey="PROJ-1" jiraBaseUrl="https://jira.example.com" />,
-        { wrapper }
-      )
+      const { CommentComposer } = await import('./CommentComposer');
+      render(<CommentComposer issueKey="PROJ-1" jiraBaseUrl="https://jira.example.com" />, {
+        wrapper,
+      });
 
-      const textarea = screen.getByPlaceholderText('Add a comment…')
-      fireEvent.change(textarea, { target: { value: 'My new comment' } })
+      const textarea = screen.getByPlaceholderText('Add a comment…');
+      fireEvent.change(textarea, { target: { value: 'My new comment' } });
 
-      const submitBtn = screen.getByRole('button', { name: /comment/i })
-      fireEvent.click(submitBtn)
+      const submitBtn = screen.getByRole('button', { name: /comment/i });
+      fireEvent.click(submitBtn);
 
       await waitFor(() => {
         expect(postComment).toHaveBeenCalledWith(
           'https://jira.example.com',
           'test-jira-token',
           'PROJ-1',
-          'My new comment'
-        )
-      })
-    })
+          'My new comment',
+        );
+      });
+    });
 
     it('clears compose box after successful submission', async () => {
-      const { postComment } = await import('@/services/jira')
-      vi.mocked(postComment).mockResolvedValue(undefined)
+      const { postComment } = await import('@/services/jira');
+      vi.mocked(postComment).mockResolvedValue(undefined);
 
-      const { CommentComposer } = await import('./CommentComposer')
-      render(
-        <CommentComposer issueKey="PROJ-1" jiraBaseUrl="https://jira.example.com" />,
-        { wrapper }
-      )
+      const { CommentComposer } = await import('./CommentComposer');
+      render(<CommentComposer issueKey="PROJ-1" jiraBaseUrl="https://jira.example.com" />, {
+        wrapper,
+      });
 
-      const textarea = screen.getByPlaceholderText('Add a comment…')
-      fireEvent.change(textarea, { target: { value: 'My new comment' } })
-      fireEvent.click(screen.getByRole('button', { name: /comment/i }))
+      const textarea = screen.getByPlaceholderText('Add a comment…');
+      fireEvent.change(textarea, { target: { value: 'My new comment' } });
+      fireEvent.click(screen.getByRole('button', { name: /comment/i }));
 
       await waitFor(() => {
-        expect((screen.getByPlaceholderText('Add a comment…') as HTMLTextAreaElement).value).toBe('')
-      })
-    })
-  })
+        expect((screen.getByPlaceholderText('Add a comment…') as HTMLTextAreaElement).value).toBe(
+          '',
+        );
+      });
+    });
+  });
 
   describe('ISSUE-09: open in Jira deep link', () => {
     it('calls openUrl with ${jiraBaseUrl}/browse/${issueKey} when button clicked', async () => {
-      const { openUrl } = await import('@tauri-apps/plugin-opener')
-      vi.mocked(openUrl).mockResolvedValue(undefined)
+      const { openUrl } = await import('@tauri-apps/plugin-opener');
+      vi.mocked(openUrl).mockResolvedValue(undefined);
 
-      const { IssueDetailContent } = await import('./IssueDetailContent')
-      const issue = makeIssueDetail()
+      const { IssueDetailContent } = await import('./IssueDetailContent');
+      const issue = makeIssueDetail();
       render(
         <IssueDetailContent
           issue={issue as never}
@@ -568,15 +591,15 @@ describe('IssueDetailSheet', () => {
           sprintFieldKey="customfield_10020"
           epicLinkFieldKey="customfield_10014"
         />,
-        { wrapper }
-      )
+        { wrapper },
+      );
 
-      const openBtn = screen.getByRole('button', { name: /open in jira/i })
-      fireEvent.click(openBtn)
+      const openBtn = screen.getByRole('button', { name: /open in jira/i });
+      fireEvent.click(openBtn);
 
       await waitFor(() => {
-        expect(openUrl).toHaveBeenCalledWith('https://jira.example.com/browse/PROJ-1')
-      })
-    })
-  })
-})
+        expect(openUrl).toHaveBeenCalledWith('https://jira.example.com/browse/PROJ-1');
+      });
+    });
+  });
+});

@@ -11,17 +11,24 @@
  *   - WorkflowSection: stub → Plan 18-05
  *   - RoleSection: existing, unchanged
  */
-import { useState } from 'react';
-import { Link2, Palette, Bell, GitBranch, UserCog, Settings2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import ConnectionsSection from './ConnectionsSection';
-import AppearanceSection from './AppearanceSection';
-import NotificationsSection from './NotificationsSection';
-import WorkflowSection from './WorkflowSection';
-import RoleSection from './RoleSection';
-import DebugModeSection from './DebugModeSection';
 
-type SettingsSection = 'connections' | 'appearance' | 'notifications' | 'workflow' | 'role' | 'advanced';
+import { Bell, GitBranch, Link2, Palette, Settings2, UserCog } from 'lucide-react';
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
+import AppearanceSection from './AppearanceSection';
+import ConnectionsSection from './ConnectionsSection';
+import DebugModeSection from './DebugModeSection';
+import NotificationsSection from './NotificationsSection';
+import RoleSection from './RoleSection';
+import WorkflowSection from './WorkflowSection';
+
+type SettingsSection =
+  | 'connections'
+  | 'appearance'
+  | 'notifications'
+  | 'workflow'
+  | 'role'
+  | 'advanced';
 
 const SECTIONS: { id: SettingsSection; label: string; icon: React.ReactNode }[] = [
   { id: 'connections', label: 'Connections', icon: <Link2 className="h-4 w-4" /> },

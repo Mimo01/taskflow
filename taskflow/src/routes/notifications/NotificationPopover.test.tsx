@@ -1,9 +1,9 @@
 // Tests for NotificationPopover — permission banner, read toggle, tabs, unread filter
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { act } from '@testing-library/react';
-import NotificationPopover from './NotificationPopover';
+
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useNotificationsStore } from '../../stores/notifications.store';
+import NotificationPopover from './NotificationPopover';
 
 vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: vi.fn() }));
 
@@ -29,9 +29,7 @@ describe('NotificationPopover', () => {
 
     render(<NotificationPopover />);
 
-    expect(
-      screen.getByText(/Desktop notifications are blocked/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Desktop notifications are blocked/i)).toBeInTheDocument();
   });
 
   it('does not render permission-denied alert when permissionDenied is false', () => {
@@ -41,9 +39,7 @@ describe('NotificationPopover', () => {
 
     render(<NotificationPopover />);
 
-    expect(
-      screen.queryByText(/Desktop notifications are blocked/i),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Desktop notifications are blocked/i)).not.toBeInTheDocument();
   });
 
   it('clicking a row toggles read status (marks as read)', () => {

@@ -4,9 +4,10 @@
  * Uses Zustand persist middleware with a custom storage adapter that
  * reads/writes via LazyStore from @tauri-apps/plugin-store.
  */
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+
 import { LazyStore } from '@tauri-apps/plugin-store';
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import type { Theme } from '../services/theme';
 import type { QuickFilter } from './filter.store';
 
@@ -146,23 +147,34 @@ export const useSettingsStore = create<SettingsState>()(
       toggleSidebarCollapsed: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       quickFilters: [],
       addQuickFilter: (qf) => set((state) => ({ quickFilters: [...state.quickFilters, qf] })),
-      removeQuickFilter: (id) => set((state) => ({ quickFilters: state.quickFilters.filter((q) => q.id !== id) })),
-      renameQuickFilter: (id, name) => set((state) => ({
-        quickFilters: state.quickFilters.map((q) => q.id === id ? { ...q, name } : q),
-      })),
-      moveQuickFilter: (id, to) => set((state) => {
-        const arr = [...state.quickFilters]
-        const idx = arr.findIndex((q) => q.id === id)
-        if (idx === -1) return state
-        const [item] = arr.splice(idx, 1)
-        switch (to) {
-          case 'front': arr.unshift(item); break
-          case 'back': arr.push(item); break
-          case 'left': arr.splice(Math.max(0, idx - 1), 0, item); break
-          case 'right': arr.splice(Math.min(arr.length, idx + 1), 0, item); break
-        }
-        return { quickFilters: arr }
-      }),
+      removeQuickFilter: (id) =>
+        set((state) => ({ quickFilters: state.quickFilters.filter((q) => q.id !== id) })),
+      renameQuickFilter: (id, name) =>
+        set((state) => ({
+          quickFilters: state.quickFilters.map((q) => (q.id === id ? { ...q, name } : q)),
+        })),
+      moveQuickFilter: (id, to) =>
+        set((state) => {
+          const arr = [...state.quickFilters];
+          const idx = arr.findIndex((q) => q.id === id);
+          if (idx === -1) return state;
+          const [item] = arr.splice(idx, 1);
+          switch (to) {
+            case 'front':
+              arr.unshift(item);
+              break;
+            case 'back':
+              arr.push(item);
+              break;
+            case 'left':
+              arr.splice(Math.max(0, idx - 1), 0, item);
+              break;
+            case 'right':
+              arr.splice(Math.min(arr.length, idx + 1), 0, item);
+              break;
+          }
+          return { quickFilters: arr };
+        }),
       notifCommentMentionEnabled: true,
       notifIssueUpdateEnabled: true,
       notifMrNoteEnabled: true,

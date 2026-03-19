@@ -10,15 +10,15 @@
 
 const COLOR_MAP: Record<string, string> = {
   // ghx-label-N names
-  'ghx-label-1':  'bg-amber-100 text-amber-800 border-amber-300',
-  'ghx-label-2':  'bg-orange-100 text-orange-800 border-orange-300',
-  'ghx-label-3':  'bg-yellow-100 text-yellow-800 border-yellow-300',
-  'ghx-label-4':  'bg-blue-100 text-blue-800 border-blue-300',
-  'ghx-label-5':  'bg-slate-100 text-slate-800 border-slate-300',
-  'ghx-label-6':  'bg-lime-100 text-lime-800 border-lime-300',
-  'ghx-label-7':  'bg-pink-100 text-pink-800 border-pink-300',
-  'ghx-label-8':  'bg-purple-100 text-purple-800 border-purple-300',
-  'ghx-label-9':  'bg-indigo-100 text-indigo-800 border-indigo-300',
+  'ghx-label-1': 'bg-amber-100 text-amber-800 border-amber-300',
+  'ghx-label-2': 'bg-orange-100 text-orange-800 border-orange-300',
+  'ghx-label-3': 'bg-yellow-100 text-yellow-800 border-yellow-300',
+  'ghx-label-4': 'bg-blue-100 text-blue-800 border-blue-300',
+  'ghx-label-5': 'bg-slate-100 text-slate-800 border-slate-300',
+  'ghx-label-6': 'bg-lime-100 text-lime-800 border-lime-300',
+  'ghx-label-7': 'bg-pink-100 text-pink-800 border-pink-300',
+  'ghx-label-8': 'bg-purple-100 text-purple-800 border-purple-300',
+  'ghx-label-9': 'bg-indigo-100 text-indigo-800 border-indigo-300',
   'ghx-label-10': 'bg-teal-100 text-teal-800 border-teal-300',
   'ghx-label-11': 'bg-cyan-100 text-cyan-800 border-cyan-300',
   'ghx-label-12': 'bg-emerald-100 text-emerald-800 border-emerald-300',
@@ -35,7 +35,7 @@ const COLOR_MAP: Record<string, string> = {
   '#ac707a': 'bg-pink-100 text-pink-800 border-pink-300',
   '#654982': 'bg-purple-100 text-purple-800 border-purple-300',
   '#0052cc': 'bg-indigo-100 text-indigo-800 border-indigo-300',
-}
+};
 
 // ── Fallback hash-based colors (from the old BacklogRow approach) ───────────
 
@@ -46,19 +46,19 @@ const FALLBACK_COLORS = [
   'bg-orange-100 text-orange-800 border-orange-300',
   'bg-pink-100 text-pink-800 border-pink-300',
   'bg-teal-100 text-teal-800 border-teal-300',
-] as const
+] as const;
 
 function hashColor(epicKey: string): string {
-  let hash = 0
-  for (let i = 0; i < epicKey.length; i++) hash = (hash * 31 + epicKey.charCodeAt(i)) >>> 0
-  return FALLBACK_COLORS[hash % FALLBACK_COLORS.length]
+  let hash = 0;
+  for (let i = 0; i < epicKey.length; i++) hash = (hash * 31 + epicKey.charCodeAt(i)) >>> 0;
+  return FALLBACK_COLORS[hash % FALLBACK_COLORS.length];
 }
 
 // ── Result type ─────────────────────────────────────────────────────────────
 
 export interface EpicColorResult {
-  className: string
-  style?: React.CSSProperties
+  className: string;
+  style?: React.CSSProperties;
 }
 
 /**
@@ -73,13 +73,13 @@ export function epicColorToTailwind(
   epicKey = '',
 ): EpicColorResult {
   if (!jiraColor) {
-    return { className: epicKey ? hashColor(epicKey) : FALLBACK_COLORS[0] }
+    return { className: epicKey ? hashColor(epicKey) : FALLBACK_COLORS[0] };
   }
 
-  const normalized = jiraColor.trim().toLowerCase()
-  const mapped = COLOR_MAP[normalized]
+  const normalized = jiraColor.trim().toLowerCase();
+  const mapped = COLOR_MAP[normalized];
   if (mapped) {
-    return { className: mapped }
+    return { className: mapped };
   }
 
   // If it looks like a hex color, generate inline styles
@@ -91,9 +91,9 @@ export function epicColorToTailwind(
         color: normalized,
         borderColor: `${normalized}60`, // ~38% opacity border
       },
-    }
+    };
   }
 
   // Unknown value — fall back to hash-based
-  return { className: epicKey ? hashColor(epicKey) : FALLBACK_COLORS[0] }
+  return { className: epicKey ? hashColor(epicKey) : FALLBACK_COLORS[0] };
 }

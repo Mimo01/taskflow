@@ -9,13 +9,14 @@
  * - No toast/sonner — all feedback is inline
  * - No createContext/useContext — prop drilling only
  */
+
+import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { useState } from 'react';
-import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { readSecret } from '@/services/stronghold';
-import { validateJira } from '@/services/jira';
 import { validateGitLab } from '@/services/gitlab';
+import { validateJira } from '@/services/jira';
+import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 
 type TestStatus = 'idle' | 'pending' | 'success' | 'error';
@@ -112,21 +113,10 @@ function ConnectionCard({
 
       {/* Action buttons */}
       <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleSave}
-          disabled={!draftUrl}
-        >
+        <Button type="button" variant="outline" size="sm" onClick={handleSave} disabled={!draftUrl}>
           Save
         </Button>
-        <Button
-          type="button"
-          size="sm"
-          disabled={testStatus === 'pending'}
-          onClick={handleTest}
-        >
+        <Button type="button" size="sm" disabled={testStatus === 'pending'} onClick={handleTest}>
           {testStatus === 'pending' ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin mr-1" />

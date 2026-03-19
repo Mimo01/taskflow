@@ -5,10 +5,11 @@
  * HIER-02 behavior tests (column count, subtask grouping, collapse/expand, orphan suppression)
  * are intentionally in RED state — these will pass after HIER-02 implementation.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Shared mock for onIssueClick — tests that need to assert on it can reference this variable.
 // The factory always reads the current value of onIssueClickShared so per-test overrides work.
@@ -94,7 +95,13 @@ function makeIssue(
         subtask: isSubtask,
       },
       ...(parentKey
-        ? { parent: { id: parentKey, key: parentKey, fields: { summary: `Summary for ${parentKey}` } } }
+        ? {
+            parent: {
+              id: parentKey,
+              key: parentKey,
+              fields: { summary: `Summary for ${parentKey}` },
+            },
+          }
         : {}),
     },
   };
@@ -185,7 +192,10 @@ describe('SprintBoardTab', () => {
     const story = makeIssue('PROJ-1', 'Story One', false, undefined, 'In Progress');
     const subtask = makeIssue('PROJ-2', 'Subtask One', true, 'PROJ-1', 'Done');
     vi.mocked(fetchSprintIssues).mockResolvedValue([story, subtask]);
-    vi.mocked(fetchProjectStatuses).mockResolvedValue([makeStatus('In Progress', 'indeterminate'), makeStatus('Done', 'done')]);
+    vi.mocked(fetchProjectStatuses).mockResolvedValue([
+      makeStatus('In Progress', 'indeterminate'),
+      makeStatus('Done', 'done'),
+    ]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -296,7 +306,10 @@ describe('SprintBoardTab', () => {
     const subtask1 = makeIssue('PROJ-3', 'Subtask of One', true, 'PROJ-1', 'In Progress');
     const subtask2 = makeIssue('PROJ-4', 'Subtask of Two', true, 'PROJ-2', 'To Do');
     vi.mocked(fetchSprintIssues).mockResolvedValue([story1, story2, subtask1, subtask2]);
-    vi.mocked(fetchProjectStatuses).mockResolvedValue([makeStatus('To Do', 'new'), makeStatus('In Progress', 'indeterminate')]);
+    vi.mocked(fetchProjectStatuses).mockResolvedValue([
+      makeStatus('To Do', 'new'),
+      makeStatus('In Progress', 'indeterminate'),
+    ]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -325,7 +338,10 @@ describe('SprintBoardTab', () => {
     const subtask1 = makeIssue('PROJ-2', 'My Subtask', true, 'PROJ-1', 'In Progress');
     const subtask2 = makeIssue('PROJ-3', 'Another Subtask', true, 'PROJ-1', 'To Do');
     vi.mocked(fetchSprintIssues).mockResolvedValue([story, subtask1, subtask2]);
-    vi.mocked(fetchProjectStatuses).mockResolvedValue([makeStatus('To Do', 'new'), makeStatus('In Progress', 'indeterminate')]);
+    vi.mocked(fetchProjectStatuses).mockResolvedValue([
+      makeStatus('To Do', 'new'),
+      makeStatus('In Progress', 'indeterminate'),
+    ]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -405,7 +421,7 @@ describe('SprintBoardTab', () => {
     ) {
       const issue = makeIssue(key, summary, isSubtask, parentKey, 'In Progress');
       if (epicKey) {
-        (issue.fields as Record<string, unknown>)['customfield_10014'] = epicKey;
+        (issue.fields as Record<string, unknown>).customfield_10014 = epicKey;
       }
       return issue;
     }
@@ -543,11 +559,23 @@ describe('BOARD-02: board shows all team members issues', () => {
         key,
         fields: {
           summary,
-          status: { id: 'in-progress', name: 'In Progress', statusCategory: { key: 'indeterminate' } },
+          status: {
+            id: 'in-progress',
+            name: 'In Progress',
+            statusCategory: { key: 'indeterminate' },
+          },
           assignee: { displayName: assigneeName, avatarUrls: { '48x48': '' } },
           customfield_10016: null,
           issuetype: { name: isSubtask ? 'Sub-task' : 'Story', subtask: isSubtask },
-          ...(parentKey ? { parent: { id: parentKey, key: parentKey, fields: { summary: `Parent ${parentKey}` } } } : {}),
+          ...(parentKey
+            ? {
+                parent: {
+                  id: parentKey,
+                  key: parentKey,
+                  fields: { summary: `Parent ${parentKey}` },
+                },
+              }
+            : {}),
         },
       };
     }
@@ -645,4 +673,3 @@ describe('BOARD-05: clicking a card opens issue detail', () => {
     });
   });
 });
-

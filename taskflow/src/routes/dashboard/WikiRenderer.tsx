@@ -1,26 +1,26 @@
 // @ts-expect-error — jira2md has no default export type declarations
-import j2m from 'jira2md'
-import { memo, useCallback, useMemo, useState, type ComponentPropsWithoutRef } from 'react'
-import Markdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import rehypeRaw from 'rehype-raw'
-import { cn } from '@/lib/utils'
-import { ImageLightbox } from './ImageLightbox'
-import { AuthImage } from './AuthImage'
+import j2m from 'jira2md';
+import { type ComponentPropsWithoutRef, memo, useCallback, useMemo, useState } from 'react';
+import Markdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
+import remarkGfm from 'remark-gfm';
+import { cn } from '@/lib/utils';
+import { AuthImage } from './AuthImage';
+import { ImageLightbox } from './ImageLightbox';
 
 /** Map from filename → full URL for resolving Jira !filename.png! references */
-export type AttachmentMap = Record<string, string>
+export type AttachmentMap = Record<string, string>;
 
 /** Map from username/accountId → display name for resolving [~user] mentions */
-export type UserMap = Record<string, string>
+export type UserMap = Record<string, string>;
 
 interface WikiRendererProps {
-  wikiText: string | null | undefined
-  className?: string
+  wikiText: string | null | undefined;
+  className?: string;
   /** Attachment filename→URL map for resolving inline images */
-  attachments?: AttachmentMap
+  attachments?: AttachmentMap;
   /** Username/accountId→displayName map for resolving mentions */
-  users?: UserMap
+  users?: UserMap;
 }
 
 /**
@@ -30,8 +30,12 @@ interface WikiRendererProps {
  * - Panel blocks with optional title
  * - Inline images: !filename.png! → resolved via attachment map
  */
-export function preprocessJiraMarkup(wiki: string, attachments?: AttachmentMap, users?: UserMap): string {
-  let result = wiki
+export function preprocessJiraMarkup(
+  wiki: string,
+  attachments?: AttachmentMap,
+  users?: UserMap,
+): string {
+  let result = wiki;
 
   // Images: !filename.png|options! or !filename.png! → resolve via attachment map
   // Must run BEFORE jira2md which also handles !...! syntax.
@@ -39,63 +43,54 @@ export function preprocessJiraMarkup(wiki: string, attachments?: AttachmentMap, 
   // prevent jira2md from mangling URLs that contain + characters (Jira encodes
   // spaces as + in attachment URLs, and jira2md interprets +text+ as <ins>).
   if (attachments && Object.keys(attachments).length > 0) {
-    result = result.replace(/!([^!\n]+?)(?:\|[^!]*)?\!/g, (_match, ref: string) => {
+    result = result.replace(/!([^!\n]+?)(?:\|[^!]*)?!/g, (_match, ref: string) => {
       // If it's already a full URL, output as raw HTML <img> to bypass jira2md.
       // Replace + with %20 so jira2md doesn't interpret +text+ as underline.
       if (ref.startsWith('http://') || ref.startsWith('https://')) {
-        return `<img src="${ref.replace(/\+/g, '%20')}" alt="" />`
+        return `<img src="${ref.replace(/\+/g, '%20')}" alt="" />`;
       }
       // Look up in attachment map — same treatment
-      const url = attachments[ref]
+      const url = attachments[ref];
       if (url) {
-        return `<img src="${url.replace(/\+/g, '%20')}" alt="" />`
+        return `<img src="${url.replace(/\+/g, '%20')}" alt="" />`;
       }
       // Not found — leave as-is for jira2md
-      return `!${ref}!`
-    })
+      return `!${ref}!`;
+    });
   }
 
   // Mentions: [~accountId:XXX] -> <mention data-id="XXX">DisplayName</mention>
   result = result.replace(/\[~accountId:([^\]]+)\]/g, (_match, id: string) => {
-    const name = users?.[id] ?? id
-    return `<mention data-id="${id}">${name}</mention>`
-  })
+    const name = users?.[id] ?? id;
+    return `<mention data-id="${id}">${name}</mention>`;
+  });
   // Mentions: [~username] -> <mention data-id="username">DisplayName</mention>
   result = result.replace(/\[~([^\]]+)\]/g, (_match, username: string) => {
-    const name = users?.[username] ?? username
-    return `<mention data-id="${username}">${name}</mention>`
-  })
+    const name = users?.[username] ?? username;
+    return `<mention data-id="${username}">${name}</mention>`;
+  });
 
   // Panels with title: {panel:title=TITLE}...{panel}
   result = result.replace(
     /\{panel:title=([^}]+)\}([\s\S]*?)\{panel\}/g,
     '<div data-callout="panel" data-title="$1">$2</div>',
-  )
+  );
   // Panels without title: {panel}...{panel}
-  result = result.replace(
-    /\{panel\}([\s\S]*?)\{panel\}/g,
-    '<div data-callout="panel">$1</div>',
-  )
+  result = result.replace(/\{panel\}([\s\S]*?)\{panel\}/g, '<div data-callout="panel">$1</div>');
 
   // Info panels
-  result = result.replace(
-    /\{info\}([\s\S]*?)\{info\}/g,
-    '<div data-callout="info">$1</div>',
-  )
+  result = result.replace(/\{info\}([\s\S]*?)\{info\}/g, '<div data-callout="info">$1</div>');
 
   // Warning panels
   result = result.replace(
     /\{warning\}([\s\S]*?)\{warning\}/g,
     '<div data-callout="warning">$1</div>',
-  )
+  );
 
   // Note panels
-  result = result.replace(
-    /\{note\}([\s\S]*?)\{note\}/g,
-    '<div data-callout="note">$1</div>',
-  )
+  result = result.replace(/\{note\}([\s\S]*?)\{note\}/g, '<div data-callout="note">$1</div>');
 
-  return result
+  return result;
 }
 
 const calloutStyles: Record<string, string> = {
@@ -103,55 +98,63 @@ const calloutStyles: Record<string, string> = {
   warning: 'border-l-4 border-amber-500 bg-amber-500/10 p-3 rounded-r-md my-2',
   note: 'border-l-4 border-yellow-500 bg-yellow-500/10 p-3 rounded-r-md my-2',
   panel: 'border-l-4 border-border bg-muted/50 p-3 rounded-r-md my-2',
-}
+};
 
-export const WikiRenderer = memo(function WikiRenderer({ wikiText, className, attachments, users }: WikiRendererProps) {
-  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
+export const WikiRenderer = memo(function WikiRenderer({
+  wikiText,
+  className,
+  attachments,
+  users,
+}: WikiRendererProps) {
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
-  const preprocessed = wikiText ? preprocessJiraMarkup(wikiText, attachments, users) : ''
-  const markdown = preprocessed ? j2m.to_markdown(preprocessed) : ''
+  const preprocessed = wikiText ? preprocessJiraMarkup(wikiText, attachments, users) : '';
+  const markdown = preprocessed ? j2m.to_markdown(preprocessed) : '';
 
   // Stable callback so img component reference doesn't change between renders
   const handleImageClick = useCallback((src: string) => {
-    setLightboxSrc(src)
-  }, [])
+    setLightboxSrc(src);
+  }, []);
 
   // Memoize components map so react-markdown doesn't remount elements (e.g. AuthImage)
   // on parent re-renders. The img component must use a stable function reference
   // to prevent AuthImage unmount/remount which resets blob URLs and re-fetches images.
-  const markdownComponents: Record<string, unknown> = useMemo(() => ({
-    img: ({ src, alt }: ComponentPropsWithoutRef<'img'>) => {
-      if (!src) return null
-      return (
-        <AuthImage
-          src={src}
-          alt={alt ?? ''}
-          className="max-w-full rounded-md cursor-pointer"
-          onClick={() => handleImageClick(src)}
-        />
-      )
-    },
-    div: ({ node, children, ...rest }: ComponentPropsWithoutRef<'div'> & { node?: unknown }) => {
-      const props = rest as Record<string, unknown>
-      const calloutType = props['data-callout'] as string | undefined
-      if (calloutType && calloutStyles[calloutType]) {
-        const title = props['data-title'] as string | undefined
+  const markdownComponents: Record<string, unknown> = useMemo(
+    () => ({
+      img: ({ src, alt }: ComponentPropsWithoutRef<'img'>) => {
+        if (!src) return null;
         return (
-          <div data-callout={calloutType} className={calloutStyles[calloutType]}>
-            {title && <div className="font-bold mb-1">{title}</div>}
-            {children}
-          </div>
-        )
-      }
-      return <div {...rest}>{children}</div>
-    },
-    // Custom element for <mention> tags produced by preprocessJiraMarkup
-    mention: ({ children }: { children?: React.ReactNode }) => (
-      <span className="mention-badge inline-flex items-center rounded-full bg-primary/15 text-primary px-2 py-0.5 text-xs font-medium">
-        @{children}
-      </span>
-    ),
-  }), [handleImageClick])
+          <AuthImage
+            src={src}
+            alt={alt ?? ''}
+            className="max-w-full rounded-md cursor-pointer"
+            onClick={() => handleImageClick(src)}
+          />
+        );
+      },
+      div: ({ node, children, ...rest }: ComponentPropsWithoutRef<'div'> & { node?: unknown }) => {
+        const props = rest as Record<string, unknown>;
+        const calloutType = props['data-callout'] as string | undefined;
+        if (calloutType && calloutStyles[calloutType]) {
+          const title = props['data-title'] as string | undefined;
+          return (
+            <div data-callout={calloutType} className={calloutStyles[calloutType]}>
+              {title && <div className="font-bold mb-1">{title}</div>}
+              {children}
+            </div>
+          );
+        }
+        return <div {...rest}>{children}</div>;
+      },
+      // Custom element for <mention> tags produced by preprocessJiraMarkup
+      mention: ({ children }: { children?: React.ReactNode }) => (
+        <span className="mention-badge inline-flex items-center rounded-full bg-primary/15 text-primary px-2 py-0.5 text-xs font-medium">
+          @{children}
+        </span>
+      ),
+    }),
+    [handleImageClick],
+  );
 
   return (
     <article className={cn('prose prose-sm dark:prose-invert max-w-none', className)}>
@@ -162,13 +165,7 @@ export const WikiRenderer = memo(function WikiRenderer({ wikiText, className, at
       >
         {markdown}
       </Markdown>
-      {lightboxSrc && (
-        <ImageLightbox
-          src={lightboxSrc}
-          open
-          onClose={() => setLightboxSrc(null)}
-        />
-      )}
+      {lightboxSrc && <ImageLightbox src={lightboxSrc} open onClose={() => setLightboxSrc(null)} />}
     </article>
-  )
-})
+  );
+});

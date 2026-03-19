@@ -25,10 +25,7 @@ export default function ReAuthBanner() {
     <Alert className="rounded-none border-x-0 border-t-0 border-amber-400 bg-amber-50 text-amber-900 dark:bg-amber-900/20 dark:border-amber-600 dark:text-amber-200">
       <AlertDescription className="flex items-center justify-between">
         <span>Jira connection lost — check your URL and token in Settings</span>
-        <Link
-          to="/settings"
-          className="underline font-medium hover:no-underline ml-4 shrink-0"
-        >
+        <Link to="/settings" className="underline font-medium hover:no-underline ml-4 shrink-0">
           Go to Settings
         </Link>
       </AlertDescription>
@@ -46,10 +43,7 @@ export function GitLabReAuthBanner() {
     <Alert className="rounded-none border-x-0 border-t-0 border-amber-400 bg-amber-50 text-amber-900 dark:bg-amber-900/20 dark:border-amber-600 dark:text-amber-200">
       <AlertDescription className="flex items-center justify-between">
         <span>GitLab connection lost — check your URL and token in Settings</span>
-        <Link
-          to="/settings"
-          className="underline font-medium hover:no-underline ml-4 shrink-0"
-        >
+        <Link to="/settings" className="underline font-medium hover:no-underline ml-4 shrink-0">
           Go to Settings
         </Link>
       </AlertDescription>

@@ -11,7 +11,7 @@
  * - Parent story as visible chip
  * - Hover: actions float top-right over timestamp
  */
-import { ExternalLink, Check, X, MailOpen } from 'lucide-react';
+import { Check, ExternalLink, MailOpen, X } from 'lucide-react';
 import type { NotificationItem } from '../../stores/notifications.store';
 
 /* ── props ──────────────────────────────────────────── */
@@ -57,15 +57,33 @@ function splitKey(raw: string): { key: string | null; title: string } {
 /* ── type config — each type gets a colored badge ───── */
 
 const typeConfig: Record<string, { label: string; badge: string }> = {
-  'comment-mention':  { label: 'Mentioned you',  badge: 'bg-pink-500/15 text-pink-600 dark:text-pink-400' },
-  'gitlab-mention':   { label: 'Mentioned you',  badge: 'bg-pink-500/15 text-pink-600 dark:text-pink-400' },
-  'issue-update':     { label: 'Updated',        badge: 'bg-teal-500/15 text-teal-600 dark:text-teal-400' },
-  'mr-note':          { label: 'Commented',       badge: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400' },
-  'jira-comment':     { label: 'Commented',       badge: 'bg-violet-500/15 text-violet-600 dark:text-violet-400' },
-  'mr-approval':      { label: 'Approved',        badge: 'bg-green-500/15 text-green-600 dark:text-green-400' },
-  'pipeline-failure': { label: 'Pipeline failed', badge: 'bg-red-500/15 text-red-600 dark:text-red-400' },
-  'issue-assignment': { label: 'Assigned to you', badge: 'bg-blue-500/15 text-blue-600 dark:text-blue-400' },
-  'due-date-reminder':{ label: 'Due soon',        badge: 'bg-amber-500/15 text-amber-600 dark:text-amber-400' },
+  'comment-mention': {
+    label: 'Mentioned you',
+    badge: 'bg-pink-500/15 text-pink-600 dark:text-pink-400',
+  },
+  'gitlab-mention': {
+    label: 'Mentioned you',
+    badge: 'bg-pink-500/15 text-pink-600 dark:text-pink-400',
+  },
+  'issue-update': { label: 'Updated', badge: 'bg-teal-500/15 text-teal-600 dark:text-teal-400' },
+  'mr-note': { label: 'Commented', badge: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400' },
+  'jira-comment': {
+    label: 'Commented',
+    badge: 'bg-violet-500/15 text-violet-600 dark:text-violet-400',
+  },
+  'mr-approval': { label: 'Approved', badge: 'bg-green-500/15 text-green-600 dark:text-green-400' },
+  'pipeline-failure': {
+    label: 'Pipeline failed',
+    badge: 'bg-red-500/15 text-red-600 dark:text-red-400',
+  },
+  'issue-assignment': {
+    label: 'Assigned to you',
+    badge: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
+  },
+  'due-date-reminder': {
+    label: 'Due soon',
+    badge: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+  },
 };
 
 const stateConfig: Record<string, { label: string; color: string }> = {
@@ -76,11 +94,19 @@ const stateConfig: Record<string, { label: string; color: string }> = {
 
 /* ── body parsing ───────────────────────────────────── */
 
-interface ParsedChange { field: string | null; from: string | null; to: string }
+interface ParsedChange {
+  field: string | null;
+  from: string | null;
+  to: string;
+}
 
 /** Parse body into structured changes. Handles both "field: old → new" and "field: value" */
 function parseBody(body: string): { isStructured: boolean; changes: ParsedChange[] } {
-  const segments = body.includes('\n') ? body.split('\n') : body.includes(' | ') ? body.split(' | ') : [body];
+  const segments = body.includes('\n')
+    ? body.split('\n')
+    : body.includes(' | ')
+      ? body.split(' | ')
+      : [body];
   const changes: ParsedChange[] = [];
   let hasStructure = false;
 
@@ -92,7 +118,11 @@ function parseBody(body: string): { isStructured: boolean; changes: ParsedChange
 
     if (ai >= 0) {
       hasStructure = true;
-      changes.push({ field, from: rest.slice(0, ai).trim() || null, to: rest.slice(ai + 1).trim() });
+      changes.push({
+        field,
+        from: rest.slice(0, ai).trim() || null,
+        to: rest.slice(ai + 1).trim(),
+      });
     } else if (field) {
       hasStructure = true;
       changes.push({ field, from: null, to: rest });
@@ -106,7 +136,12 @@ function parseBody(body: string): { isStructured: boolean; changes: ParsedChange
 
 /* ── action button ──────────────────────────────────── */
 
-function ActionIcon({ onClick, title, children, variant = 'default' }: {
+function ActionIcon({
+  onClick,
+  title,
+  children,
+  variant = 'default',
+}: {
   onClick: (e: React.MouseEvent) => void;
   title: string;
   children: React.ReactNode;
@@ -116,8 +151,16 @@ function ActionIcon({ onClick, title, children, variant = 'default' }: {
     <span
       role="button"
       tabIndex={0}
-      onClick={(e) => { e.stopPropagation(); onClick(e); }}
-      onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onClick(e as unknown as React.MouseEvent); } }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick(e);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.stopPropagation();
+          onClick(e as unknown as React.MouseEvent);
+        }
+      }}
       title={title}
       className={`inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors cursor-pointer ${
         variant === 'destructive'
@@ -156,9 +199,7 @@ export default function NotificationRow({
       onClick={onClick}
       data-testid="notification-row"
       className={`group w-full text-left flex gap-3 border-l-[3px] ${sourceColor} pl-3 pr-3 py-2.5 density-compact:py-2 density-comfortable:py-3 transition-colors duration-150 cursor-pointer ${
-        isUnread
-          ? 'bg-blue-500/[0.04] hover:bg-blue-500/[0.08]'
-          : 'hover:bg-muted/50'
+        isUnread ? 'bg-blue-500/[0.04] hover:bg-blue-500/[0.08]' : 'hover:bg-muted/50'
       }`}
     >
       {/* Avatar */}
@@ -197,11 +238,16 @@ export default function NotificationRow({
           <div className="flex-1 min-w-0 flex flex-wrap items-center gap-1.5 text-[12px] leading-snug">
             {/* Type badge */}
             {tc && (
-              <span className={`flex-shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-semibold leading-none ${tc.badge}`} data-testid="type-badge">
+              <span
+                className={`flex-shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-semibold leading-none ${tc.badge}`}
+                data-testid="type-badge"
+              >
                 {tc.label}
               </span>
             )}
-            <span className={`font-semibold truncate ${isUnread ? 'text-foreground' : 'text-foreground/75'}`}>
+            <span
+              className={`font-semibold truncate ${isUnread ? 'text-foreground' : 'text-foreground/75'}`}
+            >
               {item.author}
             </span>
           </div>
@@ -217,12 +263,22 @@ export default function NotificationRow({
                 data-testid="action-tray"
               >
                 {onMarkRead && (
-                  <ActionIcon onClick={() => onMarkRead()} title={isUnread ? 'Mark as read' : 'Mark as unread'}>
-                    {isUnread ? <Check className="w-3.5 h-3.5" /> : <MailOpen className="w-3.5 h-3.5" />}
+                  <ActionIcon
+                    onClick={() => onMarkRead()}
+                    title={isUnread ? 'Mark as read' : 'Mark as unread'}
+                  >
+                    {isUnread ? (
+                      <Check className="w-3.5 h-3.5" />
+                    ) : (
+                      <MailOpen className="w-3.5 h-3.5" />
+                    )}
                   </ActionIcon>
                 )}
                 {item.url && onOpenInBrowser && (
-                  <ActionIcon onClick={() => onOpenInBrowser()} title={`Open in ${item.source === 'jira' ? 'Jira' : 'GitLab'}`}>
+                  <ActionIcon
+                    onClick={() => onOpenInBrowser()}
+                    title={`Open in ${item.source === 'jira' ? 'Jira' : 'GitLab'}`}
+                  >
                     <ExternalLink className="w-3.5 h-3.5" />
                   </ActionIcon>
                 )}
@@ -239,30 +295,44 @@ export default function NotificationRow({
         {/* Line 2: entity — key + title + state badge */}
         <div className="flex items-center gap-1.5 mt-0.5">
           {issueKey && (
-            <span className={`flex-shrink-0 font-mono text-[10px] ${isUnread ? 'text-muted-foreground/60' : 'text-muted-foreground/40'}`}>{issueKey}</span>
+            <span
+              className={`flex-shrink-0 font-mono text-[10px] ${isUnread ? 'text-muted-foreground/60' : 'text-muted-foreground/40'}`}
+            >
+              {issueKey}
+            </span>
           )}
-          <span className={`truncate text-[12.5px] leading-snug ${isUnread ? 'font-medium text-foreground' : 'text-foreground/60'}`}>
+          <span
+            className={`truncate text-[12.5px] leading-snug ${isUnread ? 'font-medium text-foreground' : 'text-foreground/60'}`}
+          >
             {title}
           </span>
           {entityState && (
-            <span className={`flex-shrink-0 px-1.5 py-0.5 rounded text-[8px] font-semibold leading-none uppercase tracking-wide ${entityState.color}`}>
+            <span
+              className={`flex-shrink-0 px-1.5 py-0.5 rounded text-[8px] font-semibold leading-none uppercase tracking-wide ${entityState.color}`}
+            >
               {entityState.label}
             </span>
           )}
         </div>
 
         {/* Line 3: body — always chip style, structured when possible */}
-        {body && (
-          body.isStructured ? (
+        {body &&
+          (body.isStructured ? (
             <div className="mt-1 flex flex-col gap-0.5">
               {body.changes.map((c, i) => (
                 <span key={i} className="inline-flex items-center gap-1 text-[11px] leading-snug">
-                  {c.field && <span className="text-muted-foreground/60 font-medium">{c.field}</span>}
+                  {c.field && (
+                    <span className="text-muted-foreground/60 font-medium">{c.field}</span>
+                  )}
                   {c.from !== null ? (
                     <>
-                      <span className="text-muted-foreground/50 bg-red-500/8 px-1 rounded line-through decoration-1">{c.from || '–'}</span>
+                      <span className="text-muted-foreground/50 bg-red-500/8 px-1 rounded line-through decoration-1">
+                        {c.from || '–'}
+                      </span>
                       <span className="text-muted-foreground/30">→</span>
-                      <span className="text-foreground/70 bg-green-500/8 px-1 rounded font-medium">{c.to || '–'}</span>
+                      <span className="text-foreground/70 bg-green-500/8 px-1 rounded font-medium">
+                        {c.to || '–'}
+                      </span>
                     </>
                   ) : (
                     <span className="text-foreground/60 bg-muted/50 px-1 rounded">{c.to}</span>
@@ -274,8 +344,7 @@ export default function NotificationRow({
             <p className="mt-1 text-[11px] text-muted-foreground/70 bg-muted/40 rounded px-2 py-1 line-clamp-2 leading-relaxed">
               {item.bodyPreview}
             </p>
-          )
-        )}
+          ))}
 
         {/* Parent story context */}
         {item.parentKey && (

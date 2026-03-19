@@ -131,5 +131,5 @@ export const SHORTCUTS: ShortcutEntry[] = [
 
 /** Navigation shortcuts with navMeta guaranteed present -- used by CommandPalette */
 export const NAV_SHORTCUTS = SHORTCUTS.filter(
-  (s): s is ShortcutEntry & { navMeta: NavMeta } => s.category === 'Navigation' && !!s.navMeta
+  (s): s is ShortcutEntry & { navMeta: NavMeta } => s.category === 'Navigation' && !!s.navMeta,
 );

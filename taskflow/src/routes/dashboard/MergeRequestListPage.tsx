@@ -5,66 +5,67 @@
  * (Open/Merged/Closed/All) and text search. Clicking an MR navigates
  * to /mr/:projectId/:iid.
  */
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { GitMerge, GitBranch, Search, Flag } from 'lucide-react'
-import { useAuthStore } from '@/stores/auth.store'
-import { useRecentItemsStore } from '@/stores/recent-items.store'
-import { useBreadcrumbStore } from '@/stores/breadcrumb.store'
-import { readSecret } from '@/services/stronghold'
-import { fetchProjectMRs, searchGitLabMRs } from '@/services/gitlab'
-import type { GitLabMR } from '@/services/gitlab'
-import { relativeTime } from './IssueDetailContent'
-import { EmptyState } from '@/components/ui/empty-state'
-import { ErrorState } from '@/components/ui/error-state'
-import { StaleDataBanner } from '@/components/ui/stale-data-banner'
-import { Skeleton } from '@/components/ui/skeleton'
 
-type StateFilter = 'opened' | 'merged' | 'closed' | 'all'
+import { useQuery } from '@tanstack/react-query';
+import { Flag, GitBranch, GitMerge, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
+import { Skeleton } from '@/components/ui/skeleton';
+import { StaleDataBanner } from '@/components/ui/stale-data-banner';
+import type { GitLabMR } from '@/services/gitlab';
+import { fetchProjectMRs, searchGitLabMRs } from '@/services/gitlab';
+import { readSecret } from '@/services/stronghold';
+import { useAuthStore } from '@/stores/auth.store';
+import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
+import { useRecentItemsStore } from '@/stores/recent-items.store';
+import { relativeTime } from './IssueDetailContent';
+
+type StateFilter = 'opened' | 'merged' | 'closed' | 'all';
 
 const STATE_TABS: { label: string; value: StateFilter }[] = [
   { label: 'Open', value: 'opened' },
   { label: 'Merged', value: 'merged' },
   { label: 'Closed', value: 'closed' },
   { label: 'All', value: 'all' },
-]
+];
 
 export default function MergeRequestListPage() {
-  const navigate = useNavigate()
-  const { gitlabBaseUrl, activeGitlabProject } = useAuthStore()
-  const pushRecentItem = useRecentItemsStore((s) => s.pushItem)
-  const breadcrumbReset = useBreadcrumbStore((s) => s.reset)
-  const breadcrumbPush = useBreadcrumbStore((s) => s.push)
+  const navigate = useNavigate();
+  const { gitlabBaseUrl, activeGitlabProject } = useAuthStore();
+  const pushRecentItem = useRecentItemsStore((s) => s.pushItem);
+  const breadcrumbReset = useBreadcrumbStore((s) => s.reset);
+  const breadcrumbPush = useBreadcrumbStore((s) => s.push);
 
-  const [stateFilter, setStateFilter] = useState<StateFilter>('opened')
-  const [searchText, setSearchText] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [gitlabToken, setGitlabToken] = useState<string | null>(null)
-  const [tokenLoading, setTokenLoading] = useState(true)
-  const [staleDismissed, setStaleDismissed] = useState(false)
+  const [stateFilter, setStateFilter] = useState<StateFilter>('opened');
+  const [searchText, setSearchText] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [gitlabToken, setGitlabToken] = useState<string | null>(null);
+  const [tokenLoading, setTokenLoading] = useState(true);
+  const [staleDismissed, setStaleDismissed] = useState(false);
 
   // Load token
   useEffect(() => {
     if (gitlabBaseUrl) {
-      setTokenLoading(true)
+      setTokenLoading(true);
       readSecret('gitlab-pat')
         .then((t) => setGitlabToken(t))
         .catch(() => setGitlabToken(null))
-        .finally(() => setTokenLoading(false))
+        .finally(() => setTokenLoading(false));
     } else {
-      setTokenLoading(false)
+      setTokenLoading(false);
     }
-  }, [gitlabBaseUrl])
+  }, [gitlabBaseUrl]);
 
   // Debounce search
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchText), 300)
-    return () => clearTimeout(timer)
-  }, [searchText])
+    const timer = setTimeout(() => setDebouncedSearch(searchText), 300);
+    return () => clearTimeout(timer);
+  }, [searchText]);
 
-  const projectId = activeGitlabProject
-  const isSearching = debouncedSearch.trim().length > 0
+  const projectId = activeGitlabProject;
+  const isSearching = debouncedSearch.trim().length > 0;
 
   // Fetch project MRs by state
   const {
@@ -78,7 +79,7 @@ export default function MergeRequestListPage() {
     queryFn: () => fetchProjectMRs(gitlabBaseUrl!, gitlabToken!, projectId!, stateFilter),
     staleTime: 30_000,
     enabled: !!gitlabBaseUrl && !!gitlabToken && !!projectId && !isSearching,
-  })
+  });
 
   // Search MRs
   const {
@@ -91,24 +92,24 @@ export default function MergeRequestListPage() {
     queryFn: () => searchGitLabMRs(gitlabBaseUrl!, gitlabToken!, debouncedSearch),
     staleTime: 30_000,
     enabled: !!gitlabBaseUrl && !!gitlabToken && isSearching,
-  })
+  });
 
-  const mrs: GitLabMR[] = isSearching ? (searchResults ?? []) : (mrsByState ?? [])
-  const isLoading = tokenLoading || (isSearching ? searchLoading : mrsLoading)
-  const isError = isSearching ? searchError : mrsError
-  const error = isSearching ? searchErr : mrsErr
+  const mrs: GitLabMR[] = isSearching ? (searchResults ?? []) : (mrsByState ?? []);
+  const isLoading = tokenLoading || (isSearching ? searchLoading : mrsLoading);
+  const isError = isSearching ? searchError : mrsError;
+  const error = isSearching ? searchErr : mrsErr;
 
   const handleMRClick = (mr: GitLabMR) => {
-    breadcrumbReset()
-    breadcrumbPush({ path: '/merge-requests', label: 'Merge Requests' })
-    pushRecentItem({ type: 'gitlab', id: `${mr.project_id}/${mr.iid}`, title: mr.title })
-    navigate(`/mr/${mr.project_id}/${mr.iid}`)
-  }
+    breadcrumbReset();
+    breadcrumbPush({ path: '/merge-requests', label: 'Merge Requests' });
+    pushRecentItem({ type: 'gitlab', id: `${mr.project_id}/${mr.iid}`, title: mr.title });
+    navigate(`/mr/${mr.project_id}/${mr.iid}`);
+  };
 
   // Three-state detection
-  const showError = isError && mrs.length === 0
-  const showStale = isError && mrs.length > 0
-  const showEmpty = !isError && !isLoading && mrs.length === 0
+  const showError = isError && mrs.length === 0;
+  const showStale = isError && mrs.length > 0;
+  const showEmpty = !isError && !isLoading && mrs.length === 0;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -155,18 +156,32 @@ export default function MergeRequestListPage() {
       {/* Content */}
       <div className="flex-1 overflow-auto">
         {showStale && !staleDismissed && (
-          <StaleDataBanner onRetry={() => { setStaleDismissed(false); mrsRefetch(); }} onDismiss={() => setStaleDismissed(true)} />
+          <StaleDataBanner
+            onRetry={() => {
+              setStaleDismissed(false);
+              mrsRefetch();
+            }}
+            onDismiss={() => setStaleDismissed(true)}
+          />
         )}
 
         {isLoading ? (
           <MRListSkeleton />
         ) : showError ? (
-          <ErrorState error={error as Error} onRetry={() => mrsRefetch()} viewName="Merge Requests" />
+          <ErrorState
+            error={error as Error}
+            onRetry={() => mrsRefetch()}
+            viewName="Merge Requests"
+          />
         ) : showEmpty ? (
           <EmptyState
             icon={GitMerge}
             title="No merge requests"
-            subtitle={isSearching ? 'Try a different search term' : `No ${stateFilter === 'all' ? '' : stateFilter} merge requests found`}
+            subtitle={
+              isSearching
+                ? 'Try a different search term'
+                : `No ${stateFilter === 'all' ? '' : stateFilter} merge requests found`
+            }
           />
         ) : (
           <div className="divide-y">
@@ -179,12 +194,18 @@ export default function MergeRequestListPage() {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="font-mono text-xs text-muted-foreground shrink-0">!{mr.iid}</span>
+                    <span className="font-mono text-xs text-muted-foreground shrink-0">
+                      !{mr.iid}
+                    </span>
                     <MRStateBadge state={mr.state} />
                     <span className="text-sm font-medium truncate">{mr.title}</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <img src={mr.author.avatar_url} alt="" className="size-4 rounded-full shrink-0" />
+                    <img
+                      src={mr.author.avatar_url}
+                      alt=""
+                      className="size-4 rounded-full shrink-0"
+                    />
                     <span className="shrink-0">{mr.author.name}</span>
                     <span className="text-muted-foreground/50">·</span>
                     <GitBranch className="size-3 shrink-0 opacity-50" />
@@ -223,7 +244,7 @@ export default function MergeRequestListPage() {
         )}
       </div>
     </div>
-  )
+  );
 }
 
 const STATE_LABELS: Record<string, string> = {
@@ -231,7 +252,7 @@ const STATE_LABELS: Record<string, string> = {
   merged: 'Merged',
   closed: 'Closed',
   locked: 'Locked',
-}
+};
 
 function MRStateBadge({ state }: { state: GitLabMR['state'] }) {
   const colors: Record<string, string> = {
@@ -239,12 +260,14 @@ function MRStateBadge({ state }: { state: GitLabMR['state'] }) {
     merged: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
     closed: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
     locked: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
-  }
+  };
   return (
-    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium shrink-0 ${colors[state] ?? colors.locked}`}>
+    <span
+      className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium shrink-0 ${colors[state] ?? colors.locked}`}
+    >
       {STATE_LABELS[state] ?? state}
     </span>
-  )
+  );
 }
 
 function MRListSkeleton() {
@@ -265,5 +288,5 @@ function MRListSkeleton() {
         </div>
       ))}
     </div>
-  )
+  );
 }

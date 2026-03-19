@@ -5,8 +5,9 @@
  * will be built in Plan 18-03. They are RED at Wave 0 because ConnectionsSection.tsx
  * does not exist yet — that is expected.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ConnectionsSection from './ConnectionsSection';
 
 // Mock stronghold — stub readSecret to return a fake token

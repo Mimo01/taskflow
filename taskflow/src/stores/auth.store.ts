@@ -7,9 +7,10 @@
  *
  * Persisted via Tauri Store plugin so connection state survives restarts.
  */
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+
 import { LazyStore } from '@tauri-apps/plugin-store';
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 const tauriStore = new LazyStore('auth.json');
 
@@ -88,7 +89,8 @@ export const useAuthStore = create<AuthState>()(
           gitlabBaseUrl: baseUrl !== undefined ? baseUrl : state.gitlabBaseUrl,
         })),
       setActiveJiraProject: (project) => set({ activeJiraProject: project }),
-      setActiveGitlabProject: (id, path) => set({ activeGitlabProject: id, activeGitlabProjectPath: path }),
+      setActiveGitlabProject: (id, path) =>
+        set({ activeGitlabProject: id, activeGitlabProjectPath: path }),
       setJiraUser: (displayName, username) =>
         set({ jiraUserDisplayName: displayName, jiraUsername: username }),
       setGitlabUserId: (id) => set({ gitlabUserId: id }),
@@ -104,7 +106,7 @@ export const useAuthStore = create<AuthState>()(
         return persisted;
       },
       onRehydrateStorage: () => (state) => {
-        if (state && state.activeJiraProject && /^\d+$/.test(state.activeJiraProject)) {
+        if (state?.activeJiraProject && /^\d+$/.test(state.activeJiraProject)) {
           useAuthStore.setState({ activeJiraProject: null });
         }
         // Mark hydration complete regardless of whether state was available.

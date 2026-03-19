@@ -4,39 +4,39 @@
  * Session-only (no persist) — filter selections reset on app restart.
  * Quickfilter presets are persisted via settings.store.ts.
  */
-import { create } from 'zustand'
+import { create } from 'zustand';
 
 export interface QuickFilter {
-  id: string
-  name: string
-  epics: string[]
-  labels: string[]
-  assignees: string[]
-  statuses: string[]
+  id: string;
+  name: string;
+  epics: string[];
+  labels: string[];
+  assignees: string[];
+  statuses: string[];
 }
 
 interface FilterState {
-  activeEpics: Set<string>
-  activeLabels: Set<string>
-  activeAssignees: Set<string>
-  activeStatuses: Set<string>
-  setActiveEpics: (epics: Set<string>) => void
-  setActiveLabels: (labels: Set<string>) => void
-  setActiveAssignees: (assignees: Set<string>) => void
-  setActiveStatuses: (statuses: Set<string>) => void
-  toggleEpic: (name: string) => void
-  toggleLabel: (label: string) => void
-  toggleAssignee: (name: string) => void
-  toggleStatus: (status: string) => void
-  clearAll: () => void
-  applyQuickFilter: (filter: QuickFilter) => void
+  activeEpics: Set<string>;
+  activeLabels: Set<string>;
+  activeAssignees: Set<string>;
+  activeStatuses: Set<string>;
+  setActiveEpics: (epics: Set<string>) => void;
+  setActiveLabels: (labels: Set<string>) => void;
+  setActiveAssignees: (assignees: Set<string>) => void;
+  setActiveStatuses: (statuses: Set<string>) => void;
+  toggleEpic: (name: string) => void;
+  toggleLabel: (label: string) => void;
+  toggleAssignee: (name: string) => void;
+  toggleStatus: (status: string) => void;
+  clearAll: () => void;
+  applyQuickFilter: (filter: QuickFilter) => void;
 }
 
 function toggle(set: Set<string>, value: string): Set<string> {
-  const next = new Set(set)
-  if (next.has(value)) next.delete(value)
-  else next.add(value)
-  return next
+  const next = new Set(set);
+  if (next.has(value)) next.delete(value);
+  else next.add(value);
+  return next;
 }
 
 export const useFilterStore = create<FilterState>()((set) => ({
@@ -48,10 +48,8 @@ export const useFilterStore = create<FilterState>()((set) => ({
   setActiveLabels: (labels) => set({ activeLabels: labels }),
   setActiveAssignees: (assignees) => set({ activeAssignees: assignees }),
   setActiveStatuses: (statuses) => set({ activeStatuses: statuses }),
-  toggleEpic: (name) =>
-    set((state) => ({ activeEpics: toggle(state.activeEpics, name) })),
-  toggleLabel: (label) =>
-    set((state) => ({ activeLabels: toggle(state.activeLabels, label) })),
+  toggleEpic: (name) => set((state) => ({ activeEpics: toggle(state.activeEpics, name) })),
+  toggleLabel: (label) => set((state) => ({ activeLabels: toggle(state.activeLabels, label) })),
   toggleAssignee: (name) =>
     set((state) => ({ activeAssignees: toggle(state.activeAssignees, name) })),
   toggleStatus: (status) =>
@@ -70,4 +68,4 @@ export const useFilterStore = create<FilterState>()((set) => ({
       activeAssignees: new Set(filter.assignees),
       activeStatuses: new Set(filter.statuses ?? []),
     }),
-}))
+}));

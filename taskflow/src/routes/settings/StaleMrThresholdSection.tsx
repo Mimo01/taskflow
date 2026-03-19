@@ -9,12 +9,12 @@
  */
 import {
   Select,
-  SelectTrigger,
-  SelectValue,
   SelectContent,
   SelectItem,
-} from '../../components/ui/select'
-import { useSettingsStore } from '../../stores/settings.store'
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
+import { useSettingsStore } from '../../stores/settings.store';
 
 const THRESHOLD_OPTIONS: { value: string; label: string }[] = [
   { value: '1', label: '1 day' },
@@ -22,10 +22,10 @@ const THRESHOLD_OPTIONS: { value: string; label: string }[] = [
   { value: '3', label: '3 days' },
   { value: '5', label: '5 days' },
   { value: '7', label: '7 days' },
-]
+];
 
 export default function StaleMrThresholdSection() {
-  const { staleMrThresholdDays, setStaleMrThresholdDays } = useSettingsStore()
+  const { staleMrThresholdDays, setStaleMrThresholdDays } = useSettingsStore();
 
   return (
     <div className="flex flex-col gap-4">
@@ -55,5 +55,5 @@ export default function StaleMrThresholdSection() {
         </Select>
       </div>
     </div>
-  )
+  );
 }
