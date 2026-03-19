@@ -171,7 +171,7 @@ Plans:
 | 23. Fix J/K Guard | v1.3 | — | Complete | 2026-03-19 |
 | 24. Verify Phase 22 | v1.3 | 1/1 | Complete | 2026-03-19 |
 | 25. Tooling & Dependencies | 2/2 | Complete    | 2026-03-19 | - |
-| 26. Test Regression Fixes | v1.4 | 0/2 | Not started | - |
+| 26. Test Regression Fixes | 1/2 | In Progress|  | - |
 | 27. Refactoring & Type Safety | v1.4 | 0/? | Not started | - |
 | 28. Test Coverage, Performance & Accessibility | v1.4 | 0/? | Not started | - |
 | 29. Developer Tools | v1.4 | 0/? | Not started | - |
