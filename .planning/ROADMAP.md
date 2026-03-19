@@ -176,6 +176,11 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. VERIFICATION.md exists in .planning/phases/22-polish-empty-states-error-recovery/
   2. All 3 POLISH requirements are individually verified with evidence
+**Plans:** 1 plan
+
+Plans:
+- [ ] 24-01-PLAN.md — Gather evidence and write 22-VERIFICATION.md for POLISH-01/02/03
+
 
 ## Progress
 
