@@ -101,10 +101,11 @@ Plans:
   2. The 8 LazyStore teardown warnings no longer appear in test output
   3. The 2 TypeScript errors in test files are resolved and `tsc --noEmit` passes on test files
   4. `npm test` runs with zero failures and zero warnings
-**Plans**: 2 plans
+**Plans**: 3 plans
 Plans:
 - [ ] 26-01-PLAN.md — Global LazyStore mock in setup.ts, npm test script, jira.ts unused var fix
 - [ ] 26-02-PLAN.md — Fix all 57 failing tests across 10 test files and TS errors
+- [ ] 26-03-PLAN.md — Gap closure: add vitest globals type reference to setup.ts (tsc fix)
 
 ### Phase 27: Refactoring & Type Safety
 **Goal**: Large modules are decomposed into focused units and all unsafe type patterns are eliminated
@@ -171,7 +172,7 @@ Plans:
 | 23. Fix J/K Guard | v1.3 | — | Complete | 2026-03-19 |
 | 24. Verify Phase 22 | v1.3 | 1/1 | Complete | 2026-03-19 |
 | 25. Tooling & Dependencies | 2/2 | Complete    | 2026-03-19 | - |
-| 26. Test Regression Fixes | 2/2 | Complete   | 2026-03-19 | - |
+| 26. Test Regression Fixes | 2/3 | In Progress   | 2026-03-19 | - |
 | 27. Refactoring & Type Safety | v1.4 | 0/? | Not started | - |
 | 28. Test Coverage, Performance & Accessibility | v1.4 | 0/? | Not started | - |
 | 29. Developer Tools | v1.4 | 0/? | Not started | - |
