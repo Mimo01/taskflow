@@ -1690,10 +1690,6 @@ export async function fetchBacklogView(
     // Fetch all active+future sprints from the canonical board to include empty sprints.
     // Use projectBoardId if known (authoritative), otherwise fall back to discovered boardId.
     const sprintListBoardId = projectBoardId ?? boardId;
-    const _sprintIdsWithIssues = new Set([
-      ...filteredActive.map((g) => g.sprint.id),
-      ...filteredFuture.map((g) => g.sprint.id),
-    ]);
     try {
       const sprintListRes = await apiFetch(
         'jira',
