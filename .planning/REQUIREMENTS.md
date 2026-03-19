@@ -22,7 +22,7 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 
 ### Dependencies
 
-- [ ] **DEPS-01**: All dependencies updated to latest compatible versions with no regressions
+- [x] **DEPS-01**: All dependencies updated to latest compatible versions with no regressions
 
 ### Refactoring
 
@@ -86,7 +86,7 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 | TEST-05 | Phase 26 | Pending |
 | TOOL-01 | Phase 25 | Complete |
 | TOOL-02 | Phase 25 | Complete |
-| DEPS-01 | Phase 25 | Pending |
+| DEPS-01 | Phase 25 | Complete |
 | REFAC-01 | Phase 27 | Pending |
 | REFAC-02 | Phase 27 | Pending |
 | REFAC-03 | Phase 27 | Pending |

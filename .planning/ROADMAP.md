@@ -70,7 +70,7 @@ See archive: `.planning/milestones/v1.3-ROADMAP.md`
 
 **Milestone Goal:** Harden the codebase with tests, consistent patterns, tooling, and API profiling — no new user-facing features.
 
-- [ ] **Phase 25: Tooling & Dependencies** - Biome linter/formatter setup, dependency updates
+- [x] **Phase 25: Tooling & Dependencies** - Biome linter/formatter setup, dependency updates (completed 2026-03-19)
 - [ ] **Phase 26: Test Regression Fixes** - Fix pre-existing test failures and warnings
 - [ ] **Phase 27: Refactoring & Type Safety** - Service decomposition, shared utilities, strict typing
 - [ ] **Phase 28: Test Coverage, Performance & Accessibility** - New unit tests, virtualization, aria fixes
@@ -167,7 +167,7 @@ Plans:
 | 22. Polish — Empty States + Error Recovery | v1.3 | 3/3 | Complete | 2026-03-16 |
 | 23. Fix J/K Guard | v1.3 | — | Complete | 2026-03-19 |
 | 24. Verify Phase 22 | v1.3 | 1/1 | Complete | 2026-03-19 |
-| 25. Tooling & Dependencies | 1/2 | In Progress|  | - |
+| 25. Tooling & Dependencies | 2/2 | Complete   | 2026-03-19 | - |
 | 26. Test Regression Fixes | v1.4 | 0/? | Not started | - |
 | 27. Refactoring & Type Safety | v1.4 | 0/? | Not started | - |
 | 28. Test Coverage, Performance & Accessibility | v1.4 | 0/? | Not started | - |
