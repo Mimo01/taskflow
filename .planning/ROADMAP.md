@@ -59,7 +59,7 @@ See archive: `.planning/milestones/v1.2-ROADMAP.md`
 - [x] **Phase 20: Command Palette + Recent Items** - Cmd+K overlay with fuzzy search across cached issues/MRs/nav actions, recent items popover in TopBar, and Cmd+Shift+S/B/N nav shortcuts (completed 2026-03-16)
 - [x] **Phase 21: Header Redesign + Pinned Issue Tabs** - Redesigned TopBar with branding, pinned-issue tab strip below the top bar, and J/K keyboard navigation in list views (UAT gap closure in progress) (completed 2026-03-16)
 - [x] **Phase 22: Polish — Empty States + Error Recovery** - Illustrated empty states and actionable error recovery applied consistently across all data views (completed 2026-03-16)
-- [ ] **Phase 23: Fix J/K Guard When Detail Sheet Open** - Pass selectedIssueKey via Outlet context and add guard so J/K navigation is disabled while issue detail sheet is open (gap closure)
+- [x] **Phase 23: Fix J/K Guard When Detail Sheet Open** - Architecturally resolved: full-page route migration (260316-r0x) already unmounts list views on detail navigation, making J/K guard unnecessary (completed 2026-03-19)
 - [ ] **Phase 24: Verify Phase 22 (Empty States + Error Recovery)** - Write missing VERIFICATION.md for Phase 22 to confirm POLISH-01/02/03 satisfaction (gap closure)
 
 ## Phase Details
