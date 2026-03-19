@@ -26,8 +26,7 @@ interface ConnectionCardProps {
   baseUrl: string;
   setBaseUrl: (url: string) => void;
   secretKey: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  validateFn: (url: string, token: string) => Promise<any>;
+  validateFn: (url: string, token: string) => Promise<unknown>;
   urlPlaceholder: string;
 }
 
