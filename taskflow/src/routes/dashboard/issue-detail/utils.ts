@@ -93,4 +93,3 @@ export function mrDot(state: GitLabMR['state']): string {
   if (state === 'merged') return 'bg-purple-500';
   return 'bg-gray-400';
 }
-
