@@ -47,6 +47,13 @@ vi.mock('@/stores/settings.store', () => ({
   useSettingsStore: vi.fn(() => ({
     storyPointsFieldKey: 'customfield_10016',
     epicLinkFieldKey: 'customfield_10014',
+    epicNameFieldKey: 'customfield_10015',
+    epicColorFieldKey: 'customfield_10013',
+    quickFilters: [],
+    addQuickFilter: vi.fn(),
+    removeQuickFilter: vi.fn(),
+    renameQuickFilter: vi.fn(),
+    moveQuickFilter: vi.fn(),
   })),
 }));
 
@@ -432,6 +439,13 @@ describe('SprintBoardTab', () => {
       vi.mocked(useSettingsStore).mockReturnValue({
         storyPointsFieldKey: 'customfield_10016',
         epicLinkFieldKey: 'customfield_10014',
+        epicNameFieldKey: 'customfield_10015',
+        epicColorFieldKey: 'customfield_10013',
+        quickFilters: [],
+        addQuickFilter: vi.fn(),
+        removeQuickFilter: vi.fn(),
+        renameQuickFilter: vi.fn(),
+        moveQuickFilter: vi.fn(),
       } as ReturnType<typeof useSettingsStore>);
 
       const story1 = makeIssueWithEpic('PROJ-1', 'Story Alpha', false, undefined, 'PROJ-10');
@@ -450,13 +464,15 @@ describe('SprintBoardTab', () => {
       const { default: SprintBoardTab } = await import('./SprintBoardTab');
       renderWithQuery(<SprintBoardTab />);
 
-      // Wait for data to load and epic filter to appear
-      const epicSelect = await screen.findByTestId('sprint-epic-filter');
-      expect(epicSelect).toBeTruthy();
+      // Wait for data to load
+      await waitFor(() => {
+        expect(screen.getAllByText('Story Alpha').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('Story Beta').length).toBeGreaterThanOrEqual(1);
+      });
 
-      // Select PROJ-10 epic
-      const select = epicSelect.querySelector('select')!;
-      fireEvent.change(select, { target: { value: 'PROJ-10' } });
+      // Apply epic filter via the filter store (UnifiedFilterBar uses popover UI)
+      const { useFilterStore } = await import('@/stores/filter.store');
+      useFilterStore.getState().setActiveEpics(new Set(['PROJ-10']));
 
       // Story Alpha should still be visible; Story Beta should be hidden
       await waitFor(() => {
@@ -471,6 +487,13 @@ describe('SprintBoardTab', () => {
       vi.mocked(useSettingsStore).mockReturnValue({
         storyPointsFieldKey: 'customfield_10016',
         epicLinkFieldKey: 'customfield_10014',
+        epicNameFieldKey: 'customfield_10015',
+        epicColorFieldKey: 'customfield_10013',
+        quickFilters: [],
+        addQuickFilter: vi.fn(),
+        removeQuickFilter: vi.fn(),
+        renameQuickFilter: vi.fn(),
+        moveQuickFilter: vi.fn(),
       } as ReturnType<typeof useSettingsStore>);
 
       const storyWithEpic = makeIssueWithEpic('PROJ-1', 'Epic Story', false, undefined, 'PROJ-10');
@@ -487,9 +510,14 @@ describe('SprintBoardTab', () => {
       const { default: SprintBoardTab } = await import('./SprintBoardTab');
       renderWithQuery(<SprintBoardTab />);
 
-      const epicSelect = await screen.findByTestId('sprint-epic-filter');
-      const select = epicSelect.querySelector('select')!;
-      fireEvent.change(select, { target: { value: 'PROJ-10' } });
+      // Wait for data to load
+      await waitFor(() => {
+        expect(screen.getAllByText('Epic Story').length).toBeGreaterThanOrEqual(1);
+      });
+
+      // Apply epic filter via the filter store
+      const { useFilterStore } = await import('@/stores/filter.store');
+      useFilterStore.getState().setActiveEpics(new Set(['PROJ-10']));
 
       await waitFor(() => {
         expect(screen.getAllByText('Epic Story').length).toBeGreaterThanOrEqual(1);
@@ -503,6 +531,13 @@ describe('SprintBoardTab', () => {
       vi.mocked(useSettingsStore).mockReturnValue({
         storyPointsFieldKey: 'customfield_10016',
         epicLinkFieldKey: 'customfield_10014',
+        epicNameFieldKey: 'customfield_10015',
+        epicColorFieldKey: 'customfield_10013',
+        quickFilters: [],
+        addQuickFilter: vi.fn(),
+        removeQuickFilter: vi.fn(),
+        renameQuickFilter: vi.fn(),
+        moveQuickFilter: vi.fn(),
       } as ReturnType<typeof useSettingsStore>);
 
       const story1 = makeIssueWithEpic('PROJ-1', 'Story Alpha', false, undefined, 'PROJ-10');
@@ -519,17 +554,20 @@ describe('SprintBoardTab', () => {
       const { default: SprintBoardTab } = await import('./SprintBoardTab');
       renderWithQuery(<SprintBoardTab />);
 
-      const epicSelect = await screen.findByTestId('sprint-epic-filter');
-      const select = epicSelect.querySelector('select')!;
+      // Wait for data to load
+      await waitFor(() => {
+        expect(screen.getAllByText('Story Alpha').length).toBeGreaterThanOrEqual(1);
+      });
 
       // Filter to PROJ-10
-      fireEvent.change(select, { target: { value: 'PROJ-10' } });
+      const { useFilterStore } = await import('@/stores/filter.store');
+      useFilterStore.getState().setActiveEpics(new Set(['PROJ-10']));
       await waitFor(() => {
         expect(screen.queryByText('Story Beta')).toBeNull();
       });
 
       // Clear the filter
-      fireEvent.change(select, { target: { value: '' } });
+      useFilterStore.getState().clearAll();
       await waitFor(() => {
         expect(screen.getAllByText('Story Alpha').length).toBeGreaterThanOrEqual(1);
         expect(screen.getAllByText('Story Beta').length).toBeGreaterThanOrEqual(1);
@@ -562,7 +600,7 @@ describe('BOARD-02: board shows all team members issues', () => {
           status: {
             id: 'in-progress',
             name: 'In Progress',
-            statusCategory: { key: 'indeterminate' },
+            statusCategory: { key: 'indeterminate' as const },
           },
           assignee: { displayName: assigneeName, avatarUrls: { '48x48': '' } },
           customfield_10016: null,

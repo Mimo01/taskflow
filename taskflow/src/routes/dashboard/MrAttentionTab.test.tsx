@@ -13,6 +13,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // Mock react-router-dom — ErrorState uses useNavigate, EmptyState CTA uses navigate
 vi.mock('react-router-dom', () => ({
   useNavigate: vi.fn(() => vi.fn()),
+  useLocation: vi.fn(() => ({ pathname: '/dashboard', search: '', hash: '', state: null, key: 'default' })),
 }));
 
 // Mock stronghold
