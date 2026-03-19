@@ -27,6 +27,13 @@ Milestone v1.3 (UX & Branding) — SHIPPED 2026-03-19
 
 ## Session Continuity
 
+Last activity: 2026-03-19 - Completed quick task 260319-qkn: Add global gitignore with .claude and remove .claude from git
 Last session: 2026-03-19
 Stopped at: Milestone v1.3 archived
 Resume: All milestones through v1.3 complete. Start next milestone with `/gsd:new-milestone`.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260319-qkn | Add global gitignore with .claude and remove .claude from git | 2026-03-19 | a7e1702 | [260319-qkn-add-global-gitignore-with-claude-and-rem](./quick/260319-qkn-add-global-gitignore-with-claude-and-rem/) |
