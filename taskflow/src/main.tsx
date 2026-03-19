@@ -26,26 +26,12 @@ import ReAuthBanner, { GitLabReAuthBanner } from './components/app/ReAuthBanner'
 import Sidebar from './components/app/Sidebar';
 import TopBar from './components/app/TopBar';
 import { useNotificationPolling } from './hooks/useNotificationPolling';
-import BacklogPage from './routes/dashboard/BacklogPage';
 import {
   CreateEditIssueModal,
   type EditInitialValues,
 } from './routes/dashboard/CreateEditIssueModal';
-import EpicsPage from './routes/dashboard/EpicsPage';
-import IssueDetailPage from './routes/dashboard/IssueDetailPage';
-import Dashboard from './routes/dashboard/index';
-import MergeRequestDetailPage from './routes/dashboard/MergeRequestDetailPage';
-import MergeRequestListPage from './routes/dashboard/MergeRequestListPage';
-import MrAttentionTab from './routes/dashboard/MrAttentionTab';
-import MyTasksTab from './routes/dashboard/MyTasksTab';
-import ReleasesTab from './routes/dashboard/ReleasesTab';
-import SprintBoardTab from './routes/dashboard/SprintBoardTab';
-import SprintProgressTab from './routes/dashboard/SprintProgressTab';
-import WorkloadTab from './routes/dashboard/WorkloadTab';
-import DebugLogs from './routes/debug-logs/index';
 import ErrorPage from './routes/error/ErrorPage';
-import Onboarding from './routes/onboarding/index';
-import Settings from './routes/settings/index';
+import { routes } from './routes/routes';
 import { discoverCustomFields, fetchIssueSummary } from './services/jira';
 import { readSecret } from './services/stronghold';
 import { applyDensity, loadTheme } from './services/theme';
@@ -486,23 +472,7 @@ const router = createHashRouter([
   {
     element: <AppLayout />,
     errorElement: <ErrorPage />,
-    children: [
-      { path: '/', element: <Onboarding /> },
-      { path: '/dashboard', element: <Dashboard /> },
-      { path: '/settings', element: <Settings /> },
-      { path: '/my-tasks', element: <MyTasksTab /> },
-      { path: '/sprint-board', element: <SprintBoardTab /> },
-      { path: '/backlog', element: <BacklogPage /> },
-      { path: '/epics', element: <EpicsPage /> },
-      { path: '/mr-attention', element: <MrAttentionTab /> },
-      { path: '/sprint-progress', element: <SprintProgressTab /> },
-      { path: '/workload', element: <WorkloadTab /> },
-      { path: '/releases', element: <ReleasesTab /> },
-      { path: '/debug-logs', element: <DebugLogs /> },
-      { path: '/issue/:key', element: <IssueDetailPage /> },
-      { path: '/merge-requests', element: <MergeRequestListPage /> },
-      { path: '/mr/:projectId/:iid', element: <MergeRequestDetailPage /> },
-    ],
+    children: routes,
   },
 ]);
 

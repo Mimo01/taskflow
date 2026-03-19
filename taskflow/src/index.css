@@ -156,3 +156,13 @@
     @apply font-sans;
   }
 }
+
+.bg-disabled-stripe {
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    hsl(var(--muted)) 4px,
+    hsl(var(--muted)) 8px
+  );
+}
