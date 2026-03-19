@@ -142,7 +142,7 @@ function ActionIcon({
   children,
   variant = 'default',
 }: {
-  onClick: (e: React.MouseEvent) => void;
+  onClick: (e: React.MouseEvent | React.KeyboardEvent) => void;
   title: string;
   children: React.ReactNode;
   variant?: 'default' | 'destructive';
@@ -158,7 +158,7 @@ function ActionIcon({
       onKeyDown={(e) => {
         if (e.key === 'Enter') {
           e.stopPropagation();
-          onClick(e as unknown as React.MouseEvent);
+          onClick(e);
         }
       }}
       title={title}

@@ -228,7 +228,7 @@ export const useSettingsStore = create<SettingsState>()(
         if (version < 7) {
           if (s.commentSortOrder === undefined) s.commentSortOrder = 'newest';
         }
-        return s as unknown as SettingsState;
+        return persisted as SettingsState;
       },
     },
   ),

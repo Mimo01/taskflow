@@ -701,7 +701,7 @@ export async function fetchProjectMRs(
     throw new Error(`Failed to fetch project MRs: status ${response.status}`);
   }
 
-  const data = (await response.json()) as Array<Record<string, unknown>>;
+  const data = (await response.json()) as GitLabMR[];
 
   // Enrich labels with colors (same pattern as fetchMRDetail)
   const allLabelNames = new Set<string>();
@@ -751,7 +751,7 @@ export async function fetchProjectMRs(
     }
   }
 
-  return data as unknown as GitLabMR[];
+  return data;
 }
 
 /**
@@ -786,7 +786,7 @@ export async function searchGitLabMRs(
     return [];
   }
 
-  const data = (await response.json()) as Array<Record<string, unknown>>;
+  const data = (await response.json()) as GitLabMR[];
 
   // Convert string labels to GitLabLabel with default gray (search spans multiple projects)
   for (const mr of data) {
@@ -800,5 +800,5 @@ export async function searchGitLabMRs(
     }
   }
 
-  return data as unknown as GitLabMR[];
+  return data;
 }

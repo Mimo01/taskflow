@@ -37,7 +37,7 @@ export const usePinnedTabsStore = create<PinnedTabsState>()(
       name: 'pinned-tabs-store',
       storage: createTauriStorage('pinned-tabs.json'),
       version: 0,
-      migrate: (persisted, _version) => persisted as unknown as PinnedTabsState,
+      migrate: (persisted, _version) => persisted as PinnedTabsState,
     },
   ),
 );
