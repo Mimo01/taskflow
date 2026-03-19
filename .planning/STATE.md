@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Internal Quality & Performance
 status: unknown
-stopped_at: Completed 27-04-PLAN.md
-last_updated: "2026-03-19T23:04:53.928Z"
+stopped_at: Completed 27-03-PLAN.md
+last_updated: "2026-03-19T23:06:42.402Z"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 10
-  completed_plans: 7
+  completed_plans: 9
 ---
 
 # Project State
@@ -44,6 +44,8 @@ Plan: 5 of 5
 | Phase 26 P03 | 1min | 1 tasks | 1 files |
 | Phase 27 P01 | 4min | 2 tasks | 10 files |
 | Phase 27 P04 | 5min | 2 tasks | 11 files |
+| Phase 27 P03 | 7min | 2 tasks | 9 files |
+| Phase 27 P02 | 8min | 2 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -66,6 +68,9 @@ Recent decisions affecting current work:
 - [Phase 27]: CSS utility class preferred over Tailwind arbitrary value for complex gradient
 - [Phase 27-04]: MetaRow extracted to separate .tsx file (JSX cannot live in .ts utils file)
 - [Phase 27-04]: IssueDetailSidebar data-fetching kept in orchestrator; section components receive data via props
+- [Phase 27]: Extracted queries into useCreateEditQueries hook to keep orchestrator under 250 lines
+- [Phase 27]: Original CreateEditIssueModal.tsx becomes re-export shim preserving all existing import paths
+- [Phase 27]: client.ts exports kept internal (not in barrel) -- fetchAllSearchPages only used within jira/ modules
 
 ### Pending Todos
 
@@ -77,8 +82,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T23:04:53.925Z
-Stopped at: Completed 27-04-PLAN.md
+Last session: 2026-03-19T23:06:27.938Z
+Stopped at: Completed 27-03-PLAN.md
 Resume: Phase 26 complete. All 489 tests pass, 0 failures, 0 TS errors in test files.
 
 ### Quick Tasks Completed
