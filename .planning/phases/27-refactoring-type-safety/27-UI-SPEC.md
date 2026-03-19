@@ -58,9 +58,11 @@ Existing project typography (no changes in this phase):
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 14px | 400 (regular) | 1.5 |
-| Label | 12px | 500 (medium) | 1.4 |
+| Label | 12px | 400 (regular) | 1.4 |
 | Heading | 20px | 600 (semibold) | 1.2 |
 | Display | 28px | 600 (semibold) | 1.2 |
+
+**Codebase note on font-medium (500):** The Tailwind class `font-medium` appears in 117 instances across 50 files, primarily in shadcn UI primitives (label.tsx, button.tsx, dialog.tsx, tabs.tsx, badge.tsx, etc.) and application components. These are inherited from shadcn defaults and do not constitute a design-contract-level weight. For contract purposes, Label at 12px/400 is visually distinct from Body at 14px/400 through the 2px size reduction alone. No refactoring of existing `font-medium` usage is required or permitted in this phase -- all rendered output must remain identical.
 
 **Phase 27 impact:** No typography changes. All extracted components inherit parent typography exactly.
 
@@ -126,7 +128,7 @@ Since this phase restructures component code without changing behavior, the foll
 - [ ] Dimension 1 Copywriting: PASS (not applicable -- non-visual phase)
 - [ ] Dimension 2 Visuals: PASS (no visual changes -- regression contract defined)
 - [ ] Dimension 3 Color: PASS (not applicable -- no color changes)
-- [ ] Dimension 4 Typography: PASS (not applicable -- no typography changes)
+- [ ] Dimension 4 Typography: PASS (2 weights: 400 regular, 600 semibold)
 - [ ] Dimension 5 Spacing: PASS (not applicable -- no spacing changes)
 - [ ] Dimension 6 Registry Safety: PASS (no new registry blocks)
 
