@@ -56,9 +56,9 @@ Requirements for the v1.3 UX & Branding milestone. Each maps to roadmap phases.
 
 ### Empty & Error States
 
-- [ ] **POLISH-01**: All list views show an illustrated empty state with headline and CTA when there is no data
-- [ ] **POLISH-02**: All data views show an actionable error state with plain-language message and retry button on fetch failure
-- [ ] **POLISH-03**: Authentication errors include a re-connect CTA navigating to Settings > Connections
+- [x] **POLISH-01**: All list views show an illustrated empty state with headline and CTA when there is no data
+- [x] **POLISH-02**: All data views show an actionable error state with plain-language message and retry button on fetch failure
+- [x] **POLISH-03**: Authentication errors include a re-connect CTA navigating to Settings > Connections
 
 ## Future Requirements
 
@@ -121,9 +121,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | KEYS-04 | Phase 23 | Complete |
 | KEYS-05 | — | Descoped |
 | KEYS-06 | Phase 23 | Complete |
-| POLISH-01 | Phase 24 | Pending |
-| POLISH-02 | Phase 24 | Pending |
-| POLISH-03 | Phase 24 | Pending |
+| POLISH-01 | Phase 24 | Complete |
+| POLISH-02 | Phase 24 | Complete |
+| POLISH-03 | Phase 24 | Complete |
 
 **Coverage:**
 - v1.3 requirements: 32 total
