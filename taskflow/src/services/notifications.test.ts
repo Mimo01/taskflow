@@ -33,7 +33,7 @@ const mockJiraMR = {
   state: 'opened' as const,
   author: { id: 1, name: 'Alice', username: 'alice', avatar_url: '' },
   reviewers: [],
-  updated_at: '2026-03-11T10:00:00Z',
+  updated_at: '2026-03-11T14:00:00Z', // Must be after lastSeenGitlabCursor so MR isn't skipped
   web_url: 'https://gitlab.example.com/project/mr/1',
   labels: [],
   milestone: null,
@@ -100,7 +100,8 @@ describe('notifications service', () => {
           gitlabUserId: null,
           gitlabUsername: null,
           mrList: [],
-          lastSeenCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
         },
       );
 
@@ -167,7 +168,8 @@ describe('notifications service', () => {
           gitlabUserId: null,
           gitlabUsername: null,
           mrList: [],
-          lastSeenCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
         },
       );
 
@@ -178,7 +180,7 @@ describe('notifications service', () => {
   });
 
   describe('NOTF-01: fetchNewNotifications — GitLab note items', () => {
-    it('skips system notes and own-user notes, only returns notes newer than lastSeenCursor', async () => {
+    it('skips system notes and own-user notes, only returns notes newer than cursor', async () => {
       const notesResp = {
         ok: true,
         status: 200,
@@ -192,9 +194,9 @@ describe('notifications service', () => {
           },
           {
             id: 'n002',
-            system: true, // system note — should be skipped
+            system: true, // non-actionable system note — should be skipped
             author: { id: 99, name: 'B.Other' },
-            body: 'assigned to @alice',
+            body: 'added 1 commit',
             created_at: '2026-03-11T14:01:00.000Z',
           },
           {
@@ -228,7 +230,8 @@ describe('notifications service', () => {
           gitlabUserId: 42,
           gitlabUsername: null,
           mrList: [mockJiraMR],
-          lastSeenCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
         },
       );
 
@@ -287,21 +290,20 @@ describe('notifications service', () => {
         ]),
       };
 
-      // Empty response for additional Jira/GitLab queries (all-comments, due-date, approvals, pipelines)
+      // Empty response for additional Jira queries (all-comments, due-date)
       const emptyResp = {
         ok: true,
         status: 200,
         json: async () => ({ issues: [] }),
       };
 
+      // MR author.id=1, gitlabUserId=42 → not author → only notes fetched (no approvals/pipelines)
       vi.mocked(mockFetch)
         .mockResolvedValueOnce(emptyIssuesResp as unknown as Response)   // Query A: issue updates
         .mockResolvedValueOnce(jiraResp as unknown as Response)          // Query B: comment mentions
         .mockResolvedValueOnce(emptyResp as unknown as Response)         // Query C: all comments
         .mockResolvedValueOnce(emptyResp as unknown as Response)         // Query D: due date reminders
-        .mockResolvedValueOnce(notesResp as unknown as Response)         // GitLab: notes
-        .mockResolvedValueOnce(emptyResp as unknown as Response)         // GitLab: approvals
-        .mockResolvedValueOnce(emptyResp as unknown as Response);        // GitLab: pipelines
+        .mockResolvedValueOnce(notesResp as unknown as Response);        // GitLab: notes (only call — not author)
 
       const result = await fetchNewNotifications(
         'https://jira.example.com',
@@ -314,7 +316,8 @@ describe('notifications service', () => {
           gitlabUserId: 42,
           gitlabUsername: null,
           mrList: [mockJiraMR],
-          lastSeenCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
         },
       );
 
@@ -417,7 +420,8 @@ describe('notifications service', () => {
           gitlabUserId: null,
           gitlabUsername: null,
           mrList: [],
-          lastSeenCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
         },
       );
 
@@ -472,7 +476,8 @@ describe('notifications service', () => {
           gitlabUserId: null,
           gitlabUsername: null,
           mrList: [],
-          lastSeenCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
         },
       );
 
@@ -526,7 +531,8 @@ describe('notifications service', () => {
           gitlabUserId: null,
           gitlabUsername: null,
           mrList: [],
-          lastSeenCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
         },
       );
 
@@ -589,7 +595,8 @@ describe('notifications service', () => {
           gitlabUserId: null,
           gitlabUsername: null,
           mrList: [],
-          lastSeenCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
         },
       );
 
@@ -664,7 +671,8 @@ describe('notifications service', () => {
           gitlabUserId: null,
           gitlabUsername: null,
           mrList: [],
-          lastSeenCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
         },
       );
 
@@ -689,7 +697,8 @@ describe('notifications service', () => {
           gitlabUserId: null,
           gitlabUsername: null,
           mrList: [],
-          lastSeenCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
         },
       );
 

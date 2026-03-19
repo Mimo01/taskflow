@@ -80,7 +80,7 @@ interface ParsedChange { field: string | null; from: string | null; to: string }
 
 /** Parse body into structured changes. Handles both "field: old → new" and "field: value" */
 function parseBody(body: string): { isStructured: boolean; changes: ParsedChange[] } {
-  const segments = body.includes(' | ') ? body.split(' | ') : [body];
+  const segments = body.includes('\n') ? body.split('\n') : body.includes(' | ') ? body.split(' | ') : [body];
   const changes: ParsedChange[] = [];
   let hasStructure = false;
 
@@ -254,7 +254,7 @@ export default function NotificationRow({
         {/* Line 3: body — always chip style, structured when possible */}
         {body && (
           body.isStructured ? (
-            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+            <div className="mt-1 flex flex-col gap-0.5">
               {body.changes.map((c, i) => (
                 <span key={i} className="inline-flex items-center gap-1 text-[11px] leading-snug">
                   {c.field && <span className="text-muted-foreground/60 font-medium">{c.field}</span>}
@@ -277,13 +277,15 @@ export default function NotificationRow({
           )
         )}
 
-        {/* Parent story — visible chip */}
+        {/* Parent story context */}
         {item.parentKey && (
-          <div className="mt-1.5 inline-flex items-center gap-1.5 text-[10px] bg-muted/50 rounded-md px-2 py-0.5">
-            <span className="text-muted-foreground/50">Parent</span>
-            <span className="font-mono font-medium text-foreground/60">{item.parentKey}</span>
+          <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground/50 leading-tight">
+            <span className="font-mono">{item.parentKey}</span>
             {item.parentSummary && (
-              <span className="text-muted-foreground/60 truncate max-w-[180px]">{item.parentSummary}</span>
+              <>
+                <span className="text-muted-foreground/30">/</span>
+                <span className="truncate max-w-[220px]">{item.parentSummary}</span>
+              </>
             )}
           </div>
         )}
