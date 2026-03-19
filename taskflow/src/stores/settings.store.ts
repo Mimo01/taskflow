@@ -5,35 +5,14 @@
  * reads/writes via LazyStore from @tauri-apps/plugin-store.
  */
 
-import { LazyStore } from '@tauri-apps/plugin-store';
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import { persist } from 'zustand/middleware';
+import { createTauriStorage } from '../lib/tauri-storage';
 import type { Theme } from '../services/theme';
 import type { QuickFilter } from './filter.store';
 
 export type Density = 'compact' | 'default' | 'comfortable';
 export type CommentSortOrder = 'newest' | 'oldest';
-
-const tauriStore = new LazyStore('settings.json');
-
-/**
- * Custom storage adapter for Zustand persist middleware,
- * backed by Tauri Store plugin for cross-platform persistence.
- */
-const tauriStorage = createJSONStorage(() => ({
-  getItem: async (name: string): Promise<string | null> => {
-    const value = await tauriStore.get<string>(name);
-    return value ?? null;
-  },
-  setItem: async (name: string, value: string): Promise<void> => {
-    await tauriStore.set(name, value);
-    await tauriStore.save();
-  },
-  removeItem: async (name: string): Promise<void> => {
-    await tauriStore.delete(name);
-    await tauriStore.save();
-  },
-}));
 
 interface SettingsState {
   role: 'developer' | 'pm' | 'tech-lead' | null;
@@ -214,7 +193,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'settings-store',
-      storage: tauriStorage,
+      storage: createTauriStorage('settings.json'),
       version: 7,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;

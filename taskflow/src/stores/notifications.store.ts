@@ -1,33 +1,16 @@
 /**
  * Notifications store — unread notification items, read IDs, last-seen cursor.
  *
- * Follows the exact same LazyStore + createJSONStorage adapter pattern as settings.store.ts.
+ * Uses shared createTauriStorage adapter for Tauri Store persistence.
  * Persists items, readIds, lastSeenCursor. permissionDenied is transient (not persisted).
  *
  * IMPORTANT: readIds is stored as string[] (not Set) because Zustand JSON persist
  * middleware does not serialize Set correctly (serializes as {}).
  */
 
-import { LazyStore } from '@tauri-apps/plugin-store';
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
-
-const tauriStore = new LazyStore('notifications.json');
-
-const tauriStorage = createJSONStorage(() => ({
-  getItem: async (name: string): Promise<string | null> => {
-    const value = await tauriStore.get<string>(name);
-    return value ?? null;
-  },
-  setItem: async (name: string, value: string): Promise<void> => {
-    await tauriStore.set(name, value);
-    await tauriStore.save();
-  },
-  removeItem: async (name: string): Promise<void> => {
-    await tauriStore.delete(name);
-    await tauriStore.save();
-  },
-}));
+import { persist } from 'zustand/middleware';
+import { createTauriStorage } from '../lib/tauri-storage';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -166,7 +149,7 @@ export const useNotificationsStore = create<NotificationsState>()(
     }),
     {
       name: 'notifications-store',
-      storage: tauriStorage,
+      storage: createTauriStorage('notifications.json'),
       partialize: (s) => ({
         // Only persist these fields; permissionDenied is transient
         items: s.items,

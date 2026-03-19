@@ -1,6 +1,6 @@
-import { LazyStore } from '@tauri-apps/plugin-store';
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import { persist } from 'zustand/middleware';
+import { createTauriStorage } from '../lib/tauri-storage';
 
 export interface RecentItem {
   type: 'jira' | 'gitlab';
@@ -9,23 +9,6 @@ export interface RecentItem {
   title?: string; // Cached display title so it survives across sessions
   timestamp: number; // Date.now() when opened
 }
-
-const tauriStore = new LazyStore('recent-items.json');
-
-const tauriStorage = createJSONStorage(() => ({
-  getItem: async (name: string): Promise<string | null> => {
-    const value = await tauriStore.get<string>(name);
-    return value ?? null;
-  },
-  setItem: async (name: string, value: string): Promise<void> => {
-    await tauriStore.set(name, value);
-    await tauriStore.save();
-  },
-  removeItem: async (name: string): Promise<void> => {
-    await tauriStore.delete(name);
-    await tauriStore.save();
-  },
-}));
 
 interface RecentItemsState {
   items: RecentItem[];
@@ -52,7 +35,7 @@ export const useRecentItemsStore = create<RecentItemsState>()(
     }),
     {
       name: 'recent-items-store',
-      storage: tauriStorage,
+      storage: createTauriStorage('recent-items.json'),
       version: 0,
       migrate: (persisted, _version) => persisted as unknown as RecentItemsState,
     },

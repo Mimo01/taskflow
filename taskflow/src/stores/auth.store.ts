@@ -8,26 +8,9 @@
  * Persisted via Tauri Store plugin so connection state survives restarts.
  */
 
-import { LazyStore } from '@tauri-apps/plugin-store';
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
-
-const tauriStore = new LazyStore('auth.json');
-
-const tauriStorage = createJSONStorage(() => ({
-  getItem: async (name: string): Promise<string | null> => {
-    const value = await tauriStore.get<string>(name);
-    return value ?? null;
-  },
-  setItem: async (name: string, value: string): Promise<void> => {
-    await tauriStore.set(name, value);
-    await tauriStore.save();
-  },
-  removeItem: async (name: string): Promise<void> => {
-    await tauriStore.delete(name);
-    await tauriStore.save();
-  },
-}));
+import { persist } from 'zustand/middleware';
+import { createTauriStorage } from '../lib/tauri-storage';
 
 interface AuthState {
   jiraConnected: boolean;
@@ -98,7 +81,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-store',
-      storage: tauriStorage,
+      storage: createTauriStorage('auth.json'),
       // Exclude _hasHydrated from persistence — it is a transient runtime flag.
       partialize: (state) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
