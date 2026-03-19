@@ -69,19 +69,19 @@ describe('RecentItemsPopover', () => {
     expect(onIssueClick).toHaveBeenCalledWith('PROJ-10');
   });
 
-  it('RECENT-02: clicking GitLab item opens browser', async () => {
-    const { openUrl } = await import('@tauri-apps/plugin-opener');
+  it('RECENT-02: clicking GitLab item calls onMRClick', async () => {
+    const onMRClick = vi.fn();
     setStoreItems([
       { type: 'gitlab', id: '77', url: 'https://gitlab.com/mr/77', timestamp: Date.now() },
     ]);
 
-    renderWithQueryClient(<RecentItemsPopover />);
+    renderWithQueryClient(<RecentItemsPopover onMRClick={onMRClick} />);
     fireEvent.click(screen.getByRole('button', { name: 'Recent Items' }));
 
     const row = await screen.findByText('!77');
     fireEvent.click(row.closest('button')!);
 
-    expect(openUrl).toHaveBeenCalledWith('https://gitlab.com/mr/77');
+    expect(onMRClick).toHaveBeenCalledWith('77');
   });
 
   it('RECENT-01: shows header "Recent Items"', async () => {

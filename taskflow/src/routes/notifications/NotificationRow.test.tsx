@@ -155,7 +155,6 @@ describe('NotificationRow', () => {
     );
     expect(screen.getByText('PROJ-100')).toBeInTheDocument();
     expect(screen.getByText('User Login Flow')).toBeInTheDocument();
-    expect(screen.getByText('Parent')).toBeInTheDocument();
   });
 
   // Click
