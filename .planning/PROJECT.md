@@ -39,18 +39,17 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ Backlog view: paginated unassigned issues, move-to-sprint, create new story, filter by epic/label/assignee — v1.2
 - ✓ Epic management: epic list with metrics, sprint board + backlog epic filter, epic detail slide-over (via IssueDetailSheet isEpic branch), create epic dialog — v1.2
 - ✓ Create/edit Jira issues with dynamically discovered fields from createmeta (account + all required custom fields), issue links with type selection — v1.2
+- ✓ New abstract/geometric app icon across all platforms — v1.3
+- ✓ Multi-page Settings with sidebar navigation (Connections, Appearance, Notifications, Workflow) — v1.3
+- ✓ Keyboard shortcuts system with centralized registry, Cmd+/ help panel, J/K list navigation, input suppression — v1.3
+- ✓ Command palette (Cmd+K) with fuzzy search across issues, MRs, nav actions, live Jira search — v1.3
+- ✓ Redesigned header with branding and pinned-issue tab strip with persistence — v1.3
+- ✓ Recent items quick-access popover in header — v1.3
+- ✓ Illustrated empty states and actionable error recovery across all data views — v1.3
 
 ### Active
 
-<!-- v1.3 UX & Branding — in progress -->
-
-- [ ] New abstract/geometric app icon across all platforms
-- [ ] Redesigned app header with branding and pinned-issue tab bar
-- [ ] Multi-page Settings (Connections, Appearance, Notifications, Workflow)
-- [ ] Command palette (Cmd+K) — fuzzy search across issues, MRs, and nav actions
-- [ ] Keyboard shortcuts system with `?` help panel
-- [ ] Recent items quick-access in header
-- ✓ Illustrated empty states and actionable error recovery — v1.3 Phase 22, verified Phase 24
+(No active requirements — define next milestone with `/gsd:new-milestone`)
 
 ### Out of Scope
 
@@ -119,19 +118,26 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 | jira2md + react-markdown pipeline for wiki markup | Jira DC stores descriptions as wiki markup (not ADF); jira2md converts to CommonMark for rendering | ✓ Good — rich text rendering without ADF editor complexity |
 | useAuthStore (not useSettingsStore) for Jira credentials in mutations | useSettingsStore holds UI preferences only; auth credentials live in useAuthStore + Stronghold | ✓ Good — fixed EPIC-04 credential bug; clear store separation |
 | EpicsPage uses fetchEpicsBasic (not fetchEpicsWithEnrichment) | Enrichment requires N story-count queries — too slow for list view per user preference | ✓ Good — user accepted trade-off; detail available on click |
+| react-hotkeys-hook for keyboard shortcuts | Centralized registry + global hook; avoids manual addEventListener management | ✓ Good — clean shortcut system, input suppression works |
+| cmdk (shadcn command) for command palette | Accessible primitives, fuzzy search built-in, works with React 18 | ✓ Good — palette responsive, no conflicts with base-ui |
+| LazyStore persistence for pinned tabs + recent items | Same Tauri Store pattern as settings store; consistent, no new deps | ✓ Good — persistence works across restarts |
+| ApiError class + three-state detection pattern | Structured HTTP errors with isAuthError; EmptyState vs ErrorState vs StaleDataBanner | ✓ Good — consistent error UX across 10+ views |
+| Full-page route for issue detail (not slide-over sheet) | Quick task 260316-r0x — better navigation, breadcrumbs; resolves J/K guard | ✓ Good — eliminated J/K guard complexity entirely |
+| Cmd+Shift+S/B/N (not G-chord) for nav shortcuts | G-chord pattern unfamiliar; Cmd+Shift more discoverable | ⚠️ Revisit — needs product owner sign-off |
 
-## Current Milestone: v1.3 UX & Branding
+## Context
 
-**Goal:** Elevate the app's visual identity and usability — new icon, redesigned header with pinned-issue tabs, multi-page settings, command palette, keyboard shortcuts, recent items, and improved empty/error states.
-
-**Target features:**
-- Abstract/geometric app icon (all platforms)
-- Header redesign with tab bar for pinned issues
-- Multi-page Settings (Connections, Appearance, Notifications, Workflow)
-- Command palette (Cmd+K)
-- Keyboard shortcuts + help panel
-- Recent items in header
-- Illustrated empty states + actionable error recovery
+- **Shipped v1.0:** 2026-03-12 — 4 phases, 20 plans, ~11,017 lines TypeScript, 348 files
+- **Shipped v1.1:** 2026-03-13 — 4 phases, 24 plans, ~15,856 lines TypeScript (+ 20 quick tasks)
+- **Shipped v1.2:** 2026-03-15 — 9 phases, 29 plans, ~23,607 lines TypeScript, 222 files changed (+28,330/−1,730 lines)
+- **Shipped v1.3:** 2026-03-19 — 7 phases, 27 plans, ~32,173 lines TypeScript, 159 files changed (+11,471/−2,296 lines), 40+ quick tasks
+- **Tech stack:** Tauri 2, React 18, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, @dnd-kit/core, jira2md, react-markdown, react-hotkeys-hook, cmdk
+- **Jira instance:** On-premise (Jira Data Center v10.3.15) — REST API v2 with Bearer PAT auth; createmeta/workflow/transitions APIs used for issue management
+- **GitLab:** Self-hosted or gitlab.com — personal access token
+- **Team:** Orange eshop project — developers + project managers using the same app with role-based views
+- **Scale:** One Jira project + one GitLab project at a time
+- **Build:** Portable executable — no installer, no admin rights; `createHashRouter` for SPA routing in production
+- **Known caveats (v1.3):** 10 non-blocking tech debt items from milestone audit; Cmd+Shift nav shortcut deviation needs product owner sign-off; 8 pre-existing LazyStore teardown warnings in tests
 
 ---
-*Last updated: 2026-03-19 after Phase 24 completion (Phase 22 verification)*
+*Last updated: 2026-03-19 after v1.3 milestone*

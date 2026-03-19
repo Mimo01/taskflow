@@ -5,7 +5,7 @@
 - ✅ **v1.0 MVP** — Phases 1-4 (shipped 2026-03-12)
 - ✅ **v1.1 Polish** — Phases 5-8 (shipped 2026-03-13)
 - ✅ **v1.2 Jira Parity** — Phases 9-17 (shipped 2026-03-15)
-- 🚧 **v1.3 UX & Branding** — Phases 18-22 (in progress)
+- ✅ **v1.3 UX & Branding** — Phases 18-24 (shipped 2026-03-19)
 
 ## Phases
 
@@ -50,142 +50,22 @@ See archive: `.planning/milestones/v1.2-ROADMAP.md`
 
 </details>
 
-### 🚧 v1.3 UX & Branding (In Progress)
+<details>
+<summary>✅ v1.3 UX & Branding (Phases 18-24) — SHIPPED 2026-03-19</summary>
 
-**Milestone Goal:** Elevate visual identity and usability — new icon, redesigned header with pinned-issue tabs, multi-page settings, command palette, keyboard shortcuts, recent items, and improved empty/error states.
+- [x] Phase 18: App Icon + Multi-Page Settings (6/6 plans) — completed 2026-03-15
+- [x] Phase 19: Keyboard Foundation (6/6 plans) — completed 2026-03-15
+- [x] Phase 20: Command Palette + Recent Items (6/6 plans) — completed 2026-03-16
+- [x] Phase 21: Header Redesign + Pinned Issue Tabs (5/5 plans) — completed 2026-03-16
+- [x] Phase 22: Polish — Empty States + Error Recovery (3/3 plans) — completed 2026-03-16
+- [x] Phase 23: Fix J/K Guard (architecturally resolved) — completed 2026-03-19
+- [x] Phase 24: Verify Phase 22 (1/1 plan) — completed 2026-03-19
 
-- [x] **Phase 18: App Icon + Multi-Page Settings** - New brand icon on all platforms and Settings restructured with sidebar navigation across four sections (completed 2026-03-15)
-- [x] **Phase 19: Keyboard Foundation** - Shortcut registry, global keydown hook, and `?` help panel that serves as the reference for all subsequent shortcut consumers (completed 2026-03-15)
-- [x] **Phase 20: Command Palette + Recent Items** - Cmd+K overlay with fuzzy search across cached issues/MRs/nav actions, recent items popover in TopBar, and Cmd+Shift+S/B/N nav shortcuts (completed 2026-03-16)
-- [x] **Phase 21: Header Redesign + Pinned Issue Tabs** - Redesigned TopBar with branding, pinned-issue tab strip below the top bar, and J/K keyboard navigation in list views (UAT gap closure in progress) (completed 2026-03-16)
-- [x] **Phase 22: Polish — Empty States + Error Recovery** - Illustrated empty states and actionable error recovery applied consistently across all data views (completed 2026-03-16)
-- [x] **Phase 23: Fix J/K Guard When Detail Sheet Open** - Architecturally resolved: full-page route migration (260316-r0x) already unmounts list views on detail navigation, making J/K guard unnecessary (completed 2026-03-19)
-- [x] **Phase 24: Verify Phase 22 (Empty States + Error Recovery)** - Write missing VERIFICATION.md for Phase 22 to confirm POLISH-01/02/03 satisfaction (gap closure) (completed 2026-03-19)
+See archive: `.planning/milestones/v1.3-ROADMAP.md`
 
-## Phase Details
-
-### Phase 18: App Icon + Multi-Page Settings
-**Goal**: The app has a distinctive visual identity and Settings is navigable across four logical sections
-**Depends on**: Phase 17 (v1.2 complete)
-**Requirements**: BRAND-01, SETTINGS-01, SETTINGS-02, SETTINGS-03, SETTINGS-04, SETTINGS-05
-**Success Criteria** (what must be TRUE):
-  1. The app icon in the macOS Dock, Windows taskbar, and Linux is the new abstract/geometric design — not the Tauri default
-  2. Settings shows a persistent sidebar with Connections, Appearance, Notifications, and Workflow links
-  3. Clicking each sidebar link reveals only that section's content without a page reload or route change
-  4. Connections section shows Jira and GitLab credential fields with working test-connection buttons
-  5. Appearance, Notifications, and Workflow sections each contain their respective controls (theme toggle + density; poll interval + per-event toggles; stale MR threshold + sprint board prefs)
-**Plans**: 6 plans
-
-Plans:
-- [ ] 18-01-PLAN.md — Wave 0: settings store migration + test scaffolds
-- [ ] 18-02-PLAN.md — App icon: node-graph SVG + tauri icon pipeline
-- [ ] 18-03-PLAN.md — Settings shell (sidebar nav) + ConnectionsSection
-- [ ] 18-04-PLAN.md — AppearanceSection + density infrastructure
-- [ ] 18-05-PLAN.md — NotificationsSection + WorkflowSection
-- [ ] 18-06-PLAN.md — Density rollout to all list/card surfaces + human verify
-
-### Phase 19: Keyboard Foundation
-**Goal**: A centralized shortcut registry and global keyboard hook exist, and users can discover all shortcuts via the Cmd+/ help panel
-**Depends on**: Phase 18
-**Requirements**: KEYS-01, KEYS-02, KEYS-07
-**Success Criteria** (what must be TRUE):
-  1. Pressing Cmd+/ (macOS) or Ctrl+/ (Windows/Linux) from any screen opens a dialog listing all registered keyboard shortcuts grouped by category
-  2. The shortcuts panel closes when the user presses Escape
-  3. Pressing Cmd+/ while typing in any text input or contenteditable does not open the panel
-**Plans**: 6 plans
-
-Plans:
-- [ ] 19-01-PLAN.md — Install react-hotkeys-hook + write RED test scaffolds for panel and settings store
-- [ ] 19-02-PLAN.md — Shortcut registry constants (src/lib/shortcuts.ts) + settings store keyboardOverrides migration
-- [ ] 19-03-PLAN.md — KeyboardShortcutsPanel component + AppLayout wiring + SearchOverlay migration
-- [ ] 19-04-PLAN.md — Gap closure: change show-shortcuts hotkey from ? to mod+/ (layout-independent)
-- [ ] 19-05-PLAN.md — Gap closure: fix mod+/ to mod+slash binding (react-hotkeys-hook key-naming bug)
-- [ ] 19-06-PLAN.md — Gap closure: native Help menu with Keyboard Shortcuts item + Tauri event wiring
-
-### Phase 20: Command Palette + Recent Items
-**Goal**: Users can reach any issue, MR, nav destination, or app action from the keyboard, and recently visited items are one click away in the header
-**Depends on**: Phase 19 (shortcut registry), Phase 18 (Settings sections exist for palette actions)
-**Requirements**: PALETTE-01, PALETTE-02, PALETTE-03, PALETTE-04, PALETTE-05, PALETTE-06, PALETTE-07, RECENT-01, RECENT-02, KEYS-03
-**Success Criteria** (what must be TRUE):
-  1. Pressing Cmd+K (macOS) / Ctrl+K (Windows/Linux) from any screen opens the command palette; Escape closes it
-  2. Typing in the palette fuzzy-matches cached Jira tasks and GitLab MRs by title and key, with navigation actions (Go to Sprint Board, Backlog, Notifications, Settings sections) and app actions (Toggle theme, Mark all read) visible as groups
-  3. When fewer than 2 characters are typed, the palette default state shows recently opened issues/MRs
-  4. Typing 2 or more characters produces a "Search Jira for X" tail item that fires a live query
-  5. A clock icon in the TopBar opens a popover listing the last 10 recently opened issues/MRs; clicking any item opens that issue's detail panel
-  6. Pressing Cmd+Shift+S navigates to Sprint Board, Cmd+Shift+B to Backlog, and Cmd+Shift+N to Notifications from anywhere in the app
-**Plans**: 6 plans
-
-Plans:
-- [ ] 20-01-PLAN.md — Foundation: shadcn command install + recent-items store + shortcut registry entries
-- [ ] 20-02-PLAN.md — CommandPalette component with fuzzy search, groups, and live Jira search
-- [ ] 20-03-PLAN.md — RecentItemsPopover component (clock icon + popover)
-- [ ] 20-04-PLAN.md — TopBar + AppLayout wiring, nav shortcuts, recent item tracking, delete old search files
-- [ ] 20-05-PLAN.md — Gap closure: add "Create issue" action to CommandPalette (PALETTE-04)
-- [ ] 20-06-PLAN.md — Gap closure: fix navigation search filtering + recent item titles (UAT)
-
-### Phase 21: Header Redesign + Pinned Issue Tabs
-**Goal**: The app header communicates Taskflow's brand identity and users can maintain quick access to multiple open issues via a persistent tab strip
-**Depends on**: Phase 20 (TopBar layout and handleIssueClick wrapper settled)
-**Requirements**: HEADER-01, HEADER-02, HEADER-03, HEADER-04, HEADER-05, HEADER-06, HEADER-07, KEYS-04, KEYS-05, KEYS-06
-**Success Criteria** (what must be TRUE):
-  1. The top bar on every route shows the Taskflow logo and app name consistently
-  2. The issue detail panel header has a pin button; clicking it adds the issue to a tab strip rendered below the top bar
-  3. Pinned tabs display the issue key and summary; clicking a tab opens that issue's detail panel
-  4. Each tab has an x button that removes it from the strip; when more than 7 issues are pinned a +N overflow indicator appears
-  5. Pinned tabs survive an app restart — the same tabs are visible after relaunching
-  6. In My Tasks, Notifications, and Backlog list views, pressing J or K moves keyboard focus between rows; pressing Enter opens the focused item's detail panel
-**Plans**: 5 plans
-
-Plans:
-- [x] 21-01-PLAN.md — Foundation: pinned-tabs store + useListNavigation hook + shortcut registry entries
-- [x] 21-02-PLAN.md — TopBar branding redesign + PinnedTabStrip component + AppLayout wiring
-- [x] 21-03-PLAN.md — Pin button in IssueDetailSheet + J/K navigation in My Tasks, Notifications, Backlog
-- [ ] 21-04-PLAN.md — Gap closure: move branding to sidebar + pinned tab two-line layout + skeleton loading
-- [ ] 21-05-PLAN.md — Gap closure: disable J/K when detail sheet open + add /notifications route
-
-### Phase 22: Polish — Empty States + Error Recovery
-**Goal**: Every data view communicates clearly when it has no content or has failed to load, and gives users a direct path to recover
-**Depends on**: Phase 21 (all views exist and are stable)
-**Requirements**: POLISH-01, POLISH-02, POLISH-03
-**Success Criteria** (what must be TRUE):
-  1. Every list view (My Tasks, Sprint Board columns, Backlog, Notifications, Search results, Releases, Workload) shows an illustrated empty state with a headline and a primary CTA when it contains no data
-  2. Every data view shows a plain-language error message and a Retry button when a fetch fails
-  3. When a request fails due to an authentication error, the error state includes a "Reconnect" button that navigates directly to Settings > Connections
-**Plans**: 3 plans
-
-Plans:
-- [ ] 22-01-PLAN.md — Foundation: ApiError class + EmptyState + ErrorState + StaleDataBanner shared components
-- [ ] 22-02-PLAN.md — Sweep views 1-5: MyTasks, SprintBoard, SprintProgress, Backlog, MrAttention
-- [ ] 22-03-PLAN.md — Sweep views 6-10: Workload, Releases, Epics, Notifications, CommandPalette
-
-### Phase 23: Fix J/K Guard When Detail Sheet Open
-**Goal**: J/K list navigation is suppressed whenever the issue detail sheet is open, preventing unintended row changes behind the sheet
-**Depends on**: Phase 21 (useListNavigation hook exists)
-**Requirements**: KEYS-04, KEYS-06
-**Gap Closure:** Closes gaps from v1.3 audit
-**Success Criteria** (what must be TRUE):
-  1. When the issue detail sheet is open in My Tasks, pressing J or K does not change the focused row
-  2. When the issue detail sheet is open in Backlog, pressing J or K does not change the focused row
-  3. selectedIssueKey is available in Outlet context for child routes to consume
-
-### Phase 24: Verify Phase 22 (Empty States + Error Recovery)
-**Goal**: Phase 22 has a complete VERIFICATION.md confirming all empty state and error recovery requirements are satisfied
-**Depends on**: Phase 22 (code complete)
-**Requirements**: POLISH-01, POLISH-02, POLISH-03
-**Gap Closure:** Closes gaps from v1.3 audit
-**Success Criteria** (what must be TRUE):
-  1. VERIFICATION.md exists in .planning/phases/22-polish-empty-states-error-recovery/
-  2. All 3 POLISH requirements are individually verified with evidence
-**Plans:** 1/1 plans complete
-
-Plans:
-- [ ] 24-01-PLAN.md — Gather evidence and write 22-VERIFICATION.md for POLISH-01/02/03
-
+</details>
 
 ## Progress
-
-**Execution Order:**
-Phases execute in numeric order: 18 → 19 → 20 → 21 → 22
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -206,8 +86,10 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22
 | 15. Fix BOARD-04 statusId Bug | v1.2 | — | Complete | 2026-03-15 |
 | 16. Write Missing Phase 10 + 11 VERIFICATION.md | v1.2 | — | Complete | 2026-03-15 |
 | 17. Nyquist Validation — Phases 9–14 | v1.2 | — | Complete | 2026-03-15 |
-| 18. App Icon + Multi-Page Settings | 6/6 | Complete    | 2026-03-15 | - |
-| 19. Keyboard Foundation | 6/6 | Complete   | 2026-03-15 |
-| 20. Command Palette + Recent Items | 6/6 | Complete    | 2026-03-16 | - |
-| 21. Header Redesign + Pinned Issue Tabs | 5/5 | Complete    | 2026-03-16 | - |
-| 22. Polish — Empty States + Error Recovery | 3/3 | Complete   | 2026-03-16 | - |
+| 18. App Icon + Multi-Page Settings | v1.3 | 6/6 | Complete | 2026-03-15 |
+| 19. Keyboard Foundation | v1.3 | 6/6 | Complete | 2026-03-15 |
+| 20. Command Palette + Recent Items | v1.3 | 6/6 | Complete | 2026-03-16 |
+| 21. Header Redesign + Pinned Issue Tabs | v1.3 | 5/5 | Complete | 2026-03-16 |
+| 22. Polish — Empty States + Error Recovery | v1.3 | 3/3 | Complete | 2026-03-16 |
+| 23. Fix J/K Guard | v1.3 | — | Complete | 2026-03-19 |
+| 24. Verify Phase 22 | v1.3 | 1/1 | Complete | 2026-03-19 |
