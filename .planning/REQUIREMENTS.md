@@ -79,39 +79,39 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TEST-01 | — | Pending |
-| TEST-02 | — | Pending |
-| TEST-03 | — | Pending |
-| TEST-04 | — | Pending |
-| TEST-05 | — | Pending |
-| TOOL-01 | — | Pending |
-| TOOL-02 | — | Pending |
-| DEPS-01 | — | Pending |
-| REFAC-01 | — | Pending |
-| REFAC-02 | — | Pending |
-| REFAC-03 | — | Pending |
-| REFAC-04 | — | Pending |
-| REFAC-05 | — | Pending |
-| REFAC-06 | — | Pending |
-| REFAC-07 | — | Pending |
-| REFAC-08 | — | Pending |
-| TYPE-01 | — | Pending |
-| TYPE-02 | — | Pending |
-| PERF-01 | — | Pending |
-| PERF-02 | — | Pending |
-| A11Y-01 | — | Pending |
-| A11Y-02 | — | Pending |
-| DEVT-01 | — | Pending |
-| DEVT-02 | — | Pending |
-| DEVT-03 | — | Pending |
-| DEVT-04 | — | Pending |
-| DEVT-05 | — | Pending |
+| TEST-01 | Phase 28 | Pending |
+| TEST-02 | Phase 28 | Pending |
+| TEST-03 | Phase 26 | Pending |
+| TEST-04 | Phase 26 | Pending |
+| TEST-05 | Phase 26 | Pending |
+| TOOL-01 | Phase 25 | Pending |
+| TOOL-02 | Phase 25 | Pending |
+| DEPS-01 | Phase 25 | Pending |
+| REFAC-01 | Phase 27 | Pending |
+| REFAC-02 | Phase 27 | Pending |
+| REFAC-03 | Phase 27 | Pending |
+| REFAC-04 | Phase 27 | Pending |
+| REFAC-05 | Phase 27 | Pending |
+| REFAC-06 | Phase 27 | Pending |
+| REFAC-07 | Phase 27 | Pending |
+| REFAC-08 | Phase 27 | Pending |
+| TYPE-01 | Phase 27 | Pending |
+| TYPE-02 | Phase 27 | Pending |
+| PERF-01 | Phase 28 | Pending |
+| PERF-02 | Phase 28 | Pending |
+| A11Y-01 | Phase 28 | Pending |
+| A11Y-02 | Phase 28 | Pending |
+| DEVT-01 | Phase 29 | Pending |
+| DEVT-02 | Phase 29 | Pending |
+| DEVT-03 | Phase 29 | Pending |
+| DEVT-04 | Phase 29 | Pending |
+| DEVT-05 | Phase 29 | Pending |
 
 **Coverage:**
 - v1.4 requirements: 27 total
-- Mapped to phases: 0
-- Unmapped: 27 ⚠️
+- Mapped to phases: 27
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-19*
-*Last updated: 2026-03-19 after initial definition*
+*Last updated: 2026-03-19 after roadmap creation*
