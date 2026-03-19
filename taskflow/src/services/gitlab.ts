@@ -261,6 +261,44 @@ export async function fetchAssignedMRs(baseUrl: string, token: string): Promise<
 }
 
 /**
+ * Fetch merge requests authored by the given user.
+ *
+ * @param baseUrl  - GitLab base URL
+ * @param token    - Personal Access Token
+ * @param userId   - GitLab user ID of the author
+ * @returns Array of open MRs authored by the user
+ */
+export async function fetchAuthoredMRs(
+  baseUrl: string,
+  token: string,
+  userId: number,
+): Promise<GitLabMR[]> {
+  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/merge_requests?author_id=${userId}&state=opened&per_page=100`;
+
+  let response: Response;
+  try {
+    response = await apiFetch('gitlab', url, {
+      headers: {
+        'PRIVATE-TOKEN': token,
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to fetch authored MRs', response.status, 'gitlab');
+    }
+    throw new Error(`Failed to fetch authored MRs: status ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data as GitLabMR[];
+}
+
+/**
  * Fetch merge requests where the given user is a reviewer.
  *
  * @param baseUrl  - GitLab base URL
