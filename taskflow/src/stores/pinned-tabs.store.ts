@@ -1,23 +1,6 @@
-import { LazyStore } from '@tauri-apps/plugin-store';
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
-
-const tauriStore = new LazyStore('pinned-tabs.json');
-
-const tauriStorage = createJSONStorage(() => ({
-  getItem: async (name: string): Promise<string | null> => {
-    const value = await tauriStore.get<string>(name);
-    return value ?? null;
-  },
-  setItem: async (name: string, value: string): Promise<void> => {
-    await tauriStore.set(name, value);
-    await tauriStore.save();
-  },
-  removeItem: async (name: string): Promise<void> => {
-    await tauriStore.delete(name);
-    await tauriStore.save();
-  },
-}));
+import { persist } from 'zustand/middleware';
+import { createTauriStorage } from '../lib/tauri-storage';
 
 interface PinnedTabsState {
   pinnedKeys: string[];
@@ -52,7 +35,7 @@ export const usePinnedTabsStore = create<PinnedTabsState>()(
     }),
     {
       name: 'pinned-tabs-store',
-      storage: tauriStorage,
+      storage: createTauriStorage('pinned-tabs.json'),
       version: 0,
       migrate: (persisted, _version) => persisted as unknown as PinnedTabsState,
     },
