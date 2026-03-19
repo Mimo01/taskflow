@@ -15,6 +15,7 @@ describe('NotificationPopover', () => {
         readIds: [],
         lastSeenCursor: null,
         permissionDenied: false,
+        notificationSendError: false,
         fetchError: null,
         retryFetch: null,
       });

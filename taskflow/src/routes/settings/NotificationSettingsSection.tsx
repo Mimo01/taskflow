@@ -9,6 +9,8 @@
  * Follows the same layout pattern as StaleMrThresholdSection.
  */
 import { useSettingsStore } from '../../stores/settings.store';
+import { useNotificationsStore } from '../../stores/notifications.store';
+import { Alert, AlertDescription } from '../../components/ui/alert';
 
 interface ToggleRowProps {
   id: string;
@@ -41,6 +43,8 @@ function ToggleRow({ id, label, description, checked, onChange }: ToggleRowProps
 }
 
 export default function NotificationSettingsSection() {
+  const { notificationSendError } = useNotificationsStore();
+
   const {
     notificationPollIntervalSecs,
     osNotifJiraEnabled,
@@ -177,6 +181,15 @@ export default function NotificationSettingsSection() {
         <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
           Desktop Notifications
         </h4>
+        {(notificationSendError || (import.meta.env.DEV && navigator.platform.startsWith('Mac') && (osNotifJiraEnabled || osNotifGitlabEnabled))) && (
+          <Alert>
+            <AlertDescription>
+              {notificationSendError
+                ? 'Desktop notifications failed to send. On macOS, this is expected in dev mode — a signed app bundle is required. Try a production build to verify.'
+                : 'Desktop notifications may not work in dev mode on macOS — a signed app bundle is required. Try a production build to verify.'}
+            </AlertDescription>
+          </Alert>
+        )}
         <ToggleRow
           id="jira-os-notif"
           label="Jira desktop notifications"

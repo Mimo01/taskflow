@@ -98,16 +98,24 @@ async function fetchNewJiraComments(
   };
 
   // Map of Jira changelog field names to display labels for tracked fields.
-  // These produce "Label: old → new" change lines in notification bodies.
+  // These produce "Label: old \u2192 new" change lines in notification bodies.
   const TRACKED_FIELDS: Record<string, string> = {
+    'summary': 'Title',
     'priority': 'Priority',
     'Story Points': 'Story Points',
+    'story_points': 'Story Points',
     'Sprint': 'Sprint',
     'Fix Version': 'Fix Version',
     'Fix Version/s': 'Fix Version',
     'labels': 'Labels',
+    'Label': 'Labels',
     'resolution': 'Resolution',
     'issuetype': 'Type',
+    'Component': 'Component',
+    'Component/s': 'Component',
+    'reporter': 'Reporter',
+    'duedate': 'Due Date',
+    'timeoriginalestimate': 'Estimate',
   };
 
   // ── Query A: issue updates (assignee / reporter / watcher) ──────────────────
@@ -210,18 +218,16 @@ async function fetchNewJiraComments(
         }
       }
 
-      const statusName = issue.fields.status?.name ?? 'Unknown';
+      // Skip issues with no detected changelog changes — they're noise
+      if (changeLines.length === 0) continue;
+
       const fallbackAuthor =
         issue.fields.assignee?.displayName ??
         issue.fields.reporter?.displayName ??
         'Unknown';
 
-      const bodyPreview = changeLines.length > 0
-        ? changeLines.join(' | ').substring(0, 120)
-        : `Status: ${statusName}`;
-      const fullBody = changeLines.length > 0
-        ? changeLines.join('\n')
-        : `Status: ${statusName}`;
+      const bodyPreview = changeLines.join('\n');
+      const fullBody = changeLines.join('\n');
       const author = changeAuthor ?? fallbackAuthor;
 
       results.push({
@@ -458,13 +464,24 @@ async function fetchNewJiraComments(
   return results;
 }
 
-// ─── GitLab Note Fetcher ──────────────────────────────────────────────────────
+// ─── GitLab Combined Fetcher ─────────────────────────────────────────────────
 
 /**
- * Fetch GitLab MR notes newer than lastSeenCursor, excluding system notes
- * and notes authored by the current user.
+ * Fetch all GitLab notifications (notes, approvals, pipeline failures) in a
+ * single pass with maximum parallelism and minimum API calls.
+ *
+ * Optimizations over the previous three separate sequential fetchers:
+ *  1. Skip MRs whose updated_at <= cursor — no new activity possible, zero calls.
+ *  2. For each active MR, fetch notes + (if author) approvals & pipelines in
+ *     parallel within a single Promise.all.
+ *  3. Process all active MRs concurrently in batches of CONCURRENCY to avoid
+ *     GitLab rate-limit throttling.
+ *
+ * Net effect: 3*N sequential calls -> 1-3 parallel calls * activeMRs (batched).
  */
-async function fetchNewGitlabNotes(
+const GITLAB_CONCURRENCY = 6;
+
+async function fetchAllGitlabNotifications(
   baseUrl: string,
   token: string,
   currentUserId: number,
@@ -473,224 +490,209 @@ async function fetchNewGitlabNotes(
   currentUsername: string | null,
 ): Promise<NotificationItem[]> {
   const since = toUtcIso(lastSeenCursor ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
-  const results: NotificationItem[] = [];
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' };
 
-  for (const mr of mrList) {
-    const url = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${mr.project_id}/merge_requests/${mr.iid}/notes?order_by=created_at&sort=desc&per_page=20`;
+  // NOTE: We intentionally do NOT filter by mr.updated_at here. The MR list
+  // may come from the React Query cache with stale updated_at values, which
+  // would incorrectly skip MRs that have new activity. The per-note cursor
+  // check inside processMR handles freshness correctly.
 
-    let response: Response;
-    try {
-      response = await apiFetch('gitlab', url, {
-        headers: {
-          'PRIVATE-TOKEN': token,
-          'Content-Type': 'application/json',
-        },
-      });
-    } catch {
-      continue;
+  /** Process a single MR: fetch notes + (if author) approvals & pipelines in parallel. */
+  async function processMR(mr: GitLabMR): Promise<NotificationItem[]> {
+    const isAuthor = mr.author.id === currentUserId;
+    const notesUrl = `${base}/api/v4/projects/${mr.project_id}/merge_requests/${mr.iid}/notes?order_by=created_at&sort=desc&per_page=20`;
+
+    // Build parallel fetch list — always notes; approvals + pipelines only for author's MRs
+    const fetches: Promise<Response | null>[] = [
+      apiFetch('gitlab', notesUrl, { headers }).catch(() => null),
+    ];
+    if (isAuthor) {
+      fetches.push(
+        apiFetch('gitlab', `${base}/api/v4/projects/${mr.project_id}/merge_requests/${mr.iid}/approvals`, { headers }).catch(() => null),
+        apiFetch('gitlab', `${base}/api/v4/projects/${mr.project_id}/merge_requests/${mr.iid}/pipelines?per_page=5&sort=desc`, { headers }).catch(() => null),
+      );
     }
 
-    if (!response.ok) continue;
+    const [notesRes, approvalsRes, pipelinesRes] = await Promise.all(fetches);
+    const items: NotificationItem[] = [];
 
-    const notes = await response.json();
+    // ── Notes ────────────────────────────────────────────────────────────────
+    if (notesRes?.ok) {
+      const notes = await notesRes.json();
+      for (const note of notes) {
+        if (note.author?.id === currentUserId) continue;
+        if (toUtcIso(note.created_at) <= since) break; // sorted desc — stop at cursor
 
-    for (const note of notes) {
-      if (note.author?.id === currentUserId) continue; // skip own notes
-      if (toUtcIso(note.created_at) <= since) break;    // notes sorted desc — stop at cursor
+        const body: string = note.body ?? '';
 
-      const body: string = note.body ?? '';
+        if (note.system === true) {
+          const parsedBody = parseSystemNote(body);
+          if (!parsedBody) continue;
 
-      if (note.system === true) {
-        // Parse actionable system notes instead of skipping all
-        let parsedBody: string | null = null;
-
-        if (/^(closed|merged|reopened)/i.test(body)) {
-          // State change — infer previous state from action
-          const action = body.match(/^(\w+)/i)?.[1]?.toLowerCase() ?? '';
-          let fromState = 'opened';
-          if (action === 'reopened') fromState = 'closed';
-          parsedBody = `State: ${fromState} \u2192 ${action}`;
-        } else if (/^requested review from/i.test(body) || /^removed review request/i.test(body)) {
-          parsedBody = body;
-        } else if (/^(added|removed) ~"/i.test(body)) {
-          parsedBody = body;
+          items.push({
+            id: `gitlab-system-${note.id}`,
+            source: 'gitlab',
+            entityTitle: mr.title,
+            author: note.author?.name ?? 'Unknown',
+            authorAvatarUrl: note.author?.avatar_url,
+            bodyPreview: parsedBody.substring(0, 120),
+            fullBody: parsedBody,
+            createdAt: toUtcIso(note.created_at),
+            url: mr.web_url,
+            notificationType: 'mr-note',
+            entityState: mr.state,
+            mrProjectId: mr.project_id,
+            mrIid: mr.iid,
+          });
+          continue;
         }
 
-        if (!parsedBody) continue; // non-actionable system note — skip
-
-        results.push({
-          id: `gitlab-system-${note.id}`,
+        const isMentioned = currentUsername ? body.includes(`@${currentUsername}`) : false;
+        items.push({
+          id: `gitlab-note-${note.id}`,
           source: 'gitlab',
           entityTitle: mr.title,
           author: note.author?.name ?? 'Unknown',
           authorAvatarUrl: note.author?.avatar_url,
-          bodyPreview: parsedBody.substring(0, 120),
-          fullBody: parsedBody,
+          bodyPreview: body.substring(0, 80),
+          fullBody: body,
           createdAt: toUtcIso(note.created_at),
           url: mr.web_url,
-          notificationType: 'mr-note',
+          notificationType: isMentioned ? 'gitlab-mention' : 'mr-note',
           entityState: mr.state,
           mrProjectId: mr.project_id,
           mrIid: mr.iid,
         });
-        continue;
       }
+    }
 
-      // Detect @mention of current user in the note body
-      const isMentioned = currentUsername ? body.includes(`@${currentUsername}`) : false;
+    // ── Approvals (author's MRs only) ────────────────────────────────────────
+    if (approvalsRes?.ok) {
+      const data = await approvalsRes.json();
+      const approvedBy: Array<{
+        user: { id: number; name: string; username: string; avatar_url?: string };
+        approved_at?: string;
+      }> = data.approved_by ?? [];
 
-      results.push({
-        id: `gitlab-note-${note.id}`,
-        source: 'gitlab',
-        entityTitle: mr.title,
-        author: note.author?.name ?? 'Unknown',
-        authorAvatarUrl: note.author?.avatar_url,
-        bodyPreview: body.substring(0, 80),
-        fullBody: body,
-        createdAt: toUtcIso(note.created_at),
-        url: mr.web_url,
-        notificationType: isMentioned ? 'gitlab-mention' : 'mr-note',
-        entityState: mr.state,
-        mrProjectId: mr.project_id,
-        mrIid: mr.iid,
-      });
+      for (const entry of approvedBy) {
+        const approvedAt = toUtcIso(entry.approved_at ?? mr.updated_at);
+        if (approvedAt <= since) continue;
+
+        items.push({
+          id: `gitlab-approval-${mr.iid}-${entry.user.id}`,
+          source: 'gitlab',
+          entityTitle: mr.title,
+          author: entry.user.name,
+          authorAvatarUrl: entry.user.avatar_url,
+          bodyPreview: `Approved by ${entry.user.name}`,
+          fullBody: `Approved by ${entry.user.name}`,
+          createdAt: approvedAt,
+          url: mr.web_url,
+          notificationType: 'mr-approval',
+          entityState: mr.state,
+          mrProjectId: mr.project_id,
+          mrIid: mr.iid,
+        });
+      }
+    }
+
+    // ── Pipeline failures (author's MRs only) ───────────────────────────────
+    if (pipelinesRes?.ok) {
+      const pipelines: Array<{
+        id: number;
+        status: string;
+        updated_at: string;
+        ref: string;
+      }> = await pipelinesRes.json();
+
+      for (const pipeline of pipelines) {
+        if (pipeline.status !== 'failed') continue;
+        if (toUtcIso(pipeline.updated_at) <= since) continue;
+
+        items.push({
+          id: `gitlab-pipeline-${pipeline.id}`,
+          source: 'gitlab',
+          entityTitle: mr.title,
+          author: '',
+          authorAvatarUrl: undefined,
+          bodyPreview: `Pipeline #${pipeline.id} failed on ${mr.source_branch}`,
+          fullBody: `Pipeline #${pipeline.id} failed on ${mr.source_branch}`,
+          createdAt: toUtcIso(pipeline.updated_at),
+          url: mr.web_url,
+          notificationType: 'pipeline-failure',
+          entityState: mr.state,
+          mrProjectId: mr.project_id,
+          mrIid: mr.iid,
+        });
+      }
+    }
+
+    return items;
+  }
+
+  // Process MRs in batches to respect rate limits
+  const results: NotificationItem[] = [];
+  for (let i = 0; i < mrList.length; i += GITLAB_CONCURRENCY) {
+    const batch = mrList.slice(i, i + GITLAB_CONCURRENCY);
+    const settled = await Promise.allSettled(batch.map(processMR));
+    for (const result of settled) {
+      if (result.status === 'fulfilled') results.push(...result.value);
     }
   }
 
   return results;
 }
 
-// ─── GitLab Approval Fetcher ──────────────────────────────────────────────────
-
-/**
- * Fetch MR approval notifications for MRs authored by the current user.
- */
-async function fetchGitlabApprovals(
-  baseUrl: string,
-  token: string,
-  currentUserId: number,
-  mrList: GitLabMR[],
-  lastSeenCursor: string | null,
-): Promise<NotificationItem[]> {
-  const since = toUtcIso(lastSeenCursor ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
-  const results: NotificationItem[] = [];
-  const base = baseUrl.replace(/\/$/, '');
-
-  for (const mr of mrList) {
-    if (mr.author.id !== currentUserId) continue;
-
-    const url = `${base}/api/v4/projects/${mr.project_id}/merge_requests/${mr.iid}/approvals`;
-
-    let response: Response;
-    try {
-      response = await apiFetch('gitlab', url, {
-        headers: {
-          'PRIVATE-TOKEN': token,
-          'Content-Type': 'application/json',
-        },
-      });
-    } catch {
-      continue;
-    }
-
-    if (!response.ok) continue;
-
-    const data = await response.json();
-    const approvedBy: Array<{
-      user: { id: number; name: string; username: string; avatar_url?: string };
-      approved_at?: string;
-    }> = data.approved_by ?? [];
-
-    for (const entry of approvedBy) {
-      const approvedAt = toUtcIso(entry.approved_at ?? mr.updated_at);
-      if (approvedAt <= since) continue;
-
-      results.push({
-        id: `gitlab-approval-${mr.iid}-${entry.user.id}`,
-        source: 'gitlab',
-        entityTitle: mr.title,
-        author: entry.user.name,
-        authorAvatarUrl: entry.user.avatar_url,
-        bodyPreview: `Approved by ${entry.user.name}`,
-        fullBody: `Approved by ${entry.user.name}`,
-        createdAt: approvedAt,
-        url: mr.web_url,
-        notificationType: 'mr-approval',
-        entityState: mr.state,
-        mrProjectId: mr.project_id,
-        mrIid: mr.iid,
-      });
-    }
+/** Parse a GitLab system note into a human-readable string, or null if non-actionable. */
+function parseSystemNote(body: string): string | null {
+  if (/^(closed|merged|reopened)/i.test(body)) {
+    const action = body.match(/^(\w+)/i)?.[1]?.toLowerCase() ?? '';
+    const fromState = action === 'reopened' ? 'closed' : 'opened';
+    return `State: ${fromState} \u2192 ${action}`;
   }
-
-  return results;
-}
-
-// ─── GitLab Pipeline Failure Fetcher ─────────────────────────────────────────
-
-/**
- * Fetch pipeline failure notifications for MRs authored by the current user.
- */
-async function fetchGitlabPipelineFailures(
-  baseUrl: string,
-  token: string,
-  currentUserId: number,
-  mrList: GitLabMR[],
-  lastSeenCursor: string | null,
-): Promise<NotificationItem[]> {
-  const since = toUtcIso(lastSeenCursor ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
-  const results: NotificationItem[] = [];
-  const base = baseUrl.replace(/\/$/, '');
-
-  for (const mr of mrList) {
-    if (mr.author.id !== currentUserId) continue;
-
-    const url = `${base}/api/v4/projects/${mr.project_id}/merge_requests/${mr.iid}/pipelines?per_page=5&sort=desc`;
-
-    let response: Response;
-    try {
-      response = await apiFetch('gitlab', url, {
-        headers: {
-          'PRIVATE-TOKEN': token,
-          'Content-Type': 'application/json',
-        },
-      });
-    } catch {
-      continue;
-    }
-
-    if (!response.ok) continue;
-
-    const pipelines: Array<{
-      id: number;
-      status: string;
-      updated_at: string;
-      ref: string;
-    }> = await response.json();
-
-    for (const pipeline of pipelines) {
-      if (pipeline.status !== 'failed') continue;
-      if (toUtcIso(pipeline.updated_at) <= since) continue;
-
-      results.push({
-        id: `gitlab-pipeline-${pipeline.id}`,
-        source: 'gitlab',
-        entityTitle: mr.title,
-        author: '',
-        authorAvatarUrl: undefined,
-        bodyPreview: `Pipeline #${pipeline.id} failed on ${mr.source_branch}`,
-        fullBody: `Pipeline #${pipeline.id} failed on ${mr.source_branch}`,
-        createdAt: toUtcIso(pipeline.updated_at),
-        url: mr.web_url,
-        notificationType: 'pipeline-failure',
-        entityState: mr.state,
-        mrProjectId: mr.project_id,
-        mrIid: mr.iid,
-      });
-    }
+  if (/^requested review from/i.test(body)) {
+    const names = [...body.matchAll(/@(\w[\w.-]*)/g)].map(m => m[1]);
+    return names.length > 0 ? `Review requested: ${names.join(', ')}` : body;
   }
-
-  return results;
+  if (/^removed review request for/i.test(body)) {
+    const names = [...body.matchAll(/@(\w[\w.-]*)/g)].map(m => m[1]);
+    return names.length > 0 ? `Review removed: ${names.join(', ')}` : body;
+  }
+  if (/^(added|removed) ~"/i.test(body)) {
+    const action = /^added/i.test(body) ? 'added' : 'removed';
+    const labels = [...body.matchAll(/~"([^"]+)"/g)].map(m => m[1]);
+    return labels.length > 0 ? `Labels ${action}: ${labels.join(', ')}` : body;
+  }
+  if (/^assigned to/i.test(body)) {
+    const names = [...body.matchAll(/@(\w[\w.-]*)/g)].map(m => m[1]);
+    return names.length > 0 ? `Assigned: ${names.join(', ')}` : body;
+  }
+  if (/^unassigned/i.test(body)) {
+    const names = [...body.matchAll(/@(\w[\w.-]*)/g)].map(m => m[1]);
+    return names.length > 0 ? `Unassigned: ${names.join(', ')}` : 'Assignee: removed';
+  }
+  if (/^changed title from/i.test(body)) {
+    const m = body.match(/from \*\*(.+?)\*\* to \*\*(.+?)\*\*/);
+    return m ? `Title: ${m[1]} \u2192 ${m[2]}` : body;
+  }
+  if (/^changed the description/i.test(body)) return 'Description: updated';
+  if (/^changed target branch/i.test(body)) {
+    const m = body.match(/from `(.+?)` to `(.+?)`/);
+    return m ? `Target branch: ${m[1]} \u2192 ${m[2]}` : body;
+  }
+  if (/^changed milestone to/i.test(body)) {
+    const m = body.match(/to %(.+)/);
+    return m ? `Milestone: ${m[1]}` : body;
+  }
+  if (/^removed milestone/i.test(body)) return 'Milestone: removed';
+  if (/^marked.*(draft|ready)/i.test(body)) {
+    const isDraft = /draft/i.test(body);
+    return `Status: ${isDraft ? 'ready \u2192 draft' : 'draft \u2192 ready'}`;
+  }
+  if (/^enabled an automatic merge/i.test(body) || /^merge when pipeline succeeds/i.test(body)) return 'Auto-merge: enabled';
+  if (/^canceled an automatic merge/i.test(body)) return 'Auto-merge: canceled';
+  return null;
 }
 
 // ─── Combined Fetcher ─────────────────────────────────────────────────────────
@@ -712,12 +714,13 @@ export async function fetchNewNotifications(
     gitlabUserId: number | null;
     gitlabUsername: string | null;
     mrList: GitLabMR[];
-    lastSeenCursor: string | null;
+    lastSeenJiraCursor: string | null;
+    lastSeenGitlabCursor: string | null;
   },
 ): Promise<NotificationItem[]> {
   const tasks: Promise<NotificationItem[]>[] = [];
 
-  // Jira task
+  // Jira task — uses Jira-specific cursor
   if (jiraBaseUrl && tokens.jira && opts.activeJiraProject) {
     tasks.push(
       fetchNewJiraComments(
@@ -726,39 +729,21 @@ export async function fetchNewNotifications(
         opts.activeJiraProject,
         opts.jiraUserDisplayName,
         opts.jiraUsername,
-        opts.lastSeenCursor,
+        opts.lastSeenJiraCursor,
       ),
     );
   }
 
-  // GitLab tasks
+  // GitLab task — single combined fetcher with internal parallelism
   if (gitlabBaseUrl && tokens.gitlab && opts.gitlabUserId !== null && opts.mrList.length > 0) {
     tasks.push(
-      fetchNewGitlabNotes(
+      fetchAllGitlabNotifications(
         gitlabBaseUrl,
         tokens.gitlab,
         opts.gitlabUserId,
         opts.mrList,
-        opts.lastSeenCursor,
+        opts.lastSeenGitlabCursor,
         opts.gitlabUsername,
-      ),
-    );
-    tasks.push(
-      fetchGitlabApprovals(
-        gitlabBaseUrl,
-        tokens.gitlab,
-        opts.gitlabUserId,
-        opts.mrList,
-        opts.lastSeenCursor,
-      ),
-    );
-    tasks.push(
-      fetchGitlabPipelineFailures(
-        gitlabBaseUrl,
-        tokens.gitlab,
-        opts.gitlabUserId,
-        opts.mrList,
-        opts.lastSeenCursor,
       ),
     );
   }
