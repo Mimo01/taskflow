@@ -46,7 +46,7 @@ export function useCreateEditQueries({
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token || !jiraBaseUrl || !projectKey) return [];
       const base = jiraBaseUrl.replace(/\/$/, '');
-      const resp = await apiFetch('jira', `${base}/rest/api/2/issue/createmeta/${projectKey}/issuetypes`, { headers: { Authorization: `Bearer ${token}` } });
+      const resp = await apiFetch('jira', `${base}/rest/api/2/issue/createmeta/${projectKey}/issuetypes`, { headers: { Authorization: `Bearer ${token}` } }, 'Create/Edit Issue');
       if (!resp.ok) return [];
       const data = await resp.json();
       return (data.values ?? []) as CreatemtaIssueType[];
@@ -83,7 +83,7 @@ export function useCreateEditQueries({
       if (!token || !jiraBaseUrl || !projectKey) return [];
       const base = jiraBaseUrl.replace(/\/$/, '');
       const jql = `project = ${projectKey} AND issuetype = Epic AND statusCategory != Done ORDER BY updated DESC`;
-      const resp = await apiFetch('jira', `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status&maxResults=50`, { headers: { Authorization: `Bearer ${token}` } });
+      const resp = await apiFetch('jira', `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status&maxResults=50`, { headers: { Authorization: `Bearer ${token}` } }, 'Create/Edit Issue');
       if (!resp.ok) return [];
       const data = await resp.json();
       return (data.issues ?? []) as JiraIssue[];
@@ -109,7 +109,7 @@ export function useCreateEditQueries({
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token || !jiraBaseUrl || !projectKey) return [];
       const base = jiraBaseUrl.replace(/\/$/, '');
-      const resp = await apiFetch('jira', `${base}/rest/api/2/user/assignable/search?project=${projectKey}&maxResults=200`, { headers: { Authorization: `Bearer ${token}` } });
+      const resp = await apiFetch('jira', `${base}/rest/api/2/user/assignable/search?project=${projectKey}&maxResults=200`, { headers: { Authorization: `Bearer ${token}` } }, 'Create/Edit Issue');
       if (!resp.ok) return [];
       return (await resp.json()) as JiraUser[];
     },

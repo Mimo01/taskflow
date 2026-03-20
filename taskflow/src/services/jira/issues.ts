@@ -291,7 +291,7 @@ export async function fetchIssueDetail(
   const url = `${base}/rest/api/2/issue/${issueKey}?fields=${fields}`;
   const response = await apiFetch('jira', url, {
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-  });
+  }, 'Load Issue Detail');
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError(`Failed to fetch issue ${issueKey}`, response.status, 'jira');
@@ -314,7 +314,7 @@ export async function fetchIssueSummary(
   const url = `${base}/rest/api/2/issue/${issueKey}?fields=summary,issuetype`;
   const response = await apiFetch('jira', url, {
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-  });
+  }, 'Load Issue Detail');
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError(`Failed to fetch issue ${issueKey}`, response.status, 'jira');
@@ -339,7 +339,7 @@ export async function updateIssueField(
     method: 'PUT',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ fields: { [fieldName]: value } }),
-  });
+  }, 'Create/Edit Issue');
   if (!response.ok && response.status !== 204) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError(`Failed to update ${fieldName} on ${issueKey}`, response.status, 'jira');
@@ -398,7 +398,7 @@ export async function createIssue(
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ fields: baseFields }),
-  });
+  }, 'Create/Edit Issue');
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError('Failed to create issue', response.status, 'jira');
@@ -428,7 +428,7 @@ export async function bulkUpdateIssue(
     method: 'PUT',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ fields }),
-  });
+  }, 'Create/Edit Issue');
   if (!response.ok && response.status !== 204) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError(`Failed to update ${issueKey}`, response.status, 'jira');
@@ -483,7 +483,7 @@ export async function searchJira(
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-    });
+    }, 'Search Issues');
   } catch {
     return [];
   }

@@ -53,7 +53,7 @@ export async function validateGitLab(baseUrl: string, token: string): Promise<Gi
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
       },
-    });
+    }, 'Validate Connection');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -91,7 +91,7 @@ export async function listGitLabGroups(baseUrl: string, token: string): Promise<
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
       },
-    });
+    }, 'Validate Connection');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -129,7 +129,7 @@ export async function listGitLabProjects(baseUrl: string, token: string): Promis
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
       },
-    });
+    }, 'Validate Connection');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -245,7 +245,7 @@ export async function fetchAssignedMRs(baseUrl: string, token: string): Promise<
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
       },
-    });
+    }, 'Load Merge Requests');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -283,7 +283,7 @@ export async function fetchAuthoredMRs(
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
       },
-    });
+    }, 'Load Merge Requests');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -321,7 +321,7 @@ export async function fetchReviewerMRs(
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
       },
-    });
+    }, 'Load Merge Requests');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -361,7 +361,7 @@ export async function fetchMRCommits(
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
       },
-    });
+    }, 'Load MR Detail');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -401,7 +401,7 @@ export async function fetchMRApprovals(
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
       },
-    });
+    }, 'Load MR Detail');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -441,7 +441,7 @@ export async function fetchMRDiscussions(
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
       },
-    });
+    }, 'Load MR Detail');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -483,7 +483,7 @@ export async function fetchGroupMilestones(
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
       },
-    });
+    }, 'Load Releases');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -522,7 +522,7 @@ export async function fetchProjectMilestones(
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
       },
-    });
+    }, 'Load Releases');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -588,7 +588,7 @@ export async function fetchProjectTags(
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
       },
-    });
+    }, 'Load Releases');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -624,7 +624,7 @@ export async function fetchMRDetail(
   try {
     response = await apiFetch('gitlab', url, {
       headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
-    });
+    }, 'Load MR Detail');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -645,7 +645,7 @@ export async function fetchMRDetail(
       const labelsUrl = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/labels?per_page=100`;
       const labelsResp = await apiFetch('gitlab', labelsUrl, {
         headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
-      });
+      }, 'Load MR Detail');
       if (labelsResp.ok) {
         const projectLabels = (await labelsResp.json()) as Array<{
           name: string;
@@ -689,7 +689,7 @@ export async function fetchProjectMRs(
   try {
     response = await apiFetch('gitlab', url, {
       headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
-    });
+    }, 'Load MR Detail');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -719,7 +719,7 @@ export async function fetchProjectMRs(
       const labelsUrl = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/labels?per_page=100`;
       const labelsResp = await apiFetch('gitlab', labelsUrl, {
         headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
-      });
+      }, 'Load MR Detail');
       if (labelsResp.ok) {
         const projectLabels = (await labelsResp.json()) as Array<{
           name: string;
@@ -777,7 +777,7 @@ export async function searchGitLabMRs(
         'PRIVATE-TOKEN': token,
         'Content-Type': 'application/json',
       },
-    });
+    }, 'Load Merge Requests');
   } catch {
     return [];
   }

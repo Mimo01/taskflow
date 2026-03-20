@@ -36,6 +36,7 @@ export async function fetchActiveSprint(
       'jira',
       `${base}/rest/agile/1.0/board?projectKeyOrId=${projectKey}&type=scrum`,
       { headers },
+      'Load Sprint Board',
     );
     if (!boardRes.ok) return null;
     const boardData = await boardRes.json();
@@ -47,6 +48,7 @@ export async function fetchActiveSprint(
       'jira',
       `${base}/rest/agile/1.0/board/${boardId}/sprint?state=active`,
       { headers },
+      'Load Sprint Board',
     );
     if (!sprintRes.ok) return null;
     const sprintData = await sprintRes.json();
@@ -83,6 +85,7 @@ export async function fetchSprintsForBoard(
       'jira',
       `${base}/rest/agile/1.0/board/${boardId}/sprint?state=active,future`,
       { headers },
+      'Load Sprint Board',
     );
     if (!res.ok) return [];
     const data = await res.json();
@@ -124,7 +127,7 @@ export async function addIssuesToSprint(
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ issues: issueKeys }),
-  });
+  }, 'Load Sprint Board');
   // 204 No Content is the expected success response for this endpoint
   if (!response.ok && response.status !== 204) {
     if (response.status === 401 || response.status === 403) {

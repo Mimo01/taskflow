@@ -95,7 +95,7 @@ export function FieldsSection({
         const url = `${jiraBaseUrl.replace(/\/$/, '')}/rest/api/2/user/assignable/search?issueKey=${issueKey}&query=${encodeURIComponent(query)}`;
         const resp = await apiFetch('jira', url, {
           headers: { Authorization: `Bearer ${token}` },
-        });
+        }, 'Load Fields');
         if (resp.ok) {
           const data = (await resp.json()) as AssignableUser[];
           setAssigneeResults(data);

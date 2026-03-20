@@ -61,7 +61,7 @@ async function fetchAutoComplete(
     const url = field.autoCompleteUrl + encodeURIComponent(query);
     const resp = await apiFetch('jira', url, {
       headers: { Authorization: `Bearer ${token}` },
-    });
+    }, 'Load Fields');
     if (!resp.ok) return;
     const data = await resp.json();
     const items: unknown[] = Array.isArray(data)

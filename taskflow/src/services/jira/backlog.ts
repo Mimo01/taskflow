@@ -152,6 +152,7 @@ export async function fetchBacklogView(
       'jira',
       `${base}/rest/agile/1.0/board?projectKeyOrId=${projectKey}&type=scrum`,
       { headers },
+      'Load Backlog',
     );
     if (boardRes.ok) {
       const boardData = await boardRes.json();
@@ -206,6 +207,7 @@ export async function fetchBacklogView(
         'jira',
         `${base}/rest/agile/1.0/board/${sprintListBoardId}/sprint?state=active,future`,
         { headers },
+        'Load Backlog',
       );
       if (sprintListRes.ok) {
         const sprintListData = await sprintListRes.json();

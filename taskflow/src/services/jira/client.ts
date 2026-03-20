@@ -64,7 +64,7 @@ export async function fetchAllSearchPages(
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const url = `${baseSearchUrl}&maxResults=${PAGE_SIZE}&startAt=${startAt}`;
-    const response = await apiFetch('jira', url, { headers });
+    const response = await apiFetch('jira', url, { headers }, 'Search Issues');
 
     if (!response.ok) {
       if (startAt === 0) {
@@ -122,7 +122,7 @@ export async function fetchAllWorklogPages(
     const url = `${baseWorklogUrl}?maxResults=${PAGE_SIZE}&startAt=${startAt}`;
     let response: Response;
     try {
-      response = await apiFetch('jira', url, { headers });
+      response = await apiFetch('jira', url, { headers }, 'Search Issues');
     } catch {
       break;
     }

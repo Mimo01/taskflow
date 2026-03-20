@@ -34,7 +34,7 @@ export async function discoverCustomFields(
   try {
     const response = await apiFetch('jira', `${baseUrl.replace(/\/$/, '')}/rest/api/2/field`, {
       headers: { Authorization: `Bearer ${token}` },
-    });
+    }, 'Load Fields');
     if (!response.ok) return defaults;
     const fields: Array<{ id: string; name: string; schema?: { custom?: string } }> =
       await response.json();
@@ -93,7 +93,7 @@ export async function fetchCreatemeta(
 
   // Strategy A: Jira 8.4+ paginated endpoint
   const newEndpoint = `${base}/rest/api/2/issue/createmeta/${projectKey}/issuetypes/${issueTypeId}?maxResults=50`;
-  const resp = await apiFetch('jira', newEndpoint, { headers });
+  const resp = await apiFetch('jira', newEndpoint, { headers }, 'Load Fields');
   if (resp.ok) {
     const data = await resp.json();
     return enrich((data.values ?? []) as CreatemetaField[]);
@@ -101,7 +101,7 @@ export async function fetchCreatemeta(
 
   // Strategy B: Legacy flat endpoint (pre-8.4 or 9.0+ with re-enabled flag)
   const legacyUrl = `${base}/rest/api/2/issue/createmeta?projectKeys=${projectKey}&issuetypeNames=${encodeURIComponent(issueTypeName)}&expand=projects.issuetypes.fields`;
-  const legacyResp = await apiFetch('jira', legacyUrl, { headers });
+  const legacyResp = await apiFetch('jira', legacyUrl, { headers }, 'Load Fields');
   if (!legacyResp.ok) return [];
   const legacyData = await legacyResp.json();
   const fields = legacyData.projects?.[0]?.issuetypes?.[0]?.fields;
@@ -124,7 +124,7 @@ export async function fetchProjectStatuses(
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/project/${projectKey}/statuses`;
   const response = await apiFetch('jira', url, {
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-  });
+  }, 'Load Fields');
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError('Failed to fetch project statuses', response.status, 'jira');
