@@ -39,6 +39,9 @@ describe('notifications.store', () => {
         readIds: [],
         lastSeenCursor: null,
         permissionDenied: false,
+        _unreadCount: 0,
+        _jiraUnreadCount: 0,
+        _gitlabUnreadCount: 0,
       });
     });
   });
@@ -206,6 +209,63 @@ describe('notifications.store', () => {
       expect(Array.isArray(readIds)).toBe(true);
       // Should serialize cleanly to JSON (no Set)
       expect(() => JSON.stringify({ readIds })).not.toThrow();
+    });
+  });
+
+  describe('PERF-02: memoized unread count', () => {
+    it('_unreadCount reflects unread items after setItems', () => {
+      act(() => {
+        useNotificationsStore
+          .getState()
+          .setItems([makeItem('item-1'), makeItem('item-2'), makeItem('item-3')]);
+        useNotificationsStore.getState().markAsRead('item-1');
+      });
+
+      expect(useNotificationsStore.getState()._unreadCount).toBe(2);
+    });
+
+    it('markAsRead decrements _unreadCount', () => {
+      act(() => {
+        useNotificationsStore
+          .getState()
+          .setItems([makeItem('item-1'), makeItem('item-2'), makeItem('item-3')]);
+        useNotificationsStore.getState().markAsRead('item-1');
+      });
+
+      act(() => {
+        useNotificationsStore.getState().markAsRead('item-2');
+      });
+
+      expect(useNotificationsStore.getState()._unreadCount).toBe(1);
+    });
+
+    it('markAllRead sets _unreadCount to 0', () => {
+      act(() => {
+        useNotificationsStore
+          .getState()
+          .setItems([makeItem('item-1'), makeItem('item-2'), makeItem('item-3')]);
+      });
+
+      act(() => {
+        useNotificationsStore.getState().markAllRead();
+      });
+
+      expect(useNotificationsStore.getState()._unreadCount).toBe(0);
+      expect(useNotificationsStore.getState()._jiraUnreadCount).toBe(0);
+      expect(useNotificationsStore.getState()._gitlabUnreadCount).toBe(0);
+    });
+
+    it('useUnreadCount selector returns cached number (simple property access)', () => {
+      act(() => {
+        useNotificationsStore
+          .getState()
+          .setItems([makeItem('item-1'), makeItem('item-2')]);
+      });
+
+      const { result } = renderHook(() => useUnreadCount());
+      // Returns cached _unreadCount, not a computed value
+      expect(result.current).toBe(2);
+      expect(result.current).toBe(useNotificationsStore.getState()._unreadCount);
     });
   });
 });
