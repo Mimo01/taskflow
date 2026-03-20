@@ -2,7 +2,7 @@
  * DebugModeSection — Settings section for API call logging and debug actions.
  *
  * When enabled, every Jira and GitLab API call is captured with full
- * request/response detail. View logs at /debug-logs.
+ * request/response detail. View logs at /dev-tools.
  * Logs are in-memory only — cleared on app restart.
  */
 
@@ -47,7 +47,7 @@ export default function DebugModeSection() {
         <div>
           <p className="text-sm font-medium">API call logging</p>
           <p className="text-xs text-muted-foreground">
-            Capture every Jira and GitLab request with full detail. View on the Debug Logs page.
+            Capture every Jira and GitLab request with full detail. View on the Developer Tools page.
           </p>
         </div>
         <input

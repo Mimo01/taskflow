@@ -175,6 +175,7 @@ function AppLayout() {
   useHotkeys('mod+shift+b', () => navigate('/backlog'));
   useHotkeys('mod+shift+n', () => setNotifPopoverOpen((prev) => !prev));
   useHotkeys('mod+comma', () => navigate('/settings'));
+  useHotkeys('mod+shift+d', () => navigate('/dev-tools'));
 
   // SIDEBAR: Cmd+B toggles sidebar collapsed/expanded
   const toggleSidebarCollapsed = useSettingsStore((s) => s.toggleSidebarCollapsed);
