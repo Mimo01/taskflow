@@ -1,9 +1,9 @@
 ---
-status: complete
+status: resolved
 phase: 29-developer-tools
 source: [29-01-SUMMARY.md, 29-02-SUMMARY.md, 29-03-SUMMARY.md, 29-04-SUMMARY.md]
 started: 2026-03-20T10:15:00Z
-updated: 2026-03-20T10:25:00Z
+updated: 2026-03-20T11:00:00Z
 ---
 
 ## Current Test
@@ -67,21 +67,35 @@ skipped: 0
 ## Gaps
 
 - truth: "API calls grouped by operation label in Operations tab"
-  status: failed
+  status: resolved
   reason: "User reported: A lot of gitlab requests are ungrouped"
   severity: minor
   test: 7
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "3 apiFetch('gitlab',...) calls in notifications.ts missing 4th operation label parameter. Notification polling runs repeatedly with 1-3 API calls per MR, generating high volume of ungrouped requests."
+  artifacts:
+    - path: "taskflow/src/services/notifications.ts"
+      issue: "Lines 517, 521-525, 526-530 — apiFetch calls for MR notes, approvals, and pipelines missing operation labels"
+  missing:
+    - "Add 'Load Notifications' as 4th param to all 3 apiFetch calls in notifications.ts"
+  debug_session: ".planning/debug/gitlab-ungrouped-requests.md"
 
 - truth: "Waterfall tab shows clean, usable timeline visualization"
-  status: failed
+  status: resolved
   reason: "User reported: I don't like how the timeline looks and is used. Fix it, make it more clean and useful. Currently it is not really usable"
   severity: major
   test: 8
-  root_cause: ""
-  artifacts: []
-  missing: []
+  root_cause: "Multiple usability problems: (1) Global timeline spans ALL operations making individual bars invisible slivers, (2) bg-muted bars barely visible, (3) expanded fetch bars misaligned with parent timeline, (4) no gridlines, (5) no tooltips, (6) duration text clips in narrow bars, (7) no parallelism indication, (8) no filtering/sorting"
+  artifacts:
+    - path: "taskflow/src/routes/dev-tools/WaterfallTab.tsx"
+      issue: "Global timeline scoping, no gridlines, no filters"
+    - path: "taskflow/src/routes/dev-tools/WaterfallBar.tsx"
+      issue: "Misaligned fetch bars, invisible bg-muted color, clipped duration labels"
+  missing:
+    - "Per-operation scoped timelines instead of one global timeline"
+    - "Proper bar coloring with source-based semantics"
+    - "Vertical gridlines with time markers"
+    - "Smart duration labels (inside wide bars, outside narrow ones)"
+    - "Hover tooltips showing URL, method, status, duration"
+    - "Parallel fetch visualization within operations"
+    - "Source filtering and sort controls"
   debug_session: ""
