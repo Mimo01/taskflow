@@ -75,7 +75,7 @@ See archive: `.planning/milestones/v1.3-ROADMAP.md`
 - [x] **Phase 27: Refactoring & Type Safety** - Service decomposition, shared utilities, strict typing (completed 2026-03-19)
 - [x] **Phase 28: Test Coverage, Performance & Accessibility** - New unit tests, virtualization, aria fixes (completed 2026-03-20)
 - [x] **Phase 29: Developer Tools** - Unified debug/profiling page with granular settings (completed 2026-03-20)
-- [ ] **Phase 30: Fix A11Y-01 Test Regression & Checkbox Cleanup** - Fix test query, update stale requirement checkboxes
+- [x] **Phase 30: Fix A11Y-01 Test Regression & Checkbox Cleanup** - Fix test query, update stale requirement checkboxes (completed 2026-03-20)
 
 ## Phase Details
 
@@ -206,4 +206,4 @@ Plans:
 | 27. Refactoring & Type Safety | 5/5 | Complete    | 2026-03-19 | - |
 | 28. Test Coverage, Performance & Accessibility | 5/5 | Complete    | 2026-03-20 | - |
 | 29. Developer Tools | 5/5 | Complete    | 2026-03-20 | - |
-| 30. Fix A11Y-01 Test Regression & Checkbox Cleanup | v1.4 | 0/1 | Planned | - |
+| 30. Fix A11Y-01 Test Regression & Checkbox Cleanup | 1/1 | Complete   | 2026-03-20 | - |
