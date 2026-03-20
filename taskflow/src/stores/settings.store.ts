@@ -38,8 +38,18 @@ interface SettingsState {
   epicColorFieldKey: string;
   /** Discovered account custom field key. Reserved for Phase 11. */
   accountFieldKey: string | null;
-  /** Enable API call logging for debug inspection. Default: false. */
-  debugMode: boolean;
+  /** Master toggle for developer tools. Default: false. */
+  devToolsEnabled: boolean;
+  /** Enable request/response logging to debug log store. Default: false. */
+  requestLogging: boolean;
+  /** Enable response body capture (clones response). Default: false. */
+  responseBodyCapture: boolean;
+  /** Enable operation profiling with timing. Default: false. */
+  operationProfiling: boolean;
+  /** Enable performance waterfall visualization. Default: false. */
+  performanceWaterfall: boolean;
+  /** Maximum number of retained log/profiler entries. Default: 200. */
+  retentionLimit: number;
   /** UI density preference. Default: 'default'. */
   density: Density;
   /** Collapse sprints by default in the board view. Default: false. */
@@ -79,7 +89,12 @@ interface SettingsState {
   setNotifPipelineFailureEnabled: (v: boolean) => void;
   setNotifIssueAssignmentEnabled: (v: boolean) => void;
   setNotifDueDateReminderEnabled: (v: boolean) => void;
-  setDebugMode: (v: boolean) => void;
+  setDevToolsEnabled: (v: boolean) => void;
+  setRequestLogging: (v: boolean) => void;
+  setResponseBodyCapture: (v: boolean) => void;
+  setOperationProfiling: (v: boolean) => void;
+  setPerformanceWaterfall: (v: boolean) => void;
+  setRetentionLimit: (v: number) => void;
   setDensity: (d: Density) => void;
   setSprintCollapseByDefault: (v: boolean) => void;
   setShowSubtasksInMyTasks: (v: boolean) => void;
@@ -115,7 +130,12 @@ export const useSettingsStore = create<SettingsState>()(
       sprintFieldKey: 'customfield_10020',
       epicColorFieldKey: 'customfield_10013',
       accountFieldKey: null,
-      debugMode: false,
+      devToolsEnabled: false,
+      requestLogging: false,
+      responseBodyCapture: false,
+      operationProfiling: false,
+      performanceWaterfall: false,
+      retentionLimit: 200,
       density: 'default' as Density,
       sprintCollapseByDefault: false,
       showSubtasksInMyTasks: true,
@@ -172,7 +192,12 @@ export const useSettingsStore = create<SettingsState>()(
       setNotifPipelineFailureEnabled: (v) => set({ notifPipelineFailureEnabled: v }),
       setNotifIssueAssignmentEnabled: (v) => set({ notifIssueAssignmentEnabled: v }),
       setNotifDueDateReminderEnabled: (v) => set({ notifDueDateReminderEnabled: v }),
-      setDebugMode: (v) => set({ debugMode: v }),
+      setDevToolsEnabled: (v) => set({ devToolsEnabled: v }),
+      setRequestLogging: (v) => set({ requestLogging: v }),
+      setResponseBodyCapture: (v) => set({ responseBodyCapture: v }),
+      setOperationProfiling: (v) => set({ operationProfiling: v }),
+      setPerformanceWaterfall: (v) => set({ performanceWaterfall: v }),
+      setRetentionLimit: (v) => set({ retentionLimit: v }),
       setDensity: (d) => set({ density: d }),
       setSprintCollapseByDefault: (v) => set({ sprintCollapseByDefault: v }),
       setShowSubtasksInMyTasks: (v) => set({ showSubtasksInMyTasks: v }),
@@ -194,7 +219,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 7,
+      version: 8,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -227,6 +252,15 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 7) {
           if (s.commentSortOrder === undefined) s.commentSortOrder = 'newest';
+        }
+        if (version < 8) {
+          s.devToolsEnabled = (s as Record<string, unknown>).debugMode === true;
+          s.requestLogging = (s as Record<string, unknown>).debugMode === true;
+          s.responseBodyCapture = (s as Record<string, unknown>).debugMode === true;
+          s.operationProfiling = false;
+          s.performanceWaterfall = false;
+          s.retentionLimit = 200;
+          delete (s as Record<string, unknown>).debugMode;
         }
         return persisted as SettingsState;
       },

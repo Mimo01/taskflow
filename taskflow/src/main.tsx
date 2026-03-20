@@ -184,7 +184,7 @@ function AppLayout() {
   });
 
   // Listen for all native menu bar item clicks and route to existing handlers
-  const debugMode = useSettingsStore((s) => s.debugMode);
+  const devToolsEnabled = useSettingsStore((s) => s.devToolsEnabled);
   useEffect(() => {
     const listeners = [
       listen('menu-keyboard-shortcuts', () => setShortcutsOpen(true)),
@@ -202,10 +202,10 @@ function AppLayout() {
     };
   }, [navigate]);
 
-  // Show/hide Debug menu in native toolbar when debugMode changes
+  // Show/hide Debug menu in native toolbar when devToolsEnabled changes
   useEffect(() => {
-    invoke('toggle_debug_menu', { enabled: debugMode }).catch(() => {});
-  }, [debugMode]);
+    invoke('toggle_debug_menu', { enabled: devToolsEnabled }).catch(() => {});
+  }, [devToolsEnabled]);
 
   // Reset breadcrumb trail when navigating away from issue detail
   useEffect(() => {

@@ -40,7 +40,7 @@ function navLinkClassFn(collapsed: boolean) {
 }
 
 export default function Sidebar() {
-  const { role, debugMode } = useSettingsStore();
+  const { role, devToolsEnabled } = useSettingsStore();
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);
   const toggleSidebarCollapsed = useSettingsStore((s) => s.toggleSidebarCollapsed);
   const [hovered, setHovered] = useState(false);
@@ -203,7 +203,7 @@ export default function Sidebar() {
 
       {/* Bottom: Debug Logs (when enabled) + Settings */}
       <div className="px-2 py-4 border-t border-border flex flex-col gap-1">
-        {debugMode && (
+        {devToolsEnabled && (
           <NavLink
             to="/debug-logs"
             className={navLinkClass}

@@ -59,7 +59,7 @@ const mockSettingsStore = {
   notificationPollIntervalSecs: 60,
   osNotifJiraEnabled: true,
   osNotifGitlabEnabled: true,
-  debugMode: false,
+  devToolsEnabled: false,
   storyPointsFieldKey: 'customfield_10016',
   epicLinkFieldKey: 'customfield_10014',
   epicNameFieldKey: 'customfield_10015',
@@ -74,7 +74,7 @@ const mockSettingsStore = {
   setNotificationPollIntervalSecs: vi.fn(),
   setOsNotifJiraEnabled: vi.fn(),
   setOsNotifGitlabEnabled: vi.fn(),
-  setDebugMode: vi.fn(),
+  setDevToolsEnabled: vi.fn(),
 };
 
 vi.mock('@/stores/settings.store', () => ({

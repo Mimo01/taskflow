@@ -100,7 +100,7 @@ function LogCard({ entry }: { entry: ApiLogEntry }) {
 
 export default function DebugLogs() {
   const { entries, clear } = useDebugLogStore();
-  const { debugMode } = useSettingsStore();
+  const { devToolsEnabled } = useSettingsStore();
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 flex flex-col gap-6">
@@ -120,7 +120,7 @@ export default function DebugLogs() {
         </button>
       </div>
 
-      {!debugMode && (
+      {!devToolsEnabled && (
         <div className="rounded-lg border border-yellow-300 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-700 px-4 py-3 text-sm text-yellow-800 dark:text-yellow-200">
           Debug mode is off. Enable it in{' '}
           <a href="#/settings" className="underline font-medium">
@@ -130,7 +130,7 @@ export default function DebugLogs() {
         </div>
       )}
 
-      {debugMode && entries.length === 0 && (
+      {devToolsEnabled && entries.length === 0 && (
         <p className="text-sm text-muted-foreground">
           No logs yet. API calls will appear here once debug mode captures them.
         </p>
