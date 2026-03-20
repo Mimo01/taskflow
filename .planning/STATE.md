@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Internal Quality & Performance
 status: unknown
-stopped_at: Phase 28 context gathered
-last_updated: "2026-03-19T23:30:10.918Z"
+stopped_at: Phase 28 UI-SPEC approved
+last_updated: "2026-03-20T08:02:51.748Z"
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 10
-  completed_plans: 10
+  total_plans: 15
+  completed_plans: 11
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-19)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Phase 27 — refactoring-type-safety
+**Current focus:** Phase 28 — test-coverage-performance-accessibility
 
 ## Current Position
 
-Phase: 27 (refactoring-type-safety) — COMPLETE
-Plan: 5 of 5 (all plans complete)
+Phase: 28 (test-coverage-performance-accessibility) — EXECUTING
+Plan: 2 of 5
 
 ## Performance Metrics
 
@@ -47,6 +47,7 @@ Plan: 5 of 5 (all plans complete)
 | Phase 27 P03 | 7min | 2 tasks | 9 files |
 | Phase 27 P02 | 8min | 2 tasks | 15 files |
 | Phase 27 P05 | 5min | 2 tasks | 7 files |
+| Phase 28 P01 | 2min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,7 @@ Recent decisions affecting current work:
 - [Phase 27]: Original CreateEditIssueModal.tsx becomes re-export shim preserving all existing import paths
 - [Phase 27]: client.ts exports kept internal (not in barrel) -- fetchAllSearchPages only used within jira/ modules
 - [Phase 27]: Single cast from unknown safe for Zustand migrate; Biome noExplicitAny enabled as error
+- [28-01]: worklogs.test.ts mocks ./client (fetchAllWorklogPages) not apiFetch — matches source module dependency
 
 ### Pending Todos
 
@@ -84,9 +86,9 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T23:30:10.915Z
-Stopped at: Phase 28 context gathered
-Resume: Phase 26 complete. All 489 tests pass, 0 failures, 0 TS errors in test files.
+Last session: 2026-03-20T08:02:14Z
+Stopped at: Completed 28-01-PLAN.md
+Resume: 28-01 complete. 24 new Jira service tests passing. Ready for 28-02.
 
 ### Quick Tasks Completed
 
