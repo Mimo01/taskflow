@@ -104,6 +104,7 @@ pub fn run() {
             // --- Debug menu (added/removed at runtime via toggle_debug_menu command) ---
             let dev_tools_item = MenuItemBuilder::new("Developer Tools")
                 .id("menu-dev-tools")
+                .accelerator("CmdOrCtrl+Shift+D")
                 .build(handle)?;
             let debug_submenu = Submenu::with_items(
                 handle,
