@@ -53,7 +53,7 @@ describe('TopBar', () => {
   it('renders badge with text "3" when unreadCount is 3', () => {
     const items = [makeItem('item-1'), makeItem('item-2'), makeItem('item-3')];
     act(() => {
-      useNotificationsStore.setState({ items, readIds: [] });
+      useNotificationsStore.setState({ items, readIds: [], _unreadCount: 3 });
     });
 
     renderTopBar();
@@ -64,7 +64,7 @@ describe('TopBar', () => {
   it('renders badge with "99+" when unreadCount is 100', () => {
     const items = Array.from({ length: 100 }, (_, i) => makeItem(`item-${i}`));
     act(() => {
-      useNotificationsStore.setState({ items, readIds: [] });
+      useNotificationsStore.setState({ items, readIds: [], _unreadCount: 100 });
     });
 
     renderTopBar();
@@ -74,7 +74,7 @@ describe('TopBar', () => {
 
   it('does not render badge when unreadCount is 0', () => {
     act(() => {
-      useNotificationsStore.setState({ items: [], readIds: [] });
+      useNotificationsStore.setState({ items: [], readIds: [], _unreadCount: 0 });
     });
 
     renderTopBar();
