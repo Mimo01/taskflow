@@ -54,6 +54,11 @@ interface NotificationsState {
   fetchError: Error | null; // transient — propagated from polling hook
   retryFetch: (() => void) | null; // transient — refetch function from polling hook
 
+  // Cached derived counts (PERF-02) — updated when items/readIds change
+  _unreadCount: number;
+  _jiraUnreadCount: number;
+  _gitlabUnreadCount: number;
+
   // Actions
   setItems: (items: NotificationItem[]) => void;
   prependItems: (newItems: NotificationItem[]) => void;
@@ -72,11 +77,28 @@ interface NotificationsState {
   setRetryFetch: (fn: (() => void) | null) => void;
 }
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function computeUnreadCounts(items: NotificationItem[], readIds: string[]) {
+  const readSet = new Set(readIds);
+  let total = 0;
+  let jira = 0;
+  let gitlab = 0;
+  for (const item of items) {
+    if (!readSet.has(item.id)) {
+      total++;
+      if (item.source === 'jira') jira++;
+      else gitlab++;
+    }
+  }
+  return { _unreadCount: total, _jiraUnreadCount: jira, _gitlabUnreadCount: gitlab };
+}
+
 // ─── Store ────────────────────────────────────────────────────────────────────
 
 export const useNotificationsStore = create<NotificationsState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       items: [],
       readIds: [],
       lastSeenCursor: null,
@@ -86,47 +108,59 @@ export const useNotificationsStore = create<NotificationsState>()(
       notificationSendError: false,
       fetchError: null,
       retryFetch: null,
+      _unreadCount: 0,
+      _jiraUnreadCount: 0,
+      _gitlabUnreadCount: 0,
 
-      setItems: (items) => set({ items }),
+      setItems: (items) =>
+        set({ items, ...computeUnreadCounts(items, get().readIds) }),
 
       prependItems: (newItems) =>
         set((s) => {
           const existingIds = new Set(s.items.map((i) => i.id));
           const deduped = newItems.filter((i) => !existingIds.has(i.id));
           if (deduped.length === 0) return s;
-          return { items: [...deduped, ...s.items].slice(0, 200) };
+          const items = [...deduped, ...s.items].slice(0, 200);
+          return { items, ...computeUnreadCounts(items, s.readIds) };
         }),
 
       markAsRead: (id) =>
-        set((s) => ({
-          readIds: s.readIds.includes(id) ? s.readIds : [...s.readIds, id],
-        })),
+        set((s) => {
+          const readIds = s.readIds.includes(id) ? s.readIds : [...s.readIds, id];
+          return { readIds, ...computeUnreadCounts(s.items, readIds) };
+        }),
 
       markAsUnread: (id) =>
-        set((s) => ({
-          readIds: s.readIds.filter((rid) => rid !== id),
-        })),
+        set((s) => {
+          const readIds = s.readIds.filter((rid) => rid !== id);
+          return { readIds, ...computeUnreadCounts(s.items, readIds) };
+        }),
 
       markAllRead: () =>
         set((s) => ({
           readIds: s.items.map((i) => i.id),
+          _unreadCount: 0,
+          _jiraUnreadCount: 0,
+          _gitlabUnreadCount: 0,
         })),
 
       markAllReadBySource: (source) =>
-        set((s) => ({
-          readIds: [
+        set((s) => {
+          const readIds = [
             ...new Set([
               ...s.readIds,
               ...s.items.filter((i) => i.source === source).map((i) => i.id),
             ]),
-          ],
-        })),
+          ];
+          return { readIds, ...computeUnreadCounts(s.items, readIds) };
+        }),
 
       removeItem: (id) =>
-        set((s) => ({
-          items: s.items.filter((i) => i.id !== id),
-          readIds: s.readIds.filter((rid) => rid !== id),
-        })),
+        set((s) => {
+          const items = s.items.filter((i) => i.id !== id);
+          const readIds = s.readIds.filter((rid) => rid !== id);
+          return { items, readIds, ...computeUnreadCounts(items, readIds) };
+        }),
 
       clearAll: () =>
         set({
@@ -135,6 +169,9 @@ export const useNotificationsStore = create<NotificationsState>()(
           lastSeenCursor: null,
           lastSeenJiraCursor: null,
           lastSeenGitlabCursor: null,
+          _unreadCount: 0,
+          _jiraUnreadCount: 0,
+          _gitlabUnreadCount: 0,
         }),
 
       setLastSeenCursor: (ts) => set({ lastSeenCursor: ts }),
@@ -164,41 +201,32 @@ export const useNotificationsStore = create<NotificationsState>()(
         // Migrate: if old shared cursor exists but per-source cursors don't, seed both
         const jiraCursor = p.lastSeenJiraCursor ?? p.lastSeenCursor ?? null;
         const gitlabCursor = p.lastSeenGitlabCursor ?? p.lastSeenCursor ?? null;
+        const items = Array.isArray(p.items) ? p.items : [];
+        const readIds = Array.isArray(p.readIds) ? p.readIds : [];
         return {
           ...current,
           ...p,
-          readIds: Array.isArray(p.readIds) ? p.readIds : [],
-          items: Array.isArray(p.items) ? p.items : [],
+          readIds,
+          items,
           lastSeenJiraCursor: jiraCursor,
           lastSeenGitlabCursor: gitlabCursor,
           lastSeenCursor: null, // deprecated
+          ...computeUnreadCounts(items, readIds),
         };
       },
     },
   ),
 );
 
-// ─── Derived Selector ─────────────────────────────────────────────────────────
+// ─── Cached Selectors (PERF-02) ──────────────────────────────────────────────
 
 /**
- * Hook that returns the count of unread notifications.
- * Uses O(n) Set lookup for large readIds arrays.
+ * Hook that returns the cached count of unread notifications.
+ * No per-render Set creation — count is updated only when items/readIds change.
  * Call as a React hook: const count = useUnreadCount()
  */
-export const useUnreadCount = () =>
-  useNotificationsStore((s) => {
-    const readSet = new Set(s.readIds);
-    return s.items.filter((i) => !readSet.has(i.id)).length;
-  });
+export const useUnreadCount = () => useNotificationsStore((s) => s._unreadCount);
 
-export const useJiraUnreadCount = () =>
-  useNotificationsStore((s) => {
-    const readSet = new Set(s.readIds);
-    return s.items.filter((i) => i.source === 'jira' && !readSet.has(i.id)).length;
-  });
+export const useJiraUnreadCount = () => useNotificationsStore((s) => s._jiraUnreadCount);
 
-export const useGitlabUnreadCount = () =>
-  useNotificationsStore((s) => {
-    const readSet = new Set(s.readIds);
-    return s.items.filter((i) => i.source === 'gitlab' && !readSet.has(i.id)).length;
-  });
+export const useGitlabUnreadCount = () => useNotificationsStore((s) => s._gitlabUnreadCount);
