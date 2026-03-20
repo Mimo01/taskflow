@@ -17,6 +17,13 @@ export function statusColor(status: number | null): string {
   return 'bg-red-500/15 text-red-600 dark:text-red-400';
 }
 
+export function formatBytes(bytes: number | undefined): string {
+  if (bytes === undefined || bytes === 0) return '-';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1048576).toFixed(1)} MB`;
+}
+
 export function sourceBadgeClass(source: 'jira' | 'gitlab'): string {
   const base = 'shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold uppercase';
   if (source === 'jira') {

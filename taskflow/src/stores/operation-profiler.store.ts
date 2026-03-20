@@ -15,6 +15,7 @@ export interface FetchRecord {
   status: number | null;
   durationMs: number;
   startTime: number;
+  responseSize?: number;
   error?: string;
 }
 
