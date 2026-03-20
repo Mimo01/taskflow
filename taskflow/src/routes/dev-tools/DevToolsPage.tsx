@@ -7,7 +7,6 @@
 import { useDebugLogStore } from '../../stores/debug-log.store';
 import { useOperationProfilerStore } from '../../stores/operation-profiler.store';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
-import DevToolsSettings from './DevToolsSettings';
 import LogsTab from './LogsTab';
 import OperationsTab from './OperationsTab';
 import WaterfallTab from './WaterfallTab';
@@ -40,9 +39,6 @@ export default function DevToolsPage() {
           Clear Logs
         </button>
       </div>
-
-      {/* Settings panel */}
-      <DevToolsSettings />
 
       {/* Tabs */}
       <Tabs defaultValue="logs">
