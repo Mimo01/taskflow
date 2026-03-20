@@ -9,7 +9,7 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 
 ### Testing
 
-- [ ] **TEST-01**: All service modules (jira, gitlab, notifications) have unit tests covering happy path and error cases
+- [x] **TEST-01**: All service modules (jira, gitlab, notifications) have unit tests covering happy path and error cases
 - [ ] **TEST-02**: All Zustand stores have unit tests covering state transitions and persistence
 - [x] **TEST-03**: Fix 6 pre-existing Phase 8 test regressions
 - [x] **TEST-04**: Fix 8 LazyStore teardown warnings in test suite
@@ -79,7 +79,7 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TEST-01 | Phase 28 | Pending |
+| TEST-01 | Phase 28 | Complete |
 | TEST-02 | Phase 28 | Pending |
 | TEST-03 | Phase 26 | Complete |
 | TEST-04 | Phase 26 | Complete |
