@@ -8,9 +8,9 @@ import { useState } from 'react';
 import type { Operation } from '../../stores/operation-profiler.store';
 
 function fetchBarColor(source: 'jira' | 'gitlab', hasError: boolean): string {
-  if (hasError) return 'bg-red-200 dark:bg-red-800';
-  if (source === 'jira') return 'bg-blue-200 dark:bg-blue-800';
-  return 'bg-orange-200 dark:bg-orange-800';
+  if (hasError) return 'bg-red-300 dark:bg-red-700';
+  if (source === 'jira') return 'bg-orange-200 dark:bg-orange-800';
+  return 'bg-purple-200 dark:bg-purple-800';
 }
 
 export default function WaterfallBar({

@@ -20,7 +20,7 @@ export function statusColor(status: number | null): string {
 export function sourceBadgeClass(source: 'jira' | 'gitlab'): string {
   const base = 'shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold uppercase';
   if (source === 'jira') {
-    return `${base} bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300`;
+    return `${base} bg-orange-500/15 text-orange-600 dark:text-orange-400`;
   }
-  return `${base} bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300`;
+  return `${base} bg-purple-500/15 text-purple-600 dark:text-purple-400`;
 }
