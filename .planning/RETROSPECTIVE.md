@@ -209,14 +209,69 @@
 
 ---
 
+## Milestone: v1.4 — Internal Quality & Performance
+
+**Shipped:** 2026-03-20
+**Phases:** 6 (25-30) | **Plans:** 21 | **Quick Tasks:** 2
+
+### What Was Built
+
+- Biome linter/formatter configured with CI-ready scripts (`npm run check`, `npm run fix`); all 162 source files auto-formatted with consistent code style (single quotes, 2-space indent, semicolons, 100 char lines)
+- All pre-existing test regressions fixed: global LazyStore mock, selector-aware Zustand mocks, vitest globals type reference — suite went from 489 to 615+ passing tests with zero failures/warnings
+- jira.ts monolith decomposed into 14 focused domain modules with barrel re-export preserving all 48+ import paths; CreateEditIssueModal and IssueDetailSidebar split into composable sub-components
+- Zero `any` types and zero double-casts in production code; Biome noExplicitAny enabled as error; single safe cast pattern for Zustand migrate
+- Shared `createTauriStorage()` utility replacing 4 duplicated LazyStore adapters; route config extracted; inline styles replaced with Tailwind classes
+- @tanstack/react-virtual virtualization for BacklogPage, NotificationPopover, and SprintBoardTab — handles 200+ items without scroll jank; jsdom fallback renders all rows
+- Unified Developer Tools page: Logs/Operations/Waterfall tabs, operation-level profiling with fetch grouping, per-operation scoped timelines, granular settings panel (6 independent toggles), hidden from Settings navigation (Cmd+Shift+D / command palette only)
+- All npm dependencies updated to latest compatible versions; removed unused autoprefixer/postcss; zero high/critical audit vulnerabilities
+
+### What Worked
+
+- **Refactoring milestone as dedicated internal quality sprint** — separating refactoring from feature work meant zero user-facing risk; every change could be validated purely through tests
+- **Barrel re-export pattern for jira.ts decomposition** — splitting 1,200+ line monolith into 14 modules without changing any consumer imports; barrel index.ts preserved all 48+ paths
+- **In-memory Map-based LazyStore mock** — a single global mock in setup.ts eliminated 8 teardown warnings and made all store tests reliable without Tauri runtime
+- **Audit-driven gap closure (third time)** — milestone audit found A11Y-01 test regression; Phase 30 closed it in 1 minute; audit status went from `gaps_found` to `tech_debt`
+- **Fast execution** — 21 plans completed in ~134 minutes total (~6.4 min/plan average); the refactoring-only scope meant no API integration surprises
+
+### What Was Inefficient
+
+- **DevToolsSettings.tsx created but never mounted** — Plan 29-02 created a settings component that Plan 29-03 never imported into DevToolsPage; dead code shipped; settings accessible only through old DebugModeSection path
+- **DebugModeSection not removed from Settings.tsx** — 29-03 SUMMARY claimed removal but it persisted; dead code path to old debug settings remains
+- **debug-logs/ directory not deleted** — route was removed but the directory with components remains as dead code
+- **SUMMARY.md still missing one_liner frontmatter** — same v1.3 issue; CLI summary-extract couldn't extract accomplishments automatically; had to read summaries manually
+- **Nyquist validation still partial** — all 6 phases have VALIDATION.md but none are nyquist_compliant: true; the same pattern as v1.3
+
+### Patterns Established
+
+- **Biome as single lint+format tool** — `npm run check` = `biome check + tsc --noEmit`; CSS excluded (Tailwind v4 syntax unsupported); a11y rules at warn level
+- **createTauriStorage() for store persistence** — single utility for LazyStore adapter; used by all stores needing Tauri persistence
+- **jsdom/SSR virtualizer fallback** — when @tanstack/react-virtual returns 0 virtual items (no scroll container dimensions in jsdom), render all rows; production virtualizes normally
+- **Per-operation scoped waterfall timelines** — each operation's waterfall uses its own time range, not global; prevents short operations from having invisible bars
+- **Selector-aware Zustand mocks** — mock functions handle both `useStore()` (no args, returns full state) and `useStore(selector)` (returns selector output) patterns
+
+### Key Lessons
+
+1. **Verify component mounting end-to-end** — DevToolsSettings.tsx was created in one plan and never imported in the next; a quick grep for the component import at plan close would have caught this
+2. **Track dead code deletion explicitly** — removing a route but not deleting its component directory creates tech debt; add "delete old directory" as a task when removing routes
+3. **Populate one_liner in SUMMARY.md frontmatter (still)** — two milestones in a row with this issue; needs to be enforced in the summary template or commit hook
+4. **Complete Nyquist validation within phases (still)** — four milestones with partial compliance; consider making it a blocking step before phase completion
+
+### Cost Observations
+
+- Sessions: 21 plans + 2 quick tasks across 2 days
+- Notable: Average plan execution time of 6.4 min — fastest milestone by far; refactoring-only scope eliminates integration uncertainty
+
+---
+
 ## Cross-Milestone Trends
 
-| Metric | v1.0 | v1.1 | v1.2 | v1.3 |
-|--------|------|------|------|------|
-| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) |
-| Plans | 20 | 24 | 29 | 27 |
-| Quick tasks | 0 | 20 | 0 | 40+ |
-| Timeline (days) | 2 | 2 | 2 | 5 |
-| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 |
-| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) |
-| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) |
+| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 |
+|--------|------|------|------|------|------|
+| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) |
+| Plans | 20 | 24 | 29 | 27 | 21 |
+| Quick tasks | 0 | 20 | 0 | 40+ | 2 |
+| Timeline (days) | 2 | 2 | 2 | 5 | 2 |
+| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 |
+| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) |
+| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) |
+| Avg plan time | — | — | — | — | 6.4 min |
