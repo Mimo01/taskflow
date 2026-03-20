@@ -28,6 +28,8 @@ interface ConnectionCardProps {
   secretKey: string;
   validateFn: (url: string, token: string) => Promise<unknown>;
   urlPlaceholder: string;
+  urlId: string;
+  tokenId: string;
 }
 
 function ConnectionCard({
@@ -37,14 +39,13 @@ function ConnectionCard({
   secretKey,
   validateFn,
   urlPlaceholder,
+  urlId,
+  tokenId,
 }: ConnectionCardProps) {
   const [draftUrl, setDraftUrl] = useState(baseUrl);
   const [draftToken, setDraftToken] = useState('');
   const [testStatus, setTestStatus] = useState<TestStatus>('idle');
   const [testError, setTestError] = useState<string | null>(null);
-
-  const urlAriaLabel = `${title} URL`;
-  const tokenAriaLabel = `${title} Token`;
 
   const resetTestStatus = () => {
     setTestStatus('idle');
@@ -87,9 +88,9 @@ function ConnectionCard({
 
       {/* URL field */}
       <div className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium">URL</span>
+        <label htmlFor={urlId} className="text-sm font-medium">URL</label>
         <Input
-          aria-label={urlAriaLabel}
+          id={urlId}
           type="url"
           value={draftUrl}
           onChange={(e) => handleUrlChange(e.target.value)}
@@ -100,9 +101,9 @@ function ConnectionCard({
 
       {/* Token field — masked, editable for pasting new token */}
       <div className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium">Token</span>
+        <label htmlFor={tokenId} className="text-sm font-medium">Token</label>
         <Input
-          aria-label={tokenAriaLabel}
+          id={tokenId}
           type="password"
           value={draftToken}
           onChange={(e) => handleTokenChange(e.target.value)}
@@ -163,6 +164,8 @@ export default function ConnectionsSection() {
         secretKey="jira-pat"
         validateFn={validateJira}
         urlPlaceholder="https://yourorg.atlassian.net"
+        urlId="jira-base-url"
+        tokenId="jira-api-token"
       />
       <ConnectionCard
         title="GitLab"
@@ -171,6 +174,8 @@ export default function ConnectionsSection() {
         secretKey="gitlab-pat"
         validateFn={validateGitLab}
         urlPlaceholder="https://gitlab.com"
+        urlId="gitlab-base-url"
+        tokenId="gitlab-token"
       />
     </div>
   );
