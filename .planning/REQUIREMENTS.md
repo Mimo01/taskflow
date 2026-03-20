@@ -42,7 +42,7 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 
 ### Performance
 
-- [ ] **PERF-01**: Notification list, backlog list, and sprint board use virtualization for 100+ items
+- [x] **PERF-01**: Notification list, backlog list, and sprint board use virtualization for 100+ items
 - [ ] **PERF-02**: Unread count selectors memoized (no Set creation on every render)
 
 ### Accessibility
@@ -97,7 +97,7 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 | REFAC-08 | Phase 27 | Complete |
 | TYPE-01 | Phase 27 | Complete |
 | TYPE-02 | Phase 27 | Complete |
-| PERF-01 | Phase 28 | Pending |
+| PERF-01 | Phase 28 | Complete |
 | PERF-02 | Phase 28 | Pending |
 | A11Y-01 | Phase 28 | Pending |
 | A11Y-02 | Phase 28 | Pending |

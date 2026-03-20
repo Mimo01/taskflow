@@ -73,7 +73,7 @@ See archive: `.planning/milestones/v1.3-ROADMAP.md`
 - [x] **Phase 25: Tooling & Dependencies** - Biome linter/formatter setup, dependency updates (completed 2026-03-19)
 - [x] **Phase 26: Test Regression Fixes** - Fix pre-existing test failures and warnings (completed 2026-03-19)
 - [x] **Phase 27: Refactoring & Type Safety** - Service decomposition, shared utilities, strict typing (completed 2026-03-19)
-- [ ] **Phase 28: Test Coverage, Performance & Accessibility** - New unit tests, virtualization, aria fixes
+- [x] **Phase 28: Test Coverage, Performance & Accessibility** - New unit tests, virtualization, aria fixes (completed 2026-03-20)
 - [ ] **Phase 29: Developer Tools** - Unified debug/profiling page with granular settings
 
 ## Phase Details
@@ -186,5 +186,5 @@ Plans:
 | 25. Tooling & Dependencies | 2/2 | Complete    | 2026-03-19 | - |
 | 26. Test Regression Fixes | 3/3 | Complete    | 2026-03-19 | - |
 | 27. Refactoring & Type Safety | 5/5 | Complete    | 2026-03-19 | - |
-| 28. Test Coverage, Performance & Accessibility | 4/5 | In Progress|  | - |
+| 28. Test Coverage, Performance & Accessibility | 5/5 | Complete   | 2026-03-20 | - |
 | 29. Developer Tools | v1.4 | 0/? | Not started | - |
