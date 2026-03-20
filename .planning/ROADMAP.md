@@ -6,7 +6,7 @@
 - ✅ **v1.1 Polish** — Phases 5-8 (shipped 2026-03-13)
 - ✅ **v1.2 Jira Parity** — Phases 9-17 (shipped 2026-03-15)
 - ✅ **v1.3 UX & Branding** — Phases 18-24 (shipped 2026-03-19)
-- 🚧 **v1.4 Internal Quality & Performance** — Phases 25-29 (in progress)
+- ✅ **v1.4 Internal Quality & Performance** — Phases 25-30 (shipped 2026-03-20)
 
 ## Phases
 
@@ -66,112 +66,19 @@ See archive: `.planning/milestones/v1.3-ROADMAP.md`
 
 </details>
 
-### v1.4 Internal Quality & Performance (In Progress)
+<details>
+<summary>✅ v1.4 Internal Quality & Performance (Phases 25-30) — SHIPPED 2026-03-20</summary>
 
-**Milestone Goal:** Harden the codebase with tests, consistent patterns, tooling, and API profiling — no new user-facing features.
+- [x] Phase 25: Tooling & Dependencies (2/2 plans) — completed 2026-03-19
+- [x] Phase 26: Test Regression Fixes (3/3 plans) — completed 2026-03-19
+- [x] Phase 27: Refactoring & Type Safety (5/5 plans) — completed 2026-03-19
+- [x] Phase 28: Test Coverage, Performance & Accessibility (5/5 plans) — completed 2026-03-20
+- [x] Phase 29: Developer Tools (3/3 plans) — completed 2026-03-20
+- [x] Phase 30: Fix A11Y-01 Test Regression & Checkbox Cleanup (1/1 plan) — completed 2026-03-20
 
-- [x] **Phase 25: Tooling & Dependencies** - Biome linter/formatter setup, dependency updates (completed 2026-03-19)
-- [x] **Phase 26: Test Regression Fixes** - Fix pre-existing test failures and warnings (completed 2026-03-19)
-- [x] **Phase 27: Refactoring & Type Safety** - Service decomposition, shared utilities, strict typing (completed 2026-03-19)
-- [x] **Phase 28: Test Coverage, Performance & Accessibility** - New unit tests, virtualization, aria fixes (completed 2026-03-20)
-- [x] **Phase 29: Developer Tools** - Unified debug/profiling page with granular settings (completed 2026-03-20)
-- [x] **Phase 30: Fix A11Y-01 Test Regression & Checkbox Cleanup** - Fix test query, update stale requirement checkboxes (completed 2026-03-20)
+See archive: `.planning/milestones/v1.4-ROADMAP.md`
 
-## Phase Details
-
-### Phase 25: Tooling & Dependencies
-**Goal**: Codebase uses consistent automated formatting/linting and all dependencies are current
-**Depends on**: Nothing (first phase of v1.4)
-**Requirements**: TOOL-01, TOOL-02, DEPS-01
-**Success Criteria** (what must be TRUE):
-  1. Running `biome check` on the entire source tree passes with zero errors
-  2. A CI-ready script exists that fails on lint/format violations
-  3. All npm dependencies are at their latest compatible versions with no runtime regressions
-  4. `npm audit` shows no high/critical vulnerabilities introduced by updates
-**Plans**: 2 plans
-Plans:
-- [ ] 25-01-PLAN.md — Install Biome, configure linting/formatting, auto-fix entire codebase
-- [ ] 25-02-PLAN.md — Update all npm dependencies (minor/patch + 4 major jumps)
-
-### Phase 26: Test Regression Fixes
-**Goal**: All pre-existing test failures and warnings are resolved so the test suite runs clean
-**Depends on**: Phase 25
-**Requirements**: TEST-03, TEST-04, TEST-05
-**Success Criteria** (what must be TRUE):
-  1. The 6 Phase 8 test regressions pass (previously failing since v1.2)
-  2. The 8 LazyStore teardown warnings no longer appear in test output
-  3. The 2 TypeScript errors in test files are resolved and `tsc --noEmit` passes on test files
-  4. `npm test` runs with zero failures and zero warnings
-**Plans**: 3 plans
-Plans:
-- [ ] 26-01-PLAN.md — Global LazyStore mock in setup.ts, npm test script, jira.ts unused var fix
-- [ ] 26-02-PLAN.md — Fix all 57 failing tests across 10 test files and TS errors
-- [ ] 26-03-PLAN.md — Gap closure: add vitest globals type reference to setup.ts (tsc fix)
-
-### Phase 27: Refactoring & Type Safety
-**Goal**: Large modules are decomposed into focused units and all unsafe type patterns are eliminated
-**Depends on**: Phase 26
-**Requirements**: REFAC-01, REFAC-02, REFAC-03, REFAC-04, REFAC-05, REFAC-06, REFAC-07, REFAC-08, TYPE-01, TYPE-02
-**Success Criteria** (what must be TRUE):
-  1. jira.ts is replaced by focused domain modules (issues, sprints, fields, projects, epics, backlog) with no change in API behavior
-  2. CreateEditIssueModal and IssueDetailSidebar are composed of smaller sub-components (each under 200 lines)
-  3. A single `createTauriStorage()` utility is used by all 4 stores that currently duplicate LazyStore adapter code
-  4. Zero `as unknown as X` double-casts and zero `any` types remain in production source files
-  5. All existing tests still pass after refactoring (no regressions introduced)
-**Plans**: 5 plans
-Plans:
-- [ ] 27-01-PLAN.md — Shared utilities (createTauriStorage), route extraction, inline style cleanup
-- [ ] 27-02-PLAN.md — jira.ts decomposition into domain modules with barrel export
-- [ ] 27-03-PLAN.md — CreateEditIssueModal decomposition with useReducer
-- [ ] 27-04-PLAN.md — IssueDetailSidebar decomposition into section sub-components
-- [ ] 27-05-PLAN.md — Double-cast fixes, TYPE-02 verification, Biome strict rules
-
-### Phase 28: Test Coverage, Performance & Accessibility
-**Goal**: Service and store layers have comprehensive tests, long lists are virtualized, and forms are accessible
-**Depends on**: Phase 27
-**Requirements**: TEST-01, TEST-02, PERF-01, PERF-02, A11Y-01, A11Y-02
-**Success Criteria** (what must be TRUE):
-  1. Every service module (jira/*, gitlab, notifications) has unit tests covering happy path and at least one error case
-  2. Every Zustand store has unit tests covering state transitions and persistence round-trips
-  3. Notification list, backlog list, and sprint board render 200+ items without visible scroll jank (virtualized)
-  4. All form inputs in CreateEditIssueModal and ConnectionsSection have associated aria labels (verifiable via accessibility audit)
-  5. Custom dropdowns use proper ARIA roles (listbox/option or equivalent)
-**Plans**: 5 plans
-Plans:
-- [ ] 28-01-PLAN.md — Unit tests for 6 smaller Jira service modules (comments, transitions, versions, worklogs, links, projects)
-- [ ] 28-02-PLAN.md — Unit tests for 6 larger Jira service modules (issues, sprints, epics, fields, backlog, client)
-- [ ] 28-03-PLAN.md — Unit tests for 6 untested Zustand stores + PERF-02 memoized unread count
-- [ ] 28-04-PLAN.md — Install @tanstack/react-virtual, virtualize BacklogPage, NotificationPopover, SprintBoardTab
-- [ ] 28-05-PLAN.md — ARIA labels for form inputs + listbox/option roles for custom dropdowns
-
-### Phase 29: Developer Tools
-**Goal**: Developers have a unified hidden tools page for API debugging, operation profiling, and performance analysis
-**Depends on**: Phase 25 (needs working codebase; independent of refactoring)
-**Requirements**: DEVT-01, DEVT-02, DEVT-03, DEVT-04, DEVT-05
-**Success Criteria** (what must be TRUE):
-  1. A Developer Tools page exists combining debug logs and API profiler in a single cohesive layout
-  2. Operations group multiple API fetches into logical units showing total time, fetch count, and per-fetch breakdown
-  3. A settings panel offers independent toggles for request logging, response body capture, operation profiling, performance waterfall, and retention limit
-  4. Developer Tools is not visible in Settings navigation — accessible only via Cmd+Shift+D or command palette
-  5. A performance waterfall visualization shows operation timeline with fetch duration bars
-**Plans**: 3 plans
-Plans:
-- [ ] 29-01-PLAN.md — Settings store migration (v7->v8), operation profiler store, apiFetch granular toggles
-- [ ] 29-02-PLAN.md — DevToolsPage UI: three tabs (Logs, Operations, Waterfall), settings panel, empty states
-- [ ] 29-03-PLAN.md — apiFetch call site annotation (~60 sites), routing, shortcut, cleanup old debug-logs
-
-### Phase 30: Fix A11Y-01 Test Regression & Checkbox Cleanup
-**Goal**: Close the sole remaining audit gap (A11Y-01 test regression) and update stale requirement checkboxes
-**Depends on**: Phase 28
-**Requirements**: A11Y-01
-**Gap Closure:** Closes gaps from audit
-**Success Criteria** (what must be TRUE):
-  1. `ConnectionsSection.test.tsx` passes with tightened query (no multiple-element match)
-  2. All 27 v1.4 requirement checkboxes in REQUIREMENTS.md reflect actual status
-  3. `npm test` runs with zero failures
-**Plans**: 1 plan
-Plans:
-- [ ] 30-01-PLAN.md — Fix test query in ConnectionsSection.test.tsx, update stale checkboxes
+</details>
 
 ## Progress
 
@@ -201,9 +108,9 @@ Plans:
 | 22. Polish — Empty States + Error Recovery | v1.3 | 3/3 | Complete | 2026-03-16 |
 | 23. Fix J/K Guard | v1.3 | — | Complete | 2026-03-19 |
 | 24. Verify Phase 22 | v1.3 | 1/1 | Complete | 2026-03-19 |
-| 25. Tooling & Dependencies | 2/2 | Complete    | 2026-03-19 | - |
-| 26. Test Regression Fixes | 3/3 | Complete    | 2026-03-19 | - |
-| 27. Refactoring & Type Safety | 5/5 | Complete    | 2026-03-19 | - |
-| 28. Test Coverage, Performance & Accessibility | 5/5 | Complete    | 2026-03-20 | - |
-| 29. Developer Tools | 5/5 | Complete    | 2026-03-20 | - |
-| 30. Fix A11Y-01 Test Regression & Checkbox Cleanup | 1/1 | Complete    | 2026-03-20 | - |
+| 25. Tooling & Dependencies | v1.4 | 2/2 | Complete | 2026-03-19 |
+| 26. Test Regression Fixes | v1.4 | 3/3 | Complete | 2026-03-19 |
+| 27. Refactoring & Type Safety | v1.4 | 5/5 | Complete | 2026-03-19 |
+| 28. Test Coverage, Performance & Accessibility | v1.4 | 5/5 | Complete | 2026-03-20 |
+| 29. Developer Tools | v1.4 | 3/3 | Complete | 2026-03-20 |
+| 30. Fix A11Y-01 Test Regression & Checkbox Cleanup | v1.4 | 1/1 | Complete | 2026-03-20 |
