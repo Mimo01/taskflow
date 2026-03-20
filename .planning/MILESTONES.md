@@ -1,5 +1,25 @@
 # Milestones
 
+## v1.4 Internal Quality & Performance (Shipped: 2026-03-20)
+
+**Phases completed:** 6 phases (25–30), 21 plans
+**Timeline:** 2026-03-19 → 2026-03-20 (2 days)
+**Codebase:** ~37,520 lines TypeScript
+**Git range:** 268b909..e5ca8b6 (141 commits, 505 files changed, +29,115/−47,892 lines)
+
+**Key accomplishments:**
+
+1. Biome linter/formatter configured with CI-ready scripts; all 162 source files auto-formatted with consistent code style
+2. All pre-existing test regressions fixed — test suite went from 489 to 615+ passing tests with zero failures and zero warnings
+3. jira.ts monolith decomposed into 14 focused domain modules; CreateEditIssueModal and IssueDetailSidebar split into composable sub-components
+4. Zero `any` types and zero double-casts remain in production code; strict Biome noExplicitAny enabled as error
+5. Virtualized rendering for backlog, notifications, and sprint board via @tanstack/react-virtual — handles 200+ items without scroll jank
+6. Unified Developer Tools page with operation profiling, performance waterfall visualization, and granular debug settings (hidden from main Settings, accessible via Cmd+Shift+D)
+
+**Known Tech Debt:** 10 non-blocking items — DevToolsSettings.tsx dead code, DebugModeSection still in Settings.tsx, debug-logs/ dead directory, operation-profiler.store.ts untested, stale test descriptions, placeholder return-null components (DescriptionSection/SubtasksSection).
+
+---
+
 ## v1.3 UX & Branding (Shipped: 2026-03-19)
 
 **Phases completed:** 7 phases (18–24), 27 plans

@@ -47,12 +47,16 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ Recent items quick-access popover in header — v1.3
 - ✓ Illustrated empty states and actionable error recovery across all data views — v1.3
 
+- ✓ Codebase hardened with comprehensive test coverage (615+ tests), Biome linting, and consistent patterns — v1.4
+- ✓ API services decomposed into focused domain modules (jira.ts → 14 modules) — v1.4
+- ✓ Unified Developer Tools with request logging, operation profiling, and granular settings — v1.4
+- ✓ All dependencies updated to latest compatible versions — v1.4
+- ✓ Virtualized rendering for long lists (backlog, notifications, sprint board) — v1.4
+- ✓ Zero `any` types and zero double-casts in production code — v1.4
+
 ### Active
 
-- [ ] Codebase hardened with comprehensive test coverage, consistent patterns, and automated linting (Biome linting validated in Phase 25; refactoring & type safety validated in Phase 27)
-- ✓ API services decomposed into focused domain modules — Validated in Phase 27: refactoring-type-safety
-- ✓ Unified Developer Tools with request logging, operation profiling, and granular settings — Validated in Phase 29: developer-tools
-- ✓ All dependencies updated to latest compatible versions — Validated in Phase 25: tooling-dependencies
+(No active requirements — define next milestone with `/gsd:new-milestone`)
 
 ### Out of Scope
 
@@ -72,13 +76,16 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - **Shipped v1.0:** 2026-03-12 — 4 phases, 20 plans, ~11,017 lines TypeScript, 348 files
 - **Shipped v1.1:** 2026-03-13 — 4 phases, 24 plans, ~15,856 lines TypeScript (+ 20 quick tasks)
 - **Shipped v1.2:** 2026-03-15 — 9 phases, 29 plans, ~23,607 lines TypeScript, 222 files changed (+28,330/−1,730 lines)
-- **Tech stack:** Tauri 2, React 18, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, @dnd-kit/core, jira2md, react-markdown
+- **Shipped v1.3:** 2026-03-19 — 7 phases, 27 plans, ~32,173 lines TypeScript, 159 files changed (+11,471/−2,296 lines), 40+ quick tasks
+- **Shipped v1.4:** 2026-03-20 — 6 phases, 21 plans, ~37,520 lines TypeScript, 505 files changed (+29,115/−47,892 lines — net reduction from refactoring)
+- **Tech stack:** Tauri 2, React 18, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, Biome, @dnd-kit/core, @tanstack/react-virtual, jira2md, react-markdown, react-hotkeys-hook, cmdk
 - **Jira instance:** On-premise (Jira Data Center v10.3.15) — REST API v2 with Bearer PAT auth; createmeta/workflow/transitions APIs used for issue management
 - **GitLab:** Self-hosted or gitlab.com — personal access token
 - **Team:** Orange eshop project — developers + project managers using the same app with role-based views
 - **Scale:** One Jira project + one GitLab project at a time
 - **Build:** Portable executable — no installer, no admin rights; `createHashRouter` for SPA routing in production
-- **Known caveats (v1.2):** Time tracking columns gracefully hidden when admin-disabled; EPIC-01 story count and point totals removed from EpicsPage per user decision (load expensive data only on epic detail); EpicDetailSheet implemented as IssueDetailSheet isEpic=true branch (not a separate component) per user approval; 6 pre-existing Phase 8 test regressions unresolved; 13 human verification items deferred to live Jira environment
+- **Test suite:** 615+ tests, zero failures, zero warnings; Vitest with LazyStore mock
+- **Known caveats (v1.4):** 10 non-blocking tech debt items (dead code in debug-logs/, DevToolsSettings.tsx unmounted, placeholder components); Cmd+Shift nav shortcut deviation needs product owner sign-off; 13 human verification items deferred to live Jira environment
 
 ## Constraints
 
@@ -127,33 +134,13 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 | ApiError class + three-state detection pattern | Structured HTTP errors with isAuthError; EmptyState vs ErrorState vs StaleDataBanner | ✓ Good — consistent error UX across 10+ views |
 | Full-page route for issue detail (not slide-over sheet) | Quick task 260316-r0x — better navigation, breadcrumbs; resolves J/K guard | ✓ Good — eliminated J/K guard complexity entirely |
 | Cmd+Shift+S/B/N (not G-chord) for nav shortcuts | G-chord pattern unfamiliar; Cmd+Shift more discoverable | ⚠️ Revisit — needs product owner sign-off |
-
-## Context
-
-- **Shipped v1.0:** 2026-03-12 — 4 phases, 20 plans, ~11,017 lines TypeScript, 348 files
-- **Shipped v1.1:** 2026-03-13 — 4 phases, 24 plans, ~15,856 lines TypeScript (+ 20 quick tasks)
-- **Shipped v1.2:** 2026-03-15 — 9 phases, 29 plans, ~23,607 lines TypeScript, 222 files changed (+28,330/−1,730 lines)
-- **Shipped v1.3:** 2026-03-19 — 7 phases, 27 plans, ~32,173 lines TypeScript, 159 files changed (+11,471/−2,296 lines), 40+ quick tasks
-- **Tech stack:** Tauri 2, React 18, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, @dnd-kit/core, jira2md, react-markdown, react-hotkeys-hook, cmdk
-- **Jira instance:** On-premise (Jira Data Center v10.3.15) — REST API v2 with Bearer PAT auth; createmeta/workflow/transitions APIs used for issue management
-- **GitLab:** Self-hosted or gitlab.com — personal access token
-- **Team:** Orange eshop project — developers + project managers using the same app with role-based views
-- **Scale:** One Jira project + one GitLab project at a time
-- **Build:** Portable executable — no installer, no admin rights; `createHashRouter` for SPA routing in production
-- **Known caveats (v1.3):** 10 non-blocking tech debt items from milestone audit; Cmd+Shift nav shortcut deviation needs product owner sign-off
-
-## Current Milestone: v1.4 Internal Quality & Performance
-
-**Goal:** Harden the codebase with tests, consistent patterns, tooling, and API profiling — no new user-facing features.
-
-**Target features:**
-- Comprehensive test coverage and regression fixes
-- Service decomposition (jira.ts, large components)
-- Biome linter/formatter
-- Unified Developer Tools (debug logs + API profiler + granular settings)
-- Dependency updates
-- Performance improvements (virtualization, memoization)
-- Accessibility fixes
+| Biome as single lint+format tool (replacing ESLint+Prettier) | One tool, faster execution, simpler config; CSS excluded (Tailwind v4 syntax unsupported) | ✓ Good — zero lint errors, CI-ready scripts |
+| In-memory Map-based LazyStore mock for tests | Real LazyStore requires Tauri runtime; Map mock sufficient for all store test scenarios | ✓ Good — 615+ tests pass with clean teardown |
+| jira.ts decomposed into 14 domain modules with barrel re-export | 1,200+ line monolith → focused modules; barrel preserves all 48+ import paths | ✓ Good — no import changes needed in consumers |
+| @tanstack/react-virtual for list virtualization | Lightweight, composable, works with existing DOM; jsdom fallback renders all rows | ✓ Good — handles 200+ items; graceful test fallback |
+| Granular dev tools toggles replacing single debugMode boolean | 6 independent toggles (request logging, response body, operation profiling, waterfall, retention) | ✓ Good — fine-grained control without all-or-nothing |
+| Per-operation scoped timelines in waterfall (not global) | Global timeline made short operations invisible as thin slivers | ✓ Good — each operation readable regardless of total timeline |
+| noExplicitAny as Biome error (not warn) | Zero-any policy enforced at lint level; single cast from unknown safe for Zustand migrate | ✓ Good — prevents regression |
 
 ---
-*Last updated: 2026-03-20 after Phase 29 gap closure complete — all UAT gaps resolved (notification grouping, waterfall redesign); Developer Tools fully verified*
+*Last updated: 2026-03-20 after v1.4 milestone*
