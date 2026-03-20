@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Internal Quality & Performance
 status: unknown
-stopped_at: Completed 28-02-PLAN.md
-last_updated: "2026-03-20T08:09:27.243Z"
+stopped_at: Completed 28-04-PLAN.md
+last_updated: "2026-03-20T08:11:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 15
-  completed_plans: 14
+  completed_plans: 15
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-19)
 ## Current Position
 
 Phase: 28 (test-coverage-performance-accessibility) — EXECUTING
-Plan: 3 of 5
+Plan: 5 of 5
 
 ## Performance Metrics
 
@@ -49,6 +49,7 @@ Plan: 3 of 5
 | Phase 27 P05 | 5min | 2 tasks | 7 files |
 | Phase 28 P01 | 2min | 2 tasks | 6 files |
 | Phase 28 P02 | 7min | 2 tasks | 6 files |
+| Phase 28 P04 | 10min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,9 @@ Recent decisions affecting current work:
 - [Phase 27]: client.ts exports kept internal (not in barrel) -- fetchAllSearchPages only used within jira/ modules
 - [Phase 27]: Single cast from unknown safe for Zustand migrate; Biome noExplicitAny enabled as error
 - [28-01]: worklogs.test.ts mocks ./client (fetchAllWorklogPages) not apiFetch — matches source module dependency
+- [28-04]: VirtualizedBacklogTable extracted as component (hooks cannot be called inside renderSection function)
+- [28-04]: jsdom/SSR fallback: render all rows when virtualizer returns 0 items (no scroll dimensions)
+- [28-04]: SprintBoardTab scroll element found via document.querySelector('main')
 
 ### Pending Todos
 
@@ -87,9 +91,9 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T08:02:14Z
-Stopped at: Completed 28-01-PLAN.md
-Resume: 28-01 complete. 24 new Jira service tests passing. Ready for 28-02.
+Last session: 2026-03-20T08:11:00Z
+Stopped at: Completed 28-04-PLAN.md
+Resume: 28-04 complete. 3 components virtualized with @tanstack/react-virtual. All 42 component tests pass.
 
 ### Quick Tasks Completed
 
