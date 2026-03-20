@@ -193,7 +193,7 @@ function AppLayout() {
       listen('menu-nav-backlog', () => navigate('/backlog')),
       listen('menu-nav-notifications', () => setNotifPopoverOpen(true)),
       listen('menu-nav-settings', () => navigate('/settings')),
-      listen('menu-debug-logs', () => navigate('/debug-logs')),
+      listen('menu-dev-tools', () => navigate('/dev-tools')),
     ];
     return () => {
       listeners.forEach((p) => {
