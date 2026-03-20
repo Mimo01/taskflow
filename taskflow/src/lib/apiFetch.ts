@@ -1,8 +1,9 @@
 /**
  * apiFetch — Instrumented fetch wrapper for Jira and GitLab API calls.
  *
- * - When debugMode is disabled: passes through to @tauri-apps/plugin-http fetch unchanged.
- * - When debugMode is enabled: captures method, URL, headers, status, duration, response body.
+ * - When devToolsEnabled is disabled: passes through to @tauri-apps/plugin-http fetch unchanged.
+ * - When devToolsEnabled is enabled: captures method, URL, headers, status, duration, response body
+ *   based on granular toggle settings (requestLogging, responseBodyCapture, operationProfiling).
  *   Sanitizes Authorization and PRIVATE-TOKEN header values — replaces with "[REDACTED]".
  *
  * Uses getState() (not hooks) — safe to call outside React render context.
@@ -15,6 +16,8 @@ import { fetch } from '@tauri-apps/plugin-http';
 import { useAuthStore } from '../stores/auth.store';
 import type { ApiLogEntry } from '../stores/debug-log.store';
 import { useDebugLogStore } from '../stores/debug-log.store';
+import type { FetchRecord } from '../stores/operation-profiler.store';
+import { useOperationProfilerStore } from '../stores/operation-profiler.store';
 import { useSettingsStore } from '../stores/settings.store';
 
 function markDisconnected(source: 'jira' | 'gitlab') {
@@ -27,18 +30,19 @@ const API_TIMEOUT_MS = 15_000;
 
 /**
  * Instrumented fetch wrapper.
- * - When debugMode is disabled: passes through to @tauri-apps/plugin-http fetch unchanged.
- * - When debugMode is enabled: captures method, URL, headers, status, duration, response body.
- *   Sanitizes Authorization and PRIVATE-TOKEN header values — replaces with "[REDACTED]".
+ * - When devToolsEnabled is disabled: passes through to @tauri-apps/plugin-http fetch unchanged.
+ * - When devToolsEnabled is enabled: instruments the call based on granular toggles.
  *
- * @param source - 'jira' | 'gitlab' — identifies which service made the call
- * @param url    - Request URL
- * @param init   - Standard RequestInit options
+ * @param source    - 'jira' | 'gitlab' — identifies which service made the call
+ * @param url       - Request URL
+ * @param init      - Standard RequestInit options
+ * @param operation - Optional operation label for grouping fetches in the profiler
  */
 export async function apiFetch(
   source: 'jira' | 'gitlab',
   url: string,
   init?: RequestInit,
+  operation?: string,
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
@@ -50,9 +54,10 @@ export async function apiFetch(
 
   const initWithSignal: RequestInit = { ...init, signal };
 
-  const { debugMode } = useSettingsStore.getState();
+  const { devToolsEnabled, requestLogging, responseBodyCapture, operationProfiling } =
+    useSettingsStore.getState();
 
-  if (!debugMode) {
+  if (!devToolsEnabled) {
     let response: Response;
     try {
       response = await fetch(url, initWithSignal);
@@ -67,7 +72,7 @@ export async function apiFetch(
     return response;
   }
 
-  // Debug mode: instrument the call
+  // Dev tools enabled: instrument the call
   const start = performance.now();
   const method = init?.method ?? 'GET';
 
@@ -91,31 +96,53 @@ export async function apiFetch(
   try {
     response = await fetch(url, initWithSignal);
     status = response.status;
-    // Clone before reading so callers can still read the body
-    const clone = response.clone();
-    const text = await clone.text().catch(() => '');
-    try {
-      const pretty = JSON.stringify(JSON.parse(text), null, 2);
-      responseBody = pretty.length > 10_000 ? `${pretty.slice(0, 10_000)}\n[truncated]` : pretty;
-    } catch {
-      responseBody = text.length > 10_000 ? `${text.slice(0, 10_000)}\n[truncated]` : text;
+
+    // Only clone and read response body if responseBodyCapture is enabled
+    if (responseBodyCapture) {
+      const clone = response.clone();
+      const text = await clone.text().catch(() => '');
+      try {
+        const pretty = JSON.stringify(JSON.parse(text), null, 2);
+        responseBody = pretty.length > 10_000 ? `${pretty.slice(0, 10_000)}\n[truncated]` : pretty;
+      } catch {
+        responseBody = text.length > 10_000 ? `${text.slice(0, 10_000)}\n[truncated]` : text;
+      }
     }
   } catch (err) {
     const durationMs = Math.round(performance.now() - start);
     errorMsg = err instanceof Error ? err.message : String(err);
-    const entry: ApiLogEntry = {
-      id: crypto.randomUUID(),
-      timestamp: new Date().toISOString(),
-      source,
-      method,
-      url,
-      requestHeaders: safeHeaders,
-      status: null,
-      durationMs,
-      responseBody: '',
-      error: errorMsg,
-    };
-    useDebugLogStore.getState().append(entry);
+
+    if (requestLogging) {
+      const entry: ApiLogEntry = {
+        id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        source,
+        method,
+        url,
+        requestHeaders: safeHeaders,
+        status: null,
+        durationMs,
+        responseBody: '',
+        error: errorMsg,
+        operation,
+      };
+      useDebugLogStore.getState().append(entry);
+    }
+
+    if (operationProfiling) {
+      const fetchRecord: FetchRecord = {
+        id: crypto.randomUUID(),
+        source,
+        method,
+        url,
+        status: null,
+        durationMs,
+        startTime: start,
+        error: errorMsg,
+      };
+      useOperationProfilerStore.getState().addFetch(operation, fetchRecord);
+    }
+
     // Network errors (timeout, DNS failure, etc.) do NOT mark disconnected.
     // Only a 401 response means credentials are invalid.
     throw err; // re-throw so callers still get the network error
@@ -124,18 +151,35 @@ export async function apiFetch(
   }
 
   const durationMs = Math.round(performance.now() - start);
-  const entry: ApiLogEntry = {
-    id: crypto.randomUUID(),
-    timestamp: new Date().toISOString(),
-    source,
-    method,
-    url,
-    requestHeaders: safeHeaders,
-    status,
-    durationMs,
-    responseBody,
-  };
-  useDebugLogStore.getState().append(entry);
+
+  if (requestLogging) {
+    const entry: ApiLogEntry = {
+      id: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+      source,
+      method,
+      url,
+      requestHeaders: safeHeaders,
+      status,
+      durationMs,
+      responseBody,
+      operation,
+    };
+    useDebugLogStore.getState().append(entry);
+  }
+
+  if (operationProfiling) {
+    const fetchRecord: FetchRecord = {
+      id: crypto.randomUUID(),
+      source,
+      method,
+      url,
+      status,
+      durationMs,
+      startTime: start,
+    };
+    useOperationProfilerStore.getState().addFetch(operation, fetchRecord);
+  }
 
   if (response.status === 401) markDisconnected(source);
   return response;
