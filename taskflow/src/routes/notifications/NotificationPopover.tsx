@@ -8,11 +8,13 @@
  * - Open-in-browser action on hover
  * - Mark-all-read header + per-item mark-as-read on hover
  * - Source-specific empty states
+ * - Virtualized list via @tanstack/react-virtual for large notification feeds
  */
 
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { Bell, BellOff, GitMerge, TicketCheck } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Button } from '../../components/ui/button';
 import { EmptyState } from '../../components/ui/empty-state';
@@ -79,6 +81,124 @@ const groupLabels: Record<string, string> = {
   yesterday: 'Yesterday',
   earlier: 'Earlier',
 };
+
+/** A virtual row is either a group header or a notification item. */
+type VirtualEntry =
+  | { type: 'header'; key: string; label: string }
+  | { type: 'item'; item: NotificationItem };
+
+/** Build a flat list of virtual entries (headers + items) from grouped notifications. */
+function buildVirtualEntries(rowItems: NotificationItem[]): VirtualEntry[] {
+  const entries: VirtualEntry[] = [];
+  let currentGroup: string | null = null;
+
+  for (const item of rowItems) {
+    const group = getTimeGroup(item.createdAt);
+    if (group !== currentGroup) {
+      currentGroup = group;
+      entries.push({ type: 'header', key: group, label: groupLabels[group] });
+    }
+    entries.push({ type: 'item', item });
+  }
+
+  return entries;
+}
+
+/** Virtualized notification list with group headers and measureElement for variable heights. */
+function VirtualizedNotificationList({
+  entries,
+  readSet,
+  onRowClick,
+  onMarkRead,
+  onDismiss,
+  onOpenInBrowser,
+}: {
+  entries: VirtualEntry[];
+  readSet: Set<string>;
+  onRowClick: (item: NotificationItem) => void;
+  onMarkRead: (item: NotificationItem) => void;
+  onDismiss: (item: NotificationItem) => void;
+  onOpenInBrowser: (item: NotificationItem) => (() => void) | undefined;
+}) {
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: entries.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 64,
+    overscan: 5,
+  });
+
+  const virtualItems = rowVirtualizer.getVirtualItems();
+  const useVirtual = virtualItems.length > 0;
+
+  return (
+    <div ref={parentRef} className="overflow-y-auto max-h-[520px]">
+      <div
+        style={
+          useVirtual
+            ? { height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }
+            : undefined
+        }
+      >
+        {useVirtual
+          ? virtualItems.map((virtualRow) => {
+              const entry = entries[virtualRow.index];
+              return (
+                <div
+                  key={virtualRow.key}
+                  ref={rowVirtualizer.measureElement}
+                  data-index={virtualRow.index}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                >
+                  {entry.type === 'header' ? (
+                    <div className="bg-background/95 backdrop-blur-sm px-3 py-1.5 border-b">
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                        {entry.label}
+                      </span>
+                    </div>
+                  ) : (
+                    <NotificationRow
+                      item={entry.item}
+                      isUnread={!readSet.has(entry.item.id)}
+                      onClick={() => onRowClick(entry.item)}
+                      onMarkRead={() => onMarkRead(entry.item)}
+                      onDismiss={() => onDismiss(entry.item)}
+                      onOpenInBrowser={onOpenInBrowser(entry.item)}
+                    />
+                  )}
+                </div>
+              );
+            })
+          : entries.map((entry) =>
+              entry.type === 'header' ? (
+                <div key={entry.key} className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-3 py-1.5 border-b">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    {entry.label}
+                  </span>
+                </div>
+              ) : (
+                <NotificationRow
+                  key={entry.item.id}
+                  item={entry.item}
+                  isUnread={!readSet.has(entry.item.id)}
+                  onClick={() => onRowClick(entry.item)}
+                  onMarkRead={() => onMarkRead(entry.item)}
+                  onDismiss={() => onDismiss(entry.item)}
+                  onOpenInBrowser={onOpenInBrowser(entry.item)}
+                />
+              ),
+            )}
+      </div>
+    </div>
+  );
+}
 
 export default function NotificationPopover({
   onIssueClick,
@@ -150,48 +270,25 @@ export default function NotificationPopover({
     // No navigable target — just mark read (row stays in popover)
   }
 
-  // Group items by time
-  function renderGroupedRows(rowItems: NotificationItem[]) {
-    const groups: { key: string; label: string; items: NotificationItem[] }[] = [];
-    let currentGroup: string | null = null;
-
-    for (const item of rowItems) {
-      const group = getTimeGroup(item.createdAt);
-      if (group !== currentGroup) {
-        currentGroup = group;
-        groups.push({ key: group, label: groupLabels[group], items: [] });
-      }
-      groups[groups.length - 1].items.push(item);
-    }
-
-    return groups.map((group) => (
-      <div key={group.key}>
-        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-3 py-1.5 border-b">
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-            {group.label}
-          </span>
-        </div>
-        {group.items.map((item) => (
-          <NotificationRow
-            key={item.id}
-            item={item}
-            isUnread={!readSet.has(item.id)}
-            onClick={() => handleRowClick(item)}
-            onMarkRead={() => (readSet.has(item.id) ? markAsUnread(item.id) : markAsRead(item.id))}
-            onDismiss={() => removeItem(item.id)}
-            onOpenInBrowser={
-              item.url
-                ? () => {
-                    openUrl(item.url!).catch(() => {});
-                    markAsRead(item.id);
-                  }
-                : undefined
-            }
-          />
-        ))}
-      </div>
-    ));
+  function handleMarkRead(item: NotificationItem) {
+    readSet.has(item.id) ? markAsUnread(item.id) : markAsRead(item.id);
   }
+
+  function handleDismiss(item: NotificationItem) {
+    removeItem(item.id);
+  }
+
+  function getOpenInBrowser(item: NotificationItem): (() => void) | undefined {
+    return item.url
+      ? () => {
+          openUrl(item.url!).catch(() => {});
+          markAsRead(item.id);
+        }
+      : undefined;
+  }
+
+  // Build flat virtual entries from grouped visible items
+  const virtualEntries = useMemo(() => buildVirtualEntries(visibleItems), [visibleItems]);
 
   function renderEmptyState() {
     if (unreadOnly) {
@@ -347,17 +444,26 @@ export default function NotificationPopover({
       )}
 
       {/* Feed */}
-      <div className="overflow-y-auto max-h-[520px]">
-        {fetchError && visibleItems.length === 0 && retryFetch ? (
+      {fetchError && visibleItems.length === 0 && retryFetch ? (
+        <div className="overflow-y-auto max-h-[520px]">
           <div className="p-2">
             <ErrorState error={fetchError} onRetry={retryFetch} viewName="notifications" />
           </div>
-        ) : visibleItems.length === 0 ? (
-          renderEmptyState()
-        ) : (
-          renderGroupedRows(visibleItems)
-        )}
-      </div>
+        </div>
+      ) : visibleItems.length === 0 ? (
+        <div className="overflow-y-auto max-h-[520px]">
+          {renderEmptyState()}
+        </div>
+      ) : (
+        <VirtualizedNotificationList
+          entries={virtualEntries}
+          readSet={readSet}
+          onRowClick={handleRowClick}
+          onMarkRead={handleMarkRead}
+          onDismiss={handleDismiss}
+          onOpenInBrowser={getOpenInBrowser}
+        />
+      )}
     </div>
   );
 }

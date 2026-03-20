@@ -1,16 +1,17 @@
 /**
- * SprintBoardTab — Jira-style sprint board: 3 category columns × story swimlanes.
+ * SprintBoardTab — Jira-style sprint board: 3 category columns x story swimlanes.
  *
  * Columns: always exactly "To Do" | "In Progress" | "Done", driven by the
  * statusCategory field that Jira returns on every status. All statuses with
  * statusCategory.key === "new" land in To Do, "indeterminate" in In Progress,
  * "done" in Done — regardless of how many workflow statuses the project has.
  *
- * fetchProjectStatuses is used to build a statusId → category map so that
+ * fetchProjectStatuses is used to build a statusId -> category map so that
  * drag-and-drop can find a valid transition to the target category.
  *
- * Layout: sticky column headers → collapsible story swimlanes → card cells.
+ * Layout: sticky column headers -> collapsible story swimlanes -> card cells.
  * Drag-and-drop: optimistic update + rollback on API failure.
+ * Swimlane rows are virtualized via @tanstack/react-virtual for large boards.
  */
 
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
@@ -22,9 +23,10 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Columns3, RefreshCw } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -95,6 +97,146 @@ function DroppableCell({
   );
 }
 
+/** Virtualized swimlane list — renders swimlane rows with measureElement for variable heights. */
+function VirtualizedSwimlanes({
+  filteredSwimlanes,
+  scrollElement,
+  collapsedStories,
+  toggleStory,
+  setSelectedIssueKey,
+  activeIssue,
+  validTargetCategories,
+  cardErrors,
+}: {
+  filteredSwimlanes: { story: JiraIssue; subtasks: JiraIssue[] }[];
+  scrollElement: HTMLElement | null;
+  collapsedStories: Set<string>;
+  toggleStory: (key: string) => void;
+  setSelectedIssueKey: (key: string) => void;
+  activeIssue: JiraIssue | null;
+  validTargetCategories: Set<CategoryKey>;
+  cardErrors: Map<string, string>;
+}) {
+  const swimlaneVirtualizer = useVirtualizer({
+    count: filteredSwimlanes.length,
+    getScrollElement: () => scrollElement,
+    estimateSize: () => 120,
+    overscan: 5,
+  });
+
+  const virtualItems = swimlaneVirtualizer.getVirtualItems();
+  const useVirtual = virtualItems.length > 0;
+
+  function renderSwimlane(
+    swimlane: { story: JiraIssue; subtasks: JiraIssue[] },
+    measureRef?: (node: HTMLElement | null) => void,
+    dataIndex?: number,
+    style?: React.CSSProperties,
+  ) {
+    const { story, subtasks } = swimlane;
+    const isExpanded = !collapsedStories.has(story.key);
+    const cards = subtasks.length > 0 ? subtasks : [story];
+
+    return (
+      <div
+        key={story.key}
+        ref={measureRef}
+        data-index={dataIndex}
+        style={style}
+        className="border-b border-border/40"
+      >
+        {/*
+         * sticky top-10: sits directly below the 40px column header bar.
+         * Sticks until this story section's bottom edge scrolls off-screen,
+         * then the next story's header takes over at the same position.
+         * z-[9] keeps story headers below the column header bar (z-20).
+         */}
+        <div className="sticky top-10 z-[9] bg-background">
+          <StoryHeaderRow
+            storyKey={story.key}
+            summary={story.fields.summary}
+            statusName={story.fields.status.name}
+            statusCategoryKey={story.fields.status.statusCategory?.key ?? 'new'}
+            subtaskCount={subtasks.length}
+            isExpanded={isExpanded}
+            onToggle={() => toggleStory(story.key)}
+            onOpenDetail={setSelectedIssueKey}
+          />
+        </div>
+        {isExpanded && (
+          <div className="flex bg-muted/10">
+            {CATEGORY_COLUMNS.map((col) => {
+              const colCards = cards.filter((c) => categoryOf(c) === col.key);
+              const isDisabled =
+                activeIssue !== null &&
+                validTargetCategories.size > 0 &&
+                !validTargetCategories.has(col.key);
+              return (
+                <DroppableCell
+                  key={col.key}
+                  storyKey={story.key}
+                  categoryKey={col.key}
+                  isDisabled={isDisabled}
+                >
+                  {colCards.map((card) => (
+                    <React.Fragment key={card.key}>
+                      <DraggableCard
+                        issue={card}
+                        isSubtask={card.fields.issuetype.subtask}
+                        showStatus
+                        onOpenDetail={setSelectedIssueKey}
+                      />
+                      {cardErrors.get(card.key) && (
+                        <p className="text-xs text-destructive px-1">
+                          {cardErrors.get(card.key)}
+                        </p>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </DroppableCell>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (useVirtual) {
+    return (
+      <div
+        style={{
+          height: `${swimlaneVirtualizer.getTotalSize()}px`,
+          position: 'relative',
+        }}
+      >
+        {virtualItems.map((virtualRow) => {
+          const swimlane = filteredSwimlanes[virtualRow.index];
+          return renderSwimlane(
+            swimlane,
+            swimlaneVirtualizer.measureElement,
+            virtualRow.index,
+            {
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              transform: `translateY(${virtualRow.start}px)`,
+            },
+          );
+        })}
+      </div>
+    );
+  }
+
+  // Fallback: render all swimlanes without virtualization (jsdom, SSR, etc.)
+  return (
+    <div className="flex flex-col">
+      {filteredSwimlanes.map((swimlane) => renderSwimlane(swimlane))}
+    </div>
+  );
+}
+
 export default function SprintBoardTab() {
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
   const { storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey, epicColorFieldKey } =
@@ -119,6 +261,15 @@ export default function SprintBoardTab() {
   const [cardErrors, setCardErrors] = useState<Map<string, string>>(new Map());
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  // Resolve the scroll element (<main> in AppLayout)
+  const boardRef = useRef<HTMLDivElement>(null);
+  const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    // Find the closest scrollable ancestor (<main> with overflow-auto)
+    const main = document.querySelector('main');
+    setScrollElement(main);
+  }, []);
 
   useEffect(() => {
     if (jiraBaseUrl) {
@@ -176,7 +327,7 @@ export default function SprintBoardTab() {
     setBannerDismissed(false);
   }, []);
 
-  /** Used to map transition target status IDs → category keys for drag-and-drop */
+  /** Used to map transition target status IDs -> category keys for drag-and-drop */
   const { data: workflowStatuses } = useQuery({
     queryKey: ['project-statuses', activeJiraProject, jiraBaseUrl],
     queryFn: () => fetchProjectStatuses(jiraBaseUrl!, jiraToken!, activeJiraProject!),
@@ -211,7 +362,7 @@ export default function SprintBoardTab() {
   }, [jiraBaseUrl, jiraToken, localIssues.length, localIssues.filter, queryClient.fetchQuery]);
 
   /**
-   * Maps status ID → category key.
+   * Maps status ID -> category key.
    * Built from workflowStatuses (authoritative) + any categories already on local issues.
    */
   const statusCategoryMap = useMemo(() => {
@@ -433,7 +584,7 @@ export default function SprintBoardTab() {
           setIsDragging(false);
         }}
       >
-        <div>
+        <div ref={boardRef}>
           {/*
            * Sticky top bar: column headers + refresh button.
            * h-10 = 40px. Story headers use top-10 to sit directly below this.
@@ -516,74 +667,22 @@ export default function SprintBoardTab() {
             />
           )}
 
-          {/* Swimlane rows */}
-          {!isLoading && !isError && data && (
-            <div className="flex flex-col divide-y divide-border/40">
-              {filteredSwimlanes.map(({ story, subtasks }) => {
-                const isExpanded = !collapsedStories.has(story.key);
-                const cards = subtasks.length > 0 ? subtasks : [story];
-                return (
-                  <div key={story.key}>
-                    {/*
-                     * sticky top-10: sits directly below the 40px column header bar.
-                     * Sticks until this story section's bottom edge scrolls off-screen,
-                     * then the next story's header takes over at the same position.
-                     * z-[9] keeps story headers below the column header bar (z-20).
-                     */}
-                    <div className="sticky top-10 z-[9] bg-background">
-                      <StoryHeaderRow
-                        storyKey={story.key}
-                        summary={story.fields.summary}
-                        statusName={story.fields.status.name}
-                        statusCategoryKey={story.fields.status.statusCategory?.key ?? 'new'}
-                        subtaskCount={subtasks.length}
-                        isExpanded={isExpanded}
-                        onToggle={() => toggleStory(story.key)}
-                        onOpenDetail={setSelectedIssueKey}
-                      />
-                    </div>
-                    {isExpanded && (
-                      <div className="flex bg-muted/10">
-                        {CATEGORY_COLUMNS.map((col) => {
-                          const colCards = cards.filter((c) => categoryOf(c) === col.key);
-                          const isDisabled =
-                            activeIssue !== null &&
-                            validTargetCategories.size > 0 &&
-                            !validTargetCategories.has(col.key);
-                          return (
-                            <DroppableCell
-                              key={col.key}
-                              storyKey={story.key}
-                              categoryKey={col.key}
-                              isDisabled={isDisabled}
-                            >
-                              {colCards.map((card) => (
-                                <React.Fragment key={card.key}>
-                                  <DraggableCard
-                                    issue={card}
-                                    isSubtask={card.fields.issuetype.subtask}
-                                    showStatus
-                                    onOpenDetail={setSelectedIssueKey}
-                                  />
-                                  {cardErrors.get(card.key) && (
-                                    <p className="text-xs text-destructive px-1">
-                                      {cardErrors.get(card.key)}
-                                    </p>
-                                  )}
-                                </React.Fragment>
-                              ))}
-                            </DroppableCell>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+          {/* Virtualized swimlane rows */}
+          {!isLoading && !isError && data && filteredSwimlanes.length > 0 && (
+            <VirtualizedSwimlanes
+              filteredSwimlanes={filteredSwimlanes}
+              scrollElement={scrollElement}
+              collapsedStories={collapsedStories}
+              toggleStory={toggleStory}
+              setSelectedIssueKey={setSelectedIssueKey}
+              activeIssue={activeIssue}
+              validTargetCategories={validTargetCategories}
+              cardErrors={cardErrors}
+            />
           )}
         </div>
 
+        {/* DragOverlay renders OUTSIDE the virtualized container */}
         <DragOverlay>{activeIssue ? <TaskCard issue={activeIssue} /> : null}</DragOverlay>
       </DndContext>
     </>
