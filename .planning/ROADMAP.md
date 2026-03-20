@@ -75,6 +75,7 @@ See archive: `.planning/milestones/v1.3-ROADMAP.md`
 - [x] **Phase 27: Refactoring & Type Safety** - Service decomposition, shared utilities, strict typing (completed 2026-03-19)
 - [x] **Phase 28: Test Coverage, Performance & Accessibility** - New unit tests, virtualization, aria fixes (completed 2026-03-20)
 - [x] **Phase 29: Developer Tools** - Unified debug/profiling page with granular settings (completed 2026-03-20)
+- [ ] **Phase 30: Fix A11Y-01 Test Regression & Checkbox Cleanup** - Fix test query, update stale requirement checkboxes
 
 ## Phase Details
 
@@ -159,6 +160,19 @@ Plans:
 - [ ] 29-02-PLAN.md — DevToolsPage UI: three tabs (Logs, Operations, Waterfall), settings panel, empty states
 - [ ] 29-03-PLAN.md — apiFetch call site annotation (~60 sites), routing, shortcut, cleanup old debug-logs
 
+### Phase 30: Fix A11Y-01 Test Regression & Checkbox Cleanup
+**Goal**: Close the sole remaining audit gap (A11Y-01 test regression) and update stale requirement checkboxes
+**Depends on**: Phase 28
+**Requirements**: A11Y-01
+**Gap Closure:** Closes gaps from audit
+**Success Criteria** (what must be TRUE):
+  1. `ConnectionsSection.test.tsx` passes with tightened query (no multiple-element match)
+  2. All 27 v1.4 requirement checkboxes in REQUIREMENTS.md reflect actual status
+  3. `npm test` runs with zero failures
+**Plans**: 1 plan
+Plans:
+- [ ] 30-01-PLAN.md — Fix test query in ConnectionsSection.test.tsx, update stale checkboxes
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -192,3 +206,4 @@ Plans:
 | 27. Refactoring & Type Safety | 5/5 | Complete    | 2026-03-19 | - |
 | 28. Test Coverage, Performance & Accessibility | 5/5 | Complete    | 2026-03-20 | - |
 | 29. Developer Tools | 5/5 | Complete    | 2026-03-20 | - |
+| 30. Fix A11Y-01 Test Regression & Checkbox Cleanup | v1.4 | 0/1 | Planned | - |

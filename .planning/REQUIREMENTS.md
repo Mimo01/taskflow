@@ -10,7 +10,7 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 ### Testing
 
 - [x] **TEST-01**: All service modules (jira, gitlab, notifications) have unit tests covering happy path and error cases
-- [ ] **TEST-02**: All Zustand stores have unit tests covering state transitions and persistence
+- [x] **TEST-02**: All Zustand stores have unit tests covering state transitions and persistence
 - [x] **TEST-03**: Fix 6 pre-existing Phase 8 test regressions
 - [x] **TEST-04**: Fix 8 LazyStore teardown warnings in test suite
 - [x] **TEST-05**: Fix 2 pre-existing TypeScript errors in test files
@@ -43,12 +43,12 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 ### Performance
 
 - [x] **PERF-01**: Notification list, backlog list, and sprint board use virtualization for 100+ items
-- [ ] **PERF-02**: Unread count selectors memoized (no Set creation on every render)
+- [x] **PERF-02**: Unread count selectors memoized (no Set creation on every render)
 
 ### Accessibility
 
 - [ ] **A11Y-01**: All form inputs in CreateEditIssueModal and ConnectionsSection have proper aria labels
-- [ ] **A11Y-02**: Custom dropdowns use semantic HTML or proper ARIA roles
+- [x] **A11Y-02**: Custom dropdowns use semantic HTML or proper ARIA roles
 
 ### Developer Tools
 
@@ -80,7 +80,7 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | TEST-01 | Phase 28 | Complete |
-| TEST-02 | Phase 28 | Pending |
+| TEST-02 | Phase 28 | Complete |
 | TEST-03 | Phase 26 | Complete |
 | TEST-04 | Phase 26 | Complete |
 | TEST-05 | Phase 26 | Complete |
@@ -98,9 +98,9 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 | TYPE-01 | Phase 27 | Complete |
 | TYPE-02 | Phase 27 | Complete |
 | PERF-01 | Phase 28 | Complete |
-| PERF-02 | Phase 28 | Pending |
-| A11Y-01 | Phase 28 | Pending |
-| A11Y-02 | Phase 28 | Pending |
+| PERF-02 | Phase 28 | Complete |
+| A11Y-01 | Phase 30 | Pending |
+| A11Y-02 | Phase 28 | Complete |
 | DEVT-01 | Phase 29 | Complete |
 | DEVT-02 | Phase 29 | Complete |
 | DEVT-03 | Phase 29 | Complete |
