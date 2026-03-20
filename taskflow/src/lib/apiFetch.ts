@@ -138,6 +138,7 @@ export async function apiFetch(
         status: null,
         durationMs,
         startTime: start,
+        responseSize: 0,
         error: errorMsg,
       };
       useOperationProfilerStore.getState().addFetch(operation, fetchRecord);
@@ -169,6 +170,16 @@ export async function apiFetch(
   }
 
   if (operationProfiling) {
+    // Capture response size from content-length header, or from already-read body text length
+    let responseSize: number | undefined;
+    const contentLength = response.headers.get('content-length');
+    if (contentLength) {
+      const parsed = Number.parseInt(contentLength, 10);
+      if (!Number.isNaN(parsed)) responseSize = parsed;
+    } else if (responseBodyCapture && responseBody.length > 0) {
+      responseSize = responseBody.length;
+    }
+
     const fetchRecord: FetchRecord = {
       id: crypto.randomUUID(),
       source,
@@ -177,6 +188,7 @@ export async function apiFetch(
       status,
       durationMs,
       startTime: start,
+      responseSize,
     };
     useOperationProfilerStore.getState().addFetch(operation, fetchRecord);
   }
