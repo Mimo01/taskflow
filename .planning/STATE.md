@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Internal Quality & Performance
 status: unknown
-stopped_at: Completed 29-02-PLAN.md
-last_updated: "2026-03-20T09:39:18.626Z"
+stopped_at: Completed 29-03-PLAN.md
+last_updated: "2026-03-20T09:43:47.380Z"
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 18
-  completed_plans: 17
+  completed_plans: 18
 ---
 
 # Project State
@@ -52,6 +52,7 @@ Plan: 3 of 3
 | Phase 28 P04 | 10min | 2 tasks | 4 files |
 | Phase 29 P01 | 5min | 2 tasks | 10 files |
 | Phase 29 P02 | 3min | 2 tasks | 9 files |
+| Phase Phase 29 P03 P29-03 | 7min | 2 tasks | 25 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,8 @@ Recent decisions affecting current work:
 - [28-04]: SprintBoardTab scroll element found via document.querySelector('main')
 - [Phase 29]: debugMode replaced by 6 granular dev tools toggles (devToolsEnabled, requestLogging, responseBodyCapture, operationProfiling, performanceWaterfall, retentionLimit)
 - [Phase 29]: Extracted statusColor, formatBody, sourceBadgeClass to shared utils.ts rather than duplicating across components
+- [Phase 29]: 57 apiFetch call sites annotated (exceeds 15-20 target) for comprehensive profiler coverage
+- [Phase 29]: Advanced section removed from Settings entirely since DebugModeSection was its only content
 
 ### Pending Todos
 
@@ -95,8 +98,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T09:39:18.622Z
-Stopped at: Completed 29-02-PLAN.md
+Last session: 2026-03-20T09:43:47.375Z
+Stopped at: Completed 29-03-PLAN.md
 Resume: 28-04 complete. 3 components virtualized with @tanstack/react-virtual. All 42 component tests pass.
 
 ### Quick Tasks Completed
