@@ -1,0 +1,249 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiError } from '../../lib/api-error';
+import {
+  createIssue,
+  fetchIssueDetail,
+  fetchSprintIssues,
+  searchJira,
+  updateIssueField,
+} from './issues';
+
+// issues.ts imports fetchAllSearchPages + isResponseLikeError from ./client and apiFetch from ../../lib/apiFetch
+vi.mock('../../lib/apiFetch', () => ({
+  apiFetch: vi.fn(),
+}));
+
+vi.mock('./client', () => ({
+  fetchAllSearchPages: vi.fn(),
+  isResponseLikeError: vi.fn(),
+  SUBTASK_CHUNK_SIZE: 50,
+}));
+
+import { apiFetch } from '../../lib/apiFetch';
+import { fetchAllSearchPages, isResponseLikeError } from './client';
+
+const BASE = 'https://jira.example.com';
+const TOKEN = 'test-token';
+
+describe('issues service', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // --- fetchSprintIssues ---
+  describe('fetchSprintIssues', () => {
+    it('returns parent issues and subtasks on success', async () => {
+      const parents = [
+        { key: 'PROJ-1', fields: { summary: 'Parent 1' } },
+        { key: 'PROJ-2', fields: { summary: 'Parent 2' } },
+      ];
+      const subtasks = [{ key: 'PROJ-3', fields: { summary: 'Sub 1', parent: { key: 'PROJ-1' } } }];
+
+      vi.mocked(fetchAllSearchPages)
+        .mockResolvedValueOnce(parents as any) // parent query
+        .mockResolvedValueOnce(subtasks as any); // subtask query
+
+      const result = await fetchSprintIssues(BASE, TOKEN, 'PROJ');
+      expect(result).toHaveLength(3);
+      expect(result[0].key).toBe('PROJ-1');
+      expect(result[2].key).toBe('PROJ-3');
+    });
+
+    it('returns empty array when no parent issues found', async () => {
+      vi.mocked(fetchAllSearchPages).mockResolvedValueOnce([]);
+      const result = await fetchSprintIssues(BASE, TOKEN, 'PROJ');
+      expect(result).toEqual([]);
+    });
+
+    it('throws on ApiError from first page', async () => {
+      vi.mocked(fetchAllSearchPages).mockRejectedValueOnce(
+        new ApiError('Token expired', 401, 'jira'),
+      );
+      await expect(fetchSprintIssues(BASE, TOKEN, 'PROJ')).rejects.toThrow(ApiError);
+    });
+
+    it('throws user-friendly message on status 400 with sprint error', async () => {
+      const responseError = { status: 400, text: async () => 'function not recognized' };
+      vi.mocked(fetchAllSearchPages).mockRejectedValueOnce(responseError);
+      vi.mocked(isResponseLikeError).mockReturnValue(true);
+
+      await expect(fetchSprintIssues(BASE, TOKEN, 'PROJ')).rejects.toThrow(
+        'Sprint filtering unavailable',
+      );
+    });
+
+    it('returns parents only when subtask query fails', async () => {
+      const parents = [{ key: 'PROJ-1', fields: { summary: 'Parent 1' } }];
+      vi.mocked(fetchAllSearchPages)
+        .mockResolvedValueOnce(parents as any)
+        .mockRejectedValueOnce(new Error('subtask fetch fail'));
+
+      const result = await fetchSprintIssues(BASE, TOKEN, 'PROJ');
+      // Subtask failure is caught silently, parents returned
+      expect(result).toHaveLength(1);
+      expect(result[0].key).toBe('PROJ-1');
+    });
+  });
+
+  // --- fetchIssueDetail ---
+  describe('fetchIssueDetail', () => {
+    const customFields = {
+      epicLinkFieldKey: 'customfield_10014',
+      epicNameFieldKey: 'customfield_10015',
+      sprintFieldKey: 'customfield_10020',
+      storyPointsFieldKey: 'customfield_10016',
+    };
+
+    it('returns issue detail on success', async () => {
+      const issueData = {
+        id: '1001',
+        key: 'PROJ-1',
+        fields: { summary: 'Detail issue', status: { id: '1', name: 'Open' } },
+      };
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => issueData,
+      } as Response);
+
+      const result = await fetchIssueDetail(BASE, TOKEN, 'PROJ-1', customFields);
+      expect(result.key).toBe('PROJ-1');
+      expect(result.fields.summary).toBe('Detail issue');
+    });
+
+    it('throws ApiError on 401', async () => {
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+      } as Response);
+
+      await expect(fetchIssueDetail(BASE, TOKEN, 'PROJ-1', customFields)).rejects.toThrow(
+        ApiError,
+      );
+    });
+
+    it('throws Error on 404', async () => {
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      } as Response);
+
+      await expect(fetchIssueDetail(BASE, TOKEN, 'PROJ-1', customFields)).rejects.toThrow(
+        'Failed to fetch issue PROJ-1: 404',
+      );
+    });
+  });
+
+  // --- createIssue ---
+  describe('createIssue', () => {
+    it('returns created issue key on success', async () => {
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        json: async () => ({ id: '1002', key: 'PROJ-2' }),
+      } as Response);
+
+      const result = await createIssue(BASE, TOKEN, 'PROJ', 'New issue');
+      expect(result.key).toBe('PROJ-2');
+      expect(vi.mocked(apiFetch)).toHaveBeenCalledWith(
+        'jira',
+        expect.stringContaining('/rest/api/2/issue'),
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    it('throws ApiError on 401', async () => {
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+      } as Response);
+
+      await expect(createIssue(BASE, TOKEN, 'PROJ', 'Fail')).rejects.toThrow(ApiError);
+    });
+
+    it('throws Error on 400', async () => {
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+      } as Response);
+
+      await expect(createIssue(BASE, TOKEN, 'PROJ', 'Bad request')).rejects.toThrow(
+        'Failed to create issue: 400',
+      );
+    });
+  });
+
+  // --- updateIssueField ---
+  describe('updateIssueField', () => {
+    it('succeeds with 204 response', async () => {
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: false,
+        status: 204,
+      } as Response);
+
+      await expect(updateIssueField(BASE, TOKEN, 'PROJ-1', 'summary', 'Updated')).resolves.toBeUndefined();
+      expect(vi.mocked(apiFetch)).toHaveBeenCalledWith(
+        'jira',
+        expect.stringContaining('/rest/api/2/issue/PROJ-1'),
+        expect.objectContaining({ method: 'PUT' }),
+      );
+    });
+
+    it('throws ApiError on 403', async () => {
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+      } as Response);
+
+      await expect(updateIssueField(BASE, TOKEN, 'PROJ-1', 'summary', 'Fail')).rejects.toThrow(
+        ApiError,
+      );
+    });
+
+    it('throws Error on other non-ok status', async () => {
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+      } as Response);
+
+      await expect(updateIssueField(BASE, TOKEN, 'PROJ-1', 'summary', 'Fail')).rejects.toThrow(
+        'Failed to update summary on PROJ-1: 500',
+      );
+    });
+  });
+
+  // --- searchJira ---
+  describe('searchJira', () => {
+    it('returns matching issues on success', async () => {
+      const issues = [
+        { key: 'PROJ-10', fields: { summary: 'Found it' } },
+      ];
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ issues }),
+      } as Response);
+
+      const result = await searchJira(BASE, TOKEN, 'PROJ', 'Found');
+      expect(result).toHaveLength(1);
+      expect(result[0].key).toBe('PROJ-10');
+    });
+
+    it('returns empty array on non-ok response', async () => {
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+      } as Response);
+
+      const result = await searchJira(BASE, TOKEN, 'PROJ', 'query');
+      expect(result).toEqual([]);
+    });
+
+    it('returns empty array on network error', async () => {
+      vi.mocked(apiFetch).mockRejectedValueOnce(new Error('Network error'));
+
+      const result = await searchJira(BASE, TOKEN, 'PROJ', 'query');
+      expect(result).toEqual([]);
+    });
+  });
+});
