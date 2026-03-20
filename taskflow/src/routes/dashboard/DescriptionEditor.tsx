@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { WikiRenderer } from './WikiRenderer';
 
 interface DescriptionEditorProps {
+  id?: string;
   value: string;
   onChange: (v: string) => void;
   disabled?: boolean;
@@ -35,7 +36,7 @@ function insertAtCursor(
   });
 }
 
-export function DescriptionEditor({ value, onChange, disabled }: DescriptionEditorProps) {
+export function DescriptionEditor({ id, value, onChange, disabled }: DescriptionEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   return (
@@ -88,6 +89,7 @@ export function DescriptionEditor({ value, onChange, disabled }: DescriptionEdit
           </div>
 
           <Textarea
+            id={id}
             ref={textareaRef}
             value={value}
             onChange={(e) => onChange(e.target.value)}
