@@ -48,13 +48,14 @@ Exceptions: none
 |------|------|--------|-------------|
 | Body | 14px | 400 (regular) | 1.5 |
 | Label | 12px | 600 (semibold) | 1.33 |
-| Heading | 24px | 700 (bold) | 1.2 |
+| Heading | 24px | 600 (semibold) | 1.2 |
 | Mono | 12px | 400 (regular) | 1.5 |
 
 Notes:
+- Two weights only: 400 (regular) for Body and Mono roles; 600 (semibold) for Label and Heading roles.
 - All data values (URLs, durations, status codes, timestamps) use `font-mono` at 12px.
 - Section labels (e.g. "URL", "Request Headers", tab labels) use Label role at 12px semibold uppercase with `tracking-wider` and `text-muted-foreground`.
-- Page heading ("Developer Tools") uses Heading role at 24px bold, matching existing DebugLogs page pattern (`text-2xl font-bold`).
+- Page heading ("Developer Tools") uses Heading role at 24px semibold, rendered as `text-2xl font-semibold`.
 - This is a power-user, information-dense page. 14px body (not 16px) is appropriate.
 
 ---
@@ -65,7 +66,7 @@ Notes:
 |------|-------|-------|
 | Dominant (60%) | `var(--background)` | Page background, tab panel background |
 | Secondary (30%) | `var(--muted)` | Code blocks, pre blocks, settings panel background, collapsed card headers on hover |
-| Accent (10%) | `var(--primary)` | Active tab indicator, master toggle "on" state, Clear button hover |
+| Accent (10%) | `var(--primary)` | Active tab indicator, master toggle "on" state, Clear Logs button hover |
 | Destructive | `var(--destructive)` | Error status codes, failed fetch bars, network error text |
 
 ### Source-specific colors (waterfall and badges)
@@ -86,7 +87,7 @@ Notes:
 | 4xx/5xx | `text-red-600` | `text-red-400` |
 | null (network error) | `text-muted-foreground` | `text-muted-foreground` |
 
-Accent reserved for: active tab indicator, master toggle enabled state, Clear button hover state.
+Accent reserved for: active tab indicator, master toggle enabled state, Clear Logs button hover state.
 
 ---
 
@@ -112,7 +113,7 @@ Accent reserved for: active tab indicator, master toggle enabled state, Clear bu
 
 | Component | Pattern | Notes |
 |-----------|---------|-------|
-| `OperationCard` | Same expandable pattern as `LogCard` | Summary: operation name, wall-clock time (bold), fetch count, server time sum. Expand: per-fetch breakdown rows |
+| `OperationCard` | Same expandable pattern as `LogCard` | Summary: operation name, wall-clock time (semibold), fetch count, server time sum. Expand: per-fetch breakdown rows |
 | Per-fetch row | Table-like row | Method, URL (truncated), status (colored), duration |
 | Ungrouped section | Collapsible section | "Ungrouped Requests" at bottom, collapsed by default |
 
@@ -128,9 +129,9 @@ Accent reserved for: active tab indicator, master toggle enabled state, Clear bu
 ### Settings panel
 
 | Component | Pattern | Notes |
-|-----------|---------|-------|
+|-----------|--------|-------|
 | Collapsible section | `<details>`/`<summary>` or button toggle | Collapsed by default. Gear icon + "Settings" label |
-| Master toggle | HTML `<input type="checkbox">` styled or shadcn-compatible switch pattern | "Enable Developer Tools" — when off, all granular toggles disabled (opacity-50, pointer-events-none) |
+| Master toggle | HTML `<input type="checkbox">` styled or shadcn-compatible switch pattern | "Enable Developer Tools" -- when off, all granular toggles disabled (opacity-50, pointer-events-none) |
 | Granular toggle | Same switch pattern | 4 boolean toggles: Request logging, Response body capture, Operation profiling, Performance waterfall |
 | Retention dropdown | shadcn `select.tsx` (existing) | Options: 50, 100, 200 (default), 500, 1000 |
 
@@ -138,11 +139,15 @@ Accent reserved for: active tab indicator, master toggle enabled state, Clear bu
 
 ## Layout Contract
 
+### Visual hierarchy
+
+The primary focal point is the tab content area, which occupies the majority of the viewport. The page heading ("Developer Tools") anchors the top-left. The "Clear Logs" button sits top-right as a secondary action. Settings are collapsed by default to keep the data-dense tab content front and center.
+
 ### Page structure
 
 ```
 +--------------------------------------------------+
-| Developer Tools                      [Clear]      |
+| Developer Tools                  [Clear Logs]     |
 | (subtitle text)                                   |
 +--------------------------------------------------+
 | [> Settings]  (collapsible, collapsed by default) |
@@ -193,7 +198,7 @@ Accent reserved for: active tab indicator, master toggle enabled state, Clear bu
 | Ungrouped section expand/collapse | Click header toggles visibility of ungrouped request cards |
 | Settings panel expand/collapse | Click header toggles settings visibility |
 | Master toggle off | All granular toggles become visually disabled (`opacity-50 pointer-events-none`) |
-| Clear button | Clears all logs, operations, and waterfall data. Disabled when empty (`disabled:opacity-40 disabled:cursor-not-allowed`) |
+| Clear Logs button | Clears all logs, operations, and waterfall data. Disabled when empty (`disabled:opacity-40 disabled:cursor-not-allowed`) |
 | Waterfall bars | Read-only. No hover tooltips, no click interaction. Duration label inline |
 | Keyboard: Cmd+Shift+D | Navigate to /dev-tools from anywhere in the app |
 
@@ -223,13 +228,13 @@ Accent reserved for: active tab indicator, master toggle enabled state, Clear bu
 | Empty state heading (Waterfall) | No waterfall data |
 | Empty state body (Waterfall) | Enable performance waterfall in Settings above, then perform some actions to see timing data. |
 | Disabled state (master off) | Developer Tools are disabled. Toggle the master switch in Settings to start capturing data. |
-| Clear button | Clear |
+| Clear button | Clear Logs |
 | Ungrouped section header | Ungrouped Requests |
 | Operation card: wall-clock label | Total |
 | Operation card: server time label | Server |
 | Operation card: fetch count label | {n} fetches |
 | Command palette entry | Developer Tools |
-| Destructive: Clear all | No confirmation needed. Data is transient (in-memory only). Clear button is low-risk. |
+| Destructive: Clear all | No confirmation needed. Data is transient (in-memory only). Clear Logs button is low-risk. |
 
 ---
 
