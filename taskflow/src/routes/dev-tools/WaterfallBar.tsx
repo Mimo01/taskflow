@@ -1,90 +1,170 @@
 /**
- * WaterfallBar — Single operation row in the waterfall timeline.
+ * WaterfallBar -- Self-scoped operation row in the waterfall timeline.
  *
- * Shows a CSS bar positioned by percentage within the timeline.
- * Expandable to reveal nested fetch bars colored by source.
+ * Each operation fills its full lane (0% to 100% of its own wallClockMs).
+ * Expanded view shows individual fetch bars with parallel-lane layout,
+ * gridlines, tooltips, and smart duration labels.
  */
 import { useState } from 'react';
-import type { Operation } from '../../stores/operation-profiler.store';
+import type { FetchRecord, Operation } from '../../stores/operation-profiler.store';
 
+// Stronger colors for fetch bars
 function fetchBarColor(source: 'jira' | 'gitlab', hasError: boolean): string {
-  if (hasError) return 'bg-red-300 dark:bg-red-700';
-  if (source === 'jira') return 'bg-orange-200 dark:bg-orange-800';
-  return 'bg-purple-200 dark:bg-purple-800';
+  if (hasError) return 'bg-red-400 dark:bg-red-600';
+  if (source === 'jira') return 'bg-orange-400 dark:bg-orange-600';
+  return 'bg-purple-400 dark:bg-purple-600';
 }
 
-export default function WaterfallBar({
-  operation,
-  timelineStart,
-  totalDuration,
-}: {
-  operation: Operation;
-  timelineStart: number;
-  totalDuration: number;
-}) {
+// Lighter colors for the operation summary bar
+function opBarColor(fetches: FetchRecord[]): string {
+  const sources = fetches.map((f) => f.source);
+  const jiraCount = sources.filter((s) => s === 'jira').length;
+  const gitlabCount = sources.filter((s) => s === 'gitlab').length;
+  if (jiraCount > 0 && gitlabCount > 0) return 'bg-blue-500/20 dark:bg-blue-500/30';
+  if (jiraCount > 0) return 'bg-orange-500/20 dark:bg-orange-500/30';
+  return 'bg-purple-500/20 dark:bg-purple-500/30';
+}
+
+// Truncate URL to last path segment
+function shortPath(url: string): string {
+  try {
+    const path = new URL(url).pathname;
+    const segments = path.split('/').filter(Boolean);
+    return `/${segments.slice(-2).join('/')}`;
+  } catch {
+    const segments = url.split('/').filter(Boolean);
+    return `/${segments.slice(-2).join('/')}`;
+  }
+}
+
+/**
+ * Assign each fetch to a "lane" (row) so overlapping fetches render on
+ * separate rows, visualizing parallelism.  Simple greedy algorithm:
+ * sort by startTime, place each on the first lane where it doesn't overlap.
+ */
+function assignLanes(fetches: FetchRecord[], opStart: number, wallClockMs: number) {
+  const sorted = [...fetches].sort((a, b) => a.startTime - b.startTime);
+  // Each lane tracks end-percentage of the last bar placed in it
+  const laneEnds: number[] = [];
+  return sorted.map((f) => {
+    const leftPct = wallClockMs > 0 ? ((f.startTime - opStart) / wallClockMs) * 100 : 0;
+    const widthPct = wallClockMs > 0 ? Math.max((f.durationMs / wallClockMs) * 100, 2) : 100;
+    const rightPct = leftPct + widthPct;
+
+    let lane = laneEnds.findIndex((end) => leftPct >= end);
+    if (lane === -1) {
+      lane = laneEnds.length;
+      laneEnds.push(0);
+    }
+    laneEnds[lane] = rightPct;
+
+    return { fetch: f, lane, leftPct, widthPct };
+  });
+}
+
+export default function WaterfallBar({ operation }: { operation: Operation }) {
   const [open, setOpen] = useState(false);
 
-  const leftPct = totalDuration > 0 ? ((operation.startTime - timelineStart) / totalDuration) * 100 : 0;
-  const widthPct = totalDuration > 0 ? (operation.wallClockMs / totalDuration) * 100 : 100;
+  const laneData = assignLanes(operation.fetches, operation.startTime, operation.wallClockMs);
+  const laneCount = laneData.length > 0 ? Math.max(...laneData.map((d) => d.lane)) + 1 : 0;
+
+  // Gridline positions at 0%, 25%, 50%, 75%, 100%
+  const gridPositions = [0, 25, 50, 75, 100];
+  const gridLabels = gridPositions.map((pct) =>
+    `${Math.round((operation.wallClockMs * pct) / 100)}ms`,
+  );
 
   return (
-    <div className="flex flex-col gap-1">
-      {/* Operation row */}
+    <div className="flex flex-col">
+      {/* Operation summary row */}
       <button
+        type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 w-full text-left hover:bg-accent/50 transition-colors rounded py-0.5"
+        className="flex items-center gap-2 w-full text-left hover:bg-accent/50 transition-colors rounded py-1 px-1"
       >
-        <span className="w-[200px] shrink-0 truncate text-sm">{operation.label}</span>
-        <div className="flex-1 relative h-5">
-          <div
-            className="absolute h-5 rounded-sm bg-muted"
-            style={{
-              left: `${leftPct}%`,
-              width: `${Math.max(widthPct, 1)}%`,
-            }}
-          >
-            <span className="relative text-xs font-mono ml-1 leading-5">
+        {/* Label */}
+        <span className="w-[200px] shrink-0 truncate text-sm font-medium">
+          {operation.label}
+        </span>
+
+        {/* Summary bar -- fills full width */}
+        <div className="flex-1 relative h-6">
+          <div className={`absolute inset-0 rounded-sm ${opBarColor(operation.fetches)}`}>
+            <span className="relative text-xs font-mono ml-2 leading-6 whitespace-nowrap">
               {operation.wallClockMs}ms
+              <span className="ml-2 text-muted-foreground">
+                ({operation.fetches.length} fetch{operation.fetches.length !== 1 ? 'es' : ''})
+              </span>
             </span>
           </div>
         </div>
-        <span className="shrink-0 text-xs text-muted-foreground">
+
+        {/* Chevron */}
+        <span className="shrink-0 text-xs text-muted-foreground w-4 text-center">
           {open ? '\u25B2' : '\u25BC'}
         </span>
       </button>
 
-      {/* Expanded fetch bars */}
+      {/* Expanded fetch detail */}
       {open && (
-        <div className="ml-6 flex flex-col gap-1">
-          {operation.fetches.map((fetch) => {
-            const fLeftPct =
-              totalDuration > 0
-                ? ((fetch.startTime - timelineStart) / totalDuration) * 100
-                : 0;
-            const fWidthPct =
-              totalDuration > 0 ? (fetch.durationMs / totalDuration) * 100 : 100;
-
-            return (
-              <div key={fetch.id} className="flex items-center gap-2">
-                <span className="w-[176px] shrink-0 truncate text-xs font-mono text-muted-foreground">
-                  {fetch.method} {fetch.source}
+        <div className="ml-[200px] mr-6 relative border-l border-border pl-2 py-1">
+          {/* Gridlines */}
+          <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+            {gridPositions.map((pct, i) => (
+              <div
+                key={pct}
+                className="absolute top-0 bottom-0"
+                style={{ left: `${pct}%` }}
+              >
+                <div className="h-full border-l border-dashed border-muted-foreground/25" />
+                <span className="absolute -bottom-4 -translate-x-1/2 text-[10px] text-muted-foreground font-mono">
+                  {gridLabels[i]}
                 </span>
-                <div className="flex-1 relative h-4">
-                  <div
-                    className={`absolute h-4 rounded-sm ${fetchBarColor(fetch.source, !!fetch.error)}`}
-                    style={{
-                      left: `${fLeftPct}%`,
-                      width: `${Math.max(fWidthPct, 0.5)}%`,
-                    }}
-                  >
-                    <span className="relative text-xs font-mono ml-1 leading-4">
-                      {fetch.durationMs}ms
-                    </span>
-                  </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Fetch lanes */}
+          <div className="relative" style={{ minHeight: `${laneCount * 28 + 4}px` }}>
+            {laneData.map(({ fetch, lane, leftPct, widthPct }) => (
+              <div
+                key={fetch.id}
+                className="absolute flex items-center"
+                style={{
+                  top: `${lane * 28}px`,
+                  left: `${leftPct}%`,
+                  width: `${widthPct}%`,
+                  height: '24px',
+                }}
+              >
+                <div
+                  className={`h-full w-full rounded-sm ${fetchBarColor(fetch.source, !!fetch.error)} relative overflow-hidden`}
+                  title={`${fetch.method} ${fetch.url}\nStatus: ${fetch.status ?? 'error'}\nDuration: ${fetch.durationMs}ms`}
+                >
+                  {/* Smart label: inside if wide enough, otherwise overflow visible */}
+                  <span className="absolute inset-0 flex items-center px-1 text-[11px] font-mono text-white dark:text-white whitespace-nowrap">
+                    {fetch.durationMs}ms
+                  </span>
                 </div>
               </div>
-            );
-          })}
+            ))}
+          </div>
+
+          {/* Fetch detail labels below lanes */}
+          <div className="mt-1 flex flex-col gap-0.5 pt-5">
+            {laneData.map(({ fetch }) => (
+              <span
+                key={fetch.id}
+                className="text-[10px] font-mono text-muted-foreground truncate"
+              >
+                {fetch.method} {fetch.source} {shortPath(fetch.url)}
+                {fetch.status !== null && fetch.status >= 400 && (
+                  <span className="text-red-500 ml-1">[{fetch.status}]</span>
+                )}
+                {fetch.error && <span className="text-red-500 ml-1">[err]</span>}
+              </span>
+            ))}
+          </div>
         </div>
       )}
     </div>

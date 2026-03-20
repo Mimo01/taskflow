@@ -514,7 +514,7 @@ async function fetchAllGitlabNotifications(
 
     // Build parallel fetch list — always notes; approvals + pipelines only for author's MRs
     const fetches: Promise<Response | null>[] = [
-      apiFetch('gitlab', notesUrl, { headers }).catch(() => null),
+      apiFetch('gitlab', notesUrl, { headers }, 'Load Notifications').catch(() => null),
     ];
     if (isAuthor) {
       fetches.push(
@@ -522,11 +522,13 @@ async function fetchAllGitlabNotifications(
           'gitlab',
           `${base}/api/v4/projects/${mr.project_id}/merge_requests/${mr.iid}/approvals`,
           { headers },
+          'Load Notifications',
         ).catch(() => null),
         apiFetch(
           'gitlab',
           `${base}/api/v4/projects/${mr.project_id}/merge_requests/${mr.iid}/pipelines?per_page=5&sort=desc`,
           { headers },
+          'Load Notifications',
         ).catch(() => null),
       );
     }
