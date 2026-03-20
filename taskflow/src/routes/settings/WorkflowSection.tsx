@@ -7,7 +7,6 @@
  * - Advanced subsection: DebugModeSection (existing, reads store internally)
  */
 import { useSettingsStore } from '../../stores/settings.store';
-import DebugModeSection from './DebugModeSection';
 import StaleMrThresholdSection from './StaleMrThresholdSection';
 
 export default function WorkflowSection() {
@@ -82,8 +81,6 @@ export default function WorkflowSection() {
           />
         </label>
       </div>
-
-      <DebugModeSection />
     </div>
   );
 }
