@@ -78,22 +78,22 @@ export function CreateEditIssueModal({
             {mode === 'create' && <IssueTypeSelector selectedIssueType={state.selectedIssueType} defaultIssueType={defaultIssueType} dispatch={dispatch} />}
 
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Summary <span className="text-destructive">*</span></label>
-              <Input value={state.summary} onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'summary', value: e.target.value })} placeholder="Issue summary" required disabled={isPending} />
+              <label htmlFor="issue-summary" className="text-sm font-medium">Summary <span className="text-destructive">*</span></label>
+              <Input id="issue-summary" value={state.summary} onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'summary', value: e.target.value })} placeholder="Issue summary" required disabled={isPending} />
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Description</label>
-              <DescriptionEditor value={state.description} onChange={(v) => dispatch({ type: 'SET_FIELD', field: 'description', value: v })} disabled={isPending} />
+              <label htmlFor="issue-description" className="text-sm font-medium">Description</label>
+              <DescriptionEditor id="issue-description" value={state.description} onChange={(v) => dispatch({ type: 'SET_FIELD', field: 'description', value: v })} disabled={isPending} />
             </div>
 
             {isSubtask && (
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium">Parent <span className="text-destructive">*</span></label>
+                <label htmlFor="parent-key" className="text-sm font-medium">Parent <span className="text-destructive">*</span></label>
                 {defaultParentKey ? (
                   <div className="flex h-9 w-full items-center rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground font-mono">{state.parentKey}</div>
                 ) : (
-                  <Input value={state.parentKey ?? ''} onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'parentKey', value: e.target.value || null })} placeholder="Parent issue key (e.g. PROJ-123)" disabled={isPending} />
+                  <Input id="parent-key" value={state.parentKey ?? ''} onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'parentKey', value: e.target.value || null })} placeholder="Parent issue key (e.g. PROJ-123)" disabled={isPending} />
                 )}
               </div>
             )}
@@ -103,11 +103,11 @@ export function CreateEditIssueModal({
                 <label className="text-sm font-medium">Epic Link</label>
                 {state.epicOpen ? (
                   <div className="rounded-md border shadow-sm">
-                    <input value={state.epicFilter} onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'epicFilter', value: e.target.value })} placeholder="Filter epics..." className="w-full rounded-t-md px-3 py-2 text-sm outline-none border-b bg-background" onBlur={() => setTimeout(() => dispatch({ type: 'SET_FIELD', field: 'epicOpen', value: false }), 150)} />
-                    <div className="max-h-48 overflow-y-auto">
-                      <button type="button" className="w-full px-3 py-1.5 text-left text-sm hover:bg-accent text-muted-foreground" onMouseDown={() => { dispatch({ type: 'SET_FIELD', field: 'epicLinkKey', value: null }); dispatch({ type: 'SET_FIELD', field: 'epicFilter', value: '' }); dispatch({ type: 'SET_FIELD', field: 'epicOpen', value: false }); }}>None</button>
+                    <input role="combobox" aria-expanded={state.epicOpen} aria-controls="epic-listbox" aria-label="Filter epics" value={state.epicFilter} onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'epicFilter', value: e.target.value })} placeholder="Filter epics..." className="w-full rounded-t-md px-3 py-2 text-sm outline-none border-b bg-background" onBlur={() => setTimeout(() => dispatch({ type: 'SET_FIELD', field: 'epicOpen', value: false }), 150)} />
+                    <div id="epic-listbox" role="listbox" className="max-h-48 overflow-y-auto">
+                      <button type="button" role="option" aria-selected={state.epicLinkKey === null} className="w-full px-3 py-1.5 text-left text-sm hover:bg-accent text-muted-foreground" onMouseDown={() => { dispatch({ type: 'SET_FIELD', field: 'epicLinkKey', value: null }); dispatch({ type: 'SET_FIELD', field: 'epicFilter', value: '' }); dispatch({ type: 'SET_FIELD', field: 'epicOpen', value: false }); }}>None</button>
                       {(epics ?? []).filter((e) => state.epicFilter === '' || e.key.toLowerCase().includes(state.epicFilter.toLowerCase()) || e.fields.summary.toLowerCase().includes(state.epicFilter.toLowerCase())).map((epic) => (
-                        <button key={epic.key} type="button" className="w-full px-3 py-1.5 text-left text-sm hover:bg-accent" onMouseDown={() => { dispatch({ type: 'SET_FIELD', field: 'epicLinkKey', value: epic.key }); dispatch({ type: 'SET_FIELD', field: 'epicFilter', value: '' }); dispatch({ type: 'SET_FIELD', field: 'epicOpen', value: false }); }}>
+                        <button key={epic.key} type="button" role="option" aria-selected={state.epicLinkKey === epic.key} className="w-full px-3 py-1.5 text-left text-sm hover:bg-accent" onMouseDown={() => { dispatch({ type: 'SET_FIELD', field: 'epicLinkKey', value: epic.key }); dispatch({ type: 'SET_FIELD', field: 'epicFilter', value: '' }); dispatch({ type: 'SET_FIELD', field: 'epicOpen', value: false }); }}>
                           <span className="font-mono text-xs text-muted-foreground">{epic.key}</span>{' '}{epic.fields.summary}
                         </button>
                       ))}
@@ -123,12 +123,12 @@ export function CreateEditIssueModal({
 
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium">Assignee</label>
-              <Input value={state.assigneeInputValue} onChange={(e) => { dispatch({ type: 'SET_FIELD', field: 'assigneeInputValue', value: e.target.value }); dispatch({ type: 'SET_FIELD', field: 'selectedAssigneeName', value: null }); dispatch({ type: 'SET_FIELD', field: 'showAssigneeResults', value: true }); }} onFocus={() => { if (state.selectedAssigneeName) { dispatch({ type: 'SET_FIELD', field: 'assigneeInputValue', value: '' }); dispatch({ type: 'SET_FIELD', field: 'selectedAssigneeName', value: null }); } dispatch({ type: 'SET_FIELD', field: 'showAssigneeResults', value: true }); }} onBlur={() => setTimeout(() => dispatch({ type: 'SET_FIELD', field: 'showAssigneeResults', value: false }), 150)} placeholder="Search assignee..." disabled={isPending} />
+              <Input role="combobox" aria-expanded={state.showAssigneeResults} aria-controls="assignee-listbox" aria-label="Assignee" value={state.assigneeInputValue} onChange={(e) => { dispatch({ type: 'SET_FIELD', field: 'assigneeInputValue', value: e.target.value }); dispatch({ type: 'SET_FIELD', field: 'selectedAssigneeName', value: null }); dispatch({ type: 'SET_FIELD', field: 'showAssigneeResults', value: true }); }} onFocus={() => { if (state.selectedAssigneeName) { dispatch({ type: 'SET_FIELD', field: 'assigneeInputValue', value: '' }); dispatch({ type: 'SET_FIELD', field: 'selectedAssigneeName', value: null }); } dispatch({ type: 'SET_FIELD', field: 'showAssigneeResults', value: true }); }} onBlur={() => setTimeout(() => dispatch({ type: 'SET_FIELD', field: 'showAssigneeResults', value: false }), 150)} placeholder="Search assignee..." disabled={isPending} />
               {state.showAssigneeResults && (assigneeLoading || allAssignees.length > 0) && (
-                <div className="mt-1 rounded-lg border bg-popover shadow-md">
+                <div id="assignee-listbox" role="listbox" className="mt-1 rounded-lg border bg-popover shadow-md">
                   {assigneeLoading && <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>}
                   {allAssignees.filter((user) => { const q = state.assigneeInputValue.toLowerCase(); if (!q) return true; const fuzzy = (str: string) => { let i = 0; for (const ch of str.toLowerCase()) { if (ch === q[i]) i++; if (i === q.length) return true; } return false; }; return fuzzy(user.displayName) || fuzzy(user.name); }).map((user) => (
-                    <button key={user.name} type="button" className="w-full px-3 py-2 text-left text-sm hover:bg-accent" onMouseDown={() => { dispatch({ type: 'SET_FIELD', field: 'selectedAssigneeName', value: user.name }); dispatch({ type: 'SET_FIELD', field: 'assigneeInputValue', value: user.displayName }); dispatch({ type: 'SET_FIELD', field: 'showAssigneeResults', value: false }); }}>{user.displayName} ({user.name})</button>
+                    <button key={user.name} type="button" role="option" aria-selected={state.selectedAssigneeName === user.name} className="w-full px-3 py-2 text-left text-sm hover:bg-accent" onMouseDown={() => { dispatch({ type: 'SET_FIELD', field: 'selectedAssigneeName', value: user.name }); dispatch({ type: 'SET_FIELD', field: 'assigneeInputValue', value: user.displayName }); dispatch({ type: 'SET_FIELD', field: 'showAssigneeResults', value: false }); }}>{user.displayName} ({user.name})</button>
                   ))}
                 </div>
               )}
@@ -147,15 +147,15 @@ export function CreateEditIssueModal({
 
             {!isSubtask && (
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium">Story Points</label>
-                <Input type="number" min="0" step="0.5" value={state.storyPoints} onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'storyPoints', value: e.target.value })} placeholder="Optional" disabled={isPending} />
+                <label htmlFor="story-points" className="text-sm font-medium">Story Points</label>
+                <Input id="story-points" type="number" min="0" step="0.5" value={state.storyPoints} onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'storyPoints', value: e.target.value })} placeholder="Optional" disabled={isPending} />
               </div>
             )}
 
             {isSubtask && (
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium">Time Estimate</label>
-                <Input value={state.timeEstimate} onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'timeEstimate', value: e.target.value })} placeholder="e.g. 2h, 1d 3h, 30m" disabled={isPending} />
+                <label htmlFor="time-estimate" className="text-sm font-medium">Time Estimate</label>
+                <Input id="time-estimate" value={state.timeEstimate} onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'timeEstimate', value: e.target.value })} placeholder="e.g. 2h, 1d 3h, 30m" disabled={isPending} />
               </div>
             )}
 
