@@ -104,8 +104,8 @@ describe('ConnectionsSection', () => {
 
   it('renders a Jira card and a GitLab card', () => {
     render(<ConnectionsSection />);
-    expect(screen.getByText(/jira/i)).toBeInTheDocument();
-    expect(screen.getByText(/gitlab/i)).toBeInTheDocument();
+    expect(screen.getByText('Jira', { selector: 'span' })).toBeInTheDocument();
+    expect(screen.getByText('GitLab', { selector: 'span' })).toBeInTheDocument();
   });
 
   it('Test Connection button is present on each card', () => {
