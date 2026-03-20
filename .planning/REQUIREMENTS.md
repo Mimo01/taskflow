@@ -47,7 +47,7 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 
 ### Accessibility
 
-- [ ] **A11Y-01**: All form inputs in CreateEditIssueModal and ConnectionsSection have proper aria labels
+- [x] **A11Y-01**: All form inputs in CreateEditIssueModal and ConnectionsSection have proper aria labels
 - [x] **A11Y-02**: Custom dropdowns use semantic HTML or proper ARIA roles
 
 ### Developer Tools
@@ -99,7 +99,7 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 | TYPE-02 | Phase 27 | Complete |
 | PERF-01 | Phase 28 | Complete |
 | PERF-02 | Phase 28 | Complete |
-| A11Y-01 | Phase 30 | Pending |
+| A11Y-01 | Phase 30 | Complete |
 | A11Y-02 | Phase 28 | Complete |
 | DEVT-01 | Phase 29 | Complete |
 | DEVT-02 | Phase 29 | Complete |
