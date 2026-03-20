@@ -102,14 +102,14 @@ pub fn run() {
             )?;
 
             // --- Debug menu (added/removed at runtime via toggle_debug_menu command) ---
-            let debug_logs_item = MenuItemBuilder::new("Debug Logs")
-                .id("menu-debug-logs")
+            let dev_tools_item = MenuItemBuilder::new("Developer Tools")
+                .id("menu-dev-tools")
                 .build(handle)?;
             let debug_submenu = Submenu::with_items(
                 handle,
-                "Debug",
+                "Dev Tools",
                 true,
-                &[&debug_logs_item],
+                &[&dev_tools_item],
             )?;
             app.manage(DebugMenuState {
                 submenu: debug_submenu,
@@ -155,7 +155,7 @@ pub fn run() {
                 | "menu-nav-backlog"
                 | "menu-nav-notifications"
                 | "menu-nav-settings"
-                | "menu-debug-logs" => {
+                | "menu-dev-tools" => {
                     let _ = app.emit(id, ());
                 }
                 _ => {}
