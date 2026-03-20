@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Internal Quality & Performance
 status: unknown
-stopped_at: Completed 29-04-PLAN.md
-last_updated: "2026-03-20T12:00:01.449Z"
+stopped_at: Completed 29-05-PLAN.md
+last_updated: "2026-03-20T13:16:04.235Z"
 progress:
   total_phases: 5
   completed_phases: 5
-  total_plans: 19
-  completed_plans: 19
+  total_plans: 20
+  completed_plans: 20
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-19)
 ## Current Position
 
 Phase: 29 (developer-tools) — COMPLETE
-Plan: 4 of 4
+Plan: 5 of 5
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Plan: 4 of 4
 | Phase 29 P02 | 3min | 2 tasks | 9 files |
 | Phase Phase 29 P03 P29-03 | 7min | 2 tasks | 25 files |
 | Phase 29 P04 | 6min | 2 tasks | 2 files |
+| Phase 29 P05 | 5min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,7 @@ Recent decisions affecting current work:
 - [Phase 29]: 57 apiFetch call sites annotated (exceeds 15-20 target) for comprehensive profiler coverage
 - [Phase 29]: Advanced section removed from Settings entirely since DebugModeSection was its only content
 - [Phase 29]: Left DebugMenuState struct and toggle_debug_menu command names unchanged (internal Rust identifiers, no user-facing impact)
+- [Phase 29]: Per-operation scoped timelines instead of global timeline to avoid invisible bar slivers
 
 ### Pending Todos
 
@@ -100,8 +102,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T10:02:12.042Z
-Stopped at: Completed 29-04-PLAN.md
+Last session: 2026-03-20T13:16:04.218Z
+Stopped at: Completed 29-05-PLAN.md
 Resume: 28-04 complete. 3 components virtualized with @tanstack/react-virtual. All 42 component tests pass.
 
 ### Quick Tasks Completed
