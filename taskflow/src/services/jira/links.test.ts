@@ -50,6 +50,7 @@ describe('links', () => {
         'jira',
         expect.stringContaining('/issueLink'),
         expect.objectContaining({ method: 'POST' }),
+        'Manage Links',
       );
       // Verify body structure
       const callBody = JSON.parse(mockedApiFetch.mock.calls[0][2]?.body as string);

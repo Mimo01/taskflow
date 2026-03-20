@@ -11,7 +11,7 @@ import ReleasesTab from './dashboard/ReleasesTab';
 import SprintBoardTab from './dashboard/SprintBoardTab';
 import SprintProgressTab from './dashboard/SprintProgressTab';
 import WorkloadTab from './dashboard/WorkloadTab';
-import DebugLogs from './debug-logs/index';
+import DevTools from './dev-tools/index';
 import Onboarding from './onboarding/index';
 import Settings from './settings/index';
 
@@ -27,7 +27,7 @@ export const routes: RouteObject[] = [
   { path: '/sprint-progress', element: <SprintProgressTab /> },
   { path: '/workload', element: <WorkloadTab /> },
   { path: '/releases', element: <ReleasesTab /> },
-  { path: '/debug-logs', element: <DebugLogs /> },
+  { path: '/dev-tools', element: <DevTools /> },
   { path: '/issue/:key', element: <IssueDetailPage /> },
   { path: '/merge-requests', element: <MergeRequestListPage /> },
   { path: '/mr/:projectId/:iid', element: <MergeRequestDetailPage /> },

@@ -149,6 +149,7 @@ describe('issues service', () => {
         'jira',
         expect.stringContaining('/rest/api/2/issue'),
         expect.objectContaining({ method: 'POST' }),
+        'Create/Edit Issue',
       );
     });
 
@@ -186,6 +187,7 @@ describe('issues service', () => {
         'jira',
         expect.stringContaining('/rest/api/2/issue/PROJ-1'),
         expect.objectContaining({ method: 'PUT' }),
+        'Create/Edit Issue',
       );
     });
 

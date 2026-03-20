@@ -14,7 +14,6 @@
 import {
   BarChart2,
   BookOpen,
-  Bug,
   CheckSquare,
   ChevronLeft,
   ChevronRight,
@@ -40,7 +39,7 @@ function navLinkClassFn(collapsed: boolean) {
 }
 
 export default function Sidebar() {
-  const { role, devToolsEnabled } = useSettingsStore();
+  const { role } = useSettingsStore();
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);
   const toggleSidebarCollapsed = useSettingsStore((s) => s.toggleSidebarCollapsed);
   const [hovered, setHovered] = useState(false);
@@ -201,18 +200,8 @@ export default function Sidebar() {
         )}
       </nav>
 
-      {/* Bottom: Debug Logs (when enabled) + Settings */}
+      {/* Bottom: Settings */}
       <div className="px-2 py-4 border-t border-border flex flex-col gap-1">
-        {devToolsEnabled && (
-          <NavLink
-            to="/debug-logs"
-            className={navLinkClass}
-            title={sidebarCollapsed ? 'Debug Logs' : undefined}
-          >
-            <Bug className="h-4 w-4 shrink-0" />
-            <span className={labelClass}>Debug Logs</span>
-          </NavLink>
-        )}
         <NavLink
           to="/settings"
           className={navLinkClass}

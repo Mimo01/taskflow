@@ -26,7 +26,7 @@ describe('comments', () => {
 
       const result = await fetchComments(baseUrl, token, issueKey);
       expect(result).toEqual(comments);
-      expect(mockedApiFetch).toHaveBeenCalledWith('jira', expect.stringContaining(`/issue/${issueKey}/comment`), expect.any(Object));
+      expect(mockedApiFetch).toHaveBeenCalledWith('jira', expect.stringContaining(`/issue/${issueKey}/comment`), expect.any(Object), 'Load Issue Detail');
     });
 
     it('throws ApiError on 401', async () => {
@@ -51,6 +51,7 @@ describe('comments', () => {
         'jira',
         expect.stringContaining(`/issue/${issueKey}/comment`),
         expect.objectContaining({ method: 'POST' }),
+        'Manage Comments',
       );
     });
 
@@ -76,6 +77,7 @@ describe('comments', () => {
         'jira',
         expect.stringContaining(`/issue/${issueKey}/comment/c-1`),
         expect.objectContaining({ method: 'PUT' }),
+        'Manage Comments',
       );
     });
 
@@ -101,6 +103,7 @@ describe('comments', () => {
         'jira',
         expect.stringContaining(`/issue/${issueKey}/comment/c-1`),
         expect.objectContaining({ method: 'DELETE' }),
+        'Manage Comments',
       );
     });
 
