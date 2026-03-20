@@ -5,6 +5,7 @@
  * Max 200 entries enforced with FIFO eviction on overflow.
  */
 import { create } from 'zustand';
+import { useSettingsStore } from './settings.store';
 
 export interface ApiLogEntry {
   id: string; // crypto.randomUUID()
@@ -17,6 +18,7 @@ export interface ApiLogEntry {
   durationMs: number;
   responseBody: string; // raw text, truncated to 10_000 chars if longer
   error?: string; // set only on network-level failure (catch block)
+  operation?: string; // optional operation label for grouping
 }
 
 interface DebugLogState {
@@ -25,14 +27,21 @@ interface DebugLogState {
   clear: () => void;
 }
 
-const MAX_ENTRIES = 200;
+const getRetentionLimit = () => {
+  try {
+    return (useSettingsStore.getState() as { retentionLimit?: number }).retentionLimit ?? 200;
+  } catch {
+    return 200;
+  }
+};
 
 export const useDebugLogStore = create<DebugLogState>((set) => ({
   entries: [],
   append: (entry) =>
     set((s) => {
+      const limit = getRetentionLimit();
       const next = [entry, ...s.entries];
-      return { entries: next.length > MAX_ENTRIES ? next.slice(0, MAX_ENTRIES) : next };
+      return { entries: next.length > limit ? next.slice(0, limit) : next };
     }),
   clear: () => set({ entries: [] }),
 }));

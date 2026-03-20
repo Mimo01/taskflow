@@ -23,7 +23,7 @@ import { useNotificationsStore } from '../../stores/notifications.store';
 import { useSettingsStore } from '../../stores/settings.store';
 
 export default function DebugModeSection() {
-  const { debugMode, setDebugMode } = useSettingsStore();
+  const { devToolsEnabled, setDevToolsEnabled } = useSettingsStore();
   const clearAll = useNotificationsStore((s) => s.clearAll);
   const itemCount = useNotificationsStore((s) => s.items.length);
   const [cleared, setCleared] = useState(false);
@@ -53,8 +53,8 @@ export default function DebugModeSection() {
         <input
           type="checkbox"
           aria-label="Enable API call logging"
-          checked={debugMode}
-          onChange={(e) => setDebugMode(e.target.checked)}
+          checked={devToolsEnabled}
+          onChange={(e) => setDevToolsEnabled(e.target.checked)}
           className="h-4 w-4 accent-primary shrink-0"
         />
       </label>
