@@ -206,4 +206,4 @@ Plans:
 | 27. Refactoring & Type Safety | 5/5 | Complete    | 2026-03-19 | - |
 | 28. Test Coverage, Performance & Accessibility | 5/5 | Complete    | 2026-03-20 | - |
 | 29. Developer Tools | 5/5 | Complete    | 2026-03-20 | - |
-| 30. Fix A11Y-01 Test Regression & Checkbox Cleanup | 1/1 | Complete   | 2026-03-20 | - |
+| 30. Fix A11Y-01 Test Regression & Checkbox Cleanup | 1/1 | Complete    | 2026-03-20 | - |
