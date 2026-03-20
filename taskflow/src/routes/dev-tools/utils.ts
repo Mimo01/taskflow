@@ -11,10 +11,10 @@ export function formatBody(raw: string): string {
 }
 
 export function statusColor(status: number | null): string {
-  if (status === null) return 'text-muted-foreground';
+  if (status === null) return 'bg-red-500/15 text-red-600 dark:text-red-400';
   if (status >= 200 && status < 300) return 'text-green-600 dark:text-green-400';
   if (status >= 300 && status < 400) return 'text-yellow-600 dark:text-yellow-400';
-  return 'text-red-600 dark:text-red-400';
+  return 'bg-red-500/15 text-red-600 dark:text-red-400';
 }
 
 export function sourceBadgeClass(source: 'jira' | 'gitlab'): string {
