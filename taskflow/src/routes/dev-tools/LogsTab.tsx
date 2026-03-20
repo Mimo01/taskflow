@@ -11,10 +11,8 @@ import { formatBody, statusColor, sourceBadgeClass } from './utils';
 
 function LogCard({ entry }: { entry: ApiLogEntry }) {
   const [open, setOpen] = useState(false);
-  const isError = entry.status === null || (entry.status !== null && entry.status >= 400);
-
   return (
-    <div className={`border rounded-lg overflow-hidden ${isError ? 'border-red-500/40 bg-red-500/[0.04]' : 'border-border'}`}>
+    <div className="border border-border rounded-lg overflow-hidden">
       {/* Summary row */}
       <button
         onClick={() => setOpen((o) => !o)}
@@ -27,7 +25,7 @@ function LogCard({ entry }: { entry: ApiLogEntry }) {
           </span>
         )}
         <span className="font-mono font-semibold shrink-0">{entry.method}</span>
-        <span className={`shrink-0 font-mono font-semibold ${statusColor(entry.status)}`}>
+        <span className={`shrink-0 font-mono font-semibold rounded px-1.5 py-0.5 ${statusColor(entry.status)}`}>
           {entry.status ?? 'ERR'}
         </span>
         <span className="font-mono text-xs truncate flex-1 text-muted-foreground">{entry.url}</span>
