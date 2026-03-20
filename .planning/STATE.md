@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Internal Quality & Performance
 status: unknown
-stopped_at: Phase 29 context gathered
-last_updated: "2026-03-20T08:55:39.023Z"
+stopped_at: Completed 29-01-PLAN.md
+last_updated: "2026-03-20T09:34:16.963Z"
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 15
-  completed_plans: 15
+  total_plans: 18
+  completed_plans: 16
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-19)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Phase 28 — test-coverage-performance-accessibility
+**Current focus:** Phase 29 — developer-tools
 
 ## Current Position
 
-Phase: 28 (test-coverage-performance-accessibility) — EXECUTING
-Plan: 5 of 5
+Phase: 29 (developer-tools) — EXECUTING
+Plan: 2 of 3
 
 ## Performance Metrics
 
@@ -50,6 +50,7 @@ Plan: 5 of 5
 | Phase 28 P01 | 2min | 2 tasks | 6 files |
 | Phase 28 P02 | 7min | 2 tasks | 6 files |
 | Phase 28 P04 | 10min | 2 tasks | 4 files |
+| Phase 29 P01 | 5min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,7 @@ Recent decisions affecting current work:
 - [28-04]: VirtualizedBacklogTable extracted as component (hooks cannot be called inside renderSection function)
 - [28-04]: jsdom/SSR fallback: render all rows when virtualizer returns 0 items (no scroll dimensions)
 - [28-04]: SprintBoardTab scroll element found via document.querySelector('main')
+- [Phase 29]: debugMode replaced by 6 granular dev tools toggles (devToolsEnabled, requestLogging, responseBodyCapture, operationProfiling, performanceWaterfall, retentionLimit)
 
 ### Pending Todos
 
@@ -91,8 +93,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T08:55:39.017Z
-Stopped at: Phase 29 context gathered
+Last session: 2026-03-20T09:34:16.959Z
+Stopped at: Completed 29-01-PLAN.md
 Resume: 28-04 complete. 3 components virtualized with @tanstack/react-virtual. All 42 component tests pass.
 
 ### Quick Tasks Completed
