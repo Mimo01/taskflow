@@ -12,6 +12,7 @@
  * Create story entry point via Outlet context remains unchanged.
  */
 
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight, Inbox } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -36,6 +37,129 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useFilterStore } from '@/stores/filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { BacklogRow } from './BacklogRow';
+
+// ── Virtualized table body ────────────────────────────────────────────────────
+
+function VirtualizedBacklogTable({
+  filteredIssues,
+  scrollElement,
+  selectedKeys,
+  onSelect,
+  onIssueClick,
+  storyPointsFieldKey,
+  epicLinkFieldKey,
+  epicNameFieldKey,
+  epicNames,
+  epicColors,
+  visibleIssueKeys,
+  focusIndex,
+  rowRefs,
+}: {
+  filteredIssues: JiraIssue[];
+  scrollElement: HTMLDivElement | null;
+  selectedKeys: Set<string>;
+  onSelect: (key: string, selected: boolean) => void;
+  onIssueClick: (key: string) => void;
+  storyPointsFieldKey: string;
+  epicLinkFieldKey: string;
+  epicNameFieldKey: string;
+  epicNames?: Map<string, string>;
+  epicColors?: Map<string, string>;
+  visibleIssueKeys: string[];
+  focusIndex: number;
+  rowRefs: React.MutableRefObject<Map<string, HTMLTableRowElement>>;
+}) {
+  const rowVirtualizer = useVirtualizer({
+    count: filteredIssues.length,
+    getScrollElement: () => scrollElement,
+    estimateSize: () => 44,
+    overscan: 10,
+  });
+
+  const virtualItems = rowVirtualizer.getVirtualItems();
+  // Fallback: when virtualizer returns no items (e.g. jsdom, SSR, zero-height
+  // container) render all rows without positioning so the UI remains functional.
+  const useVirtual = virtualItems.length > 0;
+
+  function renderRow(issue: JiraIssue, style?: React.CSSProperties) {
+    return (
+      <BacklogRow
+        key={issue.key}
+        ref={(el: HTMLTableRowElement | null) => {
+          if (el) {
+            rowRefs.current.set(issue.key, el);
+            if (style) {
+              el.style.position = style.position as string;
+              el.style.top = style.top as string;
+              el.style.left = style.left as string;
+              el.style.width = style.width as string;
+              el.style.height = style.height as string;
+              el.style.transform = style.transform as string;
+            }
+          } else {
+            rowRefs.current.delete(issue.key);
+          }
+        }}
+        issue={issue}
+        selected={selectedKeys.has(issue.key)}
+        onSelect={onSelect}
+        onIssueClick={onIssueClick}
+        storyPointsFieldKey={storyPointsFieldKey}
+        epicLinkFieldKey={epicLinkFieldKey}
+        epicNameFieldKey={epicNameFieldKey}
+        epicNames={epicNames}
+        epicColors={epicColors}
+        isFocused={visibleIssueKeys[focusIndex] === issue.key}
+      />
+    );
+  }
+
+  return (
+    <table className="w-full text-sm">
+      <thead className="border-b bg-muted/10">
+        <tr>
+          <th className="w-8 px-3 py-2" />
+          <th className="w-24 px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+            Key
+          </th>
+          <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+            Epic
+          </th>
+          <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
+            Summary
+          </th>
+          <th className="w-14 px-2 py-2 text-right text-xs font-medium text-muted-foreground">
+            Points
+          </th>
+          <th className="w-10 px-2 py-2 text-xs font-medium text-muted-foreground">
+            Assignee
+          </th>
+        </tr>
+      </thead>
+      <tbody
+        style={
+          useVirtual
+            ? { height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }
+            : undefined
+        }
+      >
+        {useVirtual
+          ? virtualItems.map((virtualRow) => {
+              const issue = filteredIssues[virtualRow.index];
+              return renderRow(issue, {
+                position: 'absolute',
+                top: '0',
+                left: '0',
+                width: '100%',
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${virtualRow.start}px)`,
+              });
+            })
+          : filteredIssues.map((issue) => renderRow(issue))}
+      </tbody>
+    </table>
+  );
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -330,6 +454,7 @@ export default function BacklogPage() {
     enabled: !isLoading && visibleIssueKeys.length > 0,
   });
 
+  const scrollRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
 
   useEffect(() => {
@@ -443,49 +568,21 @@ export default function BacklogPage() {
         {!isCollapsed && (
           <div>
             {filteredIssues.length > 0 ? (
-              <table className="w-full text-sm">
-                <thead className="border-b bg-muted/10">
-                  <tr>
-                    <th className="w-8 px-3 py-2" />
-                    <th className="w-24 px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                      Key
-                    </th>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                      Epic
-                    </th>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
-                      Summary
-                    </th>
-                    <th className="w-14 px-2 py-2 text-right text-xs font-medium text-muted-foreground">
-                      Points
-                    </th>
-                    <th className="w-10 px-2 py-2 text-xs font-medium text-muted-foreground">
-                      Assignee
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredIssues.map((issue) => (
-                    <BacklogRow
-                      key={issue.key}
-                      ref={(el: HTMLTableRowElement | null) => {
-                        if (el) rowRefs.current.set(issue.key, el);
-                        else rowRefs.current.delete(issue.key);
-                      }}
-                      issue={issue}
-                      selected={selectedKeys.has(issue.key)}
-                      onSelect={handleSelect}
-                      onIssueClick={onIssueClick}
-                      storyPointsFieldKey={storyPointsFieldKey}
-                      epicLinkFieldKey={epicLinkFieldKey}
-                      epicNameFieldKey={epicNameFieldKey}
-                      epicNames={backlogView?.epicNames}
-                      epicColors={backlogView?.epicColors}
-                      isFocused={visibleIssueKeys[focusIndex] === issue.key}
-                    />
-                  ))}
-                </tbody>
-              </table>
+              <VirtualizedBacklogTable
+                filteredIssues={filteredIssues}
+                scrollElement={scrollRef.current}
+                selectedKeys={selectedKeys}
+                onSelect={handleSelect}
+                onIssueClick={onIssueClick}
+                storyPointsFieldKey={storyPointsFieldKey}
+                epicLinkFieldKey={epicLinkFieldKey}
+                epicNameFieldKey={epicNameFieldKey}
+                epicNames={backlogView?.epicNames}
+                epicColors={backlogView?.epicColors}
+                visibleIssueKeys={visibleIssueKeys}
+                focusIndex={focusIndex}
+                rowRefs={rowRefs}
+              />
             ) : issues.length > 0 ? (
               /* All issues filtered out */
               <p className="px-4 py-3 text-sm text-muted-foreground">
@@ -534,7 +631,7 @@ export default function BacklogPage() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 overflow-auto">
+      <div ref={scrollRef} className="flex-1 overflow-auto">
         {/* Filter bar — scrolls with content */}
         <UnifiedFilterBar filterOptions={filterOptions} />
         {/* Error state — no cached data */}
