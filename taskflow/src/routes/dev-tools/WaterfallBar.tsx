@@ -7,6 +7,7 @@
  */
 import { useState } from 'react';
 import type { FetchRecord, Operation } from '../../stores/operation-profiler.store';
+import { formatBytes } from './utils';
 
 // Stronger colors for fetch bars
 function fetchBarColor(source: 'jira' | 'gitlab', hasError: boolean): string {
@@ -91,10 +92,16 @@ export default function WaterfallBar({ operation }: { operation: Operation }) {
         <div className="flex-1 relative h-6">
           <div className={`absolute inset-0 rounded-sm ${opBarColor(operation.fetches)}`}>
             <span className="relative text-xs font-mono ml-2 leading-6 whitespace-nowrap">
-              {operation.wallClockMs}ms
-              <span className="ml-2 text-muted-foreground">
-                ({operation.fetches.length} fetch{operation.fetches.length !== 1 ? 'es' : ''})
-              </span>
+              {operation.wallClockMs}ms wall
+              <span className="mx-1 text-muted-foreground">|</span>
+              {operation.serverTimeMs}ms server
+              <span className="mx-1 text-muted-foreground">|</span>
+              {operation.fetches.length} fetch{operation.fetches.length !== 1 ? 'es' : ''}
+              {operation.fetches.length >= 2 && operation.wallClockMs > 0 && (
+                <span className="ml-1.5 text-muted-foreground/70">
+                  ({Math.round((operation.serverTimeMs / operation.wallClockMs) * 100)}% overlap)
+                </span>
+              )}
             </span>
           </div>
         </div>
@@ -125,46 +132,58 @@ export default function WaterfallBar({ operation }: { operation: Operation }) {
           </div>
 
           {/* Fetch lanes */}
-          <div className="relative" style={{ minHeight: `${laneCount * 28 + 4}px` }}>
-            {laneData.map(({ fetch, lane, leftPct, widthPct }) => (
-              <div
-                key={fetch.id}
-                className="absolute flex items-center"
-                style={{
-                  top: `${lane * 28}px`,
-                  left: `${leftPct}%`,
-                  width: `${widthPct}%`,
-                  height: '24px',
-                }}
-              >
+          <div className="relative" style={{ minHeight: `${laneCount * 44 + 4}px` }}>
+            {laneData.map(({ fetch, lane, leftPct, widthPct }) => {
+              const isWide = widthPct >= 8;
+              const statusColorClass =
+                fetch.status === null || (fetch.status >= 400)
+                  ? 'text-red-300'
+                  : fetch.status >= 300
+                    ? 'text-yellow-300'
+                    : 'text-white';
+
+              return (
                 <div
-                  className={`h-full w-full rounded-sm ${fetchBarColor(fetch.source, !!fetch.error)} relative overflow-hidden`}
-                  title={`${fetch.method} ${fetch.url}\nStatus: ${fetch.status ?? 'error'}\nDuration: ${fetch.durationMs}ms`}
+                  key={fetch.id}
+                  className="absolute flex items-center"
+                  style={{
+                    top: `${lane * 44}px`,
+                    left: `${leftPct}%`,
+                    width: `${widthPct}%`,
+                    height: '40px',
+                  }}
                 >
-                  {/* Smart label: inside if wide enough, otherwise overflow visible */}
-                  <span className="absolute inset-0 flex items-center px-1 text-[11px] font-mono text-white dark:text-white whitespace-nowrap">
-                    {fetch.durationMs}ms
-                  </span>
+                  <div
+                    className={`h-full w-full rounded-sm ${fetchBarColor(fetch.source, !!fetch.error)} relative overflow-hidden`}
+                    title={`${fetch.method} ${fetch.url}\nStatus: ${fetch.status ?? 'error'}\nDuration: ${fetch.durationMs}ms\nSize: ${formatBytes(fetch.responseSize)}`}
+                  >
+                    {isWide ? (
+                      <div className="absolute inset-0 flex flex-col justify-center px-1.5">
+                        <span className="text-[10px] font-mono text-white whitespace-nowrap truncate">
+                          {fetch.method} {shortPath(fetch.url)}
+                        </span>
+                        <span className="text-[10px] font-mono text-white/80 whitespace-nowrap truncate">
+                          <span className={statusColorClass}>{fetch.status ?? 'err'}</span>
+                          {' | '}{fetch.durationMs}ms{' | '}{formatBytes(fetch.responseSize)}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="absolute inset-0 flex items-center px-1 text-[11px] font-mono text-white dark:text-white whitespace-nowrap">
+                        {fetch.durationMs}ms
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
-          {/* Fetch detail labels below lanes */}
-          <div className="mt-1 flex flex-col gap-0.5 pt-5">
-            {laneData.map(({ fetch }) => (
-              <span
-                key={fetch.id}
-                className="text-[10px] font-mono text-muted-foreground truncate"
-              >
-                {fetch.method} {fetch.source} {shortPath(fetch.url)}
-                {fetch.status !== null && fetch.status >= 400 && (
-                  <span className="text-red-500 ml-1">[{fetch.status}]</span>
-                )}
-                {fetch.error && <span className="text-red-500 ml-1">[err]</span>}
-              </span>
-            ))}
-          </div>
+          {/* Total response size */}
+          <span className="text-[10px] font-mono text-muted-foreground mt-1">
+            Total: {formatBytes(
+              operation.fetches.reduce((sum, f) => sum + (f.responseSize ?? 0), 0) || undefined
+            )}
+          </span>
         </div>
       )}
     </div>
