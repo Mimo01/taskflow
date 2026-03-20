@@ -57,7 +57,7 @@ export function IssueDetailSidebar({
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token) return null;
       const url = `${effectiveJiraBaseUrl.replace(/\/$/, '')}/rest/api/2/issue/${epicLink}?fields=summary,${epicNameFieldKey},${epicColorFieldKey}`;
-      const resp = await apiFetch('jira', url, { headers: { Authorization: `Bearer ${token}` } });
+      const resp = await apiFetch('jira', url, { headers: { Authorization: `Bearer ${token}` } }, 'Load Issue Detail');
       if (!resp.ok) return null;
       return resp.json() as Promise<{ fields: { summary: string; [k: string]: unknown } }>;
     },
@@ -76,7 +76,7 @@ export function IssueDetailSidebar({
       try {
         const resp = await apiFetch('gitlab', url, {
           headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
-        });
+        }, 'Load Issue Detail');
         if (!resp.ok) return [] as GitLabMR[];
         return (await resp.json()) as GitLabMR[];
       } catch {

@@ -16,7 +16,7 @@ export async function fetchComments(
   try {
     response = await apiFetch('jira', url, {
       headers: { Authorization: `Bearer ${token}` },
-    });
+    }, 'Load Issue Detail');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -50,7 +50,7 @@ export async function postComment(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ body }),
-    });
+    }, 'Manage Comments');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -81,7 +81,7 @@ export async function updateComment(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ body }),
-    });
+    }, 'Manage Comments');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -109,7 +109,7 @@ export async function deleteComment(
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    });
+    }, 'Manage Comments');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }

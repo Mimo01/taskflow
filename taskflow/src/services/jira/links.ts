@@ -17,7 +17,7 @@ export async function fetchIssueLinkTypes(
   token: string,
 ): Promise<IssueLinkType[]> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issueLinkType`;
-  const resp = await apiFetch('jira', url, { headers: { Authorization: `Bearer ${token}` } });
+  const resp = await apiFetch('jira', url, { headers: { Authorization: `Bearer ${token}` } }, 'Load Issue Detail');
   if (!resp.ok) return [];
   const data = await resp.json();
   return data.issueLinkTypes ?? [];
@@ -47,7 +47,7 @@ export async function createIssueLink(
       inwardIssue: { key: inwardKey },
       outwardIssue: { key: outwardKey },
     }),
-  });
+  }, 'Manage Links');
   if (!response.ok && response.status !== 201) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError('Failed to create issue link', response.status, 'jira');

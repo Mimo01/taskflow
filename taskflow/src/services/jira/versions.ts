@@ -29,7 +29,7 @@ export async function fetchFixVersions(
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-    });
+    }, 'Load Releases');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }

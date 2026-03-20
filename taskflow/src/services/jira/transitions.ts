@@ -23,7 +23,7 @@ export async function fetchTransitions(
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-    });
+    }, 'Load Fields');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -59,7 +59,7 @@ export async function postTransition(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ transition: { id: transitionId } }),
-    });
+    }, 'Issue Transition');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
