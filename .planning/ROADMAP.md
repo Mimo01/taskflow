@@ -186,5 +186,5 @@ Plans:
 | 25. Tooling & Dependencies | 2/2 | Complete    | 2026-03-19 | - |
 | 26. Test Regression Fixes | 3/3 | Complete    | 2026-03-19 | - |
 | 27. Refactoring & Type Safety | 5/5 | Complete    | 2026-03-19 | - |
-| 28. Test Coverage, Performance & Accessibility | 2/5 | In Progress|  | - |
+| 28. Test Coverage, Performance & Accessibility | 4/5 | In Progress|  | - |
 | 29. Developer Tools | v1.4 | 0/? | Not started | - |
