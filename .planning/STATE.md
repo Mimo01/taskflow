@@ -102,8 +102,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T13:16:04.218Z
-Stopped at: Completed 29-05-PLAN.md
+Last session: 2026-03-20T16:22:00Z
+Stopped at: Completed quick task 260320-nz1
 Resume: 28-04 complete. 3 components virtualized with @tanstack/react-virtual. All 42 component tests pass.
 
 ### Quick Tasks Completed
@@ -111,3 +111,4 @@ Resume: 28-04 complete. 3 components virtualized with @tanstack/react-virtual. A
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260319-qkn | Add global gitignore with .claude and remove .claude from git | 2026-03-19 | a7e1702 | [260319-qkn-add-global-gitignore-with-claude-and-rem](./quick/260319-qkn-add-global-gitignore-with-claude-and-rem/) |
+| 260320-nz1 | Improve dev tools waterfall with response size, inline bar details, parallelism % | 2026-03-20 | 451c227 | [260320-nz1-improve-dev-tools-waterfall-with-more-de](./quick/260320-nz1-improve-dev-tools-waterfall-with-more-de/) |
