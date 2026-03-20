@@ -156,4 +156,4 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - Accessibility fixes
 
 ---
-*Last updated: 2026-03-19 after Phase 27 (refactoring-type-safety) complete — jira.ts decomposed into 14 modules, 2 large components split, all double-casts eliminated, noExplicitAny enforced*
+*Last updated: 2026-03-20 after Phase 28 (test-coverage-performance-accessibility) complete — 144 unit tests added (Jira services + Zustand stores), 3 lists virtualized with @tanstack/react-virtual, ARIA labels added to forms, memoized unread count*
