@@ -51,7 +51,7 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 - [ ] Codebase hardened with comprehensive test coverage, consistent patterns, and automated linting (Biome linting validated in Phase 25; refactoring & type safety validated in Phase 27)
 - ✓ API services decomposed into focused domain modules — Validated in Phase 27: refactoring-type-safety
-- [ ] Unified Developer Tools with request logging, operation profiling, and granular settings
+- ✓ Unified Developer Tools with request logging, operation profiling, and granular settings — Validated in Phase 29: developer-tools
 - ✓ All dependencies updated to latest compatible versions — Validated in Phase 25: tooling-dependencies
 
 ### Out of Scope
@@ -156,4 +156,4 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - Accessibility fixes
 
 ---
-*Last updated: 2026-03-20 after Phase 28 (test-coverage-performance-accessibility) complete — 144 unit tests added (Jira services + Zustand stores), 3 lists virtualized with @tanstack/react-virtual, ARIA labels added to forms, memoized unread count*
+*Last updated: 2026-03-20 after Phase 29 (developer-tools) complete — Developer Tools page with API logs, operation profiling, waterfall visualization; Settings → Advanced section; Cmd+Shift+D shortcut; native menu integration*
