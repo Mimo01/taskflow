@@ -53,8 +53,8 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 ### Developer Tools
 
 - [ ] **DEVT-01**: Unified Developer Tools page combining debug logs and API profiler in a cohesive layout
-- [ ] **DEVT-02**: Operation-level profiling groups multiple fetches into logical operations with total time, fetch count, and per-fetch breakdown
-- [ ] **DEVT-03**: Granular settings panel with independent toggles: request logging, response body capture, operation profiling, performance waterfall, retention limit
+- [x] **DEVT-02**: Operation-level profiling groups multiple fetches into logical operations with total time, fetch count, and per-fetch breakdown
+- [x] **DEVT-03**: Granular settings panel with independent toggles: request logging, response body capture, operation profiling, performance waterfall, retention limit
 - [ ] **DEVT-04**: Developer Tools hidden from main Settings navigation — accessible only via Cmd+Shift+D or command palette
 - [ ] **DEVT-05**: Performance waterfall visualization showing operation timeline with fetch durations
 
@@ -102,8 +102,8 @@ Requirements for v1.4 Internal Quality & Performance. Each maps to roadmap phase
 | A11Y-01 | Phase 28 | Pending |
 | A11Y-02 | Phase 28 | Pending |
 | DEVT-01 | Phase 29 | Pending |
-| DEVT-02 | Phase 29 | Pending |
-| DEVT-03 | Phase 29 | Pending |
+| DEVT-02 | Phase 29 | Complete |
+| DEVT-03 | Phase 29 | Complete |
 | DEVT-04 | Phase 29 | Pending |
 | DEVT-05 | Phase 29 | Pending |
 
