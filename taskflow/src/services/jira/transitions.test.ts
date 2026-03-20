@@ -50,6 +50,7 @@ describe('transitions', () => {
         'jira',
         expect.stringContaining(`/issue/${issueKey}/transitions`),
         expect.objectContaining({ method: 'POST' }),
+        'Issue Transition',
       );
       // Verify body contains transition id
       const callBody = JSON.parse(mockedApiFetch.mock.calls[0][2]?.body as string);

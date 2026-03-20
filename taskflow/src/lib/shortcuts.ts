@@ -100,6 +100,14 @@ export const SHORTCUTS: ShortcutEntry[] = [
     navMeta: { label: 'Settings', route: '/settings' },
   },
   {
+    id: 'nav-devtools',
+    defaultKey: '⌘⇧D',
+    description: 'Open Developer Tools',
+    category: 'Navigation',
+    displayKeys: ['⌘', '⇧', 'D'],
+    navMeta: { label: 'Developer Tools', route: '/dev-tools' },
+  },
+  {
     id: 'toggle-sidebar',
     defaultKey: '⌘B',
     description: 'Toggle sidebar',

@@ -122,6 +122,7 @@ describe('sprints service', () => {
         'jira',
         expect.stringContaining('/rest/agile/1.0/sprint/1/issue'),
         expect.objectContaining({ method: 'POST' }),
+        'Load Sprint Board',
       );
     });
 

@@ -12,12 +12,11 @@
  *   - RoleSection: existing, unchanged
  */
 
-import { Bell, GitBranch, Link2, Palette, Settings2, UserCog } from 'lucide-react';
+import { Bell, GitBranch, Link2, Palette, UserCog } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import AppearanceSection from './AppearanceSection';
 import ConnectionsSection from './ConnectionsSection';
-import DebugModeSection from './DebugModeSection';
 import NotificationsSection from './NotificationsSection';
 import RoleSection from './RoleSection';
 import WorkflowSection from './WorkflowSection';
@@ -27,8 +26,7 @@ type SettingsSection =
   | 'appearance'
   | 'notifications'
   | 'workflow'
-  | 'role'
-  | 'advanced';
+  | 'role';
 
 const SECTIONS: { id: SettingsSection; label: string; icon: React.ReactNode }[] = [
   { id: 'connections', label: 'Connections', icon: <Link2 className="h-4 w-4" /> },
@@ -36,7 +34,6 @@ const SECTIONS: { id: SettingsSection; label: string; icon: React.ReactNode }[] 
   { id: 'notifications', label: 'Notifications', icon: <Bell className="h-4 w-4" /> },
   { id: 'workflow', label: 'Workflow', icon: <GitBranch className="h-4 w-4" /> },
   { id: 'role', label: 'Role', icon: <UserCog className="h-4 w-4" /> },
-  { id: 'advanced', label: 'Advanced', icon: <Settings2 className="h-4 w-4" /> },
 ];
 
 export default function Settings() {
@@ -78,12 +75,6 @@ export default function Settings() {
         {activeSection === 'role' && (
           <div data-testid="section-role">
             <RoleSection />
-          </div>
-        )}
-        {activeSection === 'advanced' && (
-          <div data-testid="section-advanced" className="flex flex-col gap-8">
-            <h2 className="text-lg font-semibold">Advanced</h2>
-            <DebugModeSection />
           </div>
         )}
       </div>
