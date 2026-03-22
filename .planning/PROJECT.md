@@ -54,6 +54,16 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ Virtualized rendering for long lists (backlog, notifications, sprint board) — v1.4
 - ✓ Zero `any` types and zero double-casts in production code — v1.4
 
+- ✓ Time tracking with worklog CRUD (log, edit, delete), duration parsing, sidebar summary with progress bar — v1.5
+- ✓ File attachments with upload (button + drag-drop), image thumbnails, lightbox with keyboard navigation — v1.5
+- ✓ @mention autocomplete in comment composer with cursor-anchored popover and Jira wiki markup insertion — v1.5
+- ✓ Issue activity timeline extended with worklog entries and filter chips — v1.5
+- ✓ API services decomposed into focused domain modules (jira.ts → 14 modules) — v1.4
+- ✓ Unified Developer Tools with request logging, operation profiling, and granular settings — v1.4
+- ✓ All dependencies updated to latest compatible versions — v1.4
+- ✓ Virtualized rendering for long lists (backlog, notifications, sprint board) — v1.4
+- ✓ Zero `any` types and zero double-casts in production code — v1.4
+
 ### Active
 
 ## Current Milestone: v1.5 Dashboard Redesign & Feature Parity
@@ -98,7 +108,7 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - **Team:** Orange eshop project — developers + project managers using the same app with role-based views
 - **Scale:** One Jira project + one GitLab project at a time
 - **Build:** Portable executable — no installer, no admin rights; `createHashRouter` for SPA routing in production
-- **Test suite:** 615+ tests, zero failures, zero warnings; Vitest with LazyStore mock
+- **Test suite:** 665+ tests, zero failures, zero warnings; Vitest with LazyStore mock
 - **Known caveats (v1.4):** 10 non-blocking tech debt items (dead code in debug-logs/, DevToolsSettings.tsx unmounted, placeholder components); Cmd+Shift nav shortcut deviation needs product owner sign-off; 13 human verification items deferred to live Jira environment
 
 ## Constraints
@@ -174,4 +184,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-22 after v1.5 milestone started*
+*Last updated: 2026-03-22 after Phase 32 (time tracking, attachments, mentions) complete*
