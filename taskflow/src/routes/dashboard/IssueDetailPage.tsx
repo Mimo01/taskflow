@@ -38,9 +38,10 @@ export default function IssueDetailPage() {
   const trail = useBreadcrumbStore((s) => s.trail);
   const breadcrumbPop = useBreadcrumbStore((s) => s.pop);
 
-  const { onIssueClick, openEdit, openAddSubtask } = useOutletContext<{
+  const { onIssueClick, openEdit, openClone, openAddSubtask } = useOutletContext<{
     onIssueClick: (key: string) => void;
     openEdit: (vals: EditInitialValues) => void;
+    openClone: (vals: EditInitialValues) => void;
     openAddSubtask: (parentKey: string) => void;
   }>();
 
@@ -195,6 +196,7 @@ export default function IssueDetailPage() {
                 jiraBaseUrl={jiraBaseUrl!}
                 onOpenIssue={onIssueClick}
                 onEdit={openEdit}
+                onClone={openClone}
                 onAddSubtask={openAddSubtask}
                 storyPointsFieldKey={storyPointsFieldKey}
                 sprintFieldKey={sprintFieldKey}

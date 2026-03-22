@@ -41,6 +41,7 @@ export interface EditInitialValues {
   priority: string | null;
   storyPoints: number | null;
   epicLinkKey: string | null;
+  labels?: string[]; // Used by clone pre-fill; form does not render labels field yet
 }
 
 export interface CreateEditIssueModalProps {
