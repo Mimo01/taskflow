@@ -1,199 +1,37 @@
 /**
- * Shared Jira type definitions used across all domain modules.
+ * Extended Jira types for time tracking, attachments, and mentions.
  *
- * This file is the single source of truth for all Jira REST API response
- * shapes and request parameter types. Domain modules import from here;
- * they never define their own interfaces for Jira entities.
+ * Base types (JiraAttachment, JiraComment, etc.) remain in ../jira.ts.
+ * This module adds worklog and user types needed by the new service layer.
  */
 
-export interface JiraUser {
-  displayName: string;
-  emailAddress: string;
-  name: string;
-}
-
-export interface JiraProject {
+export interface JiraWorklog {
   id: string;
-  key: string;
-  name: string;
-}
-
-export interface JiraIssue {
-  id: string;
-  key: string;
-  fields: {
-    summary: string;
-    status: {
-      id: string;
-      name: string;
-      statusCategory?: { key: 'new' | 'indeterminate' | 'done' };
-    };
-    assignee: { displayName: string; avatarUrls: { '48x48': string } } | null;
-    customfield_10016: number | null; // story points (most common field key)
-    issuetype: {
-      name: string;
-      subtask: boolean; // Use this -- NOT name comparison. Admins can rename issue types.
-    };
-    description?: string | null;
-    // v1.1 additions (all optional -- non-breaking for all four existing callers):
-    parent?: { id: string; key: string; fields: { summary: string } };
-    subtasks?: Array<{
-      id: string;
-      key: string;
-      fields: { summary: string; status: { name: string } };
-    }>;
-    timetracking?: {
-      originalEstimate?: string;
-      remainingEstimate?: string;
-      timeSpent?: string;
-      originalEstimateSeconds?: number;
-      remainingEstimateSeconds?: number;
-      timeSpentSeconds?: number;
-    };
-    [key: string]: unknown; // Enables issue.fields[storyPointsFieldKey] without casting
+  author: {
+    displayName: string;
+    name?: string;
+    avatarUrls?: { '48x48'?: string };
   };
-}
-
-export interface JiraFixVersion {
-  id: string;
-  name: string;
-  releaseDate?: string; // "YYYY-MM-DD" -- absent when not set, never null in API response
-  released: boolean;
-  description?: string;
-}
-
-export interface JiraTransition {
-  id: string;
-  name: string;
-  to: { id: string; name: string };
-}
-
-export interface JiraComment {
-  id: string;
-  author: { displayName: string; name?: string };
-  body: string;
-  created: string; // ISO 8601
+  updateAuthor?: {
+    displayName: string;
+    name?: string;
+  };
+  timeSpent: string;
+  timeSpentSeconds: number;
+  started: string;
+  created: string;
   updated: string;
+  comment?: string;
 }
 
-export interface JiraActiveSprint {
-  id: number;
+export interface JiraAssignableUser {
+  displayName: string;
   name: string;
-  state: 'active' | 'future' | 'closed';
-  startDate?: string;
-  endDate?: string;
-  goal?: string;
-  originBoardId?: number;
+  key?: string;
+  avatarUrls?: { '48x48'?: string; '24x24'?: string; '16x16'?: string };
 }
 
-export interface JiraIssueLink {
-  id: string;
-  type: { id: string; name: string; inward: string; outward: string };
-  inwardIssue?: { id: string; key: string; fields: { summary: string; status: { name: string } } };
-  outwardIssue?: { id: string; key: string; fields: { summary: string; status: { name: string } } };
-}
-
-export interface JiraAttachment {
-  id: string;
-  filename: string;
-  content: string;
-  thumbnail?: string;
-  mimeType: string;
-}
-
-export interface JiraIssueDetail {
-  id: string;
-  key: string;
-  fields: {
-    summary: string;
-    description: string | null;
-    status: { id: string; name: string; statusCategory?: { key: string } };
-    issuetype: { name: string; subtask: boolean };
-    priority: { name: string; iconUrl?: string } | null;
-    assignee: { displayName: string; name: string; avatarUrls: { '48x48': string } } | null;
-    reporter: { displayName: string; name?: string; avatarUrls: { '48x48': string } } | null;
-    subtasks: Array<{
-      id: string;
-      key: string;
-      fields: { summary: string; status: { name: string } };
-    }>;
-    issuelinks: JiraIssueLink[];
-    comment: { comments: JiraComment[] };
-    attachment?: JiraAttachment[];
-    labels: string[];
-    fixVersions: Array<{ id: string; name: string }>;
-    parent?: { id: string; key: string; fields: { summary: string } };
-    created: string;
-    updated: string;
-    duedate: string | null;
-    [key: string]: unknown;
-  };
-  changelog?: {
-    histories: Array<{
-      id: string;
-      created: string;
-      author: { displayName: string; avatarUrls?: { '48x48'?: string } };
-      items: Array<{
-        field: string;
-        fieldtype: string;
-        from: string | null;
-        fromString: string | null;
-        to: string | null;
-        toString: string | null;
-      }>;
-    }>;
-  };
-}
-
-export interface JiraProjectStatus {
-  id: string;
-  name: string;
-  statusCategory: { key: 'new' | 'indeterminate' | 'done' | string };
-}
-
-/**
- * Field descriptor returned by the createmeta endpoints.
- * Returned by both the Jira 8.4+ paginated endpoint and the legacy flat endpoint.
- */
-export interface CreatemetaField {
-  fieldId: string;
-  name: string;
-  required: boolean;
-  autoCompleteUrl?: string;
-  schema: {
-    type: string;
-    items?: string;
-    system?: string;
-    custom?: string;
-    allowedValues?: Array<{ id: string; value: string }>;
-  };
-}
-
-/**
- * Issue link type descriptor returned by GET /rest/api/2/issueLinkType.
- */
-export interface IssueLinkType {
-  id: string;
-  name: string;
-  inward: string;
-  outward: string;
-}
-
-export interface BacklogViewData {
-  sprints: Array<{ sprint: JiraActiveSprint; issues: JiraIssue[] }>;
-  backlog: JiraIssue[];
-  epicNames: Map<string, string>; // epicKey -> epic summary (display name)
-  epicColors: Map<string, string>; // epicKey -> Jira color string (e.g. "ghx-label-5")
-}
-
-export interface EpicEnriched {
-  key: string;
-  epicName: string;
-  summary: string;
-  status: JiraIssue['fields']['status'];
-  assignee: JiraIssue['fields']['assignee'];
-  totalStories: number;
-  doneStories: number;
-  totalPoints: number;
-  color?: string | null;
+export interface ParsedDuration {
+  seconds: number;
+  display: string;
 }
