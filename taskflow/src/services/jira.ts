@@ -314,7 +314,7 @@ export async function fetchSprintIssues(
   const spFields = [
     ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
   ].join(',');
-  const fields = `summary,status,assignee,issuetype,labels,${spFields},${epicLinkFieldKey},parent,subtasks,timetracking`;
+  const fields = `summary,status,assignee,issuetype,labels,${spFields},${epicLinkFieldKey},parent,subtasks,timetracking,duedate`;
   const jql = encodeURIComponent(
     `project = ${projectKey} AND sprint in openSprints()${assigneeClause} AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`,
   );
@@ -412,7 +412,7 @@ export async function fetchMyTasksHierarchy(
   const spFields = [
     ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
   ].join(',');
-  const fields = `summary,status,assignee,issuetype,${spFields},parent,subtasks,timetracking`;
+  const fields = `summary,status,assignee,issuetype,${spFields},parent,subtasks,timetracking,duedate`;
   const subtaskFields = 'summary,status,assignee,issuetype,parent,timetracking';
 
   // Step 1: my stories + my subtasks in parallel — both fully paginated
@@ -1477,6 +1477,7 @@ export async function fetchBacklogIssues(
       storyPointsFieldKey,
       epicLinkFieldKey,
       epicNameFieldKey,
+      'duedate',
     ]),
   ].join(',');
 
@@ -1605,6 +1606,7 @@ export async function fetchBacklogView(
       storyPointsFieldKey,
       epicLinkFieldKey,
       epicNameFieldKey,
+      'duedate',
     ]),
   ].join(',');
 
