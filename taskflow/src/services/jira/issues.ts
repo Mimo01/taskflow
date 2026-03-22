@@ -288,7 +288,7 @@ export async function fetchIssueDetail(
   ]
     .filter(Boolean)
     .join(',');
-  const url = `${base}/rest/api/2/issue/${issueKey}?fields=${fields}`;
+  const url = `${base}/rest/api/2/issue/${issueKey}?fields=${fields}&expand=changelog`;
   const response = await apiFetch('jira', url, {
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   }, 'Load Issue Detail');

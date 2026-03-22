@@ -128,6 +128,21 @@ export interface JiraIssueDetail {
     duedate: string | null;
     [key: string]: unknown;
   };
+  changelog?: {
+    histories: Array<{
+      id: string;
+      created: string;
+      author: { displayName: string; avatarUrls?: { '48x48'?: string } };
+      items: Array<{
+        field: string;
+        fieldtype: string;
+        from: string | null;
+        fromString: string | null;
+        to: string | null;
+        toString: string | null;
+      }>;
+    }>;
+  };
 }
 
 export interface JiraProjectStatus {
