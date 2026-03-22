@@ -39,7 +39,7 @@ Declared values (must be multiples of 4):
 | 2xl | 48px | Major section breaks |
 | 3xl | 64px | Page-level spacing |
 
-Exceptions: Floating bulk action bar uses `bottom: 32px` viewport offset. Sprint card checkbox uses 20px hit target (checkbox itself) within a 44px minimum touch area (the card hover zone).
+Exceptions: Floating bulk action bar uses `bottom: 32px` viewport offset. Sprint card checkbox uses a 20px rendered checkbox size (component dimension, not a layout spacing token) within a 44px minimum touch area (the card hover zone).
 
 ---
 
@@ -167,13 +167,14 @@ No new shadcn component installations required. Checkbox uses native `<input typ
 | Filter description label | "Description (optional)" |
 | Filter description placeholder | "What this filter shows" |
 | Save dialog submit | "Save to Jira" |
-| Save dialog cancel | "Cancel" |
+| Save dialog dismiss | "Discard" |
 | Empty saved filters heading | "No saved filters" |
 | Empty saved filters body | "Save your current search to quickly reuse it later." |
 | Edit filter dialog heading | "Edit Filter" |
 | Edit filter submit | "Update Filter" |
+| Edit filter dismiss | "Discard Changes" |
 | Delete filter confirmation | "Delete filter: Remove \"{filterName}\"? This will also delete it from Jira." |
-| Delete filter CTA | "Delete" (destructive variant) |
+| Delete filter CTA | "Delete Filter" (destructive variant) |
 | Filter applied indicator | Checkmark icon next to active filter name in sidebar |
 
 ---
@@ -199,7 +200,7 @@ No new shadcn component installations required. Checkbox uses native `<input typ
 ### Bulk Operations (BOARD-04, BOARD-05, BOARD-06, BOARD-07)
 
 1. **Card selection:** Checkbox appears as an overlay on the top-left corner of DraggableCard/TaskCard. Checkbox is visible on hover. Once any card is selected, all checkboxes become permanently visible until selection is cleared (D-09).
-2. **Checkbox style:** Native `<input type="checkbox">` matching BacklogRow pattern. `16px` checkbox with `2px` accent ring on focus. Position: absolute, top-left of card with `8px` offset from edges.
+2. **Checkbox style:** Native `<input type="checkbox">` matching BacklogRow pattern. 16px checkbox with `2px` accent ring on focus. Position: absolute, top-left of card with `8px` offset from edges.
 3. **Shift+click range:** Shift+clicking a card selects all cards between the last-clicked card and the current card (within the same swimlane column). Range is calculated by DOM order.
 4. **Select all:** No global "select all" -- users build selections incrementally per D-09.
 5. **DnD coordination:** When any checkbox is selected, drag-and-drop is disabled on selected cards to avoid accidental moves. Unselected cards remain draggable.
@@ -213,11 +214,11 @@ No new shadcn component installations required. Checkbox uses native `<input typ
 ### Saved Filters (FILT-01, FILT-02, FILT-03, FILT-04)
 
 1. **Save trigger:** "Save Filter" text button with BookmarkPlus icon appears in UnifiedFilterBar when at least one filter is active (D-15). Clicking opens SaveFilterDialog.
-2. **Save dialog:** Modal Dialog with name Input (required, auto-focused), description Textarea (optional), and "Save to Jira" / "Cancel" buttons. On submit, POST to `/rest/api/2/filter` with current filter state translated to JQL.
+2. **Save dialog:** Modal Dialog with name Input (required, auto-focused), description Textarea (optional), and "Save to Jira" / "Discard" buttons. On submit, POST to `/rest/api/2/filter` with current filter state translated to JQL.
 3. **Sidebar section:** "Saved Filters" section appears below existing nav links in Sidebar (D-14). Section header with Bookmark icon. Collapsible with chevron. Lists user's favourite Jira filters.
-4. **Filter list items:** Each item: Bookmark icon + filter name (truncated at 24ch). Click applies the filter's JQL to the current board view. Active filter shown with checkmark icon and `font-semibold`. Context menu (right-click) with "Edit" and "Delete" options.
-5. **Edit flow:** Opens EditFilterDialog with current name, description, and JQL pre-filled. User can modify any field. "Update Filter" submits PUT to Jira. "Cancel" discards.
-6. **Delete flow:** Context menu "Delete" opens a confirmation popover (not dialog). Destructive copy per copywriting contract. Deletes from Jira via DELETE API.
+4. **Filter list items:** Each item: Bookmark icon + filter name (truncated at 24ch). Click applies the filter's JQL to the current board view. Active filter shown with checkmark icon and `font-semibold`. Context menu (right-click) with "Edit" and "Delete Filter" options.
+5. **Edit flow:** Opens EditFilterDialog with current name, description, and JQL pre-filled. User can modify any field. "Update Filter" submits PUT to Jira. "Discard Changes" dismisses the dialog without saving.
+6. **Delete flow:** Context menu "Delete Filter" opens a confirmation popover (not dialog). Destructive copy per copywriting contract. Deletes from Jira via DELETE API.
 7. **Command palette:** Saved filters registered as searchable actions in command palette (D-16). Action icon: Bookmark. Executing applies the filter to the current view.
 8. **Loading state:** Sidebar shows Skeleton placeholders (3 items, 16px height each) while fetching favourite filters.
 
@@ -235,7 +236,7 @@ No new shadcn component installations required. Checkbox uses native `<input typ
 | Bulk progress | `role="progressbar"` with `aria-valuenow` (completed count), `aria-valuemin="0"`, `aria-valuemax` (total count). `aria-live="polite"` for status updates. |
 | Save filter dialog | Focus trapped. Name input auto-focused. Escape closes. Standard Dialog accessibility from shadcn. |
 | Saved filter list | `role="listbox"` on container, `role="option"` + `aria-selected` on items for the currently applied filter. |
-| Edit/Delete filter | Delete confirmation uses focus trap. Focus moves to "Cancel" button (safe default) on open. |
+| Edit/Delete filter | Delete confirmation uses focus trap. Focus moves to "Discard" button (safe default) on open of save dialog; focus moves to "Discard Changes" button on open of edit dialog. |
 
 ---
 
