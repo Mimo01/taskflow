@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Dashboard Redesign & Feature Parity
-status: Ready to plan
-last_updated: "2026-03-22T18:54:17.714Z"
+status: Ready to execute
+last_updated: "2026-03-22T19:44:23.227Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 4
+  total_plans: 8
   completed_plans: 4
 ---
 
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-22)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Phase 31 — issue-detail-enrichment
+**Current focus:** Phase 32 — time-tracking-attachments-mentions
 
 ## Current Position
 
-Phase: 32
-Plan: Not started
+Phase: 32 (time-tracking-attachments-mentions) — EXECUTING
+Plan: 2 of 4
 
 ## Performance Metrics
 
@@ -44,6 +44,7 @@ Plan: Not started
 | Phase 31 P01 | 4min | 2 tasks | 5 files |
 | Phase 31 P02 | 6min | 2 tasks | 10 files |
 | Phase 31 P03 | 6min | 2 tasks | 8 files |
+| Phase 32 P01 | 5min | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -59,6 +60,7 @@ Recent decisions affecting current work:
 - [Phase 31]: OverdueBadge placed in issue-detail/ subdirectory; plan FieldsSection.tsx mapped to actual IssueDetailSidebar.tsx
 - [Phase 31]: Clone uses separate handleOpenClone (mode:create + initialValues) avoiding Pitfall 3
 - [Phase 31]: CommentCard injected into ActivityTimeline via props to preserve memoization
+- [Phase 32]: Created jira/ subdirectory for new service modules (worklogs, attachments, users, duration) rather than adding to monolithic jira.ts
 
 ### Pending Todos
 
@@ -72,7 +74,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-22T18:54:17.710Z
+Last session: 2026-03-22T19:44:23.223Z
 Last activity: 2026-03-22
 Resume: Roadmap created for v1.5. Next: `/gsd:plan-phase 31`
 
