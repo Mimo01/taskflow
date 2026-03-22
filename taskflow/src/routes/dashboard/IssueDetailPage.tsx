@@ -16,7 +16,7 @@ import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
-import type { JiraComment, JiraIssue } from '@/services/jira';
+import type { JiraComment, JiraIssue, TimelineFilter } from '@/services/jira';
 import { deleteComment, fetchEpicStories, fetchIssueDetail, updateComment } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
@@ -36,6 +36,7 @@ export default function IssueDetailPage() {
   const { key: issueKey } = useParams<{ key: string }>();
   const navigate = useNavigate();
 
+  const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>('comment');
   const trail = useBreadcrumbStore((s) => s.trail);
   const breadcrumbPop = useBreadcrumbStore((s) => s.pop);
 
@@ -300,11 +301,14 @@ export default function IssueDetailPage() {
                 deletingCommentId={deleteMutation.variables ?? null}
                 editPending={editMutation.isPending}
                 CommentCard={CommentCard}
+                onFilterChange={setTimelineFilter}
               />
 
-              <div className="sticky bottom-0 border-t py-3 -mx-6 px-6 bg-background">
-                <CommentComposer issueKey={issueKey} jiraBaseUrl={jiraBaseUrl!} />
-              </div>
+              {timelineFilter === 'comment' && (
+                <div className="sticky bottom-0 border-t py-3 -mx-6 px-6 bg-background">
+                  <CommentComposer issueKey={issueKey} jiraBaseUrl={jiraBaseUrl!} />
+                </div>
+              )}
             </div>
           </div>
 

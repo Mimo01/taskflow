@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { JiraIssue, JiraIssueDetail } from '@/services/jira';
+import type { JiraIssue, JiraIssueDetail, JiraIssueLink } from '@/services/jira';
 import { useSettingsStore } from '@/stores/settings.store';
 import type { EditInitialValues } from './CreateEditIssueModal';
 import type { AttachmentMap, UserMap } from './WikiRenderer';
@@ -210,7 +210,7 @@ export function IssueDetailContent({
           Edit
         </Button>
         <Button
-          variant="secondary"
+          variant="outline"
           size="sm"
           onClick={() =>
             onClone?.({
@@ -221,7 +221,11 @@ export function IssueDetailContent({
               priority: issue.fields.priority?.name ?? null,
               storyPoints: (issue.fields[storyPointsFieldKey] as number) ?? null,
               epicLinkKey: (issue.fields[epicLinkFieldKey] as string) ?? null,
-              labels: issue.fields.labels ?? [],
+              linkRows: (issue.fields.issuelinks ?? []).map((link: JiraIssueLink) => ({
+                id: crypto.randomUUID(),
+                linkTypeId: link.type.id,
+                issueKey: link.outwardIssue?.key ?? link.inwardIssue?.key ?? '',
+              })),
             })
           }
           className="gap-1.5 text-xs"

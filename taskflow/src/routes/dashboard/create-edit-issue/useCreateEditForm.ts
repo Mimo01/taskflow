@@ -11,6 +11,7 @@ export interface EditInitialValues {
   priority: string | null;
   storyPoints: number | null;
   epicLinkKey: string | null;
+  linkRows?: IssueLinkRowValue[];
 }
 
 const ISSUE_TYPES = ['Story', 'Subtask', 'Bug'] as const;
@@ -81,7 +82,7 @@ function buildInitialState(
     customFieldAutoResults: {},
     customFieldShowResults: {},
     apiError: null,
-    linkRows: [],
+    linkRows: initialValues?.linkRows ?? [],
   };
 }
 

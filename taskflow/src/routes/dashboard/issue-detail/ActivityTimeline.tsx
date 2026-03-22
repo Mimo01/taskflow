@@ -33,6 +33,8 @@ interface ActivityTimelineProps {
   deleteError: string | null;
   deletingCommentId: string | null;
   editPending: boolean;
+  /** Callback when filter changes — parent can use to show/hide CommentComposer */
+  onFilterChange?: (filter: TimelineFilter) => void;
   /** The CommentCard component to render comments — injected from IssueDetailPage */
   CommentCard: React.ComponentType<{
     comment: JiraComment;
@@ -70,10 +72,15 @@ export function ActivityTimeline({
   deleteError,
   deletingCommentId,
   editPending,
+  onFilterChange: onFilterChangeProp,
   CommentCard,
 }: ActivityTimelineProps) {
   const commentSortOrder = useSettingsStore((s) => s.commentSortOrder);
-  const [filter, setFilter] = useState<TimelineFilter>('all');
+  const [filter, setFilterState] = useState<TimelineFilter>('comment');
+  const setFilter = (f: TimelineFilter) => {
+    setFilterState(f);
+    onFilterChangeProp?.(f);
+  };
 
   const allEntries = useMemo(
     () => mergeTimeline(comments, changelog),
