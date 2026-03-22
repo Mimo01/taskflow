@@ -15,6 +15,7 @@ import { epicColorToTailwind } from '@/lib/epicColors';
 import type { JiraIssueDetail } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { MetaRow } from './MetaRow';
+import { OverdueBadge } from './OverdueBadge';
 import { WatcherToggle } from './WatcherToggle';
 import { useDebounce } from './useFieldMutation';
 import { extractSprintName } from './utils';
@@ -403,7 +404,14 @@ export function FieldsSection({
       )}
       <MetaRow label="Created">{new Date(f.created).toLocaleDateString()}</MetaRow>
       <MetaRow label="Updated">{new Date(f.updated).toLocaleDateString()}</MetaRow>
-      {f.duedate && <MetaRow label="Due">{new Date(f.duedate).toLocaleDateString()}</MetaRow>}
+      {f.duedate && (
+        <MetaRow label="Due">
+          <span className="inline-flex items-center gap-1.5">
+            {new Date(f.duedate).toLocaleDateString()}
+            <OverdueBadge duedate={f.duedate} statusCategoryKey={f.status.statusCategory?.key} />
+          </span>
+        </MetaRow>
+      )}
 
       <WatcherToggle issueKey={issueKey} jiraBaseUrl={jiraBaseUrl} />
     </>
