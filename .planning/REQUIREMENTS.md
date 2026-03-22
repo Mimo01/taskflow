@@ -14,7 +14,7 @@ Requirements for milestone v1.5: Dashboard Redesign & Feature Parity.
 - [x] **DETAIL-03**: User can edit own comments on issues
 - [x] **DETAIL-04**: User can delete own comments on issues
 - [x] **DETAIL-05**: User can watch/unwatch issues with eye icon toggle and watcher count
-- [ ] **DETAIL-06**: User can view issue attachments inline (image thumbnails, file list)
+- [x] **DETAIL-06**: User can view issue attachments inline (image thumbnails, file list)
 - [x] **DETAIL-07**: User can download issue attachments
 - [x] **DETAIL-08**: User can upload file attachments to issues
 - [x] **DETAIL-09**: User can @mention team members in comments with autocomplete popover
@@ -91,7 +91,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DETAIL-03 | Phase 31 | Complete |
 | DETAIL-04 | Phase 31 | Complete |
 | DETAIL-05 | Phase 31 | Complete |
-| DETAIL-06 | Phase 32 | Pending |
+| DETAIL-06 | Phase 32 | Complete |
 | DETAIL-07 | Phase 32 | Complete |
 | DETAIL-08 | Phase 32 | Complete |
 | DETAIL-09 | Phase 32 | Complete |

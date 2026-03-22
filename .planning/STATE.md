@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Dashboard Redesign & Feature Parity
 status: Ready to execute
-last_updated: "2026-03-22T19:50:50.378Z"
+last_updated: "2026-03-22T19:51:11.553Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 7
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-22)
 ## Current Position
 
 Phase: 32 (time-tracking-attachments-mentions) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 
 ## Performance Metrics
 
@@ -46,6 +46,7 @@ Plan: 3 of 4
 | Phase 31 P03 | 6min | 2 tasks | 8 files |
 | Phase 32 P01 | 5min | 2 tasks | 11 files |
 | Phase 32 P04 | 3min | 1 tasks | 2 files |
+| Phase 32 P03 | 4min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -63,6 +64,7 @@ Recent decisions affecting current work:
 - [Phase 31]: CommentCard injected into ActivityTimeline via props to preserve memoization
 - [Phase 32]: Created jira/ subdirectory for new service modules (worklogs, attachments, users, duration) rather than adding to monolithic jira.ts
 - [Phase 32]: forwardRef + useImperativeHandle for keyboard delegation from textarea to mention popover
+- [Phase 32]: AttachmentLightbox built from scratch for prev/next navigation instead of extending ImageLightbox
 
 ### Pending Todos
 
@@ -76,7 +78,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-22T19:50:50.374Z
+Last session: 2026-03-22T19:51:11.548Z
 Last activity: 2026-03-22
 Resume: Roadmap created for v1.5. Next: `/gsd:plan-phase 31`
 

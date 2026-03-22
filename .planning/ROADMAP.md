@@ -119,11 +119,11 @@ Plans:
   2. User can view, edit, and delete their own worklog entries on the issue detail page
   3. User can view image thumbnails and file lists for issue attachments, download them, and upload new files
   4. User can type "@" in a comment to get an autocomplete popover of team members and insert a mention
-**Plans:** 2/4 plans executed
+**Plans:** 3/4 plans executed
 Plans:
 - [x] 32-01-PLAN.md — Service layer: types, duration parser, worklog CRUD, attachment upload/delete, user search, timeline extension
 - [ ] 32-02-PLAN.md — Time tracking UI: sidebar summary, log work popover, worklog timeline entries with CRUD
-- [ ] 32-03-PLAN.md — Attachments UI: collapsible section, thumbnails, lightbox, upload, download
+- [x] 32-03-PLAN.md — Attachments UI: collapsible section, thumbnails, lightbox, upload, download
 - [x] 32-04-PLAN.md — @mention autocomplete: cursor-anchored popover in CommentComposer
 **UI hint**: yes
 
@@ -190,6 +190,6 @@ Phases execute in numeric order: 31 → 32 → 33 → 34
 | 29. Developer Tools | v1.4 | 3/3 | Complete | 2026-03-20 |
 | 30. Fix A11Y-01 Test Regression & Checkbox Cleanup | v1.4 | 1/1 | Complete | 2026-03-20 |
 | 31. Issue Detail Enrichment | v1.5 | 4/4 | Complete    | 2026-03-22 |
-| 32. Time Tracking, Attachments & Mentions | v1.5 | 2/4 | In Progress|  |
+| 32. Time Tracking, Attachments & Mentions | v1.5 | 3/4 | In Progress|  |
 | 33. Board, Sprint & Filters | v1.5 | 0/? | Not started | - |
 | 34. Layout Customization | v1.5 | 0/? | Not started | - |
