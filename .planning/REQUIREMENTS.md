@@ -27,7 +27,7 @@ Requirements for milestone v1.5: Dashboard Redesign & Feature Parity.
 - [x] **TIME-02**: User can view worklogs on issue detail (author, time spent, date, comment)
 - [x] **TIME-03**: User can edit own worklog entries
 - [x] **TIME-04**: User can delete own worklog entries
-- [ ] **TIME-05**: User sees time tracking summary on issue detail (estimated, spent, remaining)
+- [x] **TIME-05**: User sees time tracking summary on issue detail (estimated, spent, remaining)
 
 ### Board & Sprint
 
@@ -101,7 +101,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TIME-02 | Phase 32 | Complete |
 | TIME-03 | Phase 32 | Complete |
 | TIME-04 | Phase 32 | Complete |
-| TIME-05 | Phase 32 | Pending |
+| TIME-05 | Phase 32 | Complete |
 | BOARD-01 | Phase 33 | Pending |
 | BOARD-02 | Phase 33 | Pending |
 | BOARD-03 | Phase 33 | Pending |
