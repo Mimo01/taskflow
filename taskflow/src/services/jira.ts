@@ -933,6 +933,7 @@ export interface JiraAttachment {
   content: string;
   thumbnail?: string;
   mimeType: string;
+  size?: number;
 }
 
 export interface JiraIssueDetail {
