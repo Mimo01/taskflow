@@ -43,7 +43,7 @@ export function ChangelogEntry({ history }: ChangelogEntryProps) {
             {describeChange(item.field, item.fromString, item.toString)}
           </p>
         ))}
-        <span className="text-xs text-muted-foreground">{relativeTime(created)}</span>
+        <span className="text-xs text-muted-foreground" title={new Date(created).toLocaleString()}>{relativeTime(created)}</span>
       </div>
     </div>
   );
