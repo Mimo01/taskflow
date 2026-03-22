@@ -42,9 +42,9 @@ created: 2026-03-22
 | 31-01-02 | 01 | 1 | DETAIL-02 | unit | `cd taskflow && npx vitest run src/services/jira/changelog.test.ts -x` | ❌ W0 | ⬜ pending |
 | 31-01-03 | 01 | 1 | DETAIL-03 | unit | `cd taskflow && npx vitest run src/services/jira/comments.test.ts -x` | ✅ | ⬜ pending |
 | 31-01-04 | 01 | 1 | DETAIL-04 | unit | `cd taskflow && npx vitest run src/services/jira/comments.test.ts -x` | ✅ | ⬜ pending |
-| 31-02-01 | 02 | 1 | DETAIL-05 | unit | `cd taskflow && npx vitest run src/services/jira/watchers.test.ts -x` | ❌ W0 | ⬜ pending |
-| 31-03-01 | 03 | 2 | DETAIL-10 | unit | `cd taskflow && npx vitest run src/routes/dashboard/issue-detail/OverdueBadge.test.ts -x` | ❌ W0 | ⬜ pending |
-| 31-03-02 | 03 | 2 | DETAIL-11 | unit | `cd taskflow && npx vitest run src/routes/dashboard/issue-detail/clone.test.ts -x` | ❌ W0 | ⬜ pending |
+| 31-01-05 | 01 | 1 | DETAIL-05 | unit | `cd taskflow && npx vitest run src/services/jira/watchers.test.ts -x` | ❌ W0 | ⬜ pending |
+| 31-02-01 | 02 | 1 | DETAIL-10 | unit | `cd taskflow && npx vitest run src/routes/dashboard/issue-detail/OverdueBadge.test.ts -x` | ❌ W0 | ⬜ pending |
+| 31-02-02 | 02 | 1 | DETAIL-11 | manual | Plan 04 checkpoint (clone opens modal — visual verification) | N/A | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -55,9 +55,9 @@ created: 2026-03-22
 - [ ] `taskflow/src/services/jira/changelog.test.ts` — stubs for DETAIL-01, DETAIL-02
 - [ ] `taskflow/src/services/jira/watchers.test.ts` — stubs for DETAIL-05
 - [ ] `taskflow/src/routes/dashboard/issue-detail/OverdueBadge.test.ts` — stubs for DETAIL-10
-- [ ] `taskflow/src/routes/dashboard/issue-detail/clone.test.ts` — stubs for DETAIL-11
 
 *Existing infrastructure covers DETAIL-03/DETAIL-04 (comment edit/delete already implemented with tests).*
+*DETAIL-11 (clone) is verified manually via Plan 04 checkpoint — clone opens modal with pre-filled values, visual-only verification.*
 
 ---
 
@@ -69,6 +69,7 @@ created: 2026-03-22
 | Filter chip highlighting | DETAIL-02 | Visual state (active chip highlight) | Click each filter chip, verify active state styling |
 | Watcher toggle UI feedback | DETAIL-05 | Optimistic toggle animation | Click watch/unwatch, verify instant UI update before API returns |
 | Overdue badge placement across views | DETAIL-10 | Multi-page visual check | Check detail sidebar, sprint board cards, backlog rows |
+| Clone pre-fills modal correctly | DETAIL-11 | Modal UI with pre-filled values | Click Clone on issue, verify modal opens in create mode with "Clone - " prefix, description, labels, priority, assignee pre-filled |
 
 ---
 
