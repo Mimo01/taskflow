@@ -2,14 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Dashboard Redesign & Feature Parity
-status: active
-last_updated: "2026-03-22"
-last_activity: 2026-03-22
+status: planning
+last_updated: "2026-03-22T17:03:10.961Z"
+last_activity: 2026-03-22 — Roadmap created for v1.5
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -19,52 +20,43 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-22)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Defining requirements for v1.5
+**Current focus:** Phase 31 — Issue Detail Enrichment
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-22 — Milestone v1.5 started
+Phase: 31 of 34 (Issue Detail Enrichment)
+Plan: 0 of ? in current phase
+Status: Ready to plan
+Last activity: 2026-03-22 — Roadmap created for v1.5
+
+Progress: [░░░░░░░░░░] 0% (v1.5)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 3
-- Average duration: 5min
-- Total execution time: 16min
+- Total plans completed: 0 (v1.5) / 131+ (all milestones)
+- Average duration: — (no v1.5 data yet)
+- Total execution time: —
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 25 | 2/2 | 12min | 6min |
-| 26 | 1/2 | 4min | 4min |
-| Phase 26 P02 | 19min | 2 tasks | 10 files |
-| Phase 26 P03 | 1min | 1 tasks | 1 files |
-| Phase 27 P01 | 4min | 2 tasks | 10 files |
-| Phase 27 P04 | 5min | 2 tasks | 11 files |
-| Phase 27 P03 | 7min | 2 tasks | 9 files |
-| Phase 27 P02 | 8min | 2 tasks | 15 files |
-| Phase 27 P05 | 5min | 2 tasks | 7 files |
-| Phase 28 P01 | 2min | 2 tasks | 6 files |
-| Phase 28 P02 | 7min | 2 tasks | 6 files |
-| Phase 28 P04 | 10min | 2 tasks | 4 files |
-| Phase 29 P01 | 5min | 2 tasks | 10 files |
-| Phase 29 P02 | 3min | 2 tasks | 9 files |
-| Phase Phase 29 P03 P29-03 | 7min | 2 tasks | 25 files |
-| Phase 29 P04 | 6min | 2 tasks | 2 files |
-| Phase 29 P05 | 5min | 2 tasks | 3 files |
-| Phase 30 P01 | 1min | 2 tasks | 1 files |
+| - | - | - | - |
+
+*Updated after each plan completion*
 
 ## Accumulated Context
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
-v1.4 decisions archived — see `.planning/milestones/v1.4-ROADMAP.md`.
+Recent decisions affecting current work:
+
+- [v1.5 Roadmap]: 4 phases (coarse) — Issue Detail, Time/Attachments/Mentions, Board/Sprint/Filters, Layout
+- [v1.5 Roadmap]: Activity timeline before time tracking (worklogs render in timeline)
+- [v1.5 Roadmap]: Layout customization last (sidebar items and widgets depend on finalized feature set)
 
 ### Pending Todos
 
@@ -72,13 +64,15 @@ None yet.
 
 ### Blockers/Concerns
 
-None yet.
+- Attachment PAT auth negotiation needs prototyping against live Jira DC instance (Phase 32)
+- react-grid-layout CSP/Tailwind v4 integration needs research validation (Phase 34)
+- Settings store at v8 with 60+ fields — new features should use dedicated stores
 
 ## Session Continuity
 
-Last session: 2026-03-20
-Last activity: 2026-03-20
-Resume: v1.4 milestone complete. All 6 phases shipped. Next: `/gsd:new-milestone`.
+Last session: 2026-03-22T17:03:10.955Z
+Last activity: 2026-03-22
+Resume: Roadmap created for v1.5. Next: `/gsd:plan-phase 31`
 
 ### Quick Tasks Completed
 
