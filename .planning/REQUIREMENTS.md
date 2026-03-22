@@ -31,19 +31,19 @@ Requirements for milestone v1.5: Dashboard Redesign & Feature Parity.
 
 ### Board & Sprint
 
-- [ ] **BOARD-01**: User sees sprint goal banner on sprint board header
-- [ ] **BOARD-02**: User can toggle board quick filters fetched from Jira board config
-- [ ] **BOARD-03**: User can filter sprint board by label via quick filter chips
-- [ ] **BOARD-04**: User can select multiple issues and bulk-change status
-- [ ] **BOARD-05**: User can select multiple issues and bulk-change assignee
-- [ ] **BOARD-06**: User can select multiple issues and bulk-change priority
-- [ ] **BOARD-07**: User sees progress indicator during bulk operations with success/failure counts
+- [x] **BOARD-01**: User sees sprint goal banner on sprint board header
+- [x] **BOARD-02**: User can toggle board quick filters fetched from Jira board config
+- [x] **BOARD-03**: User can filter sprint board by label via quick filter chips
+- [x] **BOARD-04**: User can select multiple issues and bulk-change status
+- [x] **BOARD-05**: User can select multiple issues and bulk-change assignee
+- [x] **BOARD-06**: User can select multiple issues and bulk-change priority
+- [x] **BOARD-07**: User sees progress indicator during bulk operations with success/failure counts
 
 ### Filters
 
-- [ ] **FILT-01**: User can save current search as a named filter (synced to Jira server)
-- [ ] **FILT-02**: User can view and execute saved/favourite filters from Jira
-- [ ] **FILT-03**: User can edit and delete saved filters
+- [x] **FILT-01**: User can save current search as a named filter (synced to Jira server)
+- [x] **FILT-02**: User can view and execute saved/favourite filters from Jira
+- [x] **FILT-03**: User can edit and delete saved filters
 - [ ] **FILT-04**: User can access saved filters from sidebar and command palette
 
 ### Layout
@@ -102,16 +102,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TIME-03 | Phase 32 | Complete |
 | TIME-04 | Phase 32 | Complete |
 | TIME-05 | Phase 32 | Complete |
-| BOARD-01 | Phase 33 | Pending |
-| BOARD-02 | Phase 33 | Pending |
-| BOARD-03 | Phase 33 | Pending |
-| BOARD-04 | Phase 33 | Pending |
-| BOARD-05 | Phase 33 | Pending |
-| BOARD-06 | Phase 33 | Pending |
-| BOARD-07 | Phase 33 | Pending |
-| FILT-01 | Phase 33 | Pending |
-| FILT-02 | Phase 33 | Pending |
-| FILT-03 | Phase 33 | Pending |
+| BOARD-01 | Phase 33 | Complete |
+| BOARD-02 | Phase 33 | Complete |
+| BOARD-03 | Phase 33 | Complete |
+| BOARD-04 | Phase 33 | Complete |
+| BOARD-05 | Phase 33 | Complete |
+| BOARD-06 | Phase 33 | Complete |
+| BOARD-07 | Phase 33 | Complete |
+| FILT-01 | Phase 33 | Complete |
+| FILT-02 | Phase 33 | Complete |
+| FILT-03 | Phase 33 | Complete |
 | FILT-04 | Phase 33 | Pending |
 | LAYOUT-01 | Phase 34 | Pending |
 | LAYOUT-02 | Phase 34 | Pending |
