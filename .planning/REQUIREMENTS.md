@@ -17,7 +17,7 @@ Requirements for milestone v1.5: Dashboard Redesign & Feature Parity.
 - [ ] **DETAIL-06**: User can view issue attachments inline (image thumbnails, file list)
 - [x] **DETAIL-07**: User can download issue attachments
 - [x] **DETAIL-08**: User can upload file attachments to issues
-- [ ] **DETAIL-09**: User can @mention team members in comments with autocomplete popover
+- [x] **DETAIL-09**: User can @mention team members in comments with autocomplete popover
 - [x] **DETAIL-10**: User sees overdue badge on issues where due date has passed
 - [x] **DETAIL-11**: User can clone an issue (copies summary, description, labels, priority, assignee)
 
@@ -94,7 +94,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DETAIL-06 | Phase 32 | Pending |
 | DETAIL-07 | Phase 32 | Complete |
 | DETAIL-08 | Phase 32 | Complete |
-| DETAIL-09 | Phase 32 | Pending |
+| DETAIL-09 | Phase 32 | Complete |
 | DETAIL-10 | Phase 31 | Complete |
 | DETAIL-11 | Phase 31 | Complete |
 | TIME-01 | Phase 32 | Complete |
