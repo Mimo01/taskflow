@@ -20,6 +20,11 @@
 import { ApiError } from '../lib/api-error';
 import { apiFetch } from '../lib/apiFetch';
 
+// Re-export changelog and watcher modules for barrel access via '@/services/jira'
+export * from './jira-changelog';
+export * from './jira-watchers';
+import type { ChangelogHistory } from './jira-changelog';
+
 export interface JiraUser {
   displayName: string;
   emailAddress: string;
@@ -957,6 +962,9 @@ export interface JiraIssueDetail {
     duedate: string | null;
     [key: string]: unknown;
   };
+  changelog?: {
+    histories: ChangelogHistory[];
+  };
 }
 
 export async function discoverCustomFields(
@@ -1043,7 +1051,7 @@ export async function fetchIssueDetail(
   ]
     .filter(Boolean)
     .join(',');
-  const url = `${base}/rest/api/2/issue/${issueKey}?fields=${fields}`;
+  const url = `${base}/rest/api/2/issue/${issueKey}?fields=${fields}&expand=changelog`;
   const response = await apiFetch('jira', url, {
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   });
