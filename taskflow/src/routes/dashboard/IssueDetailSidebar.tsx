@@ -21,6 +21,7 @@ import { extractTicketKeys } from '@/services/linkEngine';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { OverdueBadge } from './issue-detail/OverdueBadge';
 
 interface IssueDetailSidebarProps {
   issue: JiraIssueDetail;
@@ -631,7 +632,14 @@ export function IssueDetailSidebar({
       )}
       <MetaRow label="Created">{new Date(f.created).toLocaleDateString()}</MetaRow>
       <MetaRow label="Updated">{new Date(f.updated).toLocaleDateString()}</MetaRow>
-      {f.duedate && <MetaRow label="Due">{new Date(f.duedate).toLocaleDateString()}</MetaRow>}
+      {f.duedate && (
+        <MetaRow label="Due">
+          <span className="flex items-center gap-2">
+            {new Date(f.duedate).toLocaleDateString()}
+            <OverdueBadge duedate={f.duedate} statusCategoryKey={f.status.statusCategory?.key} />
+          </span>
+        </MetaRow>
+      )}
 
       {/* Linked issues — grouped by link type */}
       {f.issuelinks.length > 0 && (

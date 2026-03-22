@@ -17,6 +17,7 @@ import { fetchComments } from '@/services/jira';
 import type { ReviewHealth } from '@/services/linkEngine';
 import { useSettingsStore } from '@/stores/settings.store';
 import InlineComment from './InlineComment';
+import { OverdueBadge } from './issue-detail/OverdueBadge';
 import StatusPopover from './StatusPopover';
 
 const HEALTH_DOT_COLORS: Record<ReviewHealth, string> = {
@@ -101,6 +102,12 @@ export default function TaskRow({
         >
           {issue.fields.summary}
         </button>
+
+        {/* Overdue badge */}
+        <OverdueBadge
+          duedate={(issue.fields.duedate as string | null) ?? null}
+          statusCategoryKey={issue.fields.status.statusCategory?.key}
+        />
 
         {/* Status popover */}
         <StatusPopover
