@@ -9,6 +9,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import type { EditInitialValues } from './CreateEditIssueModal';
 import type { AttachmentMap, UserMap } from './WikiRenderer';
 import { WikiRenderer } from './WikiRenderer';
+import { AttachmentsSection } from './issue-detail/AttachmentsSection';
 
 interface IssueDetailContentProps {
   issue: JiraIssueDetail;
@@ -102,6 +103,13 @@ export function IssueDetailContent({
           <p className="text-sm text-muted-foreground italic">No description</p>
         )}
       </section>
+
+      {/* Attachments */}
+      <AttachmentsSection
+        attachments={issue.fields.attachment ?? []}
+        issueKey={issueKey}
+        jiraBaseUrl={jiraBaseUrl}
+      />
 
       {/* Epic → Stories list */}
       {isEpic && (
