@@ -6,7 +6,8 @@
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Clock } from 'lucide-react';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -86,7 +87,8 @@ export function LogWorkPopover({ issueKey, jiraBaseUrl, onSuccess }: LogWorkPopo
         if (o) resetForm();
       }}
     >
-      <PopoverTrigger className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3">
+      <PopoverTrigger className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+        <Clock className="size-3.5" />
         Log Work
       </PopoverTrigger>
       <PopoverContent className="w-72 p-4">

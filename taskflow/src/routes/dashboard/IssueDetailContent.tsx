@@ -10,6 +10,7 @@ import type { EditInitialValues } from './CreateEditIssueModal';
 import type { AttachmentMap, UserMap } from './WikiRenderer';
 import { WikiRenderer } from './WikiRenderer';
 import { AttachmentsSection } from './issue-detail/AttachmentsSection';
+import { LogWorkPopover } from './issue-detail/LogWorkPopover';
 
 interface IssueDetailContentProps {
   issue: JiraIssueDetail;
@@ -185,7 +186,7 @@ export function IssueDetailContent({
         </section>
       )}
 
-      {/* Pin + Edit + Open in Jira */}
+      {/* Pin + Edit + Log Work + Open in Jira */}
       <div className="flex justify-end gap-2">
         <Button
           variant="outline"
@@ -198,6 +199,7 @@ export function IssueDetailContent({
           <Pin className={cn('size-3.5', isPinned && 'fill-current text-primary')} />
           {isPinned ? 'Unpin' : 'Pin'}
         </Button>
+        <LogWorkPopover issueKey={issueKey} jiraBaseUrl={jiraBaseUrl} />
         <Button
           variant="outline"
           size="sm"

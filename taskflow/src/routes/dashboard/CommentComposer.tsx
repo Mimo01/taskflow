@@ -25,12 +25,13 @@ function applyMarkup(textarea: HTMLTextAreaElement, prefix: string, suffix: stri
 
 /**
  * Measure cursor pixel position inside a textarea using a mirror div.
- * Returns coordinates relative to the textarea's top-left corner.
+ * Returns `bottom` (distance from bottom of the relative wrapper to the
+ * cursor line) and `left`, so the popover opens above the text being typed.
  */
 function getCursorPixelPosition(
   textarea: HTMLTextAreaElement,
   cursorIndex: number,
-): { top: number; left: number } {
+): { bottom: number; left: number } {
   const mirror = document.createElement('div');
   const style = getComputedStyle(textarea);
 
@@ -54,9 +55,10 @@ function getCursorPixelPosition(
   const mirrorRect = mirror.getBoundingClientRect();
   const markerRect = marker.getBoundingClientRect();
 
+  const cursorTopInTextarea = markerRect.top - mirrorRect.top - textarea.scrollTop;
   const position = {
-    top: markerRect.top - mirrorRect.top + textarea.offsetHeight + 4,
-    left: markerRect.left - mirrorRect.left,
+    bottom: textarea.offsetHeight - cursorTopInTextarea + 4,
+    left: Math.min(markerRect.left - mirrorRect.left, textarea.offsetWidth - 220),
   };
   document.body.removeChild(mirror);
   return position;
@@ -72,7 +74,7 @@ export function CommentComposer({ issueKey, jiraBaseUrl }: CommentComposerProps)
   const [mentionActive, setMentionActive] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionStart, setMentionStart] = useState(-1);
-  const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
+  const [mentionPosition, setMentionPosition] = useState({ bottom: 0, left: 0 });
 
   const projectKey = issueKey.split('-')[0];
 
