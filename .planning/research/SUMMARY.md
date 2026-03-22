@@ -1,219 +1,242 @@
 # Project Research Summary
 
-**Project:** Taskflow — v1.3 UX & Branding
-**Domain:** UX and branding additions to an existing Tauri 2 + React 19 desktop developer productivity app
-**Researched:** 2026-03-15
+**Project:** Taskflow v1.5 — Jira DC & GitLab Feature Parity
+**Domain:** Desktop Jira/GitLab client (Tauri 2 + React 19)
+**Researched:** 2026-03-22
 **Confidence:** HIGH
 
 ## Executive Summary
 
-Taskflow v1.3 is a well-bounded UX and branding milestone layered onto a mature, already-shipped v1.2 codebase. Research was conducted against the actual live codebase — not inference — giving an unusually high confidence baseline. The work involves two new npm packages (`cmdk@^1.1.1`, `react-hotkeys-hook@^5.2.4`), one shadcn code-gen step (`npx shadcn add command`), and a set of component and store additions that follow patterns the codebase has already established. No architectural changes are needed — AppLayout, Zustand LazyStore persistence, TanStack Query cache reads, and prop threading are all the right foundation, and research confirms they extend cleanly to every v1.3 feature.
+Taskflow v1.5 is a feature expansion milestone for an existing, production-quality Tauri 2 + React 19 desktop application. The app already has a mature architecture (Zustand stores, TanStack Query, shadcn/ui, Biome, Vitest) with 30+ shipped phases behind it. The v1.5 work is well-scoped: add Jira Data Center feature parity (activity history, time tracking, attachments, watchers, board quick filters, saved filters, mention autocomplete, bulk operations) and introduce a configurable widget-based dashboard and customizable sidebar. Nearly all features integrate into existing routes and stores — this is enhancement work, not a rewrite.
 
-The recommended delivery order is driven by two hard constraints: the keyboard shortcut registry (`keyboard-shortcuts.ts`) must exist before either the command palette or the help panel can be built, and the Settings restructure should happen before the command palette so "Go to Settings" palette actions work from day one. Everything else (app icon, empty/error states) is fully independent and can slot into any phase. The highest-complexity feature — pinned issue tabs — touches the most files and should come last, after the TopBar layout is settled and the `handleIssueClick` wrapper pattern is proven by the command palette phase.
+The recommended approach is to tackle features in containment order: start with issue detail page enhancements (activity history, time tracking, attachments, watchers, mention autocomplete) because they are isolated from the rest of the app, then address filter system extensions (saved filters, board quick filters), then tackle global navigation (sidebar customization), and finally the two architecturally impactful features (widget dashboard redesign, bulk operations). The stack is nearly frozen — only 4 new dependencies are needed (react-grid-layout, react-pdf, yet-another-react-lightbox, react-mentions-ts), and multiple features that might seem to require libraries (timeline, bulk ops, sidebar reorder) can be built using the existing stack.
 
-The critical risk cluster is keyboard event management. Three separate pitfalls converge here: the macOS Cmd+K double-fire bug in shadcn/cmdk (GitHub issue #2469), Escape handler competition across overlays, and the `?` shortcut firing inside text inputs. All three have known, tested solutions — use `react-hotkeys-hook` with `{ capture: true }`, a centralized shortcut hook, and an `isTyping` input guard respectively. The second risk is Zustand store migration: any phase that adds new persisted fields must include a `version` bump and `migrate` function. This is a confirmed production crash pattern from the v1.2 history of this exact codebase (`readIds` on the notifications store).
+The primary risks are: (1) Jira DC API quirks that diverge from Cloud documentation — specifically attachment content URL auth, changelog pagination caps, watchers body format, and worklog duration syntax — all of which have confirmed workarounds; (2) the settings store migration chain (currently at v8 with 60+ fields) becoming fragile if new feature state is consolidated there rather than in dedicated stores; (3) the widget dashboard's re-render behavior during drag if layout state is not carefully isolated with `useRef`/`onDragStop` patterns. All three are avoidable with deliberate architecture choices made at phase start.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The v1.3 feature set requires only two new runtime dependencies on top of an already-complete stack. `cmdk@^1.1.1` (consumed via the shadcn `Command` component code-gen) provides the headless command palette primitive — built-in fuzzy scoring, keyboard navigation, and grouping, production-proven in Linear and Raycast. `react-hotkeys-hook@^5.2.4` provides declarative shortcut binding with the `mod` cross-platform alias (maps to Cmd on macOS, Ctrl on Windows/Linux), scope management, and `enableOnFormTags: false` to block shortcuts inside inputs. Both are React 19 compatible, verified live against the npm registry on 2026-03-15. All other features — recent items, empty/error states, pinned tabs, Settings restructure — use the existing stack with no new packages.
+The existing stack covers nearly everything. Only 4 new npm dependencies are warranted for v1.5:
 
-**Core technologies for v1.3:**
-- `cmdk@^1.1.1` (via `npx shadcn add command`): command palette primitive — built-in fuzzy search, proven in production by Linear/Raycast, React 19 compatible
-- `react-hotkeys-hook@^5.2.4`: declarative keyboard shortcuts — `mod` alias for cross-platform, scope management, form-input guard via `enableOnFormTags`
-- `Zustand@^5.0.11` (already installed): state for pinned tabs and recent items — follow existing LazyStore + createJSONStorage pattern exactly
-- `TanStack Query` (already installed): command palette reads cache via `queryClient.getQueryData` (sync, no network overhead)
-- `@tauri-apps/cli@^2` (already installed): `tauri icon` CLI generates all platform icon variants from one source PNG
+**New dependencies:**
+- `react-grid-layout@^2.2.2` — drag/resize widget grid — purpose-built for dashboard layouts; building on @dnd-kit would require 500+ lines of custom collision/layout logic for capabilities react-grid-layout provides out of the box
+- `react-pdf@^10.4.1` — PDF attachment preview — lightweight PDF.js wrapper; the only viable React 19-compatible PDF viewer option
+- `yet-another-react-lightbox@^3.29.1` — image attachment lightbox — zero-dep core, keyboard/touch support, tree-shakeable plugins; all alternatives are unmaintained or jQuery-based
+- `react-mentions-ts@^4.5.0` — @mention autocomplete — TypeScript-first React 19 fork of the unmaintained react-mentions; alternatives (TipTap, Draft.js, Slate) are full rich-text editors incompatible with Jira's wiki markup format
 
-**What NOT to add:** kbar (unmaintained ~2 years, no React 19 types), fuse.js (redundant with cmdk's built-in scorer), react-error-boundary (unnecessary in this Tauri desktop context), any Lottie/animation library for empty states (static SVGs are the correct approach — zero runtime cost, consistent with Linear's style).
+**Build with existing stack (no new dependency):**
+- Activity timeline — Tailwind `border-l` + lucide icons + TanStack Virtual; ~50 lines of markup
+- Sidebar reordering — @dnd-kit/core (already installed)
+- Bulk operations UI — shadcn/ui Checkbox, DropdownMenu, Button
+- Board quick filters — shadcn/ui ToggleGroup + existing filter store
+- Saved filters — Zustand persist + LazyStore (same pattern used 4+ times already)
+- Time tracking UI — shadcn/ui Input, Dialog
+
+**Tauri-specific notes:** PDF.js worker needs `worker-src 'self' blob:` added to CSP in `tauri.conf.json`. Attachment content URLs require tauri-plugin-http fetch (not direct `<img src>`), and may need session-cookie auth as a fallback depending on the Jira DC instance version.
+
+See full details: `.planning/research/STACK.md`
 
 ### Expected Features
 
-Research validated all v1.3 features against Linear, Notion, and VS Code as reference implementations. The feature set breaks cleanly into table stakes (users assume these exist in any keyboard-first dev tool) and competitive differentiators (what makes Taskflow feel like a product rather than a prototype).
+**Must have — table stakes (P1):**
+- Issue Activity History + Unified Timeline — every Jira user clicks "History" daily; Taskflow's differentiator is merging changelog + comments + worklogs into one chronological feed
+- Time Tracking / Worklog CRUD — mandatory in enterprise Jira; PM dashboard already shows time columns but the write path is missing
+- Watchers / Starring — "Am I watching this?" is visible on every Jira issue page; trivial API, high expectation
+- Board Quick Filters — filter chips above sprint board used dozens of times per standup
+- Saved Filters / JQL — power users live in saved filters; syncs server-side to Jira
+- Comment Edit/Delete — users strongly expect to fix typos; currently Taskflow is post-only
+- Due Date Overdue Highlighting — `duedate` already in type; trivial red badge
+- Sprint Goal Banner — `JiraActiveSprint.goal` already fetched; trivial display addition
+- Customizable Sidebar — replaces hard-coded role-based nav with user-controlled ordering/visibility
 
-**Must have (table stakes):**
-- Command palette with Cmd+K — muscle-memory shortcut in every dev tool users touch daily (Linear, Figma, VS Code, GitHub)
-- Fuzzy search within palette — users don't know exact titles; must tolerate imprecision; cmdk handles this natively
-- `?` key opens keyboard shortcut reference panel — standard in Gmail, Linear, GitHub; developers expect a discoverable cheat sheet
-- Settings split into logical sections with sidebar nav — 6+ sections on a single scroll page is unnavigable; sidebar is the norm in mature desktop apps
-- Actionable empty states (headline + sub-copy + CTA) — blank screens feel broken, not empty
-- Actionable error states (plain-language message + retry CTA) — "something went wrong" with no button is a dead end
-- App icon replacing the default Tauri placeholder — the default icon undermines trust in a team-facing tool immediately
+**Should have — competitive differentiators (P2):**
+- Attachments Viewer + Upload — `JiraAttachment[]` type exists but no UI; medium complexity due to auth negotiation
+- Mention Autocomplete — @mention is muscle memory; complex primarily due to cursor-relative popover positioning
+- Customizable Widget Dashboard — Jira's gadgets require admin; Taskflow offers instant personal layout
+- Bulk Operations with Progress — Jira's bulk wizard is 6+ clicks; multi-select bar is dramatically better UX
 
-**Should have (competitive differentiators):**
-- Pinned issue tabs in header — context-switching between 3–5 issues without re-searching mirrors Linear's multi-issue workflow
-- Recent items in palette default state — surfaces last-visited issues before the user types (Linear/VS Code pattern)
-- Global "go to" keyboard shortcuts (G+S = sprint board, G+B = backlog) — power users bypass menus; makes the app feel keyboard-native
-- J/K keyboard navigation in list views — Vim/Gmail/Linear users expect row navigation in Sprint Board and My Tasks
-- Illustrated monochrome empty states — same warmth as Linear's zero-state style at zero runtime cost
+**Defer to v3+:**
+- Full JQL editor with syntax highlighting — months of work; let users paste JQL from Jira
+- Attachment inline annotation — image editing is a separate application domain
+- Real-time comment collaboration — Jira DC has no WebSocket API
+- Burndown/velocity charts — requires historical snapshots Jira DC does not expose
+- Issue voting, comment reactions — low daily value; reactions not available on Jira DC
 
-**Defer to v2+:**
-- Customisable keyboard shortcuts — conflict detection + persistence + settings UI is disproportionate complexity; ship a fixed well-chosen default set
-- Tab drag-and-drop reordering — DnD on a narrow flex header strip with overflow is fiddly for marginal value; pin chronology order is sufficient
-- Live API search in palette on every keystroke — adds latency, hammers on-premise Jira, breaks instant-feel; use cache + "Search Jira for X" tail item (Raycast pattern)
-- Palette frecency ranking — recency ordering (already needed for recent items) is a good-enough approximation at this scale
-- Tab session restore across restarts — persist pin keys only (not issue data); treat as favourites, not session
+**Bonus additions discovered (not in original scope):**
+- Issue cloning — low complexity, weekly frequency; copy fields from source issue
+- Keyboard-driven time logging — natural language input ("2h 30m") as part of worklog UX
+
+See full details: `.planning/research/FEATURES.md`
 
 ### Architecture Approach
 
-Every v1.3 feature integrates through three established patterns the codebase already uses: global overlays mount in AppLayout (same as IssueDetailSheet and CreateEditIssueModal), cross-cutting persistent state lives in Zustand stores with LazyStore + createJSONStorage, and all cross-component wiring uses prop threading with zero `createContext`/`useContext`. The command palette opens from AppLayout state; the keyboard shortcut registry is a static module consumed by both the global shortcuts hook and the help panel; pinned tabs are a new Zustand store following the three existing stores exactly; recent items are added as fields to the existing `settings.store.ts` (not a fourth store); the Settings restructure is internal `useState` nav with no router changes.
+All v1.5 features integrate into the existing app structure — no new top-level routing paradigm, no new data transport, no new auth model. The integration is: new service modules in `services/jira/`, new Zustand stores for new concerns (dashboard layout, selection, starring), extensions to existing stores (settings v9, filter with view-scoping), and new components/sections within existing routes (issue detail page, dashboard, sprint board).
 
 **Major new components:**
-1. `CommandPalette.tsx` — Cmd+K overlay, multi-source search (cache reads + live query), action registry; mounts in AppLayout alongside IssueDetailSheet
-2. `PinnedTabBar.tsx` — horizontal tab strip rendered as a second row below TopBar; conditionally shown when `tabs.length > 0`; reads `usePinnedTabsStore`, calls `onIssueClick`
-3. `RecentItemsPopover.tsx` — clock icon in TopBar, reads `useSettingsStore.recentItems`, calls `onIssueClick`
-4. `ShortcutsHelpPanel.tsx` — `?` dialog, renders static `SHORTCUTS` registry as grouped reference table
-5. `useKeyboardShortcuts.ts` hook — global keydown listener registered in AppLayout; skips when target is INPUT/TEXTAREA/contenteditable
-6. `keyboard-shortcuts.ts` — static shortcut registry (single source of truth for both hook registration and help panel rendering)
-7. `command-actions.ts` — static nav action definitions for palette
-8. `pinned-tabs.store.ts` — new Zustand store with LazyStore persistence; stores `PinnedTab[]` (key + summary + type); cap at 7
+1. `ActivityTimeline.tsx` — unified changelog + comments + worklogs feed on issue detail; lazy-fetched only when Activity tab is active (not on issue load) to avoid payload bloat
+2. `TimeTrackingSection.tsx` + `WorklogDialog.tsx` — worklog CRUD within issue detail sidebar
+3. `AttachmentsSection.tsx` — file list with inline preview; attachment data already fetched with issue
+4. `routes/dashboard/widgets/` directory — widget registry + self-contained widget components; each reads auth from store directly (zero prop threading in dashboard parent)
+5. `BulkOperationsBar.tsx` — floating action bar driven by `selection.store.ts`; fully decoupled from list views via Zustand
+6. `BoardQuickFilters.tsx` — one-click toggle chips above sprint board columns
+7. `MentionAutocomplete.tsx` + `useMentionAutocomplete` hook — @-triggered popover in CommentComposer; pre-fetches assignable users to avoid per-keystroke API calls
 
-**Key modified files:** `AppLayout` (most changes: new state flags, new hooks, new renders), `TopBar` (new icons), `IssueDetailSheet` (pin/unpin button in header), `settings.store.ts` (recentItems fields), `Settings.tsx` (internal section nav)
+**New stores (separate files, not merged into settings.store):**
+- `dashboard.store.ts` — persisted widget layout (Tauri LazyStore)
+- `selection.store.ts` — session-only multi-select for bulk ops (no persistence)
+- `starred.store.ts` — client-side issue starring (Tauri LazyStore)
 
-**Architectural constraints to respect:** No `createContext`/`useContext` anywhere (explicit PROJECT.md decision); no new routes for Settings sub-pages (internal `useState`, not router children); no new routes for pinned tab navigation (tab click calls `setSelectedIssueKey`, not navigate); no keyboard listener in TopBar (TopBar is kept query-free by documented design decision).
+**Modified stores:**
+- `settings.store.ts` — add `sidebarItems[]`, version bump to 9 (with migration guards on every new field)
+- `filter.store.ts` — add view scoping for saved filters
+
+**No new top-level routes required.** All features integrate into existing routes. A `/saved-filters` route is optional and can be a settings sub-page instead.
+
+See full details: `.planning/research/ARCHITECTURE.md`
 
 ### Critical Pitfalls
 
-1. **macOS Cmd+K double-fire (shadcn/cmdk issue #2469)** — window listener and cmdk's internal Dialog listener both respond to the same keydown event, toggling open then closed in one cycle. Use `react-hotkeys-hook` with `"mod+k"` (built-in protection against double-fire) rather than a manual `window.addEventListener`. Verify on a physical macOS device in the production build, not the dev server.
+1. **Changelog `expand=changelog` silently caps at 100 entries** — Use the dedicated paginated endpoint `GET /issue/{key}/changelog?startAt=0&maxResults=100` from the start; the `expand` approach has no `total` field and silently truncates issues with extensive history. Recovery if discovered late: MEDIUM (rewrite data layer).
 
-2. **Zustand store `undefined` fields on migration** — adding new top-level keys to `settings.store.ts` or `pinned-tabs.store.ts` leaves them `undefined` (not defaulted) for existing users whose persisted JSON has no such key. Always bump `version` and add a `migrate` function before any component reads a new field. The v1.2 codebase already hit this pattern (`readIds`); it is a confirmed production crash.
+2. **Attachment content URLs reject PAT Bearer token** — Attachment files are served outside the REST API scope; PAT auth redirects to the HTML login page with status 200 (undetectable without checking content-type). Prototype early: Bearer fetch first, detect `text/html` response, fall back to session-cookie auth via `/rest/auth/1/session`, then fall back to `shell.open()`. Build this negotiation into a `downloadAttachment()` helper before building any viewer UI.
 
-3. **Escape/arrow-key handler conflicts across overlays** — SearchOverlay, CommandPalette, ShortcutsHelpPanel, and IssueDetailSheet (shadcn Dialog) all intercept `Escape`. Without centralized priority, the wrong overlay closes. Audit all existing `window.addEventListener('keydown')` calls before adding new handlers; use the single `useKeyboardShortcuts` hook for all global registration.
+3. **Widget dashboard remounts all widgets on every drag pixel** — `react-grid-layout` fires `onLayoutChange` continuously during drag. Storing layout in Zustand on each event causes every data-fetching widget to re-subscribe and flicker. Fix: use `useRef` during drag, commit to Zustand only on `onDragStop`/`onResizeStop`. Apply `React.memo` to all widget components with stable keys. Must be designed from day one.
 
-4. **`?` shortcut fires inside text inputs** — a window keydown handler for `?` fires unconditionally in `QuickCreateInput`, `CommentComposer`, settings form fields. Guard every single-character shortcut: `const isTyping = ['INPUT', 'TEXTAREA'].includes(target.tagName) || target.isContentEditable`.
+4. **Settings store migration fragility** — Already at v8 with 60+ fields and 8 cumulative migrations. Adding dashboard layout, sidebar config, and saved filters here would push it past 80 fields. Create dedicated stores (`dashboard.store.ts`, `sidebar.store.ts`) following the existing `pinned-tabs.store.ts` pattern. Every new migration must guard new fields with `if (s.field === undefined)`.
 
-5. **macOS webview cold-launch keyboard events** — on first launch before any user interaction, `Cmd+K` does nothing (WKWebView DOM hasn't received focus — Tauri issue #5464). After `getCurrentWindow().setFocus()` on mount, also call `document.body.focus()` to ensure the DOM is ready to receive keydown events.
+5. **Bulk operations partial failure on Jira DC** — No native bulk API exists on Jira DC; every issue requires a separate PUT. Use `Promise.allSettled` (never `Promise.all`), cap concurrency at 5, respect `x-ratelimit-remaining` headers, and show per-issue progress with a "retry failed" action. Recovery cost if designed wrong: MEDIUM.
 
-6. **Pinned tab stale titles** — never persist issue titles alongside keys in `pinnedTabs` store. Resolve display labels lazily from TanStack Query cache at render time. Storing titles produces stale labels when issues are renamed in Jira.
+**Additional confirmed gotchas:**
+- Watchers POST body must be a bare JSON string `"username"` — not an object; DC uses `name` not `accountId`
+- Worklog `timeSpent` must use Jira format `"2h 30m"` — not ISO 8601 `PT2H30M`; build `formatJiraDuration()` utility before the worklog UI
+- Mention autocomplete must pre-fetch assignable users (once, cached 30min) rather than querying on every keystroke
+- The existing `quickFilters` in settings store and the new `savedFilters` feature are conceptually distinct — use separate types and a separate store to prevent naming collisions and migration risk
 
-7. **Tab bar overflow breaks fixed `h-12` header layout** — cap tabs at 5–8 with a `+N` overflow dropdown; test with 8+ pinned issues before shipping; implement overflow handling together with the initial tab bar, never as a follow-up.
+See full details: `.planning/research/PITFALLS.md`
 
 ## Implications for Roadmap
 
-Based on combined research, the dependency graph produces a clear 5-phase structure. The first two phases are foundational (low risk, unblock later phases). Phases 3–4 deliver the high-value keyboard-first features. Phase 5 is pure polish with zero blocking dependencies.
+Based on the dependency graph and risk profile from combined research, a 7-phase structure is recommended. The ordering progresses from contained issue detail enhancements (low blast radius, high value shipped early) through filter system work, global navigation changes, and finally the two most architecturally impactful features.
 
-### Phase 1: Foundation — App Icon + Multi-Page Settings
+### Phase 1: Issue Detail Enrichment
+**Rationale:** Activity history, time tracking, and attachments are all isolated to the issue detail page, have zero dependencies on other new features, and some already have partial data (attachment type exists, worklog service exists, timetracking field already fetched). Low integration risk, high daily value shipped early.
+**Delivers:** Unified activity timeline (changelog + comments + worklogs merged by timestamp), worklog CRUD with natural language time input, attachment viewer with upload
+**Addresses:** Issue Activity History, Time Tracking/Worklog CRUD, Attachments Viewer (all P1/P2)
+**Avoids:** N+1 query pitfall (changelog fetched lazily on tab select only, never on issue load); attachment PAT auth pitfall (prototype `downloadAttachment()` helper before UI); worklog format pitfall (build `formatJiraDuration()` first); custom field display names in changelog (use existing `discoverCustomFields` pattern)
+**Research flag:** NEEDS RESEARCH — attachment PAT auth negotiation is a blocking technical investigation with multiple fallback paths; must be prototyped against the live instance before building UI
 
-**Rationale:** App icon has zero code dependencies and ships the product's visual identity first. Settings restructure is a self-contained refactor with no new stores or router changes; it must come before the command palette so "Go to Connections" and other palette actions work from launch. Both are low risk and provide natural validation of small patterns before higher-stakes work begins.
+### Phase 2: Issue Detail Social Features
+**Rationale:** Watchers and mention autocomplete both live in the issue detail page scope and are slightly more complex than Phase 1 (new API endpoints, DC-specific auth format quirks, textarea integration). Sequencing after Phase 1 keeps all issue detail work grouped and ensures mention autocomplete works in edited comments as well.
+**Delivers:** Watch/unwatch toggle with watcher count badge, @mention autocomplete in comment composer, comment edit/delete
+**Addresses:** Watchers/Starring, Mention Autocomplete, Comment Edit/Delete (all P1/P2)
+**Avoids:** Watchers body format pitfall (bare `"username"` string body, not an object); mention excessive requests pitfall (pre-fetch assignable users on project load, search locally); watcher permission graceful degradation (user can add self but not others without "Manage watcher list" permission)
+**Research flag:** STANDARD PATTERNS — API endpoints confirmed; pre-fetch user cache pattern is straightforward
 
-**Delivers:** New app icon across all platforms (macOS Dock, Windows taskbar, system tray) via `tauri icon` CLI; Settings with sidebar nav across 4 sections (Connections, Appearance, Notifications, Workflow); existing 6 section components promoted into page wrappers with internal `activeSection` state in Settings.tsx.
+### Phase 3: Trivial Quality-of-Life Items
+**Rationale:** Due date highlighting, sprint goal banner, and issue cloning are all trivial (data already fetched, minimal UI). Bundling them as a dedicated low-effort phase avoids polluting higher-complexity phases with one-liner tasks.
+**Delivers:** Overdue due date red badge on sprint cards and issue detail, sprint goal displayed on board header, one-click issue clone
+**Addresses:** Due Date Highlighting, Sprint Goal Banner (P1), Issue Cloning (P3)
+**Avoids:** No meaningful pitfall exposure
+**Research flag:** SKIP RESEARCH — all data already in existing types; no new API surface
 
-**Addresses:** App icon table stake; multi-page Settings table stake; Settings deep-link prerequisite for command palette
+### Phase 4: Filter System Extensions
+**Rationale:** Saved filters and board quick filters both extend the existing filter infrastructure (`filter.store.ts`, `UnifiedFilterBar.tsx`). Board quick filters depend on the view-scoping changes made for saved filters. Filter work is self-contained and does not require sidebar or dashboard to be done first.
+**Delivers:** Saved filter management page, server-synced favourite filters from Jira, one-click filter chips on sprint board, offline-ready filter caching
+**Addresses:** Saved Filters/JQL, Board Quick Filters (both P1)
+**Avoids:** quickFilters/savedFilters naming collision (separate types and stores, `QuickFilter` shape unchanged); JQL injection risk (store structured filter objects, generate JQL at query time, never store raw JQL); board ID discovery UX decision (persist boardId per project in store after first discovery)
+**Research flag:** STANDARD PATTERNS — existing filter system and persistence patterns are proven; Jira filter API endpoints are straightforward
 
-**Avoids:** macOS dock icon oversized (artwork must be ~860×860 on a 1024×1024 canvas before running `tauri icon` — Pitfall 1 from PITFALLS.md); Settings navigation destroying in-progress form state (use internal `useState` nav, not router children — Pitfall 6 and Architecture Anti-Pattern 5)
+### Phase 5: Global Navigation (Customizable Sidebar)
+**Rationale:** Sidebar customization modifies global navigation and affects the whole app. By Phase 5, all feature routes are stable and the full set of sidebar items is known. Doing this earlier risks building the sidebar config around an incomplete feature set.
+**Delivers:** User-configurable sidebar ordering and visibility, role presets as quick-start configs, settings panel for sidebar customization
+**Addresses:** Customizable Sidebar (P1)
+**Avoids:** Settings store migration fragility (sidebar config in dedicated store or new `sidebarItems` field with strict migration guard); `role` field preservation (`role` stays as-is; presets reference it, not replace it); missing reset action (always include "Reset to [role] defaults" in sidebar settings)
+**Research flag:** STANDARD PATTERNS — @dnd-kit reorder (already installed); Tauri LazyStore persist (used 4+ times in codebase)
 
-**Stack needed:** `tauri icon` CLI (already installed); no npm changes
+### Phase 6: Widget Dashboard Redesign
+**Rationale:** Most architecturally impactful change — replacing the fixed dashboard with a grid layout engine. Best done after all widget content (issue detail, filters, sprint health) is stable. The dashboard becomes a layout engine wrapping existing panels as self-contained widgets.
+**Delivers:** Drag/resize widget grid, widget registry (subtasks, MR health, sprint health, recent activity, time tracking widgets), role presets, `dashboard.store.ts`
+**Addresses:** Customizable Dashboard (P1)
+**Uses:** `react-grid-layout` (new dep), `dashboard.store.ts` (new store), CSS Grid with manual positioning
+**Avoids:** Widget remount on drag (useRef during drag, commit on onDragStop, React.memo on all widgets); prop threading credentials (widgets read from auth store directly); settings store bloat (dashboard config in `dashboard.store.ts`); hardcoded widget type IDs (use registry pattern from day one so new widgets can be added without layout migration)
+**Research flag:** NEEDS RESEARCH — react-grid-layout integration in Tauri webview, CSS import with Tailwind v4 PostCSS pipeline, and widget layout migration strategy warrant a focused research phase
 
-### Phase 2: Keyboard Foundation — Shortcut Registry + Help Panel
-
-**Rationale:** The shortcut registry (`keyboard-shortcuts.ts`) is a pure static module with no UI dependencies. It must exist before both the command palette (Phase 3) and any global shortcut registrations can be written. Building it as an isolated phase forces the registry design to be finalized before consumers are written — a single source of truth for both hook registration and help panel rendering.
-
-**Delivers:** `src/lib/keyboard-shortcuts.ts` registry + `Shortcut` interface; `src/hooks/useKeyboardShortcuts.ts` global keydown listener; `ShortcutsHelpPanel` Dialog mounted in AppLayout; `?` shortcut registered in AppLayout; `helpOpen` state in AppLayout
-
-**Addresses:** `?` help panel table stake; keyboard discoverability; single registration point for all global shortcuts
-
-**Avoids:** Escape handler conflicts — auditing all existing `window.addEventListener('keydown')` calls is the first task of this phase, before any new handlers are added (Pitfall 3); `?` text-input guard must be in the initial implementation (Pitfall 5)
-
-**Stack needed:** `react-hotkeys-hook@^5.2.4` (new install)
-
-### Phase 3: Command Palette + Recent Items
-
-**Rationale:** Depends on the shortcut registry (Phase 2) for `mod+k` registration and on Settings existing (Phase 1) so "Go to Settings" palette actions are working from day one. Recent items store is a same-phase concern — the `useSettingsStore` addition is minimal and the palette needs it for its pre-search default state.
-
-**Delivers:** `CommandPalette.tsx` (Cmd+K, fuzzy search across issues/MRs/nav actions, cache-first, "Search Jira for X" tail item); `recentItems` fields added to `useSettingsStore`; `handleIssueClick` wrapper in AppLayout (wraps `setSelectedIssueKey` to also call `addRecentItem`); `RecentItemsPopover` in TopBar; settings store version bumped with migrate function
-
-**Addresses:** Command palette table stake (highest-impact single feature); recent items differentiator; global G+letter navigation shortcuts (register in same phase via `useKeyboardShortcuts`)
-
-**Avoids:** Cmd+K double-fire — use `react-hotkeys-hook` not manual `window` listener (Pitfall 2); cold-launch webview focus gap — `document.body.focus()` after `getCurrentWindow().setFocus()` on mount (Pitfall 5 / Pitfall 9 from PITFALLS.md); new API calls per keystroke — cache-first via `queryClient.getQueryData`, live search only for text queries ≥2 chars (Architecture Anti-Pattern 4); new React Context for palette state — AppLayout local state + prop threading (Architecture Anti-Pattern 2)
-
-**Stack needed:** `cmdk@^1.1.1` (new install); `npx shadcn add command` (code-gen step)
-
-### Phase 4: Header Redesign — Pinned Issue Tabs
-
-**Rationale:** Highest-complexity feature in the milestone. Touches TopBar layout, a new Zustand store, `IssueDetailSheet` header, and AppLayout render tree. Must be built after `handleIssueClick` wrapper is proven and TopBar icon additions are settled (Phase 3). Building last prevents rework if earlier phases shift TopBar layout assumptions.
-
-**Delivers:** `src/stores/pinned-tabs.store.ts` (new Zustand store with LazyStore persistence; `PinnedTab[]` with key/summary/type; cap at 7); `PinnedTabBar.tsx` rendered as second row below TopBar, conditionally shown; pin/unpin button in `IssueDetailSheet` header; `+N` overflow dropdown for tabs beyond display capacity
-
-**Addresses:** Pinned tabs differentiator (highest-value P2 feature); J/K list navigation can be added here as route-scoped shortcuts using the established `useKeyboardShortcuts` pattern
-
-**Avoids:** Stale tab titles — store only issue keys; resolve display labels from TanStack Query cache (Pitfall 7); tab bar overflow breaking fixed header layout — implement overflow handling in the same PR as the initial tab bar (Pitfall 8); routes for pinned tab navigation — tab click calls `setSelectedIssueKey`, not `navigate` (Architecture Anti-Pattern 3); `useQuery` per tab on mount — use `queryClient.getQueryData` synchronously for labels
-
-**Stack needed:** No new packages; Zustand + LazyStore pattern (existing)
-
-### Phase 5: Polish — Empty States + Error Recovery
-
-**Rationale:** Fully independent of all other features. No store changes, no routing changes, no new dependencies. An ideal final phase — the app is stable, all views exist, and applying consistent empty/error states is low-risk, high-polish work.
-
-**Delivers:** Consistent `EmptyState` component (illustration + headline + sub-copy + optional CTA) and `ErrorState` component (plain-language message + retry/reconnect CTA) applied across My Tasks, Sprint Board, Backlog, Notifications, Search, Releases, Workload views. SVG illustration assets for 4 categories: no-data, error, no-results, first-use.
-
-**Addresses:** Empty states table stake; error recovery table stake; illustrated empty states differentiator
-
-**Avoids:** Empty states without a primary action — every empty state must include at least one CTA button; illustration is decorative only (UX pitfall from PITFALLS.md)
-
-**Stack needed:** Inline SVG + lucide-react (already installed); no new packages
+### Phase 7: Bulk Operations
+**Rationale:** Bulk operations touch multiple list views (backlog, sprint board, my tasks) and are the most complex integration — multi-select state across views, floating action bar, concurrency-limited API iteration with no native bulk endpoint, per-issue progress tracking. All upstream list views must be stable before adding the selection layer.
+**Delivers:** Multi-select checkbox on list views, floating bulk action bar, progress tracking with per-issue status, retry-failed capability, concurrency-capped iteration
+**Addresses:** Bulk Operations (P2)
+**Avoids:** Partial failure pitfall (`Promise.allSettled`, per-issue tracking, retry button); rate limiting (concurrency cap 5, check `x-ratelimit-remaining`); selection state polluting filter store (separate `selection.store.ts`); operation blast radius (cap batch size at 25-50 issues)
+**Research flag:** STANDARD PATTERNS — well-understood UX pattern; Jira DC per-issue iteration approach is confirmed with documented workarounds
 
 ### Phase Ordering Rationale
 
-- **Settings before command palette:** Hard dependency — palette "Go to X" actions require working Settings navigation
-- **Shortcut registry before palette and help panel:** Both consumers read from the same static module; define once, consume everywhere
-- **Pinned tabs last:** Touches the most files (TopBar, AppLayout, IssueDetailSheet, new store); other phases must settle TopBar layout and `handleIssueClick` first
-- **App icon in Phase 1:** Zero code dependencies; early delivery of visual identity
-- **Polish in Phase 5:** No blockers; benefits from the full app being stable and all views existing
+- Issue detail phases (1-2) come first: isolated blast radius, high daily user value, no cross-feature dependencies
+- Trivial items (3) bundled separately: avoids polluting larger phases with one-liner tasks
+- Filter work (4) precedes sidebar (5): saved filters need to exist before sidebar can surface them as nav items
+- Sidebar (5) precedes dashboard (6): sidebar config informs which widgets are surfaced; sidebar items must be finalized first
+- Dashboard (6) before bulk ops (7): both are HIGH complexity; doing them last keeps phases 1-5 clean; dashboard is gated on stable widget content
+- Bulk operations last: requires stable list views from all previous phases; highest complexity, highest integration surface
 
 ### Research Flags
 
-Phases with well-documented patterns (skip deeper research):
-- **Phase 1 (Icon + Settings):** Tauri icon CLI is official documented tooling; Settings internal-nav is a straightforward `useState` refactor with no new APIs
-- **Phase 2 (Shortcut Registry + Help Panel):** react-hotkeys-hook is well-documented; help panel is a read-only Dialog reading a static module
-- **Phase 5 (Empty/Error States):** Established Carbon/PatternFly design system patterns; no integration complexity
+Phases likely needing `/gsd:research-phase` during planning:
+- **Phase 1 (Issue Detail Enrichment):** Attachment PAT auth negotiation in Tauri is a blocking technical investigation; must prototype against live Jira DC instance before building attachment UI
+- **Phase 6 (Widget Dashboard):** react-grid-layout CSP/worker behavior in Tauri webview, Tailwind v4 + external CSS import coexistence, and widget layout migration strategy need dedicated research
 
-Phases requiring care during implementation (not full research, but verify these specific things):
-- **Phase 3 (Command Palette):** The macOS Cmd+K double-fire and cold-launch webview focus bugs are not caught by unit tests and require verification on a physical macOS device in the production build before marking the feature complete. Do not ship without this verification step.
-- **Phase 4 (Pinned Tabs):** Tab overflow with 8+ pins and the TopBar height contract must be designed upfront, not discovered during review. The store migration pattern must be correct from the first commit — no `undefined` fields in production.
+Phases with standard patterns (skip research-phase):
+- **Phase 2 (Social Features):** All API endpoints confirmed; pre-fetch user cache is a known TanStack Query pattern
+- **Phase 3 (Trivial QoL):** Data already in types; no new API surface
+- **Phase 4 (Filter Extensions):** Existing filter store patterns are proven; Jira filter API endpoints are straightforward
+- **Phase 5 (Sidebar):** @dnd-kit + Tauri LazyStore persist used elsewhere in the codebase; no novel patterns
+- **Phase 7 (Bulk Operations):** Iteration approach confirmed; standard progress tracking and concurrency limiting patterns
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | npm versions verified live on 2026-03-15; React 19 peer deps confirmed for both new packages; existing stack (React 19.1, Zustand 5, TanStack Query 5) inspected directly in package.json |
-| Features | HIGH | Patterns verified against Linear, Notion, VS Code as primary references; feature list validated against actual codebase capabilities and existing component structure |
-| Architecture | HIGH | Based on direct codebase analysis (main.tsx, TopBar.tsx, stores, tauri.conf.json, Settings.tsx, SearchOverlay.tsx), not inference; all integration points confirmed; no assumptions made |
-| Pitfalls | HIGH | macOS keyboard bugs traced to specific filed Tauri and shadcn GitHub issues with confirmed fixes; Zustand migration pitfall is a confirmed v1.2 regression in this exact codebase; macOS icon padding is a documented community issue |
+| Stack | HIGH | All new deps verified against React 19 peer deps; existing stack fully audited; Tauri-specific concerns (CSP, PDF worker, attachment auth) identified with documented approaches |
+| Features | HIGH | Jira DC REST API v2 endpoints verified against Atlassian docs 9.14.0; all endpoints cross-referenced against existing codebase types; DC vs Cloud API differences explicitly documented |
+| Architecture | HIGH | Based on full codebase audit (2026-03-22); all file locations, store patterns, and integration points verified against actual code; no assumptions made about file structure |
+| Pitfalls | HIGH | Changelog cap, attachment PAT failure, watchers body format all verified against Atlassian community forums and official bug tracker (JRASERVER-72019); rate limiting confirmed against Jira DC v10.3.15 docs; widget remount issue traced to react-grid-layout issue #945 |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **SVG illustration assets:** Research specifies the approach (monochrome geometric SVGs, lucide-react primitives as building blocks, consistent style matching Linear's zero-states) but the actual design assets do not exist yet. Phase 5 is blocked until these assets are created or sourced. This is a design dependency, not a technical unknown.
+- **Attachment download auth on the target instance:** The PAT Bearer auth failure is a known Jira DC bug, but behavior varies by instance version and configuration. Must prototype against the real Jira DC instance before building the attachment UI. If session-cookie approach also fails, `shell.open()` becomes the designed primary UX, not a fallback — Phase 1 planning must account for both outcomes.
 
-- **App icon source asset:** The `tauri icon` CLI workflow is fully documented, but the 1024×1024 source PNG must be designed first. Phase 1 icon work is blocked until this asset is ready. The macOS canvas padding requirement (~860×860 artwork on a 1024×1024 canvas) must be applied before running the CLI — this is a design constraint to communicate to whoever creates the asset.
+- **Board ID discovery UX:** Taskflow currently queries sprints via JQL rather than the Agile board API. Board quick filters require a `boardId` discovered via `GET /rest/agile/1.0/board?projectKeyOrId={key}`. The mechanics are clear but the UX for persisting the board ID (per-project, during onboarding, or lazily on first board view) needs a decision during Phase 4 planning.
 
-- **J/K list navigation scoping:** The feature is confirmed viable via route-scoped `useKeyboardShortcuts` additions (one hook call per list view). Exact key bindings and focus management behavior within Sprint Board and My Tasks should be reviewed against those components' row/card structure before starting Phase 4. Not a blocker — this is a design confirmation step.
+- **Settings store v9 migration test coverage:** The codebase has no automated migration test walking from version 0 through all versions. Adding this before the first new store version bump would prevent regression. Whether to address it in-band with v1.5 phases or as a separate maintenance task is a planning decision.
+
+- **react-mentions-ts maturity:** This is a TypeScript-first fork of the unmaintained original, with React 19 support. It is the best available option but carries lower community visibility than the original. If integration issues surface during Phase 2, the confirmed fallback is a custom `useMentionAutocomplete` hook using a shadcn Popover positioned based on textarea cursor offset — described in full in ARCHITECTURE.md.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Existing Taskflow codebase (`/Users/mimo/Desktop/Tasker/taskflow/src/`) — read directly on 2026-03-15; architecture, existing patterns, actual runtime versions confirmed
-- npm registry live queries (2026-03-15) — `cmdk@1.1.1` peer deps (`react: '^18 || ^19'`), `react-hotkeys-hook@5.2.4` peer deps (`react: '>=16.8.0'`) confirmed
-- Official Tauri v2 docs (v2.tauri.app) — app icon CLI workflow, asset requirements, global shortcut plugin
-- Official shadcn/ui docs (ui.shadcn.com) — Command component, cmdk dependency, CommandDialog installation
-- Nielsen Norman Group — left-side vertical navigation on desktop
-- Carbon Design System / PatternFly — empty state pattern guidelines
+- [Jira DC REST API v2 Reference 9.14.0](https://docs.atlassian.com/software/jira/docs/api/REST/9.14.0/) — all Jira endpoint signatures verified here
+- [Jira Agile DC REST API 9.14.0](https://docs.atlassian.com/jira-software/REST/9.14.0/) — board and quick filter endpoints
+- [Jira DC REST API Examples](https://developer.atlassian.com/server/jira/platform/jira-rest-api-examples/) — attachment, worklog, watcher patterns
+- [Jira DC Rate Limiting](https://confluence.atlassian.com/adminjiraserver/improving-instance-stability-with-rate-limiting-983794911.html) — bulk operation throttling approach
+- [Jira DC Personal Access Tokens](https://confluence.atlassian.com/enterprise/using-personal-access-tokens-1026032365.html) — auth scope limitations for attachment URLs
+- Codebase audit: `taskflow/src/` (2026-03-22) — store patterns, service modules, type definitions, pagination utilities
+- [GitLab Notes API](https://docs.gitlab.com/api/notes/) — cross-source activity enrichment
+- [GitLab Time Tracking](https://docs.gitlab.com/ee/user/project/time_tracking.html) — GitLab equivalent endpoints
 
 ### Secondary (MEDIUM confidence)
-- react-hotkeys-hook official docs (react-hotkeys-hook.vercel.app) — hook API, `mod` modifier, scopes, `enableOnFormTags`
-- Zustand persist middleware docs (zustand.docs.pmnd.rs) — migration API, `version` + `migrate` pattern
-- Linear, Notion, VS Code product analysis — feature comparison for command palette, shortcuts, settings, tabs, empty states
-- cmdk GitHub (dip/cmdk) — confirmed used by Linear and Raycast in production
-- shadcn/ui issue #2469 — Cmd+K double-fire on macOS (confirmed bug, confirmed fix pattern)
+- [Atlassian Community: Changelog 100-entry limit](https://community.atlassian.com/forums/Jira-questions/Rest-API-limiting-changelog-history-results-to-100-even-if/qaq-p/1466525) — silent truncation behavior confirmed
+- [Atlassian Community: Changelog pagination](https://community.atlassian.com/forums/Jira-questions/Help-with-Pagination-for-Jira-On-Prem-Changelog-API/qaq-p/2961571) — dedicated endpoint approach
+- [JRASERVER-72019](https://jira.atlassian.com/browse/JRASERVER-72019) — attachment PAT Bearer limitation on Jira DC
+- [Jira DC attachment download session-cookie workaround](https://support.atlassian.com/jira/kb/how-to-download-attachments-using-rest-api-and-sso/)
+- [Atlassian Community: Watchers username format](https://community.developer.atlassian.com/t/help-adding-a-watcher-using-rest-api-json/76677) — bare string body requirement confirmed
+- [react-grid-layout issue #945](https://github.com/react-grid-layout/react-grid-layout/issues/945) — widget remount on drag behavior
+- [ilert: React-Grid-Layout production dashboard](https://www.ilert.com/blog/building-interactive-dashboards-why-react-grid-layout-was-our-best-choice) — confirms production viability for dashboard use case
 
-### Tertiary (MEDIUM confidence — GitHub issue trackers)
-- tauri-apps/tauri #5464, tauri-apps/tao #208, tauri-apps/tauri #14770 — macOS webview cold-launch keyboard focus
-- tauri-apps/tauri discussions #10999 — macOS icon canvas padding requirement
-- cmdk issue #266 — React 19 peer dep resolution in v1.0.4+
-- shadcn/ui discussion #7743 — keyboard shortcut best practices
+### Tertiary (LOW confidence — needs validation during implementation)
+- [Shadcn Timeline template](https://www.shadcn.io/template/timdehof-shadcn-timeline) — confirms timeline is trivially buildable with existing primitives
+- react-mentions-ts GitHub — React 19 support claimed; needs integration validation in Phase 2
 
 ---
-*Research completed: 2026-03-15*
+*Research completed: 2026-03-22*
 *Ready for roadmap: yes*

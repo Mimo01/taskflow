@@ -56,7 +56,21 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ### Active
 
-(No active requirements — define next milestone with `/gsd:new-milestone`)
+## Current Milestone: v1.5 Dashboard Redesign & Feature Parity
+
+**Goal:** Make Taskflow feel like a real power tool — customizable layout, issue activity history, and key Jira/GitLab features that users expect.
+
+**Target features:**
+- Customizable sidebar with user-chosen items; Dev/PM roles become presets
+- Configurable widget-based dashboard
+- Issue activity history timeline (field changes, transitions, comments)
+- Time tracking / work log support
+- Watchers & starring for issues
+- Saved filters across views
+- Attachments viewer inline
+- Mention autocomplete in comments
+- Bulk operations on issues
+- Board quick filters
 
 ### Out of Scope
 
@@ -142,5 +156,22 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 | Per-operation scoped timelines in waterfall (not global) | Global timeline made short operations invisible as thin slivers | ✓ Good — each operation readable regardless of total timeline |
 | noExplicitAny as Biome error (not warn) | Zero-any policy enforced at lint level; single cast from unknown safe for Zustand migrate | ✓ Good — prevents regression |
 
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd:transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-03-20 after v1.4 milestone*
+*Last updated: 2026-03-22 after v1.5 milestone started*

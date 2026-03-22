@@ -1,557 +1,616 @@
-# Architecture Research
+# Architecture Research: v1.5 Feature Integration
 
-**Domain:** UX & Branding additions to Tauri 2 + React 18 desktop app
-**Researched:** 2026-03-15
-**Confidence:** HIGH — based on direct codebase analysis, not inference
+**Domain:** Desktop Jira/GitLab client -- new feature integration into existing Tauri 2 + React 18 architecture
+**Researched:** 2026-03-22
+**Confidence:** HIGH (based on full codebase audit + Jira DC REST API v2 verification)
 
----
-
-## Existing Architecture (Ground Truth)
-
-### System Overview
+## System Overview: Current Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  main.tsx — createHashRouter + QueryClientProvider              │
-│  AppLayout — owns all global overlay state                      │
-│  ┌───────────┐  ┌──────────────────────────────────────────┐    │
-│  │  Sidebar  │  │  flex-col wrapper                        │    │
-│  │  (w-56)   │  │  ┌────────────────────────────────────┐  │    │
-│  │           │  │  │ TopBar (h-12) — Search + Bell      │  │    │
-│  │  NavLinks │  │  ├────────────────────────────────────┤  │    │
-│  │  +Create  │  │  │ ReAuthBanners (conditional)        │  │    │
-│  │  +Settings│  │  ├────────────────────────────────────┤  │    │
-│  └───────────┘  │  │ <main> — <Outlet> route content    │  │    │
-│                 │  └────────────────────────────────────┘  │    │
-│                 └──────────────────────────────────────────┘    │
-│                                                                  │
-│  Global overlays (z-50, fixed/absolute, rendered by AppLayout): │
-│  ┌─────────────────────┐  ┌──────────────────────────────────┐  │
-│  │  IssueDetailSheet   │  │  CreateEditIssueModal            │  │
-│  └─────────────────────┘  └──────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-
-State Layer
-┌──────────────┐  ┌────────────────────┐  ┌──────────────────────┐
-│ useAuthStore │  │ useSettingsStore    │  │ useNotificationsStore│
-│ auth.json    │  │ settings.json       │  │ notifications.json   │
-│ (LazyStore)  │  │ (LazyStore)         │  │ (LazyStore)          │
-└──────────────┘  └────────────────────┘  └──────────────────────┘
-
-Data Layer: TanStack Query — all API calls, no per-component polling
+┌─────────────────────────────────────────────────────────────────────┐
+│                          AppLayout (main.tsx)                       │
+│  ┌──────────┐  ┌──────────────────────────────────────────────────┐ │
+│  │ Sidebar  │  │  TopBar + PinnedTabStrip + ReAuthBanner         │ │
+│  │ (static  │  ├──────────────────────────────────────────────────┤ │
+│  │  role-   │  │  <Outlet> (route content)                       │ │
+│  │  based)  │  │  ┌──────────┐ ┌──────────┐ ┌──────────────────┐ │ │
+│  │          │  │  │Dashboard │ │SprintBoard│ │IssueDetailPage  │ │ │
+│  │          │  │  │(panels)  │ │(kanban)   │ │(full-page)      │ │ │
+│  │          │  │  └──────────┘ └──────────┘ └──────────────────┘ │ │
+│  └──────────┘  └──────────────────────────────────────────────────┘ │
+├─────────────────────────────────────────────────────────────────────┤
+│  Overlays: CommandPalette | CreateEditIssueModal | KeyboardShorts  │
+├─────────────────────────────────────────────────────────────────────┤
+│  Stores (Zustand)           │  Data Layer (TanStack Query)         │
+│  auth, settings, filter,    │  queryKey-based caching, 5min stale  │
+│  notifications, pinned-tabs │  60s poll (notifications: 30s)       │
+│  recent-items, breadcrumb   │                                      │
+├─────────────────────────────┤──────────────────────────────────────┤
+│  Services: jira/ (14 modules) + gitlab.ts + notifications.ts      │
+│  Transport: apiFetch() -> @tauri-apps/plugin-http (CORS-free)     │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Component Responsibilities
+## Feature-by-Feature Integration Analysis
 
-| Component | Responsibility | Notes |
-|-----------|----------------|-------|
-| `AppLayout` (main.tsx) | Owns global overlay state, notification polling, custom field discovery | All global `useState` lives here: `selectedIssueKey`, modal open flags |
-| `TopBar` | Renders search trigger, bell + badge; zero useQuery calls | Kept query-free for testability — documented design decision |
-| `Sidebar` | Role-conditional nav links, Create Issue button | Reads `useSettingsStore` for role + debugMode |
-| `IssueDetailSheet` | Global issue detail slide-over | Lifted to AppLayout so search/notifications/all routes share one instance |
-| `CreateEditIssueModal` | Global create/edit modal | Same lifting pattern as IssueDetailSheet |
-| Zustand stores | Cross-cutting persistent state | LazyStore + createJSONStorage; never raw localStorage |
-| `useNotificationPolling` | Single poll coordinator hook called in AppLayout | Separated from TopBar for test isolation |
+### 1. Customizable Sidebar
 
----
+**Current state:** `Sidebar.tsx` renders hardcoded NavLink lists based on `role` from settings store. Role is `'developer' | 'pm' | 'tech-lead' | null`. Links are grouped into sections ("Work") with role-conditional rendering.
 
-## Feature Integration Analysis
+**Integration approach:** MODIFY existing code
 
-### 1. Command Palette (Cmd+K)
+| What Changes | File | Nature |
+|---|---|---|
+| Sidebar component | `components/app/Sidebar.tsx` | **Major rewrite** -- replace hardcoded NavLinks with data-driven rendering from sidebar config |
+| Settings store | `stores/settings.store.ts` | **Extend** -- add `sidebarItems: SidebarItem[]` and role presets |
+| Settings UI | `routes/settings/` | **New section** -- sidebar customization panel |
 
-**Integration point:** AppLayout — same level as IssueDetailSheet and CreateEditIssueModal.
-
-**Global keyboard listener placement:** A `useEffect` in AppLayout listens for `keydown` with
-`(e.metaKey || e.ctrlKey) && e.key === 'k'`. This is the same pattern SearchOverlay uses for Escape.
-The listener belongs in AppLayout so it is always active regardless of which route is mounted. Do NOT
-add it in TopBar — TopBar is kept query-free by design and the palette needs QueryClient access.
-
-**State:** A single `commandPaletteOpen: boolean` added to AppLayout local state alongside `selectedIssueKey`.
-Pass `onOpenCommandPalette` down to TopBar so a Cmd+K icon in the header can also trigger it.
-
-**Search across data stores and queries:** The palette fans out to multiple sources via a dedicated
-`useCommandPaletteSearch(query)` hook:
-
-1. Static nav actions — synchronous, no network (from `command-actions.ts` module)
-2. `queryClient.getQueryData(...)` — reads already-cached sprint issues, backlog, epics from TanStack
-   Query without firing new fetches
-3. Live Jira/GitLab search — reuses `searchJira` and `searchGitLabMRs` services already in
-   `SearchOverlay.tsx`; guarded by `enabled: query.length >= 2`
-
-**Action registry pattern:** Define a static array in `src/lib/command-actions.ts`. Each entry has
-`id`, `label`, `keywords`, `icon`, `onSelect: () => void`. Nav actions call `navigate(path)`.
-Issue actions call `setSelectedIssueKey(key)`. Pass `setSelectedIssueKey` as a prop to `CommandPalette`
-(prop-threading — zero createContext/useContext, consistent with entire codebase).
-
-**Result:** `CommandPalette` receives `open`, `onClose`, `onIssueClick` props. Mounted in AppLayout
-JSX alongside IssueDetailSheet.
-
-```
-AppLayout local state:
-  commandPaletteOpen: boolean
-  ↓ prop
-CommandPalette
-  ├── static nav actions (command-actions.ts)
-  ├── queryClient.getQueryData cache reads (sync, no network)
-  └── useQuery searchJira + searchGitLabMRs (debounced, enabled guard)
-        ↓ result selected: onIssueClick
-      setSelectedIssueKey (AppLayout) → IssueDetailSheet opens
-```
-
----
-
-### 2. Pinned Issue Tabs
-
-**State management:** New Zustand store — `usePinnedTabsStore`. Persisted via LazyStore +
-createJSONStorage, matching the auth/settings/notifications store pattern exactly. Shape:
-
+**New types needed:**
 ```typescript
-interface PinnedTab {
-  key: string;
-  summary: string;
-  type: string; // 'Story' | 'Subtask' | 'Bug' | 'Epic'
-}
-
-interface PinnedTabsState {
-  tabs: PinnedTab[];
-  pin: (tab: PinnedTab) => void;
-  unpin: (key: string) => void;
-  reorder: (from: number, to: number) => void;
-}
-```
-
-Cap at 7 tabs to prevent runaway. Store to `pinned-tabs.json`.
-
-**Tab routing vs modal approach:** Do NOT add new routes. The entire app uses IssueDetailSheet as the
-issue viewing mechanism — pinned tab clicks open the existing IssueDetailSheet via `setSelectedIssueKey`.
-This is consistent with how search results, notifications, sprint board cards, and backlog all open
-issues. Adding `/issues/:key` routes would require replacing IssueDetailSheet with a full-page layout,
-which conflicts with the v1.2 decision to lift IssueDetailSheet to AppLayout as the single global entry
-point.
-
-**Tab bar placement:** A dedicated `PinnedTabBar` component rendered as a second row below TopBar —
-cleaner separation than embedding inside TopBar's single-row layout. `PinnedTabBar` is conditionally
-rendered only when `tabs.length > 0` to avoid a visual gap in the header when no tabs exist.
-
-**IssueDetailSheet integration:** No structural changes to IssueDetailSheet. A tab click calls
-`onIssueClick(tab.key)` — identical to every other entry point. Pin/unpin actions live in the
-IssueDetailSheet header (a pin icon button alongside existing actions). When pinned: call
-`usePinnedTabsStore.pin({ key, summary, type })` — the sheet already has the issue data in scope.
-
-**New vs modified:**
-- NEW: `src/stores/pinned-tabs.store.ts`
-- NEW: `src/components/app/PinnedTabBar.tsx`
-- MODIFIED: `TopBar` — pass `onIssueClick` to PinnedTabBar (prop already exists on TopBar)
-- MODIFIED: `IssueDetailSheet` — add pin/unpin button in header area
-- MODIFIED: `AppLayout` — render PinnedTabBar between TopBar and `<main>`
-
----
-
-### 3. Multi-Page Settings
-
-**Route structure vs single-page internal nav:** Use single-page internal nav. Do NOT add
-`/settings/connections`, `/settings/appearance` etc. to the Hash router.
-
-Rationale: Settings is a single page, not a feature area. Adding child routes requires updating the
-router config, Sidebar NavLink active state logic, and back-navigation handling — all for a page whose
-sections are small and stable. Internal `useState<SettingsSection>` is simpler and consistent with
-how the Dashboard uses internal tab state for its panels.
-
-**Structure:**
-
-```
-Settings.tsx
-├── SettingsNav (left sidebar strip or top tabs)
-│   └── tabs: Connections | Appearance | Notifications | Workflow
-└── SettingsContent (renders active section)
-    ├── ConnectionsPage  — existing TokenSection content
-    ├── AppearancePage   — existing ThemeSection + RoleSection
-    ├── NotificationsPage — existing NotificationSettingsSection
-    └── WorkflowPage     — existing StaleMrThresholdSection + DebugModeSection
-```
-
-The six existing section components (TokenSection, ThemeSection, RoleSection, StaleMrThresholdSection,
-NotificationSettingsSection, DebugModeSection) are unchanged — they are promoted into the appropriate
-page wrapper. Existing tests for these components require no updates.
-
-**New vs modified:**
-- MODIFIED: `Settings.tsx` — add internal `activeSection` state, compose page wrappers, render nav
-- NO router changes needed
-- NO store changes needed
-
----
-
-### 4. Keyboard Shortcuts System
-
-**Global vs route-scoped:** Two categories:
-
-1. **Global shortcuts** (always active): Cmd+K (command palette), `?` (help panel), Escape (close
-   active overlay). Registered in AppLayout via a `useKeyboardShortcuts(handlers)` hook called
-   alongside `useNotificationPolling` and `useCustomFieldDiscovery`.
-
-2. **Route-scoped shortcuts** (active on specific routes only): e.g., `N` to create an issue on
-   Sprint Board. Registered in the component owning the route via a local `useEffect` keydown
-   listener — not in the global registry.
-
-**Conflict resolution:** The global hook skips when `e.target` is an `INPUT`, `TEXTAREA`, or
-`[contenteditable]` element. This prevents `?` or `N` firing while the user types in search or
-comment fields. Route-scoped handlers do the same check locally.
-
-**Shortcut registry structure:**
-
-```typescript
-// src/lib/keyboard-shortcuts.ts
-export interface Shortcut {
-  id: string;
+interface SidebarItem {
+  id: string;        // e.g. 'my-tasks', 'sprint-board'
+  route: string;     // e.g. '/my-tasks'
   label: string;
-  keys: string;          // display string e.g. "Cmd+K" or "?"
-  scope: 'global' | string; // string = route path for scoped shortcuts
+  icon: string;      // lucide icon name
+  section?: string;  // optional grouping
+}
+```
+
+**Key design decision:** Roles become presets that populate `sidebarItems[]` on first selection. Users can then add/remove/reorder items. The `role` field remains for dashboard panel defaults, but sidebar is independently customizable.
+
+**Data flow:** `settings.store.sidebarItems` -> `Sidebar.tsx` renders via `.map()` -> Drag-and-drop reorder uses existing `@dnd-kit/core` dependency.
+
+---
+
+### 2. Configurable Widget-Based Dashboard
+
+**Current state:** `routes/dashboard/index.tsx` renders a fixed 2-column grid with `SubtasksPanel`, `MrHealthPanel`, `SprintHealthPanel` (dev role) or single `SprintHealthPanel` (PM role). Panels receive credentials as props and manage own queries.
+
+**Integration approach:** REPLACE current dashboard with widget system
+
+| What Changes | File | Nature |
+|---|---|---|
+| Dashboard page | `routes/dashboard/index.tsx` | **Major rewrite** -- widget grid layout engine |
+| Widget registry | `routes/dashboard/widgets/registry.ts` | **Net-new** -- maps widget IDs to components |
+| Individual widgets | `routes/dashboard/widgets/*.tsx` | **Net-new** -- wrap existing panels + new widgets |
+| Dashboard store | `stores/dashboard.store.ts` | **Net-new** -- persisted widget layout config |
+| Settings store | `stores/settings.store.ts` | **Extend** -- version bump for migration |
+
+**New store: `dashboard.store.ts`**
+```typescript
+interface WidgetConfig {
+  id: string;           // unique instance ID
+  type: string;         // 'subtasks' | 'mr-health' | 'sprint-health' | 'recent-activity' | ...
+  position: { col: number; row: number };
+  size: { w: number; h: number };  // grid units
 }
 
-export const SHORTCUTS: Shortcut[] = [
-  { id: 'command-palette', label: 'Open command palette', keys: 'Cmd+K', scope: 'global' },
-  { id: 'help', label: 'Keyboard shortcuts', keys: '?', scope: 'global' },
-];
+interface DashboardState {
+  widgets: WidgetConfig[];
+  addWidget: (type: string) => void;
+  removeWidget: (id: string) => void;
+  moveWidget: (id: string, position: { col: number; row: number }) => void;
+  resizeWidget: (id: string, size: { w: number; h: number }) => void;
+  resetToPreset: (role: 'developer' | 'pm') => void;
+}
 ```
 
-The `?` help panel reads `SHORTCUTS` to render a reference table. It is a Dialog (shadcn/ui) mounted
-in AppLayout — one more `useState helpOpen` flag.
+**Pattern:** Each widget is a self-contained component that receives credentials from a shared context (or reads from auth store directly). This matches the existing pattern where "panels manage their own queries." The dashboard page becomes a layout engine, not a data orchestrator.
 
-**New vs modified:**
-- NEW: `src/lib/keyboard-shortcuts.ts` — registry + types
-- NEW: `src/hooks/useKeyboardShortcuts.ts` — global keydown listener
-- NEW: `src/components/app/ShortcutsHelpPanel.tsx` — `?` dialog
-- MODIFIED: `AppLayout` — call `useKeyboardShortcuts`, add `helpOpen` state, mount ShortcutsHelpPanel
+**Widget candidates (existing panels wrapped):**
+- `SubtasksPanel` -> `subtasks-widget`
+- `MrHealthPanel` -> `mr-health-widget`
+- `SprintHealthPanel` -> `sprint-health-widget`
+
+**Widget candidates (net-new):**
+- `recent-activity-widget` (latest notifications)
+- `quick-filters-widget` (saved filter shortcuts)
+- `time-tracking-widget` (my worklogs today/this week)
+
+**Grid library decision:** Use CSS Grid with manual positioning (no external library). The dashboard has a fixed number of widgets (not hundreds), and @dnd-kit already handles drag. Adding react-grid-layout would be a new dependency for minimal benefit.
 
 ---
 
-### 5. Recent Items
+### 3. Issue Activity History Timeline
 
-**Where to store:** New fields added to `useSettingsStore` — NOT a separate store. Recent items are
-a UI preference that belongs with other UI state. The settings store already persists via LazyStore;
-a third store file for a 10-item list is unnecessary overhead.
+**Current state:** `IssueDetailPage.tsx` shows issue detail with content + sidebar + comments. The `fetchIssueDetail` function already requests fields including `created` and `updated`. Comments are displayed in a thread. No changelog/history is fetched.
 
+**Integration approach:** ADD new tab/section to issue detail
+
+| What Changes | File | Nature |
+|---|---|---|
+| Jira changelog service | `services/jira/changelog.ts` | **Net-new** -- fetch issue changelog |
+| Activity timeline component | `routes/dashboard/issue-detail/ActivityTimeline.tsx` | **Net-new** |
+| Issue detail page | `routes/dashboard/IssueDetailPage.tsx` | **Extend** -- add Activity tab |
+| Jira barrel export | `services/jira/index.ts` | **Extend** -- add `export * from './changelog'` |
+| Jira types | `services/jira/types.ts` | **Extend** -- add changelog types |
+
+**Jira DC API:** `GET /rest/api/2/issue/{issueKey}?expand=changelog` returns changelog in the response. For issues with >100 changes, use the dedicated endpoint: `GET /rest/api/2/issue/{issueKey}/changelog?startAt=0&maxResults=100` (paginated). **Confidence: HIGH** -- verified via Atlassian community docs and API reference.
+
+**New types:**
 ```typescript
-// Added to SettingsState in settings.store.ts
-interface RecentItem {
-  key: string;
-  summary: string;
-  type: string;
-  openedAt: string; // ISO 8601 for ordering
+interface ChangelogEntry {
+  id: string;
+  author: { displayName: string; name: string };
+  created: string;  // ISO 8601
+  items: ChangelogItem[];
 }
 
-recentItems: RecentItem[];            // max 10, front = most recent
-addRecentItem: (item: RecentItem) => void;  // push front, dedup by key, trim to 10
-clearRecentItems: () => void;
+interface ChangelogItem {
+  field: string;
+  fieldtype: string;
+  from: string | null;
+  fromString: string | null;
+  to: string | null;
+  toString: string | null;
+}
 ```
 
-**How to update — intercepting issue open events:** The single entry point for opening any issue in
-the app is `setSelectedIssueKey` in AppLayout. Wrap it in a handler that also calls `addRecentItem`:
+**Data flow:** New TanStack Query hook with queryKey `['jira-issue-changelog', issueKey]`. Displayed as a unified timeline interleaving changelog entries + comments, sorted by timestamp. Tab-based switching (Comments | History | All Activity) on the issue detail page.
 
+**Important caveat:** The `expand=changelog` approach on the issue endpoint is limited to the 100 most recent changes. For completeness, use the dedicated `/changelog` endpoint with pagination. This follows the same `fetchAllSearchPages` pattern already in `client.ts`.
+
+---
+
+### 4. Time Tracking / Work Log Support
+
+**Current state:** `services/jira/worklogs.ts` exists but only fetches author display names (used for attribution enrichment). `JiraIssue.fields.timetracking` type already exists in `types.ts`. `fetchIssueDetail` already requests the `timetracking` field. The issue detail sidebar does not display time tracking info.
+
+**Integration approach:** EXTEND existing worklog service + ADD UI components
+
+| What Changes | File | Nature |
+|---|---|---|
+| Worklogs service | `services/jira/worklogs.ts` | **Major extend** -- add full CRUD (list with details, add, update, delete) |
+| Worklog types | `services/jira/types.ts` | **Extend** -- add `JiraWorklog` interface |
+| Time tracking display | `routes/dashboard/issue-detail/TimeTrackingSection.tsx` | **Net-new** |
+| Worklog dialog | `routes/dashboard/issue-detail/WorklogDialog.tsx` | **Net-new** |
+| Issue detail sidebar | `routes/dashboard/issue-detail/IssueDetailSidebar.tsx` | **Extend** -- add time tracking section |
+
+**Jira DC API endpoints:**
+- `GET /rest/api/2/issue/{issueKey}/worklog` -- list worklogs (paginated)
+- `POST /rest/api/2/issue/{issueKey}/worklog` -- add worklog
+- `PUT /rest/api/2/issue/{issueKey}/worklog/{id}` -- update worklog
+- `DELETE /rest/api/2/issue/{issueKey}/worklog/{id}` -- delete worklog
+
+**Confidence: HIGH** -- `fetchAllWorklogPages` already exists in `client.ts`, proving the pagination pattern works. The existing service just needs to return full worklog objects instead of extracting author names.
+
+**New type:**
 ```typescript
-// In AppLayout
-const handleIssueClick = (key: string) => {
-  setSelectedIssueKey(key);
-  const cached = queryClient.getQueryData<JiraIssue>(['jira-issue', key]);
-  addRecentItem({
-    key,
-    summary: cached?.fields.summary ?? key,
-    type: cached?.fields.issuetype?.name ?? 'Issue',
-    openedAt: new Date().toISOString(),
-  });
-};
-```
-
-Pass `handleIssueClick` everywhere `setSelectedIssueKey` is currently threaded (TopBar, Outlet
-context, IssueDetailSheet `onOpenIssue`). The summary reads from TanStack Query cache at call time —
-no extra network request. Falls back to the key string if not cached.
-
-**UI component:** `RecentItemsPopover` in TopBar — a clock/history icon triggering a Radix Popover
-(same pattern as the Bell notification popover). Reads `recentItems` from `useSettingsStore` and calls
-`onIssueClick` on selection.
-
-**New vs modified:**
-- MODIFIED: `settings.store.ts` — add `recentItems`, `addRecentItem`, `clearRecentItems`
-- NEW: `src/components/app/RecentItemsPopover.tsx`
-- MODIFIED: `AppLayout` — wrap `setSelectedIssueKey` with `addRecentItem` side effect
-- MODIFIED: `TopBar` — add RecentItemsPopover
-
----
-
-### 6. App Icon
-
-**Tauri 2 icon configuration:** The icon bundle is declared in `src-tauri/tauri.conf.json` under
-`bundle.icons`. The current config already lists all five required entries:
-
-```json
-"icon": [
-  "icons/32x32.png",
-  "icons/128x128.png",
-  "icons/128x128@2x.png",
-  "icons/icon.icns",
-  "icons/icon.ico"
-]
-```
-
-**No `tauri.conf.json` changes needed.** Only the source image files in `src-tauri/icons/` need
-replacement.
-
-**Asset requirements:**
-
-| File | Size | Format | Platform Use |
-|------|------|--------|-------------|
-| `32x32.png` | 32×32 px | PNG | Windows taskbar, small contexts |
-| `128x128.png` | 128×128 px | PNG | macOS Dock standard density |
-| `128x128@2x.png` | 256×256 px | PNG | macOS Retina (filename convention; actual pixels are 256) |
-| `icon.icns` | Multi-res bundle | ICNS | macOS — requires 16, 32, 64, 128, 256, 512, 1024 px layers |
-| `icon.ico` | Multi-res bundle | ICO | Windows — requires 16, 32, 48, 256 px layers |
-
-**Recommended workflow:** Create a 1024×1024 px PNG master, then use the Tauri CLI to generate all
-required sizes:
-
-```bash
-npx tauri icon path/to/icon-master.png
-```
-
-This command auto-generates all sizes and formats into `src-tauri/icons/`, overwriting the existing
-placeholder files. No manual ICO/ICNS conversion tools needed.
-
-**Square*.png files** in `src-tauri/icons/` (Square107x107Logo.png etc.) are Windows UWP/Store logo
-variants. For a portable executable (not a Store app), these are not used by the bundle. The `tauri icon`
-command regenerates them automatically alongside the required files.
-
-**New vs modified:**
-- REPLACED: all files in `src-tauri/icons/` (same filenames; new artwork source)
-- NO code changes
-
----
-
-## Recommended Build Order
-
-Dependencies drive this order — each step either unblocks the next or is independent:
-
-| Order | Feature | Rationale |
-|-------|---------|-----------|
-| 1 | App icon | Zero code dependencies; standalone file replacement; ships visual identity first |
-| 2 | Multi-page Settings | Self-contained refactor; no new stores; validates internal nav pattern before using it elsewhere |
-| 3 | Recent items (store addition) | `useSettingsStore` addition needed before TopBar UI; data layer before UI |
-| 4 | Keyboard shortcuts registry | `keyboard-shortcuts.ts` module needed by both command palette (Cmd+K) and help panel (`?`); define once |
-| 5 | Command palette | Depends on shortcut registry (step 4); reuses SearchOverlay's `performSearch` logic |
-| 6 | Pinned tabs store + PinnedTabBar | Store first, then IssueDetailSheet pin button, then PinnedTabBar UI |
-| 7 | RecentItemsPopover | Depends on recent items store (step 3); small self-contained UI |
-| 8 | Shortcuts help panel | Depends on registry (step 4); reads static data; can ship with or after command palette |
-| 9 | Illustrated empty states + error recovery | Final polish; no store or routing dependencies |
-
----
-
-## Component Map: New vs Modified
-
-### New Components
-
-| File | Purpose |
-|------|---------|
-| `src/components/app/CommandPalette.tsx` | Cmd+K overlay; action registry + multi-source search |
-| `src/components/app/PinnedTabBar.tsx` | Horizontal tab strip for pinned issues below TopBar |
-| `src/components/app/RecentItemsPopover.tsx` | Clock icon popover in TopBar; reads recentItems from settings store |
-| `src/components/app/ShortcutsHelpPanel.tsx` | `?` dialog; renders SHORTCUTS registry as reference table |
-| `src/hooks/useKeyboardShortcuts.ts` | Global keydown listener; receives handler map from AppLayout |
-| `src/lib/keyboard-shortcuts.ts` | Static shortcut registry + Shortcut interface |
-| `src/lib/command-actions.ts` | Static nav action definitions for command palette |
-| `src/stores/pinned-tabs.store.ts` | Pinned tab Zustand store with LazyStore persistence |
-
-### Modified Components
-
-| File | Change |
-|------|--------|
-| `src/main.tsx` (AppLayout) | Add `commandPaletteOpen`, `helpOpen` state; call `useKeyboardShortcuts`; wrap `setSelectedIssueKey` to call `addRecentItem`; render CommandPalette, PinnedTabBar, ShortcutsHelpPanel |
-| `src/components/app/TopBar.tsx` | Add RecentItemsPopover icon; layout change from `justify-end` to accommodate new icons |
-| `src/routes/dashboard/IssueDetailSheet.tsx` | Add pin/unpin icon button in sheet header |
-| `src/stores/settings.store.ts` | Add `recentItems: RecentItem[]`, `addRecentItem`, `clearRecentItems` |
-| `src/routes/settings/Settings.tsx` | Add internal `activeSection` state + SettingsNav; promote existing sections into page wrappers |
-
-### Unchanged
-
-| File | Reason |
-|------|--------|
-| `src/components/app/SearchOverlay.tsx` | Command palette can import `performSearch` function or duplicate the pattern; SearchOverlay itself stays unchanged |
-| All existing settings section components | Promoted into page wrappers but their internal implementation is unchanged |
-| `src/main.tsx` router config | No new routes needed for any v1.3 feature |
-| All three existing Zustand stores (auth, notifications) | No changes needed |
-
----
-
-## Data Flow Changes
-
-### Issue Open Flow (updated with recent items)
-
-```
-User action (sprint card / search result / notification / pinned tab / palette result)
-    ↓
-handleIssueClick(key) in AppLayout
-    ├── setSelectedIssueKey(key)
-    │       ↓
-    │   IssueDetailSheet opens
-    └── addRecentItem({ key, summary from cache, type, openedAt })
-            ↓
-        useSettingsStore.recentItems updated
-            ↓
-        persisted to settings.json via LazyStore
-```
-
-### Command Palette Search Flow
-
-```
-User types in CommandPalette input (debounced 300ms)
-    ↓
-useCommandPaletteSearch(query)
-    ├── filter SHORTCUTS + nav actions (sync, no network)
-    ├── queryClient.getQueryData(['jira-sprint-issues', ...]) (sync cache read)
-    ├── queryClient.getQueryData(['jira-backlog-view', ...]) (sync cache read)
-    └── useQuery searchJira + searchGitLabMRs (enabled: query.length >= 2)
-
-User selects a result:
-    ├── Issue result → onIssueClick(key) → handleIssueClick in AppLayout
-    └── Nav action   → navigate(path) via React Router useNavigate
-```
-
-### Pinned Tab Flow
-
-```
-User clicks tab in PinnedTabBar
-    ↓
-onIssueClick(tab.key) → handleIssueClick in AppLayout → IssueDetailSheet opens
-
-User clicks pin icon in IssueDetailSheet header
-    ↓
-usePinnedTabsStore.pin({ key, summary, type })
-    ↓
-persisted to pinned-tabs.json via LazyStore
-    ↓
-PinnedTabBar re-renders with new tab
+interface JiraWorklog {
+  id: string;
+  author: { displayName: string; name: string };
+  comment?: string;
+  started: string;       // ISO 8601
+  timeSpent: string;     // e.g. "2h 30m"
+  timeSpentSeconds: number;
+  created: string;
+  updated: string;
+}
 ```
 
 ---
+
+### 5. Watchers and Starring
+
+**Current state:** No watcher/starring functionality exists. The `JiraIssueDetail` type does not include watchers. The issue detail page has no watch/star UI.
+
+**Integration approach:** NET-NEW service + UI in issue detail
+
+| What Changes | File | Nature |
+|---|---|---|
+| Watchers service | `services/jira/watchers.ts` | **Net-new** |
+| Jira barrel export | `services/jira/index.ts` | **Extend** |
+| Jira types | `services/jira/types.ts` | **Extend** -- add `JiraWatchers` |
+| Issue detail header | `routes/dashboard/IssueDetailPage.tsx` | **Extend** -- add watch/star buttons |
+| Starred issues store | `stores/starred.store.ts` | **Net-new** -- local-only starring (not Jira server-side) |
+
+**Jira DC API endpoints:**
+- `GET /rest/api/2/issue/{issueKey}/watchers` -- get watcher list + count
+- `POST /rest/api/2/issue/{issueKey}/watchers` -- add current user as watcher (body: `"username"`)
+- `DELETE /rest/api/2/issue/{issueKey}/watchers?username={name}` -- remove watcher
+
+**Critical DC difference:** Jira Data Center uses `username` (the `name` field), NOT `accountId`. The POST body is a plain JSON string (e.g., `"jsmith"`), not an object. **Confidence: HIGH** -- consistent with all other DC API patterns in the codebase.
+
+**Design decision: Watchers vs Starring.** Watchers is server-side (Jira API). Starring is client-side only (persisted in a local Zustand store, like pinned tabs). Both are useful: watchers triggers Jira notifications; starring is a personal bookmark. Implement both -- watch button calls Jira API, star button toggles local store.
+
+---
+
+### 6. Saved Filters
+
+**Current state:** `filter.store.ts` has session-only filter state (Sets for epics, labels, assignees, statuses). `settings.store.ts` already has `quickFilters: QuickFilter[]` with full CRUD (add, remove, rename, reorder). `UnifiedFilterBar.tsx` renders quickfilter presets with context menu actions.
+
+**Integration approach:** EXTEND existing system (partially already built)
+
+| What Changes | File | Nature |
+|---|---|---|
+| Filter store | `stores/filter.store.ts` | **Extend** -- add view-scoping (which view a filter applies to) |
+| Settings store | `stores/settings.store.ts` | **Minor extend** -- add view context to QuickFilter |
+| Saved filters route | `routes/dashboard/SavedFiltersPage.tsx` | **Net-new** -- management UI for all saved filters |
+| Sidebar | `components/app/Sidebar.tsx` | **Extend** -- add saved filters link (if customizable sidebar is done) |
+
+**Key insight:** The quickfilter system is 80% built. What is missing:
+1. **View scoping** -- filters should know which view they apply to (sprint board, backlog, or "all")
+2. **A dedicated management page** -- currently filters are only managed via context menu on the filter bar
+3. **Cross-view filter application** -- applying a saved filter should navigate to the correct view + apply the filter state
+
+**Extended QuickFilter type:**
+```typescript
+interface QuickFilter {
+  id: string;
+  name: string;
+  epics: string[];
+  labels: string[];
+  assignees: string[];
+  statuses: string[];
+  view?: 'sprint-board' | 'backlog' | 'all';  // NEW
+}
+```
+
+---
+
+### 7. Attachments Viewer
+
+**Current state:** `JiraIssueDetail.fields.attachment` is typed as `JiraAttachment[]` (id, filename, content URL, thumbnail URL, mimeType). `fetchIssueDetail` already requests the `attachment` field. `IssueDetailContent.tsx` builds an `attachmentMap` for wiki `!image.png!` references but does NOT display a standalone attachment list. `ImageLightbox.tsx` exists for image viewing.
+
+**Integration approach:** ADD component to issue detail page
+
+| What Changes | File | Nature |
+|---|---|---|
+| Attachments section | `routes/dashboard/issue-detail/AttachmentsSection.tsx` | **Net-new** |
+| Issue detail page | `routes/dashboard/IssueDetailPage.tsx` | **Extend** -- render AttachmentsSection |
+| Image lightbox | `routes/dashboard/ImageLightbox.tsx` | **Extend** -- support gallery navigation |
+
+**Data flow:** Attachments are already fetched with issue detail (no new API call needed). The new component just needs to:
+1. List all attachments with filename, size, type icon
+2. Inline preview for images (reuse `ImageLightbox`)
+3. Download link for non-image files (opens `attachment.content` URL via `openUrl` from `@tauri-apps/plugin-opener`)
+4. File type icons based on `mimeType`
+
+**No new service module needed.** The data is already in `JiraIssueDetail`.
+
+---
+
+### 8. Mention Autocomplete in Comments
+
+**Current state:** `CommentComposer.tsx` has a plain `<Textarea>` with wiki markup toolbar (bold, italic, code, list). Comment body is posted as wiki markup string via `postComment()`. No autocomplete exists.
+
+**Integration approach:** ADD autocomplete overlay to CommentComposer
+
+| What Changes | File | Nature |
+|---|---|---|
+| User search service | `services/jira/users.ts` | **Net-new** |
+| Jira barrel export | `services/jira/index.ts` | **Extend** |
+| Mention autocomplete | `routes/dashboard/MentionAutocomplete.tsx` | **Net-new** |
+| Comment composer | `routes/dashboard/CommentComposer.tsx` | **Extend** -- integrate mention trigger |
+
+**Jira DC API endpoint:** `GET /rest/api/2/user/picker?query={prefix}&maxResults=10` returns user suggestions. On DC, results include `name` (username) and `displayName`. **Confidence: HIGH** -- verified via Atlassian docs.
+
+**Design pattern:** Monitor textarea for `@` character. On detection, show a positioned dropdown (similar to cmdk pattern) that queries the user picker API with debounce. On selection, insert `[~username]` (Jira wiki mention syntax). This is a contained enhancement to `CommentComposer.tsx` -- no other components affected.
+
+**Implementation approach:** Build a custom hook `useMentionAutocomplete(textareaRef)` that:
+1. Listens for `@` keystrokes
+2. Tracks the mention query prefix (characters after `@`)
+3. Returns `{ suggestions, isOpen, selectedIndex, insert(user) }`
+4. Uses TanStack Query with a short staleTime for the user picker API
+
+**No external library needed.** The autocomplete is scoped to a single textarea, not a rich text editor. A simple positioned popover (reusing shadcn `Popover`) is sufficient.
+
+---
+
+### 9. Bulk Operations on Issues
+
+**Current state:** Issue mutations are single-issue: `updateIssueField()`, `bulkUpdateIssue()` (single issue, multiple fields), `transitionIssue()`. No multi-select UI exists on any list view. `SprintBoardTab` has drag-and-drop for single cards. `BacklogPage` has row-based list with filter bar.
+
+**Integration approach:** ADD multi-select layer to list views + batch mutation
+
+| What Changes | File | Nature |
+|---|---|---|
+| Selection store | `stores/selection.store.ts` | **Net-new** -- session-only multi-select state |
+| Bulk operations bar | `components/app/BulkOperationsBar.tsx` | **Net-new** -- floating action bar |
+| Bulk service | `services/jira/bulk.ts` | **Net-new** -- parallel issue updates |
+| Backlog page | `routes/dashboard/BacklogPage.tsx` | **Extend** -- add checkbox column + selection |
+| Sprint board | `routes/dashboard/SprintBoardTab.tsx` | **Extend** -- add multi-select mode |
+| My Tasks | `routes/dashboard/MyTasksTab.tsx` | **Extend** -- add checkbox column |
+| Jira barrel export | `services/jira/index.ts` | **Extend** |
+
+**Critical constraint: No bulk API on Jira DC.** Jira Data Center REST API v2 has NO dedicated bulk edit endpoint (unlike Jira Cloud's v3 API). Bulk operations must be implemented as parallel `PUT /rest/api/2/issue/{key}` calls. Use `Promise.allSettled()` with concurrency limiting (max 5 parallel requests) to avoid overwhelming the Jira server.
+
+**New store:**
+```typescript
+interface SelectionState {
+  selectedKeys: Set<string>;
+  toggle: (key: string) => void;
+  selectRange: (keys: string[]) => void;  // shift+click range
+  selectAll: (keys: string[]) => void;
+  clearAll: () => void;
+}
+```
+
+**Bulk operations to support:**
+1. Transition (move to status) -- calls `transitionIssue()` per issue
+2. Assign -- calls `updateIssueField()` per issue
+3. Set priority -- calls `updateIssueField()` per issue
+4. Add label -- calls `updateIssueField()` per issue
+
+**UX pattern:** Checkbox appears on hover (like Jira web). When 1+ issues selected, a floating "Bulk Actions" bar appears at the bottom of the viewport with action buttons. Progress indicator shows N/M completed. Errors are collected and displayed after completion.
+
+---
+
+### 10. Board Quick Filters
+
+**Current state:** `UnifiedFilterBar.tsx` provides multi-select filter dropdowns (epics, labels, assignees, statuses) with quickfilter presets. It is used on `BacklogPage` and `SprintBoardTab`. The filter store is session-only.
+
+**Integration approach:** EXTEND existing filter bar for board-specific quick access
+
+| What Changes | File | Nature |
+|---|---|---|
+| Board quick filter chips | `routes/dashboard/BoardQuickFilters.tsx` | **Net-new** -- compact one-click filter chips |
+| Sprint board | `routes/dashboard/SprintBoardTab.tsx` | **Extend** -- render quick filter chips above columns |
+| Filter store | `stores/filter.store.ts` | **Extend** -- add board-specific preset logic |
+
+**Design:** Board quick filters are predefined one-click filter shortcuts that appear as chips above the sprint board columns. Unlike the full filter bar (which has dropdowns), these are instant toggles:
+- "Only My Issues" -- filters to current user
+- "Recently Updated" -- issues updated in last 24h
+- Status category chips -- "To Do" / "In Progress" / "Done"
+- Saved quickfilter presets (from settings store)
+
+**This leverages the existing filter infrastructure.** Each chip simply calls the appropriate `toggleAssignee/toggleStatus` actions. The only new code is the chip UI component and the board-specific preset definitions.
+
+---
+
+## Component Responsibilities Summary
+
+| Component | Responsibility | New/Modified |
+|---|---|---|
+| `Sidebar.tsx` | Data-driven nav rendering from sidebar config | **Modified** |
+| `dashboard/index.tsx` | Widget grid layout engine | **Modified (rewrite)** |
+| `dashboard/widgets/` | Self-contained dashboard widgets | **Net-new directory** |
+| `issue-detail/ActivityTimeline.tsx` | Unified changelog + comments timeline | **Net-new** |
+| `issue-detail/TimeTrackingSection.tsx` | Time tracking display + worklog CRUD | **Net-new** |
+| `issue-detail/AttachmentsSection.tsx` | File list with inline preview | **Net-new** |
+| `CommentComposer.tsx` | Comment input with mention autocomplete | **Modified** |
+| `BulkOperationsBar.tsx` | Floating multi-select action bar | **Net-new** |
+| `BoardQuickFilters.tsx` | One-click filter chips for sprint board | **Net-new** |
+| `SavedFiltersPage.tsx` | Filter management UI | **Net-new** |
+
+## New Stores
+
+| Store | Persistence | Purpose |
+|---|---|---|
+| `dashboard.store.ts` | Tauri LazyStore | Widget layout config |
+| `selection.store.ts` | None (session) | Multi-select state for bulk ops |
+| `starred.store.ts` | Tauri LazyStore | Client-side issue starring |
+
+## New Service Modules
+
+| Module | Jira DC API Endpoints |
+|---|---|
+| `services/jira/changelog.ts` | `GET /issue/{key}/changelog` (paginated) |
+| `services/jira/watchers.ts` | `GET/POST/DELETE /issue/{key}/watchers` |
+| `services/jira/users.ts` | `GET /user/picker?query={prefix}` |
+| `services/jira/bulk.ts` | Parallel `PUT /issue/{key}` with concurrency control |
+
+**`services/jira/worklogs.ts`** -- already exists, needs major extension for full CRUD.
+
+## Modified Existing Stores
+
+| Store | Changes |
+|---|---|
+| `settings.store.ts` | Add `sidebarItems[]`, extend `QuickFilter` with view scope, version bump (9) |
+| `filter.store.ts` | Add view context, board-specific preset logic |
+
+## New Routes
+
+| Route | Component | Sidebar Entry |
+|---|---|---|
+| None new required | Saved filters can be a settings sub-page or sidebar item | Optional |
+
+**No new top-level routes needed.** All new features integrate into existing routes (issue detail page, dashboard, sprint board, backlog). If a dedicated saved filters page is desired, it would be a new route `/saved-filters`.
+
+## Data Flow Patterns
+
+### Widget Dashboard Data Flow
+```
+dashboard.store.ts (persisted widget config)
+    |
+    v
+Dashboard index.tsx (layout engine)
+    |
+    v (renders each widget by type)
+WidgetWrapper
+    |
+    v (each widget manages own data)
+SubtasksWidget --> useQuery(['jira-issues', 'my-tasks', ...])
+MrHealthWidget --> useQuery(['gitlab-mrs', ...])
+SprintHealthWidget --> useQuery(['jira-sprint-issues', ...])
+```
+
+### Mention Autocomplete Data Flow
+```
+User types '@' in CommentComposer
+    |
+    v
+useMentionAutocomplete hook detects trigger
+    |
+    v
+useQuery(['jira-user-picker', prefix], { staleTime: 30s })
+    |
+    v
+MentionAutocomplete popover renders suggestions
+    |
+    v
+User selects -> insert [~username] at cursor position
+```
+
+### Bulk Operations Data Flow
+```
+User checks issues (checkbox on list rows)
+    |
+    v
+selection.store.selectedKeys (Set<string>)
+    |
+    v
+BulkOperationsBar renders (when selectedKeys.size > 0)
+    |
+    v
+User picks action (e.g., "Transition to In Progress")
+    |
+    v
+bulkTransition(keys[], targetStatusId) in services/jira/bulk.ts
+    |
+    v
+Promise.allSettled(keys.map(k => transitionIssue(k, statusId)))
+    |  (max 5 concurrent)
+    v
+Progress callback -> UI progress bar
+    |
+    v
+queryClient.invalidateQueries(['jira-issues'])
+selection.store.clearAll()
+```
+
+## Recommended Project Structure (New Files)
+
+```
+src/
+├── components/app/
+│   ├── Sidebar.tsx                    # MODIFIED: data-driven rendering
+│   └── BulkOperationsBar.tsx          # NET-NEW
+├── routes/dashboard/
+│   ├── index.tsx                      # MODIFIED: widget grid layout
+│   ├── widgets/
+│   │   ├── registry.ts               # NET-NEW: widget type -> component map
+│   │   ├── SubtasksWidget.tsx         # NET-NEW: wraps existing panel
+│   │   ├── MrHealthWidget.tsx         # NET-NEW: wraps existing panel
+│   │   ├── SprintHealthWidget.tsx     # NET-NEW: wraps existing panel
+│   │   ├── RecentActivityWidget.tsx   # NET-NEW
+│   │   └── TimeTrackingWidget.tsx     # NET-NEW
+│   ├── issue-detail/
+│   │   ├── ActivityTimeline.tsx       # NET-NEW
+│   │   ├── TimeTrackingSection.tsx    # NET-NEW
+│   │   ├── AttachmentsSection.tsx     # NET-NEW
+│   │   └── WorklogDialog.tsx          # NET-NEW
+│   ├── BoardQuickFilters.tsx          # NET-NEW
+│   ├── MentionAutocomplete.tsx        # NET-NEW
+│   └── CommentComposer.tsx            # MODIFIED: mention integration
+├── services/jira/
+│   ├── changelog.ts                   # NET-NEW
+│   ├── watchers.ts                    # NET-NEW
+│   ├── users.ts                       # NET-NEW
+│   ├── bulk.ts                        # NET-NEW
+│   ├── worklogs.ts                    # MODIFIED: full CRUD
+│   ├── index.ts                       # MODIFIED: new exports
+│   └── types.ts                       # MODIFIED: new interfaces
+├── stores/
+│   ├── dashboard.store.ts             # NET-NEW
+│   ├── selection.store.ts             # NET-NEW
+│   ├── starred.store.ts               # NET-NEW
+│   ├── settings.store.ts              # MODIFIED: sidebar items, version bump
+│   └── filter.store.ts               # MODIFIED: view scoping
+└── hooks/
+    └── useMentionAutocomplete.ts      # NET-NEW
+```
+
+## Build Order (Dependency-Aware)
+
+Features have the following dependency graph:
+
+```
+Saved Filters (6) -- extends existing quickfilters, no deps
+    |
+Board Quick Filters (10) -- depends on filter store extensions from (6)
+
+Attachments Viewer (7) -- no deps, data already fetched
+Activity History (3) -- no deps, new service + UI
+Time Tracking (4) -- no deps, extends existing service
+Watchers/Starring (5) -- no deps, new service + UI
+Mention Autocomplete (8) -- no deps, new service + hook
+
+Customizable Sidebar (1) -- no deps, but affects navigation for all features
+Widget Dashboard (2) -- depends on (1) for sidebar link; wraps existing panels
+
+Bulk Operations (9) -- depends on list views being stable; most complex
+```
+
+**Recommended build order:**
+
+| Phase | Features | Rationale |
+|---|---|---|
+| **Phase 1** | Attachments Viewer (7), Activity History (3), Time Tracking (4) | Zero dependencies on other new features. All integrate into existing issue detail page. Low risk. |
+| **Phase 2** | Watchers/Starring (5), Mention Autocomplete (8) | Also issue detail page scope. Slightly more complex (new API endpoints, textarea integration). |
+| **Phase 3** | Saved Filters (6), Board Quick Filters (10) | Filter system extensions. Board quick filters depends on saved filters store changes. |
+| **Phase 4** | Customizable Sidebar (1) | Modifies global navigation. Should be done after issue-detail features are stable so sidebar items are finalized. |
+| **Phase 5** | Widget Dashboard (2) | Most architecturally impactful. Wraps existing panels into widgets. Best done last when all other features are stable. |
+| **Phase 6** | Bulk Operations (9) | Most complex (multi-select across views, progress tracking, error aggregation). Benefits from stable list views. |
+
+**Phase ordering rationale:**
+1. Start with contained, low-risk issue detail features (phases 1-2) to ship value early
+2. Filter enhancements (phase 3) are self-contained and extend proven patterns
+3. Sidebar customization (phase 4) changes global navigation -- do after feature set is known
+4. Dashboard redesign (phase 5) wraps existing panels, best done when panels are stable
+5. Bulk operations (phase 6) touches multiple views and is the most complex integration
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Keyboard Listener in TopBar
+### Anti-Pattern 1: Prop-Threading Credentials to Widgets
 
-**What people do:** Add Cmd+K listener to TopBar because that is where the search icon lives.
+**What people do:** Pass `jiraBaseUrl`, `jiraToken`, `gitlabBaseUrl`, `gitlabToken` through dashboard -> widget wrapper -> widget component (3+ levels).
+**Why it's wrong:** Dashboard index.tsx already does this and it is the heaviest code in the file. With N widgets, the prop threading explodes.
+**Do this instead:** Each widget reads credentials directly from `useAuthStore()` and `readSecret()`, matching the pattern used by every other route-level component. The dashboard page becomes a pure layout engine with zero prop threading.
 
-**Why it's wrong:** TopBar is kept query-free by documented design decision (for test isolation).
-Adding a listener that opens a query-dependent overlay means TopBar tests require QueryClientProvider.
+### Anti-Pattern 2: Shared Selection State in Filter Store
 
-**Do this instead:** All global keyboard listeners go in AppLayout via `useKeyboardShortcuts`, same
-pattern as `useNotificationPolling` and `useCustomFieldDiscovery`.
+**What people do:** Add `selectedIssueKeys` to the existing `filter.store.ts`.
+**Why it's wrong:** Filter state is about what to show. Selection state is about what to act on. Mixing them makes clearing filters accidentally clear selections.
+**Do this instead:** Create a separate `selection.store.ts` with its own lifecycle.
 
----
+### Anti-Pattern 3: Fetching Changelog on Every Issue Load
 
-### Anti-Pattern 2: React Context for Command Palette or Shortcuts State
+**What people do:** Add `expand=changelog` to `fetchIssueDetail`.
+**Why it's wrong:** Changelog can be large (100+ entries) and is only shown on the Activity tab. Loading it eagerly doubles the issue detail payload.
+**Do this instead:** Fetch changelog lazily via a separate TanStack Query hook, only when the Activity tab is selected. Keep `fetchIssueDetail` lean.
 
-**What people do:** Create a `CommandPaletteContext` or `KeyboardShortcutsContext` provider.
+### Anti-Pattern 4: Rich Text Editor for Mention Autocomplete
 
-**Why it's wrong:** The codebase uses zero `createContext`/`useContext` — this is an explicit
-architectural decision documented in PROJECT.md key decisions. All cross-cutting state uses Zustand
-stores or AppLayout local state with prop threading.
+**What people do:** Replace the textarea with a rich text editor (ProseMirror, TipTap, Slate) to get mention support.
+**Why it's wrong:** Jira DC expects wiki markup strings, not rich text. A WYSIWYG editor would need to serialize back to wiki markup, adding massive complexity and a new dependency.
+**Do this instead:** Keep the plain textarea. Intercept `@` keystrokes, show a positioned popover, and insert `[~username]` wiki markup on selection. Simple, reliable, and consistent with DC's markup format.
 
-**Do this instead:** AppLayout local state + prop threading for overlay open/close; Zustand for
-persisted state (pinned tabs, recent items); static module exports for the registry.
+## Integration Points
 
----
+### Jira DC REST API v2 Endpoints (New)
 
-### Anti-Pattern 3: Routes for Pinned Tab Navigation
+| Endpoint | Feature | Auth | Notes |
+|---|---|---|---|
+| `GET /issue/{key}/changelog` | Activity History | Bearer PAT | Paginated, 100 per page |
+| `GET /issue/{key}/watchers` | Watchers | Bearer PAT | Returns count + watcher list |
+| `POST /issue/{key}/watchers` | Watchers | Bearer PAT | Body: `"username"` (plain string) |
+| `DELETE /issue/{key}/watchers?username=X` | Watchers | Bearer PAT | DC uses `username`, not `accountId` |
+| `GET /issue/{key}/worklog` | Time Tracking | Bearer PAT | Already paginated in `client.ts` |
+| `POST /issue/{key}/worklog` | Time Tracking | Bearer PAT | Body: `{ timeSpent, started, comment }` |
+| `PUT /issue/{key}/worklog/{id}` | Time Tracking | Bearer PAT | Same body as POST |
+| `DELETE /issue/{key}/worklog/{id}` | Time Tracking | Bearer PAT | 204 on success |
+| `GET /user/picker?query=X` | Mentions | Bearer PAT | Returns `{ users: [{ name, displayName }] }` |
 
-**What people do:** Add `/issues/:key` routes so pinned tabs behave like browser tabs.
+### Internal Boundaries
 
-**Why it's wrong:** The entire app uses IssueDetailSheet as the issue viewing mechanism. Issue keys
-are modal parameters, not route paths. Mixing models requires duplicating issue detail rendering and
-breaks the v1.2 architectural decision to lift IssueDetailSheet to a single global instance.
-
-**Do this instead:** Tab click calls `setSelectedIssueKey(key)` — the sheet opens the same way it
-does from every other entry point in the app.
-
----
-
-### Anti-Pattern 4: New API Calls for Command Palette on Every Keystroke
-
-**What people do:** Fire fresh Jira/GitLab queries on each debounce tick for issues, sprint data,
-and backlog.
-
-**Why it's wrong:** Issues, sprint data, and backlog are already in the TanStack Query cache from
-the active route. Refetching them adds latency and unnecessary API traffic.
-
-**Do this instead:** Read from `queryClient.getQueryData` for cached data (sync, instant). Only fire
-new API calls for the live fuzzy text search path that genuinely requires a server query.
-
----
-
-### Anti-Pattern 5: Settings Sub-Routes in the Hash Router
-
-**What people do:** Add `/settings/connections`, `/settings/appearance` as children in the router config.
-
-**Why it's wrong:** Settings is a single page, not a feature area requiring independent navigation.
-Sub-routes add router config changes, sidebar active state updates, and back-navigation handling for
-no user benefit — the sections are small and stable.
-
-**Do this instead:** Internal `useState<SettingsSection>` in Settings.tsx. Zero router changes.
-
----
-
-### Anti-Pattern 6: Separate Store for Recent Items
-
-**What people do:** Create a fourth Zustand store (`recent-items.store.ts`) backed by a new LazyStore
-file.
-
-**Why it's wrong:** Recent items are a UI preference — they belong in settings state. Adding a store
-for 10 items creates another LazyStore initialization, another persistence file, and another async
-hydration cycle for negligible data.
-
-**Do this instead:** Add `recentItems`, `addRecentItem`, and `clearRecentItems` directly to
-`useSettingsStore`. Follows the established pattern — no new files, no new async initialization path.
-
----
-
-## Integration Points Summary
-
-| New Feature | Attaches To | Mechanism |
-|-------------|-------------|-----------|
-| CommandPalette | AppLayout | `commandPaletteOpen` state + `useKeyboardShortcuts` |
-| CommandPalette search | TanStack Query cache | `queryClient.getQueryData` + `useQuery` (same auth pattern as SearchOverlay) |
-| PinnedTabBar | AppLayout (below TopBar) | Reads `usePinnedTabsStore`; calls `onIssueClick` |
-| Pin/unpin button | IssueDetailSheet header | Calls `usePinnedTabsStore.pin/unpin` |
-| RecentItemsPopover | TopBar | Reads `useSettingsStore.recentItems`; calls `onIssueClick` |
-| Recent items write | AppLayout | Wrap `setSelectedIssueKey` → call `addRecentItem` with cache lookup |
-| Global keyboard shortcuts | AppLayout | `useKeyboardShortcuts` hook; SHORTCUTS registry module |
-| ShortcutsHelpPanel | AppLayout | `helpOpen` state; reads SHORTCUTS registry |
-| Multi-page Settings | Settings.tsx | Internal `activeSection` state; no router change |
-| App icon | `src-tauri/icons/` | File replacement via `npx tauri icon` CLI; no code changes |
-
----
-
-## Confidence Assessment
-
-| Area | Confidence | Notes |
-|------|------------|-------|
-| AppLayout as integration point | HIGH | Read main.tsx directly; all global overlays already mounted here |
-| Command palette search strategy | HIGH | TanStack Query `getQueryData` is documented API; SearchOverlay pattern already proven |
-| Pinned tabs store pattern | HIGH | Matches three existing stores exactly; LazyStore + createJSONStorage is the established pattern |
-| Recent items in settings store | HIGH | Settings store already handles multiple preference types; same persistence mechanism |
-| Settings internal nav (no router) | HIGH | Current Settings.tsx is a single component; no routing infrastructure to build on |
-| Keyboard shortcut placement | HIGH | TopBar query-free constraint is explicit in TopBar.tsx comment |
-| App icon asset requirements | HIGH | tauri.conf.json read directly; Tauri 2 icon CLI is documented |
-
----
+| Boundary | Communication | Considerations |
+|---|---|---|
+| Dashboard <-> Widgets | Props (layout config only) | Widgets read auth/settings from stores directly |
+| IssueDetailPage <-> New sections | Props (issue data) | Changelog fetched separately (lazy) |
+| BulkOpsBar <-> List views | selection.store (Zustand) | Bar floats above content, reads from store |
+| Sidebar <-> settings.store | Zustand subscription | Sidebar re-renders on sidebarItems change |
+| CommentComposer <-> MentionAutocomplete | Hook return values | Hook manages popover state, composer manages text |
 
 ## Sources
 
-- Direct codebase analysis: `main.tsx`, `TopBar.tsx`, `Sidebar.tsx`, `SearchOverlay.tsx`,
-  `settings.store.ts`, `auth.store.ts`, `notifications.store.ts`, `useNotificationPolling.ts`,
-  `Settings.tsx`, `tauri.conf.json`, `src-tauri/icons/` directory listing
-- Existing architectural decisions: PROJECT.md key decisions table (prop threading over context;
-  zero createContext/useContext; LazyStore + createJSONStorage pattern; createHashRouter)
-- Tauri 2 app icon documentation: https://tauri.app/distribute/app-icon/
+- [Jira DC REST API v2 Reference (9.14.0)](https://docs.atlassian.com/software/jira/docs/api/REST/9.14.0/)
+- [Jira DC Changelog via REST API](https://support.atlassian.com/jira/kb/how-to-analyze-the-history-or-changelog-of-an-issue-in-jira/)
+- [Jira Changelog Pagination Limitation](https://community.atlassian.com/forums/Jira-questions/Rest-API-limiting-changelog-history-results-to-100-even-if/qaq-p/1466525)
+- [Jira DC Bulk Update Approach](https://support.atlassian.com/jira/kb/update-issues-based-on-jql-with-rest-api-in-jira-data-center/)
+- [Jira User Picker API](https://docs.atlassian.com/software/jira/docs/api/REST/9.14.0/)
+- Full codebase audit of `/Users/mimo/Desktop/Tasker/taskflow/src/` (2026-03-22)
 
 ---
-
-*Architecture research for: Taskflow v1.3 UX & Branding — integration with existing Tauri 2 + React 18 app*
-*Researched: 2026-03-15*
+*Architecture research for: Taskflow v1.5 feature integration*
+*Researched: 2026-03-22*

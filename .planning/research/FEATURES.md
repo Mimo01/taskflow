@@ -1,11 +1,11 @@
-# Feature Research — v1.3 UX & Branding
+# Feature Research: Jira DC & GitLab Feature Parity for Taskflow v1.5
 
-**Domain:** Developer Productivity Desktop App — UX & Branding (Tauri 2 + React 18, shadcn/ui)
-**Researched:** 2026-03-15
-**Confidence:** HIGH (patterns well-established in Linear/Notion/VS Code; implementation verified against existing codebase)
+**Domain:** Project management desktop client (Jira Data Center + GitLab integration)
+**Researched:** 2026-03-22
+**Confidence:** HIGH (Jira DC REST API v2 endpoints verified against official Atlassian docs)
 
-> This file supersedes the v1.2 FEATURES.md.
-> v1.0–v1.2 features are shipped and stable. This file focuses exclusively on the v1.3 UX & Branding features.
+> This file supersedes the v1.3 FEATURES.md.
+> v1.0-v1.4 features are shipped and stable. This file focuses exclusively on v1.5 feature parity targets.
 
 ---
 
@@ -13,241 +13,307 @@
 
 ### Table Stakes (Users Expect These)
 
-Features users assume exist in any keyboard-first developer tool. Missing these makes the app feel unpolished compared to Linear, Notion, or VS Code — tools the target users use daily.
+Features that real Jira/GitLab users encounter daily. Missing these makes Taskflow feel like a toy next to the Jira web UI.
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Command palette opens with Cmd+K | Muscle-memory shortcut in every modern dev tool (Linear, Figma, Notion, VS Code, GitHub); users reach for it automatically | MEDIUM | shadcn/ui ships a `Command` component built on cmdk — no new npm dependency needed; add via `npx shadcn@latest add command` |
-| Fuzzy search within command palette | Users don't know exact titles; fuzzy matching removes need for precision | LOW | cmdk's built-in filter handles this; no custom scorer needed at this data scale |
-| Command palette covers issues, MRs, and nav actions | Users expect one box, not three; unified access mirrors how Linear's Cmd+K works | MEDIUM | Reuses existing TanStack Query cache (jira-search, gitlab-mrs); groups results by type; cached data only (no live keystroke API calls) |
-| Escape closes the palette | Universal dismiss behaviour for overlays | LOW | cmdk handles this natively |
-| Arrow key navigation in palette | Keyboard-first flow cannot require mouse after opening | LOW | cmdk handles this natively |
-| `?` key opens keyboard shortcut reference panel | Standard in Gmail, Linear, GitHub; developers expect a discoverable cheat sheet | LOW | Simple Dialog/Sheet listing grouped shortcuts; reads from a central shortcut registry |
-| Settings split into logical sections with sidebar nav | A single long-scroll page with 6+ sections is hard to navigate; sidebar-per-section is the norm in any mature desktop app (System Preferences, Linear settings, VS Code settings) | MEDIUM | Existing `Settings.tsx` is one long scroll with 6 section components; needs sidebar nav + child routes; existing section components migrate with minimal change |
-| Empty states explain what to do | Blank screens with no explanation feel broken; users need contextual guidance (headline + sub-copy + CTA) | LOW | Primarily copy + icon/SVG illustration; no new data fetching logic |
-| Error states offer a recovery action | "Something went wrong" with no button is a dead end; retry or reconnect CTA expected | LOW | Retry button + plain-language message; reuses existing loading/error patterns already present on all data views |
-| App icon matches product quality | The default Tauri icon undermines trust in a team-facing tool immediately | MEDIUM | Tauri 2 `tauri icon` CLI converts a single 1024×1024 PNG to all platform sizes (icns, ico, png variants); design asset required first |
+| Feature | Why Expected | Complexity | Jira DC REST API v2 Endpoints | Notes |
+|---------|--------------|------------|-------------------------------|-------|
+| **Issue Activity History** | Every Jira user clicks the "History" tab daily to see who changed what and when. PMs audit status transitions. Devs check why fields changed. | MEDIUM | `GET /rest/api/2/issue/{key}?expand=changelog` returns `changelog.histories[]` with `created`, `author`, `items[].field/from/to/fromString/toString`. Capped at 100 most recent entries via expand param. | Already have `JiraIssueDetail` -- add `expand=changelog` to existing fetch. Merge with comments into unified timeline sorted by timestamp. |
+| **Time Tracking / Worklog CRUD** | Time logging is mandatory in most enterprise Jira setups. The PM dashboard already shows time columns from `fields.timetracking`. Currently `fetchIssueWorklogs` only returns author names -- need full CRUD. | HIGH | **Read:** `GET /rest/api/2/issue/{key}/worklog` (paginated). **Create:** `POST /rest/api/2/issue/{key}/worklog` body: `{timeSpent, started, comment}`. **Update:** `PUT /rest/api/2/issue/{key}/worklog/{id}`. **Delete:** `DELETE /rest/api/2/issue/{key}/worklog/{id}`. Time fields on issue: `fields.timetracking` (already in JiraIssue type). | Time tracking must be enabled in Jira instance config. `adjustEstimate` query param controls remaining estimate behavior (auto/leave/new/manual). Worklog `started` format: ISO 8601 date-time. |
+| **Watchers / Starring** | Users watch issues to get notified of changes. "Am I watching this?" is visible on every Jira issue detail page. Basic expectation for any issue tracker. | LOW | **Get:** `GET /rest/api/2/issue/{key}/watchers` returns `{watchCount, isWatching, watchers[]}`. **Add self:** `POST /rest/api/2/issue/{key}/watchers` body: `"username"` (DC uses `name` field, not `accountId`). **Remove:** `DELETE /rest/api/2/issue/{key}/watchers?username={name}`. | Simple toggle UI. `isWatching` boolean drives the eye/star icon state. Low API complexity. Need current user's `name` from auth store. |
+| **Attachments Viewer** | Every issue detail page in Jira shows attachments. Users attach screenshots, logs, specs constantly. `JiraAttachment` type already exists in `types.ts` but the UI does not render them. | MEDIUM | **List:** Already returned in `GET /rest/api/2/issue/{key}` as `fields.attachment[]` with `{id, filename, content (URL), thumbnail, mimeType}`. **Upload:** `POST /rest/api/2/issue/{key}/attachments` with `X-Atlassian-Token: nocheck` header, multipart form-data. **Download:** GET the `content` URL with Bearer auth header. **Delete:** `DELETE /rest/api/2/attachment/{id}`. **Size limits:** `GET /rest/api/2/attachment/meta` returns max upload size. | Tauri's `tauri-plugin-http` handles file downloads. Upload needs multipart form-data support. Thumbnails available for images via `thumbnail` field. |
+| **Mention Autocomplete** | @mentioning teammates in comments is muscle memory for every Jira user. Without it, users must remember and type exact usernames in wiki markup `[~username]` format. | MEDIUM | **User search:** `GET /rest/api/2/user/picker?query={prefix}` returns matching users with `name`, `displayName`, `avatarUrl`. Also: `GET /rest/api/2/user/search?username={prefix}` for broader search. | Trigger on `@` keypress in comment textarea. Debounce 300ms. Insert `[~username]` (Jira wiki markup mention format). Need a popover/dropdown positioned relative to cursor in textarea. |
+| **Board Quick Filters** | Every Jira Scrum/Kanban board has quick filter buttons at the top (e.g., "Only My Issues", "Recently Updated"). Users click these dozens of times daily during standups and triage. | MEDIUM | **Discover board:** `GET /rest/agile/1.0/board?projectKeyOrId={key}` returns board IDs. **List filters:** `GET /rest/agile/1.0/board/{boardId}/quickfilter` returns `[{id, name, jql, position}]`. **Single:** `GET /rest/agile/1.0/board/{boardId}/quickfilter/{id}`. | Quick filters are JQL fragments appended to the board's base query. Fetch once, apply client-side to sprint issues. Active filter state is local UI state, not persisted to Jira. Board ID discovery is the new prerequisite. |
+| **Saved Filters / JQL** | Power users live in saved filters. "My open bugs", "Sprint blockers", "Unestimated stories" -- accessed multiple times per day. JQL is the single most powerful feature of Jira. | MEDIUM | **Favourites:** `GET /rest/api/2/filter/favourite` returns user's starred filters with `{id, name, jql, description}`. **Create:** `POST /rest/api/2/filter` body: `{name, jql, description, favourite}`. **Read:** `GET /rest/api/2/filter/{id}`. **Update:** `PUT /rest/api/2/filter/{id}`. **Delete:** `DELETE /rest/api/2/filter/{id}`. **Execute:** `POST /rest/api/2/search` with `{jql, fields, maxResults, startAt}`. | Taskflow already has global search with JQL. Add a "Save this search" action. Filters sync across devices since they live server-side. Show favourite filters in sidebar or command palette. |
 
 ### Differentiators (Competitive Advantage)
 
-Features that elevate the app from "functional" to "fast and delightful" for developer users. These are what make Taskflow feel like a product, not a prototype.
+Features that go beyond what Jira's web UI does well. These make Taskflow worth using over the browser.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Pinned issue tabs in header | Developers context-switch between 3–5 issues simultaneously; persistent tabs eliminate re-searching and re-opening issue detail — mirrors how Linear handles multi-issue workflows | HIGH | Requires new `usePinnedTabsStore` Zustand slice, TopBar redesign to accommodate tab strip, overflow dropdown for >N tabs, integration with IssueDetailSheet open/close lifecycle |
-| Recent items quick-access in header or palette default state | Surfaces last N visited issues without re-opening search; reduces friction for returning to interrupted work — pattern used by Linear (recents in palette), VS Code (recent files in Cmd+P) | MEDIUM | New `useRecentItemsStore` Zustand slice (bounded array, max 15); populated by existing `onIssueClick` in AppLayout — just wraps one call; display in palette default state before user types |
-| Global "go to" keyboard shortcuts (G+B = backlog, G+S = sprint board) | Power users bypass menus entirely; mirrors Linear's navigation shortcuts and Gmail's two-key combos; makes the app feel keyboard-native | MEDIUM | `useGlobalShortcuts` hook in AppLayout listening on `document.keydown`; shortcut definitions in a central registry (constants file); same registry feeds `?` help panel |
-| J/K keyboard navigation in list views | Developers coming from Vim, Gmail, or Linear expect row navigation without mouse; makes Sprint Board and My Tasks feel fast during standup or triage | MEDIUM | `useKeyboardNav` hook per list view; active row index in local state; Enter opens detail; must handle focus management correctly |
-| Illustrated empty states | Monochrome SVG illustrations (Linear's zero-state style) make the app feel intentionally designed rather than abandoned; high perceived quality for low implementation cost | LOW | SVG assets only; no logic change; consistent illustration style across all data views |
-| Settings sections deep-linkable | `/settings/connections`, `/settings/notifications` etc. — enables "Go to Connections settings" as a command palette action in a future phase | LOW | Hash router already supports child routes; add routes under `/settings`; minimal extra work during settings restructure |
+| **Unified Activity Timeline** | Jira separates "History" and "Comments" into two separate tabs. Taskflow can merge changelog entries + comments + worklogs into one chronological timeline with filter toggles -- something Jira's own UI does not do. This is the single best differentiator for the activity view. | MEDIUM | Fetch changelog (`expand=changelog`), comments (already have), and worklogs (already paginate). Merge all by timestamp. Render with distinct visual styling per entry type. Filter toggles: "Show field changes / comments / worklogs". |
+| **Customizable Dashboard with Widgets** | Jira's dashboard gadgets require admin configuration and are sluggish. Taskflow can let any user drag/drop widgets (my tasks, sprint health, MR attention, workload, saved filter results) into a personal layout with zero admin overhead. | HIGH | No Jira API needed -- purely client-side layout persistence. Use a grid layout system (react-grid-layout or similar). Store widget config in Tauri Store. Dev/PM roles become preset layouts, not hard role gates. |
+| **Customizable Sidebar** | Jira's sidebar is fixed. Letting users choose which nav items appear and reorder them makes Taskflow feel personal and reduces clutter for users who only use 3-4 features. | LOW | Client-side only. Store order/visibility in Tauri Store. Provide "Developer preset" and "PM preset" as quick-start configs that replace the current hard-coded role-based views. |
+| **Bulk Operations with Progress** | Jira's bulk edit is a multi-page wizard that takes 6+ clicks. A fast multi-select + inline bulk action bar in Taskflow is dramatically better UX for sprint grooming and triage. | HIGH | **No native bulk API in Jira DC.** Must iterate: JQL search, then `PUT /rest/api/2/issue/{key}` per issue. Transitions: `POST /rest/api/2/issue/{key}/transitions` per issue. Use `Promise.allSettled` with concurrency limit (max 5 parallel). Show progress bar with success/failure counts. |
+| **Cross-Source Activity on Issues** | Show GitLab MR comments + pipeline status alongside Jira changelog on the same issue timeline. No tool does this for on-prem Jira + GitLab. | MEDIUM | GitLab Notes API: `GET /projects/:id/merge_requests/:iid/notes`. Pipeline: `GET /projects/:id/merge_requests/:iid/pipelines`. Link via existing task-to-MR key matching. |
+| **Offline-Ready Saved Filters** | Store saved filter JQL + last results locally. Show stale data immediately, refresh in background. Jira's web UI shows nothing without connectivity. | LOW | Cache filter results in TanStack Query with long `staleTime` + background refetch. Also support local-only filters (not synced to Jira) for quick personal use. |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| Customisable keyboard shortcuts | Power-user appeal; "let me remap Cmd+K to something else" | Requires a shortcut registry with conflict detection, persistence, a settings UI section, and migration logic — disproportionate complexity for a small team tool where defaults will be fine | Ship a fixed, well-chosen default set; document them clearly in the `?` panel; revisit only if user feedback is specific and repeated |
-| Tab session restore across restarts | "My pinned tabs should survive app quit" | Serialising open issue state to disk and rehydrating on boot adds a persistence + migration concern; issue data may be stale or deleted after a restart | Persist pinned tab keys only (not issue data); on boot, keys remain pinned but detail panel is closed; treat as "favourites not session" — this is already what pinning implies |
-| Animated/Lottie illustrated empty states | Higher visual polish; "makes it feel alive" | Lottie in Tauri 2 webview adds bundle weight (~500 KB for lottie-web) and potential rendering variance across platforms; animation may also feel patronising in a focused work tool | Static SVGs — same warmth, zero runtime cost, no cross-platform risk |
-| Live API search in command palette (search-as-you-type against Jira) | "Fresher results than the cache" | Adds visible latency on every keystroke; hammers on-premise Jira server; breaks the palette's instant-feel premise | Use TanStack Query cache as the palette data source; add a "Search Jira for X →" tail item that opens the full SearchOverlay for live results — same pattern used by Raycast |
-| Tab drag-and-drop reordering in the header strip | "I want to organise my pinned tabs" | DnD on a narrow header tab strip is fiddly (especially in a flex overflow container with @dnd-kit); adds implementation complexity for marginal value; tab strip only holds 4–6 items before overflow | Fixed insertion order: tabs appear in pin chronology; user can unpin and re-pin to reorder — equivalent outcome without DnD complexity |
-| Palette frecency ranking (most-used items first) | Makes the palette smarter over time | Requires usage tracking, scoring algorithm, and persistence; adds complexity to what should be a thin search layer | Start with recency (most recently visited first) using the `recentItems` store — already needed for recent items feature; good enough approximation of frecency for this scale |
+| **Full JQL editor with syntax highlighting** | Power users want a full query builder with autocomplete | JQL has 100+ functions, custom fields per instance. Building a real parser/autocomplete is months of work. Jira's own autocomplete is mediocre. | Plain text input with a link to Jira's JQL reference. Autocomplete field names only (from createmeta). Let users paste JQL from Jira. |
+| **Attachment inline editing/annotation** | Users want to annotate screenshots directly | Image editing is a separate application domain. Massive complexity for near-zero daily value. | Open attachment in OS default app via Tauri `shell.open`. Provide download + re-upload flow. |
+| **Real-time collaboration on comments** | "Google Docs for Jira comments" | Requires WebSocket infrastructure, conflict resolution. Jira DC has no real-time API. Polling is sufficient for a desktop client. | Poll comments on focus/interval. Show "new comments available" banner when remote changes detected. |
+| **Custom workflow builder** | "Let me define my own status columns" | Jira workflows are admin-configured server-side. Client-side overrides cause data inconsistency and confusion. | Respect Jira's configured workflows. Show available transitions per issue (already implemented). Let quick filters narrow visible statuses. |
+| **Full Jira admin panel** | "Manage users, permissions, schemes from Taskflow" | Admin operations are rare, complex, and high-risk. Jira's admin UI is purpose-built for this. | Deep-link to Jira admin pages. Taskflow is a daily-use tool, not an admin tool. |
+| **Bulk file upload (drag entire folder)** | Batch-uploading many attachments at once | Jira attachment API is single-file. Parallel uploads risk rate limiting. Large files hit Jira's configured size limit. | Single-file upload with progress. Display Jira's attachment size limit from `/rest/api/2/attachment/meta`. Queue multiple files sequentially. |
+| **Burndown / velocity charts** | PMs want sprint progress visualization | Already out of scope in PROJECT.md. Requires historical daily snapshots that Jira DC does not expose via REST API. Tools like LinearB/Swarmia exist for this. | Sprint progress bar with point breakdown (already built in PM dashboard). Link to Jira's built-in reports. |
+
+---
+
+## Missed Features: What Real Users Rely On
+
+Features not in the original v1.5 target list but used daily by Jira/GitLab power users.
+
+| Feature | How Often Used | Jira DC API | Recommendation |
+|---------|---------------|-------------|----------------|
+| **Comment editing and deleting** | Weekly -- users fix typos, update info | `PUT /rest/api/2/issue/{key}/comment/{id}` to edit, `DELETE /rest/api/2/issue/{key}/comment/{id}` to delete | **Add to v1.5.** Low complexity. Users strongly expect to edit their own comments. Currently Taskflow is post-only. |
+| **Due date overdue highlighting** | Daily for PMs, weekly for devs | `fields.duedate` already in `JiraIssueDetail` type | **Add to v1.5.** Trivial. Red badge/highlight on sprint cards and issue detail when `duedate < today`. Already have the data. |
+| **Sprint goal visibility** | Every standup | `JiraActiveSprint.goal` already in type definition | **Add to v1.5.** Trivial. Display sprint goal as a banner/subtitle on the sprint board header. Already fetched. |
+| **Issue cloning** | Weekly -- devs clone recurring tasks, PMs clone templates | `POST /rest/api/2/issue` with fields copied from source issue | **Consider for v1.5.** Low complexity. "Clone issue" button on issue detail copies summary, description, labels, priority, assignee. |
+| **Label filter chips on board** | Daily during triage | Labels already in issue data; no new API | **Add to v1.5** as part of board quick filters. Client-side label filtering on sprint board. |
+| **Comment reactions/emojis** | Not available in Jira DC REST API v2 | N/A -- Jira DC does not support comment reactions | **Skip.** Not available server-side. |
+| **Issue voting** | Occasional | `GET/POST/DELETE /rest/api/2/issue/{key}/votes` | **Skip for v1.5.** Low daily value. |
+| **Keyboard-driven time logging** | Daily for devs with mandatory time tracking | No new API -- UI convenience for worklog POST | **Add to v1.5** as part of time tracking. Natural language input like "2h 30m" parsed into seconds for the worklog body. |
 
 ---
 
 ## Feature Dependencies
 
 ```
-Command Palette (Cmd+K)
-    └──reuses──> Existing SearchOverlay query data (jira-search, gitlab-mrs)
-    └──uses──> shadcn Command component (add via npx shadcn add command)
-    └──reads from──> useRecentItemsStore (default state before typing)
-    └──can navigate to──> /settings/connections etc. (requires multi-page settings routes)
-    └──can show shortcut hints──> shortcut registry (shares source with ? panel)
+[Customizable Sidebar]
+    independent: No API dependency
+    enhances: Customizable Dashboard (sidebar reflects user's personal layout)
+    enhances: Saved Filters (filters can appear as sidebar items)
 
-Keyboard Shortcuts System
-    └──requires──> Central shortcut registry (new constants file: shortcuts.ts)
-    └──enhances──> Command Palette (palette shows ⌘K, G+S hints on action items)
-    └──feeds──> ? Help Panel (reads from same registry — single source of truth)
-    └──lives in──> useGlobalShortcuts hook in AppLayout
+[Issue Activity History]
+    requires: Issue Detail (DONE)
+    enhances: Time Tracking (worklogs displayed in timeline)
+    enhances: Watchers (watcher count shown in issue context)
+    API: expand=changelog added to existing issue fetch
 
-? Help Panel
-    └──requires──> Shortcut registry (read-only display)
-    └──independent of──> command palette (can be built in same phase)
+[Time Tracking / Worklog CRUD]
+    requires: Issue Detail (DONE)
+    requires: Issue Activity History (worklogs best rendered in unified timeline)
+    API: New worklog service module (POST/PUT/DELETE)
 
-Pinned Issue Tabs
-    └──requires──> usePinnedTabsStore (new Zustand slice with persistence)
-    └──requires──> TopBar redesign (tab strip replaces icon-only bar)
-    └──integrates with──> IssueDetailSheet (tab click opens sheet; close collapses open state, not pin state)
-    └──independent of──> command palette (can be built in separate phase)
+[Watchers / Starring]
+    requires: Issue Detail (DONE)
+    requires: Current user's username from auth store
+    independent: Simple toggle, no other feature dependency
 
-Recent Items
-    └──requires──> useRecentItemsStore (new bounded Zustand slice, max 15)
-    └──populated by──> onIssueClick in AppLayout (already exists — wraps one call)
-    └──displayed in──> Command Palette default state (before user types)
-    └──optionally displayed in──> header dropdown (same phase as TopBar redesign)
-    └──depends on──> nothing blocking; can be built before or after palette
+[Mention Autocomplete]
+    requires: Comment posting (DONE)
+    requires: User Picker API (new endpoint: /rest/api/2/user/picker)
+    enhances: Comment editing (mentions in edited comments)
 
-Multi-Page Settings
-    └──requires──> Settings child routes (/settings/connections, /settings/appearance, /settings/notifications, /settings/workflow)
-    └──requires──> Settings sidebar nav component (new)
-    └──migrates──> existing Settings.tsx section components into individual route files
-    └──enables──> command palette "go to settings" actions (deep-link)
-    └──independent of──> all other v1.3 features; good to build early
+[Attachments Viewer]
+    requires: Issue Detail (DONE)
+    requires: Tauri HTTP multipart support (for upload)
+    API: attachment data already fetched, needs UI + upload/delete
 
-Empty & Error States
-    └──independent of──> all other v1.3 features
-    └──applies to──> existing data views (no new components)
-    └──requires──> SVG illustration assets per state category (no-data, error, no-results, first-use)
+[Board Quick Filters]
+    requires: Sprint Board (DONE)
+    requires: Board ID discovery (new: GET /rest/agile/1.0/board?projectKeyOrId={key})
+    enhances: Saved Filters (quick filters are essentially saved JQL fragments)
 
-App Icon
-    └──requires──> source PNG/SVG design asset (1024×1024)
-    └──uses──> tauri icon CLI (built into Tauri 2 toolchain; no new deps)
-    └──independent of──> all other features; can be done in any phase
+[Saved Filters / JQL]
+    requires: Global Search with JQL (DONE)
+    API: /rest/api/2/filter CRUD + /rest/api/2/filter/favourite
+    enhances: Sidebar (saved filters as nav items)
+    enhances: Dashboard (saved filter results as widget)
+
+[Customizable Dashboard]
+    requires: Existing widgets -- Dev/PM panels (DONE)
+    independent: No API dependency, purely client-side layout
+    enhances: Saved Filters (filter results as dashboard widget)
+
+[Bulk Operations]
+    requires: Sprint Board or Backlog multi-select UI (selection mechanism DONE via existing lists)
+    requires: Transitions API (DONE)
+    conflicts-with: Rate limiting (must throttle to max 5 concurrent PUT requests)
+    API: No native bulk API in DC; iterate single-issue updates
+
+[Comment Edit/Delete]
+    requires: Comment thread UI (DONE)
+    API: PUT/DELETE /rest/api/2/issue/{key}/comment/{id}
 ```
 
 ### Dependency Notes
 
-- **Command palette should be built after settings routes exist** so "Go to Connections" can be a working palette action from day one. Settings restructure is a natural Phase 1.
-- **Pinned tabs are the highest-complexity feature** — they touch TopBar layout, a new store slice, and the IssueDetailSheet open/close contract. Build after TopBar redesign is settled and IssueDetailSheet integration is clear. Natural Phase 3–4.
-- **Recent items is a low-risk store addition** — `onIssueClick` already flows through `AppLayout`; wrapping it is one line. The only design decision is where to display recents (palette default state is the right answer). Bundle with the command palette phase.
-- **Keyboard shortcut registry and `?` panel are tightly coupled** — define the registry constants first; the panel is just a read-only display grouped by category. Natural same-phase as command palette.
-- **Empty/error states are fully independent** — can be done in any phase; good candidate for a standalone polish phase at end of milestone.
-- **App icon is fully independent** — depends only on a design asset being ready; can be done in Phase 1 if asset is ready.
+- **Activity History before Time Tracking:** The worklog UI is best rendered inside the unified activity timeline. Build the timeline container first, then add worklog entries as a timeline item type.
+- **Board Quick Filters require board ID discovery:** Taskflow currently queries sprints via JQL (`sprint in openSprints()`), not the Agile board API. Need to discover the board ID via `GET /rest/agile/1.0/board?projectKeyOrId={key}` during onboarding or first use, then persist it.
+- **Mention Autocomplete requires User Picker API:** New endpoint `/rest/api/2/user/picker?query={prefix}` not currently called. Simple to add but needs debounced search and cursor-relative popover positioning.
+- **Bulk Operations have no native DC bulk API:** Must iterate `PUT /rest/api/2/issue/{key}` per issue. Rate limiting is the primary risk. Cap concurrent requests at 5 and show progress feedback.
+- **Saved Filters are server-side:** Unlike most other v1.5 features, saved filters persist on the Jira server. They sync across devices and survive app reinstall.
 
 ---
 
-## Phase Recommendations for v1.3
+## Implementation Priority (v1.5 Phasing)
 
-### Phase 1 — Foundation: Multi-Page Settings + App Icon
+### Phase 1: Foundation (no API dependencies, enables everything else)
 
-Low risk, high readiness. Settings restructure unlocks palette deep-links. App icon has zero code dependencies.
+- [ ] **Customizable Sidebar** -- LOW complexity, client-side only, unblocks dashboard redesign
+- [ ] **Sprint goal banner** -- trivial, data already fetched in `JiraActiveSprint.goal`
+- [ ] **Due date overdue highlighting** -- trivial, data already in `fields.duedate`
 
-- [ ] App icon: source asset → `tauri icon` CLI → all platform sizes
-- [ ] Settings child routes: `/settings/connections`, `/settings/appearance`, `/settings/notifications`, `/settings/workflow`
-- [ ] Settings sidebar nav component with active route highlighting
-- [ ] Migrate existing 6 section components into their route files
-- [ ] Deep-linkable from sidebar and eventually command palette
+### Phase 2: Activity & Detail Enhancements
 
-### Phase 2 — Power Features: Command Palette + Keyboard Shortcuts
+- [ ] **Issue Activity History + Unified Timeline** -- MEDIUM complexity, core feature, foundation for time tracking
+- [ ] **Comment Edit/Delete** -- LOW complexity, fills important gap
+- [ ] **Watchers / Starring** -- LOW complexity, standalone toggle
 
-Highest-impact phase. Adds keyboard-first power to an app with a lot of data.
+### Phase 3: Time & Attachments
 
-- [ ] Add shadcn `Command` component (`npx shadcn add command`)
-- [ ] `CommandPalette` component: dialog wrapper, groups (Recent, Issues, MRs, Navigation)
-- [ ] Default state: recent items list (before typing)
-- [ ] Fuzzy-filtered results: issues + MRs from TanStack Query cache; nav actions as static items
-- [ ] "Search Jira for X →" tail item that opens SearchOverlay
-- [ ] Keyboard shortcut registry constants file (`shortcuts.ts`)
-- [ ] `useGlobalShortcuts` hook in AppLayout (G+S, G+B, G+M, etc.)
-- [ ] `?` key → ShortcutsHelpPanel Dialog
+- [ ] **Time Tracking / Worklog CRUD** -- HIGH complexity, builds on activity timeline
+- [ ] **Attachments Viewer + Upload** -- MEDIUM complexity, needs multipart HTTP via Tauri
 
-### Phase 3 — Recent Items Store
+### Phase 4: Search & Filters
 
-Can be bundled into Phase 2 or done separately. Very low risk.
+- [ ] **Saved Filters** -- MEDIUM complexity, builds on existing global search
+- [ ] **Board Quick Filters** -- MEDIUM complexity, needs board ID discovery
+- [ ] **Mention Autocomplete** -- MEDIUM complexity, needs user picker API
 
-- [ ] `useRecentItemsStore` Zustand slice (bounded array, persist)
-- [ ] Instrument `onIssueClick` in AppLayout to write to store
-- [ ] Wire recent items into command palette default state
+### Phase 5: Layout & Power Features
 
-### Phase 4 — Header Redesign: Pinned Tabs
-
-Highest complexity in the milestone. Build after all other features are stable.
-
-- [ ] `usePinnedTabsStore` Zustand slice (pinned keys array, persist)
-- [ ] TopBar redesign: add tab strip; pin/unpin actions from IssueDetailSheet
-- [ ] Tab overflow: `+N more` dropdown when tabs exceed container width
-- [ ] Tab click → opens IssueDetailSheet for that key
-- [ ] Close tab X button: removes from open state; pin remains until explicit unpin
-
-### Phase 5 — Polish: Empty States + Error Recovery
-
-Independent; apply across all existing views.
-
-- [ ] SVG illustration assets: no-data, error, no-results, first-use
-- [ ] Consistent `EmptyState` component: illustration + headline + sub-copy + optional CTA
-- [ ] Consistent `ErrorState` component: plain-language message + retry/reconnect CTA
-- [ ] Apply to: My Tasks, Sprint Board, Backlog, Notifications, Search, Releases, Workload
+- [ ] **Customizable Dashboard** -- HIGH complexity, client-side layout engine
+- [ ] **Bulk Operations** -- HIGH complexity, rate limiting risk, needs progress UI
 
 ---
 
 ## Feature Prioritization Matrix
 
-| Feature | User Value | Implementation Cost | Priority |
-|---------|------------|---------------------|----------|
-| App icon redesign | MEDIUM | LOW | P1 |
-| Multi-page Settings with sidebar nav | HIGH | MEDIUM | P1 |
-| Command palette (Cmd+K) | HIGH | MEDIUM | P1 |
-| Keyboard shortcuts + `?` panel | HIGH | MEDIUM | P1 |
-| Actionable error recovery states | HIGH | LOW | P1 |
-| Illustrated empty states | MEDIUM | LOW | P1 |
-| Recent items (palette default state) | MEDIUM | LOW | P1 |
-| Pinned issue tabs in header | HIGH | HIGH | P2 |
-| J/K list view navigation | MEDIUM | MEDIUM | P2 |
-| Global "go to" shortcuts (G+S, G+B) | MEDIUM | MEDIUM | P2 — bundle with keyboard shortcuts phase |
+| Feature | User Value | Implementation Cost | Risk | Priority |
+|---------|------------|---------------------|------|----------|
+| Issue Activity History | HIGH | MEDIUM | LOW | **P1** |
+| Customizable Sidebar | HIGH | LOW | LOW | **P1** |
+| Time Tracking / Worklog | HIGH | HIGH | MEDIUM | **P1** |
+| Watchers / Starring | MEDIUM | LOW | LOW | **P1** |
+| Customizable Dashboard | HIGH | HIGH | MEDIUM | **P1** |
+| Saved Filters / JQL | HIGH | MEDIUM | LOW | **P1** |
+| Board Quick Filters | HIGH | MEDIUM | MEDIUM | **P1** |
+| Mention Autocomplete | MEDIUM | MEDIUM | LOW | **P2** |
+| Attachments Viewer + Upload | MEDIUM | MEDIUM | MEDIUM | **P2** |
+| Bulk Operations | MEDIUM | HIGH | HIGH | **P2** |
+| Comment Edit/Delete | MEDIUM | LOW | LOW | **P1** |
+| Due Date Highlighting | MEDIUM | LOW (trivial) | LOW | **P1** |
+| Sprint Goal Banner | LOW | LOW (trivial) | LOW | **P1** |
+| Issue Cloning | LOW | LOW | LOW | **P3** |
 
 **Priority key:**
-- P1: Must have for v1.3 milestone
-- P2: Should have; include if time allows
-- P3: Future milestone
+- P1: Must have for v1.5 milestone
+- P2: Should have, include if time allows
+- P3: Nice to have, defer if needed
+
+---
+
+## Jira DC REST API v2 Endpoint Reference
+
+Complete endpoint map for all v1.5 features. All endpoints use Bearer PAT auth (`Authorization: Bearer {token}`).
+
+### Changelog / Activity History
+| Method | Endpoint | Request | Response Key Fields |
+|--------|----------|---------|---------------------|
+| GET | `/rest/api/2/issue/{key}?expand=changelog` | -- | `changelog.histories[].{created, author, items[].{field, fromString, toString}}` |
+
+### Worklogs (Time Tracking)
+| Method | Endpoint | Request Body | Notes |
+|--------|----------|-------------|-------|
+| GET | `/rest/api/2/issue/{key}/worklog` | -- | Paginated: `startAt`, `maxResults` params |
+| POST | `/rest/api/2/issue/{key}/worklog` | `{timeSpent: "2h 30m", started: "2026-03-22T10:00:00.000+0000", comment: "..."}` | `adjustEstimate` param: auto/leave/new/manual |
+| PUT | `/rest/api/2/issue/{key}/worklog/{id}` | Same as POST | Updates existing entry |
+| DELETE | `/rest/api/2/issue/{key}/worklog/{id}` | -- | `adjustEstimate` param available |
+
+### Watchers
+| Method | Endpoint | Request Body | Notes |
+|--------|----------|-------------|-------|
+| GET | `/rest/api/2/issue/{key}/watchers` | -- | Returns `{watchCount, isWatching, watchers[]}` |
+| POST | `/rest/api/2/issue/{key}/watchers` | `"username"` (plain string, DC uses `name` not `accountId`) | Adds user as watcher |
+| DELETE | `/rest/api/2/issue/{key}/watchers?username={name}` | -- | Removes watcher |
+
+### Attachments
+| Method | Endpoint | Headers | Notes |
+|--------|----------|---------|-------|
+| -- | `fields.attachment[]` on issue GET | -- | Already fetched: `{id, filename, content, thumbnail, mimeType}` |
+| POST | `/rest/api/2/issue/{key}/attachments` | `X-Atlassian-Token: nocheck`, `Content-Type: multipart/form-data` | File in form field `file` |
+| GET | `{attachment.content}` (direct URL) | Bearer auth | Downloads the actual file |
+| DELETE | `/rest/api/2/attachment/{id}` | -- | Removes attachment |
+| GET | `/rest/api/2/attachment/meta` | -- | Returns `{enabled, uploadLimit}` (max file size) |
+
+### Saved Filters
+| Method | Endpoint | Request Body | Notes |
+|--------|----------|-------------|-------|
+| GET | `/rest/api/2/filter/favourite` | -- | User's starred filters: `[{id, name, jql, description}]` |
+| POST | `/rest/api/2/filter` | `{name, jql, description, favourite}` | Creates server-side filter |
+| GET | `/rest/api/2/filter/{id}` | -- | Single filter with `searchUrl` |
+| PUT | `/rest/api/2/filter/{id}` | `{name, jql, description, favourite}` | Updates filter |
+| DELETE | `/rest/api/2/filter/{id}` | -- | Deletes filter |
+| POST | `/rest/api/2/search` | `{jql, fields, maxResults, startAt}` | Execute any JQL query |
+
+### User Picker (for Mention Autocomplete)
+| Method | Endpoint | Notes |
+|--------|----------|-------|
+| GET | `/rest/api/2/user/picker?query={prefix}` | Returns `{users: [{name, displayName, avatarUrl}]}`. Respects project permissions. |
+| GET | `/rest/api/2/user/search?username={prefix}` | Broader user search, returns `[{name, displayName, emailAddress}]` |
+
+### Board Quick Filters (Jira Agile REST API)
+| Method | Endpoint | Notes |
+|--------|----------|-------|
+| GET | `/rest/agile/1.0/board?projectKeyOrId={key}` | Discover board ID for project. Returns `{values: [{id, name, type}]}` |
+| GET | `/rest/agile/1.0/board/{boardId}/quickfilter` | All quick filters: `[{id, name, jql, position}]` |
+| GET | `/rest/agile/1.0/board/{boardId}/quickfilter/{id}` | Single quick filter detail |
+
+### Comments -- Edit/Delete (new for v1.5)
+| Method | Endpoint | Request Body | Notes |
+|--------|----------|-------------|-------|
+| PUT | `/rest/api/2/issue/{key}/comment/{id}` | `{body: "updated text"}` | Wiki markup format |
+| DELETE | `/rest/api/2/issue/{key}/comment/{id}` | -- | Requires delete permission |
+
+### Bulk Operations (no native bulk API in Jira DC)
+| Method | Endpoint | Notes |
+|--------|----------|-------|
+| POST | `/rest/api/2/search` | Find target issues by JQL |
+| PUT | `/rest/api/2/issue/{key}` | Update single issue fields (must iterate) |
+| POST | `/rest/api/2/issue/{key}/transitions` | Transition single issue (must iterate) |
+
+---
+
+## GitLab API Equivalents
+
+For features where GitLab data enriches the Jira-primary view.
+
+| Feature | GitLab Endpoint | Notes |
+|---------|----------------|-------|
+| MR activity / notes | `GET /projects/:id/merge_requests/:iid/notes` | `system: true` notes are automated events (merges, approvals) |
+| MR pipeline status | `GET /projects/:id/merge_requests/:iid/pipelines` | Show CI status on issue timeline |
+| Time tracking | `POST /projects/:id/issues/:iid/time_estimate`, `POST .../add_spent_time` | Uses `/spend` slash command syntax |
+| File uploads | `POST /projects/:id/uploads` | Returns markdown-formatted link |
+| Issue subscriptions | `POST /projects/:id/issues/:iid/subscribe` | GitLab equivalent of watchers |
 
 ---
 
 ## Competitor Feature Analysis
 
-| Feature | Linear | Notion | VS Code | Our Approach |
-|---------|--------|--------|---------|--------------|
-| Command palette | Cmd+K; frecency-ranked; nav + issue actions; instant | Cmd+K; creates blocks + navigates pages | Cmd+Shift+P (actions), Cmd+P (files); extensible | Cmd+K; fuzzy across issues, MRs, nav actions; cached data; "Search Jira for X" tail item |
-| Keyboard shortcuts | Comprehensive; G+letter navigation; two-key combos; `?` panel | Partial coverage; `?` panel exists | Full coverage; fully customisable | Fixed set; G+letter navigation; `?` panel; no customisation v1 |
-| Pinned/open tabs | Full tab system: pin, drag reorder, overflow; T to search tabs | Page favourites in left sidebar | Editor tabs with pin (prevents auto-close) | Header strip; pin/unpin; overflow dropdown; no drag reorder (v1) |
-| Settings structure | Sidebar nav; deeply categorised; keyboard-navigable | Sidebar nav in modal overlay; clean | Sidebar nav in dedicated settings window; search | Sidebar nav; 4 sections: Connections, Appearance, Notifications, Workflow; deep-linkable |
-| Recent items | Shown in Cmd+K default state before typing; frecency-ranked | Recent pages listed in sidebar | Recent files as Cmd+P default state | Shown in Cmd+K default state; recency-ordered (not frecency); max 15 items |
-| Empty states | Illustrated monochrome SVGs; contextual copy; action CTAs; consistent style | Illustrated; playful; contextual | Minimal; functional welcome screen | Illustrated monochrome SVGs; consistent `EmptyState` component; contextual headline + CTA |
-| App icon | Custom mark (triangle-based); consistent on all platforms | Custom N mark; instantly recognisable | Consistent VS Code logo across platforms | New abstract/geometric mark via `tauri icon` CLI; replace default Tauri icon |
-
----
-
-## Implementation Notes for This Codebase
-
-### shadcn/ui Command Component (cmdk)
-
-The project already uses shadcn/ui with Tailwind v4. The `Command` component is built on cmdk (the same library powering Linear and Raycast). Add it with `npx shadcn@latest add command`. This provides `CommandDialog`, `CommandInput`, `CommandList`, `CommandGroup`, `CommandItem`, `CommandEmpty`, `CommandSeparator`, and `CommandShortcut` — everything needed for a full palette. No new npm packages required beyond what cmdk brings.
-
-### Keyboard Shortcut Registration
-
-For shortcuts that work within the focused Tauri window (all use cases in v1.3), `document.addEventListener('keydown', handler)` inside a `useEffect` in a custom hook is sufficient. `@tauri-apps/plugin-global-shortcut` is only needed for system-wide shortcuts when the window is not focused — not required for v1.3. The hook should live in `AppLayout` after onboarding completes to avoid firing during onboarding.
-
-### Zustand Store Pattern for Pinned Tabs and Recent Items
-
-Follow the existing `notifications.store.ts` pattern exactly: `createJSONStorage(() => localStorage)` with `partialize` to select only the fields that need persistence. Key decisions:
-- `pinnedTabs: string[]` — array of issue keys; use `string[]` not `Set` (Set serializes as empty object in JSON persist — documented as a known caveat in PROJECT.md)
-- `recentItems: { key: string; title: string; type: 'issue' | 'mr'; timestamp: number }[]` — max 15 items; newest first; deduped on key
-
-### Settings Routes with createHashRouter
-
-The existing `createHashRouter` supports nested children. Add child routes under `/settings` in `main.tsx` with a settings layout component that renders the sidebar nav + `<Outlet />`. Each existing section component (`TokenSection`, `RoleSection`, `ThemeSection`, etc.) moves into its route. Existing `/settings` route becomes a redirect to `/settings/connections`.
-
-### Tauri App Icon
-
-`tauri icon ./path/to/icon.png` (run from `taskflow/src-tauri/`) generates all required platform-specific sizes automatically. Source PNG must be 1024×1024 with transparency. Output goes to `src-tauri/icons/`. No manual resizing or format conversion.
+| Feature | Jira Web UI | Linear | Taskflow v1.5 Approach |
+|---------|-------------|--------|------------------------|
+| Activity history | Separate "History" and "Comments" tabs; no unified view | Single activity feed with all changes | **Unified timeline** merging changelog + comments + worklogs. Filter toggles per type. Better than both. |
+| Time tracking | Built-in worklog dialog; clunky modal | No native time tracking | Natural language input ("2h 30m") inline on issue detail. Worklog list in timeline. |
+| Watchers | Eye icon on every issue; watch/unwatch toggle | "Subscribe" toggle | Same pattern: eye icon toggle with watch count badge |
+| Saved filters | Sidebar filter list; JQL builder; star/favourite | Custom views with filter bar | Favourite filters synced from Jira server + local-only quick filters |
+| Board quick filters | Filter buttons above board; JQL-based | Grouping + filtering in board view | Fetch Jira quick filters + render as toggle chips above sprint board |
+| Attachments | Attachment section on issue; drag-drop upload | File attachments on issues | Thumbnail grid for images, file list for others; single-file upload with progress |
+| Mentions | @username autocomplete in all text fields | @mention autocomplete | @-triggered dropdown in comment textarea; inserts `[~username]` wiki markup |
+| Bulk edit | Multi-page wizard; 6+ clicks; server-side processing | Multi-select + inline toolbar | Multi-select checkbox + floating action bar; client-side iteration with progress |
+| Dashboard | Admin-configured gadgets; heavy, slow | No traditional dashboard | User-configurable widget grid; role presets; instant load from local state |
 
 ---
 
 ## Sources
 
-- [shadcn/ui Command component docs](https://www.shadcn.io/ui/command) — HIGH confidence (official shadcn docs)
-- [cmdk GitHub — Fast, unstyled command menu React component](https://github.com/dip/cmdk) — MEDIUM confidence (GitHub; confirmed used by Linear and Raycast)
-- [Command Palette UX Patterns — uxpatterns.dev](https://uxpatterns.dev/patterns/advanced/command-palette) — MEDIUM confidence (WebSearch)
-- [Maggie Appleton — Command K Bars](https://maggieappleton.com/command-bar) — MEDIUM confidence (well-known UX analysis)
-- [Tauri 2 Global Shortcut Plugin (official docs)](https://v2.tauri.app/plugin/global-shortcut/) — HIGH confidence (official Tauri v2 docs)
-- [Linear Keyboard Shortcuts Help changelog](https://linear.app/changelog/2021-03-25-keyboard-shortcuts-help) — MEDIUM confidence (official Linear changelog)
-- [Linear Personalized Sidebar / Multi-page Settings](https://linear.app/changelog/2024-12-18-personalized-sidebar) — MEDIUM confidence (official Linear changelog)
-- [NN/G — Left-Side Vertical Navigation on Desktop](https://www.nngroup.com/articles/vertical-nav/) — HIGH confidence (Nielsen Norman Group)
-- [Carbon Design System — Empty States Pattern](https://carbondesignsystem.com/patterns/empty-states-pattern/) — HIGH confidence (IBM design system)
-- [PatternFly — Empty State Design Guidelines](https://www.patternfly.org/components/empty-state/design-guidelines/) — HIGH confidence (RedHat design system)
-- [Taskflow PROJECT.md (codebase)](/.planning/PROJECT.md) — HIGH confidence (authoritative project spec)
-- Codebase inspection: `taskflow/src/main.tsx`, `taskflow/src/components/app/TopBar.tsx`, `taskflow/src/routes/settings/Settings.tsx`
+- [Jira Data Center REST API 9.14.0 Reference](https://docs.atlassian.com/software/jira/docs/api/REST/9.14.0/) -- HIGH confidence
+- [Jira Agile Data Center 9.14.0 REST API](https://docs.atlassian.com/jira-software/REST/9.14.0/) -- HIGH confidence
+- [Jira REST API Examples (Server/DC)](https://developer.atlassian.com/server/jira/platform/jira-rest-api-examples/) -- HIGH confidence
+- [Jira DC REST API - Attachment Group](https://developer.atlassian.com/server/jira/platform/rest/v10002/api-group-attachment/) -- HIGH confidence
+- [Jira DC REST API - Worklog Group](https://developer.atlassian.com/server/jira/platform/rest/v10002/api-group-worklog/) -- HIGH confidence
+- [Jira Issue Changelog Analysis (Atlassian Support)](https://support.atlassian.com/jira/kb/how-to-analyze-the-history-or-changelog-of-an-issue-in-jira/) -- HIGH confidence
+- [Atlassian Community: Changelog 100-entry limit](https://community.atlassian.com/forums/Jira-questions/Rest-API-limiting-changelog-history-results-to-100-even-if/qaq-p/1466525) -- MEDIUM confidence
+- [Atlassian Community: Bulk Edit via REST in DC](https://support.atlassian.com/jira/kb/update-issues-based-on-jql-with-rest-api-in-jira-data-center/) -- HIGH confidence
+- [GitLab Issues API](https://docs.gitlab.com/api/issues/) -- HIGH confidence
+- [GitLab Notes API](https://docs.gitlab.com/api/notes/) -- HIGH confidence
+- [GitLab Time Tracking Docs](https://docs.gitlab.com/ee/user/project/time_tracking.html) -- HIGH confidence
+- Taskflow codebase: `taskflow/src/services/jira/types.ts`, `taskflow/src/services/jira/worklogs.ts`, `taskflow/src/services/jira/index.ts` -- HIGH confidence
 
 ---
-
-*Feature research for: Taskflow v1.3 UX & Branding*
-*Researched: 2026-03-15*
+*Feature research for: Taskflow v1.5 Jira DC & GitLab Feature Parity*
+*Researched: 2026-03-22*
