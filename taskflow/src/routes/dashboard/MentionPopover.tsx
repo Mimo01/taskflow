@@ -12,7 +12,7 @@ interface MentionPopoverProps {
   query: string;
   projectKey: string;
   jiraBaseUrl: string;
-  position: { top: number; left: number };
+  position: { bottom: number; left: number };
   onSelect: (user: JiraAssignableUser) => void;
   onDismiss: () => void;
 }
@@ -89,7 +89,7 @@ export const MentionPopover = forwardRef<MentionPopoverHandle, MentionPopoverPro
         role="listbox"
         id={listboxId}
         className="absolute z-50 bg-popover border rounded-md shadow-lg p-1 min-w-[200px] max-h-[240px] overflow-y-auto"
-        style={{ top: position.top, left: position.left }}
+        style={{ bottom: position.bottom, left: Math.max(0, position.left) }}
       >
         {isLoading && (
           <div className="px-2 py-1.5 text-sm text-muted-foreground">Loading users...</div>
