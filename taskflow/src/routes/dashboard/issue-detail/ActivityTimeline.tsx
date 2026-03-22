@@ -1,27 +1,31 @@
 /**
- * ActivityTimeline — unified activity feed merging comments and changelog entries.
+ * ActivityTimeline -- unified activity feed merging comments, changelog entries,
+ * and worklog entries.
  *
- * Replaces the old CommentThread component. Uses mergeTimeline / filterTimeline / countByType
- * from the jira-changelog service for data processing.
+ * Uses mergeTimeline / filterTimeline / countByType from the jira-changelog
+ * service for data processing.
  */
 import { useMemo, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ChangelogHistory, JiraComment, TimelineFilter } from '@/services/jira';
 import { countByType, filterTimeline, mergeTimeline } from '@/services/jira';
+import type { JiraWorklog } from '@/services/jira/types';
 import { useSettingsStore } from '@/stores/settings.store';
 import type { AttachmentMap, UserMap } from '../WikiRenderer';
 import { ChangelogEntry } from './ChangelogEntry';
 import { TimelineFilterChips } from './TimelineFilterChips';
+import { WorklogEntry } from './WorklogEntry';
 
 interface ActivityTimelineProps {
   comments: JiraComment[];
   changelog: ChangelogHistory[];
+  worklogs: JiraWorklog[];
   issueKey: string;
   jiraBaseUrl: string;
   jiraUserDisplayName: string | null;
   attachmentMap: AttachmentMap;
   userMap: UserMap;
-  /** Comment edit/delete wiring — passed through to CommentCard */
+  /** Comment edit/delete wiring -- passed through to CommentCard */
   editingCommentId: string | null;
   editText: string;
   onEditStart: (comment: JiraComment) => void;
@@ -33,9 +37,9 @@ interface ActivityTimelineProps {
   deleteError: string | null;
   deletingCommentId: string | null;
   editPending: boolean;
-  /** Callback when filter changes — parent can use to show/hide CommentComposer */
+  /** Callback when filter changes -- parent can use to show/hide CommentComposer */
   onFilterChange?: (filter: TimelineFilter) => void;
-  /** The CommentCard component to render comments — injected from IssueDetailPage */
+  /** The CommentCard component to render comments -- injected from IssueDetailPage */
   CommentCard: React.ComponentType<{
     comment: JiraComment;
     isOwn: boolean;
@@ -53,11 +57,25 @@ interface ActivityTimelineProps {
     attachmentMap: AttachmentMap;
     userMap: UserMap;
   }>;
+  /** Worklog edit/delete wiring */
+  editingWorklogId: string | null;
+  editDuration: string;
+  editWorklogComment: string;
+  onWorklogEditStart: (worklog: JiraWorklog) => void;
+  onWorklogEditDurationChange: (value: string) => void;
+  onWorklogEditCommentChange: (value: string) => void;
+  onWorklogEditSave: (worklogId: string) => void;
+  onWorklogEditCancel: () => void;
+  onWorklogDelete: (worklog: JiraWorklog) => void;
+  worklogEditPending: boolean;
+  worklogEditError: string | null;
 }
 
 export function ActivityTimeline({
   comments,
   changelog,
+  worklogs,
+  jiraBaseUrl,
   jiraUserDisplayName,
   attachmentMap,
   userMap,
@@ -74,6 +92,17 @@ export function ActivityTimeline({
   editPending,
   onFilterChange: onFilterChangeProp,
   CommentCard,
+  editingWorklogId,
+  editDuration,
+  editWorklogComment,
+  onWorklogEditStart,
+  onWorklogEditDurationChange,
+  onWorklogEditCommentChange,
+  onWorklogEditSave,
+  onWorklogEditCancel,
+  onWorklogDelete,
+  worklogEditPending,
+  worklogEditError,
 }: ActivityTimelineProps) {
   const commentSortOrder = useSettingsStore((s) => s.commentSortOrder);
   const [filter, setFilterState] = useState<TimelineFilter>('comment');
@@ -83,8 +112,8 @@ export function ActivityTimeline({
   };
 
   const allEntries = useMemo(
-    () => mergeTimeline(comments, changelog),
-    [comments, changelog],
+    () => mergeTimeline(comments, changelog, worklogs),
+    [comments, changelog, worklogs],
   );
 
   // mergeTimeline returns newest-first. If user wants oldest-first, reverse.
@@ -113,6 +142,12 @@ export function ActivityTimeline({
   const noActivity = allEntries.length === 0;
   const filteredEmpty = !noActivity && visibleEntries.length === 0;
 
+  function filterLabel(f: TimelineFilter): string {
+    if (f === 'change') return 'changes';
+    if (f === 'worklog') return 'worklogs';
+    return 'comments';
+  }
+
   return (
     <section className="mt-6 pb-4">
       <div className="flex items-center justify-between mb-3">
@@ -132,10 +167,10 @@ export function ActivityTimeline({
       ) : filteredEmpty ? (
         <div className="text-center py-8">
           <p className="text-sm font-medium text-muted-foreground">
-            No {filter === 'change' ? 'changes' : 'comments'} found
+            No {filterLabel(filter)} found
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            This issue has no {filter === 'change' ? 'changes' : 'comments'} recorded.
+            This issue has no {filterLabel(filter)} recorded.
           </p>
         </div>
       ) : (
@@ -149,6 +184,33 @@ export function ActivityTimeline({
               );
             }
 
+            if (entry.type === 'worklog') {
+              const worklog = entry.data;
+              const isOwn = worklog.author.displayName === jiraUserDisplayName;
+              const isEditing = editingWorklogId === worklog.id;
+              return (
+                <li key={`worklog-${worklog.id}`}>
+                  <WorklogEntry
+                    worklog={worklog}
+                    isOwn={isOwn}
+                    jiraBaseUrl={jiraBaseUrl}
+                    onEdit={onWorklogEditStart}
+                    onDelete={onWorklogDelete}
+                    isEditing={isEditing}
+                    editDuration={isEditing ? editDuration : ''}
+                    editComment={isEditing ? editWorklogComment : ''}
+                    onEditDurationChange={onWorklogEditDurationChange}
+                    onEditCommentChange={onWorklogEditCommentChange}
+                    onEditSave={onWorklogEditSave}
+                    onEditCancel={onWorklogEditCancel}
+                    editPending={isEditing ? worklogEditPending : false}
+                    editError={isEditing ? worklogEditError : null}
+                  />
+                </li>
+              );
+            }
+
+            // entry.type === 'comment'
             const comment = entry.data;
             const isOwn = comment.author.displayName === jiraUserDisplayName;
             const isEditing = editingCommentId === comment.id;
