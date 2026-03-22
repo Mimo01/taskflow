@@ -1,30 +1,32 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.4
-milestone_name: Internal Quality & Performance
-status: complete
-last_updated: "2026-03-20"
-last_activity: 2026-03-20
+milestone: v1.5
+milestone_name: Dashboard Redesign & Feature Parity
+status: active
+last_updated: "2026-03-22"
+last_activity: 2026-03-22
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 21
-  completed_plans: 21
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-20)
+See: .planning/PROJECT.md (updated 2026-03-22)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Planning next milestone
+**Current focus:** Defining requirements for v1.5
 
 ## Current Position
 
-Milestone v1.4 COMPLETE — all 6 phases, 21 plans shipped.
-Next: `/gsd:new-milestone` to define v1.5.
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-22 — Milestone v1.5 started
 
 ## Performance Metrics
 
