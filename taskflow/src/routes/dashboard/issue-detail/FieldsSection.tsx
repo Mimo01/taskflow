@@ -16,6 +16,8 @@ import type { JiraIssueDetail } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { MetaRow } from './MetaRow';
 import { OverdueBadge } from './OverdueBadge';
+import { LogWorkPopover } from './LogWorkPopover';
+import { TimeTrackingSummary } from './TimeTrackingSummary';
 import { WatcherToggle } from './WatcherToggle';
 import { useDebounce } from './useFieldMutation';
 import { extractSprintName } from './utils';
@@ -414,6 +416,9 @@ export function FieldsSection({
       )}
 
       <WatcherToggle issueKey={issueKey} jiraBaseUrl={jiraBaseUrl} />
+
+      <TimeTrackingSummary timetracking={f.timetracking} />
+      <LogWorkPopover issueKey={issueKey} jiraBaseUrl={jiraBaseUrl} />
     </>
   );
 }
