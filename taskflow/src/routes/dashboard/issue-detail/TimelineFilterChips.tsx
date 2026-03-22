@@ -14,9 +14,8 @@ interface TimelineFilterChipsProps {
 }
 
 const FILTERS: { key: TimelineFilter; label: string; countKey: 'all' | 'comment' | 'change' }[] = [
-  { key: 'all', label: 'All', countKey: 'all' },
-  { key: 'change', label: 'Changes', countKey: 'change' },
   { key: 'comment', label: 'Comments', countKey: 'comment' },
+  { key: 'change', label: 'Changes', countKey: 'change' },
 ];
 
 export function TimelineFilterChips({ counts, active, onFilterChange }: TimelineFilterChipsProps) {

@@ -79,6 +79,7 @@ export function WatcherToggle({ issueKey, jiraBaseUrl }: WatcherToggleProps) {
         disabled={isPending || !jiraUsername}
         aria-pressed={isWatching}
         aria-label={isWatching ? 'Click to stop watching' : 'Click to start watching'}
+        title={isWatching ? 'Stop watching this issue' : 'Watch this issue for updates'}
         className="inline-flex items-center gap-1.5 hover:bg-accent rounded px-1 -ml-1 cursor-pointer disabled:cursor-default"
       >
         {isWatching ? (
