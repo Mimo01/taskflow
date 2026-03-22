@@ -960,6 +960,14 @@ export interface JiraIssueDetail {
     parent?: { id: string; key: string; fields: { summary: string } };
     created: string;
     updated: string;
+    timetracking?: {
+      originalEstimate?: string;
+      remainingEstimate?: string;
+      timeSpent?: string;
+      originalEstimateSeconds?: number;
+      remainingEstimateSeconds?: number;
+      timeSpentSeconds?: number;
+    };
     duedate: string | null;
     [key: string]: unknown;
   };
