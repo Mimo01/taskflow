@@ -30,6 +30,7 @@ import { IssueDetailContent, relativeTime } from './IssueDetailContent';
 import { IssueDetailSidebar } from './IssueDetailSidebar';
 import type { AttachmentMap, UserMap } from './WikiRenderer';
 import { WikiRenderer } from './WikiRenderer';
+import { ActivityTimeline } from './issue-detail/ActivityTimeline';
 
 export default function IssueDetailPage() {
   const { key: issueKey } = useParams<{ key: string }>();
@@ -147,6 +148,76 @@ export default function IssueDetailPage() {
     return map;
   }, [issue?.fields.assignee, issue?.fields.reporter, comments]);
 
+  // ─── Comment edit/delete mutations (lifted from old CommentThread) ──────────
+  const queryClient = useQueryClient();
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
+  const [editError, setEditError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const editMutation = useMutation({
+    mutationFn: async ({ commentId, body }: { commentId: string; body: string }) => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token) throw new Error('No token');
+      return updateComment(jiraBaseUrl!, token, issueKey!, commentId, body);
+    },
+    onSuccess: () => {
+      setEditingCommentId(null);
+      setEditText('');
+      setEditError(null);
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
+    },
+    onError: (err: Error) => {
+      setEditError(err.message);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (commentId: string) => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token) throw new Error('No token');
+      return deleteComment(jiraBaseUrl!, token, issueKey!, commentId);
+    },
+    onSuccess: () => {
+      setDeleteError(null);
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
+    },
+    onError: (err: Error) => {
+      setDeleteError(err.message);
+    },
+  });
+
+  const editMutateRef = useRef(editMutation.mutate);
+  editMutateRef.current = editMutation.mutate;
+  const deleteMutateRef = useRef(deleteMutation.mutate);
+  deleteMutateRef.current = deleteMutation.mutate;
+  const editTextRef = useRef(editText);
+  editTextRef.current = editText;
+
+  const handleEdit = useCallback((comment: JiraComment) => {
+    setEditingCommentId(comment.id);
+    setEditText(comment.body);
+    setEditError(null);
+  }, []);
+
+  const handleDelete = useCallback((comment: JiraComment) => {
+    if (!window.confirm('Delete this comment? This cannot be undone.')) return;
+    setDeleteError(null);
+    deleteMutateRef.current(comment.id);
+  }, []);
+
+  const handleSaveEdit = useCallback((commentId: string) => {
+    const text = editTextRef.current.trim();
+    if (!text) return;
+    editMutateRef.current({ commentId, body: text });
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingCommentId(null);
+    setEditText('');
+    setEditError(null);
+  }, []);
+
   if (!issueKey) return null;
 
   return (
@@ -207,15 +278,28 @@ export default function IssueDetailPage() {
               />
             </div>
 
-            {/* Comment section — composer sticks to bottom only while this wrapper is in view */}
+            {/* Activity timeline + comment composer */}
             <div className="px-6">
-              <CommentThread
+              <ActivityTimeline
                 comments={comments}
+                changelog={issue.changelog?.histories ?? []}
                 issueKey={issueKey}
                 jiraBaseUrl={jiraBaseUrl!}
                 jiraUserDisplayName={jiraUserDisplayName}
                 attachmentMap={attachmentMap}
                 userMap={userMap}
+                editingCommentId={editingCommentId}
+                editText={editText}
+                onEditStart={handleEdit}
+                onEditChange={setEditText}
+                onEditSave={handleSaveEdit}
+                onEditCancel={handleCancelEdit}
+                onDelete={handleDelete}
+                editError={editError}
+                deleteError={deleteError}
+                deletingCommentId={deleteMutation.variables ?? null}
+                editPending={editMutation.isPending}
+                CommentCard={CommentCard}
               />
 
               <div className="sticky bottom-0 border-t py-3 -mx-6 px-6 bg-background">
@@ -240,141 +324,6 @@ export default function IssueDetailPage() {
         </div>
       )}
     </div>
-  );
-}
-
-// ─── Comment Thread ────────────────────────────────────────────────────────────
-
-interface CommentThreadProps {
-  comments: JiraComment[];
-  issueKey: string;
-  jiraBaseUrl: string;
-  jiraUserDisplayName: string | null;
-  attachmentMap: AttachmentMap;
-  userMap: UserMap;
-}
-
-function CommentThread({
-  comments,
-  issueKey,
-  jiraBaseUrl,
-  jiraUserDisplayName,
-  attachmentMap,
-  userMap,
-}: CommentThreadProps) {
-  const queryClient = useQueryClient();
-  const commentSortOrder = useSettingsStore((s) => s.commentSortOrder);
-  const sortedComments = useMemo(() => {
-    if (commentSortOrder === 'newest') return [...comments].reverse();
-    return comments;
-  }, [comments, commentSortOrder]);
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
-  const [editText, setEditText] = useState('');
-  const [editError, setEditError] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-
-  const editMutation = useMutation({
-    mutationFn: async ({ commentId, body }: { commentId: string; body: string }) => {
-      const token = await readSecret('jira-pat').catch(() => null);
-      if (!token) throw new Error('No token');
-      return updateComment(jiraBaseUrl, token, issueKey, commentId, body);
-    },
-    onSuccess: () => {
-      setEditingCommentId(null);
-      setEditText('');
-      setEditError(null);
-      queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
-    },
-    onError: (err: Error) => {
-      setEditError(err.message);
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (commentId: string) => {
-      const token = await readSecret('jira-pat').catch(() => null);
-      if (!token) throw new Error('No token');
-      return deleteComment(jiraBaseUrl, token, issueKey, commentId);
-    },
-    onSuccess: () => {
-      setDeleteError(null);
-      queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
-    },
-    onError: (err: Error) => {
-      setDeleteError(err.message);
-    },
-  });
-
-  // Use refs so callbacks are stable across renders (don't break memo)
-  const editMutateRef = useRef(editMutation.mutate);
-  editMutateRef.current = editMutation.mutate;
-  const deleteMutateRef = useRef(deleteMutation.mutate);
-  deleteMutateRef.current = deleteMutation.mutate;
-  const editTextRef = useRef(editText);
-  editTextRef.current = editText;
-
-  const handleEdit = useCallback((comment: JiraComment) => {
-    setEditingCommentId(comment.id);
-    setEditText(comment.body);
-    setEditError(null);
-  }, []);
-
-  const handleDelete = useCallback((comment: JiraComment) => {
-    if (!window.confirm('Delete this comment? This cannot be undone.')) return;
-    setDeleteError(null);
-    deleteMutateRef.current(comment.id);
-  }, []);
-
-  const handleSaveEdit = useCallback((commentId: string) => {
-    const text = editTextRef.current.trim();
-    if (!text) return;
-    editMutateRef.current({ commentId, body: text });
-  }, []);
-
-  const handleCancelEdit = useCallback(() => {
-    setEditingCommentId(null);
-    setEditText('');
-    setEditError(null);
-  }, []);
-
-  return (
-    <section className="mt-6 pb-4">
-      <h3 className="text-sm font-medium text-muted-foreground mb-3">
-        Comments ({comments.length})
-      </h3>
-
-      {comments.length === 0 ? (
-        <p className="text-sm text-muted-foreground italic">No comments yet</p>
-      ) : (
-        <div className="space-y-3 mt-3">
-          {sortedComments.map((comment) => {
-            const isOwn = comment.author.displayName === jiraUserDisplayName;
-            const isEditing = editingCommentId === comment.id;
-
-            return (
-              <CommentCard
-                key={comment.id}
-                comment={comment}
-                isOwn={isOwn}
-                isEditing={isEditing}
-                editText={isEditing ? editText : ''}
-                editError={isEditing ? editError : null}
-                deleteError={isEditing ? deleteError : null}
-                deletingCommentId={deleteMutation.variables ?? null}
-                editPending={isEditing ? editMutation.isPending : false}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onSaveEdit={handleSaveEdit}
-                onCancelEdit={handleCancelEdit}
-                onEditTextChange={setEditText}
-                attachmentMap={attachmentMap}
-                userMap={userMap}
-              />
-            );
-          })}
-        </div>
-      )}
-    </section>
   );
 }
 
