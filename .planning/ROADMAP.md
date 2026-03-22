@@ -7,6 +7,7 @@
 - ✅ **v1.2 Jira Parity** — Phases 9-17 (shipped 2026-03-15)
 - ✅ **v1.3 UX & Branding** — Phases 18-24 (shipped 2026-03-19)
 - ✅ **v1.4 Internal Quality & Performance** — Phases 25-30 (shipped 2026-03-20)
+- 🚧 **v1.5 Dashboard Redesign & Feature Parity** — Phases 31-34 (in progress)
 
 ## Phases
 
@@ -80,7 +81,76 @@ See archive: `.planning/milestones/v1.4-ROADMAP.md`
 
 </details>
 
+### v1.5 Dashboard Redesign & Feature Parity (In Progress)
+
+**Milestone Goal:** Make Taskflow feel like a real power tool — customizable layout, issue activity history, and key Jira/GitLab features that users expect.
+
+- [ ] **Phase 31: Issue Detail Enrichment** - Activity timeline, comment editing, watchers, and quality-of-life enhancements
+- [ ] **Phase 32: Time Tracking, Attachments & Mentions** - Worklog CRUD, file attachments, and @mention autocomplete
+- [ ] **Phase 33: Board, Sprint & Filters** - Sprint goal, quick filters, bulk operations, and saved filter management
+- [ ] **Phase 34: Layout Customization** - Customizable sidebar and widget-based dashboard
+
+## Phase Details
+
+### Phase 31: Issue Detail Enrichment
+**Goal**: Users have full visibility into issue history and can manage comments, watchers, and issue lifecycle from the detail page
+**Depends on**: Phase 30 (v1.4 complete)
+**Requirements**: DETAIL-01, DETAIL-02, DETAIL-03, DETAIL-04, DETAIL-05, DETAIL-10, DETAIL-11
+**Success Criteria** (what must be TRUE):
+  1. User can view a chronological activity timeline on issue detail showing field changes, status transitions, and comments merged by timestamp
+  2. User can filter the activity timeline to show only field changes, only comments, or all activity types
+  3. User can edit and delete their own comments on any issue
+  4. User can watch/unwatch an issue and see the current watcher count
+  5. User can see overdue badges on issues past their due date and clone an issue with one click
+**Plans:** 4 plans
+Plans:
+- [ ] 31-01-PLAN.md — Jira service layer: changelog types, timeline merge/filter utilities, watchers CRUD, expand=changelog
+- [ ] 31-02-PLAN.md — OverdueBadge component (3 locations) and Clone Issue button in action bar
+- [ ] 31-03-PLAN.md — ActivityTimeline UI (replaces CommentThread), TimelineFilterChips, ChangelogEntry, WatcherToggle
+- [ ] 31-04-PLAN.md — Visual verification checkpoint for all Phase 31 features
+**UI hint**: yes
+
+### Phase 32: Time Tracking, Attachments & Mentions
+**Goal**: Users can log and manage work time, view and upload file attachments, and @mention teammates in comments
+**Depends on**: Phase 31 (activity timeline must exist for worklog rendering)
+**Requirements**: TIME-01, TIME-02, TIME-03, TIME-04, TIME-05, DETAIL-06, DETAIL-07, DETAIL-08, DETAIL-09
+**Success Criteria** (what must be TRUE):
+  1. User can log time on an issue using natural language input ("2h 30m") and see a time tracking summary (estimated, spent, remaining)
+  2. User can view, edit, and delete their own worklog entries on the issue detail page
+  3. User can view image thumbnails and file lists for issue attachments, download them, and upload new files
+  4. User can type "@" in a comment to get an autocomplete popover of team members and insert a mention
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 33: Board, Sprint & Filters
+**Goal**: Users can work faster on the sprint board with quick filters, bulk operations, and saved filter management synced with Jira
+**Depends on**: Phase 31 (issue detail features stable before board-level changes)
+**Requirements**: BOARD-01, BOARD-02, BOARD-03, BOARD-04, BOARD-05, BOARD-06, BOARD-07, FILT-01, FILT-02, FILT-03, FILT-04
+**Success Criteria** (what must be TRUE):
+  1. User sees the sprint goal displayed as a banner on the sprint board header
+  2. User can toggle quick filter chips (from Jira board config) and label-based filters to narrow the sprint board view
+  3. User can select multiple issues and bulk-change their status, assignee, or priority with a progress indicator showing success/failure counts
+  4. User can save the current search as a named filter (synced to Jira), view and execute saved/favourite filters, and edit or delete them
+  5. User can access saved filters from the sidebar and command palette
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 34: Layout Customization
+**Goal**: Users can personalize their workspace with a customizable sidebar and a widget-based dashboard that persists across restarts
+**Depends on**: Phase 33 (all features must be stable before sidebar items and dashboard widgets are finalized)
+**Requirements**: LAYOUT-01, LAYOUT-02, LAYOUT-03, LAYOUT-04, LAYOUT-05, LAYOUT-06, LAYOUT-07
+**Success Criteria** (what must be TRUE):
+  1. User can choose which sidebar items are visible and reorder them via drag-and-drop
+  2. User can apply a Dev or PM preset to restore default sidebar configuration
+  3. User can add, remove, resize, and drag dashboard widgets in a grid layout
+  4. Dashboard and sidebar layout persists across app restarts and can be reset to Dev or PM preset defaults
+**Plans**: TBD
+**UI hint**: yes
+
 ## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 31 → 32 → 33 → 34
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -114,3 +184,7 @@ See archive: `.planning/milestones/v1.4-ROADMAP.md`
 | 28. Test Coverage, Performance & Accessibility | v1.4 | 5/5 | Complete | 2026-03-20 |
 | 29. Developer Tools | v1.4 | 3/3 | Complete | 2026-03-20 |
 | 30. Fix A11Y-01 Test Regression & Checkbox Cleanup | v1.4 | 1/1 | Complete | 2026-03-20 |
+| 31. Issue Detail Enrichment | v1.5 | 0/4 | Planning | - |
+| 32. Time Tracking, Attachments & Mentions | v1.5 | 0/? | Not started | - |
+| 33. Board, Sprint & Filters | v1.5 | 0/? | Not started | - |
+| 34. Layout Customization | v1.5 | 0/? | Not started | - |
