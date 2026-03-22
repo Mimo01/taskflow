@@ -15,6 +15,7 @@ import React from 'react';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
+import { OverdueBadge } from './issue-detail/OverdueBadge';
 
 // -- Props --------------------------------------------------------------------
 
@@ -121,7 +122,13 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
 
         {/* Summary cell -- takes remaining space, truncates on overflow */}
         <td className="max-w-0 w-full px-2 py-2 density-compact:py-1 density-comfortable:py-3 overflow-hidden whitespace-nowrap text-ellipsis">
-          <span className="text-sm text-left">{issue.fields.summary}</span>
+          <span className="inline-flex items-center gap-2 text-sm text-left">
+            <span className="truncate">{issue.fields.summary}</span>
+            <OverdueBadge
+              duedate={(issue.fields.duedate as string | null) ?? null}
+              statusCategoryKey={issue.fields.status.statusCategory?.key}
+            />
+          </span>
         </td>
 
         {/* Story points cell */}

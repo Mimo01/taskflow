@@ -1,5 +1,5 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { ExternalLink, Pencil, Pin, Plus } from 'lucide-react';
+import { Copy, ExternalLink, Pencil, Pin, Plus } from 'lucide-react';
 import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ interface IssueDetailContentProps {
   sprintFieldKey: string;
   epicLinkFieldKey: string;
   onEdit?: (initialValues: EditInitialValues) => void;
+  onClone?: (initialValues: EditInitialValues) => void;
   onAddSubtask?: (parentKey: string) => void;
   epicStories?: JiraIssue[];
   isPinned?: boolean;
@@ -41,6 +42,7 @@ export function IssueDetailContent({
   jiraBaseUrl,
   onOpenIssue,
   onEdit,
+  onClone,
   onAddSubtask,
   epicStories,
   isPinned,
@@ -206,6 +208,27 @@ export function IssueDetailContent({
         >
           <Pencil className="size-3.5" />
           Edit
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() =>
+            onClone?.({
+              issueKey: '',
+              summary: `Clone - ${issue.fields.summary}`,
+              description: issue.fields.description ?? '',
+              assigneeName: issue.fields.assignee?.name ?? null,
+              priority: issue.fields.priority?.name ?? null,
+              storyPoints: (issue.fields[storyPointsFieldKey] as number) ?? null,
+              epicLinkKey: (issue.fields[epicLinkFieldKey] as string) ?? null,
+              labels: issue.fields.labels ?? [],
+            })
+          }
+          className="gap-1.5 text-xs"
+          aria-label="Clone issue"
+        >
+          <Copy className="size-3.5" />
+          Clone
         </Button>
         <Button
           variant="outline"

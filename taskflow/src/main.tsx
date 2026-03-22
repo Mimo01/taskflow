@@ -366,6 +366,15 @@ function AppLayout() {
     setCreateModalOpen(true);
   };
 
+  const handleOpenClone = (vals: EditInitialValues) => {
+    wasStoryCreate.current = false;
+    setCreateModalMode('create');
+    setCreateModalInitialValues(vals);
+    setCreateModalDefaultType(undefined);
+    setCreateModalDefaultParent(undefined);
+    setCreateModalOpen(true);
+  };
+
   const handleOpenAddSubtask = (parentKey: string) => {
     wasStoryCreate.current = false;
     setCreateModalMode('create');
@@ -438,6 +447,7 @@ function AppLayout() {
               onIssueClick: handleIssueClick,
               onEpicClick: handleIssueClick,
               openEdit: handleOpenEdit,
+              openClone: handleOpenClone,
               openAddSubtask: handleOpenAddSubtask,
               openCreateStory: handleOpenCreateStory,
             }}
