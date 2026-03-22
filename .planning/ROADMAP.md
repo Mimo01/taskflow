@@ -119,13 +119,13 @@ Plans:
   2. User can view, edit, and delete their own worklog entries on the issue detail page
   3. User can view image thumbnails and file lists for issue attachments, download them, and upload new files
   4. User can type "@" in a comment to get an autocomplete popover of team members and insert a mention
-**Plans:** 5 plans (4 complete + 1 gap closure)
+**Plans:** 5/5 plans complete
 Plans:
 - [x] 32-01-PLAN.md — Service layer: types, duration parser, worklog CRUD, attachment upload/delete, user search, timeline extension
 - [x] 32-02-PLAN.md — Time tracking UI: sidebar summary, log work popover, worklog timeline entries with CRUD
 - [x] 32-03-PLAN.md — Attachments UI: collapsible section, thumbnails, lightbox, upload, download
 - [x] 32-04-PLAN.md — @mention autocomplete: cursor-anchored popover in CommentComposer
-- [ ] 32-05-PLAN.md — Gap closure: restore destroyed type exports in jira/types.ts
+- [x] 32-05-PLAN.md — Gap closure: restore destroyed type exports in jira/types.ts
 **UI hint**: yes
 
 ### Phase 33: Board, Sprint & Filters
@@ -191,6 +191,6 @@ Phases execute in numeric order: 31 → 32 → 33 → 34
 | 29. Developer Tools | v1.4 | 3/3 | Complete | 2026-03-20 |
 | 30. Fix A11Y-01 Test Regression & Checkbox Cleanup | v1.4 | 1/1 | Complete | 2026-03-20 |
 | 31. Issue Detail Enrichment | v1.5 | 4/4 | Complete    | 2026-03-22 |
-| 32. Time Tracking, Attachments & Mentions | v1.5 | 4/5 | Gap closure | 2026-03-22 |
+| 32. Time Tracking, Attachments & Mentions | v1.5 | 5/5 | Complete   | 2026-03-22 |
 | 33. Board, Sprint & Filters | v1.5 | 0/? | Not started | - |
 | 34. Layout Customization | v1.5 | 0/? | Not started | - |
