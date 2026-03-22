@@ -2,15 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Dashboard Redesign & Feature Parity
-status: planning
-last_updated: "2026-03-22T17:03:10.961Z"
-last_activity: 2026-03-22 — Roadmap created for v1.5
+status: Ready to plan
+last_updated: "2026-03-22T18:43:50.713Z"
+last_activity: 2026-03-22
 progress:
   total_phases: 4
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  completed_phases: 1
+  total_plans: 4
+  completed_plans: 4
 ---
 
 # Project State
@@ -20,16 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-22)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Phase 31 — Issue Detail Enrichment
+**Current focus:** Phase 31 — issue-detail-enrichment
 
 ## Current Position
 
-Phase: 31 of 34 (Issue Detail Enrichment)
-Plan: 0 of ? in current phase
-Status: Ready to plan
-Last activity: 2026-03-22 — Roadmap created for v1.5
-
-Progress: [░░░░░░░░░░] 0% (v1.5)
+Phase: 32
+Plan: Not started
 
 ## Performance Metrics
 
@@ -46,6 +41,9 @@ Progress: [░░░░░░░░░░] 0% (v1.5)
 | - | - | - | - |
 
 *Updated after each plan completion*
+| Phase 31 P01 | 4min | 2 tasks | 5 files |
+| Phase 31 P02 | 6min | 2 tasks | 10 files |
+| Phase 31 P03 | 6min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -57,6 +55,10 @@ Recent decisions affecting current work:
 - [v1.5 Roadmap]: 4 phases (coarse) — Issue Detail, Time/Attachments/Mentions, Board/Sprint/Filters, Layout
 - [v1.5 Roadmap]: Activity timeline before time tracking (worklogs render in timeline)
 - [v1.5 Roadmap]: Layout customization last (sidebar items and widgets depend on finalized feature set)
+- [Phase 31]: Created sibling service modules (jira-changelog.ts, jira-watchers.ts) re-exported from jira.ts instead of jira/ subdirectory — preserves 20+ existing imports
+- [Phase 31]: OverdueBadge placed in issue-detail/ subdirectory; plan FieldsSection.tsx mapped to actual IssueDetailSidebar.tsx
+- [Phase 31]: Clone uses separate handleOpenClone (mode:create + initialValues) avoiding Pitfall 3
+- [Phase 31]: CommentCard injected into ActivityTimeline via props to preserve memoization
 
 ### Pending Todos
 
@@ -70,7 +72,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-22T17:03:10.955Z
+Last session: 2026-03-22T17:51:33.774Z
 Last activity: 2026-03-22
 Resume: Roadmap created for v1.5. Next: `/gsd:plan-phase 31`
 

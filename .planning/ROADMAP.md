@@ -85,7 +85,7 @@ See archive: `.planning/milestones/v1.4-ROADMAP.md`
 
 **Milestone Goal:** Make Taskflow feel like a real power tool — customizable layout, issue activity history, and key Jira/GitLab features that users expect.
 
-- [ ] **Phase 31: Issue Detail Enrichment** - Activity timeline, comment editing, watchers, and quality-of-life enhancements
+- [x] **Phase 31: Issue Detail Enrichment** - Activity timeline, comment editing, watchers, and quality-of-life enhancements (completed 2026-03-22)
 - [ ] **Phase 32: Time Tracking, Attachments & Mentions** - Worklog CRUD, file attachments, and @mention autocomplete
 - [ ] **Phase 33: Board, Sprint & Filters** - Sprint goal, quick filters, bulk operations, and saved filter management
 - [ ] **Phase 34: Layout Customization** - Customizable sidebar and widget-based dashboard
@@ -102,12 +102,12 @@ See archive: `.planning/milestones/v1.4-ROADMAP.md`
   3. User can edit and delete their own comments on any issue
   4. User can watch/unwatch an issue and see the current watcher count
   5. User can see overdue badges on issues past their due date and clone an issue with one click
-**Plans:** 4 plans
+**Plans:** 4/4 plans complete
 Plans:
-- [ ] 31-01-PLAN.md — Jira service layer: changelog types, timeline merge/filter utilities, watchers CRUD, expand=changelog
-- [ ] 31-02-PLAN.md — OverdueBadge component (3 locations) and Clone Issue button in action bar
-- [ ] 31-03-PLAN.md — ActivityTimeline UI (replaces CommentThread), TimelineFilterChips, ChangelogEntry, WatcherToggle
-- [ ] 31-04-PLAN.md — Visual verification checkpoint for all Phase 31 features
+- [x] 31-01-PLAN.md — Jira service layer: changelog types, timeline merge/filter utilities, watchers CRUD, expand=changelog
+- [x] 31-02-PLAN.md — OverdueBadge component (3 locations) and Clone Issue button in action bar
+- [x] 31-03-PLAN.md — ActivityTimeline UI (replaces CommentThread), TimelineFilterChips, ChangelogEntry, WatcherToggle
+- [x] 31-04-PLAN.md — Visual verification checkpoint for all Phase 31 features
 **UI hint**: yes
 
 ### Phase 32: Time Tracking, Attachments & Mentions
@@ -184,7 +184,7 @@ Phases execute in numeric order: 31 → 32 → 33 → 34
 | 28. Test Coverage, Performance & Accessibility | v1.4 | 5/5 | Complete | 2026-03-20 |
 | 29. Developer Tools | v1.4 | 3/3 | Complete | 2026-03-20 |
 | 30. Fix A11Y-01 Test Regression & Checkbox Cleanup | v1.4 | 1/1 | Complete | 2026-03-20 |
-| 31. Issue Detail Enrichment | v1.5 | 0/4 | Planning | - |
+| 31. Issue Detail Enrichment | v1.5 | 4/4 | Complete    | 2026-03-22 |
 | 32. Time Tracking, Attachments & Mentions | v1.5 | 0/? | Not started | - |
 | 33. Board, Sprint & Filters | v1.5 | 0/? | Not started | - |
 | 34. Layout Customization | v1.5 | 0/? | Not started | - |
