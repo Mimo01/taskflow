@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Dashboard Redesign & Feature Parity
-status: Ready to execute
-last_updated: "2026-03-22T19:51:11.553Z"
+status: Phase complete — ready for verification
+last_updated: "2026-03-22T19:53:12.959Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 8
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # Project State
@@ -47,6 +47,7 @@ Plan: 4 of 4
 | Phase 32 P01 | 5min | 2 tasks | 11 files |
 | Phase 32 P04 | 3min | 1 tasks | 2 files |
 | Phase 32 P03 | 4min | 2 tasks | 7 files |
+| Phase 32 P02 | 5min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -65,6 +66,8 @@ Recent decisions affecting current work:
 - [Phase 32]: Created jira/ subdirectory for new service modules (worklogs, attachments, users, duration) rather than adding to monolithic jira.ts
 - [Phase 32]: forwardRef + useImperativeHandle for keyboard delegation from textarea to mention popover
 - [Phase 32]: AttachmentLightbox built from scratch for prev/next navigation instead of extending ImageLightbox
+- [Phase 32]: Used base-ui PopoverTrigger directly (no asChild) matching project component API
+- [Phase 32]: Import worklog/duration from jira/ submodule paths since main jira.ts barrel does not re-export them
 
 ### Pending Todos
 
@@ -78,7 +81,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-22T19:51:11.548Z
+Last session: 2026-03-22T19:53:12.953Z
 Last activity: 2026-03-22
 Resume: Roadmap created for v1.5. Next: `/gsd:plan-phase 31`
 
