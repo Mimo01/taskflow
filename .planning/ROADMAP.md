@@ -191,6 +191,6 @@ Phases execute in numeric order: 31 → 32 → 33 → 34
 | 29. Developer Tools | v1.4 | 3/3 | Complete | 2026-03-20 |
 | 30. Fix A11Y-01 Test Regression & Checkbox Cleanup | v1.4 | 1/1 | Complete | 2026-03-20 |
 | 31. Issue Detail Enrichment | v1.5 | 4/4 | Complete    | 2026-03-22 |
-| 32. Time Tracking, Attachments & Mentions | v1.5 | 5/5 | Complete   | 2026-03-22 |
+| 32. Time Tracking, Attachments & Mentions | v1.5 | 5/5 | Complete    | 2026-03-22 |
 | 33. Board, Sprint & Filters | v1.5 | 0/? | Not started | - |
 | 34. Layout Customization | v1.5 | 0/? | Not started | - |
