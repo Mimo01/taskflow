@@ -62,11 +62,11 @@ Source: Existing codebase uses `text-xs` (12px), `text-sm` (14px), `text-base` (
 |------|-------|-------|
 | Dominant (60%) | `var(--background)` oklch(1 0 0) / oklch(0.145 0 0) dark | Page background, popover background, lightbox backdrop (with 80% opacity overlay) |
 | Secondary (30%) | `var(--muted)` oklch(0.97 0 0) / oklch(0.269 0 0) dark | Attachment section background, thumbnail placeholder bg, time tracking summary row bg, mention popover hover state |
-| Accent (10%) | `var(--primary)` oklch(0.205 0 0) / oklch(0.922 0 0) dark | "Log Work" submit button, active filter chip (Worklogs), upload progress bar fill, mention highlight background in rendered wiki |
+| Accent (10%) | `var(--primary)` oklch(0.205 0 0) / oklch(0.922 0 0) dark | "Log Time" submit button, active filter chip (Worklogs), upload progress bar fill, mention highlight background in rendered wiki |
 | Destructive | `var(--destructive)` oklch(0.577 0.245 27.325) / oklch(0.704 0.191 22.216) dark | Delete worklog confirmation, delete attachment confirmation, upload error text |
 
 Accent reserved for:
-- "Log Work" primary action button
+- "Log Time" primary action button
 - Active timeline filter chip (Badge variant="default")
 - Upload progress bar fill
 - Rendered @mention background highlight in WikiRenderer
@@ -81,7 +81,7 @@ Accent reserved for:
 | Component | Location | shadcn Dependencies | Description |
 |-----------|----------|---------------------|-------------|
 | TimeTrackingSummary | `issue-detail/TimeTrackingSummary.tsx` | Badge | Sidebar MetaRow showing estimated/spent/remaining with a horizontal progress bar |
-| LogWorkPopover | `issue-detail/LogWorkPopover.tsx` | Popover, PopoverTrigger, PopoverContent, Button, Input, Label | Popover form: duration input (natural language), date picker, optional comment, submit button |
+| LogWorkPopover | `issue-detail/LogWorkPopover.tsx` | Popover, PopoverTrigger, PopoverContent, Button, Input, Label | Popover form: duration input (natural language), date picker, optional comment field, submit button |
 | DurationInput | `issue-detail/DurationInput.tsx` | Input | Text input with clock icon that parses "2h 30m", "1d", "45m" to seconds; fallback picker via popover |
 | AttachmentsSection | `issue-detail/AttachmentsSection.tsx` | Button, Badge | Collapsible section: header with count badge + "Attach file" button, thumbnail grid + file list |
 | AttachmentThumbnail | `issue-detail/AttachmentThumbnail.tsx` | Skeleton | 80x80 rounded thumbnail using AuthImage; click opens lightbox |
@@ -126,7 +126,7 @@ No new shadcn component installations required.
 | Element | Copy |
 |---------|------|
 | Log work CTA (sidebar) | "Log Work" |
-| Log work submit button | "Save" |
+| Log work submit button | "Log Time" |
 | Duration input placeholder | "e.g. 2h 30m" |
 | Duration parse error | "Couldn't parse duration. Use formats like 2h, 30m, or 1d 4h." |
 | Comment field placeholder | "Work description (optional)" |
@@ -136,8 +136,8 @@ No new shadcn component installations required.
 | Empty worklogs state body | "Use Log Work to record time spent on this issue." |
 | Delete worklog confirmation | "Delete worklog: Remove this time entry? This cannot be undone." |
 | Delete worklog CTA | "Delete" (destructive variant) |
-| Edit worklog inline save | "Save" |
-| Edit worklog inline cancel | "Cancel" |
+| Edit worklog inline save | "Update Entry" |
+| Edit worklog inline cancel | "Discard Changes" |
 
 ### Attachments
 
@@ -169,12 +169,12 @@ No new shadcn component installations required.
 
 ### Time Tracking
 
-1. **Log Work flow:** User clicks "Log Work" button in sidebar --> Popover opens with DurationInput (focused), date picker (defaults to today), optional comment field, and "Save" button.
+1. **Log Work flow:** User clicks "Log Work" button in sidebar --> Popover opens with DurationInput (focused), date picker (defaults to today), optional comment field, and "Log Time" button.
 2. **Duration parsing:** Input accepts natural language ("2h 30m", "1d", "45m"). On blur or submit, parse to seconds. If parse fails, show inline error below input in destructive color.
 3. **Clock icon fallback:** Small clock icon inside input opens a secondary popover with hours (0-99) and minutes (0-59) number inputs.
 4. **Time summary display:** Horizontal progress bar in sidebar MetaRow. Bar segments: spent (primary fill) / remaining (muted fill). Text below: "Spent: 4h / Estimated: 8h / Remaining: 4h". If no estimate, show only "Spent: 4h" with "No estimate" in muted text and no bar.
 5. **Worklog timeline entries:** Two-line entries in ActivityTimeline. Line 1: avatar (20px circle) + author name (semibold) + duration badge + relative timestamp (muted). Line 2: optional comment in regular weight. 3-dot menu on hover: "Edit" and "Delete" (own entries only).
-6. **Edit worklog inline:** Clicking "Edit" in 3-dot menu replaces the duration badge and comment with inline DurationInput and comment input. "Save" / "Cancel" buttons below.
+6. **Edit worklog inline:** Clicking "Edit" in 3-dot menu replaces the duration badge and comment with inline DurationInput and comment input. "Update Entry" / "Discard Changes" buttons below.
 7. **Delete worklog:** Clicking "Delete" shows a confirmation popover (not a full dialog). "Delete" button in destructive variant.
 
 ### Attachments
@@ -208,7 +208,7 @@ No new shadcn component installations required.
 | Mention popover | `role="listbox"` on container, `role="option"` + `aria-selected` on items. `aria-activedescendant` on textarea. |
 | Timeline filter chips | Extend existing `role="radiogroup"` pattern with Worklogs chip. `role="radio"` + `aria-checked`. |
 | Drag-drop zone | `aria-label="Drag and drop files to attach"` on drop zone. Visual feedback only (keyboard users use button). |
-| Delete confirmations | Focus moves to "Cancel" button on open (safe default). Destructive button requires explicit click. |
+| Delete confirmations | Focus moves to "Discard Changes" button on open (safe default). Destructive button requires explicit click. |
 
 ---
 
