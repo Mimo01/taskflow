@@ -8,14 +8,15 @@ import { Badge } from '@/components/ui/badge';
 import type { TimelineFilter } from '@/services/jira';
 
 interface TimelineFilterChipsProps {
-  counts: { all: number; comment: number; change: number };
+  counts: { all: number; comment: number; change: number; worklog: number };
   active: TimelineFilter;
   onFilterChange: (filter: TimelineFilter) => void;
 }
 
-const FILTERS: { key: TimelineFilter; label: string; countKey: 'all' | 'comment' | 'change' }[] = [
+const FILTERS: { key: TimelineFilter; label: string; countKey: 'all' | 'comment' | 'change' | 'worklog' }[] = [
   { key: 'comment', label: 'Comments', countKey: 'comment' },
   { key: 'change', label: 'Changes', countKey: 'change' },
+  { key: 'worklog', label: 'Worklogs', countKey: 'worklog' },
 ];
 
 export function TimelineFilterChips({ counts, active, onFilterChange }: TimelineFilterChipsProps) {

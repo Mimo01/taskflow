@@ -18,6 +18,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import type { JiraComment, JiraIssue, TimelineFilter } from '@/services/jira';
 import { deleteComment, fetchEpicStories, fetchIssueDetail, updateComment } from '@/services/jira';
+import { parseDuration } from '@/services/jira/duration';
+import type { JiraWorklog } from '@/services/jira/types';
+import { deleteWorklog, fetchFullWorklogs, updateWorklog } from '@/services/jira/worklogs';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
@@ -219,6 +222,106 @@ export default function IssueDetailPage() {
     setEditError(null);
   }, []);
 
+  // ─── Worklog data + CRUD ──────────────────────────────────────────────────────
+  const { data: worklogs = [] } = useQuery({
+    queryKey: ['jira-worklogs', issueKey, jiraBaseUrl],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token || !jiraBaseUrl) return [];
+      return fetchFullWorklogs(jiraBaseUrl, token, issueKey!);
+    },
+    staleTime: 30_000,
+    enabled: !!issueKey && !!jiraBaseUrl && !!jiraConnected,
+  });
+
+  const [editingWorklogId, setEditingWorklogId] = useState<string | null>(null);
+  const [editDuration, setEditDuration] = useState('');
+  const [editWorklogComment, setEditWorklogComment] = useState('');
+  const [worklogEditError, setWorklogEditError] = useState<string | null>(null);
+
+  const worklogEditMutation = useMutation({
+    mutationFn: async ({
+      worklogId,
+      timeSpentSeconds,
+      started,
+      comment,
+    }: {
+      worklogId: string;
+      timeSpentSeconds: number;
+      started: string;
+      comment?: string;
+    }) => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token) throw new Error('No token');
+      return updateWorklog(jiraBaseUrl!, token, issueKey!, worklogId, {
+        timeSpentSeconds,
+        started,
+        comment,
+      });
+    },
+    onSuccess: () => {
+      setEditingWorklogId(null);
+      setEditDuration('');
+      setEditWorklogComment('');
+      setWorklogEditError(null);
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
+      queryClient.invalidateQueries({ queryKey: ['jira-worklogs', issueKey, jiraBaseUrl] });
+    },
+    onError: (err: Error) => setWorklogEditError(err.message),
+  });
+
+  const worklogDeleteMutation = useMutation({
+    mutationFn: async (worklogId: string) => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token) throw new Error('No token');
+      return deleteWorklog(jiraBaseUrl!, token, issueKey!, worklogId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
+      queryClient.invalidateQueries({ queryKey: ['jira-worklogs', issueKey, jiraBaseUrl] });
+    },
+  });
+
+  const handleWorklogEdit = useCallback((worklog: JiraWorklog) => {
+    setEditingWorklogId(worklog.id);
+    setEditDuration(worklog.timeSpent);
+    setEditWorklogComment(worklog.comment ?? '');
+    setWorklogEditError(null);
+  }, []);
+
+  const handleWorklogDelete = useCallback(
+    (worklog: JiraWorklog) => {
+      if (!window.confirm('Delete worklog: Remove this time entry? This cannot be undone.')) return;
+      worklogDeleteMutation.mutate(worklog.id);
+    },
+    [worklogDeleteMutation],
+  );
+
+  const handleWorklogEditSave = useCallback(
+    (worklogId: string) => {
+      const parsed = parseDuration(editDuration);
+      if (!parsed) {
+        setWorklogEditError("Couldn't parse duration");
+        return;
+      }
+      const original = worklogs.find((w) => w.id === worklogId);
+      worklogEditMutation.mutate({
+        worklogId,
+        timeSpentSeconds: parsed.seconds,
+        started: original?.started ?? new Date().toISOString(),
+        comment: editWorklogComment || undefined,
+      });
+    },
+    [editDuration, editWorklogComment, worklogs, worklogEditMutation],
+  );
+
+  const handleWorklogEditCancel = useCallback(() => {
+    setEditingWorklogId(null);
+    setEditDuration('');
+    setEditWorklogComment('');
+    setWorklogEditError(null);
+  }, []);
+
   if (!issueKey) return null;
 
   return (
@@ -284,6 +387,7 @@ export default function IssueDetailPage() {
               <ActivityTimeline
                 comments={comments}
                 changelog={issue.changelog?.histories ?? []}
+                worklogs={worklogs}
                 issueKey={issueKey}
                 jiraBaseUrl={jiraBaseUrl!}
                 jiraUserDisplayName={jiraUserDisplayName}
@@ -302,9 +406,20 @@ export default function IssueDetailPage() {
                 editPending={editMutation.isPending}
                 CommentCard={CommentCard}
                 onFilterChange={setTimelineFilter}
+                editingWorklogId={editingWorklogId}
+                editDuration={editDuration}
+                editWorklogComment={editWorklogComment}
+                onWorklogEditStart={handleWorklogEdit}
+                onWorklogEditDurationChange={setEditDuration}
+                onWorklogEditCommentChange={setEditWorklogComment}
+                onWorklogEditSave={handleWorklogEditSave}
+                onWorklogEditCancel={handleWorklogEditCancel}
+                onWorklogDelete={handleWorklogDelete}
+                worklogEditPending={worklogEditMutation.isPending}
+                worklogEditError={worklogEditError}
               />
 
-              {timelineFilter === 'comment' && (
+              {(timelineFilter === 'comment' || timelineFilter === 'all') && (
                 <div className="sticky bottom-0 border-t py-3 -mx-6 px-6 bg-background">
                   <CommentComposer issueKey={issueKey} jiraBaseUrl={jiraBaseUrl!} />
                 </div>
