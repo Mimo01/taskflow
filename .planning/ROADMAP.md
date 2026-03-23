@@ -156,7 +156,13 @@ Plans:
   2. User can apply a Dev or PM preset to restore default sidebar configuration
   3. User can add, remove, resize, and drag dashboard widgets in a grid layout
   4. Dashboard and sidebar layout persists across app restarts and can be reset to Dev or PM preset defaults
-**Plans**: TBD
+**Plans:** 5 plans
+Plans:
+- [ ] 34-01-PLAN.md — Settings store extensions, sidebar nav registry, widget registry, presets
+- [ ] 34-02-PLAN.md — Data-driven sidebar + Settings > Appearance sidebar items UI
+- [ ] 34-03-PLAN.md — react-grid-layout dashboard grid + WidgetCard + WidgetPicker + 3 panel wrappers
+- [ ] 34-04-PLAN.md — Remaining 8 compact widget implementations + Custom JQL
+- [ ] 34-05-PLAN.md — Test suite, build verification, and visual checkpoint
 **UI hint**: yes
 
 ## Progress
@@ -199,4 +205,4 @@ Phases execute in numeric order: 31 → 32 → 33 → 34
 | 31. Issue Detail Enrichment | v1.5 | 4/4 | Complete    | 2026-03-22 |
 | 32. Time Tracking, Attachments & Mentions | v1.5 | 5/5 | Complete    | 2026-03-22 |
 | 33. Board, Sprint & Filters | v1.5 | 6/6 | Complete    | 2026-03-23 |
-| 34. Layout Customization | v1.5 | 0/? | Not started | - |
+| 34. Layout Customization | v1.5 | 0/5 | Not started | - |
