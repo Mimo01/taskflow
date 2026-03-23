@@ -767,6 +767,103 @@ export async function fetchProjectMRs(
 }
 
 /**
+ * Fetch merge requests for a specific milestone by title.
+ *
+ * @param baseUrl        - GitLab base URL
+ * @param token          - Personal Access Token
+ * @param projectId      - GitLab numeric project ID
+ * @param milestoneTitle - Milestone title string (GitLab API accepts title directly)
+ * @returns Array of MRs in the milestone (all states)
+ */
+export async function fetchMilestoneMRs(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+  milestoneTitle: string,
+): Promise<GitLabMR[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const perPage = 100;
+  let page = 1;
+  const allMRs: GitLabMR[] = [];
+
+  while (true) {
+    const url = `${base}/api/v4/projects/${projectId}/merge_requests?milestone=${encodeURIComponent(milestoneTitle)}&state=all&per_page=${perPage}&page=${page}`;
+
+    let response: Response;
+    try {
+      response = await apiFetch('gitlab', url, {
+        headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+      }, 'Load Milestone MRs');
+    } catch {
+      throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+    }
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new ApiError('Failed to fetch milestone MRs', response.status, 'gitlab');
+      }
+      throw new Error(`Failed to fetch milestone MRs: status ${response.status}`);
+    }
+
+    const data = (await response.json()) as GitLabMR[];
+    allMRs.push(...data);
+
+    if (data.length < perPage) break;
+    page++;
+  }
+
+  // Enrich labels with colors (same pattern as fetchProjectMRs)
+  const allLabelNames = new Set<string>();
+  for (const mr of allMRs) {
+    if (Array.isArray(mr.labels)) {
+      for (const l of mr.labels) {
+        if (typeof l === 'string') allLabelNames.add(l);
+      }
+    }
+  }
+
+  const labelColorMap: Record<string, { color: string; text_color: string }> = {};
+  if (allLabelNames.size > 0) {
+    try {
+      const labelsUrl = `${base}/api/v4/projects/${projectId}/labels?per_page=100`;
+      const labelsResp = await apiFetch('gitlab', labelsUrl, {
+        headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+      }, 'Load Milestone MRs');
+      if (labelsResp.ok) {
+        const projectLabels = (await labelsResp.json()) as Array<{
+          name: string;
+          color: string;
+          text_color: string;
+        }>;
+        for (const pl of projectLabels) {
+          labelColorMap[pl.name] = { color: pl.color, text_color: pl.text_color };
+        }
+      }
+    } catch {
+      // If labels fetch fails, fall back to default colors
+    }
+  }
+
+  for (const mr of allMRs) {
+    if (Array.isArray(mr.labels)) {
+      mr.labels = mr.labels.map((l: string | GitLabLabel) => {
+        if (typeof l === 'string') {
+          const colors = labelColorMap[l];
+          return {
+            name: l,
+            color: colors?.color ?? '#6b7280',
+            text_color: colors?.text_color ?? '#FFFFFF',
+          };
+        }
+        return l;
+      });
+    }
+  }
+
+  return allMRs;
+}
+
+/**
  * Search GitLab merge requests by text query.
  *
  * @param baseUrl - GitLab base URL

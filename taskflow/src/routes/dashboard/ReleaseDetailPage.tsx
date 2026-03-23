@@ -28,7 +28,8 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import type { GitLabMilestone } from '@/services/gitlab';
-import { fetchProjectMilestonesInRange } from '@/services/gitlab';
+import { fetchMilestoneMRs, fetchProjectMilestonesInRange } from '@/services/gitlab';
+import type { JiraIssue } from '@/services/jira';
 import { fetchFixVersions, updateFixVersion } from '@/services/jira';
 import type { ReleaseMatch } from '@/services/releaseLinker';
 import { matchGitLabToFixVersion } from '@/services/releaseLinker';
@@ -71,6 +72,36 @@ async function fetchVersionIssueCounts(
   const issuesFixed = doneResult.status === 'fulfilled' ? (doneResult.value.total ?? 0) : 0;
 
   return { issuesFixed, issuesTotal };
+}
+
+// ---- Fetch Jira issues for a fix version ----
+
+async function fetchFixVersionIssues(
+  baseUrl: string,
+  token: string,
+  versionId: string,
+): Promise<JiraIssue[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const jql = `fixVersion = ${versionId} AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`;
+  const fields = 'summary,status,assignee,issuetype';
+  const maxResults = 200;
+  let startAt = 0;
+  const allIssues: JiraIssue[] = [];
+
+  while (true) {
+    const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=${fields}&maxResults=${maxResults}&startAt=${startAt}`;
+    const resp = await fetch(url, { headers });
+    if (!resp.ok) throw new Error(`Failed to fetch issues: status ${resp.status}`);
+
+    const data = (await resp.json()) as { issues: JiraIssue[]; total: number };
+    allIssues.push(...data.issues);
+
+    if (allIssues.length >= data.total) break;
+    startAt = allIssues.length;
+  }
+
+  return allIssues;
 }
 
 // ---- Main Component ----
