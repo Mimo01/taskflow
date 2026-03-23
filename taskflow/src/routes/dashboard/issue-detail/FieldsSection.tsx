@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult } from '@tanstack/react-query';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -101,6 +101,40 @@ export function FieldsSection({
     },
     enabled: fixVersionOpen && !!activeJiraProject,
   });
+
+  const filteredVersions = useMemo(() => {
+    const all = versionsQuery.data;
+    if (!all || all.length === 0) return [];
+
+    const unreleased = all.filter((v) => !v.released);
+    const released = all
+      .filter((v) => v.released)
+      .sort((a, b) => {
+        if (!a.releaseDate && !b.releaseDate) return a.name.localeCompare(b.name);
+        if (!a.releaseDate) return 1;
+        if (!b.releaseDate) return -1;
+        return b.releaseDate.localeCompare(a.releaseDate);
+      });
+
+    const recentReleased = released.slice(0, 10);
+    const recentIds = new Set(recentReleased.map((v) => v.id));
+
+    // Ensure currently-selected released versions remain visible
+    const selectedOlder = released.filter(
+      (v) => !recentIds.has(v.id) && f.fixVersions.some((fv) => fv.id === v.id),
+    );
+
+    // Display order: unreleased (by name), then released (most recent first)
+    const sortedUnreleased = [...unreleased].sort((a, b) => a.name.localeCompare(b.name));
+    const sortedReleased = [...recentReleased, ...selectedOlder].sort((a, b) => {
+      if (!a.releaseDate && !b.releaseDate) return a.name.localeCompare(b.name);
+      if (!a.releaseDate) return 1;
+      if (!b.releaseDate) return -1;
+      return b.releaseDate.localeCompare(a.releaseDate);
+    });
+
+    return [...sortedUnreleased, ...sortedReleased];
+  }, [versionsQuery.data, f.fixVersions]);
 
   // Status transition state
   const queryClient = useQueryClient();
@@ -495,15 +529,8 @@ export function FieldsSection({
             {versionsQuery.data && versionsQuery.data.length === 0 && (
               <p className="text-xs text-muted-foreground px-1">No versions found</p>
             )}
-            {versionsQuery.data &&
-              versionsQuery.data.length > 0 &&
-              [...versionsQuery.data]
-                .sort((a, b) => {
-                  // Unreleased first, then released; within each group sort by name
-                  if (a.released !== b.released) return a.released ? 1 : -1;
-                  return a.name.localeCompare(b.name);
-                })
-                .map((version) => {
+            {filteredVersions.length > 0 &&
+              filteredVersions.map((version) => {
                   const isSelected = f.fixVersions.some((v) => v.id === version.id);
                   return (
                     <button
