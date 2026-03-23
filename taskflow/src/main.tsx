@@ -210,7 +210,7 @@ function AppLayout() {
 
   // Reset breadcrumb trail when navigating away from issue detail
   useEffect(() => {
-    if (!location.pathname.startsWith('/issue/') && !location.pathname.startsWith('/mr/')) {
+    if (!location.pathname.startsWith('/issue/') && !location.pathname.startsWith('/mr/') && !location.pathname.startsWith('/release/')) {
       breadcrumbReset();
     }
   }, [location.pathname, breadcrumbReset]);
@@ -229,6 +229,7 @@ function AppLayout() {
     if (pathname.startsWith('/issue/')) return 'Issue';
     if (pathname.startsWith('/merge-requests')) return 'Merge Requests';
     if (pathname.startsWith('/mr/')) return 'MR Detail';
+    if (pathname.startsWith('/release/')) return 'Release';
     return 'Home';
   }
 

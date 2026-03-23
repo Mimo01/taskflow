@@ -15,6 +15,7 @@ import { useQueries, useQuery } from '@tanstack/react-query';
 import { fetch } from '@tauri-apps/plugin-http';
 import { Package, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
@@ -27,6 +28,7 @@ import type { ReleaseMatch } from '@/services/releaseLinker';
 import { matchGitLabToFixVersion } from '@/services/releaseLinker';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
+import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 
 interface VersionIssueCounts {
   issuesFixed: number;
@@ -90,6 +92,19 @@ const RELEASED_LOAD_MORE = 10;
 
 export default function ReleasesTab() {
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, activeGitlabProject } = useAuthStore();
+  const navigate = useNavigate();
+  const breadcrumbPush = useBreadcrumbStore((s) => s.push);
+  const breadcrumbReset = useBreadcrumbStore((s) => s.reset);
+
+  const handleReleaseClick = useCallback(
+    (versionId: string) => {
+      breadcrumbReset();
+      breadcrumbPush({ path: '/releases', label: 'Releases' });
+      navigate(`/release/${versionId}`);
+    },
+    [breadcrumbReset, breadcrumbPush, navigate],
+  );
+
   const [jiraToken, setJiraToken] = useState<string | null>(null);
   const [gitlabToken, setGitlabToken] = useState<string | null>(null);
   const [releasedVisible, setReleasedVisible] = useState(RELEASED_PAGE_SIZE);
@@ -302,7 +317,11 @@ export default function ReleasesTab() {
               <div
                 key={version.id}
                 data-testid="release-row"
-                className="flex items-center justify-between rounded px-3 py-2 hover:bg-muted/50 gap-3"
+                role="button"
+                tabIndex={0}
+                onClick={() => handleReleaseClick(version.id)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleReleaseClick(version.id); }}
+                className="flex items-center justify-between rounded px-3 py-2 hover:bg-muted/50 gap-3 cursor-pointer"
               >
                 {/* Version name + badges */}
                 <div className="flex items-center gap-3 min-w-0">
