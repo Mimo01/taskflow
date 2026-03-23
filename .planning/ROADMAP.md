@@ -138,12 +138,12 @@ Plans:
   3. User can select multiple issues and bulk-change their status, assignee, or priority with a progress indicator showing success/failure counts
   4. User can save the current search as a named filter (synced to Jira), view and execute saved/favourite filters, and edit or delete them
   5. User can access saved filters from the sidebar and command palette
-**Plans:** 0/6 plans executed
+**Plans:** 4/6 plans executed
 Plans:
-- [ ] 33-01-PLAN.md — Service layer: board config API, filter CRUD, stores (filter ext, board-selection, saved-filter)
-- [ ] 33-02-PLAN.md — Sprint goal banner + quick filter chip row (Jira QFs + labels)
+- [x] 33-01-PLAN.md — Service layer: board config API, filter CRUD, stores (filter ext, board-selection, saved-filter)
+- [x] 33-02-PLAN.md — Sprint goal banner + quick filter chip row (Jira QFs + labels)
 - [ ] 33-03-PLAN.md — Bulk operations: card checkboxes, floating action bar, progress indicator
-- [ ] 33-04-PLAN.md — Saved filter dialogs (save/edit) + SavedFilterList + UnifiedFilterBar integration
+- [x] 33-04-PLAN.md — Saved filter dialogs (save/edit) + SavedFilterList + UnifiedFilterBar integration
 - [ ] 33-05-PLAN.md — Sidebar + command palette integration + visual verification checkpoint
 **UI hint**: yes
 
@@ -198,5 +198,5 @@ Phases execute in numeric order: 31 → 32 → 33 → 34
 | 30. Fix A11Y-01 Test Regression & Checkbox Cleanup | v1.4 | 1/1 | Complete | 2026-03-20 |
 | 31. Issue Detail Enrichment | v1.5 | 4/4 | Complete    | 2026-03-22 |
 | 32. Time Tracking, Attachments & Mentions | v1.5 | 5/5 | Complete    | 2026-03-22 |
-| 33. Board, Sprint & Filters | v1.5 | 0/6 | Planned    |  |
+| 33. Board, Sprint & Filters | v1.5 | 4/6 | In Progress|  |
 | 34. Layout Customization | v1.5 | 0/? | Not started | - |
