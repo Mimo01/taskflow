@@ -288,17 +288,25 @@ describe('IssueDetailSheet', () => {
       const initialIssue = makeIssueDetail();
       qc.setQueryData(['jira-issue-detail', issueKey, jiraBaseUrl], initialIssue);
 
-      // Simulate onSettled: three invalidations required
+      // Simulate onSettled: invalidate all views that display issue data
       await qc.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
       await qc.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
       await qc.invalidateQueries({ queryKey: ['jira-issues', 'my-tasks'] });
+      await qc.invalidateQueries({ queryKey: ['jira-backlog-view'] });
+      await qc.invalidateQueries({ queryKey: ['jira-epics-basic'] });
+      await qc.invalidateQueries({ queryKey: ['jira-fixversion-issues'] });
+      await qc.invalidateQueries({ queryKey: ['jira-version-counts'] });
 
-      expect(invalidateSpy).toHaveBeenCalledTimes(3);
+      expect(invalidateSpy).toHaveBeenCalledTimes(7);
       expect(invalidateSpy).toHaveBeenCalledWith({
         queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl],
       });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['jira-issues', 'sprint-board'] });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['jira-issues', 'my-tasks'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['jira-backlog-view'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['jira-epics-basic'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['jira-fixversion-issues'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['jira-version-counts'] });
     });
 
     it('IssueDetailSidebar renders priority edit trigger (click-to-edit)', async () => {
