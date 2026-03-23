@@ -71,7 +71,8 @@ export function LogWorkPopover({ issueKey, jiraBaseUrl, onSuccess }: LogWorkPopo
       return;
     }
     setDurationError(null);
-    const started = new Date(`${date}T12:00:00`).toISOString();
+    // Jira worklog API requires "+0000" offset, not "Z" suffix
+    const started = new Date(`${date}T12:00:00`).toISOString().replace('Z', '+0000');
     mutation.mutate({
       timeSpentSeconds: parsed.seconds,
       started,

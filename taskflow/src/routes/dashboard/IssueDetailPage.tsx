@@ -308,7 +308,8 @@ export default function IssueDetailPage() {
       worklogEditMutation.mutate({
         worklogId,
         timeSpentSeconds: parsed.seconds,
-        started: original?.started ?? new Date().toISOString(),
+        // Jira worklog API requires "+0000" offset, not "Z" suffix
+        started: original?.started ?? new Date().toISOString().replace('Z', '+0000'),
         comment: editWorklogComment || undefined,
       });
     },
