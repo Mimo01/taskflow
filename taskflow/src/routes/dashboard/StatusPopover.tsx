@@ -97,6 +97,7 @@ export default function StatusPopover({
               onClick={() => handleSelect(transition.id, transition.to.name)}
               className="w-full text-left px-2 py-1.5 hover:bg-accent rounded flex items-center gap-2"
             >
+              <span className="text-muted-foreground">→</span>
               <span
                 className={cn(
                   'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
