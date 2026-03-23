@@ -73,3 +73,4 @@ Resume: Phase 25 complete. Next milestone phase ready for planning.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260319-qkn | Add global gitignore with .claude and remove .claude from git | 2026-03-19 | a7e1702 | [260319-qkn-add-global-gitignore-with-claude-and-rem](./quick/260319-qkn-add-global-gitignore-with-claude-and-rem/) |
+| 260323-iwp | Add assignee avatars to subtask and epic story rows in issue detail | 2026-03-23 | e5c5734 | [260323-iwp-in-issue-detail-i-want-to-see-assignee-o](./quick/260323-iwp-in-issue-detail-i-want-to-see-assignee-o/) |
