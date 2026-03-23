@@ -14,15 +14,8 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
 import { fetchTransitions } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
-
-const STATUS_CATEGORY_STYLES: Record<string, string> = {
-  new: 'bg-muted text-muted-foreground',
-  indeterminate: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-  done: 'bg-green-500/15 text-green-600 dark:text-green-400',
-};
 
 interface StatusPopoverProps {
   issueKey: string;
@@ -107,8 +100,7 @@ export default function StatusPopover({
               <span
                 className={cn(
                   'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-                  STATUS_CATEGORY_STYLES[transition.to.statusCategory?.key ?? 'new'] ??
-                    STATUS_CATEGORY_STYLES.new,
+                  statusCategoryBadgeClass(transition.to.statusCategory?.key),
                 )}
               >
                 {transition.name}
