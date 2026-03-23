@@ -504,53 +504,6 @@ export default function ReleaseDetailPage() {
                 </section>
               )}
 
-              {/* Label coverage indicator */}
-              {milestoneMRs && labelCoverage && (
-                <section>
-                  {labelCoverage.allLabeled ? (
-                    <div className="flex items-center gap-2 rounded-md border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-950/30 px-3 py-2">
-                      <Check className="size-4 text-green-600 dark:text-green-400 shrink-0" />
-                      <p className="text-xs text-green-700 dark:text-green-300">
-                        All {labelCoverage.total} merge requests have labels
-                      </p>
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="flex items-center gap-2 rounded-md border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-950/30 px-3 py-2">
-                        <AlertTriangle className="size-4 text-orange-600 dark:text-orange-400 shrink-0" />
-                        <p className="text-xs text-orange-700 dark:text-orange-300">
-                          {labelCoverage.unlabeled.length} of {labelCoverage.total} merge requests missing labels
-                        </p>
-                      </div>
-                      <div className="mt-2 space-y-1">
-                        {labelCoverage.unlabeled.map((mr) => (
-                          <div key={mr.id} className="flex items-center gap-2 text-sm py-1">
-                            <GitMerge
-                              className={`size-3.5 shrink-0 ${
-                                mr.state === 'merged'
-                                  ? 'text-green-600 dark:text-green-400'
-                                  : mr.state === 'opened'
-                                    ? 'text-orange-600 dark:text-orange-400'
-                                    : 'text-gray-500'
-                              }`}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => openUrl(mr.web_url)}
-                              className="text-xs font-mono hover:underline shrink-0"
-                            >
-                              !{mr.iid}
-                            </button>
-                            <span className="line-clamp-1 text-xs text-muted-foreground">
-                              {mr.title}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </section>
-              )}
 
               {/* Issues with MR matching */}
               <section>
@@ -1025,6 +978,51 @@ export default function ReleaseDetailPage() {
                       <AlertTriangle className="size-3" />
                       No milestone matched
                     </span>
+                  )}
+                </MetaRow>
+
+                <MetaRow label="MR Labels">
+                  {milestoneMRs && labelCoverage ? (
+                    labelCoverage.allLabeled ? (
+                      <span className="inline-flex items-center gap-1 text-green-600 dark:text-green-400">
+                        <Check className="size-3" />
+                        All {labelCoverage.total} MRs labeled
+                      </span>
+                    ) : (
+                      <div>
+                        <span className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400">
+                          <AlertTriangle className="size-3" />
+                          {labelCoverage.unlabeled.length}/{labelCoverage.total} missing
+                        </span>
+                        <div className="mt-1.5 space-y-0.5">
+                          {labelCoverage.unlabeled.map((mr) => (
+                            <div key={mr.id} className="flex items-center gap-1.5">
+                              <GitMerge
+                                className={`size-3 shrink-0 ${
+                                  mr.state === 'merged'
+                                    ? 'text-green-600 dark:text-green-400'
+                                    : mr.state === 'opened'
+                                      ? 'text-orange-600 dark:text-orange-400'
+                                      : 'text-gray-500'
+                                }`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => openUrl(mr.web_url)}
+                                className="text-xs font-mono hover:underline shrink-0"
+                              >
+                                !{mr.iid}
+                              </button>
+                              <span className="line-clamp-1 text-xs text-muted-foreground">
+                                {mr.title}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  ) : (
+                    <span className="text-muted-foreground">Loading...</span>
                   )}
                 </MetaRow>
               </div>
