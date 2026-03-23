@@ -35,6 +35,7 @@ import EpicsPage from './routes/dashboard/EpicsPage';
 import IssueDetailPage from './routes/dashboard/IssueDetailPage';
 import Dashboard from './routes/dashboard/index';
 import MergeRequestDetailPage from './routes/dashboard/MergeRequestDetailPage';
+import ReleaseDetailPage from './routes/dashboard/ReleaseDetailPage';
 import MergeRequestListPage from './routes/dashboard/MergeRequestListPage';
 import MrAttentionTab from './routes/dashboard/MrAttentionTab';
 import MyTasksTab from './routes/dashboard/MyTasksTab';
@@ -223,7 +224,7 @@ function AppLayout() {
 
   // Reset breadcrumb trail when navigating away from issue detail
   useEffect(() => {
-    if (!location.pathname.startsWith('/issue/') && !location.pathname.startsWith('/mr/')) {
+    if (!location.pathname.startsWith('/issue/') && !location.pathname.startsWith('/mr/') && !location.pathname.startsWith('/release/')) {
       breadcrumbReset();
     }
   }, [location.pathname, breadcrumbReset]);
@@ -242,6 +243,7 @@ function AppLayout() {
     if (pathname.startsWith('/issue/')) return 'Issue';
     if (pathname.startsWith('/merge-requests')) return 'Merge Requests';
     if (pathname.startsWith('/mr/')) return 'MR Detail';
+    if (pathname.startsWith('/release/')) return 'Release';
     return 'Home';
   }
 
@@ -498,6 +500,7 @@ const router = createHashRouter([
       { path: '/sprint-progress', element: <SprintProgressTab /> },
       { path: '/workload', element: <WorkloadTab /> },
       { path: '/releases', element: <ReleasesTab /> },
+      { path: '/release/:versionId', element: <ReleaseDetailPage /> },
       { path: '/debug-logs', element: <DebugLogs /> },
       { path: '/issue/:key', element: <IssueDetailPage /> },
       { path: '/merge-requests', element: <MergeRequestListPage /> },

@@ -774,6 +774,51 @@ export async function fetchFixVersions(
 }
 
 /**
+ * Update a Jira fix version (release) via PUT /rest/api/2/version/{versionId}.
+ *
+ * @param baseUrl   - Jira base URL
+ * @param token     - Personal Access Token
+ * @param versionId - Jira version ID
+ * @param fields    - Fields to update (only non-undefined are sent)
+ * @returns Updated JiraFixVersion
+ */
+export async function updateFixVersion(
+  baseUrl: string,
+  token: string,
+  versionId: string,
+  fields: { name?: string; releaseDate?: string | null; description?: string; released?: boolean },
+): Promise<JiraFixVersion> {
+  const base = baseUrl.replace(/\/$/, '');
+  const url = `${base}/rest/api/2/version/${versionId}`;
+
+  let response: Response;
+  try {
+    response = await apiFetch('jira', url, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(fields),
+    }, 'Update Release');
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    const msg =
+      (data as { errorMessages?: string[] }).errorMessages?.[0] ?? 'Failed to update fix version';
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError(msg, response.status, 'jira');
+    }
+    throw new Error(msg);
+  }
+
+  return (await response.json()) as JiraFixVersion;
+}
+
+/**
  * Search Jira issues by text query using JQL.
  *
  * @param baseUrl    - Jira base URL
