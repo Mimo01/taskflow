@@ -64,7 +64,7 @@ None yet.
 
 ## Session Continuity
 
-Last activity: 2026-03-23 - Completed quick task 260323-k3x: Add colored status badges to issue status change popup
+Last activity: 2026-03-23 - Completed quick task 260323-kw8: Add editable fix version picker to issue detail
 Stopped at: Phase 26 context gathered
 Resume: Phase 25 complete. Next milestone phase ready for planning.
 
@@ -74,3 +74,4 @@ Resume: Phase 25 complete. Next milestone phase ready for planning.
 |---|-------------|------|--------|-----------|
 | 260319-qkn | Add global gitignore with .claude and remove .claude from git | 2026-03-19 | a7e1702 | [260319-qkn-add-global-gitignore-with-claude-and-rem](./quick/260319-qkn-add-global-gitignore-with-claude-and-rem/) |
 | 260323-k3x | Add colored status badges to issue status transitions | 2026-03-23 | 6a06445 | [260323-k3x-add-colored-status-badges-to-issue-statu](./quick/260323-k3x-add-colored-status-badges-to-issue-statu/) |
+| 260323-kw8 | Add editable fix version picker to issue detail | 2026-03-23 | 5d94455 | [260323-kw8-i-want-to-be-able-to-change-fix-version-](./quick/260323-kw8-i-want-to-be-able-to-change-fix-version-/) |
