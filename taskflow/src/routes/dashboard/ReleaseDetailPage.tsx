@@ -33,7 +33,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { GitLabMR, GitLabMilestone } from '@/services/gitlab';
 import { fetchMilestoneMRs, fetchProjectMilestonesInRange } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
-import { linkMRToTask } from '@/services/linkEngine';
+import { extractTicketKeys, linkMRToTask } from '@/services/linkEngine';
 import { fetchFixVersions, updateFixVersion } from '@/services/jira';
 import type { ReleaseMatch } from '@/services/releaseLinker';
 import { matchGitLabToFixVersion } from '@/services/releaseLinker';
@@ -116,6 +116,7 @@ export default function ReleaseDetailPage() {
   const queryClient = useQueryClient();
 
   const trail = useBreadcrumbStore((s) => s.trail);
+  const breadcrumbPush = useBreadcrumbStore((s) => s.push);
   const breadcrumbPop = useBreadcrumbStore((s) => s.pop);
 
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, activeGitlabProject } = useAuthStore();
@@ -465,6 +466,17 @@ export default function ReleaseDetailPage() {
                   </div>
                 )}
 
+                {/* Milestone warning */}
+                {gitlabMatch.type === 'none' && (
+                  <div className="flex items-center gap-2 rounded-md border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-950/30 px-3 py-2 mb-4">
+                    <AlertTriangle className="size-4 text-orange-600 dark:text-orange-400 shrink-0" />
+                    <p className="text-xs text-orange-700 dark:text-orange-300">
+                      No GitLab milestone matched — MR linking is unavailable.
+                      {!version.releaseDate && ' Set a release date to enable milestone matching.'}
+                    </p>
+                  </div>
+                )}
+
                 {/* Issues table */}
                 {isLoadingIssues ? (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
@@ -479,18 +491,40 @@ export default function ReleaseDetailPage() {
                       <tr className="text-xs text-muted-foreground font-medium bg-muted/30">
                         <th className="text-left py-1.5 px-2 border-b border-border/50">Key</th>
                         <th className="text-left py-1.5 px-2 border-b border-border/50">Summary</th>
+                        <th className="text-left py-1.5 px-2 border-b border-border/50">Assignee</th>
                         <th className="text-left py-1.5 px-2 border-b border-border/50">Status</th>
                         <th className="text-left py-1.5 px-2 border-b border-border/50">MR</th>
                       </tr>
                     </thead>
                     <tbody>
                       {matchedRows.map((row) => (
-                        <tr key={row.issue.id} className="border-b border-border/50">
-                          <td className="py-1.5 px-2 font-mono text-xs whitespace-nowrap border-b border-border/50">
+                        <tr
+                          key={row.issue.id}
+                          className="border-b border-border/50 hover:bg-muted/40 cursor-pointer"
+                          onClick={() => {
+                            breadcrumbPush({ path: `/release/${versionId}`, label: version.name });
+                            navigate(`/issue/${row.issue.key}`);
+                          }}
+                        >
+                          <td className="py-1.5 px-2 font-mono text-xs whitespace-nowrap border-b border-border/50 text-primary">
                             {row.issue.key}
                           </td>
                           <td className="py-1.5 px-2 border-b border-border/50">
                             <span className="line-clamp-1">{row.issue.fields.summary}</span>
+                          </td>
+                          <td className="py-1.5 px-2 border-b border-border/50 whitespace-nowrap">
+                            {row.issue.fields.assignee ? (
+                              <span className="inline-flex items-center gap-1.5 text-xs">
+                                <img
+                                  src={row.issue.fields.assignee.avatarUrls['48x48']}
+                                  alt=""
+                                  className="size-4 rounded-full"
+                                />
+                                <span className="line-clamp-1">{row.issue.fields.assignee.displayName}</span>
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Unassigned</span>
+                            )}
                           </td>
                           <td className="py-1.5 px-2 border-b border-border/50 whitespace-nowrap">
                             <span
@@ -509,22 +543,29 @@ export default function ReleaseDetailPage() {
                             {row.mr ? (
                               <button
                                 type="button"
-                                onClick={() => openUrl(row.mr!.web_url)}
+                                onClick={(e) => { e.stopPropagation(); openUrl(row.mr!.web_url); }}
                                 className={`inline-flex items-center gap-1 text-xs hover:underline ${
                                   row.mr.state === 'merged'
                                     ? 'text-green-600 dark:text-green-400'
                                     : row.mr.state === 'opened'
-                                      ? 'text-orange-600 dark:text-orange-400'
+                                      ? 'text-blue-600 dark:text-blue-400'
                                       : 'text-gray-500'
                                 }`}
                               >
                                 <GitMerge className="size-3.5" />
                                 !{row.mr.iid}
                               </button>
+                            ) : gitlabMatch.type === 'none' ? (
+                              <span
+                                className="inline-flex items-center gap-1 text-xs text-muted-foreground"
+                                title="No milestone matched — cannot check for MRs"
+                              >
+                                —
+                              </span>
                             ) : (
                               <span
                                 className="inline-flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400"
-                                title="No merge request found"
+                                title="No merge request found in milestone"
                               >
                                 <AlertTriangle className="size-3.5" />
                                 Missing MR
@@ -575,11 +616,45 @@ export default function ReleaseDetailPage() {
                             !{mr.iid}
                           </button>
                           <span className="line-clamp-1 text-xs text-muted-foreground">
-                            {mr.title}
+                            {(() => {
+                              const keys = extractTicketKeys(mr.title);
+                              if (keys.length === 0) return mr.title;
+                              const parts: React.ReactNode[] = [];
+                              let remaining = mr.title;
+                              for (const key of keys) {
+                                const idx = remaining.indexOf(key);
+                                if (idx > 0) parts.push(remaining.slice(0, idx));
+                                parts.push(
+                                  <button
+                                    key={key}
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      breadcrumbPush({ path: `/release/${versionId}`, label: version.name });
+                                      navigate(`/issue/${key}`);
+                                    }}
+                                    className="text-primary hover:underline font-mono"
+                                  >
+                                    {key}
+                                  </button>,
+                                );
+                                remaining = remaining.slice(idx + key.length);
+                              }
+                              if (remaining) parts.push(remaining);
+                              return parts;
+                            })()}
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground ml-auto shrink-0">
+                            <img
+                              src={mr.author.avatar_url}
+                              alt=""
+                              className="size-4 rounded-full"
+                            />
+                            {mr.author.name}
                           </span>
                           <Badge
                             variant="outline"
-                            className={`text-[10px] ml-auto shrink-0 ${
+                            className={`text-[10px] shrink-0 ${
                               mr.state === 'merged'
                                 ? 'border-green-500 text-green-600'
                                 : mr.state === 'opened'
@@ -821,10 +896,11 @@ export default function ReleaseDetailPage() {
                     )
                   ) : (
                     <span
-                      className="text-muted-foreground"
+                      className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
                       data-testid="gitlab-link-none"
                     >
-                      No GitLab link
+                      <AlertTriangle className="size-3" />
+                      No milestone matched
                     </span>
                   )}
                 </MetaRow>
