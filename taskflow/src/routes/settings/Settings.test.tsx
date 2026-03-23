@@ -129,9 +129,9 @@ describe('Settings sidebar nav', () => {
   it('renders 7 sidebar nav buttons', () => {
     renderWithQuery(<Settings />);
     const navButtons = screen.getAllByRole('button', {
-      name: /Connections|Appearance|Sidebar|Notifications|Workflow|Role|Advanced/i,
+      name: /Connections|Appearance|Sidebar|Notifications|Workflow|Advanced/i,
     });
-    expect(navButtons.length).toBe(7);
+    expect(navButtons.length).toBe(6);
   });
 
   it('renders sidebar buttons with correct labels', () => {
@@ -141,8 +141,7 @@ describe('Settings sidebar nav', () => {
     expect(screen.getByRole('button', { name: /sidebar/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /notifications/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /workflow/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /role/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /advanced/i })).toBeInTheDocument();
+expect(screen.getByRole('button', { name: /advanced/i })).toBeInTheDocument();
   });
 
   it('shows Connections section content on initial render (default active section)', () => {
@@ -181,12 +180,6 @@ describe('Settings sidebar nav', () => {
     renderWithQuery(<Settings />);
     fireEvent.click(screen.getByRole('button', { name: /sidebar/i }));
     expect(screen.getByTestId('section-sidebar')).toBeVisible();
-  });
-
-  it('clicking Role button renders Role section', () => {
-    renderWithQuery(<Settings />);
-    fireEvent.click(screen.getByRole('button', { name: /role/i }));
-    expect(screen.getByTestId('section-role')).toBeVisible();
   });
 
   it('active sidebar button updates aria-current when section changes', () => {
