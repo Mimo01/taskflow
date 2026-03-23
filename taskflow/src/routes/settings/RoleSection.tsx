@@ -1,29 +1,58 @@
 /**
- * RoleSection — Role picker in Settings.
+ * RoleSection -- Role picker in Settings.
  *
  * Reads/writes useSettingsStore().role directly.
- * No save button — change takes effect immediately.
+ * Shows a confirmation dialog before changing role since it resets
+ * sidebar items and dashboard layout via applyPreset.
  */
 
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useSettingsStore } from '@/stores/settings.store';
 
 export default function RoleSection() {
-  const { role, setRole } = useSettingsStore();
+  const { role, setRole, applyPreset } = useSettingsStore();
+  const [pendingRole, setPendingRole] = useState<'developer' | 'pm' | 'tech-lead' | null>(null);
+
+  const handleValueChange = (value: string) => {
+    const newRole = value as 'developer' | 'pm' | 'tech-lead';
+    if (newRole === role) return;
+    setPendingRole(newRole);
+  };
+
+  const handleConfirm = () => {
+    if (!pendingRole) return;
+    setRole(pendingRole);
+    applyPreset(pendingRole === 'pm' ? 'pm' : 'dev');
+    setPendingRole(null);
+  };
+
+  const handleCancel = () => {
+    setPendingRole(null);
+  };
 
   return (
     <div className="flex flex-col gap-4">
       <div>
         <h3 className="text-base font-semibold">Role</h3>
         <p className="text-sm text-muted-foreground">
-          Your role determines the default dashboard layout.
+          Your role determines the default sidebar layout and dashboard widgets.
         </p>
       </div>
 
       <RadioGroup
         value={role ?? ''}
-        onValueChange={(v) => setRole(v as 'developer' | 'pm' | 'tech-lead')}
+        onValueChange={handleValueChange}
         className="flex flex-col gap-3"
       >
         <div className="flex items-center space-x-3 border border-border rounded-lg p-3 cursor-pointer hover:bg-accent">
@@ -47,6 +76,24 @@ export default function RoleSection() {
           </Label>
         </div>
       </RadioGroup>
+
+      <Dialog open={pendingRole !== null} onOpenChange={(open) => !open && handleCancel()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Role?</DialogTitle>
+            <DialogDescription>
+              Changing your role will reset your sidebar layout and dashboard widgets to the default
+              preset. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancel}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirm}>Change Role</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

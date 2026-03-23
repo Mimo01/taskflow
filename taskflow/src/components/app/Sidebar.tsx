@@ -1,25 +1,45 @@
 /**
- * Sidebar -- App sidebar with data-driven navigation links.
+ * Sidebar -- App sidebar with navigation links and settings access.
  *
- * Layout: vertical sidebar. Contains:
- * - App name/logo at top
- * - Data-driven nav links from sidebarItems[] in settings store
- * - Bottom: Dev Tools (when enabled) + Settings link (always pinned)
- *
- * Gear icon is always one click away from anywhere in the app.
+ * Layout: vertical sidebar with store-driven nav items grouped by section.
+ * Items and their visibility are controlled by the settings store (sidebarItems).
+ * Section grouping is derived from sidebar-items.ts definitions.
  */
 
 import {
+  BarChart2,
+  BookOpen,
   Bug,
+  CheckSquare,
   ChevronLeft,
   ChevronRight,
+  GitMerge,
+  KanbanSquare,
+  LayoutDashboard,
+  List,
   Settings,
+  Tag,
+  Users,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import type { ComponentType } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useSettingsStore } from '@/stores/settings.store';
-import { SIDEBAR_NAV_ITEMS, type SidebarNavDef } from '@/components/app/sidebar-items';
+import { SIDEBAR_NAV_ITEMS, SIDEBAR_SECTIONS } from './sidebar-items';
 import AppIcon from './AppIcon';
+
+/** Map icon names to actual Lucide components */
+const ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {
+  LayoutDashboard,
+  CheckSquare,
+  KanbanSquare,
+  List,
+  BookOpen,
+  GitMerge,
+  BarChart2,
+  Users,
+  Tag,
+};
 
 const NAV_LINK_BASE =
   'flex items-center py-2 density-compact:py-1 density-comfortable:py-3 rounded-lg text-sm font-medium transition-colors';
@@ -30,20 +50,32 @@ function navLinkClassFn(collapsed: boolean) {
 }
 
 export default function Sidebar() {
-  const devToolsEnabled = useSettingsStore((s) => s.devToolsEnabled);
+  const { devToolsEnabled, sidebarItems } = useSettingsStore();
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);
   const toggleSidebarCollapsed = useSettingsStore((s) => s.toggleSidebarCollapsed);
-  const sidebarItems = useSettingsStore((s) => s.sidebarItems);
   const [hovered, setHovered] = useState(false);
 
   const navLinkClass = navLinkClassFn(sidebarCollapsed);
   const labelClass = sidebarCollapsed ? 'hidden' : 'hidden md:block';
 
-  // Merge stored order/visibility with static definitions
-  const visibleNavItems = sidebarItems
-    .filter(item => item.visible)
-    .map(item => SIDEBAR_NAV_ITEMS.find(def => def.id === item.id))
-    .filter((def): def is SidebarNavDef => def != null);
+  // Build lookup of visible item ids from store
+  const visibleIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of sidebarItems) {
+      if (item.visible) set.add(item.id);
+    }
+    return set;
+  }, [sidebarItems]);
+
+  // Group visible nav items by section
+  const sectionedItems = useMemo(() => {
+    return SIDEBAR_SECTIONS.map((section) => ({
+      ...section,
+      items: SIDEBAR_NAV_ITEMS.filter(
+        (nav) => nav.section === section.id && visibleIds.has(nav.id),
+      ),
+    })).filter((section) => section.items.length > 0);
+  }, [visibleIds]);
 
   return (
     <aside
@@ -73,18 +105,30 @@ export default function Sidebar() {
         <span className={`text-base font-semibold text-foreground ${labelClass}`}>Taskflow</span>
       </div>
 
-      {/* Nav links -- data-driven from sidebarItems store */}
+      {/* Nav links grouped by section */}
       <nav className="flex-1 min-h-0 overflow-y-auto px-2 py-4 flex flex-col gap-1">
-        {visibleNavItems.map(def => (
-          <NavLink
-            key={def.id}
-            to={def.path}
-            className={navLinkClass}
-            title={sidebarCollapsed ? def.label : undefined}
-          >
-            <def.icon className="h-4 w-4 shrink-0" />
-            <span className={labelClass}>{def.label}</span>
-          </NavLink>
+        {sectionedItems.map((section) => (
+          <div key={section.id} className="flex flex-col gap-0.5">
+            {!sidebarCollapsed && (
+              <span className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 hidden md:block">
+                {section.label}
+              </span>
+            )}
+            {section.items.map((nav) => {
+              const Icon = ICON_MAP[nav.iconName];
+              return (
+                <NavLink
+                  key={nav.id}
+                  to={nav.path}
+                  className={navLinkClass}
+                  title={sidebarCollapsed ? nav.label : undefined}
+                >
+                  {Icon ? <Icon className="h-4 w-4 shrink-0" /> : null}
+                  <span className={labelClass}>{nav.label}</span>
+                </NavLink>
+              );
+            })}
+          </div>
         ))}
       </nav>
 
