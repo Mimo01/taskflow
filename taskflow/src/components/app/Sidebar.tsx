@@ -11,10 +11,8 @@
  * Gear icon is always one click away from anywhere in the app.
  */
 
-import { useQuery } from '@tanstack/react-query';
 import {
   BarChart2,
-  Bookmark,
   BookOpen,
   Bug,
   CheckSquare,
@@ -28,13 +26,8 @@ import {
   Tag,
   Users,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { SavedFilterList } from '@/components/SavedFilterList';
-import { fetchFavouriteFilters } from '@/services/jira/filters';
-import { readSecret } from '@/services/stronghold';
-import { useAuthStore } from '@/stores/auth.store';
-import { useSavedFilterStore } from '@/stores/saved-filter.store';
+import { useState } from 'react';
+import { NavLink } from 'react-router-dom';
 import { useSettingsStore } from '@/stores/settings.store';
 import AppIcon from './AppIcon';
 
@@ -51,32 +44,6 @@ export default function Sidebar() {
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);
   const toggleSidebarCollapsed = useSettingsStore((s) => s.toggleSidebarCollapsed);
   const [hovered, setHovered] = useState(false);
-  const navigate = useNavigate();
-
-  // Auth state for Jira filter fetching
-  const { jiraBaseUrl } = useAuthStore();
-  const [jiraToken, setJiraToken] = useState<string | null>(null);
-  useEffect(() => {
-    if (jiraBaseUrl) {
-      readSecret('jira-pat')
-        .then((t) => setJiraToken(t))
-        .catch(() => setJiraToken(null));
-    }
-  }, [jiraBaseUrl]);
-
-  // Fetch favourite filters
-  const { data: favouriteFilters } = useQuery({
-    queryKey: ['jira-favourite-filters', jiraBaseUrl],
-    queryFn: () => fetchFavouriteFilters(jiraBaseUrl!, jiraToken!),
-    staleTime: 2 * 60 * 1000,
-    enabled: !!jiraBaseUrl && !!jiraToken,
-  });
-
-  // Sync fetched filters to the store
-  const { setSavedFilters, setActiveFilter } = useSavedFilterStore();
-  useEffect(() => {
-    if (favouriteFilters) setSavedFilters(favouriteFilters);
-  }, [favouriteFilters, setSavedFilters]);
 
   const navLinkClass = navLinkClassFn(sidebarCollapsed);
   const labelClass = sidebarCollapsed ? 'hidden' : 'hidden md:block';
@@ -233,23 +200,6 @@ export default function Sidebar() {
           </div>
         )}
 
-        {/* Saved Filters section */}
-        {jiraBaseUrl && jiraToken && (
-          <div className="mt-2">
-            {sidebarCollapsed ? (
-              <div className="flex justify-center py-2" title="Saved Filters">
-                <Bookmark className="h-4 w-4 text-muted-foreground" />
-              </div>
-            ) : (
-              <SavedFilterList
-                onApplyFilter={(filter) => {
-                  setActiveFilter(filter.id);
-                  navigate('/sprint-board');
-                }}
-              />
-            )}
-          </div>
-        )}
       </nav>
 
       {/* Bottom: Dev Tools (when enabled) + Settings */}
