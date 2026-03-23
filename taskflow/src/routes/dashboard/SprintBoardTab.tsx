@@ -47,9 +47,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { fetchActiveSprint } from '@/services/jira/sprints';
 import { fetchBoardQuickFilters } from '@/services/jira/board-config';
 import type { JiraBoardQuickFilter } from '@/services/jira/types';
-import { useBoardSelectionStore } from '@/stores/board-selection.store';
 import { useSavedFilterStore } from '@/stores/saved-filter.store';
-import { BulkActionBar } from './BulkActionBar';
 import DraggableCard from './DraggableCard';
 import { QuickFilterChipRow } from './QuickFilterChipRow';
 import { SprintGoalBanner } from './SprintGoalBanner';
@@ -115,9 +113,6 @@ function VirtualizedSwimlanes({
   activeIssue,
   validTargetCategories,
   cardErrors,
-  selectedKeys,
-  hasAnySelection,
-  onToggleSelect,
 }: {
   filteredSwimlanes: { story: JiraIssue; subtasks: JiraIssue[] }[];
   scrollElement: HTMLElement | null;
@@ -127,9 +122,6 @@ function VirtualizedSwimlanes({
   activeIssue: JiraIssue | null;
   validTargetCategories: Set<CategoryKey>;
   cardErrors: Map<string, string>;
-  selectedKeys: Set<string>;
-  hasAnySelection: boolean;
-  onToggleSelect: (key: string, shiftKey: boolean) => void;
 }) {
   const swimlaneVirtualizer = useVirtualizer({
     count: filteredSwimlanes.length,
@@ -199,9 +191,6 @@ function VirtualizedSwimlanes({
                         isSubtask={card.fields.issuetype.subtask}
                         showStatus
                         onOpenDetail={setSelectedIssueKey}
-                        isSelected={selectedKeys.has(card.key)}
-                        hasAnySelection={hasAnySelection}
-                        onToggleSelect={onToggleSelect}
                       />
                       {cardErrors.get(card.key) && (
                         <p className="text-xs text-destructive px-1">
@@ -276,15 +265,6 @@ export default function SprintBoardTab() {
   const [isDragging, setIsDragging] = useState(false);
   const [activeIssue, setActiveIssue] = useState<JiraIssue | null>(null);
   const [cardErrors, setCardErrors] = useState<Map<string, string>>(new Map());
-
-  // Phase 33: Multi-select state from board selection store
-  const { selectedKeys, hasSelection, toggleSelection, rangeSelect, clearSelection, lastClickedKey } =
-    useBoardSelectionStore();
-
-  // Clear selection on unmount (navigation away)
-  useEffect(() => {
-    return () => clearSelection();
-  }, [clearSelection]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -699,24 +679,6 @@ export default function SprintBoardTab() {
       .filter((s): s is { story: JiraIssue; subtasks: JiraIssue[] } => s !== null);
   }, [swimlanes, activeEpics, activeLabels, activeAssignees, activeStatuses, activeJiraQuickFilters, activeLabelFilters, activeSavedFilter, applyFilters]);
 
-  // Phase 33: Build ordered list of all visible card keys for range selection
-  const allVisibleKeys = useMemo(() => {
-    return filteredSwimlanes.flatMap(({ story, subtasks }) => {
-      const cards = subtasks.length > 0 ? subtasks : [story];
-      return cards.map((c) => c.key);
-    });
-  }, [filteredSwimlanes]);
-
-  function handleToggleSelect(key: string, shiftKey: boolean) {
-    if (shiftKey && lastClickedKey) {
-      rangeSelect(lastClickedKey, key, allVisibleKeys);
-    } else {
-      toggleSelection(key);
-    }
-  }
-
-  const priorities = ['Highest', 'High', 'Medium', 'Low', 'Lowest'];
-
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
     : 'Refreshed: Never';
@@ -737,10 +699,76 @@ export default function SprintBoardTab() {
         }}
       >
         <div ref={boardRef}>
+          {/* Loading skeleton */}
+          {isLoading && (
+            <div className="p-4 flex flex-col gap-3">
+              {[0, 1].map((i) => (
+                <div key={i} className="flex flex-col gap-0.5">
+                  <div className="h-9 rounded bg-muted animate-pulse" />
+                  <div className="flex">
+                    {CATEGORY_COLUMNS.map((col) => (
+                      <div key={col.key} className="flex-1 h-20 bg-muted/50 animate-pulse" />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Error state — no cached data */}
+          {isError && !data && (
+            <div className="m-4">
+              <ErrorState error={error} onRetry={refetch} viewName="sprint board" />
+            </div>
+          )}
+
+          {/* Stale data banner — error with cached data */}
+          {isError && data && !bannerDismissed && (
+            <div className="m-4">
+              <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
+            </div>
+          )}
+
+          {/* Sprint goal banner — scrolls away before sticky headers take over */}
+          {!isLoading && !isError && data && activeSprint?.goal && (
+            <SprintGoalBanner goal={activeSprint.goal} />
+          )}
+
+          {/* Quick filter chip row — scrolls away before sticky headers take over */}
+          {!isLoading && !isError && data && (
+            <QuickFilterChipRow
+              quickFilters={boardQuickFilters ?? []}
+              labels={filterOptions.labels}
+              issues={localIssues}
+            />
+          )}
+
+          {/* Unified filter bar — scrolls away before sticky headers take over */}
+          {!isLoading && !isError && data && <UnifiedFilterBar filterOptions={filterOptions} />}
+
+          {/* Active saved filter indicator */}
+          {!isLoading && !isError && data && activeSavedFilter && (
+            <div className="flex items-center gap-2 px-3 py-1.5">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                <Bookmark className="size-3" />
+                <span>Filter: {activeSavedFilter.name}</span>
+                <button
+                  type="button"
+                  onClick={() => clearSavedFilter(null)}
+                  className="ml-0.5 rounded-full p-0.5 hover:bg-primary/20 transition-colors"
+                  aria-label="Clear saved filter"
+                >
+                  <X className="size-3" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/*
            * Sticky top bar: column headers + refresh button.
            * h-10 = 40px. Story headers use top-10 to sit directly below this.
-           * Sticks relative to <main> — no inner overflow container.
+           * Positioned AFTER the non-sticky filter/banner content so it sticks
+           * at top-0 once the user scrolls past the filters above.
            */}
           <div className="sticky top-0 z-20 bg-background border-b border-border relative h-10">
             <div className="flex h-full">
@@ -777,71 +805,6 @@ export default function SprintBoardTab() {
             </div>
           </div>
 
-          {/* Loading skeleton */}
-          {isLoading && (
-            <div className="p-4 flex flex-col gap-3">
-              {[0, 1].map((i) => (
-                <div key={i} className="flex flex-col gap-0.5">
-                  <div className="h-9 rounded bg-muted animate-pulse" />
-                  <div className="flex">
-                    {CATEGORY_COLUMNS.map((col) => (
-                      <div key={col.key} className="flex-1 h-20 bg-muted/50 animate-pulse" />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Error state — no cached data */}
-          {isError && !data && (
-            <div className="m-4">
-              <ErrorState error={error} onRetry={refetch} viewName="sprint board" />
-            </div>
-          )}
-
-          {/* Stale data banner — error with cached data */}
-          {isError && data && !bannerDismissed && (
-            <div className="m-4">
-              <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
-            </div>
-          )}
-
-          {/* Sprint goal banner */}
-          {!isLoading && !isError && data && activeSprint?.goal && (
-            <SprintGoalBanner goal={activeSprint.goal} />
-          )}
-
-          {/* Quick filter chip row */}
-          {!isLoading && !isError && data && (
-            <QuickFilterChipRow
-              quickFilters={boardQuickFilters ?? []}
-              labels={filterOptions.labels}
-              issues={localIssues}
-            />
-          )}
-
-          {/* Unified filter bar */}
-          {!isLoading && !isError && data && <UnifiedFilterBar filterOptions={filterOptions} />}
-
-          {/* Active saved filter indicator */}
-          {!isLoading && !isError && data && activeSavedFilter && (
-            <div className="flex items-center gap-2 px-3 py-1.5">
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                <Bookmark className="size-3" />
-                <span>Filter: {activeSavedFilter.name}</span>
-                <button
-                  type="button"
-                  onClick={() => clearSavedFilter(null)}
-                  className="ml-0.5 rounded-full p-0.5 hover:bg-primary/20 transition-colors"
-                  aria-label="Clear saved filter"
-                >
-                  <X className="size-3" />
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Empty */}
           {!isLoading && !isError && data && swimlanes.length === 0 && (
             <EmptyState
@@ -862,9 +825,6 @@ export default function SprintBoardTab() {
               activeIssue={activeIssue}
               validTargetCategories={validTargetCategories}
               cardErrors={cardErrors}
-              selectedKeys={selectedKeys}
-              hasAnySelection={hasSelection}
-              onToggleSelect={handleToggleSelect}
             />
           )}
         </div>
@@ -873,22 +833,6 @@ export default function SprintBoardTab() {
         <DragOverlay>{activeIssue ? <TaskCard issue={activeIssue} /> : null}</DragOverlay>
       </DndContext>
 
-      {/* Phase 33: Floating bulk action bar */}
-      {hasSelection && (
-        <BulkActionBar
-          selectedKeys={selectedKeys}
-          issues={localIssues}
-          statuses={filterOptions.statuses}
-          assignees={filterOptions.assignees}
-          priorities={priorities}
-          onClearSelection={clearSelection}
-          onOptimisticUpdate={(updater) => setLocalIssues(updater)}
-          onBulkComplete={() => {
-            clearSelection();
-            queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
-          }}
-        />
-      )}
     </>
   );
 }
