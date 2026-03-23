@@ -106,3 +106,4 @@ Resume: Roadmap created for v1.5. Next: `/gsd:plan-phase 31`
 |---|-------------|------|--------|--------|-----------|
 | 260319-qkn | Add global gitignore with .claude and remove .claude from git | 2026-03-19 | a7e1702 | | [260319-qkn-add-global-gitignore-with-claude-and-rem](./quick/260319-qkn-add-global-gitignore-with-claude-and-rem/) |
 | 260320-nz1 | Improve dev tools waterfall with more detailed data and cleaner presentation | 2026-03-20 | 42b500a | Verified | [260320-nz1-improve-dev-tools-waterfall-with-more-de](./quick/260320-nz1-improve-dev-tools-waterfall-with-more-de/) |
+| 260323-fsy | Release detail page with inline editing | 2026-03-23 | 54c1406 | Verified | [260323-fsy-i-want-to-have-detail-page-for-releases-](./quick/260323-fsy-i-want-to-have-detail-page-for-releases-/) |
