@@ -7,6 +7,7 @@ import MergeRequestDetailPage from './dashboard/MergeRequestDetailPage';
 import MergeRequestListPage from './dashboard/MergeRequestListPage';
 import MrAttentionTab from './dashboard/MrAttentionTab';
 import MyTasksTab from './dashboard/MyTasksTab';
+import ReleaseDetailPage from './dashboard/ReleaseDetailPage';
 import ReleasesTab from './dashboard/ReleasesTab';
 import SprintBoardTab from './dashboard/SprintBoardTab';
 import SprintProgressTab from './dashboard/SprintProgressTab';
@@ -27,6 +28,7 @@ export const routes: RouteObject[] = [
   { path: '/sprint-progress', element: <SprintProgressTab /> },
   { path: '/workload', element: <WorkloadTab /> },
   { path: '/releases', element: <ReleasesTab /> },
+  { path: '/release/:versionId', element: <ReleaseDetailPage /> },
   { path: '/dev-tools', element: <DevTools /> },
   { path: '/issue/:key', element: <IssueDetailPage /> },
   { path: '/merge-requests', element: <MergeRequestListPage /> },
