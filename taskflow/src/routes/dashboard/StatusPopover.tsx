@@ -4,20 +4,33 @@
  * Fetches available transitions lazily on first open (not on mount).
  * Calls onSelect(transitionId, toStatusName) when user picks a transition.
  * disabled prop prevents opening while a mutation is in-flight.
+ *
+ * Supports status-category coloring (new/indeterminate/done) to stay
+ * consistent with TaskCard, StoryHeaderRow, and the issue-detail sidebar.
  */
 
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { fetchTransitions } from '@/services/jira';
+import { readSecret } from '@/services/stronghold';
+
+const STATUS_CATEGORY_STYLES: Record<string, string> = {
+  new: 'bg-muted text-muted-foreground border-transparent',
+  indeterminate: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-transparent',
+  done: 'bg-green-500/15 text-green-600 dark:text-green-400 border-transparent',
+};
 
 interface StatusPopoverProps {
   issueKey: string;
   currentStatus: string;
   jiraBaseUrl: string;
-  token: string;
+  /** Pass token directly (e.g. TaskRow) or omit to resolve via readSecret */
+  token?: string;
   onSelect: (transitionId: string, toStatusName: string) => void;
   disabled?: boolean;
+  statusCategoryKey?: string;
 }
 
 export default function StatusPopover({
@@ -27,6 +40,7 @@ export default function StatusPopover({
   token,
   onSelect,
   disabled = false,
+  statusCategoryKey,
 }: StatusPopoverProps) {
   const [open, setOpen] = useState(false);
 
@@ -37,7 +51,11 @@ export default function StatusPopover({
     refetch,
   } = useQuery({
     queryKey: ['transitions', issueKey],
-    queryFn: () => fetchTransitions(jiraBaseUrl, token, issueKey),
+    queryFn: async () => {
+      const resolvedToken = token ?? (await readSecret('jira-pat').catch(() => null));
+      if (!resolvedToken) return [];
+      return fetchTransitions(jiraBaseUrl, resolvedToken, issueKey);
+    },
     enabled: false, // Lazy — only fetch when popover opens
   });
 
@@ -54,12 +72,19 @@ export default function StatusPopover({
     setOpen(false);
   }
 
+  const categoryStyle = statusCategoryKey
+    ? STATUS_CATEGORY_STYLES[statusCategoryKey] ?? STATUS_CATEGORY_STYLES.new
+    : 'border-border text-foreground';
+
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
         disabled={disabled}
         aria-label={currentStatus}
-        className="cursor-pointer rounded-full border border-border px-2 py-0.5 text-xs text-foreground hover:bg-accent transition-colors whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60"
+        className={cn(
+          'cursor-pointer rounded-full border px-2 py-0.5 text-xs font-medium hover:opacity-80 transition-colors whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60',
+          categoryStyle,
+        )}
       >
         {currentStatus}
       </PopoverTrigger>
