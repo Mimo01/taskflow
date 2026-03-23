@@ -2,7 +2,7 @@
  * Widget registry and dashboard layout presets.
  *
  * Defines all available dashboard widget types with metadata, size constraints,
- * and placeholder components. Plans 03/04 replace placeholders with real widgets.
+ * and real component implementations. All 11 widget types are fully wired.
  */
 
 import type { ComponentType } from 'react';
@@ -22,6 +22,14 @@ import type { DashboardLayoutItem } from '@/stores/settings.store';
 import SubtasksWidget from './SubtasksWidget';
 import MrHealthWidget from './MrHealthWidget';
 import SprintHealthWidget from './SprintHealthWidget';
+import NotificationsWidget from './NotificationsWidget';
+import SprintProgressWidget from './SprintProgressWidget';
+import MrAttentionWidget from './MrAttentionWidget';
+import ReleasesWidget from './ReleasesWidget';
+import WorkloadWidget from './WorkloadWidget';
+import SavedFiltersWidget from './SavedFiltersWidget';
+import PinnedIssuesWidget from './PinnedIssuesWidget';
+import CustomJqlWidget from './CustomJqlWidget';
 
 export interface WidgetDef {
   type: string;
@@ -33,12 +41,6 @@ export interface WidgetDef {
   minSize: { w: number; h: number };
   maxSize: { w: number; h: number };
 }
-
-/**
- * Placeholder component for widgets not yet implemented.
- * Plans 03/04 replace each entry's component with the real widget.
- */
-const Placeholder = (_props: { widgetId: string }) => null;
 
 export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
   'my-subtasks': {
@@ -76,7 +78,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
     title: 'Notifications',
     description: 'Your latest notifications',
     icon: Bell,
-    component: Placeholder,
+    component: NotificationsWidget,
     defaultSize: { w: 4, h: 3 },
     minSize: { w: 3, h: 2 },
     maxSize: { w: 8, h: 6 },
@@ -86,7 +88,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
     title: 'Sprint Progress',
     description: 'Sprint completion with status breakdown',
     icon: BarChart2,
-    component: Placeholder,
+    component: SprintProgressWidget,
     defaultSize: { w: 4, h: 3 },
     minSize: { w: 3, h: 2 },
     maxSize: { w: 8, h: 6 },
@@ -96,7 +98,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
     title: 'MR Attention',
     description: 'Merge requests needing your review',
     icon: GitMerge,
-    component: Placeholder,
+    component: MrAttentionWidget,
     defaultSize: { w: 4, h: 3 },
     minSize: { w: 3, h: 2 },
     maxSize: { w: 8, h: 6 },
@@ -106,7 +108,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
     title: 'Releases',
     description: 'Upcoming releases with status',
     icon: Tag,
-    component: Placeholder,
+    component: ReleasesWidget,
     defaultSize: { w: 4, h: 3 },
     minSize: { w: 3, h: 2 },
     maxSize: { w: 8, h: 6 },
@@ -116,7 +118,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
     title: 'Workload',
     description: 'Team workload at a glance',
     icon: Users,
-    component: Placeholder,
+    component: WorkloadWidget,
     defaultSize: { w: 4, h: 3 },
     minSize: { w: 3, h: 2 },
     maxSize: { w: 8, h: 6 },
@@ -126,7 +128,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
     title: 'Saved Filters',
     description: 'Quick-access filter shortcuts',
     icon: Filter,
-    component: Placeholder,
+    component: SavedFiltersWidget,
     defaultSize: { w: 3, h: 3 },
     minSize: { w: 2, h: 2 },
     maxSize: { w: 6, h: 5 },
@@ -136,7 +138,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
     title: 'Pinned Issues',
     description: 'Your pinned issue tabs',
     icon: Pin,
-    component: Placeholder,
+    component: PinnedIssuesWidget,
     defaultSize: { w: 3, h: 3 },
     minSize: { w: 2, h: 2 },
     maxSize: { w: 6, h: 5 },
@@ -146,7 +148,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
     title: 'Custom JQL',
     description: 'Issues matching a custom JQL query',
     icon: Search,
-    component: Placeholder,
+    component: CustomJqlWidget,
     defaultSize: { w: 6, h: 4 },
     minSize: { w: 3, h: 3 },
     maxSize: { w: 12, h: 8 },
