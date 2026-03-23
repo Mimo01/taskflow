@@ -9,11 +9,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import {
+  AlertTriangle,
   ArrowLeft,
   Calendar,
   Check,
   ExternalLink,
   FileText,
+  GitMerge,
+  Info,
   Loader2,
   Package,
   Pencil,
@@ -27,9 +30,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
-import type { GitLabMilestone } from '@/services/gitlab';
+import type { GitLabMR, GitLabMilestone } from '@/services/gitlab';
 import { fetchMilestoneMRs, fetchProjectMilestonesInRange } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
+import { linkMRToTask } from '@/services/linkEngine';
 import { fetchFixVersions, updateFixVersion } from '@/services/jira';
 import type { ReleaseMatch } from '@/services/releaseLinker';
 import { matchGitLabToFixVersion } from '@/services/releaseLinker';
@@ -218,6 +222,62 @@ export default function ReleaseDetailPage() {
     return bestMatch;
   }, [version?.releaseDate, milestones]);
 
+  // Fetch Jira issues for this fix version
+  const { data: fixVersionIssues, isLoading: isLoadingIssues } = useQuery({
+    queryKey: ['jira-fixversion-issues', versionId],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token || !jiraBaseUrl || !versionId) throw new Error('No credentials');
+      return fetchFixVersionIssues(jiraBaseUrl, token, versionId);
+    },
+    staleTime: 5 * 60_000,
+    enabled: !!jiraBaseUrl && !!versionId,
+  });
+
+  // Fetch MRs for matched GitLab milestone
+  const { data: milestoneMRs } = useQuery({
+    queryKey: ['gitlab-milestone-mrs', activeGitlabProject, gitlabMatch.candidateName],
+    queryFn: () =>
+      fetchMilestoneMRs(
+        gitlabBaseUrl!,
+        gitlabToken!,
+        activeGitlabProject!,
+        gitlabMatch.candidateName,
+      ),
+    staleTime: 5 * 60_000,
+    enabled:
+      !!gitlabBaseUrl &&
+      !!activeGitlabProject &&
+      !!gitlabToken &&
+      gitlabMatch.type !== 'none',
+  });
+
+  // Match MRs to Jira issues
+  const { matchedRows, unmatchedMRs } = useMemo(() => {
+    const issues = fixVersionIssues ?? [];
+    const mrs = milestoneMRs ?? [];
+    const issueKeySet = new Set(issues.map((i) => i.key));
+
+    const mrByIssue = new Map<string, GitLabMR>();
+    const unmatched: GitLabMR[] = [];
+
+    for (const mr of mrs) {
+      const matchedKey = linkMRToTask(mr, issueKeySet);
+      if (matchedKey) {
+        mrByIssue.set(matchedKey, mr);
+      } else {
+        unmatched.push(mr);
+      }
+    }
+
+    const rows = issues.map((issue) => ({
+      issue,
+      mr: mrByIssue.get(issue.key) ?? null,
+    }));
+
+    return { matchedRows: rows, unmatchedMRs: unmatched };
+  }, [fixVersionIssues, milestoneMRs]);
+
   // Populate edit form when entering edit mode
   const startEditing = useCallback(() => {
     if (!version) return;
@@ -382,27 +442,157 @@ export default function ReleaseDetailPage() {
                 )}
               </section>
 
-              {/* Issue counts */}
+              {/* Issues with MR matching */}
               <section>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">Issues</h3>
-                {issueCounts ? (
-                  <div className="space-y-2">
-                    <p className="text-sm">
-                      {issueCounts.issuesFixed} / {issueCounts.issuesTotal} issues done
-                    </p>
-                    {issueCounts.issuesTotal > 0 && (
-                      <div className="h-2 w-full max-w-xs rounded-full bg-muted overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-green-500 transition-all"
-                          style={{
-                            width: `${Math.round((issueCounts.issuesFixed / issueCounts.issuesTotal) * 100)}%`,
-                          }}
-                        />
-                      </div>
-                    )}
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-sm font-medium text-muted-foreground">Issues</h3>
+                  {issueCounts && (
+                    <Badge variant="secondary" className="text-xs tabular-nums">
+                      {issueCounts.issuesFixed} / {issueCounts.issuesTotal} done
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Progress bar (Jira-driven) */}
+                {issueCounts && issueCounts.issuesTotal > 0 && (
+                  <div className="h-2 w-full max-w-xs rounded-full bg-muted overflow-hidden mb-4">
+                    <div
+                      className="h-full rounded-full bg-green-500 transition-all"
+                      style={{
+                        width: `${Math.round((issueCounts.issuesFixed / issueCounts.issuesTotal) * 100)}%`,
+                      }}
+                    />
                   </div>
+                )}
+
+                {/* Issues table */}
+                {isLoadingIssues ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                    <Loader2 className="size-3.5 animate-spin" />
+                    Loading issues...
+                  </div>
+                ) : matchedRows.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4">No issues in this fix version</p>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Loading issue counts...</p>
+                  <table className="w-full text-sm border-separate border-spacing-0">
+                    <thead>
+                      <tr className="text-xs text-muted-foreground font-medium bg-muted/30">
+                        <th className="text-left py-1.5 px-2 border-b border-border/50">Key</th>
+                        <th className="text-left py-1.5 px-2 border-b border-border/50">Summary</th>
+                        <th className="text-left py-1.5 px-2 border-b border-border/50">Status</th>
+                        <th className="text-left py-1.5 px-2 border-b border-border/50">MR</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {matchedRows.map((row) => (
+                        <tr key={row.issue.id} className="border-b border-border/50">
+                          <td className="py-1.5 px-2 font-mono text-xs whitespace-nowrap border-b border-border/50">
+                            {row.issue.key}
+                          </td>
+                          <td className="py-1.5 px-2 border-b border-border/50">
+                            <span className="line-clamp-1">{row.issue.fields.summary}</span>
+                          </td>
+                          <td className="py-1.5 px-2 border-b border-border/50 whitespace-nowrap">
+                            <span
+                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                row.issue.fields.status.statusCategory?.key === 'done'
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                  : row.issue.fields.status.statusCategory?.key === 'indeterminate'
+                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                                    : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+                              }`}
+                            >
+                              {row.issue.fields.status.name}
+                            </span>
+                          </td>
+                          <td className="py-1.5 px-2 border-b border-border/50 whitespace-nowrap">
+                            {row.mr ? (
+                              <button
+                                type="button"
+                                onClick={() => openUrl(row.mr!.web_url)}
+                                className={`inline-flex items-center gap-1 text-xs hover:underline ${
+                                  row.mr.state === 'merged'
+                                    ? 'text-green-600 dark:text-green-400'
+                                    : row.mr.state === 'opened'
+                                      ? 'text-orange-600 dark:text-orange-400'
+                                      : 'text-gray-500'
+                                }`}
+                              >
+                                <GitMerge className="size-3.5" />
+                                !{row.mr.iid}
+                              </button>
+                            ) : (
+                              <span
+                                className="inline-flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400"
+                                title="No merge request found"
+                              >
+                                <AlertTriangle className="size-3.5" />
+                                Missing MR
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+
+                {/* Unmatched MRs section */}
+                {unmatchedMRs.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-border/50">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Info className="size-3.5 text-blue-500" />
+                      <h4 className="text-sm font-medium">
+                        Unmatched MRs
+                        <Badge variant="secondary" className="ml-1.5 text-xs">
+                          {unmatchedMRs.length}
+                        </Badge>
+                      </h4>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      MRs in milestone not linked to any Jira task
+                    </p>
+                    <div className="space-y-1">
+                      {unmatchedMRs.map((mr) => (
+                        <div
+                          key={mr.id}
+                          className="flex items-center gap-2 text-sm py-1"
+                        >
+                          <GitMerge
+                            className={`size-3.5 shrink-0 ${
+                              mr.state === 'merged'
+                                ? 'text-green-600 dark:text-green-400'
+                                : mr.state === 'opened'
+                                  ? 'text-orange-600 dark:text-orange-400'
+                                  : 'text-gray-500'
+                            }`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => openUrl(mr.web_url)}
+                            className="text-xs font-mono hover:underline shrink-0"
+                          >
+                            !{mr.iid}
+                          </button>
+                          <span className="line-clamp-1 text-xs text-muted-foreground">
+                            {mr.title}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] ml-auto shrink-0 ${
+                              mr.state === 'merged'
+                                ? 'border-green-500 text-green-600'
+                                : mr.state === 'opened'
+                                  ? 'border-orange-500 text-orange-600'
+                                  : 'border-gray-400 text-gray-500'
+                            }`}
+                          >
+                            {mr.state}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </section>
 
