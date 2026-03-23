@@ -64,6 +64,10 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ Virtualized rendering for long lists (backlog, notifications, sprint board) — v1.4
 - ✓ Zero `any` types and zero double-casts in production code — v1.4
 
+- ✓ Sprint goal banner on sprint board header — v1.5
+- ✓ Board quick filter chips (Jira QFs + label toggles) with AND logic — v1.5
+- ✓ Saved filter management: save/edit/delete Jira filters, sidebar list, command palette search, click-to-apply board filtering — v1.5
+
 ### Active
 
 ## Current Milestone: v1.5 Dashboard Redesign & Feature Parity
@@ -110,6 +114,7 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - **Build:** Portable executable — no installer, no admin rights; `createHashRouter` for SPA routing in production
 - **Test suite:** 665+ tests, zero failures, zero warnings; Vitest with LazyStore mock
 - **Known caveats (v1.4):** 10 non-blocking tech debt items (dead code in debug-logs/, DevToolsSettings.tsx unmounted, placeholder components); Cmd+Shift nav shortcut deviation needs product owner sign-off; 13 human verification items deferred to live Jira environment
+- **Phase 33 note:** Bulk operations (BOARD-04–07) were implemented but user-deferred during visual review; component files exist on disk but are not wired into UI. Phase 33 completed 2026-03-23.
 
 ## Constraints
 
