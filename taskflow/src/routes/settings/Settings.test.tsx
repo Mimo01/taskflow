@@ -75,10 +75,32 @@ const mockSettingsStore = {
   setOsNotifJiraEnabled: vi.fn(),
   setOsNotifGitlabEnabled: vi.fn(),
   setDevToolsEnabled: vi.fn(),
+  sidebarItems: [
+    { id: 'dashboard', visible: true },
+    { id: 'my-tasks', visible: true },
+    { id: 'sprint-board', visible: true },
+    { id: 'backlog', visible: true },
+    { id: 'epics', visible: true },
+    { id: 'merge-requests', visible: true },
+    { id: 'mr-attention', visible: true },
+    { id: 'sprint-progress', visible: false },
+    { id: 'workload', visible: false },
+    { id: 'releases', visible: false },
+  ],
+  dashboardLayout: [],
+  setSidebarItems: vi.fn(),
+  setSidebarItemVisible: vi.fn(),
+  reorderSidebarItem: vi.fn(),
+  setDashboardLayout: vi.fn(),
+  addDashboardWidget: vi.fn(),
+  removeDashboardWidget: vi.fn(),
+  updateWidgetConfig: vi.fn(),
+  applyPreset: vi.fn(),
 };
 
 vi.mock('@/stores/settings.store', () => ({
-  useSettingsStore: () => mockSettingsStore,
+  useSettingsStore: (selector?: (s: typeof mockSettingsStore) => unknown) =>
+    selector ? selector(mockSettingsStore) : mockSettingsStore,
 }));
 
 // Mock auth store
