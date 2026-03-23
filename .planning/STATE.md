@@ -97,7 +97,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-23T11:10:47Z
-Last activity: 2026-03-23 - Completed quick task 260323-gog: Release detail page match Jira tasks with MRs
+Last activity: 2026-03-23 - Completed quick task 260323-hn2: Make the jira task to gitlab merge request mapping more allowing
 Resume: Roadmap created for v1.5. Next: `/gsd:plan-phase 31`
 
 ### Quick Tasks Completed
@@ -108,3 +108,4 @@ Resume: Roadmap created for v1.5. Next: `/gsd:plan-phase 31`
 | 260320-nz1 | Improve dev tools waterfall with more detailed data and cleaner presentation | 2026-03-20 | 42b500a | Verified | [260320-nz1-improve-dev-tools-waterfall-with-more-de](./quick/260320-nz1-improve-dev-tools-waterfall-with-more-de/) |
 | 260323-fsy | Release detail page with inline editing | 2026-03-23 | 54c1406 | Verified | [260323-fsy-i-want-to-have-detail-page-for-releases-](./quick/260323-fsy-i-want-to-have-detail-page-for-releases-/) |
 | 260323-gog | Release detail page match Jira tasks with MRs | 2026-03-23 | 214ac82 | Verified | [260323-gog-release-detail-page-match-jira-tasks-wit](./quick/260323-gog-release-detail-page-match-jira-tasks-wit/) |
+| 260323-hn2 | Make jira-gitlab MR mapping case-insensitive and space-tolerant | 2026-03-23 | 76608a9 | Verified | [260323-hn2-make-the-jira-task-to-gitlab-merge-reque](./quick/260323-hn2-make-the-jira-task-to-gitlab-merge-reque/) |
