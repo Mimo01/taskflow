@@ -67,7 +67,11 @@ export interface JiraFixVersion {
 export interface JiraTransition {
   id: string;
   name: string;
-  to: { id: string; name: string };
+  to: {
+    id: string;
+    name: string;
+    statusCategory?: { id: number; key: string; name: string };
+  };
 }
 
 export interface JiraComment {
