@@ -541,20 +541,34 @@ export default function ReleaseDetailPage() {
                           </td>
                           <td className="py-1.5 px-2 border-b border-border/50 whitespace-nowrap">
                             {row.mr ? (
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); openUrl(row.mr!.web_url); }}
-                                className={`inline-flex items-center gap-1 text-xs hover:underline ${
-                                  row.mr.state === 'merged'
-                                    ? 'text-green-600 dark:text-green-400'
-                                    : row.mr.state === 'opened'
-                                      ? 'text-blue-600 dark:text-blue-400'
-                                      : 'text-gray-500'
-                                }`}
-                              >
-                                <GitMerge className="size-3.5" />
-                                !{row.mr.iid}
-                              </button>
+                              <span className="inline-flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); openUrl(row.mr!.web_url); }}
+                                  className={`inline-flex items-center gap-1 text-xs hover:underline ${
+                                    row.mr.state === 'merged'
+                                      ? 'text-green-600 dark:text-green-400'
+                                      : row.mr.state === 'opened'
+                                        ? 'text-blue-600 dark:text-blue-400'
+                                        : 'text-gray-500'
+                                  }`}
+                                >
+                                  <GitMerge className="size-3.5" />
+                                  !{row.mr.iid}
+                                </button>
+                                <Badge
+                                  variant="outline"
+                                  className={`text-[10px] ${
+                                    row.mr.state === 'merged'
+                                      ? 'border-green-500 text-green-600'
+                                      : row.mr.state === 'opened'
+                                        ? 'border-blue-500 text-blue-600'
+                                        : 'border-gray-400 text-gray-500'
+                                  }`}
+                                >
+                                  {row.mr.state}
+                                </Badge>
+                              </span>
                             ) : gitlabMatch.type === 'none' ? (
                               <span
                                 className="inline-flex items-center gap-1 text-xs text-muted-foreground"
