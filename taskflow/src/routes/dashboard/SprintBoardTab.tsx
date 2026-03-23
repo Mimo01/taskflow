@@ -25,7 +25,7 @@ import {
 } from '@dnd-kit/core';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Columns3, RefreshCw } from 'lucide-react';
+import { Bookmark, Columns3, RefreshCw, X } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
@@ -48,6 +48,7 @@ import { fetchActiveSprint } from '@/services/jira/sprints';
 import { fetchBoardQuickFilters } from '@/services/jira/board-config';
 import type { JiraBoardQuickFilter } from '@/services/jira/types';
 import { useBoardSelectionStore } from '@/stores/board-selection.store';
+import { useSavedFilterStore } from '@/stores/saved-filter.store';
 import { BulkActionBar } from './BulkActionBar';
 import DraggableCard from './DraggableCard';
 import { QuickFilterChipRow } from './QuickFilterChipRow';
@@ -529,6 +530,25 @@ export default function SprintBoardTab() {
 
   const { activeEpics, activeLabels, activeAssignees, activeStatuses, activeJiraQuickFilters, activeLabelFilters } = useFilterStore();
 
+  // Phase 33: Saved filter integration
+  const { activeFilterId, savedFilters, setActiveFilter: clearSavedFilter } = useSavedFilterStore();
+  const activeSavedFilter = activeFilterId
+    ? savedFilters.find((f) => f.id === activeFilterId)
+    : null;
+
+  // Clear saved filter when user manually changes filter bar selections
+  useEffect(() => {
+    if (
+      activeFilterId &&
+      (activeEpics.size > 0 ||
+        activeLabels.size > 0 ||
+        activeAssignees.size > 0 ||
+        activeStatuses.size > 0)
+    ) {
+      clearSavedFilter(null);
+    }
+  }, [activeEpics.size, activeLabels.size, activeAssignees.size, activeStatuses.size, activeFilterId, clearSavedFilter]);
+
   const filterOptions = useMemo(() => {
     // Epics: all project epics (not just those on current sprint issues)
     const epics = new Map<string, string>();
@@ -605,7 +625,19 @@ export default function SprintBoardTab() {
           activeLabelFilters.has(l),
         );
 
-      return epicMatch && labelMatch && assigneeMatch && statusMatch && qfMatch && labelChipMatch;
+      // Saved filter JQL evaluation (AND with other filters)
+      const savedFilterMatch =
+        !activeSavedFilter ||
+        (() => {
+          const clauses = activeSavedFilter.jql.split(/\s+AND\s+/i);
+          for (const clause of clauses) {
+            const cond = parseSimpleJql(clause.trim());
+            if (cond && !evaluateQfCondition(issue, cond)) return false;
+          }
+          return true;
+        })();
+
+      return epicMatch && labelMatch && assigneeMatch && statusMatch && qfMatch && labelChipMatch && savedFilterMatch;
     });
   }
 
@@ -652,7 +684,8 @@ export default function SprintBoardTab() {
       activeAssignees.size === 0 &&
       activeStatuses.size === 0 &&
       activeJiraQuickFilters.size === 0 &&
-      activeLabelFilters.size === 0
+      activeLabelFilters.size === 0 &&
+      !activeSavedFilter
     )
       return swimlanes;
     return swimlanes
@@ -664,7 +697,7 @@ export default function SprintBoardTab() {
         return { story, subtasks: filteredSubtasks };
       })
       .filter((s): s is { story: JiraIssue; subtasks: JiraIssue[] } => s !== null);
-  }, [swimlanes, activeEpics, activeLabels, activeAssignees, activeStatuses, activeJiraQuickFilters, activeLabelFilters, applyFilters]);
+  }, [swimlanes, activeEpics, activeLabels, activeAssignees, activeStatuses, activeJiraQuickFilters, activeLabelFilters, activeSavedFilter, applyFilters]);
 
   // Phase 33: Build ordered list of all visible card keys for range selection
   const allVisibleKeys = useMemo(() => {
@@ -790,6 +823,24 @@ export default function SprintBoardTab() {
 
           {/* Unified filter bar */}
           {!isLoading && !isError && data && <UnifiedFilterBar filterOptions={filterOptions} />}
+
+          {/* Active saved filter indicator */}
+          {!isLoading && !isError && data && activeSavedFilter && (
+            <div className="flex items-center gap-2 px-3 py-1.5">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                <Bookmark className="size-3" />
+                <span>Filter: {activeSavedFilter.name}</span>
+                <button
+                  type="button"
+                  onClick={() => clearSavedFilter(null)}
+                  className="ml-0.5 rounded-full p-0.5 hover:bg-primary/20 transition-colors"
+                  aria-label="Clear saved filter"
+                >
+                  <X className="size-3" />
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Empty */}
           {!isLoading && !isError && data && swimlanes.length === 0 && (
