@@ -74,7 +74,7 @@ None yet.
 
 ## Session Continuity
 
-Last activity: 2026-03-24 - Completed quick task 260324-0dn: Add edit mode toggle switch to dashboard
+Last activity: 2026-03-24 - Completed quick task 260324-0q0: Fix broken settings for role and sidebar
 Stopped at: Completed 34-04-PLAN.md
 Resume: Phase 25 complete. Next milestone phase ready for planning.
 
@@ -87,4 +87,4 @@ Resume: Phase 25 complete. Next milestone phase ready for planning.
 | 260323-kw8 | Add editable fix version picker to issue detail | 2026-03-23 | 5d94455 | [260323-kw8-i-want-to-be-able-to-change-fix-version-](./quick/260323-kw8-i-want-to-be-able-to-change-fix-version-/) |
 | 260323-l2k | Fix version picker: only show unreleased + last 10 released | 2026-03-23 | c0bcc3a | [260323-l2k-fix-version-picker-only-show-unreleased-](./quick/260323-l2k-fix-version-picker-only-show-unreleased-/) |
 | 260324-0dn | Add edit mode toggle switch to dashboard | 2026-03-24 | 6ef49b1 | [260324-0dn-add-edit-mode-toggle-switch-to-dashboard](./quick/260324-0dn-add-edit-mode-toggle-switch-to-dashboard/) |
-| 260324-0q0 | Fix broken settings for role and sidebar | 2026-03-24 | a19edff | [260324-0q0-fix-broken-settings-for-role-and-sidebar](./quick/260324-0q0-fix-broken-settings-for-role-and-sidebar/) |
+| 260324-0q0 | Fix broken settings for role and sidebar, unify sections, add sidebar section support | 2026-03-24 | 357f41f | [260324-0q0-fix-broken-settings-for-role-and-sidebar](./quick/260324-0q0-fix-broken-settings-for-role-and-sidebar/) |
