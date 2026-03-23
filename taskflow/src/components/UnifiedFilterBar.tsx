@@ -23,6 +23,7 @@ import {
   X,
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
+import { SaveFilterDialog } from '@/components/SaveFilterDialog';
 import { Button } from '@/components/ui/button';
 import {
   ContextMenu,
@@ -32,8 +33,12 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { buildJqlFromFilters, createJiraFilter } from '@/services/jira/filters';
+import { readSecret } from '@/services/stronghold';
+import { useAuthStore } from '@/stores/auth.store';
 import type { QuickFilter } from '@/stores/filter.store';
 import { useFilterStore } from '@/stores/filter.store';
+import { useSavedFilterStore } from '@/stores/saved-filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
 
 // ── FilterDropdown ──────────────────────────────────────────────────────────
@@ -191,7 +196,12 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
 
   const { quickFilters, addQuickFilter, removeQuickFilter, renameQuickFilter, moveQuickFilter } =
     useSettingsStore();
+  const { epicLinkFieldKey } = useSettingsStore();
+  const jiraBaseUrl = useAuthStore((s) => s.jiraBaseUrl);
+  const activeJiraProject = useAuthStore((s) => s.activeJiraProject);
+  const { addSavedFilter } = useSavedFilterStore();
 
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [savingName, setSavingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -227,6 +237,21 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
   function handleStartSave() {
     setSavingName(true);
     setTimeout(() => nameInputRef.current?.focus(), 0);
+  }
+
+  async function handleSaveJiraFilter(name: string, description: string) {
+    if (!jiraBaseUrl || !activeJiraProject) return;
+    const token = await readSecret('jira-pat');
+    const jql = buildJqlFromFilters(
+      activeJiraProject,
+      Array.from(activeEpics),
+      Array.from(activeLabels),
+      Array.from(activeAssignees),
+      Array.from(activeStatuses),
+      epicLinkFieldKey,
+    );
+    const result = await createJiraFilter(jiraBaseUrl, token, name, jql, description);
+    addSavedFilter(result);
   }
 
   // Check if a quickfilter matches the current active filters
@@ -498,6 +523,19 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
           </span>
         )}
 
+        {/* Save to Jira */}
+        {hasActiveFilters && !savingName && (
+          <Button
+            variant="ghost"
+            size="xs"
+            onClick={() => setSaveDialogOpen(true)}
+            className="text-muted-foreground gap-1"
+          >
+            <BookmarkPlus className="size-3" />
+            <span className="text-[11px]">Save Filter</span>
+          </Button>
+        )}
+
         {/* Filter toggle button */}
         <Button
           variant={filtersOpen ? 'secondary' : 'outline'}
@@ -579,6 +617,12 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
           )}
         </div>
       )}
+      {/* Save Filter Dialog (Jira) */}
+      <SaveFilterDialog
+        open={saveDialogOpen}
+        onOpenChange={setSaveDialogOpen}
+        onSave={handleSaveJiraFilter}
+      />
     </div>
   );
 }
