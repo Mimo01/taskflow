@@ -6,13 +6,8 @@
  * clicking the chevron toggles expand/collapse without opening the sheet.
  */
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
-
-const STATUS_CATEGORY_STYLES: Record<string, string> = {
-  new: 'bg-muted text-muted-foreground',
-  indeterminate: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-  done: 'bg-green-500/15 text-green-600 dark:text-green-400',
-};
 
 interface StoryHeaderRowProps {
   storyKey: string;
@@ -35,7 +30,7 @@ export function StoryHeaderRow({
   onToggle,
   onOpenDetail,
 }: StoryHeaderRowProps) {
-  const statusStyle = STATUS_CATEGORY_STYLES[statusCategoryKey] ?? STATUS_CATEGORY_STYLES.new;
+  const statusStyle = statusCategoryBadgeClass(statusCategoryKey);
 
   return (
     <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 hover:bg-muted/60 transition-colors border-b border-border/30">

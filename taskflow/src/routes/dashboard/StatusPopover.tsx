@@ -12,15 +12,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { fetchTransitions } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
-
-const STATUS_CATEGORY_STYLES: Record<string, string> = {
-  new: 'bg-muted text-muted-foreground border-transparent',
-  indeterminate: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-transparent',
-  done: 'bg-green-500/15 text-green-600 dark:text-green-400 border-transparent',
-};
 
 interface StatusPopoverProps {
   issueKey: string;
@@ -73,7 +68,7 @@ export default function StatusPopover({
   }
 
   const categoryStyle = statusCategoryKey
-    ? STATUS_CATEGORY_STYLES[statusCategoryKey] ?? STATUS_CATEGORY_STYLES.new
+    ? `${statusCategoryBadgeClass(statusCategoryKey)} border-transparent`
     : 'border-border text-foreground';
 
   return (
