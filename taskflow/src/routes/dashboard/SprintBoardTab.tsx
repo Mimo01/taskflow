@@ -44,7 +44,12 @@ import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useFilterStore } from '@/stores/filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { fetchActiveSprint } from '@/services/jira/sprints';
+import { fetchBoardQuickFilters } from '@/services/jira/board-config';
+import type { JiraBoardQuickFilter } from '@/services/jira/types';
 import DraggableCard from './DraggableCard';
+import { QuickFilterChipRow } from './QuickFilterChipRow';
+import { SprintGoalBanner } from './SprintGoalBanner';
 import { StoryHeaderRow } from './StoryHeaderRow';
 import TaskCard from './TaskCard';
 
@@ -322,6 +327,23 @@ export default function SprintBoardTab() {
     return m;
   }, [epicsBasic]);
 
+  // Fetch active sprint (for goal text and board ID)
+  const { data: activeSprint } = useQuery({
+    queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl],
+    queryFn: () => fetchActiveSprint(jiraBaseUrl!, jiraToken!, activeJiraProject!),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
+  });
+
+  // Fetch board quick filters using the board ID from active sprint
+  const boardId = activeSprint?.originBoardId;
+  const { data: boardQuickFilters } = useQuery({
+    queryKey: ['jira-board-quickfilters', boardId],
+    queryFn: () => fetchBoardQuickFilters(jiraBaseUrl!, jiraToken!, boardId!),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!jiraBaseUrl && !!jiraToken && !!boardId,
+  });
+
   const [bannerDismissed, setBannerDismissed] = useState(false);
   useEffect(() => {
     setBannerDismissed(false);
@@ -485,7 +507,7 @@ export default function SprintBoardTab() {
     }));
   }, [localIssues]);
 
-  const { activeEpics, activeLabels, activeAssignees, activeStatuses } = useFilterStore();
+  const { activeEpics, activeLabels, activeAssignees, activeStatuses, activeJiraQuickFilters, activeLabelFilters } = useFilterStore();
 
   const filterOptions = useMemo(() => {
     // Epics: all project epics (not just those on current sprint issues)
@@ -542,8 +564,65 @@ export default function SprintBoardTab() {
           const issueStatus = (issue.fields.status?.name ?? '').toLowerCase();
           return Array.from(activeStatuses).some((s) => s.toLowerCase() === issueStatus);
         })();
-      return epicMatch && labelMatch && assigneeMatch && statusMatch;
+      // Jira board quick filter conditions (AND)
+      const qfMatch =
+        activeJiraQuickFilters.size === 0 ||
+        (() => {
+          for (const qfId of activeJiraQuickFilters) {
+            const qf = (boardQuickFilters ?? []).find((q: JiraBoardQuickFilter) => q.id === qfId);
+            if (qf) {
+              const cond = parseSimpleJql(qf.jql);
+              if (cond && !evaluateQfCondition(issue, cond)) return false;
+            }
+          }
+          return true;
+        })();
+
+      // Label chip filters
+      const labelChipMatch =
+        activeLabelFilters.size === 0 ||
+        ((issue.fields.labels as string[] | undefined) ?? []).some((l) =>
+          activeLabelFilters.has(l),
+        );
+
+      return epicMatch && labelMatch && assigneeMatch && statusMatch && qfMatch && labelChipMatch;
     });
+  }
+
+  /** Parse simple JQL: "field = value" or "field != value" */
+  function parseSimpleJql(jql: string): { field: string; op: string; value: string } | null {
+    const match = jql.trim().match(/^(\w+)\s*(=|!=)\s*"?([^"]+)"?$/i);
+    if (!match) return null;
+    return { field: match[1].toLowerCase(), op: match[2], value: match[3] };
+  }
+
+  /** Evaluate a simple JQL condition against a Jira issue */
+  function evaluateQfCondition(
+    issue: JiraIssue,
+    cond: { field: string; op: string; value: string },
+  ): boolean {
+    let fieldVal: string | undefined;
+    switch (cond.field) {
+      case 'issuetype':
+        fieldVal = issue.fields.issuetype.name;
+        break;
+      case 'priority':
+        fieldVal = (issue.fields as Record<string, unknown>).priority
+          ? ((issue.fields as Record<string, unknown>).priority as { name?: string })?.name
+          : undefined;
+        break;
+      case 'assignee':
+        fieldVal = issue.fields.assignee?.displayName;
+        break;
+      case 'status':
+        fieldVal = issue.fields.status.name;
+        break;
+      default:
+        return true; // unknown field = pass through
+    }
+    if (!fieldVal) return cond.op === '!=';
+    const isMatch = fieldVal.toLowerCase() === cond.value.toLowerCase();
+    return cond.op === '=' ? isMatch : !isMatch;
   }
 
   const filteredSwimlanes = useMemo(() => {
@@ -551,7 +630,9 @@ export default function SprintBoardTab() {
       activeEpics.size === 0 &&
       activeLabels.size === 0 &&
       activeAssignees.size === 0 &&
-      activeStatuses.size === 0
+      activeStatuses.size === 0 &&
+      activeJiraQuickFilters.size === 0 &&
+      activeLabelFilters.size === 0
     )
       return swimlanes;
     return swimlanes
@@ -563,7 +644,7 @@ export default function SprintBoardTab() {
         return { story, subtasks: filteredSubtasks };
       })
       .filter((s): s is { story: JiraIssue; subtasks: JiraIssue[] } => s !== null);
-  }, [swimlanes, activeEpics, activeLabels, activeAssignees, activeStatuses, applyFilters]);
+  }, [swimlanes, activeEpics, activeLabels, activeAssignees, activeStatuses, activeJiraQuickFilters, activeLabelFilters, applyFilters]);
 
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
@@ -653,6 +734,20 @@ export default function SprintBoardTab() {
             <div className="m-4">
               <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
             </div>
+          )}
+
+          {/* Sprint goal banner */}
+          {!isLoading && !isError && data && activeSprint?.goal && (
+            <SprintGoalBanner goal={activeSprint.goal} />
+          )}
+
+          {/* Quick filter chip row */}
+          {!isLoading && !isError && data && (
+            <QuickFilterChipRow
+              quickFilters={boardQuickFilters ?? []}
+              labels={filterOptions.labels}
+              issues={localIssues}
+            />
           )}
 
           {/* Unified filter bar */}
