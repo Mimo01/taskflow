@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { apiFetch } from '@/lib/apiFetch';
 import { epicColorToTailwind } from '@/lib/epicColors';
+import { statusCategoryBadgeClass, statusCategoryDotClass } from '@/lib/statusStyles';
 import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssueDetail } from '@/services/jira';
 import { updateIssueField } from '@/services/jira';
@@ -149,22 +150,6 @@ function useDebounce<T extends unknown[]>(fn: (...args: T) => void, delay: numbe
     },
     [fn, delay],
   );
-}
-
-// Status color helpers for linked issues
-function statusDot(statusName: string): string {
-  if (/done|closed|resolved/i.test(statusName)) return 'bg-green-500';
-  if (/in progress|in review|in development/i.test(statusName)) return 'bg-blue-500';
-  if (/to do|open|backlog|new/i.test(statusName)) return 'bg-gray-400';
-  return 'bg-gray-400';
-}
-
-function statusBadgeClasses(statusName: string): string {
-  if (/done|closed|resolved/i.test(statusName))
-    return 'bg-green-500/10 text-green-700 dark:text-green-400';
-  if (/in progress|in review|in development/i.test(statusName))
-    return 'bg-blue-500/10 text-blue-700 dark:text-blue-400';
-  return 'bg-muted text-muted-foreground';
 }
 
 // MR state color helpers
@@ -652,11 +637,11 @@ export function IssueDetailSidebar({
                   >
                     <div className="flex items-center gap-1.5">
                       <span
-                        className={`size-1.5 rounded-full shrink-0 ${statusDot(target.fields.status.name)}`}
+                        className={`size-1.5 rounded-full shrink-0 ${statusCategoryDotClass(target.fields.status.statusCategory?.key)}`}
                       />
                       <span className="font-mono text-xs">{target.key}</span>
                       <Badge
-                        className={`text-[10px] h-4 px-1.5 border-0 font-normal ${statusBadgeClasses(target.fields.status.name)}`}
+                        className={`text-[10px] h-4 px-1.5 border-0 font-normal ${statusCategoryBadgeClass(target.fields.status.statusCategory?.key)}`}
                       >
                         {target.fields.status.name}
                       </Badge>

@@ -14,6 +14,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { epicColorToTailwind } from '@/lib/epicColors';
+import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import type { EpicEnriched } from '@/services/jira';
 import { fetchEpicsBasic } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
@@ -70,7 +71,7 @@ function EpicRow({ epic, onEpicClick }: EpicRowProps) {
 
       {/* Status badge */}
       <td className="px-3 py-3">
-        <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground border-border">
+        <span className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium ${statusCategoryBadgeClass(epic.status.statusCategory?.key)}`}>
           {epic.status.name}
         </span>
       </td>
