@@ -13,12 +13,14 @@ interface WidgetCardProps {
   widgetId: string;
   widgetType: string;
   onRemove: () => void;
+  isEditable: boolean;
 }
 
 export default function WidgetCard({
   widgetId,
   widgetType,
   onRemove,
+  isEditable,
 }: WidgetCardProps) {
   const widgetDef = WIDGET_REGISTRY[widgetType];
 
@@ -33,23 +35,27 @@ export default function WidgetCard({
   const WidgetComponent = widgetDef.component;
 
   return (
-    <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden h-full flex flex-col">
+    <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden h-full flex flex-col${isEditable ? ' ring-2 ring-primary/20' : ''}`}>
       {/* Title bar */}
       <div className="flex items-center h-10 px-3 border-b border-border bg-card gap-2">
-        <div className="widget-drag-handle cursor-grab">
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
-        </div>
+        {isEditable && (
+          <div className="widget-drag-handle cursor-grab">
+            <GripVertical className="h-4 w-4 text-muted-foreground" />
+          </div>
+        )}
         <span className="text-sm font-medium text-foreground truncate flex-1">
           {widgetDef.title}
         </span>
-        <button
-          type="button"
-          onClick={onRemove}
-          className="size-6 rounded-sm hover:bg-destructive/10 hover:text-destructive flex items-center justify-center"
-          aria-label={`Remove ${widgetDef.title} widget`}
-        >
-          <X className="size-3.5" />
-        </button>
+        {isEditable && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="size-6 rounded-sm hover:bg-destructive/10 hover:text-destructive flex items-center justify-center"
+            aria-label={`Remove ${widgetDef.title} widget`}
+          >
+            <X className="size-3.5" />
+          </button>
+        )}
       </div>
 
       {/* Content area */}
