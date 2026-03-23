@@ -12,7 +12,7 @@
  */
 
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bookmark, SearchX } from 'lucide-react';
+import { SearchX } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import {
@@ -34,7 +34,6 @@ import { applyTheme, saveTheme, type Theme } from '@/services/theme';
 import { useAuthStore } from '@/stores/auth.store';
 import { useNotificationsStore } from '@/stores/notifications.store';
 import { useRecentItemsStore } from '@/stores/recent-items.store';
-import { useSavedFilterStore } from '@/stores/saved-filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
 
 const THEME_CYCLE: Theme[] = ['light', 'dark', 'system'];
@@ -64,7 +63,6 @@ export default function CommandPalette({
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
   const pushRecentItem = useRecentItemsStore((s) => s.pushItem);
   const recentItems = useRecentItemsStore((s) => s.items);
-  const { savedFilters } = useSavedFilterStore();
 
   // KEYS migration: all keyboard shortcuts use react-hotkeys-hook (no raw window listeners)
   // enableOnFormTags: true is intentional -- Escape must close the palette even while typing
@@ -359,34 +357,6 @@ export default function CommandPalette({
               </CommandItem>
             </CommandGroup>
 
-            {/* Saved Filters group -- only shown when filters exist */}
-            {savedFilters.length > 0 && (
-              <>
-                <CommandSeparator />
-                <CommandGroup heading="Saved Filters">
-                  {savedFilters.map((filter) => (
-                    <CommandItem
-                      key={filter.id}
-                      value={`filter ${filter.name}`}
-                      keywords={['saved', 'filter', 'jql', filter.name]}
-                      onSelect={() => {
-                        onNavigate('/sprint-board');
-                        useSavedFilterStore.getState().setActiveFilter(filter.id);
-                        onClose();
-                      }}
-                    >
-                      <Bookmark className="size-4 mr-2" />
-                      <span>{filter.name}</span>
-                      {filter.description && (
-                        <span className="text-xs text-muted-foreground ml-2 truncate">
-                          {filter.description}
-                        </span>
-                      )}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </>
-            )}
           </CommandList>
         </Command>
       </div>
