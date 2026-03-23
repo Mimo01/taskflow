@@ -44,7 +44,7 @@ Requirements for milestone v1.5: Dashboard Redesign & Feature Parity.
 - [x] **FILT-01**: User can save current search as a named filter (synced to Jira server)
 - [x] **FILT-02**: User can view and execute saved/favourite filters from Jira
 - [x] **FILT-03**: User can edit and delete saved filters
-- [ ] **FILT-04**: User can access saved filters from sidebar and command palette
+- [x] **FILT-04**: User can access saved filters from sidebar and command palette
 
 ### Layout
 
@@ -112,7 +112,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FILT-01 | Phase 33 | Complete |
 | FILT-02 | Phase 33 | Complete |
 | FILT-03 | Phase 33 | Complete |
-| FILT-04 | Phase 33 | Pending |
+| FILT-04 | Phase 33 | Complete |
 | LAYOUT-01 | Phase 34 | Pending |
 | LAYOUT-02 | Phase 34 | Pending |
 | LAYOUT-03 | Phase 34 | Pending |
