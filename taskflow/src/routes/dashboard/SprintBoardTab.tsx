@@ -47,6 +47,8 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { fetchActiveSprint } from '@/services/jira/sprints';
 import { fetchBoardQuickFilters } from '@/services/jira/board-config';
 import type { JiraBoardQuickFilter } from '@/services/jira/types';
+import { useBoardSelectionStore } from '@/stores/board-selection.store';
+import { BulkActionBar } from './BulkActionBar';
 import DraggableCard from './DraggableCard';
 import { QuickFilterChipRow } from './QuickFilterChipRow';
 import { SprintGoalBanner } from './SprintGoalBanner';
@@ -112,6 +114,9 @@ function VirtualizedSwimlanes({
   activeIssue,
   validTargetCategories,
   cardErrors,
+  selectedKeys,
+  hasAnySelection,
+  onToggleSelect,
 }: {
   filteredSwimlanes: { story: JiraIssue; subtasks: JiraIssue[] }[];
   scrollElement: HTMLElement | null;
@@ -121,6 +126,9 @@ function VirtualizedSwimlanes({
   activeIssue: JiraIssue | null;
   validTargetCategories: Set<CategoryKey>;
   cardErrors: Map<string, string>;
+  selectedKeys: Set<string>;
+  hasAnySelection: boolean;
+  onToggleSelect: (key: string, shiftKey: boolean) => void;
 }) {
   const swimlaneVirtualizer = useVirtualizer({
     count: filteredSwimlanes.length,
@@ -190,6 +198,9 @@ function VirtualizedSwimlanes({
                         isSubtask={card.fields.issuetype.subtask}
                         showStatus
                         onOpenDetail={setSelectedIssueKey}
+                        isSelected={selectedKeys.has(card.key)}
+                        hasAnySelection={hasAnySelection}
+                        onToggleSelect={onToggleSelect}
                       />
                       {cardErrors.get(card.key) && (
                         <p className="text-xs text-destructive px-1">
@@ -264,6 +275,15 @@ export default function SprintBoardTab() {
   const [isDragging, setIsDragging] = useState(false);
   const [activeIssue, setActiveIssue] = useState<JiraIssue | null>(null);
   const [cardErrors, setCardErrors] = useState<Map<string, string>>(new Map());
+
+  // Phase 33: Multi-select state from board selection store
+  const { selectedKeys, hasSelection, toggleSelection, rangeSelect, clearSelection, lastClickedKey } =
+    useBoardSelectionStore();
+
+  // Clear selection on unmount (navigation away)
+  useEffect(() => {
+    return () => clearSelection();
+  }, [clearSelection]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -646,6 +666,24 @@ export default function SprintBoardTab() {
       .filter((s): s is { story: JiraIssue; subtasks: JiraIssue[] } => s !== null);
   }, [swimlanes, activeEpics, activeLabels, activeAssignees, activeStatuses, activeJiraQuickFilters, activeLabelFilters, applyFilters]);
 
+  // Phase 33: Build ordered list of all visible card keys for range selection
+  const allVisibleKeys = useMemo(() => {
+    return filteredSwimlanes.flatMap(({ story, subtasks }) => {
+      const cards = subtasks.length > 0 ? subtasks : [story];
+      return cards.map((c) => c.key);
+    });
+  }, [filteredSwimlanes]);
+
+  function handleToggleSelect(key: string, shiftKey: boolean) {
+    if (shiftKey && lastClickedKey) {
+      rangeSelect(lastClickedKey, key, allVisibleKeys);
+    } else {
+      toggleSelection(key);
+    }
+  }
+
+  const priorities = ['Highest', 'High', 'Medium', 'Low', 'Lowest'];
+
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
     : 'Refreshed: Never';
@@ -773,6 +811,9 @@ export default function SprintBoardTab() {
               activeIssue={activeIssue}
               validTargetCategories={validTargetCategories}
               cardErrors={cardErrors}
+              selectedKeys={selectedKeys}
+              hasAnySelection={hasSelection}
+              onToggleSelect={handleToggleSelect}
             />
           )}
         </div>
@@ -780,6 +821,23 @@ export default function SprintBoardTab() {
         {/* DragOverlay renders OUTSIDE the virtualized container */}
         <DragOverlay>{activeIssue ? <TaskCard issue={activeIssue} /> : null}</DragOverlay>
       </DndContext>
+
+      {/* Phase 33: Floating bulk action bar */}
+      {hasSelection && (
+        <BulkActionBar
+          selectedKeys={selectedKeys}
+          issues={localIssues}
+          statuses={filterOptions.statuses}
+          assignees={filterOptions.assignees}
+          priorities={priorities}
+          onClearSelection={clearSelection}
+          onOptimisticUpdate={(updater) => setLocalIssues(updater)}
+          onBulkComplete={() => {
+            clearSelection();
+            queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
+          }}
+        />
+      )}
     </>
   );
 }
