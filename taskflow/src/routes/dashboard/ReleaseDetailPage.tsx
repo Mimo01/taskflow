@@ -20,14 +20,18 @@ import {
   X,
 } from 'lucide-react';
 import type React from 'react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import type { GitLabMilestone } from '@/services/gitlab';
+import { fetchProjectMilestonesInRange } from '@/services/gitlab';
 import { fetchFixVersions, updateFixVersion } from '@/services/jira';
+import type { ReleaseMatch } from '@/services/releaseLinker';
+import { matchGitLabToFixVersion } from '@/services/releaseLinker';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
@@ -79,7 +83,17 @@ export default function ReleaseDetailPage() {
   const trail = useBreadcrumbStore((s) => s.trail);
   const breadcrumbPop = useBreadcrumbStore((s) => s.pop);
 
-  const { jiraBaseUrl, activeJiraProject } = useAuthStore();
+  const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, activeGitlabProject } = useAuthStore();
+
+  const [gitlabToken, setGitlabToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (gitlabBaseUrl) {
+      readSecret('gitlab-pat')
+        .then((t) => setGitlabToken(t))
+        .catch(() => setGitlabToken(null));
+    }
+  }, [gitlabBaseUrl]);
 
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState('');
@@ -117,6 +131,61 @@ export default function ReleaseDetailPage() {
     staleTime: 5 * 60_000,
     enabled: !!jiraBaseUrl && !!versionId,
   });
+
+  // Fetch GitLab milestones scoped around this version's release date
+  const MILESTONE_LEEWAY_DAYS = 7;
+  const milestoneWindow = useMemo(() => {
+    if (!version?.releaseDate) return null;
+    const addDays = (d: string, n: number) => {
+      const dt = new Date(d);
+      dt.setDate(dt.getDate() + n);
+      return dt.toISOString().slice(0, 10);
+    };
+    return {
+      from: addDays(version.releaseDate, -MILESTONE_LEEWAY_DAYS),
+      to: addDays(version.releaseDate, MILESTONE_LEEWAY_DAYS),
+    };
+  }, [version?.releaseDate]);
+
+  const { data: milestones } = useQuery({
+    queryKey: [
+      'gitlab-milestones',
+      activeGitlabProject,
+      milestoneWindow?.from,
+      milestoneWindow?.to,
+    ],
+    queryFn: () =>
+      fetchProjectMilestonesInRange(
+        gitlabBaseUrl!,
+        gitlabToken!,
+        activeGitlabProject!,
+        milestoneWindow?.from ?? '',
+        milestoneWindow?.to ?? '',
+      ),
+    enabled:
+      !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken && milestoneWindow !== null,
+    staleTime: 5 * 60_000,
+  });
+
+  // Match GitLab milestone to this fix version by date
+  const gitlabMatch: ReleaseMatch = useMemo(() => {
+    const noMatch: ReleaseMatch = { type: 'none', candidateName: '', candidateUrl: '' };
+    if (!version?.releaseDate || !milestones) return noMatch;
+
+    const candidates = (milestones as GitLabMilestone[]).map((m) => ({
+      date: m.due_date,
+      name: m.title,
+      url: m.web_url,
+    }));
+
+    let bestMatch: ReleaseMatch = noMatch;
+    for (const cand of candidates) {
+      const match = matchGitLabToFixVersion(version.releaseDate, cand);
+      if (match.type === 'exact') return match;
+      if (match.type === 'fuzzy' && bestMatch.type === 'none') bestMatch = match;
+    }
+    return bestMatch;
+  }, [version?.releaseDate, milestones]);
 
   // Populate edit form when entering edit mode
   const startEditing = useCallback(() => {
@@ -488,6 +557,54 @@ export default function ReleaseDetailPage() {
                     </span>
                   ) : (
                     <span className="text-muted-foreground">Loading...</span>
+                  )}
+                </MetaRow>
+
+                <MetaRow label="GitLab Milestone">
+                  {gitlabMatch.type === 'exact' ? (
+                    gitlabMatch.candidateUrl ? (
+                      <button
+                        type="button"
+                        onClick={() => openUrl(gitlabMatch.candidateUrl)}
+                        className="text-primary hover:underline flex items-center gap-1"
+                        data-testid="gitlab-link-exact"
+                      >
+                        {gitlabMatch.candidateName}
+                        <ExternalLink className="size-3 shrink-0" />
+                      </button>
+                    ) : (
+                      <span data-testid="gitlab-link-exact">
+                        {gitlabMatch.candidateName}
+                      </span>
+                    )
+                  ) : gitlabMatch.type === 'fuzzy' ? (
+                    gitlabMatch.candidateUrl ? (
+                      <button
+                        type="button"
+                        onClick={() => openUrl(gitlabMatch.candidateUrl)}
+                        className="border-b border-dashed border-muted-foreground hover:text-foreground flex items-center gap-1"
+                        title={`Fuzzy match: ${gitlabMatch.candidateName}`}
+                        data-testid="gitlab-link-fuzzy"
+                      >
+                        {gitlabMatch.candidateName}
+                        <ExternalLink className="size-3 shrink-0" />
+                      </button>
+                    ) : (
+                      <span
+                        className="border-b border-dashed border-muted-foreground"
+                        title={`Fuzzy match: ${gitlabMatch.candidateName}`}
+                        data-testid="gitlab-link-fuzzy"
+                      >
+                        {gitlabMatch.candidateName}
+                      </span>
+                    )
+                  ) : (
+                    <span
+                      className="text-muted-foreground"
+                      data-testid="gitlab-link-none"
+                    >
+                      No GitLab link
+                    </span>
                   )}
                 </MetaRow>
               </div>

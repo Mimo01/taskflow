@@ -513,29 +513,41 @@ export async function fetchProjectMilestones(
   projectId: number,
 ): Promise<GitLabMilestone[]> {
   const base = baseUrl.replace(/\/$/, '');
-  const url = `${base}/api/v4/projects/${projectId}/milestones?per_page=100`;
+  // include_ancestors=true: also return milestones inherited from parent groups
+  const perPage = 100;
+  let page = 1;
+  const allMilestones: GitLabMilestone[] = [];
 
-  let response: Response;
-  try {
-    response = await apiFetch('gitlab', url, {
-      headers: {
-        'PRIVATE-TOKEN': token,
-        'Content-Type': 'application/json',
-      },
-    }, 'Load Releases');
-  } catch {
-    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
-  }
+  while (true) {
+    const url = `${base}/api/v4/projects/${projectId}/milestones?per_page=${perPage}&page=${page}&include_ancestors=true`;
 
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new ApiError('Failed to fetch milestones', response.status, 'gitlab');
+    let response: Response;
+    try {
+      response = await apiFetch('gitlab', url, {
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
+      }, 'Load Releases');
+    } catch {
+      throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
     }
-    throw new Error('Failed to fetch milestones');
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new ApiError('Failed to fetch milestones', response.status, 'gitlab');
+      }
+      throw new Error('Failed to fetch milestones');
+    }
+
+    const data = (await response.json()) as GitLabMilestone[];
+    allMilestones.push(...data);
+
+    if (data.length < perPage) break;
+    page++;
   }
 
-  const data = await response.json();
-  return data as GitLabMilestone[];
+  return allMilestones;
 }
 
 /**
