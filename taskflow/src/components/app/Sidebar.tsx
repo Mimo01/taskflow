@@ -1,34 +1,24 @@
 /**
- * Sidebar — App sidebar with navigation links and settings access.
+ * Sidebar -- App sidebar with data-driven navigation links.
  *
  * Layout: vertical sidebar. Contains:
  * - App name/logo at top
- * - Dashboard link (always present)
- * - Role-conditional nav links: developer sees My Tasks, Sprint Board, MR Attention;
- *   PM sees Sprint Progress, Workload, Releases
- * - Bottom: Settings link
+ * - Data-driven nav links from sidebarItems[] in settings store
+ * - Bottom: Dev Tools (when enabled) + Settings link (always pinned)
  *
  * Gear icon is always one click away from anywhere in the app.
  */
 
 import {
-  BarChart2,
-  BookOpen,
   Bug,
-  CheckSquare,
   ChevronLeft,
   ChevronRight,
-  GitMerge,
-  KanbanSquare,
-  LayoutDashboard,
-  List,
   Settings,
-  Tag,
-  Users,
 } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useSettingsStore } from '@/stores/settings.store';
+import { SIDEBAR_NAV_ITEMS, type SidebarNavDef } from '@/components/app/sidebar-items';
 import AppIcon from './AppIcon';
 
 const NAV_LINK_BASE =
@@ -40,16 +30,20 @@ function navLinkClassFn(collapsed: boolean) {
 }
 
 export default function Sidebar() {
-  const { role, devToolsEnabled } = useSettingsStore();
+  const devToolsEnabled = useSettingsStore((s) => s.devToolsEnabled);
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);
   const toggleSidebarCollapsed = useSettingsStore((s) => s.toggleSidebarCollapsed);
+  const sidebarItems = useSettingsStore((s) => s.sidebarItems);
   const [hovered, setHovered] = useState(false);
 
   const navLinkClass = navLinkClassFn(sidebarCollapsed);
   const labelClass = sidebarCollapsed ? 'hidden' : 'hidden md:block';
-  const sectionLabelClass = sidebarCollapsed
-    ? 'px-1 py-1 text-[10px] font-semibold uppercase tracking-tight text-muted-foreground text-center'
-    : 'px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:block';
+
+  // Merge stored order/visibility with static definitions
+  const visibleNavItems = sidebarItems
+    .filter(item => item.visible)
+    .map(item => SIDEBAR_NAV_ITEMS.find(def => def.id === item.id))
+    .filter((def): def is SidebarNavDef => def != null);
 
   return (
     <aside
@@ -79,127 +73,19 @@ export default function Sidebar() {
         <span className={`text-base font-semibold text-foreground ${labelClass}`}>Taskflow</span>
       </div>
 
-      {/* Nav links */}
+      {/* Nav links -- data-driven from sidebarItems store */}
       <nav className="flex-1 min-h-0 overflow-y-auto px-2 py-4 flex flex-col gap-1">
-        <NavLink
-          to="/dashboard"
-          className={navLinkClass}
-          title={sidebarCollapsed ? 'Dashboard' : undefined}
-        >
-          <LayoutDashboard className="h-4 w-4 shrink-0" />
-          <span className={labelClass}>Dashboard</span>
-        </NavLink>
-
-        {/* Shared: Epics (visible for all roles) */}
-        <NavLink
-          to="/epics"
-          className={navLinkClass}
-          title={sidebarCollapsed ? 'Epics' : undefined}
-        >
-          <BookOpen className="h-4 w-4 shrink-0" />
-          <span className={labelClass}>Epics</span>
-        </NavLink>
-
-        {/* Shared: Merge Requests (visible for all roles) */}
-        <NavLink
-          to="/merge-requests"
-          className={navLinkClass}
-          title={sidebarCollapsed ? 'Merge Requests' : undefined}
-        >
-          <GitMerge className="h-4 w-4 shrink-0" />
-          <span className={labelClass}>Merge Requests</span>
-        </NavLink>
-
-        {/* Work section (role-specific) */}
-        {(role === 'developer' || role === 'pm' || role === 'tech-lead') && (
-          <div className="mt-2">
-            {/* Developer and PM roles: single "Work" label */}
-            {(role === 'developer' || role === 'pm') && (
-              <p className={sectionLabelClass}>{sidebarCollapsed ? 'WRK' : 'Work'}</p>
-            )}
-
-            {/* Developer role links */}
-            {(role === 'developer' || role === 'tech-lead') && (
-              <>
-                {role === 'tech-lead' && (
-                  <p className={sectionLabelClass}>{sidebarCollapsed ? 'DEV' : 'Developer'}</p>
-                )}
-                <NavLink
-                  to="/my-tasks"
-                  className={navLinkClass}
-                  title={sidebarCollapsed ? 'My Tasks' : undefined}
-                >
-                  <CheckSquare className="h-4 w-4 shrink-0" />
-                  <span className={labelClass}>My Tasks</span>
-                </NavLink>
-                <NavLink
-                  to="/sprint-board"
-                  className={navLinkClass}
-                  title={sidebarCollapsed ? 'Sprint Board' : undefined}
-                >
-                  <KanbanSquare className="h-4 w-4 shrink-0" />
-                  <span className={labelClass}>Sprint Board</span>
-                </NavLink>
-                <NavLink
-                  to="/backlog"
-                  className={navLinkClass}
-                  title={sidebarCollapsed ? 'Backlog' : undefined}
-                >
-                  <List className="h-4 w-4 shrink-0" />
-                  <span className={labelClass}>Backlog</span>
-                </NavLink>
-                <NavLink
-                  to="/mr-attention"
-                  className={navLinkClass}
-                  title={sidebarCollapsed ? 'MR Attention' : undefined}
-                >
-                  <GitMerge className="h-4 w-4 shrink-0" />
-                  <span className={labelClass}>MR Attention</span>
-                </NavLink>
-              </>
-            )}
-
-            {/* PM role links */}
-            {(role === 'pm' || role === 'tech-lead') && (
-              <>
-                {role === 'tech-lead' && <p className={`${sectionLabelClass} mt-2`}>PM</p>}
-                <NavLink
-                  to="/sprint-progress"
-                  className={navLinkClass}
-                  title={sidebarCollapsed ? 'Sprint Progress' : undefined}
-                >
-                  <BarChart2 className="h-4 w-4 shrink-0" />
-                  <span className={labelClass}>Sprint Progress</span>
-                </NavLink>
-                <NavLink
-                  to="/workload"
-                  className={navLinkClass}
-                  title={sidebarCollapsed ? 'Workload' : undefined}
-                >
-                  <Users className="h-4 w-4 shrink-0" />
-                  <span className={labelClass}>Workload</span>
-                </NavLink>
-                <NavLink
-                  to="/backlog"
-                  className={navLinkClass}
-                  title={sidebarCollapsed ? 'Backlog' : undefined}
-                >
-                  <List className="h-4 w-4 shrink-0" />
-                  <span className={labelClass}>Backlog</span>
-                </NavLink>
-                <NavLink
-                  to="/releases"
-                  className={navLinkClass}
-                  title={sidebarCollapsed ? 'Releases' : undefined}
-                >
-                  <Tag className="h-4 w-4 shrink-0" />
-                  <span className={labelClass}>Releases</span>
-                </NavLink>
-              </>
-            )}
-          </div>
-        )}
-
+        {visibleNavItems.map(def => (
+          <NavLink
+            key={def.id}
+            to={def.path}
+            className={navLinkClass}
+            title={sidebarCollapsed ? def.label : undefined}
+          >
+            <def.icon className="h-4 w-4 shrink-0" />
+            <span className={labelClass}>{def.label}</span>
+          </NavLink>
+        ))}
       </nav>
 
       {/* Bottom: Dev Tools (when enabled) + Settings */}
