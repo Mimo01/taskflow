@@ -14,11 +14,12 @@ import { useSettingsStore } from '@/stores/settings.store';
 
 export default function RoleStep() {
   const { role, set, goNext, goBack } = useOnboardingStore();
-  const { setRole } = useSettingsStore();
+  const { setRole, applyPreset } = useSettingsStore();
 
   const handleValueChange = (value: 'developer' | 'pm' | 'tech-lead') => {
     set({ role: value });
     setRole(value);
+    applyPreset(value === 'pm' ? 'pm' : 'dev');
   };
 
   return (

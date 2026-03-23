@@ -12,7 +12,7 @@
  *   - RoleSection: existing, unchanged
  */
 
-import { Bell, GitBranch, Link2, Palette, Settings2, UserCog } from 'lucide-react';
+import { Bell, GitBranch, Link2, Palette, PanelLeft, Settings2, UserCog } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import AppearanceSection from './AppearanceSection';
@@ -20,11 +20,13 @@ import ConnectionsSection from './ConnectionsSection';
 import DebugModeSection from './DebugModeSection';
 import NotificationsSection from './NotificationsSection';
 import RoleSection from './RoleSection';
+import SidebarSection from './SidebarSection';
 import WorkflowSection from './WorkflowSection';
 
 type SettingsSection =
   | 'connections'
   | 'appearance'
+  | 'sidebar'
   | 'notifications'
   | 'workflow'
   | 'advanced'
@@ -33,6 +35,7 @@ type SettingsSection =
 const SECTIONS: { id: SettingsSection; label: string; icon: React.ReactNode }[] = [
   { id: 'connections', label: 'Connections', icon: <Link2 className="h-4 w-4" /> },
   { id: 'appearance', label: 'Appearance', icon: <Palette className="h-4 w-4" /> },
+  { id: 'sidebar', label: 'Sidebar', icon: <PanelLeft className="h-4 w-4" /> },
   { id: 'notifications', label: 'Notifications', icon: <Bell className="h-4 w-4" /> },
   { id: 'workflow', label: 'Workflow', icon: <GitBranch className="h-4 w-4" /> },
   { id: 'role', label: 'Role', icon: <UserCog className="h-4 w-4" /> },
@@ -73,6 +76,7 @@ export default function Settings() {
           </div>
         )}
         {activeSection === 'appearance' && <AppearanceSection />}
+        {activeSection === 'sidebar' && <SidebarSection />}
         {activeSection === 'notifications' && <NotificationsSection />}
         {activeSection === 'workflow' && <WorkflowSection />}
         {activeSection === 'role' && (

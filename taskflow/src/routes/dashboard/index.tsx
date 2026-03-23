@@ -11,7 +11,6 @@ import { LayoutDashboard, Lock, RefreshCw, Unlock } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Switch } from '@/components/ui/switch';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import WidgetGrid from './WidgetGrid';
@@ -59,11 +58,6 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Overview</h1>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5">
-            {isEditable ? <Unlock className="size-3 text-primary" /> : <Lock className="size-3 text-muted-foreground" />}
-            <span className="text-xs text-muted-foreground">Edit</span>
-            <Switch checked={isEditable} onCheckedChange={setIsEditable} aria-label="Toggle edit mode" />
-          </div>
           <span className="text-xs text-muted-foreground">{lastRefreshed}</span>
           <button
             type="button"
@@ -74,13 +68,12 @@ export default function Dashboard() {
             <RefreshCw className="size-3" />
             Refresh
           </button>
-          {isEditable && (
-            <WidgetPicker
-              open={pickerOpen}
-              onOpenChange={setPickerOpen}
-              onAddWidget={(type) => addDashboardWidget(type)}
-            />
-          )}
+          <WidgetPicker
+            open={pickerOpen}
+            onOpenChange={setPickerOpen}
+            onAddWidget={(type) => addDashboardWidget(type)}
+            showTrigger={isEditable}
+          />
         </div>
       </div>
 
@@ -104,6 +97,21 @@ export default function Dashboard() {
           isEditable={isEditable}
         />
       )}
+
+      {/* Floating edit mode toggle — bottom right */}
+      <button
+        type="button"
+        onClick={() => setIsEditable((v) => !v)}
+        className={`fixed bottom-4 right-4 z-50 flex items-center gap-1.5 rounded-full px-3 py-2 shadow-lg border transition-colors ${
+          isEditable
+            ? 'bg-primary text-primary-foreground border-primary'
+            : 'bg-background text-muted-foreground border-border hover:text-foreground'
+        }`}
+        aria-label="Toggle edit mode"
+      >
+        {isEditable ? <Unlock className="size-4" /> : <Lock className="size-4" />}
+        <span className="text-xs font-medium">{isEditable ? 'Editing' : 'Locked'}</span>
+      </button>
     </div>
   );
 }
