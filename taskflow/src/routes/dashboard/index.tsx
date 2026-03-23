@@ -7,10 +7,11 @@
  */
 
 import { useQueryClient } from '@tanstack/react-query';
-import { LayoutDashboard, RefreshCw } from 'lucide-react';
+import { LayoutDashboard, Lock, RefreshCw, Unlock } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Switch } from '@/components/ui/switch';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import WidgetGrid from './WidgetGrid';
@@ -23,6 +24,7 @@ export default function Dashboard() {
   const addDashboardWidget = useSettingsStore((s) => s.addDashboardWidget);
   const removeDashboardWidget = useSettingsStore((s) => s.removeDashboardWidget);
   const { activeJiraProject } = useAuthStore();
+  const [isEditable, setIsEditable] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const queryClient = useQueryClient();
 
@@ -57,6 +59,11 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Overview</h1>
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            {isEditable ? <Unlock className="size-3 text-primary" /> : <Lock className="size-3 text-muted-foreground" />}
+            <span className="text-xs text-muted-foreground">Edit</span>
+            <Switch checked={isEditable} onCheckedChange={setIsEditable} aria-label="Toggle edit mode" />
+          </div>
           <span className="text-xs text-muted-foreground">{lastRefreshed}</span>
           <button
             type="button"
@@ -67,11 +74,13 @@ export default function Dashboard() {
             <RefreshCw className="size-3" />
             Refresh
           </button>
-          <WidgetPicker
-            open={pickerOpen}
-            onOpenChange={setPickerOpen}
-            onAddWidget={(type) => addDashboardWidget(type)}
-          />
+          {isEditable && (
+            <WidgetPicker
+              open={pickerOpen}
+              onOpenChange={setPickerOpen}
+              onAddWidget={(type) => addDashboardWidget(type)}
+            />
+          )}
         </div>
       </div>
 
@@ -92,6 +101,7 @@ export default function Dashboard() {
           layout={dashboardLayout}
           onLayoutChange={(newLayout) => setDashboardLayout(newLayout)}
           onRemoveWidget={(id) => removeDashboardWidget(id)}
+          isEditable={isEditable}
         />
       )}
     </div>

@@ -19,6 +19,7 @@ interface WidgetGridProps {
   layout: DashboardLayoutItem[];
   onLayoutChange: (layout: DashboardLayoutItem[]) => void;
   onRemoveWidget: (widgetId: string) => void;
+  isEditable: boolean;
 }
 
 const BREAKPOINTS = { lg: 1200, md: 996, sm: 768 };
@@ -28,6 +29,7 @@ export default function WidgetGrid({
   layout,
   onLayoutChange,
   onRemoveWidget,
+  isEditable,
 }: WidgetGridProps) {
   const { width, containerRef } = useContainerWidth();
 
@@ -58,18 +60,24 @@ export default function WidgetGrid({
     onLayoutChange(merged);
   }
 
+  // When not editable, mark all layout items as static to prevent resize
+  const effectiveLayout = useMemo(
+    () => layout.map((item) => ({ ...item, static: !isEditable })),
+    [layout, isEditable],
+  );
+
   return (
     <div ref={containerRef}>
       {width > 0 && (
         <ResponsiveGridLayout
           width={width}
-          layouts={{ lg: layout }}
+          layouts={{ lg: effectiveLayout }}
           breakpoints={BREAKPOINTS}
           cols={COLS}
           rowHeight={80}
           margin={[16, 16]}
           compactor={verticalCompactor}
-          dragConfig={{ enabled: true, bounded: false, handle: '.widget-drag-handle' }}
+          dragConfig={{ enabled: isEditable, bounded: false, handle: '.widget-drag-handle' }}
           onLayoutChange={handleLayoutChange}
         >
           {layout.map((item) => (
@@ -78,6 +86,7 @@ export default function WidgetGrid({
                 widgetId={item.i}
                 widgetType={item.type}
                 onRemove={() => onRemoveWidget(item.i)}
+                isEditable={isEditable}
               />
             </div>
           ))}
