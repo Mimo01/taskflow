@@ -97,7 +97,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-23T12:25:07Z
-Last activity: 2026-03-23 - Completed quick task 260323-iiu: I want to be able to change issue status
+Last activity: 2026-03-23 - Completed quick task 260323-iwp: In issue detail I want to see assignee on the subtasks list. The same on epic page for story list
 Resume: Roadmap created for v1.5. Next: `/gsd:plan-phase 31`
 
 ### Quick Tasks Completed
@@ -112,3 +112,4 @@ Resume: Roadmap created for v1.5. Next: `/gsd:plan-phase 31`
 | 260323-hwn | Add label summary to release detail page | 2026-03-23 | 1026cd0 | Verified | [260323-hwn-on-the-release-detail-page-i-want-to-see](./quick/260323-hwn-on-the-release-detail-page-i-want-to-see/) |
 | 260323-i4a | In release detail I want to have an info if all merge requests have at least one label or not | 2026-03-23 | 646d330 | | [260323-i4a-in-release-detail-i-want-to-have-an-info](./quick/260323-i4a-in-release-detail-i-want-to-have-an-info/) |
 | 260323-iiu | Change issue status from detail sidebar via Jira transitions | 2026-03-23 | f6661f8 | | [260323-iiu-i-want-to-be-able-to-change-issue-status](./quick/260323-iiu-i-want-to-be-able-to-change-issue-status/) |
+| 260323-iwp | Add assignee avatars to subtask and epic story rows in issue detail | 2026-03-23 | e5c5734 | | [260323-iwp-in-issue-detail-i-want-to-see-assignee-o](./quick/260323-iwp-in-issue-detail-i-want-to-see-assignee-o/) |

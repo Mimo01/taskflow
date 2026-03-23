@@ -995,7 +995,11 @@ export interface JiraIssueDetail {
     subtasks: Array<{
       id: string;
       key: string;
-      fields: { summary: string; status: { name: string } };
+      fields: {
+        summary: string;
+        status: { name: string };
+        assignee?: { displayName: string; name: string; avatarUrls: { '48x48': string } } | null;
+      };
     }>;
     issuelinks: JiraIssueLink[];
     comment: { comments: JiraComment[] };
