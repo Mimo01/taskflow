@@ -65,22 +65,6 @@ function parseSprintToStringName(str: string): string | null {
   return match ? match[1] : null;
 }
 
-// Status color helpers for linked issues
-export function statusDot(statusName: string): string {
-  if (/done|closed|resolved/i.test(statusName)) return 'bg-green-500';
-  if (/in progress|in review|in development/i.test(statusName)) return 'bg-blue-500';
-  if (/to do|open|backlog|new/i.test(statusName)) return 'bg-gray-400';
-  return 'bg-gray-400';
-}
-
-export function statusBadgeClasses(statusName: string): string {
-  if (/done|closed|resolved/i.test(statusName))
-    return 'bg-green-500/10 text-green-700 dark:text-green-400';
-  if (/in progress|in review|in development/i.test(statusName))
-    return 'bg-blue-500/10 text-blue-700 dark:text-blue-400';
-  return 'bg-muted text-muted-foreground';
-}
-
 // MR state color helpers
 export function mrStateClasses(state: GitLabMR['state']): string {
   if (state === 'opened') return 'bg-green-500/10 text-green-700 dark:text-green-400';

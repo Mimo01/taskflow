@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import type { JiraIssueDetail } from '@/services/jira';
-import { statusBadgeClasses, statusDot } from './utils';
+import { statusCategoryBadgeClass, statusCategoryDotClass } from '@/lib/statusStyles';
 
 interface LinkedIssuesSectionProps {
   issuelinks: JiraIssueDetail['fields']['issuelinks'];
@@ -50,11 +50,11 @@ export function LinkedIssuesSection({ issuelinks, onOpenIssue }: LinkedIssuesSec
               >
                 <div className="flex items-center gap-1.5">
                   <span
-                    className={`size-1.5 rounded-full shrink-0 ${statusDot(target.fields.status.name)}`}
+                    className={`size-1.5 rounded-full shrink-0 ${statusCategoryDotClass(target.fields.status.statusCategory?.key)}`}
                   />
                   <span className="font-mono text-xs">{target.key}</span>
                   <Badge
-                    className={`text-[10px] h-4 px-1.5 border-0 font-normal ${statusBadgeClasses(target.fields.status.name)}`}
+                    className={`text-[10px] h-4 px-1.5 border-0 font-normal ${statusCategoryBadgeClass(target.fields.status.statusCategory?.key)}`}
                   >
                     {target.fields.status.name}
                   </Badge>
