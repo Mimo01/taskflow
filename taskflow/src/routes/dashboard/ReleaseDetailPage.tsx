@@ -20,6 +20,7 @@ import {
   Loader2,
   Package,
   Pencil,
+  Tag,
   X,
 } from 'lucide-react';
 import type React from 'react';
@@ -279,6 +280,28 @@ export default function ReleaseDetailPage() {
     return { matchedRows: rows, unmatchedMRs: unmatched };
   }, [fixVersionIssues, milestoneMRs]);
 
+  // Aggregate unique labels across all milestone MRs with counts
+  const labelSummary = useMemo(() => {
+    const mrs = milestoneMRs ?? [];
+    const labelMap = new Map<string, { label: { name: string; color: string; text_color: string }; count: number }>();
+
+    for (const mr of mrs) {
+      for (const label of mr.labels) {
+        const existing = labelMap.get(label.name);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          labelMap.set(label.name, { label, count: 1 });
+        }
+      }
+    }
+
+    return Array.from(labelMap.values()).sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return a.label.name.localeCompare(b.label.name);
+    });
+  }, [milestoneMRs]);
+
   // Populate edit form when entering edit mode
   const startEditing = useCallback(() => {
     if (!version) return;
@@ -442,6 +465,31 @@ export default function ReleaseDetailPage() {
                   <p className="text-sm text-muted-foreground italic">No description</p>
                 )}
               </section>
+
+              {/* Label summary from milestone MRs */}
+              {milestoneMRs && labelSummary.length > 0 && (
+                <section>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+                    <Tag className="size-3.5" />
+                    Labels
+                  </h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {labelSummary.map((l) => (
+                      <span
+                        key={l.label.name}
+                        className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium"
+                        style={{
+                          backgroundColor: l.label.color,
+                          color: l.label.text_color,
+                          borderColor: `${l.label.color}80`,
+                        }}
+                      >
+                        {l.label.name} ({l.count})
+                      </span>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               {/* Issues with MR matching */}
               <section>
