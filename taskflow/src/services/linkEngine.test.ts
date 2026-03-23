@@ -55,6 +55,31 @@ describe('linkEngine', () => {
       const result = extractTicketKeys('[PROJ-42] fix bug');
       expect(result).toContain('PROJ-42');
     });
+
+    it('FUZZY-MATCH: extracts lowercase keys and normalizes to uppercase', () => {
+      const result = extractTicketKeys('fix proj-123 and abc-45');
+      expect(result).toEqual(['PROJ-123', 'ABC-45']);
+    });
+
+    it('FUZZY-MATCH: extracts mixed-case keys and normalizes to uppercase', () => {
+      const result = extractTicketKeys('feature/Proj-123-work');
+      expect(result).toEqual(['PROJ-123']);
+    });
+
+    it('FUZZY-MATCH: extracts space-separated keys and normalizes to dash form', () => {
+      const result = extractTicketKeys('PROJ 123 fix');
+      expect(result).toEqual(['PROJ-123']);
+    });
+
+    it('FUZZY-MATCH: handles combined lowercase and space patterns', () => {
+      const result = extractTicketKeys('proj 123 and ABC-45');
+      expect(result).toEqual(['PROJ-123', 'ABC-45']);
+    });
+
+    it('FUZZY-MATCH: extracts bracket-wrapped lowercase key', () => {
+      const result = extractTicketKeys('[proj-42] fix bug');
+      expect(result).toEqual(['PROJ-42']);
+    });
   });
 
   describe('linkMRToTask', () => {
@@ -101,6 +126,24 @@ describe('linkEngine', () => {
       const result = linkMRToTask(mr, new Set(['PROJ-123']));
       expect(result).toBe('PROJ-123');
     });
+
+    it('FUZZY-MATCH: matches lowercase branch name to uppercase sprint key', () => {
+      const mr = { ...baseMR, title: 'Implement feature', source_branch: 'feature/proj-42-implement' };
+      const result = linkMRToTask(mr, new Set(['PROJ-42']));
+      expect(result).toBe('PROJ-42');
+    });
+
+    it('FUZZY-MATCH: matches lowercase title to uppercase sprint key', () => {
+      const mr = { ...baseMR, title: 'proj-42 fix bug', source_branch: 'main' };
+      const result = linkMRToTask(mr, new Set(['PROJ-42']));
+      expect(result).toBe('PROJ-42');
+    });
+
+    it('FUZZY-MATCH: matches space-separated key in title', () => {
+      const mr = { ...baseMR, title: 'PROJ 42 fix bug', source_branch: 'main' };
+      const result = linkMRToTask(mr, new Set(['PROJ-42']));
+      expect(result).toBe('PROJ-42');
+    });
   });
 
   describe('linkMRToTaskViaCommits', () => {
@@ -122,6 +165,13 @@ describe('linkEngine', () => {
       const mr = { ...baseMR, title: 'something' };
       const result = linkMRToTaskViaCommits(mr, new Set(['PROJ-99']), []);
       expect(result).toBeNull();
+    });
+
+    it('FUZZY-MATCH: matches lowercase commit title to uppercase sprint key', () => {
+      const mr = { ...baseMR, title: 'fix something' };
+      const commits = [{ id: 'abc', title: 'proj-99 commit', message: '' }];
+      const result = linkMRToTaskViaCommits(mr, new Set(['PROJ-99']), commits);
+      expect(result).toBe('PROJ-99');
     });
   });
 

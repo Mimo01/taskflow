@@ -5,7 +5,7 @@
  * Callers are responsible for pre-fetching MR commits, approvals, and discussions.
  *
  * Key behaviors:
- * - Ticket key regex: \b([A-Z][A-Z0-9]+-\d+)\b — matches Jira-style keys like PROJ-123, ABC-45
+ * - Ticket key regex: case-insensitive match for Jira-style keys like PROJ-123, proj-123, Proj 123
  * - Stale detection: based on updated_at timestamp vs. configurable day threshold
  * - Review health: approved > changes_requested > waiting_for_review priority order
  */
@@ -16,24 +16,46 @@ import type { Discussion, GitLabMR, MRApprovals, MRCommit } from './gitlab';
 export type ReviewHealth = 'approved' | 'changes_requested' | 'waiting_for_review';
 
 /**
- * Regex matching Jira-style ticket keys (e.g. PROJ-123, ABC-45).
- * Uses negative lookbehind to ensure the key is not preceded by a letter or hyphen,
+ * Regex matching Jira-style ticket keys (e.g. PROJ-123, abc-45, Proj-42).
+ * Case-insensitive — all extracted keys are normalized to uppercase.
+ * Uses negative lookbehind to ensure the key is not preceded by a letter, digit, or hyphen,
  * preventing false matches in compound identifiers like PREFIX-FEAT-1.
  */
-const TICKET_KEY_RE = /(?<![A-Za-z0-9-])\b([A-Z][A-Z0-9]+-\d+)\b/g;
+const TICKET_KEY_RE = /(?<![A-Za-z0-9-])\b([A-Za-z][A-Za-z0-9]+-\d+)\b/gi;
+
+/**
+ * Regex matching space-separated ticket key patterns (e.g. "PROJ 123", "proj 123").
+ * Captures the project prefix and numeric id separately for dash-joined normalization.
+ */
+const TICKET_KEY_SPACE_RE = /(?<![A-Za-z0-9-])\b([A-Za-z][A-Za-z0-9]+)\s+(\d+)\b/gi;
 
 /**
  * Extract all Jira ticket keys from arbitrary text.
+ * Case-insensitive: keys are normalized to uppercase (e.g. "proj-123" -> "PROJ-123").
+ * Space-tolerant: "PROJ 123" is normalized to "PROJ-123".
  * Deduplicates keys to avoid double-matching the same key in a string.
  *
  * @param text - Any string (MR title, commit message, branch name, etc.)
- * @returns Unique ticket keys in order of first appearance
+ * @returns Unique uppercase ticket keys in order of first appearance
  */
 export function extractTicketKeys(text: string): string[] {
-  const matches = text.match(TICKET_KEY_RE);
-  if (!matches) return [];
+  const indexed: Array<{ key: string; pos: number }> = [];
+
+  // Match dash-separated keys (case-insensitive)
+  for (const match of text.matchAll(TICKET_KEY_RE)) {
+    indexed.push({ key: match[1].toUpperCase(), pos: match.index });
+  }
+
+  // Match space-separated keys (e.g. "PROJ 123" -> "PROJ-123")
+  for (const match of text.matchAll(TICKET_KEY_SPACE_RE)) {
+    indexed.push({ key: `${match[1].toUpperCase()}-${match[2]}`, pos: match.index });
+  }
+
+  // Sort by position in original text to preserve order of first appearance
+  indexed.sort((a, b) => a.pos - b.pos);
+
   // Deduplicate while preserving order
-  return [...new Set(matches)];
+  return [...new Set(indexed.map((m) => m.key))];
 }
 
 /**
