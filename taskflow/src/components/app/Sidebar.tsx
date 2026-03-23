@@ -1,14 +1,9 @@
 /**
- * Sidebar — App sidebar with navigation links and settings access.
+ * Sidebar -- App sidebar with navigation links and settings access.
  *
- * Layout: vertical sidebar. Contains:
- * - App name/logo at top
- * - Dashboard link (always present)
- * - Role-conditional nav links: developer sees My Tasks, Sprint Board, MR Attention;
- *   PM sees Sprint Progress, Workload, Releases
- * - Bottom: Settings link
- *
- * Gear icon is always one click away from anywhere in the app.
+ * Layout: vertical sidebar with store-driven nav items grouped by section.
+ * Items and their visibility are controlled by the settings store (sidebarItems).
+ * Section grouping is derived from sidebar-items.ts definitions.
  */
 
 import {
@@ -26,10 +21,25 @@ import {
   Tag,
   Users,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import type { ComponentType } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useSettingsStore } from '@/stores/settings.store';
 import AppIcon from './AppIcon';
+import { SIDEBAR_NAV_ITEMS, SIDEBAR_SECTIONS } from './sidebar-items';
+
+/** Map icon names to actual Lucide components */
+const ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {
+  LayoutDashboard,
+  CheckSquare,
+  KanbanSquare,
+  List,
+  BookOpen,
+  GitMerge,
+  BarChart2,
+  Users,
+  Tag,
+};
 
 const NAV_LINK_BASE =
   'flex items-center py-2 density-compact:py-1 density-comfortable:py-3 rounded-lg text-sm font-medium transition-colors';
@@ -40,16 +50,32 @@ function navLinkClassFn(collapsed: boolean) {
 }
 
 export default function Sidebar() {
-  const { role, debugMode } = useSettingsStore();
+  const { debugMode, sidebarItems } = useSettingsStore();
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);
   const toggleSidebarCollapsed = useSettingsStore((s) => s.toggleSidebarCollapsed);
   const [hovered, setHovered] = useState(false);
 
   const navLinkClass = navLinkClassFn(sidebarCollapsed);
   const labelClass = sidebarCollapsed ? 'hidden' : 'hidden md:block';
-  const sectionLabelClass = sidebarCollapsed
-    ? 'px-1 py-1 text-[10px] font-semibold uppercase tracking-tight text-muted-foreground text-center'
-    : 'px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden md:block';
+
+  // Build lookup of visible item ids from store
+  const visibleIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of sidebarItems) {
+      if (item.visible) set.add(item.id);
+    }
+    return set;
+  }, [sidebarItems]);
+
+  // Group visible nav items by section
+  const sectionedItems = useMemo(() => {
+    return SIDEBAR_SECTIONS.map((section) => ({
+      ...section,
+      items: SIDEBAR_NAV_ITEMS.filter(
+        (nav) => nav.section === section.id && visibleIds.has(nav.id),
+      ),
+    })).filter((section) => section.items.length > 0);
+  }, [visibleIds]);
 
   return (
     <aside
@@ -79,126 +105,31 @@ export default function Sidebar() {
         <span className={`text-base font-semibold text-foreground ${labelClass}`}>Taskflow</span>
       </div>
 
-      {/* Nav links */}
+      {/* Nav links grouped by section */}
       <nav className="flex-1 min-h-0 overflow-y-auto px-2 py-4 flex flex-col gap-1">
-        <NavLink
-          to="/dashboard"
-          className={navLinkClass}
-          title={sidebarCollapsed ? 'Dashboard' : undefined}
-        >
-          <LayoutDashboard className="h-4 w-4 shrink-0" />
-          <span className={labelClass}>Dashboard</span>
-        </NavLink>
-
-        {/* Shared: Epics (visible for all roles) */}
-        <NavLink
-          to="/epics"
-          className={navLinkClass}
-          title={sidebarCollapsed ? 'Epics' : undefined}
-        >
-          <BookOpen className="h-4 w-4 shrink-0" />
-          <span className={labelClass}>Epics</span>
-        </NavLink>
-
-        {/* Shared: Merge Requests (visible for all roles) */}
-        <NavLink
-          to="/merge-requests"
-          className={navLinkClass}
-          title={sidebarCollapsed ? 'Merge Requests' : undefined}
-        >
-          <GitMerge className="h-4 w-4 shrink-0" />
-          <span className={labelClass}>Merge Requests</span>
-        </NavLink>
-
-        {/* Work section (role-specific) */}
-        {(role === 'developer' || role === 'pm' || role === 'tech-lead') && (
-          <div className="mt-2">
-            {/* Developer and PM roles: single "Work" label */}
-            {(role === 'developer' || role === 'pm') && (
-              <p className={sectionLabelClass}>{sidebarCollapsed ? 'WRK' : 'Work'}</p>
+        {sectionedItems.map((section) => (
+          <div key={section.id} className="flex flex-col gap-0.5">
+            {!sidebarCollapsed && (
+              <span className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 hidden md:block">
+                {section.label}
+              </span>
             )}
-
-            {/* Developer role links */}
-            {(role === 'developer' || role === 'tech-lead') && (
-              <>
-                {role === 'tech-lead' && (
-                  <p className={sectionLabelClass}>{sidebarCollapsed ? 'DEV' : 'Developer'}</p>
-                )}
+            {section.items.map((nav) => {
+              const Icon = ICON_MAP[nav.iconName];
+              return (
                 <NavLink
-                  to="/my-tasks"
+                  key={nav.id}
+                  to={nav.path}
                   className={navLinkClass}
-                  title={sidebarCollapsed ? 'My Tasks' : undefined}
+                  title={sidebarCollapsed ? nav.label : undefined}
                 >
-                  <CheckSquare className="h-4 w-4 shrink-0" />
-                  <span className={labelClass}>My Tasks</span>
+                  {Icon ? <Icon className="h-4 w-4 shrink-0" /> : null}
+                  <span className={labelClass}>{nav.label}</span>
                 </NavLink>
-                <NavLink
-                  to="/sprint-board"
-                  className={navLinkClass}
-                  title={sidebarCollapsed ? 'Sprint Board' : undefined}
-                >
-                  <KanbanSquare className="h-4 w-4 shrink-0" />
-                  <span className={labelClass}>Sprint Board</span>
-                </NavLink>
-                <NavLink
-                  to="/backlog"
-                  className={navLinkClass}
-                  title={sidebarCollapsed ? 'Backlog' : undefined}
-                >
-                  <List className="h-4 w-4 shrink-0" />
-                  <span className={labelClass}>Backlog</span>
-                </NavLink>
-                <NavLink
-                  to="/mr-attention"
-                  className={navLinkClass}
-                  title={sidebarCollapsed ? 'MR Attention' : undefined}
-                >
-                  <GitMerge className="h-4 w-4 shrink-0" />
-                  <span className={labelClass}>MR Attention</span>
-                </NavLink>
-              </>
-            )}
-
-            {/* PM role links */}
-            {(role === 'pm' || role === 'tech-lead') && (
-              <>
-                {role === 'tech-lead' && <p className={`${sectionLabelClass} mt-2`}>PM</p>}
-                <NavLink
-                  to="/sprint-progress"
-                  className={navLinkClass}
-                  title={sidebarCollapsed ? 'Sprint Progress' : undefined}
-                >
-                  <BarChart2 className="h-4 w-4 shrink-0" />
-                  <span className={labelClass}>Sprint Progress</span>
-                </NavLink>
-                <NavLink
-                  to="/workload"
-                  className={navLinkClass}
-                  title={sidebarCollapsed ? 'Workload' : undefined}
-                >
-                  <Users className="h-4 w-4 shrink-0" />
-                  <span className={labelClass}>Workload</span>
-                </NavLink>
-                <NavLink
-                  to="/backlog"
-                  className={navLinkClass}
-                  title={sidebarCollapsed ? 'Backlog' : undefined}
-                >
-                  <List className="h-4 w-4 shrink-0" />
-                  <span className={labelClass}>Backlog</span>
-                </NavLink>
-                <NavLink
-                  to="/releases"
-                  className={navLinkClass}
-                  title={sidebarCollapsed ? 'Releases' : undefined}
-                >
-                  <Tag className="h-4 w-4 shrink-0" />
-                  <span className={labelClass}>Releases</span>
-                </NavLink>
-              </>
-            )}
+              );
+            })}
           </div>
-        )}
+        ))}
       </nav>
 
       {/* Bottom: Debug Logs (when enabled) + Settings */}
