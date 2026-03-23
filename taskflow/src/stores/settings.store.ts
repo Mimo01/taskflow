@@ -8,6 +8,7 @@
 import { LazyStore } from '@tauri-apps/plugin-store';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { type SidebarItem, getDefaultSidebarItems } from '../components/app/sidebar-items';
 import type { Theme } from '../services/theme';
 import type { QuickFilter } from './filter.store';
 
@@ -72,6 +73,13 @@ interface SettingsState {
   /** Comment sort order. Default: 'newest'. */
   commentSortOrder: CommentSortOrder;
   setCommentSortOrder: (order: CommentSortOrder) => void;
+  /** Ordered list of sidebar items with visibility. */
+  sidebarItems: SidebarItem[];
+  setSidebarItems: (items: SidebarItem[]) => void;
+  setSidebarItemVisible: (id: string, visible: boolean) => void;
+  reorderSidebarItem: (fromIndex: number, toIndex: number) => void;
+  /** Apply a role preset — resets sidebar items and dashboard layout. */
+  applyPreset: (preset: 'dev' | 'pm') => void;
   /** Whether the sidebar is collapsed to icon-only mode. Default: false. */
   sidebarCollapsed: boolean;
   toggleSidebarCollapsed: () => void;
@@ -143,6 +151,23 @@ export const useSettingsStore = create<SettingsState>()(
       keyboardOverrides: {},
       commentSortOrder: 'newest' as CommentSortOrder,
       setCommentSortOrder: (order) => set({ commentSortOrder: order }),
+      sidebarItems: getDefaultSidebarItems('dev'),
+      setSidebarItems: (items) => set({ sidebarItems: items }),
+      setSidebarItemVisible: (id, visible) =>
+        set((s) => ({
+          sidebarItems: s.sidebarItems.map((item) =>
+            item.id === id ? { ...item, visible } : item,
+          ),
+        })),
+      reorderSidebarItem: (fromIndex, toIndex) =>
+        set((s) => {
+          const items = [...s.sidebarItems];
+          const [moved] = items.splice(fromIndex, 1);
+          items.splice(toIndex, 0, moved);
+          return { sidebarItems: items };
+        }),
+      applyPreset: (preset) =>
+        set({ sidebarItems: getDefaultSidebarItems(preset) }),
       sidebarCollapsed: false,
       toggleSidebarCollapsed: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       quickFilters: [],
@@ -215,7 +240,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: tauriStorage,
-      version: 7,
+      version: 8,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -248,6 +273,13 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 7) {
           if (s.commentSortOrder === undefined) s.commentSortOrder = 'newest';
+        }
+        if (version < 8) {
+          if (s.sidebarItems === undefined) {
+            const role = s.role as string | null;
+            const preset = role === 'pm' ? 'pm' : 'dev';
+            s.sidebarItems = getDefaultSidebarItems(preset) as unknown as string;
+          }
         }
         return s as unknown as SettingsState;
       },

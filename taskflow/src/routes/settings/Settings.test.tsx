@@ -75,6 +75,22 @@ const mockSettingsStore = {
   setOsNotifJiraEnabled: vi.fn(),
   setOsNotifGitlabEnabled: vi.fn(),
   setDebugMode: vi.fn(),
+  sidebarItems: [
+    { id: 'dashboard', visible: true },
+    { id: 'my-tasks', visible: true },
+    { id: 'sprint-board', visible: true },
+    { id: 'backlog', visible: true },
+    { id: 'epics', visible: true },
+    { id: 'merge-requests', visible: true },
+    { id: 'mr-attention', visible: true },
+    { id: 'sprint-progress', visible: false },
+    { id: 'workload', visible: false },
+    { id: 'releases', visible: false },
+  ],
+  setSidebarItems: vi.fn(),
+  setSidebarItemVisible: vi.fn(),
+  reorderSidebarItem: vi.fn(),
+  applyPreset: vi.fn(),
 };
 
 vi.mock('@/stores/settings.store', () => ({
@@ -104,21 +120,23 @@ describe('Settings sidebar nav', () => {
     vi.clearAllMocks();
   });
 
-  it('renders 5 sidebar nav buttons', () => {
+  it('renders 7 sidebar nav buttons', () => {
     renderWithQuery(<Settings />);
     const navButtons = screen.getAllByRole('button', {
-      name: /Connections|Appearance|Notifications|Workflow|Role/i,
+      name: /Connections|Appearance|Sidebar|Notifications|Workflow|Role|Advanced/i,
     });
-    expect(navButtons.length).toBe(5);
+    expect(navButtons.length).toBe(7);
   });
 
   it('renders sidebar buttons with correct labels', () => {
     renderWithQuery(<Settings />);
     expect(screen.getByRole('button', { name: /connections/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /appearance/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /sidebar/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /notifications/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /workflow/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /role/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /advanced/i })).toBeInTheDocument();
   });
 
   it('shows Connections section content on initial render (default active section)', () => {
@@ -151,6 +169,12 @@ describe('Settings sidebar nav', () => {
     renderWithQuery(<Settings />);
     fireEvent.click(screen.getByRole('button', { name: /workflow/i }));
     expect(screen.getByTestId('section-workflow')).toBeVisible();
+  });
+
+  it('clicking Sidebar button renders Sidebar section', () => {
+    renderWithQuery(<Settings />);
+    fireEvent.click(screen.getByRole('button', { name: /sidebar/i }));
+    expect(screen.getByTestId('section-sidebar')).toBeVisible();
   });
 
   it('clicking Role button renders Role section', () => {
