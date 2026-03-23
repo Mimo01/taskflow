@@ -77,9 +77,10 @@ function VirtualizedBacklogTable({
   });
 
   const virtualItems = rowVirtualizer.getVirtualItems();
-  // Fallback: when virtualizer returns no items (e.g. jsdom, SSR, zero-height
-  // container) render all rows without positioning so the UI remains functional.
-  const useVirtual = virtualItems.length > 0;
+  // Disable virtualization for table rows — position: absolute on <tr> elements
+  // is undefined behavior in CSS and causes rows to overlap in most browsers.
+  // Backlog tables are small enough to render without virtualization.
+  const useVirtual = false;
 
   function renderRow(issue: JiraIssue, style?: React.CSSProperties) {
     return (
