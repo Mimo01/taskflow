@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult } from '@tanstack/react-query';
 import { useCallback, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,9 @@ import { apiFetch } from '@/lib/apiFetch';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import type { JiraIssueDetail } from '@/services/jira';
 import { postTransition } from '@/services/jira/transitions';
+import { fetchFixVersions } from '@/services/jira/versions';
 import { readSecret } from '@/services/stronghold';
+import { useAuthStore } from '@/stores/auth.store';
 import StatusPopover from '../StatusPopover';
 import { MetaRow } from './MetaRow';
 import { OverdueBadge } from './OverdueBadge';
@@ -86,6 +88,19 @@ export function FieldsSection({
   // Labels add state
   const [labelInput, setLabelInput] = useState('');
   const [labelAdding, setLabelAdding] = useState(false);
+
+  // Fix version edit state
+  const [fixVersionOpen, setFixVersionOpen] = useState(false);
+  const activeJiraProject = useAuthStore((s) => s.activeJiraProject);
+  const versionsQuery = useQuery({
+    queryKey: ['jira-fix-versions', activeJiraProject, jiraBaseUrl],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token || !activeJiraProject) return [];
+      return fetchFixVersions(jiraBaseUrl, token, activeJiraProject);
+    },
+    enabled: fixVersionOpen && !!activeJiraProject,
+  });
 
   // Status transition state
   const queryClient = useQueryClient();
@@ -199,6 +214,15 @@ export function FieldsSection({
   function handleLabelRemove(label: string) {
     const currentLabels = f.labels ?? [];
     mutation.mutate({ fieldName: 'labels', value: currentLabels.filter((l) => l !== label) });
+  }
+
+  function handleFixVersionToggle(versionId: string) {
+    const current = f.fixVersions ?? [];
+    const isSelected = current.some((v) => v.id === versionId);
+    const newVersions = isSelected
+      ? current.filter((v) => v.id !== versionId)
+      : [...current, { id: versionId }];
+    mutation.mutate({ fieldName: 'fixVersions', value: newVersions.map((v) => ({ id: v.id })) });
   }
 
   const epicName = epicIssue
@@ -451,9 +475,57 @@ export function FieldsSection({
         </div>
       </MetaRow>
 
-      {f.fixVersions.length > 0 && (
-        <MetaRow label="Fix Versions">{f.fixVersions.map((v) => v.name).join(', ')}</MetaRow>
-      )}
+      {/* Fix Versions -- editable popover */}
+      <MetaRow label="Fix Versions">
+        <Popover open={fixVersionOpen} onOpenChange={setFixVersionOpen}>
+          <PopoverTrigger
+            data-testid="fix-version-edit"
+            className="hover:bg-accent rounded px-1 -ml-1 cursor-pointer text-left text-sm"
+            title="Click to edit fix versions"
+          >
+            {f.fixVersions.length > 0 ? f.fixVersions.map((v) => v.name).join(', ') : 'None'}
+          </PopoverTrigger>
+          <PopoverContent className="w-60 p-2">
+            {versionsQuery.isLoading && (
+              <p className="text-xs text-muted-foreground px-1">Loading versions...</p>
+            )}
+            {versionsQuery.isError && (
+              <p className="text-xs text-destructive px-1">Failed to load versions</p>
+            )}
+            {versionsQuery.data && versionsQuery.data.length === 0 && (
+              <p className="text-xs text-muted-foreground px-1">No versions found</p>
+            )}
+            {versionsQuery.data &&
+              versionsQuery.data.length > 0 &&
+              [...versionsQuery.data]
+                .sort((a, b) => {
+                  // Unreleased first, then released; within each group sort by name
+                  if (a.released !== b.released) return a.released ? 1 : -1;
+                  return a.name.localeCompare(b.name);
+                })
+                .map((version) => {
+                  const isSelected = f.fixVersions.some((v) => v.id === version.id);
+                  return (
+                    <button
+                      key={version.id}
+                      type="button"
+                      onClick={() => handleFixVersionToggle(version.id)}
+                      className="w-full text-left px-2 py-1 text-xs hover:bg-accent rounded flex items-center gap-2"
+                    >
+                      <span className="w-4 text-center">{isSelected ? '\u2713' : ''}</span>
+                      <span className="flex-1 truncate">{version.name}</span>
+                      {version.released && (
+                        <span className="text-muted-foreground text-[10px]">released</span>
+                      )}
+                    </button>
+                  );
+                })}
+            {mutation.isError && (
+              <p className="text-xs text-destructive mt-1">Save failed -- changes reverted</p>
+            )}
+          </PopoverContent>
+        </Popover>
+      </MetaRow>
       <MetaRow label="Created">{new Date(f.created).toLocaleDateString()}</MetaRow>
       <MetaRow label="Updated">{new Date(f.updated).toLocaleDateString()}</MetaRow>
       {f.duedate && (
