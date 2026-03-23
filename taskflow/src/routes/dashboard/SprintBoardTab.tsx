@@ -151,12 +151,11 @@ function VirtualizedSwimlanes({
         className="border-b border-border/40"
       >
         {/*
-         * sticky top-10: sits directly below the 40px column header bar.
-         * Sticks until this story section's bottom edge scrolls off-screen,
-         * then the next story's header takes over at the same position.
-         * z-[9] keeps story headers below the column header bar (z-20).
+         * sticky top-0: sticks within the inner scroll container.
+         * Works in non-virtual fallback; in virtual mode absolute positioning
+         * on the parent prevents sticky — header just scrolls normally.
          */}
-        <div className="sticky top-10 z-[9] bg-background">
+        <div className="sticky top-0 z-[9] bg-background">
           <StoryHeaderRow
             storyKey={story.key}
             summary={story.fields.summary}
@@ -267,13 +266,13 @@ export default function SprintBoardTab() {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-  // Resolve the scroll element (<main> in AppLayout)
+  // Scroll container — the inner scrollable area below the fixed column headers.
+  // Using our own scroll container instead of <main> so column headers stay fixed.
   const boardRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
   useEffect(() => {
-    // Find the closest scrollable ancestor (<main> with overflow-auto)
-    const main = document.querySelector('main');
-    setScrollElement(main);
+    setScrollElement(scrollContainerRef.current);
   }, []);
 
   useEffect(() => {
@@ -651,21 +650,59 @@ export default function SprintBoardTab() {
     : 'Refreshed: Never';
 
   return (
-    <>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => {
+        setActiveIssue(null);
+        setIsDragging(false);
+      }}
+    >
       {/*
-       * No overflow container here — <main className="flex-1 overflow-auto"> in AppLayout
-       * is the scroll container. Sticky elements below reference that ancestor.
+       * Flex column fills <main>. Column headers stay fixed at top (shrink-0),
+       * everything else scrolls in the flex-1 overflow area below.
+       * This avoids CSS sticky which breaks with virtualizer transforms.
        */}
-      <DndContext
-        sensors={sensors}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onDragCancel={() => {
-          setActiveIssue(null);
-          setIsDragging(false);
-        }}
-      >
-        <div ref={boardRef}>
+      <div ref={boardRef} className="flex flex-col h-full">
+        {/* Fixed column headers — never scroll */}
+        <div className="shrink-0 bg-background border-b border-border relative h-10 z-20">
+          <div className="flex h-full">
+            {CATEGORY_COLUMNS.map((col) => {
+              const count = localIssues.filter(
+                (i) => i.fields.issuetype.subtask && categoryOf(i) === col.key,
+              ).length;
+              return (
+                <div
+                  key={col.key}
+                  className="flex-1 px-3 flex items-center gap-1.5 border-l border-border/20 first:border-l-0"
+                >
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {col.label}
+                  </span>
+                  <span className="text-xs text-muted-foreground/70">({count})</span>
+                </div>
+              );
+            })}
+          </div>
+          {/* Refresh positioned absolutely so it doesn't affect column width distribution */}
+          <div className="absolute right-0 top-0 h-full px-3 flex items-center gap-2 bg-background border-l border-border/20">
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              {lastRefreshed}
+            </span>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Refresh"
+            >
+              <RefreshCw className="size-3" />
+            </button>
+          </div>
+        </div>
+
+        {/* Scrollable content area */}
+        <div ref={scrollContainerRef} className="flex-1 overflow-auto min-h-0">
           {/* Loading skeleton */}
           {isLoading && (
             <div className="p-4 flex flex-col gap-3">
@@ -696,12 +733,12 @@ export default function SprintBoardTab() {
             </div>
           )}
 
-          {/* Sprint goal banner — scrolls away before sticky headers take over */}
+          {/* Sprint goal banner */}
           {!isLoading && !isError && data && activeSprint?.goal && (
             <SprintGoalBanner goal={activeSprint.goal} />
           )}
 
-          {/* Quick filter chip row — scrolls away before sticky headers take over */}
+          {/* Quick filter chip row */}
           {!isLoading && !isError && data && (
             <QuickFilterChipRow
               quickFilters={boardQuickFilters ?? []}
@@ -710,49 +747,8 @@ export default function SprintBoardTab() {
             />
           )}
 
-          {/* Unified filter bar — scrolls away before sticky headers take over */}
+          {/* Unified filter bar */}
           {!isLoading && !isError && data && <UnifiedFilterBar filterOptions={filterOptions} />}
-
-          {/*
-           * Sticky top bar: column headers + refresh button.
-           * h-10 = 40px. Story headers use top-10 to sit directly below this.
-           * Positioned AFTER the non-sticky filter/banner content so it sticks
-           * at top-0 once the user scrolls past the filters above.
-           */}
-          <div className="sticky top-0 z-20 bg-background border-b border-border relative h-10">
-            <div className="flex h-full">
-              {CATEGORY_COLUMNS.map((col) => {
-                const count = localIssues.filter(
-                  (i) => i.fields.issuetype.subtask && categoryOf(i) === col.key,
-                ).length;
-                return (
-                  <div
-                    key={col.key}
-                    className="flex-1 px-3 flex items-center gap-1.5 border-l border-border/20 first:border-l-0"
-                  >
-                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      {col.label}
-                    </span>
-                    <span className="text-xs text-muted-foreground/70">({count})</span>
-                  </div>
-                );
-              })}
-            </div>
-            {/* Refresh positioned absolutely so it doesn't affect column width distribution */}
-            <div className="absolute right-0 top-0 h-full px-3 flex items-center gap-2 bg-background border-l border-border/20">
-              <span className="text-xs text-muted-foreground hidden sm:inline">
-                {lastRefreshed}
-              </span>
-              <button
-                type="button"
-                onClick={() => refetch()}
-                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                aria-label="Refresh"
-              >
-                <RefreshCw className="size-3" />
-              </button>
-            </div>
-          </div>
 
           {/* Empty */}
           {!isLoading && !isError && data && swimlanes.length === 0 && (
@@ -777,11 +773,10 @@ export default function SprintBoardTab() {
             />
           )}
         </div>
+      </div>
 
-        {/* DragOverlay renders OUTSIDE the virtualized container */}
-        <DragOverlay>{activeIssue ? <TaskCard issue={activeIssue} /> : null}</DragOverlay>
-      </DndContext>
-
-    </>
+      {/* DragOverlay renders OUTSIDE the board container */}
+      <DragOverlay>{activeIssue ? <TaskCard issue={activeIssue} /> : null}</DragOverlay>
+    </DndContext>
   );
 }
