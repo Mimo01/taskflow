@@ -1,8 +1,8 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { ExternalLink, Pencil, Pin, Plus } from 'lucide-react';
 import { useMemo } from 'react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraIssue, JiraIssueDetail } from '@/services/jira';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -124,9 +124,9 @@ export function IssueDetailContent({
                       {story.key}
                     </span>
                     <span className="flex-1 truncate">{story.fields.summary}</span>
-                    <Badge variant="outline" className="text-xs shrink-0">
+                    <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0', statusCategoryBadgeClass(story.fields.status.statusCategory?.key))}>
                       {story.fields.status.name}
-                    </Badge>
+                    </span>
                   </button>
                 </li>
               ))}
@@ -155,9 +155,9 @@ export function IssueDetailContent({
                         {sub.key}
                       </span>
                       <span className="flex-1 truncate">{sub.fields.summary}</span>
-                      <Badge variant="outline" className="text-xs shrink-0">
+                      <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0', statusCategoryBadgeClass(sub.fields.status.statusCategory?.key))}>
                         {sub.fields.status.name}
-                      </Badge>
+                      </span>
                     </button>
                   </li>
                 ))}

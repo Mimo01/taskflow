@@ -137,7 +137,7 @@ export interface JiraIssue {
     subtasks?: Array<{
       id: string;
       key: string;
-      fields: { summary: string; status: { name: string } };
+      fields: { summary: string; status: { name: string; statusCategory?: { key: string } } };
     }>;
     timetracking?: {
       originalEstimate?: string;
@@ -918,8 +918,8 @@ export async function fetchIssueWorklogs(
 export interface JiraIssueLink {
   id: string;
   type: { id: string; name: string; inward: string; outward: string };
-  inwardIssue?: { id: string; key: string; fields: { summary: string; status: { name: string } } };
-  outwardIssue?: { id: string; key: string; fields: { summary: string; status: { name: string } } };
+  inwardIssue?: { id: string; key: string; fields: { summary: string; status: { name: string; statusCategory?: { key: string } } } };
+  outwardIssue?: { id: string; key: string; fields: { summary: string; status: { name: string; statusCategory?: { key: string } } } };
 }
 
 export interface JiraAttachment {
@@ -944,7 +944,7 @@ export interface JiraIssueDetail {
     subtasks: Array<{
       id: string;
       key: string;
-      fields: { summary: string; status: { name: string } };
+      fields: { summary: string; status: { name: string; statusCategory?: { key: string } } };
     }>;
     issuelinks: JiraIssueLink[];
     comment: { comments: JiraComment[] };
