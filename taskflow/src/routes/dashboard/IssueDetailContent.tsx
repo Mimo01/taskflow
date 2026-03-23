@@ -10,6 +10,15 @@ import type { EditInitialValues } from './CreateEditIssueModal';
 import type { AttachmentMap, UserMap } from './WikiRenderer';
 import { WikiRenderer } from './WikiRenderer';
 
+function getInitials(displayName: string): string {
+  return displayName
+    .split(' ')
+    .map((p) => p[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 interface IssueDetailContentProps {
   issue: JiraIssueDetail;
   issueKey: string;
@@ -124,6 +133,28 @@ export function IssueDetailContent({
                       {story.key}
                     </span>
                     <span className="flex-1 truncate">{story.fields.summary}</span>
+                    {story.fields.assignee && (
+                      <div className="relative h-5 w-5 shrink-0" title={story.fields.assignee.displayName}>
+                        {story.fields.assignee.avatarUrls?.['48x48'] && (
+                          <img
+                            src={story.fields.assignee.avatarUrls['48x48']}
+                            alt={story.fields.assignee.displayName}
+                            className="h-5 w-5 rounded-full"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              const sib = e.currentTarget.nextElementSibling as HTMLElement | null;
+                              if (sib) sib.style.display = 'flex';
+                            }}
+                          />
+                        )}
+                        <div
+                          className="h-5 w-5 rounded-full bg-primary text-primary-foreground items-center justify-center text-[10px] font-medium"
+                          style={{ display: story.fields.assignee.avatarUrls?.['48x48'] ? 'none' : 'flex' }}
+                        >
+                          {getInitials(story.fields.assignee.displayName)}
+                        </div>
+                      </div>
+                    )}
                     <Badge variant="outline" className="text-xs shrink-0">
                       {story.fields.status.name}
                     </Badge>
@@ -155,6 +186,28 @@ export function IssueDetailContent({
                         {sub.key}
                       </span>
                       <span className="flex-1 truncate">{sub.fields.summary}</span>
+                      {sub.fields.assignee && (
+                        <div className="relative h-5 w-5 shrink-0" title={sub.fields.assignee.displayName}>
+                          {sub.fields.assignee.avatarUrls?.['48x48'] && (
+                            <img
+                              src={sub.fields.assignee.avatarUrls['48x48']}
+                              alt={sub.fields.assignee.displayName}
+                              className="h-5 w-5 rounded-full"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const sib = e.currentTarget.nextElementSibling as HTMLElement | null;
+                                if (sib) sib.style.display = 'flex';
+                              }}
+                            />
+                          )}
+                          <div
+                            className="h-5 w-5 rounded-full bg-primary text-primary-foreground items-center justify-center text-[10px] font-medium"
+                            style={{ display: sub.fields.assignee.avatarUrls?.['48x48'] ? 'none' : 'flex' }}
+                          >
+                            {getInitials(sub.fields.assignee.displayName)}
+                          </div>
+                        </div>
+                      )}
                       <Badge variant="outline" className="text-xs shrink-0">
                         {sub.fields.status.name}
                       </Badge>
