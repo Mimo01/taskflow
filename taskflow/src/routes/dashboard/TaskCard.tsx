@@ -12,6 +12,7 @@
  */
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
 import type { ReviewHealth } from '@/services/linkEngine';
@@ -20,12 +21,6 @@ const HEALTH_COLORS: Record<ReviewHealth, string> = {
   approved: 'bg-green-500',
   changes_requested: 'bg-red-500',
   waiting_for_review: 'bg-amber-400',
-};
-
-const STATUS_CATEGORY_STYLES: Record<string, string> = {
-  new: 'bg-muted text-muted-foreground',
-  indeterminate: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-  done: 'bg-green-500/15 text-green-600 dark:text-green-400',
 };
 
 function getInitials(name: string): string {
@@ -98,8 +93,7 @@ export default function TaskCard({
         <span
           className={cn(
             'self-start rounded px-1.5 py-0.5 text-xs font-medium',
-            STATUS_CATEGORY_STYLES[issue.fields.status.statusCategory?.key ?? 'new'] ??
-              STATUS_CATEGORY_STYLES.new,
+            statusCategoryBadgeClass(issue.fields.status.statusCategory?.key),
           )}
         >
           {issue.fields.status.name}
