@@ -167,7 +167,11 @@ export interface JiraFixVersion {
 export interface JiraTransition {
   id: string;
   name: string;
-  to: { id: string; name: string };
+  to: {
+    id: string;
+    name: string;
+    statusCategory?: { id: number; key: string; name: string };
+  };
 }
 
 const SUBTASK_CHUNK_SIZE = 50;
