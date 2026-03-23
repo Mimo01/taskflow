@@ -73,3 +73,4 @@ Resume: Phase 25 complete. Next milestone phase ready for planning.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260319-qkn | Add global gitignore with .claude and remove .claude from git | 2026-03-19 | a7e1702 | [260319-qkn-add-global-gitignore-with-claude-and-rem](./quick/260319-qkn-add-global-gitignore-with-claude-and-rem/) |
+| 260323-k3x | Add colored status badges to issue status transitions | 2026-03-23 | 6a06445 | [260323-k3x-add-colored-status-badges-to-issue-statu](./quick/260323-k3x-add-colored-status-badges-to-issue-statu/) |
