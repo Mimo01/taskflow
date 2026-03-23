@@ -119,6 +119,7 @@ export default function TaskRow({
             onTransitionSelect(issue.key, transitionId, toStatusName)
           }
           disabled={isTransitionPending}
+          statusCategoryKey={issue.fields.status.statusCategory?.key}
         />
 
         {/* Assignee */}

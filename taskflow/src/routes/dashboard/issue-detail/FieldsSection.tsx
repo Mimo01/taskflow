@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult } from '@tanstack/react-query';
 import { useCallback, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -14,9 +14,9 @@ import {
 import { apiFetch } from '@/lib/apiFetch';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import type { JiraIssueDetail } from '@/services/jira';
-import { fetchTransitions, postTransition } from '@/services/jira/transitions';
-import type { JiraTransition } from '@/services/jira/types';
+import { postTransition } from '@/services/jira/transitions';
 import { readSecret } from '@/services/stronghold';
+import StatusPopover from '../StatusPopover';
 import { MetaRow } from './MetaRow';
 import { OverdueBadge } from './OverdueBadge';
 import { TimeTrackingSummary } from './TimeTrackingSummary';
@@ -88,19 +88,7 @@ export function FieldsSection({
   const [labelAdding, setLabelAdding] = useState(false);
 
   // Status transition state
-  const [statusOpen, setStatusOpen] = useState(false);
   const queryClient = useQueryClient();
-
-  const { data: transitions, isLoading: transitionsLoading } = useQuery({
-    queryKey: ['jira-transitions', issueKey, jiraBaseUrl],
-    queryFn: async () => {
-      const token = await readSecret('jira-pat').catch(() => null);
-      if (!token) return [] as JiraTransition[];
-      return fetchTransitions(jiraBaseUrl, token, issueKey);
-    },
-    enabled: statusOpen && !!jiraBaseUrl,
-    staleTime: 30_000,
-  });
 
   const transitionMutation = useMutation({
     mutationFn: async ({ transitionId }: { transitionId: string; toName: string }) => {
@@ -133,9 +121,8 @@ export function FieldsSection({
     },
   });
 
-  function handleTransition(t: JiraTransition) {
-    setStatusOpen(false);
-    transitionMutation.mutate({ transitionId: t.id, toName: t.to.name });
+  function handleTransition(transitionId: string, toStatusName: string) {
+    transitionMutation.mutate({ transitionId, toName: toStatusName });
   }
 
   // Assignee search with debounce
@@ -221,36 +208,17 @@ export function FieldsSection({
   return (
     <>
       <MetaRow label="Status">
-        <Popover open={statusOpen} onOpenChange={setStatusOpen}>
-          <PopoverTrigger
-            data-testid="status-edit"
-            className="hover:bg-accent rounded px-1 -ml-1 cursor-pointer"
-            title="Click to change status"
-          >
-            <Badge variant="outline">{f.status.name}</Badge>
-          </PopoverTrigger>
-          <PopoverContent className="w-48 p-2">
-            {transitionsLoading && (
-              <p className="text-xs text-muted-foreground px-1">Loading...</p>
-            )}
-            {!transitionsLoading && transitions?.length === 0 && (
-              <p className="text-xs text-muted-foreground px-1">No transitions available</p>
-            )}
-            {transitions?.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => handleTransition(t)}
-                className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent rounded"
-              >
-                {t.to.name}
-              </button>
-            ))}
-            {transitionMutation.isError && (
-              <p className="text-xs text-destructive mt-1 px-1">Transition failed</p>
-            )}
-          </PopoverContent>
-        </Popover>
+        <StatusPopover
+          issueKey={issueKey}
+          currentStatus={f.status.name}
+          jiraBaseUrl={jiraBaseUrl}
+          onSelect={handleTransition}
+          disabled={transitionMutation.isPending}
+          statusCategoryKey={f.status.statusCategory?.key}
+        />
+        {transitionMutation.isError && (
+          <span className="text-xs text-destructive">Transition failed</span>
+        )}
       </MetaRow>
 
       {/* Priority -- click to edit with Select */}
