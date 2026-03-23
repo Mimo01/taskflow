@@ -1,39 +1,29 @@
 /**
- * Dashboard — role-aware overview page with enriched panel components.
+ * Dashboard -- widget-based overview page powered by react-grid-layout.
  *
- * Developer role (default when role is null or 'developer' or 'tech-lead'):
- *   Panels (2-column grid): SubtasksPanel | MrHealthPanel | SprintHealthPanel
- *
- * PM role:
- *   Panel (single column): SprintHealthPanel
- *
- * Panel components manage their own data fetching via React Query.
- * This file only handles token loading and passing credentials as props.
+ * Reads widget layout from settings store and renders a WidgetGrid.
+ * Each widget manages its own data fetching and token loading internally.
+ * Users can add, remove, drag, and resize widgets.
  */
 
 import { useQueryClient } from '@tanstack/react-query';
-import { RefreshCw } from 'lucide-react';
+import { LayoutDashboard, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import { readSecret } from '@/services/stronghold';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import MrHealthPanel from './MrHealthPanel';
-import SprintHealthPanel from './SprintHealthPanel';
-import SubtasksPanel from './SubtasksPanel';
+import WidgetGrid from './WidgetGrid';
+import WidgetPicker from './WidgetPicker';
 
 export default function Dashboard() {
-  const role = useSettingsStore((s) => s.role);
   const storyPointsFieldKey = useSettingsStore((s) => s.storyPointsFieldKey);
-  const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, _hasHydrated } = useAuthStore();
-  const [jiraToken, setJiraToken] = useState<string | null>(null);
-  const [gitlabToken, setGitlabToken] = useState<string | null>(null);
-  const { onIssueClick: setSelectedIssueKey } = useOutletContext<{
-    onIssueClick: (key: string) => void;
-  }>();
-  // Track whether the GitLab token read from Stronghold has settled so panels
-  // can show a skeleton immediately rather than a premature empty state.
-  const [gitlabTokenLoading, setGitlabTokenLoading] = useState(true);
+  const dashboardLayout = useSettingsStore((s) => s.dashboardLayout);
+  const setDashboardLayout = useSettingsStore((s) => s.setDashboardLayout);
+  const addDashboardWidget = useSettingsStore((s) => s.addDashboardWidget);
+  const removeDashboardWidget = useSettingsStore((s) => s.removeDashboardWidget);
+  const { activeJiraProject } = useAuthStore();
+  const [pickerOpen, setPickerOpen] = useState(false);
   const queryClient = useQueryClient();
 
   // Track last-refreshed time by subscribing to the my-tasks query (shared cache with SubtasksPanel)
@@ -57,87 +47,53 @@ export default function Dashboard() {
     ? `Refreshed: ${new Date(updatedAt).toLocaleTimeString()}`
     : 'Refreshed: Never';
 
-  useEffect(() => {
-    if (jiraBaseUrl)
-      readSecret('jira-pat')
-        .then((t) => setJiraToken(t))
-        .catch(() => setJiraToken(null));
-  }, [jiraBaseUrl]);
-
-  useEffect(() => {
-    if (gitlabBaseUrl) {
-      setGitlabTokenLoading(true);
-      readSecret('gitlab-pat')
-        .then((t) => setGitlabToken(t))
-        .catch(() => setGitlabToken(null))
-        .finally(() => setGitlabTokenLoading(false));
-    } else if (_hasHydrated) {
-      // Only collapse the loading state once the store has actually rehydrated.
-      // If gitlabBaseUrl is null before rehydration completes, keep the skeleton
-      // visible to avoid a blank flash.
-      setGitlabTokenLoading(false);
-    }
-  }, [gitlabBaseUrl, _hasHydrated]);
-
   function handleRefresh() {
     queryClient.invalidateQueries();
   }
 
-  const header = (
-    <div className="flex items-center justify-between">
-      <h1 className="text-xl font-semibold">Overview</h1>
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">{lastRefreshed}</span>
-        <button
-          type="button"
-          onClick={handleRefresh}
-          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="Refresh"
-        >
-          <RefreshCw className="size-3" />
-          Refresh
-        </button>
-      </div>
-    </div>
-  );
-
-  if (role === 'pm') {
-    return (
-      <div className="flex flex-col h-full p-4 gap-4 overflow-y-auto">
-        {header}
-        <div className="grid grid-cols-1 gap-4">
-          <SprintHealthPanel
-            jiraBaseUrl={jiraBaseUrl ?? ''}
-            jiraToken={jiraToken ?? ''}
-            activeJiraProject={activeJiraProject ?? ''}
+  return (
+    <div className="flex flex-col h-full p-4 gap-4 overflow-y-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold">Overview</h1>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">{lastRefreshed}</span>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Refresh"
+          >
+            <RefreshCw className="size-3" />
+            Refresh
+          </button>
+          <WidgetPicker
+            open={pickerOpen}
+            onOpenChange={setPickerOpen}
+            onAddWidget={(type) => addDashboardWidget(type)}
           />
         </div>
       </div>
-    );
-  }
 
-  // Developer / tech-lead (default)
-  return (
-    <div className="flex flex-col h-full p-4 gap-4 overflow-y-auto">
-      {header}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <SubtasksPanel
-          jiraBaseUrl={jiraBaseUrl ?? ''}
-          jiraToken={jiraToken ?? ''}
-          activeJiraProject={activeJiraProject ?? ''}
-          onIssueClick={setSelectedIssueKey}
+      {/* Body */}
+      {dashboardLayout.length === 0 ? (
+        <EmptyState
+          icon={LayoutDashboard}
+          title="Your dashboard is empty"
+          subtitle="Add widgets to build your personalized workspace."
+          action={
+            <Button variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
+              Add Widget
+            </Button>
+          }
         />
-        <MrHealthPanel
-          gitlabBaseUrl={gitlabBaseUrl ?? ''}
-          gitlabToken={gitlabToken ?? ''}
-          tokenLoading={gitlabTokenLoading}
+      ) : (
+        <WidgetGrid
+          layout={dashboardLayout}
+          onLayoutChange={(newLayout) => setDashboardLayout(newLayout)}
+          onRemoveWidget={(id) => removeDashboardWidget(id)}
         />
-        <SprintHealthPanel
-          jiraBaseUrl={jiraBaseUrl ?? ''}
-          jiraToken={jiraToken ?? ''}
-          activeJiraProject={activeJiraProject ?? ''}
-        />
-      </div>
+      )}
     </div>
   );
 }

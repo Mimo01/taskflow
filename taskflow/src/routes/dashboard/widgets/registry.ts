@@ -19,6 +19,9 @@ import {
   Users,
 } from 'lucide-react';
 import type { DashboardLayoutItem } from '@/stores/settings.store';
+import SubtasksWidget from './SubtasksWidget';
+import MrHealthWidget from './MrHealthWidget';
+import SprintHealthWidget from './SprintHealthWidget';
 
 export interface WidgetDef {
   type: string;
@@ -43,7 +46,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
     title: 'My Subtasks',
     description: 'Open subtasks assigned to you',
     icon: CheckSquare,
-    component: Placeholder,
+    component: SubtasksWidget,
     defaultSize: { w: 6, h: 4 },
     minSize: { w: 3, h: 3 },
     maxSize: { w: 12, h: 8 },
@@ -53,7 +56,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
     title: 'MR Health',
     description: 'Merge request status overview',
     icon: GitMerge,
-    component: Placeholder,
+    component: MrHealthWidget,
     defaultSize: { w: 6, h: 4 },
     minSize: { w: 3, h: 3 },
     maxSize: { w: 12, h: 8 },
@@ -63,7 +66,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
     title: 'Sprint Health',
     description: 'Sprint overview with key metrics',
     icon: LayoutDashboard,
-    component: Placeholder,
+    component: SprintHealthWidget,
     defaultSize: { w: 6, h: 4 },
     minSize: { w: 4, h: 3 },
     maxSize: { w: 12, h: 8 },
