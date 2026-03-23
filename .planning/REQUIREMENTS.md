@@ -48,13 +48,13 @@ Requirements for milestone v1.5: Dashboard Redesign & Feature Parity.
 
 ### Layout
 
-- [ ] **LAYOUT-01**: User can choose which sidebar items are visible
-- [ ] **LAYOUT-02**: User can reorder sidebar items via drag-and-drop
-- [ ] **LAYOUT-03**: User can apply Dev or PM preset to restore default sidebar configuration
-- [ ] **LAYOUT-04**: User can add/remove/resize dashboard widgets in a grid layout
-- [ ] **LAYOUT-05**: User can drag dashboard widgets to rearrange layout
-- [ ] **LAYOUT-06**: Dashboard layout persists across app restarts
-- [ ] **LAYOUT-07**: User can reset dashboard to Dev or PM preset layout
+- [x] **LAYOUT-01**: User can choose which sidebar items are visible
+- [x] **LAYOUT-02**: User can reorder sidebar items via drag-and-drop
+- [x] **LAYOUT-03**: User can apply Dev or PM preset to restore default sidebar configuration
+- [x] **LAYOUT-04**: User can add/remove/resize dashboard widgets in a grid layout
+- [x] **LAYOUT-05**: User can drag dashboard widgets to rearrange layout
+- [x] **LAYOUT-06**: Dashboard layout persists across app restarts
+- [x] **LAYOUT-07**: User can reset dashboard to Dev or PM preset layout
 
 ## Future Requirements
 
@@ -113,13 +113,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FILT-02 | Phase 33 | Complete |
 | FILT-03 | Phase 33 | Complete |
 | FILT-04 | Phase 33 | Complete |
-| LAYOUT-01 | Phase 34 | Pending |
-| LAYOUT-02 | Phase 34 | Pending |
-| LAYOUT-03 | Phase 34 | Pending |
-| LAYOUT-04 | Phase 34 | Pending |
-| LAYOUT-05 | Phase 34 | Pending |
-| LAYOUT-06 | Phase 34 | Pending |
-| LAYOUT-07 | Phase 34 | Pending |
+| LAYOUT-01 | Phase 34 | Complete |
+| LAYOUT-02 | Phase 34 | Complete |
+| LAYOUT-03 | Phase 34 | Complete |
+| LAYOUT-04 | Phase 34 | Complete |
+| LAYOUT-05 | Phase 34 | Complete |
+| LAYOUT-06 | Phase 34 | Complete |
+| LAYOUT-07 | Phase 34 | Complete |
 
 **Coverage:**
 - v1.5 requirements: 34 total
