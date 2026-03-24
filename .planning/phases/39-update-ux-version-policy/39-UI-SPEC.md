@@ -52,20 +52,20 @@ Source: Observed from `dialog.tsx`, `stale-data-banner.tsx`, `button.tsx` size v
 
 ## Typography
 
-All sizes use Geist Variable at `font-sans`. Weights and sizes match the base-nova preset and the existing dialog/button patterns.
+All sizes use Geist Variable at `font-sans`. Weights match the base-nova preset and the existing dialog/button patterns. Maximum 2 weights.
 
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 14px (text-sm) | 400 (regular) | 1.5 |
 | Label | 12px (text-xs) | 400 (regular) | 1.4 |
-| Heading | 16px (text-base) | 500 (medium) | 1.2 |
+| Heading | 16px (text-base) | 600 (semibold) | 1.2 |
 | Display | 20px (text-xl) | 600 (semibold) | 1.2 |
 
 Notes:
-- Dialog title uses `text-base font-medium` (16px/500) — inherited from `DialogTitle` in dialog.tsx
+- Dialog title uses `text-base font-semibold` (16px/600) — override `DialogTitle` default to align with 2-weight contract
 - Progress percentage label uses `text-xs text-muted-foreground` (12px/400) — from RESEARCH.md code example
 - Changelog rendered via react-markdown uses `@tailwindcss/typography` prose styles — do not override heading/body sizes within changelog scroll area; let prose defaults apply
-- Version numbers (e.g. "v1.6.0 → v1.7.0") use `text-sm font-medium` (14px/500)
+- Version numbers (e.g. "v1.6.0 → v1.7.0") use `text-sm` (14px/400)
 
 Source: `taskflow/src/components/ui/dialog.tsx`, `taskflow/src/index.css`
 
@@ -81,7 +81,7 @@ All tokens are OKLCH CSS variables from `taskflow/src/index.css`. Both light and
 | Secondary (30%) | `--muted` / `--secondary` | oklch(0.97 0 0) — near-white | Dialog footer (`bg-muted/50`), banner background (`bg-muted`), secondary buttons |
 | Accent (10%) | `--primary` | oklch(0.205 0 0) — near-black | Primary CTA buttons only (Update Now, Got it, Restart Now) |
 | Warning | `--chart-1` (amber proxy) | oklch(0.809 0.105 251.813) | Soft minimum banner warning icon only — use `text-amber-500` / `text-warning` if available, fall back to Lucide `TriangleAlert` icon in `text-muted-foreground` |
-| Destructive | `--destructive` | oklch(0.577 0.245 27.325) — red | Error state in UpdateDialog (download error message text + Retry/Cancel button variant="destructive") |
+| Destructive | `--destructive` | oklch(0.577 0.245 27.325) — red | Error state in UpdateDialog (download error message text + Retry button variant="destructive") |
 
 Accent (`--primary`) reserved for:
 - "Update Now" button (variant="default") in UpdateDialog available view
@@ -108,12 +108,12 @@ Single dialog component driven by `useUpdateStore.status`. Uses existing `Dialog
 
 **States and their visual treatment:**
 
-| Status | View Name | Dismissable | Footer Buttons |
-|--------|-----------|-------------|----------------|
-| `available` | AvailableView | Yes (Later) | "Update Now" (default), "Later" (outline) |
-| `downloading` | DownloadingView | No | "Cancel" (outline) only |
-| `ready` | ReadyView | No (during countdown; yes after cancel) | "Cancel" (outline) to stop countdown |
-| `error` | ErrorView | Yes (Cancel) | "Retry" (destructive), "Cancel" (outline) |
+| Status | View Name | Dismissable | Footer Buttons | Primary Focal Point |
+|--------|-----------|-------------|----------------|---------------------|
+| `available` | AvailableView | Yes (Later) | "Update Now" (default), "Later" (outline) | Changelog scroll area |
+| `downloading` | DownloadingView | No | "Stop Download" (outline) only | Progress bar |
+| `ready` | ReadyView | No (during countdown; yes after cancel) | "Restart Later" (outline) to stop countdown | Countdown seconds display |
+| `error` | ErrorView | Yes (Dismiss) | "Retry" (destructive), "Dismiss" (outline) | Error message text |
 
 **AvailableView layout:**
 ```
@@ -136,7 +136,7 @@ DialogHeader
   [bg-primary h-2 rounded-full transition-all]
 [Label row: "{downloadProgress ?? 0}%  ·  {bytesDownloaded} / {totalBytes}"]
 DialogFooter
-  "Cancel" button (variant="outline")
+  "Stop Download" button (variant="outline")
 ```
 
 **ReadyView layout:**
@@ -146,7 +146,7 @@ DialogHeader
   DialogDescription: "Restarting in {seconds}s…"
 [Countdown visual — large text-xl font-semibold centered: "{seconds}"]
 DialogFooter
-  "Cancel" button (variant="outline") — stops countdown, returns to available state
+  "Restart Later" button (variant="outline") — stops countdown, returns to available state
 ```
 
 **ErrorView layout:**
@@ -155,7 +155,7 @@ DialogHeader
   DialogTitle: "Download Failed"
   DialogDescription: [error message text in text-destructive]
 DialogFooter
-  "Cancel" button (variant="outline")
+  "Dismiss" button (variant="outline")
   "Retry" button (variant="destructive")
 ```
 
@@ -195,6 +195,7 @@ Follows `stale-data-banner.tsx` pattern exactly.
 | Layout | `flex flex-col items-center justify-center gap-6 p-8` |
 | Content | Lock icon (Lucide `Lock`, size-12, text-muted-foreground), heading, version info, message, "Update Now" button |
 | Dismiss | None — no X button, no ESC, no backdrop click |
+| Primary Focal Point | Lock icon + heading ("Update Required") |
 
 ### Progress Bar (inline, no separate component)
 
@@ -222,13 +223,13 @@ available → AvailableView (dismissable via "Later")
   └─ Later → idle (resetToIdle; polling will re-open on next check)
   └─ Update Now → downloading
 downloading → DownloadingView (non-dismissable)
-  └─ Cancel → available (or idle; preserve availableVersion)
+  └─ Stop Download → available (or idle; preserve availableVersion)
   └─ [auto on complete] → ready
 ready → ReadyView (10s countdown, non-dismissable during countdown)
-  └─ Cancel → available (stop countdown; user defers restart)
+  └─ Restart Later → available (stop countdown; user defers restart)
   └─ [auto at 0s] → [relaunch()]
 error → ErrorView (dismissable)
-  └─ Cancel → idle
+  └─ Dismiss → idle
   └─ Retry → downloading
 ```
 
@@ -238,7 +239,7 @@ error → ErrorView (dismissable)
 - Decrements by 1 every 1000ms using `setInterval` inside `useEffect`
 - `useEffect` cleanup: `clearInterval` on unmount or when `seconds` reaches 0
 - At `seconds === 0`: calls `relaunch()` — fire and forget (`catch(() => {})`)
-- Cancel button: clears interval, calls store `setAvailable()` to return user to AvailableView
+- Restart Later button: clears interval, calls store `setAvailable()` to return user to AvailableView
 
 ### Download Progress Display
 
@@ -282,10 +283,11 @@ setLastSeenVersion(buildInfo.version);
 |---------|------|
 | Primary CTA — update available | "Update Now" |
 | Secondary CTA — defer update | "Later" |
-| Download cancel | "Cancel" |
-| Restart cancel | "Cancel" |
+| Download cancel | "Stop Download" |
+| Restart cancel | "Restart Later" |
 | Post-update dismiss | "Got it" |
 | Error retry | "Retry" |
+| Error cancel | "Dismiss" |
 | UpdateDialog title — available | "Update Available" |
 | UpdateDialog title — downloading | "Downloading Update" |
 | UpdateDialog title — ready | "Ready to Restart" |
@@ -303,7 +305,7 @@ setLastSeenVersion(buildInfo.version);
 | HardMinimumOverlay error | "Couldn't check for updates. Check your connection." |
 | Download error — generic | "Download failed. Check your connection and try again." |
 
-Destructive actions in this phase: None. The update and restart flow does not destroy user data. No confirmation dialogs needed beyond the natural "Later" / "Cancel" affordances.
+Destructive actions in this phase: None. The update and restart flow does not destroy user data. No confirmation dialogs needed beyond the natural "Later" / "Stop Download" / "Restart Later" / "Dismiss" affordances.
 
 ---
 
