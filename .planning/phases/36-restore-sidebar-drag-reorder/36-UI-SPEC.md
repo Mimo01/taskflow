@@ -39,7 +39,7 @@ Declared values (must be multiples of 4):
 | 2xl | 48px | Not used this phase |
 | 3xl | 64px | Not used this phase |
 
-Exceptions: Sortable item row uses `px-2 py-1.5` (8px horizontal, 6px vertical) matching the existing SidebarItemsList row padding. The 6px vertical padding is inherited from the current implementation and preserved for visual consistency.
+Exceptions: none. Row padding matches existing SidebarItemsList implementation and is not redeclared here. No new spacing tokens are introduced by this phase.
 
 ---
 
