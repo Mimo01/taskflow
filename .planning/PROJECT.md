@@ -189,4 +189,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-22 after Phase 32 (time tracking, attachments, mentions) complete*
+*Last updated: 2026-03-24 after Phase 35 (restore saved filters) complete*
