@@ -7,7 +7,7 @@
 - ✅ **v1.2 Jira Parity** — Phases 9-17 (shipped 2026-03-15)
 - ✅ **v1.3 UX & Branding** — Phases 18-24 (shipped 2026-03-19)
 - ✅ **v1.4 Internal Quality & Performance** — Phases 25-30 (shipped 2026-03-20)
-- 🚧 **v1.5 Dashboard Redesign & Feature Parity** — Phases 31-36 (in progress)
+- 🚧 **v1.5 Dashboard Redesign & Feature Parity** — Phases 31-37 (in progress)
 
 ## Phases
 
@@ -91,6 +91,7 @@ See archive: `.planning/milestones/v1.4-ROADMAP.md`
 - [x] **Phase 34: Layout Customization** - Customizable sidebar and widget-based dashboard (completed 2026-03-23)
 - [x] **Phase 35: Restore Saved Filters** - Re-implement saved filter CRUD, dialogs, sidebar/command palette integration (gap closure) (completed 2026-03-24)
 - [x] **Phase 36: Restore Sidebar Drag-Reorder** - Re-implement dnd-kit sortable sidebar reordering (gap closure) (completed 2026-03-24)
+- [ ] **Phase 37: Wire Saved Filters to Sprint Board** - Re-add activeFilterId consumption in SprintBoardTab so saved filters actually filter the board (gap closure)
 
 ## Phase Details
 
@@ -197,6 +198,19 @@ Plans:
 - [ ] 36-01-PLAN.md — dnd-kit sortable integration: test scaffold + SidebarItemsList drag-reorder implementation
 **UI hint**: yes
 
+### Phase 37: Wire Saved Filters to Sprint Board
+**Goal**: Re-add saved filter consumption in SprintBoardTab so clicking a saved filter actually constrains the board view
+**Depends on**: Phase 36
+**Requirements**: FILT-02, FILT-04
+**Gap Closure:** Closes integration gap from v1.5 audit (activeFilterId set but never consumed by SprintBoardTab)
+**Success Criteria** (what must be TRUE):
+  1. SprintBoardTab reads activeFilterId from useSavedFilterStore
+  2. When a saved filter is selected (via sidebar or command palette), the sprint board applies that filter's JQL to constrain displayed issues
+  3. Clearing the saved filter returns the board to its default view
+**Plans:** 0/0 plans
+Plans: (none yet)
+**UI hint**: no
+
 ## Progress
 
 **Execution Order:**
@@ -240,3 +254,4 @@ Phases execute in numeric order: 31 → 32 → 33 → 34
 | 34. Layout Customization | v1.5 | 4/5 | Complete    | 2026-03-23 |
 | 35. Restore Saved Filters | v1.5 | 2/3 | Complete    | 2026-03-24 |
 | 36. Restore Sidebar Drag-Reorder | v1.5 | 0/1 | Complete    | 2026-03-24 |
+| 37. Wire Saved Filters to Sprint Board | v1.5 | 0/0 | Pending | — |
