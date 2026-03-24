@@ -8,8 +8,8 @@ vi.mock('@tauri-apps/plugin-updater', () => ({
   check: vi.fn().mockResolvedValue(null),
 }));
 
-vi.mock('@tauri-apps/api/process', () => ({
-  relaunch: vi.fn().mockResolvedValue(undefined),
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock updaterService

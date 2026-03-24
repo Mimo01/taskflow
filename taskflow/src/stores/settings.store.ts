@@ -84,6 +84,12 @@ interface SettingsState {
   /** Update check interval in hours. 'manual' disables automatic checking. Default: 6. Per D-07. */
   updateCheckInterval: 1 | 6 | 12 | 24 | 'manual';
   setUpdateCheckInterval: (v: 1 | 6 | 12 | 24 | 'manual') => void;
+  /** Version string of the last seen update, for What's New dialog. Default: null. */
+  lastSeenVersion: string | null;
+  /** Changelog markdown of the last seen update, for What's New dialog. Default: null. */
+  lastSeenChangelog: string | null;
+  setLastSeenVersion: (v: string) => void;
+  setLastSeenChangelog: (v: string | null) => void;
   /** Whether the sidebar is collapsed to icon-only mode. Default: false. */
   sidebarCollapsed: boolean;
   toggleSidebarCollapsed: () => void;
@@ -179,6 +185,10 @@ export const useSettingsStore = create<SettingsState>()(
       setCommentSortOrder: (order) => set({ commentSortOrder: order }),
       updateCheckInterval: 6 as 1 | 6 | 12 | 24 | 'manual',
       setUpdateCheckInterval: (v) => set({ updateCheckInterval: v }),
+      lastSeenVersion: null,
+      lastSeenChangelog: null,
+      setLastSeenVersion: (v) => set({ lastSeenVersion: v }),
+      setLastSeenChangelog: (v) => set({ lastSeenChangelog: v }),
       sidebarCollapsed: false,
       toggleSidebarCollapsed: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       quickFilters: [],
@@ -307,7 +317,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 10,
+      version: 11,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -358,6 +368,10 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 10) {
           if (s.updateCheckInterval === undefined) s.updateCheckInterval = 6;
+        }
+        if (version < 11) {
+          if (s.lastSeenVersion === undefined) s.lastSeenVersion = null;
+          if (s.lastSeenChangelog === undefined) s.lastSeenChangelog = null;
         }
         return persisted as SettingsState;
       },
