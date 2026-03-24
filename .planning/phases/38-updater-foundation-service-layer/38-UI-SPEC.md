@@ -60,9 +60,11 @@ Pre-populated from existing design system (Geist Variable, shadcn base-nova).
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 14px | 400 (regular) | 1.5 |
-| Label | 12px | 500 (medium) | 1.4 |
+| Label | 12px | 400 (regular) | 1.4 |
 | Heading | 16px | 600 (semibold) | 1.2 |
 | Display | 20px | 600 (semibold) | 1.2 |
+
+Two weights only: 400 (regular) for Body and Label; 600 (semibold) for Heading and Display.
 
 Phase 38 does not render any new typographic elements. These values are the existing project standard carried forward for consistency.
 
