@@ -26,6 +26,9 @@ import ReAuthBanner, { GitLabReAuthBanner } from './components/app/ReAuthBanner'
 import Sidebar from './components/app/Sidebar';
 import TopBar from './components/app/TopBar';
 import { useNotificationPolling } from './hooks/useNotificationPolling';
+import { useUpdatePolling } from './hooks/useUpdatePolling';
+import { UpdateDialog } from './components/update/UpdateDialog';
+import { WhatsNewDialog } from './components/update/WhatsNewDialog';
 import {
   CreateEditIssueModal,
   type EditInitialValues,
@@ -411,6 +414,7 @@ function AppLayout() {
 
   // Notification polling — runs inside QueryClientProvider context
   useNotificationPolling();
+  useUpdatePolling();
   useCustomFieldDiscovery();
 
   if (!onboardingComplete) {
@@ -476,6 +480,8 @@ function AppLayout() {
         defaultParentKey={createModalDefaultParent}
       />
       <KeyboardShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <UpdateDialog />
+      <WhatsNewDialog />
     </div>
   );
 }
