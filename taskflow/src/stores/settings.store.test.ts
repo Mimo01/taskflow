@@ -179,3 +179,28 @@ describe('settings.store — layout customization (Phase 34)', () => {
     expect(result.current.dashboardLayout).toEqual(PM_DASHBOARD_PRESET);
   });
 });
+
+describe('settings.store — updateCheckInterval (Phase 38)', () => {
+  beforeEach(() => {
+    act(() => {
+      useSettingsStore.setState({
+        updateCheckInterval: 6,
+      } as any);
+    });
+  });
+
+  it('updateCheckInterval defaults to 6', () => {
+    const { result } = renderHook(() => useSettingsStore());
+    expect(result.current.updateCheckInterval).toBe(6);
+  });
+
+  it('setUpdateCheckInterval updates the value', () => {
+    act(() => useSettingsStore.getState().setUpdateCheckInterval(24));
+    expect(useSettingsStore.getState().updateCheckInterval).toBe(24);
+  });
+
+  it('setUpdateCheckInterval accepts manual', () => {
+    act(() => useSettingsStore.getState().setUpdateCheckInterval('manual'));
+    expect(useSettingsStore.getState().updateCheckInterval).toBe('manual');
+  });
+});
