@@ -23,6 +23,7 @@ import {
   X,
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
+import { SaveFilterDialog } from '@/components/SaveFilterDialog';
 import { Button } from '@/components/ui/button';
 import {
   ContextMenu,
@@ -32,6 +33,7 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useAuthStore } from '@/stores/auth.store';
 import type { QuickFilter } from '@/stores/filter.store';
 import { useFilterStore } from '@/stores/filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -192,6 +194,9 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
   const { quickFilters, addQuickFilter, removeQuickFilter, renameQuickFilter, moveQuickFilter } =
     useSettingsStore();
 
+  const { jiraBaseUrl } = useAuthStore();
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+
   const [savingName, setSavingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -208,6 +213,23 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
 
   const activeCount =
     activeEpics.size + activeLabels.size + activeAssignees.size + activeStatuses.size;
+
+  const currentJql = useMemo(() => {
+    const clauses: string[] = [];
+    if (activeEpics.size > 0) {
+      clauses.push(`"Epic Link" in (${Array.from(activeEpics).join(', ')})`);
+    }
+    if (activeLabels.size > 0) {
+      clauses.push(`labels in (${Array.from(activeLabels).map(l => `"${l}"`).join(', ')})`);
+    }
+    if (activeAssignees.size > 0) {
+      clauses.push(`assignee in (${Array.from(activeAssignees).map(a => `"${a}"`).join(', ')})`);
+    }
+    if (activeStatuses.size > 0) {
+      clauses.push(`status in (${Array.from(activeStatuses).map(s => `"${s}"`).join(', ')})`);
+    }
+    return clauses.join(' AND ');
+  }, [activeEpics, activeLabels, activeAssignees, activeStatuses]);
 
   function handleSaveQuickFilter() {
     if (!nameInput.trim()) return;
@@ -460,6 +482,19 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
           </Button>
         )}
 
+        {/* Save to Jira as saved filter */}
+        {hasActiveFilters && !savingName && jiraBaseUrl && (
+          <Button
+            variant="ghost"
+            size="xs"
+            onClick={() => setSaveDialogOpen(true)}
+            className="text-muted-foreground gap-1"
+          >
+            <BookmarkPlus className="size-3" />
+            <span className="text-[11px]">Save Filter</span>
+          </Button>
+        )}
+
         {savingName && (
           <span className="inline-flex items-center gap-1">
             <input
@@ -514,6 +549,16 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
           )}
         </Button>
       </div>
+
+      {/* Save Filter dialog (Jira) */}
+      {jiraBaseUrl && (
+        <SaveFilterDialog
+          open={saveDialogOpen}
+          onOpenChange={setSaveDialogOpen}
+          jql={currentJql}
+          jiraBaseUrl={jiraBaseUrl}
+        />
+      )}
 
       {/* Expandable filter selectors row */}
       {filtersOpen && (
