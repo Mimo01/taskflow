@@ -247,3 +247,14 @@ export interface JiraBoardQuickFilter {
   description?: string;
   position: number;
 }
+
+// --- Phase 35 additions: Saved filters ---
+
+export interface JiraSavedFilter {
+  id: string;
+  name: string;
+  jql: string;
+  description?: string;
+  owner?: { displayName: string };
+  favourite?: boolean;
+}
