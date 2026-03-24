@@ -101,7 +101,7 @@ Components restored or modified in this phase (all use existing shadcn/base-ui p
 - Trigger: "Save Filter" button in UnifiedFilterBar (visible when filters are active)
 - Fields: Name (Input, required), Description (Textarea, optional)
 - JQL is auto-populated from current active filters (read-only display, `text-muted-foreground`, `font-mono text-xs`)
-- Actions: "Cancel" (ghost variant), "Save Filter" (default variant)
+- Actions: "Don't Save" (ghost variant), "Save Filter" (default variant)
 - Loading state: "Save Filter" button shows spinner, disabled during save
 - Success: Dialog closes, toast notification "Filter saved", filter appears in sidebar list
 
@@ -109,7 +109,7 @@ Components restored or modified in this phase (all use existing shadcn/base-ui p
 
 - Trigger: "Edit" item in context menu on SavedFilterList item
 - Fields: Name (Input, pre-filled), JQL (Textarea, pre-filled, editable), Description (Textarea, pre-filled)
-- Actions: "Cancel" (ghost variant), "Update Filter" (default variant)
+- Actions: "Discard Changes" (ghost variant), "Update Filter" (default variant)
 - Loading state: "Update Filter" button shows spinner, disabled during update
 
 ### SavedFilterList
@@ -145,6 +145,8 @@ Components restored or modified in this phase (all use existing shadcn/base-ui p
 | Primary CTA (update) | "Update Filter" |
 | Dialog title (save) | "Save Current Filter" |
 | Dialog title (edit) | "Edit Filter" |
+| Save dialog dismiss | "Don't Save" |
+| Edit dialog dismiss | "Discard Changes" |
 | Name field label | "Filter name" |
 | Name field placeholder | "My filter" |
 | Description field label | "Description (optional)" |
