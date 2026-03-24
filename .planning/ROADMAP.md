@@ -133,8 +133,10 @@ Plans:
   3. After updating, a "What's New" dialog shows the release notes for the version just installed
   4. When the app version is below softMinimum (from version-policy.json on the public repo), a persistent nag banner appears that is dismissible once per session
   5. When the app version is below hardMinimum, a full-screen blocking overlay prevents app use until the user updates; the overlay does not appear if the policy file is unreachable (fail-open)
-**Plans**: TBD
-**UI hint**: yes
+**Plans**: 2 plans
+Plans:
+- [ ] 39-01-PLAN.md — UpdateDialog lifecycle + WhatsNewDialog + settings store v11 migration
+- [ ] 39-02-PLAN.md — Version policy service + SoftMinimumBanner + HardMinimumOverlay
 
 ### Phase 40: Settings, About & Menu Integration
 **Goal**: Users can view version info, control update preferences, browse release history, and access an About dialog from the menu bar
@@ -167,6 +169,6 @@ Note: Phases 39 and 40 both depend only on Phase 38 and are independent of each 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 38. Updater Foundation + Service Layer | v1.6 | 3/3 | Complete    | 2026-03-24 |
-| 39. Update UX + Version Policy | v1.6 | 0/TBD | Not started | - |
+| 39. Update UX + Version Policy | v1.6 | 0/2 | Not started | - |
 | 40. Settings, About & Menu Integration | v1.6 | 0/TBD | Not started | - |
 | 41. CI Pipeline | v1.6 | 0/TBD | Not started | - |
