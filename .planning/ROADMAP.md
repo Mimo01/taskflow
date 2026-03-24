@@ -91,7 +91,7 @@ See archive: `.planning/milestones/v1.4-ROADMAP.md`
 - [x] **Phase 34: Layout Customization** - Customizable sidebar and widget-based dashboard (completed 2026-03-23)
 - [x] **Phase 35: Restore Saved Filters** - Re-implement saved filter CRUD, dialogs, sidebar/command palette integration (gap closure) (completed 2026-03-24)
 - [x] **Phase 36: Restore Sidebar Drag-Reorder** - Re-implement dnd-kit sortable sidebar reordering (gap closure) (completed 2026-03-24)
-- [ ] **Phase 37: Wire Saved Filters to Sprint Board** - Re-add activeFilterId consumption in SprintBoardTab so saved filters actually filter the board (gap closure)
+- [x] **Phase 37: Wire Saved Filters to Sprint Board** - Re-add activeFilterId consumption in SprintBoardTab so saved filters actually filter the board (gap closure) (completed 2026-03-24)
 
 ## Phase Details
 
@@ -207,9 +207,9 @@ Plans:
   1. SprintBoardTab reads activeFilterId from useSavedFilterStore
   2. When a saved filter is selected (via sidebar or command palette), the sprint board applies that filter's JQL to constrain displayed issues
   3. Clearing the saved filter returns the board to its default view
-**Plans:** 1 plans
+**Plans:** 1/1 plans complete
 Plans:
-- [ ] 37-01-PLAN.md — Wire useSavedFilterStore into SprintBoardTab: JQL query, swimlane intersection, active filter banner
+- [x] 37-01-PLAN.md — Wire useSavedFilterStore into SprintBoardTab: JQL query, swimlane intersection, active filter banner
 **UI hint**: no
 
 ## Progress
@@ -255,4 +255,4 @@ Phases execute in numeric order: 31 → 32 → 33 → 34
 | 34. Layout Customization | v1.5 | 4/5 | Complete    | 2026-03-23 |
 | 35. Restore Saved Filters | v1.5 | 2/3 | Complete    | 2026-03-24 |
 | 36. Restore Sidebar Drag-Reorder | v1.5 | 0/1 | Complete    | 2026-03-24 |
-| 37. Wire Saved Filters to Sprint Board | v1.5 | 0/1 | Pending | — |
+| 37. Wire Saved Filters to Sprint Board | v1.5 | 1/1 | Complete   | 2026-03-24 |
