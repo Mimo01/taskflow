@@ -48,15 +48,15 @@ Exceptions: none
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 14px | 400 (regular) | 1.5 |
-| Label | 11px | 500 (medium) | 1.4 |
+| Label | 11px | 400 (regular) | 1.4 |
 | Heading | 16px | 600 (semibold) | 1.2 |
 | Display | 20px | 600 (semibold) | 1.2 |
 
 Notes:
 - Filter list item names use Body (14px/400)
-- "Save Filter" button label uses Label (11px/500), matching existing UnifiedFilterBar chip labels
+- "Save Filter" button label uses Label (11px/400), matching existing UnifiedFilterBar chip labels -- size difference from Body (11px vs 14px) creates sufficient hierarchy without a third weight
 - Dialog titles use Heading (16px/600)
-- Section headings ("Saved Filters" sidebar header) use Label (11px/500) uppercase with `text-muted-foreground`
+- Section headings ("Saved Filters" sidebar header) use Label (11px/400) uppercase with `text-muted-foreground`
 
 ---
 
@@ -73,6 +73,12 @@ Accent reserved for:
 - Active/selected filter item background highlight in SavedFilterList
 - "Save" and "Update" primary action buttons in dialogs
 - Bookmark icon on active filter in UnifiedFilterBar
+
+---
+
+## Focal Point
+
+Primary focal point: active SavedFilterList item in sidebar. The currently applied saved filter is the single most important visual signal -- it tells the user which filter is shaping the board. It uses `bg-sidebar-accent text-sidebar-accent-foreground` to stand out from inactive items.
 
 ---
 
@@ -109,7 +115,7 @@ Components restored or modified in this phase (all use existing shadcn/base-ui p
 ### SavedFilterList
 
 - Location: Sidebar, below sectioned nav items, above bottom settings area
-- Header: "Saved Filters" label (11px/500, uppercase, `text-muted-foreground`) with chevron toggle for collapse
+- Header: "Saved Filters" label (11px/400, uppercase, `text-muted-foreground`) with chevron toggle for collapse
 - Items: Bookmark icon (size-3.5) + filter name (14px/400), full-width clickable
 - Active state: `bg-sidebar-accent text-sidebar-accent-foreground` on the active filter item
 - Hover state: `bg-sidebar-accent/50` on non-active items
@@ -151,8 +157,8 @@ Components restored or modified in this phase (all use existing shadcn/base-ui p
 | Error state (fetch fail) | "Could not load saved filters. They will appear when Jira is reachable." |
 | Error state (delete fail) | "Could not delete filter. Try again." |
 | Delete confirmation | "Delete filter": "Delete [filter name]? This removes it from Jira. This cannot be undone." |
-| Delete confirm button | "Delete" |
-| Delete cancel button | "Cancel" |
+| Delete confirm button | "Delete Filter" |
+| Delete cancel button | "Keep Filter" |
 | Toast (saved) | "Filter saved" |
 | Toast (updated) | "Filter updated" |
 | Toast (deleted) | "Filter deleted" |
@@ -190,7 +196,7 @@ Components restored or modified in this phase (all use existing shadcn/base-ui p
 1. User right-clicks a filter, selects "Delete"
 2. Confirmation popover appears anchored to the context menu item
 3. Popover shows: "Delete [filter name]? This removes it from Jira. This cannot be undone."
-4. User clicks "Delete" (destructive variant) or "Cancel"
+4. User clicks "Delete Filter" (destructive variant) or "Keep Filter"
 5. On confirm: filter removed from list, toast "Filter deleted"
 6. On error: toast "Could not delete filter. Try again."
 
