@@ -68,7 +68,31 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ### Active
 
-(None — planning next milestone)
+<!-- Current scope: v1.6 Release & Auto-Update Pipeline -->
+
+- [ ] GitHub Actions CI pipeline: tag on private repo → cross-platform builds (macOS/Windows/Linux) → publish release to public repo
+- [ ] Automatic version sync: app version derived from git tag at build time (no manual bumps)
+- [ ] Tauri updater integration: in-app download + automatic install with restart
+- [ ] Configurable update check frequency (default 24h, user-adjustable in Settings)
+- [ ] Update prompt dialog with changelog (from GitHub Release notes) and "Update Now" / "Later" actions
+- [ ] Version history section in Settings showing all releases with changelogs
+- [ ] Two-tier force-update policy: soft minimum (persistent nag banner) and hard minimum (blocks app until update)
+- [ ] Version policy file on public repo defining soft/hard minimum versions
+- [ ] About dialog: custom modal (macOS menu bar + cross-platform) showing version, build info, and update status
+
+## Current Milestone: v1.6 Release & Auto-Update Pipeline
+
+**Goal:** Ship Taskflow to users via a public GitHub repo with automated cross-platform builds, in-app auto-updates, version history, force-update policy, and a proper About dialog.
+
+**Target features:**
+- GitHub Actions CI pipeline with cross-platform builds
+- Automatic version sync from git tags
+- Tauri updater with in-app download + install
+- Configurable update check frequency
+- Update prompt with changelog display
+- Version history in Settings
+- Two-tier force-update policy (soft nag + hard block)
+- About dialog with version and build info
 
 ### Out of Scope
 
@@ -179,4 +203,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-24 after v1.5 milestone*
+*Last updated: 2026-03-24 after v1.6 milestone started*

@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.5
-milestone_name: Dashboard Redesign & Feature Parity
-status: Milestone archived
-stopped_at: v1.5 milestone complete
+milestone: v1.6
+milestone_name: Release & Auto-Update Pipeline
+status: Defining requirements
+stopped_at: Milestone v1.6 started
 last_updated: "2026-03-24"
 last_activity: 2026-03-24
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 25
-  completed_plans: 25
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -20,12 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Planning next milestone
+**Current focus:** v1.6 Release & Auto-Update Pipeline
 
 ## Current Position
 
-Phase: All v1.5 phases complete
-Plan: Milestone archived
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-24 — Milestone v1.6 started
 
 ## Accumulated Context
 
@@ -44,8 +46,8 @@ None.
 ## Session Continuity
 
 Last activity: 2026-03-24
-Stopped at: v1.5 milestone archived
-Resume: Start next milestone with `/gsd:new-milestone`
+Stopped at: Milestone v1.6 started
+Resume: Define requirements, then `/gsd:plan-phase`
 
 ### Quick Tasks Completed
 
