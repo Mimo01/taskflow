@@ -14,6 +14,11 @@ export default defineConfig(async () => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  define: {
+    'import.meta.env.APP_VERSION': JSON.stringify(process.env.APP_VERSION ?? '0.0.0-dev'),
+    'import.meta.env.APP_COMMIT_SHA': JSON.stringify(process.env.APP_COMMIT_SHA ?? 'dev'),
+    'import.meta.env.APP_BUILD_DATE': JSON.stringify(process.env.APP_BUILD_DATE ?? 'unknown'),
+  },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
