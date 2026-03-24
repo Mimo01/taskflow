@@ -89,7 +89,7 @@ See archive: `.planning/milestones/v1.4-ROADMAP.md`
 - [x] **Phase 32: Time Tracking, Attachments & Mentions** - Worklog CRUD, file attachments, and @mention autocomplete (completed 2026-03-22)
 - [x] **Phase 33: Board, Sprint & Filters** - Sprint goal, quick filters, bulk operations, and saved filter management (completed 2026-03-23)
 - [x] **Phase 34: Layout Customization** - Customizable sidebar and widget-based dashboard (completed 2026-03-23)
-- [ ] **Phase 35: Restore Saved Filters** - Re-implement saved filter CRUD, dialogs, sidebar/command palette integration (gap closure)
+- [x] **Phase 35: Restore Saved Filters** - Re-implement saved filter CRUD, dialogs, sidebar/command palette integration (gap closure) (completed 2026-03-24)
 - [ ] **Phase 36: Restore Sidebar Drag-Reorder** - Re-implement dnd-kit sortable sidebar reordering (gap closure)
 
 ## Phase Details
@@ -177,10 +177,10 @@ Plans:
   2. User can view and execute saved/favourite filters from sidebar and command palette
   3. User can edit and delete saved filters
   4. Attachment delete button renders in issue detail (integration fix: onDelete prop wiring)
-**Plans:** 1/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 - [x] 35-01-PLAN.md — Types, filter CRUD service, Zustand store, and service unit tests
-- [ ] 35-02-PLAN.md — SaveFilterDialog, EditFilterDialog, SavedFilterList components and tests
+- [x] 35-02-PLAN.md — SaveFilterDialog, EditFilterDialog, SavedFilterList components and tests
 - [ ] 35-03-PLAN.md — Integration wiring: UnifiedFilterBar, Sidebar, CommandPalette, SavedFiltersWidget, attachment delete fix
 **UI hint**: yes
 
@@ -235,5 +235,5 @@ Phases execute in numeric order: 31 → 32 → 33 → 34
 | 32. Time Tracking, Attachments & Mentions | v1.5 | 5/5 | Complete    | 2026-03-22 |
 | 33. Board, Sprint & Filters | v1.5 | 6/6 | Complete    | 2026-03-23 |
 | 34. Layout Customization | v1.5 | 4/5 | Complete    | 2026-03-23 |
-| 35. Restore Saved Filters | v1.5 | 1/3 | In Progress|  |
+| 35. Restore Saved Filters | v1.5 | 2/3 | Complete    | 2026-03-24 |
 | 36. Restore Sidebar Drag-Reorder | v1.5 | 0/0 | Pending | — |
