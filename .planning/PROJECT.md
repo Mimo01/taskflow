@@ -66,7 +66,7 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 - ✓ Sprint goal banner on sprint board header — v1.5
 - ✓ Board quick filter chips (Jira QFs + label toggles) with AND logic — v1.5
-- ✓ Saved filter management: save/edit/delete Jira filters, sidebar list, command palette search, click-to-apply board filtering — v1.5
+- ✓ Saved filter management: save/edit/delete Jira filters, sidebar list, command palette search, click-to-apply board filtering, sprint board JQL integration with active filter banner — v1.5
 - ✓ Sidebar drag-and-drop reorder in Settings > Appearance via @dnd-kit/sortable — v1.5
 
 ### Active
@@ -190,4 +190,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-24 after Phase 36 (restore sidebar drag-reorder) complete*
+*Last updated: 2026-03-24 after Phase 37 (wire saved filters to board) complete*
