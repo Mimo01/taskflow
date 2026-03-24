@@ -81,6 +81,9 @@ interface SettingsState {
   /** Comment sort order. Default: 'newest'. */
   commentSortOrder: CommentSortOrder;
   setCommentSortOrder: (order: CommentSortOrder) => void;
+  /** Update check interval in hours. 'manual' disables automatic checking. Default: 6. Per D-07. */
+  updateCheckInterval: 1 | 6 | 12 | 24 | 'manual';
+  setUpdateCheckInterval: (v: 1 | 6 | 12 | 24 | 'manual') => void;
   /** Whether the sidebar is collapsed to icon-only mode. Default: false. */
   sidebarCollapsed: boolean;
   toggleSidebarCollapsed: () => void;
@@ -174,6 +177,8 @@ export const useSettingsStore = create<SettingsState>()(
       keyboardOverrides: {},
       commentSortOrder: 'newest' as CommentSortOrder,
       setCommentSortOrder: (order) => set({ commentSortOrder: order }),
+      updateCheckInterval: 6 as 1 | 6 | 12 | 24 | 'manual',
+      setUpdateCheckInterval: (v) => set({ updateCheckInterval: v }),
       sidebarCollapsed: false,
       toggleSidebarCollapsed: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       quickFilters: [],
@@ -302,7 +307,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 9,
+      version: 10,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -350,6 +355,9 @@ export const useSettingsStore = create<SettingsState>()(
           const preset = role === 'pm' ? 'pm' : 'dev';
           s.sidebarItems = getDefaultSidebarItems(preset);
           s.dashboardLayout = getDefaultDashboardLayout(preset);
+        }
+        if (version < 10) {
+          if (s.updateCheckInterval === undefined) s.updateCheckInterval = 6;
         }
         return persisted as SettingsState;
       },
