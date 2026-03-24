@@ -55,22 +55,24 @@ Source: `Settings.tsx` line 49 (`px-2 py-6`), line 58 (`px-3 py-2`), line 69 (`p
 
 ## Typography
 
+Two weights only: 400 (normal) and 600 (semibold).
+
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 14px (text-sm) | 400 (normal) | 1.5 |
-| Label | 14px (text-sm) | 500 (medium) | 1.4 |
+| Label | 14px (text-sm) | 600 (semibold) | 1.4 |
 | Heading | 18px (text-lg) | 600 (semibold) | 1.2 |
 | Caption | 12px (text-xs) | 400 (normal) | 1.4 |
 
 Application to this phase:
 - About dialog title ("Taskflow"): `text-lg font-semibold` — 18px / 600
-- About dialog metadata labels ("Version", "Build Date", etc.): `text-sm font-medium` — 14px / 500
+- About dialog metadata labels ("Version", "Build Date", etc.): `text-sm font-semibold` — 14px / 600
 - About dialog metadata values: `text-sm` — 14px / 400
 - Updates section heading: `text-lg font-semibold` — matches WorkflowSection heading pattern
-- Subsection headings (e.g., "Version History"): `text-sm font-semibold text-muted-foreground uppercase tracking-wide` — matches WorkflowSection subsection pattern
-- Control labels: `text-sm font-medium` — 14px / 500
+- Subsection headings (e.g., "Release History"): `text-sm font-semibold text-muted-foreground uppercase tracking-wide` — matches WorkflowSection subsection pattern
+- Control labels: `text-sm font-semibold` — 14px / 600
 - Helper/description text: `text-xs text-muted-foreground` — 12px / 400
-- Version history release titles: `text-sm font-medium` — 14px / 500
+- Version history release titles: `text-sm font-semibold` — 14px / 600
 - Version history dates: `text-xs text-muted-foreground` — 12px / 400
 
 Source: `WorkflowSection.tsx` lines 24, 29, 33, 36; `EmptyState.tsx` lines 14-17.
@@ -128,6 +130,7 @@ No new shadcn components need to be installed. All required primitives are alrea
 - Trigger: macOS app menu "About Taskflow" item (Rust emits `menu-about` event; React `listen()` catches it and opens dialog)
 - Trigger (Windows/Linux): Help menu "About Taskflow" item (same event)
 - Open behavior: Dialog opens centered, overlaid on current view
+- Focal point: App icon (top, centered) anchors the eye first, followed by the "Taskflow" `text-lg font-semibold` heading immediately below it
 - Content layout: App icon (top, centered) → "Taskflow" heading → metadata rows (label + value pairs) → update status row → "Close" button
 - Metadata rows: Version, Build Date, Commit SHA, Platform/Arch, Update Status
 - Update Status: reads live from `useUpdateStore` — renders "Up to date" with `CheckCircle` (green) or "Update available (x.y.z)" with `ArrowUpCircle` (yellow)
@@ -137,9 +140,10 @@ No new shadcn components need to be installed. All required primitives are alrea
 ### Updates Settings Section
 
 - Navigation: "Updates" appears in the Settings sidebar after "Workflow" and before "Advanced". Icon: `RefreshCw` (Lucide, 16x16).
+- Focal point: The "Updates" section heading (`text-lg font-semibold`) anchors the eye first on page load. The current version display row (`text-sm` directly below it) is the first informational element the eye reaches after the heading.
 - Section heading: "Updates" (`text-lg font-semibold`)
 - Version display: "Current version: x.y.z" as a `text-sm` row — reads from `buildInfo.version`
-- Frequency dropdown: Label "Check for updates" with `Select` component showing options: Every hour / Every 6 hours / Every 12 hours / Daily / Manual only. Reads/writes `updateCheckInterval` in settings store.
+- Frequency dropdown: Label "Check for updates" (`text-sm font-semibold`) with `Select` component showing options: Every hour / Every 6 hours / Every 12 hours / Daily / Manual only. Reads/writes `updateCheckInterval` in settings store.
 - Last checked: `text-xs text-muted-foreground` below the frequency dropdown — "Last checked: 2 hours ago" (relative time). Hidden when never checked.
 - "Check Now" button: `variant="outline"` size `sm`. States:
   - Default: "Check Now"
@@ -152,7 +156,7 @@ No new shadcn components need to be installed. All required primitives are alrea
 - Positioned below the update controls, separated by a `gap-8` spacer and a subsection heading "Release History"
 - Loading state: 3 `Skeleton` rows, each `h-10 w-full rounded-md`
 - Loaded state: Scrollable list of release rows. Each row:
-  - Left: version tag (`text-sm font-medium`) + "(current)" `Badge variant="secondary"` if matches `buildInfo.version`
+  - Left: version tag (`text-sm font-semibold`) + "(current)" `Badge variant="secondary"` if matches `buildInfo.version`
   - Right: published date (`text-xs text-muted-foreground`, formatted as "Mar 24, 2026")
   - Click to expand: chevron (`ChevronDown` / `ChevronUp`, Lucide) rotates 180deg on open; changelog renders below as `ReactMarkdown` with `remarkGfm` inside a `prose prose-sm` container (already uses `@tailwindcss/typography`)
   - Only one row expanded at a time (accordion behavior)
