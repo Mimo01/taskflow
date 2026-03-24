@@ -1,10 +1,13 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { useQueryClient } from '@tanstack/react-query';
 import { Copy, ExternalLink, Pencil, Pin, Plus } from 'lucide-react';
 import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
-import type { JiraIssue, JiraIssueDetail, JiraIssueLink } from '@/services/jira';
+import type { JiraAttachment, JiraIssue, JiraIssueDetail, JiraIssueLink } from '@/services/jira';
+import { deleteAttachment } from '@/services/jira/attachments';
+import { readSecret } from '@/services/stronghold';
 import { useSettingsStore } from '@/stores/settings.store';
 import type { EditInitialValues } from './CreateEditIssueModal';
 import type { AttachmentMap, UserMap } from './WikiRenderer';
@@ -62,6 +65,13 @@ export function IssueDetailContent({
   const { summary, description, subtasks } = issue.fields;
   const comments = issue.fields.comment?.comments ?? [];
   const { storyPointsFieldKey, epicLinkFieldKey } = useSettingsStore();
+  const queryClient = useQueryClient();
+
+  async function handleDeleteAttachment(attachment: JiraAttachment) {
+    const token = await readSecret('jira-pat');
+    await deleteAttachment(jiraBaseUrl, token, attachment.id);
+    queryClient.invalidateQueries({ queryKey: ['issue-detail', issueKey] });
+  }
   const isEpic = issue.fields.issuetype.name === 'Epic';
   const isSubtask = issue.fields.issuetype.subtask;
 
@@ -119,6 +129,7 @@ export function IssueDetailContent({
         attachments={issue.fields.attachment ?? []}
         issueKey={issueKey}
         jiraBaseUrl={jiraBaseUrl}
+        onDelete={handleDeleteAttachment}
       />
 
       {/* Epic → Stories list */}
