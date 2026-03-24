@@ -97,7 +97,7 @@ See archive: `.planning/milestones/v1.5-ROADMAP.md`
 
 </details>
 
-### 🚧 v1.6 Release & Auto-Update Pipeline (In Progress)
+### v1.6 Release & Auto-Update Pipeline (In Progress)
 
 **Milestone Goal:** Ship Taskflow to users via a public GitHub repo with automated cross-platform builds, in-app auto-updates, version policy enforcement, and a proper About dialog.
 
@@ -117,7 +117,11 @@ See archive: `.planning/milestones/v1.5-ROADMAP.md`
   2. Build metadata (commit SHA, build date) is accessible at runtime via injected constants
   3. App checks for updates on launch and at the user's configured interval (1h/6h/12h/24h/manual) without blocking the UI
   4. Update check results (available version, changelog, errors) flow through a deterministic state machine with no impossible states
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 38-01-PLAN.md — Version injection pipeline (git tag to runtime constants)
+- [ ] 38-02-PLAN.md — Tauri updater plugin, service wrapper, and state machine store
+- [ ] 38-03-PLAN.md — Update polling hook, settings extension, and tauri.conf.json updater config
 
 ### Phase 39: Update UX + Version Policy
 **Goal**: Users experience a complete update lifecycle — from notification through installation — and the app enforces minimum version requirements
@@ -162,7 +166,7 @@ Note: Phases 39 and 40 both depend only on Phase 38 and are independent of each 
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 38. Updater Foundation + Service Layer | v1.6 | 0/TBD | Not started | - |
+| 38. Updater Foundation + Service Layer | v1.6 | 0/3 | Not started | - |
 | 39. Update UX + Version Policy | v1.6 | 0/TBD | Not started | - |
 | 40. Settings, About & Menu Integration | v1.6 | 0/TBD | Not started | - |
 | 41. CI Pipeline | v1.6 | 0/TBD | Not started | - |
