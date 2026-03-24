@@ -1,26 +1,26 @@
 /**
- * SavedFiltersWidget -- quick-access filter shortcuts for the widget grid.
+ * SavedFiltersWidget -- quick-access Jira saved filters for the widget grid.
  *
- * Reads saved quickfilter presets from settings store (no token loading needed).
- * Each filter is a clickable item that navigates to the sprint board with that filter applied.
+ * Reads saved filters from useSavedFilterStore (synced from Jira favourite filters).
+ * Each filter is a clickable item that activates the filter and navigates to the sprint board.
  */
 
-import { Filter } from 'lucide-react';
+import { Bookmark, Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useFilterStore } from '@/stores/filter.store';
-import { useSettingsStore } from '@/stores/settings.store';
+import { useSavedFilterStore } from '@/stores/saved-filter.store';
 
 export default function SavedFiltersWidget(_props: { widgetId: string }) {
-  const quickFilters = useSettingsStore((s) => s.quickFilters);
-  const applyQuickFilter = useFilterStore((s) => s.applyQuickFilter);
+  const savedFilters = useSavedFilterStore((s) => s.savedFilters);
+  const setActiveFilter = useSavedFilterStore((s) => s.setActiveFilter);
   const navigate = useNavigate();
 
-  if (quickFilters.length === 0) {
+  if (savedFilters.length === 0) {
     return (
       <div className="flex h-full items-center justify-center p-4">
         <div className="flex flex-col items-center gap-2 text-muted-foreground">
           <Filter className="size-5" />
-          <span className="text-sm">No saved filters</span>
+          <span className="text-sm">No saved filters yet</span>
+          <span className="text-xs text-center">Save a filter from the board to see it here.</span>
         </div>
       </div>
     );
@@ -28,18 +28,18 @@ export default function SavedFiltersWidget(_props: { widgetId: string }) {
 
   return (
     <div className="flex flex-col gap-0.5 p-2 overflow-auto">
-      {quickFilters.map((qf) => (
+      {savedFilters.map((filter) => (
         <button
-          key={qf.id}
+          key={filter.id}
           type="button"
           onClick={() => {
-            applyQuickFilter(qf);
+            setActiveFilter(filter.id);
             navigate('/');
           }}
           className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/50 text-sm text-left w-full transition-colors"
         >
-          <Filter className="size-3.5 shrink-0 text-muted-foreground" />
-          <span className="truncate">{qf.name}</span>
+          <Bookmark className="size-3.5 shrink-0 text-muted-foreground" />
+          <span className="truncate">{filter.name}</span>
         </button>
       ))}
     </div>

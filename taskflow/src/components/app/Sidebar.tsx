@@ -6,6 +6,7 @@
  * Section grouping is derived from sidebar-items.ts definitions.
  */
 
+import { useQuery } from '@tanstack/react-query';
 import {
   BarChart2,
   BookOpen,
@@ -21,9 +22,14 @@ import {
   Tag,
   Users,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
 import { NavLink } from 'react-router-dom';
+import { SavedFilterList } from '@/components/SavedFilterList';
+import { fetchFavouriteFilters } from '@/services/jira/filters';
+import { readSecret } from '@/services/stronghold';
+import { useAuthStore } from '@/stores/auth.store';
+import { useSavedFilterStore } from '@/stores/saved-filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { SIDEBAR_NAV_ITEMS, SIDEBAR_SECTIONS } from './sidebar-items';
 import AppIcon from './AppIcon';
@@ -54,6 +60,23 @@ export default function Sidebar() {
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);
   const toggleSidebarCollapsed = useSettingsStore((s) => s.toggleSidebarCollapsed);
   const [hovered, setHovered] = useState(false);
+
+  const { jiraBaseUrl } = useAuthStore();
+  const { setSavedFilters } = useSavedFilterStore();
+
+  const { data: favouriteFilters } = useQuery({
+    queryKey: ['jira-favourite-filters', jiraBaseUrl],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat');
+      return fetchFavouriteFilters(jiraBaseUrl!, token);
+    },
+    staleTime: 2 * 60 * 1000,
+    enabled: !!jiraBaseUrl,
+  });
+
+  useEffect(() => {
+    if (favouriteFilters) setSavedFilters(favouriteFilters);
+  }, [favouriteFilters, setSavedFilters]);
 
   const navLinkClass = navLinkClassFn(sidebarCollapsed);
   const labelClass = sidebarCollapsed ? 'hidden' : 'hidden md:block';
@@ -131,6 +154,13 @@ export default function Sidebar() {
           </div>
         ))}
       </nav>
+
+      {/* Saved Filters section */}
+      {jiraBaseUrl && !sidebarCollapsed && (
+        <div className="px-2 pb-2 hidden md:block">
+          <SavedFilterList jiraBaseUrl={jiraBaseUrl} />
+        </div>
+      )}
 
       {/* Bottom: Dev Tools (when enabled) + Settings */}
       <div className="px-2 py-4 border-t border-border flex flex-col gap-1">
