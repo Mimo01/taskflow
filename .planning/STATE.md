@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Dashboard Redesign & Feature Parity
-status: Ready to execute
-stopped_at: Completed 35-01-PLAN.md
-last_updated: "2026-03-24T07:52:03.968Z"
+status: Ready to plan
+stopped_at: Completed 35-03-PLAN.md
+last_updated: "2026-03-24T08:11:53.102Z"
 last_activity: 2026-03-24
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 23
-  completed_plans: 21
+  completed_plans: 23
 ---
 
 # Project State
@@ -24,8 +24,8 @@ See: .planning/PROJECT.md (updated 2026-03-19)
 
 ## Current Position
 
-Phase: 35 (restore-saved-filters) — EXECUTING
-Plan: 2 of 3
+Phase: 36
+Plan: Not started
 
 ## Performance Metrics
 
@@ -45,6 +45,8 @@ Plan: 2 of 3
 | Phase 34 P03 | 8min | 2 tasks | 8 files |
 | Phase 34 P04 | 4min | 3 tasks | 9 files |
 | Phase 35 P01 | 2min | 2 tasks | 5 files |
+| Phase 35 P02 | 5min | 2 tasks | 4 files |
+| Phase 35 P03 | 5min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -65,6 +67,8 @@ Recent decisions affecting current work:
 - [Phase 34]: Widget wrappers load tokens internally from Stronghold, eliminating prop-drilling from Dashboard
 - [Phase 34]: CustomJqlWidget uses dynamic apiFetch import and separate query key for MrAttentionWidget
 - [Phase 35]: Used relative import paths in filters.ts (matching jira service pattern) and @/ alias in store (matching store pattern)
+- [Phase 35]: Used inline delete confirmation instead of nested dialog for filter deletion
+- [Phase 35]: Sidebar fetches favourite filters with useQuery (2min staleTime) and syncs to Zustand store for cross-component access
 
 ### Pending Todos
 
@@ -77,7 +81,7 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-24
-Stopped at: Completed 35-01-PLAN.md
+Stopped at: Completed 35-03-PLAN.md
 Resume: Phase 25 complete. Next milestone phase ready for planning.
 
 ### Quick Tasks Completed
