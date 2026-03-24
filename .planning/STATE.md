@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Dashboard Redesign & Feature Parity
-status: Milestone complete
-stopped_at: Completed 37-01-PLAN.md
-last_updated: "2026-03-24T17:40:44.316Z"
+status: Milestone archived
+stopped_at: v1.5 milestone complete
+last_updated: "2026-03-24"
 last_activity: 2026-03-24
 progress:
   total_phases: 7
@@ -17,76 +17,35 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-19)
+See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Phase 37 — wire-saved-filters-to-board
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 37
-Plan: Not started
-
-## Performance Metrics
-
-**Velocity:**
-
-- Total plans completed: 2
-- Average duration: 6min
-- Total execution time: 12min
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 25 | 2/2 | 12min | 6min |
-| Phase 34-layout-customization P01 | 5min | 2 tasks | 4 files |
-| Phase 34 P02 | 3min | 2 tasks | 6 files |
-| Phase 34 P03 | 8min | 2 tasks | 8 files |
-| Phase 34 P04 | 4min | 3 tasks | 9 files |
-| Phase 35 P01 | 2min | 2 tasks | 5 files |
-| Phase 35 P02 | 5min | 2 tasks | 4 files |
-| Phase 35 P03 | 5min | 2 tasks | 5 files |
-| Phase 36 P01 | 4min | 2 tasks | 2 files |
-| Phase 37 P01 | 4min | 2 tasks | 2 files |
+Phase: All v1.5 phases complete
+Plan: Milestone archived
 
 ## Accumulated Context
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
-
-- [v1.3]: 10 non-blocking tech debt items identified in milestone audit — now addressed by v1.4 requirements
-- [v1.2]: 6 pre-existing Phase 8 test regressions deferred — now targeted by TEST-03
-- [25-01]: Excluded CSS from Biome (Tailwind v4 syntax unsupported), downgraded a11y to warn for Phase 28
-- [25-01]: organizeImports uses "on" not "error" (Biome 2.x assist actions limitation)
-- [25-02]: No vite.config.ts or tsconfig.json changes needed for Vite 8 / TS 5.9 (fully compatible)
-- [25-02]: Removed autoprefixer and postcss (unused with Tailwind v4 @tailwindcss/vite)
-- [Phase 34-layout-customization]: Widget registry uses placeholder components replaced by Plans 03/04; store version bumped 7->9
-- [Phase 34]: Separate drag handle button for sidebar items accessibility
-- [Phase 34]: react-grid-layout CJS interop via type-cast default import for bundler moduleResolution
-- [Phase 34]: Widget wrappers load tokens internally from Stronghold, eliminating prop-drilling from Dashboard
-- [Phase 34]: CustomJqlWidget uses dynamic apiFetch import and separate query key for MrAttentionWidget
-- [Phase 35]: Used relative import paths in filters.ts (matching jira service pattern) and @/ alias in store (matching store pattern)
-- [Phase 35]: Used inline delete confirmation instead of nested dialog for filter deletion
-- [Phase 35]: Sidebar fetches favourite filters with useQuery (2min staleTime) and syncs to Zustand store for cross-component access
-- [Phase 36]: Used data-sortable-item attribute on SortableItem rows for test querying
-- [Phase 37]: Saved filter JQL results stored as Set<string> for O(1) intersection with sprint swimlanes
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-None yet.
+None.
 
 ## Session Continuity
 
 Last activity: 2026-03-24
-Stopped at: Completed 37-01-PLAN.md
-Resume: Phase 25 complete. Next milestone phase ready for planning.
+Stopped at: v1.5 milestone archived
+Resume: Start next milestone with `/gsd:new-milestone`
 
 ### Quick Tasks Completed
 

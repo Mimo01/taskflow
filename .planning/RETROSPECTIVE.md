@@ -263,15 +263,72 @@
 
 ---
 
+## Milestone: v1.5 — Dashboard Redesign & Feature Parity
+
+**Shipped:** 2026-03-24
+**Phases:** 7 (31-37) | **Plans:** 25
+
+### What Was Built
+
+- Unified activity timeline merging changelog, comments, and worklogs with type filter chips; comment edit/delete; watcher toggle with count; overdue badges; clone issue
+- Time tracking: worklog CRUD with natural language duration parsing ("2h 30m"), sidebar summary with progress bar, worklog entries in activity timeline
+- File attachments: upload (button + drag-drop), 80x80 thumbnail grid, lightbox with keyboard prev/next, file list with download
+- @mention autocomplete: cursor-anchored popover in comment composer with debounced user search and [~username] wiki markup insertion
+- Sprint goal banner, board quick filter chips (Jira QFs + label toggles) with client-side JQL evaluation
+- Saved filter management: save/edit/delete Jira filters synced to server, sidebar list with context menu, command palette search, sprint board JQL integration with active filter banner
+- Customizable sidebar: data-driven rendering, visibility toggles, drag-and-drop reorder via @dnd-kit/sortable, Dev/PM presets
+- Widget-based dashboard: react-grid-layout responsive grid with drag/resize, 11 widget types (including Custom JQL), widget picker dialog, self-contained data fetching, layout persistence
+- 3 gap-closure phases (35-37) restoring saved filters, sidebar drag-reorder, and sprint board filter wiring that were deleted by post-verification commits
+
+### What Worked
+
+- **Milestone audit before close** — audit found 2 partial requirements (FILT-02, FILT-04) where saved filters displayed but didn't actually filter the sprint board; 3 gap-closure phases fixed them before ship
+- **Self-contained widget architecture** — each dashboard widget loads its own tokens from Stronghold and owns its TanStack Query calls; no prop-drilling from Dashboard; adding new widgets is trivial
+- **Session-only store for saved filters** — fetching filters fresh from Jira each session avoids stale state; Zustand store provides cross-component reactivity without persistence complexity
+- **Set-based intersection for filter results** — stored saved filter JQL results as Set<string> for O(1) intersection with sprint swimlane issue keys; no re-fetching sprint data needed
+- **Gap-closure phases kept minimal** — Phases 35-37 were tightly scoped (3+1+1 plans); each restored exactly one deleted feature without scope creep
+
+### What Was Inefficient
+
+- **Post-verification commit destroyed 3 features** — commits 81d976d and 850ed04 deleted the entire saved filters feature and sidebar drag-reorder after verification passed; required 3 dedicated gap-closure phases (35-37) to restore them; ~7 plans of rework
+- **Bulk operations (BOARD-04-07) implemented then user-deferred** — Phase 33 Plan 03 built the full bulk action system (checkboxes, floating action bar, progress indicator) but user removed it during visual review; wasted implementation effort for components that ship disconnected on disk
+- **Duplicate SUMMARY.md accomplishments in Phase 33** — Phase 33 has a 33-00-SUMMARY.md (Nyquist stubs) that dilutes accomplishment extraction; test scaffolding plans shouldn't produce SUMMARY files
+- **ROADMAP.md plan counts drifted** — several phases show lower plan counts than actual (34 shows 4/5, 35 shows 2/3, 36 shows 0/1) because roadmap checkboxes weren't updated during gap-closure plans
+
+### Patterns Established
+
+- **react-grid-layout CJS interop** — `import ReactGridLayout from 'react-grid-layout'` with type-cast for bundler moduleResolution; responsive layouts via breakpoint configs
+- **Widget registry pattern** — centralized `WIDGET_REGISTRY` maps widget types to components, labels, sizes, icons; presets reference registry keys
+- **Inline delete confirmation** — filter/item delete uses inline "Confirm?" state instead of nested dialog; avoids dialog-in-dialog UX issues
+- **Sidebar favourite filters with useQuery** — sidebar fetches favourite filters via useQuery (2min staleTime) and syncs to Zustand store for cross-component access (command palette, widget)
+- **data-sortable-item attribute** — custom data attribute on SortableItem components enables reliable test querying without brittle CSS class selectors
+
+### Key Lessons
+
+1. **Protect verified features from post-verification commits** — two commits after verification passed deleted entire features (saved filters, sidebar drag-reorder); consider freezing feature code after verification or tagging verified state
+2. **Don't implement deferred features fully** — bulk operations consumed a full plan of implementation that was immediately removed; if a feature is likely to be deferred, stub it or skip it
+3. **Update ROADMAP.md checkboxes in gap-closure plans** — gap-closure plans (35-03, 36-01) completed plans but didn't update roadmap checkboxes; include roadmap update in the commit
+4. **Nyquist stubs don't need SUMMARY.md** — Wave 0 test scaffolding plans produce todo stubs, not deliverables; SUMMARY files for these pollute accomplishment extraction
+
+### Cost Observations
+
+- Sessions: 25 plans across 7 phases over 4 days (2026-03-21 to 2026-03-24)
+- Notable: 3 gap-closure phases (35-37) = 28% of plans were rework caused by post-verification destructive commits; protecting verified state would have saved ~7 plans
+
+---
+
 ## Cross-Milestone Trends
 
-| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 |
-|--------|------|------|------|------|------|
-| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) |
-| Plans | 20 | 24 | 29 | 27 | 21 |
-| Quick tasks | 0 | 20 | 0 | 40+ | 2 |
-| Timeline (days) | 2 | 2 | 2 | 5 | 2 |
-| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 |
-| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) |
-| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) |
-| Avg plan time | — | — | — | — | 6.4 min |
+| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 | v1.5 |
+|--------|------|------|------|------|------|------|
+| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) | 7 (31-37) |
+| Plans | 20 | 24 | 29 | 27 | 21 | 25 |
+| Quick tasks | 0 | 20 | 0 | 40+ | 2 | 6 |
+| Timeline (days) | 2 | 2 | 2 | 5 | 2 | 4 |
+| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 | ~633,320* |
+| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) | 7 (28%) |
+| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) | 30/34 (88%)** |
+| Avg plan time | — | — | — | — | 6.4 min | ~4.4 min |
+
+\* Includes all TypeScript files; previous milestones counted differently
+\*\* 4 requirements user-deferred (bulk operations BOARD-04–07)

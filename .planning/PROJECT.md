@@ -53,39 +53,22 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ All dependencies updated to latest compatible versions — v1.4
 - ✓ Virtualized rendering for long lists (backlog, notifications, sprint board) — v1.4
 - ✓ Zero `any` types and zero double-casts in production code — v1.4
-
-- ✓ Time tracking with worklog CRUD (log, edit, delete), duration parsing, sidebar summary with progress bar — v1.5
-- ✓ File attachments with upload (button + drag-drop), image thumbnails, lightbox with keyboard navigation — v1.5
+- ✓ Unified activity timeline with changelog, comments, and worklogs merged chronologically with type filter chips — v1.5
+- ✓ Comment editing and deletion for own comments on issues — v1.5
+- ✓ Watcher toggle with count display and overdue badge on issues past due date — v1.5
+- ✓ Clone issue with one-click (copies summary, description, labels, priority, assignee) — v1.5
+- ✓ Time tracking with worklog CRUD (log, edit, delete), natural language duration input, sidebar summary with progress bar — v1.5
+- ✓ File attachments with upload (button + drag-drop), image thumbnails, lightbox with keyboard navigation, download — v1.5
 - ✓ @mention autocomplete in comment composer with cursor-anchored popover and Jira wiki markup insertion — v1.5
-- ✓ Issue activity timeline extended with worklog entries and filter chips — v1.5
-- ✓ API services decomposed into focused domain modules (jira.ts → 14 modules) — v1.4
-- ✓ Unified Developer Tools with request logging, operation profiling, and granular settings — v1.4
-- ✓ All dependencies updated to latest compatible versions — v1.4
-- ✓ Virtualized rendering for long lists (backlog, notifications, sprint board) — v1.4
-- ✓ Zero `any` types and zero double-casts in production code — v1.4
-
 - ✓ Sprint goal banner on sprint board header — v1.5
 - ✓ Board quick filter chips (Jira QFs + label toggles) with AND logic — v1.5
-- ✓ Saved filter management: save/edit/delete Jira filters, sidebar list, command palette search, click-to-apply board filtering, sprint board JQL integration with active filter banner — v1.5
-- ✓ Sidebar drag-and-drop reorder in Settings > Appearance via @dnd-kit/sortable — v1.5
+- ✓ Saved filter management: save/edit/delete Jira filters, sidebar list, command palette search, sprint board JQL integration with active filter banner — v1.5
+- ✓ Customizable sidebar with visibility toggles, drag-and-drop reorder, and Dev/PM presets — v1.5
+- ✓ Widget-based dashboard with 11 widget types, drag/resize grid layout, and role presets — v1.5
 
 ### Active
 
-## Current Milestone: v1.5 Dashboard Redesign & Feature Parity
-
-**Goal:** Make Taskflow feel like a real power tool — customizable layout, issue activity history, and key Jira/GitLab features that users expect.
-
-**Target features:**
-- Customizable sidebar with user-chosen items; Dev/PM roles become presets
-- Configurable widget-based dashboard
-- Issue activity history timeline (field changes, transitions, comments)
-- Time tracking / work log support
-- Watchers & starring for issues
-- Saved filters across views
-- Attachments viewer inline
-- Mention autocomplete in comments
-- Bulk operations on issues
-- Board quick filters
+(None — planning next milestone)
 
 ### Out of Scope
 
@@ -93,29 +76,29 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - OAuth / SSO login — team uses PATs; OAuth adds server-side requirements conflicting with no-server architecture
 - Multi-project aggregation — exponentially increases data model complexity; one project sufficient
 - Create Jira task from GitLab MR — workflow confusion; task creation always explicit
-- Full Jira issue editor (custom fields, attachments) — on-prem Jira has wildly varied custom field configs
 - Two-way sync / webhooks — requires server component to receive webhooks
 - Email or Slack notifications — external service dependencies
 - Inline MR diff / full code review UI — GitLab's UI is mature; deep-link for full review
+- Bulk operations on sprint board issues — components built but user-deferred during v1.5 review; files on disk, not wired
 - GitLab write actions (approve, comment, request changes) — deferred to v2.0
-- Create new Jira task from app — deferred to v2.0
+- Full JQL editor with syntax highlighting — months of work; plain text JQL input sufficient
 
 ## Context
 
-- **Shipped v1.0:** 2026-03-12 — 4 phases, 20 plans, ~11,017 lines TypeScript, 348 files
-- **Shipped v1.1:** 2026-03-13 — 4 phases, 24 plans, ~15,856 lines TypeScript (+ 20 quick tasks)
-- **Shipped v1.2:** 2026-03-15 — 9 phases, 29 plans, ~23,607 lines TypeScript, 222 files changed (+28,330/−1,730 lines)
-- **Shipped v1.3:** 2026-03-19 — 7 phases, 27 plans, ~32,173 lines TypeScript, 159 files changed (+11,471/−2,296 lines), 40+ quick tasks
-- **Shipped v1.4:** 2026-03-20 — 6 phases, 21 plans, ~37,520 lines TypeScript, 505 files changed (+29,115/−47,892 lines — net reduction from refactoring)
-- **Tech stack:** Tauri 2, React 18, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, Biome, @dnd-kit/core, @tanstack/react-virtual, jira2md, react-markdown, react-hotkeys-hook, cmdk
+- **Shipped v1.0:** 2026-03-12 — 4 phases, 20 plans, ~11,017 lines TypeScript
+- **Shipped v1.1:** 2026-03-13 — 4 phases, 24 plans, ~15,856 lines TypeScript
+- **Shipped v1.2:** 2026-03-15 — 9 phases, 29 plans, ~23,607 lines TypeScript
+- **Shipped v1.3:** 2026-03-19 — 7 phases, 27 plans, ~32,173 lines TypeScript
+- **Shipped v1.4:** 2026-03-20 — 6 phases, 21 plans, ~37,520 lines TypeScript
+- **Shipped v1.5:** 2026-03-24 — 7 phases, 25 plans, 415 files changed (+54,227/−4,827 lines)
+- **Tech stack:** Tauri 2, React 18, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, Biome, @dnd-kit/core, @dnd-kit/sortable, @tanstack/react-virtual, react-grid-layout, jira2md, react-markdown, react-hotkeys-hook, cmdk
 - **Jira instance:** On-premise (Jira Data Center v10.3.15) — REST API v2 with Bearer PAT auth; createmeta/workflow/transitions APIs used for issue management
 - **GitLab:** Self-hosted or gitlab.com — personal access token
 - **Team:** Orange eshop project — developers + project managers using the same app with role-based views
 - **Scale:** One Jira project + one GitLab project at a time
 - **Build:** Portable executable — no installer, no admin rights; `createHashRouter` for SPA routing in production
 - **Test suite:** 665+ tests, zero failures, zero warnings; Vitest with LazyStore mock
-- **Known caveats (v1.4):** 10 non-blocking tech debt items (dead code in debug-logs/, DevToolsSettings.tsx unmounted, placeholder components); Cmd+Shift nav shortcut deviation needs product owner sign-off; 13 human verification items deferred to live Jira environment
-- **Phase 33 note:** Bulk operations (BOARD-04–07) were implemented but user-deferred during visual review; component files exist on disk but are not wired into UI. Phase 33 completed 2026-03-23.
+- **Known caveats (v1.5):** Bulk operations (BOARD-04–07) implemented but user-deferred — components on disk, not wired; Cmd+Shift nav shortcut deviation needs product owner sign-off; 13 human verification items deferred to live Jira environment
 
 ## Constraints
 
@@ -171,6 +154,12 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 | Granular dev tools toggles replacing single debugMode boolean | 6 independent toggles (request logging, response body, operation profiling, waterfall, retention) | ✓ Good — fine-grained control without all-or-nothing |
 | Per-operation scoped timelines in waterfall (not global) | Global timeline made short operations invisible as thin slivers | ✓ Good — each operation readable regardless of total timeline |
 | noExplicitAny as Biome error (not warn) | Zero-any policy enforced at lint level; single cast from unknown safe for Zustand migrate | ✓ Good — prevents regression |
+| react-grid-layout for dashboard widgets | Mature grid library with drag/resize; CJS interop via type-cast default import | ✓ Good — responsive grid with persistent layouts |
+| Widget wrappers load tokens internally from Stronghold | Eliminates prop-drilling from Dashboard; each widget self-contained | ✓ Good — clean architecture, easy to add new widgets |
+| Session-only Zustand store for saved filters (no persist) | Filters fetched fresh from Jira each session; avoids stale filter state | ✓ Good — always reflects server state |
+| Saved filter JQL results as Set<string> for sprint board | O(1) intersection with sprint swimlane issue keys | ✓ Good — efficient filtering without re-fetching sprint data |
+| Inline delete confirmation for filters (not nested dialog) | Avoids dialog-in-dialog UX; simpler interaction pattern | ✓ Good — cleaner UX |
+| Sidebar fetches favourite filters with useQuery (2min staleTime) | Syncs to Zustand store for cross-component access | ✓ Good — automatic refresh, shared state |
 
 ## Evolution
 
@@ -190,4 +179,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-24 after Phase 37 (wire saved filters to board) complete*
+*Last updated: 2026-03-24 after v1.5 milestone*

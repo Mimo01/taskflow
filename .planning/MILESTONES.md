@@ -1,5 +1,37 @@
 # Milestones
 
+## v1.5 Dashboard Redesign & Feature Parity (Shipped: 2026-03-24)
+
+**Phases completed:** 7 phases, 25 plans, 46 tasks
+
+**Key accomplishments:**
+
+- Changelog timeline merge/filter utilities and watcher CRUD with expand=changelog on fetchIssueDetail, 22 passing tests
+- OverdueBadge component with pure isOverdue utility integrated into 3 views, Clone Issue button opening create-mode modal with pre-filled fields
+- Unified activity timeline replacing CommentThread with merged changelog + comments, filter chips with counts, and self-contained watcher toggle widget with optimistic updates
+- Worklog CRUD, attachment upload/delete, duration parser, user search, and timeline extension with worklog entries -- 35 tests covering all service functions
+- Sidebar time tracking summary with progress bar, log work popover with natural language duration input, worklog entries in activity timeline with inline edit/delete CRUD
+- Collapsible attachments section with 80x80 thumbnail grid, lightbox with keyboard prev/next, file list with download, and drag-drop upload with indeterminate progress
+- Cursor-anchored @mention popover with debounced user search, keyboard navigation, and [~username] wiki markup insertion
+- Restored all 15 original Jira type exports destroyed by Plan 01, merged with 3 phase-32 types for 18 total exports
+- 58 vitest todo stubs across 6 test files covering all Phase 33 board and filter requirements (Wave 0 Nyquist)
+- Board quick filter API, saved filter CRUD, extended filter store with Jira QF toggles, board selection store with range select, and saved filter store
+- Sprint goal accent banner and Jira board quick filter chip row with client-side JQL evaluation wired into SprintBoardTab
+- Multi-select checkboxes on sprint board cards with floating bulk action bar for status/assignee/priority changes, parallel API execution with concurrency limit of 5, and per-issue optimistic rollback
+- SaveFilterDialog, EditFilterDialog, and SavedFilterList components with Save Filter button wired into UnifiedFilterBar for Jira filter CRUD
+- Saved filters wired into sidebar and command palette with board JQL filtering, sticky headers fixed, SprintGoalBanner redesigned, bulk edit UI removed
+- Sidebar nav registry (10 items), widget registry (11 types), settings store extended with layout state/actions/presets, v9 migration, 15 tests passing
+- Data-driven sidebar rendering from store with drag-reorder settings list, visibility toggles, and Dev/PM preset buttons
+- react-grid-layout responsive dashboard with drag/resize, widget picker dialog, and 3 existing panels wired as self-contained widgets
+- 8 compact widget components built and wired into registry, completing all 11 dashboard widget types with self-contained data fetching and config persistence
+- Jira saved filter CRUD service with 4 API functions, JiraSavedFilter type, session-only Zustand store, and 8 passing unit tests
+- SaveFilterDialog, EditFilterDialog, and SavedFilterList components with context menu, delete confirmation, and 5 passing tests
+- Wired saved filter components into UnifiedFilterBar, Sidebar, CommandPalette, and dashboard widget; fixed attachment delete button rendering in IssueDetailContent
+- dnd-kit sortable integration restored in SidebarItemsList with GripVertical drag handles, cross-section reorder, and DragOverlay feedback
+- SprintBoardTab subscribes to useSavedFilterStore, fetches saved filter JQL results via fetchAllSearchPages, intersects with sprint swimlanes, and shows an active filter banner with Clear button
+
+---
+
 ## v1.4 Internal Quality & Performance (Shipped: 2026-03-20)
 
 **Phases completed:** 6 phases (25–30), 21 plans
