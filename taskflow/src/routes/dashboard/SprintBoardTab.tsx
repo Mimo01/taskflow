@@ -25,7 +25,7 @@ import {
 } from '@dnd-kit/core';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Columns3, RefreshCw } from 'lucide-react';
+import { Bookmark, Columns3, RefreshCw } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
@@ -40,9 +40,11 @@ import {
   fetchTransitions,
   postTransition,
 } from '@/services/jira';
+import { fetchAllSearchPages } from '@/services/jira/client';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useFilterStore } from '@/stores/filter.store';
+import { useSavedFilterStore } from '@/stores/saved-filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { fetchActiveSprint } from '@/services/jira/sprints';
 import { fetchBoardQuickFilters } from '@/services/jira/board-config';
@@ -508,6 +510,27 @@ export default function SprintBoardTab() {
 
   const { activeEpics, activeLabels, activeAssignees, activeStatuses, activeJiraQuickFilters, activeLabelFilters } = useFilterStore();
 
+  const activeFilterId = useSavedFilterStore((s) => s.activeFilterId);
+  const savedFilters = useSavedFilterStore((s) => s.savedFilters);
+  const setActiveFilter = useSavedFilterStore((s) => s.setActiveFilter);
+  const activeFilter = activeFilterId
+    ? savedFilters.find((f) => f.id === activeFilterId)
+    : null;
+
+  // Saved filter: fetch JQL results to intersect with sprint issues
+  const { data: savedFilterIssueKeys, isLoading: isSavedFilterLoading } = useQuery({
+    queryKey: ['saved-filter-results', activeFilter?.jql],
+    queryFn: async () => {
+      const searchUrl = `${jiraBaseUrl!.replace(/\/$/, '')}/rest/api/2/search?jql=${encodeURIComponent(activeFilter!.jql)}&fields=key`;
+      const results = await fetchAllSearchPages(searchUrl, {
+        Authorization: `Bearer ${jiraToken!}`,
+      });
+      return new Set(results.map((issue) => issue.key));
+    },
+    enabled: !!activeFilter?.jql && !!jiraBaseUrl && !!jiraToken,
+    staleTime: 30_000,
+  });
+
   const filterOptions = useMemo(() => {
     // Epics: all project epics (not just those on current sprint issues)
     const epics = new Map<string, string>();
@@ -625,25 +648,54 @@ export default function SprintBoardTab() {
   }
 
   const filteredSwimlanes = useMemo(() => {
+    let result = swimlanes;
+
+    // Saved filter: intersect with JQL result keys
+    if (savedFilterIssueKeys && savedFilterIssueKeys.size > 0) {
+      result = result
+        .map(({ story, subtasks }) => {
+          const storyMatches = savedFilterIssueKeys.has(story.key);
+          const filteredSubtasks = subtasks.filter((s) => savedFilterIssueKeys.has(s.key));
+          if (!storyMatches && filteredSubtasks.length === 0) return null;
+          return { story, subtasks: filteredSubtasks };
+        })
+        .filter((s): s is { story: JiraIssue; subtasks: JiraIssue[] } => s !== null);
+    }
+
+    // No local filters active and no saved filter — return early
     if (
       activeEpics.size === 0 &&
       activeLabels.size === 0 &&
       activeAssignees.size === 0 &&
       activeStatuses.size === 0 &&
       activeJiraQuickFilters.size === 0 &&
-      activeLabelFilters.size === 0
-    )
+      activeLabelFilters.size === 0 &&
+      !savedFilterIssueKeys
+    ) {
       return swimlanes;
-    return swimlanes
-      .map(({ story, subtasks }) => {
-        // Filter both story and subtasks — keep swimlane if either matches
-        const storyMatches = applyFilters([story]).length > 0;
-        const filteredSubtasks = applyFilters(subtasks);
-        if (!storyMatches && filteredSubtasks.length === 0) return null;
-        return { story, subtasks: filteredSubtasks };
-      })
-      .filter((s): s is { story: JiraIssue; subtasks: JiraIssue[] } => s !== null);
-  }, [swimlanes, activeEpics, activeLabels, activeAssignees, activeStatuses, activeJiraQuickFilters, activeLabelFilters, applyFilters]);
+    }
+
+    // Apply local filters on the (possibly already saved-filter-narrowed) result
+    if (
+      activeEpics.size > 0 ||
+      activeLabels.size > 0 ||
+      activeAssignees.size > 0 ||
+      activeStatuses.size > 0 ||
+      activeJiraQuickFilters.size > 0 ||
+      activeLabelFilters.size > 0
+    ) {
+      result = result
+        .map(({ story, subtasks }) => {
+          const storyMatches = applyFilters([story]).length > 0;
+          const filteredSubtasks = applyFilters(subtasks);
+          if (!storyMatches && filteredSubtasks.length === 0) return null;
+          return { story, subtasks: filteredSubtasks };
+        })
+        .filter((s): s is { story: JiraIssue; subtasks: JiraIssue[] } => s !== null);
+    }
+
+    return result;
+  }, [swimlanes, savedFilterIssueKeys, activeEpics, activeLabels, activeAssignees, activeStatuses, activeJiraQuickFilters, activeLabelFilters, applyFilters]);
 
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
@@ -745,6 +797,26 @@ export default function SprintBoardTab() {
               labels={filterOptions.labels}
               issues={localIssues}
             />
+          )}
+
+          {/* Active saved filter banner */}
+          {!isLoading && !isError && data && activeFilter && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 border-b border-primary/20">
+              <Bookmark className="size-3.5 text-primary" />
+              <span className="text-xs font-medium">
+                Filter: {activeFilter.name}
+              </span>
+              {isSavedFilterLoading && (
+                <span className="text-xs text-muted-foreground">(loading...)</span>
+              )}
+              <button
+                type="button"
+                onClick={() => setActiveFilter(null)}
+                className="text-xs text-primary/70 hover:text-primary ml-auto"
+              >
+                Clear
+              </button>
+            </div>
           )}
 
           {/* Unified filter bar */}
