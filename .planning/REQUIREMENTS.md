@@ -17,15 +17,15 @@ Requirements for Release & Auto-Update Pipeline milestone. Each maps to roadmap 
 ### Auto-Update
 
 - [x] **UPD-01**: App checks for updates on launch and at a configurable interval (1h/6h/12h/24h/manual)
-- [ ] **UPD-02**: Update prompt dialog shows changelog (rendered markdown), new version, and "Update Now" / "Later" actions
-- [ ] **UPD-03**: User can download, install, and restart the app in one click with a progress bar
-- [ ] **UPD-04**: After updating, a "What's New" dialog shows the release notes for the version just installed
+- [x] **UPD-02**: Update prompt dialog shows changelog (rendered markdown), new version, and "Update Now" / "Later" actions
+- [x] **UPD-03**: User can download, install, and restart the app in one click with a progress bar
+- [x] **UPD-04**: After updating, a "What's New" dialog shows the release notes for the version just installed
 
 ### Version Policy
 
-- [ ] **POL-01**: Public repo hosts a version-policy.json defining softMinimum and hardMinimum version thresholds
-- [ ] **POL-02**: App shows a persistent nag banner (dismissible once per session) when below softMinimum
-- [ ] **POL-03**: App shows a full-screen blocking overlay (no dismiss) when below hardMinimum; fails open if policy unreachable
+- [x] **POL-01**: Public repo hosts a version-policy.json defining softMinimum and hardMinimum version thresholds
+- [x] **POL-02**: App shows a persistent nag banner (dismissible once per session) when below softMinimum
+- [x] **POL-03**: App shows a full-screen blocking overlay (no dismiss) when below hardMinimum; fails open if policy unreachable
 
 ### App UI
 
@@ -74,12 +74,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CI-03 | Phase 38 | Pending |
 | CI-04 | Phase 38 | Pending |
 | UPD-01 | Phase 38 | Complete |
-| UPD-02 | Phase 39 | Pending |
-| UPD-03 | Phase 39 | Pending |
-| UPD-04 | Phase 39 | Pending |
-| POL-01 | Phase 39 | Pending |
-| POL-02 | Phase 39 | Pending |
-| POL-03 | Phase 39 | Pending |
+| UPD-02 | Phase 39 | Complete |
+| UPD-03 | Phase 39 | Complete |
+| UPD-04 | Phase 39 | Complete |
+| POL-01 | Phase 39 | Complete |
+| POL-02 | Phase 39 | Complete |
+| POL-03 | Phase 39 | Complete |
 | UI-01 | Phase 40 | Pending |
 | UI-02 | Phase 40 | Pending |
 | UI-03 | Phase 40 | Pending |
