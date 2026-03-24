@@ -255,4 +255,4 @@ Phases execute in numeric order: 31 → 32 → 33 → 34
 | 34. Layout Customization | v1.5 | 4/5 | Complete    | 2026-03-23 |
 | 35. Restore Saved Filters | v1.5 | 2/3 | Complete    | 2026-03-24 |
 | 36. Restore Sidebar Drag-Reorder | v1.5 | 0/1 | Complete    | 2026-03-24 |
-| 37. Wire Saved Filters to Sprint Board | v1.5 | 1/1 | Complete   | 2026-03-24 |
+| 37. Wire Saved Filters to Sprint Board | v1.5 | 1/1 | Complete    | 2026-03-24 |
