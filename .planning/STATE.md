@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Dashboard Redesign & Feature Parity
-status: Ready to plan
-stopped_at: Phase 36 UI-SPEC approved
-last_updated: "2026-03-24T10:08:29.287Z"
+status: Milestone complete
+stopped_at: Completed 36-01-PLAN.md
+last_updated: "2026-03-24T10:38:05.234Z"
 last_activity: 2026-03-24
 progress:
   total_phases: 6
-  completed_phases: 5
-  total_plans: 23
-  completed_plans: 23
+  completed_phases: 6
+  total_plans: 24
+  completed_plans: 24
 ---
 
 # Project State
@@ -20,7 +20,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-19)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Phase 35 — restore-saved-filters
+**Current focus:** Phase 36 — restore-sidebar-drag-reorder
 
 ## Current Position
 
@@ -47,6 +47,7 @@ Plan: Not started
 | Phase 35 P01 | 2min | 2 tasks | 5 files |
 | Phase 35 P02 | 5min | 2 tasks | 4 files |
 | Phase 35 P03 | 5min | 2 tasks | 5 files |
+| Phase 36 P01 | 4min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,7 @@ Recent decisions affecting current work:
 - [Phase 35]: Used relative import paths in filters.ts (matching jira service pattern) and @/ alias in store (matching store pattern)
 - [Phase 35]: Used inline delete confirmation instead of nested dialog for filter deletion
 - [Phase 35]: Sidebar fetches favourite filters with useQuery (2min staleTime) and syncs to Zustand store for cross-component access
+- [Phase 36]: Used data-sortable-item attribute on SortableItem rows for test querying
 
 ### Pending Todos
 
@@ -81,7 +83,7 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-24
-Stopped at: Phase 36 UI-SPEC approved
+Stopped at: Completed 36-01-PLAN.md
 Resume: Phase 25 complete. Next milestone phase ready for planning.
 
 ### Quick Tasks Completed
