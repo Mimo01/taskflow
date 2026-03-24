@@ -192,6 +192,9 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. User can reorder sidebar items via drag-and-drop in Settings
   2. reorderSidebarItem store action is wired to the UI
+**Plans:** 1 plan
+Plans:
+- [ ] 36-01-PLAN.md — dnd-kit sortable integration: test scaffold + SidebarItemsList drag-reorder implementation
 **UI hint**: yes
 
 ## Progress
@@ -236,4 +239,4 @@ Phases execute in numeric order: 31 → 32 → 33 → 34
 | 33. Board, Sprint & Filters | v1.5 | 6/6 | Complete    | 2026-03-23 |
 | 34. Layout Customization | v1.5 | 4/5 | Complete    | 2026-03-23 |
 | 35. Restore Saved Filters | v1.5 | 2/3 | Complete    | 2026-03-24 |
-| 36. Restore Sidebar Drag-Reorder | v1.5 | 0/0 | Pending | — |
+| 36. Restore Sidebar Drag-Reorder | v1.5 | 0/1 | Planned | — |
