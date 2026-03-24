@@ -7,7 +7,7 @@
 - ✅ **v1.2 Jira Parity** — Phases 9-17 (shipped 2026-03-15)
 - ✅ **v1.3 UX & Branding** — Phases 18-24 (shipped 2026-03-19)
 - ✅ **v1.4 Internal Quality & Performance** — Phases 25-30 (shipped 2026-03-20)
-- 🚧 **v1.5 Dashboard Redesign & Feature Parity** — Phases 31-34 (in progress)
+- 🚧 **v1.5 Dashboard Redesign & Feature Parity** — Phases 31-36 (in progress)
 
 ## Phases
 
@@ -89,6 +89,8 @@ See archive: `.planning/milestones/v1.4-ROADMAP.md`
 - [x] **Phase 32: Time Tracking, Attachments & Mentions** - Worklog CRUD, file attachments, and @mention autocomplete (completed 2026-03-22)
 - [x] **Phase 33: Board, Sprint & Filters** - Sprint goal, quick filters, bulk operations, and saved filter management (completed 2026-03-23)
 - [x] **Phase 34: Layout Customization** - Customizable sidebar and widget-based dashboard (completed 2026-03-23)
+- [ ] **Phase 35: Restore Saved Filters** - Re-implement saved filter CRUD, dialogs, sidebar/command palette integration (gap closure)
+- [ ] **Phase 36: Restore Sidebar Drag-Reorder** - Re-implement dnd-kit sortable sidebar reordering (gap closure)
 
 ## Phase Details
 
@@ -165,6 +167,28 @@ Plans:
 - [ ] 34-05-PLAN.md — Test suite, build verification, and visual checkpoint
 **UI hint**: yes
 
+### Phase 35: Restore Saved Filters
+**Goal**: Restore the saved filter feature that was deleted post-verification — users can save, view, execute, edit, and delete Jira filters from the filter bar, sidebar, and command palette
+**Depends on**: Phase 34 (gap closure for Phase 33)
+**Requirements**: FILT-01, FILT-02, FILT-03, FILT-04
+**Gap Closure:** Closes gaps from v1.5 audit (commit 81d976d deleted entire saved filters feature)
+**Success Criteria** (what must be TRUE):
+  1. User can save the current search as a named filter synced to Jira
+  2. User can view and execute saved/favourite filters from sidebar and command palette
+  3. User can edit and delete saved filters
+  4. Attachment delete button renders in issue detail (integration fix: onDelete prop wiring)
+**UI hint**: yes
+
+### Phase 36: Restore Sidebar Drag-Reorder
+**Goal**: Restore sidebar item drag-and-drop reordering that was stripped post-verification
+**Depends on**: Phase 35
+**Requirements**: LAYOUT-02
+**Gap Closure:** Closes gaps from v1.5 audit (commit 850ed04 stripped dnd-kit sortable from SidebarItemsList)
+**Success Criteria** (what must be TRUE):
+  1. User can reorder sidebar items via drag-and-drop in Settings
+  2. reorderSidebarItem store action is wired to the UI
+**UI hint**: yes
+
 ## Progress
 
 **Execution Order:**
@@ -206,3 +230,5 @@ Phases execute in numeric order: 31 → 32 → 33 → 34
 | 32. Time Tracking, Attachments & Mentions | v1.5 | 5/5 | Complete    | 2026-03-22 |
 | 33. Board, Sprint & Filters | v1.5 | 6/6 | Complete    | 2026-03-23 |
 | 34. Layout Customization | v1.5 | 4/5 | Complete    | 2026-03-23 |
+| 35. Restore Saved Filters | v1.5 | 0/0 | Pending | — |
+| 36. Restore Sidebar Drag-Reorder | v1.5 | 0/0 | Pending | — |

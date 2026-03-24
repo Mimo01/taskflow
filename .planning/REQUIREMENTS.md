@@ -34,22 +34,22 @@ Requirements for milestone v1.5: Dashboard Redesign & Feature Parity.
 - [x] **BOARD-01**: User sees sprint goal banner on sprint board header
 - [x] **BOARD-02**: User can toggle board quick filters fetched from Jira board config
 - [x] **BOARD-03**: User can filter sprint board by label via quick filter chips
-- [x] **BOARD-04**: User can select multiple issues and bulk-change status
-- [x] **BOARD-05**: User can select multiple issues and bulk-change assignee
-- [x] **BOARD-06**: User can select multiple issues and bulk-change priority
-- [x] **BOARD-07**: User sees progress indicator during bulk operations with success/failure counts
+- [ ] **BOARD-04**: User can select multiple issues and bulk-change status *(deferred)*
+- [ ] **BOARD-05**: User can select multiple issues and bulk-change assignee *(deferred)*
+- [ ] **BOARD-06**: User can select multiple issues and bulk-change priority *(deferred)*
+- [ ] **BOARD-07**: User sees progress indicator during bulk operations with success/failure counts *(deferred)*
 
 ### Filters
 
-- [x] **FILT-01**: User can save current search as a named filter (synced to Jira server)
-- [x] **FILT-02**: User can view and execute saved/favourite filters from Jira
-- [x] **FILT-03**: User can edit and delete saved filters
-- [x] **FILT-04**: User can access saved filters from sidebar and command palette
+- [ ] **FILT-01**: User can save current search as a named filter (synced to Jira server)
+- [ ] **FILT-02**: User can view and execute saved/favourite filters from Jira
+- [ ] **FILT-03**: User can edit and delete saved filters
+- [ ] **FILT-04**: User can access saved filters from sidebar and command palette
 
 ### Layout
 
 - [x] **LAYOUT-01**: User can choose which sidebar items are visible
-- [x] **LAYOUT-02**: User can reorder sidebar items via drag-and-drop
+- [ ] **LAYOUT-02**: User can reorder sidebar items via drag-and-drop
 - [x] **LAYOUT-03**: User can apply Dev or PM preset to restore default sidebar configuration
 - [x] **LAYOUT-04**: User can add/remove/resize dashboard widgets in a grid layout
 - [x] **LAYOUT-05**: User can drag dashboard widgets to rearrange layout
@@ -105,16 +105,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BOARD-01 | Phase 33 | Complete |
 | BOARD-02 | Phase 33 | Complete |
 | BOARD-03 | Phase 33 | Complete |
-| BOARD-04 | Phase 33 | Complete |
-| BOARD-05 | Phase 33 | Complete |
-| BOARD-06 | Phase 33 | Complete |
-| BOARD-07 | Phase 33 | Complete |
-| FILT-01 | Phase 33 | Complete |
-| FILT-02 | Phase 33 | Complete |
-| FILT-03 | Phase 33 | Complete |
-| FILT-04 | Phase 33 | Complete |
+| BOARD-04 | Phase 33 | Deferred |
+| BOARD-05 | Phase 33 | Deferred |
+| BOARD-06 | Phase 33 | Deferred |
+| BOARD-07 | Phase 33 | Deferred |
+| FILT-01 | Phase 35 | Pending |
+| FILT-02 | Phase 35 | Pending |
+| FILT-03 | Phase 35 | Pending |
+| FILT-04 | Phase 35 | Pending |
 | LAYOUT-01 | Phase 34 | Complete |
-| LAYOUT-02 | Phase 34 | Complete |
+| LAYOUT-02 | Phase 36 | Pending |
 | LAYOUT-03 | Phase 34 | Complete |
 | LAYOUT-04 | Phase 34 | Complete |
 | LAYOUT-05 | Phase 34 | Complete |
@@ -123,6 +123,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 **Coverage:**
 - v1.5 requirements: 34 total
+- Satisfied: 25
+- Pending (gap closure): 5 (FILT-01–04, LAYOUT-02)
+- Deferred: 4 (BOARD-04–07)
 - Mapped to phases: 34
 - Unmapped: 0
 
