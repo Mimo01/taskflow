@@ -102,7 +102,7 @@ See archive: `.planning/milestones/v1.5-ROADMAP.md`
 **Milestone Goal:** Ship Taskflow to users via a public GitHub repo with automated cross-platform builds, in-app auto-updates, version policy enforcement, and a proper About dialog.
 
 - [x] **Phase 38: Updater Foundation + Service Layer** — Rust plugins, config, signing key, update service/store, build-time version injection (completed 2026-03-24)
-- [ ] **Phase 39: Update UX + Version Policy** — Update check, prompt dialog, download/install flow, what's new dialog, force-update enforcement
+- [x] **Phase 39: Update UX + Version Policy** — Update check, prompt dialog, download/install flow, what's new dialog, force-update enforcement (completed 2026-03-24)
 - [ ] **Phase 40: Settings, About & Menu Integration** — Updates settings section, version history, About dialog, macOS menu bar integration
 - [ ] **Phase 41: CI Pipeline** — GitHub Actions workflow, cross-platform builds, public repo publishing, end-to-end validation
 
@@ -136,7 +136,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 39-01-PLAN.md — UpdateDialog lifecycle + WhatsNewDialog + settings store v11 migration
-- [ ] 39-02-PLAN.md — Version policy service + SoftMinimumBanner + HardMinimumOverlay
+- [x] 39-02-PLAN.md — Version policy service + SoftMinimumBanner + HardMinimumOverlay
 
 ### Phase 40: Settings, About & Menu Integration
 **Goal**: Users can view version info, control update preferences, browse release history, and access an About dialog from the menu bar
@@ -169,6 +169,6 @@ Note: Phases 39 and 40 both depend only on Phase 38 and are independent of each 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 38. Updater Foundation + Service Layer | v1.6 | 3/3 | Complete    | 2026-03-24 |
-| 39. Update UX + Version Policy | v1.6 | 1/2 | In Progress|  |
+| 39. Update UX + Version Policy | v1.6 | 2/2 | Complete   | 2026-03-24 |
 | 40. Settings, About & Menu Integration | v1.6 | 0/TBD | Not started | - |
 | 41. CI Pipeline | v1.6 | 0/TBD | Not started | - |
