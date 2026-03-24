@@ -177,6 +177,11 @@ Plans:
   2. User can view and execute saved/favourite filters from sidebar and command palette
   3. User can edit and delete saved filters
   4. Attachment delete button renders in issue detail (integration fix: onDelete prop wiring)
+**Plans:** 3 plans
+Plans:
+- [ ] 35-01-PLAN.md — Types, filter CRUD service, Zustand store, and service unit tests
+- [ ] 35-02-PLAN.md — SaveFilterDialog, EditFilterDialog, SavedFilterList components and tests
+- [ ] 35-03-PLAN.md — Integration wiring: UnifiedFilterBar, Sidebar, CommandPalette, SavedFiltersWidget, attachment delete fix
 **UI hint**: yes
 
 ### Phase 36: Restore Sidebar Drag-Reorder
@@ -230,5 +235,5 @@ Phases execute in numeric order: 31 → 32 → 33 → 34
 | 32. Time Tracking, Attachments & Mentions | v1.5 | 5/5 | Complete    | 2026-03-22 |
 | 33. Board, Sprint & Filters | v1.5 | 6/6 | Complete    | 2026-03-23 |
 | 34. Layout Customization | v1.5 | 4/5 | Complete    | 2026-03-23 |
-| 35. Restore Saved Filters | v1.5 | 0/0 | Pending | — |
+| 35. Restore Saved Filters | v1.5 | 0/3 | Planned | — |
 | 36. Restore Sidebar Drag-Reorder | v1.5 | 0/0 | Pending | — |
