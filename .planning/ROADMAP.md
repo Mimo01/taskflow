@@ -90,7 +90,7 @@ See archive: `.planning/milestones/v1.4-ROADMAP.md`
 - [x] **Phase 33: Board, Sprint & Filters** - Sprint goal, quick filters, bulk operations, and saved filter management (completed 2026-03-23)
 - [x] **Phase 34: Layout Customization** - Customizable sidebar and widget-based dashboard (completed 2026-03-23)
 - [x] **Phase 35: Restore Saved Filters** - Re-implement saved filter CRUD, dialogs, sidebar/command palette integration (gap closure) (completed 2026-03-24)
-- [ ] **Phase 36: Restore Sidebar Drag-Reorder** - Re-implement dnd-kit sortable sidebar reordering (gap closure)
+- [x] **Phase 36: Restore Sidebar Drag-Reorder** - Re-implement dnd-kit sortable sidebar reordering (gap closure) (completed 2026-03-24)
 
 ## Phase Details
 
@@ -192,7 +192,7 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. User can reorder sidebar items via drag-and-drop in Settings
   2. reorderSidebarItem store action is wired to the UI
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 Plans:
 - [ ] 36-01-PLAN.md — dnd-kit sortable integration: test scaffold + SidebarItemsList drag-reorder implementation
 **UI hint**: yes
@@ -239,4 +239,4 @@ Phases execute in numeric order: 31 → 32 → 33 → 34
 | 33. Board, Sprint & Filters | v1.5 | 6/6 | Complete    | 2026-03-23 |
 | 34. Layout Customization | v1.5 | 4/5 | Complete    | 2026-03-23 |
 | 35. Restore Saved Filters | v1.5 | 2/3 | Complete    | 2026-03-24 |
-| 36. Restore Sidebar Drag-Reorder | v1.5 | 0/1 | Planned | — |
+| 36. Restore Sidebar Drag-Reorder | v1.5 | 0/1 | Complete    | 2026-03-24 |

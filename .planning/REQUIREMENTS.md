@@ -44,12 +44,12 @@ Requirements for milestone v1.5: Dashboard Redesign & Feature Parity.
 - [x] **FILT-01**: User can save current search as a named filter (synced to Jira server)
 - [x] **FILT-02**: User can view and execute saved/favourite filters from Jira
 - [x] **FILT-03**: User can edit and delete saved filters
-- [ ] **FILT-04**: User can access saved filters from sidebar and command palette
+- [x] **FILT-04**: User can access saved filters from sidebar and command palette
 
 ### Layout
 
 - [x] **LAYOUT-01**: User can choose which sidebar items are visible
-- [ ] **LAYOUT-02**: User can reorder sidebar items via drag-and-drop
+- [x] **LAYOUT-02**: User can reorder sidebar items via drag-and-drop
 - [x] **LAYOUT-03**: User can apply Dev or PM preset to restore default sidebar configuration
 - [x] **LAYOUT-04**: User can add/remove/resize dashboard widgets in a grid layout
 - [x] **LAYOUT-05**: User can drag dashboard widgets to rearrange layout
@@ -112,9 +112,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FILT-01 | Phase 35 | Complete |
 | FILT-02 | Phase 35 | Complete |
 | FILT-03 | Phase 35 | Complete |
-| FILT-04 | Phase 35 | Pending |
+| FILT-04 | Phase 35 | Complete |
 | LAYOUT-01 | Phase 34 | Complete |
-| LAYOUT-02 | Phase 36 | Pending |
+| LAYOUT-02 | Phase 36 | Complete |
 | LAYOUT-03 | Phase 34 | Complete |
 | LAYOUT-04 | Phase 34 | Complete |
 | LAYOUT-05 | Phase 34 | Complete |
