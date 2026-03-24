@@ -51,6 +51,11 @@ pub fn run() {
                 )
                 .expect("failed to register stronghold plugin");
 
+            #[cfg(desktop)]
+            app.handle()
+                .plugin(tauri_plugin_updater::Builder::new().build())
+                .expect("failed to register updater plugin");
+
             let handle = app.handle();
 
             // --- App menu (macOS standard: About, Services, Hide, Quit) ---
