@@ -27,6 +27,9 @@ import Sidebar from './components/app/Sidebar';
 import TopBar from './components/app/TopBar';
 import { useNotificationPolling } from './hooks/useNotificationPolling';
 import { useUpdatePolling } from './hooks/useUpdatePolling';
+import { useVersionPolicyCheck } from './hooks/useVersionPolicyCheck';
+import { HardMinimumOverlay } from './components/update/HardMinimumOverlay';
+import { SoftMinimumBanner } from './components/update/SoftMinimumBanner';
 import { UpdateDialog } from './components/update/UpdateDialog';
 import { WhatsNewDialog } from './components/update/WhatsNewDialog';
 import {
@@ -37,12 +40,14 @@ import ErrorPage from './routes/error/ErrorPage';
 import { routes } from './routes/routes';
 import { discoverCustomFields, fetchIssueSummary } from './services/jira';
 import { readSecret } from './services/stronghold';
+import { updaterService } from './services/updater';
 import { applyDensity, loadTheme } from './services/theme';
 import { useAuthStore } from './stores/auth.store';
 import { useBreadcrumbStore } from './stores/breadcrumb.store';
 import { usePinnedTabsStore } from './stores/pinned-tabs.store';
 import { useRecentItemsStore } from './stores/recent-items.store';
 import { useSettingsStore } from './stores/settings.store';
+import { useUpdateStore } from './stores/update.store';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -132,6 +137,22 @@ function AppLayout() {
   const reorderPins = usePinnedTabsStore((s) => s.reorder);
   const breadcrumbPush = useBreadcrumbStore((s) => s.push);
   const breadcrumbReset = useBreadcrumbStore((s) => s.reset);
+
+  // Version policy enforcement (D-12–D-16)
+  const { softMinimumActive, hardMinimumActive, policy } = useVersionPolicyCheck();
+  const [softNagDismissed, setSoftNagDismissed] = useState(false);
+
+  // Triggered by SoftMinimumBanner "Update Now" — initiates update check flow
+  const handleBannerUpdate = async () => {
+    const { setChecking, setAvailable, setError } = useUpdateStore.getState();
+    setChecking();
+    try {
+      const info = await updaterService.check();
+      if (info) setAvailable(info.version, info.body, info.date);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
 
   // Actively fetch summary+type for each pinned issue key so tabs load
   // independently on app start. Uses a lightweight 2-field endpoint.
@@ -446,6 +467,13 @@ function AppLayout() {
         )}
         {_hasHydrated && !jiraConnected && <ReAuthBanner />}
         {_hasHydrated && !gitlabConnected && <GitLabReAuthBanner />}
+        {softMinimumActive && !softNagDismissed && policy && (
+          <SoftMinimumBanner
+            policy={policy}
+            onDismiss={() => setSoftNagDismissed(true)}
+            onUpdate={handleBannerUpdate}
+          />
+        )}
         <main className="flex-1 overflow-auto">
           <Outlet
             context={{
@@ -482,6 +510,7 @@ function AppLayout() {
       <KeyboardShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <UpdateDialog />
       <WhatsNewDialog />
+      {hardMinimumActive && policy && <HardMinimumOverlay policy={policy} />}
     </div>
   );
 }
