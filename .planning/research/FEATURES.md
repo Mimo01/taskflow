@@ -1,11 +1,11 @@
-# Feature Research: Jira DC & GitLab Feature Parity for Taskflow v1.5
+# Feature Research: v1.6 Release Pipeline, Auto-Update, and Version Management
 
-**Domain:** Project management desktop client (Jira Data Center + GitLab integration)
-**Researched:** 2026-03-22
-**Confidence:** HIGH (Jira DC REST API v2 endpoints verified against official Atlassian docs)
+**Domain:** Desktop app release pipeline, auto-update, version management, and About dialog
+**Researched:** 2026-03-24
+**Confidence:** HIGH (Tauri updater plugin well-documented; CI patterns mature; force-update is custom but straightforward)
 
-> This file supersedes the v1.3 FEATURES.md.
-> v1.0-v1.4 features are shipped and stable. This file focuses exclusively on v1.5 feature parity targets.
+> This file supersedes the v1.5 FEATURES.md.
+> v1.0-v1.5 features are shipped and stable. This file focuses exclusively on v1.6 release pipeline and auto-update targets.
 
 ---
 
@@ -13,307 +13,293 @@
 
 ### Table Stakes (Users Expect These)
 
-Features that real Jira/GitLab users encounter daily. Missing these makes Taskflow feel like a toy next to the Jira web UI.
+Features users assume exist. Missing these = product feels incomplete.
 
-| Feature | Why Expected | Complexity | Jira DC REST API v2 Endpoints | Notes |
-|---------|--------------|------------|-------------------------------|-------|
-| **Issue Activity History** | Every Jira user clicks the "History" tab daily to see who changed what and when. PMs audit status transitions. Devs check why fields changed. | MEDIUM | `GET /rest/api/2/issue/{key}?expand=changelog` returns `changelog.histories[]` with `created`, `author`, `items[].field/from/to/fromString/toString`. Capped at 100 most recent entries via expand param. | Already have `JiraIssueDetail` -- add `expand=changelog` to existing fetch. Merge with comments into unified timeline sorted by timestamp. |
-| **Time Tracking / Worklog CRUD** | Time logging is mandatory in most enterprise Jira setups. The PM dashboard already shows time columns from `fields.timetracking`. Currently `fetchIssueWorklogs` only returns author names -- need full CRUD. | HIGH | **Read:** `GET /rest/api/2/issue/{key}/worklog` (paginated). **Create:** `POST /rest/api/2/issue/{key}/worklog` body: `{timeSpent, started, comment}`. **Update:** `PUT /rest/api/2/issue/{key}/worklog/{id}`. **Delete:** `DELETE /rest/api/2/issue/{key}/worklog/{id}`. Time fields on issue: `fields.timetracking` (already in JiraIssue type). | Time tracking must be enabled in Jira instance config. `adjustEstimate` query param controls remaining estimate behavior (auto/leave/new/manual). Worklog `started` format: ISO 8601 date-time. |
-| **Watchers / Starring** | Users watch issues to get notified of changes. "Am I watching this?" is visible on every Jira issue detail page. Basic expectation for any issue tracker. | LOW | **Get:** `GET /rest/api/2/issue/{key}/watchers` returns `{watchCount, isWatching, watchers[]}`. **Add self:** `POST /rest/api/2/issue/{key}/watchers` body: `"username"` (DC uses `name` field, not `accountId`). **Remove:** `DELETE /rest/api/2/issue/{key}/watchers?username={name}`. | Simple toggle UI. `isWatching` boolean drives the eye/star icon state. Low API complexity. Need current user's `name` from auth store. |
-| **Attachments Viewer** | Every issue detail page in Jira shows attachments. Users attach screenshots, logs, specs constantly. `JiraAttachment` type already exists in `types.ts` but the UI does not render them. | MEDIUM | **List:** Already returned in `GET /rest/api/2/issue/{key}` as `fields.attachment[]` with `{id, filename, content (URL), thumbnail, mimeType}`. **Upload:** `POST /rest/api/2/issue/{key}/attachments` with `X-Atlassian-Token: nocheck` header, multipart form-data. **Download:** GET the `content` URL with Bearer auth header. **Delete:** `DELETE /rest/api/2/attachment/{id}`. **Size limits:** `GET /rest/api/2/attachment/meta` returns max upload size. | Tauri's `tauri-plugin-http` handles file downloads. Upload needs multipart form-data support. Thumbnails available for images via `thumbnail` field. |
-| **Mention Autocomplete** | @mentioning teammates in comments is muscle memory for every Jira user. Without it, users must remember and type exact usernames in wiki markup `[~username]` format. | MEDIUM | **User search:** `GET /rest/api/2/user/picker?query={prefix}` returns matching users with `name`, `displayName`, `avatarUrl`. Also: `GET /rest/api/2/user/search?username={prefix}` for broader search. | Trigger on `@` keypress in comment textarea. Debounce 300ms. Insert `[~username]` (Jira wiki markup mention format). Need a popover/dropdown positioned relative to cursor in textarea. |
-| **Board Quick Filters** | Every Jira Scrum/Kanban board has quick filter buttons at the top (e.g., "Only My Issues", "Recently Updated"). Users click these dozens of times daily during standups and triage. | MEDIUM | **Discover board:** `GET /rest/agile/1.0/board?projectKeyOrId={key}` returns board IDs. **List filters:** `GET /rest/agile/1.0/board/{boardId}/quickfilter` returns `[{id, name, jql, position}]`. **Single:** `GET /rest/agile/1.0/board/{boardId}/quickfilter/{id}`. | Quick filters are JQL fragments appended to the board's base query. Fetch once, apply client-side to sprint issues. Active filter state is local UI state, not persisted to Jira. Board ID discovery is the new prerequisite. |
-| **Saved Filters / JQL** | Power users live in saved filters. "My open bugs", "Sprint blockers", "Unestimated stories" -- accessed multiple times per day. JQL is the single most powerful feature of Jira. | MEDIUM | **Favourites:** `GET /rest/api/2/filter/favourite` returns user's starred filters with `{id, name, jql, description}`. **Create:** `POST /rest/api/2/filter` body: `{name, jql, description, favourite}`. **Read:** `GET /rest/api/2/filter/{id}`. **Update:** `PUT /rest/api/2/filter/{id}`. **Delete:** `DELETE /rest/api/2/filter/{id}`. **Execute:** `POST /rest/api/2/search` with `{jql, fields, maxResults, startAt}`. | Taskflow already has global search with JQL. Add a "Save this search" action. Filters sync across devices since they live server-side. Show favourite filters in sidebar or command palette. |
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| **Background update check on launch** | Every modern desktop app checks silently. Users should never run stale versions unknowingly. VS Code, Slack, Discord all do this. | LOW | Tauri updater `check()` returns update object with `version`, `body`, `date`, or null if current. Call on app mount + setInterval. Not a TanStack Query concern -- this is a fire-and-forget side effect. |
+| **Update notification (non-blocking)** | Users expect a toast or banner, not a modal that blocks workflow mid-task. | LOW | Toast or persistent banner in header/footer area. Must show new version number and "Update Now" / "Later" actions. Never interrupt active work. |
+| **One-click download + install + restart** | Users expect "Update Now" to handle everything. No manual file downloads, no drag-to-Applications. | MEDIUM | Tauri `update.downloadAndInstall(callback)` + `relaunch()` from `@tauri-apps/plugin-process`. Windows needs `installMode: "passive"` in tauri.conf.json to avoid UAC prompts for NSIS. |
+| **Download progress indicator** | Users need feedback during multi-MB downloads. A stalled download with no progress feels broken. | LOW | Tauri's `downloadAndInstall()` emits three event types: `Started` (total content_length), `Progress` (chunk_length), `Finished`. Map to a progress bar in the update dialog. |
+| **Signed update verification** | Security baseline. Unsigned updates are a malware distribution vector. | LOW | Tauri enforces this -- cannot be disabled. Generate key pair with `tauri signer generate -w ~/.tauri/taskflow.key`. Public key goes in tauri.conf.json `plugins.updater.pubkey`. Private key stored as GitHub Actions secret. **Losing the private key permanently prevents updates to existing installations.** |
+| **Cross-platform CI builds (macOS/Windows/Linux)** | The app targets all three platforms. Manual builds are error-prone and unsustainable. | MEDIUM | `tauri-apps/tauri-action` v1 with GitHub Actions matrix: `macos-latest` (aarch64 + x86_64), `ubuntu-22.04` (x86_64), `windows-latest` (x86_64). Each matrix leg runs on native runner. No cross-compilation needed. |
+| **Version derived from git tag** | Manual version bumps in tauri.conf.json and Cargo.toml drift and cause release errors. Single source of truth. | LOW | Push tag `v1.6.0` on private repo. CI workflow triggered on tag push. `tauri-action` has `tagName: app-v__VERSION__` which auto-replaces with app version. The tag itself drives the version. |
+| **About dialog with version + build info** | Every desktop app has one. Users and support need to know the exact version running. | LOW | Custom shadcn/ui Dialog (not native -- Tauri 2 has no built-in About API). Display: version, build date, commit SHA (short), platform/arch, update status ("Up to date" / "Update available"). Wire to macOS menu bar "About Taskflow" item. |
+| **Changelog in update prompt** | Users want to know what changed before deciding to update. Blind "update now" prompts erode trust. | LOW | Tauri updater object includes `body` field populated from GitHub Release notes. Render with existing `react-markdown` dependency. Keep release notes concise (bullet points, not essays). |
+| **Configurable update check frequency** | Power users want control. Default 24h is standard. Some teams want faster rollout visibility. | LOW | New field in `useSettingsStore` with persist. Options: 1h, 6h, 12h, 24h, manual only. Drives the `setInterval` timer. New "Updates" section in Settings page. |
 
 ### Differentiators (Competitive Advantage)
 
-Features that go beyond what Jira's web UI does well. These make Taskflow worth using over the browser.
+Features that go beyond what most internal desktop tools provide. These signal product maturity.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| **Unified Activity Timeline** | Jira separates "History" and "Comments" into two separate tabs. Taskflow can merge changelog entries + comments + worklogs into one chronological timeline with filter toggles -- something Jira's own UI does not do. This is the single best differentiator for the activity view. | MEDIUM | Fetch changelog (`expand=changelog`), comments (already have), and worklogs (already paginate). Merge all by timestamp. Render with distinct visual styling per entry type. Filter toggles: "Show field changes / comments / worklogs". |
-| **Customizable Dashboard with Widgets** | Jira's dashboard gadgets require admin configuration and are sluggish. Taskflow can let any user drag/drop widgets (my tasks, sprint health, MR attention, workload, saved filter results) into a personal layout with zero admin overhead. | HIGH | No Jira API needed -- purely client-side layout persistence. Use a grid layout system (react-grid-layout or similar). Store widget config in Tauri Store. Dev/PM roles become preset layouts, not hard role gates. |
-| **Customizable Sidebar** | Jira's sidebar is fixed. Letting users choose which nav items appear and reorder them makes Taskflow feel personal and reduces clutter for users who only use 3-4 features. | LOW | Client-side only. Store order/visibility in Tauri Store. Provide "Developer preset" and "PM preset" as quick-start configs that replace the current hard-coded role-based views. |
-| **Bulk Operations with Progress** | Jira's bulk edit is a multi-page wizard that takes 6+ clicks. A fast multi-select + inline bulk action bar in Taskflow is dramatically better UX for sprint grooming and triage. | HIGH | **No native bulk API in Jira DC.** Must iterate: JQL search, then `PUT /rest/api/2/issue/{key}` per issue. Transitions: `POST /rest/api/2/issue/{key}/transitions` per issue. Use `Promise.allSettled` with concurrency limit (max 5 parallel). Show progress bar with success/failure counts. |
-| **Cross-Source Activity on Issues** | Show GitLab MR comments + pipeline status alongside Jira changelog on the same issue timeline. No tool does this for on-prem Jira + GitLab. | MEDIUM | GitLab Notes API: `GET /projects/:id/merge_requests/:iid/notes`. Pipeline: `GET /projects/:id/merge_requests/:iid/pipelines`. Link via existing task-to-MR key matching. |
-| **Offline-Ready Saved Filters** | Store saved filter JQL + last results locally. Show stale data immediately, refresh in background. Jira's web UI shows nothing without connectivity. | LOW | Cache filter results in TanStack Query with long `staleTime` + background refetch. Also support local-only filters (not synced to Jira) for quick personal use. |
+| **Two-tier force-update policy** | Ensures critical security/compatibility fixes reach all users. Most internal tools have no enforcement at all. Two tiers (soft nag vs hard block) give appropriate urgency levels. | MEDIUM | Fetch `version-policy.json` from public repo (alongside `latest.json`). Two semver fields: `softMinimum` (persistent banner, dismissible once per session, returns on next launch) and `hardMinimum` (full-screen overlay, no dismiss, app unusable until updated). Compare with `semver` library or manual semver parse. Fail open: if policy file is unreachable, do not block. |
+| **Version history in Settings** | Users can browse all past releases and their changelogs without leaving the app. Reduces "what changed?" support questions. Builds confidence in active development. | MEDIUM | Fetch releases from GitHub API: `GET /repos/{owner}/{repo}/releases` (public repo, no auth needed). Display as scrollable timeline with version tag, date, and markdown body. Cache with TanStack Query (staleTime: 1 hour). Paginate if many releases. |
+| **Private-to-public repo release pipeline** | Source code stays private while binaries are publicly downloadable. Users never see proprietary code. Clean separation of development and distribution. | MEDIUM | GitHub Actions workflow in private repo uses a PAT (with `repo` scope on public repo) stored as secret. `softprops/action-gh-release` action accepts `repository` param to target the public repo. Uploads: platform binaries + `latest.json` + `version-policy.json`. |
+| **macOS menu bar About integration** | macOS users expect "AppName > About AppName" in the system menu bar. Feels native. | LOW | Tauri 2 supports custom menus via `tauri::menu`. Add "About Taskflow" item to the app menu that triggers the About dialog. Windows/Linux access About from Settings or a Help menu item. |
+| **"What's New" post-update dialog** | After updating, users see what changed in the version they just installed. Creates a moment of delight and awareness. | LOW | On app launch, compare stored `lastSeenVersion` (in Tauri Store) with current app version. If different, show a modal with the release notes for the current version. Mark as seen. |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| **Full JQL editor with syntax highlighting** | Power users want a full query builder with autocomplete | JQL has 100+ functions, custom fields per instance. Building a real parser/autocomplete is months of work. Jira's own autocomplete is mediocre. | Plain text input with a link to Jira's JQL reference. Autocomplete field names only (from createmeta). Let users paste JQL from Jira. |
-| **Attachment inline editing/annotation** | Users want to annotate screenshots directly | Image editing is a separate application domain. Massive complexity for near-zero daily value. | Open attachment in OS default app via Tauri `shell.open`. Provide download + re-upload flow. |
-| **Real-time collaboration on comments** | "Google Docs for Jira comments" | Requires WebSocket infrastructure, conflict resolution. Jira DC has no real-time API. Polling is sufficient for a desktop client. | Poll comments on focus/interval. Show "new comments available" banner when remote changes detected. |
-| **Custom workflow builder** | "Let me define my own status columns" | Jira workflows are admin-configured server-side. Client-side overrides cause data inconsistency and confusion. | Respect Jira's configured workflows. Show available transitions per issue (already implemented). Let quick filters narrow visible statuses. |
-| **Full Jira admin panel** | "Manage users, permissions, schemes from Taskflow" | Admin operations are rare, complex, and high-risk. Jira's admin UI is purpose-built for this. | Deep-link to Jira admin pages. Taskflow is a daily-use tool, not an admin tool. |
-| **Bulk file upload (drag entire folder)** | Batch-uploading many attachments at once | Jira attachment API is single-file. Parallel uploads risk rate limiting. Large files hit Jira's configured size limit. | Single-file upload with progress. Display Jira's attachment size limit from `/rest/api/2/attachment/meta`. Queue multiple files sequentially. |
-| **Burndown / velocity charts** | PMs want sprint progress visualization | Already out of scope in PROJECT.md. Requires historical daily snapshots that Jira DC does not expose via REST API. Tools like LinearB/Swarmia exist for this. | Sprint progress bar with point breakdown (already built in PM dashboard). Link to Jira's built-in reports. |
-
----
-
-## Missed Features: What Real Users Rely On
-
-Features not in the original v1.5 target list but used daily by Jira/GitLab power users.
-
-| Feature | How Often Used | Jira DC API | Recommendation |
-|---------|---------------|-------------|----------------|
-| **Comment editing and deleting** | Weekly -- users fix typos, update info | `PUT /rest/api/2/issue/{key}/comment/{id}` to edit, `DELETE /rest/api/2/issue/{key}/comment/{id}` to delete | **Add to v1.5.** Low complexity. Users strongly expect to edit their own comments. Currently Taskflow is post-only. |
-| **Due date overdue highlighting** | Daily for PMs, weekly for devs | `fields.duedate` already in `JiraIssueDetail` type | **Add to v1.5.** Trivial. Red badge/highlight on sprint cards and issue detail when `duedate < today`. Already have the data. |
-| **Sprint goal visibility** | Every standup | `JiraActiveSprint.goal` already in type definition | **Add to v1.5.** Trivial. Display sprint goal as a banner/subtitle on the sprint board header. Already fetched. |
-| **Issue cloning** | Weekly -- devs clone recurring tasks, PMs clone templates | `POST /rest/api/2/issue` with fields copied from source issue | **Consider for v1.5.** Low complexity. "Clone issue" button on issue detail copies summary, description, labels, priority, assignee. |
-| **Label filter chips on board** | Daily during triage | Labels already in issue data; no new API | **Add to v1.5** as part of board quick filters. Client-side label filtering on sprint board. |
-| **Comment reactions/emojis** | Not available in Jira DC REST API v2 | N/A -- Jira DC does not support comment reactions | **Skip.** Not available server-side. |
-| **Issue voting** | Occasional | `GET/POST/DELETE /rest/api/2/issue/{key}/votes` | **Skip for v1.5.** Low daily value. |
-| **Keyboard-driven time logging** | Daily for devs with mandatory time tracking | No new API -- UI convenience for worklog POST | **Add to v1.5** as part of time tracking. Natural language input like "2h 30m" parsed into seconds for the worklog body. |
+| **Silent auto-install without consent** | "Just keep it updated automatically" | Users lose work if app restarts unexpectedly mid-task. Violates user trust. Enterprise environments may have change-control policies. Portable app means user may have specific file placement expectations. | Download silently in background, but always ask before installing. Show "Restart to update" prompt. |
+| **Delta/differential updates** | "Save bandwidth, faster updates" | Massively increases build complexity. Tauri does not support delta updates. Full binary is ~10MB -- trivial on any modern connection. The complexity-to-savings ratio is terrible. | Ship full binaries. 10MB downloads complete in seconds. |
+| **Auto-update rollback UI** | "Let me go back to the previous version" | Creates support nightmare (which version has which bug?). Force-update policy becomes unenforceable if users can downgrade arbitrarily. Version-specific data migrations become reversibility hazards. | If a release is bad, push a new patch release quickly. Force-update policy handles migration to the fix. |
+| **Multiple update channels (stable/beta/nightly)** | "Let power users test early builds" | Triples CI build minutes, doubles QA surface, fragments the tiny user base. Different channels need different signing keys or at least different endpoints. | Single stable channel. Test in private repo before publishing to public. Team can run dev builds locally for early testing. |
+| **P2P update distribution** | "Reduce GitHub bandwidth usage" | NAT traversal complexity, security concerns, legal liability. GitHub Releases CDN is free, globally distributed, and handles any reasonable scale. | Use GitHub Releases CDN. It is free and sufficient. |
+| **Custom update server** | "More control over update delivery" | Adds infrastructure to maintain (server, TLS, uptime monitoring). GitHub Releases serves the static `latest.json` perfectly. Tauri's updater supports it natively. | Use GitHub Releases as the static update endpoint. Zero infrastructure. |
+| **In-app release notes editor** | "Write release notes from within Taskflow" | Massive scope creep. Release notes are a development workflow concern, not a product feature. They belong in the CI/release process. | Write release notes in GitHub Release description. Auto-populated from PR titles or conventional commits if desired. |
 
 ---
 
 ## Feature Dependencies
 
 ```
-[Customizable Sidebar]
-    independent: No API dependency
-    enhances: Customizable Dashboard (sidebar reflects user's personal layout)
-    enhances: Saved Filters (filters can appear as sidebar items)
+[Signing key generation]
+    |-- enables --> [tauri.conf.json updater config]
+    |                   |-- enables --> [Tauri updater plugin integration]
+    |                                       |-- enables --> [Update check on launch]
+    |                                       |                   |-- enables --> [Update notification banner]
+    |                                       |                   |                   |-- enables --> [Changelog display]
+    |                                       |                   |                   |-- enables --> [Download + install + restart]
+    |                                       |                   |
+    |                                       |                   |-- enables --> [Configurable check frequency]
+    |                                       |
+    |                                       |-- enables --> [Force-update policy check]
+    |                                                           |-- requires --> [version-policy.json]
+    |                                                           |-- enables --> [Soft nag banner]
+    |                                                           |-- enables --> [Hard block overlay]
 
-[Issue Activity History]
-    requires: Issue Detail (DONE)
-    enhances: Time Tracking (worklogs displayed in timeline)
-    enhances: Watchers (watcher count shown in issue context)
-    API: expand=changelog added to existing issue fetch
+[GitHub Actions CI pipeline]
+    |-- requires --> [Signing private key as secret]
+    |-- requires --> [PAT for cross-repo publish as secret]
+    |-- enables --> [Cross-platform matrix builds]
+    |-- enables --> [latest.json auto-generation]
+    |-- enables --> [Publish release to public repo]
+    |-- enables --> [version-policy.json hosting]
 
-[Time Tracking / Worklog CRUD]
-    requires: Issue Detail (DONE)
-    requires: Issue Activity History (worklogs best rendered in unified timeline)
-    API: New worklog service module (POST/PUT/DELETE)
+[About dialog]
+    |-- requires --> [Version + commit hash injected at build time]
+    |-- enhances --> [Update status display ("Up to date" / "v1.7.0 available")]
+    |-- enhances --> [macOS menu bar integration]
 
-[Watchers / Starring]
-    requires: Issue Detail (DONE)
-    requires: Current user's username from auth store
-    independent: Simple toggle, no other feature dependency
+[Version history page]
+    |-- requires --> [GitHub API fetch from public repo releases]
+    |-- enhances --> [Settings page -- new "Updates" section]
 
-[Mention Autocomplete]
-    requires: Comment posting (DONE)
-    requires: User Picker API (new endpoint: /rest/api/2/user/picker)
-    enhances: Comment editing (mentions in edited comments)
-
-[Attachments Viewer]
-    requires: Issue Detail (DONE)
-    requires: Tauri HTTP multipart support (for upload)
-    API: attachment data already fetched, needs UI + upload/delete
-
-[Board Quick Filters]
-    requires: Sprint Board (DONE)
-    requires: Board ID discovery (new: GET /rest/agile/1.0/board?projectKeyOrId={key})
-    enhances: Saved Filters (quick filters are essentially saved JQL fragments)
-
-[Saved Filters / JQL]
-    requires: Global Search with JQL (DONE)
-    API: /rest/api/2/filter CRUD + /rest/api/2/filter/favourite
-    enhances: Sidebar (saved filters as nav items)
-    enhances: Dashboard (saved filter results as widget)
-
-[Customizable Dashboard]
-    requires: Existing widgets -- Dev/PM panels (DONE)
-    independent: No API dependency, purely client-side layout
-    enhances: Saved Filters (filter results as dashboard widget)
-
-[Bulk Operations]
-    requires: Sprint Board or Backlog multi-select UI (selection mechanism DONE via existing lists)
-    requires: Transitions API (DONE)
-    conflicts-with: Rate limiting (must throttle to max 5 concurrent PUT requests)
-    API: No native bulk API in DC; iterate single-issue updates
-
-[Comment Edit/Delete]
-    requires: Comment thread UI (DONE)
-    API: PUT/DELETE /rest/api/2/issue/{key}/comment/{id}
+[Settings "Updates" section]
+    |-- requires --> [Configurable check frequency]
+    |-- requires --> [About dialog content (version info)]
+    |-- enhances --> [Version history] (displayed within this section)
 ```
 
 ### Dependency Notes
 
-- **Activity History before Time Tracking:** The worklog UI is best rendered inside the unified activity timeline. Build the timeline container first, then add worklog entries as a timeline item type.
-- **Board Quick Filters require board ID discovery:** Taskflow currently queries sprints via JQL (`sprint in openSprints()`), not the Agile board API. Need to discover the board ID via `GET /rest/agile/1.0/board?projectKeyOrId={key}` during onboarding or first use, then persist it.
-- **Mention Autocomplete requires User Picker API:** New endpoint `/rest/api/2/user/picker?query={prefix}` not currently called. Simple to add but needs debounced search and cursor-relative popover positioning.
-- **Bulk Operations have no native DC bulk API:** Must iterate `PUT /rest/api/2/issue/{key}` per issue. Rate limiting is the primary risk. Cap concurrent requests at 5 and show progress feedback.
-- **Saved Filters are server-side:** Unlike most other v1.5 features, saved filters persist on the Jira server. They sync across devices and survive app reinstall.
+- **Signing key generation is the absolute first step.** Everything else in the updater chain depends on having a valid key pair. The public key is embedded in the app binary; the private key signs every release artifact. Losing the private key is unrecoverable for existing installations.
+- **CI pipeline and updater config are independent.** The CI pipeline can be built and tested without the updater being wired in the app, and vice versa. They converge when the first real release is published.
+- **Force-update policy depends on version-policy.json existing on the public repo.** The app must handle the file being missing gracefully (fail open -- never block the app if the policy file is unreachable).
+- **Version history fetches from GitHub's public API (unauthenticated).** Rate limit is 60 requests/hour per IP. Must cache aggressively (TanStack Query with staleTime >= 1 hour).
+- **About dialog needs build-time metadata.** Version comes from tauri.conf.json (readable at runtime). Commit SHA and build date need injection via Tauri's build script or environment variables set in CI.
+- **macOS menu bar requires Rust-side menu configuration.** The About menu item triggers a Tauri command that the frontend listens for, then opens the About dialog.
 
 ---
 
-## Implementation Priority (v1.5 Phasing)
+## Integration with Existing Architecture
 
-### Phase 1: Foundation (no API dependencies, enables everything else)
+### Settings Page Extension
 
-- [ ] **Customizable Sidebar** -- LOW complexity, client-side only, unblocks dashboard redesign
-- [ ] **Sprint goal banner** -- trivial, data already fetched in `JiraActiveSprint.goal`
-- [ ] **Due date overdue highlighting** -- trivial, data already in `fields.duedate`
+The existing Settings page has 6 sections (Connections, Appearance, Sidebar, Notifications, Workflow, Advanced). Add a 7th:
 
-### Phase 2: Activity & Detail Enhancements
+| Section | Icon | Contents |
+|---------|------|----------|
+| **Updates** | `Download` (lucide) | Update check frequency dropdown, "Check now" button, current version display, update status, version history list (P2) |
 
-- [ ] **Issue Activity History + Unified Timeline** -- MEDIUM complexity, core feature, foundation for time tracking
-- [ ] **Comment Edit/Delete** -- LOW complexity, fills important gap
-- [ ] **Watchers / Starring** -- LOW complexity, standalone toggle
+Implementation follows the established pattern:
+1. New `UpdatesSection.tsx` component
+2. Add `'updates'` to `SettingsSection` type union
+3. Add entry to `SECTIONS` array in `Settings.tsx`
+4. Render conditionally like other sections
 
-### Phase 3: Time & Attachments
+### Store Integration
 
-- [ ] **Time Tracking / Worklog CRUD** -- HIGH complexity, builds on activity timeline
-- [ ] **Attachments Viewer + Upload** -- MEDIUM complexity, needs multipart HTTP via Tauri
+- **useSettingsStore** (persisted via Tauri Store): Add `updateCheckInterval` field. Type: `'1h' | '6h' | '12h' | '24h' | 'manual'`. Default: `'24h'`.
+- **No new Zustand store needed.** Update state (checking, available version, download progress, installing) is transient UI state. Use `useState` in the update provider component or a lightweight non-persisted Zustand slice.
+- **lastSeenVersion** in Tauri Store (for "What's New" detection): Simple string compared against `app.getVersion()`.
 
-### Phase 4: Search & Filters
+### Existing Dependencies Reused
 
-- [ ] **Saved Filters** -- MEDIUM complexity, builds on existing global search
-- [ ] **Board Quick Filters** -- MEDIUM complexity, needs board ID discovery
-- [ ] **Mention Autocomplete** -- MEDIUM complexity, needs user picker API
+| Dependency | Current Use | v1.6 Use |
+|------------|-------------|----------|
+| `react-markdown` | Jira descriptions, issue detail | Render GitHub Release notes in update prompt and version history |
+| `Tauri Store plugin` | Settings, pinned tabs, sidebar config | Persist update preferences and lastSeenVersion |
+| `shadcn/ui Dialog` | Issue detail sheet, create/edit dialogs | About dialog, update prompt, force-update overlay |
+| `lucide-react` | All icons across app | `Download`, `Info`, `RefreshCw`, `AlertTriangle`, `Shield` icons |
+| `TanStack Query` | All Jira/GitLab data fetching | Version history fetch from GitHub API (cache with long staleTime) |
 
-### Phase 5: Layout & Power Features
+### New Dependencies Required
 
-- [ ] **Customizable Dashboard** -- HIGH complexity, client-side layout engine
-- [ ] **Bulk Operations** -- HIGH complexity, rate limiting risk, needs progress UI
+| Package | Registry | Purpose | Notes |
+|---------|----------|---------|-------|
+| `@tauri-apps/plugin-updater` | npm | Frontend JS API: `check()`, `downloadAndInstall()` | Returns update object with version, body, date |
+| `tauri-plugin-updater` | Cargo | Rust-side updater plugin | Add to `src-tauri/Cargo.toml` dependencies |
+| `@tauri-apps/plugin-process` | npm | `relaunch()` after update install | May already be available via Tauri core; verify |
+| `tauri-plugin-process` | Cargo | Rust-side process plugin for restart | Add to `src-tauri/Cargo.toml` dependencies |
+
+### Capability/Permission Changes
+
+Current `capabilities/default.json` needs additions:
+
+```json
+{
+  "permissions": [
+    // ... existing permissions ...
+    "updater:default",
+    "process:allow-restart"
+  ]
+}
+```
+
+### Tauri Config Changes
+
+Current `tauri.conf.json` needs:
+
+```json
+{
+  "bundle": {
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "GENERATED_PUBLIC_KEY_CONTENT",
+      "endpoints": [
+        "https://github.com/{owner}/{public-repo}/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}
+```
+
+### Rust-side Changes
+
+Current `src-tauri/Cargo.toml` needs two new dependencies:
+```toml
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+```
+
+Current `lib.rs` needs plugin registration:
+```rust
+.plugin(tauri_plugin_updater::Builder::new().build())
+.plugin(tauri_plugin_process::init())
+```
+
+For macOS About menu: custom menu setup in Tauri's builder with a command handler that emits an event to the frontend.
+
+For build-time metadata: Rust build script or Tauri's `beforeBuildCommand` to inject commit SHA and build date as environment variables accessible at runtime.
+
+---
+
+## MVP Definition
+
+### Launch With (v1.6)
+
+Everything needed for a working release pipeline + auto-update + version enforcement.
+
+- [ ] **Signing key pair generation** -- foundation; everything depends on this
+- [ ] **Tauri updater plugin setup** (Cargo + npm + capabilities + config) -- wiring
+- [ ] **GitHub Actions CI workflow** -- cross-platform builds triggered on tag push
+- [ ] **Private-to-public repo publishing** -- binaries to public repo, source stays private
+- [ ] **Version from git tag** -- no manual version bumps
+- [ ] **Build-time metadata injection** -- commit SHA, build date accessible at runtime
+- [ ] **Update check on launch + configurable interval** -- core detection loop
+- [ ] **Update prompt dialog** -- changelog (markdown), "Update Now" / "Later", download progress bar
+- [ ] **Download + install + restart flow** -- end-to-end update installation
+- [ ] **version-policy.json schema + hosting** -- policy file on public repo
+- [ ] **Two-tier force-update** -- soft nag banner + hard block overlay
+- [ ] **About dialog** -- version, build date, commit, platform, update status
+- [ ] **macOS menu bar About item** -- platform convention
+- [ ] **Settings "Updates" section** -- check frequency, manual check, version display
+
+### Add After Validation (v1.6.x)
+
+Features to add once core update system is proven with real releases.
+
+- [ ] **Version history in Settings** -- needs multiple releases to be useful; fetch from GitHub API
+- [ ] **"What's New" post-update dialog** -- compare lastSeenVersion on launch
+- [ ] **Update available badge on Settings nav** -- subtle persistent dot indicator
+
+### Future Consideration (v2+)
+
+- [ ] **Staged rollouts** -- only matters with a larger user base
+- [ ] **Update adoption telemetry** -- needs analytics infrastructure first
+- [ ] **Admin-managed update policies** -- enterprise feature for multi-team deployment
 
 ---
 
 ## Feature Prioritization Matrix
 
-| Feature | User Value | Implementation Cost | Risk | Priority |
-|---------|------------|---------------------|------|----------|
-| Issue Activity History | HIGH | MEDIUM | LOW | **P1** |
-| Customizable Sidebar | HIGH | LOW | LOW | **P1** |
-| Time Tracking / Worklog | HIGH | HIGH | MEDIUM | **P1** |
-| Watchers / Starring | MEDIUM | LOW | LOW | **P1** |
-| Customizable Dashboard | HIGH | HIGH | MEDIUM | **P1** |
-| Saved Filters / JQL | HIGH | MEDIUM | LOW | **P1** |
-| Board Quick Filters | HIGH | MEDIUM | MEDIUM | **P1** |
-| Mention Autocomplete | MEDIUM | MEDIUM | LOW | **P2** |
-| Attachments Viewer + Upload | MEDIUM | MEDIUM | MEDIUM | **P2** |
-| Bulk Operations | MEDIUM | HIGH | HIGH | **P2** |
-| Comment Edit/Delete | MEDIUM | LOW | LOW | **P1** |
-| Due Date Highlighting | MEDIUM | LOW (trivial) | LOW | **P1** |
-| Sprint Goal Banner | LOW | LOW (trivial) | LOW | **P1** |
-| Issue Cloning | LOW | LOW | LOW | **P3** |
+| Feature | User Value | Implementation Cost | Priority |
+|---------|------------|---------------------|----------|
+| Signing key generation | HIGH (blocker) | LOW | **P1** |
+| Tauri updater plugin wiring | HIGH (blocker) | LOW | **P1** |
+| GitHub Actions CI pipeline | HIGH | MEDIUM | **P1** |
+| Private-to-public repo publishing | HIGH | MEDIUM | **P1** |
+| Version from git tag | HIGH | LOW | **P1** |
+| Build-time metadata injection | MEDIUM | LOW | **P1** |
+| Update check + notification banner | HIGH | LOW | **P1** |
+| Update prompt with changelog | HIGH | LOW | **P1** |
+| Download + install + restart | HIGH | MEDIUM | **P1** |
+| version-policy.json | HIGH (security) | LOW | **P1** |
+| Force-update: soft nag banner | HIGH | MEDIUM | **P1** |
+| Force-update: hard block overlay | HIGH | LOW | **P1** |
+| About dialog | MEDIUM | LOW | **P1** |
+| macOS menu bar About | MEDIUM | LOW | **P1** |
+| Settings "Updates" section | MEDIUM | LOW | **P1** |
+| Configurable check frequency | MEDIUM | LOW | **P1** |
+| Version history in Settings | MEDIUM | MEDIUM | **P2** |
+| "What's New" post-update dialog | LOW | LOW | **P2** |
+| Update badge on Settings nav | LOW | LOW | **P3** |
 
 **Priority key:**
-- P1: Must have for v1.5 milestone
-- P2: Should have, include if time allows
-- P3: Nice to have, defer if needed
+- P1: Must have for v1.6 launch -- all 16 features are part of the milestone
+- P2: Should have, add in v1.6.x when there are enough releases to display
+- P3: Nice to have, future polish
 
 ---
 
-## Jira DC REST API v2 Endpoint Reference
+## Competitor/Reference Feature Analysis
 
-Complete endpoint map for all v1.5 features. All endpoints use Bearer PAT auth (`Authorization: Bearer {token}`).
-
-### Changelog / Activity History
-| Method | Endpoint | Request | Response Key Fields |
-|--------|----------|---------|---------------------|
-| GET | `/rest/api/2/issue/{key}?expand=changelog` | -- | `changelog.histories[].{created, author, items[].{field, fromString, toString}}` |
-
-### Worklogs (Time Tracking)
-| Method | Endpoint | Request Body | Notes |
-|--------|----------|-------------|-------|
-| GET | `/rest/api/2/issue/{key}/worklog` | -- | Paginated: `startAt`, `maxResults` params |
-| POST | `/rest/api/2/issue/{key}/worklog` | `{timeSpent: "2h 30m", started: "2026-03-22T10:00:00.000+0000", comment: "..."}` | `adjustEstimate` param: auto/leave/new/manual |
-| PUT | `/rest/api/2/issue/{key}/worklog/{id}` | Same as POST | Updates existing entry |
-| DELETE | `/rest/api/2/issue/{key}/worklog/{id}` | -- | `adjustEstimate` param available |
-
-### Watchers
-| Method | Endpoint | Request Body | Notes |
-|--------|----------|-------------|-------|
-| GET | `/rest/api/2/issue/{key}/watchers` | -- | Returns `{watchCount, isWatching, watchers[]}` |
-| POST | `/rest/api/2/issue/{key}/watchers` | `"username"` (plain string, DC uses `name` not `accountId`) | Adds user as watcher |
-| DELETE | `/rest/api/2/issue/{key}/watchers?username={name}` | -- | Removes watcher |
-
-### Attachments
-| Method | Endpoint | Headers | Notes |
-|--------|----------|---------|-------|
-| -- | `fields.attachment[]` on issue GET | -- | Already fetched: `{id, filename, content, thumbnail, mimeType}` |
-| POST | `/rest/api/2/issue/{key}/attachments` | `X-Atlassian-Token: nocheck`, `Content-Type: multipart/form-data` | File in form field `file` |
-| GET | `{attachment.content}` (direct URL) | Bearer auth | Downloads the actual file |
-| DELETE | `/rest/api/2/attachment/{id}` | -- | Removes attachment |
-| GET | `/rest/api/2/attachment/meta` | -- | Returns `{enabled, uploadLimit}` (max file size) |
-
-### Saved Filters
-| Method | Endpoint | Request Body | Notes |
-|--------|----------|-------------|-------|
-| GET | `/rest/api/2/filter/favourite` | -- | User's starred filters: `[{id, name, jql, description}]` |
-| POST | `/rest/api/2/filter` | `{name, jql, description, favourite}` | Creates server-side filter |
-| GET | `/rest/api/2/filter/{id}` | -- | Single filter with `searchUrl` |
-| PUT | `/rest/api/2/filter/{id}` | `{name, jql, description, favourite}` | Updates filter |
-| DELETE | `/rest/api/2/filter/{id}` | -- | Deletes filter |
-| POST | `/rest/api/2/search` | `{jql, fields, maxResults, startAt}` | Execute any JQL query |
-
-### User Picker (for Mention Autocomplete)
-| Method | Endpoint | Notes |
-|--------|----------|-------|
-| GET | `/rest/api/2/user/picker?query={prefix}` | Returns `{users: [{name, displayName, avatarUrl}]}`. Respects project permissions. |
-| GET | `/rest/api/2/user/search?username={prefix}` | Broader user search, returns `[{name, displayName, emailAddress}]` |
-
-### Board Quick Filters (Jira Agile REST API)
-| Method | Endpoint | Notes |
-|--------|----------|-------|
-| GET | `/rest/agile/1.0/board?projectKeyOrId={key}` | Discover board ID for project. Returns `{values: [{id, name, type}]}` |
-| GET | `/rest/agile/1.0/board/{boardId}/quickfilter` | All quick filters: `[{id, name, jql, position}]` |
-| GET | `/rest/agile/1.0/board/{boardId}/quickfilter/{id}` | Single quick filter detail |
-
-### Comments -- Edit/Delete (new for v1.5)
-| Method | Endpoint | Request Body | Notes |
-|--------|----------|-------------|-------|
-| PUT | `/rest/api/2/issue/{key}/comment/{id}` | `{body: "updated text"}` | Wiki markup format |
-| DELETE | `/rest/api/2/issue/{key}/comment/{id}` | -- | Requires delete permission |
-
-### Bulk Operations (no native bulk API in Jira DC)
-| Method | Endpoint | Notes |
-|--------|----------|-------|
-| POST | `/rest/api/2/search` | Find target issues by JQL |
-| PUT | `/rest/api/2/issue/{key}` | Update single issue fields (must iterate) |
-| POST | `/rest/api/2/issue/{key}/transitions` | Transition single issue (must iterate) |
-
----
-
-## GitLab API Equivalents
-
-For features where GitLab data enriches the Jira-primary view.
-
-| Feature | GitLab Endpoint | Notes |
-|---------|----------------|-------|
-| MR activity / notes | `GET /projects/:id/merge_requests/:iid/notes` | `system: true` notes are automated events (merges, approvals) |
-| MR pipeline status | `GET /projects/:id/merge_requests/:iid/pipelines` | Show CI status on issue timeline |
-| Time tracking | `POST /projects/:id/issues/:iid/time_estimate`, `POST .../add_spent_time` | Uses `/spend` slash command syntax |
-| File uploads | `POST /projects/:id/uploads` | Returns markdown-formatted link |
-| Issue subscriptions | `POST /projects/:id/issues/:iid/subscribe` | GitLab equivalent of watchers |
-
----
-
-## Competitor Feature Analysis
-
-| Feature | Jira Web UI | Linear | Taskflow v1.5 Approach |
-|---------|-------------|--------|------------------------|
-| Activity history | Separate "History" and "Comments" tabs; no unified view | Single activity feed with all changes | **Unified timeline** merging changelog + comments + worklogs. Filter toggles per type. Better than both. |
-| Time tracking | Built-in worklog dialog; clunky modal | No native time tracking | Natural language input ("2h 30m") inline on issue detail. Worklog list in timeline. |
-| Watchers | Eye icon on every issue; watch/unwatch toggle | "Subscribe" toggle | Same pattern: eye icon toggle with watch count badge |
-| Saved filters | Sidebar filter list; JQL builder; star/favourite | Custom views with filter bar | Favourite filters synced from Jira server + local-only quick filters |
-| Board quick filters | Filter buttons above board; JQL-based | Grouping + filtering in board view | Fetch Jira quick filters + render as toggle chips above sprint board |
-| Attachments | Attachment section on issue; drag-drop upload | File attachments on issues | Thumbnail grid for images, file list for others; single-file upload with progress |
-| Mentions | @username autocomplete in all text fields | @mention autocomplete | @-triggered dropdown in comment textarea; inserts `[~username]` wiki markup |
-| Bulk edit | Multi-page wizard; 6+ clicks; server-side processing | Multi-select + inline toolbar | Multi-select checkbox + floating action bar; client-side iteration with progress |
-| Dashboard | Admin-configured gadgets; heavy, slow | No traditional dashboard | User-configurable widget grid; role presets; instant load from local state |
+| Feature | VS Code | Slack Desktop | Discord | Taskflow v1.6 Approach |
+|---------|---------|---------------|---------|------------------------|
+| Update check | Background on launch + periodic | Background, continuous | Background, continuous | On launch + configurable interval (1h/6h/12h/24h/manual) |
+| Update notification | Status bar "Restart to Update" | Top banner | Modal dialog | Non-blocking toast/banner with "Update Now" / "Later" |
+| Changelog in update | Link to full release notes web page | None visible to user | "What's New" modal post-update | Inline markdown changelog in update prompt dialog |
+| Force update | None (open source, no enforcement) | Soft nag after extended period | Hard block for critical versions | Two-tier: `softMinimum` (persistent banner) + `hardMinimum` (full-screen blocker) |
+| Install mechanism | Download background, apply on restart | Silent background install | Silent background install | Download with progress bar, user-initiated install, automatic restart |
+| About dialog | Help > About (custom web panel) | Menu > About (native macOS) | Settings > About section | Custom shadcn Dialog; macOS menu bar + Settings access |
+| Version history | Changelog on marketplace/website | None in-app | None in-app | In-app scrollable timeline in Settings (P2) |
+| CI pipeline | Azure Pipelines (public) | Internal proprietary | Internal proprietary | GitHub Actions, private-to-public repo, tag-triggered |
+| Distribution | Marketplace + website download | App stores + website | App stores + website | GitHub Releases on public repo (direct download) |
 
 ---
 
 ## Sources
 
-- [Jira Data Center REST API 9.14.0 Reference](https://docs.atlassian.com/software/jira/docs/api/REST/9.14.0/) -- HIGH confidence
-- [Jira Agile Data Center 9.14.0 REST API](https://docs.atlassian.com/jira-software/REST/9.14.0/) -- HIGH confidence
-- [Jira REST API Examples (Server/DC)](https://developer.atlassian.com/server/jira/platform/jira-rest-api-examples/) -- HIGH confidence
-- [Jira DC REST API - Attachment Group](https://developer.atlassian.com/server/jira/platform/rest/v10002/api-group-attachment/) -- HIGH confidence
-- [Jira DC REST API - Worklog Group](https://developer.atlassian.com/server/jira/platform/rest/v10002/api-group-worklog/) -- HIGH confidence
-- [Jira Issue Changelog Analysis (Atlassian Support)](https://support.atlassian.com/jira/kb/how-to-analyze-the-history-or-changelog-of-an-issue-in-jira/) -- HIGH confidence
-- [Atlassian Community: Changelog 100-entry limit](https://community.atlassian.com/forums/Jira-questions/Rest-API-limiting-changelog-history-results-to-100-even-if/qaq-p/1466525) -- MEDIUM confidence
-- [Atlassian Community: Bulk Edit via REST in DC](https://support.atlassian.com/jira/kb/update-issues-based-on-jql-with-rest-api-in-jira-data-center/) -- HIGH confidence
-- [GitLab Issues API](https://docs.gitlab.com/api/issues/) -- HIGH confidence
-- [GitLab Notes API](https://docs.gitlab.com/api/notes/) -- HIGH confidence
-- [GitLab Time Tracking Docs](https://docs.gitlab.com/ee/user/project/time_tracking.html) -- HIGH confidence
-- Taskflow codebase: `taskflow/src/services/jira/types.ts`, `taskflow/src/services/jira/worklogs.ts`, `taskflow/src/services/jira/index.ts` -- HIGH confidence
+- [Tauri Updater Plugin Official Docs](https://v2.tauri.app/plugin/updater/) -- HIGH confidence, authoritative
+- [Tauri GitHub Actions Pipeline Docs](https://v2.tauri.app/distribute/pipelines/github/) -- HIGH confidence, authoritative
+- [tauri-apps/tauri-action GitHub](https://github.com/tauri-apps/tauri-action) -- HIGH confidence, official action
+- [softprops/action-gh-release](https://github.com/softprops/action-gh-release) -- HIGH confidence, widely used for cross-repo publishing
+- [Cross-repo GitHub Actions Workflows](https://oneuptime.com/blog/post/2025-12-20-cross-repository-workflows-github-actions/view) -- MEDIUM confidence
+- [Tauri v2 Auto-Update Guide](https://thatgurjot.com/til/tauri-auto-updater/) -- MEDIUM confidence, community walkthrough
+- [Ship Tauri v2 with GitHub Actions](https://dev.to/tomtomdu73/ship-your-tauri-v2-app-like-a-pro-github-actions-and-release-automation-part-22-2ef7) -- MEDIUM confidence, community guide
+- [Force Upgrade Mechanisms](https://appupgrade.dev/blog/why-force-upgrade-mechanism) -- MEDIUM confidence
+- Taskflow codebase: `tauri.conf.json`, `Cargo.toml`, `capabilities/default.json`, `Settings.tsx` -- HIGH confidence, direct inspection
 
 ---
-*Feature research for: Taskflow v1.5 Jira DC & GitLab Feature Parity*
-*Researched: 2026-03-22*
+*Feature research for: Taskflow v1.6 Release Pipeline & Auto-Update*
+*Researched: 2026-03-24*

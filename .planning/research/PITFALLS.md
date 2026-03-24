@@ -1,360 +1,393 @@
 # Pitfalls Research
 
-**Domain:** Adding dashboard customization, activity history, and Jira/GitLab feature parity to existing Tauri 2/React desktop app
-**Researched:** 2026-03-22
-**Confidence:** HIGH (codebase patterns verified against existing code, Jira DC API behavior cross-referenced with Atlassian community forums and official docs)
+**Domain:** Release pipeline, auto-update, version management, and force-update policy for Tauri 2 desktop app
+**Researched:** 2026-03-24
+**Confidence:** HIGH (verified against official Tauri 2 docs, GitHub docs, tauri-action source, and community issue reports)
 
 ## Critical Pitfalls
 
-### Pitfall 1: Changelog expand=changelog Returns Max 100 Items Silently
+### Pitfall 1: Updater Signing Key Loss = Permanently Bricked Update Path
 
 **What goes wrong:**
-Using `?expand=changelog` on the issue endpoint (`/rest/api/2/issue/{key}?expand=changelog`) returns only the most recent 100 changelog entries. There is no indication that results are truncated -- the response simply stops at 100 items. Issues with extensive history (status changes, field edits, reassignments over months) will show incomplete activity timelines.
+The Tauri updater requires a cryptographic signature on every update artifact. The private key is generated once via `tauri signer generate`. If this key is lost, every existing installation becomes permanently unable to receive auto-updates -- they must manually download a fresh copy. There is no key rotation mechanism. The signature verification cannot be disabled.
 
 **Why it happens:**
-The issue endpoint's expand parameter hard-caps changelog at 100 entries. This is not documented in the response envelope -- there is no `total` field in the changelog portion to signal truncation. Developers test with recent issues that have fewer than 100 changes and never discover the limit.
+The key is generated locally during initial setup. Developers treat it like any other config file, forget to back it up, or store it only as a CI secret without a separate secure backup. CI secret rotation, repository migration, or GitHub organization changes silently destroy the only copy.
 
 **How to avoid:**
-Use the dedicated changelog endpoint: `GET /rest/api/2/issue/{issueKey}/changelog?startAt=0&maxResults=100`. This endpoint returns proper pagination metadata (`startAt`, `maxResults`, `total`) and supports the same `fetchAllPages` loop pattern already established in `taskflow/src/services/jira/client.ts`. Never use `expand=changelog` on the issue endpoint for activity history.
+1. Generate the key pair in the very first CI setup step, before any other work: `npx tauri signer generate -w ~/.tauri/taskflow.key`
+2. Store the private key in at least two independent secure locations: (a) GitHub repository secret `TAURI_SIGNING_PRIVATE_KEY`, (b) a team password manager or encrypted offline backup.
+3. Store the public key content (not path) in `tauri.conf.json` under `plugins.updater.pubkey`.
+4. Document the key location in the project runbook. Team must be able to answer "where is the updater signing key?" immediately.
+5. The password for the key goes into `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` secret. Note: `.env` files do NOT work for these variables -- they must be real environment variables.
 
 **Warning signs:**
-- Activity timeline stops abruptly at a consistent point for old issues
-- Issues known to have many transitions show fewer entries than expected
-- No `total` field in the changelog portion of the issue response
+- No documented key backup procedure exists.
+- Key exists only as a CI secret with no offline backup.
+- Build produces artifacts without `.sig` files alongside them.
 
 **Phase to address:**
-Activity History phase -- must use the paginated changelog endpoint from the start. Retrofitting pagination after building on expand=changelog requires rewriting the data layer.
+Phase 1 (CI pipeline foundation) -- key generation must happen before the first build artifact is produced.
 
 ---
 
-### Pitfall 2: Attachment Downloads Fail with PAT Bearer Token on Jira DC
+### Pitfall 2: macOS Gatekeeper Hard-Blocks Unsigned/Unnotarized Apps
 
 **What goes wrong:**
-Jira Data Center's attachment content URLs (e.g., `https://jira.example.com/secure/attachment/12345/file.png`) are served by the web application layer, not the REST API. Bearer token authentication via PAT does not create a full session, so requests to these URLs redirect to the HTML login page instead of returning the file content. The existing `apiFetch` wrapper (via `@tauri-apps/plugin-http` fetch) receives an HTML response with status 200 (the login page), not the binary attachment.
+On macOS Catalina and later, Gatekeeper requires both code signing AND notarization for any app distributed outside the App Store. Unlike Windows (where unsigned apps show a dismissible warning), macOS hard-blocks unsigned binaries with "App is damaged and can't be opened." The updater downloads the new version, but macOS refuses to launch it. This is not optional.
 
 **Why it happens:**
-PAT bearer tokens authenticate REST API endpoints (`/rest/api/2/*`), but attachment content URLs live outside the REST API scope. Jira DC treats attachment downloads as web-session requests. This is a known Jira DC limitation documented in JRASERVER-72019. The Tauri plugin-http fetch follows the redirect transparently, masking the failure -- the response looks successful but contains HTML.
+Developers test on their own machines where Gatekeeper trusts locally-built apps. The issue only surfaces when a different user downloads the artifact. Code signing alone is insufficient -- Apple also requires notarization (uploading the binary to Apple's servers for automated malware scanning, which takes 1-15 minutes per build).
 
 **How to avoid:**
-(1) Fetch attachment metadata via REST API (`/rest/api/2/issue/{key}?fields=attachment` -- this works with PAT and returns `content` URLs, `filename`, `mimeType`, `size`). (2) For actual file download, first attempt a direct fetch with the Bearer token -- Jira DC v10.x may have fixed this limitation. (3) If the response content-type is `text/html` (login page redirect), fall back to session-cookie auth: authenticate PAT against `/rest/auth/1/session` to obtain a session cookie, then retry the content URL with that cookie. (4) If session-cookie approach also fails, use Tauri's `shell.open()` to open the attachment URL in the system browser as the final fallback. (5) Build a `downloadAttachment` helper in a new `jira/attachments.ts` service module that handles this negotiation transparently. (6) Prototype this mechanism early -- if the target Jira DC instance does not support PAT-based attachment downloads, the fallback (open in browser) must be the designed UX, not an afterthought.
+1. Obtain an Apple Developer ID Application certificate ($99/year Apple Developer Program).
+2. Configure CI with `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY` for code signing.
+3. Configure CI with `APPLE_ID`, `APPLE_PASSWORD` (app-specific password, NOT Apple ID password), `APPLE_TEAM_ID` for notarization.
+4. Use App Store Connect API key (recommended for CI) instead of Apple ID + password to avoid 2FA issues.
+5. Test the full flow: download the CI-built `.dmg` on a clean Mac that has never seen the app before. It must open without any Gatekeeper warnings.
+6. Accept that macOS CI builds will be 5-15 minutes slower due to notarization upload/wait.
 
 **Warning signs:**
-- Attachment preview shows HTML content or blank iframe
-- Image thumbnails fail to load but metadata (filename, size) appears correctly
-- Response content-type is `text/html` instead of the expected MIME type
-- Binary file downloads produce corrupt files (HTML wrapped in binary extension)
+- "App is damaged and can't be opened" on a non-developer Mac.
+- Users need to right-click > Open to bypass (this only works for signed-but-not-notarized, and only once).
+- CI logs show "codesign" but no "notarytool" step.
 
 **Phase to address:**
-Attachments Viewer phase -- must prototype the download mechanism before building the viewer UI. This is a blocking technical investigation.
+Phase 1 (CI pipeline) -- code signing and notarization must be configured in the build workflow before any external distribution.
 
 ---
 
-### Pitfall 3: Widget Layout State Causes Full Dashboard Remount on Every Drag
+### Pitfall 3: Cross-Repo Publishing Silently Fails with Default GITHUB_TOKEN
 
 **What goes wrong:**
-Storing widget layout in a Zustand store and passing it as props to the grid component causes React to re-render every widget on every drag/resize event. With data-fetching widgets (TanStack Query hooks), this triggers query re-subscriptions, loading spinners, and visible flicker. The dashboard becomes unusable during layout customization.
+The architecture requires building in a private repo and publishing releases to a separate public repo. The default `GITHUB_TOKEN` is scoped to the repository running the workflow only. Using it with `tauri-action`'s `owner`/`repo` options to target the public repo results in "Resource not accessible by integration" or silent 403 errors. The CI job may appear to succeed but no release is created on the target repo. Worse: the release may be accidentally created on the private repo, exposing source code.
 
 **Why it happens:**
-`react-grid-layout` fires `onLayoutChange` on every pixel of drag movement. If the layout array reference changes in the parent component's state on each event, React reconciliation sees new props and remounts all grid children. This is documented in react-grid-layout issue #945. The codebase's existing pattern of prop threading (per PROJECT.md: "Prop threading for onIssueClick, not React context") amplifies this because layout changes propagate through the entire component tree.
+`GITHUB_TOKEN` is automatically scoped to the current repository. Cross-repo operations require a Personal Access Token (PAT) or GitHub App token with explicit permissions on the target repository. Developers test with a single repo and everything works, then the cross-repo setup breaks silently.
 
 **How to avoid:**
-(1) Use `React.memo` on every widget component with stable keys. (2) Store layout in a `useRef` during drag operations, only committing to Zustand state on `onDragStop`/`onResizeStop` (not `onLayoutChange`). (3) Debounce persistence to Tauri Store -- write layout to disk at most once per second after drag stops. (4) Keep widget content components completely decoupled from layout state -- widgets must not receive layout coordinates as props. (5) Use `useMemo` for the layout array to maintain referential stability when not dragging.
+1. Create a fine-grained PAT (not classic) with `contents: write` permission scoped to only the public release repo.
+2. Store it as a repository secret in the private repo (e.g., `RELEASE_REPO_TOKEN`).
+3. Pass it as the `GITHUB_TOKEN` env var in the `tauri-action` step.
+4. Set `owner` and `repo` inputs on `tauri-action` to point to the public repo.
+5. Set `releaseCommitish` to a valid ref on the target repo (e.g., `main`), or omit it.
+6. Add a CI verification step that checks the release appeared on the correct repo.
+7. Never use classic PAT with broad `repo` scope -- a compromised token gives write access to ALL repos.
 
 **Warning signs:**
-- Console shows TanStack Query re-fetching during drag operations
-- Widget content flickers or shows loading state during resize
-- CPU spikes during drag visible in performance profiler
-- The existing operation profiler waterfall shows redundant API calls during drag
+- CI completes "successfully" but no release on public repo.
+- Release accidentally created on private repo (potentially exposing source).
+- 403 or "Resource not accessible by integration" buried in CI logs.
 
 **Phase to address:**
-Dashboard Redesign phase -- the widget container architecture must be designed with this constraint from day one. Adding memoization retroactively to 10+ widget types is error-prone.
+Phase 1 (CI pipeline) -- token configuration is foundational to the entire release flow.
 
 ---
 
-### Pitfall 4: Settings Store Migration Breaks Existing Users on Version Bump
+### Pitfall 4: Version Desync Across Three Files Breaks the Updater
 
 **What goes wrong:**
-The settings store is already at version 8 with 8 cumulative migrations and 60+ fields. Adding new fields for dashboard layout, sidebar customization, saved filters, and widget preferences requires careful version increments. A migration that incorrectly handles the `undefined` case for new fields, or that destructively modifies existing fields (e.g., converting `role` from a string to a sidebar preset object), causes existing users to lose their settings or see a blank app state on first launch after update.
+Tauri reads the app version from `tauri.conf.json` (currently `"0.1.0"`). The Rust crate has its own version in `Cargo.toml` (also `"0.1.0"`). The frontend has version in `package.json`. If these drift apart, the updater compares the wrong version, the About dialog shows incorrect information, or builds fail. The updater specifically uses `tauri.conf.json` version for the update comparison.
 
 **Why it happens:**
-Zustand's persist middleware runs migrations sequentially. If version 9 adds `dashboardLayout` but does not check `if (s.dashboardLayout === undefined)`, users migrating from version 7 (who skipped v1.4) may hit unexpected states. The `as Record<string, unknown>` cast in the migrate function masks type errors at compile time. The codebase has already encountered this exact pattern -- the v1.4 migration from `debugMode` boolean to 6 granular toggles required careful conditional migration.
+Developers manually bump one file and forget the others. Or CI automates version injection for one file but not all three. The problem is invisible until the updater either never finds updates (version already matches) or always finds updates (version stuck at old value).
 
 **How to avoid:**
-(1) Each new version migration must guard every new field with `if (s.fieldName === undefined) s.fieldName = defaultValue`. (2) Never rename or restructure existing fields -- add new fields alongside old ones and deprecate gracefully. (3) The `role` field must remain as-is (`'developer' | 'pm' | 'tech-lead' | null`); sidebar presets should reference it, not replace it. (4) Add a migration test for each version bump that starts from version 0 state and migrates through all versions. (5) Split dashboard layout and sidebar config into separate stores (`dashboard.store.ts`, `sidebar.store.ts`) to avoid bloating settings.store.ts further. The existing codebase already uses separate stores for different concerns: `auth.store.ts`, `filter.store.ts`, `pinned-tabs.store.ts`, `recent-items.store.ts`.
+1. Single source of truth: derive the version from the git tag at build time.
+2. In CI, extract version from tag (`v1.6.0` -> `1.6.0`) and write to all three files before building. Use `jq` for JSON files and `sed` for TOML.
+3. Alternative: use Tauri CLI's `--config` flag to override version at build time: `tauri build --config '{"version":"1.6.0"}'`
+4. Add a CI assertion that fails if versions across the three files do not match after injection.
+5. Do NOT use semver build metadata (`1.6.0+1`) -- the `+` character breaks URL interpolation in updater endpoints.
 
 **Warning signs:**
-- App loads with default settings (light theme, no role selected) after update instead of user's configured state
-- `quickFilters` array disappears after update
-- Console errors about undefined properties during store rehydration
-- Onboarding screen reappears for existing users
+- About dialog shows different version than GitHub release.
+- Updater says "you're up to date" when a new release exists.
+- Updater always prompts for update even after installing latest.
 
 **Phase to address:**
-First phase that touches persistence (likely Dashboard Redesign) -- establish the new store files and migration pattern before any other feature phase adds to them.
+Phase 1 (CI pipeline) -- version injection from git tags must be automated from the start.
 
 ---
 
-### Pitfall 5: Bulk Operations Leave Jira in Inconsistent State on Partial Failure
+### Pitfall 5: Linux Updater Only Works with AppImage Format
 
 **What goes wrong:**
-When performing bulk operations (e.g., transitioning 15 issues to "Done", bulk assigning, bulk labeling), some requests succeed and some fail. Without proper tracking, the UI shows either all-success or all-failure, leaving the user uncertain about which issues were actually modified. Retrying the operation double-applies changes to already-modified issues (e.g., duplicate comments, duplicate label additions).
+Tauri's updater on Linux exclusively supports AppImage. If users download the `.deb` or `.rpm` instead, the updater throws "Cannot run updater on this Linux package. Currently only an AppImage can be updated." as an unhandled promise rejection. There is also a known bug where updated AppImages lose execute permissions after update (plugins-workspace#1608).
 
 **Why it happens:**
-Jira DC REST API has no native bulk-update endpoint for arbitrary field changes. Each issue requires a separate PUT request. Network hiccups, rate limiting (Jira DC has configurable rate limits with a token-bucket approach since v8.6, and the target instance is v10.3.15), or per-issue permission differences cause partial failures. Implementing with `Promise.all` (instead of `Promise.allSettled`) short-circuits on first failure, abandoning remaining operations.
+The project currently has `"targets": "all"` in `tauri.conf.json`, which builds `.deb`, `.rpm`, AND `.AppImage` on Linux. All formats appear in the release. Users who install via `.deb` expect auto-update to work. It does not.
 
 **How to avoid:**
-(1) Always use `Promise.allSettled`, never `Promise.all`, for bulk operations. (2) Track per-issue success/failure state in the UI with a progress indicator showing "X of Y complete, Z failed". (3) Implement idempotency checks where possible -- before transitioning, check current status; before assigning, check current assignee. (4) Check `x-ratelimit-remaining` response header and throttle requests when tokens are low. (5) Provide a "retry failed only" button that re-processes only the failed subset. (6) Cap batch size at 25-50 issues to keep the operation manageable and reduce blast radius. (7) Use sequential execution with a concurrency limit (e.g., 5 parallel requests) rather than firing all N requests simultaneously -- this respects rate limits and reduces server load.
+1. Only publish the `.AppImage` artifact for Linux to the public release repo. Build `.deb`/`.rpm` if desired but do not upload them alongside the updater-compatible release.
+2. Alternatively, publish all formats but handle the updater error gracefully: catch the promise rejection and show "Auto-update not available for this package format. Download the latest version manually" with a direct link.
+3. After update, programmatically verify execute permissions on the new AppImage (workaround for the known bug).
+4. The constraint also means Linux users must use AppImage, not install via package manager -- this aligns with the project's "portable executable, no installer" philosophy.
 
 **Warning signs:**
-- Bulk operation shows spinner for 30+ seconds then fails with a single generic error
-- Users report issues in wrong state after bulk operations
-- Rate limit 429 responses in the debug log store during bulk operations
-- Jira admin reports elevated API load from the app
+- Linux users report "update failed" while macOS/Windows users succeed.
+- Error logs: "Cannot run updater on this Linux package."
+- Updated AppImage fails to launch (permission bug).
 
 **Phase to address:**
-Bulk Operations phase -- partial failure handling is the core concern and must be designed from the start.
+Phase 1 (CI pipeline) -- bundle target selection. Phase 2 (updater integration) -- graceful error handling for unsupported formats.
 
 ---
 
-### Pitfall 6: N+1 Query Pattern in Activity History Enrichment
+### Pitfall 6: Updater Endpoint URL Variable Mangling
 
 **What goes wrong:**
-Building an activity timeline that combines changelog entries, comments, and worklogs requires three separate API calls per issue. If the activity view is used in a list context (e.g., "recent activity across my issues" dashboard widget), this becomes N issues x 3 endpoints = 3N requests. For a developer with 15 active sprint issues, that is 45 API calls. Combined with the existing 60-second poll interval via TanStack Query, this generates sustained load on the Jira DC instance.
+The updater endpoint URL uses `{{target}}`, `{{arch}}`, and `{{current_version}}` as template variables Tauri replaces at runtime. Developers replace these with literal values, use single braces, or configure a custom target that duplicates information. Known bug: setting a custom target produces malformed URLs like `darwin-aarch64-aarch64.json` (tauri#14703).
 
 **Why it happens:**
-Jira DC REST API v2 has no "activity stream" endpoint that combines changelog, comments, and worklogs into a single feed. Each must be fetched separately. The existing codebase fetches issue lists via search (1 paginated call) and enriches per-issue (e.g., `fetchIssueWorklogs` per issue for time tracking attribution) -- this pattern works for 1-2 enrichment fields but collapses at 3+ per issue.
+The double-brace syntax looks like a placeholder to fill in. The `tauri-action` auto-generates a `latest.json` file that contains all platform URLs and signatures -- but the endpoint must point to where this file is hosted. If using GitHub Releases, the simplest pattern does not need `{{current_version}}` in the URL at all.
 
 **How to avoid:**
-(1) Activity history should only be fetched for the currently-viewed issue (issue detail page), never in batch for a list view. (2) Use TanStack Query `staleTime` aggressively -- changelog data is append-only, so a 5-minute staleTime is safe. (3) For a dashboard "recent activity" widget, use the issue's `updated` field (already in the search response) to show "recently changed" -- do not fetch full changelogs for multiple issues. (4) Paginate changelog fetches with a small initial page (20 entries) and load more on scroll. (5) Never include `expand=changelog` in search/list queries -- it multiplies response size by 10-50x and still caps at 100 entries per issue.
+1. Use the simplest endpoint pattern for GitHub Releases:
+   `https://github.com/OWNER/PUBLIC-REPO/releases/latest/download/latest.json`
+   This auto-generated file contains version, signatures, and platform-specific download URLs.
+2. Do NOT use `{{current_version}}` in the URL when using static JSON from GitHub Releases.
+3. Do NOT set a custom `target` in the updater plugin config unless you have a specific reason.
+4. Do NOT use version strings with `+` build metadata (e.g., `1.6.0+1`) -- the `+` breaks URL encoding.
+5. Test the endpoint URL manually with `curl` before wiring it into the app.
 
 **Warning signs:**
-- Dashboard load time exceeds 5 seconds
-- Network tab shows 30+ parallel Jira requests on page load
-- Jira admin reports elevated API load from the app
-- TanStack Query devtools shows dozens of in-flight queries
-- The existing 15-second `API_TIMEOUT_MS` in `apiFetch.ts` starts timing out due to server congestion
+- Update check returns 404.
+- URL in network logs contains doubled platform names or unresolved `{{variables}}`.
+- Update check works on macOS but fails on Windows/Linux.
 
 **Phase to address:**
-Activity History phase -- enforce the "detail view only" rule architecturally by placing activity hooks in the issue detail component, not in shared data hooks.
+Phase 2 (updater integration) -- endpoint configuration.
 
 ---
 
-### Pitfall 7: Watchers API Uses `name` (Username) on DC, Not `accountId`
+### Pitfall 7: Force-Update Policy Becomes a Denial-of-Service Against Your Own Users
 
 **What goes wrong:**
-Copying Jira Cloud API documentation leads to sending `accountId` in the watchers POST body. Jira DC expects a raw username string (not even a JSON object) as the request body for adding a watcher: `POST /rest/api/2/issue/{key}/watchers` with body `"username"` (a JSON string, not an object). Using `{ "name": "username" }` or `{ "accountId": "..." }` returns 400.
+A hard force-update (blocking the app until update) locks users out permanently if: (a) the update endpoint is unreachable, (b) the latest release has a broken binary, (c) the version policy file has a typo setting minimum to a future version, or (d) the user is behind a corporate proxy blocking GitHub. The app becomes completely unusable with no escape hatch.
 
 **Why it happens:**
-Most Jira API documentation online targets Cloud. The codebase already handles the DC/Cloud difference for assignee fields (`{ name: username }` not `{ accountId }`, per the `createIssue` function in `issues.ts`), but the watchers endpoint is uniquely different -- it takes a bare JSON string, not an object. This is inconsistent with every other Jira DC endpoint.
+Force-update seems simple: compare local version to minimum, block if below. But the implementation does not account for the update infrastructure itself failing. A single misconfigured `version-policy.json` or a GitHub CDN outage turns force-update into a self-inflicted outage.
 
 **How to avoid:**
-(1) The POST body for adding a watcher must be `JSON.stringify("username")`, which produces `"username"` as the raw request body (a JSON-encoded string). (2) The GET response for listing watchers returns `watchers[].name` (DC) not `watchers[].accountId` (Cloud). (3) Removing a watcher uses DELETE with the username as a query param: `?username=johndoe`. (4) The "Add me as watcher" action should use the current user's `name` field from `/rest/api/2/myself`. (5) Viewing watchers requires "View voters and watchers" project permission; managing watchers for others requires "Manage watcher list" permission. (6) Test against the actual Jira DC instance early -- this cannot be validated from documentation alone.
+1. Never hard-block on failed version check -- only block if the check SUCCEEDS and the version is below the hard minimum. Network failure = allow the app to run.
+2. Cache the last successful version policy response locally with a maximum cache age (e.g., 7 days). Use cached policy if network request fails.
+3. Include an emergency bypass: allow N app launches (e.g., 3) even when blocked, or a settings toggle to temporarily disable force-update.
+4. The version policy file must be independently deployable -- a plain JSON file on the public repo, not bundled inside the app.
+5. Test the policy exhaustively: test with blocked version, test with unreachable endpoint, test with malformed JSON, test with version higher than any release.
 
 **Warning signs:**
-- 400 errors when adding watchers with no clear error message
-- Watchers list shows `accountId`-like values instead of display names
-- "Add me as watcher" works but adding others fails
+- No fallback behavior defined for "version check request failed."
+- Policy file is bundled inside the app (cannot be updated independently).
+- No way to disable force-update without shipping a new app version.
+- Policy file only tested with "happy path" versions.
 
 **Phase to address:**
-Watchers/Starring phase -- include a manual integration test checklist for add/remove/list watcher operations against the live Jira DC instance.
+Phase 3 (force-update policy) -- must be designed with failure modes in mind from the start.
 
 ---
 
-### Pitfall 8: Mention Autocomplete Triggers Excessive User Search Requests
+### Pitfall 8: Windows Code Signing Certificate = SmartScreen Trust
 
 **What goes wrong:**
-Implementing `@mention` autocomplete in comment fields triggers a Jira user search on every keystroke after `@`. The user search endpoint (`/rest/api/2/user/search?username=`) is relatively slow on Jira DC (200-500ms per call) and returns all matching users. Without debouncing and caching, typing `@john` fires 4 separate API calls, each returning potentially hundreds of users.
+Without a code signing certificate from a trusted CA, Windows SmartScreen shows "Windows protected your PC -- Microsoft Defender SmartScreen prevented an unrecognized app from starting." Users must click "More info" then "Run anyway." For the auto-updater, this warning appears after every update, training users to click through security warnings -- the opposite of good security practice. A self-signed certificate does NOT help; SmartScreen still warns.
 
 **Why it happens:**
-The natural implementation binds search to an `onChange` handler. Unlike the existing command palette (which uses `cmdk`'s built-in debounce), a raw textarea with mention detection has no built-in throttling.
+Windows code signing requires a certificate from a recognized Certificate Authority. EV (Extended Validation) certificates provide immediate SmartScreen trust. OV (Organization Validation) certificates require building reputation through download volume. Developers skip this during development and forget it is required for distribution.
 
 **How to avoid:**
-(1) Pre-fetch the project's assignable users on app init: `GET /rest/api/2/user/assignable/search?project={key}&maxResults=1000`. Cache this in TanStack Query with a 30-minute `staleTime` -- the user list rarely changes. Search locally for `@` completions against this cached list. This eliminates per-keystroke API calls entirely. (2) If the user list exceeds 1000, fall back to API search but debounce by 300ms after the `@` trigger character. (3) Only trigger search after 2+ characters following `@`. (4) Limit dropdown suggestions to 10 items. (5) On Jira DC, use the `username` parameter (not `query`, which is Cloud-only): `/rest/api/2/user/search?username=john`.
+1. Purchase an OV or EV code signing certificate from a CA (DigiCert, Sectigo, SSL.com). Cost: $200-500/year for OV, $300-700/year for EV.
+2. Alternatively, use Azure Trusted Signing (newer, cloud-based, $10/month) which provides immediate SmartScreen reputation.
+3. Configure CI with `TAURI_SIGNING_PRIVATE_KEY` for updater signatures AND the Windows code signing certificate separately -- these are two different signing systems.
+4. For cross-compiling Windows from Linux CI runners, use a custom sign command since the default implementation only works on Windows hosts.
+5. If budget is a constraint for initial release, accept the SmartScreen warning initially and plan to add code signing later. But document this as a known UX issue.
 
 **Warning signs:**
-- Typing `@` causes visible lag in the comment input
-- Network tab shows rapid-fire user search requests
-- Mention dropdown takes 500ms+ to appear
-- Rate limit warnings in debug log store during comment editing
+- Users report SmartScreen warnings on every update.
+- Download counts are low because users do not trust the "unrecognized app" warning.
+- IT departments block the app installation.
 
 **Phase to address:**
-Mention Autocomplete phase -- pre-fetching assignable users is the correct architecture. Per-keystroke API search should not be implemented at all.
+Phase 1 (CI pipeline) -- configure if certificate available. Can be deferred but must be planned for.
 
 ---
 
-### Pitfall 9: Worklog Time Format Mismatch Between Jira DC and ISO 8601
+### Pitfall 9: Updater Restart Loses In-Memory State and Stronghold Lock
 
 **What goes wrong:**
-Submitting worklogs with ISO 8601 duration format (`PT2H30M`) or decimal hours (`2.5h`) to Jira DC results in 400 errors or incorrectly parsed time values. Jira DC expects its own duration format: `"2h 30m"`, `"1d 4h"`, `"30m"`. The API silently accepts some malformed values but logs incorrect time.
+When the Tauri updater applies an update on Windows, the NSIS installer closes the app process to replace the binary. This terminates the app without the normal shutdown sequence. On macOS/Linux, the app restarts after update. In both cases, in-memory state (TanStack Query cache, Zustand non-persisted stores, Stronghold vault lock) is lost. If the app startup flow does not properly re-initialize, the user lands on a broken state after update.
 
 **Why it happens:**
-JavaScript `Date` and `Intl` APIs naturally produce ISO 8601 durations. Most time-picker UI libraries output minutes or ISO 8601. Developers assume a standard format works without checking Jira's specific expectation. The existing `worklogs.ts` module only reads worklogs (author names for attribution) -- it does not write them, so this format issue has not surfaced yet.
+The existing app startup assumes a clean launch (onboarding or credential loading from Stronghold). An updater-triggered restart is a hybrid: it is not a first launch (credentials exist) but the vault must be re-opened. If the startup flow assumes vault is already open (because the user was just using the app), credentials appear missing and the user sees the onboarding screen.
 
 **How to avoid:**
-(1) Build a `formatJiraDuration(minutes: number): string` utility that converts total minutes to Jira format (e.g., 150 -> `"2h 30m"`, 510 -> `"1d 30m"` assuming 8h workday). (2) Validate the time input UI to accept only Jira-compatible units. (3) When reading worklogs, parse `timeSpentSeconds` (an integer) rather than `timeSpent` (a formatted string) for reliable computation. (4) The `worklog` POST body requires `timeSpent` (string in Jira format) plus `started` (ISO 8601 datetime with timezone), plus optional `comment`.
+1. The app startup sequence must always attempt to unlock Stronghold, regardless of how the app was launched. The current vault password is derived from a random 32-byte hex key in Tauri Store -- this survives restart.
+2. Set Windows install mode to `"passive"` (not `"quiet"`) so users see progress and know a restart will happen.
+3. Warn users before triggering the update install: "The app will restart to apply the update. Any unsaved work will be lost."
+4. On macOS, save critical ephemeral state to Tauri Store before triggering install, then restore on restart.
+5. Test the full update-restart cycle on each platform, verifying credentials are available after restart without re-entering them.
 
 **Warning signs:**
-- 400 errors on worklog submission with no clear field-level error
-- Time tracking totals in Jira do not match what was entered in Taskflow
-- Worklog entries show "0m" or incorrect duration in Jira after submission
+- Users see onboarding screen after update despite having configured credentials.
+- Stronghold "vault not initialized" error after update restart.
+- TanStack Query shows stale data from before the update.
 
 **Phase to address:**
-Time Tracking/Worklog phase -- the duration format utility must be built and tested before the worklog UI.
+Phase 2 (updater integration) -- the restart/re-initialization flow must be tested as part of updater implementation.
 
 ---
 
-### Pitfall 10: Saved Filters Conflict with Existing quickFilters in Settings Store
+### Pitfall 10: GitHub API Rate Limits on Update Checks
 
 **What goes wrong:**
-The settings store already has `quickFilters: QuickFilter[]` (added in version 5 migration) for board quick filters. Adding a new "Saved Filters" feature that persists cross-view filter presets creates naming confusion, potential data model collisions, and migration complexity if both use the same store field or similar type names.
+If the update check hits the GitHub REST API (e.g., `/repos/OWNER/REPO/releases/latest`), unauthenticated requests are limited to 60 per hour per IP address. In an office environment where multiple users share a corporate NAT IP, 60 requests across all users can be exhausted in minutes, causing all subsequent update checks to fail with 403.
 
 **Why it happens:**
-v1.4 added `quickFilters` to the settings store for sprint board filtering. The v1.5 "Saved Filters" feature is conceptually different (cross-view, includes JQL-equivalent criteria, appears in sidebar) but has overlapping vocabulary. Developers may try to extend `quickFilters` to serve both purposes, creating a hybrid data model that satisfies neither use case well.
+Developers use the GitHub API URL pattern for update checks instead of the raw CDN download URL. The GitHub API is rate-limited; the CDN asset download endpoint is not rate-limited the same way. The difference is subtle: `api.github.com/repos/...` vs `github.com/OWNER/REPO/releases/latest/download/latest.json`.
 
 **How to avoid:**
-(1) Keep `quickFilters` in `settings.store.ts` for board quick filters -- do not modify its shape. (2) Create a new `savedFilters` field (or better, a separate `saved-filters.store.ts`) for the cross-view saved filter feature. (3) Use distinct TypeScript types: the existing `QuickFilter` (from `filter.store.ts`) is board-specific; new `SavedFilter` should have a different type with different fields (view scope, filter criteria object, not raw JQL). (4) Store structured filter criteria objects, not raw JQL strings -- generate JQL at query time. This prevents breakage if JQL syntax changes between Jira versions and allows visual filter editing.
+1. Use the raw download URL, not the API: `https://github.com/OWNER/PUBLIC-REPO/releases/latest/download/latest.json` -- this goes through GitHub's CDN and bypasses API rate limits.
+2. Set default update check interval to 24 hours (86400 seconds), user-configurable with a minimum of 1 hour.
+3. Never check on every app launch -- check on a timer with randomized jitter to avoid thundering herd from office environments.
+4. Cache the last update check result with a timestamp. Skip the check if the cached result is younger than the configured interval.
+5. If the check fails (rate limit, network error), do not retry immediately -- back off to the next interval.
 
 **Warning signs:**
-- `QuickFilter` type is modified to accommodate both board and cross-view use cases
-- Import confusion between `QuickFilter` and `SavedFilter` in components
-- Board quick filters break after saved filter migration runs
+- Users in same office all see "update check failed" simultaneously.
+- 403 responses with `X-RateLimit-Remaining: 0` header.
+- Update check works from home but fails from office.
 
 **Phase to address:**
-Saved Filters phase -- define the data model and store location before implementation. Board Quick Filters phase should not touch the existing `quickFilters` field shape.
+Phase 2 (updater integration) -- endpoint URL and check frequency configuration.
+
+---
 
 ## Technical Debt Patterns
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Storing all new settings in `settings.store.ts` | No new store files, familiar pattern | Store exceeds 80+ fields, migrations become fragile, rehydration time grows | Never -- create `dashboard.store.ts` and `sidebar.store.ts` following the existing pattern of `pinned-tabs.store.ts` and `recent-items.store.ts` |
-| Using `expand=changelog` on issue fetch | One fewer API call | Silent 100-item truncation, no pagination support | Never for activity history; acceptable only for a "last changed" timestamp badge on issue cards |
-| Fetching all worklogs to compute time totals | Simple implementation | Issues with 500+ worklogs cause multi-second loads | Only for issue detail view; for list views, use the `timetracking` field already included in issue search responses |
-| Hardcoding widget type IDs in dashboard layout schema | Faster initial build | Adding new widgets requires layout migration | MVP only -- use a registry pattern from the start so new widgets can be added without migrating stored layouts |
-| Saving filter criteria as raw JQL strings | Direct API compatibility | JQL syntax varies between Jira versions; users cannot edit visually; special characters cause injection-like issues | Never -- save structured filter objects and generate JQL at query time |
-| Using `Promise.all` for bulk operations | Simpler error handling | First failure aborts remaining operations; no partial success tracking | Never -- always use `Promise.allSettled` for multi-issue operations |
+| Hardcoding version in `tauri.conf.json` instead of injecting from git tag | No CI setup needed for version | Manual bumps, version drift, missed updates, About dialog shows wrong version | Never -- automate from day one |
+| Skipping Windows code signing | Faster CI, no certificate cost ($200-500/yr) | SmartScreen warns on every install/update; users trained to bypass security warnings | Internal-only testing; must sign before any external distribution |
+| Skipping macOS notarization | 5-15 min faster CI builds | App hard-blocked by Gatekeeper on all non-developer Macs; no workaround | Local development only; never for distributed builds |
+| Using `GITHUB_TOKEN` instead of dedicated PAT for cross-repo | Simpler CI setup | Silently fails for cross-repo publish; release lands on wrong repo | Never -- cross-repo always requires dedicated PAT |
+| Checking for updates on every app launch | Ensures users always know about updates | Hammers GitHub; 60 req/hr rate limit shared across office users; slows app startup | Never -- use configurable timer with 24hr default |
+| Bundling version policy JSON inside the app | No separate file to manage | Cannot change force-update thresholds without shipping a new app version; cannot fix a broken policy remotely | Never -- policy must be a remote file |
+| Using `"targets": "all"` without filtering uploads | Simple CI, all formats available | Linux users download `.deb`, get broken updater; release page cluttered | MVP only -- filter to updater-compatible formats before uploading |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| Jira DC changelog | Using `expand=changelog` on issue endpoint (capped at 100, no pagination) | Use dedicated `/rest/api/2/issue/{key}/changelog` endpoint with `startAt`/`maxResults` pagination |
-| Jira DC watchers POST | Sending JSON object `{ "name": "user" }` as body | Send bare JSON string: `"user"` (result of `JSON.stringify("user")`) as request body |
-| Jira DC watchers GET | Expecting `accountId` in response objects | Use `watchers[].name` (username) on Data Center |
-| Jira DC watchers DELETE | Using body or JSON payload | Use query parameter: `DELETE /issue/{key}/watchers?username=johndoe` |
-| Jira DC attachment download | Using Bearer PAT directly with content URL | Content URLs are outside REST API scope; may need session cookie via `/rest/auth/1/session` or fallback to `shell.open()` |
-| Jira DC user search | Using `query` parameter (Cloud-only) | Use `username` parameter: `/rest/api/2/user/search?username=X` |
-| Jira DC worklog POST | Sending ISO 8601 duration `PT2H30M` for `timeSpent` | Use Jira duration format: `"2h 30m"` (not ISO 8601) |
-| Jira DC worklog read | Parsing `timeSpent` string for computation | Use `timeSpentSeconds` integer field for reliable arithmetic |
-| Jira DC rate limiting | Ignoring rate limit headers on bulk operations | Check `x-ratelimit-remaining` and `x-ratelimit-interval-seconds` headers; throttle when tokens are low |
-| Tauri plugin-http with redirects | Assuming redirects preserve auth headers | Tauri fetch follows redirects transparently but may drop Authorization header on cross-origin redirect; check response content-type to detect login page redirects |
-| Jira DC changelog items | Expecting human-readable field names in `items[].field` | Changelog items use internal field IDs (e.g., `customfield_10016`); must map to display names using `/rest/api/2/field` metadata |
+| GitHub Releases CDN vs API | Using `/repos/OWNER/REPO/releases/latest` API endpoint for update checks (rate-limited at 60/hr per IP) | Use raw download URL `github.com/OWNER/REPO/releases/latest/download/latest.json` which goes through CDN |
+| `tauri-action` cross-repo | Forgetting to set `releaseCommitish` when targeting a different repo, causing release to reference nonexistent commit | Set `releaseCommitish` to `main` on the target repo, or omit to use default branch |
+| `tauri-action` cross-repo | Using `GITHUB_TOKEN` (repo-scoped) for cross-repo release | Use a fine-grained PAT stored as `RELEASE_REPO_TOKEN` secret with `contents: write` on public repo only |
+| Apple notarization in CI | Using Apple ID password directly (fails with 2FA) | Use app-specific password or App Store Connect API key (recommended) |
+| `createUpdaterArtifacts` | Setting to `true` but missing `TAURI_SIGNING_PRIVATE_KEY` in environment -- build succeeds but artifacts are unsigned, updater rejects them | CI must export both `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` as env vars (NOT `.env` files) |
+| Updater pubkey in config | Setting `pubkey` to a file path | Must embed the actual key content string directly in `tauri.conf.json` -- path references do not work |
+| Stronghold after updater restart | Assuming vault is already unlocked after app restart | Startup flow must always attempt vault unlock; the random password in Tauri Store survives restart |
+| Windows NSIS installer | Using `installMode: "quiet"` for seamless updates | "quiet" requires admin privileges or user-wide installation; use `"passive"` (progress bar, no interaction required) |
+| `latest.json` platform keys | Using wrong platform key format in static JSON | Keys must match Tauri's format: `linux-x86_64`, `windows-x86_64`, `darwin-x86_64`, `darwin-aarch64` |
+| Version format in tags | Using `v1.6.0+1` (semver build metadata) | The `+` character breaks URL interpolation in updater endpoints; use plain `v1.6.0` |
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| Fetching changelog for all sprint issues in a list view | Dashboard takes 10s+; dozens of parallel requests visible in network tab | Only fetch changelog on issue detail view, never in list/board views | >10 issues in sprint |
-| `react-grid-layout` `onLayoutChange` updating Zustand on every pixel of drag | All widgets re-render during drag; flicker and loading spinners visible | Use `useRef` during drag, commit to Zustand state only on `onDragStop`/`onResizeStop` | Any drag operation |
-| Attachment thumbnails fetched eagerly on issue detail open | 20+ image downloads simultaneously; slow page load | Lazy-load thumbnails with intersection observer; show filename + size placeholder first | Issues with >5 attachments |
-| Worklog pagination without result cap | `fetchAllWorklogPages` loops until `total` exhausted for enrichment | Set `maxResults=50` per page and cap total pages for list-view enrichment; full pagination only on detail view | Issues with >200 worklogs (long-running tasks) |
-| Saved filter badge counts re-executed on every render cycle | Constant API polling for saved filter result counts | Use TanStack Query with `staleTime: 5 * 60 * 1000` for filter count queries | >5 saved filters visible in sidebar |
-| Board quick filters recomputing on every issue state update | Board becomes laggy with complex filter expressions | Memoize filter results with `useMemo` keyed on issue data hash and filter criteria | >50 issues on board with 3+ active filters |
-| Bulk operation firing all N requests simultaneously | Server overloaded; rate limit 429s; request timeouts | Use sequential execution with concurrency limit of 5; respect rate limit headers | >10 issues in batch |
-| Dashboard widget initial data load waterfall | Each widget fetches independently; serial waterfall visible | Pre-fetch common data (sprint issues, my tasks) in dashboard parent; widgets read from TanStack Query cache | >4 data-fetching widgets on dashboard |
+| Update check on every app launch | Slow startup; 403 rate limit errors in office | Timer-based check with 24hr default, randomized jitter, minimum 1hr | When 60+ users share a NAT IP |
+| Downloading full binary before version comparison | Wasted bandwidth, slow "checking for updates" UX | Fetch only `latest.json` (tiny JSON, ~1KB) first; download binary only if update available | Immediately -- every check wastes bandwidth |
+| macOS universal binary builds | 2x build time, 2x artifact size (100MB+ universal vs 50MB per-arch) | Build separate `x86_64` and `aarch64` binaries; Apple Silicon is majority now | CI time and artifact storage doubles |
+| Sequential platform builds in CI | 30-45 minute pipeline | Use GitHub Actions matrix to build macOS/Windows/Linux in parallel | Immediately -- blocks releases for 30+ min |
+| Fetching GitHub Release API for changelog display | Rate-limited; slow; returns markdown that needs parsing | Embed release notes in `latest.json` via the `notes` field (auto-populated by `tauri-action`) | Office environments with shared IP |
+| Version policy check blocking app startup | App hangs on launch if GitHub is slow/unreachable | Async check with timeout (5s max); allow app to load; show result in banner | Any network-constrained environment |
 
 ## Security Mistakes
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Logging attachment content URLs with session cookies in debug log store | Cookie values leak to persisted debug logs on disk | Extend the sanitization logic in `apiFetch.ts` to redact `Cookie` and `Set-Cookie` headers alongside existing `Authorization`/`PRIVATE-TOKEN` redaction |
-| Storing raw JQL in saved filters with unescaped user input | JQL injection if filter values contain special characters (`"`, `\`, `)`) | Store structured filter objects; escape values when generating JQL using a JQL builder utility |
-| Bulk operation error messages exposing other users' identity info | Information disclosure if bulk assign fails with "user X not found" messages | Catch and sanitize Jira error messages before displaying; show generic "operation failed" with option to view details |
-| Session cookie from `/rest/auth/1/session` stored in memory without expiry tracking | Stale session used after PAT rotation or session invalidation | Treat session as ephemeral; re-obtain for each attachment download batch; never persist cookies to disk |
-| Worklog POST allowing negative or zero time values | Corrupted time tracking data in Jira | Validate `timeSpent > 0` before API call; reject non-positive durations at the UI level |
+| Committing updater private key to repository | Anyone with repo access can sign malicious updates that all installations will trust | Store only as CI secret + offline backup; add `*.key` to `.gitignore` |
+| Using classic PAT with broad `repo` scope for cross-repo | Token compromise gives write access to ALL repos, not just release repo | Use fine-grained PAT scoped to only the public release repo with `contents: write` only |
+| Serving version policy over HTTP | MITM can modify force-update thresholds -- either blocking all users or preventing critical security updates | Tauri enforces TLS in production by default; ensure policy endpoint is also HTTPS (GitHub is) |
+| Not validating version policy JSON schema | Malformed JSON could crash the version check, either blocking or allowing all versions | Define strict schema; if parsing fails, treat as "no policy" (allow app to run) |
+| Apple Developer credentials in CI logs | Certificate password and notarization credentials leak in build output | Use GitHub `secrets` context exclusively; verify CI logs do not echo env vars; use `mask` for dynamic secrets |
+| Updater endpoint on HTTP in development leaking to production | Updates could be intercepted and replaced with malicious binaries | Use `dangerousInsecureTransportProtocol: true` only in dev config; production config must enforce HTTPS |
 
 ## UX Pitfalls
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| Dashboard resets to default layout after any data fetch error | User loses carefully arranged widgets after a transient network error | Persist layout independently of widget data; layout survives data fetch errors; show error state within individual widgets |
-| Bulk operation shows only final aggregate result (success/fail) | User does not know which issues were affected | Show per-issue progress with checkmarks/crosses as each completes; provide "retry failed" button |
-| Activity history shows raw field IDs for custom fields | "customfield_10016 changed from 3 to 5" is meaningless to users | Map custom field IDs to display names using field metadata (already have `discoverCustomFields` pattern); show "Story Points changed from 3 to 5" |
-| Mention autocomplete blocks typing while loading suggestions | User cannot continue typing comment while waiting for user list | Show autocomplete asynchronously in a portal; never block the textarea input event loop |
-| Sidebar customization has no "reset to default" action | User removes critical nav items and cannot recover without clearing app data | Always provide a "Reset to [role] defaults" action in sidebar settings |
-| Saved filter names truncated in sidebar without tooltip | User creates "Critical bugs assigned to me in current sprint" but sees "Critical bugs assi..." with no way to see full name | Show full name on hover via tooltip; limit display to 30 chars with ellipsis |
-| Board quick filters use AND vs OR ambiguously | User selects "Bug" + "High Priority" expecting AND but gets OR (or vice versa) | Default to AND logic; clearly label the combination behavior; consider adding a toggle |
-| Time tracking input requires learning Jira format | User types "2.5 hours" or "150 minutes" but only "2h 30m" works | Accept multiple input formats (decimal hours, minutes) and convert to Jira format on submission; show preview of converted value |
-| Watcher count badge shows stale data | User adds themselves as watcher but count does not update until next poll | Optimistic update on watcher add/remove -- increment/decrement count immediately, rollback on API failure |
+| Blocking app during update download | User cannot work while 50-100MB binary downloads on slow connection | Download in background; show progress in non-blocking banner; offer "Install Now" when complete |
+| No changelog in update prompt | User does not know what changed; defaults to "Later" out of uncertainty | Display release notes from the `notes` field of `latest.json` in the update dialog |
+| Force-update on first launch after long absence | User opens app for urgent task, gets blocked by mandatory update | Soft minimum: persistent nag banner allowing continued use. Hard minimum: only for critical security fixes with 24hr grace period |
+| Silent update restart on Windows | NSIS installer closes app without warning; unsaved ephemeral state lost | Warn user before install; use `installMode: "passive"` not `"quiet"` |
+| "Check for updates" button with no visible feedback | User clicks, nothing appears to happen (check is fast, no update available) | Always show result: "You're on the latest version (v1.6.0)" or "Update available: v1.7.0" with action button |
+| Version history page empty on first install | New users see empty "Version History" section | Pre-populate with current version's notes; fetch historical releases from GitHub API (with cache) |
+| About dialog shows "0.1.0" during development | Confusing during testing; might ship if version injection is misconfigured | Show build metadata: version + commit hash + build date; detect dev builds and show "Development Build" label |
+| Update available but user on metered connection | Large download consumes mobile data | Detect metered/cellular connection if possible; at minimum, show download size before user confirms |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Activity History:** Often missing changelog pagination for old issues -- verify with an issue that has 200+ changelog entries by checking the `total` field
-- [ ] **Activity History:** Often missing custom field name resolution -- verify that `customfield_XXXXX` items display human-readable field names
-- [ ] **Activity History:** Often missing combined timeline sort -- verify changelog entries, comments, and worklogs are interleaved chronologically (not grouped by type)
-- [ ] **Attachments Viewer:** Often missing auth for content download -- verify actual file bytes are received by checking response content-type is not `text/html`
-- [ ] **Attachments Viewer:** Often missing non-image file handling -- verify PDF, ZIP, and unknown MIME types show appropriate UI (download button, not broken preview)
-- [ ] **Dashboard Layout:** Often missing persistence across app restart -- verify widget positions survive quit and relaunch on all platforms
-- [ ] **Dashboard Layout:** Often missing responsive behavior -- verify layout adapts when window is resized by >50% without overlapping widgets
-- [ ] **Dashboard Layout:** Often missing new-widget default placement -- verify adding a widget does not overlap existing widgets
-- [ ] **Bulk Operations:** Often missing partial failure handling -- verify with a batch where 1 of 10 issues lacks edit permission; UI must show which 9 succeeded
-- [ ] **Bulk Operations:** Often missing undo/rollback -- verify user can identify and reverse individual bulk changes
-- [ ] **Watchers:** Often missing permission check -- verify graceful error handling when "Manage watcher list" permission is absent (user can still add self but not others)
-- [ ] **Time Tracking:** Often missing Jira time format validation -- verify "2h 30m" works; verify "2.5h" is converted or rejected with helpful message
-- [ ] **Saved Filters:** Often missing migration of existing quickFilters -- verify board quick filters still work after saved filter feature ships
-- [ ] **Mention Autocomplete:** Often missing special character handling -- verify usernames with apostrophes and dots work correctly
-- [ ] **Sidebar Customization:** Often missing role preset preservation -- verify switching roles resets sidebar to new role's defaults with confirmation dialog
-- [ ] **Board Quick Filters:** Often missing filter state persistence -- verify selected quick filters survive page navigation and app restart
+- [ ] **Updater signing:** Often missing `.sig` files alongside artifacts -- verify every release artifact has a corresponding `.sig` file
+- [ ] **Updater pubkey:** Often set as file path instead of content -- verify the actual base64 key string is in `tauri.conf.json`, not a path
+- [ ] **macOS notarization:** Often only code-signed, not notarized -- verify downloaded `.dmg` launches on a clean Mac without Gatekeeper warning
+- [ ] **Cross-repo release:** Often targets wrong repo -- verify release appears on the PUBLIC repo with correct tag, not the private one
+- [ ] **Version sync:** Often only updates one file -- verify `tauri.conf.json`, `Cargo.toml`, AND `package.json` all show the git tag version in built artifacts
+- [ ] **Linux AppImage update:** Often missing execute permission after update -- verify the updated AppImage is executable without manual `chmod`
+- [ ] **Update check interval:** Often hardcoded or too frequent -- verify users can change frequency in Settings; default is 24hr, minimum 1hr
+- [ ] **Force-update offline:** Often not tested -- verify app still launches when version policy endpoint is unreachable (network off)
+- [ ] **Force-update bad policy:** Often not tested -- verify app handles malformed `version-policy.json` gracefully (does not crash or block)
+- [ ] **Windows install mode:** Often left as default -- verify `"passive"` is set; test that users see progress during update
+- [ ] **About dialog version:** Often hardcoded -- verify it reads the actual built version, not a constant `"0.1.0"`
+- [ ] **Updater in dev mode:** Often crashes -- verify updater gracefully skips or shows "not available in dev mode" when running `tauri dev`
+- [ ] **Changelog in update prompt:** Often empty -- verify release notes display in the update dialog, not just "Update available"
+- [ ] **Post-update Stronghold:** Often broken -- verify credentials are available after updater-triggered restart without re-entering PATs
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Changelog expand=changelog truncation | MEDIUM | Switch to paginated endpoint; rewrite data fetching layer; existing UI timeline components can remain unchanged |
-| Attachment PAT auth failure | LOW | Add session-cookie helper function; `shell.open()` fallback is acceptable UX for v1.5 |
-| Widget remount on every drag | HIGH | Requires rearchitecting grid container to use ref-based drag state; must add React.memo to every widget component |
-| Settings store migration failure | HIGH | Users lose settings; must ship emergency migration that detects and recovers broken state; consider store-repair utility |
-| Bulk operation partial failure | MEDIUM | Add per-issue tracking and progress UI to existing bulk operation flow; moderate UI changes |
-| N+1 activity queries | LOW | Move activity fetch from list hook to detail hook; no data model change needed; straightforward refactor |
-| Watchers wrong body format | LOW | Fix request body format; single-line change per watcher operation |
-| Mention excessive requests | LOW | Add debounce + pre-fetch; straightforward implementation change |
-| Worklog time format | LOW | Add format conversion utility; update input validation; existing worklog read path unaffected |
-| Saved filter / quickFilter confusion | MEDIUM | Rename types and create separate store; requires updating all import paths |
+| Lost updater signing key | HIGH | Generate new key pair. ALL existing installations cannot auto-update -- every user must manually download the next version. The new version ships with the new public key. This is a one-time pain point but affects every installed user. |
+| Version policy locks out all users | LOW | Fix `version-policy.json` on public repo (plain JSON push). Users recover on next version check. If file was deleted, app should fall back to "no policy" (allow). |
+| Release published to wrong repo | LOW | Delete release from wrong repo; re-run CI with correct `owner`/`repo`. No user impact if no one downloaded. |
+| Unsigned macOS build distributed | MEDIUM | Users who downloaded must manually delete and re-download. Publish signed+notarized build; notify affected users. |
+| Version drift across config files | LOW | Fix CI version injection; cut a new release. Updater uses `tauri.conf.json` version -- if that one is correct, updates still work for existing users. |
+| Corrupted update binary distributed | LOW | Tauri's signature verification rejects corrupted binaries automatically. Old version keeps running. Fix build; publish new release. User sees "update failed" and can retry. |
+| GitHub rate limit on update checks | LOW | Switch from API endpoint to raw CDN URL. Users recover automatically when rate limit resets (1 hour). |
+| Force-update blocks app after bad release | MEDIUM | Users cannot auto-update to the good version because the bad version crashes. Must lower the hard minimum in `version-policy.json` to un-block, then publish fixed version. |
+| Windows SmartScreen blocks update | LOW | Purchase code signing certificate; re-sign and re-release. Users must re-download once. SmartScreen reputation builds over time with OV certs. |
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| Changelog 100-item cap | Activity History | Verify with issue having 200+ history entries; confirm paginated endpoint used with `total` field for iteration |
-| Attachment PAT download failure | Attachments Viewer | Verify binary file content received (check content-type header); test with image, PDF, and ZIP file types |
-| Widget layout remount | Dashboard Redesign | Verify zero TanStack Query refetches during drag operation via debug log store; check React DevTools Profiler for re-renders |
-| Settings store migration | Dashboard Redesign (first phase touching persistence) | Verify migration from version 8 to new version preserves all existing fields; automated test starting from version 0 state |
-| Bulk partial failure | Bulk Operations | Verify with mixed-permission batch; confirm per-issue success/failure status visible in UI |
-| N+1 activity queries | Activity History | Verify dashboard does not fetch changelog; network tab shows zero changelog requests when dashboard is active |
-| Watchers body format | Watchers/Starring | Integration test against live Jira DC: add watcher, verify in Jira, remove watcher, verify removed |
-| Mention excessive requests | Mention Autocomplete | Verify network tab shows max 1 user search request per 300ms; verify pre-fetched assignable user list used for local search |
-| Worklog time format | Time Tracking/Worklog | Submit worklog with "2h 30m"; verify correct `timeSpentSeconds` value recorded in Jira |
-| Saved filter / quickFilter collision | Saved Filters | Verify existing board quick filters function identically after saved filter feature ships; no data model changes to `QuickFilter` type |
-| Board quick filter performance | Board Quick Filters | Verify board with 100+ issues and 5 active filters renders in <100ms measured via operation profiler |
-| Sidebar customization persistence | Customizable Sidebar | Verify sidebar config survives app restart; verify role switch resets to role defaults |
+| Signing key loss | Phase 1: CI Pipeline Setup | Key generated, backed up in 2+ locations, CI produces `.sig` files |
+| macOS Gatekeeper blocks | Phase 1: CI Pipeline Setup | Downloaded `.dmg` opens on clean Mac without warnings |
+| Cross-repo token failure | Phase 1: CI Pipeline Setup | Release appears on public repo; private repo has no releases |
+| Version desync | Phase 1: CI Pipeline Setup | All three files match git tag; About dialog shows correct version |
+| Linux AppImage-only updater | Phase 1: CI Pipeline + Phase 2: Updater | Only AppImage uploaded; updater error handled gracefully for other formats |
+| Endpoint URL mangling | Phase 2: Updater Integration | `curl` of endpoint URL returns valid JSON with correct platform keys |
+| Force-update self-DoS | Phase 3: Force-Update Policy | App launches when endpoint unreachable; blocked only when check succeeds AND version below hard minimum |
+| Windows code signing / SmartScreen | Phase 1: CI Pipeline | If cert available: no SmartScreen warning. If deferred: documented as known issue. |
+| Post-update Stronghold re-init | Phase 2: Updater Integration | After update restart, credentials available; no onboarding screen |
+| GitHub API rate limits | Phase 2: Updater Integration | Endpoint uses CDN URL; check interval configurable; minimum 1hr |
+| Windows silent restart | Phase 2: Updater Integration | Install mode `"passive"`; user warned before restart |
 
 ## Sources
 
-- [Jira DC REST API changelog 100-item limitation](https://community.atlassian.com/forums/Jira-questions/Rest-API-limiting-changelog-history-results-to-100-even-if/qaq-p/1466525)
-- [Jira DC changelog pagination via dedicated endpoint](https://community.atlassian.com/forums/Jira-questions/Help-with-Pagination-for-Jira-On-Prem-Changelog-API/qaq-p/2961571)
-- [Jira DC attachment PAT limitation (JRASERVER-72019)](https://jira.atlassian.com/browse/JRASERVER-72019)
-- [Jira DC attachment download with SSO/PAT session cookie workaround](https://support.atlassian.com/jira/kb/how-to-download-attachments-using-rest-api-and-sso/)
-- [Jira DC cookie-based authentication for REST API using PAT](https://support.atlassian.com/jira/kb/creating-cookie-based-authentication-for-rest-api-using-pat-tokens/)
-- [Jira DC rate limiting documentation](https://confluence.atlassian.com/adminjiraserver/improving-instance-stability-with-rate-limiting-983794911.html)
-- [Jira DC adjusting code for rate limiting](https://confluence.atlassian.com/spaces/ADMINJIRASERVER/pages/987143384/Adjusting+your+code+for+rate+limiting)
-- [Jira DC watchers API username format](https://community.developer.atlassian.com/t/help-adding-a-watcher-using-rest-api-json/76677)
-- [Jira DC Personal Access Tokens documentation](https://confluence.atlassian.com/enterprise/using-personal-access-tokens-1026032365.html)
-- [react-grid-layout widget remount issue #945](https://github.com/react-grid-layout/react-grid-layout/issues/945)
-- [Jira DC REST API reference v9.14.0](https://docs.atlassian.com/software/jira/docs/api/REST/9.14.0/)
-- Codebase: `taskflow/src/services/jira/client.ts` -- existing pagination patterns (`fetchAllSearchPages`, `fetchAllWorklogPages`)
-- Codebase: `taskflow/src/services/jira/issues.ts` -- DC-specific patterns (`{ name: username }`, chunked subtask queries)
-- Codebase: `taskflow/src/stores/settings.store.ts` -- migration pattern at version 8 with 60+ fields
-- Codebase: `taskflow/src/lib/apiFetch.ts` -- Tauri plugin-http fetch wrapper with 15s timeout and header sanitization
-- Codebase: `taskflow/src/stores/filter.store.ts` -- existing `QuickFilter` type
+- [Tauri 2 Updater Plugin Documentation](https://v2.tauri.app/plugin/updater/) -- signing requirements, endpoint format, platform artifacts, install modes
+- [Tauri 2 GitHub Actions Pipeline](https://v2.tauri.app/distribute/pipelines/github/) -- workflow setup, matrix strategy, cross-repo options
+- [Tauri 2 macOS Code Signing & Notarization](https://v2.tauri.app/distribute/sign/macos/) -- certificate types, notarization requirements, CI env vars
+- [Tauri 2 Windows Code Signing](https://v2.tauri.app/distribute/sign/windows/) -- SmartScreen, EV/OV certificates, cross-compilation signing
+- [Tauri 2 AppImage Distribution](https://v2.tauri.app/distribute/appimage/) -- Linux updater limitation, AppImage format
+- [tauri-apps/tauri-action Repository](https://github.com/tauri-apps/tauri-action) -- `owner`/`repo` options, cross-repo release
+- [GitHub REST API Rate Limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api) -- 60/hr unauthenticated per IP
+- [Cross-Repo Release Publishing](https://dev.to/oysterd3/how-to-release-built-artifacts-from-one-to-another-repo-on-github-3oo5) -- PAT requirements for cross-repo
+- [Tauri v2 Auto-Updater Guide](https://thatgurjot.com/til/tauri-auto-updater/) -- practical setup walkthrough
+- [Production macOS App with Tauri 2.0](https://dev.to/0xmassi/shipping-a-production-macos-app-with-tauri-20-code-signing-notarization-and-homebrew-mc3) -- end-to-end macOS distribution
+- [AppImage Update Permission Bug (plugins-workspace#1608)](https://github.com/tauri-apps/plugins-workspace/issues/1608)
+- [Custom Target URL Bug (tauri#14703)](https://github.com/tauri-apps/tauri/issues/14703)
+- [Updater install() Never Returns (plugins-workspace#2558)](https://github.com/tauri-apps/plugins-workspace/issues/2558)
+- Codebase: `taskflow/src-tauri/tauri.conf.json` -- current config with `"version": "0.1.0"`, `"targets": "all"`, no updater plugin
+- Codebase: `taskflow/src-tauri/Cargo.toml` -- current deps include stronghold, store, http, notification plugins; no updater plugin yet
 
 ---
-*Pitfalls research for: Taskflow v1.5 Dashboard Redesign & Feature Parity*
-*Researched: 2026-03-22*
+*Pitfalls research for: Taskflow v1.6 Release & Auto-Update Pipeline*
+*Researched: 2026-03-24*

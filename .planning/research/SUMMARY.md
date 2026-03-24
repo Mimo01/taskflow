@@ -1,242 +1,215 @@
 # Project Research Summary
 
-**Project:** Taskflow v1.5 — Jira DC & GitLab Feature Parity
-**Domain:** Desktop Jira/GitLab client (Tauri 2 + React 19)
-**Researched:** 2026-03-22
+**Project:** Taskflow v1.6 — Release Pipeline, Auto-Update & Version Management
+**Domain:** Desktop app release automation, in-app auto-update, version enforcement (Tauri 2)
+**Researched:** 2026-03-24
 **Confidence:** HIGH
 
 ## Executive Summary
 
-Taskflow v1.5 is a feature expansion milestone for an existing, production-quality Tauri 2 + React 19 desktop application. The app already has a mature architecture (Zustand stores, TanStack Query, shadcn/ui, Biome, Vitest) with 30+ shipped phases behind it. The v1.5 work is well-scoped: add Jira Data Center feature parity (activity history, time tracking, attachments, watchers, board quick filters, saved filters, mention autocomplete, bulk operations) and introduce a configurable widget-based dashboard and customizable sidebar. Nearly all features integrate into existing routes and stores — this is enhancement work, not a rewrite.
+Taskflow v1.6 is a well-scoped infrastructure milestone: add a production release pipeline and in-app auto-update system to an existing Tauri 2 desktop app. The domain is mature — Tauri's official updater plugin, tauri-action, and GitHub Releases together form an established pattern with high-quality documentation. All four research areas converge on the same implementation: official Tauri plugins (no third-party updater required), GitHub Releases as the CDN endpoint (no custom server), and a private-to-public repo publishing model that keeps source code proprietary while distributing binaries openly. Existing app architecture (plugin bridge services, LazyStore persistence, TanStack Query polling, shadcn/ui dialogs, settings section pattern) maps directly to all new components — this is additive work, not a rewrite.
 
-The recommended approach is to tackle features in containment order: start with issue detail page enhancements (activity history, time tracking, attachments, watchers, mention autocomplete) because they are isolated from the rest of the app, then address filter system extensions (saved filters, board quick filters), then tackle global navigation (sidebar customization), and finally the two architecturally impactful features (widget dashboard redesign, bulk operations). The stack is nearly frozen — only 4 new dependencies are needed (react-grid-layout, react-pdf, yet-another-react-lightbox, react-mentions-ts), and multiple features that might seem to require libraries (timeline, bulk ops, sidebar reorder) can be built using the existing stack.
+The recommended approach is a sequential 7-phase build: (1) signing + plugin/config foundation, (2) service/store layer, (3) update detection and prompt UI, (4) force-update policy enforcement, (5) settings integration, (6) About dialog and menu integration, (7) full CI workflow. Every feature except the CI pipeline can be developed and tested locally before the first real release. The CI pipeline phase is intentionally last because it is the only step requiring external setup (Apple Developer account, Windows code signing cert, GitHub PAT, public repo configuration) and depends on all app-side code being correct first.
 
-The primary risks are: (1) Jira DC API quirks that diverge from Cloud documentation — specifically attachment content URL auth, changelog pagination caps, watchers body format, and worklog duration syntax — all of which have confirmed workarounds; (2) the settings store migration chain (currently at v8 with 60+ fields) becoming fragile if new feature state is consolidated there rather than in dedicated stores; (3) the widget dashboard's re-render behavior during drag if layout state is not carefully isolated with `useRef`/`onDragStop` patterns. All three are avoidable with deliberate architecture choices made at phase start.
+The dominant risk in this domain is irreversibility: losing the Ed25519 signing private key permanently breaks auto-updates for every installed copy, with no recovery path. The second critical risk is platform security gating — macOS Gatekeeper hard-blocks unnotarized apps and Windows SmartScreen degrades user trust for unsigned binaries. Both must be addressed in Phase 1 before any external distribution. A secondary but important concern is the force-update policy: an incorrectly configured `version-policy.json` or a policy check that fails closed (blocks on network error) can lock out all users simultaneously — the design must fail-open from the start.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The existing stack covers nearly everything. Only 4 new npm dependencies are warranted for v1.5:
+The existing Taskflow stack already provides everything needed on the frontend: `react-markdown` renders changelogs, `tauri-plugin-http` handles CORS-free GitHub API fetches, TanStack Query manages polling and caching, Zustand + tauri-plugin-store persists update preferences, and shadcn/ui Dialog provides update and About modals. Only five new dependencies are needed.
 
 **New dependencies:**
-- `react-grid-layout@^2.2.2` — drag/resize widget grid — purpose-built for dashboard layouts; building on @dnd-kit would require 500+ lines of custom collision/layout logic for capabilities react-grid-layout provides out of the box
-- `react-pdf@^10.4.1` — PDF attachment preview — lightweight PDF.js wrapper; the only viable React 19-compatible PDF viewer option
-- `yet-another-react-lightbox@^3.29.1` — image attachment lightbox — zero-dep core, keyboard/touch support, tree-shakeable plugins; all alternatives are unmaintained or jQuery-based
-- `react-mentions-ts@^4.5.0` — @mention autocomplete — TypeScript-first React 19 fork of the unmaintained react-mentions; alternatives (TipTap, Draft.js, Slate) are full rich-text editors incompatible with Jira's wiki markup format
+- `@tauri-apps/plugin-updater` (JS, ^2.10.0): Frontend API for `check()`, `downloadAndInstall()` — version pinned to 2.10.0+ due to breaking `latest.json` key format change in tauri-action v1
+- `tauri-plugin-updater` (Rust, 2): Binary download, Ed25519 signature verification, platform-specific install
+- `@tauri-apps/plugin-process` (JS, ^2.3.1): `relaunch()` after update install
+- `tauri-plugin-process` (Rust, 2): App restart capability (intentionally separate from the updater plugin by Tauri's design)
+- `compare-versions` (JS, ^6.1.0): Zero-dependency 1KB semver comparison for version policy; the `semver` package (98KB) is overkill for simple gt/lt/gte checks
 
-**Build with existing stack (no new dependency):**
-- Activity timeline — Tailwind `border-l` + lucide icons + TanStack Virtual; ~50 lines of markup
-- Sidebar reordering — @dnd-kit/core (already installed)
-- Bulk operations UI — shadcn/ui Checkbox, DropdownMenu, Button
-- Board quick filters — shadcn/ui ToggleGroup + existing filter store
-- Saved filters — Zustand persist + LazyStore (same pattern used 4+ times already)
-- Time tracking UI — shadcn/ui Input, Dialog
+**CI/CD tooling:**
+- `tauri-apps/tauri-action@v1`: Official action; generates `latest.json`, signs artifacts, cross-platform matrix, cross-repo publishing via `owner`/`repo` inputs
+- `dtolnay/rust-toolchain@stable` + `swatinem/rust-cache@v2`: Preferred Rust setup; saves 5-10 minutes per build
 
-**Tauri-specific notes:** PDF.js worker needs `worker-src 'self' blob:` added to CSP in `tauri.conf.json`. Attachment content URLs require tauri-plugin-http fetch (not direct `<img src>`), and may need session-cookie auth as a fallback depending on the Jira DC instance version.
+**Existing dependencies reused without modification:** `react-markdown` + `remark-gfm` + `rehype-raw` (changelogs), `tauri-plugin-http` (GitHub API + version policy), TanStack Query (polling + caching), Zustand + tauri-plugin-store (preferences), shadcn/ui Dialog + AlertDialog, lucide-react icons.
 
 See full details: `.planning/research/STACK.md`
 
 ### Expected Features
 
-**Must have — table stakes (P1):**
-- Issue Activity History + Unified Timeline — every Jira user clicks "History" daily; Taskflow's differentiator is merging changelog + comments + worklogs into one chronological feed
-- Time Tracking / Worklog CRUD — mandatory in enterprise Jira; PM dashboard already shows time columns but the write path is missing
-- Watchers / Starring — "Am I watching this?" is visible on every Jira issue page; trivial API, high expectation
-- Board Quick Filters — filter chips above sprint board used dozens of times per standup
-- Saved Filters / JQL — power users live in saved filters; syncs server-side to Jira
-- Comment Edit/Delete — users strongly expect to fix typos; currently Taskflow is post-only
-- Due Date Overdue Highlighting — `duedate` already in type; trivial red badge
-- Sprint Goal Banner — `JiraActiveSprint.goal` already fetched; trivial display addition
-- Customizable Sidebar — replaces hard-coded role-based nav with user-controlled ordering/visibility
+**Must have — table stakes for v1.6 (all P1):**
+- Signing key generation — foundation; everything in the updater chain depends on this
+- GitHub Actions CI pipeline — cross-platform matrix builds triggered by git tag push
+- Private-to-public repo release publishing — source code stays private; binaries are public
+- Version derived from git tag — single source of truth via `--config` JSON Merge Patch; no manual bumps
+- Background update check on launch + configurable interval — silent, non-blocking
+- Update notification with changelog — non-blocking dialog with "Update Now" / "Later" and download progress bar
+- One-click download + install + restart — user always consents; Windows uses `installMode: "passive"`
+- Two-tier force-update policy (`softMinimum` persistent banner + `hardMinimum` full-screen blocker) — fail-open on network error
+- About dialog — version, build date, commit SHA, platform, update status
+- Settings "Updates" section — check frequency, manual check trigger, current version display
+- macOS menu bar "About Taskflow" item — platform convention
 
-**Should have — competitive differentiators (P2):**
-- Attachments Viewer + Upload — `JiraAttachment[]` type exists but no UI; medium complexity due to auth negotiation
-- Mention Autocomplete — @mention is muscle memory; complex primarily due to cursor-relative popover positioning
-- Customizable Widget Dashboard — Jira's gadgets require admin; Taskflow offers instant personal layout
-- Bulk Operations with Progress — Jira's bulk wizard is 6+ clicks; multi-select bar is dramatically better UX
+**Should have — add in v1.6.x after validation (P2):**
+- Version history in Settings — scrollable release timeline fetched from GitHub API; needs multiple releases to be useful
+- "What's New" post-update dialog — compare `lastSeenVersion` on launch
+- Update available badge on Settings nav — subtle dot indicator
 
-**Defer to v3+:**
-- Full JQL editor with syntax highlighting — months of work; let users paste JQL from Jira
-- Attachment inline annotation — image editing is a separate application domain
-- Real-time comment collaboration — Jira DC has no WebSocket API
-- Burndown/velocity charts — requires historical snapshots Jira DC does not expose
-- Issue voting, comment reactions — low daily value; reactions not available on Jira DC
+**Defer to v2+:**
+- Staged rollouts, update adoption telemetry, admin-managed update policies, multiple update channels
 
-**Bonus additions discovered (not in original scope):**
-- Issue cloning — low complexity, weekly frequency; copy fields from source issue
-- Keyboard-driven time logging — natural language input ("2h 30m") as part of worklog UX
+**Anti-features (explicitly do not build):**
+- Silent auto-install without consent — users lose work on unexpected restart
+- Delta/differential updates — Tauri does not support them; 10MB binaries download in seconds
+- Custom update server — GitHub Releases CDN is free, globally distributed, sufficient
 
 See full details: `.planning/research/FEATURES.md`
 
 ### Architecture Approach
 
-All v1.5 features integrate into the existing app structure — no new top-level routing paradigm, no new data transport, no new auth model. The integration is: new service modules in `services/jira/`, new Zustand stores for new concerns (dashboard layout, selection, starring), extensions to existing stores (settings v9, filter with view-scoping), and new components/sections within existing routes (issue detail page, dashboard, sprint board).
+The architecture follows four clean layers: CI/CD pipeline (private repo builds, public repo distributes), Rust backend (plugin registration), service/store layer (update state machine + version policy), and React components (dialogs, banners, settings). Every new pattern mirrors an existing one in the codebase — plugin bridge service, LazyStore persist with migration, TanStack Query polling, Settings section extension, menu event to frontend action.
 
 **Major new components:**
-1. `ActivityTimeline.tsx` — unified changelog + comments + worklogs feed on issue detail; lazy-fetched only when Activity tab is active (not on issue load) to avoid payload bloat
-2. `TimeTrackingSection.tsx` + `WorklogDialog.tsx` — worklog CRUD within issue detail sidebar
-3. `AttachmentsSection.tsx` — file list with inline preview; attachment data already fetched with issue
-4. `routes/dashboard/widgets/` directory — widget registry + self-contained widget components; each reads auth from store directly (zero prop threading in dashboard parent)
-5. `BulkOperationsBar.tsx` — floating action bar driven by `selection.store.ts`; fully decoupled from list views via Zustand
-6. `BoardQuickFilters.tsx` — one-click toggle chips above sprint board columns
-7. `MentionAutocomplete.tsx` + `useMentionAutocomplete` hook — @-triggered popover in CommentComposer; pre-fetches assignable users to avoid per-keystroke API calls
+1. **GitHub Actions workflow** (`.github/workflows/release.yml`) — tag-triggered matrix build, signs artifacts, publishes to public repo via PAT; version injected at build time
+2. **update.ts service** — plugin bridge wrapping `@tauri-apps/plugin-updater` + `@tauri-apps/plugin-process`; follows existing `stronghold.ts`/`tauri.ts` pattern for testability via `vi.mock`
+3. **update.store.ts** (Zustand + LazyStore) — update state machine (`idle | checking | available | downloading | installing | error | up-to-date`), persists `lastCheckAt` and `dismissedVersions`
+4. **version-policy.ts service** — fetches `version-policy.json` from public repo via `tauri-plugin-http`; fail-open on any error
+5. **UpdatePromptDialog** — changelog (markdown via react-markdown), download progress bar, Update Now / Later buttons
+6. **ForceUpdateBanner / ForceUpdateBlocker** — soft nag (dismissible per session) and hard block (full-screen, no dismiss) triggered by version comparison against policy
+7. **AboutDialog** — `__APP_VERSION__`, `__BUILD_DATE__`, `__COMMIT_HASH__` (from vite.config.ts `define` block), update status from store; opened via `menu-about-taskflow` event
+8. **UpdateSettingsSection / VersionHistorySection** — 7th Settings section added following the established 6-section pattern exactly
 
-**New stores (separate files, not merged into settings.store):**
-- `dashboard.store.ts` — persisted widget layout (Tauri LazyStore)
-- `selection.store.ts` — session-only multi-select for bulk ops (no persistence)
-- `starred.store.ts` — client-side issue starring (Tauri LazyStore)
-
-**Modified stores:**
-- `settings.store.ts` — add `sidebarItems[]`, version bump to 9 (with migration guards on every new field)
-- `filter.store.ts` — add view scoping for saved filters
-
-**No new top-level routes required.** All features integrate into existing routes. A `/saved-filters` route is optional and can be a settings sub-page instead.
+**Key architectural patterns to follow:**
+- Update state machine in Zustand prevents impossible UI states
+- Version policy as remote config — `version-policy.json` on the public repo, independently updatable without a new app release
+- Build-time version injection via vite.config.ts `define` block for `__APP_VERSION__`, `__BUILD_DATE__`, `__COMMIT_HASH__`
+- All GitHub API fetches use existing `tauri-plugin-http` / `apiFetch()` — never browser `fetch()` — to avoid CORS in Tauri's webview
 
 See full details: `.planning/research/ARCHITECTURE.md`
 
 ### Critical Pitfalls
 
-1. **Changelog `expand=changelog` silently caps at 100 entries** — Use the dedicated paginated endpoint `GET /issue/{key}/changelog?startAt=0&maxResults=100` from the start; the `expand` approach has no `total` field and silently truncates issues with extensive history. Recovery if discovered late: MEDIUM (rewrite data layer).
+1. **Signing key loss is permanently unrecoverable** — Generate the key pair first, before any other work. Store the private key in GitHub Actions secrets AND an offline backup (team password manager). Losing it means every installed copy must manually download the next release.
 
-2. **Attachment content URLs reject PAT Bearer token** — Attachment files are served outside the REST API scope; PAT auth redirects to the HTML login page with status 200 (undetectable without checking content-type). Prototype early: Bearer fetch first, detect `text/html` response, fall back to session-cookie auth via `/rest/auth/1/session`, then fall back to `shell.open()`. Build this negotiation into a `downloadAttachment()` helper before building any viewer UI.
+2. **macOS Gatekeeper requires notarization, not just code signing** — "App is damaged" error hard-blocks launch on non-developer Macs. Requires Apple Developer ID cert ($99/yr) plus notarization via `notarytool`. Use App Store Connect API key in CI (not Apple ID + password; 2FA breaks CI). Test by downloading CI artifact on a clean Mac.
 
-3. **Widget dashboard remounts all widgets on every drag pixel** — `react-grid-layout` fires `onLayoutChange` continuously during drag. Storing layout in Zustand on each event causes every data-fetching widget to re-subscribe and flicker. Fix: use `useRef` during drag, commit to Zustand only on `onDragStop`/`onResizeStop`. Apply `React.memo` to all widget components with stable keys. Must be designed from day one.
+3. **Windows SmartScreen warns on unsigned binaries after every update** — OV/EV code signing cert ($200-700/yr) or Azure Trusted Signing ($10/mo) is required to prevent SmartScreen warnings. If deferred for initial release, document as a known issue; do not ship unsigned to external users without awareness.
 
-4. **Settings store migration fragility** — Already at v8 with 60+ fields and 8 cumulative migrations. Adding dashboard layout, sidebar config, and saved filters here would push it past 80 fields. Create dedicated stores (`dashboard.store.ts`, `sidebar.store.ts`) following the existing `pinned-tabs.store.ts` pattern. Every new migration must guard new fields with `if (s.field === undefined)`.
+4. **Cross-repo publishing silently fails with default `GITHUB_TOKEN`** — The default token is scoped to the running repo only. Cross-repo requires a fine-grained PAT with `contents: write` on the public repo, stored as a separate secret. Classic PAT with broad `repo` scope is a security risk.
 
-5. **Bulk operations partial failure on Jira DC** — No native bulk API exists on Jira DC; every issue requires a separate PUT. Use `Promise.allSettled` (never `Promise.all`), cap concurrency at 5, respect `x-ratelimit-remaining` headers, and show per-issue progress with a "retry failed" action. Recovery cost if designed wrong: MEDIUM.
-
-**Additional confirmed gotchas:**
-- Watchers POST body must be a bare JSON string `"username"` — not an object; DC uses `name` not `accountId`
-- Worklog `timeSpent` must use Jira format `"2h 30m"` — not ISO 8601 `PT2H30M`; build `formatJiraDuration()` utility before the worklog UI
-- Mention autocomplete must pre-fetch assignable users (once, cached 30min) rather than querying on every keystroke
-- The existing `quickFilters` in settings store and the new `savedFilters` feature are conceptually distinct — use separate types and a separate store to prevent naming collisions and migration risk
+5. **Force-update failing closed locks out all users** — Never block the app if the version policy fetch fails. Only block when the check succeeds AND the version is below `hardMinimum`. Cache the last successful policy with a 7-day TTL. Test explicitly with the network disabled.
 
 See full details: `.planning/research/PITFALLS.md`
 
 ## Implications for Roadmap
 
-Based on the dependency graph and risk profile from combined research, a 7-phase structure is recommended. The ordering progresses from contained issue detail enhancements (low blast radius, high value shipped early) through filter system work, global navigation changes, and finally the two most architecturally impactful features.
+The architecture research provides a well-reasoned 7-phase sequence with clear dependency ordering. Follow it closely — all dependencies are unidirectional and the rationale is solid.
 
-### Phase 1: Issue Detail Enrichment
-**Rationale:** Activity history, time tracking, and attachments are all isolated to the issue detail page, have zero dependencies on other new features, and some already have partial data (attachment type exists, worklog service exists, timetracking field already fetched). Low integration risk, high daily value shipped early.
-**Delivers:** Unified activity timeline (changelog + comments + worklogs merged by timestamp), worklog CRUD with natural language time input, attachment viewer with upload
-**Addresses:** Issue Activity History, Time Tracking/Worklog CRUD, Attachments Viewer (all P1/P2)
-**Avoids:** N+1 query pitfall (changelog fetched lazily on tab select only, never on issue load); attachment PAT auth pitfall (prototype `downloadAttachment()` helper before UI); worklog format pitfall (build `formatJiraDuration()` first); custom field display names in changelog (use existing `discoverCustomFields` pattern)
-**Research flag:** NEEDS RESEARCH — attachment PAT auth negotiation is a blocking technical investigation with multiple fallback paths; must be prototyped against the live instance before building UI
+### Phase 1: Foundation — Rust Plugins + Config + Signing
+**Rationale:** Every subsequent phase depends on the plugins being available and configured. Signing key generation is the first irreversible decision — do it right before any artifacts are produced. macOS notarization and Windows code signing configuration also belong here, since fixing these after distributing unsigned builds requires user re-downloads.
+**Delivers:** `tauri-plugin-updater` + `tauri-plugin-process` added to Cargo.toml and registered in lib.rs; `tauri.conf.json` configured with pubkey, endpoints, and `createUpdaterArtifacts: true`; capabilities updated; JS packages installed; vite.config.ts `define` block added; signing key generated and backed up in two locations.
+**Addresses:** Signing key generation, updater plugin wiring, version injection setup (all FEATURES.md P1 blockers)
+**Avoids:** Signing key loss (Pitfall 1), macOS Gatekeeper (Pitfall 2), Windows SmartScreen (Pitfall 8), cross-repo token failure (Pitfall 3), version desync (Pitfall 4)
 
-### Phase 2: Issue Detail Social Features
-**Rationale:** Watchers and mention autocomplete both live in the issue detail page scope and are slightly more complex than Phase 1 (new API endpoints, DC-specific auth format quirks, textarea integration). Sequencing after Phase 1 keeps all issue detail work grouped and ensures mention autocomplete works in edited comments as well.
-**Delivers:** Watch/unwatch toggle with watcher count badge, @mention autocomplete in comment composer, comment edit/delete
-**Addresses:** Watchers/Starring, Mention Autocomplete, Comment Edit/Delete (all P1/P2)
-**Avoids:** Watchers body format pitfall (bare `"username"` string body, not an object); mention excessive requests pitfall (pre-fetch assignable users on project load, search locally); watcher permission graceful degradation (user can add self but not others without "Manage watcher list" permission)
-**Research flag:** STANDARD PATTERNS — API endpoints confirmed; pre-fetch user cache pattern is straightforward
+### Phase 2: Update Service + Store
+**Rationale:** UI components need the service bridge and state machine before they can function. Establishing the update state machine early prevents impossible states and scattered ad-hoc state across components.
+**Delivers:** `src/services/update.ts` (plugin bridge), `src/services/version-policy.ts` (policy fetcher with fail-open), `src/stores/update.store.ts` (state machine + persistence), `updateCheckIntervalHours` added to settings store (migration v10), tests for all.
+**Uses:** `@tauri-apps/plugin-updater`, `@tauri-apps/plugin-process`, `compare-versions`, existing LazyStore persist pattern
+**Avoids:** Endpoint URL mangling (Pitfall 6), GitHub API rate limits (Pitfall 10), post-update Stronghold re-initialization (Pitfall 9) — audit startup flow during this phase
 
-### Phase 3: Trivial Quality-of-Life Items
-**Rationale:** Due date highlighting, sprint goal banner, and issue cloning are all trivial (data already fetched, minimal UI). Bundling them as a dedicated low-effort phase avoids polluting higher-complexity phases with one-liner tasks.
-**Delivers:** Overdue due date red badge on sprint cards and issue detail, sprint goal displayed on board header, one-click issue clone
-**Addresses:** Due Date Highlighting, Sprint Goal Banner (P1), Issue Cloning (P3)
-**Avoids:** No meaningful pitfall exposure
-**Research flag:** SKIP RESEARCH — all data already in existing types; no new API surface
+### Phase 3: Update Check + Prompt Dialog
+**Rationale:** Core update UX — the minimum viable update experience users interact with. Depends entirely on Phase 2 service/store layer being complete.
+**Delivers:** `src/hooks/useUpdateCheck.ts` (periodic polling via TanStack Query with configurable interval), `src/components/app/UpdatePromptDialog.tsx` (changelog, progress bar, Update Now / Later), mounted in AppLayout.
+**Implements:** Update check flow + download + install flow from ARCHITECTURE.md
+**Avoids:** Blocking UI during update check (anti-pattern), auto-install without consent (anti-pattern)
 
-### Phase 4: Filter System Extensions
-**Rationale:** Saved filters and board quick filters both extend the existing filter infrastructure (`filter.store.ts`, `UnifiedFilterBar.tsx`). Board quick filters depend on the view-scoping changes made for saved filters. Filter work is self-contained and does not require sidebar or dashboard to be done first.
-**Delivers:** Saved filter management page, server-synced favourite filters from Jira, one-click filter chips on sprint board, offline-ready filter caching
-**Addresses:** Saved Filters/JQL, Board Quick Filters (both P1)
-**Avoids:** quickFilters/savedFilters naming collision (separate types and stores, `QuickFilter` shape unchanged); JQL injection risk (store structured filter objects, generate JQL at query time, never store raw JQL); board ID discovery UX decision (persist boardId per project in store after first discovery)
-**Research flag:** STANDARD PATTERNS — existing filter system and persistence patterns are proven; Jira filter API endpoints are straightforward
+### Phase 4: Version Policy Enforcement
+**Rationale:** Depends on the update service (Phase 2) and update prompt (Phase 3). `ForceUpdateBlocker` reuses the same update flow as `UpdatePromptDialog`. This phase completes the full version enforcement spectrum from soft nag to hard block.
+**Delivers:** `src/components/app/ForceUpdateBanner.tsx` (soft nag, dismissible per session), `src/components/app/ForceUpdateBlocker.tsx` (hard block, no dismiss), mounted in AppLayout, `version-policy.json` template for the public repo.
+**Avoids:** Force-update self-DoS (Pitfall 7) — fail-open design is mandatory; test with blocked network before marking complete
 
-### Phase 5: Global Navigation (Customizable Sidebar)
-**Rationale:** Sidebar customization modifies global navigation and affects the whole app. By Phase 5, all feature routes are stable and the full set of sidebar items is known. Doing this earlier risks building the sidebar config around an incomplete feature set.
-**Delivers:** User-configurable sidebar ordering and visibility, role presets as quick-start configs, settings panel for sidebar customization
-**Addresses:** Customizable Sidebar (P1)
-**Avoids:** Settings store migration fragility (sidebar config in dedicated store or new `sidebarItems` field with strict migration guard); `role` field preservation (`role` stays as-is; presets reference it, not replace it); missing reset action (always include "Reset to [role] defaults" in sidebar settings)
-**Research flag:** STANDARD PATTERNS — @dnd-kit reorder (already installed); Tauri LazyStore persist (used 4+ times in codebase)
+### Phase 5: Settings Integration + Version History
+**Rationale:** All UI that surfaces update controls to the user. Lowest-risk phase — follows the established 6-section Settings pattern exactly. P2 features (version history) can be included here or deferred to v1.6.x.
+**Delivers:** `UpdateSettingsSection.tsx` (check frequency dropdown, Check Now button, version display), `VersionHistorySection.tsx` (GitHub Releases API, markdown changelogs), Settings.tsx modified to add 7th section.
+**Uses:** TanStack Query with staleTime: 1hr for version history, existing `apiFetch()` pattern for unauthenticated GitHub API calls
 
-### Phase 6: Widget Dashboard Redesign
-**Rationale:** Most architecturally impactful change — replacing the fixed dashboard with a grid layout engine. Best done after all widget content (issue detail, filters, sprint health) is stable. The dashboard becomes a layout engine wrapping existing panels as self-contained widgets.
-**Delivers:** Drag/resize widget grid, widget registry (subtasks, MR health, sprint health, recent activity, time tracking widgets), role presets, `dashboard.store.ts`
-**Addresses:** Customizable Dashboard (P1)
-**Uses:** `react-grid-layout` (new dep), `dashboard.store.ts` (new store), CSS Grid with manual positioning
-**Avoids:** Widget remount on drag (useRef during drag, commit on onDragStop, React.memo on all widgets); prop threading credentials (widgets read from auth store directly); settings store bloat (dashboard config in `dashboard.store.ts`); hardcoded widget type IDs (use registry pattern from day one so new widgets can be added without layout migration)
-**Research flag:** NEEDS RESEARCH — react-grid-layout integration in Tauri webview, CSS import with Tailwind v4 PostCSS pipeline, and widget layout migration strategy warrant a focused research phase
+### Phase 6: About Dialog + Menu Integration
+**Rationale:** Self-contained feature with one upstream dependency (update store for status display). macOS menu integration follows the existing `menu-nav-sprint` / `menu-command-palette` event pattern — no new patterns to introduce.
+**Delivers:** `src/components/app/AboutDialog.tsx` (version, build date, commit SHA, update status), lib.rs modified to replace `PredefinedMenuItem::about` with custom event emitter, Help > About for cross-platform access.
+**Uses:** `__APP_VERSION__`, `__BUILD_DATE__`, `__COMMIT_HASH__` from vite.config.ts define block; existing menu event pattern
 
-### Phase 7: Bulk Operations
-**Rationale:** Bulk operations touch multiple list views (backlog, sprint board, my tasks) and are the most complex integration — multi-select state across views, floating action bar, concurrency-limited API iteration with no native bulk endpoint, per-issue progress tracking. All upstream list views must be stable before adding the selection layer.
-**Delivers:** Multi-select checkbox on list views, floating bulk action bar, progress tracking with per-issue status, retry-failed capability, concurrency-capped iteration
-**Addresses:** Bulk Operations (P2)
-**Avoids:** Partial failure pitfall (`Promise.allSettled`, per-issue tracking, retry button); rate limiting (concurrency cap 5, check `x-ratelimit-remaining`); selection state polluting filter store (separate `selection.store.ts`); operation blast radius (cap batch size at 25-50 issues)
-**Research flag:** STANDARD PATTERNS — well-understood UX pattern; Jira DC per-issue iteration approach is confirmed with documented workarounds
+### Phase 7: CI Pipeline
+**Rationale:** Last because it requires all app-side code complete for end-to-end validation, and is the only phase requiring manual external setup (GitHub public repo, Apple Developer account, Windows cert, secrets configuration). The first real release proves the entire system.
+**Delivers:** `.github/workflows/release.yml` (full matrix: macOS aarch64 + x86_64, Windows x64, Linux x64), signing key secrets configured, cross-repo PAT configured, version-from-tag injection working via `--config` override, draft release published to public repo, end-to-end update flow tested on each platform.
+**Avoids:** All CI-related pitfalls (Pitfalls 1, 2, 3, 4, 5, 8)
 
 ### Phase Ordering Rationale
 
-- Issue detail phases (1-2) come first: isolated blast radius, high daily user value, no cross-feature dependencies
-- Trivial items (3) bundled separately: avoids polluting larger phases with one-liner tasks
-- Filter work (4) precedes sidebar (5): saved filters need to exist before sidebar can surface them as nav items
-- Sidebar (5) precedes dashboard (6): sidebar config informs which widgets are surfaced; sidebar items must be finalized first
-- Dashboard (6) before bulk ops (7): both are HIGH complexity; doing them last keeps phases 1-5 clean; dashboard is gated on stable widget content
-- Bulk operations last: requires stable list views from all previous phases; highest complexity, highest integration surface
+- **Foundation before everything:** Tauri plugin registration in lib.rs is a compile-time requirement. Components importing from `@tauri-apps/plugin-updater` fail to build if the Rust plugin is not registered.
+- **Service/store before components:** The update state machine is shared across 4+ components. Establishing it centrally prevents per-component duplication.
+- **All app features before CI:** CI cannot be fully validated until the app correctly handles the complete update lifecycle. Debugging CI and app code simultaneously is expensive.
+- **Phases 5 and 6 are independent of each other:** They both depend on Phase 2 (store) but not on each other. Can be built in parallel if needed.
+- **Force-update (Phase 4) after prompt dialog (Phase 3):** `ForceUpdateBlocker` logically extends the update prompt flow; sequencing mirrors the user experience escalation from notification to enforcement.
 
 ### Research Flags
 
-Phases likely needing `/gsd:research-phase` during planning:
-- **Phase 1 (Issue Detail Enrichment):** Attachment PAT auth negotiation in Tauri is a blocking technical investigation; must prototype against live Jira DC instance before building attachment UI
-- **Phase 6 (Widget Dashboard):** react-grid-layout CSP/worker behavior in Tauri webview, Tailwind v4 + external CSS import coexistence, and widget layout migration strategy need dedicated research
+Phases likely needing deeper research during planning:
+- **Phase 1 (macOS notarization):** If this is the team's first macOS notarization, the App Store Connect API key setup, keychain configuration on CI runners, and notarytool invocation have several CI-specific gotchas. Plan additional investigation time.
+- **Phase 1 (Windows code signing decision):** A team decision is needed — Azure Trusted Signing ($10/mo, immediate SmartScreen trust) vs OV/EV certificate ($200-700/yr, reputation builds over time). This choice must be made before CI is configured.
+- **Phase 7 (end-to-end validation):** The first real release will surface integration issues not caught locally (signing, notarization, cross-repo publish, `latest.json` format, platform key names). Plan for 1-2 CI iteration cycles.
 
-Phases with standard patterns (skip research-phase):
-- **Phase 2 (Social Features):** All API endpoints confirmed; pre-fetch user cache is a known TanStack Query pattern
-- **Phase 3 (Trivial QoL):** Data already in types; no new API surface
-- **Phase 4 (Filter Extensions):** Existing filter store patterns are proven; Jira filter API endpoints are straightforward
-- **Phase 5 (Sidebar):** @dnd-kit + Tauri LazyStore persist used elsewhere in the codebase; no novel patterns
-- **Phase 7 (Bulk Operations):** Iteration approach confirmed; standard progress tracking and concurrency limiting patterns
+Phases with standard patterns (can skip research-phase):
+- **Phase 2 (service/store):** Follows existing `stronghold.ts` plugin bridge and `settings.store.ts` LazyStore migration patterns exactly.
+- **Phase 3 (update prompt):** Tauri updater JS API is well-documented; `downloadAndInstall` progress events are clearly specified; standard shadcn Dialog + progress bar.
+- **Phase 4 (force-update):** Version comparison logic is straightforward with `compare-versions`; fail-open pattern is documented.
+- **Phase 5 (settings):** Mechanical extension of the existing 6-section Settings pattern; GitHub Releases API is public and unauthenticated.
+- **Phase 6 (About dialog):** Existing menu event pattern handles macOS integration; vite.config.ts `define` block is standard Vite.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All new deps verified against React 19 peer deps; existing stack fully audited; Tauri-specific concerns (CSP, PDF worker, attachment auth) identified with documented approaches |
-| Features | HIGH | Jira DC REST API v2 endpoints verified against Atlassian docs 9.14.0; all endpoints cross-referenced against existing codebase types; DC vs Cloud API differences explicitly documented |
-| Architecture | HIGH | Based on full codebase audit (2026-03-22); all file locations, store patterns, and integration points verified against actual code; no assumptions made about file structure |
-| Pitfalls | HIGH | Changelog cap, attachment PAT failure, watchers body format all verified against Atlassian community forums and official bug tracker (JRASERVER-72019); rate limiting confirmed against Jira DC v10.3.15 docs; widget remount issue traced to react-grid-layout issue #945 |
+| Stack | HIGH | Tauri 2 updater plugin docs are authoritative and comprehensive. New package versions (plugin-updater ^2.10.0, plugin-process ^2.3.1) confirmed via npm — validate exact minimums during install. |
+| Features | HIGH | Feature set derived from official Tauri docs + direct codebase inspection. All P1 features are clearly supported by the plugin API. |
+| Architecture | HIGH | All patterns mirror documented Tauri plugin setup and existing codebase conventions. The 7-phase sequence has clean dependency ordering. |
+| Pitfalls | HIGH | 10 pitfalls documented with official sources, Tauri community issue references (plugins-workspace#1608, tauri#14703), and GitHub docs. macOS notarization and Windows SmartScreen requirements are authoritative. |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Attachment download auth on the target instance:** The PAT Bearer auth failure is a known Jira DC bug, but behavior varies by instance version and configuration. Must prototype against the real Jira DC instance before building the attachment UI. If session-cookie approach also fails, `shell.open()` becomes the designed primary UX, not a fallback — Phase 1 planning must account for both outcomes.
-
-- **Board ID discovery UX:** Taskflow currently queries sprints via JQL rather than the Agile board API. Board quick filters require a `boardId` discovered via `GET /rest/agile/1.0/board?projectKeyOrId={key}`. The mechanics are clear but the UX for persisting the board ID (per-project, during onboarding, or lazily on first board view) needs a decision during Phase 4 planning.
-
-- **Settings store v9 migration test coverage:** The codebase has no automated migration test walking from version 0 through all versions. Adding this before the first new store version bump would prevent regression. Whether to address it in-band with v1.5 phases or as a separate maintenance task is a planning decision.
-
-- **react-mentions-ts maturity:** This is a TypeScript-first fork of the unmaintained original, with React 19 support. It is the best available option but carries lower community visibility than the original. If integration issues surface during Phase 2, the confirmed fallback is a custom `useMentionAutocomplete` hook using a shadcn Popover positioned based on textarea cursor offset — described in full in ARCHITECTURE.md.
+- **Apple code signing credentials:** Research assumes the team has or will obtain an Apple Developer ID cert. If not yet acquired, this is a blocking dependency for Phase 7. Apple Developer Program enrollment takes 24-48 hours; factor this into scheduling.
+- **Windows code signing decision:** OV cert vs Azure Trusted Signing is a cost/UX tradeoff not resolved by research alone. Needs a team decision before Phase 7 CI configuration.
+- **Public release repo:** A public GitHub repo for hosting releases must exist before Phase 7. If it does not exist yet, create a minimal repo (README + license, no source code) well before Phase 7 begins.
+- **`@tauri-apps/plugin-updater` version 2.10.0 minimum:** STACK.md flags that 2.10.0+ is required for compatibility with tauri-action v1's new `latest.json` key format. Verify the exact minimum during `npm install` in Phase 1.
+- **Stronghold startup re-initialization after updater restart:** Pitfall 9 identifies a Taskflow-specific risk — the updater-triggered restart must not land users on the onboarding screen. The existing startup flow must be audited during Phase 2 to confirm it always attempts vault unlock regardless of restart cause.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [Jira DC REST API v2 Reference 9.14.0](https://docs.atlassian.com/software/jira/docs/api/REST/9.14.0/) — all Jira endpoint signatures verified here
-- [Jira Agile DC REST API 9.14.0](https://docs.atlassian.com/jira-software/REST/9.14.0/) — board and quick filter endpoints
-- [Jira DC REST API Examples](https://developer.atlassian.com/server/jira/platform/jira-rest-api-examples/) — attachment, worklog, watcher patterns
-- [Jira DC Rate Limiting](https://confluence.atlassian.com/adminjiraserver/improving-instance-stability-with-rate-limiting-983794911.html) — bulk operation throttling approach
-- [Jira DC Personal Access Tokens](https://confluence.atlassian.com/enterprise/using-personal-access-tokens-1026032365.html) — auth scope limitations for attachment URLs
-- Codebase audit: `taskflow/src/` (2026-03-22) — store patterns, service modules, type definitions, pagination utilities
-- [GitLab Notes API](https://docs.gitlab.com/api/notes/) — cross-source activity enrichment
-- [GitLab Time Tracking](https://docs.gitlab.com/ee/user/project/time_tracking.html) — GitLab equivalent endpoints
+- [Tauri v2 Updater Plugin docs](https://v2.tauri.app/plugin/updater/) — plugin setup, config, JS API, Ed25519 signing
+- [Tauri GitHub Actions Pipeline guide](https://v2.tauri.app/distribute/pipelines/github/) — workflow YAML, matrix strategy, tauri-action usage
+- [Tauri v2 macOS Code Signing & Notarization](https://v2.tauri.app/distribute/sign/macos/) — certificate types, notarization CI env vars
+- [Tauri v2 Windows Code Signing](https://v2.tauri.app/distribute/sign/windows/) — SmartScreen, EV/OV certs, cross-compilation signing
+- [Tauri v2 AppImage Distribution](https://v2.tauri.app/distribute/appimage/) — Linux updater AppImage-only constraint
+- [tauri-apps/tauri-action GitHub](https://github.com/tauri-apps/tauri-action) — action inputs, cross-repo `owner`/`repo`, latest.json generation
+- [Tauri Configuration Files docs](https://v2.tauri.app/develop/configuration-files/) — `--config` JSON Merge Patch (RFC 7396) for build-time version override
+- [GitHub REST API: Rate Limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api) — 60/hr unauthenticated per IP
+- [GitHub REST API: Releases](https://docs.github.com/en/rest/releases/releases) — endpoints for release metadata and changelog body
+- [compare-versions npm](https://www.npmjs.com/package/compare-versions) — zero-dep semver comparison
+- Taskflow codebase: `tauri.conf.json`, `Cargo.toml`, `capabilities/default.json`, `Settings.tsx`, `settings.store.ts` — direct inspection
 
 ### Secondary (MEDIUM confidence)
-- [Atlassian Community: Changelog 100-entry limit](https://community.atlassian.com/forums/Jira-questions/Rest-API-limiting-changelog-history-results-to-100-even-if/qaq-p/1466525) — silent truncation behavior confirmed
-- [Atlassian Community: Changelog pagination](https://community.atlassian.com/forums/Jira-questions/Help-with-Pagination-for-Jira-On-Prem-Changelog-API/qaq-p/2961571) — dedicated endpoint approach
-- [JRASERVER-72019](https://jira.atlassian.com/browse/JRASERVER-72019) — attachment PAT Bearer limitation on Jira DC
-- [Jira DC attachment download session-cookie workaround](https://support.atlassian.com/jira/kb/how-to-download-attachments-using-rest-api-and-sso/)
-- [Atlassian Community: Watchers username format](https://community.developer.atlassian.com/t/help-adding-a-watcher-using-rest-api-json/76677) — bare string body requirement confirmed
-- [react-grid-layout issue #945](https://github.com/react-grid-layout/react-grid-layout/issues/945) — widget remount on drag behavior
-- [ilert: React-Grid-Layout production dashboard](https://www.ilert.com/blog/building-interactive-dashboards-why-react-grid-layout-was-our-best-choice) — confirms production viability for dashboard use case
+- [Cross-repo GitHub Actions patterns](https://oneuptime.com/blog/post/2025-12-20-cross-repository-workflows-github-actions/view) — PAT requirements for cross-repo releases
+- [Tauri v2 Auto-Update blog](https://thatgurjot.com/til/tauri-auto-updater/) — real-world setup walkthrough
+- [Ship Tauri v2 with GitHub Actions](https://dev.to/tomtomdu73/ship-your-tauri-v2-app-like-a-pro-github-actions-and-release-automation-part-22-2ef7) — community CI guide
+- [Private repo to public repo release strategy](https://github.com/tauri-apps/tauri/discussions/7553) — community discussion, verified against tauri-action docs
+- [AppImage update permission bug (plugins-workspace#1608)](https://github.com/tauri-apps/plugins-workspace/issues/1608) — known Linux execute permission bug after update
+- [Custom target URL mangling bug (tauri#14703)](https://github.com/tauri-apps/tauri/issues/14703) — endpoint URL pitfall
 
-### Tertiary (LOW confidence — needs validation during implementation)
-- [Shadcn Timeline template](https://www.shadcn.io/template/timdehof-shadcn-timeline) — confirms timeline is trivially buildable with existing primitives
-- react-mentions-ts GitHub — React 19 support claimed; needs integration validation in Phase 2
+### Tertiary (LOW confidence — validate during implementation)
+- `@tauri-apps/plugin-updater` npm version 2.10.0 — from npm search; verify exact minimum during Phase 1 install
+- `@tauri-apps/plugin-process` npm version 2.3.1 — from npm search; verify during Phase 1 install
 
 ---
-*Research completed: 2026-03-22*
+*Research completed: 2026-03-24*
 *Ready for roadmap: yes*
