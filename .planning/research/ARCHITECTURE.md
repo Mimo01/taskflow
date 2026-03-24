@@ -1,616 +1,618 @@
-# Architecture Research: v1.5 Feature Integration
+# Architecture Research
 
-**Domain:** Desktop Jira/GitLab client -- new feature integration into existing Tauri 2 + React 18 architecture
-**Researched:** 2026-03-22
-**Confidence:** HIGH (based on full codebase audit + Jira DC REST API v2 verification)
+**Domain:** Release pipeline, auto-update, version management for Tauri 2 desktop app
+**Researched:** 2026-03-24
+**Confidence:** HIGH
 
-## System Overview: Current Architecture
+## System Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                          AppLayout (main.tsx)                       │
-│  ┌──────────┐  ┌──────────────────────────────────────────────────┐ │
-│  │ Sidebar  │  │  TopBar + PinnedTabStrip + ReAuthBanner         │ │
-│  │ (static  │  ├──────────────────────────────────────────────────┤ │
-│  │  role-   │  │  <Outlet> (route content)                       │ │
-│  │  based)  │  │  ┌──────────┐ ┌──────────┐ ┌──────────────────┐ │ │
-│  │          │  │  │Dashboard │ │SprintBoard│ │IssueDetailPage  │ │ │
-│  │          │  │  │(panels)  │ │(kanban)   │ │(full-page)      │ │ │
-│  │          │  │  └──────────┘ └──────────┘ └──────────────────┘ │ │
-│  └──────────┘  └──────────────────────────────────────────────────┘ │
-├─────────────────────────────────────────────────────────────────────┤
-│  Overlays: CommandPalette | CreateEditIssueModal | KeyboardShorts  │
-├─────────────────────────────────────────────────────────────────────┤
-│  Stores (Zustand)           │  Data Layer (TanStack Query)         │
-│  auth, settings, filter,    │  queryKey-based caching, 5min stale  │
-│  notifications, pinned-tabs │  60s poll (notifications: 30s)       │
-│  recent-items, breadcrumb   │                                      │
-├─────────────────────────────┤──────────────────────────────────────┤
-│  Services: jira/ (14 modules) + gitlab.ts + notifications.ts      │
-│  Transport: apiFetch() -> @tauri-apps/plugin-http (CORS-free)     │
-└─────────────────────────────────────────────────────────────────────┘
+                        GITHUB (CI/CD + Distribution)
+ ┌──────────────────────────────────────────────────────────────────────┐
+ │  PRIVATE REPO (source)                 PUBLIC REPO (releases)       │
+ │  ┌──────────────────────┐              ┌──────────────────────────┐ │
+ │  │ Push tag v1.6.0      │──────────────│ GitHub Release           │ │
+ │  │ GitHub Actions        │  tauri-action│  ├── latest.json         │ │
+ │  │  ├── Build macOS      │  owner/repo  │  ├── Taskflow.app.tar.gz│ │
+ │  │  ├── Build Windows    │──────────────│  ├── Taskflow.msi.zip   │ │
+ │  │  ├── Build Linux      │              │  ├── Taskflow.AppImage  │ │
+ │  │  └── Sign artifacts   │              │  ├── *.sig (signatures) │ │
+ │  └──────────────────────┘              │  └── version-policy.json │ │
+ │                                         └──────────┬───────────────┘ │
+ └────────────────────────────────────────────────────┼─────────────────┘
+                                                       │
+                              TAURI APP (desktop)      │ HTTPS fetch
+ ┌─────────────────────────────────────────────────────┼─────────────────┐
+ │                          RUST BACKEND               │                 │
+ │  ┌──────────────────────────────────────────────────┼───────────────┐ │
+ │  │  tauri-plugin-updater                            │               │ │
+ │  │  ├── check() ←───── endpoints: [latest.json URL]─┘               │ │
+ │  │  ├── download() ←── signature verification (pubkey)              │ │
+ │  │  └── install() ───→ replace binary + relaunch                    │ │
+ │  │                                                                  │ │
+ │  │  tauri-plugin-process                                            │ │
+ │  │  └── relaunch() ───→ restart app after install                   │ │
+ │  └──────────────────────────────────────────────────────────────────┘ │
+ │                          │ JS bridge                                  │
+ │                          ▼                                            │
+ │  ┌──────────────────────────────────────────────────────────────────┐ │
+ │  │  REACT FRONTEND                                                  │ │
+ │  │                                                                  │ │
+ │  │  Services Layer                                                  │ │
+ │  │  ├── update.ts ──── check/download/install via plugin-updater    │ │
+ │  │  └── version-policy.ts ── fetch+parse version-policy.json        │ │
+ │  │                                                                  │ │
+ │  │  Zustand Store                                                   │ │
+ │  │  └── update.store.ts ── update state, check timestamps, policy   │ │
+ │  │                                                                  │ │
+ │  │  TanStack Query Hooks                                            │ │
+ │  │  ├── useUpdateCheck ── periodic update polling                   │ │
+ │  │  └── useVersionPolicy ── fetch version-policy.json               │ │
+ │  │                                                                  │ │
+ │  │  Components                                                      │ │
+ │  │  ├── UpdatePromptDialog ── changelog + download progress         │ │
+ │  │  ├── ForceUpdateBanner ── soft nag (dismissible)                 │ │
+ │  │  ├── ForceUpdateBlocker ── hard block (modal, no dismiss)        │ │
+ │  │  ├── AboutDialog ── version, build info, update status           │ │
+ │  │  ├── VersionHistorySection ── Settings section                   │ │
+ │  │  └── UpdateSettingsSection ── check frequency in Settings        │ │
+ │  └──────────────────────────────────────────────────────────────────┘ │
+ └───────────────────────────────────────────────────────────────────────┘
 ```
 
-## Feature-by-Feature Integration Analysis
+### Component Responsibilities
 
-### 1. Customizable Sidebar
+| Component | Responsibility | Integration Point |
+|-----------|----------------|-------------------|
+| **GitHub Actions workflow** | Build cross-platform binaries, sign artifacts, publish to public repo | New file: `.github/workflows/release.yml` in private repo |
+| **tauri-plugin-updater** (Rust) | Download verification, binary replacement, signature checking | Modify: `src-tauri/Cargo.toml`, `src-tauri/src/lib.rs` |
+| **tauri-plugin-process** (Rust) | App relaunch after update install | Modify: `src-tauri/Cargo.toml`, `src-tauri/src/lib.rs` |
+| **update.ts** (service) | JS bridge to plugin-updater: check, download, install, progress | New file: `src/services/update.ts` |
+| **version-policy.ts** (service) | Fetch version-policy.json from public repo, parse soft/hard minimums | New file: `src/services/version-policy.ts` |
+| **update.store.ts** (Zustand) | Last check timestamp, update state machine, dismissed versions | New file: `src/stores/update.store.ts` |
+| **useUpdateCheck** (hook) | Periodic update check based on configurable interval | New file: `src/hooks/useUpdateCheck.ts` |
+| **UpdatePromptDialog** | Show changelog, download progress bar, Update Now / Later buttons | New component |
+| **ForceUpdateBanner** | Persistent dismissible banner for soft minimum violation | New component |
+| **ForceUpdateBlocker** | Full-screen modal blocking app until update for hard minimum | New component |
+| **AboutDialog** | App version, build date, update status, check-now button | New component |
+| **VersionHistorySection** | Scrollable list of releases with changelogs fetched from GitHub | New Settings section |
+| **UpdateSettingsSection** | Update check frequency slider/select | New Settings section |
+| **Settings.tsx** | Add "Updates" section to sidebar nav | Modify existing |
+| **lib.rs** | Register updater + process plugins, add About menu item | Modify existing |
+| **tauri.conf.json** | Add updater config (pubkey, endpoints), createUpdaterArtifacts | Modify existing |
+| **capabilities/default.json** | Add updater + process permissions | Modify existing |
 
-**Current state:** `Sidebar.tsx` renders hardcoded NavLink lists based on `role` from settings store. Role is `'developer' | 'pm' | 'tech-lead' | null`. Links are grouped into sections ("Work") with role-conditional rendering.
+## Recommended Project Structure
 
-**Integration approach:** MODIFY existing code
+New and modified files only (existing structure preserved):
 
-| What Changes | File | Nature |
-|---|---|---|
-| Sidebar component | `components/app/Sidebar.tsx` | **Major rewrite** -- replace hardcoded NavLinks with data-driven rendering from sidebar config |
-| Settings store | `stores/settings.store.ts` | **Extend** -- add `sidebarItems: SidebarItem[]` and role presets |
-| Settings UI | `routes/settings/` | **New section** -- sidebar customization panel |
+```
+taskflow/
+├── .github/
+│   └── workflows/
+│       └── release.yml              # CI: build + publish to public repo
+├── src/
+│   ├── services/
+│   │   ├── update.ts                # NEW: updater plugin bridge
+│   │   └── version-policy.ts        # NEW: version policy fetcher
+│   ├── stores/
+│   │   └── update.store.ts          # NEW: update state + last-check persist
+│   ├── hooks/
+│   │   └── useUpdateCheck.ts        # NEW: periodic update check hook
+│   ├── components/
+│   │   └── app/
+│   │       ├── UpdatePromptDialog.tsx    # NEW: update available dialog
+│   │       ├── ForceUpdateBanner.tsx     # NEW: soft nag banner
+│   │       ├── ForceUpdateBlocker.tsx    # NEW: hard block overlay
+│   │       └── AboutDialog.tsx           # NEW: about modal
+│   └── routes/
+│       └── settings/
+│           ├── Settings.tsx              # MODIFY: add Updates section
+│           ├── UpdateSettingsSection.tsx  # NEW: check frequency config
+│           └── VersionHistorySection.tsx  # NEW: release history list
+├── src-tauri/
+│   ├── src/
+│   │   └── lib.rs                   # MODIFY: register plugins, About menu
+│   ├── Cargo.toml                   # MODIFY: add plugin deps
+│   ├── tauri.conf.json              # MODIFY: updater config
+│   └── capabilities/
+│       └── default.json             # MODIFY: add permissions
+├── version-policy.json              # NEW: template for public repo
+└── vite.config.ts                   # MODIFY: inject build info env vars
+```
 
-**New types needed:**
+### Structure Rationale
+
+- **services/update.ts**: Follows existing pattern (stronghold.ts, tauri.ts) -- thin bridge to Tauri plugin, testable via vi.mock
+- **services/version-policy.ts**: Separate from update.ts because it fetches from a different endpoint (raw GitHub file via plugin-http, not the updater plugin)
+- **stores/update.store.ts**: Persisted via LazyStore (same pattern as settings.store.ts) for last-check timestamp and dismissed-versions list
+- **hooks/useUpdateCheck.ts**: Combines TanStack Query polling with store state -- mirrors the existing notification poll pattern
+- **components/app/**: Global components (UpdatePromptDialog, ForceUpdateBlocker) live alongside AppLayout since they render at the app shell level
+
+## Architectural Patterns
+
+### Pattern 1: Update State Machine
+
+**What:** The update lifecycle has discrete states: idle -> checking -> available -> downloading -> installing -> restarting (or idle -> checking -> up-to-date). A Zustand store manages this state machine so multiple components can reflect the current state.
+**When to use:** Whenever the UI needs to reflect update state across multiple components (banner, dialog, About dialog, Settings section).
+**Trade-offs:** Slightly more code than ad-hoc state, but prevents impossible states (e.g., showing "downloading" when no update exists).
+
 ```typescript
-interface SidebarItem {
-  id: string;        // e.g. 'my-tasks', 'sprint-board'
-  route: string;     // e.g. '/my-tasks'
-  label: string;
-  icon: string;      // lucide icon name
-  section?: string;  // optional grouping
+type UpdateStatus =
+  | { state: 'idle' }
+  | { state: 'checking' }
+  | { state: 'available'; version: string; notes: string | null; date: string | null }
+  | { state: 'downloading'; version: string; progress: number; total: number | null }
+  | { state: 'installing'; version: string }
+  | { state: 'error'; message: string }
+  | { state: 'up-to-date' };
+
+interface UpdateStore {
+  status: UpdateStatus;
+  lastCheckAt: number | null;        // epoch ms, persisted
+  dismissedVersions: string[];        // versions user clicked "Later" on
+  setStatus: (status: UpdateStatus) => void;
+  dismissVersion: (version: string) => void;
+  setLastCheckAt: (ts: number) => void;
 }
 ```
 
-**Key design decision:** Roles become presets that populate `sidebarItems[]` on first selection. Users can then add/remove/reorder items. The `role` field remains for dashboard panel defaults, but sidebar is independently customizable.
+### Pattern 2: Version Policy as Remote Config
 
-**Data flow:** `settings.store.sidebarItems` -> `Sidebar.tsx` renders via `.map()` -> Drag-and-drop reorder uses existing `@dnd-kit/core` dependency.
+**What:** A `version-policy.json` file hosted on the public GitHub repo defines minimum versions. The app fetches this on launch and periodically. This decouples enforcement from app releases -- you can retroactively force-update old versions by updating the JSON without shipping a new app version.
+**When to use:** When you need to block critically broken versions or enforce security patches.
+**Trade-offs:** Requires network access; must handle fetch failures gracefully (fail-open: if policy cannot be fetched, do not block the user).
 
----
+```json
+{
+  "softMinimum": "1.5.0",
+  "hardMinimum": "1.3.0",
+  "message": "Please update Taskflow for the latest fixes.",
+  "hardMessage": "This version is no longer supported. Please update to continue."
+}
+```
 
-### 2. Configurable Widget-Based Dashboard
-
-**Current state:** `routes/dashboard/index.tsx` renders a fixed 2-column grid with `SubtasksPanel`, `MrHealthPanel`, `SprintHealthPanel` (dev role) or single `SprintHealthPanel` (PM role). Panels receive credentials as props and manage own queries.
-
-**Integration approach:** REPLACE current dashboard with widget system
-
-| What Changes | File | Nature |
-|---|---|---|
-| Dashboard page | `routes/dashboard/index.tsx` | **Major rewrite** -- widget grid layout engine |
-| Widget registry | `routes/dashboard/widgets/registry.ts` | **Net-new** -- maps widget IDs to components |
-| Individual widgets | `routes/dashboard/widgets/*.tsx` | **Net-new** -- wrap existing panels + new widgets |
-| Dashboard store | `stores/dashboard.store.ts` | **Net-new** -- persisted widget layout config |
-| Settings store | `stores/settings.store.ts` | **Extend** -- version bump for migration |
-
-**New store: `dashboard.store.ts`**
 ```typescript
-interface WidgetConfig {
-  id: string;           // unique instance ID
-  type: string;         // 'subtasks' | 'mr-health' | 'sprint-health' | 'recent-activity' | ...
-  position: { col: number; row: number };
-  size: { w: number; h: number };  // grid units
+// version-policy.ts
+interface VersionPolicy {
+  softMinimum: string;
+  hardMinimum: string;
+  message?: string;
+  hardMessage?: string;
 }
 
-interface DashboardState {
-  widgets: WidgetConfig[];
-  addWidget: (type: string) => void;
-  removeWidget: (id: string) => void;
-  moveWidget: (id: string, position: { col: number; row: number }) => void;
-  resizeWidget: (id: string, size: { w: number; h: number }) => void;
-  resetToPreset: (role: 'developer' | 'pm') => void;
+async function fetchVersionPolicy(): Promise<VersionPolicy | null> {
+  // Fetch from: https://raw.githubusercontent.com/{owner}/{public-repo}/main/version-policy.json
+  // Uses tauri-plugin-http (CORS-free, same as Jira/GitLab calls)
+  // Returns null on network error (fail-open)
 }
 ```
 
-**Pattern:** Each widget is a self-contained component that receives credentials from a shared context (or reads from auth store directly). This matches the existing pattern where "panels manage their own queries." The dashboard page becomes a layout engine, not a data orchestrator.
+### Pattern 3: Plugin Bridge Service (Existing Codebase Pattern)
 
-**Widget candidates (existing panels wrapped):**
-- `SubtasksPanel` -> `subtasks-widget`
-- `MrHealthPanel` -> `mr-health-widget`
-- `SprintHealthPanel` -> `sprint-health-widget`
+**What:** All Tauri plugin calls go through a service module (like `tauri.ts`, `stronghold.ts`). The update service wraps `@tauri-apps/plugin-updater` and `@tauri-apps/plugin-process` so tests can mock at the module boundary.
+**When to use:** Every new plugin integration.
+**Trade-offs:** One extra layer of indirection, but essential for testability since plugins require the Tauri runtime.
 
-**Widget candidates (net-new):**
-- `recent-activity-widget` (latest notifications)
-- `quick-filters-widget` (saved filter shortcuts)
-- `time-tracking-widget` (my worklogs today/this week)
-
-**Grid library decision:** Use CSS Grid with manual positioning (no external library). The dashboard has a fixed number of widgets (not hundreds), and @dnd-kit already handles drag. Adding react-grid-layout would be a new dependency for minimal benefit.
-
----
-
-### 3. Issue Activity History Timeline
-
-**Current state:** `IssueDetailPage.tsx` shows issue detail with content + sidebar + comments. The `fetchIssueDetail` function already requests fields including `created` and `updated`. Comments are displayed in a thread. No changelog/history is fetched.
-
-**Integration approach:** ADD new tab/section to issue detail
-
-| What Changes | File | Nature |
-|---|---|---|
-| Jira changelog service | `services/jira/changelog.ts` | **Net-new** -- fetch issue changelog |
-| Activity timeline component | `routes/dashboard/issue-detail/ActivityTimeline.tsx` | **Net-new** |
-| Issue detail page | `routes/dashboard/IssueDetailPage.tsx` | **Extend** -- add Activity tab |
-| Jira barrel export | `services/jira/index.ts` | **Extend** -- add `export * from './changelog'` |
-| Jira types | `services/jira/types.ts` | **Extend** -- add changelog types |
-
-**Jira DC API:** `GET /rest/api/2/issue/{issueKey}?expand=changelog` returns changelog in the response. For issues with >100 changes, use the dedicated endpoint: `GET /rest/api/2/issue/{issueKey}/changelog?startAt=0&maxResults=100` (paginated). **Confidence: HIGH** -- verified via Atlassian community docs and API reference.
-
-**New types:**
 ```typescript
-interface ChangelogEntry {
-  id: string;
-  author: { displayName: string; name: string };
-  created: string;  // ISO 8601
-  items: ChangelogItem[];
-}
+// services/update.ts
+import { check } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
 
-interface ChangelogItem {
-  field: string;
-  fieldtype: string;
-  from: string | null;
-  fromString: string | null;
-  to: string | null;
-  toString: string | null;
-}
+export const updateService = {
+  checkForUpdate: async (options?: { timeout?: number }) => {
+    const update = await check(options);
+    if (!update) return null;
+    return {
+      version: update.version,
+      currentVersion: update.currentVersion,
+      body: update.body ?? null,
+      date: update.date ?? null,
+      download: update.download.bind(update),
+      install: update.install.bind(update),
+      downloadAndInstall: update.downloadAndInstall.bind(update),
+      close: update.close.bind(update),
+    };
+  },
+  relaunch: () => relaunch(),
+};
 ```
 
-**Data flow:** New TanStack Query hook with queryKey `['jira-issue-changelog', issueKey]`. Displayed as a unified timeline interleaving changelog entries + comments, sorted by timestamp. Tab-based switching (Comments | History | All Activity) on the issue detail page.
+### Pattern 4: Dual-Repo Release Pipeline
 
-**Important caveat:** The `expand=changelog` approach on the issue endpoint is limited to the 100 most recent changes. For completeness, use the dedicated `/changelog` endpoint with pagination. This follows the same `fetchAllSearchPages` pattern already in `client.ts`.
+**What:** Source code lives in a private repo. GitHub Actions builds artifacts and publishes releases to a separate public repo using tauri-action's `owner`/`repo` inputs. The public repo serves as the distribution channel -- latest.json, binaries, signatures, and version-policy.json all live there.
+**When to use:** When source code is proprietary but distribution must be public (the updater cannot authenticate with private repo asset downloads).
+**Trade-offs:** Requires a Personal Access Token with write access to the public repo, stored as a GitHub Actions secret. Release notes must be forwarded explicitly. The `version-policy.json` must be committed to the public repo separately.
 
----
+### Pattern 5: Build-Time Version Injection
 
-### 4. Time Tracking / Work Log Support
+**What:** The app version comes from a single source of truth (git tag), injected at build time into tauri.conf.json by CI. The frontend accesses version and build info through environment variables defined in vite.config.ts.
+**When to use:** Always. Manual version bumps across multiple files cause drift.
+**Trade-offs:** Local dev builds show a placeholder version (0.1.0) unless you set env vars manually.
 
-**Current state:** `services/jira/worklogs.ts` exists but only fetches author display names (used for attribution enrichment). `JiraIssue.fields.timetracking` type already exists in `types.ts`. `fetchIssueDetail` already requests the `timetracking` field. The issue detail sidebar does not display time tracking info.
-
-**Integration approach:** EXTEND existing worklog service + ADD UI components
-
-| What Changes | File | Nature |
-|---|---|---|
-| Worklogs service | `services/jira/worklogs.ts` | **Major extend** -- add full CRUD (list with details, add, update, delete) |
-| Worklog types | `services/jira/types.ts` | **Extend** -- add `JiraWorklog` interface |
-| Time tracking display | `routes/dashboard/issue-detail/TimeTrackingSection.tsx` | **Net-new** |
-| Worklog dialog | `routes/dashboard/issue-detail/WorklogDialog.tsx` | **Net-new** |
-| Issue detail sidebar | `routes/dashboard/issue-detail/IssueDetailSidebar.tsx` | **Extend** -- add time tracking section |
-
-**Jira DC API endpoints:**
-- `GET /rest/api/2/issue/{issueKey}/worklog` -- list worklogs (paginated)
-- `POST /rest/api/2/issue/{issueKey}/worklog` -- add worklog
-- `PUT /rest/api/2/issue/{issueKey}/worklog/{id}` -- update worklog
-- `DELETE /rest/api/2/issue/{issueKey}/worklog/{id}` -- delete worklog
-
-**Confidence: HIGH** -- `fetchAllWorklogPages` already exists in `client.ts`, proving the pagination pattern works. The existing service just needs to return full worklog objects instead of extracting author names.
-
-**New type:**
 ```typescript
-interface JiraWorklog {
-  id: string;
-  author: { displayName: string; name: string };
-  comment?: string;
-  started: string;       // ISO 8601
-  timeSpent: string;     // e.g. "2h 30m"
-  timeSpentSeconds: number;
-  created: string;
-  updated: string;
+// vite.config.ts additions
+define: {
+  '__APP_VERSION__': JSON.stringify(process.env.APP_VERSION || '0.1.0'),
+  '__BUILD_DATE__': JSON.stringify(new Date().toISOString()),
+  '__COMMIT_HASH__': JSON.stringify(process.env.COMMIT_HASH || 'dev'),
 }
 ```
 
----
+## Data Flow
 
-### 5. Watchers and Starring
+### Update Check Flow
 
-**Current state:** No watcher/starring functionality exists. The `JiraIssueDetail` type does not include watchers. The issue detail page has no watch/star UI.
+```
+App Launch / Timer Tick (configurable interval)
+    │
+    ├── Is (now - lastCheckAt) > checkIntervalMs?
+    │       NO --> skip
+    │       YES ↓
+    │
+    ├── updateService.checkForUpdate()
+    │       │
+    │       ├── plugin-updater --> GET latest.json from public repo
+    │       │       │
+    │       │       ├── 204 No Content --> state: 'up-to-date'
+    │       │       └── 200 + update JSON --> state: 'available'
+    │       │
+    │       └── Error --> state: 'error' (silent, retry next interval)
+    │
+    ├── Update available?
+    │       │
+    │       ├── Is version in dismissedVersions? --> show nothing (until next version)
+    │       └── Not dismissed --> show UpdatePromptDialog
+    │
+    └── Store lastCheckAt = now
+```
 
-**Integration approach:** NET-NEW service + UI in issue detail
+### Version Policy Flow
 
-| What Changes | File | Nature |
-|---|---|---|
-| Watchers service | `services/jira/watchers.ts` | **Net-new** |
-| Jira barrel export | `services/jira/index.ts` | **Extend** |
-| Jira types | `services/jira/types.ts` | **Extend** -- add `JiraWatchers` |
-| Issue detail header | `routes/dashboard/IssueDetailPage.tsx` | **Extend** -- add watch/star buttons |
-| Starred issues store | `stores/starred.store.ts` | **Net-new** -- local-only starring (not Jira server-side) |
+```
+App Launch + Every 6 hours
+    │
+    ├── fetchVersionPolicy() --> GET version-policy.json from public repo
+    │       │                    (via tauri-plugin-http, same as Jira/GitLab)
+    │       │
+    │       ├── Network error --> fail-open (no enforcement)
+    │       └── Success --> compare current version using compare-versions lib
+    │               │
+    │               ├── current >= softMinimum --> no action
+    │               ├── hardMinimum <= current < softMinimum --> ForceUpdateBanner
+    │               └── current < hardMinimum --> ForceUpdateBlocker (blocks app)
+    │
+    └── Cache policy in update store (avoid re-fetch on every render)
+```
 
-**Jira DC API endpoints:**
-- `GET /rest/api/2/issue/{issueKey}/watchers` -- get watcher list + count
-- `POST /rest/api/2/issue/{issueKey}/watchers` -- add current user as watcher (body: `"username"`)
-- `DELETE /rest/api/2/issue/{issueKey}/watchers?username={name}` -- remove watcher
+### Download + Install Flow
 
-**Critical DC difference:** Jira Data Center uses `username` (the `name` field), NOT `accountId`. The POST body is a plain JSON string (e.g., `"jsmith"`), not an object. **Confidence: HIGH** -- consistent with all other DC API patterns in the codebase.
+```
+User clicks "Update Now" in UpdatePromptDialog
+    │
+    ├── update.downloadAndInstall(onProgress)
+    │       │
+    │       ├── 'Started' event --> state: 'downloading', total = contentLength
+    │       ├── 'Progress' event --> update progress bytes
+    │       └── 'Finished' event --> state: 'installing'
+    │
+    ├── Install complete
+    │       └── updateService.relaunch() --> app restarts with new version
+    │
+    └── Error at any step --> state: 'error', show retry option in dialog
+```
 
-**Design decision: Watchers vs Starring.** Watchers is server-side (Jira API). Starring is client-side only (persisted in a local Zustand store, like pinned tabs). Both are useful: watchers triggers Jira notifications; starring is a personal bookmark. Implement both -- watch button calls Jira API, star button toggles local store.
+### Version History Data Flow
 
----
+```
+Settings > Updates > Version History
+    │
+    ├── Fetch GitHub Releases API via tauri-plugin-http
+    │   GET https://api.github.com/repos/{owner}/{public-repo}/releases
+    │   (no auth required for public repo)
+    │
+    ├── TanStack Query cache (staleTime: 5 min)
+    │
+    └── Render list: version, date, body (markdown via react-markdown)
+```
 
-### 6. Saved Filters
+### About Dialog Data Flow
 
-**Current state:** `filter.store.ts` has session-only filter state (Sets for epics, labels, assignees, statuses). `settings.store.ts` already has `quickFilters: QuickFilter[]` with full CRUD (add, remove, rename, reorder). `UnifiedFilterBar.tsx` renders quickfilter presets with context menu actions.
+```
+macOS: "About TaskFlow" menu item --> emit 'menu-about-taskflow' event
+All platforms: Help > About menu item --> emit same event
+    │
+    └── AboutDialog opens (listens via Tauri event listener)
+        ├── App name + icon
+        ├── Version: __APP_VERSION__ (injected at build time)
+        ├── Build: __COMMIT_HASH__ / __BUILD_DATE__
+        ├── Update status: read from update.store.ts
+        │   "Up to date" / "Update available (v1.7.0)" / "Checking..."
+        └── "Check for Updates" button --> triggers updateService.checkForUpdate()
+```
 
-**Integration approach:** EXTEND existing system (partially already built)
+## Integration Points with Existing Architecture
 
-| What Changes | File | Nature |
-|---|---|---|
-| Filter store | `stores/filter.store.ts` | **Extend** -- add view-scoping (which view a filter applies to) |
-| Settings store | `stores/settings.store.ts` | **Minor extend** -- add view context to QuickFilter |
-| Saved filters route | `routes/dashboard/SavedFiltersPage.tsx` | **Net-new** -- management UI for all saved filters |
-| Sidebar | `components/app/Sidebar.tsx` | **Extend** -- add saved filters link (if customizable sidebar is done) |
+### Modifications to Existing Files
 
-**Key insight:** The quickfilter system is 80% built. What is missing:
-1. **View scoping** -- filters should know which view they apply to (sprint board, backlog, or "all")
-2. **A dedicated management page** -- currently filters are only managed via context menu on the filter bar
-3. **Cross-view filter application** -- applying a saved filter should navigate to the correct view + apply the filter state
+| File | Change | Risk |
+|------|--------|------|
+| `src-tauri/Cargo.toml` | Add `tauri-plugin-updater = "2"` and `tauri-plugin-process = "2"` | Low -- additive only |
+| `src-tauri/src/lib.rs` | Register two plugins in `.setup()` block; replace `PredefinedMenuItem::about` with custom menu item that emits `menu-about-taskflow` event to frontend | Medium -- menu bar restructuring |
+| `src-tauri/tauri.conf.json` | Add `plugins.updater` block (pubkey, endpoints), set `bundle.createUpdaterArtifacts: true` | Medium -- build config change |
+| `src-tauri/capabilities/default.json` | Add `"updater:default"` and `"process:allow-relaunch"` to permissions array | Low -- additive |
+| `src/routes/settings/Settings.tsx` | Add `'updates'` to `SettingsSection` union type, add entry to `SECTIONS` array with Download icon, render `UpdateSettingsSection` and `VersionHistorySection` | Low -- follows existing 6-section pattern exactly |
+| `src/stores/settings.store.ts` | Add `updateCheckIntervalHours: number` (default: 24) with setter, bump store version to 10, add migration block | Low -- well-established migration pattern |
+| `src/App.tsx` or AppLayout | Mount `ForceUpdateBanner`, `ForceUpdateBlocker`, `UpdatePromptDialog` at app shell level; add Tauri event listener for About menu | Medium -- touches global shell |
+| `vite.config.ts` | Add `define` block for `__APP_VERSION__`, `__BUILD_DATE__`, `__COMMIT_HASH__` | Low -- additive |
 
-**Extended QuickFilter type:**
-```typescript
-interface QuickFilter {
-  id: string;
-  name: string;
-  epics: string[];
-  labels: string[];
-  assignees: string[];
-  statuses: string[];
-  view?: 'sprint-board' | 'backlog' | 'all';  // NEW
+### New External Dependencies
+
+| Dependency | Side | Purpose | Version | Size |
+|------------|------|---------|---------|------|
+| `tauri-plugin-updater` | Rust | Binary update download/install/verify | `2` | N/A (Rust crate) |
+| `tauri-plugin-process` | Rust | App relaunch after install | `2` | N/A (Rust crate) |
+| `@tauri-apps/plugin-updater` | JS | Frontend API for check/download/install | `^2.0.0` | ~5KB |
+| `@tauri-apps/plugin-process` | JS | Frontend relaunch() call | `^2.0.0` | ~2KB |
+| `compare-versions` | JS | Semver comparison for version policy | `^6.0.0` | ~1.5KB gzip |
+
+**Why compare-versions over semver:** Zero dependencies, 1.5KB gzipped, ESM-native, supports the exact operations needed (gt, lt, gte, compare). The full `semver` package is 30KB+ and designed for Node.js ranges -- overkill for simple version comparison.
+
+### Existing Patterns Reused
+
+| Pattern | Where It Already Exists | How It Is Reused |
+|---------|-------------------------|------------------|
+| Plugin bridge service | `stronghold.ts`, `tauri.ts` | `update.ts` wraps plugin-updater identically |
+| LazyStore persistence | `settings.store.ts`, `pinned-tabs.store.ts` | `update.store.ts` persists lastCheckAt, dismissedVersions |
+| TanStack Query polling | Notification poll (30-60s intervals) | `useUpdateCheck` uses refetchInterval from settings |
+| Settings sidebar section | 6 existing sections in Settings.tsx | Add "Updates" as 7th section with identical pattern |
+| Menu event --> frontend action | `menu-nav-sprint`, `menu-command-palette` pattern | `menu-about-taskflow` event triggers AboutDialog |
+| Dialog component (shadcn) | Various dialogs throughout app | UpdatePromptDialog, AboutDialog use same Dialog primitive |
+| CORS-free fetch via plugin-http | All Jira/GitLab API calls via apiFetch() | Version history + version policy fetch GitHub API the same way |
+| Zustand persist with migration | 9 migrations in settings store | update.store follows identical versioned migration pattern |
+
+## Tauri Plugin Configuration Details
+
+### tauri.conf.json Changes
+
+```json
+{
+  "bundle": {
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "<CONTENTS_OF_PUBLIC_KEY>",
+      "endpoints": [
+        "https://github.com/<owner>/<public-repo>/releases/latest/download/latest.json"
+      ]
+    }
+  }
 }
 ```
 
----
+### lib.rs Plugin Registration
 
-### 7. Attachments Viewer
+```rust
+// Add to the .setup(|app| { ... }) block, alongside existing plugin registrations
+#[cfg(desktop)]
+app.handle().plugin(tauri_plugin_updater::Builder::new().build());
+app.handle().plugin(tauri_plugin_process::init());
+```
 
-**Current state:** `JiraIssueDetail.fields.attachment` is typed as `JiraAttachment[]` (id, filename, content URL, thumbnail URL, mimeType). `fetchIssueDetail` already requests the `attachment` field. `IssueDetailContent.tsx` builds an `attachmentMap` for wiki `!image.png!` references but does NOT display a standalone attachment list. `ImageLightbox.tsx` exists for image viewing.
+### Capabilities Additions
 
-**Integration approach:** ADD component to issue detail page
-
-| What Changes | File | Nature |
-|---|---|---|
-| Attachments section | `routes/dashboard/issue-detail/AttachmentsSection.tsx` | **Net-new** |
-| Issue detail page | `routes/dashboard/IssueDetailPage.tsx` | **Extend** -- render AttachmentsSection |
-| Image lightbox | `routes/dashboard/ImageLightbox.tsx` | **Extend** -- support gallery navigation |
-
-**Data flow:** Attachments are already fetched with issue detail (no new API call needed). The new component just needs to:
-1. List all attachments with filename, size, type icon
-2. Inline preview for images (reuse `ImageLightbox`)
-3. Download link for non-image files (opens `attachment.content` URL via `openUrl` from `@tauri-apps/plugin-opener`)
-4. File type icons based on `mimeType`
-
-**No new service module needed.** The data is already in `JiraIssueDetail`.
-
----
-
-### 8. Mention Autocomplete in Comments
-
-**Current state:** `CommentComposer.tsx` has a plain `<Textarea>` with wiki markup toolbar (bold, italic, code, list). Comment body is posted as wiki markup string via `postComment()`. No autocomplete exists.
-
-**Integration approach:** ADD autocomplete overlay to CommentComposer
-
-| What Changes | File | Nature |
-|---|---|---|
-| User search service | `services/jira/users.ts` | **Net-new** |
-| Jira barrel export | `services/jira/index.ts` | **Extend** |
-| Mention autocomplete | `routes/dashboard/MentionAutocomplete.tsx` | **Net-new** |
-| Comment composer | `routes/dashboard/CommentComposer.tsx` | **Extend** -- integrate mention trigger |
-
-**Jira DC API endpoint:** `GET /rest/api/2/user/picker?query={prefix}&maxResults=10` returns user suggestions. On DC, results include `name` (username) and `displayName`. **Confidence: HIGH** -- verified via Atlassian docs.
-
-**Design pattern:** Monitor textarea for `@` character. On detection, show a positioned dropdown (similar to cmdk pattern) that queries the user picker API with debounce. On selection, insert `[~username]` (Jira wiki mention syntax). This is a contained enhancement to `CommentComposer.tsx` -- no other components affected.
-
-**Implementation approach:** Build a custom hook `useMentionAutocomplete(textareaRef)` that:
-1. Listens for `@` keystrokes
-2. Tracks the mention query prefix (characters after `@`)
-3. Returns `{ suggestions, isOpen, selectedIndex, insert(user) }`
-4. Uses TanStack Query with a short staleTime for the user picker API
-
-**No external library needed.** The autocomplete is scoped to a single textarea, not a rich text editor. A simple positioned popover (reusing shadcn `Popover`) is sufficient.
-
----
-
-### 9. Bulk Operations on Issues
-
-**Current state:** Issue mutations are single-issue: `updateIssueField()`, `bulkUpdateIssue()` (single issue, multiple fields), `transitionIssue()`. No multi-select UI exists on any list view. `SprintBoardTab` has drag-and-drop for single cards. `BacklogPage` has row-based list with filter bar.
-
-**Integration approach:** ADD multi-select layer to list views + batch mutation
-
-| What Changes | File | Nature |
-|---|---|---|
-| Selection store | `stores/selection.store.ts` | **Net-new** -- session-only multi-select state |
-| Bulk operations bar | `components/app/BulkOperationsBar.tsx` | **Net-new** -- floating action bar |
-| Bulk service | `services/jira/bulk.ts` | **Net-new** -- parallel issue updates |
-| Backlog page | `routes/dashboard/BacklogPage.tsx` | **Extend** -- add checkbox column + selection |
-| Sprint board | `routes/dashboard/SprintBoardTab.tsx` | **Extend** -- add multi-select mode |
-| My Tasks | `routes/dashboard/MyTasksTab.tsx` | **Extend** -- add checkbox column |
-| Jira barrel export | `services/jira/index.ts` | **Extend** |
-
-**Critical constraint: No bulk API on Jira DC.** Jira Data Center REST API v2 has NO dedicated bulk edit endpoint (unlike Jira Cloud's v3 API). Bulk operations must be implemented as parallel `PUT /rest/api/2/issue/{key}` calls. Use `Promise.allSettled()` with concurrency limiting (max 5 parallel requests) to avoid overwhelming the Jira server.
-
-**New store:**
-```typescript
-interface SelectionState {
-  selectedKeys: Set<string>;
-  toggle: (key: string) => void;
-  selectRange: (keys: string[]) => void;  // shift+click range
-  selectAll: (keys: string[]) => void;
-  clearAll: () => void;
+```json
+{
+  "permissions": [
+    "updater:default",
+    "process:allow-relaunch"
+  ]
 }
 ```
 
-**Bulk operations to support:**
-1. Transition (move to status) -- calls `transitionIssue()` per issue
-2. Assign -- calls `updateIssueField()` per issue
-3. Set priority -- calls `updateIssueField()` per issue
-4. Add label -- calls `updateIssueField()` per issue
+The `updater:default` permission grants `allow-check`, `allow-download`, `allow-install`, and `allow-download-and-install`. The `process:allow-relaunch` grants only the relaunch capability.
 
-**UX pattern:** Checkbox appears on hover (like Jira web). When 1+ issues selected, a floating "Bulk Actions" bar appears at the bottom of the viewport with action buttons. Progress indicator shows N/M completed. Errors are collected and displayed after completion.
+### Signing Key Setup
 
----
+Generate once, store in GitHub Secrets:
 
-### 10. Board Quick Filters
-
-**Current state:** `UnifiedFilterBar.tsx` provides multi-select filter dropdowns (epics, labels, assignees, statuses) with quickfilter presets. It is used on `BacklogPage` and `SprintBoardTab`. The filter store is session-only.
-
-**Integration approach:** EXTEND existing filter bar for board-specific quick access
-
-| What Changes | File | Nature |
-|---|---|---|
-| Board quick filter chips | `routes/dashboard/BoardQuickFilters.tsx` | **Net-new** -- compact one-click filter chips |
-| Sprint board | `routes/dashboard/SprintBoardTab.tsx` | **Extend** -- render quick filter chips above columns |
-| Filter store | `stores/filter.store.ts` | **Extend** -- add board-specific preset logic |
-
-**Design:** Board quick filters are predefined one-click filter shortcuts that appear as chips above the sprint board columns. Unlike the full filter bar (which has dropdowns), these are instant toggles:
-- "Only My Issues" -- filters to current user
-- "Recently Updated" -- issues updated in last 24h
-- Status category chips -- "To Do" / "In Progress" / "Done"
-- Saved quickfilter presets (from settings store)
-
-**This leverages the existing filter infrastructure.** Each chip simply calls the appropriate `toggleAssignee/toggleStatus` actions. The only new code is the chip UI component and the board-specific preset definitions.
-
----
-
-## Component Responsibilities Summary
-
-| Component | Responsibility | New/Modified |
-|---|---|---|
-| `Sidebar.tsx` | Data-driven nav rendering from sidebar config | **Modified** |
-| `dashboard/index.tsx` | Widget grid layout engine | **Modified (rewrite)** |
-| `dashboard/widgets/` | Self-contained dashboard widgets | **Net-new directory** |
-| `issue-detail/ActivityTimeline.tsx` | Unified changelog + comments timeline | **Net-new** |
-| `issue-detail/TimeTrackingSection.tsx` | Time tracking display + worklog CRUD | **Net-new** |
-| `issue-detail/AttachmentsSection.tsx` | File list with inline preview | **Net-new** |
-| `CommentComposer.tsx` | Comment input with mention autocomplete | **Modified** |
-| `BulkOperationsBar.tsx` | Floating multi-select action bar | **Net-new** |
-| `BoardQuickFilters.tsx` | One-click filter chips for sprint board | **Net-new** |
-| `SavedFiltersPage.tsx` | Filter management UI | **Net-new** |
-
-## New Stores
-
-| Store | Persistence | Purpose |
-|---|---|---|
-| `dashboard.store.ts` | Tauri LazyStore | Widget layout config |
-| `selection.store.ts` | None (session) | Multi-select state for bulk ops |
-| `starred.store.ts` | Tauri LazyStore | Client-side issue starring |
-
-## New Service Modules
-
-| Module | Jira DC API Endpoints |
-|---|---|
-| `services/jira/changelog.ts` | `GET /issue/{key}/changelog` (paginated) |
-| `services/jira/watchers.ts` | `GET/POST/DELETE /issue/{key}/watchers` |
-| `services/jira/users.ts` | `GET /user/picker?query={prefix}` |
-| `services/jira/bulk.ts` | Parallel `PUT /issue/{key}` with concurrency control |
-
-**`services/jira/worklogs.ts`** -- already exists, needs major extension for full CRUD.
-
-## Modified Existing Stores
-
-| Store | Changes |
-|---|---|
-| `settings.store.ts` | Add `sidebarItems[]`, extend `QuickFilter` with view scope, version bump (9) |
-| `filter.store.ts` | Add view context, board-specific preset logic |
-
-## New Routes
-
-| Route | Component | Sidebar Entry |
-|---|---|---|
-| None new required | Saved filters can be a settings sub-page or sidebar item | Optional |
-
-**No new top-level routes needed.** All new features integrate into existing routes (issue detail page, dashboard, sprint board, backlog). If a dedicated saved filters page is desired, it would be a new route `/saved-filters`.
-
-## Data Flow Patterns
-
-### Widget Dashboard Data Flow
-```
-dashboard.store.ts (persisted widget config)
-    |
-    v
-Dashboard index.tsx (layout engine)
-    |
-    v (renders each widget by type)
-WidgetWrapper
-    |
-    v (each widget manages own data)
-SubtasksWidget --> useQuery(['jira-issues', 'my-tasks', ...])
-MrHealthWidget --> useQuery(['gitlab-mrs', ...])
-SprintHealthWidget --> useQuery(['jira-sprint-issues', ...])
+```bash
+npx tauri signer generate -w ~/.tauri/taskflow.key
 ```
 
-### Mention Autocomplete Data Flow
-```
-User types '@' in CommentComposer
-    |
-    v
-useMentionAutocomplete hook detects trigger
-    |
-    v
-useQuery(['jira-user-picker', prefix], { staleTime: 30s })
-    |
-    v
-MentionAutocomplete popover renders suggestions
-    |
-    v
-User selects -> insert [~username] at cursor position
-```
+This produces:
+- `~/.tauri/taskflow.key` (private key -- NEVER commit)
+- `~/.tauri/taskflow.key.pub` (public key -- goes in tauri.conf.json pubkey field)
 
-### Bulk Operations Data Flow
-```
-User checks issues (checkbox on list rows)
-    |
-    v
-selection.store.selectedKeys (Set<string>)
-    |
-    v
-BulkOperationsBar renders (when selectedKeys.size > 0)
-    |
-    v
-User picks action (e.g., "Transition to In Progress")
-    |
-    v
-bulkTransition(keys[], targetStatusId) in services/jira/bulk.ts
-    |
-    v
-Promise.allSettled(keys.map(k => transitionIssue(k, statusId)))
-    |  (max 5 concurrent)
-    v
-Progress callback -> UI progress bar
-    |
-    v
-queryClient.invalidateQueries(['jira-issues'])
-selection.store.clearAll()
-```
+CI environment variables needed:
+- `TAURI_SIGNING_PRIVATE_KEY` = contents of private key file
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` = password (can be empty string)
 
-## Recommended Project Structure (New Files)
+### GitHub Actions Workflow Structure
 
-```
-src/
-├── components/app/
-│   ├── Sidebar.tsx                    # MODIFIED: data-driven rendering
-│   └── BulkOperationsBar.tsx          # NET-NEW
-├── routes/dashboard/
-│   ├── index.tsx                      # MODIFIED: widget grid layout
-│   ├── widgets/
-│   │   ├── registry.ts               # NET-NEW: widget type -> component map
-│   │   ├── SubtasksWidget.tsx         # NET-NEW: wraps existing panel
-│   │   ├── MrHealthWidget.tsx         # NET-NEW: wraps existing panel
-│   │   ├── SprintHealthWidget.tsx     # NET-NEW: wraps existing panel
-│   │   ├── RecentActivityWidget.tsx   # NET-NEW
-│   │   └── TimeTrackingWidget.tsx     # NET-NEW
-│   ├── issue-detail/
-│   │   ├── ActivityTimeline.tsx       # NET-NEW
-│   │   ├── TimeTrackingSection.tsx    # NET-NEW
-│   │   ├── AttachmentsSection.tsx     # NET-NEW
-│   │   └── WorklogDialog.tsx          # NET-NEW
-│   ├── BoardQuickFilters.tsx          # NET-NEW
-│   ├── MentionAutocomplete.tsx        # NET-NEW
-│   └── CommentComposer.tsx            # MODIFIED: mention integration
-├── services/jira/
-│   ├── changelog.ts                   # NET-NEW
-│   ├── watchers.ts                    # NET-NEW
-│   ├── users.ts                       # NET-NEW
-│   ├── bulk.ts                        # NET-NEW
-│   ├── worklogs.ts                    # MODIFIED: full CRUD
-│   ├── index.ts                       # MODIFIED: new exports
-│   └── types.ts                       # MODIFIED: new interfaces
-├── stores/
-│   ├── dashboard.store.ts             # NET-NEW
-│   ├── selection.store.ts             # NET-NEW
-│   ├── starred.store.ts               # NET-NEW
-│   ├── settings.store.ts              # MODIFIED: sidebar items, version bump
-│   └── filter.store.ts               # MODIFIED: view scoping
-└── hooks/
-    └── useMentionAutocomplete.ts      # NET-NEW
+```yaml
+name: Release
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: '--target aarch64-apple-darwin'
+          - platform: macos-latest
+            args: '--target x86_64-apple-darwin'
+          - platform: ubuntu-22.04
+            args: ''
+          - platform: windows-latest
+            args: ''
+    runs-on: ${{ matrix.platform }}
+    steps:
+      # checkout, setup node, setup rust, install deps...
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.PUBLIC_REPO_PAT }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          owner: '<public-repo-owner>'
+          repo: '<public-repo-name>'
+          tagName: 'v__VERSION__'
+          releaseName: 'Taskflow v__VERSION__'
+          releaseBody: 'See release notes below.'
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}
 ```
 
-## Build Order (Dependency-Aware)
+Key points:
+- `owner` and `repo` target the public repo (not the private source repo)
+- `GITHUB_TOKEN` must be a PAT with `contents:write` on the public repo
+- `__VERSION__` is automatically replaced with the version from tauri.conf.json
+- `tauri-action` generates `latest.json` with platform-specific download URLs and signatures
 
-Features have the following dependency graph:
+## Build Order (Suggested Phase Sequence)
 
-```
-Saved Filters (6) -- extends existing quickfilters, no deps
-    |
-Board Quick Filters (10) -- depends on filter store extensions from (6)
+### Phase 1: Foundation (Rust Plugins + Config + Signing)
+Install plugins, configure updater, generate signing keys, set up version injection.
 
-Attachments Viewer (7) -- no deps, data already fetched
-Activity History (3) -- no deps, new service + UI
-Time Tracking (4) -- no deps, extends existing service
-Watchers/Starring (5) -- no deps, new service + UI
-Mention Autocomplete (8) -- no deps, new service + hook
+**Delivers:**
+- `tauri-plugin-updater` + `tauri-plugin-process` added to Cargo.toml
+- Plugins registered in lib.rs
+- `tauri.conf.json` configured with updater settings (pubkey, endpoints)
+- Permissions added to capabilities/default.json
+- `vite.config.ts` define block for build info env vars
+- JS packages installed: `@tauri-apps/plugin-updater`, `@tauri-apps/plugin-process`, `compare-versions`
 
-Customizable Sidebar (1) -- no deps, but affects navigation for all features
-Widget Dashboard (2) -- depends on (1) for sidebar link; wraps existing panels
+**Why first:** Everything else depends on the plugins being available and configured.
 
-Bulk Operations (9) -- depends on list views being stable; most complex
-```
+### Phase 2: Update Service + Store
+Create the service bridge and state management.
 
-**Recommended build order:**
+**Delivers:**
+- `src/services/update.ts` -- plugin bridge with typed wrapper
+- `src/services/version-policy.ts` -- policy fetcher via plugin-http
+- `src/stores/update.store.ts` -- state machine + persistence
+- `updateCheckIntervalHours` added to settings store (migration v10)
+- Tests for all above
 
-| Phase | Features | Rationale |
-|---|---|---|
-| **Phase 1** | Attachments Viewer (7), Activity History (3), Time Tracking (4) | Zero dependencies on other new features. All integrate into existing issue detail page. Low risk. |
-| **Phase 2** | Watchers/Starring (5), Mention Autocomplete (8) | Also issue detail page scope. Slightly more complex (new API endpoints, textarea integration). |
-| **Phase 3** | Saved Filters (6), Board Quick Filters (10) | Filter system extensions. Board quick filters depends on saved filters store changes. |
-| **Phase 4** | Customizable Sidebar (1) | Modifies global navigation. Should be done after issue-detail features are stable so sidebar items are finalized. |
-| **Phase 5** | Widget Dashboard (2) | Most architecturally impactful. Wraps existing panels into widgets. Best done last when all other features are stable. |
-| **Phase 6** | Bulk Operations (9) | Most complex (multi-select across views, progress tracking, error aggregation). Benefits from stable list views. |
+**Why second:** UI components need the service and store to function.
 
-**Phase ordering rationale:**
-1. Start with contained, low-risk issue detail features (phases 1-2) to ship value early
-2. Filter enhancements (phase 3) are self-contained and extend proven patterns
-3. Sidebar customization (phase 4) changes global navigation -- do after feature set is known
-4. Dashboard redesign (phase 5) wraps existing panels, best done when panels are stable
-5. Bulk operations (phase 6) touches multiple views and is the most complex integration
+### Phase 3: Update Check + Prompt Dialog
+Wire up periodic checking and the user-facing update prompt.
 
-## Anti-Patterns to Avoid
+**Delivers:**
+- `src/hooks/useUpdateCheck.ts` -- periodic check with TanStack Query
+- `src/components/app/UpdatePromptDialog.tsx` -- changelog display, progress bar, Update Now / Later
+- Mount useUpdateCheck in AppLayout
+- Tests
 
-### Anti-Pattern 1: Prop-Threading Credentials to Widgets
+**Why third:** Core update UX -- the minimum viable update experience.
 
-**What people do:** Pass `jiraBaseUrl`, `jiraToken`, `gitlabBaseUrl`, `gitlabToken` through dashboard -> widget wrapper -> widget component (3+ levels).
-**Why it's wrong:** Dashboard index.tsx already does this and it is the heaviest code in the file. With N widgets, the prop threading explodes.
-**Do this instead:** Each widget reads credentials directly from `useAuthStore()` and `readSecret()`, matching the pattern used by every other route-level component. The dashboard page becomes a pure layout engine with zero prop threading.
+### Phase 4: Version Policy Enforcement
+Add force-update behavior for soft and hard minimum versions.
 
-### Anti-Pattern 2: Shared Selection State in Filter Store
+**Delivers:**
+- `src/components/app/ForceUpdateBanner.tsx` -- soft nag (dismissible per session)
+- `src/components/app/ForceUpdateBlocker.tsx` -- hard block (full-screen modal, no dismiss)
+- Mount in AppLayout with version comparison logic
+- `version-policy.json` template for public repo
+- Tests
 
-**What people do:** Add `selectedIssueKeys` to the existing `filter.store.ts`.
-**Why it's wrong:** Filter state is about what to show. Selection state is about what to act on. Mixing them makes clearing filters accidentally clear selections.
-**Do this instead:** Create a separate `selection.store.ts` with its own lifecycle.
+**Why fourth:** Depends on update service (Phase 2) and update dialog (Phase 3) being functional.
 
-### Anti-Pattern 3: Fetching Changelog on Every Issue Load
+### Phase 5: Settings Integration + Version History
+Add user-configurable update settings and release history view.
 
-**What people do:** Add `expand=changelog` to `fetchIssueDetail`.
-**Why it's wrong:** Changelog can be large (100+ entries) and is only shown on the Activity tab. Loading it eagerly doubles the issue detail payload.
-**Do this instead:** Fetch changelog lazily via a separate TanStack Query hook, only when the Activity tab is selected. Keep `fetchIssueDetail` lean.
+**Delivers:**
+- `src/routes/settings/UpdateSettingsSection.tsx` -- check frequency dropdown, current version display, Check Now button
+- `src/routes/settings/VersionHistorySection.tsx` -- fetch GitHub releases API, render markdown changelogs
+- Modify Settings.tsx to add "Updates" section (7th sidebar item)
+- Tests
 
-### Anti-Pattern 4: Rich Text Editor for Mention Autocomplete
+**Why fifth:** Nice-to-have UI that depends on all prior infrastructure being in place.
 
-**What people do:** Replace the textarea with a rich text editor (ProseMirror, TipTap, Slate) to get mention support.
-**Why it's wrong:** Jira DC expects wiki markup strings, not rich text. A WYSIWYG editor would need to serialize back to wiki markup, adding massive complexity and a new dependency.
-**Do this instead:** Keep the plain textarea. Intercept `@` keystrokes, show a positioned popover, and insert `[~username]` wiki markup on selection. Simple, reliable, and consistent with DC's markup format.
+### Phase 6: About Dialog + Menu Integration
+Custom About dialog replacing macOS default, accessible cross-platform.
 
-## Integration Points
+**Delivers:**
+- `src/components/app/AboutDialog.tsx` -- version, build info, update status
+- Modify lib.rs: replace `PredefinedMenuItem::about` with custom menu item emitting event
+- Add Help > About menu item for cross-platform access
+- Frontend event listener to open dialog
+- Register keyboard shortcut if desired
+- Tests
 
-### Jira DC REST API v2 Endpoints (New)
+**Why sixth:** Self-contained feature with dependency on update store for status display.
 
-| Endpoint | Feature | Auth | Notes |
-|---|---|---|---|
-| `GET /issue/{key}/changelog` | Activity History | Bearer PAT | Paginated, 100 per page |
-| `GET /issue/{key}/watchers` | Watchers | Bearer PAT | Returns count + watcher list |
-| `POST /issue/{key}/watchers` | Watchers | Bearer PAT | Body: `"username"` (plain string) |
-| `DELETE /issue/{key}/watchers?username=X` | Watchers | Bearer PAT | DC uses `username`, not `accountId` |
-| `GET /issue/{key}/worklog` | Time Tracking | Bearer PAT | Already paginated in `client.ts` |
-| `POST /issue/{key}/worklog` | Time Tracking | Bearer PAT | Body: `{ timeSpent, started, comment }` |
-| `PUT /issue/{key}/worklog/{id}` | Time Tracking | Bearer PAT | Same body as POST |
-| `DELETE /issue/{key}/worklog/{id}` | Time Tracking | Bearer PAT | 204 on success |
-| `GET /user/picker?query=X` | Mentions | Bearer PAT | Returns `{ users: [{ name, displayName }] }` |
+### Phase 7: CI Pipeline
+GitHub Actions workflow for automated cross-platform builds and release publishing.
 
-### Internal Boundaries
+**Delivers:**
+- `.github/workflows/release.yml` -- full matrix build workflow
+- Signing key generation + secrets configuration guide
+- Tag-based version derivation (git tag -> app version)
+- Documentation for the release process
+- End-to-end pipeline test
 
-| Boundary | Communication | Considerations |
-|---|---|---|
-| Dashboard <-> Widgets | Props (layout config only) | Widgets read auth/settings from stores directly |
-| IssueDetailPage <-> New sections | Props (issue data) | Changelog fetched separately (lazy) |
-| BulkOpsBar <-> List views | selection.store (Zustand) | Bar floats above content, reads from store |
-| Sidebar <-> settings.store | Zustand subscription | Sidebar re-renders on sidebarItems change |
-| CommentComposer <-> MentionAutocomplete | Hook return values | Hook manages popover state, composer manages text |
+**Why last:** Needs all app-side code complete to test the full flow. This is also the only phase requiring manual GitHub repository setup (creating the public repo, configuring secrets).
+
+## Anti-Patterns
+
+### Anti-Pattern 1: Blocking UI During Update Check
+
+**What people do:** Show a loading spinner or block the entire app while checking for updates.
+**Why it is wrong:** Update checks are background operations. Blocking degrades the core Jira/GitLab experience for a secondary concern.
+**Do this instead:** Check silently in the background. Only show UI when an update is actually available. Never block app startup for an update check (unless hard minimum violation).
+
+### Anti-Pattern 2: Auto-Installing Without Consent
+
+**What people do:** Download and install updates automatically without user confirmation.
+**Why it is wrong:** Users lose work context if the app restarts unexpectedly. Erodes trust, especially for a productivity tool.
+**Do this instead:** Always prompt with UpdatePromptDialog. Show what is changing (changelog). Offer "Later" option. Only auto-block for hard minimum violations, and even then show what is happening.
+
+### Anti-Pattern 3: Hardcoding Version in Multiple Places
+
+**What people do:** Manually update version in tauri.conf.json, Cargo.toml, package.json, and TypeScript constants.
+**Why it is wrong:** Versions drift. Builds ship with wrong version strings. CI builds become fragile.
+**Do this instead:** Single source of truth: git tag. CI reads the tag and injects into tauri.conf.json at build time. The frontend reads version from `__APP_VERSION__` env var or Tauri's `app.getVersion()` API at runtime.
+
+### Anti-Pattern 4: Failing Closed on Policy Fetch Error
+
+**What people do:** Block the app if version-policy.json cannot be fetched (network down, GitHub outage).
+**Why it is wrong:** Users cannot use the app offline or during GitHub outages. A distribution concern should never brick the core product.
+**Do this instead:** Fail-open. If policy cannot be fetched, assume current version is acceptable. Cache the last successful policy response with a TTL (e.g., 24 hours).
+
+### Anti-Pattern 5: Using fetch() Instead of plugin-http for GitHub API
+
+**What people do:** Call GitHub's API with browser fetch() in the webview.
+**Why it is wrong:** In Tauri 2, webview fetch() can trigger CORS issues. The existing codebase already solved this with tauri-plugin-http.
+**Do this instead:** Use the same plugin-http apiFetch() wrapper for GitHub API calls (version history, version policy) as is used for all Jira/GitLab calls. Consistency matters.
+
+### Anti-Pattern 6: Storing Signing Keys in the Repository
+
+**What people do:** Commit the Tauri signing private key to the repository.
+**Why it is wrong:** Anyone with repo access can sign malicious updates that the app will accept as legitimate.
+**Do this instead:** Store the private key ONLY in GitHub Actions secrets. The public key (which goes in tauri.conf.json) is safe to commit -- it can only verify, not sign.
 
 ## Sources
 
-- [Jira DC REST API v2 Reference (9.14.0)](https://docs.atlassian.com/software/jira/docs/api/REST/9.14.0/)
-- [Jira DC Changelog via REST API](https://support.atlassian.com/jira/kb/how-to-analyze-the-history-or-changelog-of-an-issue-in-jira/)
-- [Jira Changelog Pagination Limitation](https://community.atlassian.com/forums/Jira-questions/Rest-API-limiting-changelog-history-results-to-100-even-if/qaq-p/1466525)
-- [Jira DC Bulk Update Approach](https://support.atlassian.com/jira/kb/update-issues-based-on-jql-with-rest-api-in-jira-data-center/)
-- [Jira User Picker API](https://docs.atlassian.com/software/jira/docs/api/REST/9.14.0/)
-- Full codebase audit of `/Users/mimo/Desktop/Tasker/taskflow/src/` (2026-03-22)
+- [Tauri Updater Plugin Official Docs](https://v2.tauri.app/plugin/updater/) -- HIGH confidence
+- [Tauri GitHub Actions Pipeline](https://v2.tauri.app/distribute/pipelines/github/) -- HIGH confidence
+- [Tauri Updater JS API Reference](https://v2.tauri.app/reference/javascript/updater/) -- HIGH confidence
+- [Tauri Process Plugin](https://v2.tauri.app/plugin/process/) -- HIGH confidence
+- [tauri-apps/tauri-action GitHub](https://github.com/tauri-apps/tauri-action) -- HIGH confidence
+- [compare-versions npm](https://www.npmjs.com/package/compare-versions) -- HIGH confidence
+- [Private repo to public repo release strategy](https://github.com/tauri-apps/tauri/discussions/7553) -- MEDIUM confidence (community discussion, verified against tauri-action docs)
+- [Tauri v2 Auto-Update Blog Post](https://thatgurjot.com/til/tauri-auto-updater/) -- MEDIUM confidence (blog, cross-verified with official docs)
 
 ---
-*Architecture research for: Taskflow v1.5 feature integration*
-*Researched: 2026-03-22*
+*Architecture research for: Taskflow v1.6 Release Pipeline & Auto-Update*
+*Researched: 2026-03-24*

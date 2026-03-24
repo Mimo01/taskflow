@@ -1,7 +1,7 @@
 # Stack Research
 
-**Domain:** Desktop app feature expansion (dashboard widgets, sidebar persistence, activity timeline, attachments preview, mention autocomplete, bulk operations)
-**Researched:** 2026-03-22
+**Domain:** Release pipeline, auto-update, and version management for Tauri 2 desktop app
+**Researched:** 2026-03-24
 **Confidence:** HIGH
 
 ## Context: Existing Stack (DO NOT re-add)
@@ -13,194 +13,284 @@ These are already installed and validated. Listed here only to prevent duplicate
 - TypeScript 5.9, Vite 8, Vitest 4
 - Zustand 5, TanStack Query 5, TanStack React Virtual 3
 - shadcn/ui (via @base-ui/react 1.2), Tailwind v4, tailwind-merge 3, CVA 0.7, clsx 2
-- @dnd-kit/core 6.3, @dnd-kit/utilities 3.2 (used in SprintBoardTab)
-- lucide-react 0.577 (icons)
+- @dnd-kit/core 6.3, @dnd-kit/utilities 3.2, @dnd-kit/sortable 10, @dnd-kit/modifiers 9
+- lucide-react 0.577, react-grid-layout 2.2
 - react-markdown 10.1, jira2md 3.0, rehype-raw 7, remark-gfm 4
 - react-hotkeys-hook 5.2, cmdk 1.1
 - Biome 2.4, @testing-library/react 16.3
 
 ## Recommended New Dependencies
 
-### Widget Dashboard Layout
+### Tauri Plugins (Rust + JS)
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| react-grid-layout | ^2.2.2 | Drag-and-drop resizable widget grid | Purpose-built for dashboard widget layouts. Provides 12-column responsive grid with drag, resize, snap, and serializable layout state. Peer dep `react >= 16.3.0` covers React 19. Includes TypeScript types. 20K+ GitHub stars, active maintenance. The alternative of building grid layout on top of @dnd-kit would require reimplementing collision detection, resize handles, and grid snapping -- weeks of work that react-grid-layout provides out of the box. |
+| tauri-plugin-updater (Rust crate) | 2 | In-app update check, download, install with signature verification | Official Tauri 2 updater plugin. Handles platform-specific binary replacement (NSIS on Windows, tar.gz on macOS/Linux), Ed25519 signature verification, and configurable install modes. Generates signed `.sig` files alongside bundles. Required for `createUpdaterArtifacts` in tauri.conf.json. |
+| @tauri-apps/plugin-updater (JS) | ^2.10.0 | Frontend API: `check()`, `downloadAndInstall()` with progress events | JavaScript guest bindings. Version >= 2.10.0 required because tauri-action v1 now generates `latest.json` with `{os}-{arch}-{installer}` keys -- older JS bindings cannot parse this format. |
+| tauri-plugin-process (Rust crate) | 2 | App relaunch after update install | Provides `relaunch()` capability. Required because after `downloadAndInstall()` completes, the app must restart to load the new binary. The updater plugin does not include relaunch -- it is a separate concern. |
+| @tauri-apps/plugin-process (JS) | ^2.3.1 | Frontend `relaunch()` call | `import { relaunch } from '@tauri-apps/plugin-process'` -- called after update install. Also provides `exit()` if needed for force-update hard block. |
 
-**Integration notes:**
-- Layout state serializes to JSON -- persist to Tauri Store (same pattern as pinned tabs / settings)
-- @dnd-kit remains for sprint board card dragging; react-grid-layout handles only the dashboard widget grid -- no conflict, different DOM trees
-- Responsive breakpoints via `WidthProvider(Responsive)` wrapper
-- CSS import required: `react-grid-layout/css/styles.css` + `react-resizable/css/styles.css`
-
-### Attachments Preview
+### Frontend Libraries
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| react-pdf | ^10.4.1 | PDF rendering in attachments viewer | Lightweight wrapper around PDF.js for React. 309 kB bundle (most is PDF.js worker). Supports React 16.8+. Renders individual pages with zoom control. 10K+ GitHub stars, actively maintained by wojtekmaj. |
-| yet-another-react-lightbox | ^3.29.1 | Image lightbox for attachment thumbnails | Modern lightbox with keyboard nav, touch support, zoom plugin. Works with React 16.8+ including 19. Zero-dependency core (14 kB gzip). Plugin architecture means only load what you need (zoom, thumbnails, download). |
+| compare-versions | ^6.1.0 | Semver comparison for force-update policy | Zero-dependency, ~1KB gzipped, ESM-native. Needed to compare `getVersion()` against soft/hard minimum versions from the version policy file. The `semver` package (98KB) is overkill -- we only need `compareVersions(a, b)` returning -1/0/1, not range matching or coercion. |
 
-**Integration notes:**
-- Image attachments: render `<img>` thumbnails, click opens yet-another-react-lightbox
-- PDF attachments: render first page thumbnail via react-pdf `<Page>`, click opens full PDF viewer modal
-- Other file types (zip, doc, etc.): show file icon + download link via Tauri opener plugin
-- Jira attachment URLs require auth headers -- fetch blob via tauri-plugin-http, create object URL for rendering
+### CI/CD Tools (GitHub Actions)
 
-### Mention Autocomplete
+| Tool | Version/Ref | Purpose | Why Recommended |
+|------|-------------|---------|-----------------|
+| tauri-apps/tauri-action | v1 | Cross-platform Tauri build + GitHub Release creation + `latest.json` generation | Official action; v1 is current stable (v0 is legacy). Handles all platform-specific bundling, generates signed update artifacts, uploads to GitHub Releases, and creates the `latest.json` updater endpoint file. Supports `owner`/`repo` params for cross-repo publishing. |
+| actions/checkout | v4 | Source checkout in CI | Standard; required by tauri-action |
+| actions/setup-node | v4 | Install Node.js LTS in CI | Use with `cache: 'npm'` and `cache-dependency-path: 'taskflow/package-lock.json'` for fast installs |
+| dtolnay/rust-toolchain | @stable | Install stable Rust in CI | Preferred over deprecated actions-rs/toolchain; simpler, maintained |
+| swatinem/rust-cache | v2 | Cache Rust compilation artifacts | Saves 5-10 minutes per build; cache key auto-generated from Cargo.lock |
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| react-mentions-ts | ^4.5.0 | @mention autocomplete in comment textarea | TypeScript-first fork of react-mentions, built for React 19. Supports multiple triggers (@user, #label), async data loading for user search, and Tailwind v4 styling. The original react-mentions (v4.4.10) is unmaintained for 3+ years and lacks React 19 support. |
+## Installation
 
-**Integration notes:**
-- Replace plain `<textarea>` in comment input with `<MentionsInput>`
-- Data source: Jira project members from existing `fetchAssignableUsers` API
-- Mention markup format: `[~accountId]` for Jira DC (wiki markup mention syntax)
-- Style with Tailwind classes to match existing shadcn/ui form field aesthetics
-- Falls back to plain text if no users match -- graceful degradation
+```bash
+# Frontend (from taskflow/ directory)
+npm install @tauri-apps/plugin-updater @tauri-apps/plugin-process compare-versions
 
-## What NOT to Add (Build with Existing Stack Instead)
+# Rust (from taskflow/src-tauri/ directory)
+cargo add tauri-plugin-updater --target 'cfg(any(target_os = "macos", windows, target_os = "linux"))'
+cargo add tauri-plugin-process --target 'cfg(any(target_os = "macos", windows, target_os = "linux"))'
 
-### Activity History Timeline
+# One-time: generate signing keypair
+npx tauri signer generate -- -w ~/.tauri/taskflow.key
+```
 
-**Do NOT add:** react-chrono, react-vertical-timeline-component, or any timeline library.
+No new dev dependencies needed.
 
-**Why:** An activity timeline is a simple vertical list of timestamped entries with icons. The app already has shadcn/ui primitives (Card, Badge, ScrollArea), lucide-react icons, and Tailwind utilities. A custom `<ActivityTimeline>` component is ~50 lines of markup -- a library adds bundle weight and styling conflicts for no benefit.
+## Configuration Changes Required
 
-**Build with:**
-- Tailwind `border-l` for the vertical line
-- lucide-react icons for event types (MessageSquare, ArrowRight, Edit, Clock)
-- `@tanstack/react-virtual` for long histories
-- Data source: Jira `/issue/{key}/changelog` API + existing comments
+### tauri.conf.json additions
 
-### Customizable Sidebar Persistence
+```jsonc
+{
+  "bundle": {
+    "createUpdaterArtifacts": true  // NEW: generates .sig files + latest.json
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "<GENERATED_PUBLIC_KEY>",
+      "endpoints": [
+        "https://github.com/<ORG>/<PUBLIC_REPO>/releases/latest/download/latest.json"
+      ]
+    }
+  }
+}
+```
 
-**Do NOT add:** Any new library.
+The `version` field should be set to `"0.0.0-dev"` as a placeholder -- CI injects the real version from git tags (see Version Injection below).
 
-**Why:** Sidebar configuration is a settings object (ordered list of nav items + visibility flags). Persist to Tauri Store via existing `LazyStore` pattern (same as pinned tabs, settings, dev tools config). Zustand slice with persist middleware handles the in-memory state.
+### lib.rs additions
 
-**Build with:**
-- Zustand persist (already in use for 4+ stores)
-- @tauri-apps/plugin-store LazyStore (already in use)
-- @dnd-kit/core for sidebar item reordering (already installed)
+```rust
+// Add to tauri::Builder::default().setup(|app| { ... })
+#[cfg(desktop)]
+app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
+#[cfg(desktop)]
+app.handle().plugin(tauri_plugin_process::init())?;
+```
 
-### Bulk Operations UI
+### Capabilities (src-tauri/capabilities/)
 
-**Do NOT add:** Any new library.
+Add to the default capability file:
+- `"updater:default"` -- allows check, download, install
+- `"process:default"` -- allows relaunch and exit
 
-**Why:** Bulk operations is a selection model (checkbox per row) + action toolbar. The app already has shadcn/ui Checkbox, DropdownMenu, Button, and Toast. Selection state is a `Set<string>` in component state or a lightweight Zustand slice.
+## CI/CD Architecture
 
-**Build with:**
-- shadcn/ui Checkbox for row selection
-- shadcn/ui DropdownMenu for bulk action menu
-- Shift+click range selection via existing react-hotkeys-hook
-- Optimistic updates via existing TanStack Query mutation pattern
+### Version Injection from Git Tags
 
-### Board Quick Filters
+Tauri reads `version` from `tauri.conf.json` at build time. The `--config` flag applies JSON Merge Patch (RFC 7396), allowing build-time overrides without modifying the source file.
 
-**Do NOT add:** Any new library.
+**Strategy:**
+1. **Tag format:** `v1.6.0` pushed to the private repo triggers the workflow
+2. **Version extraction:** `APP_VERSION="${GITHUB_REF#refs/tags/v}"`
+3. **Config override:** Pass to tauri-action via `args: --config '{"version":"${{ env.APP_VERSION }}"}'`
+4. **Result:** `tauri.conf.json` keeps placeholder `"0.0.0-dev"`, CI builds with the real version, no manual bumps, no git dirty state
 
-**Why:** Quick filters are toggle buttons that filter the existing board data. The app already has shadcn/ui Toggle/ToggleGroup, and filtering is a query parameter or Zustand state that feeds into `useMemo` on the board data.
+### Cross-Repo Release Publishing
 
-**Build with:**
-- shadcn/ui ToggleGroup for filter chips
-- Zustand for filter state persistence
-- Existing TanStack Query `select` transforms for filtered views
+The workflow runs on the **private** repo but publishes releases to a **public** repo:
 
-### Saved Filters
+1. **GitHub PAT:** Create a fine-grained personal access token with `contents: write` permission scoped to the public repo only. Store as `PUBLIC_REPO_RELEASE_TOKEN` in the private repo's secrets.
+2. **tauri-action config:** Use `owner` and `repo` inputs:
+   ```yaml
+   - uses: tauri-apps/tauri-action@v1
+     env:
+       GITHUB_TOKEN: ${{ secrets.PUBLIC_REPO_RELEASE_TOKEN }}
+     with:
+       owner: <org>
+       repo: <public-repo>
+       tagName: v__VERSION__
+       releaseName: "Taskflow v__VERSION__"
+       releaseDraft: true
+       generateReleaseNotes: true
+   ```
+3. `__VERSION__` is auto-replaced by tauri-action with the version from the (overridden) tauri.conf.json.
+4. `releaseDraft: true` means releases are created as drafts -- a human reviews and publishes. Once published, the updater endpoint goes live.
 
-**Do NOT add:** Any new library.
+**Why `GITHUB_TOKEN` (workflow token) does NOT work:** It is scoped to the repo running the workflow. Cross-repo writes require a PAT.
 
-**Why:** Saved filters are serialized filter objects stored in Tauri Store. Same persistence pattern used 4+ times already.
+### GitHub Actions Matrix
 
-**Build with:**
-- Zustand persist + LazyStore
-- shadcn/ui Dialog for save/edit filter
+```yaml
+strategy:
+  fail-fast: false
+  matrix:
+    include:
+      - platform: macos-latest
+        args: --target aarch64-apple-darwin
+      - platform: macos-latest
+        args: --target x86_64-apple-darwin
+      - platform: ubuntu-22.04
+        args: ""
+      - platform: windows-latest
+        args: ""
+```
 
-### Time Tracking / Worklogs
+### Required GitHub Secrets (Private Repo)
 
-**Do NOT add:** Any new library.
+| Secret | Purpose |
+|--------|---------|
+| `TAURI_SIGNING_PRIVATE_KEY` | Ed25519 private key content (NOT path) for signing update bundles |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Password for the signing key (set during `signer generate`) |
+| `PUBLIC_REPO_RELEASE_TOKEN` | Fine-grained PAT with `contents: write` on the public repo |
 
-**Why:** Worklog display is a table of time entries. Worklog input is hours/minutes fields. No specialized library needed.
+### Build Environment Variables
 
-**Build with:**
-- shadcn/ui Input, Table, Dialog
-- Jira REST API: `POST /issue/{key}/worklog`
+```yaml
+env:
+  TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+  TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+```
 
-### Watchers / Starring
+Must be set on the build step; the Tauri CLI reads them to generate `.sig` signature files and the `latest.json` manifest.
 
-**Do NOT add:** Any new library.
+## Fetching GitHub Release Notes in the App
 
-**Why:** Star is a toggle button. Watchers is a list with add/remove. Trivial UI.
+Use the existing `tauri-plugin-http` to call the GitHub REST API. **No new dependencies needed** -- the public repo requires no authentication.
 
-**Build with:**
-- lucide-react Star/Eye icons
-- shadcn/ui Button, Popover
+### API Endpoints
+
+| Endpoint | Purpose | Auth |
+|----------|---------|------|
+| `GET /repos/{owner}/{repo}/releases/latest` | Latest release with body (markdown changelog) | None (public repo) |
+| `GET /repos/{owner}/{repo}/releases` | All releases for version history page | None (public repo) |
+| `GET /repos/{owner}/{repo}/releases/tags/{tag}` | Specific release by tag | None (public repo) |
+
+### Response Shape (relevant fields)
+
+```typescript
+interface GitHubRelease {
+  tag_name: string;        // "v1.6.0"
+  name: string;            // "Taskflow v1.6.0"
+  body: string;            // Markdown changelog
+  published_at: string;    // ISO 8601
+  prerelease: boolean;
+  html_url: string;        // Link to release page on GitHub
+}
+```
+
+Render `body` with existing `react-markdown` + `remark-gfm` + `rehype-raw` pipeline -- already installed and used for Jira issue descriptions.
+
+### Version Policy File
+
+Host `version-policy.json` as a release asset on the public repo (or at a raw.githubusercontent.com URL):
+
+```json
+{
+  "softMinimum": "1.5.0",
+  "hardMinimum": "1.4.0",
+  "message": "Please update for the latest features and bug fixes."
+}
+```
+
+Fetch alongside release data. Use `compare-versions` to check `getVersion()` against thresholds.
+
+## Existing Stack Reuse Summary
+
+These existing dependencies cover v1.6 needs without new additions:
+
+| Existing Dep | Reused For |
+|--------------|------------|
+| @tauri-apps/api | `getVersion()`, `getName()`, `getTauriVersion()` for About dialog |
+| @tauri-apps/plugin-http | Fetching GitHub Releases API and version policy file |
+| react-markdown + remark-gfm + rehype-raw | Rendering changelog markdown in update dialog and version history |
+| TanStack Query | Caching release data with stale-while-revalidate; configurable `refetchInterval` for update checks |
+| Zustand + tauri-plugin-store | Persisting update preferences (check frequency, dismissed versions, last check timestamp) |
+| shadcn/ui Dialog + AlertDialog | Update prompt, force-update block, About modal |
+| lucide-react | Icons: Download, RefreshCw, Info, AlertTriangle, CheckCircle |
 
 ## Alternatives Considered
 
-| Recommended | Alternative | Why Not |
-|-------------|-------------|---------|
-| react-grid-layout | Build on @dnd-kit/core | @dnd-kit lacks grid snapping, resize handles, and responsive breakpoints. Would require 500+ lines of custom collision/layout logic to match react-grid-layout's out-of-box behavior. |
-| react-grid-layout | gridstack.js | JavaScript-first library, clunky React integration, relies on DOM selectors rather than React component model. |
-| react-pdf | @react-pdf/renderer | @react-pdf/renderer is for PDF *generation*, not viewing. Different use case entirely. |
-| react-pdf | pdfme | Focused on PDF generation/template editing, not viewing. |
-| yet-another-react-lightbox | react-image-lightbox | Deprecated, no React 18/19 support, unmaintained since 2021. |
-| yet-another-react-lightbox | lightGallery | jQuery heritage, heavier bundle, commercial license for some features. |
-| react-mentions-ts | react-mentions (original) | Last published 3+ years ago, no React 19 types, no Tailwind support. |
-| react-mentions-ts | Draft.js + mention plugin | Massive bundle (300+ kB), Facebook deprecated Draft.js, overkill for a comment textarea. |
-| react-mentions-ts | TipTap/ProseMirror | Full rich-text editor is overkill -- comments are plain text with @mentions, not WYSIWYG. Jira DC uses wiki markup, not HTML. |
-| Custom timeline | react-chrono | 100+ kB bundle for what is a styled `<ul>`. Styling conflicts with Tailwind/shadcn. |
+| Recommended | Alternative | When to Use Alternative |
+|-------------|-------------|-------------------------|
+| tauri-plugin-updater | CrabNebula Cloud | If you need update analytics, staged rollouts, or a managed CDN; adds cost and vendor dependency -- unnecessary for this team size |
+| GitHub Releases endpoint | Self-hosted update server | If GitHub is blocked on user machines or you need geographic CDN; GitHub Releases CDN is fast and free for public repos |
+| compare-versions | semver (npm) | If you need range matching (`^1.2.3`, `~1.2.x`); compare-versions is sufficient for the gt/lt/eq checks that force-update policy requires |
+| tauri-action v1 | Manual `tauri build` in CI | If you need non-standard artifact processing; tauri-action handles 95% of cases and auto-generates `latest.json` |
+| Fine-grained PAT | GitHub App installation token | If the org has many repos needing cross-repo access; overkill for one target repo |
+| `--config` JSON merge for version | sed/jq to edit tauri.conf.json | `--config` is cleaner -- no file mutations, no git dirty state, and is the officially documented approach |
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| react-beautiful-dnd | Deprecated, unmaintained, no React 18/19 support | @dnd-kit/core (already installed) |
-| Draft.js | Deprecated by Facebook, massive bundle, no React 19 support | react-mentions-ts for @mention; react-markdown for rendering |
-| Slate.js / TipTap / ProseMirror | Overkill rich-text editors for a comment field that outputs Jira wiki markup | react-mentions-ts |
-| react-image-lightbox | Unmaintained since 2021, broken with React 18+ | yet-another-react-lightbox |
-| @react-pdf-viewer/core | Heavier than react-pdf, more complex API, commercial features gated | react-pdf |
-| Any CSS-in-JS library (styled-components, emotion) | Project uses Tailwind v4 exclusively, mixing paradigms causes maintenance burden | Tailwind utility classes |
+| electron-updater | Electron-specific; incompatible with Tauri | tauri-plugin-updater |
+| Sparkle (macOS framework) | macOS-only; Tauri already abstracts platform update mechanisms | tauri-plugin-updater handles all platforms |
+| Polling from Rust main process | Adds HTTP complexity in Rust; existing patterns use renderer-side HTTP | Fetch from frontend with tauri-plugin-http + TanStack Query |
+| `GITHUB_TOKEN` for cross-repo releases | Scoped to workflow repo; cannot write to other repos | Fine-grained PAT as `PUBLIC_REPO_RELEASE_TOKEN` |
+| Manual version bumps in tauri.conf.json | Error-prone, merge conflicts, easy to forget | Git tag + `--config` override |
+| semver (98KB) | Massive for simple comparison; includes range parsing, coercion, prerelease logic we do not need | compare-versions (1KB, zero deps) |
+| Custom update server | Operational overhead for hosting, monitoring, and CDN | GitHub Releases (free, reliable, globally cached) |
 
-## Installation
+## Platform-Specific Notes
 
-```bash
-# New dependencies for v1.5
-npm install react-grid-layout react-pdf yet-another-react-lightbox react-mentions-ts
+### Windows
+- Updater uses NSIS installer; `installMode` options: `"passive"` (progress bar, no interaction -- recommended), `"basicUi"`, `"quiet"`
+- App process **exits** during NSIS install; the new version auto-launches afterward
+- Consider `on_before_exit` hook only if app needs to save state before forced exit (unlikely -- Zustand persist already saves on change)
 
-# No new dev dependencies needed -- existing Biome, Vitest, Testing Library cover all new code
-```
+### macOS
+- Uses `.tar.gz` bundle replacement; app does **not** exit during install
+- `relaunch()` required to switch to the new version
+- Two matrix entries needed: `aarch64-apple-darwin` (Apple Silicon) and `x86_64-apple-darwin` (Intel)
+- Universal binary (`--target universal-apple-darwin`) is possible but requires both toolchains on the runner and doubles macOS build time
+
+### Linux
+- Uses `.AppImage` as primary format with `.tar.gz` for updates
+- AppImage is portable (no installer) -- matches the project constraint
+- Linux ARM64 runners only available for public repos on GitHub Actions free tier; private repos need self-hosted runners or emulation (slow)
+- For this project, x86_64 Linux is sufficient unless ARM users emerge
 
 ## Version Compatibility
 
 | Package | Compatible With | Notes |
 |---------|-----------------|-------|
-| react-grid-layout@2.2.2 | React >= 16.3.0 | Peer dep is permissive; React 19 works. Includes own TS types (no @types/ needed). |
-| react-pdf@10.4.1 | React >= 16.8.0 | Uses PDF.js worker -- configure worker URL in Vite. Tauri CSP may need `worker-src` adjustment. |
-| yet-another-react-lightbox@3.29.1 | React >= 16.8.0 | Zero-dep core. Plugins loaded via separate imports (tree-shakeable). |
-| react-mentions-ts@4.5.0 | React >= 19.0.0 | TypeScript-first, Tailwind v4 compatible. Uses @testing-library/user-event for tests (already installed). |
-
-## Tauri-Specific Considerations
-
-| Concern | Approach |
-|---------|----------|
-| PDF.js worker in Tauri webview | Bundle worker inline via `pdfjs-dist/build/pdf.worker.min.mjs` import, or copy to public/ and set workerSrc. Test in both dev and production builds. |
-| Attachment URLs behind auth | Fetch attachment content via tauri-plugin-http (bypasses CORS), convert to blob URL for react-pdf/lightbox. Do NOT use `<img src={jiraUrl}>` directly -- auth headers required. |
-| CSP for PDF worker | May need to add `worker-src 'self' blob:` to Tauri CSP config in `tauri.conf.json`. |
-| react-grid-layout CSS | Import CSS files in main entry point. Tailwind v4 PostCSS pipeline does not interfere with external CSS imports. |
-| Widget layout persistence | Serialize react-grid-layout's `Layout[]` to Tauri Store. Same LazyStore pattern as settings. |
+| tauri-plugin-updater 2.x | tauri 2.x (Cargo.toml) | Must match major version; use `2` for latest compatible minor |
+| @tauri-apps/plugin-updater ^2.10.0 | @tauri-apps/api ^2 | >= 2.10.0 required for new `latest.json` format |
+| tauri-plugin-process 2.x | tauri 2.x | Same plugin workspace; versions track together |
+| @tauri-apps/plugin-process ^2.3.1 | @tauri-apps/api ^2 | Straightforward compatibility |
+| tauri-action v1 | Tauri 2.x | Requires Node v24+ on runners (GitHub runner >= v2.327.1); `ubuntu-22.04` or `ubuntu-latest` both work |
+| compare-versions ^6.1.0 | Any modern JS | Zero dependencies; ESM with CJS fallback; works in Vite/Tauri webview |
 
 ## Sources
 
-- [react-grid-layout GitHub](https://github.com/react-grid-layout/react-grid-layout) -- version 2.2.2, peer deps verified via package.json (React >= 16.3.0)
-- [react-grid-layout npm](https://www.npmjs.com/package/react-grid-layout) -- published 3 months ago, includes TS types
-- [react-pdf GitHub](https://github.com/wojtekmaj/react-pdf) -- version 10.4.1, active maintenance
-- [yet-another-react-lightbox](https://yet-another-react-lightbox.com/) -- version 3.29.1, React 16.8+ support
-- [react-mentions-ts GitHub](https://github.com/hbmartin/react-mentions-ts) -- React 19 + TypeScript fork of react-mentions
-- [ilert: Why React-Grid-Layout Was Our Best Choice](https://www.ilert.com/blog/building-interactive-dashboards-why-react-grid-layout-was-our-best-choice) -- production dashboard use case
-- [Shadcn Timeline template](https://www.shadcn.io/template/timdehof-shadcn-timeline) -- confirms timeline is trivial with shadcn primitives
+- [Tauri v2 Updater Plugin docs](https://v2.tauri.app/plugin/updater/) -- plugin setup, config structure, JS API, signing workflow (HIGH confidence)
+- [Tauri GitHub Actions pipeline guide](https://v2.tauri.app/distribute/pipelines/github/) -- workflow YAML, matrix strategy, tauri-action usage (HIGH confidence)
+- [tauri-apps/tauri-action GitHub](https://github.com/tauri-apps/tauri-action) -- action inputs: `owner`, `repo`, `uploadUpdaterJson`, `args`, `tagName` (HIGH confidence)
+- [Tauri Configuration Files docs](https://v2.tauri.app/develop/configuration-files/) -- `--config` JSON Merge Patch (RFC 7396) for build-time overrides (HIGH confidence)
+- [GitHub REST API: Releases](https://docs.github.com/en/rest/releases/releases) -- endpoints for fetching release metadata and body (HIGH confidence)
+- [@tauri-apps/plugin-updater npm](https://www.npmjs.com/package/@tauri-apps/plugin-updater) -- version 2.10.0 (MEDIUM confidence -- version from npm search, not verified via Context7)
+- [@tauri-apps/plugin-process npm](https://www.npmjs.com/package/@tauri-apps/plugin-process) -- version 2.3.1 (MEDIUM confidence)
+- [compare-versions npm](https://www.npmjs.com/package/compare-versions) -- zero-dep semver comparison (HIGH confidence)
+- [Cross-repo GitHub Actions patterns](https://oneuptime.com/blog/post/2025-12-20-cross-repository-workflows-github-actions/view) -- PAT requirements for cross-repo releases (MEDIUM confidence)
+- [Tauri updater + GitHub discussion](https://thatgurjot.com/til/tauri-auto-updater/) -- real-world setup walkthrough (MEDIUM confidence)
 
 ---
-*Stack research for: Taskflow v1.5 feature expansion*
-*Researched: 2026-03-22*
+*Stack research for: Taskflow v1.6 release pipeline, auto-update, and version management*
+*Researched: 2026-03-24*
