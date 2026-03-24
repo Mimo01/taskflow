@@ -57,6 +57,11 @@ vi.mock('@/stores/settings.store', () => ({
   })),
 }));
 
+// Mock jira client — fetchAllSearchPages used by saved filter integration
+vi.mock('@/services/jira/client', () => ({
+  fetchAllSearchPages: vi.fn().mockResolvedValue([]),
+}));
+
 // Mock link engine
 vi.mock('@/services/linkEngine', () => ({
   linkMRToTask: vi.fn().mockReturnValue(null),
@@ -709,5 +714,160 @@ describe('BOARD-05: clicking a card opens issue detail', () => {
     await waitFor(() => {
       expect(onIssueClickShared).toHaveBeenCalledWith('PROJ-1');
     });
+  });
+});
+
+// ─── FILT-02: saved filter integration ──────────────────────────────────────
+describe('FILT-02: saved filter integration', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('saved filter constrains sprint board to matching issues', async () => {
+    const { fetchSprintIssues, fetchProjectStatuses } = await import('@/services/jira');
+    const { fetchAllSearchPages } = await import('@/services/jira/client');
+    const { useSavedFilterStore } = await import('@/stores/saved-filter.store');
+
+    const story1 = makeIssue('PROJ-1', 'Story One', false, undefined, 'In Progress');
+    const story2 = makeIssue('PROJ-2', 'Story Two', false, undefined, 'To Do');
+    const subtask1 = makeIssue('PROJ-3', 'Subtask of One', true, 'PROJ-1', 'In Progress');
+    const subtask2 = makeIssue('PROJ-4', 'Subtask of Two', true, 'PROJ-2', 'To Do');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([story1, story2, subtask1, subtask2]);
+    vi.mocked(fetchProjectStatuses).mockResolvedValue([
+      makeStatus('To Do', 'new'),
+      makeStatus('In Progress', 'indeterminate'),
+    ]);
+
+    // Mock fetchAllSearchPages to return only issues from the first swimlane
+    vi.mocked(fetchAllSearchPages).mockResolvedValue([
+      { key: 'PROJ-1' } as any,
+      { key: 'PROJ-3' } as any,
+    ]);
+
+    // Set saved filter store state BEFORE rendering
+    useSavedFilterStore.getState().setSavedFilters([
+      { id: '100', name: 'My Filter', jql: 'assignee = currentUser()' },
+    ]);
+    useSavedFilterStore.getState().setActiveFilter('100');
+
+    const { useAuthStore } = await import('@/stores/auth.store');
+    vi.mocked(useAuthStore).mockReturnValue({
+      jiraBaseUrl: 'https://jira.example.com',
+      activeJiraProject: 'PROJ',
+      gitlabBaseUrl: 'https://gitlab.example.com',
+    } as ReturnType<typeof useAuthStore>);
+
+    const { default: SprintBoardTab } = await import('./SprintBoardTab');
+    renderWithQuery(<SprintBoardTab />);
+
+    // PROJ-1 header and its subtask should be visible
+    await waitFor(() => {
+      expect(screen.getByText('PROJ-1')).toBeTruthy();
+      expect(screen.getByText('Subtask of One')).toBeTruthy();
+    });
+
+    // PROJ-2 header and its subtask should NOT be visible
+    expect(screen.queryByText('PROJ-2')).toBeNull();
+    expect(screen.queryByText('Subtask of Two')).toBeNull();
+
+    // Clean up store state
+    useSavedFilterStore.getState().setActiveFilter(null);
+    useSavedFilterStore.getState().setSavedFilters([]);
+  });
+
+  it('clear saved filter restores default board view', async () => {
+    const { fetchSprintIssues, fetchProjectStatuses } = await import('@/services/jira');
+    const { fetchAllSearchPages } = await import('@/services/jira/client');
+    const { useSavedFilterStore } = await import('@/stores/saved-filter.store');
+
+    const story1 = makeIssue('PROJ-1', 'Story One', false, undefined, 'In Progress');
+    const story2 = makeIssue('PROJ-2', 'Story Two', false, undefined, 'To Do');
+    const subtask1 = makeIssue('PROJ-3', 'Subtask of One', true, 'PROJ-1', 'In Progress');
+    const subtask2 = makeIssue('PROJ-4', 'Subtask of Two', true, 'PROJ-2', 'To Do');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([story1, story2, subtask1, subtask2]);
+    vi.mocked(fetchProjectStatuses).mockResolvedValue([
+      makeStatus('To Do', 'new'),
+      makeStatus('In Progress', 'indeterminate'),
+    ]);
+
+    vi.mocked(fetchAllSearchPages).mockResolvedValue([
+      { key: 'PROJ-1' } as any,
+      { key: 'PROJ-3' } as any,
+    ]);
+
+    // Start with active filter
+    useSavedFilterStore.getState().setSavedFilters([
+      { id: '100', name: 'My Filter', jql: 'assignee = currentUser()' },
+    ]);
+    useSavedFilterStore.getState().setActiveFilter('100');
+
+    const { useAuthStore } = await import('@/stores/auth.store');
+    vi.mocked(useAuthStore).mockReturnValue({
+      jiraBaseUrl: 'https://jira.example.com',
+      activeJiraProject: 'PROJ',
+      gitlabBaseUrl: 'https://gitlab.example.com',
+    } as ReturnType<typeof useAuthStore>);
+
+    const { default: SprintBoardTab } = await import('./SprintBoardTab');
+    renderWithQuery(<SprintBoardTab />);
+
+    // Wait for filtered view
+    await waitFor(() => {
+      expect(screen.getByText('PROJ-1')).toBeTruthy();
+    });
+    expect(screen.queryByText('PROJ-2')).toBeNull();
+
+    // Clear the saved filter
+    useSavedFilterStore.getState().setActiveFilter(null);
+
+    // Both stories should now be visible
+    await waitFor(() => {
+      expect(screen.getByText('PROJ-1')).toBeTruthy();
+      expect(screen.getByText('PROJ-2')).toBeTruthy();
+    });
+    expect(screen.getByText('Subtask of One')).toBeTruthy();
+    expect(screen.getByText('Subtask of Two')).toBeTruthy();
+
+    // Clean up
+    useSavedFilterStore.getState().setSavedFilters([]);
+  });
+
+  it('active filter banner shows filter name and clear button', async () => {
+    const { fetchSprintIssues, fetchProjectStatuses } = await import('@/services/jira');
+    const { fetchAllSearchPages } = await import('@/services/jira/client');
+    const { useSavedFilterStore } = await import('@/stores/saved-filter.store');
+
+    const story1 = makeIssue('PROJ-1', 'Story One', false, undefined, 'In Progress');
+    vi.mocked(fetchSprintIssues).mockResolvedValue([story1]);
+    vi.mocked(fetchProjectStatuses).mockResolvedValue([
+      makeStatus('In Progress', 'indeterminate'),
+    ]);
+    vi.mocked(fetchAllSearchPages).mockResolvedValue([{ key: 'PROJ-1' } as any]);
+
+    useSavedFilterStore.getState().setSavedFilters([
+      { id: '100', name: 'My Filter', jql: 'assignee = currentUser()' },
+    ]);
+    useSavedFilterStore.getState().setActiveFilter('100');
+
+    const { useAuthStore } = await import('@/stores/auth.store');
+    vi.mocked(useAuthStore).mockReturnValue({
+      jiraBaseUrl: 'https://jira.example.com',
+      activeJiraProject: 'PROJ',
+      gitlabBaseUrl: 'https://gitlab.example.com',
+    } as ReturnType<typeof useAuthStore>);
+
+    const { default: SprintBoardTab } = await import('./SprintBoardTab');
+    renderWithQuery(<SprintBoardTab />);
+
+    // Banner should show filter name
+    await waitFor(() => {
+      expect(screen.getByText(/My Filter/)).toBeTruthy();
+    });
+    // Clear button should be visible
+    expect(screen.getByText('Clear')).toBeTruthy();
+
+    // Clean up
+    useSavedFilterStore.getState().setActiveFilter(null);
+    useSavedFilterStore.getState().setSavedFilters([]);
   });
 });
