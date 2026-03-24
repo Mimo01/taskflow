@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Release & Auto-Update Pipeline
-status: Defining requirements
-stopped_at: Milestone v1.6 started
+status: Ready to plan
+stopped_at: Roadmap created for v1.6
 last_updated: "2026-03-24"
 last_activity: 2026-03-24
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,20 +20,27 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** v1.6 Release & Auto-Update Pipeline
+**Current focus:** Phase 38 — Updater Foundation + Service Layer
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-24 — Milestone v1.6 started
+Phase: 38 (1 of 4 in v1.6)
+Plan: 0 of TBD in current phase
+Status: Ready to plan
+Last activity: 2026-03-24 — Roadmap created for v1.6 Release & Auto-Update Pipeline
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Accumulated Context
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
+Recent decisions affecting current work:
+
+- [v1.6 roadmap]: Coarse granularity — 4 phases covering foundation, update UX, settings/about UI, and CI pipeline
+- [v1.6 roadmap]: CI pipeline last — all app-side code must be correct before end-to-end validation
+- [v1.6 roadmap]: Phases 39 and 40 are independent (both depend only on 38) — can execute in either order
 
 ### Pending Todos
 
@@ -41,13 +48,16 @@ None.
 
 ### Blockers/Concerns
 
-None.
+- Apple Developer ID certificate ($99/yr) may not yet be acquired — blocks macOS notarization in Phase 41
+- Windows code signing decision needed (Azure Trusted Signing vs OV/EV cert) — affects Phase 41 CI config
+- Public GitHub repo for release hosting must exist before Phase 41
+- Ed25519 signing key generation is irreversible — must be backed up in two locations during Phase 38
 
 ## Session Continuity
 
 Last activity: 2026-03-24
-Stopped at: Milestone v1.6 started
-Resume: Define requirements, then `/gsd:plan-phase`
+Stopped at: v1.6 roadmap created, ready to plan Phase 38
+Resume: `/gsd:plan-phase 38`
 
 ### Quick Tasks Completed
 

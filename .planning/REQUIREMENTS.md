@@ -69,27 +69,27 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CI-01 | — | Pending |
-| CI-02 | — | Pending |
-| CI-03 | — | Pending |
-| CI-04 | — | Pending |
-| UPD-01 | — | Pending |
-| UPD-02 | — | Pending |
-| UPD-03 | — | Pending |
-| UPD-04 | — | Pending |
-| POL-01 | — | Pending |
-| POL-02 | — | Pending |
-| POL-03 | — | Pending |
-| UI-01 | — | Pending |
-| UI-02 | — | Pending |
-| UI-03 | — | Pending |
-| UI-04 | — | Pending |
+| CI-01 | Phase 41 | Pending |
+| CI-02 | Phase 41 | Pending |
+| CI-03 | Phase 38 | Pending |
+| CI-04 | Phase 38 | Pending |
+| UPD-01 | Phase 38 | Pending |
+| UPD-02 | Phase 39 | Pending |
+| UPD-03 | Phase 39 | Pending |
+| UPD-04 | Phase 39 | Pending |
+| POL-01 | Phase 39 | Pending |
+| POL-02 | Phase 39 | Pending |
+| POL-03 | Phase 39 | Pending |
+| UI-01 | Phase 40 | Pending |
+| UI-02 | Phase 40 | Pending |
+| UI-03 | Phase 40 | Pending |
+| UI-04 | Phase 40 | Pending |
 
 **Coverage:**
 - v1.6 requirements: 15 total
-- Mapped to phases: 0
-- Unmapped: 15 ⚠️
+- Mapped to phases: 15/15
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-24*
-*Last updated: 2026-03-24 after initial definition*
+*Last updated: 2026-03-24 after roadmap creation*
