@@ -16,7 +16,7 @@ Requirements for Release & Auto-Update Pipeline milestone. Each maps to roadmap 
 
 ### Auto-Update
 
-- [ ] **UPD-01**: App checks for updates on launch and at a configurable interval (1h/6h/12h/24h/manual)
+- [x] **UPD-01**: App checks for updates on launch and at a configurable interval (1h/6h/12h/24h/manual)
 - [ ] **UPD-02**: Update prompt dialog shows changelog (rendered markdown), new version, and "Update Now" / "Later" actions
 - [ ] **UPD-03**: User can download, install, and restart the app in one click with a progress bar
 - [ ] **UPD-04**: After updating, a "What's New" dialog shows the release notes for the version just installed
@@ -73,7 +73,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CI-02 | Phase 41 | Pending |
 | CI-03 | Phase 38 | Pending |
 | CI-04 | Phase 38 | Pending |
-| UPD-01 | Phase 38 | Pending |
+| UPD-01 | Phase 38 | Complete |
 | UPD-02 | Phase 39 | Pending |
 | UPD-03 | Phase 39 | Pending |
 | UPD-04 | Phase 39 | Pending |

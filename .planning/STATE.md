@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Release & Auto-Update Pipeline
-status: planning
-stopped_at: Phase 38 UI-SPEC approved
-last_updated: "2026-03-24T21:16:30.831Z"
-last_activity: 2026-03-24 — Roadmap created for v1.6 Release & Auto-Update Pipeline
+status: Ready to execute
+stopped_at: Phase 38 Plan 02 complete
+last_updated: "2026-03-24T21:38:33.268Z"
+last_activity: 2026-03-24
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 3
+  completed_plans: 2
 ---
 
 # Project State
@@ -21,16 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Phase 38 — Updater Foundation + Service Layer
+**Current focus:** Phase 38 — updater-foundation-service-layer
 
 ## Current Position
 
-Phase: 38 (1 of 4 in v1.6)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-03-24 — Roadmap created for v1.6 Release & Auto-Update Pipeline
-
-Progress: [░░░░░░░░░░] 0%
+Phase: 38 (updater-foundation-service-layer) — EXECUTING
+Plan: 2 of 3
 
 ## Accumulated Context
 
@@ -42,6 +37,8 @@ Recent decisions affecting current work:
 - [v1.6 roadmap]: Coarse granularity — 4 phases covering foundation, update UX, settings/about UI, and CI pipeline
 - [v1.6 roadmap]: CI pipeline last — all app-side code must be correct before end-to-end validation
 - [v1.6 roadmap]: Phases 39 and 40 are independent (both depend only on 38) — can execute in either order
+- [Phase 38]: vi.hoisted() required for vi.mock factory when mock variable declared with const — hoisting order issue in Vitest
+- [Phase 38]: #[cfg(desktop)] guard on updater plugin registration — mobile/web targets don't need updater
 
 ### Pending Todos
 
@@ -57,7 +54,7 @@ None.
 ## Session Continuity
 
 Last activity: 2026-03-24
-Stopped at: Phase 38 UI-SPEC approved
+Stopped at: Phase 38 Plan 02 complete
 Resume: `/gsd:plan-phase 38`
 
 ### Quick Tasks Completed
