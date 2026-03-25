@@ -203,4 +203,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-24 — Phase 39 complete: update dialog lifecycle (available/downloading/ready/error), What's New dialog, two-tier version policy enforcement (soft nag banner + hard blocking overlay)*
+*Last updated: 2026-03-25 — Phase 40 complete: About dialog with version/build/platform/update-status via native menu, Updates settings section with frequency control, Check Now, and version history list*
