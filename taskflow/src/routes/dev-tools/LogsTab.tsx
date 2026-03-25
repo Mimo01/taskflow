@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { type ApiLogEntry, useDebugLogStore } from '../../stores/debug-log.store';
 import { useSettingsStore } from '../../stores/settings.store';
-import { formatBody, statusColor, sourceBadgeClass } from './utils';
+import { formatBody, sourceBadgeClass, statusColor } from './utils';
 
 function LogCard({ entry }: { entry: ApiLogEntry }) {
   const [open, setOpen] = useState(false);
@@ -25,7 +25,9 @@ function LogCard({ entry }: { entry: ApiLogEntry }) {
           </span>
         )}
         <span className="font-mono font-semibold shrink-0">{entry.method}</span>
-        <span className={`shrink-0 font-mono font-semibold rounded px-1.5 py-0.5 ${statusColor(entry.status)}`}>
+        <span
+          className={`shrink-0 font-mono font-semibold rounded px-1.5 py-0.5 ${statusColor(entry.status)}`}
+        >
           {entry.status ?? 'ERR'}
         </span>
         <span className="font-mono text-xs truncate flex-1 text-muted-foreground">{entry.url}</span>

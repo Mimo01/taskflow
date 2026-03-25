@@ -257,9 +257,7 @@ describe('notifications.store', () => {
 
     it('useUnreadCount selector returns cached number (simple property access)', () => {
       act(() => {
-        useNotificationsStore
-          .getState()
-          .setItems([makeItem('item-1'), makeItem('item-2')]);
+        useNotificationsStore.getState().setItems([makeItem('item-1'), makeItem('item-2')]);
       });
 
       const { result } = renderHook(() => useUnreadCount());

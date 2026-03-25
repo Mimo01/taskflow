@@ -31,7 +31,7 @@ export const updaterService = {
    * Caller must call relaunch() after this resolves.
    */
   downloadAndInstall: async (
-    onProgress?: (event: { event: string; data?: unknown }) => void
+    onProgress?: (event: { event: string; data?: unknown }) => void,
   ): Promise<void> => {
     const update = await check();
     if (!update) throw new Error('No update available');

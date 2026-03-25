@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchVersionPolicy, isBelow } from './versionPolicy';
 
 vi.mock('@tauri-apps/plugin-http', () => ({
@@ -19,7 +19,11 @@ describe('fetchVersionPolicy', () => {
     } as Response);
 
     const result = await fetchVersionPolicy('https://example.com/version-policy.json');
-    expect(result).toEqual({ softMinimum: '1.0.0', hardMinimum: '0.5.0', message: 'Please update' });
+    expect(result).toEqual({
+      softMinimum: '1.0.0',
+      hardMinimum: '0.5.0',
+      message: 'Please update',
+    });
   });
 
   it('returns null on fetch error', async () => {

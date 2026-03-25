@@ -4,9 +4,9 @@
  * Master toggle + four granular toggles + retention limit dropdown.
  * Collapsed by default.
  */
+
+import { ChevronDown, ChevronRight, Settings } from 'lucide-react';
 import { useState } from 'react';
-import { Settings, ChevronDown, ChevronRight } from 'lucide-react';
-import { useSettingsStore } from '../../stores/settings.store';
 import {
   Select,
   SelectContent,
@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../components/ui/select';
+import { useSettingsStore } from '../../stores/settings.store';
 
 const RETENTION_OPTIONS = ['50', '100', '200', '500', '1000'] as const;
 

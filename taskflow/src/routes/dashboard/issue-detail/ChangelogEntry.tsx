@@ -16,16 +16,16 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function describeChange(field: string, fromString: string | null, toString: string | null): string {
+function describeChange(field: string, fromVal: string | null, toVal: string | null): string {
   const fieldName = capitalize(field);
-  if (fromString == null && toString != null) {
-    return `set ${fieldName} to ${toString}`;
+  if (fromVal == null && toVal != null) {
+    return `set ${fieldName} to ${toVal}`;
   }
-  if (toString == null && fromString != null) {
+  if (toVal == null && fromVal != null) {
     return `cleared ${fieldName}`;
   }
-  if (fromString != null && toString != null) {
-    return `changed ${fieldName} from ${fromString} to ${toString}`;
+  if (fromVal != null && toVal != null) {
+    return `changed ${fieldName} from ${fromVal} to ${toVal}`;
   }
   return `updated ${fieldName}`;
 }
@@ -43,7 +43,9 @@ export function ChangelogEntry({ history }: ChangelogEntryProps) {
             {describeChange(item.field, item.fromString, item.toString)}
           </p>
         ))}
-        <span className="text-xs text-muted-foreground" title={new Date(created).toLocaleString()}>{relativeTime(created)}</span>
+        <span className="text-xs text-muted-foreground" title={new Date(created).toLocaleString()}>
+          {relativeTime(created)}
+        </span>
       </div>
     </div>
   );

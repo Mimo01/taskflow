@@ -6,7 +6,13 @@ import { describe, expect, it, vi } from 'vitest';
 // Mock react-router-dom
 vi.mock('react-router-dom', () => ({
   useNavigate: vi.fn(() => vi.fn()),
-  useLocation: vi.fn(() => ({ pathname: '/dashboard', search: '', hash: '', state: null, key: 'default' })),
+  useLocation: vi.fn(() => ({
+    pathname: '/dashboard',
+    search: '',
+    hash: '',
+    state: null,
+    key: 'default',
+  })),
 }));
 
 // Mock stronghold

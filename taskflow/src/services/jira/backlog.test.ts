@@ -59,9 +59,7 @@ describe('backlog service', () => {
       vi.mocked(fetchAllSearchPages).mockRejectedValueOnce(new Error('random'));
       vi.mocked(isResponseLikeError).mockReturnValue(false);
 
-      await expect(fetchBacklogIssues(BASE, TOKEN, 'PROJ')).rejects.toThrow(
-        'Cannot reach',
-      );
+      await expect(fetchBacklogIssues(BASE, TOKEN, 'PROJ')).rejects.toThrow('Cannot reach');
     });
   });
 
@@ -80,9 +78,7 @@ describe('backlog service', () => {
           ok: true,
           status: 200,
           json: async () => ({
-            values: [
-              { id: 10, name: 'Sprint 1', state: 'active', originBoardId: 42 },
-            ],
+            values: [{ id: 10, name: 'Sprint 1', state: 'active', originBoardId: 42 }],
           }),
         } as Response);
 
@@ -102,9 +98,7 @@ describe('backlog service', () => {
           },
         ] as any)
         .mockResolvedValueOnce([] as any) // future sprint issues
-        .mockResolvedValueOnce([
-          { key: 'PROJ-5', fields: { summary: 'Backlog item' } },
-        ] as any); // backlog issues
+        .mockResolvedValueOnce([{ key: 'PROJ-5', fields: { summary: 'Backlog item' } }] as any); // backlog issues
 
       const result = await fetchBacklogView(BASE, TOKEN, 'PROJ');
       expect(result.sprints).toHaveLength(1);

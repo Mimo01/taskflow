@@ -1,8 +1,8 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { WhatsNewDialog } from './WhatsNewDialog';
-import { useSettingsStore } from '@/stores/settings.store';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildInfo } from '@/lib/build-info';
+import { useSettingsStore } from '@/stores/settings.store';
+import { WhatsNewDialog } from './WhatsNewDialog';
 
 // Mock react-markdown to render children as plain text
 vi.mock('react-markdown', () => ({

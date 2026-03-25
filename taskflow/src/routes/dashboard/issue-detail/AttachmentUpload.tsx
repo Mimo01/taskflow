@@ -1,6 +1,6 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Upload } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { uploadAttachment } from '@/services/jira/attachments';
 import { readSecret } from '@/services/stronghold';
@@ -11,7 +11,11 @@ interface AttachmentUploadProps {
   onUploadComplete?: () => void;
 }
 
-export function AttachmentUpload({ issueKey, jiraBaseUrl, onUploadComplete }: AttachmentUploadProps) {
+export function AttachmentUpload({
+  issueKey,
+  jiraBaseUrl,
+  onUploadComplete,
+}: AttachmentUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const [uploadingFilename, setUploadingFilename] = useState<string | null>(null);
@@ -62,7 +66,7 @@ export function AttachmentUpload({ issueKey, jiraBaseUrl, onUploadComplete }: At
         type="file"
         className="hidden"
         onChange={handleFileSelect}
-        aria-hidden="true"
+        tabIndex={-1}
       />
       <Button
         variant="outline"
@@ -83,15 +87,16 @@ export function AttachmentUpload({ issueKey, jiraBaseUrl, onUploadComplete }: At
         <div className="mt-2">
           <p className="text-xs text-muted-foreground">{uploadingFilename} uploading...</p>
           <div className="h-1 w-full bg-muted rounded-full overflow-hidden mt-1">
-            <div className="h-full bg-primary rounded-full animate-pulse" style={{ width: '60%' }} />
+            <div
+              className="h-full bg-primary rounded-full animate-pulse"
+              style={{ width: '60%' }}
+            />
           </div>
         </div>
       )}
 
       {/* Upload error */}
-      {uploadError && (
-        <p className="text-xs text-destructive mt-1">{uploadError}</p>
-      )}
+      {uploadError && <p className="text-xs text-destructive mt-1">{uploadError}</p>}
     </div>
   );
 }

@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchAllSearchPages, fetchAllWorklogPages, isResponseLikeError, PAGE_SIZE } from './client';
+import {
+  fetchAllSearchPages,
+  fetchAllWorklogPages,
+  isResponseLikeError,
+  PAGE_SIZE,
+} from './client';
 
 vi.mock('../../lib/apiFetch', () => ({
   apiFetch: vi.fn(),
@@ -59,12 +64,22 @@ describe('client service', () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          json: async () => ({ issues: page1Issues, total: 250, startAt: 0, maxResults: PAGE_SIZE }),
+          json: async () => ({
+            issues: page1Issues,
+            total: 250,
+            startAt: 0,
+            maxResults: PAGE_SIZE,
+          }),
         } as Response)
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          json: async () => ({ issues: page2Issues, total: 250, startAt: PAGE_SIZE, maxResults: PAGE_SIZE }),
+          json: async () => ({
+            issues: page2Issues,
+            total: 250,
+            startAt: PAGE_SIZE,
+            maxResults: PAGE_SIZE,
+          }),
         } as Response);
 
       const result = await fetchAllSearchPages(SEARCH_URL, HEADERS);
@@ -111,7 +126,9 @@ describe('client service', () => {
         status: 403,
       } as Response);
 
-      await expect(fetchAllSearchPages(SEARCH_URL, HEADERS)).rejects.toThrow('Insufficient permissions');
+      await expect(fetchAllSearchPages(SEARCH_URL, HEADERS)).rejects.toThrow(
+        'Insufficient permissions',
+      );
     });
 
     it('returns partial results when subsequent page fails', async () => {
@@ -144,10 +161,7 @@ describe('client service', () => {
         ok: true,
         status: 200,
         json: async () => ({
-          worklogs: [
-            { author: { displayName: 'Alice' } },
-            { author: { displayName: 'Bob' } },
-          ],
+          worklogs: [{ author: { displayName: 'Alice' } }, { author: { displayName: 'Bob' } }],
           total: 2,
           startAt: 0,
           maxResults: PAGE_SIZE,

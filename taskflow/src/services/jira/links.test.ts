@@ -45,7 +45,9 @@ describe('links', () => {
         status: 201,
       } as unknown as Response);
 
-      await expect(createIssueLink(baseUrl, token, 'lt-1', 'PROJ-1', 'PROJ-2')).resolves.toBeUndefined();
+      await expect(
+        createIssueLink(baseUrl, token, 'lt-1', 'PROJ-1', 'PROJ-2'),
+      ).resolves.toBeUndefined();
       expect(mockedApiFetch).toHaveBeenCalledWith(
         'jira',
         expect.stringContaining('/issueLink'),
@@ -67,7 +69,9 @@ describe('links', () => {
         status: 400,
       } as unknown as Response);
 
-      await expect(createIssueLink(baseUrl, token, 'lt-1', 'PROJ-1', 'PROJ-2')).rejects.toThrow('Failed to create issue link');
+      await expect(createIssueLink(baseUrl, token, 'lt-1', 'PROJ-1', 'PROJ-2')).rejects.toThrow(
+        'Failed to create issue link',
+      );
     });
   });
 });

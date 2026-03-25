@@ -35,7 +35,9 @@ export default function WidgetCard({
   const WidgetComponent = widgetDef.component;
 
   return (
-    <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden h-full flex flex-col${isEditable ? ' ring-2 ring-primary/20' : ''}`}>
+    <div
+      className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden h-full flex flex-col${isEditable ? ' ring-2 ring-primary/20' : ''}`}
+    >
       {/* Title bar */}
       <div className="flex items-center h-10 px-3 border-b border-border bg-card gap-2">
         {isEditable && (

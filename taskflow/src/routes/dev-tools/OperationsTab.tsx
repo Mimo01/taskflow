@@ -7,7 +7,7 @@
 import { useOperationProfilerStore } from '../../stores/operation-profiler.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import OperationCard from './OperationCard';
-import { statusColor, sourceBadgeClass } from './utils';
+import { sourceBadgeClass, statusColor } from './utils';
 
 export default function OperationsTab() {
   const devToolsEnabled = useSettingsStore((s) => s.devToolsEnabled);

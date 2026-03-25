@@ -4,9 +4,10 @@
  * Provides header with Clear Logs button, collapsible settings panel,
  * and three tabs: Logs, Operations, Waterfall.
  */
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { useDebugLogStore } from '../../stores/debug-log.store';
 import { useOperationProfilerStore } from '../../stores/operation-profiler.store';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import LogsTab from './LogsTab';
 import OperationsTab from './OperationsTab';
 import WaterfallTab from './WaterfallTab';

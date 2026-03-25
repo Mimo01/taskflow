@@ -4,8 +4,8 @@ import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { postComment } from '@/services/jira';
-import { readSecret } from '@/services/stronghold';
 import type { JiraAssignableUser } from '@/services/jira/types';
+import { readSecret } from '@/services/stronghold';
 import { MentionPopover, type MentionPopoverHandle } from './MentionPopover';
 
 interface CommentComposerProps {
@@ -119,7 +119,10 @@ export function CommentComposer({ issueKey, jiraBaseUrl }: CommentComposerProps)
     } else {
       const charBefore = cursorPos > 0 ? newText[cursorPos - 1] : '';
       const charBeforeAt = cursorPos > 1 ? newText[cursorPos - 2] : ' ';
-      if (charBefore === '@' && (charBeforeAt === ' ' || charBeforeAt === '\n' || cursorPos === 1)) {
+      if (
+        charBefore === '@' &&
+        (charBeforeAt === ' ' || charBeforeAt === '\n' || cursorPos === 1)
+      ) {
         setMentionActive(true);
         setMentionStart(cursorPos - 1);
         setMentionQuery('');

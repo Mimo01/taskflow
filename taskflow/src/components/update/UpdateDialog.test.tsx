@@ -1,7 +1,7 @@
-import { render, screen, fireEvent, act } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { UpdateDialog } from './UpdateDialog';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useUpdateStore } from '@/stores/update.store';
+import { UpdateDialog } from './UpdateDialog';
 
 // Mock Tauri plugins
 vi.mock('@tauri-apps/plugin-updater', () => ({

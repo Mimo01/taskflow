@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
-import { HardMinimumOverlay } from './HardMinimumOverlay';
+import { describe, expect, it, vi } from 'vitest';
 import type { VersionPolicy } from '@/services/versionPolicy';
+import { HardMinimumOverlay } from './HardMinimumOverlay';
 
 // Mock Tauri updater so tests don't fail on missing Tauri IPC
 vi.mock('@tauri-apps/plugin-updater', () => ({

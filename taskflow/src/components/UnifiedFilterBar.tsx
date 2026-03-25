@@ -220,13 +220,25 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
       clauses.push(`"Epic Link" in (${Array.from(activeEpics).join(', ')})`);
     }
     if (activeLabels.size > 0) {
-      clauses.push(`labels in (${Array.from(activeLabels).map(l => `"${l}"`).join(', ')})`);
+      clauses.push(
+        `labels in (${Array.from(activeLabels)
+          .map((l) => `"${l}"`)
+          .join(', ')})`,
+      );
     }
     if (activeAssignees.size > 0) {
-      clauses.push(`assignee in (${Array.from(activeAssignees).map(a => `"${a}"`).join(', ')})`);
+      clauses.push(
+        `assignee in (${Array.from(activeAssignees)
+          .map((a) => `"${a}"`)
+          .join(', ')})`,
+      );
     }
     if (activeStatuses.size > 0) {
-      clauses.push(`status in (${Array.from(activeStatuses).map(s => `"${s}"`).join(', ')})`);
+      clauses.push(
+        `status in (${Array.from(activeStatuses)
+          .map((s) => `"${s}"`)
+          .join(', ')})`,
+      );
     }
     return clauses.join(' AND ');
   }, [activeEpics, activeLabels, activeAssignees, activeStatuses]);

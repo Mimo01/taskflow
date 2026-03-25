@@ -32,9 +32,14 @@ export async function discoverCustomFields(
     epicColorFieldKey: 'customfield_10013',
   };
   try {
-    const response = await apiFetch('jira', `${baseUrl.replace(/\/$/, '')}/rest/api/2/field`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }, 'Load Fields');
+    const response = await apiFetch(
+      'jira',
+      `${baseUrl.replace(/\/$/, '')}/rest/api/2/field`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+      'Load Fields',
+    );
     if (!response.ok) return defaults;
     const fields: Array<{ id: string; name: string; schema?: { custom?: string } }> =
       await response.json();
@@ -122,9 +127,14 @@ export async function fetchProjectStatuses(
   projectKey: string,
 ): Promise<JiraProjectStatus[]> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/project/${projectKey}/statuses`;
-  const response = await apiFetch('jira', url, {
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-  }, 'Load Fields');
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    },
+    'Load Fields',
+  );
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError('Failed to fetch project statuses', response.status, 'jira');

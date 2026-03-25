@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AboutDialog } from './AboutDialog';
 
 // Mock build-info with known values
@@ -8,7 +8,10 @@ vi.mock('@/lib/build-info', () => ({
 }));
 
 // Mock update store — default to idle status
-const mockUpdateStore = { status: 'idle' as 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error', availableVersion: null as string | null };
+const mockUpdateStore = {
+  status: 'idle' as 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error',
+  availableVersion: null as string | null,
+};
 vi.mock('@/stores/update.store', () => ({
   useUpdateStore: (selector?: (s: typeof mockUpdateStore) => unknown) =>
     selector ? selector(mockUpdateStore) : mockUpdateStore,

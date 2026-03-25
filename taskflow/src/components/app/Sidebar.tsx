@@ -22,8 +22,8 @@ import {
   Tag,
   Users,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { SavedFilterList } from '@/components/SavedFilterList';
 import { fetchFavouriteFilters } from '@/services/jira/filters';
@@ -31,8 +31,8 @@ import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSavedFilterStore } from '@/stores/saved-filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import { SIDEBAR_NAV_ITEMS, SIDEBAR_SECTIONS } from './sidebar-items';
 import AppIcon from './AppIcon';
+import { SIDEBAR_NAV_ITEMS, SIDEBAR_SECTIONS } from './sidebar-items';
 
 /** Map icon names to actual Lucide components */
 const ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {

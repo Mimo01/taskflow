@@ -16,11 +16,7 @@ import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 
-async function searchByJql(
-  baseUrl: string,
-  token: string,
-  jql: string,
-): Promise<JiraIssue[]> {
+async function searchByJql(baseUrl: string, token: string, jql: string): Promise<JiraIssue[]> {
   const { apiFetch } = await import('@/lib/apiFetch');
   const base = baseUrl.replace(/\/$/, '');
   const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee&maxResults=20`;
@@ -92,7 +88,9 @@ export default function CustomJqlWidget({ widgetId }: { widgetId: string }) {
         <div className="flex flex-1 items-center justify-center">
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <Search className="size-5" />
-            <span className="text-sm text-center">Enter a JQL query above to see matching issues.</span>
+            <span className="text-sm text-center">
+              Enter a JQL query above to see matching issues.
+            </span>
           </div>
         </div>
       )}

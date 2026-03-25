@@ -85,9 +85,7 @@ export function WorklogEntry({
           </span>
         )}
         <span className="font-semibold text-sm">{worklog.author.displayName}</span>
-        {!isEditing && (
-          <Badge variant="secondary">{worklog.timeSpent}</Badge>
-        )}
+        {!isEditing && <Badge variant="secondary">{worklog.timeSpent}</Badge>}
         <span
           className="text-xs text-muted-foreground"
           title={new Date(worklog.started).toLocaleString()}
@@ -140,10 +138,7 @@ export function WorklogEntry({
       {/* Body: comment or edit mode */}
       {isEditing ? (
         <div className="space-y-2">
-          <DurationInput
-            value={editDuration}
-            onChange={onEditDurationChange}
-          />
+          <DurationInput value={editDuration} onChange={onEditDurationChange} />
           <Input
             value={editComment}
             onChange={(e) => onEditCommentChange(e.target.value)}
@@ -155,11 +150,7 @@ export function WorklogEntry({
             <Button variant="outline" size="sm" onClick={onEditCancel} disabled={editPending}>
               Discard Changes
             </Button>
-            <Button
-              size="sm"
-              onClick={() => onEditSave(worklog.id)}
-              disabled={editPending}
-            >
+            <Button size="sm" onClick={() => onEditSave(worklog.id)} disabled={editPending}>
               {editPending ? 'Saving...' : 'Update Entry'}
             </Button>
           </div>

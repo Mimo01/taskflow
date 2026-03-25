@@ -10,24 +10,24 @@
  * Per D-06: downloading and ready states are non-dismissable (no onOpenChange, no close button).
  */
 
-import { useState, useEffect } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+import { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { invoke } from '@tauri-apps/api/core';
+import { Button } from '@/components/ui/button';
 // Calls plugin:process|relaunch via invoke — @tauri-apps/plugin-process not installed
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogFooter,
-  DialogTitle,
   DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { useUpdateStore } from '@/stores/update.store';
-import { useSettingsStore } from '@/stores/settings.store';
-import { updaterService } from '@/services/updater';
 import { buildInfo } from '@/lib/build-info';
+import { updaterService } from '@/services/updater';
+import { useSettingsStore } from '@/stores/settings.store';
+import { useUpdateStore } from '@/stores/update.store';
 
 // ─── ReadyView (internal sub-component with countdown) ─────────────────────
 
@@ -102,10 +102,7 @@ export function UpdateDialog() {
   const { setLastSeenChangelog } = useSettingsStore();
 
   const open =
-    status === 'available' ||
-    status === 'downloading' ||
-    status === 'ready' ||
-    status === 'error';
+    status === 'available' || status === 'downloading' || status === 'ready' || status === 'error';
 
   // Non-dismissable states: downloading and ready (during countdown)
   const isDismissable = status === 'available' || status === 'error';
@@ -118,9 +115,7 @@ export function UpdateDialog() {
         if (event.event === 'Started') {
           accumulated = 0;
         } else if (event.event === 'Progress') {
-          const data = event.data as
-            | { chunkLength?: number; contentLength?: number }
-            | undefined;
+          const data = event.data as { chunkLength?: number; contentLength?: number } | undefined;
           if (data?.chunkLength && data?.contentLength) {
             accumulated += data.chunkLength;
             const pct = Math.min(100, Math.round((accumulated / data.contentLength) * 100));

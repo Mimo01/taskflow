@@ -1,5 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -22,9 +22,9 @@ import StatusPopover from '../StatusPopover';
 import { MetaRow } from './MetaRow';
 import { OverdueBadge } from './OverdueBadge';
 import { TimeTrackingSummary } from './TimeTrackingSummary';
-import { WatcherToggle } from './WatcherToggle';
 import { useDebounce } from './useFieldMutation';
 import { extractSprintName } from './utils';
+import { WatcherToggle } from './WatcherToggle';
 
 const PRIORITY_OPTIONS = ['Highest', 'High', 'Medium', 'Low', 'Lowest'];
 
@@ -147,12 +147,19 @@ export function FieldsSection({
     },
     onMutate: async ({ toName }) => {
       await queryClient.cancelQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
-      const previous = queryClient.getQueryData<JiraIssueDetail>(['jira-issue-detail', issueKey, jiraBaseUrl]);
+      const previous = queryClient.getQueryData<JiraIssueDetail>([
+        'jira-issue-detail',
+        issueKey,
+        jiraBaseUrl,
+      ]);
       queryClient.setQueryData<JiraIssueDetail>(
         ['jira-issue-detail', issueKey, jiraBaseUrl],
         (old) => {
           if (!old) return old;
-          return { ...old, fields: { ...old.fields, status: { ...old.fields.status, name: toName } } };
+          return {
+            ...old,
+            fields: { ...old.fields, status: { ...old.fields.status, name: toName } },
+          };
         },
       );
       return { previous };
@@ -190,9 +197,14 @@ export function FieldsSection({
         const token = await readSecret('jira-pat').catch(() => null);
         if (!token) return;
         const url = `${jiraBaseUrl.replace(/\/$/, '')}/rest/api/2/user/assignable/search?issueKey=${issueKey}&query=${encodeURIComponent(query)}`;
-        const resp = await apiFetch('jira', url, {
-          headers: { Authorization: `Bearer ${token}` },
-        }, 'Load Fields');
+        const resp = await apiFetch(
+          'jira',
+          url,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+          'Load Fields',
+        );
         if (resp.ok) {
           const data = (await resp.json()) as AssignableUser[];
           setAssigneeResults(data);
@@ -535,22 +547,27 @@ export function FieldsSection({
             )}
             {filteredVersions.length > 0 &&
               filteredVersions.map((version) => {
-                  const isSelected = f.fixVersions.some((v) => v.id === version.id);
-                  return (
-                    <button
-                      key={version.id}
-                      type="button"
-                      onClick={() => handleFixVersionToggle(version.id)}
-                      className="w-full text-left px-2 py-1 text-xs hover:bg-accent rounded flex items-center gap-2"
-                    >
-                      <span className="w-4 text-center">{isSelected ? '\u2713' : ''}</span>
-                      <span className="flex-1 truncate">{version.name}</span>
-                      {version.released && (
-                        <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700 text-[9px] leading-none px-1 py-0 h-3.5">released</Badge>
-                      )}
-                    </button>
-                  );
-                })}
+                const isSelected = f.fixVersions.some((v) => v.id === version.id);
+                return (
+                  <button
+                    key={version.id}
+                    type="button"
+                    onClick={() => handleFixVersionToggle(version.id)}
+                    className="w-full text-left px-2 py-1 text-xs hover:bg-accent rounded flex items-center gap-2"
+                  >
+                    <span className="w-4 text-center">{isSelected ? '\u2713' : ''}</span>
+                    <span className="flex-1 truncate">{version.name}</span>
+                    {version.released && (
+                      <Badge
+                        variant="outline"
+                        className="bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700 text-[9px] leading-none px-1 py-0 h-3.5"
+                      >
+                        released
+                      </Badge>
+                    )}
+                  </button>
+                );
+              })}
             {mutation.isError && (
               <p className="text-xs text-destructive mt-1">Save failed -- changes reverted</p>
             )}

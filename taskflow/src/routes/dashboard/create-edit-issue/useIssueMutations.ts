@@ -57,7 +57,8 @@ export function useIssueMutations({
 
       if (isSubtask) {
         if (state.parentKey) options.parent = { key: state.parentKey };
-        if (state.timeEstimate.trim()) options.timetracking = { originalEstimate: state.timeEstimate.trim() };
+        if (state.timeEstimate.trim())
+          options.timetracking = { originalEstimate: state.timeEstimate.trim() };
         // CRITICAL: never include epicLinkFieldKey or storyPointsFieldKey on Subtasks
       } else {
         if (state.epicLinkKey && epicLinkFieldKey) options[epicLinkFieldKey] = state.epicLinkKey;

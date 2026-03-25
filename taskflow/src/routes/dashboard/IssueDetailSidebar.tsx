@@ -1,2 +1,1 @@
-export { IssueDetailSidebar } from './issue-detail';
-export { extractSprintName } from './issue-detail';
+export { extractSprintName, IssueDetailSidebar } from './issue-detail';

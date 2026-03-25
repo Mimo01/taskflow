@@ -10,17 +10,10 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
+import { CheckCircle, ChevronDown, ChevronUp, Loader2, PackageOpen, WifiOff } from 'lucide-react';
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import {
-  CheckCircle,
-  ChevronDown,
-  ChevronUp,
-  Loader2,
-  PackageOpen,
-  WifiOff,
-} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -68,7 +61,12 @@ function relativeTime(iso: string): string {
 }
 
 function VersionHistoryList() {
-  const { data: releases, isLoading, isError, refetch } = useQuery({
+  const {
+    data: releases,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ['github-releases'],
     queryFn: async () => {
       const res = await fetch(RELEASES_API_URL);
@@ -214,9 +212,7 @@ export default function UpdatesSection() {
           <Select
             value={updateCheckInterval === 'manual' ? 'manual' : updateCheckInterval.toString()}
             onValueChange={(val) =>
-              setUpdateCheckInterval(
-                val === 'manual' ? 'manual' : (Number(val) as 1 | 6 | 12 | 24),
-              )
+              setUpdateCheckInterval(val === 'manual' ? 'manual' : (Number(val) as 1 | 6 | 12 | 24))
             }
           >
             <SelectTrigger className="w-48">
@@ -259,9 +255,7 @@ export default function UpdatesSection() {
             </span>
           )}
           {checkState === 'done' && checkResult === 'available' && availableVersion && (
-            <span className="text-sm text-yellow-500">
-              Update available ({availableVersion})
-            </span>
+            <span className="text-sm text-yellow-500">Update available ({availableVersion})</span>
           )}
         </div>
       </div>

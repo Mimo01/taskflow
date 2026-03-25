@@ -117,7 +117,9 @@ describe('sprints service', () => {
         status: 204,
       } as Response);
 
-      await expect(addIssuesToSprint(BASE, TOKEN, 1, ['PROJ-1', 'PROJ-2'])).resolves.toBeUndefined();
+      await expect(
+        addIssuesToSprint(BASE, TOKEN, 1, ['PROJ-1', 'PROJ-2']),
+      ).resolves.toBeUndefined();
       expect(vi.mocked(apiFetch)).toHaveBeenCalledWith(
         'jira',
         expect.stringContaining('/rest/agile/1.0/sprint/1/issue'),

@@ -57,7 +57,9 @@ export function DurationInput({ value, onChange, error, autoFocus }: DurationInp
                   min={0}
                   max={99}
                   value={pickerHours}
-                  onChange={(e) => setPickerHours(Math.min(99, Math.max(0, Number(e.target.value))))}
+                  onChange={(e) =>
+                    setPickerHours(Math.min(99, Math.max(0, Number(e.target.value))))
+                  }
                   className="h-7 text-xs w-16"
                 />
               </div>
@@ -68,7 +70,9 @@ export function DurationInput({ value, onChange, error, autoFocus }: DurationInp
                   min={0}
                   max={59}
                   value={pickerMinutes}
-                  onChange={(e) => setPickerMinutes(Math.min(59, Math.max(0, Number(e.target.value))))}
+                  onChange={(e) =>
+                    setPickerMinutes(Math.min(59, Math.max(0, Number(e.target.value))))
+                  }
                   className="h-7 text-xs w-16"
                 />
               </div>

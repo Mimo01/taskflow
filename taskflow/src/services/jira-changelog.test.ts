@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { JiraComment } from './jira';
+import type { JiraWorklog } from './jira/types';
 import {
   type ChangelogHistory,
   countByType,
   filterTimeline,
   mergeTimeline,
 } from './jira-changelog';
-import type { JiraWorklog } from './jira/types';
 
 const comment1: JiraComment = {
   id: 'c1',

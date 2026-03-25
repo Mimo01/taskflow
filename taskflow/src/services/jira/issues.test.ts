@@ -117,9 +117,7 @@ describe('issues service', () => {
         status: 401,
       } as Response);
 
-      await expect(fetchIssueDetail(BASE, TOKEN, 'PROJ-1', customFields)).rejects.toThrow(
-        ApiError,
-      );
+      await expect(fetchIssueDetail(BASE, TOKEN, 'PROJ-1', customFields)).rejects.toThrow(ApiError);
     });
 
     it('throws Error on 404', async () => {
@@ -182,7 +180,9 @@ describe('issues service', () => {
         status: 204,
       } as Response);
 
-      await expect(updateIssueField(BASE, TOKEN, 'PROJ-1', 'summary', 'Updated')).resolves.toBeUndefined();
+      await expect(
+        updateIssueField(BASE, TOKEN, 'PROJ-1', 'summary', 'Updated'),
+      ).resolves.toBeUndefined();
       expect(vi.mocked(apiFetch)).toHaveBeenCalledWith(
         'jira',
         expect.stringContaining('/rest/api/2/issue/PROJ-1'),
@@ -217,9 +217,7 @@ describe('issues service', () => {
   // --- searchJira ---
   describe('searchJira', () => {
     it('returns matching issues on success', async () => {
-      const issues = [
-        { key: 'PROJ-10', fields: { summary: 'Found it' } },
-      ];
+      const issues = [{ key: 'PROJ-10', fields: { summary: 'Found it' } }];
       vi.mocked(apiFetch).mockResolvedValueOnce({
         ok: true,
         status: 200,

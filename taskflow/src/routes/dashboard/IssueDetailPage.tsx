@@ -31,9 +31,9 @@ import { CommentComposer } from './CommentComposer';
 import type { EditInitialValues } from './CreateEditIssueModal';
 import { IssueDetailContent, relativeTime } from './IssueDetailContent';
 import { IssueDetailSidebar } from './IssueDetailSidebar';
+import { ActivityTimeline } from './issue-detail/ActivityTimeline';
 import type { AttachmentMap, UserMap } from './WikiRenderer';
 import { WikiRenderer } from './WikiRenderer';
-import { ActivityTimeline } from './issue-detail/ActivityTimeline';
 
 export default function IssueDetailPage() {
   const { key: issueKey } = useParams<{ key: string }>();
@@ -504,7 +504,9 @@ const CommentCard = memo(function CommentCard({
       {/* Card header */}
       <div className="flex items-center gap-2 text-xs">
         <span className="font-medium text-sm">{comment.author.displayName}</span>
-        <span className="text-muted-foreground" title={new Date(comment.created).toLocaleString()}>{relativeTime(comment.created)}</span>
+        <span className="text-muted-foreground" title={new Date(comment.created).toLocaleString()}>
+          {relativeTime(comment.created)}
+        </span>
         {comment.updated !== comment.created && (
           <span className="text-muted-foreground italic">(edited)</span>
         )}

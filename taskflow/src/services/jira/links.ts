@@ -17,7 +17,12 @@ export async function fetchIssueLinkTypes(
   token: string,
 ): Promise<IssueLinkType[]> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issueLinkType`;
-  const resp = await apiFetch('jira', url, { headers: { Authorization: `Bearer ${token}` } }, 'Load Issue Detail');
+  const resp = await apiFetch(
+    'jira',
+    url,
+    { headers: { Authorization: `Bearer ${token}` } },
+    'Load Issue Detail',
+  );
   if (!resp.ok) return [];
   const data = await resp.json();
   return data.issueLinkTypes ?? [];
@@ -39,15 +44,20 @@ export async function createIssueLink(
   outwardKey: string,
 ): Promise<void> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issueLink`;
-  const response = await apiFetch('jira', url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      type: { id: linkTypeId },
-      inwardIssue: { key: inwardKey },
-      outwardIssue: { key: outwardKey },
-    }),
-  }, 'Manage Links');
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: { id: linkTypeId },
+        inwardIssue: { key: inwardKey },
+        outwardIssue: { key: outwardKey },
+      }),
+    },
+    'Manage Links',
+  );
   if (!response.ok && response.status !== 201) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError('Failed to create issue link', response.status, 'jira');

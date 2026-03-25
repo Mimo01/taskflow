@@ -4,8 +4,9 @@
  * Shows a progress bar, status text, and per-issue failure details.
  * Auto-dismisses after 3 seconds on all-success.
  */
-import { useEffect, useState } from 'react';
+
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 
 interface BulkProgressIndicatorProps {

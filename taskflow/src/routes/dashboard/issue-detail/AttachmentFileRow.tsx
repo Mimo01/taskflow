@@ -30,9 +30,7 @@ export function AttachmentFileRow({ attachment, onDownload, onDelete }: Attachme
     <div className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/50 group">
       <Icon className="size-4 text-muted-foreground shrink-0" />
       <span className="text-sm truncate max-w-[240px]">{attachment.filename}</span>
-      {sizeText && (
-        <span className="text-xs text-muted-foreground shrink-0">{sizeText}</span>
-      )}
+      {sizeText && <span className="text-xs text-muted-foreground shrink-0">{sizeText}</span>}
       {!sizeText && (
         <span className="text-xs text-muted-foreground shrink-0">{attachment.mimeType}</span>
       )}

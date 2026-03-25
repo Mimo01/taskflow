@@ -188,8 +188,8 @@ export default function DebugModeSection() {
                   <DialogTitle>Clear all notifications?</DialogTitle>
                   <DialogDescription>
                     This removes all {itemCount} cached notification{itemCount !== 1 ? 's' : ''} and
-                    resets the polling cursor. The next poll cycle will re-fetch the last 24 hours of
-                    activity.
+                    resets the polling cursor. The next poll cycle will re-fetch the last 24 hours
+                    of activity.
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>

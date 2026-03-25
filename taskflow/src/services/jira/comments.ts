@@ -14,9 +14,14 @@ export async function fetchComments(
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/comment`;
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      headers: { Authorization: `Bearer ${token}` },
-    }, 'Load Issue Detail');
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+      'Load Issue Detail',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -43,14 +48,19 @@ export async function postComment(
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ body }),
       },
-      body: JSON.stringify({ body }),
-    }, 'Manage Comments');
+      'Manage Comments',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -74,14 +84,19 @@ export async function updateComment(
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ body }),
       },
-      body: JSON.stringify({ body }),
-    }, 'Manage Comments');
+      'Manage Comments',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -104,12 +119,17 @@ export async function deleteComment(
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-    }, 'Manage Comments');
+      'Manage Comments',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }

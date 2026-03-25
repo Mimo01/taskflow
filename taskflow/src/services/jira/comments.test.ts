@@ -17,7 +17,15 @@ describe('comments', () => {
 
   describe('fetchComments', () => {
     it('returns comments on success', async () => {
-      const comments = [{ id: '1', body: 'hello', author: { displayName: 'Alice' }, created: '2026-01-01', updated: '2026-01-01' }];
+      const comments = [
+        {
+          id: '1',
+          body: 'hello',
+          author: { displayName: 'Alice' },
+          created: '2026-01-01',
+          updated: '2026-01-01',
+        },
+      ];
       mockedApiFetch.mockResolvedValue({
         ok: true,
         status: 200,
@@ -26,7 +34,12 @@ describe('comments', () => {
 
       const result = await fetchComments(baseUrl, token, issueKey);
       expect(result).toEqual(comments);
-      expect(mockedApiFetch).toHaveBeenCalledWith('jira', expect.stringContaining(`/issue/${issueKey}/comment`), expect.any(Object), 'Load Issue Detail');
+      expect(mockedApiFetch).toHaveBeenCalledWith(
+        'jira',
+        expect.stringContaining(`/issue/${issueKey}/comment`),
+        expect.any(Object),
+        'Load Issue Detail',
+      );
     });
 
     it('throws ApiError on 401', async () => {
@@ -35,7 +48,9 @@ describe('comments', () => {
         status: 401,
       } as unknown as Response);
 
-      await expect(fetchComments(baseUrl, token, issueKey)).rejects.toThrow('Failed to fetch comments');
+      await expect(fetchComments(baseUrl, token, issueKey)).rejects.toThrow(
+        'Failed to fetch comments',
+      );
     });
   });
 
@@ -61,7 +76,9 @@ describe('comments', () => {
         status: 403,
       } as unknown as Response);
 
-      await expect(postComment(baseUrl, token, issueKey, 'test comment')).rejects.toThrow('Failed to post comment');
+      await expect(postComment(baseUrl, token, issueKey, 'test comment')).rejects.toThrow(
+        'Failed to post comment',
+      );
     });
   });
 
@@ -72,7 +89,9 @@ describe('comments', () => {
         status: 200,
       } as unknown as Response);
 
-      await expect(updateComment(baseUrl, token, issueKey, 'c-1', 'updated body')).resolves.toBeUndefined();
+      await expect(
+        updateComment(baseUrl, token, issueKey, 'c-1', 'updated body'),
+      ).resolves.toBeUndefined();
       expect(mockedApiFetch).toHaveBeenCalledWith(
         'jira',
         expect.stringContaining(`/issue/${issueKey}/comment/c-1`),
@@ -87,7 +106,9 @@ describe('comments', () => {
         status: 500,
       } as unknown as Response);
 
-      await expect(updateComment(baseUrl, token, issueKey, 'c-1', 'updated body')).rejects.toThrow('Failed to update comment');
+      await expect(updateComment(baseUrl, token, issueKey, 'c-1', 'updated body')).rejects.toThrow(
+        'Failed to update comment',
+      );
     });
   });
 
@@ -113,7 +134,9 @@ describe('comments', () => {
         status: 401,
       } as unknown as Response);
 
-      await expect(deleteComment(baseUrl, token, issueKey, 'c-1')).rejects.toThrow('Failed to delete comment');
+      await expect(deleteComment(baseUrl, token, issueKey, 'c-1')).rejects.toThrow(
+        'Failed to delete comment',
+      );
     });
   });
 });

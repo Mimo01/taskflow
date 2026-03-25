@@ -59,19 +59,19 @@ async function fetchAutoComplete(
     const token = await readSecret('jira-pat').catch(() => null);
     if (!token) return;
     const url = field.autoCompleteUrl + encodeURIComponent(query);
-    const resp = await apiFetch('jira', url, {
-      headers: { Authorization: `Bearer ${token}` },
-    }, 'Load Fields');
+    const resp = await apiFetch(
+      'jira',
+      url,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+      'Load Fields',
+    );
     if (!resp.ok) return;
     const data = await resp.json();
     const items: unknown[] = Array.isArray(data)
       ? data
-      : (data.values ??
-        data.users ??
-        data.accounts ??
-        data.results ??
-        data.suggestions ??
-        []);
+      : (data.values ?? data.users ?? data.accounts ?? data.results ?? data.suggestions ?? []);
     const results = (items as Record<string, string>[]).map((item) => ({
       id: String(item.id ?? item.name ?? item.key ?? ''),
       label: item.key
@@ -148,7 +148,11 @@ export function CustomFieldsSection({
                   onBlur={() =>
                     setTimeout(
                       () =>
-                        dispatch({ type: 'SET_CUSTOM_FIELD_SHOW_RESULTS', fieldId: fid, show: false }),
+                        dispatch({
+                          type: 'SET_CUSTOM_FIELD_SHOW_RESULTS',
+                          fieldId: fid,
+                          show: false,
+                        }),
                       150,
                     )
                   }
@@ -164,9 +168,21 @@ export function CustomFieldsSection({
                           type="button"
                           className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
                           onMouseDown={() => {
-                            dispatch({ type: 'SET_CUSTOM_FIELD_VALUE', fieldId: fid, value: result.id });
-                            dispatch({ type: 'SET_CUSTOM_FIELD_INPUT', fieldId: fid, value: result.label });
-                            dispatch({ type: 'SET_CUSTOM_FIELD_SHOW_RESULTS', fieldId: fid, show: false });
+                            dispatch({
+                              type: 'SET_CUSTOM_FIELD_VALUE',
+                              fieldId: fid,
+                              value: result.id,
+                            });
+                            dispatch({
+                              type: 'SET_CUSTOM_FIELD_INPUT',
+                              fieldId: fid,
+                              value: result.label,
+                            });
+                            dispatch({
+                              type: 'SET_CUSTOM_FIELD_SHOW_RESULTS',
+                              fieldId: fid,
+                              show: false,
+                            });
                           }}
                         >
                           {result.label}

@@ -1,5 +1,6 @@
 // Settings store tests — keyboardOverrides (Phase 19) + layout customization (Phase 34)
 
+// biome-ignore assist/source/organizeImports: post-vi.mock imports must follow specific order to avoid TDZ circular dependency
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -14,9 +15,14 @@ vi.mock('@tauri-apps/plugin-store', () => {
   return { LazyStore };
 });
 
+// biome-ignore assist/source/organizeImports: import order must match module init order to avoid TDZ circular dependency
 import { useSettingsStore } from './settings.store';
 import { DEV_SIDEBAR_PRESET, PM_SIDEBAR_PRESET } from '@/components/app/sidebar-items';
-import { DEV_DASHBOARD_PRESET, PM_DASHBOARD_PRESET, WIDGET_REGISTRY } from '@/routes/dashboard/widgets/registry';
+import {
+  DEV_DASHBOARD_PRESET,
+  PM_DASHBOARD_PRESET,
+  WIDGET_REGISTRY,
+} from '@/routes/dashboard/widgets/registry';
 
 describe('settings.store — keyboardOverrides (Phase 19)', () => {
   beforeEach(() => {
@@ -52,7 +58,7 @@ describe('settings.store — layout customization (Phase 34)', () => {
     act(() => {
       useSettingsStore.setState({
         sidebarItems: [...DEV_SIDEBAR_PRESET],
-        dashboardLayout: DEV_DASHBOARD_PRESET.map(item => ({ ...item })),
+        dashboardLayout: DEV_DASHBOARD_PRESET.map((item) => ({ ...item })),
       } as any);
     });
   });
@@ -72,7 +78,7 @@ describe('settings.store — layout customization (Phase 34)', () => {
     act(() => {
       result.current.setSidebarItemVisible('epics', false);
     });
-    const epics = result.current.sidebarItems.find(i => i.id === 'epics');
+    const epics = result.current.sidebarItems.find((i) => i.id === 'epics');
     expect(epics?.visible).toBe(false);
   });
 
@@ -86,7 +92,7 @@ describe('settings.store — layout customization (Phase 34)', () => {
     act(() => {
       result.current.setSidebarItemVisible('epics', true);
     });
-    const epics = result.current.sidebarItems.find(i => i.id === 'epics');
+    const epics = result.current.sidebarItems.find((i) => i.id === 'epics');
     expect(epics?.visible).toBe(true);
   });
 
@@ -121,7 +127,7 @@ describe('settings.store — layout customization (Phase 34)', () => {
       result.current.removeDashboardWidget(target);
     });
     expect(result.current.dashboardLayout).toHaveLength(before - 1);
-    expect(result.current.dashboardLayout.find(w => w.i === target)).toBeUndefined();
+    expect(result.current.dashboardLayout.find((w) => w.i === target)).toBeUndefined();
   });
 
   it('setDashboardLayout replaces the entire layout array', () => {
@@ -139,7 +145,7 @@ describe('settings.store — layout customization (Phase 34)', () => {
     act(() => {
       result.current.updateWidgetConfig(widgetId, { jql: 'project = FOO' });
     });
-    const updated = result.current.dashboardLayout.find(w => w.i === widgetId);
+    const updated = result.current.dashboardLayout.find((w) => w.i === widgetId);
     expect(updated?.config).toEqual({ jql: 'project = FOO' });
   });
 
@@ -152,7 +158,7 @@ describe('settings.store — layout customization (Phase 34)', () => {
     act(() => {
       result.current.updateWidgetConfig(widgetId, { limit: 10 });
     });
-    const updated = result.current.dashboardLayout.find(w => w.i === widgetId);
+    const updated = result.current.dashboardLayout.find((w) => w.i === widgetId);
     expect(updated?.config).toEqual({ jql: 'project = FOO', limit: 10 });
   });
 

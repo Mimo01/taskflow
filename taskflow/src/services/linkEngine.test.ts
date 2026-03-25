@@ -128,7 +128,11 @@ describe('linkEngine', () => {
     });
 
     it('FUZZY-MATCH: matches lowercase branch name to uppercase sprint key', () => {
-      const mr = { ...baseMR, title: 'Implement feature', source_branch: 'feature/proj-42-implement' };
+      const mr = {
+        ...baseMR,
+        title: 'Implement feature',
+        source_branch: 'feature/proj-42-implement',
+      };
       const result = linkMRToTask(mr, new Set(['PROJ-42']));
       expect(result).toBe('PROJ-42');
     });

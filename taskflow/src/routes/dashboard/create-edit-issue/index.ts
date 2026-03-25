@@ -1,3 +1,3 @@
-export { CreateEditIssueModal } from './CreateEditIssueModal';
 export type { CreateEditIssueModalProps, EditInitialValues } from './CreateEditIssueModal';
-export type { IssueType, FormState, FormAction } from './useCreateEditForm';
+export { CreateEditIssueModal } from './CreateEditIssueModal';
+export type { FormAction, FormState, IssueType } from './useCreateEditForm';

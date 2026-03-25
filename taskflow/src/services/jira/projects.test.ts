@@ -19,7 +19,11 @@ describe('projects', () => {
       mockedApiFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => ({ displayName: 'Admin User', emailAddress: 'admin@example.com', name: 'admin' }),
+        json: async () => ({
+          displayName: 'Admin User',
+          emailAddress: 'admin@example.com',
+          name: 'admin',
+        }),
       } as unknown as Response);
 
       const result = await validateJira(baseUrl, token);
@@ -36,7 +40,9 @@ describe('projects', () => {
         status: 401,
       } as unknown as Response);
 
-      await expect(validateJira(baseUrl, token)).rejects.toThrow('Invalid token or token has expired');
+      await expect(validateJira(baseUrl, token)).rejects.toThrow(
+        'Invalid token or token has expired',
+      );
     });
   });
 
@@ -59,7 +65,9 @@ describe('projects', () => {
         status: 403,
       } as unknown as Response);
 
-      await expect(listJiraProjects(baseUrl, token)).rejects.toThrow('Token valid but lacks required permissions');
+      await expect(listJiraProjects(baseUrl, token)).rejects.toThrow(
+        'Token valid but lacks required permissions',
+      );
     });
   });
 });

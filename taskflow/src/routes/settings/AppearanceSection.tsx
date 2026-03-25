@@ -11,9 +11,9 @@ import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { applyDensity } from '@/services/theme';
 import { type Density, useSettingsStore } from '@/stores/settings.store';
-import ThemeSection from './ThemeSection';
-import SidebarItemsList from './SidebarItemsList';
 import PresetButtons from './PresetButtons';
+import SidebarItemsList from './SidebarItemsList';
+import ThemeSection from './ThemeSection';
 
 const DENSITY_OPTIONS: { value: Density; label: string; description: string }[] = [
   { value: 'compact', label: 'Compact', description: 'More rows visible' },

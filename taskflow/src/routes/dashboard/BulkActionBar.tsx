@@ -17,11 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { JiraIssue } from '@/services/jira';
-import {
-  fetchTransitions,
-  postTransition,
-  updateIssueField,
-} from '@/services/jira';
+import { fetchTransitions, postTransition, updateIssueField } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { BulkProgressIndicator } from './BulkProgressIndicator';
@@ -62,9 +58,7 @@ interface BulkActionBarProps {
   onClearSelection: () => void;
   onBulkComplete: () => void;
   /** Optimistic update callback: mutate local issues before API calls */
-  onOptimisticUpdate?: (
-    updater: (issues: JiraIssue[]) => JiraIssue[],
-  ) => void;
+  onOptimisticUpdate?: (updater: (issues: JiraIssue[]) => JiraIssue[]) => void;
 }
 
 export function BulkActionBar({
@@ -141,7 +135,11 @@ export function BulkActionBar({
           if (targetAssignee !== null) {
             updated.fields = {
               ...updated.fields,
-              assignee: { ...updated.fields.assignee, displayName: targetAssignee, name: targetAssignee } as JiraIssue['fields']['assignee'],
+              assignee: {
+                ...updated.fields.assignee,
+                displayName: targetAssignee,
+                name: targetAssignee,
+              } as JiraIssue['fields']['assignee'],
             };
           }
           if (targetPriority !== null) {
@@ -179,7 +177,14 @@ export function BulkActionBar({
             // Rollback this issue optimistically
             rollbackIssue(result.item);
           }
-          setProgress({ total, completed, succeeded, failed, failures: [...failures], isComplete: false });
+          setProgress({
+            total,
+            completed,
+            succeeded,
+            failed,
+            failures: [...failures],
+            isComplete: false,
+          });
         },
       );
     }
@@ -192,7 +197,9 @@ export function BulkActionBar({
         await parallelBatch(
           keys,
           async (key) => {
-            await updateIssueField(jiraBaseUrl, jiraToken, key, 'assignee', { name: targetAssignee });
+            await updateIssueField(jiraBaseUrl, jiraToken, key, 'assignee', {
+              name: targetAssignee,
+            });
           },
           5,
           (result) => {
@@ -203,7 +210,14 @@ export function BulkActionBar({
               failures.push({ key: result.item, error: result.error ?? 'Unknown error' });
               rollbackIssue(result.item);
             }
-            setProgress({ total, completed, succeeded, failed, failures: [...failures], isComplete: false });
+            setProgress({
+              total,
+              completed,
+              succeeded,
+              failed,
+              failures: [...failures],
+              isComplete: false,
+            });
           },
         );
       }
@@ -215,7 +229,9 @@ export function BulkActionBar({
         await parallelBatch(
           keys,
           async (key) => {
-            await updateIssueField(jiraBaseUrl, jiraToken, key, 'priority', { name: targetPriority });
+            await updateIssueField(jiraBaseUrl, jiraToken, key, 'priority', {
+              name: targetPriority,
+            });
           },
           5,
           (result) => {
@@ -226,7 +242,14 @@ export function BulkActionBar({
               failures.push({ key: result.item, error: result.error ?? 'Unknown error' });
               rollbackIssue(result.item);
             }
-            setProgress({ total, completed, succeeded, failed, failures: [...failures], isComplete: false });
+            setProgress({
+              total,
+              completed,
+              succeeded,
+              failed,
+              failures: [...failures],
+              isComplete: false,
+            });
           },
         );
       }
@@ -240,7 +263,9 @@ export function BulkActionBar({
         await parallelBatch(
           fieldKeys,
           async (key) => {
-            await updateIssueField(jiraBaseUrl, jiraToken, key, 'assignee', { name: targetAssignee });
+            await updateIssueField(jiraBaseUrl, jiraToken, key, 'assignee', {
+              name: targetAssignee,
+            });
           },
           5,
           (result) => {
@@ -255,7 +280,9 @@ export function BulkActionBar({
         await parallelBatch(
           fieldKeys,
           async (key) => {
-            await updateIssueField(jiraBaseUrl, jiraToken, key, 'priority', { name: targetPriority });
+            await updateIssueField(jiraBaseUrl, jiraToken, key, 'priority', {
+              name: targetPriority,
+            });
           },
           5,
           (result) => {
@@ -273,14 +300,22 @@ export function BulkActionBar({
     if (failed === 0) {
       // All succeeded -- will auto-dismiss via BulkProgressIndicator
     }
-  }, [jiraBaseUrl, jiraToken, selectedKeys, selectedIssues, targetStatus, targetAssignee, targetPriority, hasChange, onOptimisticUpdate]);
+  }, [
+    jiraBaseUrl,
+    jiraToken,
+    selectedKeys,
+    selectedIssues,
+    targetStatus,
+    targetAssignee,
+    targetPriority,
+    hasChange,
+    onOptimisticUpdate,
+  ]);
 
   function rollbackIssue(key: string) {
     const orig = originalIssuesRef.current.get(key);
     if (orig && onOptimisticUpdate) {
-      onOptimisticUpdate((prev) =>
-        prev.map((issue) => (issue.key === key ? orig : issue)),
-      );
+      onOptimisticUpdate((prev) => prev.map((issue) => (issue.key === key ? orig : issue)));
     }
   }
 
@@ -289,7 +324,14 @@ export function BulkActionBar({
     setTargetStatus(null);
     setTargetAssignee(null);
     setTargetPriority(null);
-    setProgress({ total: 0, completed: 0, succeeded: 0, failed: 0, failures: [], isComplete: false });
+    setProgress({
+      total: 0,
+      completed: 0,
+      succeeded: 0,
+      failed: 0,
+      failures: [],
+      isComplete: false,
+    });
     onBulkComplete();
   }
 
@@ -364,20 +406,11 @@ export function BulkActionBar({
               </SelectContent>
             </Select>
 
-            <Button
-              variant="default"
-              size="sm"
-              disabled={!hasChange}
-              onClick={handleApply}
-            >
+            <Button variant="default" size="sm" disabled={!hasChange} onClick={handleApply}>
               Apply Changes
             </Button>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClearSelection}
-            >
+            <Button variant="ghost" size="sm" onClick={onClearSelection}>
               Deselect All
             </Button>
           </div>

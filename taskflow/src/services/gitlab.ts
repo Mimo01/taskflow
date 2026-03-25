@@ -48,12 +48,17 @@ export async function validateGitLab(baseUrl: string, token: string): Promise<Gi
 
   let response: Response;
   try {
-    response = await apiFetch('gitlab', url, {
-      headers: {
-        'PRIVATE-TOKEN': token,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
       },
-    }, 'Validate Connection');
+      'Validate Connection',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -86,12 +91,17 @@ export async function listGitLabGroups(baseUrl: string, token: string): Promise<
 
   let response: Response;
   try {
-    response = await apiFetch('gitlab', url, {
-      headers: {
-        'PRIVATE-TOKEN': token,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
       },
-    }, 'Validate Connection');
+      'Validate Connection',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -124,12 +134,17 @@ export async function listGitLabProjects(baseUrl: string, token: string): Promis
 
   let response: Response;
   try {
-    response = await apiFetch('gitlab', url, {
-      headers: {
-        'PRIVATE-TOKEN': token,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
       },
-    }, 'Validate Connection');
+      'Validate Connection',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -240,12 +255,17 @@ export async function fetchAssignedMRs(baseUrl: string, token: string): Promise<
 
   let response: Response;
   try {
-    response = await apiFetch('gitlab', url, {
-      headers: {
-        'PRIVATE-TOKEN': token,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
       },
-    }, 'Load Merge Requests');
+      'Load Merge Requests',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -278,12 +298,17 @@ export async function fetchAuthoredMRs(
 
   let response: Response;
   try {
-    response = await apiFetch('gitlab', url, {
-      headers: {
-        'PRIVATE-TOKEN': token,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
       },
-    }, 'Load Merge Requests');
+      'Load Merge Requests',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -316,12 +341,17 @@ export async function fetchReviewerMRs(
 
   let response: Response;
   try {
-    response = await apiFetch('gitlab', url, {
-      headers: {
-        'PRIVATE-TOKEN': token,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
       },
-    }, 'Load Merge Requests');
+      'Load Merge Requests',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -356,12 +386,17 @@ export async function fetchMRCommits(
 
   let response: Response;
   try {
-    response = await apiFetch('gitlab', url, {
-      headers: {
-        'PRIVATE-TOKEN': token,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
       },
-    }, 'Load MR Detail');
+      'Load MR Detail',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -396,12 +431,17 @@ export async function fetchMRApprovals(
 
   let response: Response;
   try {
-    response = await apiFetch('gitlab', url, {
-      headers: {
-        'PRIVATE-TOKEN': token,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
       },
-    }, 'Load MR Detail');
+      'Load MR Detail',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -436,12 +476,17 @@ export async function fetchMRDiscussions(
 
   let response: Response;
   try {
-    response = await apiFetch('gitlab', url, {
-      headers: {
-        'PRIVATE-TOKEN': token,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
       },
-    }, 'Load MR Detail');
+      'Load MR Detail',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -478,12 +523,17 @@ export async function fetchGroupMilestones(
 
   let response: Response;
   try {
-    response = await apiFetch('gitlab', url, {
-      headers: {
-        'PRIVATE-TOKEN': token,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
       },
-    }, 'Load Releases');
+      'Load Releases',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -523,12 +573,17 @@ export async function fetchProjectMilestones(
 
     let response: Response;
     try {
-      response = await apiFetch('gitlab', url, {
-        headers: {
-          'PRIVATE-TOKEN': token,
-          'Content-Type': 'application/json',
+      response = await apiFetch(
+        'gitlab',
+        url,
+        {
+          headers: {
+            'PRIVATE-TOKEN': token,
+            'Content-Type': 'application/json',
+          },
         },
-      }, 'Load Releases');
+        'Load Releases',
+      );
     } catch {
       throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
     }
@@ -595,12 +650,17 @@ export async function fetchProjectTags(
 
   let response: Response;
   try {
-    response = await apiFetch('gitlab', url, {
-      headers: {
-        'PRIVATE-TOKEN': token,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
       },
-    }, 'Load Releases');
+      'Load Releases',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -634,9 +694,14 @@ export async function fetchMRDetail(
 
   let response: Response;
   try {
-    response = await apiFetch('gitlab', url, {
-      headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
-    }, 'Load MR Detail');
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+      },
+      'Load MR Detail',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -655,9 +720,14 @@ export async function fetchMRDetail(
   if (Array.isArray(data.labels) && data.labels.length > 0) {
     try {
       const labelsUrl = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/labels?per_page=100`;
-      const labelsResp = await apiFetch('gitlab', labelsUrl, {
-        headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
-      }, 'Load MR Detail');
+      const labelsResp = await apiFetch(
+        'gitlab',
+        labelsUrl,
+        {
+          headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+        },
+        'Load MR Detail',
+      );
       if (labelsResp.ok) {
         const projectLabels = (await labelsResp.json()) as Array<{
           name: string;
@@ -699,9 +769,14 @@ export async function fetchProjectMRs(
 
   let response: Response;
   try {
-    response = await apiFetch('gitlab', url, {
-      headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
-    }, 'Load MR Detail');
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+      },
+      'Load MR Detail',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -729,9 +804,14 @@ export async function fetchProjectMRs(
   if (allLabelNames.size > 0) {
     try {
       const labelsUrl = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/labels?per_page=100`;
-      const labelsResp = await apiFetch('gitlab', labelsUrl, {
-        headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
-      }, 'Load MR Detail');
+      const labelsResp = await apiFetch(
+        'gitlab',
+        labelsUrl,
+        {
+          headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+        },
+        'Load MR Detail',
+      );
       if (labelsResp.ok) {
         const projectLabels = (await labelsResp.json()) as Array<{
           name: string;
@@ -791,9 +871,14 @@ export async function fetchMilestoneMRs(
 
     let response: Response;
     try {
-      response = await apiFetch('gitlab', url, {
-        headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
-      }, 'Load Milestone MRs');
+      response = await apiFetch(
+        'gitlab',
+        url,
+        {
+          headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+        },
+        'Load Milestone MRs',
+      );
     } catch {
       throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
     }
@@ -826,9 +911,14 @@ export async function fetchMilestoneMRs(
   if (allLabelNames.size > 0) {
     try {
       const labelsUrl = `${base}/api/v4/projects/${projectId}/labels?per_page=100`;
-      const labelsResp = await apiFetch('gitlab', labelsUrl, {
-        headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
-      }, 'Load Milestone MRs');
+      const labelsResp = await apiFetch(
+        'gitlab',
+        labelsUrl,
+        {
+          headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
+        },
+        'Load Milestone MRs',
+      );
       if (labelsResp.ok) {
         const projectLabels = (await labelsResp.json()) as Array<{
           name: string;
@@ -881,12 +971,17 @@ export async function searchGitLabMRs(
 
   let response: Response;
   try {
-    response = await apiFetch('gitlab', url, {
-      headers: {
-        'PRIVATE-TOKEN': token,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
       },
-    }, 'Load Merge Requests');
+      'Load Merge Requests',
+    );
   } catch {
     return [];
   }

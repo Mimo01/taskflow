@@ -26,7 +26,12 @@ export default function ReleasesWidget(_props: { widgetId: string }) {
     }
   }, [jiraBaseUrl]);
 
-  const { data: fixVersions, isLoading, isError, error } = useQuery({
+  const {
+    data: fixVersions,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ['jira-fix-versions', activeJiraProject],
     queryFn: () => fetchFixVersions(jiraBaseUrl!, jiraToken!, activeJiraProject!),
     enabled: !!jiraBaseUrl && !!activeJiraProject && !!jiraToken,

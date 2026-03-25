@@ -3,7 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../lib/apiFetch', () => ({ apiFetch: vi.fn() }));
 
 import { apiFetch } from '../../lib/apiFetch';
-import { createJiraFilter, deleteJiraFilter, fetchFavouriteFilters, updateJiraFilter } from './filters';
+import {
+  createJiraFilter,
+  deleteJiraFilter,
+  fetchFavouriteFilters,
+  updateJiraFilter,
+} from './filters';
 
 const mockedApiFetch = vi.mocked(apiFetch);
 const baseUrl = 'https://jira.example.com';
@@ -16,7 +21,13 @@ describe('filters', () => {
 
   describe('createJiraFilter', () => {
     it('sends POST to /rest/api/2/filter with name, jql, description, favourite:true', async () => {
-      const created = { id: '100', name: 'My Filter', jql: 'project = TEST', description: 'desc', favourite: true };
+      const created = {
+        id: '100',
+        name: 'My Filter',
+        jql: 'project = TEST',
+        description: 'desc',
+        favourite: true,
+      };
       mockedApiFetch.mockResolvedValue({
         ok: true,
         status: 200,
@@ -30,7 +41,12 @@ describe('filters', () => {
         `${baseUrl}/rest/api/2/filter`,
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({ name: 'My Filter', jql: 'project = TEST', description: 'desc', favourite: true }),
+          body: JSON.stringify({
+            name: 'My Filter',
+            jql: 'project = TEST',
+            description: 'desc',
+            favourite: true,
+          }),
         }),
         'Save Filter',
       );
@@ -54,7 +70,9 @@ describe('filters', () => {
         status: 400,
       } as unknown as Response);
 
-      await expect(createJiraFilter(baseUrl, token, 'F', 'bad jql')).rejects.toThrow('Failed to create filter: 400');
+      await expect(createJiraFilter(baseUrl, token, 'F', 'bad jql')).rejects.toThrow(
+        'Failed to create filter: 400',
+      );
     });
   });
 
@@ -86,7 +104,9 @@ describe('filters', () => {
         status: 500,
       } as unknown as Response);
 
-      await expect(fetchFavouriteFilters(baseUrl, token)).rejects.toThrow('Failed to fetch favourite filters: 500');
+      await expect(fetchFavouriteFilters(baseUrl, token)).rejects.toThrow(
+        'Failed to fetch favourite filters: 500',
+      );
     });
   });
 
@@ -99,7 +119,10 @@ describe('filters', () => {
         json: async () => updated,
       } as unknown as Response);
 
-      const result = await updateJiraFilter(baseUrl, token, '10', { name: 'Updated', jql: 'project = NEW' });
+      const result = await updateJiraFilter(baseUrl, token, '10', {
+        name: 'Updated',
+        jql: 'project = NEW',
+      });
       expect(result).toEqual(updated);
       expect(mockedApiFetch).toHaveBeenCalledWith(
         'jira',
@@ -135,7 +158,9 @@ describe('filters', () => {
         status: 404,
       } as unknown as Response);
 
-      await expect(deleteJiraFilter(baseUrl, token, '99')).rejects.toThrow('Failed to delete filter: 404');
+      await expect(deleteJiraFilter(baseUrl, token, '99')).rejects.toThrow(
+        'Failed to delete filter: 404',
+      );
     });
   });
 });

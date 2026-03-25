@@ -28,8 +28,19 @@ vi.mock('@/lib/build-info', () => ({
 vi.mock('@/stores/update.store', () => ({
   useUpdateStore: Object.assign(
     (selector?: (s: Record<string, unknown>) => unknown) =>
-      selector ? selector({ status: 'idle', availableVersion: null }) : { status: 'idle', availableVersion: null },
-    { getState: () => ({ status: 'idle', availableVersion: null, setChecking: vi.fn(), setAvailable: vi.fn(), setError: vi.fn(), resetToIdle: vi.fn() }) },
+      selector
+        ? selector({ status: 'idle', availableVersion: null })
+        : { status: 'idle', availableVersion: null },
+    {
+      getState: () => ({
+        status: 'idle',
+        availableVersion: null,
+        setChecking: vi.fn(),
+        setAvailable: vi.fn(),
+        setError: vi.fn(),
+        resetToIdle: vi.fn(),
+      }),
+    },
   ),
 }));
 
@@ -39,10 +50,13 @@ vi.mock('@/services/updater', () => ({
 }));
 
 // Stub global fetch for version history query
-vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-  ok: true,
-  json: () => Promise.resolve([]),
-}));
+vi.stubGlobal(
+  'fetch',
+  vi.fn().mockResolvedValue({
+    ok: true,
+    json: () => Promise.resolve([]),
+  }),
+);
 
 // Mock stronghold
 vi.mock('@/services/stronghold', () => ({

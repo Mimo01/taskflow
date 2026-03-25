@@ -20,9 +20,7 @@ import { useFilterStore } from '@/stores/filter.store';
 // Simple JQL evaluator (client-side, best-effort)
 // ---------------------------------------------------------------------------
 
-function parseSimpleJql(
-  jql: string,
-): { field: string; op: string; value: string } | null {
+function parseSimpleJql(jql: string): { field: string; op: string; value: string } | null {
   const match = jql.trim().match(/^(\w+)\s*(=|!=)\s*"?([^"]+)"?$/i);
   if (!match) return null;
   return { field: match[1].toLowerCase(), op: match[2], value: match[3] };
@@ -56,10 +54,7 @@ function evaluateCondition(
   return cond.op === '=' ? isMatch : !isMatch;
 }
 
-function evaluateQuickFilter(
-  issue: JiraIssue,
-  qf: JiraBoardQuickFilter,
-): boolean {
+function evaluateQuickFilter(issue: JiraIssue, qf: JiraBoardQuickFilter): boolean {
   const cond = parseSimpleJql(qf.jql);
   if (!cond) return true; // unparseable JQL = always pass (conservative)
   return evaluateCondition(issue, cond);
@@ -110,16 +105,9 @@ interface QuickFilterChipRowProps {
   issues: JiraIssue[];
 }
 
-export function QuickFilterChipRow({
-  quickFilters,
-  labels,
-}: QuickFilterChipRowProps) {
-  const {
-    activeJiraQuickFilters,
-    activeLabelFilters,
-    toggleJiraQuickFilter,
-    toggleLabelFilter,
-  } = useFilterStore();
+export function QuickFilterChipRow({ quickFilters, labels }: QuickFilterChipRowProps) {
+  const { activeJiraQuickFilters, activeLabelFilters, toggleJiraQuickFilter, toggleLabelFilter } =
+    useFilterStore();
 
   const chipRefs = useRef<(HTMLElement | null)[]>([]);
 

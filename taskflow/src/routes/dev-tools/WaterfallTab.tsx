@@ -139,7 +139,9 @@ export default function WaterfallTab() {
         <span className="w-[200px] shrink-0 text-xs font-medium text-muted-foreground">
           Operation
         </span>
-        <span className="flex-1 text-xs font-medium text-muted-foreground">Timeline (wall | server | fetches)</span>
+        <span className="flex-1 text-xs font-medium text-muted-foreground">
+          Timeline (wall | server | fetches)
+        </span>
       </div>
 
       {/* Operation rows -- each self-scoped */}
