@@ -104,7 +104,7 @@ See archive: `.planning/milestones/v1.5-ROADMAP.md`
 - [x] **Phase 38: Updater Foundation + Service Layer** — Rust plugins, config, signing key, update service/store, build-time version injection (completed 2026-03-24)
 - [x] **Phase 39: Update UX + Version Policy** — Update check, prompt dialog, download/install flow, what's new dialog, force-update enforcement (completed 2026-03-24)
 - [x] **Phase 40: Settings, About & Menu Integration** — Updates settings section, version history, About dialog, macOS menu bar integration (completed 2026-03-25)
-- [ ] **Phase 41: CI Pipeline** — GitHub Actions workflow, cross-platform builds, public repo publishing, end-to-end validation
+- [x] **Phase 41: CI Pipeline** — GitHub Actions workflow, cross-platform builds, public repo publishing, end-to-end validation (completed 2026-03-25)
 
 ## Phase Details
 
@@ -177,4 +177,4 @@ Note: Phases 39 and 40 both depend only on Phase 38 and are independent of each 
 | 38. Updater Foundation + Service Layer | v1.6 | 3/3 | Complete    | 2026-03-24 |
 | 39. Update UX + Version Policy | v1.6 | 2/2 | Complete    | 2026-03-24 |
 | 40. Settings, About & Menu Integration | v1.6 | 3/3 | Complete    | 2026-03-25 |
-| 41. CI Pipeline | v1.6 | 1/2 | In Progress|  |
+| 41. CI Pipeline | v1.6 | 1/2 | Complete    | 2026-03-25 |

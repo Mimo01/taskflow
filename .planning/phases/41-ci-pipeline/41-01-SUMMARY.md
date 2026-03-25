@@ -102,3 +102,13 @@ Before using the release workflow, the following GitHub Actions secrets must be 
 ---
 *Phase: 41-ci-pipeline*
 *Completed: 2026-03-25*
+
+## Self-Check: PASSED
+
+- FOUND: `.github/workflows/release.yml`
+- FOUND: `taskflow/src-tauri/tauri.conf.json`
+- FOUND: `taskflow/src/hooks/useVersionPolicyCheck.ts`
+- FOUND: `taskflow/src/routes/settings/UpdatesSection.tsx`
+- FOUND: `.planning/phases/41-ci-pipeline/41-01-SUMMARY.md`
+- COMMIT `5b7fdb1` verified: feat(41-01): replace placeholder URLs
+- COMMIT `fedd6ab` verified: feat(41-01): add GitHub Actions release workflow
