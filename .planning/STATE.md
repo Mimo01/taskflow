@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Release & Auto-Update Pipeline
-status: Ready to plan
-stopped_at: Phase 41 context gathered
-last_updated: "2026-03-25T08:11:05.642Z"
+status: Ready to execute
+stopped_at: Completed 41-ci-pipeline-01-PLAN.md
+last_updated: "2026-03-25T08:47:57.792Z"
 last_activity: 2026-03-25
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 10
+  completed_plans: 9
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Phase 40 — settings-about-menu-integration
+**Current focus:** Phase 41 — ci-pipeline
 
 ## Current Position
 
-Phase: 41
-Plan: Not started
+Phase: 41 (ci-pipeline) — EXECUTING
+Plan: 2 of 2
 
 ## Accumulated Context
 
@@ -45,6 +45,9 @@ Recent decisions affecting current work:
 - [Phase 40-01]: Used DialogFooter with explicit Button for close — consistent with UpdateDialog pattern, cleaner control over button styling
 - [Phase 40]: Used placeholder GitHub Releases API URL (PLACEHOLDER/PLACEHOLDER) — real repo path to be set in Phase 41
 - [Phase 40]: Used level:2 heading selector and isolated QueryClient per-test to fix TanStack Query caching in tests
+- [Phase 41-ci-pipeline]: RELEASES_REPO_TOKEN (not GITHUB_TOKEN) for cross-repo publish to Mimo01/taskflow-releases
+- [Phase 41-ci-pipeline]: releaseDraft: false for fully automatic release publish without manual approval
+- [Phase 41-ci-pipeline]: shell: bash on inject-version and tag_body steps for Windows PowerShell cross-platform compatibility
 
 ### Pending Todos
 
@@ -60,7 +63,7 @@ None.
 ## Session Continuity
 
 Last activity: 2026-03-25
-Stopped at: Phase 41 context gathered
+Stopped at: Completed 41-ci-pipeline-01-PLAN.md
 Resume: `/gsd:plan-phase 38`
 
 ### Quick Tasks Completed
