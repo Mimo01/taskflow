@@ -147,8 +147,11 @@ Plans:
   2. macOS menu bar contains an "About Taskflow" item that opens the About dialog
   3. Settings has an "Updates" section with a check frequency dropdown, a manual "Check Now" button, and the current version
   4. Settings Updates section includes a version history list showing past releases with rendered markdown changelogs
-**Plans**: TBD
-**UI hint**: yes
+**Plans**: 3 plans
+Plans:
+- [ ] 40-01-PLAN.md — About dialog component and menu bar integration
+- [ ] 40-02-PLAN.md — Updates settings section with controls and version history
+- [ ] 40-03-PLAN.md — Test coverage for AboutDialog, UpdatesSection, and Settings nav
 
 ### Phase 41: CI Pipeline
 **Goal**: A git tag push on the private repo triggers automated cross-platform builds and publishes a release to the public repo — the full distribution pipeline works end-to-end
@@ -170,5 +173,5 @@ Note: Phases 39 and 40 both depend only on Phase 38 and are independent of each 
 |-------|-----------|----------------|--------|-----------|
 | 38. Updater Foundation + Service Layer | v1.6 | 3/3 | Complete    | 2026-03-24 |
 | 39. Update UX + Version Policy | v1.6 | 2/2 | Complete    | 2026-03-24 |
-| 40. Settings, About & Menu Integration | v1.6 | 0/TBD | Not started | - |
+| 40. Settings, About & Menu Integration | v1.6 | 0/3 | Not started | - |
 | 41. CI Pipeline | v1.6 | 0/TBD | Not started | - |
