@@ -103,7 +103,7 @@ See archive: `.planning/milestones/v1.5-ROADMAP.md`
 
 - [x] **Phase 38: Updater Foundation + Service Layer** — Rust plugins, config, signing key, update service/store, build-time version injection (completed 2026-03-24)
 - [x] **Phase 39: Update UX + Version Policy** — Update check, prompt dialog, download/install flow, what's new dialog, force-update enforcement (completed 2026-03-24)
-- [ ] **Phase 40: Settings, About & Menu Integration** — Updates settings section, version history, About dialog, macOS menu bar integration
+- [x] **Phase 40: Settings, About & Menu Integration** — Updates settings section, version history, About dialog, macOS menu bar integration (completed 2026-03-25)
 - [ ] **Phase 41: CI Pipeline** — GitHub Actions workflow, cross-platform builds, public repo publishing, end-to-end validation
 
 ## Phase Details
@@ -151,7 +151,7 @@ Plans:
 Plans:
 - [x] 40-01-PLAN.md — About dialog component and menu bar integration
 - [x] 40-02-PLAN.md — Updates settings section with controls and version history
-- [ ] 40-03-PLAN.md — Test coverage for AboutDialog, UpdatesSection, and Settings nav
+- [x] 40-03-PLAN.md — Test coverage for AboutDialog, UpdatesSection, and Settings nav
 
 ### Phase 41: CI Pipeline
 **Goal**: A git tag push on the private repo triggers automated cross-platform builds and publishes a release to the public repo — the full distribution pipeline works end-to-end
@@ -173,5 +173,5 @@ Note: Phases 39 and 40 both depend only on Phase 38 and are independent of each 
 |-------|-----------|----------------|--------|-----------|
 | 38. Updater Foundation + Service Layer | v1.6 | 3/3 | Complete    | 2026-03-24 |
 | 39. Update UX + Version Policy | v1.6 | 2/2 | Complete    | 2026-03-24 |
-| 40. Settings, About & Menu Integration | v1.6 | 2/3 | In Progress|  |
+| 40. Settings, About & Menu Integration | v1.6 | 3/3 | Complete   | 2026-03-25 |
 | 41. CI Pipeline | v1.6 | 0/TBD | Not started | - |
