@@ -90,6 +90,9 @@ interface SettingsState {
   lastSeenChangelog: string | null;
   setLastSeenVersion: (v: string) => void;
   setLastSeenChangelog: (v: string | null) => void;
+  /** ISO timestamp of last update check. Default: null. */
+  lastChecked: string | null;
+  setLastChecked: (iso: string) => void;
   /** Whether the sidebar is collapsed to icon-only mode. Default: false. */
   sidebarCollapsed: boolean;
   toggleSidebarCollapsed: () => void;
@@ -189,6 +192,8 @@ export const useSettingsStore = create<SettingsState>()(
       lastSeenChangelog: null,
       setLastSeenVersion: (v) => set({ lastSeenVersion: v }),
       setLastSeenChangelog: (v) => set({ lastSeenChangelog: v }),
+      lastChecked: null,
+      setLastChecked: (iso) => set({ lastChecked: iso }),
       sidebarCollapsed: false,
       toggleSidebarCollapsed: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       quickFilters: [],
@@ -317,7 +322,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 11,
+      version: 12,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -372,6 +377,9 @@ export const useSettingsStore = create<SettingsState>()(
         if (version < 11) {
           if (s.lastSeenVersion === undefined) s.lastSeenVersion = null;
           if (s.lastSeenChangelog === undefined) s.lastSeenChangelog = null;
+        }
+        if (version < 12) {
+          if (s.lastChecked === undefined) s.lastChecked = null;
         }
         return persisted as SettingsState;
       },
