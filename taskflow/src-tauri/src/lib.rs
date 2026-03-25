@@ -59,12 +59,15 @@ pub fn run() {
             let handle = app.handle();
 
             // --- App menu (macOS standard: About, Services, Hide, Quit) ---
+            let about_item = MenuItemBuilder::new("About TaskFlow")
+                .id("menu-about")
+                .build(handle)?;
             let app_menu = Submenu::with_items(
                 handle,
                 "TaskFlow",
                 true,
                 &[
-                    &PredefinedMenuItem::about(handle, Some("About TaskFlow"), None)?,
+                    &about_item,
                     &PredefinedMenuItem::separator(handle)?,
                     &PredefinedMenuItem::services(handle, None)?,
                     &PredefinedMenuItem::separator(handle)?,
@@ -131,11 +134,19 @@ pub fn run() {
                 .id("menu-keyboard-shortcuts")
                 .accelerator("CmdOrCtrl+/")
                 .build(handle)?;
+            let about_help_item = MenuItemBuilder::new("About TaskFlow")
+                .id("menu-about")
+                .build(handle)?;
             let help_menu = Submenu::with_items(
                 handle,
                 "Help",
                 true,
-                &[&command_palette_item, &shortcuts_item],
+                &[
+                    &command_palette_item,
+                    &shortcuts_item,
+                    &PredefinedMenuItem::separator(handle)?,
+                    &about_help_item,
+                ],
             )?;
 
             // Build full menu bar
@@ -161,7 +172,8 @@ pub fn run() {
                 | "menu-nav-backlog"
                 | "menu-nav-notifications"
                 | "menu-nav-settings"
-                | "menu-dev-tools" => {
+                | "menu-dev-tools"
+                | "menu-about" => {
                     let _ = app.emit(id, ());
                 }
                 _ => {}
