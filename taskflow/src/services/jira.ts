@@ -1126,7 +1126,7 @@ export async function fetchIssueDetail(
   const issue = (await response.json()) as JiraIssueDetail;
 
   // Jira's built-in subtasks field only returns summary+status — enrich with assignee
-  if (issue.fields.subtasks.length > 0) {
+  if (issue.fields.subtasks?.length > 0) {
     try {
       const subtaskKeys = issue.fields.subtasks.map((s) => s.key).join(',');
       const enrichJql = encodeURIComponent(`key in (${subtaskKeys})`);

@@ -4,6 +4,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import type React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock stronghold
@@ -57,7 +58,7 @@ function renderWithQuery(ui: React.ReactElement) {
       queries: { retry: false, staleTime: 0 },
     },
   });
-  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+  return render(<MemoryRouter><QueryClientProvider client={queryClient}>{ui}</QueryClientProvider></MemoryRouter>);
 }
 
 describe('ReleasesTab', () => {
@@ -246,9 +247,11 @@ describe('REL-01: sort order', () => {
     });
     const { default: ReleasesTab } = await import('./ReleasesTab');
     render(
-      <QueryClientProvider client={queryClient}>
-        <ReleasesTab />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <ReleasesTab />
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
 
     const rows = await screen.findAllByTestId('release-row');
@@ -271,9 +274,11 @@ describe('REL-01: sort order', () => {
     });
     const { default: ReleasesTab } = await import('./ReleasesTab');
     render(
-      <QueryClientProvider client={queryClient}>
-        <ReleasesTab />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <ReleasesTab />
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
 
     const rows = await screen.findAllByTestId('release-row');
@@ -295,9 +300,11 @@ describe('REL-02: status badges', () => {
     });
     const { default: ReleasesTab } = await import('./ReleasesTab');
     render(
-      <QueryClientProvider client={queryClient}>
-        <ReleasesTab />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <ReleasesTab />
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
 
     await screen.findByText('v1.0.0');
@@ -313,9 +320,11 @@ describe('REL-02: status badges', () => {
     });
     const { default: ReleasesTab } = await import('./ReleasesTab');
     render(
-      <QueryClientProvider client={queryClient}>
-        <ReleasesTab />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <ReleasesTab />
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
 
     await screen.findByText('v2.0.0');
@@ -336,9 +345,11 @@ describe('REL-03: timing labels', () => {
     });
     const { default: ReleasesTab } = await import('./ReleasesTab');
     render(
-      <QueryClientProvider client={queryClient}>
-        <ReleasesTab />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <ReleasesTab />
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
 
     await screen.findByText('Past Release');
@@ -355,9 +366,11 @@ describe('REL-03: timing labels', () => {
     });
     const { default: ReleasesTab } = await import('./ReleasesTab');
     render(
-      <QueryClientProvider client={queryClient}>
-        <ReleasesTab />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <ReleasesTab />
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
 
     await screen.findByText('Today Release');
@@ -376,9 +389,11 @@ describe('REL-03: timing labels', () => {
     });
     const { default: ReleasesTab } = await import('./ReleasesTab');
     render(
-      <QueryClientProvider client={queryClient}>
-        <ReleasesTab />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <ReleasesTab />
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
 
     await screen.findByText('Future Release');
