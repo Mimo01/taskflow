@@ -97,4 +97,5 @@ jobs:
           prerelease: false
           owner: Mimo01
           repo: taskflow-releases
+          releaseCommitish: main
           args: ${{ matrix.args }}
