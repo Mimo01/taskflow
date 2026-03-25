@@ -19,6 +19,31 @@ function renderWithQuery(ui: React.ReactElement) {
   return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
 }
 
+// Mock build-info
+vi.mock('@/lib/build-info', () => ({
+  buildInfo: { version: '1.6.0', commitSha: 'abc1234', buildDate: '2026-03-24' },
+}));
+
+// Mock update store
+vi.mock('@/stores/update.store', () => ({
+  useUpdateStore: Object.assign(
+    (selector?: (s: Record<string, unknown>) => unknown) =>
+      selector ? selector({ status: 'idle', availableVersion: null }) : { status: 'idle', availableVersion: null },
+    { getState: () => ({ status: 'idle', availableVersion: null, setChecking: vi.fn(), setAvailable: vi.fn(), setError: vi.fn(), resetToIdle: vi.fn() }) },
+  ),
+}));
+
+// Mock updater service
+vi.mock('@/services/updater', () => ({
+  updaterService: { check: vi.fn().mockResolvedValue(null) },
+}));
+
+// Stub global fetch for version history query
+vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+  ok: true,
+  json: () => Promise.resolve([]),
+}));
+
 // Mock stronghold
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('fake-token'),
@@ -65,6 +90,10 @@ const mockSettingsStore = {
   epicNameFieldKey: 'customfield_10015',
   sprintFieldKey: 'customfield_10020',
   accountFieldKey: null,
+  updateCheckInterval: 6,
+  setUpdateCheckInterval: vi.fn(),
+  lastChecked: null,
+  setLastChecked: vi.fn(),
   setRole: vi.fn(),
   setTheme: vi.fn(),
   setDensity: vi.fn(),
@@ -129,9 +158,9 @@ describe('Settings sidebar nav', () => {
   it('renders 7 sidebar nav buttons', () => {
     renderWithQuery(<Settings />);
     const navButtons = screen.getAllByRole('button', {
-      name: /Connections|Appearance|Sidebar|Notifications|Workflow|Advanced/i,
+      name: /Connections|Appearance|Sidebar|Notifications|Workflow|Updates|Advanced/i,
     });
-    expect(navButtons.length).toBe(6);
+    expect(navButtons.length).toBe(7);
   });
 
   it('renders sidebar buttons with correct labels', () => {
@@ -141,7 +170,8 @@ describe('Settings sidebar nav', () => {
     expect(screen.getByRole('button', { name: /sidebar/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /notifications/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /workflow/i })).toBeInTheDocument();
-expect(screen.getByRole('button', { name: /advanced/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /updates/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /advanced/i })).toBeInTheDocument();
   });
 
   it('shows Connections section content on initial render (default active section)', () => {
