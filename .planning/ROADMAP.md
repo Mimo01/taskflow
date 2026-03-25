@@ -161,7 +161,10 @@ Plans:
   1. Pushing a semver git tag (e.g., v1.6.0) to the private repo triggers a GitHub Actions workflow that builds macOS (aarch64 + x86_64), Windows (x86_64), and Linux (x86_64) artifacts
   2. The workflow publishes signed artifacts and a GitHub Release (with release notes) to the separate public repo
   3. An installed copy of Taskflow detects the new release via the updater endpoint and can download + install it (end-to-end update cycle verified)
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 41-01-PLAN.md — Workflow file + placeholder URL replacement
+- [ ] 41-02-PLAN.md — Manual setup (repo, keys, secrets) + end-to-end verification
 
 ## Progress
 
@@ -174,4 +177,4 @@ Note: Phases 39 and 40 both depend only on Phase 38 and are independent of each 
 | 38. Updater Foundation + Service Layer | v1.6 | 3/3 | Complete    | 2026-03-24 |
 | 39. Update UX + Version Policy | v1.6 | 2/2 | Complete    | 2026-03-24 |
 | 40. Settings, About & Menu Integration | v1.6 | 3/3 | Complete    | 2026-03-25 |
-| 41. CI Pipeline | v1.6 | 0/TBD | Not started | - |
+| 41. CI Pipeline | v1.6 | 0/2 | Not started | - |
