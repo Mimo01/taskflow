@@ -173,5 +173,5 @@ Note: Phases 39 and 40 both depend only on Phase 38 and are independent of each 
 |-------|-----------|----------------|--------|-----------|
 | 38. Updater Foundation + Service Layer | v1.6 | 3/3 | Complete    | 2026-03-24 |
 | 39. Update UX + Version Policy | v1.6 | 2/2 | Complete    | 2026-03-24 |
-| 40. Settings, About & Menu Integration | v1.6 | 3/3 | Complete   | 2026-03-25 |
+| 40. Settings, About & Menu Integration | v1.6 | 3/3 | Complete    | 2026-03-25 |
 | 41. CI Pipeline | v1.6 | 0/TBD | Not started | - |
