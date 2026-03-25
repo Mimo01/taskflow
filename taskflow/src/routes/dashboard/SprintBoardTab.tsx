@@ -23,8 +23,8 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { useVirtualizer } from '@tanstack/react-virtual';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { Bookmark, Columns3, RefreshCw } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
@@ -40,15 +40,15 @@ import {
   fetchTransitions,
   postTransition,
 } from '@/services/jira';
+import { fetchBoardQuickFilters } from '@/services/jira/board-config';
 import { fetchAllSearchPages } from '@/services/jira/client';
+import { fetchActiveSprint } from '@/services/jira/sprints';
+import type { JiraBoardQuickFilter } from '@/services/jira/types';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useFilterStore } from '@/stores/filter.store';
 import { useSavedFilterStore } from '@/stores/saved-filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import { fetchActiveSprint } from '@/services/jira/sprints';
-import { fetchBoardQuickFilters } from '@/services/jira/board-config';
-import type { JiraBoardQuickFilter } from '@/services/jira/types';
 import DraggableCard from './DraggableCard';
 import { QuickFilterChipRow } from './QuickFilterChipRow';
 import { SprintGoalBanner } from './SprintGoalBanner';
@@ -193,9 +193,7 @@ function VirtualizedSwimlanes({
                         onOpenDetail={setSelectedIssueKey}
                       />
                       {cardErrors.get(card.key) && (
-                        <p className="text-xs text-destructive px-1">
-                          {cardErrors.get(card.key)}
-                        </p>
+                        <p className="text-xs text-destructive px-1">{cardErrors.get(card.key)}</p>
                       )}
                     </React.Fragment>
                   ))}
@@ -218,18 +216,13 @@ function VirtualizedSwimlanes({
       >
         {virtualItems.map((virtualRow) => {
           const swimlane = filteredSwimlanes[virtualRow.index];
-          return renderSwimlane(
-            swimlane,
-            swimlaneVirtualizer.measureElement,
-            virtualRow.index,
-            {
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              transform: `translateY(${virtualRow.start}px)`,
-            },
-          );
+          return renderSwimlane(swimlane, swimlaneVirtualizer.measureElement, virtualRow.index, {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            transform: `translateY(${virtualRow.start}px)`,
+          });
         })}
       </div>
     );
@@ -508,14 +501,19 @@ export default function SprintBoardTab() {
     }));
   }, [localIssues]);
 
-  const { activeEpics, activeLabels, activeAssignees, activeStatuses, activeJiraQuickFilters, activeLabelFilters } = useFilterStore();
+  const {
+    activeEpics,
+    activeLabels,
+    activeAssignees,
+    activeStatuses,
+    activeJiraQuickFilters,
+    activeLabelFilters,
+  } = useFilterStore();
 
   const activeFilterId = useSavedFilterStore((s) => s.activeFilterId);
   const savedFilters = useSavedFilterStore((s) => s.savedFilters);
   const setActiveFilter = useSavedFilterStore((s) => s.setActiveFilter);
-  const activeFilter = activeFilterId
-    ? savedFilters.find((f) => f.id === activeFilterId)
-    : null;
+  const activeFilter = activeFilterId ? savedFilters.find((f) => f.id === activeFilterId) : null;
 
   // Saved filter: fetch JQL results to intersect with sprint issues
   const { data: savedFilterIssueKeys, isLoading: isSavedFilterLoading } = useQuery({
@@ -695,7 +693,17 @@ export default function SprintBoardTab() {
     }
 
     return result;
-  }, [swimlanes, savedFilterIssueKeys, activeEpics, activeLabels, activeAssignees, activeStatuses, activeJiraQuickFilters, activeLabelFilters, applyFilters]);
+  }, [
+    swimlanes,
+    savedFilterIssueKeys,
+    activeEpics,
+    activeLabels,
+    activeAssignees,
+    activeStatuses,
+    activeJiraQuickFilters,
+    activeLabelFilters,
+    applyFilters,
+  ]);
 
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
@@ -739,9 +747,7 @@ export default function SprintBoardTab() {
           </div>
           {/* Refresh positioned absolutely so it doesn't affect column width distribution */}
           <div className="absolute right-0 top-0 h-full px-3 flex items-center gap-2 bg-background border-l border-border/20">
-            <span className="text-xs text-muted-foreground hidden sm:inline">
-              {lastRefreshed}
-            </span>
+            <span className="text-xs text-muted-foreground hidden sm:inline">{lastRefreshed}</span>
             <button
               type="button"
               onClick={() => refetch()}
@@ -803,9 +809,7 @@ export default function SprintBoardTab() {
           {!isLoading && !isError && data && activeFilter && (
             <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 border-b border-primary/20">
               <Bookmark className="size-3.5 text-primary" />
-              <span className="text-xs font-medium">
-                Filter: {activeFilter.name}
-              </span>
+              <span className="text-xs font-medium">Filter: {activeFilter.name}</span>
               {isSavedFilterLoading && (
                 <span className="text-xs text-muted-foreground">(loading...)</span>
               )}

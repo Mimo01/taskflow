@@ -7,6 +7,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { fetch } from '@tauri-apps/plugin-http';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import {
   AlertTriangle,
@@ -32,17 +33,16 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { statusCategoryBadgeClass } from '@/lib/statusStyles';
-import type { GitLabMR, GitLabMilestone } from '@/services/gitlab';
+import type { GitLabMilestone, GitLabMR } from '@/services/gitlab';
 import { fetchMilestoneMRs, fetchProjectMilestonesInRange } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
-import { extractTicketKeys, linkMRToTask } from '@/services/linkEngine';
 import { fetchFixVersions, updateFixVersion } from '@/services/jira';
+import { extractTicketKeys, linkMRToTask } from '@/services/linkEngine';
 import type { ReleaseMatch } from '@/services/releaseLinker';
 import { matchGitLabToFixVersion } from '@/services/releaseLinker';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
-import { fetch } from '@tauri-apps/plugin-http';
 
 // ---- Issue count fetching (duplicated from ReleasesTab to keep self-contained) ----
 
@@ -200,8 +200,7 @@ export default function ReleaseDetailPage() {
         milestoneWindow?.from ?? '',
         milestoneWindow?.to ?? '',
       ),
-    enabled:
-      !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken && milestoneWindow !== null,
+    enabled: !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken && milestoneWindow !== null,
     staleTime: 5 * 60_000,
   });
 
@@ -249,10 +248,7 @@ export default function ReleaseDetailPage() {
       ),
     staleTime: 5 * 60_000,
     enabled:
-      !!gitlabBaseUrl &&
-      !!activeGitlabProject &&
-      !!gitlabToken &&
-      gitlabMatch.type !== 'none',
+      !!gitlabBaseUrl && !!activeGitlabProject && !!gitlabToken && gitlabMatch.type !== 'none',
   });
 
   // Match MRs to Jira issues
@@ -284,7 +280,10 @@ export default function ReleaseDetailPage() {
   // Aggregate unique labels across all milestone MRs with counts
   const labelSummary = useMemo(() => {
     const mrs = milestoneMRs ?? [];
-    const labelMap = new Map<string, { label: { name: string; color: string; text_color: string }; count: number }>();
+    const labelMap = new Map<
+      string,
+      { label: { name: string; color: string; text_color: string }; count: number }
+    >();
 
     for (const mr of mrs) {
       for (const label of mr.labels) {
@@ -505,7 +504,6 @@ export default function ReleaseDetailPage() {
                 </section>
               )}
 
-
               {/* Issues with MR matching */}
               <section>
                 <div className="flex items-center gap-2 mb-2">
@@ -547,14 +545,18 @@ export default function ReleaseDetailPage() {
                     Loading issues...
                   </div>
                 ) : matchedRows.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4">No issues in this fix version</p>
+                  <p className="text-sm text-muted-foreground py-4">
+                    No issues in this fix version
+                  </p>
                 ) : (
                   <table className="w-full text-sm border-separate border-spacing-0">
                     <thead>
                       <tr className="text-xs text-muted-foreground font-medium bg-muted/30">
                         <th className="text-left py-1.5 px-2 border-b border-border/50">Key</th>
                         <th className="text-left py-1.5 px-2 border-b border-border/50">Summary</th>
-                        <th className="text-left py-1.5 px-2 border-b border-border/50">Assignee</th>
+                        <th className="text-left py-1.5 px-2 border-b border-border/50">
+                          Assignee
+                        </th>
                         <th className="text-left py-1.5 px-2 border-b border-border/50">Status</th>
                         <th className="text-left py-1.5 px-2 border-b border-border/50">MR</th>
                       </tr>
@@ -583,7 +585,9 @@ export default function ReleaseDetailPage() {
                                   alt=""
                                   className="size-4 rounded-full"
                                 />
-                                <span className="line-clamp-1">{row.issue.fields.assignee.displayName}</span>
+                                <span className="line-clamp-1">
+                                  {row.issue.fields.assignee.displayName}
+                                </span>
                               </span>
                             ) : (
                               <span className="text-xs text-muted-foreground">Unassigned</span>
@@ -601,7 +605,10 @@ export default function ReleaseDetailPage() {
                               <span className="inline-flex items-center gap-1.5">
                                 <button
                                   type="button"
-                                  onClick={(e) => { e.stopPropagation(); openUrl(row.mr!.web_url); }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openUrl(row.mr!.web_url);
+                                  }}
                                   className={`inline-flex items-center gap-1 text-xs hover:underline ${
                                     row.mr.state === 'merged'
                                       ? 'text-green-600 dark:text-green-400'
@@ -610,8 +617,7 @@ export default function ReleaseDetailPage() {
                                         : 'text-gray-500'
                                   }`}
                                 >
-                                  <GitMerge className="size-3.5" />
-                                  !{row.mr.iid}
+                                  <GitMerge className="size-3.5" />!{row.mr.iid}
                                 </button>
                                 <Badge
                                   variant="outline"
@@ -666,10 +672,7 @@ export default function ReleaseDetailPage() {
                     </p>
                     <div className="space-y-1">
                       {unmatchedMRs.map((mr) => (
-                        <div
-                          key={mr.id}
-                          className="flex items-center gap-2 text-sm py-1"
-                        >
+                        <div key={mr.id} className="flex items-center gap-2 text-sm py-1">
                           <GitMerge
                             className={`size-3.5 shrink-0 ${
                               mr.state === 'merged'
@@ -701,7 +704,10 @@ export default function ReleaseDetailPage() {
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      breadcrumbPush({ path: `/release/${versionId}`, label: version.name });
+                                      breadcrumbPush({
+                                        path: `/release/${versionId}`,
+                                        label: version.name,
+                                      });
                                       navigate(`/issue/${key}`);
                                     }}
                                     className="text-primary hover:underline font-mono"
@@ -830,15 +836,11 @@ export default function ReleaseDetailPage() {
                       }`}
                     />
                   </button>
-                  <span className="text-sm">
-                    {editReleased ? 'Released' : 'Unreleased'}
-                  </span>
+                  <span className="text-sm">{editReleased ? 'Released' : 'Unreleased'}</span>
                 </div>
 
                 {/* Error message */}
-                {mutationError && (
-                  <p className="text-xs text-destructive">{mutationError}</p>
-                )}
+                {mutationError && <p className="text-xs text-destructive">{mutationError}</p>}
 
                 {/* Save / Cancel buttons */}
                 <div className="flex gap-2 pt-2">
@@ -940,9 +942,7 @@ export default function ReleaseDetailPage() {
                         <ExternalLink className="size-3 shrink-0" />
                       </button>
                     ) : (
-                      <span data-testid="gitlab-link-exact">
-                        {gitlabMatch.candidateName}
-                      </span>
+                      <span data-testid="gitlab-link-exact">{gitlabMatch.candidateName}</span>
                     )
                   ) : gitlabMatch.type === 'fuzzy' ? (
                     gitlabMatch.candidateUrl ? (

@@ -1,5 +1,5 @@
-import { fetch } from '@tauri-apps/plugin-http';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetch } from '@tauri-apps/plugin-http';
 import { ChevronDown, ChevronRight, Paperclip } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import type { JiraAttachment } from '@/services/jira';
@@ -148,15 +148,16 @@ export function AttachmentsSection({
         <div className="mb-2">
           <p className="text-xs text-muted-foreground">{dropUploadName} uploading...</p>
           <div className="h-1 w-full bg-muted rounded-full overflow-hidden mt-1">
-            <div className="h-full bg-primary rounded-full animate-pulse" style={{ width: '60%' }} />
+            <div
+              className="h-full bg-primary rounded-full animate-pulse"
+              style={{ width: '60%' }}
+            />
           </div>
         </div>
       )}
 
       {/* Drop upload error */}
-      {dropUploadError && (
-        <p className="text-xs text-destructive mb-2">{dropUploadError}</p>
-      )}
+      {dropUploadError && <p className="text-xs text-destructive mb-2">{dropUploadError}</p>}
 
       {/* Expanded content */}
       {isExpanded && (

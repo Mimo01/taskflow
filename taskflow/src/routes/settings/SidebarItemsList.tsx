@@ -6,21 +6,17 @@
  * Each item can be toggled visible/hidden and dragged to reorder.
  */
 
+import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import {
+  closestCenter,
   DndContext,
   DragOverlay,
   PointerSensor,
-  closestCenter,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
-import {
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
 import { useState } from 'react';
@@ -89,19 +85,14 @@ function SortableItem({ id, label, isVisible, onToggle }: SortableItemProps) {
 // ---------------------------------------------------------------------------
 
 export default function SidebarItemsList() {
-  const { sidebarItems, setSidebarItemVisible, reorderSidebarItem } =
-    useSettingsStore();
+  const { sidebarItems, setSidebarItemVisible, reorderSidebarItem } = useSettingsStore();
 
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   // Build a lookup: id -> visible
-  const visibilityMap = new Map(
-    sidebarItems.map((item) => [item.id, item.visible]),
-  );
+  const visibilityMap = new Map(sidebarItems.map((item) => [item.id, item.visible]));
 
   const allItemIds = sidebarItems.map((item) => item.id);
 
@@ -128,15 +119,10 @@ export default function SidebarItemsList() {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <SortableContext
-        items={allItemIds}
-        strategy={verticalListSortingStrategy}
-      >
+      <SortableContext items={allItemIds} strategy={verticalListSortingStrategy}>
         <div className="flex flex-col gap-4">
           {SIDEBAR_SECTIONS.map((section) => {
-            const sectionItems = SIDEBAR_NAV_ITEMS.filter(
-              (nav) => nav.section === section.id,
-            );
+            const sectionItems = SIDEBAR_NAV_ITEMS.filter((nav) => nav.section === section.id);
             if (sectionItems.length === 0) return null;
 
             return (

@@ -59,9 +59,7 @@ export function mergeTimeline(
     ...histories.map((h) => ({ type: 'change' as const, timestamp: h.created, data: h })),
     ...worklogs.map((w) => ({ type: 'worklog' as const, timestamp: w.started, data: w })),
   ];
-  return entries.sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-  );
+  return entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 }
 
 /**
@@ -71,10 +69,7 @@ export function mergeTimeline(
  * @param filter - Which entry types to include ('all' returns everything)
  * @returns Filtered entries
  */
-export function filterTimeline(
-  entries: TimelineEntry[],
-  filter: TimelineFilter,
-): TimelineEntry[] {
+export function filterTimeline(entries: TimelineEntry[], filter: TimelineFilter): TimelineEntry[] {
   if (filter === 'all') return entries;
   return entries.filter((e) => e.type === filter);
 }
@@ -85,9 +80,12 @@ export function filterTimeline(
  * @param entries - Full timeline
  * @returns Counts per type plus total
  */
-export function countByType(
-  entries: TimelineEntry[],
-): { all: number; comment: number; change: number; worklog: number } {
+export function countByType(entries: TimelineEntry[]): {
+  all: number;
+  comment: number;
+  change: number;
+  worklog: number;
+} {
   let comment = 0;
   let change = 0;
   let worklog = 0;

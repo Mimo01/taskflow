@@ -23,6 +23,7 @@ import { apiFetch } from '../lib/apiFetch';
 // Re-export changelog and watcher modules for barrel access via '@/services/jira'
 export * from './jira-changelog';
 export * from './jira-watchers';
+
 import type { ChangelogHistory } from './jira-changelog';
 
 export interface JiraUser {
@@ -802,14 +803,19 @@ export async function updateFixVersion(
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(fields),
       },
-      body: JSON.stringify(fields),
-    }, 'Update Release');
+      'Update Release',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -972,8 +978,16 @@ export async function fetchIssueWorklogs(
 export interface JiraIssueLink {
   id: string;
   type: { id: string; name: string; inward: string; outward: string };
-  inwardIssue?: { id: string; key: string; fields: { summary: string; status: { name: string; statusCategory?: { key: string } } } };
-  outwardIssue?: { id: string; key: string; fields: { summary: string; status: { name: string; statusCategory?: { key: string } } } };
+  inwardIssue?: {
+    id: string;
+    key: string;
+    fields: { summary: string; status: { name: string; statusCategory?: { key: string } } };
+  };
+  outwardIssue?: {
+    id: string;
+    key: string;
+    fields: { summary: string; status: { name: string; statusCategory?: { key: string } } };
+  };
 }
 
 export interface JiraAttachment {
@@ -1135,7 +1149,12 @@ export async function fetchIssueDetail(
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
       if (enrichRes.ok) {
-        const enrichData = (await enrichRes.json()) as { issues: Array<{ key: string; fields: { assignee: JiraIssueDetail['fields']['assignee'] } }> };
+        const enrichData = (await enrichRes.json()) as {
+          issues: Array<{
+            key: string;
+            fields: { assignee: JiraIssueDetail['fields']['assignee'] };
+          }>;
+        };
         const assigneeMap = new Map(enrichData.issues.map((i) => [i.key, i.fields.assignee]));
         for (const sub of issue.fields.subtasks) {
           sub.fields.assignee = assigneeMap.get(sub.key) ?? null;

@@ -110,10 +110,7 @@ export function AttachmentLightbox({
       )}
 
       {/* Image + caption */}
-      <div
-        className="flex flex-col items-center gap-3"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="flex flex-col items-center gap-3" onClick={(e) => e.stopPropagation()}>
         <AuthImage
           src={current.content}
           alt={current.filename}

@@ -745,9 +745,9 @@ describe('FILT-02: saved filter integration', () => {
     ]);
 
     // Set saved filter store state BEFORE rendering
-    useSavedFilterStore.getState().setSavedFilters([
-      { id: '100', name: 'My Filter', jql: 'assignee = currentUser()' },
-    ]);
+    useSavedFilterStore
+      .getState()
+      .setSavedFilters([{ id: '100', name: 'My Filter', jql: 'assignee = currentUser()' }]);
     useSavedFilterStore.getState().setActiveFilter('100');
 
     const { useAuthStore } = await import('@/stores/auth.store');
@@ -796,9 +796,9 @@ describe('FILT-02: saved filter integration', () => {
     ]);
 
     // Start with active filter
-    useSavedFilterStore.getState().setSavedFilters([
-      { id: '100', name: 'My Filter', jql: 'assignee = currentUser()' },
-    ]);
+    useSavedFilterStore
+      .getState()
+      .setSavedFilters([{ id: '100', name: 'My Filter', jql: 'assignee = currentUser()' }]);
     useSavedFilterStore.getState().setActiveFilter('100');
 
     const { useAuthStore } = await import('@/stores/auth.store');
@@ -839,14 +839,12 @@ describe('FILT-02: saved filter integration', () => {
 
     const story1 = makeIssue('PROJ-1', 'Story One', false, undefined, 'In Progress');
     vi.mocked(fetchSprintIssues).mockResolvedValue([story1]);
-    vi.mocked(fetchProjectStatuses).mockResolvedValue([
-      makeStatus('In Progress', 'indeterminate'),
-    ]);
+    vi.mocked(fetchProjectStatuses).mockResolvedValue([makeStatus('In Progress', 'indeterminate')]);
     vi.mocked(fetchAllSearchPages).mockResolvedValue([{ key: 'PROJ-1' } as any]);
 
-    useSavedFilterStore.getState().setSavedFilters([
-      { id: '100', name: 'My Filter', jql: 'assignee = currentUser()' },
-    ]);
+    useSavedFilterStore
+      .getState()
+      .setSavedFilters([{ id: '100', name: 'My Filter', jql: 'assignee = currentUser()' }]);
     useSavedFilterStore.getState().setActiveFilter('100');
 
     const { useAuthStore } = await import('@/stores/auth.store');

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
-import type { JiraIssueDetail } from '@/services/jira';
 import { statusCategoryBadgeClass, statusCategoryDotClass } from '@/lib/statusStyles';
+import type { JiraIssueDetail } from '@/services/jira';
 
 interface LinkedIssuesSectionProps {
   issuelinks: JiraIssueDetail['fields']['issuelinks'];

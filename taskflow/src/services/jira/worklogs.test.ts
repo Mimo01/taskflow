@@ -127,10 +127,12 @@ describe('worklogs service', () => {
         status: 403,
       } as Response);
 
-      await expect(updateWorklog(BASE, TOKEN, ISSUE, '42', {
-        timeSpentSeconds: 7200,
-        started: '2026-03-20T09:00:00.000+0000',
-      })).rejects.toThrow('Failed to update worklog');
+      await expect(
+        updateWorklog(BASE, TOKEN, ISSUE, '42', {
+          timeSpentSeconds: 7200,
+          started: '2026-03-20T09:00:00.000+0000',
+        }),
+      ).rejects.toThrow('Failed to update worklog');
     });
   });
 

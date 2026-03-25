@@ -29,8 +29,8 @@ export function parseDuration(input: string): ParsedDuration | null {
   let totalSeconds = 0;
   let matched = false;
 
-  let match: RegExpExecArray | null;
-  while ((match = regex.exec(input)) !== null) {
+  let match = regex.exec(input);
+  while (match !== null) {
     const value = Number.parseFloat(match[1]);
     const unit = match[2].toLowerCase();
     const multiplier = UNIT_SECONDS[unit];
@@ -38,6 +38,7 @@ export function parseDuration(input: string): ParsedDuration | null {
       totalSeconds += value * multiplier;
       matched = true;
     }
+    match = regex.exec(input);
   }
 
   if (!matched) return null;

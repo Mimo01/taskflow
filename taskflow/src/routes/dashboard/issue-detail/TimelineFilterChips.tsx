@@ -13,7 +13,11 @@ interface TimelineFilterChipsProps {
   onFilterChange: (filter: TimelineFilter) => void;
 }
 
-const FILTERS: { key: TimelineFilter; label: string; countKey: 'all' | 'comment' | 'change' | 'worklog' }[] = [
+const FILTERS: {
+  key: TimelineFilter;
+  label: string;
+  countKey: 'all' | 'comment' | 'change' | 'worklog';
+}[] = [
   { key: 'comment', label: 'Comments', countKey: 'comment' },
   { key: 'change', label: 'Changes', countKey: 'change' },
   { key: 'worklog', label: 'Worklogs', countKey: 'worklog' },

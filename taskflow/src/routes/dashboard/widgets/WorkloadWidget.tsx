@@ -53,7 +53,9 @@ export default function WorkloadWidget(_props: { widgetId: string }) {
       existing.points += pts;
       map.set(name, existing);
     }
-    return Array.from(map.values()).sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+    return Array.from(map.values()).sort(
+      (a, b) => b.points - a.points || a.name.localeCompare(b.name),
+    );
   }, [data, storyPointsFieldKey]);
 
   const maxPts = useMemo(() => Math.max(1, ...rows.map((r) => r.points)), [rows]);

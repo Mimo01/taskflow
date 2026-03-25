@@ -11,9 +11,9 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { cn } from '@/lib/utils';
-import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { statusCategoryBadgeClass } from '@/lib/statusStyles';
+import { cn } from '@/lib/utils';
 import { fetchTransitions } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 

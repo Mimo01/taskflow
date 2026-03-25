@@ -7,13 +7,14 @@
  *
  * Per D-15: prevents all app interaction when version is below hardMinimum.
  */
-import { useState } from 'react';
+
 import { Lock } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { buildInfo } from '@/lib/build-info';
 import { updaterService } from '@/services/updater';
-import { useUpdateStore } from '@/stores/update.store';
 import type { VersionPolicy } from '@/services/versionPolicy';
+import { useUpdateStore } from '@/stores/update.store';
 
 interface HardMinimumOverlayProps {
   policy: VersionPolicy;

@@ -26,13 +26,13 @@ import PinnedTabStrip from './components/app/PinnedTabStrip';
 import ReAuthBanner, { GitLabReAuthBanner } from './components/app/ReAuthBanner';
 import Sidebar from './components/app/Sidebar';
 import TopBar from './components/app/TopBar';
-import { useNotificationPolling } from './hooks/useNotificationPolling';
-import { useUpdatePolling } from './hooks/useUpdatePolling';
-import { useVersionPolicyCheck } from './hooks/useVersionPolicyCheck';
 import { HardMinimumOverlay } from './components/update/HardMinimumOverlay';
 import { SoftMinimumBanner } from './components/update/SoftMinimumBanner';
 import { UpdateDialog } from './components/update/UpdateDialog';
 import { WhatsNewDialog } from './components/update/WhatsNewDialog';
+import { useNotificationPolling } from './hooks/useNotificationPolling';
+import { useUpdatePolling } from './hooks/useUpdatePolling';
+import { useVersionPolicyCheck } from './hooks/useVersionPolicyCheck';
 import {
   CreateEditIssueModal,
   type EditInitialValues,
@@ -41,8 +41,8 @@ import ErrorPage from './routes/error/ErrorPage';
 import { routes } from './routes/routes';
 import { discoverCustomFields, fetchIssueSummary } from './services/jira';
 import { readSecret } from './services/stronghold';
-import { updaterService } from './services/updater';
 import { applyDensity, loadTheme } from './services/theme';
+import { updaterService } from './services/updater';
 import { useAuthStore } from './stores/auth.store';
 import { useBreadcrumbStore } from './stores/breadcrumb.store';
 import { usePinnedTabsStore } from './stores/pinned-tabs.store';
@@ -237,7 +237,11 @@ function AppLayout() {
 
   // Reset breadcrumb trail when navigating away from issue detail
   useEffect(() => {
-    if (!location.pathname.startsWith('/issue/') && !location.pathname.startsWith('/mr/') && !location.pathname.startsWith('/release/')) {
+    if (
+      !location.pathname.startsWith('/issue/') &&
+      !location.pathname.startsWith('/mr/') &&
+      !location.pathname.startsWith('/release/')
+    ) {
       breadcrumbReset();
     }
   }, [location.pathname, breadcrumbReset]);

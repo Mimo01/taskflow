@@ -40,25 +40,20 @@ export default function WidgetPicker({
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" />
         <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl bg-background p-4 ring-1 ring-foreground/10 shadow-lg outline-none">
-          <Dialog.Title className="text-base font-medium mb-4">
-            Add a Widget
-          </Dialog.Title>
+          <Dialog.Title className="text-base font-medium mb-4">Add a Widget</Dialog.Title>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {widgetDefs.map((def) => (
               <button
                 key={def.type}
                 type="button"
-                role="button"
                 aria-label={`Add ${def.title} widget`}
                 className="flex flex-col items-center gap-2 p-4 rounded-lg border border-border hover:bg-accent cursor-pointer text-center"
                 onClick={() => onAddWidget(def.type)}
               >
                 <def.icon className="h-5 w-5" />
                 <span className="text-sm font-medium">{def.title}</span>
-                <span className="text-xs text-muted-foreground">
-                  {def.description}
-                </span>
+                <span className="text-xs text-muted-foreground">{def.description}</span>
               </button>
             ))}
           </div>

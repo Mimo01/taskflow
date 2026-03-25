@@ -58,7 +58,11 @@ function renderWithQuery(ui: React.ReactElement) {
       queries: { retry: false, staleTime: 0 },
     },
   });
-  return render(<MemoryRouter><QueryClientProvider client={queryClient}>{ui}</QueryClientProvider></MemoryRouter>);
+  return render(
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+    </MemoryRouter>,
+  );
 }
 
 describe('ReleasesTab', () => {

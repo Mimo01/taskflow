@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { fetchAssignableUsers } from '@/services/jira/users';
 import type { JiraAssignableUser } from '@/services/jira/types';
+import { fetchAssignableUsers } from '@/services/jira/users';
 import { readSecret } from '@/services/stronghold';
 
 export interface MentionPopoverHandle {
@@ -113,6 +113,7 @@ export const MentionPopover = forwardRef<MentionPopoverHandle, MentionPopoverPro
               key={user.name}
               id={optionId}
               role="option"
+              tabIndex={-1}
               aria-selected={isActive}
               data-mention-index={index}
               className={`flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer text-sm ${
@@ -122,20 +123,14 @@ export const MentionPopover = forwardRef<MentionPopoverHandle, MentionPopoverPro
               onMouseEnter={() => setActiveIndex(index)}
             >
               {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt=""
-                  className="size-5 rounded-full shrink-0"
-                />
+                <img src={avatarUrl} alt="" className="size-5 rounded-full shrink-0" />
               ) : (
                 <span className="size-5 rounded-full shrink-0 bg-muted flex items-center justify-center text-[10px] font-medium text-muted-foreground">
                   {initials}
                 </span>
               )}
               <span className="truncate">{user.displayName}</span>
-              <span className="text-muted-foreground text-xs ml-auto truncate">
-                {user.name}
-              </span>
+              <span className="text-muted-foreground text-xs ml-auto truncate">{user.name}</span>
             </div>
           );
         })}

@@ -30,13 +30,24 @@ interface UseCreateEditQueriesOptions {
 
 // Core field IDs to exclude from custom field rendering
 const CORE_FIELD_IDS = new Set([
-  'summary', 'description', 'assignee', 'priority', 'issuetype', 'project', 'reporter',
+  'summary',
+  'description',
+  'assignee',
+  'priority',
+  'issuetype',
+  'project',
+  'reporter',
 ]);
 
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useCreateEditQueries({
-  open, projectKey, jiraBaseUrl, selectedIssueType, epicLinkFieldKey, storyPointsFieldKey,
+  open,
+  projectKey,
+  jiraBaseUrl,
+  selectedIssueType,
+  epicLinkFieldKey,
+  storyPointsFieldKey,
 }: UseCreateEditQueriesOptions) {
   const staleTime = 5 * 60 * 1000;
 
@@ -46,7 +57,12 @@ export function useCreateEditQueries({
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token || !jiraBaseUrl || !projectKey) return [];
       const base = jiraBaseUrl.replace(/\/$/, '');
-      const resp = await apiFetch('jira', `${base}/rest/api/2/issue/createmeta/${projectKey}/issuetypes`, { headers: { Authorization: `Bearer ${token}` } }, 'Create/Edit Issue');
+      const resp = await apiFetch(
+        'jira',
+        `${base}/rest/api/2/issue/createmeta/${projectKey}/issuetypes`,
+        { headers: { Authorization: `Bearer ${token}` } },
+        'Create/Edit Issue',
+      );
       if (!resp.ok) return [];
       const data = await resp.json();
       return (data.values ?? []) as CreatemtaIssueType[];
@@ -62,7 +78,13 @@ export function useCreateEditQueries({
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token || !jiraBaseUrl || !projectKey) return [];
-      return fetchCreatemeta(jiraBaseUrl, token, projectKey, selectedIssueTypeId, selectedIssueType);
+      return fetchCreatemeta(
+        jiraBaseUrl,
+        token,
+        projectKey,
+        selectedIssueTypeId,
+        selectedIssueType,
+      );
     },
     enabled: open && !!projectKey && !!jiraBaseUrl && !!selectedIssueTypeId,
     staleTime,
@@ -83,7 +105,12 @@ export function useCreateEditQueries({
       if (!token || !jiraBaseUrl || !projectKey) return [];
       const base = jiraBaseUrl.replace(/\/$/, '');
       const jql = `project = ${projectKey} AND issuetype = Epic AND statusCategory != Done ORDER BY updated DESC`;
-      const resp = await apiFetch('jira', `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status&maxResults=50`, { headers: { Authorization: `Bearer ${token}` } }, 'Create/Edit Issue');
+      const resp = await apiFetch(
+        'jira',
+        `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status&maxResults=50`,
+        { headers: { Authorization: `Bearer ${token}` } },
+        'Create/Edit Issue',
+      );
       if (!resp.ok) return [];
       const data = await resp.json();
       return (data.issues ?? []) as JiraIssue[];
@@ -109,7 +136,12 @@ export function useCreateEditQueries({
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token || !jiraBaseUrl || !projectKey) return [];
       const base = jiraBaseUrl.replace(/\/$/, '');
-      const resp = await apiFetch('jira', `${base}/rest/api/2/user/assignable/search?project=${projectKey}&maxResults=200`, { headers: { Authorization: `Bearer ${token}` } }, 'Create/Edit Issue');
+      const resp = await apiFetch(
+        'jira',
+        `${base}/rest/api/2/user/assignable/search?project=${projectKey}&maxResults=200`,
+        { headers: { Authorization: `Bearer ${token}` } },
+        'Create/Edit Issue',
+      );
       if (!resp.ok) return [];
       return (await resp.json()) as JiraUser[];
     },

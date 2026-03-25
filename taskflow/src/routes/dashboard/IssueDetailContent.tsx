@@ -1,5 +1,5 @@
-import { openUrl } from '@tauri-apps/plugin-opener';
 import { useQueryClient } from '@tanstack/react-query';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { Copy, ExternalLink, Pencil, Pin, Plus } from 'lucide-react';
 import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
@@ -10,10 +10,10 @@ import { deleteAttachment } from '@/services/jira/attachments';
 import { readSecret } from '@/services/stronghold';
 import { useSettingsStore } from '@/stores/settings.store';
 import type { EditInitialValues } from './CreateEditIssueModal';
-import type { AttachmentMap, UserMap } from './WikiRenderer';
-import { WikiRenderer } from './WikiRenderer';
 import { AttachmentsSection } from './issue-detail/AttachmentsSection';
 import { LogWorkPopover } from './issue-detail/LogWorkPopover';
+import type { AttachmentMap, UserMap } from './WikiRenderer';
+import { WikiRenderer } from './WikiRenderer';
 
 function getInitials(displayName: string): string {
   return displayName
@@ -156,7 +156,10 @@ export function IssueDetailContent({
                     </span>
                     <span className="flex-1 truncate">{story.fields.summary}</span>
                     {story.fields.assignee && (
-                      <div className="flex items-center gap-1.5 shrink-0" title={story.fields.assignee.displayName}>
+                      <div
+                        className="flex items-center gap-1.5 shrink-0"
+                        title={story.fields.assignee.displayName}
+                      >
                         <div className="relative h-5 w-5 shrink-0">
                           {story.fields.assignee.avatarUrls?.['48x48'] && (
                             <img
@@ -165,22 +168,34 @@ export function IssueDetailContent({
                               className="h-5 w-5 rounded-full"
                               onError={(e) => {
                                 e.currentTarget.style.display = 'none';
-                                const sib = e.currentTarget.nextElementSibling as HTMLElement | null;
+                                const sib = e.currentTarget
+                                  .nextElementSibling as HTMLElement | null;
                                 if (sib) sib.style.display = 'flex';
                               }}
                             />
                           )}
                           <div
                             className="h-5 w-5 rounded-full bg-primary text-primary-foreground items-center justify-center text-[10px] font-medium"
-                            style={{ display: story.fields.assignee.avatarUrls?.['48x48'] ? 'none' : 'flex' }}
+                            style={{
+                              display: story.fields.assignee.avatarUrls?.['48x48']
+                                ? 'none'
+                                : 'flex',
+                            }}
                           >
                             {getInitials(story.fields.assignee.displayName)}
                           </div>
                         </div>
-                        <span className="text-xs text-muted-foreground">{story.fields.assignee.displayName}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {story.fields.assignee.displayName}
+                        </span>
                       </div>
                     )}
-                    <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0', statusCategoryBadgeClass(story.fields.status.statusCategory?.key))}>
+                    <span
+                      className={cn(
+                        'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0',
+                        statusCategoryBadgeClass(story.fields.status.statusCategory?.key),
+                      )}
+                    >
                       {story.fields.status.name}
                     </span>
                   </button>
@@ -212,7 +227,10 @@ export function IssueDetailContent({
                       </span>
                       <span className="flex-1 truncate">{sub.fields.summary}</span>
                       {sub.fields.assignee && (
-                        <div className="flex items-center gap-1.5 shrink-0" title={sub.fields.assignee.displayName}>
+                        <div
+                          className="flex items-center gap-1.5 shrink-0"
+                          title={sub.fields.assignee.displayName}
+                        >
                           <div className="relative h-5 w-5 shrink-0">
                             {sub.fields.assignee.avatarUrls?.['48x48'] && (
                               <img
@@ -221,22 +239,34 @@ export function IssueDetailContent({
                                 className="h-5 w-5 rounded-full"
                                 onError={(e) => {
                                   e.currentTarget.style.display = 'none';
-                                  const sib = e.currentTarget.nextElementSibling as HTMLElement | null;
+                                  const sib = e.currentTarget
+                                    .nextElementSibling as HTMLElement | null;
                                   if (sib) sib.style.display = 'flex';
                                 }}
                               />
                             )}
                             <div
                               className="h-5 w-5 rounded-full bg-primary text-primary-foreground items-center justify-center text-[10px] font-medium"
-                              style={{ display: sub.fields.assignee.avatarUrls?.['48x48'] ? 'none' : 'flex' }}
+                              style={{
+                                display: sub.fields.assignee.avatarUrls?.['48x48']
+                                  ? 'none'
+                                  : 'flex',
+                              }}
                             >
                               {getInitials(sub.fields.assignee.displayName)}
                             </div>
                           </div>
-                          <span className="text-xs text-muted-foreground">{sub.fields.assignee.displayName}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {sub.fields.assignee.displayName}
+                          </span>
                         </div>
                       )}
-                      <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0', statusCategoryBadgeClass(sub.fields.status.statusCategory?.key))}>
+                      <span
+                        className={cn(
+                          'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0',
+                          statusCategoryBadgeClass(sub.fields.status.statusCategory?.key),
+                        )}
+                      >
                         {sub.fields.status.name}
                       </span>
                     </button>

@@ -5,8 +5,8 @@
  * and an optional comment. Calls createWorklog on submit.
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
 import { Clock } from 'lucide-react';
+import { useState } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

@@ -88,7 +88,9 @@ function ConnectionCard({
 
       {/* URL field */}
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={urlId} className="text-sm font-medium">{title} URL</label>
+        <label htmlFor={urlId} className="text-sm font-medium">
+          {title} URL
+        </label>
         <Input
           id={urlId}
           type="url"
@@ -101,7 +103,9 @@ function ConnectionCard({
 
       {/* Token field — masked, editable for pasting new token */}
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={tokenId} className="text-sm font-medium">{title} Token</label>
+        <label htmlFor={tokenId} className="text-sm font-medium">
+          {title} Token
+        </label>
         <Input
           id={tokenId}
           type="password"

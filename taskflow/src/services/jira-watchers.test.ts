@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fetchWatchers, addWatcher, removeWatcher } from './jira-watchers';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { addWatcher, fetchWatchers, removeWatcher } from './jira-watchers';
 
 // Mock apiFetch
 const mockApiFetch = vi.fn();
@@ -28,7 +28,9 @@ beforeEach(() => {
 
 describe('fetchWatchers', () => {
   it('returns isWatching and watchCount from GET response', async () => {
-    mockApiFetch.mockResolvedValue(mockResponse(200, { isWatching: true, watchCount: 3, watchers: [] }));
+    mockApiFetch.mockResolvedValue(
+      mockResponse(200, { isWatching: true, watchCount: 3, watchers: [] }),
+    );
     const result = await fetchWatchers(BASE, TOKEN, ISSUE);
     expect(result).toEqual({ isWatching: true, watchCount: 3 });
     expect(mockApiFetch).toHaveBeenCalledWith(

@@ -34,7 +34,9 @@ describe('transitions', () => {
         status: 401,
       } as unknown as Response);
 
-      await expect(fetchTransitions(baseUrl, token, issueKey)).rejects.toThrow('Failed to fetch transitions');
+      await expect(fetchTransitions(baseUrl, token, issueKey)).rejects.toThrow(
+        'Failed to fetch transitions',
+      );
     });
   });
 
@@ -63,7 +65,9 @@ describe('transitions', () => {
         status: 403,
       } as unknown as Response);
 
-      await expect(postTransition(baseUrl, token, issueKey, 'txn-1')).rejects.toThrow('Failed to transition');
+      await expect(postTransition(baseUrl, token, issueKey, 'txn-1')).rejects.toThrow(
+        'Failed to transition',
+      );
     });
   });
 });

@@ -289,9 +289,14 @@ export async function fetchIssueDetail(
     .filter(Boolean)
     .join(',');
   const url = `${base}/rest/api/2/issue/${issueKey}?fields=${fields}&expand=changelog`;
-  const response = await apiFetch('jira', url, {
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-  }, 'Load Issue Detail');
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    },
+    'Load Issue Detail',
+  );
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError(`Failed to fetch issue ${issueKey}`, response.status, 'jira');
@@ -312,9 +317,14 @@ export async function fetchIssueSummary(
 ): Promise<{ key: string; fields: { summary: string; issuetype: { name: string } } }> {
   const base = baseUrl.replace(/\/$/, '');
   const url = `${base}/rest/api/2/issue/${issueKey}?fields=summary,issuetype`;
-  const response = await apiFetch('jira', url, {
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-  }, 'Load Issue Detail');
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    },
+    'Load Issue Detail',
+  );
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError(`Failed to fetch issue ${issueKey}`, response.status, 'jira');
@@ -335,11 +345,16 @@ export async function updateIssueField(
   value: unknown,
 ): Promise<void> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}`;
-  const response = await apiFetch('jira', url, {
-    method: 'PUT',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fields: { [fieldName]: value } }),
-  }, 'Create/Edit Issue');
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: { [fieldName]: value } }),
+    },
+    'Create/Edit Issue',
+  );
   if (!response.ok && response.status !== 204) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError(`Failed to update ${fieldName} on ${issueKey}`, response.status, 'jira');
@@ -394,11 +409,16 @@ export async function createIssue(
     }
   }
 
-  const response = await apiFetch('jira', url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fields: baseFields }),
-  }, 'Create/Edit Issue');
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: baseFields }),
+    },
+    'Create/Edit Issue',
+  );
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError('Failed to create issue', response.status, 'jira');
@@ -424,11 +444,16 @@ export async function bulkUpdateIssue(
   fields: Record<string, unknown>,
 ): Promise<void> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}`;
-  const response = await apiFetch('jira', url, {
-    method: 'PUT',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fields }),
-  }, 'Create/Edit Issue');
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields }),
+    },
+    'Create/Edit Issue',
+  );
   if (!response.ok && response.status !== 204) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError(`Failed to update ${issueKey}`, response.status, 'jira');
@@ -478,12 +503,17 @@ export async function searchJira(
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       },
-    }, 'Search Issues');
+      'Search Issues',
+    );
   } catch {
     return [];
   }

@@ -71,7 +71,9 @@ function EpicRow({ epic, onEpicClick }: EpicRowProps) {
 
       {/* Status badge */}
       <td className="px-3 py-3">
-        <span className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium ${statusCategoryBadgeClass(epic.status.statusCategory?.key)}`}>
+        <span
+          className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium ${statusCategoryBadgeClass(epic.status.statusCategory?.key)}`}
+        >
           {epic.status.name}
         </span>
       </td>

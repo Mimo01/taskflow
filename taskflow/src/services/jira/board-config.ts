@@ -28,9 +28,14 @@ export async function fetchBoardQuickFilters(
 ): Promise<JiraBoardQuickFilter[]> {
   const base = baseUrl.replace(/\/$/, '');
   const url = `${base}/rest/agile/1.0/board/${boardId}/quickfilter`;
-  const response = await apiFetch('jira', url, {
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-  }, 'Load Quick Filters');
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    },
+    'Load Quick Filters',
+  );
   if (!response.ok) return [];
   const data = await response.json();
   return data?.values ?? [];

@@ -6,13 +6,8 @@
  */
 
 import { ArrowUpCircle, CheckCircle } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { buildInfo } from '@/lib/build-info';
 import { useUpdateStore } from '@/stores/update.store';
 
@@ -33,14 +28,15 @@ export function AboutDialog({ open, onClose }: AboutDialogProps) {
   const { status, availableVersion } = useUpdateStore();
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) onClose();
+      }}
+    >
       <DialogContent className="max-w-sm" showCloseButton={false}>
         {/* App icon */}
-        <img
-          src="/app-icon.svg"
-          alt="Taskflow"
-          className="h-16 w-16 mx-auto"
-        />
+        <img src="/app-icon.svg" alt="Taskflow" className="h-16 w-16 mx-auto" />
 
         {/* App name */}
         <DialogTitle className="text-lg font-semibold text-center">Taskflow</DialogTitle>

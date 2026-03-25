@@ -12,7 +12,9 @@ vi.mock('@tauri-apps/plugin-updater', () => ({
 import { updaterService } from './updater';
 
 describe('updaterService', () => {
-  afterEach(() => { mockCheck.mockReset(); });
+  afterEach(() => {
+    mockCheck.mockReset();
+  });
 
   it('returns null when no update available', async () => {
     mockCheck.mockResolvedValue(null);

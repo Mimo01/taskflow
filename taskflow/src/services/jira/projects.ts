@@ -19,12 +19,17 @@ export async function validateJira(baseUrl: string, token: string): Promise<Jira
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       },
-    }, 'Validate Connection');
+      'Validate Connection',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -61,12 +66,17 @@ export async function listJiraProjects(baseUrl: string, token: string): Promise<
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       },
-    }, 'Validate Connection');
+      'Validate Connection',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }

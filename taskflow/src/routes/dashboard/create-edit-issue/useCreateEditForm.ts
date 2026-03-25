@@ -46,7 +46,12 @@ export interface FormState {
 
 export type FormAction =
   | { type: 'SET_FIELD'; field: keyof FormState; value: FormState[keyof FormState] }
-  | { type: 'RESET'; defaultIssueType?: IssueType; defaultParentKey?: string | null; initialValues?: EditInitialValues }
+  | {
+      type: 'RESET';
+      defaultIssueType?: IssueType;
+      defaultParentKey?: string | null;
+      initialValues?: EditInitialValues;
+    }
   | { type: 'SET_ISSUE_TYPE'; issueType: IssueType }
   | { type: 'SET_CUSTOM_FIELD_VALUE'; fieldId: string; value: string }
   | { type: 'SET_CUSTOM_FIELD_INPUT'; fieldId: string; value: string }
@@ -94,7 +99,11 @@ function formReducer(state: FormState, action: FormAction): FormState {
       return { ...state, [action.field]: action.value };
 
     case 'RESET':
-      return buildInitialState(action.defaultIssueType, action.defaultParentKey, action.initialValues);
+      return buildInitialState(
+        action.defaultIssueType,
+        action.defaultParentKey,
+        action.initialValues,
+      );
 
     case 'SET_ISSUE_TYPE':
       return {
@@ -120,7 +129,10 @@ function formReducer(state: FormState, action: FormAction): FormState {
     case 'SET_CUSTOM_FIELD_AUTO_RESULTS':
       return {
         ...state,
-        customFieldAutoResults: { ...state.customFieldAutoResults, [action.fieldId]: action.results },
+        customFieldAutoResults: {
+          ...state.customFieldAutoResults,
+          [action.fieldId]: action.results,
+        },
       };
 
     case 'SET_CUSTOM_FIELD_SHOW_RESULTS':

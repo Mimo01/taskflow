@@ -5,6 +5,7 @@
  * and real component implementations. All 11 widget types are fully wired.
  */
 
+// biome-ignore assist/source/organizeImports: import order must match module init order to avoid TDZ circular dependency
 import type { ComponentType } from 'react';
 import {
   BarChart2,
@@ -157,20 +158,99 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
 
 /** Dev preset dashboard layout. */
 export const DEV_DASHBOARD_PRESET: DashboardLayoutItem[] = [
-  { i: 'my-subtasks-default', type: 'my-subtasks', x: 0, y: 0, w: 6, h: 4, minW: 3, minH: 3, maxW: 12, maxH: 8 },
-  { i: 'mr-health-default', type: 'mr-health', x: 6, y: 0, w: 6, h: 4, minW: 3, minH: 3, maxW: 12, maxH: 8 },
-  { i: 'sprint-health-default', type: 'sprint-health', x: 0, y: 4, w: 6, h: 4, minW: 4, minH: 3, maxW: 12, maxH: 8 },
+  {
+    i: 'my-subtasks-default',
+    type: 'my-subtasks',
+    x: 0,
+    y: 0,
+    w: 6,
+    h: 4,
+    minW: 3,
+    minH: 3,
+    maxW: 12,
+    maxH: 8,
+  },
+  {
+    i: 'mr-health-default',
+    type: 'mr-health',
+    x: 6,
+    y: 0,
+    w: 6,
+    h: 4,
+    minW: 3,
+    minH: 3,
+    maxW: 12,
+    maxH: 8,
+  },
+  {
+    i: 'sprint-health-default',
+    type: 'sprint-health',
+    x: 0,
+    y: 4,
+    w: 6,
+    h: 4,
+    minW: 4,
+    minH: 3,
+    maxW: 12,
+    maxH: 8,
+  },
 ];
 
 /** PM preset dashboard layout. */
 export const PM_DASHBOARD_PRESET: DashboardLayoutItem[] = [
-  { i: 'sprint-health-default', type: 'sprint-health', x: 0, y: 0, w: 6, h: 4, minW: 4, minH: 3, maxW: 12, maxH: 8 },
-  { i: 'sprint-progress-default', type: 'sprint-progress', x: 6, y: 0, w: 6, h: 3, minW: 3, minH: 2, maxW: 8, maxH: 6 },
-  { i: 'workload-summary-default', type: 'workload-summary', x: 0, y: 4, w: 6, h: 3, minW: 3, minH: 2, maxW: 8, maxH: 6 },
-  { i: 'releases-overview-default', type: 'releases-overview', x: 6, y: 3, w: 6, h: 3, minW: 3, minH: 2, maxW: 8, maxH: 6 },
+  {
+    i: 'sprint-health-default',
+    type: 'sprint-health',
+    x: 0,
+    y: 0,
+    w: 6,
+    h: 4,
+    minW: 4,
+    minH: 3,
+    maxW: 12,
+    maxH: 8,
+  },
+  {
+    i: 'sprint-progress-default',
+    type: 'sprint-progress',
+    x: 6,
+    y: 0,
+    w: 6,
+    h: 3,
+    minW: 3,
+    minH: 2,
+    maxW: 8,
+    maxH: 6,
+  },
+  {
+    i: 'workload-summary-default',
+    type: 'workload-summary',
+    x: 0,
+    y: 4,
+    w: 6,
+    h: 3,
+    minW: 3,
+    minH: 2,
+    maxW: 8,
+    maxH: 6,
+  },
+  {
+    i: 'releases-overview-default',
+    type: 'releases-overview',
+    x: 6,
+    y: 3,
+    w: 6,
+    h: 3,
+    minW: 3,
+    minH: 2,
+    maxW: 8,
+    maxH: 6,
+  },
 ];
 
 /** Returns a fresh copy of the role-appropriate dashboard layout preset. */
 export function getDefaultDashboardLayout(preset: 'dev' | 'pm'): DashboardLayoutItem[] {
-  return (preset === 'pm' ? PM_DASHBOARD_PRESET : DEV_DASHBOARD_PRESET).map(item => ({ ...item }));
+  return (preset === 'pm' ? PM_DASHBOARD_PRESET : DEV_DASHBOARD_PRESET).map((item) => ({
+    ...item,
+  }));
 }

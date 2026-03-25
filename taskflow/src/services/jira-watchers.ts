@@ -22,9 +22,14 @@ export async function fetchWatchers(
   issueKey: string,
 ): Promise<WatcherData> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/watchers`;
-  const response = await apiFetch('jira', url, {
-    headers: { Authorization: `Bearer ${token}` },
-  }, 'Load Issue Detail');
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+    'Load Issue Detail',
+  );
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError(`Failed to fetch watchers for ${issueKey}`, response.status, 'jira');
@@ -48,14 +53,19 @@ export async function addWatcher(
   username: string,
 ): Promise<void> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/watchers`;
-  const response = await apiFetch('jira', url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(username),
     },
-    body: JSON.stringify(username),
-  }, 'Watch Issue');
+    'Watch Issue',
+  );
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError(`Failed to add watcher for ${issueKey}`, response.status, 'jira');
@@ -75,10 +85,15 @@ export async function removeWatcher(
   username: string,
 ): Promise<void> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/watchers?username=${encodeURIComponent(username)}`;
-  const response = await apiFetch('jira', url, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` },
-  }, 'Unwatch Issue');
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    },
+    'Unwatch Issue',
+  );
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError(`Failed to remove watcher for ${issueKey}`, response.status, 'jira');

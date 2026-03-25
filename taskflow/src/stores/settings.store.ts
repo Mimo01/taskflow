@@ -5,6 +5,7 @@
  * reads/writes via LazyStore from @tauri-apps/plugin-store.
  */
 
+// biome-ignore assist/source/organizeImports: import order must match module init order to avoid TDZ circular dependency with registry
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { createTauriStorage } from '../lib/tauri-storage';
@@ -22,8 +23,8 @@ export interface SidebarItem {
 }
 
 export interface DashboardLayoutItem {
-  i: string;       // unique instance ID e.g. 'my-subtasks-1'
-  type: string;    // widget type from registry e.g. 'my-subtasks'
+  i: string; // unique instance ID e.g. 'my-subtasks-1'
+  type: string; // widget type from registry e.g. 'my-subtasks'
   x: number;
   y: number;
   w: number;

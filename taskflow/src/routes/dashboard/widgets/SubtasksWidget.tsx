@@ -7,9 +7,9 @@
 
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { Skeleton } from '@/components/ui/skeleton';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
-import { Skeleton } from '@/components/ui/skeleton';
 import SubtasksPanel from '../SubtasksPanel';
 
 export default function SubtasksWidget(_props: { widgetId: string }) {

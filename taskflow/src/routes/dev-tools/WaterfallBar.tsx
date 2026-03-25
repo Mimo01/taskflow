@@ -63,7 +63,11 @@ function assignLanes(fetches: FetchRecord[], opStart: number, wallClockMs: numbe
   });
 }
 
-function FetchTooltip({ fetch, visible, anchorRect }: {
+function FetchTooltip({
+  fetch,
+  visible,
+  anchorRect,
+}: {
   fetch: FetchRecord;
   visible: boolean;
   anchorRect: DOMRect | null;
@@ -71,9 +75,12 @@ function FetchTooltip({ fetch, visible, anchorRect }: {
   if (!visible || !anchorRect) return null;
 
   const startDate = new Date(fetch.startTime);
-  const timeStr = startDate.toLocaleTimeString(undefined, {
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-  } as Intl.DateTimeFormatOptions) + `.${String(startDate.getMilliseconds()).padStart(3, '0')}`;
+  const timeStr =
+    startDate.toLocaleTimeString(undefined, {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    } as Intl.DateTimeFormatOptions) + `.${String(startDate.getMilliseconds()).padStart(3, '0')}`;
 
   return (
     <div
@@ -84,11 +91,13 @@ function FetchTooltip({ fetch, visible, anchorRect }: {
         {/* Header: method + source badge */}
         <div className="flex items-center gap-2 mb-2">
           <span className="font-semibold">{fetch.method}</span>
-          <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
-            fetch.source === 'jira'
-              ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400'
-              : 'bg-purple-500/15 text-purple-600 dark:text-purple-400'
-          }`}>
+          <span
+            className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
+              fetch.source === 'jira'
+                ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400'
+                : 'bg-purple-500/15 text-purple-600 dark:text-purple-400'
+            }`}
+          >
             {fetch.source}
           </span>
         </div>
@@ -140,8 +149,8 @@ export default function WaterfallBar({ operation }: { operation: Operation }) {
 
   // Gridline positions at 0%, 25%, 50%, 75%, 100%
   const gridPositions = [0, 25, 50, 75, 100];
-  const gridLabels = gridPositions.map((pct) =>
-    `${Math.round((operation.wallClockMs * pct) / 100)}ms`,
+  const gridLabels = gridPositions.map(
+    (pct) => `${Math.round((operation.wallClockMs * pct) / 100)}ms`,
   );
 
   return (
@@ -153,9 +162,7 @@ export default function WaterfallBar({ operation }: { operation: Operation }) {
         className="flex items-center gap-2 w-full text-left hover:bg-accent/50 transition-colors rounded py-1 px-1"
       >
         {/* Label */}
-        <span className="w-[200px] shrink-0 truncate text-sm font-medium">
-          {operation.label}
-        </span>
+        <span className="w-[200px] shrink-0 truncate text-sm font-medium">{operation.label}</span>
 
         {/* Summary bar -- fills full width */}
         <div className="flex-1 relative h-6">
@@ -187,18 +194,17 @@ export default function WaterfallBar({ operation }: { operation: Operation }) {
           {/* Gridlines */}
           <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
             {gridPositions.map((pct) => (
-              <div
-                key={pct}
-                className="absolute top-0 bottom-0"
-                style={{ left: `${pct}%` }}
-              >
+              <div key={pct} className="absolute top-0 bottom-0" style={{ left: `${pct}%` }}>
                 <div className="h-full border-l border-dashed border-muted-foreground/25" />
               </div>
             ))}
           </div>
 
           {/* Gridline labels row */}
-          <div className="relative flex justify-between mb-1 pointer-events-none" aria-hidden="true">
+          <div
+            className="relative flex justify-between mb-1 pointer-events-none"
+            aria-hidden="true"
+          >
             {gridLabels.map((label, i) => (
               <span key={gridPositions[i]} className="text-[10px] text-muted-foreground font-mono">
                 {label}
@@ -211,7 +217,7 @@ export default function WaterfallBar({ operation }: { operation: Operation }) {
             {laneData.map(({ fetch, lane, leftPct, widthPct }) => {
               const isWide = widthPct >= 8;
               const barStatusColor =
-                fetch.status === null || (fetch.status >= 400)
+                fetch.status === null || fetch.status >= 400
                   ? 'text-red-300'
                   : fetch.status >= 300
                     ? 'text-yellow-300'
@@ -229,7 +235,10 @@ export default function WaterfallBar({ operation }: { operation: Operation }) {
                   }}
                 >
                   <div
-                    ref={(el) => { if (el) barRefs.current.set(fetch.id, el); else barRefs.current.delete(fetch.id); }}
+                    ref={(el) => {
+                      if (el) barRefs.current.set(fetch.id, el);
+                      else barRefs.current.delete(fetch.id);
+                    }}
                     className={`h-full w-full rounded-sm ${fetchBarColor(fetch.source, !!fetch.error)} relative overflow-hidden cursor-default`}
                     onMouseEnter={() => {
                       const el = barRefs.current.get(fetch.id);
@@ -245,7 +254,9 @@ export default function WaterfallBar({ operation }: { operation: Operation }) {
                         </span>
                         <span className="text-[10px] font-mono text-white/80 whitespace-nowrap truncate">
                           <span className={barStatusColor}>{fetch.status ?? 'err'}</span>
-                          {' | '}{fetch.durationMs}ms{' | '}{formatBytes(fetch.responseSize)}
+                          {' | '}
+                          {fetch.durationMs}ms{' | '}
+                          {formatBytes(fetch.responseSize)}
                         </span>
                       </div>
                     ) : (
@@ -264,8 +275,9 @@ export default function WaterfallBar({ operation }: { operation: Operation }) {
 
           {/* Total response size */}
           <span className="text-[10px] font-mono text-muted-foreground mt-1 block">
-            Total: {formatBytes(
-              operation.fetches.reduce((sum, f) => sum + (f.responseSize ?? 0), 0) || undefined
+            Total:{' '}
+            {formatBytes(
+              operation.fetches.reduce((sum, f) => sum + (f.responseSize ?? 0), 0) || undefined,
             )}
           </span>
         </div>

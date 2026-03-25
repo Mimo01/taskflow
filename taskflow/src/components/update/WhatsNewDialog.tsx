@@ -10,16 +10,16 @@
 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogFooter,
+  DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { useSettingsStore } from '@/stores/settings.store';
 import { buildInfo } from '@/lib/build-info';
+import { useSettingsStore } from '@/stores/settings.store';
 
 export function WhatsNewDialog() {
   const { lastSeenVersion, lastSeenChangelog, setLastSeenVersion } = useSettingsStore();

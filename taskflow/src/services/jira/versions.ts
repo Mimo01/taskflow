@@ -24,12 +24,17 @@ export async function fetchFixVersions(
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       },
-    }, 'Load Releases');
+      'Load Releases',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }

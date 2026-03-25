@@ -178,7 +178,10 @@ function VirtualizedNotificationList({
             })
           : entries.map((entry) =>
               entry.type === 'header' ? (
-                <div key={entry.key} className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-3 py-1.5 border-b">
+                <div
+                  key={entry.key}
+                  className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-3 py-1.5 border-b"
+                >
                   <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                     {entry.label}
                   </span>
@@ -451,9 +454,7 @@ export default function NotificationPopover({
           </div>
         </div>
       ) : visibleItems.length === 0 ? (
-        <div className="overflow-y-auto max-h-[520px]">
-          {renderEmptyState()}
-        </div>
+        <div className="overflow-y-auto max-h-[520px]">{renderEmptyState()}</div>
       ) : (
         <VirtualizedNotificationList
           entries={virtualEntries}

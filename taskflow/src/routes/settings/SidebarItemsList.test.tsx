@@ -22,10 +22,10 @@ vi.mock('@tauri-apps/plugin-store', () => {
   return { LazyStore };
 });
 
-import SidebarItemsList from './SidebarItemsList';
-import { useSettingsStore } from '@/stores/settings.store';
-import { SIDEBAR_NAV_ITEMS, DEV_SIDEBAR_PRESET } from '@/components/app/sidebar-items';
 import { act } from '@testing-library/react';
+import { DEV_SIDEBAR_PRESET, SIDEBAR_NAV_ITEMS } from '@/components/app/sidebar-items';
+import { useSettingsStore } from '@/stores/settings.store';
+import SidebarItemsList from './SidebarItemsList';
 
 describe('SidebarItemsList', () => {
   const setSidebarItemVisible = vi.fn();

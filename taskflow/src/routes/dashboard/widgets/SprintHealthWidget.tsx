@@ -6,9 +6,9 @@
  */
 
 import { useEffect, useState } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
-import { Skeleton } from '@/components/ui/skeleton';
 import SprintHealthPanel from '../SprintHealthPanel';
 
 export default function SprintHealthWidget(_props: { widgetId: string }) {

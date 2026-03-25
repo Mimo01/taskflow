@@ -401,7 +401,6 @@ export default function CommandPalette({
                 Mark all notifications read
               </CommandItem>
             </CommandGroup>
-
           </CommandList>
         </Command>
       </div>

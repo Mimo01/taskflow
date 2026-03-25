@@ -91,7 +91,12 @@ describe('fields service', () => {
       } as Response);
       // Legacy endpoint succeeds
       const legacyFields = {
-        summary: { fieldId: 'summary', name: 'Summary', required: true, schema: { type: 'string' } },
+        summary: {
+          fieldId: 'summary',
+          name: 'Summary',
+          required: true,
+          schema: { type: 'string' },
+        },
       };
       vi.mocked(apiFetch).mockResolvedValueOnce({
         ok: true,

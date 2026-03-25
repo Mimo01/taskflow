@@ -6,7 +6,7 @@
  */
 import { useState } from 'react';
 import type { Operation } from '../../stores/operation-profiler.store';
-import { statusColor, sourceBadgeClass } from './utils';
+import { sourceBadgeClass, statusColor } from './utils';
 
 export default function OperationCard({ operation }: { operation: Operation }) {
   const [open, setOpen] = useState(false);
@@ -26,9 +26,7 @@ export default function OperationCard({ operation }: { operation: Operation }) {
         <span className="shrink-0 text-xs text-muted-foreground">
           {new Date(operation.timestamp).toLocaleTimeString()}
         </span>
-        <span className="shrink-0 text-xs text-muted-foreground">
-          {open ? '\u25B2' : '\u25BC'}
-        </span>
+        <span className="shrink-0 text-xs text-muted-foreground">{open ? '\u25B2' : '\u25BC'}</span>
       </button>
 
       {open && (

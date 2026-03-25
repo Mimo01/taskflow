@@ -8,13 +8,7 @@
  */
 import { create } from 'zustand';
 
-export type UpdateStatus =
-  | 'idle'
-  | 'checking'
-  | 'available'
-  | 'downloading'
-  | 'ready'
-  | 'error';
+export type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error';
 
 export interface UpdateState {
   status: UpdateStatus;
@@ -48,9 +42,10 @@ export const useUpdateStore = create<UpdateState>((set) => ({
   setProgress: (pct) => set({ downloadProgress: pct }),
   setReady: () => set({ status: 'ready', downloadProgress: null }),
   setError: (msg) => set({ status: 'error', errorMessage: msg, downloadProgress: null }),
-  resetToIdle: () => set({
-    status: 'idle',
-    errorMessage: null,
-    downloadProgress: null,
-  }),
+  resetToIdle: () =>
+    set({
+      status: 'idle',
+      errorMessage: null,
+      downloadProgress: null,
+    }),
 }));

@@ -123,11 +123,16 @@ export async function addIssuesToSprint(
   issueKeys: string[],
 ): Promise<void> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/agile/1.0/sprint/${sprintId}/issue`;
-  const response = await apiFetch('jira', url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ issues: issueKeys }),
-  }, 'Load Sprint Board');
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ issues: issueKeys }),
+    },
+    'Load Sprint Board',
+  );
   // 204 No Content is the expected success response for this endpoint
   if (!response.ok && response.status !== 204) {
     if (response.status === 401 || response.status === 403) {

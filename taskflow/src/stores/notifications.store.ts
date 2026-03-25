@@ -112,8 +112,7 @@ export const useNotificationsStore = create<NotificationsState>()(
       _jiraUnreadCount: 0,
       _gitlabUnreadCount: 0,
 
-      setItems: (items) =>
-        set({ items, ...computeUnreadCounts(items, get().readIds) }),
+      setItems: (items) => set({ items, ...computeUnreadCounts(items, get().readIds) }),
 
       prependItems: (newItems) =>
         set((s) => {

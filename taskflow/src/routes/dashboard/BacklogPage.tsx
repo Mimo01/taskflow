@@ -12,8 +12,8 @@
  * Create story entry point via Outlet context remains unchanged.
  */
 
-import { useVirtualizer } from '@tanstack/react-virtual';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { ChevronDown, ChevronRight, Inbox } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
@@ -126,15 +126,11 @@ function VirtualizedBacklogTable({
           <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
             Epic
           </th>
-          <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
-            Summary
-          </th>
+          <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">Summary</th>
           <th className="w-14 px-2 py-2 text-right text-xs font-medium text-muted-foreground">
             Points
           </th>
-          <th className="w-10 px-2 py-2 text-xs font-medium text-muted-foreground">
-            Assignee
-          </th>
+          <th className="w-10 px-2 py-2 text-xs font-medium text-muted-foreground">Assignee</th>
         </tr>
       </thead>
       <tbody

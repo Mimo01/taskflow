@@ -39,7 +39,10 @@ export default function PresetButtons() {
         </Button>
       </div>
 
-      <Dialog open={pendingPreset !== null} onOpenChange={(open) => !open && setPendingPreset(null)}>
+      <Dialog
+        open={pendingPreset !== null}
+        onOpenChange={(open) => !open && setPendingPreset(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Apply Preset?</DialogTitle>

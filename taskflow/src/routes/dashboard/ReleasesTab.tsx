@@ -320,7 +320,9 @@ export default function ReleasesTab() {
                 role="button"
                 tabIndex={0}
                 onClick={() => handleReleaseClick(version.id)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleReleaseClick(version.id); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleReleaseClick(version.id);
+                }}
                 className="flex items-center justify-between rounded px-3 py-2 hover:bg-muted/50 gap-3 cursor-pointer"
               >
                 {/* Version name + badges */}

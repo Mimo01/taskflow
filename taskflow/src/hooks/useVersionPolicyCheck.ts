@@ -35,9 +35,7 @@ export function useVersionPolicyCheck(): {
 
   const hardMinimumActive = policy !== null && isBelow(buildInfo.version, policy.hardMinimum);
   const softMinimumActive =
-    policy !== null &&
-    isBelow(buildInfo.version, policy.softMinimum) &&
-    !hardMinimumActive;
+    policy !== null && isBelow(buildInfo.version, policy.softMinimum) && !hardMinimumActive;
 
   return { softMinimumActive, hardMinimumActive, policy };
 }

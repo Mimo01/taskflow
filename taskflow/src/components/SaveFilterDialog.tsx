@@ -64,7 +64,13 @@ export function SaveFilterDialog({
 
     try {
       const token = await readSecret('jira-pat');
-      const result = await createJiraFilter(jiraBaseUrl, token, name.trim(), jql, description.trim() || undefined);
+      const result = await createJiraFilter(
+        jiraBaseUrl,
+        token,
+        name.trim(),
+        jql,
+        description.trim() || undefined,
+      );
       addSavedFilter(result);
       onSaved?.(result);
       handleOpenChange(false);
@@ -113,9 +119,7 @@ export function SaveFilterDialog({
             </pre>
           </div>
 
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
         <DialogFooter>
