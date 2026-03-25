@@ -29,10 +29,10 @@ Requirements for Release & Auto-Update Pipeline milestone. Each maps to roadmap 
 
 ### App UI
 
-- [ ] **UI-01**: About dialog displays version, build date, commit SHA, platform/arch, and update status
-- [ ] **UI-02**: macOS menu bar has "About Taskflow" item that opens the About dialog
-- [ ] **UI-03**: Settings has an "Updates" section with check frequency, manual check button, and current version
-- [ ] **UI-04**: Settings Updates section includes a version history list showing all past releases with changelogs
+- [x] **UI-01**: About dialog displays version, build date, commit SHA, platform/arch, and update status
+- [x] **UI-02**: macOS menu bar has "About Taskflow" item that opens the About dialog
+- [x] **UI-03**: Settings has an "Updates" section with check frequency, manual check button, and current version
+- [x] **UI-04**: Settings Updates section includes a version history list showing all past releases with changelogs
 
 ## Future Requirements
 
@@ -80,10 +80,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | POL-01 | Phase 39 | Complete |
 | POL-02 | Phase 39 | Complete |
 | POL-03 | Phase 39 | Complete |
-| UI-01 | Phase 40 | Pending |
-| UI-02 | Phase 40 | Pending |
-| UI-03 | Phase 40 | Pending |
-| UI-04 | Phase 40 | Pending |
+| UI-01 | Phase 40 | Complete |
+| UI-02 | Phase 40 | Complete |
+| UI-03 | Phase 40 | Complete |
+| UI-04 | Phase 40 | Complete |
 
 **Coverage:**
 - v1.6 requirements: 15 total

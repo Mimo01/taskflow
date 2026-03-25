@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Release & Auto-Update Pipeline
-status: Ready to plan
-stopped_at: Phase 40 context gathered
-last_updated: "2026-03-24T23:48:42.656Z"
-last_activity: 2026-03-24
+status: Ready to execute
+stopped_at: Completed 40-01-PLAN.md
+last_updated: "2026-03-25T07:06:15.080Z"
+last_activity: 2026-03-25
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 8
+  completed_plans: 7
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Phase 39 — update-ux-version-policy
+**Current focus:** Phase 40 — settings-about-menu-integration
 
 ## Current Position
 
-Phase: 40
-Plan: Not started
+Phase: 40 (settings-about-menu-integration) — EXECUTING
+Plan: 3 of 3
 
 ## Accumulated Context
 
@@ -42,6 +42,8 @@ Recent decisions affecting current work:
 - [Phase 39-update-ux-version-policy]: Used invoke('plugin:process|relaunch') instead of @tauri-apps/plugin-process — package not in project dependencies
 - [Phase 39-update-ux-version-policy]: compare-versions library used for semver comparison with pre-release tag handling
 - [Phase 39-update-ux-version-policy]: version-policy.json safe defaults 0.0.0/0.0.0 — no enforcement until intentionally bumped; VERSION_POLICY_URL placeholder for Phase 41
+- [Phase 40-01]: Used DialogFooter with explicit Button for close — consistent with UpdateDialog pattern, cleaner control over button styling
+- [Phase 40]: Used placeholder GitHub Releases API URL (PLACEHOLDER/PLACEHOLDER) — real repo path to be set in Phase 41
 
 ### Pending Todos
 
@@ -56,8 +58,8 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-03-24
-Stopped at: Phase 40 context gathered
+Last activity: 2026-03-25
+Stopped at: Completed 40-01-PLAN.md
 Resume: `/gsd:plan-phase 38`
 
 ### Quick Tasks Completed
