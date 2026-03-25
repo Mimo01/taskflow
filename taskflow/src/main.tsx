@@ -19,6 +19,7 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router-dom';
+import { AboutDialog } from './components/about/AboutDialog';
 import CommandPalette from './components/app/CommandPalette';
 import { KeyboardShortcutsPanel } from './components/app/KeyboardShortcutsPanel';
 import PinnedTabStrip from './components/app/PinnedTabStrip';
@@ -128,6 +129,7 @@ function AppLayout() {
   const queryClient = useQueryClient();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [notifPopoverOpen, setNotifPopoverOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -219,6 +221,7 @@ function AppLayout() {
       listen('menu-nav-notifications', () => setNotifPopoverOpen(true)),
       listen('menu-nav-settings', () => navigate('/settings')),
       listen('menu-dev-tools', () => navigate('/dev-tools')),
+      listen('menu-about', () => setAboutOpen(true)),
     ];
     return () => {
       listeners.forEach((p) => {
@@ -508,6 +511,7 @@ function AppLayout() {
         defaultParentKey={createModalDefaultParent}
       />
       <KeyboardShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <AboutDialog open={aboutOpen} onClose={() => setAboutOpen(false)} />
       <UpdateDialog />
       <WhatsNewDialog />
       {hardMinimumActive && policy && <HardMinimumOverlay policy={policy} />}
