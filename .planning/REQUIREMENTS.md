@@ -9,8 +9,8 @@ Requirements for Release & Auto-Update Pipeline milestone. Each maps to roadmap 
 
 ### CI Pipeline
 
-- [ ] **CI-01**: CI builds cross-platform artifacts (macOS aarch64+x86_64, Windows x86_64, Linux x86_64) on git tag push
-- [ ] **CI-02**: CI publishes release artifacts to a separate public GitHub repo with GitHub Release notes
+- [x] **CI-01**: CI builds cross-platform artifacts (macOS aarch64+x86_64, Windows x86_64, Linux x86_64) on git tag push
+- [x] **CI-02**: CI publishes release artifacts to a separate public GitHub repo with GitHub Release notes
 - [ ] **CI-03**: App version is derived from git tag at build time (no manual version bumps in config files)
 - [ ] **CI-04**: Build-time metadata (commit SHA, build date) is injected and accessible at runtime
 
@@ -69,8 +69,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CI-01 | Phase 41 | Pending |
-| CI-02 | Phase 41 | Pending |
+| CI-01 | Phase 41 | Complete |
+| CI-02 | Phase 41 | Complete |
 | CI-03 | Phase 38 | Pending |
 | CI-04 | Phase 38 | Pending |
 | UPD-01 | Phase 38 | Complete |

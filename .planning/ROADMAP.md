@@ -163,7 +163,7 @@ Plans:
   3. An installed copy of Taskflow detects the new release via the updater endpoint and can download + install it (end-to-end update cycle verified)
 **Plans**: 2 plans
 Plans:
-- [ ] 41-01-PLAN.md — Workflow file + placeholder URL replacement
+- [x] 41-01-PLAN.md — Workflow file + placeholder URL replacement
 - [ ] 41-02-PLAN.md — Manual setup (repo, keys, secrets) + end-to-end verification
 
 ## Progress
@@ -177,4 +177,4 @@ Note: Phases 39 and 40 both depend only on Phase 38 and are independent of each 
 | 38. Updater Foundation + Service Layer | v1.6 | 3/3 | Complete    | 2026-03-24 |
 | 39. Update UX + Version Policy | v1.6 | 2/2 | Complete    | 2026-03-24 |
 | 40. Settings, About & Menu Integration | v1.6 | 3/3 | Complete    | 2026-03-25 |
-| 41. CI Pipeline | v1.6 | 0/2 | Not started | - |
+| 41. CI Pipeline | v1.6 | 1/2 | In Progress|  |
