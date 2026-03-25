@@ -36,7 +36,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/OWNER/RELEASES_REPO/releases/latest/download/latest.json"
+        "https://github.com/Mimo01/taskflow-releases/releases/latest/download/latest.json"
       ]
     }
   }

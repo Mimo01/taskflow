@@ -10,9 +10,9 @@ import { buildInfo } from '@/lib/build-info';
 import { fetchVersionPolicy, isBelow, type VersionPolicy } from '@/services/versionPolicy';
 import { useSettingsStore } from '@/stores/settings.store';
 
-// Placeholder URL — will resolve to public releases repo in Phase 41
+// Public releases repo for version policy
 const VERSION_POLICY_URL =
-  'https://raw.githubusercontent.com/OWNER/RELEASES_REPO/main/version-policy.json';
+  'https://raw.githubusercontent.com/Mimo01/taskflow-releases/main/version-policy.json';
 
 export function useVersionPolicyCheck(): {
   softMinimumActive: boolean;

@@ -37,9 +37,8 @@ import { updaterService } from '@/services/updater';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useUpdateStore } from '@/stores/update.store';
 
-// TODO(Phase-41): set real repo path when public repo is created
 const RELEASES_API_URL =
-  'https://api.github.com/repos/PLACEHOLDER/PLACEHOLDER/releases?per_page=20';
+  'https://api.github.com/repos/Mimo01/taskflow-releases/releases?per_page=20';
 
 const FREQUENCY_OPTIONS = [
   { value: '1', label: 'Every hour' },
