@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Release & Auto-Update Pipeline
-status: Ready to execute
-stopped_at: Completed 40-01-PLAN.md
-last_updated: "2026-03-25T07:06:15.080Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 40-03-PLAN.md
+last_updated: "2026-03-25T07:32:45.945Z"
 last_activity: 2026-03-25
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 8
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # Project State
@@ -44,6 +44,7 @@ Recent decisions affecting current work:
 - [Phase 39-update-ux-version-policy]: version-policy.json safe defaults 0.0.0/0.0.0 — no enforcement until intentionally bumped; VERSION_POLICY_URL placeholder for Phase 41
 - [Phase 40-01]: Used DialogFooter with explicit Button for close — consistent with UpdateDialog pattern, cleaner control over button styling
 - [Phase 40]: Used placeholder GitHub Releases API URL (PLACEHOLDER/PLACEHOLDER) — real repo path to be set in Phase 41
+- [Phase 40]: Used level:2 heading selector and isolated QueryClient per-test to fix TanStack Query caching in tests
 
 ### Pending Todos
 
@@ -59,7 +60,7 @@ None.
 ## Session Continuity
 
 Last activity: 2026-03-25
-Stopped at: Completed 40-01-PLAN.md
+Stopped at: Completed 40-03-PLAN.md
 Resume: `/gsd:plan-phase 38`
 
 ### Quick Tasks Completed
