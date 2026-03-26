@@ -62,7 +62,7 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-03-26 - Completed quick task 260326-ivv: Fix release history changelog build prop
+Last activity: 2026-03-26 - Completed quick task 260326-j2q: Remove saved filters from the sidebar
 Stopped at: Completed quick-260326-j2q-PLAN.md
 Resume: `/gsd:plan-phase 38`
 
@@ -78,3 +78,4 @@ Resume: `/gsd:plan-phase 38`
 | 260324-0q0 | Fix broken settings for role and sidebar, unify sections, add sidebar section support | 2026-03-24 | 357f41f | [260324-0q0-fix-broken-settings-for-role-and-sidebar](./quick/260324-0q0-fix-broken-settings-for-role-and-sidebar/) |
 | 260325-k0s | Add CI workflow for lint/typecheck/tests on push and PR to main | 2026-03-25 | 4d3e312 | [260325-k0s-set-up-a-proper-process-for-pipelines-ch](./quick/260325-k0s-set-up-a-proper-process-for-pipelines-ch/) |
 | 260326-ivv | Add generate-changelog.sh and update release.sh for auto-generated categorized changelogs | 2026-03-26 | a9685fe | [260326-ivv-fix-release-history-changelog-build-prop](./quick/260326-ivv-fix-release-history-changelog-build-prop/) |
+| 260326-j2q | Remove saved filters from the sidebar | 2026-03-26 | fb6f8cd | [260326-j2q-remove-saved-filters-from-the-sidebar](./quick/260326-j2q-remove-saved-filters-from-the-sidebar/) |
