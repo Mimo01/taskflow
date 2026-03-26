@@ -815,7 +815,7 @@ export async function tryDispatchOsNotification(
       granted = state === 'granted';
     }
     if (!granted) return 'denied';
-    await sendNotification({ title, body });
+    await sendNotification({ title, body, sound: 'Basso' });
     return 'sent';
   } catch {
     return 'error';
