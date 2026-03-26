@@ -9,6 +9,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import { buildInfo } from '../lib/build-info';
 import { updaterService } from '../services/updater';
 import { useDebugLogStore } from '../stores/debug-log.store';
 import { useSettingsStore } from '../stores/settings.store';
@@ -16,6 +17,9 @@ import { useUpdateStore } from '../stores/update.store';
 
 /** D-03: Mid-range of 5-10s window to avoid competing with initial data fetches */
 const LAUNCH_DELAY_MS = 7_000;
+
+/** Dev builds (version contains "-dev") should never auto-check for updates. */
+const IS_DEV_BUILD = buildInfo.version.includes('-dev');
 
 export function useUpdatePolling() {
   const { setChecking, setAvailable, resetToIdle, setError } = useUpdateStore();
@@ -25,7 +29,7 @@ export function useUpdatePolling() {
 
   // D-03: Delay first check to avoid competing with Jira/GitLab fetches on launch
   useEffect(() => {
-    if (updateCheckInterval === 'manual') return;
+    if (IS_DEV_BUILD || updateCheckInterval === 'manual') return;
     const t = setTimeout(() => setReady(true), LAUNCH_DELAY_MS);
     return () => clearTimeout(t);
   }, [updateCheckInterval]);
@@ -90,7 +94,7 @@ export function useUpdatePolling() {
     refetchInterval: intervalMs,
     refetchIntervalInBackground: false, // don't check while app is hidden
     staleTime: typeof intervalMs === 'number' ? intervalMs - 5_000 : Infinity,
-    enabled: ready && updateCheckInterval !== 'manual',
+    enabled: !IS_DEV_BUILD && ready && updateCheckInterval !== 'manual',
     retry: false, // don't retry on failure — next scheduled check will try
   });
 }

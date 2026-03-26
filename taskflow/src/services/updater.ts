@@ -3,6 +3,10 @@
  * never import the plugin directly. Matches the tauriService pattern.
  */
 import { check } from '@tauri-apps/plugin-updater';
+import { buildInfo } from '@/lib/build-info';
+
+/** Dev builds (version contains "-dev") should never report available updates. */
+const IS_DEV_BUILD = buildInfo.version.includes('-dev');
 
 export interface UpdateInfo {
   version: string;
@@ -14,9 +18,11 @@ export const updaterService = {
   /**
    * Check for an available update.
    * Returns UpdateInfo if update available, null if already up to date.
+   * Returns null immediately for dev builds.
    * Throws on network/endpoint errors.
    */
   check: async (): Promise<UpdateInfo | null> => {
+    if (IS_DEV_BUILD) return null;
     const update = await check();
     if (!update) return null;
     return {
