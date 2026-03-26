@@ -26,7 +26,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Bookmark, Columns3, RefreshCw } from 'lucide-react';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -104,6 +104,13 @@ function DroppableCell({
   );
 }
 
+/** Data needed to render the sticky swimlane header overlay outside the scroll flow. */
+type StickyHeaderData = {
+  story: JiraIssue;
+  subtasks: JiraIssue[];
+  isExpanded: boolean;
+} | null;
+
 /** Virtualized swimlane list — renders swimlane rows with measureElement for variable heights. */
 function VirtualizedSwimlanes({
   filteredSwimlanes,
@@ -114,6 +121,8 @@ function VirtualizedSwimlanes({
   activeIssue,
   validTargetCategories,
   cardErrors,
+  onStickyHeaderChange,
+  stickyHeaderInnerRef,
 }: {
   filteredSwimlanes: { story: JiraIssue; subtasks: JiraIssue[] }[];
   scrollElement: HTMLElement | null;
@@ -123,6 +132,11 @@ function VirtualizedSwimlanes({
   activeIssue: JiraIssue | null;
   validTargetCategories: Set<CategoryKey>;
   cardErrors: Map<string, string>;
+  /** Called on scroll with the swimlane whose header should appear pinned,
+   *  or null when no header should be pinned (e.g. not scrolled into swimlanes yet). */
+  onStickyHeaderChange: (data: StickyHeaderData) => void;
+  /** Ref to the sticky header inner div — push offset is applied directly for 60fps performance */
+  stickyHeaderInnerRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const swimlaneVirtualizer = useVirtualizer({
     count: filteredSwimlanes.length,
@@ -133,6 +147,125 @@ function VirtualizedSwimlanes({
 
   const virtualItems = swimlaneVirtualizer.getVirtualItems();
   const useVirtual = virtualItems.length > 0;
+
+  /**
+   * Track the pixel offset of the virtualizer container from the top of the
+   * scroll container. Content like SprintGoalBanner, QuickFilterChipRow, and
+   * UnifiedFilterBar renders above the virtualizer and shifts it down.
+   */
+  const virtualizerWrapperRef = useRef<HTMLDivElement>(null);
+  const swimlaneListOffsetRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!virtualizerWrapperRef.current || !scrollElement) return;
+    const measure = () => {
+      if (!virtualizerWrapperRef.current) return;
+      const wrapperRect = virtualizerWrapperRef.current.getBoundingClientRect();
+      const scrollRect = scrollElement.getBoundingClientRect();
+      swimlaneListOffsetRef.current =
+        wrapperRect.top - scrollRect.top + scrollElement.scrollTop;
+    };
+    measure();
+    // Re-measure on resize (banners may appear/disappear)
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(measure);
+      observer.observe(scrollElement);
+      return () => observer.disconnect();
+    }
+  }, [scrollElement]);
+
+  /**
+   * JS-driven sticky header: on scroll, determine which swimlane header should
+   * be pinned. CSS sticky breaks inside virtualizer rows (position:absolute +
+   * transform creates a containing block that confines sticky). Instead, we
+   * report the current swimlane to the parent which renders a fixed overlay
+   * outside the scroll flow.
+   */
+  const onStickyHeaderChangeRef = useRef(onStickyHeaderChange);
+  onStickyHeaderChangeRef.current = onStickyHeaderChange;
+
+  // Keep a ref of collapsedStories so the scroll handler can read it without
+  // re-subscribing on every collapse/expand toggle.
+  const collapsedStoriesRef = useRef(collapsedStories);
+  collapsedStoriesRef.current = collapsedStories;
+
+  useEffect(() => {
+    if (!scrollElement || filteredSwimlanes.length === 0) {
+      onStickyHeaderChangeRef.current(null);
+      return;
+    }
+
+    function onScroll() {
+      const scrollTop = scrollElement!.scrollTop;
+      const listOffset = swimlaneListOffsetRef.current;
+
+      // scrollTop relative to the start of the virtualizer list
+      const relativeScroll = scrollTop - listOffset;
+
+      if (relativeScroll <= 0) {
+        onStickyHeaderChangeRef.current(null);
+        return;
+      }
+
+      // Find the swimlane whose range contains the current scroll position.
+      // Walk visible virtual items backwards to find the last one whose start <= relativeScroll.
+      const items = swimlaneVirtualizer.getVirtualItems();
+      if (items.length === 0) {
+        onStickyHeaderChangeRef.current(null);
+        return;
+      }
+
+      let foundIndex: number | null = null;
+      for (let i = items.length - 1; i >= 0; i--) {
+        if (items[i].start <= relativeScroll) {
+          foundIndex = items[i].index;
+          break;
+        }
+      }
+
+      if (foundIndex === null) {
+        onStickyHeaderChangeRef.current(null);
+        return;
+      }
+
+      const swimlane = filteredSwimlanes[foundIndex];
+      if (!swimlane) {
+        onStickyHeaderChangeRef.current(null);
+        return;
+      }
+
+      // Push-out offset: apply directly to DOM for 60fps smoothness.
+      // When the next swimlane's header approaches from below, slide the pinned
+      // header upward pixel-by-pixel.
+      const HEADER_HEIGHT = 37; // StoryHeaderRow height in px (py-2 + text = ~37)
+      const currentItem = items.find((v) => v.index === foundIndex);
+      let pushOffset = 0;
+      if (currentItem) {
+        const swimlaneEnd = currentItem.start + currentItem.size;
+        const headerBottom = relativeScroll + HEADER_HEIGHT;
+        if (headerBottom > swimlaneEnd) {
+          pushOffset = headerBottom - swimlaneEnd;
+        }
+      }
+
+      // Apply push offset directly to the DOM — avoids React re-render per scroll frame
+      if (stickyHeaderInnerRef.current) {
+        stickyHeaderInnerRef.current.style.transform =
+          pushOffset > 0 ? `translateY(-${pushOffset}px)` : '';
+      }
+
+      onStickyHeaderChangeRef.current({
+        story: swimlane.story,
+        subtasks: swimlane.subtasks,
+        isExpanded: !collapsedStoriesRef.current.has(swimlane.story.key),
+      });
+    }
+
+    scrollElement.addEventListener('scroll', onScroll, { passive: true });
+    // Run once immediately
+    onScroll();
+    return () => scrollElement.removeEventListener('scroll', onScroll);
+  }, [scrollElement, filteredSwimlanes, swimlaneVirtualizer]);
 
   function renderSwimlane(
     swimlane: { story: JiraIssue; subtasks: JiraIssue[] },
@@ -152,12 +285,7 @@ function VirtualizedSwimlanes({
         style={style}
         className="border-b border-border/40"
       >
-        {/*
-         * sticky top-0: sticks within the inner scroll container.
-         * Works in non-virtual fallback; in virtual mode absolute positioning
-         * on the parent prevents sticky — header just scrolls normally.
-         */}
-        <div className="sticky top-0 z-[9] bg-background">
+        <div className="bg-background">
           <StoryHeaderRow
             storyKey={story.key}
             summary={story.fields.summary}
@@ -209,6 +337,7 @@ function VirtualizedSwimlanes({
   if (useVirtual) {
     return (
       <div
+        ref={virtualizerWrapperRef}
         style={{
           height: `${swimlaneVirtualizer.getTotalSize()}px`,
           position: 'relative',
@@ -216,22 +345,84 @@ function VirtualizedSwimlanes({
       >
         {virtualItems.map((virtualRow) => {
           const swimlane = filteredSwimlanes[virtualRow.index];
-          return renderSwimlane(swimlane, swimlaneVirtualizer.measureElement, virtualRow.index, {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            transform: `translateY(${virtualRow.start}px)`,
-          });
+          return renderSwimlane(
+            swimlane,
+            swimlaneVirtualizer.measureElement,
+            virtualRow.index,
+            {
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              transform: `translateY(${virtualRow.start}px)`,
+            },
+          );
         })}
       </div>
     );
   }
 
   // Fallback: render all swimlanes without virtualization (jsdom, SSR, etc.)
+  // CSS sticky works correctly here since there's no position:absolute.
   return (
-    <div className="flex flex-col">
-      {filteredSwimlanes.map((swimlane) => renderSwimlane(swimlane))}
+    <div ref={virtualizerWrapperRef} className="flex flex-col">
+      {filteredSwimlanes.map((swimlane) => {
+        const { story, subtasks } = swimlane;
+        const isExpanded = !collapsedStories.has(story.key);
+        const cards = subtasks.length > 0 ? subtasks : [story];
+
+        return (
+          <div key={story.key} className="border-b border-border/40">
+            <div className="sticky top-0 z-[9] bg-background">
+              <StoryHeaderRow
+                storyKey={story.key}
+                summary={story.fields.summary}
+                statusName={story.fields.status.name}
+                statusCategoryKey={story.fields.status.statusCategory?.key ?? 'new'}
+                subtaskCount={subtasks.length}
+                isExpanded={isExpanded}
+                onToggle={() => toggleStory(story.key)}
+                onOpenDetail={setSelectedIssueKey}
+              />
+            </div>
+            {isExpanded && (
+              <div className="flex bg-muted/10">
+                {CATEGORY_COLUMNS.map((col) => {
+                  const colCards = cards.filter((c) => categoryOf(c) === col.key);
+                  const isDisabled =
+                    activeIssue !== null &&
+                    validTargetCategories.size > 0 &&
+                    !validTargetCategories.has(col.key);
+                  return (
+                    <DroppableCell
+                      key={col.key}
+                      storyKey={story.key}
+                      categoryKey={col.key}
+                      isDisabled={isDisabled}
+                    >
+                      {colCards.map((card) => (
+                        <React.Fragment key={card.key}>
+                          <DraggableCard
+                            issue={card}
+                            isSubtask={card.fields.issuetype.subtask}
+                            showStatus
+                            onOpenDetail={setSelectedIssueKey}
+                          />
+                          {cardErrors.get(card.key) && (
+                            <p className="text-xs text-destructive px-1">
+                              {cardErrors.get(card.key)}
+                            </p>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </DroppableCell>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -258,6 +449,14 @@ export default function SprintBoardTab() {
   const [isDragging, setIsDragging] = useState(false);
   const [activeIssue, setActiveIssue] = useState<JiraIssue | null>(null);
   const [cardErrors, setCardErrors] = useState<Map<string, string>>(new Map());
+
+  // JS-driven sticky swimlane header — rendered outside the scroll flow so it
+  // doesn't interfere with virtualizer layout. Updated by VirtualizedSwimlanes on scroll.
+  const [stickyHeader, setStickyHeader] = useState<StickyHeaderData>(null);
+  const stickyHeaderInnerRef = useRef<HTMLDivElement | null>(null);
+  const handleStickyHeaderChange = useCallback((data: StickyHeaderData) => {
+    setStickyHeader(data);
+  }, []);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -759,8 +958,39 @@ export default function SprintBoardTab() {
           </div>
         </div>
 
-        {/* Scrollable content area */}
-        <div ref={scrollContainerRef} className="flex-1 overflow-auto min-h-0">
+        {/* Wrapper: relative container so the sticky header can overlay the scroll area */}
+        <div className="flex-1 relative min-h-0">
+          {/* JS-driven sticky swimlane header — absolutely positioned over the scroll
+           *  area so it doesn't push content down or cause duplication. overflow-hidden
+           *  + negative translateY creates the classic push-out effect when the next
+           *  swimlane's header approaches from below. */}
+          <div
+            className="absolute top-0 left-0 right-0 z-[9] bg-background border-b border-border/30 overflow-hidden transition-[max-height,opacity] duration-150 ease-out pointer-events-auto"
+            style={{
+              maxHeight: stickyHeader ? '60px' : '0px',
+              opacity: stickyHeader ? 1 : 0,
+            }}
+          >
+            {stickyHeader && (
+              <div ref={stickyHeaderInnerRef}>
+                <StoryHeaderRow
+                  storyKey={stickyHeader.story.key}
+                  summary={stickyHeader.story.fields.summary}
+                  statusName={stickyHeader.story.fields.status.name}
+                  statusCategoryKey={
+                    stickyHeader.story.fields.status.statusCategory?.key ?? 'new'
+                  }
+                  subtaskCount={stickyHeader.subtasks.length}
+                  isExpanded={stickyHeader.isExpanded}
+                  onToggle={() => toggleStory(stickyHeader.story.key)}
+                  onOpenDetail={setSelectedIssueKey}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Scrollable content area */}
+          <div ref={scrollContainerRef} className="h-full overflow-auto">
           {/* Loading skeleton */}
           {isLoading && (
             <div className="p-4 flex flex-col gap-3">
@@ -846,8 +1076,11 @@ export default function SprintBoardTab() {
               activeIssue={activeIssue}
               validTargetCategories={validTargetCategories}
               cardErrors={cardErrors}
+              onStickyHeaderChange={handleStickyHeaderChange}
+              stickyHeaderInnerRef={stickyHeaderInnerRef}
             />
           )}
+          </div>
         </div>
       </div>
 
