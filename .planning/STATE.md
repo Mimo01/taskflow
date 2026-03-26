@@ -5,7 +5,7 @@ milestone_name: Release & Auto-Update Pipeline
 status: Milestone complete
 stopped_at: Completed quick-260326-mfp-PLAN.md
 last_updated: "2026-03-26T15:15:37.537Z"
-last_activity: "2026-03-26 - Completed quick task 260326-j2q: Remove saved filters from the sidebar"
+last_activity: "2026-03-26 - Completed quick task 260326-mfp: release version 1.6.1"
 progress:
   total_phases: 4
   completed_phases: 4
@@ -62,7 +62,7 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-03-26 - Completed quick task 260326-j2q: Remove saved filters from the sidebar
+Last activity: 2026-03-26 - Completed quick task 260326-mfp: release version 1.6.1
 Stopped at: Completed quick-260326-mfp-PLAN.md
 Resume: `/gsd:plan-phase 38`
 
@@ -79,3 +79,4 @@ Resume: `/gsd:plan-phase 38`
 | 260325-k0s | Add CI workflow for lint/typecheck/tests on push and PR to main | 2026-03-25 | 4d3e312 | [260325-k0s-set-up-a-proper-process-for-pipelines-ch](./quick/260325-k0s-set-up-a-proper-process-for-pipelines-ch/) |
 | 260326-ivv | Add generate-changelog.sh and update release.sh for auto-generated categorized changelogs | 2026-03-26 | a9685fe | [260326-ivv-fix-release-history-changelog-build-prop](./quick/260326-ivv-fix-release-history-changelog-build-prop/) |
 | 260326-j2q | Remove saved filters from the sidebar | 2026-03-26 | fb6f8cd | [260326-j2q-remove-saved-filters-from-the-sidebar](./quick/260326-j2q-remove-saved-filters-from-the-sidebar/) |
+| 260326-mfp | release version 1.6.1 | 2026-03-26 | 3f30b56 | [260326-mfp-release-version-1-6-1](./quick/260326-mfp-release-version-1-6-1/) |
