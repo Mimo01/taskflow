@@ -31,6 +31,7 @@ import { SoftMinimumBanner } from './components/update/SoftMinimumBanner';
 import { UpdateDialog } from './components/update/UpdateDialog';
 import { WhatsNewDialog } from './components/update/WhatsNewDialog';
 import { useNotificationPolling } from './hooks/useNotificationPolling';
+import { useSavedFilterSync } from './hooks/useSavedFilterSync';
 import { useUpdatePolling } from './hooks/useUpdatePolling';
 import { useVersionPolicyCheck } from './hooks/useVersionPolicyCheck';
 import {
@@ -444,6 +445,7 @@ function AppLayout() {
   useNotificationPolling();
   useUpdatePolling();
   useCustomFieldDiscovery();
+  useSavedFilterSync();
 
   if (!onboardingComplete) {
     // During onboarding, no sidebar
