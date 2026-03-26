@@ -13,6 +13,8 @@ jobs:
   release:
     permissions:
       contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     strategy:
       fail-fast: false
       matrix:
@@ -75,9 +77,15 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Inject version
+        id: version
         shell: bash
         working-directory: taskflow
-        run: node scripts/inject-version.cjs >> $GITHUB_ENV
+        run: |
+          eval $(node scripts/inject-version.cjs)
+          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
+          echo "APP_COMMIT_SHA=$APP_COMMIT_SHA" >> $GITHUB_ENV
+          echo "APP_BUILD_DATE=$APP_BUILD_DATE" >> $GITHUB_ENV
+          echo "version=$APP_VERSION" >> $GITHUB_OUTPUT
 
       - name: Build and release
         uses: tauri-apps/tauri-action@v0
@@ -99,3 +107,37 @@ jobs:
           repo: taskflow-releases
           releaseCommitish: main
           args: ${{ matrix.args }}
+
+  update-readme:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update README in releases repo
+        env:
+          TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          git clone https://x-access-token:${TOKEN}@github.com/Mimo01/taskflow-releases.git
+          cd taskflow-releases
+          cat > README.md <<EOF
+          # Taskflow
+
+          ## Download
+
+          ### macOS
+          - [Taskflow_${VERSION}_universal.dmg](https://github.com/Mimo01/taskflow-releases/releases/latest/download/Taskflow_${VERSION}_universal.dmg)
+
+          ### Windows
+          - [Taskflow_${VERSION}_x64-setup.exe](https://github.com/Mimo01/taskflow-releases/releases/latest/download/Taskflow_${VERSION}_x64-setup.exe)
+          - [Taskflow_${VERSION}_x64_en-US.msi](https://github.com/Mimo01/taskflow-releases/releases/latest/download/Taskflow_${VERSION}_x64_en-US.msi)
+
+          ### Linux
+          - [Taskflow_${VERSION}_amd64.deb](https://github.com/Mimo01/taskflow-releases/releases/latest/download/Taskflow_${VERSION}_amd64.deb) (Debian/Ubuntu)
+          - [Taskflow-${VERSION}-1.x86_64.rpm](https://github.com/Mimo01/taskflow-releases/releases/latest/download/Taskflow-${VERSION}-1.x86_64.rpm) (Fedora/RHEL)
+          - [Taskflow_${VERSION}_amd64.AppImage](https://github.com/Mimo01/taskflow-releases/releases/latest/download/Taskflow_${VERSION}_amd64.AppImage) (AppImage)
+          EOF
+          sed -i 's/^          //' README.md
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git diff --cached --quiet || (git commit -m "docs: update download links to v${VERSION}" && git push)
