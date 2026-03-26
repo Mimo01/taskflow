@@ -19,3 +19,11 @@ Resolved debug sessions. Used by `gsd-debugger` to surface known-pattern hypothe
 - **Fix:** Added `sound: 'Basso'` to the sendNotification options object.
 - **Files changed:** taskflow/src/services/notifications.ts
 ---
+
+## updater-acl-error — ACL blocks updater plugin + dev builds trigger spurious update modal
+- **Date:** 2026-03-26
+- **Error patterns:** ACL, plugin:updater|check not allowed, updater, capabilities, dev build, 0.0.0-dev, update modal
+- **Root cause:** Two issues: (1) `capabilities/default.json` was missing `updater:default` permission, causing Tauri ACL to block `plugin:updater|check`. (2) `useUpdatePolling.ts` had no dev-build guard — once ACL was fixed, dev builds (version "0.0.0-dev") auto-checked and showed spurious update modal.
+- **Fix:** (1) Added `"updater:default"` to capabilities/default.json. (2) Added `IS_DEV_BUILD` guard in useUpdatePolling.ts using `buildInfo.version.includes('-dev')`.
+- **Files changed:** taskflow/src-tauri/capabilities/default.json, taskflow/src/hooks/useUpdatePolling.ts
+---
