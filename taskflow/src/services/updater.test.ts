@@ -9,6 +9,10 @@ vi.mock('@tauri-apps/plugin-updater', () => ({
   check: mockCheck,
 }));
 
+vi.mock('@/lib/build-info', () => ({
+  buildInfo: { version: '1.0.0', commitSha: 'abc1234', buildDate: '2026-01-01' },
+}));
+
 import { updaterService } from './updater';
 
 describe('updaterService', () => {
