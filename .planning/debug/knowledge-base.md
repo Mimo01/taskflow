@@ -11,3 +11,11 @@ Resolved debug sessions. Used by `gsd-debugger` to surface known-pattern hypothe
 - **Fix:** Append `.replace('Z', '+0000')` to `.toISOString()` calls in both LogWorkPopover (create) and IssueDetailPage (update fallback).
 - **Files changed:** taskflow/src/routes/dashboard/issue-detail/LogWorkPopover.tsx, taskflow/src/routes/dashboard/IssueDetailPage.tsx
 ---
+
+## notification-no-sound — OS notification banners appear but no sound plays
+- **Date:** 2026-03-26
+- **Error patterns:** notification, no sound, silent, sendNotification, sound, Basso, tauri-plugin-notification
+- **Root cause:** `sendNotification({ title, body })` in `tryDispatchOsNotification()` omits the `sound` property. On macOS, `tauri-plugin-notification` requires an explicit system sound name for audible alerts; without it notifications fire silently.
+- **Fix:** Added `sound: 'Basso'` to the sendNotification options object.
+- **Files changed:** taskflow/src/services/notifications.ts
+---
