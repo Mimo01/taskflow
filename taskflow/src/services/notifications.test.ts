@@ -332,7 +332,7 @@ describe('notifications service', () => {
       const result = await tryDispatchOsNotification('Test Title', 'Test body');
 
       expect(result).toBe('sent');
-      expect(sendNotification).toHaveBeenCalledWith({ title: 'Test Title', body: 'Test body' });
+      expect(sendNotification).toHaveBeenCalledWith({ title: 'Test Title', body: 'Test body', sound: 'Basso' });
     });
 
     it('requests permission when not already granted, sends if granted', async () => {
