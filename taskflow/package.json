@@ -16,6 +16,7 @@
     "check": "biome check ./src && tsc --noEmit",
     "fix": "biome check --write ./src",
     "test": "vitest run",
+    "release": "bash scripts/release.sh",
     "test:watch": "vitest"
   },
   "dependencies": {
