@@ -24,5 +24,16 @@ const conf = JSON.parse(fs.readFileSync(confPath, 'utf8'));
 conf.version = version;
 fs.writeFileSync(confPath, JSON.stringify(conf, null, 2) + '\n');
 
+// Write version into package.json
+const pkgPath = path.join(__dirname, '../package.json');
+const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+pkg.version = version;
+fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+
+// Write version into Cargo.toml
+const cargoPath = path.join(__dirname, '../src-tauri/Cargo.toml');
+const cargo = fs.readFileSync(cargoPath, 'utf8');
+fs.writeFileSync(cargoPath, cargo.replace(/^version\s*=\s*"[^"]*"/m, `version = "${version}"`));
+
 // Export for Vite define (consumed by package.json cross-env or shell eval)
 process.stdout.write(`APP_VERSION=${version}\nAPP_COMMIT_SHA=${sha}\nAPP_BUILD_DATE=${buildDate}\n`);
