@@ -162,8 +162,7 @@ function VirtualizedSwimlanes({
       if (!virtualizerWrapperRef.current) return;
       const wrapperRect = virtualizerWrapperRef.current.getBoundingClientRect();
       const scrollRect = scrollElement.getBoundingClientRect();
-      swimlaneListOffsetRef.current =
-        wrapperRect.top - scrollRect.top + scrollElement.scrollTop;
+      swimlaneListOffsetRef.current = wrapperRect.top - scrollRect.top + scrollElement.scrollTop;
     };
     measure();
     // Re-measure on resize (banners may appear/disappear)
@@ -345,18 +344,13 @@ function VirtualizedSwimlanes({
       >
         {virtualItems.map((virtualRow) => {
           const swimlane = filteredSwimlanes[virtualRow.index];
-          return renderSwimlane(
-            swimlane,
-            swimlaneVirtualizer.measureElement,
-            virtualRow.index,
-            {
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              transform: `translateY(${virtualRow.start}px)`,
-            },
-          );
+          return renderSwimlane(swimlane, swimlaneVirtualizer.measureElement, virtualRow.index, {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            transform: `translateY(${virtualRow.start}px)`,
+          });
         })}
       </div>
     );
@@ -977,9 +971,7 @@ export default function SprintBoardTab() {
                   storyKey={stickyHeader.story.key}
                   summary={stickyHeader.story.fields.summary}
                   statusName={stickyHeader.story.fields.status.name}
-                  statusCategoryKey={
-                    stickyHeader.story.fields.status.statusCategory?.key ?? 'new'
-                  }
+                  statusCategoryKey={stickyHeader.story.fields.status.statusCategory?.key ?? 'new'}
                   subtaskCount={stickyHeader.subtasks.length}
                   isExpanded={stickyHeader.isExpanded}
                   onToggle={() => toggleStory(stickyHeader.story.key)}
@@ -991,95 +983,95 @@ export default function SprintBoardTab() {
 
           {/* Scrollable content area */}
           <div ref={scrollContainerRef} className="h-full overflow-auto">
-          {/* Loading skeleton */}
-          {isLoading && (
-            <div className="p-4 flex flex-col gap-3">
-              {[0, 1].map((i) => (
-                <div key={i} className="flex flex-col gap-0.5">
-                  <div className="h-9 rounded bg-muted animate-pulse" />
-                  <div className="flex">
-                    {CATEGORY_COLUMNS.map((col) => (
-                      <div key={col.key} className="flex-1 h-20 bg-muted/50 animate-pulse" />
-                    ))}
+            {/* Loading skeleton */}
+            {isLoading && (
+              <div className="p-4 flex flex-col gap-3">
+                {[0, 1].map((i) => (
+                  <div key={i} className="flex flex-col gap-0.5">
+                    <div className="h-9 rounded bg-muted animate-pulse" />
+                    <div className="flex">
+                      {CATEGORY_COLUMNS.map((col) => (
+                        <div key={col.key} className="flex-1 h-20 bg-muted/50 animate-pulse" />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
 
-          {/* Error state — no cached data */}
-          {isError && !data && (
-            <div className="m-4">
-              <ErrorState error={error} onRetry={refetch} viewName="sprint board" />
-            </div>
-          )}
+            {/* Error state — no cached data */}
+            {isError && !data && (
+              <div className="m-4">
+                <ErrorState error={error} onRetry={refetch} viewName="sprint board" />
+              </div>
+            )}
 
-          {/* Stale data banner — error with cached data */}
-          {isError && data && !bannerDismissed && (
-            <div className="m-4">
-              <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
-            </div>
-          )}
+            {/* Stale data banner — error with cached data */}
+            {isError && data && !bannerDismissed && (
+              <div className="m-4">
+                <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
+              </div>
+            )}
 
-          {/* Sprint goal banner */}
-          {!isLoading && !isError && data && activeSprint?.goal && (
-            <SprintGoalBanner goal={activeSprint.goal} />
-          )}
+            {/* Sprint goal banner */}
+            {!isLoading && !isError && data && activeSprint?.goal && (
+              <SprintGoalBanner goal={activeSprint.goal} />
+            )}
 
-          {/* Quick filter chip row */}
-          {!isLoading && !isError && data && (
-            <QuickFilterChipRow
-              quickFilters={boardQuickFilters ?? []}
-              labels={filterOptions.labels}
-              issues={localIssues}
-            />
-          )}
+            {/* Quick filter chip row */}
+            {!isLoading && !isError && data && (
+              <QuickFilterChipRow
+                quickFilters={boardQuickFilters ?? []}
+                labels={filterOptions.labels}
+                issues={localIssues}
+              />
+            )}
 
-          {/* Active saved filter banner */}
-          {!isLoading && !isError && data && activeFilter && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 border-b border-primary/20">
-              <Bookmark className="size-3.5 text-primary" />
-              <span className="text-xs font-medium">Filter: {activeFilter.name}</span>
-              {isSavedFilterLoading && (
-                <span className="text-xs text-muted-foreground">(loading...)</span>
-              )}
-              <button
-                type="button"
-                onClick={() => setActiveFilter(null)}
-                className="text-xs text-primary/70 hover:text-primary ml-auto"
-              >
-                Clear
-              </button>
-            </div>
-          )}
+            {/* Active saved filter banner */}
+            {!isLoading && !isError && data && activeFilter && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 border-b border-primary/20">
+                <Bookmark className="size-3.5 text-primary" />
+                <span className="text-xs font-medium">Filter: {activeFilter.name}</span>
+                {isSavedFilterLoading && (
+                  <span className="text-xs text-muted-foreground">(loading...)</span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setActiveFilter(null)}
+                  className="text-xs text-primary/70 hover:text-primary ml-auto"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
 
-          {/* Unified filter bar */}
-          {!isLoading && !isError && data && <UnifiedFilterBar filterOptions={filterOptions} />}
+            {/* Unified filter bar */}
+            {!isLoading && !isError && data && <UnifiedFilterBar filterOptions={filterOptions} />}
 
-          {/* Empty */}
-          {!isLoading && !isError && data && swimlanes.length === 0 && (
-            <EmptyState
-              icon={Columns3}
-              title="No sprint issues"
-              subtitle="This board will populate when issues are added to the active sprint"
-            />
-          )}
+            {/* Empty */}
+            {!isLoading && !isError && data && swimlanes.length === 0 && (
+              <EmptyState
+                icon={Columns3}
+                title="No sprint issues"
+                subtitle="This board will populate when issues are added to the active sprint"
+              />
+            )}
 
-          {/* Virtualized swimlane rows */}
-          {!isLoading && !isError && data && filteredSwimlanes.length > 0 && (
-            <VirtualizedSwimlanes
-              filteredSwimlanes={filteredSwimlanes}
-              scrollElement={scrollElement}
-              collapsedStories={collapsedStories}
-              toggleStory={toggleStory}
-              setSelectedIssueKey={setSelectedIssueKey}
-              activeIssue={activeIssue}
-              validTargetCategories={validTargetCategories}
-              cardErrors={cardErrors}
-              onStickyHeaderChange={handleStickyHeaderChange}
-              stickyHeaderInnerRef={stickyHeaderInnerRef}
-            />
-          )}
+            {/* Virtualized swimlane rows */}
+            {!isLoading && !isError && data && filteredSwimlanes.length > 0 && (
+              <VirtualizedSwimlanes
+                filteredSwimlanes={filteredSwimlanes}
+                scrollElement={scrollElement}
+                collapsedStories={collapsedStories}
+                toggleStory={toggleStory}
+                setSelectedIssueKey={setSelectedIssueKey}
+                activeIssue={activeIssue}
+                validTargetCategories={validTargetCategories}
+                cardErrors={cardErrors}
+                onStickyHeaderChange={handleStickyHeaderChange}
+                stickyHeaderInnerRef={stickyHeaderInnerRef}
+              />
+            )}
           </div>
         </div>
       </div>
