@@ -27,3 +27,11 @@ Resolved debug sessions. Used by `gsd-debugger` to surface known-pattern hypothe
 - **Fix:** (1) Added `"updater:default"` to capabilities/default.json. (2) Added `IS_DEV_BUILD` guard in useUpdatePolling.ts using `buildInfo.version.includes('-dev')`.
 - **Files changed:** taskflow/src-tauri/capabilities/default.json, taskflow/src/hooks/useUpdatePolling.ts
 ---
+
+## duplicate-os-notifications — OS notifications fire multiple times for the same notification
+- **Date:** 2026-03-26
+- **Error patterns:** duplicate, OS notification, multiple times, same notification, re-fire, sendNotification, tryDispatchOsNotification
+- **Root cause:** `useNotificationPolling.ts` dispatched OS notifications for every item in `newItems` (cursor-filtered API results) without checking whether the item already existed in the store. When a stale cursor caused re-fetching of already-seen notifications, the store's `prependItems` silently deduplicated in-app entries but the OS dispatch loop had no equivalent guard.
+- **Fix:** Before the OS dispatch loop, capture existing store item IDs into a Set. Skip `tryDispatchOsNotification` for any item whose ID is already in that Set.
+- **Files changed:** taskflow/src/hooks/useNotificationPolling.ts
+---
