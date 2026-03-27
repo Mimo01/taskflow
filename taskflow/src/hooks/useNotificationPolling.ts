@@ -155,11 +155,18 @@ export function useNotificationPolling() {
       };
 
       if (newItems.length > 0) {
+        // Capture IDs already in the store BEFORE prepending, so OS notifications are
+        // only fired for items that are genuinely new. Without this guard, a stale
+        // cursor (e.g. after React Query cache re-use or app restart) can cause the
+        // same notification to be re-fetched and re-dispatched even though it is
+        // already present in the store.
+        const existingIds = new Set(store.items.map((i) => i.id));
         store.prependItems(newItems);
         // Use allItems to advance cursors (avoid cursor drift from filtered items)
         advanceCursors(allItems);
-        // Dispatch OS notifications for new items
+        // Dispatch OS notifications only for items not already known to the store
         for (const item of newItems) {
+          if (existingIds.has(item.id)) continue;
           const sourceEnabled = item.source === 'jira' ? osNotifJiraEnabled : osNotifGitlabEnabled;
           // Per-type check already passed via filter above
           if (sourceEnabled) {
