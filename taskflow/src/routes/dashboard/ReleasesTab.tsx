@@ -14,7 +14,7 @@
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { fetch } from '@tauri-apps/plugin-http';
 import { Package, RefreshCw } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -96,20 +96,17 @@ export default function ReleasesTab() {
   const breadcrumbPush = useBreadcrumbStore((s) => s.push);
   const breadcrumbReset = useBreadcrumbStore((s) => s.reset);
 
-  const handleReleaseClick = useCallback(
-    (versionId: string) => {
-      breadcrumbReset();
-      breadcrumbPush({ path: '/releases', label: 'Releases' });
-      navigate(`/release/${versionId}`);
-    },
-    [breadcrumbReset, breadcrumbPush, navigate],
-  );
+  const handleReleaseClick = (versionId: string) => {
+    breadcrumbReset();
+    breadcrumbPush({ path: '/releases', label: 'Releases' });
+    navigate(`/release/${versionId}`);
+  };
 
   const [jiraToken, setJiraToken] = useState<string | null>(null);
   const [gitlabToken, setGitlabToken] = useState<string | null>(null);
   const [releasedVisible, setReleasedVisible] = useState(RELEASED_PAGE_SIZE);
   const [bannerDismissed, setBannerDismissed] = useState(false);
-  const loadMoreReleased = useCallback(() => setReleasedVisible((n) => n + RELEASED_LOAD_MORE), []);
+  const loadMoreReleased = () => setReleasedVisible((n) => n + RELEASED_LOAD_MORE);
 
   useEffect(() => {
     if (jiraBaseUrl) {
@@ -145,7 +142,7 @@ export default function ReleasesTab() {
   // Date window for milestone matching — derived from Jira fix version dates ± LEEWAY_DAYS.
   // Milestones are only fetched once fix versions are loaded so we can scope the query.
   const MILESTONE_LEEWAY_DAYS = 7;
-  const milestoneWindow = useMemo(() => {
+  const milestoneWindow = (() => {
     const dates = (fixVersions ?? []).map((v) => v.releaseDate).filter(Boolean) as string[];
     if (dates.length === 0) return null;
     const addDays = (d: string, n: number) => {
@@ -156,7 +153,7 @@ export default function ReleasesTab() {
     const min = dates.reduce((a, b) => (a < b ? a : b));
     const max = dates.reduce((a, b) => (a > b ? a : b));
     return { from: addDays(min, -MILESTONE_LEEWAY_DAYS), to: addDays(max, MILESTONE_LEEWAY_DAYS) };
-  }, [fixVersions]);
+  })();
 
   // Fetch GitLab milestones scoped to the fix-version date window.
   // Uses paginated sorted fetch so large milestone lists don't miss relevant entries.
@@ -190,7 +187,7 @@ export default function ReleasesTab() {
   });
 
   // Build matched versions split into: undated, unreleased (with date), released
-  const { undatedVersions, unreleasedVersions, releasedVersions } = useMemo(() => {
+  const { undatedVersions, unreleasedVersions, releasedVersions } = (() => {
     const versions = fixVersions ?? [];
     const msList: GitLabMilestone[] = milestones ?? [];
 
@@ -232,7 +229,7 @@ export default function ReleasesTab() {
       .map(toMatched);
 
     return { undatedVersions: undated, unreleasedVersions: unreleased, releasedVersions: released };
-  }, [fixVersions, milestones, versionCountQueries]);
+  })();
 
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`

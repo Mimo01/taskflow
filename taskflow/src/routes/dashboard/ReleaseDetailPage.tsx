@@ -25,7 +25,7 @@ import {
   X,
 } from 'lucide-react';
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -153,10 +153,7 @@ export default function ReleaseDetailPage() {
   });
 
   // Find the matching version
-  const version = useMemo(
-    () => fixVersions?.find((v) => v.id === versionId) ?? null,
-    [fixVersions, versionId],
-  );
+  const version = fixVersions?.find((v) => v.id === versionId) ?? null;
 
   // Fetch issue counts for this version
   const { data: issueCounts } = useQuery({
@@ -172,7 +169,7 @@ export default function ReleaseDetailPage() {
 
   // Fetch GitLab milestones scoped around this version's release date
   const MILESTONE_LEEWAY_DAYS = 7;
-  const milestoneWindow = useMemo(() => {
+  const milestoneWindow = (() => {
     if (!version?.releaseDate) return null;
     const addDays = (d: string, n: number) => {
       const dt = new Date(d);
@@ -183,7 +180,7 @@ export default function ReleaseDetailPage() {
       from: addDays(version.releaseDate, -MILESTONE_LEEWAY_DAYS),
       to: addDays(version.releaseDate, MILESTONE_LEEWAY_DAYS),
     };
-  }, [version?.releaseDate]);
+  })();
 
   const { data: milestones } = useQuery({
     queryKey: [
@@ -205,7 +202,7 @@ export default function ReleaseDetailPage() {
   });
 
   // Match GitLab milestone to this fix version by date
-  const gitlabMatch: ReleaseMatch = useMemo(() => {
+  const gitlabMatch: ReleaseMatch = (() => {
     const noMatch: ReleaseMatch = { type: 'none', candidateName: '', candidateUrl: '' };
     if (!version?.releaseDate || !milestones) return noMatch;
 
@@ -222,7 +219,7 @@ export default function ReleaseDetailPage() {
       if (match.type === 'fuzzy' && bestMatch.type === 'none') bestMatch = match;
     }
     return bestMatch;
-  }, [version?.releaseDate, milestones]);
+  })();
 
   // Fetch Jira issues for this fix version
   const { data: fixVersionIssues, isLoading: isLoadingIssues } = useQuery({
@@ -252,71 +249,59 @@ export default function ReleaseDetailPage() {
   });
 
   // Match MRs to Jira issues
-  const { matchedRows, unmatchedMRs } = useMemo(() => {
-    const issues = fixVersionIssues ?? [];
-    const mrs = milestoneMRs ?? [];
-    const issueKeySet = new Set(issues.map((i) => i.key));
-
-    const mrByIssue = new Map<string, GitLabMR>();
-    const unmatched: GitLabMR[] = [];
-
-    for (const mr of mrs) {
-      const matchedKey = linkMRToTask(mr, issueKeySet);
-      if (matchedKey) {
-        mrByIssue.set(matchedKey, mr);
-      } else {
-        unmatched.push(mr);
-      }
+  const releaseIssues = fixVersionIssues ?? [];
+  const releaseMrs = milestoneMRs ?? [];
+  const releaseIssueKeySet = new Set(releaseIssues.map((i) => i.key));
+  const releaseMrByIssue = new Map<string, GitLabMR>();
+  const releaseUnmatched: GitLabMR[] = [];
+  for (const mr of releaseMrs) {
+    const matchedKey = linkMRToTask(mr, releaseIssueKeySet);
+    if (matchedKey) {
+      releaseMrByIssue.set(matchedKey, mr);
+    } else {
+      releaseUnmatched.push(mr);
     }
-
-    const rows = issues.map((issue) => ({
-      issue,
-      mr: mrByIssue.get(issue.key) ?? null,
-    }));
-
-    return { matchedRows: rows, unmatchedMRs: unmatched };
-  }, [fixVersionIssues, milestoneMRs]);
+  }
+  const matchedRows = releaseIssues.map((issue) => ({
+    issue,
+    mr: releaseMrByIssue.get(issue.key) ?? null,
+  }));
+  const unmatchedMRs = releaseUnmatched;
 
   // Aggregate unique labels across all milestone MRs with counts
-  const labelSummary = useMemo(() => {
-    const mrs = milestoneMRs ?? [];
-    const labelMap = new Map<
-      string,
-      { label: { name: string; color: string; text_color: string }; count: number }
-    >();
-
-    for (const mr of mrs) {
-      for (const label of mr.labels) {
-        const existing = labelMap.get(label.name);
-        if (existing) {
-          existing.count += 1;
-        } else {
-          labelMap.set(label.name, { label, count: 1 });
-        }
+  const labelMap = new Map<
+    string,
+    { label: { name: string; color: string; text_color: string }; count: number }
+  >();
+  for (const mr of releaseMrs) {
+    for (const label of mr.labels) {
+      const existing = labelMap.get(label.name);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        labelMap.set(label.name, { label, count: 1 });
       }
     }
-
-    return Array.from(labelMap.values()).sort((a, b) => {
-      if (b.count !== a.count) return b.count - a.count;
-      return a.label.name.localeCompare(b.label.name);
-    });
-  }, [milestoneMRs]);
+  }
+  const labelSummary = Array.from(labelMap.values()).sort((a, b) => {
+    if (b.count !== a.count) return b.count - a.count;
+    return a.label.name.localeCompare(b.label.name);
+  });
 
   // Compute label coverage stats: how many MRs have at least one label
-  const labelCoverage = useMemo(() => {
-    const mrs = milestoneMRs ?? [];
-    if (mrs.length === 0) return null;
-    const unlabeled = mrs.filter((mr) => mr.labels.length === 0);
+  const labelCoverage = (() => {
+    if (releaseMrs.length === 0) return null;
+    const unlabeled = releaseMrs.filter((mr) => mr.labels.length === 0);
     return {
-      total: mrs.length,
-      labeled: mrs.length - unlabeled.length,
+      total: releaseMrs.length,
+      labeled: releaseMrs.length - unlabeled.length,
       unlabeled,
       allLabeled: unlabeled.length === 0,
     };
-  }, [milestoneMRs]);
+  })();
 
   // Populate edit form when entering edit mode
-  const startEditing = useCallback(() => {
+  const startEditing = () => {
     if (!version) return;
     setEditName(version.name);
     setEditDate(version.releaseDate ?? '');
@@ -324,12 +309,12 @@ export default function ReleaseDetailPage() {
     setEditReleased(version.released);
     setMutationError(null);
     setEditing(true);
-  }, [version]);
+  };
 
-  const cancelEditing = useCallback(() => {
+  const cancelEditing = () => {
     setEditing(false);
     setMutationError(null);
-  }, []);
+  };
 
   // Update mutation
   const mutation = useMutation({
@@ -354,7 +339,7 @@ export default function ReleaseDetailPage() {
     },
   });
 
-  const handleSave = useCallback(() => {
+  const handleSave = () => {
     const fields: {
       name?: string;
       releaseDate?: string | null;
@@ -376,7 +361,7 @@ export default function ReleaseDetailPage() {
     }
 
     mutation.mutate(fields);
-  }, [editName, editDate, editDescription, editReleased, version, mutation]);
+  };
 
   const handleBack = () => {
     if (trail.length > 0) {
@@ -388,12 +373,12 @@ export default function ReleaseDetailPage() {
     }
   };
 
-  const handleOpenInJira = useCallback(() => {
+  const handleOpenInJira = () => {
     if (jiraBaseUrl && activeJiraProject && versionId) {
       const base = jiraBaseUrl.replace(/\/$/, '');
       openUrl(`${base}/projects/${activeJiraProject}/versions/${versionId}`);
     }
-  }, [jiraBaseUrl, activeJiraProject, versionId]);
+  };
 
   if (!versionId) return null;
 

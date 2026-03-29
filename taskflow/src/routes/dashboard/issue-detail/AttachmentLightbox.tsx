@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { useCallback, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import type { JiraAttachment } from '@/services/jira';
 import { AuthImage } from '../AuthImage';
@@ -22,8 +22,9 @@ export function AttachmentLightbox({
 }: AttachmentLightboxProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
+  useEffect(() => {
+    if (!open) return;
+    function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         onClose();
       } else if (e.key === 'ArrowLeft' && currentIndex > 0) {
@@ -31,15 +32,10 @@ export function AttachmentLightbox({
       } else if (e.key === 'ArrowRight' && currentIndex < images.length - 1) {
         onNavigate(currentIndex + 1);
       }
-    },
-    [onClose, onNavigate, currentIndex, images.length],
-  );
-
-  useEffect(() => {
-    if (!open) return;
+    }
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open, handleKeyDown]);
+  }, [open, onClose, onNavigate, currentIndex, images.length]);
 
   // Auto-focus overlay for keyboard events
   useEffect(() => {

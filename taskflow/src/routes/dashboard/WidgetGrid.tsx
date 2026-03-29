@@ -7,7 +7,6 @@
  * and `config` fields that react-grid-layout strips from its Layout type.
  */
 
-import { useMemo } from 'react';
 import type { Layout } from 'react-grid-layout';
 import { ResponsiveGridLayout, useContainerWidth, verticalCompactor } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
@@ -34,13 +33,10 @@ export default function WidgetGrid({
   const { width, containerRef } = useContainerWidth();
 
   // Build a lookup map to merge position changes back into full items
-  const itemMap = useMemo(() => {
-    const map = new Map<string, DashboardLayoutItem>();
-    for (const item of layout) {
-      map.set(item.i, item);
-    }
-    return map;
-  }, [layout]);
+  const itemMap = new Map<string, DashboardLayoutItem>();
+  for (const item of layout) {
+    itemMap.set(item.i, item);
+  }
 
   function handleLayoutChange(currentLayout: Layout) {
     const merged: DashboardLayoutItem[] = currentLayout
@@ -61,10 +57,7 @@ export default function WidgetGrid({
   }
 
   // When not editable, mark all layout items as static to prevent resize
-  const effectiveLayout = useMemo(
-    () => layout.map((item) => ({ ...item, static: !isEditable })),
-    [layout, isEditable],
-  );
+  const effectiveLayout = layout.map((item) => ({ ...item, static: !isEditable }));
 
   return (
     <div ref={containerRef}>

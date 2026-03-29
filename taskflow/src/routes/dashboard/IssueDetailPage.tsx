@@ -11,7 +11,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, MoreVertical } from 'lucide-react';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -122,35 +122,29 @@ export default function IssueDetailPage() {
   const comments: JiraComment[] = issue?.fields.comment?.comments ?? [];
 
   // Build attachment filename -> URL map for resolving !image.png! references
-  const attachmentMap = useMemo<AttachmentMap>(() => {
-    const map: AttachmentMap = {};
-    for (const att of issue?.fields.attachment ?? []) {
-      map[att.filename] = att.content;
-    }
-    return map;
-  }, [issue?.fields.attachment]);
+  const attachmentMap: AttachmentMap = {};
+  for (const att of issue?.fields.attachment ?? []) {
+    attachmentMap[att.filename] = att.content;
+  }
 
   // Build user lookup map from available issue data
-  const userMap = useMemo<UserMap>(() => {
-    const map: UserMap = {};
-    const assignee = issue?.fields.assignee;
-    const reporter = issue?.fields.reporter;
-    if (assignee) {
-      map[assignee.name] = assignee.displayName;
+  const userMap: UserMap = {};
+  const _assignee = issue?.fields.assignee;
+  const _reporter = issue?.fields.reporter;
+  if (_assignee) {
+    userMap[_assignee.name] = _assignee.displayName;
+  }
+  if (_reporter) {
+    if (_reporter.name) userMap[_reporter.name] = _reporter.displayName;
+    userMap[_reporter.displayName] = _reporter.displayName;
+  }
+  for (const c of comments) {
+    if (c.author?.displayName) {
+      const authorObj = c.author as { displayName: string; name?: string };
+      if (authorObj.name) userMap[authorObj.name] = authorObj.displayName;
+      userMap[authorObj.displayName] = authorObj.displayName;
     }
-    if (reporter) {
-      if (reporter.name) map[reporter.name] = reporter.displayName;
-      map[reporter.displayName] = reporter.displayName;
-    }
-    for (const c of comments) {
-      if (c.author?.displayName) {
-        const authorObj = c.author as { displayName: string; name?: string };
-        if (authorObj.name) map[authorObj.name] = authorObj.displayName;
-        map[authorObj.displayName] = authorObj.displayName;
-      }
-    }
-    return map;
-  }, [issue?.fields.assignee, issue?.fields.reporter, comments]);
+  }
 
   // ─── Comment edit/delete mutations (lifted from old CommentThread) ──────────
   const queryClient = useQueryClient();
@@ -198,29 +192,29 @@ export default function IssueDetailPage() {
   const editTextRef = useRef(editText);
   editTextRef.current = editText;
 
-  const handleEdit = useCallback((comment: JiraComment) => {
+  const handleEdit = (comment: JiraComment) => {
     setEditingCommentId(comment.id);
     setEditText(comment.body);
     setEditError(null);
-  }, []);
+  };
 
-  const handleDelete = useCallback((comment: JiraComment) => {
+  const handleDelete = (comment: JiraComment) => {
     if (!window.confirm('Delete this comment? This cannot be undone.')) return;
     setDeleteError(null);
     deleteMutateRef.current(comment.id);
-  }, []);
+  };
 
-  const handleSaveEdit = useCallback((commentId: string) => {
+  const handleSaveEdit = (commentId: string) => {
     const text = editTextRef.current.trim();
     if (!text) return;
     editMutateRef.current({ commentId, body: text });
-  }, []);
+  };
 
-  const handleCancelEdit = useCallback(() => {
+  const handleCancelEdit = () => {
     setEditingCommentId(null);
     setEditText('');
     setEditError(null);
-  }, []);
+  };
 
   // ─── Worklog data + CRUD ──────────────────────────────────────────────────────
   const { data: worklogs = [] } = useQuery({
@@ -282,46 +276,40 @@ export default function IssueDetailPage() {
     },
   });
 
-  const handleWorklogEdit = useCallback((worklog: JiraWorklog) => {
+  const handleWorklogEdit = (worklog: JiraWorklog) => {
     setEditingWorklogId(worklog.id);
     setEditDuration(worklog.timeSpent);
     setEditWorklogComment(worklog.comment ?? '');
     setWorklogEditError(null);
-  }, []);
+  };
 
-  const handleWorklogDelete = useCallback(
-    (worklog: JiraWorklog) => {
-      if (!window.confirm('Delete worklog: Remove this time entry? This cannot be undone.')) return;
-      worklogDeleteMutation.mutate(worklog.id);
-    },
-    [worklogDeleteMutation],
-  );
+  const handleWorklogDelete = (worklog: JiraWorklog) => {
+    if (!window.confirm('Delete worklog: Remove this time entry? This cannot be undone.')) return;
+    worklogDeleteMutation.mutate(worklog.id);
+  };
 
-  const handleWorklogEditSave = useCallback(
-    (worklogId: string) => {
-      const parsed = parseDuration(editDuration);
-      if (!parsed) {
-        setWorklogEditError("Couldn't parse duration");
-        return;
-      }
-      const original = worklogs.find((w) => w.id === worklogId);
-      worklogEditMutation.mutate({
-        worklogId,
-        timeSpentSeconds: parsed.seconds,
-        // Jira worklog API requires "+0000" offset, not "Z" suffix
-        started: original?.started ?? new Date().toISOString().replace('Z', '+0000'),
-        comment: editWorklogComment || undefined,
-      });
-    },
-    [editDuration, editWorklogComment, worklogs, worklogEditMutation],
-  );
+  const handleWorklogEditSave = (worklogId: string) => {
+    const parsed = parseDuration(editDuration);
+    if (!parsed) {
+      setWorklogEditError("Couldn't parse duration");
+      return;
+    }
+    const original = worklogs.find((w) => w.id === worklogId);
+    worklogEditMutation.mutate({
+      worklogId,
+      timeSpentSeconds: parsed.seconds,
+      // Jira worklog API requires "+0000" offset, not "Z" suffix
+      started: original?.started ?? new Date().toISOString().replace('Z', '+0000'),
+      comment: editWorklogComment || undefined,
+    });
+  };
 
-  const handleWorklogEditCancel = useCallback(() => {
+  const handleWorklogEditCancel = () => {
     setEditingWorklogId(null);
     setEditDuration('');
     setEditWorklogComment('');
     setWorklogEditError(null);
-  }, []);
+  };
 
   if (!issueKey) return null;
 
@@ -467,7 +455,7 @@ interface CommentCardProps {
   userMap: UserMap;
 }
 
-const CommentCard = memo(function CommentCard({
+function CommentCard({
   comment,
   isOwn,
   isEditing,
@@ -585,7 +573,7 @@ const CommentCard = memo(function CommentCard({
       )}
     </div>
   );
-});
+}
 
 // ─── Skeleton ──────────────────────────────────────────────────────────────────
 

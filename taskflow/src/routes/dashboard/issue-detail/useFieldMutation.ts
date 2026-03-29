@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useRef } from 'react';
+import { useRef } from 'react';
 import type { JiraIssueDetail } from '@/services/jira';
 import { updateIssueField } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
@@ -53,11 +53,16 @@ export function useFieldMutation(issueKey: string, jiraBaseUrl: string) {
 /** Debounce hook for text field updates. */
 export function useDebounce<T extends unknown[]>(fn: (...args: T) => void, delay: number) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  return useCallback(
-    (...args: T) => {
+  const fnRef = useRef(fn);
+  fnRef.current = fn;
+  const delayRef = useRef(delay);
+  delayRef.current = delay;
+  const stableRef = useRef<(...args: T) => void>(null!);
+  if (!stableRef.current) {
+    stableRef.current = (...args: T) => {
       if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => fn(...args), delay);
-    },
-    [fn, delay],
-  );
+      timerRef.current = setTimeout(() => fnRef.current(...args), delayRef.current);
+    };
+  }
+  return stableRef.current;
 }

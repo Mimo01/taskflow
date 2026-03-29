@@ -24,7 +24,7 @@ import {
   Loader2,
   XCircle,
 } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -99,12 +99,9 @@ export default function MergeRequestDetailPage() {
   }, [iid, mr?.title, projectId, mr, pushRecentItem]);
 
   // Extract linked Jira issue keys from title + branch
-  const linkedJiraKeys = useMemo(() => {
-    if (!mr) return [];
-    const fromTitle = extractTicketKeys(mr.title);
-    const fromBranch = extractTicketKeys(mr.source_branch);
-    return [...new Set([...fromTitle, ...fromBranch])];
-  }, [mr?.title, mr?.source_branch, mr]);
+  const linkedJiraKeys = !mr
+    ? []
+    : [...new Set([...extractTicketKeys(mr.title), ...extractTicketKeys(mr.source_branch)])];
 
   const handleBack = () => {
     if (trail.length > 0) {

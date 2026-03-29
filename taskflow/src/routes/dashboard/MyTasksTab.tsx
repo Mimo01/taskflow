@@ -17,7 +17,7 @@
 
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ClipboardList, RefreshCw } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
@@ -132,23 +132,16 @@ export default function MyTasksTab() {
     ? gitlabMrsData
     : ((gitlabMrsData as { merged?: GitLabMR[] } | undefined)?.merged ?? []);
 
-  const sprintIssueKeySet = useMemo(() => {
-    return new Set((Array.isArray(data) ? data : []).map((i) => i.key));
-  }, [data]);
+  const sprintIssueKeySet = new Set((Array.isArray(data) ? data : []).map((i) => i.key));
 
   // Title-scan linking: synchronous, no API calls
-  const titleLinkMap = useMemo(() => {
-    const map = new Map<number, string | null>();
-    for (const mr of gitlabMrs ?? []) {
-      map.set(mr.iid, linkMRToTask(mr, sprintIssueKeySet));
-    }
-    return map;
-  }, [gitlabMrs, sprintIssueKeySet]);
+  const titleLinkMap = new Map<number, string | null>();
+  for (const mr of gitlabMrs ?? []) {
+    titleLinkMap.set(mr.iid, linkMRToTask(mr, sprintIssueKeySet));
+  }
 
   // MRs that need commit fallback scan (title scan returned null)
-  const mrsNeedingCommits = useMemo(() => {
-    return (gitlabMrs ?? []).filter((mr) => titleLinkMap.get(mr.iid) === null);
-  }, [gitlabMrs, titleLinkMap]);
+  const mrsNeedingCommits = (gitlabMrs ?? []).filter((mr) => titleLinkMap.get(mr.iid) === null);
 
   // Fetch commits for MRs that didn't link via title (LINK-02 fallback)
   const commitQueries = useQueries({
@@ -161,46 +154,38 @@ export default function MyTasksTab() {
   });
 
   // Build combined link map (title + commit fallback)
-  const fullLinkMap = useMemo(() => {
-    const map = new Map<string, GitLabMR[]>(); // issueKey → linked MRs
+  const fullLinkMap = new Map<string, GitLabMR[]>(); // issueKey → linked MRs
+  for (const mr of gitlabMrs ?? []) {
+    const titleResult = titleLinkMap.get(mr.iid);
+    if (titleResult !== null && titleResult !== undefined) {
+      const existing = fullLinkMap.get(titleResult) ?? [];
+      fullLinkMap.set(titleResult, [...existing, mr]);
+      continue;
+    }
 
-    for (const mr of gitlabMrs ?? []) {
-      const titleResult = titleLinkMap.get(mr.iid);
-      if (titleResult !== null && titleResult !== undefined) {
-        const existing = map.get(titleResult) ?? [];
-        map.set(titleResult, [...existing, mr]);
-        continue;
-      }
-
-      // Try commit fallback for this MR
-      const mrIndex = mrsNeedingCommits.findIndex((m) => m.iid === mr.iid);
-      if (mrIndex >= 0) {
-        const commitQuery = commitQueries[mrIndex];
-        if (commitQuery?.data) {
-          const commitResult = linkMRToTaskViaCommits(mr, sprintIssueKeySet, commitQuery.data);
-          if (commitResult !== null) {
-            const existing = map.get(commitResult) ?? [];
-            map.set(commitResult, [...existing, mr]);
-          }
+    // Try commit fallback for this MR
+    const mrIndex = mrsNeedingCommits.findIndex((m) => m.iid === mr.iid);
+    if (mrIndex >= 0) {
+      const commitQuery = commitQueries[mrIndex];
+      if (commitQuery?.data) {
+        const commitResult = linkMRToTaskViaCommits(mr, sprintIssueKeySet, commitQuery.data);
+        if (commitResult !== null) {
+          const existing = fullLinkMap.get(commitResult) ?? [];
+          fullLinkMap.set(commitResult, [...existing, mr]);
         }
       }
     }
-
-    return map;
-  }, [gitlabMrs, titleLinkMap, mrsNeedingCommits, commitQueries, sprintIssueKeySet]);
+  }
 
   // Collect all linked MRs for health fetching
-  const linkedMrsList = useMemo(() => {
-    const result: GitLabMR[] = [];
-    for (const mrs of fullLinkMap.values()) {
-      for (const mr of mrs) {
-        if (!result.some((m) => m.iid === mr.iid)) {
-          result.push(mr);
-        }
+  const linkedMrsList: GitLabMR[] = [];
+  for (const mrs of fullLinkMap.values()) {
+    for (const mr of mrs) {
+      if (!linkedMrsList.some((m) => m.iid === mr.iid)) {
+        linkedMrsList.push(mr);
       }
     }
-    return result;
-  }, [fullLinkMap]);
+  }
 
   // Fetch health (approvals + discussions) for each linked MR
   const healthQueries = useQueries({
@@ -220,16 +205,13 @@ export default function MyTasksTab() {
   });
 
   // Build health map: mr.iid → ReviewHealth
-  const healthMap = useMemo(() => {
-    const map = new Map<number, ReviewHealth>();
-    for (let i = 0; i < linkedMrsList.length; i++) {
-      const health = healthQueries[i]?.data;
-      if (health) {
-        map.set(linkedMrsList[i].iid, health);
-      }
+  const healthMap = new Map<number, ReviewHealth>();
+  for (let i = 0; i < linkedMrsList.length; i++) {
+    const health = healthQueries[i]?.data;
+    if (health) {
+      healthMap.set(linkedMrsList[i].iid, health);
     }
-    return map;
-  }, [linkedMrsList, healthQueries]);
+  }
 
   const queryClient = useQueryClient();
 
@@ -316,42 +298,37 @@ export default function MyTasksTab() {
   });
 
   // Group flat issue list into parent→subtasks hierarchy
-  const groupedData = useMemo(() => {
-    const issues = data ?? [];
-    const parents = issues.filter((i) => !i.fields.issuetype.subtask);
-    const subtasks = issues.filter((i) => i.fields.issuetype.subtask);
-    const parentKeySet = new Set(parents.map((p) => p.key));
-    const subtasksByParent = new Map<string, JiraIssue[]>();
-    const orphans: JiraIssue[] = [];
-    for (const s of subtasks) {
-      const parentKey = s.fields.parent?.key;
-      if (parentKey && parentKeySet.has(parentKey)) {
-        const existing = subtasksByParent.get(parentKey) ?? [];
-        subtasksByParent.set(parentKey, [...existing, s]);
-      } else {
-        orphans.push(s);
-      }
+  const groupedDataIssues = data ?? [];
+  const groupedDataParents = groupedDataIssues.filter((i) => !i.fields.issuetype.subtask);
+  const groupedDataSubtasks = groupedDataIssues.filter((i) => i.fields.issuetype.subtask);
+  const groupedDataParentKeySet = new Set(groupedDataParents.map((p) => p.key));
+  const groupedDataSubtasksByParent = new Map<string, JiraIssue[]>();
+  const groupedDataOrphans: JiraIssue[] = [];
+  for (const s of groupedDataSubtasks) {
+    const parentKey = s.fields.parent?.key;
+    if (parentKey && groupedDataParentKeySet.has(parentKey)) {
+      const existing = groupedDataSubtasksByParent.get(parentKey) ?? [];
+      groupedDataSubtasksByParent.set(parentKey, [...existing, s]);
+    } else {
+      groupedDataOrphans.push(s);
     }
-    return {
-      groups: parents.map((p) => ({ parent: p, subtasks: subtasksByParent.get(p.key) ?? [] })),
-      orphans,
-    };
-  }, [data]);
+  }
+  const groupedData = {
+    groups: groupedDataParents.map((p) => ({ parent: p, subtasks: groupedDataSubtasksByParent.get(p.key) ?? [] })),
+    orphans: groupedDataOrphans,
+  };
 
   // J/K navigation
-  const flatIssueKeys = useMemo(() => {
-    const keys: string[] = [];
-    for (const { parent, subtasks: children } of groupedData.groups) {
-      keys.push(parent.key);
-      for (const child of children) {
-        keys.push(child.key);
-      }
+  const flatIssueKeys: string[] = [];
+  for (const { parent, subtasks: children } of groupedData.groups) {
+    flatIssueKeys.push(parent.key);
+    for (const child of children) {
+      flatIssueKeys.push(child.key);
     }
-    for (const orphan of groupedData.orphans) {
-      keys.push(orphan.key);
-    }
-    return keys;
-  }, [groupedData]);
+  }
+  for (const orphan of groupedData.orphans) {
+    flatIssueKeys.push(orphan.key);
+  }
 
   const { focusIndex } = useListNavigation({
     itemCount: flatIssueKeys.length,

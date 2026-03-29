@@ -5,7 +5,7 @@
  * Uses mergeTimeline / filterTimeline / countByType from the jira-changelog
  * service for data processing.
  */
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ChangelogHistory, JiraComment, TimelineFilter } from '@/services/jira';
 import { countByType, filterTimeline, mergeTimeline } from '@/services/jira';
@@ -111,22 +111,13 @@ export function ActivityTimeline({
     onFilterChangeProp?.(f);
   };
 
-  const allEntries = useMemo(
-    () => mergeTimeline(comments, changelog, worklogs),
-    [comments, changelog, worklogs],
-  );
+  const allEntries = mergeTimeline(comments, changelog, worklogs);
 
   // mergeTimeline returns newest-first. If user wants oldest-first, reverse.
-  const sortedEntries = useMemo(
-    () => (commentSortOrder === 'oldest' ? [...allEntries].reverse() : allEntries),
-    [allEntries, commentSortOrder],
-  );
+  const sortedEntries = commentSortOrder === 'oldest' ? [...allEntries].reverse() : allEntries;
 
-  const counts = useMemo(() => countByType(allEntries), [allEntries]);
-  const visibleEntries = useMemo(
-    () => filterTimeline(sortedEntries, filter),
-    [sortedEntries, filter],
-  );
+  const counts = countByType(allEntries);
+  const visibleEntries = filterTimeline(sortedEntries, filter);
 
   // Loading state: if changelog is undefined (not yet fetched), show skeleton
   if (changelog === undefined) {

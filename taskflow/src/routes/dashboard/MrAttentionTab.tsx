@@ -18,7 +18,7 @@
 
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { GitMerge, RefreshCw } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -190,15 +190,12 @@ export default function MrAttentionTab() {
   const breadcrumbPush = useBreadcrumbStore((s) => s.push);
   const pushRecentItem = useRecentItemsStore((s) => s.pushItem);
 
-  const handleMRClick = useCallback(
-    (mr: import('@/services/gitlab').GitLabMR) => {
-      breadcrumbReset();
-      breadcrumbPush({ path: location.pathname, label: 'MR Attention' });
-      pushRecentItem({ type: 'gitlab', id: `${mr.project_id}/${mr.iid}`, title: mr.title });
-      navigate(`/mr/${mr.project_id}/${mr.iid}`);
-    },
-    [navigate, location.pathname, breadcrumbReset, breadcrumbPush, pushRecentItem],
-  );
+  const handleMRClick = (mr: import('@/services/gitlab').GitLabMR) => {
+    breadcrumbReset();
+    breadcrumbPush({ path: location.pathname, label: 'MR Attention' });
+    pushRecentItem({ type: 'gitlab', id: `${mr.project_id}/${mr.iid}`, title: mr.title });
+    navigate(`/mr/${mr.project_id}/${mr.iid}`);
+  };
 
   const [bannerDismissed, setBannerDismissed] = useState(false);
   useEffect(() => {
@@ -206,15 +203,12 @@ export default function MrAttentionTab() {
   }, []);
 
   // Build sprint issue key set and issue lookup map
-  const { sprintIssueKeySet, issueByKey } = useMemo(() => {
-    const issues = sprintIssues ?? [];
-    const keySet = new Set(issues.map((i) => i.key));
-    const byKey = new Map<string, JiraIssue>(issues.map((i) => [i.key, i]));
-    return { sprintIssueKeySet: keySet, issueByKey: byKey };
-  }, [sprintIssues]);
+  const sprintIssues_ = sprintIssues ?? [];
+  const sprintIssueKeySet = new Set(sprintIssues_.map((i) => i.key));
+  const issueByKey = new Map<string, JiraIssue>(sprintIssues_.map((i) => [i.key, i]));
 
   // Derive story keys where the current user has at least one assigned subtask
-  const subtaskStoryKeys = useMemo(() => {
+  const subtaskStoryKeys = (() => {
     if (!myTasksData) return new Set<string>();
     const { issues, myIssueKeys } = myTasksData;
     const result = new Set<string>();
@@ -225,10 +219,10 @@ export default function MrAttentionTab() {
       }
     }
     return result;
-  }, [myTasksData]);
+  })();
 
   // Build story -> user's subtask keys map (for viaSubtaskKey derivation)
-  const storyToMySubtasks = useMemo(() => {
+  const storyToMySubtasks = (() => {
     const map = new Map<string, string[]>();
     if (!myTasksData) return map;
     const { issues, myIssueKeys } = myTasksData;
@@ -241,12 +235,12 @@ export default function MrAttentionTab() {
       }
     }
     return map;
-  }, [myTasksData]);
+  })();
 
   // Extend the base filtered MR list with:
   // 1. Subtask-linked MRs (unconditional inclusion — may have been filtered by discussion check)
   // 2. Project-level MRs whose title links to a sprint issue key (bypass discussion filter)
-  const data = useMemo(() => {
+  const dataMrs = (() => {
     const base = mrQueryData?.filtered ?? [];
     const merged = mrQueryData?.merged ?? [];
     const filteredIids = new Set(base.map((m) => m.iid));
@@ -272,25 +266,22 @@ export default function MrAttentionTab() {
     }
 
     return [...base, ...extras];
-  }, [mrQueryData, subtaskStoryKeys, sprintIssueKeySet]);
+  })();
 
   // Compute MR -> linked task map using linkMRToTask (sprint key set only -- not subtask keys)
   // Subtask-path-only MRs will have null linkedTask -- the "via" label explains the context
-  const mrToLinkedTaskMap = useMemo(() => {
-    const map = new Map<number, JiraIssue | null>();
-    for (const mr of data) {
-      const key = linkMRToTask(mr, sprintIssueKeySet);
-      map.set(mr.iid, key !== null ? (issueByKey.get(key) ?? null) : null);
-    }
-    return map;
-  }, [data, sprintIssueKeySet, issueByKey]);
+  const mrToLinkedTaskMap = new Map<number, JiraIssue | null>();
+  for (const mr of dataMrs) {
+    const key = linkMRToTask(mr, sprintIssueKeySet);
+    mrToLinkedTaskMap.set(mr.iid, key !== null ? (issueByKey.get(key) ?? null) : null);
+  }
 
   // Compute viaSubtaskKey map: mr.iid -> first-alphabetical subtask key.
   // Only set for MRs that entered the list exclusively via subtask path (not sprint/assigned).
-  const mrViaSubtaskKey = useMemo(() => {
+  const mrViaSubtaskKey = (() => {
     const map = new Map<number, string>();
     if (!myTasksData || subtaskStoryKeys.size === 0) return map;
-    for (const mr of data) {
+    for (const mr of dataMrs) {
       const inSprintLink = linkMRToTask(mr, sprintIssueKeySet);
       if (inSprintLink !== null) continue; // already linked via sprint issues -- no "via" label
       const subtaskLink = linkMRToTask(mr, subtaskStoryKeys);
@@ -301,12 +292,12 @@ export default function MrAttentionTab() {
       }
     }
     return map;
-  }, [data, myTasksData, sprintIssueKeySet, subtaskStoryKeys, storyToMySubtasks]);
+  })();
 
   // Fetch health (approvals + discussions) per MR
   // Uses same query key ['mr-health', ...] as MyTasksTab -- TanStack deduplicates
   const healthQueries = useQueries({
-    queries: data.map((mr) => ({
+    queries: dataMrs.map((mr) => ({
       queryKey: ['mr-health', mr.project_id, mr.iid],
       queryFn: async (): Promise<ReviewHealth> => {
         const token = gitlabToken ?? '';
@@ -322,16 +313,13 @@ export default function MrAttentionTab() {
   });
 
   // Build health map: mr.iid -> ReviewHealth
-  const healthMap = useMemo(() => {
-    const map = new Map<number, ReviewHealth>();
-    for (let i = 0; i < data.length; i++) {
-      const health = healthQueries[i]?.data;
-      if (health) {
-        map.set(data[i].iid, health);
-      }
+  const healthMap = new Map<number, ReviewHealth>();
+  for (let i = 0; i < dataMrs.length; i++) {
+    const health = healthQueries[i]?.data;
+    if (health) {
+      healthMap.set(dataMrs[i].iid, health);
     }
-    return map;
-  }, [data, healthQueries]);
+  }
 
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
@@ -377,7 +365,7 @@ export default function MrAttentionTab() {
       )}
 
       {/* Empty state */}
-      {!gitlabTokenLoading && !isLoading && !isError && mrQueryData && data.length === 0 && (
+      {!gitlabTokenLoading && !isLoading && !isError && mrQueryData && dataMrs.length === 0 && (
         <EmptyState
           icon={GitMerge}
           title="No merge requests need attention"
@@ -391,9 +379,9 @@ export default function MrAttentionTab() {
       )}
 
       {/* MR list */}
-      {!gitlabTokenLoading && !isLoading && !isError && mrQueryData && data.length > 0 && (
+      {!gitlabTokenLoading && !isLoading && !isError && mrQueryData && dataMrs.length > 0 && (
         <div className="flex flex-col">
-          {data.map((mr) => (
+          {dataMrs.map((mr) => (
             <MrRow
               key={mr.iid}
               mr={mr}
