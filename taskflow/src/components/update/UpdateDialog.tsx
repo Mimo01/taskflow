@@ -80,7 +80,7 @@ export function UpdateDialog() {
 
   return (
     <Dialog open={open} onOpenChange={isDismissable ? () => resetToIdle() : undefined}>
-      <DialogContent showCloseButton={false}>
+      <DialogContent showCloseButton={false} className="sm:max-w-lg">
         {status === 'available' && (
           <>
             <DialogHeader>
@@ -89,7 +89,17 @@ export function UpdateDialog() {
                 v{buildInfo.version} &rarr; v{availableVersion}
               </DialogDescription>
             </DialogHeader>
-            <div className="max-h-48 overflow-y-auto prose prose-sm dark:prose-invert">
+            {releaseDate && (
+              <p className="text-xs text-muted-foreground -mt-2">
+                Released{' '}
+                {new Date(releaseDate).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+              </p>
+            )}
+            <div className="max-h-72 overflow-y-auto prose prose-sm dark:prose-invert max-w-none [&>h2]:text-sm [&>h2]:font-semibold [&>h2]:mt-3 [&>h2]:mb-1 [&>ul]:my-1 [&>ul]:pl-4">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{changelog ?? ''}</ReactMarkdown>
             </div>
             <DialogFooter>
