@@ -110,7 +110,7 @@ See archive: `.planning/milestones/v1.6.3-ROADMAP.md`
 
 </details>
 
-### 🚧 v1.7 Performance & Perceived Speed (In Progress)
+### v1.7 Performance & Perceived Speed (In Progress)
 
 **Milestone Goal:** Make every view feel instant — progressive loading, smarter caching, smaller bundles, and zero unnecessary waits.
 
@@ -132,7 +132,11 @@ See archive: `.planning/milestones/v1.6.3-ROADMAP.md`
   3. A meaningful error boundary (not a white screen) is displayed when a chunk fails to load
   4. React Compiler is active at build time and auto-memoizes components across the codebase
   5. Bundle analysis output identifies the largest chunks and any dead code candidates
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 42-01-PLAN.md — Lazy routes + RouteSpinner + ChunkErrorBoundary
+- [ ] 42-02-PLAN.md — React Compiler + manual memo removal
+- [ ] 42-03-PLAN.md — Bundle analysis + dead code elimination
 **UI hint**: yes
 
 ### Phase 43: Cache Correctness
@@ -184,7 +188,7 @@ See archive: `.planning/milestones/v1.6.3-ROADMAP.md`
 | 39. Update UX + Version Policy | v1.6.3 | 2/2 | Complete | 2026-03-24 |
 | 40. Settings, About & Menu Integration | v1.6.3 | 3/3 | Complete | 2026-03-25 |
 | 41. CI Pipeline | v1.6.3 | 2/2 | Complete | 2026-03-25 |
-| 42. Foundation | v1.7 | 0/? | Not started | - |
+| 42. Foundation | v1.7 | 0/3 | Planning | - |
 | 43. Cache Correctness | v1.7 | 0/? | Not started | - |
 | 44. Loading UX | v1.7 | 0/? | Not started | - |
 | 45. Query Optimization | v1.7 | 0/? | Not started | - |
