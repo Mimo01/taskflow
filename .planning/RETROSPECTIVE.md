@@ -317,18 +317,66 @@
 
 ---
 
+## Milestone: v1.6.3 — Release & Auto-Update Pipeline
+
+**Shipped:** 2026-03-29
+**Phases:** 4 (38-41) | **Plans:** 10 | **Quick Tasks:** 13
+
+### What Was Built
+
+- Git-tag-to-runtime version pipeline: inject-version.cjs reads git tag, Vite injects APP_VERSION/COMMIT_SHA/BUILD_DATE as typed constants
+- Tauri updater plugin with 6-state Zustand store, configurable polling (1h/6h/12h/24h/manual), and 7s launch delay
+- Update prompt dialog with rendered markdown changelog, download/install/restart flow, and What's New dialog post-update
+- Two-tier version policy enforcement: soft minimum nag banner (dismissible per session) + hard minimum blocking overlay; fail-open when policy unreachable
+- About dialog with version/build/platform info via macOS native menu; Updates settings section with frequency control, Check Now, and version history
+- Full release pipeline: local release.sh with husky hooks, git-cliff changelog generation, bump-version.mjs, Ed25519 signing
+- 13 quick tasks: changelog tooling, local CI replacement, release script hardening, UI polish, debug investigations
+
+### What Worked
+
+- **Local release pipeline over GitHub Actions CI** — replacing GitHub Actions with local release.sh + husky hooks gave full control over the build process; faster iteration, no CI runner debugging, simpler cross-platform builds
+- **git-cliff for automated changelogs** — convention-based changelog generation from git commits eliminated manual release note writing; cliff.toml categories map cleanly to user-facing changelog sections
+- **Coarse phase granularity (4 phases for full milestone)** — fewer, larger phases reduced overhead; each phase had a clear deliverable without the micro-phase tax seen in v1.2 (9 phases)
+- **Quick tasks for post-phase polish** — 13 quick tasks handled release script fixes, changelog rendering, UI refinements, and debug investigations without creating formal phases
+
+### What Was Inefficient
+
+- **SUMMARY.md one_liner extraction still broken** — Phase 40 summaries had garbage one_liner values ("One-liner:", "settings.store.ts (v12):"); the CLI summary-extract parsed raw text instead of meaningful descriptions; same issue as v1.3 and v1.4
+- **Phase 41 plan 41-02 marked complete but was manual setup** — the plan was "manual setup + e2e verification" which was completed but then the entire CI approach was replaced by quick task 260329-kyx (local release.sh); the plan's work was effectively discarded
+- **CI-03 and CI-04 requirements never checked off** — both requirements were implemented in Phase 38 but their checkboxes in REQUIREMENTS.md were never ticked; discovered at milestone close
+
+### Patterns Established
+
+- **inject-version.cjs for version sync** — single script reads git tag, normalizes to SemVer, writes to tauri.conf.json and package.json; Vite define injects as import.meta.env constants
+- **Local release.sh as CI replacement** — husky pre-commit/pre-push hooks + release.sh handles version bump, changelog, build, sign, and publish; no GitHub Actions needed for small teams
+- **git-cliff with cliff.toml categories** — conventional commits map to changelog sections (Features, Bug Fixes, Refactoring, etc.); `git cliff --unreleased` for incremental updates
+- **Fail-open version policy** — when version-policy.json is unreachable, app runs normally; safe defaults (0.0.0/0.0.0) mean no enforcement until intentionally bumped
+
+### Key Lessons
+
+1. **Check off requirements as they ship, not at milestone close** — CI-03/CI-04 were implemented in Phase 38 but never checked; add requirement checkbox updates to phase completion workflow
+2. **Plans can become obsolete mid-milestone** — Phase 41 Plan 02 was completed but its work was replaced by a quick task; accept that quick tasks can supersede formal plans
+3. **Fix SUMMARY.md one_liner extraction** — three milestones with broken one_liner values; needs enforcement in the summary template or a validation step
+4. **Local tooling beats CI for solo/small teams** — GitHub Actions added complexity (secrets, runners, YAML debugging) that local scripts eliminated; evaluate CI need based on team size
+
+### Cost Observations
+
+- Sessions: 10 plans + 13 quick tasks across 6 days
+- Notable: Quick tasks (13) outnumbered formal plans (10) — the milestone was largely polish and tooling iteration after the core phases completed
+
+---
+
 ## Cross-Milestone Trends
 
-| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 | v1.5 |
-|--------|------|------|------|------|------|------|
-| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) | 7 (31-37) |
-| Plans | 20 | 24 | 29 | 27 | 21 | 25 |
-| Quick tasks | 0 | 20 | 0 | 40+ | 2 | 6 |
-| Timeline (days) | 2 | 2 | 2 | 5 | 2 | 4 |
-| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 | ~633,320* |
-| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) | 7 (28%) |
-| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) | 30/34 (88%)** |
-| Avg plan time | — | — | — | — | 6.4 min | ~4.4 min |
+| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 | v1.5 | v1.6.3 |
+|--------|------|------|------|------|------|------|--------|
+| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) | 7 (31-37) | 4 (38-41) |
+| Plans | 20 | 24 | 29 | 27 | 21 | 25 | 10 |
+| Quick tasks | 0 | 20 | 0 | 40+ | 2 | 6 | 13 |
+| Timeline (days) | 2 | 2 | 2 | 5 | 2 | 4 | 6 |
+| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 | ~45k* | ~51,536 |
+| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) | 7 (28%) | 0 (0%) |
+| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) | 30/34 (88%)** | 15/15 (100%) |
 
-\* Includes all TypeScript files; previous milestones counted differently
+\* v1.5 LOC corrected from previous ~633k count
 \*\* 4 requirements user-deferred (bulk operations BOARD-04–07)
