@@ -18,6 +18,7 @@ let onIssueClickShared = vi.fn();
 vi.mock('react-router-dom', () => ({
   useOutletContext: vi.fn(() => ({ onIssueClick: onIssueClickShared })),
   useNavigate: vi.fn(() => vi.fn()),
+  useLocation: vi.fn(() => ({ pathname: '/sprint-board' })),
 }));
 
 // Mock stronghold — avoid real Tauri vault calls

@@ -5,9 +5,10 @@ import { render, screen } from '@testing-library/react';
 import type React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock react-router-dom — ErrorState uses useNavigate
+// Mock react-router-dom — ErrorState uses useNavigate; useLocation used by useIsActiveRoute
 vi.mock('react-router-dom', () => ({
   useNavigate: vi.fn(() => vi.fn()),
+  useLocation: vi.fn(() => ({ pathname: '/sprint-progress' })),
 }));
 
 // Mock stronghold

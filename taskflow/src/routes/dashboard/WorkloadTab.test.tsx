@@ -7,6 +7,12 @@ import type React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchIssueWorklogs } from '@/services/jira';
 
+// Mock react-router-dom — useLocation used by useIsActiveRoute
+vi.mock('react-router-dom', () => ({
+  useNavigate: vi.fn(() => vi.fn()),
+  useLocation: vi.fn(() => ({ pathname: '/workload' })),
+}));
+
 // Mock stronghold
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-jira-token'),
