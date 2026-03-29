@@ -21,7 +21,7 @@ Requirements for v1.7 Performance & Perceived Speed. Each maps to roadmap phases
 - [ ] **ROUT-02**: User sees a skeleton fallback (not blank screen) while a lazy-loaded route chunk loads
 - [ ] **ROUT-03**: User sees a meaningful error boundary (not white screen) when a lazy-loaded chunk fails
 - [x] **ROUT-04**: React Compiler auto-memoizes all components at build time, eliminating manual memo overhead
-- [ ] **ROUT-05**: Bundle analysis identifies and eliminates dead code or oversized dependencies
+- [x] **ROUT-05**: Bundle analysis identifies and eliminates dead code or oversized dependencies
 
 ### Query Optimization
 
@@ -73,7 +73,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ROUT-02 | Phase 42 | Pending |
 | ROUT-03 | Phase 42 | Pending |
 | ROUT-04 | Phase 42 | Complete |
-| ROUT-05 | Phase 42 | Pending |
+| ROUT-05 | Phase 42 | Complete |
 | QOPT-01 | Phase 45 | Pending |
 | QOPT-02 | Phase 45 | Pending |
 | QOPT-03 | Phase 45 | Pending |
