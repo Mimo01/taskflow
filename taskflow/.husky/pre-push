@@ -1,0 +1,3 @@
+cd taskflow
+npm run check
+npx vitest run

@@ -18,7 +18,8 @@
     "test": "vitest run",
     "bump": "node scripts/bump-version.mjs",
     "release": "bash scripts/release.sh",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepare": "cd .. && husky taskflow/.husky"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",
@@ -67,6 +68,7 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^6.0.1",
+    "husky": "^9.1.7",
     "jsdom": "^29.0.0",
     "shadcn": "^4.0.5",
     "tailwindcss": "^4.2.1",
