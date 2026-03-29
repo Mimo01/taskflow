@@ -1,215 +1,192 @@
 # Project Research Summary
 
-**Project:** Taskflow v1.6 — Release Pipeline, Auto-Update & Version Management
-**Domain:** Desktop app release automation, in-app auto-update, version enforcement (Tauri 2)
-**Researched:** 2026-03-24
+**Project:** Taskflow v1.7 — Performance & Perceived Speed
+**Domain:** Performance optimization for existing Tauri 2 + React 19 + TanStack Query desktop app
+**Researched:** 2026-03-29
 **Confidence:** HIGH
 
 ## Executive Summary
 
-Taskflow v1.6 is a well-scoped infrastructure milestone: add a production release pipeline and in-app auto-update system to an existing Tauri 2 desktop app. The domain is mature — Tauri's official updater plugin, tauri-action, and GitHub Releases together form an established pattern with high-quality documentation. All four research areas converge on the same implementation: official Tauri plugins (no third-party updater required), GitHub Releases as the CDN endpoint (no custom server), and a private-to-public repo publishing model that keeps source code proprietary while distributing binaries openly. Existing app architecture (plugin bridge services, LazyStore persistence, TanStack Query polling, shadcn/ui dialogs, settings section pattern) maps directly to all new components — this is additive work, not a rewrite.
+Taskflow v1.7 is not a greenfield build — it is a targeted performance pass on a ~51K-line production desktop app (Tauri 2, React 19, TanStack Query v5, @tanstack/react-virtual). The research confirms that perceived speed, not raw throughput, is the goal. The biggest gains come from three well-documented patterns: skeleton screens replacing spinners (removes blank-screen flash on every navigation), stale-while-revalidate tuning (eliminates wait on back-navigation), and route-level code splitting (reduces startup parse time). All three are low-to-medium effort and high visibility for every user. The React Compiler (v1.0, October 2025) replaces the need for a manual memoization audit entirely and should be wired up in the first phase so all subsequent work benefits automatically.
 
-The recommended approach is a sequential 7-phase build: (1) signing + plugin/config foundation, (2) service/store layer, (3) update detection and prompt UI, (4) force-update policy enforcement, (5) settings integration, (6) About dialog and menu integration, (7) full CI workflow. Every feature except the CI pipeline can be developed and tested locally before the first real release. The CI pipeline phase is intentionally last because it is the only step requiring external setup (Apple Developer account, Windows code signing cert, GitHub PAT, public repo configuration) and depends on all app-side code being correct first.
+The recommended approach is to layer optimizations in dependency order: establish cache correctness first (staleTime tuning), then build loading UX on top of it (skeletons, progressive data), then add anticipatory behaviors (hover prefetch). Code splitting is independent and should go first since it carries the most production-build risk (Tauri's asset protocol requires `base: './'` in Vite config) and is easiest to validate in isolation. The net-new dependency footprint is minimal: one new runtime plugin (`@tauri-apps/plugin-fs` for optional avatar disk caching), three dev dependencies (React Compiler, its Rolldown transport, and a bundle analyzer), and the rest of v1.7 uses existing packages differently.
 
-The dominant risk in this domain is irreversibility: losing the Ed25519 signing private key permanently breaks auto-updates for every installed copy, with no recovery path. The second critical risk is platform security gating — macOS Gatekeeper hard-blocks unnotarized apps and Windows SmartScreen degrades user trust for unsigned binaries. Both must be addressed in Phase 1 before any external distribution. A secondary but important concern is the force-update policy: an incorrectly configured `version-policy.json` or a policy check that fails closed (blocks on network error) can lock out all users simultaneously — the design must fail-open from the start.
+The key risk is the on-premise Jira DC target. Strategies that work fine against cloud APIs can cause 503 connection exhaustion against an on-premise server with unknown pool limits. Unbounded subtask chunk parallelism is already borderline in v1.6.3 and must not be amplified by outer query parallelization. Hover prefetch must be gated with a 100ms dwell timer and freshness check to prevent spurious Jira requests. Most critically, the `staleTime < refetchInterval` invariant must be maintained for all polled queries — violating it silently disables notification polling in production while unit tests (which use `staleTime: 0` overrides) continue to pass.
+
+---
 
 ## Key Findings
 
 ### Recommended Stack
 
-The existing Taskflow stack already provides everything needed on the frontend: `react-markdown` renders changelogs, `tauri-plugin-http` handles CORS-free GitHub API fetches, TanStack Query manages polling and caching, Zustand + tauri-plugin-store persists update preferences, and shadcn/ui Dialog provides update and About modals. Only five new dependencies are needed.
+The existing stack requires only minimal additions for v1.7. One new runtime dependency (`@tauri-apps/plugin-fs@^2.4.5`) enables persistent avatar caching to `BaseDirectory.AppCache`. Three new dev dependencies handle build tooling: `babel-plugin-react-compiler@1.0.0` (exact pin) for automatic memoization at build time, `@rolldown/plugin-babel@^0.2.0` as its required Vite 8/Rolldown transport, and `rollup-plugin-visualizer@^7.0.1` for one-time bundle analysis. All other v1.7 work uses existing packages differently: `React.lazy` for code splitting, `queryClient.prefetchQuery` for hover prefetch, `Promise.all` restructuring inside query functions, and the existing shadcn `<Skeleton>` component.
 
-**New dependencies:**
-- `@tauri-apps/plugin-updater` (JS, ^2.10.0): Frontend API for `check()`, `downloadAndInstall()` — version pinned to 2.10.0+ due to breaking `latest.json` key format change in tauri-action v1
-- `tauri-plugin-updater` (Rust, 2): Binary download, Ed25519 signature verification, platform-specific install
-- `@tauri-apps/plugin-process` (JS, ^2.3.1): `relaunch()` after update install
-- `tauri-plugin-process` (Rust, 2): App restart capability (intentionally separate from the updater plugin by Tauri's design)
-- `compare-versions` (JS, ^6.1.0): Zero-dependency 1KB semver comparison for version policy; the `semver` package (98KB) is overkill for simple gt/lt/gte checks
+**Core technologies (net-new):**
+- `babel-plugin-react-compiler@1.0.0` (exact pin): automatic memoization at build time — replaces the need for a manual `React.memo`/`useMemo`/`useCallback` audit across ~50K lines; React 19 native, no shim needed
+- `@rolldown/plugin-babel@^0.2.0`: required peer dependency for the React Compiler under Vite 8 + Rolldown; the legacy `rollup-plugin-babel` does NOT work
+- `@tauri-apps/plugin-fs@^2.4.5`: official Tauri 2 plugin for writing blobs to `AppCache` — the only supported path for persistent avatar caching in a Tauri app
+- `rollup-plugin-visualizer@^7.0.1`: dev-only, env-flag opt-in (`ANALYZE=true vite build`), Node >= 22 already satisfied
 
-**CI/CD tooling:**
-- `tauri-apps/tauri-action@v1`: Official action; generates `latest.json`, signs artifacts, cross-platform matrix, cross-repo publishing via `owner`/`repo` inputs
-- `dtolnay/rust-toolchain@stable` + `swatinem/rust-cache@v2`: Preferred Rust setup; saves 5-10 minutes per build
-
-**Existing dependencies reused without modification:** `react-markdown` + `remark-gfm` + `rehype-raw` (changelogs), `tauri-plugin-http` (GitHub API + version policy), TanStack Query (polling + caching), Zustand + tauri-plugin-store (preferences), shadcn/ui Dialog + AlertDialog, lucide-react icons.
+**Critical version note:** Pin `babel-plugin-react-compiler` to exact `1.0.0`. Compiler changes should be deliberate upgrades, not silent semver bumps.
 
 See full details: `.planning/research/STACK.md`
 
 ### Expected Features
 
-**Must have — table stakes for v1.6 (all P1):**
-- Signing key generation — foundation; everything in the updater chain depends on this
-- GitHub Actions CI pipeline — cross-platform matrix builds triggered by git tag push
-- Private-to-public repo release publishing — source code stays private; binaries are public
-- Version derived from git tag — single source of truth via `--config` JSON Merge Patch; no manual bumps
-- Background update check on launch + configurable interval — silent, non-blocking
-- Update notification with changelog — non-blocking dialog with "Update Now" / "Later" and download progress bar
-- One-click download + install + restart — user always consents; Windows uses `installMode: "passive"`
-- Two-tier force-update policy (`softMinimum` persistent banner + `hardMinimum` full-screen blocker) — fail-open on network error
-- About dialog — version, build date, commit SHA, platform, update status
-- Settings "Updates" section — check frequency, manual check trigger, current version display
-- macOS menu bar "About Taskflow" item — platform convention
+**Must have (table stakes — highest perceived impact, every user sees these):**
+- Skeleton screens on all major data views — replaces `isLoading` spinner branches across ~45 files; shadcn `<Skeleton>` already exists, only layout-matched variants need authoring
+- Stale-while-revalidate tuning — set `staleTime` to match or exceed `refetchInterval` on all dashboard queries; eliminates blank-screen flash on back-navigation; correct pattern already exists in `useNotificationPolling`
+- Route-level code splitting — 16 routes are all eagerly imported in `routes.tsx`; convert 6 heavy routes to `React.lazy` with `ErrorBoundary` per route
+- Smart polling — apply `refetchIntervalInBackground: false` to all dashboard queries (currently only set on notification queries); add `usePageVisibility` to pause polling when app is minimized
 
-**Should have — add in v1.6.x after validation (P2):**
-- Version history in Settings — scrollable release timeline fetched from GitHub API; needs multiple releases to be useful
-- "What's New" post-update dialog — compare `lastSeenVersion` on launch
-- Update available badge on Settings nav — subtle dot indicator
+**Should have (secondary v1.7 — narrower impact, depends on must-haves):**
+- Query parallelization — restructure sequential `await` chains in sprint board and backlog with `Promise.all`; safe parallelizable outer queries: `fetchProjectStatuses`, `fetchBoardQuickFilters`, `fetchActiveSprint`, `fetchEpicsBasic`
+- Progressive data loading — render data sections independently as each query resolves; depends on parallelization and skeleton placeholders being in place first
+- Avatar and image caching — extend `AuthImage.tsx` with a session-scoped `Map<url, objectURL>`; disk persistence via `@tauri-apps/plugin-fs` is optional
+- Prefetch on sidebar hover — `queryClient.prefetchQuery` on `onMouseEnter` with 100ms dwell timer; only valuable after staleTime tuning is complete
 
-**Defer to v2+:**
-- Staged rollouts, update adoption telemetry, admin-managed update policies, multiple update channels
+**Defer to v1.8+:**
+- Memoization audit (manual) — React Compiler 1.0 automates this; if the compiler is wired in Phase 1, the manual audit is redundant
+- Bundle analysis and dead code elimination — low user-visible impact in a locally-served Tauri app; good hygiene but not perceived speed
 
 **Anti-features (explicitly do not build):**
-- Silent auto-install without consent — users lose work on unexpected restart
-- Delta/differential updates — Tauri does not support them; 10MB binaries download in seconds
-- Custom update server — GitHub Releases CDN is free, globally distributed, sufficient
+- Service Worker caching — Tauri's `tauri-plugin-http` bypasses `window.fetch`; service workers cannot intercept plugin requests
+- Global `staleTime: Infinity` — Jira data changes constantly; stale board states with no indication of drift break optimistic mutation rollback
+- WebSocket / SSE real-time — on-premise Jira DC does not emit WebSocket events; self-hosted GitLab webhooks require a public-facing server
 
 See full details: `.planning/research/FEATURES.md`
 
 ### Architecture Approach
 
-The architecture follows four clean layers: CI/CD pipeline (private repo builds, public repo distributes), Rust backend (plugin registration), service/store layer (update state machine + version policy), and React components (dialogs, banners, settings). Every new pattern mirrors an existing one in the codebase — plugin bridge service, LazyStore persist with migration, TanStack Query polling, Settings section extension, menu event to frontend action.
+The performance layer integrates as four stacked modifications on top of the existing architecture: (1) a new Route Layer wrapping `routes.tsx` with `React.lazy`, `Suspense`, and `ErrorBoundary`; (2) a modified View Layer adding skeleton variants and progressive data display; (3) a modified Query Layer with staleTime tuning, hover prefetch, and visibility-aware polling; (4) a new/modified Cache Layer covering TanStack Query configuration and avatar caching. The Transport Layer (`tauri-plugin-http`) is unchanged.
 
-**Major new components:**
-1. **GitHub Actions workflow** (`.github/workflows/release.yml`) — tag-triggered matrix build, signs artifacts, publishes to public repo via PAT; version injected at build time
-2. **update.ts service** — plugin bridge wrapping `@tauri-apps/plugin-updater` + `@tauri-apps/plugin-process`; follows existing `stronghold.ts`/`tauri.ts` pattern for testability via `vi.mock`
-3. **update.store.ts** (Zustand + LazyStore) — update state machine (`idle | checking | available | downloading | installing | error | up-to-date`), persists `lastCheckAt` and `dismissedVersions`
-4. **version-policy.ts service** — fetches `version-policy.json` from public repo via `tauri-plugin-http`; fail-open on any error
-5. **UpdatePromptDialog** — changelog (markdown via react-markdown), download progress bar, Update Now / Later buttons
-6. **ForceUpdateBanner / ForceUpdateBlocker** — soft nag (dismissible per session) and hard block (full-screen, no dismiss) triggered by version comparison against policy
-7. **AboutDialog** — `__APP_VERSION__`, `__BUILD_DATE__`, `__COMMIT_HASH__` (from vite.config.ts `define` block), update status from store; opened via `menu-about-taskflow` event
-8. **UpdateSettingsSection / VersionHistorySection** — 7th Settings section added following the established 6-section pattern exactly
+**Major components:**
+1. `routes.tsx` (modified) — convert 6 heavy routes to `React.lazy`; add `<Suspense fallback={<RouteSkeleton />}>` and `<ErrorBoundary>` per route
+2. `src/components/skeletons/` (new) — `SprintBoardSkeleton`, `BacklogSkeleton`, `MyTasksSkeleton`, `NotificationsSkeleton`; layout dimensions must match real content exactly
+3. `src/hooks/useDelayedLoading` (new) — 100-200ms delay before skeleton appears; prevents flicker on fast loads and cache-warm navigations
+4. `src/hooks/usePageVisibility` (new) — detects app minimize/restore to pause and resume polling globally
+5. `src/hooks/usePrefetch` (new) — dwell-timer-gated `prefetchQuery` call for sidebar navigation links
+6. `AuthImage.tsx` (modified) — add session-scoped `Map<url, string>` cache before re-fetching from Jira
 
-**Key architectural patterns to follow:**
-- Update state machine in Zustand prevents impossible UI states
-- Version policy as remote config — `version-policy.json` on the public repo, independently updatable without a new app release
-- Build-time version injection via vite.config.ts `define` block for `__APP_VERSION__`, `__BUILD_DATE__`, `__COMMIT_HASH__`
-- All GitHub API fetches use existing `tauri-plugin-http` / `apiFetch()` — never browser `fetch()` — to avoid CORS in Tauri's webview
+**Key pattern:** Skeleton shows only on `isLoading` (no cached data), never on `isFetching` (background revalidation). During revalidation, show stale data with the existing `StaleDataBanner` component.
 
 See full details: `.planning/research/ARCHITECTURE.md`
 
 ### Critical Pitfalls
 
-1. **Signing key loss is permanently unrecoverable** — Generate the key pair first, before any other work. Store the private key in GitHub Actions secrets AND an offline backup (team password manager). Losing it means every installed copy must manually download the next release.
+1. **Skeleton flicker on cache hits** — skeletons must show only on `isLoading` (no cached data), never on `isFetching` (background revalidation). Implement `useDelayedLoading` with a 100-200ms delay before any skeleton appears. The `StaleDataBanner` already exists for the revalidation case — use it.
 
-2. **macOS Gatekeeper requires notarization, not just code signing** — "App is damaged" error hard-blocks launch on non-developer Macs. Requires Apple Developer ID cert ($99/yr) plus notarization via `notarytool`. Use App Store Connect API key in CI (not Apple ID + password; 2FA breaks CI). Test by downloading CI artifact on a clean Mac.
+2. **staleTime/refetchInterval invariant breakage** — increasing `staleTime` above `refetchInterval` silently disables polling. The invariant: `staleTime < refetchInterval` for all polled queries. Notification polling breaks invisibly when this is violated; the unit test suite will still pass (fake timers bypass the staleTime check), but production polling stops. Verify manually in DevTools for 2+ minutes after any staleTime change.
 
-3. **Windows SmartScreen warns on unsigned binaries after every update** — OV/EV code signing cert ($200-700/yr) or Azure Trusted Signing ($10/mo) is required to prevent SmartScreen warnings. If deferred for initial release, document as a known issue; do not ship unsigned to external users without awareness.
+3. **Cache invalidation desync after mutations** — optimistic updates on the sprint board use `setQueryData`. After staleTime increases, `invalidateQueries` may find data "fresh" and skip the confirming refetch. Always use `invalidateQueries({ refetchType: 'active' })` in sprint board mutation handlers after any staleTime change.
 
-4. **Cross-repo publishing silently fails with default `GITHUB_TOKEN`** — The default token is scoped to the running repo only. Cross-repo requires a fine-grained PAT with `contents: write` on the public repo, stored as a separate secret. Classic PAT with broad `repo` scope is a security risk.
+4. **Code splitting breaking Tauri production builds** — dynamic imports require `base: './'` in `vite.config.ts` (relative paths). `tauri dev` uses Vite's dev server and masks path issues. Test every lazy-loaded route in an actual `tauri build` production binary before splitting the next route.
 
-5. **Force-update failing closed locks out all users** — Never block the app if the version policy fetch fails. Only block when the check succeeds AND the version is below `hardMinimum`. Cache the last successful policy with a 7-day TTL. Test explicitly with the network disabled.
+5. **Unbounded subtask chunk parallelism** — `fetchSprintIssues` already fires parallel chunk requests for subtasks. Adding outer query parallelization via `useQueries` creates a burst of 5-8+ simultaneous Jira DC requests. Limit concurrent chunk requests to 3. Do not prefetch the sprint board on hover — the request is too expensive.
 
 See full details: `.planning/research/PITFALLS.md`
 
+---
+
 ## Implications for Roadmap
 
-The architecture research provides a well-reasoned 7-phase sequence with clear dependency ordering. Follow it closely — all dependencies are unidirectional and the rationale is solid.
+Based on research, suggested phase structure:
 
-### Phase 1: Foundation — Rust Plugins + Config + Signing
-**Rationale:** Every subsequent phase depends on the plugins being available and configured. Signing key generation is the first irreversible decision — do it right before any artifacts are produced. macOS notarization and Windows code signing configuration also belong here, since fixing these after distributing unsigned builds requires user re-downloads.
-**Delivers:** `tauri-plugin-updater` + `tauri-plugin-process` added to Cargo.toml and registered in lib.rs; `tauri.conf.json` configured with pubkey, endpoints, and `createUpdaterArtifacts: true`; capabilities updated; JS packages installed; vite.config.ts `define` block added; signing key generated and backed up in two locations.
-**Addresses:** Signing key generation, updater plugin wiring, version injection setup (all FEATURES.md P1 blockers)
-**Avoids:** Signing key loss (Pitfall 1), macOS Gatekeeper (Pitfall 2), Windows SmartScreen (Pitfall 8), cross-repo token failure (Pitfall 3), version desync (Pitfall 4)
+### Phase 1: Foundation — Code Splitting + React Compiler + Bundle Analysis
+**Rationale:** Code splitting is fully independent of all other features and carries the highest production-build risk (Vite/Tauri asset path configuration). It must be validated on an actual `tauri build` binary before any other routes are split. React Compiler wired here means every subsequent phase gets automatic memoization for free, and the `ErrorBoundary` infrastructure created here is reused by all subsequent phases. Bundle analysis run once here surfaces any large initial-chunk packages worth addressing before later phases finalize.
+**Delivers:** 6 heavy routes lazily loaded; React Compiler active across the codebase; `ErrorBoundary` infrastructure; bundle treemap for initial chunk analysis.
+**Addresses:** Route-level code splitting (table stakes P1), React Compiler setup (replaces manual memoization audit), bundle analysis (P3 hygiene).
+**Avoids:** Code splitting breaking Tauri production builds (Pitfall 4) — verify `base: './'` in `vite.config.ts` and test production binary on all three platforms before splitting more than one route.
+**Research flag:** Standard patterns — React.lazy + Suspense + ErrorBoundary + Vite base config are well-documented in official Tauri and React docs. Skip research-phase.
 
-### Phase 2: Update Service + Store
-**Rationale:** UI components need the service bridge and state machine before they can function. Establishing the update state machine early prevents impossible states and scattered ad-hoc state across components.
-**Delivers:** `src/services/update.ts` (plugin bridge), `src/services/version-policy.ts` (policy fetcher with fail-open), `src/stores/update.store.ts` (state machine + persistence), `updateCheckIntervalHours` added to settings store (migration v10), tests for all.
-**Uses:** `@tauri-apps/plugin-updater`, `@tauri-apps/plugin-process`, `compare-versions`, existing LazyStore persist pattern
-**Avoids:** Endpoint URL mangling (Pitfall 6), GitHub API rate limits (Pitfall 10), post-update Stronghold re-initialization (Pitfall 9) — audit startup flow during this phase
+### Phase 2: Cache Correctness — staleTime Tuning + Smart Polling
+**Rationale:** staleTime tuning is the prerequisite for hover prefetch (prefetch is wasted if `staleTime: 0` immediately marks it stale) and for safe skeleton implementation (skeleton logic is only correct after `isLoading` vs `isFetching` semantics are stable across all queries). Smart polling belongs here because it modifies the same query configuration touch points. Both must be done before any UX features are layered on top.
+**Delivers:** Per-query staleTime tuned across all dashboard queries with `staleTime = refetchInterval - 5000` invariant enforced; `refetchIntervalInBackground: false` on all dashboard queries; `usePageVisibility` hook; notification polling confirmed working in DevTools.
+**Addresses:** Stale-while-revalidate tuning (table stakes P1), smart polling (table stakes P1).
+**Avoids:** staleTime/refetchInterval invariant breakage (Pitfall 10) — audit every query's staleTime against its refetchInterval; verify sprint board mutation rollback paths still work after staleTime increases (Pitfall 3).
+**Research flag:** Standard patterns — TanStack Query staleTime/gcTime/refetchInterval interactions are thoroughly documented with official sources. Skip research-phase.
 
-### Phase 3: Update Check + Prompt Dialog
-**Rationale:** Core update UX — the minimum viable update experience users interact with. Depends entirely on Phase 2 service/store layer being complete.
-**Delivers:** `src/hooks/useUpdateCheck.ts` (periodic polling via TanStack Query with configurable interval), `src/components/app/UpdatePromptDialog.tsx` (changelog, progress bar, Update Now / Later), mounted in AppLayout.
-**Implements:** Update check flow + download + install flow from ARCHITECTURE.md
-**Avoids:** Blocking UI during update check (anti-pattern), auto-install without consent (anti-pattern)
+### Phase 3: Loading UX — Skeleton Screens + Progressive Data
+**Rationale:** Now that cache semantics are correct, skeleton implementation can be done safely — `isLoading` vs `isFetching` distinction is only meaningful after Phase 2 staleTime tuning is complete. Progressive data loading depends on skeleton placeholders for partially-loaded sections. Both belong together since they share the `useDelayedLoading` hook and the same loading state management patterns.
+**Delivers:** `useDelayedLoading` hook; layout-matched skeleton components for all major views; `isLoading`-gated skeleton rendering (never `isFetching`); progressive data sections in sprint board and backlog rendering independently.
+**Addresses:** Skeleton screens (table stakes P1), progressive data loading (secondary P2).
+**Avoids:** Skeleton flicker on cache hits (Pitfall 2) — `useDelayedLoading` must be established as a reusable hook before skeletons are implemented broadly. Skeleton replacing stale data during revalidation (Architecture anti-pattern 1).
+**Research flag:** Standard patterns — shadcn Skeleton already exists; `isLoading` vs `isFetching` distinction is documented TanStack Query behavior. Skip research-phase.
 
-### Phase 4: Version Policy Enforcement
-**Rationale:** Depends on the update service (Phase 2) and update prompt (Phase 3). `ForceUpdateBlocker` reuses the same update flow as `UpdatePromptDialog`. This phase completes the full version enforcement spectrum from soft nag to hard block.
-**Delivers:** `src/components/app/ForceUpdateBanner.tsx` (soft nag, dismissible per session), `src/components/app/ForceUpdateBlocker.tsx` (hard block, no dismiss), mounted in AppLayout, `version-policy.json` template for the public repo.
-**Avoids:** Force-update self-DoS (Pitfall 7) — fail-open design is mandatory; test with blocked network before marking complete
+### Phase 4: Query Optimization — Parallelization + Hover Prefetch
+**Rationale:** Query parallelization requires mapping existing dependency graphs before touching anything (Pitfall 5 — sprint board subtask amplification risk). Hover prefetch requires staleTime tuning already done (Phase 2) to be valuable. Both phases modify query execution patterns and share the same integration risk (on-premise Jira DC connection pool), so they belong together.
+**Delivers:** Sprint board outer queries parallelized (`fetchProjectStatuses`, `fetchBoardQuickFilters`, `fetchActiveSprint`, `fetchEpicsBasic` via `Promise.all`); subtask chunk concurrency bounded to 3; `usePrefetch` hook with 100ms dwell timer and freshness check on sidebar nav links (lightweight queries only).
+**Addresses:** Query parallelization (secondary P1), prefetch on sidebar hover (secondary P2).
+**Avoids:** Two-query subtask amplification (Pitfall 5) — map sprint board dependency graph explicitly before implementation; do not add parallelism to queries that already parallelize internally. Unnecessary prefetch firing (Pitfall 9) — 100ms dwell timer + `getQueryState` freshness check mandatory; never prefetch `fetchSprintIssues`.
+**Research flag:** Sprint board query dependency graph should be mapped explicitly during planning before writing implementation tasks. The safe concurrency ceiling for subtask chunks needs validation against the actual Jira DC instance — consider a measurement step in planning.
 
-### Phase 5: Settings Integration + Version History
-**Rationale:** All UI that surfaces update controls to the user. Lowest-risk phase — follows the established 6-section Settings pattern exactly. P2 features (version history) can be included here or deferred to v1.6.x.
-**Delivers:** `UpdateSettingsSection.tsx` (check frequency dropdown, Check Now button, version display), `VersionHistorySection.tsx` (GitHub Releases API, markdown changelogs), Settings.tsx modified to add 7th section.
-**Uses:** TanStack Query with staleTime: 1hr for version history, existing `apiFetch()` pattern for unauthenticated GitHub API calls
-
-### Phase 6: About Dialog + Menu Integration
-**Rationale:** Self-contained feature with one upstream dependency (update store for status display). macOS menu integration follows the existing `menu-nav-sprint` / `menu-command-palette` event pattern — no new patterns to introduce.
-**Delivers:** `src/components/app/AboutDialog.tsx` (version, build date, commit SHA, update status), lib.rs modified to replace `PredefinedMenuItem::about` with custom event emitter, Help > About for cross-platform access.
-**Uses:** `__APP_VERSION__`, `__BUILD_DATE__`, `__COMMIT_HASH__` from vite.config.ts define block; existing menu event pattern
-
-### Phase 7: CI Pipeline
-**Rationale:** Last because it requires all app-side code complete for end-to-end validation, and is the only phase requiring manual external setup (GitHub public repo, Apple Developer account, Windows cert, secrets configuration). The first real release proves the entire system.
-**Delivers:** `.github/workflows/release.yml` (full matrix: macOS aarch64 + x86_64, Windows x64, Linux x64), signing key secrets configured, cross-repo PAT configured, version-from-tag injection working via `--config` override, draft release published to public repo, end-to-end update flow tested on each platform.
-**Avoids:** All CI-related pitfalls (Pitfalls 1, 2, 3, 4, 5, 8)
+### Phase 5: Polish — Avatar Caching + Cleanup
+**Rationale:** Avatar caching is independent of all other features but is the highest-complexity item relative to its impact (Pitfall 8 — must use `tauri-plugin-http`, not `window.fetch`; disk persistence adds Cargo.toml and capabilities complexity). Deferred until core perceived speed improvements are validated. Memoization audit is rendered redundant by React Compiler from Phase 1 — this phase confirms compiler coverage and closes out any components the compiler skipped.
+**Delivers:** `AuthImage.tsx` extended with session-scoped `Map<url, objectURL>` cache; optional disk persistence to `AppCache` via `@tauri-apps/plugin-fs`; final test suite green across all phases.
+**Addresses:** Avatar and image caching (secondary P2).
+**Avoids:** Avatar caching CORS errors (Pitfall 8) — all fetch requests must use the existing `apiFetch` helper (tauri-plugin-http), not `window.fetch`. Evaluate whether the WebView HTTP cache already handles this before implementing custom caching.
+**Research flag:** Evaluate WebView HTTP cache behavior before implementing. If Tauri's WKWebView / WebView2 honors `Cache-Control: max-age` headers from on-premise Jira avatars, custom caching may be unnecessary overhead. Measure first during Phase 5 planning.
 
 ### Phase Ordering Rationale
 
-- **Foundation before everything:** Tauri plugin registration in lib.rs is a compile-time requirement. Components importing from `@tauri-apps/plugin-updater` fail to build if the Rust plugin is not registered.
-- **Service/store before components:** The update state machine is shared across 4+ components. Establishing it centrally prevents per-component duplication.
-- **All app features before CI:** CI cannot be fully validated until the app correctly handles the complete update lifecycle. Debugging CI and app code simultaneously is expensive.
-- **Phases 5 and 6 are independent of each other:** They both depend on Phase 2 (store) but not on each other. Can be built in parallel if needed.
-- **Force-update (Phase 4) after prompt dialog (Phase 3):** `ForceUpdateBlocker` logically extends the update prompt flow; sequencing mirrors the user experience escalation from notification to enforcement.
+- **Code splitting first** because it is independent, carries the highest production-build risk, and the ErrorBoundary infrastructure it creates is needed by all subsequent phases. React Compiler active from day one means zero manual memoization work in later phases.
+- **Cache tuning before loading UX** because skeleton behavior is only semantically correct after `isLoading` vs `isFetching` is stable. Prefetch is worthless before `staleTime > 0`.
+- **Skeleton before prefetch** because progressive data loading depends on skeleton placeholders, and prefetch only provides user-visible value once cached data is served instantly (which requires skeleton/stale-data UX to be correct).
+- **Parallelization and prefetch together** because they both modify query execution patterns and share the same on-premise Jira DC connection pool risk.
+- **Avatar caching last** because it is the highest-complexity, narrowest-impact item, and the WebView may already handle it via HTTP cache headers.
 
 ### Research Flags
 
 Phases likely needing deeper research during planning:
-- **Phase 1 (macOS notarization):** If this is the team's first macOS notarization, the App Store Connect API key setup, keychain configuration on CI runners, and notarytool invocation have several CI-specific gotchas. Plan additional investigation time.
-- **Phase 1 (Windows code signing decision):** A team decision is needed — Azure Trusted Signing ($10/mo, immediate SmartScreen trust) vs OV/EV certificate ($200-700/yr, reputation builds over time). This choice must be made before CI is configured.
-- **Phase 7 (end-to-end validation):** The first real release will surface integration issues not caught locally (signing, notarization, cross-repo publish, `latest.json` format, platform key names). Plan for 1-2 CI iteration cycles.
+- **Phase 4 (Query Optimization):** Sprint board query dependency chain should be explicitly mapped before writing any implementation tasks — the chain `fetchActiveSprint → fetchSprintIssues (parent) → fetchSprintIssues (subtasks)` has non-obvious constraints about what is and is not parallelizable. The safe subtask chunk concurrency ceiling needs measurement against the actual Jira DC instance.
 
-Phases with standard patterns (can skip research-phase):
-- **Phase 2 (service/store):** Follows existing `stronghold.ts` plugin bridge and `settings.store.ts` LazyStore migration patterns exactly.
-- **Phase 3 (update prompt):** Tauri updater JS API is well-documented; `downloadAndInstall` progress events are clearly specified; standard shadcn Dialog + progress bar.
-- **Phase 4 (force-update):** Version comparison logic is straightforward with `compare-versions`; fail-open pattern is documented.
-- **Phase 5 (settings):** Mechanical extension of the existing 6-section Settings pattern; GitHub Releases API is public and unauthenticated.
-- **Phase 6 (About dialog):** Existing menu event pattern handles macOS integration; vite.config.ts `define` block is standard Vite.
+Phases with standard patterns (skip research-phase):
+- **Phase 1 (Foundation):** React.lazy + Suspense + ErrorBoundary + Vite `base: './'` + React Compiler setup are all official documented patterns.
+- **Phase 2 (Cache Correctness):** TanStack Query staleTime/refetchInterval/gcTime interactions are thoroughly documented with official sources at HIGH confidence.
+- **Phase 3 (Loading UX):** shadcn Skeleton + `isLoading`/`isFetching` distinction is standard TanStack Query usage; no novel patterns.
+- **Phase 5 (Polish):** Avatar caching with `tauri-plugin-http` is documented in official Tauri 2 plugin docs; session-scoped Map cache is a standard JS pattern.
+
+---
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Tauri 2 updater plugin docs are authoritative and comprehensive. New package versions (plugin-updater ^2.10.0, plugin-process ^2.3.1) confirmed via npm — validate exact minimums during install. |
-| Features | HIGH | Feature set derived from official Tauri docs + direct codebase inspection. All P1 features are clearly supported by the plugin API. |
-| Architecture | HIGH | All patterns mirror documented Tauri plugin setup and existing codebase conventions. The 7-phase sequence has clean dependency ordering. |
-| Pitfalls | HIGH | 10 pitfalls documented with official sources, Tauri community issue references (plugins-workspace#1608, tauri#14703), and GitHub docs. macOS notarization and Windows SmartScreen requirements are authoritative. |
+| Stack | HIGH | All additions verified against official React, Tauri 2, and Vite 8 docs. React Compiler v1.0 release confirmed October 2025. `@rolldown/plugin-babel` peer dep requirement confirmed via vite-plugin-react issue thread (that specific detail is MEDIUM — issue thread vs official docs). |
+| Features | HIGH | Based on direct codebase inspection of v1.6.3 plus official TanStack Query docs plus established UX research. Feature list is grounded in actual code gaps, not assumptions. |
+| Architecture | HIGH | Derived from codebase structure plus official pattern documentation. Integration points mapped to actual files (`routes.tsx`, `AuthImage.tsx`, specific hooks). |
+| Pitfalls | HIGH | Verified against official TanStack Query docs (staleTime/refetchInterval interaction is documented behavior), Tauri 2 asset serving docs, React Compiler release notes, and direct codebase inspection of existing fragile patterns (staleTime: 0 in test setup, unbounded subtask chunks, missing `refetchIntervalInBackground` on most dashboard queries). |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Apple code signing credentials:** Research assumes the team has or will obtain an Apple Developer ID cert. If not yet acquired, this is a blocking dependency for Phase 7. Apple Developer Program enrollment takes 24-48 hours; factor this into scheduling.
-- **Windows code signing decision:** OV cert vs Azure Trusted Signing is a cost/UX tradeoff not resolved by research alone. Needs a team decision before Phase 7 CI configuration.
-- **Public release repo:** A public GitHub repo for hosting releases must exist before Phase 7. If it does not exist yet, create a minimal repo (README + license, no source code) well before Phase 7 begins.
-- **`@tauri-apps/plugin-updater` version 2.10.0 minimum:** STACK.md flags that 2.10.0+ is required for compatibility with tauri-action v1's new `latest.json` key format. Verify the exact minimum during `npm install` in Phase 1.
-- **Stronghold startup re-initialization after updater restart:** Pitfall 9 identifies a Taskflow-specific risk — the updater-triggered restart must not land users on the onboarding screen. The existing startup flow must be audited during Phase 2 to confirm it always attempts vault unlock regardless of restart cause.
+- **WebView HTTP cache for avatars:** Unknown whether Tauri 2's WKWebView (macOS) and WebView2 (Windows) honor `Cache-Control` headers from on-premise Jira for authenticated image requests made through `tauri-plugin-http`. If they do, custom avatar caching in Phase 5 may be unnecessary. Measure before implementing.
+- **On-premise Jira DC connection pool ceiling:** The "limit to 3 concurrent chunk requests" recommendation is based on general Jira DC guidance, not measurement against the specific customer instance. Phase 4 planning should include a measurement step.
+- **React Compiler compatibility at scale:** The ~51K-line codebase should be compatible (React 19, clean hook patterns, zero-any TypeScript), but the compiler gracefully skips components it cannot analyze. The actual skip list will only be known after Phase 1 implementation — not a blocker, but worth tracking.
+
+---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [Tauri v2 Updater Plugin docs](https://v2.tauri.app/plugin/updater/) — plugin setup, config, JS API, Ed25519 signing
-- [Tauri GitHub Actions Pipeline guide](https://v2.tauri.app/distribute/pipelines/github/) — workflow YAML, matrix strategy, tauri-action usage
-- [Tauri v2 macOS Code Signing & Notarization](https://v2.tauri.app/distribute/sign/macos/) — certificate types, notarization CI env vars
-- [Tauri v2 Windows Code Signing](https://v2.tauri.app/distribute/sign/windows/) — SmartScreen, EV/OV certs, cross-compilation signing
-- [Tauri v2 AppImage Distribution](https://v2.tauri.app/distribute/appimage/) — Linux updater AppImage-only constraint
-- [tauri-apps/tauri-action GitHub](https://github.com/tauri-apps/tauri-action) — action inputs, cross-repo `owner`/`repo`, latest.json generation
-- [Tauri Configuration Files docs](https://v2.tauri.app/develop/configuration-files/) — `--config` JSON Merge Patch (RFC 7396) for build-time version override
-- [GitHub REST API: Rate Limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api) — 60/hr unauthenticated per IP
-- [GitHub REST API: Releases](https://docs.github.com/en/rest/releases/releases) — endpoints for release metadata and changelog body
-- [compare-versions npm](https://www.npmjs.com/package/compare-versions) — zero-dep semver comparison
-- Taskflow codebase: `tauri.conf.json`, `Cargo.toml`, `capabilities/default.json`, `Settings.tsx`, `settings.store.ts` — direct inspection
+- [React Compiler v1.0 Blog Post](https://react.dev/blog/2025/10/07/react-compiler-1) — stable release Oct 2025, React 19 native support confirmed
+- [React Compiler Installation](https://react.dev/learn/react-compiler/installation) — `babel-plugin-react-compiler`, `@rolldown/plugin-babel`, `reactCompilerPreset` for Vite 8
+- [Tauri 2 File System Plugin](https://v2.tauri.app/plugin/file-system/) — `BaseDirectory.AppCache`, read/write API, permissions model
+- [TanStack Query v5 Prefetching Guide](https://tanstack.com/query/v5/docs/framework/react/guides/prefetching) — `prefetchQuery` API, hover/focus patterns, never-throws behavior
+- [TanStack Query Important Defaults](https://tanstack.com/query/v5/docs/react/guides/important-defaults) — staleTime/gcTime/refetchInterval interactions and stale-while-revalidate behavior
+- [TanStack Query Parallel Queries](https://tanstack.com/query/latest/docs/framework/react/guides/parallel-queries) — `useQueries`, waterfall avoidance
+- [React code-splitting with Suspense — web.dev](https://web.dev/articles/code-splitting-suspense) — React.lazy + Suspense patterns
+- [rollup-plugin-visualizer npm](https://www.npmjs.com/package/rollup-plugin-visualizer) — version 7.0.1, Node >= 22 requirement
+- [@tauri-apps/plugin-fs npm](https://www.npmjs.com/package/@tauri-apps/plugin-fs) — version 2.4.5 confirmed
+- Taskflow codebase v1.6.3 direct inspection — `routes.tsx`, `AuthImage.tsx`, `vite.config.ts`, `package.json`, all `useQuery` hooks
 
 ### Secondary (MEDIUM confidence)
-- [Cross-repo GitHub Actions patterns](https://oneuptime.com/blog/post/2025-12-20-cross-repository-workflows-github-actions/view) — PAT requirements for cross-repo releases
-- [Tauri v2 Auto-Update blog](https://thatgurjot.com/til/tauri-auto-updater/) — real-world setup walkthrough
-- [Ship Tauri v2 with GitHub Actions](https://dev.to/tomtomdu73/ship-your-tauri-v2-app-like-a-pro-github-actions-and-release-automation-part-22-2ef7) — community CI guide
-- [Private repo to public repo release strategy](https://github.com/tauri-apps/tauri/discussions/7553) — community discussion, verified against tauri-action docs
-- [AppImage update permission bug (plugins-workspace#1608)](https://github.com/tauri-apps/plugins-workspace/issues/1608) — known Linux execute permission bug after update
-- [Custom target URL mangling bug (tauri#14703)](https://github.com/tauri-apps/tauri/issues/14703) — endpoint URL pitfall
-
-### Tertiary (LOW confidence — validate during implementation)
-- `@tauri-apps/plugin-updater` npm version 2.10.0 — from npm search; verify exact minimum during Phase 1 install
-- `@tauri-apps/plugin-process` npm version 2.3.1 — from npm search; verify during Phase 1 install
+- [vitejs/vite-plugin-react issue #1144](https://github.com/vitejs/vite-plugin-react/issues/1144) — `@rolldown/plugin-babel@^0.2.0` peer dep requirement for Vite 8 (issue thread, not official docs)
+- [Efficient Polling with Page Visibility API in React](https://medium.com/@atulbanwar/efficient-polling-in-react-5f8c51c8fb1a) — `usePageVisibility` hook pattern
+- [Skeleton Screens vs Loading Spinners — Onething Design](https://www.onething.design/post/skeleton-screens-vs-loading-spinners) — Facebook 50% faster perception research
+- [TanStack Query Mastering Polling (2025)](https://medium.com/@soodakriti45/tanstack-query-mastering-polling-ee11dc3625cb) — polling best practices
 
 ---
-*Research completed: 2026-03-24*
+*Research completed: 2026-03-29*
 *Ready for roadmap: yes*
