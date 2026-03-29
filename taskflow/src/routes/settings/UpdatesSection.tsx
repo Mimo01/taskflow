@@ -125,13 +125,14 @@ function VersionHistoryList() {
             onClick={() =>
               setExpandedTag(expandedTag === release.tag_name ? null : release.tag_name)
             }
-            className="flex items-center justify-between w-full py-3 text-left"
+            className="flex items-center justify-between w-full py-3 text-left hover:bg-muted/50 px-2 -mx-2 rounded-md transition-colors"
           >
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold">{release.tag_name}</span>
               {release.tag_name === `v${buildInfo.version}` && (
                 <Badge variant="secondary">current</Badge>
               )}
+              {release.prerelease && <Badge variant="outline">pre-release</Badge>}
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">
@@ -149,7 +150,7 @@ function VersionHistoryList() {
             </div>
           </button>
           {expandedTag === release.tag_name && (
-            <div className="pb-3 prose prose-sm dark:prose-invert max-w-none">
+            <div className="pb-3 border-l-2 border-muted pl-4 max-h-64 overflow-y-auto prose prose-sm dark:prose-invert max-w-none [&>h2]:text-sm [&>h2]:font-semibold [&>h2]:mt-3 [&>h2]:mb-1 [&>ul]:my-1 [&>ul]:pl-4">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{release.body}</ReactMarkdown>
             </div>
           )}
