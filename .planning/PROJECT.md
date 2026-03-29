@@ -84,14 +84,14 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - [ ] Skeleton screens replacing spinners across all data views
 - [ ] Progressive/streaming data population — display data as it arrives
 - [ ] Stale-while-revalidate tuning — show cached data instantly, refresh in background
-- [ ] Route-level code splitting and lazy loading of heavy components
+- [x] Route-level code splitting and lazy loading of heavy components — validated Phase 42
 - [ ] Prefetching on hover/focus for sidebar links and navigation paths
 - [ ] Query parallelization and deduplication — eliminate redundant/sequential API calls
 - [ ] Smart polling strategy — prioritize active view, adaptive intervals
 - [ ] Sprint board and backlog loading optimization (priority targets)
-- [ ] Memoization audit — targeted memo/useMemo for expensive re-renders
+- [x] Memoization audit — React Compiler auto-memoization, manual wrappers removed — validated Phase 42
 - [ ] Image/avatar local caching
-- [ ] Bundle size analysis and dead code elimination
+- [x] Bundle size analysis and dead code elimination — validated Phase 42
 
 ### Out of Scope
 
@@ -114,14 +114,14 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - Skeleton screens replacing spinners across all data views
 - Progressive/streaming data population — display data as it arrives
 - Stale-while-revalidate tuning — cached data shown instantly on navigation
-- Route-level code splitting and lazy loading of heavy components
+- ✓ Route-level code splitting and lazy loading (Phase 42)
 - Prefetching on hover/focus for common navigation paths
 - Query parallelization and deduplication
 - Smart polling strategy — prioritize active view, adaptive intervals
 - Sprint board and backlog loading optimization (priority targets)
-- Memoization audit for expensive re-renders
+- ✓ Memoization handled by React Compiler (Phase 42)
 - Image/avatar local caching
-- Bundle size analysis and dead code elimination
+- ✓ Bundle analysis + dead code elimination (Phase 42)
 
 ## Context
 
