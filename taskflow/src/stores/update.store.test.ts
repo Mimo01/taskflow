@@ -56,15 +56,6 @@ describe('update.store', () => {
     expect(useUpdateStore.getState().downloadProgress).toBe(50);
   });
 
-  it('setReady transitions to ready and clears downloadProgress', () => {
-    act(() => useUpdateStore.getState().setDownloading());
-    act(() => useUpdateStore.getState().setProgress(100));
-    act(() => useUpdateStore.getState().setReady());
-    const s = useUpdateStore.getState();
-    expect(s.status).toBe('ready');
-    expect(s.downloadProgress).toBeNull();
-  });
-
   it('setError transitions to error with message, clears downloadProgress', () => {
     act(() => useUpdateStore.getState().setDownloading());
     act(() => useUpdateStore.getState().setProgress(30));

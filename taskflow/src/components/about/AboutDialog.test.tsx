@@ -9,7 +9,7 @@ vi.mock('@/lib/build-info', () => ({
 
 // Mock update store — default to idle status
 const mockUpdateStore = {
-  status: 'idle' as 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error',
+  status: 'idle' as 'idle' | 'checking' | 'available' | 'downloading' | 'error',
   availableVersion: null as string | null,
 };
 vi.mock('@/stores/update.store', () => ({
