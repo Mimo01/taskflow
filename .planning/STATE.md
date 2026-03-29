@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Performance & Perceived Speed
 status: executing
-stopped_at: Completed 42-01-PLAN.md
-last_updated: "2026-03-29T19:48:00.000Z"
-last_activity: 2026-03-29 -- Phase 42 plan 01 complete
+stopped_at: Completed 42-02-PLAN.md
+last_updated: "2026-03-29T20:09:13.447Z"
+last_activity: 2026-03-29
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
   percent: 78
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 ## Current Position
 
 Phase: 42 (foundation) — EXECUTING
-Plan: 2 of 3 (plan 01 complete)
-Status: Executing Phase 42
-Last activity: 2026-03-29 -- Plan 42-01 complete (code-splitting)
+Plan: 3 of 3 (plan 01 complete)
+Status: Ready to execute
+Last activity: 2026-03-29
 
 Progress: [████████░░] 78% (v1.6.3 complete, v1.7 in progress)
 
@@ -43,6 +43,8 @@ Recent decisions affecting current work:
 - v1.6.3: invoke('plugin:process|relaunch') instead of @tauri-apps/plugin-process — no extra dependency
 - v1.7 (research): Pin babel-plugin-react-compiler to exact 1.0.0 — compiler upgrades should be deliberate
 - v1.7 (research): staleTime must remain < refetchInterval for all polled queries — violating this silently disables notification polling in production while tests still pass
+- [Phase 42-foundation]: Used @rolldown/plugin-babel with reactCompilerPreset from @vitejs/plugin-react v6 to enable React Compiler; babel-plugin-react-compiler pinned at 1.0.0
+- [Phase 42-foundation]: Removed all useMemo/useCallback/memo from 35 files; useDebounce uses fnRef pattern for stable function identity without useCallback
 
 ### Pending Todos
 
@@ -57,7 +59,7 @@ None.
 ## Session Continuity
 
 Last activity: 2026-03-29
-Stopped at: Completed 42-01-PLAN.md
+Stopped at: Completed 42-02-PLAN.md
 Resume: `/gsd:execute-phase 42`
 
 ### Quick Tasks Completed

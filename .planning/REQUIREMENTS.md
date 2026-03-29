@@ -20,7 +20,7 @@ Requirements for v1.7 Performance & Perceived Speed. Each maps to roadmap phases
 - [ ] **ROUT-01**: App startup is faster with heavy routes (sprint board, backlog, issue detail, epics, workload, sprint progress) loaded on demand via code splitting
 - [ ] **ROUT-02**: User sees a skeleton fallback (not blank screen) while a lazy-loaded route chunk loads
 - [ ] **ROUT-03**: User sees a meaningful error boundary (not white screen) when a lazy-loaded chunk fails
-- [ ] **ROUT-04**: React Compiler auto-memoizes all components at build time, eliminating manual memo overhead
+- [x] **ROUT-04**: React Compiler auto-memoizes all components at build time, eliminating manual memo overhead
 - [ ] **ROUT-05**: Bundle analysis identifies and eliminates dead code or oversized dependencies
 
 ### Query Optimization
@@ -72,7 +72,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ROUT-01 | Phase 42 | Pending |
 | ROUT-02 | Phase 42 | Pending |
 | ROUT-03 | Phase 42 | Pending |
-| ROUT-04 | Phase 42 | Pending |
+| ROUT-04 | Phase 42 | Complete |
 | ROUT-05 | Phase 42 | Pending |
 | QOPT-01 | Phase 45 | Pending |
 | QOPT-02 | Phase 45 | Pending |
