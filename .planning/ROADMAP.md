@@ -115,7 +115,7 @@ See archive: `.planning/milestones/v1.6.3-ROADMAP.md`
 **Milestone Goal:** Make every view feel instant — progressive loading, smarter caching, smaller bundles, and zero unnecessary waits.
 
 - [x] **Phase 42: Foundation** — Route code splitting, React Compiler, bundle analysis
-- [ ] **Phase 43: Cache Correctness** — staleTime tuning and smart polling
+- [x] **Phase 43: Cache Correctness** — staleTime tuning and smart polling (completed 2026-03-29)
 - [ ] **Phase 44: Loading UX** — Skeleton screens, progressive data, flicker prevention
 - [ ] **Phase 45: Query Optimization** — Parallelization and hover prefetch
 - [ ] **Phase 46: Avatar Caching** — Session cache and disk persistence
@@ -147,7 +147,7 @@ Plans:
   1. Navigating back to a previously visited view shows data immediately with no blank-screen flash
   2. Polling pauses automatically for views that are not currently visible
   3. All polling stops when the app is minimized and resumes on restore
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 Plans:
 - [ ] 43-01-PLAN.md — Cache infrastructure: gcTime: Infinity, useIsActiveRoute hook, shared polling constants
 - [ ] 43-02-PLAN.md — Wire route-aware polling pause into all 5 view-scoped queries
@@ -192,7 +192,7 @@ Plans:
 | 40. Settings, About & Menu Integration | v1.6.3 | 3/3 | Complete | 2026-03-25 |
 | 41. CI Pipeline | v1.6.3 | 2/2 | Complete | 2026-03-25 |
 | 42. Foundation | v1.7 | 2/3 | Complete    | 2026-03-29 |
-| 43. Cache Correctness | v1.7 | 0/2 | Not started | - |
+| 43. Cache Correctness | v1.7 | 0/2 | Complete    | 2026-03-29 |
 | 44. Loading UX | v1.7 | 0/? | Not started | - |
 | 45. Query Optimization | v1.7 | 0/? | Not started | - |
 | 46. Avatar Caching | v1.7 | 0/? | Not started | - |
