@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.6
-milestone_name: Release & Auto-Update Pipeline
-status: v1.6.3 milestone complete
-stopped_at: Completed quick-260329-mxv-PLAN.md
-last_updated: "2026-03-29T15:00:44.551Z"
+milestone: v1.7
+milestone_name: Performance & Perceived Speed
+status: defining requirements
+stopped_at: null
+last_updated: "2026-03-29T00:00:00.000Z"
 last_activity: 2026-03-29
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 10
-  completed_plans: 10
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -20,11 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Planning next milestone
+**Current focus:** Defining v1.7 requirements
 
 ## Current Position
 
-Milestone v1.6.3 complete. No active phase.
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-29 — Milestone v1.7 started
 
 ## Accumulated Context
 
