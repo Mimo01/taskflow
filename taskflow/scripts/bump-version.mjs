@@ -126,4 +126,4 @@ execSync('git push origin main', { cwd: REPO_ROOT, stdio: 'inherit' });
 execSync(`git push origin v${newVersion}`, { cwd: REPO_ROOT, stdio: 'inherit' });
 console.log('  Pushed.');
 
-console.log(`\nDone. Release workflow triggered for v${newVersion}.`);
+console.log(`\nDone. Version bumped to v${newVersion}.`);
