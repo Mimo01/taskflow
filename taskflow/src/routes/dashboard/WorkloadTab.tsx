@@ -13,7 +13,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { ChevronRight, RefreshCw, Users } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
@@ -117,7 +117,7 @@ export default function WorkloadTab() {
     });
   }
 
-  const { rows, hasTimeData } = useMemo(() => {
+  const { rows, hasTimeData } = (() => {
     const issues = data ?? [];
     const stories = issues.filter((i) => !i.fields.issuetype.subtask);
     const subtasks = issues.filter((i) => i.fields.issuetype.subtask);
@@ -307,7 +307,7 @@ export default function WorkloadTab() {
     );
     const hasTimeData = rows.some((r) => r.estSecs > 0 || r.spentSecs > 0 || r.remainSecs > 0);
     return { rows, hasTimeData };
-  }, [data, storyPointsFieldKey, worklogMap]);
+  })();
 
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`

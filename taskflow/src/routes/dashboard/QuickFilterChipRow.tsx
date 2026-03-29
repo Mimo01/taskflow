@@ -9,7 +9,7 @@
  * Exports useQuickFilteredIssues hook for applying QF + label filter logic.
  */
 
-import { useCallback, useRef } from 'react';
+import { useRef } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import type { JiraIssue } from '@/services/jira';
@@ -113,21 +113,18 @@ export function QuickFilterChipRow({ quickFilters, labels }: QuickFilterChipRowP
 
   const totalChips = quickFilters.length + labels.length;
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent, index: number) => {
-      let nextIndex: number | null = null;
-      if (e.key === 'ArrowRight') {
-        nextIndex = index < totalChips - 1 ? index + 1 : 0;
-      } else if (e.key === 'ArrowLeft') {
-        nextIndex = index > 0 ? index - 1 : totalChips - 1;
-      }
-      if (nextIndex !== null) {
-        e.preventDefault();
-        chipRefs.current[nextIndex]?.focus();
-      }
-    },
-    [totalChips],
-  );
+  const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
+    let nextIndex: number | null = null;
+    if (e.key === 'ArrowRight') {
+      nextIndex = index < totalChips - 1 ? index + 1 : 0;
+    } else if (e.key === 'ArrowLeft') {
+      nextIndex = index > 0 ? index - 1 : totalChips - 1;
+    }
+    if (nextIndex !== null) {
+      e.preventDefault();
+      chipRefs.current[nextIndex]?.focus();
+    }
+  };
 
   if (quickFilters.length === 0 && labels.length === 0) return null;
 

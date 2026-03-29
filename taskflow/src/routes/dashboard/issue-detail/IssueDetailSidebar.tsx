@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
 import { apiFetch } from '@/lib/apiFetch';
 import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssueDetail } from '@/services/jira';
@@ -98,14 +97,13 @@ export function IssueDetailSidebar({
   });
 
   // Filter MRs linked to the current issue key
-  const linkedMRs = useMemo(() => {
-    if (!projectMRs) return [];
-    return projectMRs.filter((mr) => {
-      const titleKeys = extractTicketKeys(mr.title);
-      const branchKeys = extractTicketKeys(mr.source_branch);
-      return titleKeys.includes(issueKey) || branchKeys.includes(issueKey);
-    });
-  }, [projectMRs, issueKey]);
+  const linkedMRs = !projectMRs
+    ? []
+    : projectMRs.filter((mr) => {
+        const titleKeys = extractTicketKeys(mr.title);
+        const branchKeys = extractTicketKeys(mr.source_branch);
+        return titleKeys.includes(issueKey) || branchKeys.includes(issueKey);
+      });
 
   const mutation = useFieldMutation(issueKey, effectiveJiraBaseUrl);
 

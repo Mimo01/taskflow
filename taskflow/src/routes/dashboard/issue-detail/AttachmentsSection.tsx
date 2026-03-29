@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetch } from '@tauri-apps/plugin-http';
 import { ChevronDown, ChevronRight, Paperclip } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useState } from 'react';
 import type { JiraAttachment } from '@/services/jira';
 import { uploadAttachment } from '@/services/jira/attachments';
 import { readSecret } from '@/services/stronghold';
@@ -31,15 +31,8 @@ export function AttachmentsSection({
   const [dropUploadError, setDropUploadError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  const images = useMemo(
-    () => attachments.filter((a) => a.mimeType.startsWith('image/')),
-    [attachments],
-  );
-
-  const nonImages = useMemo(
-    () => attachments.filter((a) => !a.mimeType.startsWith('image/')),
-    [attachments],
-  );
+  const images = attachments.filter((a) => a.mimeType.startsWith('image/'));
+  const nonImages = attachments.filter((a) => !a.mimeType.startsWith('image/'));
 
   // Mutation for drag-drop uploads
   const dropMutation = useMutation({
@@ -60,7 +53,7 @@ export function AttachmentsSection({
     },
   });
 
-  const handleDownload = useCallback(async (att: JiraAttachment) => {
+  async function handleDownload(att: JiraAttachment) {
     try {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token) return;
@@ -77,39 +70,36 @@ export function AttachmentsSection({
     } catch {
       // Download failed silently
     }
-  }, []);
+  }
 
-  const handleThumbnailClick = useCallback((index: number) => {
+  function handleThumbnailClick(index: number) {
     setLightboxIndex(index);
     setLightboxOpen(true);
-  }, []);
+  }
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
+  function handleDragOver(e: React.DragEvent) {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
-  }, []);
+  }
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
+  function handleDragLeave(e: React.DragEvent) {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-  }, []);
+  }
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDragging(false);
-      const file = e.dataTransfer.files?.[0];
-      if (file) {
-        setDropUploadError(null);
-        setDropUploadName(file.name);
-        dropMutation.mutate(file);
-      }
-    },
-    [dropMutation],
-  );
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      setDropUploadError(null);
+      setDropUploadName(file.name);
+      dropMutation.mutate(file);
+    }
+  }
 
   const ChevronIcon = isExpanded ? ChevronDown : ChevronRight;
 

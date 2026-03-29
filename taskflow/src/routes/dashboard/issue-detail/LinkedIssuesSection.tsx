@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { statusCategoryBadgeClass, statusCategoryDotClass } from '@/lib/statusStyles';
 import type { JiraIssueDetail } from '@/services/jira';
@@ -10,25 +9,22 @@ interface LinkedIssuesSectionProps {
 
 export function LinkedIssuesSection({ issuelinks, onOpenIssue }: LinkedIssuesSectionProps) {
   // Group linked issues by link type label
-  const groupedLinks = useMemo(() => {
-    const groups = new Map<
-      string,
-      Array<{
-        link: (typeof issuelinks)[number];
-        target: NonNullable<(typeof issuelinks)[number]['inwardIssue']>;
-        label: string;
-      }>
-    >();
-    for (const link of issuelinks) {
-      const target = link.inwardIssue ?? link.outwardIssue;
-      if (!target) continue;
-      const label = link.inwardIssue ? link.type.inward : link.type.outward;
-      const existing = groups.get(label) ?? [];
-      existing.push({ link, target, label });
-      groups.set(label, existing);
-    }
-    return groups;
-  }, [issuelinks]);
+  const groupedLinks = new Map<
+    string,
+    Array<{
+      link: (typeof issuelinks)[number];
+      target: NonNullable<(typeof issuelinks)[number]['inwardIssue']>;
+      label: string;
+    }>
+  >();
+  for (const link of issuelinks) {
+    const target = link.inwardIssue ?? link.outwardIssue;
+    if (!target) continue;
+    const label = link.inwardIssue ? link.type.inward : link.type.outward;
+    const existing = groupedLinks.get(label) ?? [];
+    existing.push({ link, target, label });
+    groupedLinks.set(label, existing);
+  }
 
   if (issuelinks.length === 0) return null;
 

@@ -1,6 +1,6 @@
 // @ts-expect-error — jira2md has no default export type declarations
 import j2m from 'jira2md';
-import { type ComponentPropsWithoutRef, memo, useCallback, useMemo, useState } from 'react';
+import { type ComponentPropsWithoutRef, useState } from 'react';
 import Markdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
@@ -100,7 +100,7 @@ const calloutStyles: Record<string, string> = {
   panel: 'border-l-4 border-border bg-muted/50 p-3 rounded-r-md my-2',
 };
 
-export const WikiRenderer = memo(function WikiRenderer({
+export function WikiRenderer({
   wikiText,
   className,
   attachments,
@@ -111,50 +111,39 @@ export const WikiRenderer = memo(function WikiRenderer({
   const preprocessed = wikiText ? preprocessJiraMarkup(wikiText, attachments, users) : '';
   const markdown = preprocessed ? j2m.to_markdown(preprocessed) : '';
 
-  // Stable callback so img component reference doesn't change between renders
-  const handleImageClick = useCallback((src: string) => {
-    setLightboxSrc(src);
-  }, []);
-
-  // Memoize components map so react-markdown doesn't remount elements (e.g. AuthImage)
-  // on parent re-renders. The img component must use a stable function reference
-  // to prevent AuthImage unmount/remount which resets blob URLs and re-fetches images.
-  const markdownComponents: Record<string, unknown> = useMemo(
-    () => ({
-      img: ({ src, alt }: ComponentPropsWithoutRef<'img'>) => {
-        if (!src) return null;
+  const markdownComponents: Record<string, unknown> = {
+    img: ({ src, alt }: ComponentPropsWithoutRef<'img'>) => {
+      if (!src) return null;
+      return (
+        <AuthImage
+          src={src}
+          alt={alt ?? ''}
+          className="max-w-full rounded-md cursor-pointer"
+          onClick={() => setLightboxSrc(src)}
+        />
+      );
+    },
+    div: ({ node, children, ...rest }: ComponentPropsWithoutRef<'div'> & { node?: unknown }) => {
+      const props = rest as Record<string, unknown>;
+      const calloutType = props['data-callout'] as string | undefined;
+      if (calloutType && calloutStyles[calloutType]) {
+        const title = props['data-title'] as string | undefined;
         return (
-          <AuthImage
-            src={src}
-            alt={alt ?? ''}
-            className="max-w-full rounded-md cursor-pointer"
-            onClick={() => handleImageClick(src)}
-          />
+          <div data-callout={calloutType} className={calloutStyles[calloutType]}>
+            {title && <div className="font-bold mb-1">{title}</div>}
+            {children}
+          </div>
         );
-      },
-      div: ({ node, children, ...rest }: ComponentPropsWithoutRef<'div'> & { node?: unknown }) => {
-        const props = rest as Record<string, unknown>;
-        const calloutType = props['data-callout'] as string | undefined;
-        if (calloutType && calloutStyles[calloutType]) {
-          const title = props['data-title'] as string | undefined;
-          return (
-            <div data-callout={calloutType} className={calloutStyles[calloutType]}>
-              {title && <div className="font-bold mb-1">{title}</div>}
-              {children}
-            </div>
-          );
-        }
-        return <div {...rest}>{children}</div>;
-      },
-      // Custom element for <mention> tags produced by preprocessJiraMarkup
-      mention: ({ children }: { children?: React.ReactNode }) => (
-        <span className="mention-badge inline-flex items-center rounded-full bg-primary/15 text-primary px-2 py-0.5 text-xs font-medium">
-          @{children}
-        </span>
-      ),
-    }),
-    [handleImageClick],
-  );
+      }
+      return <div {...rest}>{children}</div>;
+    },
+    // Custom element for <mention> tags produced by preprocessJiraMarkup
+    mention: ({ children }: { children?: React.ReactNode }) => (
+      <span className="mention-badge inline-flex items-center rounded-full bg-primary/15 text-primary px-2 py-0.5 text-xs font-medium">
+        @{children}
+      </span>
+    ),
+  };
 
   return (
     <article className={cn('prose prose-sm dark:prose-invert max-w-none', className)}>
@@ -168,4 +157,4 @@ export const WikiRenderer = memo(function WikiRenderer({
       {lightboxSrc && <ImageLightbox src={lightboxSrc} open onClose={() => setLightboxSrc(null)} />}
     </article>
   );
-});
+}

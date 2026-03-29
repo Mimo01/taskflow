@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Upload } from 'lucide-react';
-import { useCallback, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { uploadAttachment } from '@/services/jira/attachments';
 import { readSecret } from '@/services/stronghold';
@@ -40,24 +40,18 @@ export function AttachmentUpload({
     },
   });
 
-  const handleFile = useCallback(
-    (file: File) => {
-      setUploadError(null);
-      setUploadingFilename(file.name);
-      mutation.mutate(file);
-    },
-    [mutation],
-  );
+  function handleFile(file: File) {
+    setUploadError(null);
+    setUploadingFilename(file.name);
+    mutation.mutate(file);
+  }
 
-  const handleFileSelect = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) handleFile(file);
-      // Reset input so same file can be re-selected
-      e.target.value = '';
-    },
-    [handleFile],
-  );
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) handleFile(file);
+    // Reset input so same file can be re-selected
+    e.target.value = '';
+  }
 
   return (
     <div>

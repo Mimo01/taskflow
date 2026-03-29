@@ -1,6 +1,6 @@
 import type { UseMutationResult } from '@tanstack/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -102,7 +102,7 @@ export function FieldsSection({
     enabled: fixVersionOpen && !!activeJiraProject,
   });
 
-  const filteredVersions = useMemo(() => {
+  const filteredVersions = (() => {
     const all = versionsQuery.data;
     if (!all || all.length === 0) return [];
 
@@ -134,7 +134,7 @@ export function FieldsSection({
     });
 
     return [...sortedUnreleased, ...sortedReleased];
-  }, [versionsQuery.data, f.fixVersions]);
+  })();
 
   // Status transition state
   const queryClient = useQueryClient();
@@ -186,37 +186,34 @@ export function FieldsSection({
   }
 
   // Assignee search with debounce
-  const doSearch = useCallback(
-    async (query: string) => {
-      if (!query.trim()) {
-        setAssigneeResults([]);
-        return;
+  async function doSearch(query: string) {
+    if (!query.trim()) {
+      setAssigneeResults([]);
+      return;
+    }
+    setAssigneeLoading(true);
+    try {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token) return;
+      const url = `${jiraBaseUrl.replace(/\/$/, '')}/rest/api/2/user/assignable/search?issueKey=${issueKey}&query=${encodeURIComponent(query)}`;
+      const resp = await apiFetch(
+        'jira',
+        url,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+        'Load Fields',
+      );
+      if (resp.ok) {
+        const data = (await resp.json()) as AssignableUser[];
+        setAssigneeResults(data);
       }
-      setAssigneeLoading(true);
-      try {
-        const token = await readSecret('jira-pat').catch(() => null);
-        if (!token) return;
-        const url = `${jiraBaseUrl.replace(/\/$/, '')}/rest/api/2/user/assignable/search?issueKey=${issueKey}&query=${encodeURIComponent(query)}`;
-        const resp = await apiFetch(
-          'jira',
-          url,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-          'Load Fields',
-        );
-        if (resp.ok) {
-          const data = (await resp.json()) as AssignableUser[];
-          setAssigneeResults(data);
-        }
-      } catch {
-        // ignore
-      } finally {
-        setAssigneeLoading(false);
-      }
-    },
-    [jiraBaseUrl, issueKey],
-  );
+    } catch {
+      // ignore
+    } finally {
+      setAssigneeLoading(false);
+    }
+  }
 
   const debouncedSearch = useDebounce(doSearch, 300);
 

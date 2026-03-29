@@ -15,7 +15,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { BarChart3, RefreshCw } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
@@ -60,7 +60,7 @@ export default function SprintProgressTab() {
     setBannerDismissed(false);
   }, []);
 
-  const computed = useMemo(() => {
+  const computed = (() => {
     const issues = data ?? [];
 
     // Partition into stories (parent issues) and all issues (for time totals)
@@ -184,7 +184,7 @@ export default function SprintProgressTab() {
       hasPoints,
       assigneeRows,
     };
-  }, [data, storyPointsFieldKey]);
+  })();
 
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`

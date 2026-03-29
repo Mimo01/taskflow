@@ -1,7 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { Copy, ExternalLink, Pencil, Pin, Plus } from 'lucide-react';
-import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
@@ -76,35 +75,29 @@ export function IssueDetailContent({
   const isSubtask = issue.fields.issuetype.subtask;
 
   // Build attachment filename → URL map for resolving !image.png! references
-  const attachmentMap = useMemo<AttachmentMap>(() => {
-    const map: AttachmentMap = {};
-    for (const att of issue.fields.attachment ?? []) {
-      map[att.filename] = att.content;
-    }
-    return map;
-  }, [issue.fields.attachment]);
+  const attachmentMap: AttachmentMap = {};
+  for (const att of issue.fields.attachment ?? []) {
+    attachmentMap[att.filename] = att.content;
+  }
 
   // Build user lookup map from available issue data (assignee, reporter, comment authors)
-  const userMap = useMemo<UserMap>(() => {
-    const map: UserMap = {};
-    const { assignee, reporter } = issue.fields;
-    if (assignee) {
-      map[assignee.name] = assignee.displayName;
+  const userMap: UserMap = {};
+  const { assignee, reporter } = issue.fields;
+  if (assignee) {
+    userMap[assignee.name] = assignee.displayName;
+  }
+  if (reporter) {
+    if (reporter.name) userMap[reporter.name] = reporter.displayName;
+    userMap[reporter.displayName] = reporter.displayName;
+  }
+  for (const c of comments) {
+    if (c.author?.displayName) {
+      // Comment author may have name field in some Jira versions
+      const authorObj = c.author as { displayName: string; name?: string };
+      if (authorObj.name) userMap[authorObj.name] = authorObj.displayName;
+      userMap[authorObj.displayName] = authorObj.displayName;
     }
-    if (reporter) {
-      if (reporter.name) map[reporter.name] = reporter.displayName;
-      map[reporter.displayName] = reporter.displayName;
-    }
-    for (const c of comments) {
-      if (c.author?.displayName) {
-        // Comment author may have name field in some Jira versions
-        const authorObj = c.author as { displayName: string; name?: string };
-        if (authorObj.name) map[authorObj.name] = authorObj.displayName;
-        map[authorObj.displayName] = authorObj.displayName;
-      }
-    }
-    return map;
-  }, [issue.fields.assignee, issue.fields.reporter, comments, issue.fields]);
+  }
 
   return (
     <div className="space-y-6">
