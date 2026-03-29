@@ -4,6 +4,7 @@ import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import { execSync } from "child_process";
+import { visualizer } from "rollup-plugin-visualizer";
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
@@ -32,6 +33,9 @@ export default defineConfig(async () => ({
     tailwindcss(),
     react(),
     babel({ presets: [reactCompilerPreset()] }),
+    ...(process.env.ANALYZE === 'true'
+      ? [visualizer({ open: true, gzipSize: true, brotliSize: true })]
+      : []),
   ],
   resolve: {
     alias: {
