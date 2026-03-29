@@ -107,18 +107,34 @@ const tagBody = execSync(
 // --- Git commit ---
 console.log('\nCommitting version bump...');
 execSync('git add -A', { cwd: REPO_ROOT, stdio: 'inherit' });
-execSync(`git commit -m "chore: bump version to ${newVersion}"`, { cwd: REPO_ROOT, stdio: 'inherit' });
-console.log('  Committed.');
+try {
+  execSync(`git diff --cached --quiet`, { cwd: REPO_ROOT });
+  console.log('  No changes to commit (already at this version).');
+} catch {
+  execSync(`git commit -m "chore: bump version to ${newVersion}"`, { cwd: REPO_ROOT, stdio: 'inherit' });
+  console.log('  Committed.');
+}
 
 // --- Git tag with annotation ---
 console.log(`\nCreating annotated tag v${newVersion}...`);
 const tagMessage = `v${newVersion}\n\n${tagBody}\n`;
-execSync(`git tag -a v${newVersion} -F -`, {
-  cwd: REPO_ROOT,
-  input: tagMessage,
-  stdio: ['pipe', 'inherit', 'inherit'],
-});
-console.log(`  Tagged v${newVersion}.`);
+try {
+  execSync(`git tag -a v${newVersion} -F -`, {
+    cwd: REPO_ROOT,
+    input: tagMessage,
+    stdio: ['pipe', 'inherit', 'inherit'],
+  });
+  console.log(`  Tagged v${newVersion}.`);
+} catch {
+  console.log(`  Tag v${newVersion} already exists. Replacing...`);
+  execSync(`git tag -d v${newVersion}`, { cwd: REPO_ROOT, stdio: 'inherit' });
+  execSync(`git tag -a v${newVersion} -F -`, {
+    cwd: REPO_ROOT,
+    input: tagMessage,
+    stdio: ['pipe', 'inherit', 'inherit'],
+  });
+  console.log(`  Re-tagged v${newVersion}.`);
+}
 
 // --- Git push ---
 console.log('\nPushing to origin...');
