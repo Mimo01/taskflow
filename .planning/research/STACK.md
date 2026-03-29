@@ -1,296 +1,240 @@
 # Stack Research
 
-**Domain:** Release pipeline, auto-update, and version management for Tauri 2 desktop app
-**Researched:** 2026-03-24
+**Domain:** Performance optimization additions for Tauri 2 + React 19 desktop app (v1.7)
+**Researched:** 2026-03-29
 **Confidence:** HIGH
 
-## Context: Existing Stack (DO NOT re-add)
+---
 
-These are already installed and validated. Listed here only to prevent duplicate recommendations:
+## What This Document Covers
 
-- Tauri 2 + tauri-plugin-http/store/stronghold/notification/opener
-- React 19.1, React DOM 19.1, React Router DOM 7.13
-- TypeScript 5.9, Vite 8, Vitest 4
-- Zustand 5, TanStack Query 5, TanStack React Virtual 3
-- shadcn/ui (via @base-ui/react 1.2), Tailwind v4, tailwind-merge 3, CVA 0.7, clsx 2
-- @dnd-kit/core 6.3, @dnd-kit/utilities 3.2, @dnd-kit/sortable 10, @dnd-kit/modifiers 9
-- lucide-react 0.577, react-grid-layout 2.2
-- react-markdown 10.1, jira2md 3.0, rehype-raw 7, remark-gfm 4
-- react-hotkeys-hook 5.2, cmdk 1.1
-- Biome 2.4, @testing-library/react 16.3
+This is a SUBSEQUENT MILESTONE stack document. The existing stack (Tauri 2, React 19, TanStack Query v5, @tanstack/react-virtual, shadcn/ui, Tailwind v4, Vitest, Biome, Zustand, react-grid-layout, cmdk) is validated and NOT re-researched here.
 
-## Recommended New Dependencies
+This document covers only net-new additions and configuration changes needed for v1.7 Performance & Perceived Speed.
 
-### Tauri Plugins (Rust + JS)
+---
+
+## Recommended Stack
+
+### New Runtime Dependencies
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| tauri-plugin-updater (Rust crate) | 2 | In-app update check, download, install with signature verification | Official Tauri 2 updater plugin. Handles platform-specific binary replacement (NSIS on Windows, tar.gz on macOS/Linux), Ed25519 signature verification, and configurable install modes. Generates signed `.sig` files alongside bundles. Required for `createUpdaterArtifacts` in tauri.conf.json. |
-| @tauri-apps/plugin-updater (JS) | ^2.10.0 | Frontend API: `check()`, `downloadAndInstall()` with progress events | JavaScript guest bindings. Version >= 2.10.0 required because tauri-action v1 now generates `latest.json` with `{os}-{arch}-{installer}` keys -- older JS bindings cannot parse this format. |
-| tauri-plugin-process (Rust crate) | 2 | App relaunch after update install | Provides `relaunch()` capability. Required because after `downloadAndInstall()` completes, the app must restart to load the new binary. The updater plugin does not include relaunch -- it is a separate concern. |
-| @tauri-apps/plugin-process (JS) | ^2.3.1 | Frontend `relaunch()` call | `import { relaunch } from '@tauri-apps/plugin-process'` -- called after update install. Also provides `exit()` if needed for force-update hard block. |
+| `@tauri-apps/plugin-fs` | `^2.4.5` | Read/write files to `BaseDirectory.AppCache` for avatar and image caching | Official Tauri 2 plugin — the only way to write files to the OS app cache directory from the renderer. `AuthImage.tsx` currently re-fetches avatars on every mount with no disk persistence. This enables a simple filename-keyed cache (URL hash → cached blob) that survives app restarts. No new Rust crates not already in the plugin workspace; just add to Cargo.toml and register in lib.rs. |
 
-### Frontend Libraries
+### New Dev Dependencies
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| compare-versions | ^6.1.0 | Semver comparison for force-update policy | Zero-dependency, ~1KB gzipped, ESM-native. Needed to compare `getVersion()` against soft/hard minimum versions from the version policy file. The `semver` package (98KB) is overkill -- we only need `compareVersions(a, b)` returning -1/0/1, not range matching or coercion. |
+| Tool | Version | Purpose | Notes |
+|------|---------|---------|-------|
+| `rollup-plugin-visualizer` | `^7.0.1` | Interactive treemap of production bundle — identifies which modules inflate the initial chunk | Run once during bundle analysis phase, leave wired as an env-flag opt-in (`ANALYZE=true vite build`). Node >= 22 required — already satisfied. Does not affect runtime. |
+| `babel-plugin-react-compiler` | `1.0.0` (exact pin) | Automatic memoization of components and hooks at build time | React Compiler 1.0 released Oct 2025. Replaces the need for a manual `memo`/`useMemo`/`useCallback` audit across ~50K lines. Works with React 19 natively — no `react-compiler-runtime` shim needed. Pin exact: compiler changes should be deliberate upgrades, not silent semver bumps. |
+| `@rolldown/plugin-babel` | `^0.2.0` | Babel transform pipeline for Vite 8 + Rolldown | Vite 8 uses Rolldown under the hood. `@vitejs/plugin-react` v6 exports a `reactCompilerPreset` helper that requires this package as a peer dep. The legacy `vite-plugin-babel` and `rollup-plugin-babel` do NOT work with Vite 8/Rolldown. |
 
-### CI/CD Tools (GitHub Actions)
-
-| Tool | Version/Ref | Purpose | Why Recommended |
-|------|-------------|---------|-----------------|
-| tauri-apps/tauri-action | v1 | Cross-platform Tauri build + GitHub Release creation + `latest.json` generation | Official action; v1 is current stable (v0 is legacy). Handles all platform-specific bundling, generates signed update artifacts, uploads to GitHub Releases, and creates the `latest.json` updater endpoint file. Supports `owner`/`repo` params for cross-repo publishing. |
-| actions/checkout | v4 | Source checkout in CI | Standard; required by tauri-action |
-| actions/setup-node | v4 | Install Node.js LTS in CI | Use with `cache: 'npm'` and `cache-dependency-path: 'taskflow/package-lock.json'` for fast installs |
-| dtolnay/rust-toolchain | @stable | Install stable Rust in CI | Preferred over deprecated actions-rs/toolchain; simpler, maintained |
-| swatinem/rust-cache | v2 | Cache Rust compilation artifacts | Saves 5-10 minutes per build; cache key auto-generated from Cargo.lock |
+---
 
 ## Installation
 
 ```bash
-# Frontend (from taskflow/ directory)
-npm install @tauri-apps/plugin-updater @tauri-apps/plugin-process compare-versions
+# From taskflow/ directory
 
-# Rust (from taskflow/src-tauri/ directory)
-cargo add tauri-plugin-updater --target 'cfg(any(target_os = "macos", windows, target_os = "linux"))'
-cargo add tauri-plugin-process --target 'cfg(any(target_os = "macos", windows, target_os = "linux"))'
+# New runtime plugin
+npm install @tauri-apps/plugin-fs
 
-# One-time: generate signing keypair
-npx tauri signer generate -- -w ~/.tauri/taskflow.key
+# React Compiler (pin exact version)
+npm install --save-dev --save-exact babel-plugin-react-compiler@1.0.0
+npm install --save-dev @rolldown/plugin-babel
+
+# Bundle analyzer
+npm install --save-dev rollup-plugin-visualizer
 ```
 
-No new dev dependencies needed.
-
-## Configuration Changes Required
-
-### tauri.conf.json additions
-
-```jsonc
-{
-  "bundle": {
-    "createUpdaterArtifacts": true  // NEW: generates .sig files + latest.json
-  },
-  "plugins": {
-    "updater": {
-      "pubkey": "<GENERATED_PUBLIC_KEY>",
-      "endpoints": [
-        "https://github.com/<ORG>/<PUBLIC_REPO>/releases/latest/download/latest.json"
-      ]
-    }
-  }
-}
+**Cargo.toml** (`src-tauri/Cargo.toml`) — add one line:
+```toml
+tauri-plugin-fs = "2"
 ```
 
-The `version` field should be set to `"0.0.0-dev"` as a placeholder -- CI injects the real version from git tags (see Version Injection below).
-
-### lib.rs additions
-
+**lib.rs** — register in `tauri::Builder::default()`:
 ```rust
-// Add to tauri::Builder::default().setup(|app| { ... })
-#[cfg(desktop)]
-app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
-#[cfg(desktop)]
-app.handle().plugin(tauri_plugin_process::init())?;
+.plugin(tauri_plugin_fs::init())
 ```
 
-### Capabilities (src-tauri/capabilities/)
-
-Add to the default capability file:
-- `"updater:default"` -- allows check, download, install
-- `"process:default"` -- allows relaunch and exit
-
-## CI/CD Architecture
-
-### Version Injection from Git Tags
-
-Tauri reads `version` from `tauri.conf.json` at build time. The `--config` flag applies JSON Merge Patch (RFC 7396), allowing build-time overrides without modifying the source file.
-
-**Strategy:**
-1. **Tag format:** `v1.6.0` pushed to the private repo triggers the workflow
-2. **Version extraction:** `APP_VERSION="${GITHUB_REF#refs/tags/v}"`
-3. **Config override:** Pass to tauri-action via `args: --config '{"version":"${{ env.APP_VERSION }}"}'`
-4. **Result:** `tauri.conf.json` keeps placeholder `"0.0.0-dev"`, CI builds with the real version, no manual bumps, no git dirty state
-
-### Cross-Repo Release Publishing
-
-The workflow runs on the **private** repo but publishes releases to a **public** repo:
-
-1. **GitHub PAT:** Create a fine-grained personal access token with `contents: write` permission scoped to the public repo only. Store as `PUBLIC_REPO_RELEASE_TOKEN` in the private repo's secrets.
-2. **tauri-action config:** Use `owner` and `repo` inputs:
-   ```yaml
-   - uses: tauri-apps/tauri-action@v1
-     env:
-       GITHUB_TOKEN: ${{ secrets.PUBLIC_REPO_RELEASE_TOKEN }}
-     with:
-       owner: <org>
-       repo: <public-repo>
-       tagName: v__VERSION__
-       releaseName: "Taskflow v__VERSION__"
-       releaseDraft: true
-       generateReleaseNotes: true
-   ```
-3. `__VERSION__` is auto-replaced by tauri-action with the version from the (overridden) tauri.conf.json.
-4. `releaseDraft: true` means releases are created as drafts -- a human reviews and publishes. Once published, the updater endpoint goes live.
-
-**Why `GITHUB_TOKEN` (workflow token) does NOT work:** It is scoped to the repo running the workflow. Cross-repo writes require a PAT.
-
-### GitHub Actions Matrix
-
-```yaml
-strategy:
-  fail-fast: false
-  matrix:
-    include:
-      - platform: macos-latest
-        args: --target aarch64-apple-darwin
-      - platform: macos-latest
-        args: --target x86_64-apple-darwin
-      - platform: ubuntu-22.04
-        args: ""
-      - platform: windows-latest
-        args: ""
+**Capabilities** — add to the default capability file:
+```json
+"fs:default"
 ```
 
-### Required GitHub Secrets (Private Repo)
+---
 
-| Secret | Purpose |
-|--------|---------|
-| `TAURI_SIGNING_PRIVATE_KEY` | Ed25519 private key content (NOT path) for signing update bundles |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Password for the signing key (set during `signer generate`) |
-| `PUBLIC_REPO_RELEASE_TOKEN` | Fine-grained PAT with `contents: write` on the public repo |
+## Configuration Changes (No New Dependencies)
 
-### Build Environment Variables
+These changes use existing packages differently — no new npm installs.
 
-```yaml
-env:
-  TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-  TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-```
-
-Must be set on the build step; the Tauri CLI reads them to generate `.sig` signature files and the `latest.json` manifest.
-
-## Fetching GitHub Release Notes in the App
-
-Use the existing `tauri-plugin-http` to call the GitHub REST API. **No new dependencies needed** -- the public repo requires no authentication.
-
-### API Endpoints
-
-| Endpoint | Purpose | Auth |
-|----------|---------|------|
-| `GET /repos/{owner}/{repo}/releases/latest` | Latest release with body (markdown changelog) | None (public repo) |
-| `GET /repos/{owner}/{repo}/releases` | All releases for version history page | None (public repo) |
-| `GET /repos/{owner}/{repo}/releases/tags/{tag}` | Specific release by tag | None (public repo) |
-
-### Response Shape (relevant fields)
+### 1. React Compiler — vite.config.ts
 
 ```typescript
-interface GitHubRelease {
-  tag_name: string;        // "v1.6.0"
-  name: string;            // "Taskflow v1.6.0"
-  body: string;            // Markdown changelog
-  published_at: string;    // ISO 8601
-  prerelease: boolean;
-  html_url: string;        // Link to release page on GitHub
-}
+import react, { reactCompilerPreset } from '@vitejs/plugin-react';
+import babel from '@rolldown/plugin-babel';
+
+// In plugins array:
+plugins: [
+  tailwindcss(),
+  react(),
+  babel({ presets: [reactCompilerPreset()] }),
+]
 ```
 
-Render `body` with existing `react-markdown` + `remark-gfm` + `rehype-raw` pipeline -- already installed and used for Jira issue descriptions.
+The compiler processes all components at build time. It automatically memoizes components and hooks that satisfy React's rules, replacing the need for scattered `memo`/`useMemo`/`useCallback` calls. Components that fail compiler analysis are skipped gracefully (they still render correctly, just without auto-memoization).
 
-### Version Policy File
+Use full compilation mode — do NOT use `compilationMode: 'annotation'` (opt-in per component). The codebase has zero-any policy and clean hook patterns; full mode is safe and provides maximum benefit.
 
-Host `version-policy.json` as a release asset on the public repo (or at a raw.githubusercontent.com URL):
+### 2. Route-level code splitting — React.lazy + Suspense
 
-```json
-{
-  "softMinimum": "1.5.0",
-  "hardMinimum": "1.4.0",
-  "message": "Please update for the latest features and bug fixes."
-}
+`routes.tsx` currently imports all 15 route components eagerly — every route ships in the initial bundle regardless of whether the user ever visits it. Convert the heavy routes to `React.lazy()` with dynamic imports.
+
+```typescript
+// routes.tsx — no new packages, just React.lazy
+import React from 'react';
+
+const SprintBoardTab      = React.lazy(() => import('./dashboard/SprintBoardTab'));
+const BacklogPage         = React.lazy(() => import('./dashboard/BacklogPage'));
+const IssueDetailPage     = React.lazy(() => import('./dashboard/IssueDetailPage'));
+const EpicsPage           = React.lazy(() => import('./dashboard/EpicsPage'));
+const WorkloadTab         = React.lazy(() => import('./dashboard/WorkloadTab'));
+const SprintProgressTab   = React.lazy(() => import('./dashboard/SprintProgressTab'));
+// Lighter routes (Onboarding, Settings, DevTools) can stay eager
 ```
 
-Fetch alongside release data. Use `compare-versions` to check `getVersion()` against thresholds.
+Wrap the route outlet in main.tsx with `<Suspense fallback={<RouteSkeleton />}>`. Vite splits each `React.lazy()` into its own chunk automatically. No `manualChunks` config needed at this scale.
 
-## Existing Stack Reuse Summary
+Priority order for lazy-loading: SprintBoardTab first (largest component, heaviest imports), then BacklogPage, IssueDetailPage.
 
-These existing dependencies cover v1.6 needs without new additions:
+### 3. TanStack Query prefetching — queryClient.prefetchQuery
 
-| Existing Dep | Reused For |
-|--------------|------------|
-| @tauri-apps/api | `getVersion()`, `getName()`, `getTauriVersion()` for About dialog |
-| @tauri-apps/plugin-http | Fetching GitHub Releases API and version policy file |
-| react-markdown + remark-gfm + rehype-raw | Rendering changelog markdown in update dialog and version history |
-| TanStack Query | Caching release data with stale-while-revalidate; configurable `refetchInterval` for update checks |
-| Zustand + tauri-plugin-store | Persisting update preferences (check frequency, dismissed versions, last check timestamp) |
-| shadcn/ui Dialog + AlertDialog | Update prompt, force-update block, About modal |
-| lucide-react | Icons: Download, RefreshCw, Info, AlertTriangle, CheckCircle |
+Already in the project via TanStack Query v5. No new install. Add hover/focus handlers to sidebar navigation links to warm the cache before the user clicks.
+
+```typescript
+// On onMouseEnter of sidebar sprint board link
+queryClient.prefetchQuery({
+  queryKey: ['jira-issues', jiraBaseUrl, sprintId],
+  queryFn: () => fetchSprintIssues(jiraBaseUrl, token, projectKey, sprintFieldKey),
+  staleTime: 5 * 60 * 1000,
+});
+```
+
+`prefetchQuery` never throws — if the prefetch fails, `useQuery` retries on mount. Safe to call aggressively.
+
+Priority prefetch targets: sprint board (highest frequency navigation), backlog, my-tasks.
+
+### 4. TanStack Query staleTime tuning
+
+The current global default is `staleTime: 5 * 60 * 1000`. This already enables stale-while-revalidate: cached data is served instantly on navigation and refetched in the background. The work is per-query tuning — no new packages, just adjusting numbers.
+
+Recommended per-query overrides:
+- Sprint issues: `staleTime: 10 * 60 * 1000` — board data changes less than every 5 min in practice
+- Custom fields (`discoverCustomFields`): already `Infinity` — correct, leave it
+- Notifications: already controlled by polling — keep `staleTime: 0`
+- Backlog: keep at 5 min — moderate churn
+- Epic list: `staleTime: 10 * 60 * 1000` — epics rarely change mid-session
+
+No `gcTime` changes needed. Default 5-min gcTime ensures data survives navigation without accumulating indefinitely.
+
+### 5. Skeleton UI — existing component
+
+`src/components/ui/skeleton.tsx` already exists (shadcn `Skeleton` with `animate-pulse`). No new library needed. The v1.7 work is authoring per-view skeleton layouts using the existing primitive:
+
+- `SprintBoardSkeleton` — three column headers, 3–4 card skeletons per column
+- `BacklogSkeleton` — table header + 8 row skeletons
+- `MyTasksSkeleton` — card list skeletons
+- `NotificationsSkeleton` — row list skeletons
+
+Mount skeleton immediately (no artificial delay), replace with data when `isSuccess === true` and `data` is defined. For navigations where cache is warm (stale-while-revalidate), skeleton never shows.
+
+### 6. Query parallelization — Promise.all in query functions
+
+Several query functions fetch sequentially today (fetch A, await, use result to fetch B). Sprint board is the clearest case: sprint metadata and sprint issues are fetched serially. Restructure to use `Promise.all` where dependencies allow.
+
+No new packages. Pattern:
+```typescript
+// Before: sequential
+const sprint = await fetchActiveSprint(...);
+const issues = await fetchSprintIssues(..., sprint.id);
+
+// After: parallel where possible
+const [sprint, quickFilters] = await Promise.all([
+  fetchActiveSprint(...),
+  fetchBoardQuickFilters(...),
+]);
+const issues = await fetchSprintIssues(..., sprint.id); // still depends on sprint.id
+```
+
+TanStack Query already deduplicates concurrent queries with identical keys. The bottleneck is sequential `await` chains inside `queryFn` bodies, not re-render thrashing.
+
+---
+
+## What NOT to Add
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| `react-loading-skeleton` | 12KB for functionality already in `<Skeleton>` from shadcn | Existing `src/components/ui/skeleton.tsx` |
+| Manual `React.memo` / `useMemo` / `useCallback` audit | React Compiler 1.0 handles this automatically and more precisely than manual annotation | `babel-plugin-react-compiler` |
+| `why-did-you-render` | Useful for diagnosing re-renders WITHOUT the compiler; redundant once the compiler is enabled | React Compiler + React DevTools Profiler |
+| `vite-bundle-analyzer` (nonzzz) | Newer but less mature alternative; adds uncertainty for a one-time analysis task | `rollup-plugin-visualizer@7` (established, well-documented) |
+| `tauri-plugin-cache` (third-party, Taiizor) | Community plugin at v0.1.x; unstable API, sparse docs | `@tauri-apps/plugin-fs` as the official primitive |
+| `tauri-plugin-redb-cache` (community) | Adds `redb` as a Rust dependency for a simple avatar cache; overkill | `@tauri-apps/plugin-fs` with an in-memory Map index |
+| Web Workers for query parallelization | Thread contention is not the bottleneck; sequential await chains inside queryFns are | `Promise.all` restructuring inside existing queryFns |
+| Service Workers for caching | Not applicable — Tauri apps run in a webview, not a browser context with SW lifecycle | `@tauri-apps/plugin-fs` for persistence, TanStack Query for in-memory |
+| `@tanstack/react-query` upgrade | Already at v5.90.21, which is current | N/A |
+
+---
 
 ## Alternatives Considered
 
 | Recommended | Alternative | When to Use Alternative |
 |-------------|-------------|-------------------------|
-| tauri-plugin-updater | CrabNebula Cloud | If you need update analytics, staged rollouts, or a managed CDN; adds cost and vendor dependency -- unnecessary for this team size |
-| GitHub Releases endpoint | Self-hosted update server | If GitHub is blocked on user machines or you need geographic CDN; GitHub Releases CDN is fast and free for public repos |
-| compare-versions | semver (npm) | If you need range matching (`^1.2.3`, `~1.2.x`); compare-versions is sufficient for the gt/lt/eq checks that force-update policy requires |
-| tauri-action v1 | Manual `tauri build` in CI | If you need non-standard artifact processing; tauri-action handles 95% of cases and auto-generates `latest.json` |
-| Fine-grained PAT | GitHub App installation token | If the org has many repos needing cross-repo access; overkill for one target repo |
-| `--config` JSON merge for version | sed/jq to edit tauri.conf.json | `--config` is cleaner -- no file mutations, no git dirty state, and is the officially documented approach |
+| `babel-plugin-react-compiler` (full mode) | `compilationMode: 'annotation'` opt-in per component | If the compiler causes a specific component to behave incorrectly. Start full, fall back to annotation mode for that component only. |
+| `@tauri-apps/plugin-fs` for avatar cache | Session-only in-memory Map (no disk write) | If the Cargo.toml/permissions complexity is not worth the benefit. Session-only Map cache is 10 lines and zero new deps — delivers most of the UX win since avatars repeat within a session. |
+| `React.lazy` on heavy routes | TanStack Router built-in lazy routes | Only relevant if the project migrates to TanStack Router (out of scope for v1.7). |
+| `rollup-plugin-visualizer` | `vite-bundle-analyzer` (nonzzz) | Either works. `rollup-plugin-visualizer` has a longer track record and the treemap template is well-understood. |
+| `queryClient.prefetchQuery` on sidebar hover | Route loaders (React Router v7 `loader`) | React Router 7 `loader` functions can prefetch in parallel with navigation. Valid but requires restructuring query logic into loaders — a larger refactor than prefetch-on-hover for v1.7. |
 
-## What NOT to Use
-
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| electron-updater | Electron-specific; incompatible with Tauri | tauri-plugin-updater |
-| Sparkle (macOS framework) | macOS-only; Tauri already abstracts platform update mechanisms | tauri-plugin-updater handles all platforms |
-| Polling from Rust main process | Adds HTTP complexity in Rust; existing patterns use renderer-side HTTP | Fetch from frontend with tauri-plugin-http + TanStack Query |
-| `GITHUB_TOKEN` for cross-repo releases | Scoped to workflow repo; cannot write to other repos | Fine-grained PAT as `PUBLIC_REPO_RELEASE_TOKEN` |
-| Manual version bumps in tauri.conf.json | Error-prone, merge conflicts, easy to forget | Git tag + `--config` override |
-| semver (98KB) | Massive for simple comparison; includes range parsing, coercion, prerelease logic we do not need | compare-versions (1KB, zero deps) |
-| Custom update server | Operational overhead for hosting, monitoring, and CDN | GitHub Releases (free, reliable, globally cached) |
-
-## Platform-Specific Notes
-
-### Windows
-- Updater uses NSIS installer; `installMode` options: `"passive"` (progress bar, no interaction -- recommended), `"basicUi"`, `"quiet"`
-- App process **exits** during NSIS install; the new version auto-launches afterward
-- Consider `on_before_exit` hook only if app needs to save state before forced exit (unlikely -- Zustand persist already saves on change)
-
-### macOS
-- Uses `.tar.gz` bundle replacement; app does **not** exit during install
-- `relaunch()` required to switch to the new version
-- Two matrix entries needed: `aarch64-apple-darwin` (Apple Silicon) and `x86_64-apple-darwin` (Intel)
-- Universal binary (`--target universal-apple-darwin`) is possible but requires both toolchains on the runner and doubles macOS build time
-
-### Linux
-- Uses `.AppImage` as primary format with `.tar.gz` for updates
-- AppImage is portable (no installer) -- matches the project constraint
-- Linux ARM64 runners only available for public repos on GitHub Actions free tier; private repos need self-hosted runners or emulation (slow)
-- For this project, x86_64 Linux is sufficient unless ARM users emerge
+---
 
 ## Version Compatibility
 
 | Package | Compatible With | Notes |
 |---------|-----------------|-------|
-| tauri-plugin-updater 2.x | tauri 2.x (Cargo.toml) | Must match major version; use `2` for latest compatible minor |
-| @tauri-apps/plugin-updater ^2.10.0 | @tauri-apps/api ^2 | >= 2.10.0 required for new `latest.json` format |
-| tauri-plugin-process 2.x | tauri 2.x | Same plugin workspace; versions track together |
-| @tauri-apps/plugin-process ^2.3.1 | @tauri-apps/api ^2 | Straightforward compatibility |
-| tauri-action v1 | Tauri 2.x | Requires Node v24+ on runners (GitHub runner >= v2.327.1); `ubuntu-22.04` or `ubuntu-latest` both work |
-| compare-versions ^6.1.0 | Any modern JS | Zero dependencies; ESM with CJS fallback; works in Vite/Tauri webview |
+| `babel-plugin-react-compiler@1.0.0` | React 19, `@vitejs/plugin-react@6.x` | React 19 target — no `react-compiler-runtime` shim needed. That shim is only for React 17/18 targets. |
+| `@rolldown/plugin-babel@^0.2.0` | Vite 8, Rolldown, `@vitejs/plugin-react@6.x` | Vite 8 ships Rolldown. The legacy `rollup-plugin-babel` does NOT work. Must be `@rolldown/plugin-babel`. |
+| `@tauri-apps/plugin-fs@^2.4.5` | Tauri 2, `@tauri-apps/api@^2` | Follows the same v2 major pattern as all other installed Tauri plugins. |
+| `rollup-plugin-visualizer@^7.0.1` | Vite 8, Node >= 22 | Dev/analysis only — no runtime impact. |
+
+---
+
+## Existing Stack Reuse Summary
+
+| Existing Dep | Reused For in v1.7 |
+|--------------|-------------------|
+| `@tanstack/react-query` v5 | `queryClient.prefetchQuery` on hover, staleTime tuning, `Promise.all` query restructuring |
+| `src/components/ui/skeleton.tsx` (shadcn) | All skeleton screen layouts — no new skeleton library |
+| `React.lazy` + `Suspense` (React 19 built-in) | Route-level code splitting — no new package |
+| `@tauri-apps/plugin-http` | AuthImage already uses it; avatar cache will use it for the fetch side |
+| `@tanstack/react-virtual` | Already in use for backlog, notifications, sprint board — no changes |
+| Vite 8 code splitting | Automatic chunk per `React.lazy` import — no `manualChunks` config needed |
+
+---
 
 ## Sources
 
-- [Tauri v2 Updater Plugin docs](https://v2.tauri.app/plugin/updater/) -- plugin setup, config structure, JS API, signing workflow (HIGH confidence)
-- [Tauri GitHub Actions pipeline guide](https://v2.tauri.app/distribute/pipelines/github/) -- workflow YAML, matrix strategy, tauri-action usage (HIGH confidence)
-- [tauri-apps/tauri-action GitHub](https://github.com/tauri-apps/tauri-action) -- action inputs: `owner`, `repo`, `uploadUpdaterJson`, `args`, `tagName` (HIGH confidence)
-- [Tauri Configuration Files docs](https://v2.tauri.app/develop/configuration-files/) -- `--config` JSON Merge Patch (RFC 7396) for build-time overrides (HIGH confidence)
-- [GitHub REST API: Releases](https://docs.github.com/en/rest/releases/releases) -- endpoints for fetching release metadata and body (HIGH confidence)
-- [@tauri-apps/plugin-updater npm](https://www.npmjs.com/package/@tauri-apps/plugin-updater) -- version 2.10.0 (MEDIUM confidence -- version from npm search, not verified via Context7)
-- [@tauri-apps/plugin-process npm](https://www.npmjs.com/package/@tauri-apps/plugin-process) -- version 2.3.1 (MEDIUM confidence)
-- [compare-versions npm](https://www.npmjs.com/package/compare-versions) -- zero-dep semver comparison (HIGH confidence)
-- [Cross-repo GitHub Actions patterns](https://oneuptime.com/blog/post/2025-12-20-cross-repository-workflows-github-actions/view) -- PAT requirements for cross-repo releases (MEDIUM confidence)
-- [Tauri updater + GitHub discussion](https://thatgurjot.com/til/tauri-auto-updater/) -- real-world setup walkthrough (MEDIUM confidence)
+- [React Compiler v1.0 Blog Post](https://react.dev/blog/2025/10/07/react-compiler-1) — stable release Oct 2025, React 19 native support confirmed (HIGH confidence)
+- [React Compiler Installation](https://react.dev/learn/react-compiler/installation) — `babel-plugin-react-compiler`, `@rolldown/plugin-babel`, `reactCompilerPreset` for Vite 8 (HIGH confidence)
+- [vitejs/vite-plugin-react issue #1144](https://github.com/vitejs/vite-plugin-react/issues/1144) — `@rolldown/plugin-babel@^0.2.0` peer dep requirement for Vite 8 (MEDIUM confidence — issue thread)
+- [Tauri 2 File System Plugin](https://v2.tauri.app/plugin/file-system/) — `BaseDirectory.AppCache`, read/write API, permissions model (HIGH confidence)
+- [@tauri-apps/plugin-fs npm](https://www.npmjs.com/package/@tauri-apps/plugin-fs) — version 2.4.5 confirmed (HIGH confidence)
+- [rollup-plugin-visualizer npm](https://www.npmjs.com/package/rollup-plugin-visualizer) — version 7.0.1, Node >= 22 requirement (HIGH confidence)
+- [TanStack Query v5 Prefetching Guide](https://tanstack.com/query/v5/docs/framework/react/guides/prefetching) — `queryClient.prefetchQuery` API, hover/focus patterns, never-throws behavior (HIGH confidence)
+- [TanStack Query Important Defaults](https://tanstack.com/query/v5/docs/react/guides/important-defaults) — staleTime=0 default, gcTime=5min default, stale-while-revalidate behavior (HIGH confidence)
 
 ---
-*Stack research for: Taskflow v1.6 release pipeline, auto-update, and version management*
-*Researched: 2026-03-24*
+
+*Stack research for: Taskflow v1.7 Performance & Perceived Speed*
+*Researched: 2026-03-29*
