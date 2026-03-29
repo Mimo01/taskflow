@@ -28,6 +28,8 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { Bookmark, Columns3, RefreshCw } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { useIsActiveRoute } from '@/hooks/useIsActiveRoute';
+import { POLL_INTERVAL_MS, STALE_TIME_MS } from '@/lib/query-constants';
 import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
@@ -431,6 +433,8 @@ export default function SprintBoardTab() {
   }>();
   const queryClient = useQueryClient();
 
+  const isActive = useIsActiveRoute('/sprint-board');
+
   const [collapsedStories, setCollapsedStories] = useState<Set<string>>(new Set());
   const toggleStory = (key: string) =>
     setCollapsedStories((prev) => {
@@ -488,10 +492,10 @@ export default function SprintBoardTab() {
         storyPointsFieldKey,
         epicLinkFieldKey,
       ),
-    refetchInterval: 60_000,
-    refetchIntervalInBackground: true,
-    staleTime: 30_000,
-    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
+    refetchInterval: POLL_INTERVAL_MS,
+    refetchIntervalInBackground: false,
+    staleTime: STALE_TIME_MS,
+    enabled: isActive && !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
 
   // Fetch epic names for filter display (shared cache with EpicsPage)

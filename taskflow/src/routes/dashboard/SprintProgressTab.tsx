@@ -16,6 +16,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { BarChart3, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useIsActiveRoute } from '@/hooks/useIsActiveRoute';
+import { POLL_INTERVAL_MS, STALE_TIME_MS } from '@/lib/query-constants';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
@@ -37,6 +39,7 @@ export default function SprintProgressTab() {
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
   const { storyPointsFieldKey } = useSettingsStore();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
+  const isActive = useIsActiveRoute('/sprint-progress');
 
   useEffect(() => {
     if (jiraBaseUrl) {
@@ -50,9 +53,10 @@ export default function SprintProgressTab() {
     queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey],
     queryFn: () =>
       fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false, storyPointsFieldKey),
-    enabled: !!jiraBaseUrl && !!activeJiraProject && !!jiraToken,
-    refetchInterval: 60_000,
-    staleTime: 30_000,
+    enabled: isActive && !!jiraBaseUrl && !!activeJiraProject && !!jiraToken,
+    refetchInterval: POLL_INTERVAL_MS,
+    refetchIntervalInBackground: false,
+    staleTime: STALE_TIME_MS,
   });
 
   const [bannerDismissed, setBannerDismissed] = useState(false);

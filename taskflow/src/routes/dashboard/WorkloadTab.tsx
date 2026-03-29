@@ -14,6 +14,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { ChevronRight, RefreshCw, Users } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { useIsActiveRoute } from '@/hooks/useIsActiveRoute';
+import { POLL_INTERVAL_MS, STALE_TIME_MS } from '@/lib/query-constants';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
@@ -66,6 +68,7 @@ export default function WorkloadTab() {
   const [jiraToken, setJiraToken] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const isActive = useIsActiveRoute('/workload');
 
   useEffect(() => {
     if (jiraBaseUrl) {
@@ -81,9 +84,10 @@ export default function WorkloadTab() {
     queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey],
     queryFn: () =>
       fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false, storyPointsFieldKey),
-    enabled: !!jiraBaseUrl && !!activeJiraProject && !!jiraToken,
-    refetchInterval: 60_000,
-    staleTime: 30_000,
+    enabled: isActive && !!jiraBaseUrl && !!activeJiraProject && !!jiraToken,
+    refetchInterval: POLL_INTERVAL_MS,
+    refetchIntervalInBackground: false,
+    staleTime: STALE_TIME_MS,
   });
 
   // Reset banner dismissal when error state changes
