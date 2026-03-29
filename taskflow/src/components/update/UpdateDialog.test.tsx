@@ -131,9 +131,10 @@ describe('UpdateDialog', () => {
     expect(screen.getByRole('button', { name: 'Dismiss' })).toBeInTheDocument();
   });
 
-  it('renders ready view with countdown', () => {
+  it("'Update Now' calls invoke relaunch after successful download", async () => {
+    const { invoke } = await import('@tauri-apps/api/core');
     useUpdateStore.setState({
-      status: 'ready',
+      status: 'available',
       availableVersion: '2.0.0',
       changelog: null,
       releaseDate: null,
@@ -141,7 +142,9 @@ describe('UpdateDialog', () => {
       errorMessage: null,
     });
     render(<UpdateDialog />);
-    expect(screen.getByText('Ready to Restart')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Restart Later' })).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Update Now' }));
+    });
+    expect(invoke).toHaveBeenCalledWith('plugin:process|relaunch');
   });
 });

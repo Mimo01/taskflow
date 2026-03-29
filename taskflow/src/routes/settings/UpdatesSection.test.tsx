@@ -31,7 +31,7 @@ vi.mock('@/stores/settings.store', () => ({
 
 // Mock update store
 const mockUpdateStore = {
-  status: 'idle' as 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error',
+  status: 'idle' as 'idle' | 'checking' | 'available' | 'downloading' | 'error',
   availableVersion: null as string | null,
   setChecking: vi.fn(),
   setAvailable: vi.fn(),
