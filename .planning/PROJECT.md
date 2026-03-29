@@ -65,34 +65,23 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ Saved filter management: save/edit/delete Jira filters, sidebar list, command palette search, sprint board JQL integration with active filter banner — v1.5
 - ✓ Customizable sidebar with visibility toggles, drag-and-drop reorder, and Dev/PM presets — v1.5
 - ✓ Widget-based dashboard with 11 widget types, drag/resize grid layout, and role presets — v1.5
+- ✓ GitHub Actions CI pipeline: tag push → cross-platform builds (macOS/Windows/Linux) → publish to public repo — v1.6.3
+- ✓ Automatic version sync: app version derived from git tag at build time via inject-version.cjs — v1.6.3
+- ✓ Build-time metadata (commit SHA, build date) injected and accessible at runtime — v1.6.3
+- ✓ Tauri updater integration: in-app download + automatic install with restart — v1.6.3
+- ✓ Configurable update check frequency (1h/6h/12h/24h/manual) in Settings — v1.6.3
+- ✓ Update prompt dialog with rendered markdown changelog and "Update Now" / "Later" actions — v1.6.3
+- ✓ What's New dialog shown on first launch after update — v1.6.3
+- ✓ Version history section in Settings showing all releases with changelogs — v1.6.3
+- ✓ Two-tier force-update policy: soft minimum (nag banner) and hard minimum (blocking overlay) with fail-open — v1.6.3
+- ✓ Version policy file on public repo defining soft/hard minimum versions — v1.6.3
+- ✓ About dialog with version, build date, commit SHA, platform/arch, and update status via macOS menu bar — v1.6.3
 
 ### Active
 
-<!-- Current scope: v1.6 Release & Auto-Update Pipeline -->
+<!-- No active milestone — define next with /gsd:new-milestone -->
 
-- [ ] GitHub Actions CI pipeline: tag on private repo → cross-platform builds (macOS/Windows/Linux) → publish release to public repo
-- [ ] Automatic version sync: app version derived from git tag at build time (no manual bumps)
-- [ ] Tauri updater integration: in-app download + automatic install with restart
-- [ ] Configurable update check frequency (default 24h, user-adjustable in Settings)
-- [ ] Update prompt dialog with changelog (from GitHub Release notes) and "Update Now" / "Later" actions
-- [ ] Version history section in Settings showing all releases with changelogs
-- [ ] Two-tier force-update policy: soft minimum (persistent nag banner) and hard minimum (blocks app until update)
-- [ ] Version policy file on public repo defining soft/hard minimum versions
-- [ ] About dialog: custom modal (macOS menu bar + cross-platform) showing version, build info, and update status
-
-## Current Milestone: v1.6 Release & Auto-Update Pipeline
-
-**Goal:** Ship Taskflow to users via a public GitHub repo with automated cross-platform builds, in-app auto-updates, version history, force-update policy, and a proper About dialog.
-
-**Target features:**
-- GitHub Actions CI pipeline with cross-platform builds
-- Automatic version sync from git tags
-- Tauri updater with in-app download + install
-- Configurable update check frequency
-- Update prompt with changelog display
-- Version history in Settings
-- Two-tier force-update policy (soft nag + hard block)
-- About dialog with version and build info
+(None — all v1.6.3 requirements shipped)
 
 ### Out of Scope
 
@@ -115,6 +104,7 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - **Shipped v1.3:** 2026-03-19 — 7 phases, 27 plans, ~32,173 lines TypeScript
 - **Shipped v1.4:** 2026-03-20 — 6 phases, 21 plans, ~37,520 lines TypeScript
 - **Shipped v1.5:** 2026-03-24 — 7 phases, 25 plans, 415 files changed (+54,227/−4,827 lines)
+- **Shipped v1.6.3:** 2026-03-29 — 4 phases, 10 plans, 13 quick tasks, 334 files changed (+25,443/−2,497 lines)
 - **Tech stack:** Tauri 2, React 18, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, Biome, @dnd-kit/core, @dnd-kit/sortable, @tanstack/react-virtual, react-grid-layout, jira2md, react-markdown, react-hotkeys-hook, cmdk
 - **Jira instance:** On-premise (Jira Data Center v10.3.15) — REST API v2 with Bearer PAT auth; createmeta/workflow/transitions APIs used for issue management
 - **GitLab:** Self-hosted or gitlab.com — personal access token
@@ -122,7 +112,8 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - **Scale:** One Jira project + one GitLab project at a time
 - **Build:** Portable executable — no installer, no admin rights; `createHashRouter` for SPA routing in production
 - **Test suite:** 665+ tests, zero failures, zero warnings; Vitest with LazyStore mock
-- **Known caveats (v1.5):** Bulk operations (BOARD-04–07) implemented but user-deferred — components on disk, not wired; Cmd+Shift nav shortcut deviation needs product owner sign-off; 13 human verification items deferred to live Jira environment
+- **Codebase:** ~51,536 lines TypeScript
+- **Known caveats (v1.6.3):** Bulk operations (BOARD-04–07) implemented but user-deferred — components on disk, not wired; Cmd+Shift nav shortcut deviation needs product owner sign-off; 13 human verification items deferred to live Jira environment; Apple/Windows code signing deferred to future release
 
 ## Constraints
 
@@ -184,6 +175,14 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 | Saved filter JQL results as Set<string> for sprint board | O(1) intersection with sprint swimlane issue keys | ✓ Good — efficient filtering without re-fetching sprint data |
 | Inline delete confirmation for filters (not nested dialog) | Avoids dialog-in-dialog UX; simpler interaction pattern | ✓ Good — cleaner UX |
 | Sidebar fetches favourite filters with useQuery (2min staleTime) | Syncs to Zustand store for cross-component access | ✓ Good — automatic refresh, shared state |
+| inject-version.cjs for git-tag-to-runtime version sync | No hardcoded versions in config; single source of truth from git tags | ✓ Good — version always matches release tag |
+| #[cfg(desktop)] guard on updater plugin registration | Mobile/web targets don't need updater; compile-time exclusion | ✓ Good — clean platform separation |
+| invoke('plugin:process\|relaunch') instead of @tauri-apps/plugin-process | Package not in project dependencies; invoke() is lighter | ✓ Good — no extra dependency |
+| compare-versions library for semver comparison | Handles pre-release tags correctly; lightweight | ✓ Good — reliable version comparison |
+| version-policy.json safe defaults (0.0.0/0.0.0) | No enforcement until intentionally bumped; fail-open design | ✓ Good — safe default, no accidental lockouts |
+| Local release.sh + husky hooks replacing GitHub Actions CI | Full control over build process; no CI runner costs; cross-platform builds from local machine | ✓ Good — simpler, faster iteration |
+| git-cliff for changelog generation | Convention-based changelog from git commits; cliff.toml for categorization | ✓ Good — automated, consistent changelogs |
+| Ed25519 signing for Tauri updater | Required by Tauri updater plugin; keys generated and backed up | ✓ Good — update integrity verified |
 
 ## Evolution
 
@@ -203,4 +202,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-25 — Phase 40 complete: About dialog with version/build/platform/update-status via native menu, Updates settings section with frequency control, Check Now, and version history list*
+*Last updated: 2026-03-29 after v1.6.3 milestone*

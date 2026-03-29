@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Release & Auto-Update Pipeline
-status: Milestone complete
+status: v1.6.3 milestone complete
 stopped_at: Completed quick-260329-mxv-PLAN.md
-last_updated: "2026-03-29T14:35:42.075Z"
-last_activity: "2026-03-29 - Completed quick task 260329-kyx: Replace GitHub Actions with local processes"
+last_updated: "2026-03-29T15:00:44.551Z"
+last_activity: 2026-03-29
 progress:
   total_phases: 4
   completed_phases: 4
@@ -17,15 +17,14 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-24)
+See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Phase 41 — ci-pipeline
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 41
-Plan: Not started
+Milestone v1.6.3 complete. No active phase.
 
 ## Accumulated Context
 
@@ -62,7 +61,7 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-03-29 - Completed quick task 260329-mxv: Make the changelogs look nicer. The update modals are too small. Refine the views
+Last activity: 2026-03-29
 Stopped at: Completed quick-260329-mxv-PLAN.md
 Resume: `/gsd:plan-phase 38`
 
