@@ -22,7 +22,9 @@ import { useOutletContext } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
+import { useIsActiveRoute } from '@/hooks/useIsActiveRoute';
 import { useListNavigation } from '@/hooks/useListNavigation';
+import { POLL_INTERVAL_MS, STALE_TIME_MS } from '@/lib/query-constants';
 import { cn } from '@/lib/utils';
 import type { GitLabMR } from '@/services/gitlab';
 import {
@@ -78,6 +80,8 @@ export default function MyTasksTab() {
   // (TokenSection), matching the same approach used in MrAttentionTab.
   const userId = gitlabUserId ?? undefined;
 
+  const isActive = useIsActiveRoute('/my-tasks');
+
   // Fetch sprint issues: my stories + stories with my subtasks + all their subtasks.
   // Include storyPointsFieldKey in cache key: when discovery changes the key, the query
   // re-fires with the updated fields list so the response actually contains the value.
@@ -92,10 +96,10 @@ export default function MyTasksTab() {
     queryKey: ['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey],
     queryFn: () =>
       fetchMyTasksHierarchy(jiraBaseUrl!, jiraToken!, activeJiraProject!, storyPointsFieldKey),
-    refetchInterval: 60_000,
-    refetchIntervalInBackground: true,
-    staleTime: 30_000,
-    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
+    refetchInterval: POLL_INTERVAL_MS,
+    refetchIntervalInBackground: false,
+    staleTime: STALE_TIME_MS,
+    enabled: isActive && !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
   const data = taskData?.issues;
   const myIssueKeys = taskData?.myIssueKeys ?? new Set<string>();
@@ -121,10 +125,10 @@ export default function MyTasksTab() {
       ].filter((mr) => !seen.has(mr.iid) && seen.add(mr.iid));
       return { filtered: merged, merged };
     },
-    refetchInterval: 60_000,
-    refetchIntervalInBackground: true,
-    staleTime: 30_000,
-    enabled: !!gitlabBaseUrl && !!gitlabToken && !!userId,
+    refetchInterval: POLL_INTERVAL_MS,
+    refetchIntervalInBackground: false,
+    staleTime: STALE_TIME_MS,
+    enabled: isActive && !!gitlabBaseUrl && !!gitlabToken && !!userId,
   });
   // Normalise: cache may hold { filtered, merged } (from MrAttentionTab/MrHealthPanel) or
   // a legacy raw GitLabMR[] from an older version of this queryFn. Always produce GitLabMR[].
