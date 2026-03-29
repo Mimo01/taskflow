@@ -2,8 +2,8 @@
 phase: 42
 slug: foundation
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-29
 ---
 
@@ -38,11 +38,12 @@ created: 2026-03-29
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 42-01-01 | 01 | 1 | ROUT-01 | integration | `npx vitest run src/__tests__/lazy-routes.test.tsx` | ❌ W0 | ⬜ pending |
-| 42-01-02 | 01 | 1 | ROUT-02 | integration | `npx vitest run src/__tests__/lazy-routes.test.tsx` | ❌ W0 | ⬜ pending |
-| 42-01-03 | 01 | 1 | ROUT-03 | integration | `npx vitest run src/__tests__/error-boundary.test.tsx` | ❌ W0 | ⬜ pending |
-| 42-02-01 | 02 | 1 | ROUT-04 | build | `npx vite build 2>&1 \| grep -i compiler` | ❌ W0 | ⬜ pending |
+| 42-01-01 | 01 | 1 | ROUT-01, ROUT-02 | unit | `npx vitest run src/components/ui/route-spinner.test.tsx src/components/ChunkErrorBoundary.test.tsx` | ✅ W0 | ⬜ pending |
+| 42-01-02 | 01 | 1 | ROUT-03 | unit | `npx vitest run src/components/ChunkErrorBoundary.test.tsx` | ✅ W0 | ⬜ pending |
+| 42-02-01 | 02 | 1 | ROUT-04 | build | `npx tsc --noEmit` | ✅ | ⬜ pending |
 | 42-02-02 | 02 | 1 | ROUT-04 | grep | `grep -r "React.memo\|useMemo\|useCallback" src/ --include="*.tsx" --include="*.ts"` | ✅ | ⬜ pending |
+| 42-02-03 | 02 | 1 | ROUT-04 | grep | `grep -r "React.memo\|useMemo\|useCallback" src/ --include="*.tsx" --include="*.ts"` | ✅ | ⬜ pending |
+| 42-02-04 | 02 | 1 | ROUT-04 | grep | `grep -r "React.memo\|useMemo\|useCallback" src/ --include="*.tsx" --include="*.ts"` | ✅ | ⬜ pending |
 | 42-03-01 | 03 | 2 | ROUT-05 | build | `ANALYZE=true npx vite build` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
@@ -51,9 +52,11 @@ created: 2026-03-29
 
 ## Wave 0 Requirements
 
-- [ ] `src/__tests__/lazy-routes.test.tsx` — stubs for ROUT-01, ROUT-02 (lazy loading verified)
-- [ ] `src/__tests__/error-boundary.test.tsx` — stubs for ROUT-03 (error boundary renders)
-- [ ] Test helpers for simulating chunk load failures
+Plan 42-01 Task 1 creates both test files as part of its implementation:
+- [x] `taskflow/src/components/ui/route-spinner.test.tsx` — RouteSpinner render tests (created in Plan 01 Task 1)
+- [x] `taskflow/src/components/ChunkErrorBoundary.test.tsx` — ChunkErrorBoundary error state tests (created in Plan 01 Task 1)
+
+*Test files are co-located with their components per project convention. No separate `src/__tests__/` stubs needed.*
 
 *Existing vitest infrastructure covers framework needs.*
 
@@ -71,11 +74,11 @@ created: 2026-03-29
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved
