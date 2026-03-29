@@ -22,7 +22,7 @@ import {
   Users,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useSettingsStore } from '@/stores/settings.store';
 import AppIcon from './AppIcon';
@@ -59,23 +59,18 @@ export default function Sidebar() {
   const labelClass = sidebarCollapsed ? 'hidden' : 'hidden md:block';
 
   // Build lookup of visible item ids from store
-  const visibleIds = useMemo(() => {
-    const set = new Set<string>();
-    for (const item of sidebarItems) {
-      if (item.visible) set.add(item.id);
-    }
-    return set;
-  }, [sidebarItems]);
+  const visibleIds = new Set<string>();
+  for (const item of sidebarItems) {
+    if (item.visible) visibleIds.add(item.id);
+  }
 
   // Group visible nav items by section
-  const sectionedItems = useMemo(() => {
-    return SIDEBAR_SECTIONS.map((section) => ({
-      ...section,
-      items: SIDEBAR_NAV_ITEMS.filter(
-        (nav) => nav.section === section.id && visibleIds.has(nav.id),
-      ),
-    })).filter((section) => section.items.length > 0);
-  }, [visibleIds]);
+  const sectionedItems = SIDEBAR_SECTIONS.map((section) => ({
+    ...section,
+    items: SIDEBAR_NAV_ITEMS.filter(
+      (nav) => nav.section === section.id && visibleIds.has(nav.id),
+    ),
+  })).filter((section) => section.items.length > 0);
 
   return (
     <aside

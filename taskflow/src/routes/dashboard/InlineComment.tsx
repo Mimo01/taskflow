@@ -7,7 +7,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bold, Code, Italic, List, MoreVertical } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import type { JiraComment } from '@/services/jira';
@@ -56,11 +56,11 @@ export default function InlineComment({
   const queryClient = useQueryClient();
   const jiraUserDisplayName = useAuthStore((s) => s.jiraUserDisplayName);
   const commentSortOrder = useSettingsStore((s) => s.commentSortOrder);
-  const sortedComments = useMemo(() => {
-    if (!existingComments) return undefined;
-    if (commentSortOrder === 'newest') return [...existingComments].reverse();
-    return existingComments;
-  }, [existingComments, commentSortOrder]);
+  const sortedComments = !existingComments
+    ? undefined
+    : commentSortOrder === 'newest'
+      ? [...existingComments].reverse()
+      : existingComments;
 
   // Edit state
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);

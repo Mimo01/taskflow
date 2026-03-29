@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { X } from 'lucide-react';
-import { useCallback, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -25,13 +25,12 @@ export interface IssueLinkRowValue {
 
 function useDebounce<T extends unknown[]>(fn: (...args: T) => void, delay: number) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  return useCallback(
-    (...args: T) => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => fn(...args), delay);
-    },
-    [fn, delay],
-  );
+  const fnRef = useRef(fn);
+  fnRef.current = fn;
+  return (...args: T) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => fnRef.current(...args), delay);
+  };
 }
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
@@ -54,9 +53,9 @@ export function IssueLinkRow({ linkTypes, value, onChange, onRemove }: IssueLink
   const [showDropdown, setShowDropdown] = useState(false);
 
   // Update debouncedQuery after 300ms
-  const applyDebounce = useCallback((q: string) => {
+  const applyDebounce = (q: string) => {
     setDebouncedQuery(q);
-  }, []);
+  };
 
   const debouncedSetQuery = useDebounce(applyDebounce, 300);
 

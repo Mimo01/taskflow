@@ -22,7 +22,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { SaveFilterDialog } from '@/components/SaveFilterDialog';
 import { Button } from '@/components/ui/button';
 import {
@@ -65,11 +65,12 @@ function FilterDropdown({
 
   const display = (value: string) => displayMap?.get(value) ?? value;
 
-  const filtered = useMemo(() => {
-    if (!query) return options;
-    const q = query.toLowerCase();
-    return options.filter((o) => display(o).toLowerCase().includes(q));
-  }, [options, query, display]);
+  const filtered = !query
+    ? options
+    : (() => {
+        const q = query.toLowerCase();
+        return options.filter((o) => display(o).toLowerCase().includes(q));
+      })();
 
   const count = selected.size;
 
@@ -204,7 +205,7 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
   const renameInputRef = useRef<HTMLInputElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
-  const epicKeys = useMemo(() => Array.from(filterOptions.epics.keys()), [filterOptions.epics]);
+  const epicKeys = Array.from(filterOptions.epics.keys());
   const hasActiveFilters =
     activeEpics.size > 0 ||
     activeLabels.size > 0 ||
@@ -214,34 +215,32 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
   const activeCount =
     activeEpics.size + activeLabels.size + activeAssignees.size + activeStatuses.size;
 
-  const currentJql = useMemo(() => {
-    const clauses: string[] = [];
-    if (activeEpics.size > 0) {
-      clauses.push(`"Epic Link" in (${Array.from(activeEpics).join(', ')})`);
-    }
-    if (activeLabels.size > 0) {
-      clauses.push(
-        `labels in (${Array.from(activeLabels)
-          .map((l) => `"${l}"`)
-          .join(', ')})`,
-      );
-    }
-    if (activeAssignees.size > 0) {
-      clauses.push(
-        `assignee in (${Array.from(activeAssignees)
-          .map((a) => `"${a}"`)
-          .join(', ')})`,
-      );
-    }
-    if (activeStatuses.size > 0) {
-      clauses.push(
-        `status in (${Array.from(activeStatuses)
-          .map((s) => `"${s}"`)
-          .join(', ')})`,
-      );
-    }
-    return clauses.join(' AND ');
-  }, [activeEpics, activeLabels, activeAssignees, activeStatuses]);
+  const currentJqlClauses: string[] = [];
+  if (activeEpics.size > 0) {
+    currentJqlClauses.push(`"Epic Link" in (${Array.from(activeEpics).join(', ')})`);
+  }
+  if (activeLabels.size > 0) {
+    currentJqlClauses.push(
+      `labels in (${Array.from(activeLabels)
+        .map((l) => `"${l}"`)
+        .join(', ')})`,
+    );
+  }
+  if (activeAssignees.size > 0) {
+    currentJqlClauses.push(
+      `assignee in (${Array.from(activeAssignees)
+        .map((a) => `"${a}"`)
+        .join(', ')})`,
+    );
+  }
+  if (activeStatuses.size > 0) {
+    currentJqlClauses.push(
+      `status in (${Array.from(activeStatuses)
+        .map((s) => `"${s}"`)
+        .join(', ')})`,
+    );
+  }
+  const currentJql = currentJqlClauses.join(' AND ');
 
   function handleSaveQuickFilter() {
     if (!nameInput.trim()) return;

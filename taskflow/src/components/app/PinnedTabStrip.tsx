@@ -20,7 +20,7 @@ import {
   Loader2,
   PinOff,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   ContextMenu,
@@ -91,29 +91,29 @@ export default function PinnedTabStrip({
   const [dropTarget, setDropTarget] = useState<number | null>(null);
   const [ghost, setGhost] = useState<DragGhost | null>(null);
 
-  const getDropIndex = useCallback((clientX: number): number | null => {
-    let closestIndex: number | null = null;
-    let closestDist = Infinity;
-    tabRefs.current.forEach((el, idx) => {
-      const rect = el.getBoundingClientRect();
-      const center = rect.left + rect.width / 2;
-      const dist = Math.abs(clientX - center);
-      if (dist < closestDist) {
-        closestDist = dist;
-        closestIndex = idx;
-      }
-    });
-    return closestIndex;
-  }, []);
-
-  const handlePointerDown = useCallback((e: React.PointerEvent, index: number) => {
+  const handlePointerDown = (e: React.PointerEvent, index: number) => {
     const el = tabRefs.current.get(index);
     const rect = el?.getBoundingClientRect();
     const offsetX = rect ? e.clientX - rect.left : 0;
     dragState.current = { index, startX: e.clientX, didMove: false, offsetX };
-  }, []);
+  };
 
   useEffect(() => {
+    const computeDropIndex = (clientX: number): number | null => {
+      let closestIndex: number | null = null;
+      let closestDist = Infinity;
+      tabRefs.current.forEach((el, idx) => {
+        const rect = el.getBoundingClientRect();
+        const center = rect.left + rect.width / 2;
+        const dist = Math.abs(clientX - center);
+        if (dist < closestDist) {
+          closestDist = dist;
+          closestIndex = idx;
+        }
+      });
+      return closestIndex;
+    };
+
     const handlePointerMove = (e: PointerEvent) => {
       const state = dragState.current;
       if (!state) return;
@@ -130,7 +130,7 @@ export default function PinnedTabStrip({
         setGhost((prev) => (prev ? { ...prev, x: e.clientX, y: e.clientY } : null));
       }
 
-      const target = getDropIndex(e.clientX);
+      const target = computeDropIndex(e.clientX);
       setDropTarget(target);
     };
 
@@ -152,7 +152,7 @@ export default function PinnedTabStrip({
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
     };
-  }, [dropTarget, getDropIndex, onReorder]);
+  }, [dropTarget, onReorder]);
 
   // Render the ghost tab content
   const renderGhost = () => {
