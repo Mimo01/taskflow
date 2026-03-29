@@ -1,8 +1,10 @@
 
-## [Unreleased]
+## [1.6.2]
 
 ### Bug Fixes
 
+- remove dead code from release.sh Phase F
+- move platform decision checkpoint before implementation tasks
 - add Edit menu to Tauri app for macOS clipboard shortcuts
 - prevent duplicate OS notifications by checking store before dispatch
 
@@ -11,6 +13,13 @@
 - update debug knowledge base with wizard-paste-broken
 - resolve debug wizard-paste-broken
 - resolve debug duplicate-os-notifications and update knowledge base
+
+### Features
+
+- extend release.sh for full local lifecycle, remove release.yml
+- install husky, add pre-commit/pre-push hooks, remove ci.yml
+- add bump-version.mjs, update release.sh, remove generate-changelog.sh
+- add cliff.toml and generate initial CHANGELOG.md
 
 ### Miscellaneous
 
