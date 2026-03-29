@@ -5,7 +5,7 @@
  * Executes parallel API calls with concurrency limit of 5 and shows progress.
  * Escape key clears selection and hides the bar.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -105,7 +105,7 @@ export function BulkActionBar({
   const hasChange = targetStatus !== null || targetAssignee !== null || targetPriority !== null;
   const selectedIssues = issues.filter((i) => selectedKeys.has(i.key));
 
-  const handleApply = useCallback(async () => {
+  const handleApply = async () => {
     if (!jiraBaseUrl || !jiraToken || !hasChange) return;
 
     const keys = Array.from(selectedKeys);
@@ -300,17 +300,7 @@ export function BulkActionBar({
     if (failed === 0) {
       // All succeeded -- will auto-dismiss via BulkProgressIndicator
     }
-  }, [
-    jiraBaseUrl,
-    jiraToken,
-    selectedKeys,
-    selectedIssues,
-    targetStatus,
-    targetAssignee,
-    targetPriority,
-    hasChange,
-    onOptimisticUpdate,
-  ]);
+  };
 
   function rollbackIssue(key: string) {
     const orig = originalIssuesRef.current.get(key);

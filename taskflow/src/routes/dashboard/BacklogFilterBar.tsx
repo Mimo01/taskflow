@@ -9,7 +9,7 @@
  * All state lives in BacklogPage — this component is purely presentational.
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 // ─── MultiFilterCombobox ───────────────────────────────────────────────────────
 
@@ -48,9 +48,9 @@ function MultiFilterCombobox({
     setOpen(true);
   }
 
-  const handleBlur = useCallback(() => {
+  const handleBlur = () => {
     closeTimer.current = setTimeout(() => setOpen(false), 150);
-  }, []);
+  };
 
   function handleSelect(option: string) {
     onToggle(option);

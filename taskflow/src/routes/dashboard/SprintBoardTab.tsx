@@ -26,7 +26,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Bookmark, Columns3, RefreshCw } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -448,9 +448,9 @@ export default function SprintBoardTab() {
   // doesn't interfere with virtualizer layout. Updated by VirtualizedSwimlanes on scroll.
   const [stickyHeader, setStickyHeader] = useState<StickyHeaderData>(null);
   const stickyHeaderInnerRef = useRef<HTMLDivElement | null>(null);
-  const handleStickyHeaderChange = useCallback((data: StickyHeaderData) => {
+  const handleStickyHeaderChange = (data: StickyHeaderData) => {
     setStickyHeader(data);
-  }, []);
+  };
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -508,11 +508,8 @@ export default function SprintBoardTab() {
     staleTime: 5 * 60 * 1000,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
-  const epicNameMap = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const e of epicsBasic ?? []) m.set(e.key, e.epicName);
-    return m;
-  }, [epicsBasic]);
+  const epicNameMap = new Map<string, string>();
+  for (const e of epicsBasic ?? []) epicNameMap.set(e.key, e.epicName);
 
   // Fetch active sprint (for goal text and board ID)
   const { data: activeSprint } = useQuery({
@@ -574,18 +571,15 @@ export default function SprintBoardTab() {
    * Maps status ID -> category key.
    * Built from workflowStatuses (authoritative) + any categories already on local issues.
    */
-  const statusCategoryMap = useMemo(() => {
-    const map = new Map<string, CategoryKey>();
-    for (const s of workflowStatuses ?? []) {
-      map.set(s.id, s.statusCategory.key as CategoryKey);
+  const statusCategoryMap = new Map<string, CategoryKey>();
+  for (const s of workflowStatuses ?? []) {
+    statusCategoryMap.set(s.id, s.statusCategory.key as CategoryKey);
+  }
+  for (const issue of localIssues) {
+    if (issue.fields.status.statusCategory) {
+      statusCategoryMap.set(issue.fields.status.id, issue.fields.status.statusCategory.key as CategoryKey);
     }
-    for (const issue of localIssues) {
-      if (issue.fields.status.statusCategory) {
-        map.set(issue.fields.status.id, issue.fields.status.statusCategory.key as CategoryKey);
-      }
-    }
-    return map;
-  }, [workflowStatuses, localIssues]);
+  }
 
   function handleDragStart(event: DragStartEvent) {
     const issue = localIssues.find((i) => i.key === String(event.active.id));
@@ -666,7 +660,7 @@ export default function SprintBoardTab() {
   }
 
   /** Set of category keys reachable by the currently dragged card */
-  const validTargetCategories = useMemo((): Set<CategoryKey> => {
+  const validTargetCategories = ((): Set<CategoryKey> => {
     if (!activeIssue) return new Set();
     const transitions = queryClient.getQueryData<JiraTransition[]>([
       'transitions',
@@ -678,21 +672,19 @@ export default function SprintBoardTab() {
       if (cat) cats.add(cat);
     }
     return cats;
-  }, [activeIssue, queryClient, statusCategoryMap]);
+  })();
 
-  const swimlanes = useMemo(() => {
-    const stories = localIssues.filter((i) => !i.fields.issuetype.subtask);
-    const subtasks = localIssues.filter((i) => i.fields.issuetype.subtask);
-    const subtasksByParent = new Map<string, JiraIssue[]>();
-    for (const sub of subtasks) {
-      const pk = sub.fields.parent?.key;
-      if (pk) subtasksByParent.set(pk, [...(subtasksByParent.get(pk) ?? []), sub]);
-    }
-    return stories.map((story) => ({
-      story,
-      subtasks: subtasksByParent.get(story.key) ?? [],
-    }));
-  }, [localIssues]);
+  const stories = localIssues.filter((i) => !i.fields.issuetype.subtask);
+  const subtasks = localIssues.filter((i) => i.fields.issuetype.subtask);
+  const subtasksByParent = new Map<string, JiraIssue[]>();
+  for (const sub of subtasks) {
+    const pk = sub.fields.parent?.key;
+    if (pk) subtasksByParent.set(pk, [...(subtasksByParent.get(pk) ?? []), sub]);
+  }
+  const swimlanes = stories.map((story) => ({
+    story,
+    subtasks: subtasksByParent.get(story.key) ?? [],
+  }));
 
   const {
     activeEpics,
@@ -722,35 +714,29 @@ export default function SprintBoardTab() {
     staleTime: 30_000,
   });
 
-  const filterOptions = useMemo(() => {
-    // Epics: all project epics (not just those on current sprint issues)
-    const epics = new Map<string, string>();
-    for (const e of epicsBasic ?? []) epics.set(e.key, e.epicName);
-    // Also include any epic on current issues not yet in epicsBasic
-    for (const issue of localIssues) {
-      const epicKey = issue.fields[epicLinkFieldKey] as string | null;
-      if (epicKey && !epics.has(epicKey)) epics.set(epicKey, epicNameMap.get(epicKey) ?? epicKey);
-    }
-    const labels = new Set<string>();
-    const assignees = new Set<string>();
-    for (const issue of localIssues) {
-      for (const label of (issue.fields.labels as string[] | undefined) ?? []) labels.add(label);
-      if (issue.fields.assignee?.displayName) assignees.add(issue.fields.assignee.displayName);
-    }
-    // Statuses: all project workflow statuses (not just those on current issues)
-    const statuses = new Set<string>();
-    for (const s of workflowStatuses ?? []) statuses.add(s.name);
-    // Also include any status on current issues not yet in workflowStatuses
-    for (const issue of localIssues) {
-      if (issue.fields.status?.name) statuses.add(issue.fields.status.name);
-    }
-    return {
-      epics,
-      labels: Array.from(labels),
-      assignees: Array.from(assignees),
-      statuses: Array.from(statuses).sort(),
-    };
-  }, [localIssues, epicLinkFieldKey, epicNameMap, epicsBasic, workflowStatuses]);
+  const filterOptionsEpics = new Map<string, string>();
+  for (const e of epicsBasic ?? []) filterOptionsEpics.set(e.key, e.epicName);
+  for (const issue of localIssues) {
+    const epicKey = issue.fields[epicLinkFieldKey] as string | null;
+    if (epicKey && !filterOptionsEpics.has(epicKey)) filterOptionsEpics.set(epicKey, epicNameMap.get(epicKey) ?? epicKey);
+  }
+  const filterOptionsLabels = new Set<string>();
+  const filterOptionsAssignees = new Set<string>();
+  for (const issue of localIssues) {
+    for (const label of (issue.fields.labels as string[] | undefined) ?? []) filterOptionsLabels.add(label);
+    if (issue.fields.assignee?.displayName) filterOptionsAssignees.add(issue.fields.assignee.displayName);
+  }
+  const filterOptionsStatuses = new Set<string>();
+  for (const s of workflowStatuses ?? []) filterOptionsStatuses.add(s.name);
+  for (const issue of localIssues) {
+    if (issue.fields.status?.name) filterOptionsStatuses.add(issue.fields.status.name);
+  }
+  const filterOptions = {
+    epics: filterOptionsEpics,
+    labels: Array.from(filterOptionsLabels),
+    assignees: Array.from(filterOptionsAssignees),
+    statuses: Array.from(filterOptionsStatuses).sort(),
+  };
 
   function applyFilters(issues: JiraIssue[]): JiraIssue[] {
     return issues.filter((issue) => {
@@ -838,65 +824,38 @@ export default function SprintBoardTab() {
     return cond.op === '=' ? isMatch : !isMatch;
   }
 
-  const filteredSwimlanes = useMemo(() => {
-    let result = swimlanes;
+  let filteredSwimlanes = swimlanes;
 
-    // Saved filter: intersect with JQL result keys
-    if (savedFilterIssueKeys && savedFilterIssueKeys.size > 0) {
-      result = result
-        .map(({ story, subtasks }) => {
-          const storyMatches = savedFilterIssueKeys.has(story.key);
-          const filteredSubtasks = subtasks.filter((s) => savedFilterIssueKeys.has(s.key));
-          if (!storyMatches && filteredSubtasks.length === 0) return null;
-          return { story, subtasks: filteredSubtasks };
-        })
-        .filter((s): s is { story: JiraIssue; subtasks: JiraIssue[] } => s !== null);
-    }
+  // Saved filter: intersect with JQL result keys
+  if (savedFilterIssueKeys && savedFilterIssueKeys.size > 0) {
+    filteredSwimlanes = filteredSwimlanes
+      .map(({ story, subtasks: sub }) => {
+        const storyMatches = savedFilterIssueKeys.has(story.key);
+        const filteredSubtasks = sub.filter((s) => savedFilterIssueKeys.has(s.key));
+        if (!storyMatches && filteredSubtasks.length === 0) return null;
+        return { story, subtasks: filteredSubtasks };
+      })
+      .filter((s): s is { story: JiraIssue; subtasks: JiraIssue[] } => s !== null);
+  }
 
-    // No local filters active and no saved filter — return early
-    if (
-      activeEpics.size === 0 &&
-      activeLabels.size === 0 &&
-      activeAssignees.size === 0 &&
-      activeStatuses.size === 0 &&
-      activeJiraQuickFilters.size === 0 &&
-      activeLabelFilters.size === 0 &&
-      !savedFilterIssueKeys
-    ) {
-      return swimlanes;
-    }
-
-    // Apply local filters on the (possibly already saved-filter-narrowed) result
-    if (
-      activeEpics.size > 0 ||
-      activeLabels.size > 0 ||
-      activeAssignees.size > 0 ||
-      activeStatuses.size > 0 ||
-      activeJiraQuickFilters.size > 0 ||
-      activeLabelFilters.size > 0
-    ) {
-      result = result
-        .map(({ story, subtasks }) => {
-          const storyMatches = applyFilters([story]).length > 0;
-          const filteredSubtasks = applyFilters(subtasks);
-          if (!storyMatches && filteredSubtasks.length === 0) return null;
-          return { story, subtasks: filteredSubtasks };
-        })
-        .filter((s): s is { story: JiraIssue; subtasks: JiraIssue[] } => s !== null);
-    }
-
-    return result;
-  }, [
-    swimlanes,
-    savedFilterIssueKeys,
-    activeEpics,
-    activeLabels,
-    activeAssignees,
-    activeStatuses,
-    activeJiraQuickFilters,
-    activeLabelFilters,
-    applyFilters,
-  ]);
+  // Apply local filters on the (possibly already saved-filter-narrowed) result
+  if (
+    activeEpics.size > 0 ||
+    activeLabels.size > 0 ||
+    activeAssignees.size > 0 ||
+    activeStatuses.size > 0 ||
+    activeJiraQuickFilters.size > 0 ||
+    activeLabelFilters.size > 0
+  ) {
+    filteredSwimlanes = filteredSwimlanes
+      .map(({ story, subtasks: sub }) => {
+        const storyMatches = applyFilters([story]).length > 0;
+        const filteredSubtasks = applyFilters(sub);
+        if (!storyMatches && filteredSubtasks.length === 0) return null;
+        return { story, subtasks: filteredSubtasks };
+      })
+      .filter((s): s is { story: JiraIssue; subtasks: JiraIssue[] } => s !== null);
+  }
 
   const lastRefreshed = dataUpdatedAt
     ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`

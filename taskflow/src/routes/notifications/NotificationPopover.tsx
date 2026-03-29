@@ -14,7 +14,7 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { Bell, BellOff, GitMerge, TicketCheck } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Button } from '../../components/ui/button';
 import { EmptyState } from '../../components/ui/empty-state';
@@ -291,7 +291,7 @@ export default function NotificationPopover({
   }
 
   // Build flat virtual entries from grouped visible items
-  const virtualEntries = useMemo(() => buildVirtualEntries(visibleItems), [visibleItems]);
+  const virtualEntries = buildVirtualEntries(visibleItems);
 
   function renderEmptyState() {
     if (unreadOnly) {

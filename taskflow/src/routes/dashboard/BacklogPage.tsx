@@ -15,7 +15,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ChevronDown, ChevronRight, Inbox } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
 import { Button } from '@/components/ui/button';
@@ -261,17 +261,14 @@ export default function BacklogPage() {
   });
 
   // Map parentKey → Set of subtask status names (from sprint board data)
-  const subtaskStatusMap = useMemo(() => {
-    const map = new Map<string, Set<string>>();
-    for (const issue of sprintIssues ?? []) {
-      if (issue.fields.issuetype.subtask && issue.fields.parent?.key) {
-        const parentKey = issue.fields.parent.key;
-        if (!map.has(parentKey)) map.set(parentKey, new Set());
-        map.get(parentKey)?.add(issue.fields.status.name);
-      }
+  const subtaskStatusMap = new Map<string, Set<string>>();
+  for (const issue of sprintIssues ?? []) {
+    if (issue.fields.issuetype.subtask && issue.fields.parent?.key) {
+      const parentKey = issue.fields.parent.key;
+      if (!subtaskStatusMap.has(parentKey)) subtaskStatusMap.set(parentKey, new Set());
+      subtaskStatusMap.get(parentKey)?.add(issue.fields.status.name);
     }
-    return map;
-  }, [sprintIssues]);
+  }
 
   // ── Stale data banner state ───────────────────────────────────────────────────
   const [bannerDismissed, setBannerDismissed] = useState(false);
@@ -317,7 +314,7 @@ export default function BacklogPage() {
   // The Agile board API may exclude stories (board-level filter), but
   // fetchSprintIssues (REST API) returns all. Merge missing stories into
   // the active sprint section so they're visible and filterable.
-  const mergedSprints = useMemo(() => {
+  const mergedSprints = (() => {
     if (!backlogView) return [];
     const existingKeys = new Set(backlogView.sprints.flatMap((s) => s.issues.map((i) => i.key)));
     const extraStories = (sprintIssues ?? []).filter(
@@ -331,17 +328,16 @@ export default function BacklogPage() {
       }
       return { sprint, issues };
     });
-  }, [backlogView, sprintIssues]);
+  })();
 
-  const allIssues = useMemo<JiraIssue[]>(() => {
-    const sprintIssuesList = mergedSprints.flatMap((s) => s.issues);
-    const backlogList = backlogView?.backlog ?? [];
-    return [...sprintIssuesList, ...backlogList];
-  }, [mergedSprints, backlogView?.backlog]);
+  const allIssues: JiraIssue[] = [
+    ...mergedSprints.flatMap((s) => s.issues),
+    ...(backlogView?.backlog ?? []),
+  ];
 
   // ── Filter options (derived from all issues across all sections) ──────────────
 
-  const filterOptions = useMemo(() => {
+  const filterOptions = (() => {
     const epicNames = backlogView?.epicNames ?? new Map<string, string>();
     // Epics: all project epics (not just those on current backlog issues)
     const epics = new Map<string, string>();
@@ -375,14 +371,7 @@ export default function BacklogPage() {
       assignees: Array.from(assignees),
       statuses: Array.from(statuses).sort(),
     };
-  }, [
-    allIssues,
-    epicLinkFieldKey,
-    backlogView?.epicNames,
-    allEpics,
-    projectStatuses,
-    subtaskStatusMap,
-  ]);
+  })();
 
   // ── Filter application helper ─────────────────────────────────────────────────
 
@@ -425,7 +414,7 @@ export default function BacklogPage() {
 
   // ── J/K navigation ──────────────────────────────────────────────────────────
 
-  const visibleIssueKeys = useMemo(() => {
+  const visibleIssueKeys = (() => {
     if (!backlogView) return [];
     const keys: string[] = [];
     for (const { sprint, issues } of mergedSprints) {
@@ -443,7 +432,7 @@ export default function BacklogPage() {
       }
     }
     return keys;
-  }, [backlogView, collapsedSections, applyFilters, mergedSprints]);
+  })();
 
   const { focusIndex } = useListNavigation({
     itemCount: visibleIssueKeys.length,
