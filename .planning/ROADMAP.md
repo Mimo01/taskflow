@@ -114,7 +114,7 @@ See archive: `.planning/milestones/v1.6.3-ROADMAP.md`
 
 **Milestone Goal:** Make every view feel instant — progressive loading, smarter caching, smaller bundles, and zero unnecessary waits.
 
-- [ ] **Phase 42: Foundation** — Route code splitting, React Compiler, bundle analysis
+- [x] **Phase 42: Foundation** — Route code splitting, React Compiler, bundle analysis
 - [ ] **Phase 43: Cache Correctness** — staleTime tuning and smart polling
 - [ ] **Phase 44: Loading UX** — Skeleton screens, progressive data, flicker prevention
 - [ ] **Phase 45: Query Optimization** — Parallelization and hover prefetch
@@ -132,11 +132,11 @@ See archive: `.planning/milestones/v1.6.3-ROADMAP.md`
   3. A meaningful error boundary (not a white screen) is displayed when a chunk fails to load
   4. React Compiler is active at build time and auto-memoizes components across the codebase
   5. Bundle analysis output identifies the largest chunks and any dead code candidates
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans executed
 Plans:
 - [x] 42-01-PLAN.md — Lazy routes + RouteSpinner + ChunkErrorBoundary
 - [x] 42-02-PLAN.md — React Compiler + manual memo removal
-- [ ] 42-03-PLAN.md — Bundle analysis + dead code elimination
+- [x] 42-03-PLAN.md — Bundle analysis + dead code elimination
 **UI hint**: yes
 
 ### Phase 43: Cache Correctness
