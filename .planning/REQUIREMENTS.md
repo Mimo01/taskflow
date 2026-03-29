@@ -64,29 +64,29 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LOAD-01 | — | Pending |
-| LOAD-02 | — | Pending |
-| LOAD-03 | — | Pending |
-| LOAD-04 | — | Pending |
-| LOAD-05 | — | Pending |
-| ROUT-01 | — | Pending |
-| ROUT-02 | — | Pending |
-| ROUT-03 | — | Pending |
-| ROUT-04 | — | Pending |
-| ROUT-05 | — | Pending |
-| QOPT-01 | — | Pending |
-| QOPT-02 | — | Pending |
-| QOPT-03 | — | Pending |
-| QOPT-04 | — | Pending |
-| QOPT-05 | — | Pending |
-| CACH-01 | — | Pending |
-| CACH-02 | — | Pending |
+| LOAD-01 | Phase 44 | Pending |
+| LOAD-02 | Phase 43 | Pending |
+| LOAD-03 | Phase 44 | Pending |
+| LOAD-04 | Phase 44 | Pending |
+| LOAD-05 | Phase 44 | Pending |
+| ROUT-01 | Phase 42 | Pending |
+| ROUT-02 | Phase 42 | Pending |
+| ROUT-03 | Phase 42 | Pending |
+| ROUT-04 | Phase 42 | Pending |
+| ROUT-05 | Phase 42 | Pending |
+| QOPT-01 | Phase 45 | Pending |
+| QOPT-02 | Phase 45 | Pending |
+| QOPT-03 | Phase 45 | Pending |
+| QOPT-04 | Phase 43 | Pending |
+| QOPT-05 | Phase 43 | Pending |
+| CACH-01 | Phase 46 | Pending |
+| CACH-02 | Phase 46 | Pending |
 
 **Coverage:**
 - v1.7 requirements: 17 total
-- Mapped to phases: 0
-- Unmapped: 17 ⚠️
+- Mapped to phases: 17
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-29*
-*Last updated: 2026-03-29 after initial definition*
+*Last updated: 2026-03-29 after roadmap creation (phases 42-46)*

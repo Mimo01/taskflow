@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Performance & Perceived Speed
-status: defining requirements
+status: ready to plan
 stopped_at: null
 last_updated: "2026-03-29T00:00:00.000Z"
 last_activity: 2026-03-29
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Defining v1.7 requirements
+**Current focus:** Phase 42 — Foundation (v1.7)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-29 — Milestone v1.7 started
+Phase: 42 of 46 (Foundation)
+Plan: 0 of ? in current phase
+Status: Ready to plan
+Last activity: 2026-03-29 — v1.7 roadmap created (phases 42-46)
+
+Progress: [████████░░] 78% (v1.6.3 complete, v1.7 not started)
 
 ## Accumulated Context
 
@@ -36,20 +38,10 @@ Last activity: 2026-03-29 — Milestone v1.7 started
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [v1.6 roadmap]: Coarse granularity — 4 phases covering foundation, update UX, settings/about UI, and CI pipeline
-- [v1.6 roadmap]: CI pipeline last — all app-side code must be correct before end-to-end validation
-- [v1.6 roadmap]: Phases 39 and 40 are independent (both depend only on 38) — can execute in either order
-- [Phase 38]: vi.hoisted() required for vi.mock factory when mock variable declared with const — hoisting order issue in Vitest
-- [Phase 38]: #[cfg(desktop)] guard on updater plugin registration — mobile/web targets don't need updater
-- [Phase 39-update-ux-version-policy]: Used invoke('plugin:process|relaunch') instead of @tauri-apps/plugin-process — package not in project dependencies
-- [Phase 39-update-ux-version-policy]: compare-versions library used for semver comparison with pre-release tag handling
-- [Phase 39-update-ux-version-policy]: version-policy.json safe defaults 0.0.0/0.0.0 — no enforcement until intentionally bumped; VERSION_POLICY_URL placeholder for Phase 41
-- [Phase 40-01]: Used DialogFooter with explicit Button for close — consistent with UpdateDialog pattern, cleaner control over button styling
-- [Phase 40]: Used placeholder GitHub Releases API URL (PLACEHOLDER/PLACEHOLDER) — real repo path to be set in Phase 41
-- [Phase 40]: Used level:2 heading selector and isolated QueryClient per-test to fix TanStack Query caching in tests
-- [Phase 41-ci-pipeline]: RELEASES_REPO_TOKEN (not GITHUB_TOKEN) for cross-repo publish to Mimo01/taskflow-releases
-- [Phase 41-ci-pipeline]: releaseDraft: false for fully automatic release publish without manual approval
-- [Phase 41-ci-pipeline]: shell: bash on inject-version and tag_body steps for Windows PowerShell cross-platform compatibility
+- v1.6.3: Local release.sh + husky hooks replacing GitHub Actions CI — full control over build; no CI runner costs
+- v1.6.3: invoke('plugin:process|relaunch') instead of @tauri-apps/plugin-process — no extra dependency
+- v1.7 (research): Pin babel-plugin-react-compiler to exact 1.0.0 — compiler upgrades should be deliberate
+- v1.7 (research): staleTime must remain < refetchInterval for all polled queries — violating this silently disables notification polling in production while tests still pass
 
 ### Pending Todos
 
@@ -57,16 +49,15 @@ None.
 
 ### Blockers/Concerns
 
-- Apple Developer ID certificate ($99/yr) may not yet be acquired — blocks macOS notarization in Phase 41
-- Windows code signing decision needed (Azure Trusted Signing vs OV/EV cert) — affects Phase 41 CI config
-- Public GitHub repo for release hosting must exist before Phase 41
-- Ed25519 signing key generation is irreversible — must be backed up in two locations during Phase 38
+- Phase 43: staleTime/refetchInterval invariant must be verified manually in DevTools for 2+ minutes after any staleTime change — unit tests with fake timers will not catch silent polling breakage
+- Phase 45: Sprint board subtask chunk parallelism already fires multiple concurrent Jira DC requests; outer query parallelization must cap concurrent chunks at 3 — on-premise Jira DC connection pool ceiling is unknown
+- Phase 46: Evaluate whether Tauri WKWebView/WebView2 already honors Cache-Control headers for avatar requests before building custom caching — may be unnecessary
 
 ## Session Continuity
 
 Last activity: 2026-03-29
-Stopped at: Completed quick-260329-mxv-PLAN.md
-Resume: `/gsd:plan-phase 38`
+Stopped at: v1.7 roadmap created. No plans written yet.
+Resume: `/gsd:plan-phase 42`
 
 ### Quick Tasks Completed
 
@@ -82,7 +73,7 @@ Resume: `/gsd:plan-phase 38`
 | 260326-ivv | Add generate-changelog.sh and update release.sh for auto-generated categorized changelogs | 2026-03-26 | a9685fe | [260326-ivv-fix-release-history-changelog-build-prop](./quick/260326-ivv-fix-release-history-changelog-build-prop/) |
 | 260326-j2q | Remove saved filters from the sidebar | 2026-03-26 | fb6f8cd | [260326-j2q-remove-saved-filters-from-the-sidebar](./quick/260326-j2q-remove-saved-filters-from-the-sidebar/) |
 | 260326-mfp | release version 1.6.1 | 2026-03-26 | 3f30b56 | [260326-mfp-release-version-1-6-1](./quick/260326-mfp-release-version-1-6-1/) |
-| 260327-edt | re-release v1.6.1 macOS universal binary (local build) | 2026-03-27 | — | | [260327-edt-re-release-version-1-6-1-build-releases-](./quick/260327-edt-re-release-version-1-6-1-build-releases-/) |
+| 260327-edt | re-release v1.6.1 macOS universal binary (local build) | 2026-03-27 | — | [260327-edt-re-release-version-1-6-1-build-releases-](./quick/260327-edt-re-release-version-1-6-1-build-releases-/) |
 | 260329-k5y | Implement changelog and versioning process inspired by pmkar project | 2026-03-29 | e5ba721 | Verified | [260329-k5y-implement-changelog-and-versioning-proce](./quick/260329-k5y-implement-changelog-and-versioning-proce/) |
 | 260329-kyx | Replace GitHub Actions with local husky hooks + full local release.sh | 2026-03-29 | 8528c2a | Verified | [260329-kyx-replace-github-actions-with-local-proces](./quick/260329-kyx-replace-github-actions-with-local-proces/) |
-| 260329-mxv | Make the changelogs look nicer. The update modals are too small. Refine the views | 2026-03-29 | a35bd3f | | [260329-mxv-make-the-changelogs-look-nicer-the-updat](./quick/260329-mxv-make-the-changelogs-look-nicer-the-updat/) |
+| 260329-mxv | Make the changelogs look nicer. The update modals are too small. Refine the views | 2026-03-29 | a35bd3f | [260329-mxv-make-the-changelogs-look-nicer-the-updat](./quick/260329-mxv-make-the-changelogs-look-nicer-the-updat/) |

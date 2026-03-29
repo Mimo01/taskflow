@@ -9,6 +9,7 @@
 - ✅ **v1.4 Internal Quality & Performance** — Phases 25-30 (shipped 2026-03-20)
 - ✅ **v1.5 Dashboard Redesign & Feature Parity** — Phases 31-37 (shipped 2026-03-24)
 - ✅ **v1.6.3 Release & Auto-Update Pipeline** — Phases 38-41 (shipped 2026-03-29)
+- 🚧 **v1.7 Performance & Perceived Speed** — Phases 42-46 (in progress)
 
 ## Phases
 
@@ -109,6 +110,72 @@ See archive: `.planning/milestones/v1.6.3-ROADMAP.md`
 
 </details>
 
+### 🚧 v1.7 Performance & Perceived Speed (In Progress)
+
+**Milestone Goal:** Make every view feel instant — progressive loading, smarter caching, smaller bundles, and zero unnecessary waits.
+
+- [ ] **Phase 42: Foundation** — Route code splitting, React Compiler, bundle analysis
+- [ ] **Phase 43: Cache Correctness** — staleTime tuning and smart polling
+- [ ] **Phase 44: Loading UX** — Skeleton screens, progressive data, flicker prevention
+- [ ] **Phase 45: Query Optimization** — Parallelization and hover prefetch
+- [ ] **Phase 46: Avatar Caching** — Session cache and disk persistence
+
+## Phase Details
+
+### Phase 42: Foundation
+**Goal**: App startup is faster and component re-renders are eliminated automatically
+**Depends on**: Phase 41
+**Requirements**: ROUT-01, ROUT-02, ROUT-03, ROUT-04, ROUT-05
+**Success Criteria** (what must be TRUE):
+  1. Heavy routes (sprint board, backlog, issue detail, epics, workload, sprint progress) load on demand — not at app startup
+  2. A skeleton fallback (not a blank screen) appears while a lazy-loaded route chunk loads
+  3. A meaningful error boundary (not a white screen) is displayed when a chunk fails to load
+  4. React Compiler is active at build time and auto-memoizes components across the codebase
+  5. Bundle analysis output identifies the largest chunks and any dead code candidates
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 43: Cache Correctness
+**Goal**: Users see cached data instantly when revisiting views, and polling behaves correctly for active vs. inactive views
+**Depends on**: Phase 42
+**Requirements**: LOAD-02, QOPT-04, QOPT-05
+**Success Criteria** (what must be TRUE):
+  1. Navigating back to a previously visited view shows data immediately with no blank-screen flash
+  2. Polling pauses automatically for views that are not currently visible
+  3. All polling stops when the app is minimized and resumes on restore
+**Plans**: TBD
+
+### Phase 44: Loading UX
+**Goal**: Every major data view shows a layout-matched skeleton instead of a spinner, and data loads progressively without flicker
+**Depends on**: Phase 43
+**Requirements**: LOAD-01, LOAD-03, LOAD-04, LOAD-05
+**Success Criteria** (what must be TRUE):
+  1. All major data views (sprint board, backlog, my tasks, workload, epics, releases, notifications, dashboard widgets) show layout-matched skeletons instead of spinners during initial load
+  2. Sprint board story headers appear immediately while subtasks render progressively beneath them
+  3. Backlog issue list appears immediately while epic metadata loads progressively alongside it
+  4. When data arrives within 200ms, no skeleton flash occurs — the view transitions directly from empty to populated
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 45: Query Optimization
+**Goal**: Sprint board and backlog load faster by eliminating sequential API call chains, and sidebar navigation pre-warms the cache
+**Depends on**: Phase 43
+**Requirements**: QOPT-01, QOPT-02, QOPT-03
+**Success Criteria** (what must be TRUE):
+  1. Sprint board independent queries (sprint metadata, quick filters) fire simultaneously rather than sequentially
+  2. Backlog independent queries fire in parallel where the dependency chain allows
+  3. Hovering or focusing a sidebar link pre-fetches its data so the view loads from cache on click
+**Plans**: TBD
+
+### Phase 46: Avatar Caching
+**Goal**: Avatar and user images never re-fetch within a session and survive app restarts
+**Depends on**: Phase 45
+**Requirements**: CACH-01, CACH-02
+**Success Criteria** (what must be TRUE):
+  1. Avatar images fetched once per session are served from memory on all subsequent renders — no repeated network requests for the same image
+  2. Avatar cache persists to disk and is available immediately on the next app launch without re-fetching
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -117,3 +184,8 @@ See archive: `.planning/milestones/v1.6.3-ROADMAP.md`
 | 39. Update UX + Version Policy | v1.6.3 | 2/2 | Complete | 2026-03-24 |
 | 40. Settings, About & Menu Integration | v1.6.3 | 3/3 | Complete | 2026-03-25 |
 | 41. CI Pipeline | v1.6.3 | 2/2 | Complete | 2026-03-25 |
+| 42. Foundation | v1.7 | 0/? | Not started | - |
+| 43. Cache Correctness | v1.7 | 0/? | Not started | - |
+| 44. Loading UX | v1.7 | 0/? | Not started | - |
+| 45. Query Optimization | v1.7 | 0/? | Not started | - |
+| 46. Avatar Caching | v1.7 | 0/? | Not started | - |
