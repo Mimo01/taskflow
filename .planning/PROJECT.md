@@ -79,9 +79,19 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ### Active
 
-<!-- No active milestone — define next with /gsd:new-milestone -->
+<!-- Current milestone: v1.7 Performance & Perceived Speed -->
 
-(None — all v1.6.3 requirements shipped)
+- [ ] Skeleton screens replacing spinners across all data views
+- [ ] Progressive/streaming data population — display data as it arrives
+- [ ] Stale-while-revalidate tuning — show cached data instantly, refresh in background
+- [ ] Route-level code splitting and lazy loading of heavy components
+- [ ] Prefetching on hover/focus for sidebar links and navigation paths
+- [ ] Query parallelization and deduplication — eliminate redundant/sequential API calls
+- [ ] Smart polling strategy — prioritize active view, adaptive intervals
+- [ ] Sprint board and backlog loading optimization (priority targets)
+- [ ] Memoization audit — targeted memo/useMemo for expensive re-renders
+- [ ] Image/avatar local caching
+- [ ] Bundle size analysis and dead code elimination
 
 ### Out of Scope
 
@@ -95,6 +105,23 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - Bulk operations on sprint board issues — components built but user-deferred during v1.5 review; files on disk, not wired
 - GitLab write actions (approve, comment, request changes) — deferred to v2.0
 - Full JQL editor with syntax highlighting — months of work; plain text JQL input sufficient
+
+## Current Milestone: v1.7 Performance & Perceived Speed
+
+**Goal:** Make every view feel instant — progressive loading, smarter caching, smaller bundles, and zero unnecessary waits.
+
+**Target features:**
+- Skeleton screens replacing spinners across all data views
+- Progressive/streaming data population — display data as it arrives
+- Stale-while-revalidate tuning — cached data shown instantly on navigation
+- Route-level code splitting and lazy loading of heavy components
+- Prefetching on hover/focus for common navigation paths
+- Query parallelization and deduplication
+- Smart polling strategy — prioritize active view, adaptive intervals
+- Sprint board and backlog loading optimization (priority targets)
+- Memoization audit for expensive re-renders
+- Image/avatar local caching
+- Bundle size analysis and dead code elimination
 
 ## Context
 
@@ -202,4 +229,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-29 after v1.6.3 milestone*
+*Last updated: 2026-03-29 after v1.7 milestone start*
