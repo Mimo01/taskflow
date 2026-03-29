@@ -12,14 +12,13 @@ set -euo pipefail
 #   E. Upload artifacts
 #   F. Generate and upload latest.json (Tauri updater manifest)
 #   G. Update README in releases repo
-#   H. Summary
+#   H. Push tag + commits to origin
+#   I. Summary
 #
-# Required environment variables:
-#   RELEASES_REPO_TOKEN  — GitHub personal access token with repo scope for Mimo01/taskflow-releases
-#   TAURI_SIGNING_PRIVATE_KEY — Ed25519 private key for Tauri updater signing
-#
-# Optional:
-#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD — password for signing key (empty if not set)
+# Credentials (auto-detected in this order):
+#   RELEASES_REPO_TOKEN  — 1) env var, 2) macOS Keychain (git credential-osxkeychain)
+#   TAURI_SIGNING_PRIVATE_KEY — 1) env var, 2) ~/.tauri/taskflow.key
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD — env var (empty string if not set)
 #
 # Platform scope: macOS (native universal) + Linux x86_64 (Docker)
 # Windows: Not currently supported from macOS. Contribute a Windows build separately.
@@ -49,19 +48,34 @@ if ! git -C "$REPO_ROOT" diff-index --quiet HEAD --; then
   exit 1
 fi
 
-# Require RELEASES_REPO_TOKEN
+# Auto-detect RELEASES_REPO_TOKEN from macOS Keychain if not set
 if [[ -z "${RELEASES_REPO_TOKEN:-}" ]]; then
-  echo "Error: RELEASES_REPO_TOKEN is not set." >&2
-  echo "  Set it with: export RELEASES_REPO_TOKEN=ghp_..." >&2
-  exit 1
+  echo "    RELEASES_REPO_TOKEN not set, trying macOS Keychain..."
+  RELEASES_REPO_TOKEN=$(printf 'protocol=https\nhost=github.com\n' \
+    | git credential-osxkeychain get 2>/dev/null \
+    | grep password | cut -d= -f2) || true
+  if [[ -z "$RELEASES_REPO_TOKEN" ]]; then
+    echo "Error: RELEASES_REPO_TOKEN not found in env or Keychain." >&2
+    echo "  Set it with: export RELEASES_REPO_TOKEN=ghp_..." >&2
+    exit 1
+  fi
+  echo "    Token loaded from macOS Keychain."
 fi
 
-# Require TAURI_SIGNING_PRIVATE_KEY
+# Auto-detect TAURI_SIGNING_PRIVATE_KEY from ~/.tauri/taskflow.key if not set
 if [[ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]]; then
-  echo "Error: TAURI_SIGNING_PRIVATE_KEY is not set." >&2
-  echo "  Set it with: export TAURI_SIGNING_PRIVATE_KEY=\$(cat ~/.tauri/taskflow.key)" >&2
-  exit 1
+  TAURI_KEY_FILE="$HOME/.tauri/taskflow.key"
+  if [[ -f "$TAURI_KEY_FILE" ]]; then
+    echo "    Loading signing key from $TAURI_KEY_FILE..."
+    TAURI_SIGNING_PRIVATE_KEY="$(cat "$TAURI_KEY_FILE")"
+    export TAURI_SIGNING_PRIVATE_KEY
+  else
+    echo "Error: TAURI_SIGNING_PRIVATE_KEY not set and $TAURI_KEY_FILE not found." >&2
+    echo "  Set it with: export TAURI_SIGNING_PRIVATE_KEY=\$(cat ~/.tauri/taskflow.key)" >&2
+    exit 1
+  fi
 fi
+export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}"
 
 AUTH_HEADER="Authorization: token $RELEASES_REPO_TOKEN"
 RELEASES_API="https://api.github.com/repos/Mimo01/taskflow-releases"
@@ -94,8 +108,8 @@ eval "$(node scripts/inject-version.cjs)"
 npm run build
 npx tauri build --target universal-apple-darwin
 
-# Restore version-injected files to avoid dirty state
-git -C "$REPO_ROOT" checkout -- src-tauri/tauri.conf.json taskflow/package.json src-tauri/Cargo.toml
+# Restore version-injected files and Cargo.lock to avoid dirty state
+git -C "$REPO_ROOT" checkout -- taskflow/src-tauri/tauri.conf.json taskflow/package.json taskflow/src-tauri/Cargo.toml taskflow/src-tauri/Cargo.lock
 
 MACOS_BUNDLE_DIR="$TASKFLOW_DIR/src-tauri/target/universal-apple-darwin/release/bundle"
 MACOS_DMG="$MACOS_BUNDLE_DIR/dmg/Taskflow_${VERSION}_universal.dmg"
@@ -147,8 +161,8 @@ if command -v docker &>/dev/null; then
       cargo tauri build --target x86_64-unknown-linux-gnu
     "
 
-  # Restore version-injected files
-  git -C "$REPO_ROOT" checkout -- src-tauri/tauri.conf.json taskflow/package.json src-tauri/Cargo.toml
+  # Restore version-injected files and Cargo.lock to avoid dirty state
+  git -C "$REPO_ROOT" checkout -- taskflow/src-tauri/tauri.conf.json taskflow/package.json taskflow/src-tauri/Cargo.toml taskflow/src-tauri/Cargo.lock
 
   LINUX_APPIMAGE="$LINUX_BUNDLE_DIR/appimage/taskflow_${VERSION}_amd64.AppImage"
   LINUX_APPIMAGE_SIG="$LINUX_BUNDLE_DIR/appimage/taskflow_${VERSION}_amd64.AppImage.tar.gz.sig"
@@ -194,7 +208,7 @@ RELEASE_RESPONSE=$(curl -s -X POST \
 
 RELEASE_ID=$(echo "$RELEASE_RESPONSE" | python3 -c "
 import sys, json
-data = json.load(sys.stdin)
+data = json.loads(sys.stdin.read(), strict=False)
 if 'id' not in data:
     print('Error: GitHub API did not return a release id. Response:', file=sys.stderr)
     print(json.dumps(data, indent=2), file=sys.stderr)
@@ -228,7 +242,7 @@ upload_asset() {
   # Check for errors
   echo "$response" | python3 -c "
 import sys, json
-data = json.load(sys.stdin)
+data = json.loads(sys.stdin.read(), strict=False)
 if 'id' not in data:
     print('Error uploading $name. Response:', file=sys.stderr)
     print(json.dumps(data, indent=2), file=sys.stderr)
@@ -258,15 +272,26 @@ echo "==> Phase F: Generating and uploading latest.json..."
 
 PUB_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
-python3 - "$VERSION" "$MACOS_APP_SIG" "$PUB_DATE" "$TAG_BODY" \
-  $( [[ "$LINUX_BUILD_SUCCESS" == "true" ]] && echo "linux-x86_64 $LINUX_APPIMAGE_TGZ" || true ) \
+# Write tag body to temp file to avoid shell escaping issues with special characters
+printf '%s' "$TAG_BODY" > /tmp/taskflow-tag-body.txt
+
+LINUX_ARG=""
+if [[ "$LINUX_BUILD_SUCCESS" == "true" ]]; then
+  LINUX_ARG="linux-x86_64 $LINUX_APPIMAGE_TGZ"
+fi
+
+python3 - "$VERSION" "$MACOS_APP_SIG" "$PUB_DATE" "/tmp/taskflow-tag-body.txt" \
+  $LINUX_ARG \
   <<'PYEOF' > /tmp/taskflow-latest.json
-import sys, json
+import sys, json, os
 
 version = sys.argv[1]
 sig_file = sys.argv[2]
 pub_date = sys.argv[3]
-notes = sys.argv[4] if len(sys.argv) > 4 else ""
+notes_file = sys.argv[4]
+
+with open(notes_file) as f:
+    notes = f.read().strip()
 
 with open(sig_file) as f:
     macos_sig = f.read().strip()
@@ -289,9 +314,6 @@ data = {
 if len(sys.argv) > 6:
     linux_platform = sys.argv[5]
     linux_tgz = sys.argv[6]
-    linux_sig_file = linux_tgz.replace(".tar.gz", ".tar.gz.sig") if not linux_tgz.endswith(".sig") else linux_tgz + ".sig"
-    # Try both naming conventions
-    import os
     for sig_path in [linux_tgz + ".sig", linux_tgz.replace(".AppImage.tar.gz", ".AppImage.tar.gz.sig")]:
         if os.path.exists(sig_path):
             with open(sig_path) as f:
@@ -313,7 +335,7 @@ LATEST_UPLOAD_RESPONSE=$(curl -s -X POST \
 
 echo "$LATEST_UPLOAD_RESPONSE" | python3 -c "
 import sys, json
-data = json.load(sys.stdin)
+data = json.loads(sys.stdin.read(), strict=False)
 if 'id' not in data:
     print('Error uploading latest.json. Response:', file=sys.stderr)
     print(json.dumps(data, indent=2), file=sys.stderr)
@@ -367,7 +389,7 @@ SHA=$(curl -s -H "$AUTH_HEADER" \
   "$RELEASES_API/contents/README.md" \
   | python3 -c "
 import sys, json
-data = json.load(sys.stdin)
+data = json.loads(sys.stdin.read(), strict=False)
 sha = data.get('sha', '')
 print(sha)
 ")
@@ -385,7 +407,7 @@ UPDATE_RESPONSE=$(curl -s -X PUT \
 
 echo "$UPDATE_RESPONSE" | python3 -c "
 import sys, json
-data = json.load(sys.stdin)
+data = json.loads(sys.stdin.read(), strict=False)
 if 'content' not in data:
     print('Error updating README. Response:', file=sys.stderr)
     print(json.dumps(data, indent=2), file=sys.stderr)
@@ -394,7 +416,18 @@ print('    README updated successfully.')
 "
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PHASE H — Summary
+# PHASE H — Push tag + commits to origin
+# ─────────────────────────────────────────────────────────────────────────────
+
+echo ""
+echo "==> Phase H: Pushing to origin..."
+
+git -C "$REPO_ROOT" push origin main
+git -C "$REPO_ROOT" push origin "v$VERSION"
+echo "    Pushed main and tag v$VERSION to origin."
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PHASE I — Summary
 # ─────────────────────────────────────────────────────────────────────────────
 
 echo ""
