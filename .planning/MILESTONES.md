@@ -1,5 +1,22 @@
 # Milestones
 
+## v1.6.3 Release & Auto-Update Pipeline (Shipped: 2026-03-29)
+
+**Phases completed:** 4 phases (38-41), 10 plans, 13 quick tasks
+**Timeline:** 6 days (2026-03-24 → 2026-03-29)
+**Codebase:** ~51,536 lines TypeScript, 334 files changed (+25,443/−2,497 lines)
+
+**Key accomplishments:**
+
+1. Git-tag-to-runtime version pipeline: inject-version.cjs reads git tag, normalizes to SemVer, and Vite injects APP_VERSION/APP_COMMIT_SHA/APP_BUILD_DATE as typed import.meta.env constants
+2. Tauri updater plugin with 6-state Zustand store, desktop guard, TypeScript service abstraction, and configurable TanStack Query polling (1h/6h/12h/24h/manual)
+3. Update prompt dialog with rendered markdown changelog, download/install/restart flow, and What's New dialog on first launch after update
+4. Two-tier version policy enforcement with fail-open semantics: soft minimum nag banner (dismissible per session) and hard minimum blocking overlay, backed by semver comparison service
+5. About dialog with version/build/platform/update-status info, macOS menu bar integration, Updates settings section with frequency control and version history list
+6. Full release pipeline: local release.sh with husky hooks, git-cliff changelog generation, cross-platform builds verified, Ed25519 signing keys configured
+
+---
+
 ## v1.5 Dashboard Redesign & Feature Parity (Shipped: 2026-03-24)
 
 **Phases completed:** 7 phases, 25 plans, 46 tasks
