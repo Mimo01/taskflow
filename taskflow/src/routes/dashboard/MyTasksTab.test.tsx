@@ -13,6 +13,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('react-router-dom', () => ({
   useOutletContext: () => ({ onIssueClick: vi.fn() }),
   useNavigate: vi.fn(() => vi.fn()),
+  useLocation: vi.fn(() => ({ pathname: '/my-tasks' })),
 }));
 
 // Mock stronghold — avoid real Tauri vault calls

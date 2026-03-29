@@ -21,6 +21,8 @@ import { GitMerge, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useIsActiveRoute } from '@/hooks/useIsActiveRoute';
+import { POLL_INTERVAL_MS, STALE_TIME_MS } from '@/lib/query-constants';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
@@ -113,6 +115,8 @@ export default function MrAttentionTab() {
   // on every mount. The ID is stored during onboarding and token update.
   const userId = gitlabUserId ?? undefined;
 
+  const isActive = useIsActiveRoute('/mr-attention');
+
   // Fetch sprint board issues for the link key set (or read from cache)
   const { data: sprintIssues } = useQuery({
     queryKey: ['jira-issues', 'sprint-board', activeJiraProject],
@@ -178,10 +182,10 @@ export default function MrAttentionTab() {
         merged,
       };
     },
-    refetchInterval: 60_000,
-    refetchIntervalInBackground: true,
-    staleTime: 30_000,
-    enabled: !!gitlabBaseUrl && !!gitlabToken && !!userId,
+    refetchInterval: POLL_INTERVAL_MS,
+    refetchIntervalInBackground: false,
+    staleTime: STALE_TIME_MS,
+    enabled: isActive && !!gitlabBaseUrl && !!gitlabToken && !!userId,
   });
 
   const navigate = useNavigate();

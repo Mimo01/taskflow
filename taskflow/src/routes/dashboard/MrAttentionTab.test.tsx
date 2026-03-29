@@ -14,7 +14,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('react-router-dom', () => ({
   useNavigate: vi.fn(() => vi.fn()),
   useLocation: vi.fn(() => ({
-    pathname: '/dashboard',
+    pathname: '/mr-attention',
     search: '',
     hash: '',
     state: null,
