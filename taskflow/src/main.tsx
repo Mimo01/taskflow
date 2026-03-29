@@ -55,6 +55,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: Infinity, // never evict cache during session (LOAD-02)
       retry: 1,
     },
   },
