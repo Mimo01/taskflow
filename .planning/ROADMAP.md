@@ -132,7 +132,7 @@ See archive: `.planning/milestones/v1.6.3-ROADMAP.md`
   3. A meaningful error boundary (not a white screen) is displayed when a chunk fails to load
   4. React Compiler is active at build time and auto-memoizes components across the codebase
   5. Bundle analysis output identifies the largest chunks and any dead code candidates
-**Plans:** 3/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 - [x] 42-01-PLAN.md — Lazy routes + RouteSpinner + ChunkErrorBoundary
 - [x] 42-02-PLAN.md — React Compiler + manual memo removal
@@ -188,7 +188,7 @@ Plans:
 | 39. Update UX + Version Policy | v1.6.3 | 2/2 | Complete | 2026-03-24 |
 | 40. Settings, About & Menu Integration | v1.6.3 | 3/3 | Complete | 2026-03-25 |
 | 41. CI Pipeline | v1.6.3 | 2/2 | Complete | 2026-03-25 |
-| 42. Foundation | v1.7 | 2/3 | In Progress|  |
+| 42. Foundation | v1.7 | 2/3 | Complete    | 2026-03-29 |
 | 43. Cache Correctness | v1.7 | 0/? | Not started | - |
 | 44. Loading UX | v1.7 | 0/? | Not started | - |
 | 45. Query Optimization | v1.7 | 0/? | Not started | - |
