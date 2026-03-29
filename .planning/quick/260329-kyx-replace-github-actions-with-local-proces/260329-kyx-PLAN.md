@@ -20,7 +20,7 @@ must_haves:
     - "Lint and format checks run automatically before every commit"
     - "Typecheck and tests run automatically before every push"
     - "No GitHub Actions CI workflow exists — all checks are local"
-    - "Running release.sh builds macOS universal binary, creates GitHub release, uploads artifacts, and updates README — all locally"
+    - "Running release.sh builds binaries, creates GitHub release, uploads artifacts, and updates README — all locally"
     - "No GitHub Actions release workflow exists — release is fully local"
     - "bump-version.mjs no longer prints 'Release workflow triggered' since there is no workflow"
   artifacts:
@@ -80,8 +80,45 @@ Monorepo layout: Git root is /Tasker/, npm project is /Tasker/taskflow/. Husky h
 
 <tasks>
 
+<task type="checkpoint:decision" gate="blocking">
+  <name>Task 1: Decide cross-platform build scope</name>
+  <decision>Cross-platform build scope for release.sh</decision>
+  <context>
+The locked decision in CONTEXT.md specifies building all three platforms locally (macOS native, Linux via Docker, Windows via cargo-xwin). However, research found hard technical walls:
+
+- Windows: cargo-xwin is experimental for Tauri, MSI impossible without real Windows, code signing unsupported for cross-builds
+- Linux: requires WebKit2GTK (Linux-only system library), Docker not currently installed on this machine
+- macOS: proven, works natively
+
+This decision MUST be made before implementation begins, as it determines what release.sh builds and uploads.
+  </context>
+  <options>
+    <option id="option-a">
+      <name>All three platforms (per locked decision) — best-effort cross-compile</name>
+      <pros>Honors original decision, attempts full coverage, release.sh includes macOS + Docker Linux + cargo-xwin Windows build steps</pros>
+      <cons>Linux/Windows builds are experimental and may fail; requires Docker install for Linux; Windows cross-compile may produce broken artifacts</cons>
+    </option>
+    <option id="option-b">
+      <name>macOS-only for now, extensible script structure</name>
+      <pros>Ships immediately, proven approach, script has clearly marked sections for adding Linux/Windows later</pros>
+      <cons>No Windows/Linux downloads available yet, deviates from locked decision</cons>
+    </option>
+    <option id="option-c">
+      <name>Keep minimal GitHub Actions for Windows/Linux only</name>
+      <pros>Reliable multi-platform builds, only runs on tag push (minimal CI minutes ~10 min/release), macOS built locally</pros>
+      <cons>Does not fully eliminate GitHub Actions (but reduces usage ~95%), deviates from locked decision</cons>
+    </option>
+    <option id="option-d">
+      <name>macOS + Linux (Docker), skip Windows</name>
+      <pros>Two platforms locally, Docker is installable, Linux cross-compile is more viable than Windows</pros>
+      <cons>Requires Docker install, still no Windows, partially deviates from locked decision</cons>
+    </option>
+  </options>
+  <resume-signal>Select: option-a, option-b, option-c, or option-d (or describe a different approach). Tasks 2 and 3 will implement based on your selection.</resume-signal>
+</task>
+
 <task type="auto">
-  <name>Task 1: Install husky, configure git hooks, remove ci.yml</name>
+  <name>Task 2: Install husky, configure git hooks, remove ci.yml</name>
   <files>taskflow/package.json, taskflow/.husky/pre-commit, taskflow/.husky/pre-push, .github/workflows/ci.yml</files>
   <action>
 1. Install husky as a dev dependency in taskflow/:
@@ -109,7 +146,7 @@ Monorepo layout: Git root is /Tasker/, npm project is /Tasker/taskflow/. Husky h
    ```
    Make executable: chmod +x
 
-5. Delete `.github/workflows/ci.yml` entirely. If `.github/workflows/` directory is now empty (after release.yml is also removed in Task 2), leave it — Task 2 will clean up.
+5. Delete `.github/workflows/ci.yml` entirely. If `.github/workflows/` directory is now empty (after release.yml is also removed in Task 3), leave it — Task 3 will clean up.
 
 Note: Do NOT install lint-staged — keep it simple with full lint on commit since the codebase is small enough. Per Claude's discretion on hook configuration details.
   </action>
@@ -120,9 +157,18 @@ Note: Do NOT install lint-staged — keep it simple with full lint on commit sin
 </task>
 
 <task type="auto">
-  <name>Task 2: Extend release.sh for full local release lifecycle, remove release.yml</name>
+  <name>Task 3: Extend release.sh for full local release lifecycle, remove release.yml</name>
   <files>taskflow/scripts/release.sh, taskflow/scripts/bump-version.mjs, .github/workflows/release.yml</files>
   <action>
+IMPORTANT: Implement this task based on the user's Task 1 checkpoint decision:
+
+- **If option-a (all three platforms):** Include macOS native build, Docker-based Linux build, cargo-xwin Windows build sections. Each platform section should be self-contained and fail gracefully (warn + continue if cross-compile fails, so macOS release still succeeds).
+- **If option-b (macOS-only):** Include only macOS build. Add clearly marked placeholder sections (commented out) for Linux and Windows with TODO notes.
+- **If option-c (macOS local + GH Actions for others):** Include macOS build only in release.sh. Do NOT delete release.yml — instead modify it to only build Windows/Linux (remove macOS job). Update latest.json to only include macOS platforms.
+- **If option-d (macOS + Linux):** Include macOS native build and Docker-based Linux build sections. Add placeholder for Windows.
+
+Regardless of platform decision, the script structure is:
+
 1. Rewrite `taskflow/scripts/release.sh` to handle the FULL release lifecycle locally. The script takes a version argument (e.g., `./scripts/release.sh 1.7.0`) and does everything:
 
    **Phase A — Pre-flight checks (keep existing):**
@@ -135,11 +181,12 @@ Note: Do NOT install lint-staged — keep it simple with full lint on commit sin
    **Phase B — Version bump (delegate to existing bump-version.mjs):**
    - Run `node scripts/bump-version.mjs "$VERSION"` — this handles version files, changelog, commit, tag, push
 
-   **Phase C — Local macOS build:**
-   - Run inject-version.cjs: `eval $(node scripts/inject-version.cjs)`
-   - Build: `npm run build && npx tauri build --target universal-apple-darwin`
+   **Phase C — Local builds (platform-dependent per checkpoint decision):**
+   - macOS: Run inject-version.cjs: `eval $(node scripts/inject-version.cjs)`
+   - macOS: Build: `npm run build && npx tauri build --target universal-apple-darwin`
    - After build, restore version-injected files to avoid dirty state (per research Pitfall 5):
      `git checkout -- src-tauri/tauri.conf.json package.json src-tauri/Cargo.toml`
+   - (Linux/Windows sections as determined by checkpoint decision)
 
    **Phase D — Create GitHub release on Mimo01/taskflow-releases:**
    - Extract tag body: `git tag -l --format='%(contents:body)' "v$VERSION"`
@@ -151,30 +198,33 @@ Note: Do NOT install lint-staged — keep it simple with full lint on commit sin
 
    **Phase E — Upload artifacts:**
    - Upload URL base: `https://uploads.github.com/repos/Mimo01/taskflow-releases/releases/$RELEASE_ID/assets`
-   - Find and upload these files from `src-tauri/target/universal-apple-darwin/release/bundle/`:
+   - Find and upload macOS files from `src-tauri/target/universal-apple-darwin/release/bundle/`:
      - DMG: `dmg/Taskflow_${VERSION}_universal.dmg`
      - App tarball: `macos/Taskflow.app.tar.gz`
      - Signature: `macos/Taskflow.app.tar.gz.sig`
+   - (Upload Linux/Windows artifacts if built per checkpoint decision)
    - For each upload, use: `curl -s -X POST -H "Authorization: token $RELEASES_REPO_TOKEN" -H "Content-Type: application/octet-stream" "$UPLOAD_URL?name=$(basename $FILE)" --data-binary @"$FILE"`
    - Check each upload response for errors
 
    **Phase F — Generate and upload latest.json (Tauri updater manifest):**
    - Read signature from .sig file
-   - Build latest.json with version, notes (tag body), pub_date (ISO 8601), and platforms:
-     - darwin-universal, darwin-x86_64, darwin-aarch64 all pointing to same Taskflow.app.tar.gz URL
-     - URL format: `https://github.com/Mimo01/taskflow-releases/releases/download/v$VERSION/Taskflow.app.tar.gz`
+   - Build latest.json with version, notes (tag body), pub_date (ISO 8601), and platforms
+   - Include platform entries based on what was actually built:
+     - macOS: darwin-universal, darwin-x86_64, darwin-aarch64 all pointing to same Taskflow.app.tar.gz URL
+     - (Linux/Windows entries if those platforms were built)
+   - URL format: `https://github.com/Mimo01/taskflow-releases/releases/download/v$VERSION/{artifact_name}`
    - Upload latest.json as release asset
 
    **Phase G — Update README in releases repo:**
    - Use GitHub Contents API (per research) to update README.md in Mimo01/taskflow-releases
    - GET current README SHA, then PUT with updated content
-   - README content: download links for macOS only (DMG link)
-   - Note in README that Windows/Linux builds are not yet available
+   - README content: download links for platforms that were actually built
+   - Note in README which platforms are not yet available (if any)
 
    **Phase H — Summary:**
    - Print release URL: `https://github.com/Mimo01/taskflow-releases/releases/tag/v$VERSION`
    - Print list of uploaded artifacts
-   - Print reminder about Windows/Linux builds not included
+   - Print note about any platforms not built
 
    Use `set -euo pipefail` throughout. Use AUTH_HEADER variable for DRY auth headers.
    All GitHub API calls use RELEASES_REPO_TOKEN (not GITHUB_TOKEN, not gh CLI — per locked decisions).
@@ -182,49 +232,14 @@ Note: Do NOT install lint-staged — keep it simple with full lint on commit sin
 2. Update `taskflow/scripts/bump-version.mjs`:
    - Change the final console.log from `"Done. Release workflow triggered for v${newVersion}."` to `"Done. Version bumped to v${newVersion}."` — there is no release workflow anymore.
 
-3. Delete `.github/workflows/release.yml`.
+3. Delete `.github/workflows/release.yml` (unless option-c was selected, in which case modify it instead).
 
 4. If `.github/workflows/` directory is now empty, delete it. If `.github/` directory is now empty, delete it too.
   </action>
   <verify>
-    <automated>cd /Users/mimo/Desktop/Tasker/taskflow && test -f scripts/release.sh && grep -q "RELEASES_REPO_TOKEN" scripts/release.sh && grep -q "uploads.github.com" scripts/release.sh && grep -q "latest.json" scripts/release.sh && grep -q "Contents API\|contents/README" scripts/release.sh && test ! -f ../.github/workflows/release.yml && ! grep -q "Release workflow triggered" scripts/bump-version.mjs && echo "PASS"</automated>
+    <automated>cd /Users/mimo/Desktop/Tasker/taskflow && test -f scripts/release.sh && grep -q "RELEASES_REPO_TOKEN" scripts/release.sh && grep -q "uploads.github.com" scripts/release.sh && grep -q "latest.json" scripts/release.sh && grep -q "Contents API\|contents/README" scripts/release.sh && ! grep -q "Release workflow triggered" scripts/bump-version.mjs && echo "PASS"</automated>
   </verify>
-  <done>release.sh handles full lifecycle: pre-flight, version bump, macOS build, GitHub release creation, artifact upload (DMG + tarball + sig + latest.json), README update. release.yml deleted. bump-version.mjs no longer references workflow. Running `cd taskflow && bash scripts/release.sh 1.7.0` with RELEASES_REPO_TOKEN and TAURI_SIGNING_PRIVATE_KEY set will perform a complete macOS-only release.</done>
-</task>
-
-<task type="checkpoint:decision" gate="blocking">
-  <decision>Windows and Linux build strategy</decision>
-  <context>
-Research found that cross-compiling Tauri for Windows and Linux from macOS is NOT production-viable:
-- Windows: cargo-xwin is experimental, MSI impossible without real Windows, code signing unsupported for cross-builds
-- Linux: requires WebKit2GTK (Linux-only system library), Docker not installed on this machine
-- The locked decision was "build all three platforms locally" but this hits a hard technical wall
-
-The release script currently only builds macOS. A strategy is needed for Windows/Linux.
-  </context>
-  <options>
-    <option id="option-a">
-      <name>macOS-only for now</name>
-      <pros>Ships immediately, no additional setup, proven approach</pros>
-      <cons>No Windows/Linux downloads available</cons>
-    </option>
-    <option id="option-b">
-      <name>Install Docker + attempt Linux builds</name>
-      <pros>Adds Linux platform coverage</pros>
-      <cons>Heavy setup (Docker + Ubuntu image with GTK dev libs), untested, still no Windows</cons>
-    </option>
-    <option id="option-c">
-      <name>Keep minimal GitHub Actions for Windows/Linux only</name>
-      <pros>Reliable multi-platform builds, only runs on tag push (minimal CI minutes ~10 min/release)</pros>
-      <cons>Does not fully eliminate GitHub Actions (but reduces usage ~95%)</cons>
-    </option>
-    <option id="option-d">
-      <name>Use a Windows VM/machine for Windows builds</name>
-      <pros>Real Windows build environment, proper code signing possible</pros>
-      <cons>Requires access to Windows machine, manual process</cons>
-    </option>
-  </options>
-  <resume-signal>Select: option-a, option-b, option-c, or option-d (or describe a different approach). This decision can be implemented as a follow-up quick task.</resume-signal>
+  <done>release.sh handles full lifecycle: pre-flight, version bump, platform builds (scope per Task 1 decision), GitHub release creation, artifact upload, latest.json, README update. release.yml deleted (or modified per option-c). bump-version.mjs no longer references workflow. Running `cd taskflow && bash scripts/release.sh 1.7.0` with proper env vars performs a complete local release.</done>
 </task>
 
 </tasks>
@@ -232,17 +247,18 @@ The release script currently only builds macOS. A strategy is needed for Windows
 <verification>
 1. Make a test commit in a branch — husky pre-commit hook should run lint + format:check
 2. Attempt a push — husky pre-push hook should run check + tests
-3. Verify no .github/workflows/ directory exists (or is empty)
+3. Verify no .github/workflows/ directory exists (or only contains modified release.yml if option-c)
 4. Verify release.sh contains all phases A-H and references the correct GitHub API endpoints
-5. Verify bump-version.mjs no longer mentions "Release workflow triggered"
+5. Verify release.sh platform build scope matches the Task 1 checkpoint decision
+6. Verify bump-version.mjs no longer mentions "Release workflow triggered"
 </verification>
 
 <success_criteria>
 - `git commit` triggers local lint + format check via husky pre-commit hook
 - `git push` triggers local typecheck + test suite via husky pre-push hook
-- No GitHub Actions workflows exist in the repository
-- `release.sh 1.7.0` (with proper env vars) would build macOS, create release, upload artifacts, update README — all locally
-- User has decided on Windows/Linux strategy for future implementation
+- No GitHub Actions CI workflow exists in the repository
+- release.sh builds platforms per user's Task 1 decision, creates release, uploads artifacts, updates README — all locally
+- Release workflow either deleted or modified per user's platform decision
 </success_criteria>
 
 <output>
