@@ -3,11 +3,8 @@ import type { RouteObject } from 'react-router-dom';
 import { ChunkErrorBoundary } from '../components/ChunkErrorBoundary';
 import { RouteSpinner } from '../components/ui/route-spinner';
 import Dashboard from './dashboard/index';
-import MergeRequestDetailPage from './dashboard/MergeRequestDetailPage';
-import MergeRequestListPage from './dashboard/MergeRequestListPage';
 import MrAttentionTab from './dashboard/MrAttentionTab';
 import MyTasksTab from './dashboard/MyTasksTab';
-import ReleaseDetailPage from './dashboard/ReleaseDetailPage';
 import ReleasesTab from './dashboard/ReleasesTab';
 import DevTools from './dev-tools/index';
 import Onboarding from './onboarding/index';
@@ -19,6 +16,9 @@ const IssueDetailPage = lazy(() => import('./dashboard/IssueDetailPage'));
 const EpicsPage = lazy(() => import('./dashboard/EpicsPage'));
 const WorkloadTab = lazy(() => import('./dashboard/WorkloadTab'));
 const SprintProgressTab = lazy(() => import('./dashboard/SprintProgressTab'));
+const ReleaseDetailPage = lazy(() => import('./dashboard/ReleaseDetailPage'));
+const MergeRequestListPage = lazy(() => import('./dashboard/MergeRequestListPage'));
+const MergeRequestDetailPage = lazy(() => import('./dashboard/MergeRequestDetailPage'));
 
 function withLazy(Component: ComponentType) {
   return (
@@ -42,9 +42,9 @@ export const routes: RouteObject[] = [
   { path: '/sprint-progress', element: withLazy(SprintProgressTab) },
   { path: '/workload', element: withLazy(WorkloadTab) },
   { path: '/releases', element: <ReleasesTab /> },
-  { path: '/release/:versionId', element: <ReleaseDetailPage /> },
+  { path: '/release/:versionId', element: withLazy(ReleaseDetailPage) },
   { path: '/dev-tools', element: <DevTools /> },
   { path: '/issue/:key', element: withLazy(IssueDetailPage) },
-  { path: '/merge-requests', element: <MergeRequestListPage /> },
-  { path: '/mr/:projectId/:iid', element: <MergeRequestDetailPage /> },
+  { path: '/merge-requests', element: withLazy(MergeRequestListPage) },
+  { path: '/mr/:projectId/:iid', element: withLazy(MergeRequestDetailPage) },
 ];
