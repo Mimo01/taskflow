@@ -149,11 +149,28 @@ pub fn run() {
                 ],
             )?;
 
+            // --- Edit menu (required on macOS for Cmd+V/C/X/A/Z to reach the webview) ---
+            let edit_menu = Submenu::with_items(
+                handle,
+                "Edit",
+                true,
+                &[
+                    &PredefinedMenuItem::undo(handle, None)?,
+                    &PredefinedMenuItem::redo(handle, None)?,
+                    &PredefinedMenuItem::separator(handle)?,
+                    &PredefinedMenuItem::cut(handle, None)?,
+                    &PredefinedMenuItem::copy(handle, None)?,
+                    &PredefinedMenuItem::paste(handle, None)?,
+                    &PredefinedMenuItem::select_all(handle, None)?,
+                ],
+            )?;
+
             // Build full menu bar
             let menu = Menu::with_items(
                 handle,
                 &[
                     &app_menu,
+                    &edit_menu,
                     &go_menu,
                     &help_menu,
                 ],
