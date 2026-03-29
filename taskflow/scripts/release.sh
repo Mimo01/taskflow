@@ -256,83 +256,8 @@ fi
 echo ""
 echo "==> Phase F: Generating and uploading latest.json..."
 
-MACOS_SIG="$(cat "$MACOS_APP_SIG")"
 PUB_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-MACOS_URL="https://github.com/Mimo01/taskflow-releases/releases/download/v$VERSION/Taskflow.app.tar.gz"
 
-# Build platforms JSON
-PLATFORMS_JSON=$(python3 -c "
-import json
-macos_entry = {
-    'signature': '$MACOS_SIG',
-    'url': '$MACOS_URL'
-}
-platforms = {
-    'darwin-universal': macos_entry,
-    'darwin-x86_64': macos_entry,
-    'darwin-aarch64': macos_entry
-}
-" 2>/dev/null || true)
-
-# Use python3 for full JSON construction (avoids shell quoting nightmares)
-LATEST_JSON=$(python3 << PYEOF
-import json
-
-macos_sig = open("$MACOS_APP_SIG").read().strip()
-macos_url = "https://github.com/Mimo01/taskflow-releases/releases/download/v$VERSION/Taskflow.app.tar.gz"
-macos_entry = {"signature": macos_sig, "url": macos_url}
-
-platforms = {
-    "darwin-universal": macos_entry,
-    "darwin-x86_64": macos_entry,
-    "darwin-aarch64": macos_entry
-}
-
-PYEOF
-)
-
-# Re-build correctly without heredoc variable confusion
-python3 - "$VERSION" "$MACOS_APP_SIG" "$PUB_DATE" <<'PYEOF' > /tmp/taskflow-latest.json
-import sys, json
-
-version = sys.argv[1]
-sig_file = sys.argv[2]
-pub_date = sys.argv[3]
-
-with open(sig_file) as f:
-    macos_sig = f.read().strip()
-
-macos_url = f"https://github.com/Mimo01/taskflow-releases/releases/download/v{version}/Taskflow.app.tar.gz"
-macos_entry = {"signature": macos_sig, "url": macos_url}
-
-data = {
-    "version": version,
-    "notes": "",
-    "pub_date": pub_date,
-    "platforms": {
-        "darwin-universal": macos_entry,
-        "darwin-x86_64": macos_entry,
-        "darwin-aarch64": macos_entry
-    }
-}
-
-# Add Linux if available (passed as optional extra args)
-for i in range(4, len(sys.argv), 2):
-    platform = sys.argv[i]
-    linux_tgz = sys.argv[i+1]
-    linux_sig_file = linux_tgz + ".sig"
-    try:
-        with open(linux_sig_file) as f:
-            linux_sig = f.read().strip()
-        linux_url = f"https://github.com/Mimo01/taskflow-releases/releases/download/v{version}/{linux_tgz.split('/')[-1]}"
-        data["platforms"][platform] = {"signature": linux_sig, "url": linux_url}
-    except FileNotFoundError:
-        pass
-
-print(json.dumps(data, indent=2))
-PYEOF
-
-# Inject tag body as notes
 python3 - "$VERSION" "$MACOS_APP_SIG" "$PUB_DATE" "$TAG_BODY" \
   $( [[ "$LINUX_BUILD_SUCCESS" == "true" ]] && echo "linux-x86_64 $LINUX_APPIMAGE_TGZ" || true ) \
   <<'PYEOF' > /tmp/taskflow-latest.json
