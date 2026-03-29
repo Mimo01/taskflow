@@ -1,4 +1,25 @@
 
+## [1.6.3]
+
+### Bug Fixes
+
+- tighten changelog list item margins in update dialogs
+- remove broken auto-restart countdown, relaunch immediately after update
+- harden release.sh with auto-credentials, correct paths, and git push
+
+### Documentation
+
+- update retrospective for v1.6.3
+
+### Features
+
+- polish settings release history changelog rendering
+- widen update dialogs and expand changelog areas
+
+### Miscellaneous
+
+- archive v1.6.3 phase directories
+- complete v1.6.3 milestone
 ## [1.6.2]
 
 ### Bug Fixes
