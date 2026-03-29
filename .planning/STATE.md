@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Performance & Perceived Speed
 status: executing
-stopped_at: Phase 43 UI-SPEC approved
+stopped_at: Completed 43-02-PLAN.md
 last_updated: "2026-03-29T21:05:37.704Z"
 last_activity: 2026-03-29 -- Phase 43 execution started
 progress:
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 
 ## Current Position
 
-Phase: 43 (cache-correctness) — EXECUTING
-Plan: 1 of 2
-Status: Executing Phase 43
-Last activity: 2026-03-29 -- Phase 43 execution started
+Phase: 43 (cache-correctness) — COMPLETE
+Plan: 2 of 2 (complete)
+Status: Phase 43 complete
+Last activity: 2026-03-29 -- Phase 43 plan 02 complete
 
 Progress: [████████░░] 78% (v1.6.3 complete, v1.7 in progress)
 
@@ -45,6 +45,7 @@ Recent decisions affecting current work:
 - v1.7 (research): staleTime must remain < refetchInterval for all polled queries — violating this silently disables notification polling in production while tests still pass
 - [Phase 42-foundation]: Used @rolldown/plugin-babel with reactCompilerPreset from @vitejs/plugin-react v6 to enable React Compiler; babel-plugin-react-compiler pinned at 1.0.0
 - [Phase 42-foundation]: Removed all useMemo/useCallback/memo from 35 files; useDebounce uses fnRef pattern for stable function identity without useCallback
+- [Phase 43-02]: Test mocks for useLocation return tab's own route pathname so isActive=true and queries remain enabled in tests
 
 ### Pending Todos
 
