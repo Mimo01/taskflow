@@ -3,6 +3,7 @@
 
 ### Bug Fixes
 
+- handle idempotent version bump and existing tags in bump-version.mjs
 - tighten changelog list item margins in update dialogs
 - remove broken auto-restart countdown, relaunch immediately after update
 - harden release.sh with auto-credentials, correct paths, and git push
