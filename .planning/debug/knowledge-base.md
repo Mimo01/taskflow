@@ -35,3 +35,11 @@ Resolved debug sessions. Used by `gsd-debugger` to surface known-pattern hypothe
 - **Fix:** Before the OS dispatch loop, capture existing store item IDs into a Set. Skip `tryDispatchOsNotification` for any item whose ID is already in that Set.
 - **Files changed:** taskflow/src/hooks/useNotificationPolling.ts
 ---
+
+## wizard-paste-broken — Cmd+V paste silently fails in all Tauri webview inputs on macOS
+- **Date:** 2026-03-29
+- **Error patterns:** paste, Cmd+V, clipboard, input, nothing happens, ignored, wizard, macOS, Edit menu, PredefinedMenuItem
+- **Root cause:** Tauri app `lib.rs` defined custom macOS menu bar (App, Go, Help) but omitted the standard Edit menu. On macOS, clipboard shortcuts (Cmd+V/C/X/A/Z) are routed through the OS menu system. Without `PredefinedMenuItem::paste/copy/cut/select_all/undo/redo` in an Edit submenu, macOS never dispatches these keystrokes to the webview.
+- **Fix:** Added Edit submenu to the Tauri menu bar in `lib.rs` with `PredefinedMenuItem::undo`, `redo`, separator, `cut`, `copy`, `paste`, `select_all`.
+- **Files changed:** taskflow/src-tauri/src/lib.rs
+---
