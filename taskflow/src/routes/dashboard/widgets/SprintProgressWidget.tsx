@@ -6,7 +6,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchSprintIssues } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
@@ -34,7 +34,7 @@ export default function SprintProgressWidget(_props: { widgetId: string }) {
     staleTime: 30_000,
   });
 
-  const computed = useMemo(() => {
+  const computed = (() => {
     const issues = data ?? [];
     const stories = issues.filter((i) => !i.fields.issuetype?.subtask);
     let todo = 0;
@@ -51,7 +51,7 @@ export default function SprintProgressWidget(_props: { widgetId: string }) {
     const inProgPct = total > 0 ? Math.round((inProgress / total) * 100) : 0;
     const donePct = total > 0 ? 100 - todoPct - inProgPct : 0;
     return { todo, inProgress, done, total, todoPct, inProgPct, donePct };
-  }, [data]);
+  })();
 
   if (!jiraToken || !jiraBaseUrl || !activeJiraProject || isLoading) {
     return (

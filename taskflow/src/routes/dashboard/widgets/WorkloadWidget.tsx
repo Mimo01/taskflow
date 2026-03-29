@@ -7,7 +7,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { Users } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchSprintIssues } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
@@ -41,7 +41,7 @@ export default function WorkloadWidget(_props: { widgetId: string }) {
     staleTime: 30_000,
   });
 
-  const rows = useMemo((): CompactWorkloadRow[] => {
+  const rows: CompactWorkloadRow[] = (() => {
     const issues = data ?? [];
     const stories = issues.filter((i) => !i.fields.issuetype?.subtask);
     const map = new Map<string, CompactWorkloadRow>();
@@ -56,9 +56,9 @@ export default function WorkloadWidget(_props: { widgetId: string }) {
     return Array.from(map.values()).sort(
       (a, b) => b.points - a.points || a.name.localeCompare(b.name),
     );
-  }, [data, storyPointsFieldKey]);
+  })();
 
-  const maxPts = useMemo(() => Math.max(1, ...rows.map((r) => r.points)), [rows]);
+  const maxPts = Math.max(1, ...rows.map((r) => r.points));
 
   if (!jiraToken || !jiraBaseUrl || !activeJiraProject || isLoading) {
     return (

@@ -7,7 +7,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { Tag } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchFixVersions } from '@/services/jira';
@@ -38,17 +38,18 @@ export default function ReleasesWidget(_props: { widgetId: string }) {
     staleTime: 5 * 60_000,
   });
 
-  const releases = useMemo(() => {
-    if (!fixVersions) return [];
-    // Show unreleased first (sorted by date asc), then released (newest first) -- take 5 total
-    const unreleased = fixVersions
-      .filter((v) => !v.released)
-      .sort((a, b) => (a.releaseDate ?? '').localeCompare(b.releaseDate ?? ''));
-    const released = fixVersions
-      .filter((v) => v.released)
-      .sort((a, b) => (b.releaseDate ?? '').localeCompare(a.releaseDate ?? ''));
-    return [...unreleased, ...released].slice(0, 5);
-  }, [fixVersions]);
+  const releases = !fixVersions
+    ? []
+    : (() => {
+        // Show unreleased first (sorted by date asc), then released (newest first) -- take 5 total
+        const unreleased = fixVersions
+          .filter((v) => !v.released)
+          .sort((a, b) => (a.releaseDate ?? '').localeCompare(b.releaseDate ?? ''));
+        const released = fixVersions
+          .filter((v) => v.released)
+          .sort((a, b) => (b.releaseDate ?? '').localeCompare(a.releaseDate ?? ''));
+        return [...unreleased, ...released].slice(0, 5);
+      })();
 
   if (!jiraToken || !jiraBaseUrl || !activeJiraProject || isLoading) {
     return (
