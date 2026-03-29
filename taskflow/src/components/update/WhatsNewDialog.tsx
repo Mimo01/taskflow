@@ -38,7 +38,7 @@ export function WhatsNewDialog() {
           <DialogTitle>What&apos;s New in v{buildInfo.version}</DialogTitle>
           <DialogDescription>Here&apos;s what changed in this update</DialogDescription>
         </DialogHeader>
-        <div className="max-h-80 overflow-y-auto prose prose-sm dark:prose-invert max-w-none [&>h2]:text-sm [&>h2]:font-semibold [&>h2]:mt-3 [&>h2]:mb-1 [&>ul]:my-1 [&>ul]:pl-4">
+        <div className="max-h-80 overflow-y-auto prose prose-sm dark:prose-invert max-w-none [&>h2]:text-sm [&>h2]:font-semibold [&>h2]:mt-3 [&>h2]:mb-1 [&>ul]:my-1 [&>ul]:pl-4 [&_li]:my-0 [&_p]:my-1">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{lastSeenChangelog ?? ''}</ReactMarkdown>
         </div>
         <DialogFooter>
