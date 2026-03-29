@@ -50,9 +50,11 @@ Exceptions: none — this phase adds no new layout surfaces; all spacing follows
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 14px | 400 | 1.5 |
-| Label | 12px | 500 | 1.4 |
+| Label | 12px | 400 | 1.4 |
 | Heading | 24px | 600 | 1.2 |
 | Display | 28px | 600 | 1.2 |
+
+Weights: 400 (normal) for Body and Label; 600 (semibold) for Heading and Display. The 12px size is sufficient to distinguish Label from Body without a third weight.
 
 Source: Inferred from `ErrorPage.tsx` — `text-2xl font-semibold` (h1), `text-sm text-muted-foreground` (body), standard shadcn base-nova scale. No new type sizes introduced in this phase.
 
@@ -67,7 +69,7 @@ Source: Inferred from `ErrorPage.tsx` — `text-2xl font-semibold` (h1), `text-s
 | Accent (10%) | `oklch(0.97 0 0)` light / `oklch(0.269 0 0)` dark | Hover states, muted containers (`--accent`, `--muted`) |
 | Destructive | `oklch(0.577 0.245 27.325)` light / `oklch(0.704 0.191 22.216)` dark | Chunk-load error boundary icon only (`--destructive`) |
 
-Accent reserved for: hover/focus backgrounds on the Retry button ghost variant in the chunk-load error boundary; no new interactive elements are introduced in this phase.
+Accent reserved for: hover/focus backgrounds on the Retry Loading button ghost variant in the chunk-load error boundary; no new interactive elements are introduced in this phase.
 
 Source: `taskflow/src/index.css` CSS custom properties.
 
@@ -90,7 +92,7 @@ Decision D-04 (42-CONTEXT.md): simple centered spinner, no text label visible on
 |---------|------|
 | Error heading | "Something went wrong loading this page" |
 | Error body | "The page failed to load. Check your connection and try again." |
-| Primary CTA | "Retry" |
+| Primary CTA | "Retry Loading" |
 | Secondary CTA | "Go to Dashboard" |
 | Destructive confirmation | none — no destructive actions in this phase |
 
@@ -116,7 +118,7 @@ Existing components reused:
 | Component | Path | Usage |
 |-----------|------|-------|
 | `ErrorPage` | `src/routes/error/ErrorPage.tsx` | Styling reference and layout pattern for `ChunkErrorBoundary` |
-| `Button` | `src/components/ui/button.tsx` | "Retry" (variant: ghost, size: lg) and "Go to Dashboard" (variant: default, size: lg) in error boundary |
+| `Button` | `src/components/ui/button.tsx` | "Retry Loading" (variant: ghost, size: lg) and "Go to Dashboard" (variant: default, size: lg) in error boundary |
 
 ---
 
@@ -131,7 +133,7 @@ Existing components reused:
 - Renders: `AlertTriangle` icon in `bg-destructive/10 text-destructive` circle (56px, matches `ErrorPage`)
 - Heading: `text-2xl font-semibold tracking-tight`
 - Body: `text-sm text-muted-foreground`
-- Retry button: `variant="ghost" size="lg"` with `RefreshCw` icon — calls `window.location.reload()`
+- Retry Loading button: `variant="ghost" size="lg"` with `RefreshCw` icon — calls `window.location.reload()`
 - Dashboard button: `variant="default" size="lg"` with `Home` icon — navigates to `/dashboard`
 - Layout: `min-h-screen flex items-center justify-center bg-background px-4` (identical to `ErrorPage`)
 
