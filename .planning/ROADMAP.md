@@ -210,7 +210,10 @@ Plans:
   6. Dead fetchSprintIssues mock removed from SprintBoardTab.test.tsx
   7. stats.html cleaned up
   8. Nyquist compliance achieved for phases 43-46
-Plans: 0/0
+**Plans:** 2 plans
+Plans:
+- [ ] 47-01-PLAN.md — Code debt: BacklogPage constant, dead mock removal, stats.html gitignore
+- [ ] 47-02-PLAN.md — Doc cleanup: requirement checkboxes, ROADMAP checkboxes, SUMMARY frontmatter, Nyquist compliance
 
 ## Progress
 
@@ -225,4 +228,4 @@ Plans: 0/0
 | 44. Loading UX | v1.7 | 4/4 | Complete    | 2026-03-30 |
 | 45. Query Optimization | v1.7 | 2/3 | Complete    | 2026-03-30 |
 | 46. Avatar Caching | v1.7 | 2/2 | Complete    | 2026-03-30 |
-| 47. v1.7 Debt Cleanup | v1.7 | 0/0 | Pending     | — |
+| 47. v1.7 Debt Cleanup | v1.7 | 0/2 | Pending     | — |
