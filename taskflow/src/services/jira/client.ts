@@ -7,6 +7,7 @@
 
 import { ApiError } from '../../lib/api-error';
 import { apiFetch } from '../../lib/apiFetch';
+import { getJiraLimit } from '../../lib/concurrency';
 import type { JiraIssue } from './types';
 
 export const PAGE_SIZE = 200;
@@ -64,7 +65,9 @@ export async function fetchAllSearchPages(
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const url = `${baseSearchUrl}&maxResults=${PAGE_SIZE}&startAt=${startAt}`;
-    const response = await apiFetch('jira', url, { headers }, 'Search Issues');
+    const response = await getJiraLimit()(() =>
+      apiFetch('jira', url, { headers }, 'Search Issues'),
+    );
 
     if (!response.ok) {
       if (startAt === 0) {
