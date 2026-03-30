@@ -12,7 +12,10 @@ vi.mock('@/services/stronghold', () => ({
 // Mock auth store
 vi.mock('@/stores/auth.store', () => ({
   useAuthStore: {
-    getState: vi.fn().mockReturnValue({ jiraBaseUrl: 'https://jira.example.com' }),
+    getState: vi.fn().mockReturnValue({
+      jiraBaseUrl: 'https://jira.example.com',
+      gitlabBaseUrl: 'https://gitlab.example.com',
+    }),
   },
 }));
 
@@ -155,5 +158,43 @@ describe('avatarCache service', () => {
 
     expect(result).toBeNull();
     expect(getCachedBlobUrl(url)).toBeNull();
+  });
+
+  it('Test 9: Jira auth — sends Authorization Bearer header for Jira avatar URLs', async () => {
+    makeFetchSuccess();
+    const { readSecret } = await import('@/services/stronghold');
+    const { fetchAndCacheAvatar } = await import('@/services/avatarCache');
+
+    const url = 'https://jira.example.com/secure/useravatar?ownerId=alice&avatarId=10000';
+    await fetchAndCacheAvatar(url);
+
+    expect(readSecret).toHaveBeenCalledWith('jira-pat');
+    expect(mockFetch).toHaveBeenCalledWith(url, {
+      headers: { Authorization: 'Bearer test-token' },
+    });
+  });
+
+  it('Test 10: GitLab auth — sends PRIVATE-TOKEN header for GitLab avatar URLs', async () => {
+    makeFetchSuccess();
+    const { readSecret } = await import('@/services/stronghold');
+    const { fetchAndCacheAvatar } = await import('@/services/avatarCache');
+
+    const url = 'https://gitlab.example.com/uploads/user/avatar/42/photo.jpg';
+    await fetchAndCacheAvatar(url);
+
+    expect(readSecret).toHaveBeenCalledWith('gitlab-pat');
+    expect(mockFetch).toHaveBeenCalledWith(url, {
+      headers: { 'PRIVATE-TOKEN': 'test-token' },
+    });
+  });
+
+  it('Test 11: external URL — no auth headers for third-party avatar URLs', async () => {
+    makeFetchSuccess();
+    const { fetchAndCacheAvatar } = await import('@/services/avatarCache');
+
+    const url = 'https://secure.gravatar.com/avatar/abc123';
+    await fetchAndCacheAvatar(url);
+
+    expect(mockFetch).toHaveBeenCalledWith(url, undefined);
   });
 });

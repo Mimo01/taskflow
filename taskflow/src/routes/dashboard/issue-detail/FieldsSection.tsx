@@ -2,6 +2,7 @@ import type { UseMutationResult } from '@tanstack/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -337,10 +338,21 @@ export function FieldsSection({
         <Popover open={assigneeOpen} onOpenChange={setAssigneeOpen}>
           <PopoverTrigger
             data-testid="assignee-edit"
-            className="hover:bg-accent rounded px-1 -ml-1 cursor-pointer text-left text-sm"
+            className="hover:bg-accent rounded px-1 -ml-1 cursor-pointer text-left text-sm inline-flex items-center gap-1.5"
             title="Click to change assignee"
           >
-            {f.assignee?.displayName ?? 'Unassigned'}
+            {f.assignee ? (
+              <>
+                <CachedAvatar
+                  url={f.assignee.avatarUrls?.['48x48']}
+                  name={f.assignee.displayName}
+                  size={20}
+                />
+                {f.assignee.displayName}
+              </>
+            ) : (
+              'Unassigned'
+            )}
           </PopoverTrigger>
           <PopoverContent className="w-60 p-2">
             <Input
@@ -374,7 +386,20 @@ export function FieldsSection({
         </Popover>
       </MetaRow>
 
-      <MetaRow label="Reporter">{f.reporter?.displayName ?? '—'}</MetaRow>
+      <MetaRow label="Reporter">
+        {f.reporter ? (
+          <span className="inline-flex items-center gap-1.5">
+            <CachedAvatar
+              url={f.reporter.avatarUrls?.['48x48']}
+              name={f.reporter.displayName}
+              size={20}
+            />
+            {f.reporter.displayName}
+          </span>
+        ) : (
+          '—'
+        )}
+      </MetaRow>
 
       {/* Story Points -- stories only */}
       {isStory && (

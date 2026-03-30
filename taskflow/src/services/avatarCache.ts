@@ -79,13 +79,18 @@ export async function fetchAndCacheAvatar(originalUrl: string): Promise<string |
 
   const promise = (async (): Promise<string | null> => {
     try {
-      // Build headers — add auth for Jira URLs
+      // Build headers — add auth for Jira and GitLab URLs
       const headers: Record<string, string> = {};
-      const jiraBaseUrl = useAuthStore.getState().jiraBaseUrl;
+      const { jiraBaseUrl, gitlabBaseUrl } = useAuthStore.getState();
       if (jiraBaseUrl && originalUrl.startsWith(jiraBaseUrl.replace(/\/$/, ''))) {
         const token = await readSecret('jira-pat').catch(() => null);
         if (token) {
           headers['Authorization'] = `Bearer ${token}`;
+        }
+      } else if (gitlabBaseUrl && originalUrl.startsWith(gitlabBaseUrl.replace(/\/$/, ''))) {
+        const token = await readSecret('gitlab-pat').catch(() => null);
+        if (token) {
+          headers['PRIVATE-TOKEN'] = token;
         }
       }
 
