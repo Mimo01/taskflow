@@ -13,7 +13,7 @@
  * Story points field key comes from useSettingsStore (not hardcoded).
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BarChart3, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useIsActiveRoute } from '@/hooks/useIsActiveRoute';
@@ -21,10 +21,12 @@ import { POLL_INTERVAL_MS, STALE_TIME_MS } from '@/lib/query-constants';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { fetchSprintIssues } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { SprintProgressSkeleton } from './SprintProgressSkeleton';
 
 function formatSeconds(secs: number): string {
   if (secs === 0) return '0h';
@@ -58,6 +60,14 @@ export default function SprintProgressTab() {
     refetchIntervalInBackground: false,
     staleTime: STALE_TIME_MS,
   });
+
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const showSkeleton = useDelayedLoading(isLoading) || isRefreshing;
+
+  useEffect(() => {
+    if (!isLoading) setIsRefreshing(false);
+  }, [isLoading]);
 
   const [bannerDismissed, setBannerDismissed] = useState(false);
   useEffect(() => {
@@ -201,7 +211,10 @@ export default function SprintProgressTab() {
         <span className="text-xs text-muted-foreground">{lastRefreshed}</span>
         <button
           type="button"
-          onClick={() => refetch()}
+          onClick={() => {
+            setIsRefreshing(true);
+            queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
+          }}
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
           aria-label="Refresh"
         >
@@ -211,30 +224,33 @@ export default function SprintProgressTab() {
       </div>
 
       {/* Loading skeleton */}
-      {isLoading && (
-        <div className="flex flex-col gap-2">
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              data-testid="skeleton-row"
-              className="h-8 rounded bg-muted animate-pulse"
-            />
-          ))}
-        </div>
-      )}
+      {showSkeleton && <SprintProgressSkeleton />}
 
       {/* Error state — no cached data */}
       {isError && !data && (
-        <ErrorState error={error} onRetry={refetch} viewName="sprint progress" />
+        <ErrorState
+          error={error}
+          onRetry={() => {
+            setIsRefreshing(true);
+            queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
+          }}
+          viewName="sprint progress"
+        />
       )}
 
       {/* Stale data banner — error with cached data */}
       {isError && data && !bannerDismissed && (
-        <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
+        <StaleDataBanner
+          onRetry={() => {
+            setIsRefreshing(true);
+            queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
+          }}
+          onDismiss={() => setBannerDismissed(true)}
+        />
       )}
 
       {/* Empty state — no issues in sprint */}
-      {!isLoading && !isError && data && data.length === 0 && (
+      {!showSkeleton && !isError && data && data.length === 0 && (
         <EmptyState
           icon={BarChart3}
           title="No sprint data yet"
@@ -243,7 +259,7 @@ export default function SprintProgressTab() {
       )}
 
       {/* Content */}
-      {!isLoading && !isError && data && data.length > 0 && (
+      {!showSkeleton && !isError && data && data.length > 0 && (
         <div className="flex flex-col gap-4">
           {/* Status bucket rows — unchanged labels, unchanged dot colors */}
           <div className="flex flex-col gap-2">

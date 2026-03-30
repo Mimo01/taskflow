@@ -11,7 +11,7 @@
  * People who appear only in worklogs (not assigned to any story) get a workload row (count=0, pts=0).
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronRight, RefreshCw, Users } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useIsActiveRoute } from '@/hooks/useIsActiveRoute';
@@ -19,10 +19,12 @@ import { POLL_INTERVAL_MS, STALE_TIME_MS } from '@/lib/query-constants';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { fetchIssueWorklogs, fetchSprintIssues } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { WorkloadSkeleton } from './WorkloadSkeleton';
 
 interface WorkloadSubtaskRow {
   key: string;
@@ -89,6 +91,14 @@ export default function WorkloadTab() {
     refetchIntervalInBackground: false,
     staleTime: STALE_TIME_MS,
   });
+
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const showSkeleton = useDelayedLoading(isLoading) || isRefreshing;
+
+  useEffect(() => {
+    if (!isLoading) setIsRefreshing(false);
+  }, [isLoading]);
 
   // Reset banner dismissal when error state changes
   useEffect(() => {
@@ -324,7 +334,10 @@ export default function WorkloadTab() {
         <span className="text-xs text-muted-foreground">{lastRefreshed}</span>
         <button
           type="button"
-          onClick={() => refetch()}
+          onClick={() => {
+            setIsRefreshing(true);
+            queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
+          }}
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
           aria-label="Refresh"
         >
@@ -334,28 +347,33 @@ export default function WorkloadTab() {
       </div>
 
       {/* Loading skeleton */}
-      {isLoading && (
-        <div className="flex flex-col gap-2">
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              data-testid="skeleton-row"
-              className="h-8 rounded bg-muted animate-pulse"
-            />
-          ))}
-        </div>
-      )}
+      {showSkeleton && <WorkloadSkeleton />}
 
       {/* Error state — full error when no cached data */}
-      {isError && !data && <ErrorState error={error} onRetry={refetch} viewName="workload" />}
+      {isError && !data && (
+        <ErrorState
+          error={error}
+          onRetry={() => {
+            setIsRefreshing(true);
+            queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
+          }}
+          viewName="workload"
+        />
+      )}
 
       {/* Stale data banner — error with cached data still visible */}
       {isError && data && !bannerDismissed && (
-        <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
+        <StaleDataBanner
+          onRetry={() => {
+            setIsRefreshing(true);
+            queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
+          }}
+          onDismiss={() => setBannerDismissed(true)}
+        />
       )}
 
       {/* Content */}
-      {!isLoading &&
+      {!showSkeleton &&
         !isError &&
         (rows.length === 0 ? (
           <EmptyState
