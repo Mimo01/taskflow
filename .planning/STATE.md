@@ -66,7 +66,7 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-03-30 - Completed quick task 260330-wqj: Strikethrough done issue keys in sprint board and backlog
+Last activity: 2026-03-30 - Completed quick task 260330-wrg: Redesign sprint board subtask card to match Jira style and improve content clarity
 Stopped at: Completed quick-260330-wqj
 Resume: `/gsd:plan-phase 38`
 
@@ -91,3 +91,4 @@ Resume: `/gsd:plan-phase 38`
 | 260330-r56 | Replace sprint board drag-and-drop with right-click status transition popup | 2026-03-30 | 74ef958 | | [260330-r56-replace-sprint-board-drag-and-drop-with-](./quick/260330-r56-replace-sprint-board-drag-and-drop-with-/) |
 | 260330-wj6 | Better communicate that sprint board task headers and cards are clickable | 2026-03-30 | f0d360f | | [260330-wj6-better-communicate-that-sprint-board-tas](./quick/260330-wj6-better-communicate-that-sprint-board-tas/) |
 | 260330-wqj | Strikethrough done issue keys in sprint board and backlog | 2026-03-30 | — | | [260330-wqj-subtasks-and-stories-that-are-done-shoul](./quick/260330-wqj-subtasks-and-stories-that-are-done-shoul/) |
+| 260330-wrg | Redesign sprint board subtask card to match Jira style | 2026-03-30 | — | | [260330-wrg-redesign-sprint-board-subtask-card-to-ma](./quick/260330-wrg-redesign-sprint-board-subtask-card-to-ma/) |
