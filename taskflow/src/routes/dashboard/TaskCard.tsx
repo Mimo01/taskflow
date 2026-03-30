@@ -1,8 +1,9 @@
 /**
  * TaskCard — Compact Jira issue card for the Sprint Board view.
  *
- * Shows issue key, summary (2-line clamp), assignee avatar (or initials),
- * and a health dot slot (gray if undefined, colored if Plan 03 provides health).
+ * Shows issue key + type name (top row), summary (2-line clamp),
+ * and a bottom row with assignee avatar (left), story points badge and
+ * status badge (right). Matches Jira's familiar card layout.
  *
  * Extended props (HIER-02):
  * - subtaskCount: when > 0, renders a Badge chip and chevron toggle button
@@ -31,17 +32,9 @@ import {
 import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraIssue, JiraTransition } from '@/services/jira';
-import type { ReviewHealth } from '@/services/linkEngine';
-
-const HEALTH_COLORS: Record<ReviewHealth, string> = {
-  approved: 'bg-green-500',
-  changes_requested: 'bg-red-500',
-  waiting_for_review: 'bg-amber-400',
-};
 
 interface TaskCardProps {
   issue: JiraIssue;
-  healthDot?: ReviewHealth;
   subtaskCount?: number;
   isExpanded?: boolean;
   onToggle?: () => void;
@@ -63,7 +56,6 @@ interface TaskCardProps {
 
 export default function TaskCard({
   issue,
-  healthDot,
   subtaskCount,
   isExpanded,
   onToggle,
@@ -77,8 +69,8 @@ export default function TaskCard({
   const assignee = issue.fields.assignee;
   const avatarUrl = assignee?.avatarUrls['48x48'];
   const displayName = assignee?.displayName ?? '';
-
-  const dotColor = healthDot ? HEALTH_COLORS[healthDot] : 'bg-muted-foreground/40';
+  const issueTypeName = issue.fields.issuetype?.name;
+  const storyPoints = issue.fields.customfield_10016 as number | null | undefined;
 
   const cardContent = (
     <>
@@ -94,12 +86,19 @@ export default function TaskCard({
           if (e.key === 'Enter' || e.key === ' ') onClick?.();
         }}
       >
-        {/* Issue key */}
-        <div className={cn('text-xs font-mono text-muted-foreground', issue.fields.status.statusCategory?.key === 'done' ? 'line-through group-hover:[text-decoration-line:underline_line-through]' : 'group-hover:underline')}>{issue.key}</div>
+        {/* Top row: issue key (left) + issue type name (right) */}
+        <div className="flex items-center justify-between">
+          <span className={cn('text-xs font-mono text-muted-foreground', issue.fields.status.statusCategory?.key === 'done' ? 'line-through group-hover:[text-decoration-line:underline_line-through]' : 'group-hover:underline')}>{issue.key}</span>
+          {issueTypeName && (
+            <span className="text-[11px] text-muted-foreground/60 truncate max-w-[50%] text-right">
+              {issueTypeName}
+            </span>
+          )}
+        </div>
 
         {/* Summary — max 2 lines */}
         <div
-          className="text-sm overflow-hidden"
+          className="text-sm leading-snug overflow-hidden"
           style={{
             display: '-webkit-box',
             WebkitLineClamp: 2,
@@ -110,28 +109,39 @@ export default function TaskCard({
           {issue.fields.summary}
         </div>
 
-        {/* Status badge -- shown when not in a column context */}
-        {showStatus && (
-          <span
-            className={cn(
-              'self-start rounded px-1.5 py-0.5 text-xs font-medium',
-              statusCategoryBadgeClass(issue.fields.status.statusCategory?.key),
-            )}
-          >
-            {issue.fields.status.name}
-          </span>
-        )}
-
-        {/* Bottom row: assignee avatar + health dot */}
+        {/* Bottom row: assignee avatar + name (left) + story points + status badge (right) */}
         <div className="flex items-center justify-between mt-1">
-          <div className="flex items-center">
+          <div className="flex items-center gap-1.5 min-w-0">
             {assignee && (
-              <CachedAvatar url={avatarUrl} name={displayName} size={20} />
+              <>
+                <CachedAvatar url={avatarUrl} name={displayName} size={20} />
+                <span className="text-[11px] text-muted-foreground/80 truncate">
+                  {displayName}
+                </span>
+              </>
             )}
           </div>
 
-          {/* Health dot */}
-          <span className={cn('inline-block size-1.5 rounded-full', dotColor)} />
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Story points badge */}
+            {storyPoints != null && storyPoints > 0 && (
+              <span className="text-[11px] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 font-mono leading-none">
+                {storyPoints}
+              </span>
+            )}
+
+            {/* Status badge — shown when not in a column context */}
+            {showStatus && (
+              <span
+                className={cn(
+                  'rounded px-1.5 py-0.5 text-xs font-medium',
+                  statusCategoryBadgeClass(issue.fields.status.statusCategory?.key),
+                )}
+              >
+                {issue.fields.status.name}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Subtask count chip + chevron — only when subtaskCount > 0 */}
