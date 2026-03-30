@@ -28,12 +28,15 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { Bookmark, Columns3, RefreshCw } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useIsActiveRoute } from '@/hooks/useIsActiveRoute';
 import { POLL_INTERVAL_MS, STALE_TIME_MS } from '@/lib/query-constants';
 import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
+import { SprintBoardSkeleton } from './SprintBoardSkeleton';
 import type { JiraIssue, JiraTransition } from '@/services/jira';
 import {
   fetchEpicsBasic,
@@ -123,6 +126,7 @@ function VirtualizedSwimlanes({
   activeIssue,
   validTargetCategories,
   cardErrors,
+  subtasksLoading,
   onStickyHeaderChange,
   stickyHeaderInnerRef,
 }: {
@@ -134,6 +138,12 @@ function VirtualizedSwimlanes({
   activeIssue: JiraIssue | null;
   validTargetCategories: Set<CategoryKey>;
   cardErrors: Map<string, string>;
+  /**
+   * When true, subtask cells show Skeleton placeholders instead of cards.
+   * Used for progressive rendering when subtask data is loading separately
+   * from story headers.
+   */
+  subtasksLoading: boolean;
   /** Called on scroll with the swimlane whose header should appear pinned,
    *  or null when no header should be pinned (e.g. not scrolled into swimlanes yet). */
   onStickyHeaderChange: (data: StickyHeaderData) => void;
@@ -313,19 +323,23 @@ function VirtualizedSwimlanes({
                   categoryKey={col.key}
                   isDisabled={isDisabled}
                 >
-                  {colCards.map((card) => (
-                    <React.Fragment key={card.key}>
-                      <DraggableCard
-                        issue={card}
-                        isSubtask={card.fields.issuetype.subtask}
-                        showStatus
-                        onOpenDetail={setSelectedIssueKey}
-                      />
-                      {cardErrors.get(card.key) && (
-                        <p className="text-xs text-destructive px-1">{cardErrors.get(card.key)}</p>
-                      )}
-                    </React.Fragment>
-                  ))}
+                  {subtasksLoading ? (
+                    <Skeleton className="h-8 w-full" />
+                  ) : (
+                    colCards.map((card) => (
+                      <React.Fragment key={card.key}>
+                        <DraggableCard
+                          issue={card}
+                          isSubtask={card.fields.issuetype.subtask}
+                          showStatus
+                          onOpenDetail={setSelectedIssueKey}
+                        />
+                        {cardErrors.get(card.key) && (
+                          <p className="text-xs text-destructive px-1">{cardErrors.get(card.key)}</p>
+                        )}
+                      </React.Fragment>
+                    ))
+                  )}
                 </DroppableCell>
               );
             })}
@@ -396,21 +410,25 @@ function VirtualizedSwimlanes({
                       categoryKey={col.key}
                       isDisabled={isDisabled}
                     >
-                      {colCards.map((card) => (
-                        <React.Fragment key={card.key}>
-                          <DraggableCard
-                            issue={card}
-                            isSubtask={card.fields.issuetype.subtask}
-                            showStatus
-                            onOpenDetail={setSelectedIssueKey}
-                          />
-                          {cardErrors.get(card.key) && (
-                            <p className="text-xs text-destructive px-1">
-                              {cardErrors.get(card.key)}
-                            </p>
-                          )}
-                        </React.Fragment>
-                      ))}
+                      {subtasksLoading ? (
+                        <Skeleton className="h-8 w-full" />
+                      ) : (
+                        colCards.map((card) => (
+                          <React.Fragment key={card.key}>
+                            <DraggableCard
+                              issue={card}
+                              isSubtask={card.fields.issuetype.subtask}
+                              showStatus
+                              onOpenDetail={setSelectedIssueKey}
+                            />
+                            {cardErrors.get(card.key) && (
+                              <p className="text-xs text-destructive px-1">
+                                {cardErrors.get(card.key)}
+                              </p>
+                            )}
+                          </React.Fragment>
+                        ))
+                      )}
                     </DroppableCell>
                   );
                 })}
@@ -497,6 +515,13 @@ export default function SprintBoardTab() {
     staleTime: STALE_TIME_MS,
     enabled: isActive && !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const showSkeleton = useDelayedLoading(isLoading) || isRefreshing;
+
+  useEffect(() => {
+    if (!isLoading) setIsRefreshing(false);
+  }, [isLoading]);
 
   // Fetch epic names for filter display (shared cache with EpicsPage)
   const { data: epicsBasic } = useQuery({
@@ -906,7 +931,10 @@ export default function SprintBoardTab() {
             <span className="text-xs text-muted-foreground hidden sm:inline">{lastRefreshed}</span>
             <button
               type="button"
-              onClick={() => refetch()}
+              onClick={() => {
+                setIsRefreshing(true);
+                queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
+              }}
               className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Refresh"
             >
@@ -947,42 +975,42 @@ export default function SprintBoardTab() {
           {/* Scrollable content area */}
           <div ref={scrollContainerRef} className="h-full overflow-auto">
             {/* Loading skeleton */}
-            {isLoading && (
-              <div className="p-4 flex flex-col gap-3">
-                {[0, 1].map((i) => (
-                  <div key={i} className="flex flex-col gap-0.5">
-                    <div className="h-9 rounded bg-muted animate-pulse" />
-                    <div className="flex">
-                      {CATEGORY_COLUMNS.map((col) => (
-                        <div key={col.key} className="flex-1 h-20 bg-muted/50 animate-pulse" />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            {showSkeleton && <SprintBoardSkeleton />}
 
             {/* Error state — no cached data */}
             {isError && !data && (
               <div className="m-4">
-                <ErrorState error={error} onRetry={refetch} viewName="sprint board" />
+                <ErrorState
+                  error={error}
+                  onRetry={() => {
+                    setIsRefreshing(true);
+                    queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
+                  }}
+                  viewName="sprint board"
+                />
               </div>
             )}
 
             {/* Stale data banner — error with cached data */}
             {isError && data && !bannerDismissed && (
               <div className="m-4">
-                <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
+                <StaleDataBanner
+                  onRetry={() => {
+                    setIsRefreshing(true);
+                    queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
+                  }}
+                  onDismiss={() => setBannerDismissed(true)}
+                />
               </div>
             )}
 
             {/* Sprint goal banner */}
-            {!isLoading && !isError && data && activeSprint?.goal && (
+            {!showSkeleton && !isError && data && activeSprint?.goal && (
               <SprintGoalBanner goal={activeSprint.goal} />
             )}
 
             {/* Quick filter chip row */}
-            {!isLoading && !isError && data && (
+            {!showSkeleton && !isError && data && (
               <QuickFilterChipRow
                 quickFilters={boardQuickFilters ?? []}
                 labels={filterOptions.labels}
@@ -991,7 +1019,7 @@ export default function SprintBoardTab() {
             )}
 
             {/* Active saved filter banner */}
-            {!isLoading && !isError && data && activeFilter && (
+            {!showSkeleton && !isError && data && activeFilter && (
               <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 border-b border-primary/20">
                 <Bookmark className="size-3.5 text-primary" />
                 <span className="text-xs font-medium">Filter: {activeFilter.name}</span>
@@ -1009,10 +1037,10 @@ export default function SprintBoardTab() {
             )}
 
             {/* Unified filter bar */}
-            {!isLoading && !isError && data && <UnifiedFilterBar filterOptions={filterOptions} />}
+            {!showSkeleton && !isError && data && <UnifiedFilterBar filterOptions={filterOptions} />}
 
             {/* Empty */}
-            {!isLoading && !isError && data && swimlanes.length === 0 && (
+            {!showSkeleton && !isError && data && swimlanes.length === 0 && (
               <EmptyState
                 icon={Columns3}
                 title="No sprint issues"
@@ -1021,7 +1049,7 @@ export default function SprintBoardTab() {
             )}
 
             {/* Virtualized swimlane rows */}
-            {!isLoading && !isError && data && filteredSwimlanes.length > 0 && (
+            {!showSkeleton && !isError && data && filteredSwimlanes.length > 0 && (
               <VirtualizedSwimlanes
                 filteredSwimlanes={filteredSwimlanes}
                 scrollElement={scrollElement}
@@ -1031,6 +1059,7 @@ export default function SprintBoardTab() {
                 activeIssue={activeIssue}
                 validTargetCategories={validTargetCategories}
                 cardErrors={cardErrors}
+                subtasksLoading={false}
                 onStickyHeaderChange={handleStickyHeaderChange}
                 stickyHeaderInnerRef={stickyHeaderInnerRef}
               />
