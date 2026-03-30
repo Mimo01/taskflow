@@ -90,7 +90,7 @@ export function StoryHeaderRow({
       )}
 
       {/* Status badge */}
-      <span className={cn('shrink-0 rounded px-1.5 py-0.5 text-xs font-medium', statusStyle)}>
+      <span className={cn('shrink-0 min-w-[5.5rem] text-center rounded px-1.5 py-0.5 text-xs font-medium', statusStyle)}>
         {statusName}
       </span>
 
