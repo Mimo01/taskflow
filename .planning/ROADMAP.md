@@ -116,7 +116,7 @@ See archive: `.planning/milestones/v1.6.3-ROADMAP.md`
 
 - [x] **Phase 42: Foundation** — Route code splitting, React Compiler, bundle analysis
 - [x] **Phase 43: Cache Correctness** — staleTime tuning and smart polling (completed 2026-03-29)
-- [ ] **Phase 44: Loading UX** — Skeleton screens, progressive data, flicker prevention
+- [x] **Phase 44: Loading UX** — Skeleton screens, progressive data, flicker prevention (completed 2026-03-30)
 - [ ] **Phase 45: Query Optimization** — Parallelization and hover prefetch
 - [ ] **Phase 46: Avatar Caching** — Session cache and disk persistence
 
@@ -161,12 +161,12 @@ Plans:
   2. Sprint board story headers appear immediately while subtasks render progressively beneath them
   3. Backlog issue list appears immediately while epic metadata loads progressively alongside it
   4. When data arrives within 200ms, no skeleton flash occurs — the view transitions directly from empty to populated
-**Plans:** 4 plans
+**Plans:** 4/4 plans complete
 Plans:
 - [x] 44-01-PLAN.md — useDelayedLoading hook + 8 per-view skeleton components
-- [ ] 44-02-PLAN.md — Wire SprintBoard + Backlog with progressive loading and refresh
+- [x] 44-02-PLAN.md — Wire SprintBoard + Backlog with progressive loading and refresh
 - [x] 44-03-PLAN.md — Wire remaining 6 views with skeletons and refresh
-- [ ] 44-04-PLAN.md — Gap closure: fix TS compilation + update REQUIREMENTS.md tracking
+- [x] 44-04-PLAN.md — Gap closure: fix TS compilation + update REQUIREMENTS.md tracking
 **UI hint**: yes
 
 ### Phase 45: Query Optimization
@@ -198,6 +198,6 @@ Plans:
 | 41. CI Pipeline | v1.6.3 | 2/2 | Complete | 2026-03-25 |
 | 42. Foundation | v1.7 | 2/3 | Complete    | 2026-03-29 |
 | 43. Cache Correctness | v1.7 | 0/2 | Complete    | 2026-03-29 |
-| 44. Loading UX | v1.7 | 2/4 | In Progress|  |
+| 44. Loading UX | v1.7 | 4/4 | Complete   | 2026-03-30 |
 | 45. Query Optimization | v1.7 | 0/? | Not started | - |
 | 46. Avatar Caching | v1.7 | 0/? | Not started | - |
