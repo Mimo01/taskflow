@@ -8,6 +8,106 @@ import { fetchAllSearchPages, isResponseLikeError, SUBTASK_CHUNK_SIZE } from './
 import type { CreatemetaField, JiraIssue, JiraIssueDetail } from './types';
 
 /**
+ * Fetch only parent (non-subtask) issues in the active sprint for a project.
+ *
+ * Uses fetchAllSearchPages for full pagination safety (D-10). Returns stories,
+ * tasks, bugs, and epics — never subtasks. The second half of the old
+ * fetchSprintIssues two-query strategy is now a separate fetchSprintSubtasks call.
+ *
+ * @param baseUrl            - Jira base URL
+ * @param token              - Personal Access Token
+ * @param projectKey         - Jira project key (e.g. "PROJ")
+ * @param assignedToMe       - If true, adds `AND assignee = currentUser()`
+ * @param storyPointsFieldKey - Custom field key for story points
+ * @param epicLinkFieldKey    - Custom field key for epic link
+ * @throws Error('Sprint filtering unavailable -- ensure Jira Software is installed') on 400 with sprint errors
+ */
+export async function fetchSprintStories(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  assignedToMe = false,
+  storyPointsFieldKey = 'customfield_10016',
+  epicLinkFieldKey = 'customfield_10014',
+): Promise<JiraIssue[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const assigneeClause = assignedToMe ? ' AND assignee = currentUser()' : '';
+  const spFields = [
+    ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
+  ].join(',');
+  const fields = `summary,status,assignee,issuetype,labels,${spFields},${epicLinkFieldKey},parent,subtasks,timetracking`;
+  const jql = encodeURIComponent(
+    `project = ${projectKey} AND sprint in openSprints()${assigneeClause} AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`,
+  );
+  const baseSearchUrl = `${base}/rest/api/2/search?jql=${jql}&fields=${fields}`;
+
+  try {
+    return await fetchAllSearchPages(baseSearchUrl, headers);
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    if (isResponseLikeError(err)) {
+      const status = err.status;
+      if (status === 400) {
+        const body = typeof err.text === 'function' ? await err.text() : '';
+        if (body.includes('function') || body.includes('not recognized')) {
+          throw new Error('Sprint filtering unavailable — ensure Jira Software is installed');
+        }
+        throw new Error(`Jira search failed with status 400`);
+      }
+      throw new Error(`Jira search failed with status ${status}`);
+    }
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+}
+
+/**
+ * Fetch subtasks for a set of parent issue keys, chunked by SUBTASK_CHUNK_SIZE.
+ *
+ * Fires all chunk queries in parallel via Promise.all. Individual chunk failures
+ * are caught silently (returns [] for that chunk) -- callers receive partial results
+ * rather than an error. Returns empty array immediately when parentKeys is empty.
+ *
+ * @param baseUrl      - Jira base URL
+ * @param token        - Personal Access Token
+ * @param parentKeys   - Array of parent issue keys to fetch subtasks for
+ * @param assignedToMe - If true, adds `AND assignee = currentUser()`
+ */
+export async function fetchSprintSubtasks(
+  baseUrl: string,
+  token: string,
+  parentKeys: string[],
+  assignedToMe = false,
+): Promise<JiraIssue[]> {
+  if (parentKeys.length === 0) return [];
+
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const assigneeClause = assignedToMe ? ' AND assignee = currentUser()' : '';
+  const subtaskFields = 'summary,status,assignee,issuetype,parent,timetracking';
+
+  const chunks: string[][] = [];
+  for (let i = 0; i < parentKeys.length; i += SUBTASK_CHUNK_SIZE) {
+    chunks.push(parentKeys.slice(i, i + SUBTASK_CHUNK_SIZE));
+  }
+
+  const chunkResults = await Promise.all(
+    chunks.map(async (chunk) => {
+      const subtaskJql = encodeURIComponent(
+        `issuetype in subtaskIssueTypes() AND parent in (${chunk.join(',')})${assigneeClause}`,
+      );
+      const subtaskBaseUrl = `${base}/rest/api/2/search?jql=${subtaskJql}&fields=${subtaskFields}`;
+      try {
+        return await fetchAllSearchPages(subtaskBaseUrl, headers);
+      } catch {
+        return [];
+      }
+    }),
+  );
+  return chunkResults.flat();
+}
+
+/**
  * Fetch issues in the active sprint for a project.
  *
  * Uses a two-query strategy: first query fetches parent issues (Jira DC's
@@ -21,6 +121,7 @@ import type { CreatemetaField, JiraIssue, JiraIssueDetail } from './types';
  * On any failure of the second (subtask) query, parent issues are returned
  * alone -- callers never observe an error from subtask fetching.
  *
+ * @deprecated Use fetchSprintStories + fetchSprintSubtasks for independent parallel queries.
  * @param baseUrl      - Jira base URL
  * @param token        - Personal Access Token
  * @param projectKey   - Jira project key (e.g. "PROJ")
