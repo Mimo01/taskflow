@@ -50,7 +50,7 @@ export function StoryHeaderRow({
         className="flex items-center gap-2 flex-1 min-w-0 text-left"
         onClick={() => onOpenDetail(storyKey)}
       >
-        <span className="font-mono text-xs text-muted-foreground shrink-0">{storyKey}</span>
+        <span className={cn('font-mono text-xs text-muted-foreground shrink-0', statusCategoryKey === 'done' && 'line-through')}>{storyKey}</span>
         <span className="text-sm font-medium truncate">{summary}</span>
       </button>
 
