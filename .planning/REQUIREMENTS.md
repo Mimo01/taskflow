@@ -9,11 +9,11 @@ Requirements for v1.7 Performance & Perceived Speed. Each maps to roadmap phases
 
 ### Loading UX
 
-- [ ] **LOAD-01**: User sees layout-matched skeleton screens instead of spinners on all major data views (sprint board, backlog, my tasks, workload, epics, releases, notifications, dashboard widgets)
+- [x] **LOAD-01**: User sees layout-matched skeleton screens instead of spinners on all major data views (sprint board, backlog, my tasks, workload, epics, releases, notifications, dashboard widgets)
 - [ ] **LOAD-02**: User sees cached data instantly when navigating back to a previously visited view (stale-while-revalidate)
 - [ ] **LOAD-03**: User sees sprint board story headers immediately while subtasks load progressively beneath them
 - [ ] **LOAD-04**: User sees backlog issue list immediately while epic metadata loads progressively
-- [ ] **LOAD-05**: User does not see skeleton flicker when data loads within 200ms (delayed loading hook)
+- [x] **LOAD-05**: User does not see skeleton flicker when data loads within 200ms (delayed loading hook)
 
 ### Route & Bundle
 
@@ -64,11 +64,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LOAD-01 | Phase 44 | Pending |
+| LOAD-01 | Phase 44 | Complete |
 | LOAD-02 | Phase 43 | Pending |
 | LOAD-03 | Phase 44 | Pending |
 | LOAD-04 | Phase 44 | Pending |
-| LOAD-05 | Phase 44 | Pending |
+| LOAD-05 | Phase 44 | Complete |
 | ROUT-01 | Phase 42 | Pending |
 | ROUT-02 | Phase 42 | Pending |
 | ROUT-03 | Phase 42 | Pending |
