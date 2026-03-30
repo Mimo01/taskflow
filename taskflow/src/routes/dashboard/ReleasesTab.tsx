@@ -11,7 +11,7 @@
  * Name-based matching is not used — only date proximity determines the link.
  */
 
-import { useQueries, useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetch } from '@tauri-apps/plugin-http';
 import { Package, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import type { GitLabMilestone } from '@/services/gitlab';
 import { fetchProjectMilestonesInRange } from '@/services/gitlab';
 import type { JiraFixVersion } from '@/services/jira';
@@ -29,6 +30,7 @@ import { matchGitLabToFixVersion } from '@/services/releaseLinker';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
+import { ReleasesSkeleton } from './ReleasesSkeleton';
 
 interface VersionIssueCounts {
   issuesFixed: number;
@@ -102,10 +104,12 @@ export default function ReleasesTab() {
     navigate(`/release/${versionId}`);
   };
 
+  const queryClient = useQueryClient();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
   const [gitlabToken, setGitlabToken] = useState<string | null>(null);
   const [releasedVisible, setReleasedVisible] = useState(RELEASED_PAGE_SIZE);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const loadMoreReleased = () => setReleasedVisible((n) => n + RELEASED_LOAD_MORE);
 
   useEffect(() => {
@@ -238,6 +242,12 @@ export default function ReleasesTab() {
   const isLoading = loadingVersions;
   const isError = errorVersions;
 
+  const showSkeleton = useDelayedLoading(isLoading) || isRefreshing;
+
+  useEffect(() => {
+    if (!isLoading) setIsRefreshing(false);
+  }, [isLoading]);
+
   // Reset banner dismissal when error state changes
   useEffect(() => {
     setBannerDismissed(false);
@@ -258,7 +268,10 @@ export default function ReleasesTab() {
         <span className="text-xs text-muted-foreground">{lastRefreshed}</span>
         <button
           type="button"
-          onClick={() => refetch()}
+          onClick={() => {
+            setIsRefreshing(true);
+            queryClient.invalidateQueries({ queryKey: ['jira-fix-versions'] });
+          }}
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
           aria-label="Refresh"
         >
@@ -268,30 +281,33 @@ export default function ReleasesTab() {
       </div>
 
       {/* Loading skeleton */}
-      {isLoading && (
-        <div className="flex flex-col gap-2">
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              data-testid="skeleton-row"
-              className="h-10 rounded bg-muted animate-pulse"
-            />
-          ))}
-        </div>
-      )}
+      {showSkeleton && <ReleasesSkeleton />}
 
       {/* Error state — full error when no cached data */}
       {isError && !fixVersions && (
-        <ErrorState error={versionError} onRetry={refetch} viewName="releases" />
+        <ErrorState
+          error={versionError}
+          onRetry={() => {
+            setIsRefreshing(true);
+            queryClient.invalidateQueries({ queryKey: ['jira-fix-versions'] });
+          }}
+          viewName="releases"
+        />
       )}
 
       {/* Stale data banner — error with cached data still visible */}
       {isError && fixVersions && !bannerDismissed && (
-        <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
+        <StaleDataBanner
+          onRetry={() => {
+            setIsRefreshing(true);
+            queryClient.invalidateQueries({ queryKey: ['jira-fix-versions'] });
+          }}
+          onDismiss={() => setBannerDismissed(true)}
+        />
       )}
 
       {/* Content */}
-      {!isLoading &&
+      {!showSkeleton &&
         !isError &&
         (undatedVersions.length === 0 &&
         unreleasedVersions.length === 0 &&

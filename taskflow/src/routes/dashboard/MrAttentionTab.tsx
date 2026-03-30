@@ -26,6 +26,7 @@ import { POLL_INTERVAL_MS, STALE_TIME_MS } from '@/lib/query-constants';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import {
   fetchAssignedMRs,
   fetchMRApprovals,
@@ -43,6 +44,7 @@ import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { useRecentItemsStore } from '@/stores/recent-items.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import MrRow from './MrRow';
+import { MrAttentionSkeleton } from './MrAttentionSkeleton';
 
 export default function MrAttentionTab() {
   const {
@@ -201,6 +203,13 @@ export default function MrAttentionTab() {
     navigate(`/mr/${mr.project_id}/${mr.iid}`);
   };
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const showSkeleton = useDelayedLoading(gitlabTokenLoading || isLoading) || isRefreshing;
+
+  useEffect(() => {
+    if (!isLoading && !gitlabTokenLoading) setIsRefreshing(false);
+  }, [isLoading, gitlabTokenLoading]);
+
   const [bannerDismissed, setBannerDismissed] = useState(false);
   useEffect(() => {
     setBannerDismissed(false);
@@ -336,7 +345,11 @@ export default function MrAttentionTab() {
         <span className="text-xs text-muted-foreground">{lastRefreshed}</span>
         <button
           type="button"
-          onClick={() => refetch()}
+          onClick={() => {
+            setIsRefreshing(true);
+            queryClient.invalidateQueries({ queryKey: ['jira-issues', 'my-tasks'] });
+            queryClient.invalidateQueries({ queryKey: ['gitlab-mrs'] });
+          }}
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
           aria-label="Refresh"
         >
@@ -346,30 +359,35 @@ export default function MrAttentionTab() {
       </div>
 
       {/* Loading skeleton — shown while Stronghold token is fetching OR while query is in-flight */}
-      {(gitlabTokenLoading || isLoading) && (
-        <div className="flex flex-col gap-2">
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              data-testid="skeleton-mr-row"
-              className="h-10 rounded bg-muted animate-pulse"
-            />
-          ))}
-        </div>
-      )}
+      {showSkeleton && <MrAttentionSkeleton />}
 
       {/* Error state — no cached data */}
       {isError && !mrQueryData && (
-        <ErrorState error={error} onRetry={refetch} viewName="merge requests" />
+        <ErrorState
+          error={error}
+          onRetry={() => {
+            setIsRefreshing(true);
+            queryClient.invalidateQueries({ queryKey: ['jira-issues', 'my-tasks'] });
+            queryClient.invalidateQueries({ queryKey: ['gitlab-mrs'] });
+          }}
+          viewName="merge requests"
+        />
       )}
 
       {/* Stale data banner — error with cached data */}
       {isError && mrQueryData && !bannerDismissed && (
-        <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
+        <StaleDataBanner
+          onRetry={() => {
+            setIsRefreshing(true);
+            queryClient.invalidateQueries({ queryKey: ['jira-issues', 'my-tasks'] });
+            queryClient.invalidateQueries({ queryKey: ['gitlab-mrs'] });
+          }}
+          onDismiss={() => setBannerDismissed(true)}
+        />
       )}
 
       {/* Empty state */}
-      {!gitlabTokenLoading && !isLoading && !isError && mrQueryData && dataMrs.length === 0 && (
+      {!showSkeleton && !isError && mrQueryData && dataMrs.length === 0 && (
         <EmptyState
           icon={GitMerge}
           title="No merge requests need attention"
@@ -383,7 +401,7 @@ export default function MrAttentionTab() {
       )}
 
       {/* MR list */}
-      {!gitlabTokenLoading && !isLoading && !isError && mrQueryData && dataMrs.length > 0 && (
+      {!showSkeleton && !isError && mrQueryData && dataMrs.length > 0 && (
         <div className="flex flex-col">
           {dataMrs.map((mr) => (
             <MrRow
