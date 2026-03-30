@@ -22,10 +22,13 @@ import {
   Users,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { STALE_TIME_MS } from '@/lib/query-constants';
+import { fetchActiveSprint, fetchEpicsBasic, fetchProjectStatuses } from '@/services/jira';
+import { fetchSprintStories } from '@/services/jira/issues';
+import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import AppIcon from './AppIcon';
@@ -62,56 +65,58 @@ export default function Sidebar() {
 
   const queryClient = useQueryClient();
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
-  const { storyPointsFieldKey, epicLinkFieldKey } = useSettingsStore();
+  const { storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey, epicColorFieldKey } =
+    useSettingsStore();
+
+  // Load jira token for prefetch queryFn calls
+  const [jiraToken, setJiraToken] = useState<string | null>(null);
+  useEffect(() => {
+    if (jiraBaseUrl) {
+      readSecret('jira-pat')
+        .then(setJiraToken)
+        .catch(() => setJiraToken(null));
+    }
+  }, [jiraBaseUrl]);
 
   const prefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function prefetchForPath(path: string) {
-    if (!jiraBaseUrl || !activeJiraProject) return;
-    const baseOpts = { staleTime: STALE_TIME_MS };
+    if (!jiraBaseUrl || !jiraToken || !activeJiraProject) return;
 
-    if (path === '/sprint-board') {
+    if (path === '/sprint-board' || path === '/dashboard') {
       queryClient.prefetchQuery({
         queryKey: ['jira-sprint-stories', activeJiraProject, jiraBaseUrl, storyPointsFieldKey, epicLinkFieldKey],
-        ...baseOpts,
+        queryFn: () => fetchSprintStories(jiraBaseUrl, jiraToken, activeJiraProject, false, storyPointsFieldKey, epicLinkFieldKey),
+        staleTime: STALE_TIME_MS,
       });
-      queryClient.prefetchQuery({
-        queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl],
-        staleTime: 5 * 60 * 1000,
-      });
-      queryClient.prefetchQuery({
-        queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
-        staleTime: 5 * 60 * 1000,
-      });
-      queryClient.prefetchQuery({
-        queryKey: ['project-statuses', activeJiraProject, jiraBaseUrl],
-        staleTime: Infinity,
-      });
-    } else if (path === '/backlog') {
-      queryClient.prefetchQuery({
-        queryKey: ['jira-backlog-view', activeJiraProject, jiraBaseUrl],
-        ...baseOpts,
-      });
-      queryClient.prefetchQuery({
-        queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
-        staleTime: 5 * 60 * 1000,
-      });
-    } else if (path === '/epics') {
+      if (path === '/sprint-board') {
+        queryClient.prefetchQuery({
+          queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl],
+          queryFn: () => fetchActiveSprint(jiraBaseUrl, jiraToken, activeJiraProject),
+          staleTime: 5 * 60 * 1000,
+        });
+        queryClient.prefetchQuery({
+          queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
+          queryFn: () => fetchEpicsBasic(jiraBaseUrl, jiraToken, activeJiraProject, epicNameFieldKey, epicColorFieldKey),
+          staleTime: 5 * 60 * 1000,
+        });
+        queryClient.prefetchQuery({
+          queryKey: ['project-statuses', activeJiraProject, jiraBaseUrl],
+          queryFn: () => fetchProjectStatuses(jiraBaseUrl, jiraToken, activeJiraProject),
+          staleTime: Infinity,
+        });
+      }
+    } else if (path === '/backlog' || path === '/epics') {
       queryClient.prefetchQuery({
         queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
+        queryFn: () => fetchEpicsBasic(jiraBaseUrl, jiraToken, activeJiraProject, epicNameFieldKey, epicColorFieldKey),
         staleTime: 5 * 60 * 1000,
       });
-    } else if (path === '/my-tasks') {
-      queryClient.prefetchQuery({
-        queryKey: ['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey],
-        ...baseOpts,
-      });
-    } else if (path === '/dashboard') {
-      queryClient.prefetchQuery({
-        queryKey: ['jira-sprint-stories', activeJiraProject, jiraBaseUrl, storyPointsFieldKey, epicLinkFieldKey],
-        ...baseOpts,
-      });
+      // Backlog view requires boardId which is async — skip prefetch for backlog-view itself.
+      // The epics-basic prefetch still warms the most expensive query for the backlog page.
     }
+    // /my-tasks uses fetchMyTasksHierarchy which has complex internal logic — skip prefetch.
+    // The sprint-stories prefetch covers the dashboard's primary query.
   }
 
   function handleNavMouseEnter(path: string) {
