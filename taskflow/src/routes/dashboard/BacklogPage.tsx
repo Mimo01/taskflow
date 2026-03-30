@@ -21,7 +21,9 @@ import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useListNavigation } from '@/hooks/useListNavigation';
 import type { BacklogViewData, JiraActiveSprint, JiraIssue } from '@/services/jira';
 import {
@@ -37,6 +39,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useFilterStore } from '@/stores/filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { BacklogRow } from './BacklogRow';
+import { BacklogSkeleton } from './BacklogSkeleton';
 
 // ── Virtualized table body ────────────────────────────────────────────────────
 
@@ -51,6 +54,7 @@ function VirtualizedBacklogTable({
   epicNameFieldKey,
   epicNames,
   epicColors,
+  epicsLoading,
   visibleIssueKeys,
   focusIndex,
   rowRefs,
@@ -65,6 +69,8 @@ function VirtualizedBacklogTable({
   epicNameFieldKey: string;
   epicNames?: Map<string, string>;
   epicColors?: Map<string, string>;
+  /** When true, the epic column header shows a Skeleton placeholder. */
+  epicsLoading?: boolean;
   visibleIssueKeys: string[];
   focusIndex: number;
   rowRefs: React.MutableRefObject<Map<string, HTMLTableRowElement>>;
@@ -124,7 +130,7 @@ function VirtualizedBacklogTable({
             Key
           </th>
           <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-            Epic
+            {epicsLoading ? <Skeleton className="h-4 w-16" /> : 'Epic'}
           </th>
           <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">Summary</th>
           <th className="w-14 px-2 py-2 text-right text-xs font-medium text-muted-foreground">
@@ -206,6 +212,13 @@ export default function BacklogPage() {
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const showSkeleton = useDelayedLoading(isLoading) || isRefreshing;
+
+  useEffect(() => {
+    if (!isLoading) setIsRefreshing(false);
+  }, [isLoading]);
+
   const { data: activeSprint } = useQuery<JiraActiveSprint | null>({
     queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl],
     queryFn: () => fetchActiveSprint(jiraBaseUrl!, jiraToken!, activeJiraProject!),
@@ -222,7 +235,7 @@ export default function BacklogPage() {
   });
 
   // All project epics (shared cache with EpicsPage and SprintBoardTab)
-  const { data: allEpics } = useQuery({
+  const { data: allEpics, isPending: allEpicsPending } = useQuery({
     queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
     queryFn: () =>
       fetchEpicsBasic(
@@ -565,6 +578,7 @@ export default function BacklogPage() {
                 epicNameFieldKey={epicNameFieldKey}
                 epicNames={backlogView?.epicNames}
                 epicColors={backlogView?.epicColors}
+                epicsLoading={allEpicsPending}
                 visibleIssueKeys={visibleIssueKeys}
                 focusIndex={focusIndex}
                 rowRefs={rowRefs}
@@ -623,24 +637,33 @@ export default function BacklogPage() {
         {/* Error state — no cached data */}
         {isError && !backlogView && (
           <div className="p-4">
-            <ErrorState error={error} onRetry={refetch} viewName="backlog" />
+            <ErrorState
+              error={error}
+              onRetry={() => {
+                setIsRefreshing(true);
+                queryClient.invalidateQueries({ queryKey: ['jira-backlog-view'] });
+              }}
+              viewName="backlog"
+            />
           </div>
         )}
 
         {/* Stale data banner — error with cached data */}
         {isError && backlogView && !bannerDismissed && (
           <div className="px-4 pt-4">
-            <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
+            <StaleDataBanner
+              onRetry={() => {
+                setIsRefreshing(true);
+                queryClient.invalidateQueries({ queryKey: ['jira-backlog-view'] });
+              }}
+              onDismiss={() => setBannerDismissed(true)}
+            />
           </div>
         )}
 
-        {isLoading ? (
+        {showSkeleton ? (
           /* Skeleton loading state */
-          <div className="p-4 space-y-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-10 animate-pulse rounded bg-muted" />
-            ))}
-          </div>
+          <BacklogSkeleton />
         ) : !isError &&
           (!backlogView ||
             (backlogView.sprints.length === 0 && backlogView.backlog.length === 0)) ? (
