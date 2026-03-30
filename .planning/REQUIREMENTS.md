@@ -25,9 +25,9 @@ Requirements for v1.7 Performance & Perceived Speed. Each maps to roadmap phases
 
 ### Query Optimization
 
-- [ ] **QOPT-01**: Sprint board loads faster by parallelizing independent API calls (sprint metadata + quick filters fetched simultaneously)
-- [ ] **QOPT-02**: Backlog loads faster by parallelizing independent queries where dependency chains allow
-- [ ] **QOPT-03**: User experiences pre-warmed cache when clicking sidebar navigation (data prefetched on hover/focus)
+- [x] **QOPT-01**: Sprint board loads faster by parallelizing independent API calls (sprint metadata + quick filters fetched simultaneously)
+- [x] **QOPT-02**: Backlog loads faster by parallelizing independent queries where dependency chains allow
+- [x] **QOPT-03**: User experiences pre-warmed cache when clicking sidebar navigation (data prefetched on hover/focus)
 - [ ] **QOPT-04**: App pauses polling for views not currently visible (smart polling with background pause)
 - [ ] **QOPT-05**: App pauses all polling when minimized and refetches active view on restore (visibility-aware polling)
 
@@ -74,9 +74,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ROUT-03 | Phase 42 | Pending |
 | ROUT-04 | Phase 42 | Complete |
 | ROUT-05 | Phase 42 | Complete |
-| QOPT-01 | Phase 45 | Pending |
-| QOPT-02 | Phase 45 | Pending |
-| QOPT-03 | Phase 45 | Pending |
+| QOPT-01 | Phase 45 | Complete |
+| QOPT-02 | Phase 45 | Complete |
+| QOPT-03 | Phase 45 | Complete |
 | QOPT-04 | Phase 43 | Pending |
 | QOPT-05 | Phase 43 | Pending |
 | CACH-01 | Phase 46 | Pending |
