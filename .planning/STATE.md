@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Performance & Perceived Speed
 status: executing
-stopped_at: Completed 44-01-PLAN.md
-last_updated: "2026-03-30T07:14:20.405Z"
+stopped_at: Completed 44-03-PLAN.md
+last_updated: "2026-03-30T07:21:37.374Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 7
   percent: 78
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 ## Current Position
 
 Phase: 44 (loading-ux) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-03-30
 
@@ -46,6 +46,7 @@ Recent decisions affecting current work:
 - [Phase 42-foundation]: Used @rolldown/plugin-babel with reactCompilerPreset from @vitejs/plugin-react v6 to enable React Compiler; babel-plugin-react-compiler pinned at 1.0.0
 - [Phase 42-foundation]: Removed all useMemo/useCallback/memo from 35 files; useDebounce uses fnRef pattern for stable function identity without useCallback
 - [Phase 43-02]: Test mocks for useLocation return tab's own route pathname so isActive=true and queries remain enabled in tests
+- [Phase 44-loading-ux]: Content visibility guards changed from !isLoading to !showSkeleton to prevent content flash while isRefreshing=true after cache invalidation
 
 ### Pending Todos
 
@@ -60,7 +61,7 @@ None.
 ## Session Continuity
 
 Last activity: 2026-03-29
-Stopped at: Completed 44-01-PLAN.md
+Stopped at: Completed 44-03-PLAN.md
 Resume: `/gsd:execute-phase 42`
 
 ### Quick Tasks Completed
