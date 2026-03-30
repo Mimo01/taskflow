@@ -198,6 +198,6 @@ Plans:
 | 41. CI Pipeline | v1.6.3 | 2/2 | Complete | 2026-03-25 |
 | 42. Foundation | v1.7 | 2/3 | Complete    | 2026-03-29 |
 | 43. Cache Correctness | v1.7 | 0/2 | Complete    | 2026-03-29 |
-| 44. Loading UX | v1.7 | 4/4 | Complete   | 2026-03-30 |
+| 44. Loading UX | v1.7 | 4/4 | Complete    | 2026-03-30 |
 | 45. Query Optimization | v1.7 | 0/? | Not started | - |
 | 46. Avatar Caching | v1.7 | 0/? | Not started | - |
