@@ -177,7 +177,10 @@ Plans:
   1. Sprint board independent queries (sprint metadata, quick filters) fire simultaneously rather than sequentially
   2. Backlog independent queries fire in parallel where the dependency chain allows
   3. Hovering or focusing a sidebar link pre-fetches its data so the view loads from cache on click
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 45-01-PLAN.md — Service layer: concurrency limiter, useBoardId hook, sprint query split, backlog refactor
+- [ ] 45-02-PLAN.md — Component wiring: parallel queries, sidebar prefetch, dev tools toggle
 
 ### Phase 46: Avatar Caching
 **Goal**: Avatar and user images never re-fetch within a session and survive app restarts
@@ -199,5 +202,5 @@ Plans:
 | 42. Foundation | v1.7 | 2/3 | Complete    | 2026-03-29 |
 | 43. Cache Correctness | v1.7 | 0/2 | Complete    | 2026-03-29 |
 | 44. Loading UX | v1.7 | 4/4 | Complete    | 2026-03-30 |
-| 45. Query Optimization | v1.7 | 0/? | Not started | - |
+| 45. Query Optimization | v1.7 | 0/2 | In progress | - |
 | 46. Avatar Caching | v1.7 | 0/? | Not started | - |
