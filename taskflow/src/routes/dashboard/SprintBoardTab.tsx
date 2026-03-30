@@ -297,6 +297,9 @@ function VirtualizedSwimlanes({
             isExpanded={isExpanded}
             onToggle={() => toggleStory(story.key)}
             onOpenDetail={setSelectedIssueKey}
+            transitions={getTransitions(story.key)}
+            onTransition={(tid, name, toId, catKey) => onTransition(story.key, tid, name, toId, catKey)}
+            transitionError={cardErrors.get(story.key)}
           />
         </div>
         {isExpanded && (
@@ -377,6 +380,9 @@ function VirtualizedSwimlanes({
                 isExpanded={isExpanded}
                 onToggle={() => toggleStory(story.key)}
                 onOpenDetail={setSelectedIssueKey}
+                transitions={getTransitions(story.key)}
+                onTransition={(tid, name, toId, catKey) => onTransition(story.key, tid, name, toId, catKey)}
+                transitionError={cardErrors.get(story.key)}
               />
             </div>
             {isExpanded && (
@@ -575,16 +581,8 @@ export default function SprintBoardTab() {
   useEffect(() => {
     if (!jiraBaseUrl || !jiraToken || !localIssuesRef.current.length) return;
     const issues = localIssuesRef.current;
-    const subtaskParentKeys = new Set(
-      issues
-        .filter((i) => i.fields.issuetype.subtask && i.fields.parent?.key)
-        .map((i) => i.fields.parent?.key),
-    );
-    const draggable = issues.filter(
-      (i) => i.fields.issuetype.subtask || !subtaskParentKeys.has(i.key),
-    );
     void Promise.allSettled(
-      draggable.map((issue) =>
+      issues.map((issue) =>
         queryClient.fetchQuery({
           queryKey: ['transitions', issue.key],
           queryFn: () => fetchTransitions(jiraBaseUrl, jiraToken!, issue.key),
@@ -935,6 +933,9 @@ export default function SprintBoardTab() {
                   isExpanded={stickyHeader.isExpanded}
                   onToggle={() => toggleStory(stickyHeader.story.key)}
                   onOpenDetail={setSelectedIssueKey}
+                  transitions={getTransitions(stickyHeader.story.key)}
+                  onTransition={(tid, name, toId, catKey) => handleTransition(stickyHeader.story.key, tid, name, toId, catKey)}
+                  transitionError={cardErrors.get(stickyHeader.story.key)}
                 />
               </div>
             )}
