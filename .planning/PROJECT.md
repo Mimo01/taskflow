@@ -85,10 +85,10 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - [ ] Progressive/streaming data population — display data as it arrives
 - [ ] Stale-while-revalidate tuning — show cached data instantly, refresh in background
 - [x] Route-level code splitting and lazy loading of heavy components — validated Phase 42
-- [ ] Prefetching on hover/focus for sidebar links and navigation paths
-- [ ] Query parallelization and deduplication — eliminate redundant/sequential API calls
+- [x] Prefetching on hover/focus for sidebar links and navigation paths — validated Phase 45
+- [x] Query parallelization and deduplication — eliminate redundant/sequential API calls — validated Phase 45
 - [ ] Smart polling strategy — prioritize active view, adaptive intervals
-- [ ] Sprint board and backlog loading optimization (priority targets)
+- [x] Sprint board and backlog loading optimization (priority targets) — validated Phase 45
 - [x] Memoization audit — React Compiler auto-memoization, manual wrappers removed — validated Phase 42
 - [ ] Image/avatar local caching
 - [x] Bundle size analysis and dead code elimination — validated Phase 42
@@ -115,10 +115,10 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - Progressive/streaming data population — display data as it arrives
 - Stale-while-revalidate tuning — cached data shown instantly on navigation
 - ✓ Route-level code splitting and lazy loading (Phase 42)
-- Prefetching on hover/focus for common navigation paths
-- Query parallelization and deduplication
+- ✓ Prefetching on hover/focus for common navigation paths (Phase 45)
+- ✓ Query parallelization and deduplication (Phase 45)
 - Smart polling strategy — prioritize active view, adaptive intervals
-- Sprint board and backlog loading optimization (priority targets)
+- ✓ Sprint board and backlog loading optimization (Phase 45)
 - ✓ Memoization handled by React Compiler (Phase 42)
 - Image/avatar local caching
 - ✓ Bundle analysis + dead code elimination (Phase 42)
@@ -138,7 +138,7 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - **Team:** Orange eshop project — developers + project managers using the same app with role-based views
 - **Scale:** One Jira project + one GitLab project at a time
 - **Build:** Portable executable — no installer, no admin rights; `createHashRouter` for SPA routing in production
-- **Test suite:** 665+ tests, zero failures, zero warnings; Vitest with LazyStore mock
+- **Test suite:** 817+ tests, zero failures, zero warnings; Vitest with LazyStore mock
 - **Codebase:** ~51,536 lines TypeScript
 - **Known caveats (v1.6.3):** Bulk operations (BOARD-04–07) implemented but user-deferred — components on disk, not wired; Cmd+Shift nav shortcut deviation needs product owner sign-off; 13 human verification items deferred to live Jira environment; Apple/Windows code signing deferred to future release
 
@@ -229,4 +229,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-30 after Phase 44 loading-ux complete — skeleton screens on all 8 views, flicker prevention, cache-invalidating refresh*
+*Last updated: 2026-03-30 after Phase 45 query-optimization complete — query parallelization, sidebar prefetch with boardId chain, concurrency limiter*
