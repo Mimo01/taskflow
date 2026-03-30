@@ -119,6 +119,7 @@ See archive: `.planning/milestones/v1.6.3-ROADMAP.md`
 - [x] **Phase 44: Loading UX** — Skeleton screens, progressive data, flicker prevention (completed 2026-03-30)
 - [x] **Phase 45: Query Optimization** — Parallelization and hover prefetch (completed 2026-03-30)
 - [x] **Phase 46: Avatar Caching** — Session cache and disk persistence (completed 2026-03-30)
+- [ ] **Phase 47: v1.7 Documentation & Code Debt Cleanup** — Fix stale docs, code debt, Nyquist compliance
 
 ## Phase Details
 
@@ -195,6 +196,22 @@ Plans:
 - [x] 46-01-PLAN.md — Cache service + hook + CachedAvatar component with tests
 - [x] 46-02-PLAN.md — Wire CachedAvatar into all 11 usage sites + app startup init
 
+### Phase 47: v1.7 Documentation & Code Debt Cleanup
+**Goal**: Close all documentation gaps, stale checkboxes, code debt, and Nyquist compliance issues identified by milestone audit
+**Depends on**: Phase 46
+**Requirements**: LOAD-03 (status update)
+**Gap Closure:** Closes gaps from v1.7 milestone audit
+**Success Criteria** (what must be TRUE):
+  1. All satisfied REQUIREMENTS.md checkboxes are `[x]` (ROUT-01/02/03, LOAD-02/03, QOPT-04/05)
+  2. CACH-02 description references plugin-store (not plugin-fs)
+  3. ROADMAP.md plan checkboxes 43-01, 43-02, 45-03 are checked
+  4. SUMMARY frontmatter has requirements-completed for all plans
+  5. BacklogPage uses shared STALE_TIME_MS constant instead of literal 30_000
+  6. Dead fetchSprintIssues mock removed from SprintBoardTab.test.tsx
+  7. stats.html cleaned up
+  8. Nyquist compliance achieved for phases 43-46
+Plans: 0/0
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -208,3 +225,4 @@ Plans:
 | 44. Loading UX | v1.7 | 4/4 | Complete    | 2026-03-30 |
 | 45. Query Optimization | v1.7 | 2/3 | Complete    | 2026-03-30 |
 | 46. Avatar Caching | v1.7 | 2/2 | Complete    | 2026-03-30 |
+| 47. v1.7 Debt Cleanup | v1.7 | 0/0 | Pending     | — |

@@ -33,8 +33,8 @@ Requirements for v1.7 Performance & Perceived Speed. Each maps to roadmap phases
 
 ### Caching
 
-- [ ] **CACH-01**: Avatar and user images are cached in memory during the session (no re-fetch on re-render)
-- [ ] **CACH-02**: Avatar cache persists to disk and survives app restarts (via @tauri-apps/plugin-fs)
+- [x] **CACH-01**: Avatar and user images are cached in memory during the session (no re-fetch on re-render)
+- [x] **CACH-02**: Avatar cache persists to disk and survives app restarts (via @tauri-apps/plugin-fs)
 
 ## Future Requirements
 
@@ -66,7 +66,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | LOAD-01 | Phase 44 | Complete |
 | LOAD-02 | Phase 43 | Pending |
-| LOAD-03 | Phase 44 | Deferred — infra complete, blocked on query split |
+| LOAD-03 | Phase 47 | Pending |
 | LOAD-04 | Phase 44 | Partial — header-level progressive loading implemented |
 | LOAD-05 | Phase 44 | Complete |
 | ROUT-01 | Phase 42 | Pending |
@@ -79,8 +79,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | QOPT-03 | Phase 45 | Complete |
 | QOPT-04 | Phase 43 | Pending |
 | QOPT-05 | Phase 43 | Pending |
-| CACH-01 | Phase 46 | Pending |
-| CACH-02 | Phase 46 | Pending |
+| CACH-01 | Phase 46 | Complete |
+| CACH-02 | Phase 46 | Complete |
 
 **Coverage:**
 - v1.7 requirements: 17 total
