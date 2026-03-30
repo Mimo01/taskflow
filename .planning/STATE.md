@@ -1,16 +1,11 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.7
-milestone_name: Performance & Perceived Speed
-status: Milestone complete
-stopped_at: Completed quick-260330-wqj
-last_updated: "2026-03-30T21:39:27.943Z"
-last_activity: 2026-03-30
-progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 14
-  completed_plans: 14
+milestone: v1.0
+milestone_name: milestone
+status: v1.6.3 milestone complete
+stopped_at: Completed quick-260330-x87-PLAN.md
+last_updated: "2026-03-30T22:03:56.994Z"
+last_activity: 2026-03-29
 ---
 
 # Project State
@@ -20,12 +15,10 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Phase 47 — v17-debt-cleanup
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 47
-Plan: Not started
 Milestone v1.6.3 complete. No active phase.
 
 ## Accumulated Context
@@ -49,9 +42,6 @@ Recent decisions affecting current work:
 - [Phase 41-ci-pipeline]: RELEASES_REPO_TOKEN (not GITHUB_TOKEN) for cross-repo publish to Mimo01/taskflow-releases
 - [Phase 41-ci-pipeline]: releaseDraft: false for fully automatic release publish without manual approval
 - [Phase 41-ci-pipeline]: shell: bash on inject-version and tag_body steps for Windows PowerShell cross-platform compatibility
-- [Phase 46-avatar-caching]: LazyStore mock upgraded to share state by filename — resetForTesting() and test instances now see same disk data
-- [Phase 46-avatar-caching]: vi.spyOn(URL static methods) preferred over vi.stubGlobal('URL') to preserve URL constructor in tests
-- [Phase 46-avatar-caching]: Updated NotificationRow test to use role=img accessibility query instead of querySelector img — CachedAvatar renders div with role=img while blob URL loads in test environment
 
 ### Pending Todos
 
@@ -66,8 +56,8 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-03-30 - Completed quick task 260330-x68: Auto-collapse done story swimlanes on sprint board
-Stopped at: Completed quick-260330-x68
+Last activity: 2026-03-29
+Stopped at: Completed quick-260330-x87-PLAN.md
 Resume: `/gsd:plan-phase 38`
 
 ### Quick Tasks Completed
@@ -88,8 +78,3 @@ Resume: `/gsd:plan-phase 38`
 | 260329-k5y | Implement changelog and versioning process inspired by pmkar project | 2026-03-29 | e5ba721 | Verified | [260329-k5y-implement-changelog-and-versioning-proce](./quick/260329-k5y-implement-changelog-and-versioning-proce/) |
 | 260329-kyx | Replace GitHub Actions with local husky hooks + full local release.sh | 2026-03-29 | 8528c2a | Verified | [260329-kyx-replace-github-actions-with-local-proces](./quick/260329-kyx-replace-github-actions-with-local-proces/) |
 | 260329-mxv | Make the changelogs look nicer. The update modals are too small. Refine the views | 2026-03-29 | a35bd3f | | [260329-mxv-make-the-changelogs-look-nicer-the-updat](./quick/260329-mxv-make-the-changelogs-look-nicer-the-updat/) |
-| 260330-r56 | Replace sprint board drag-and-drop with right-click status transition popup | 2026-03-30 | 74ef958 | | [260330-r56-replace-sprint-board-drag-and-drop-with-](./quick/260330-r56-replace-sprint-board-drag-and-drop-with-/) |
-| 260330-wj6 | Better communicate that sprint board task headers and cards are clickable | 2026-03-30 | f0d360f | | [260330-wj6-better-communicate-that-sprint-board-tas](./quick/260330-wj6-better-communicate-that-sprint-board-tas/) |
-| 260330-wqj | Strikethrough done issue keys in sprint board and backlog | 2026-03-30 | — | | [260330-wqj-subtasks-and-stories-that-are-done-shoul](./quick/260330-wqj-subtasks-and-stories-that-are-done-shoul/) |
-| 260330-wrg | Redesign sprint board subtask card to match Jira style | 2026-03-30 | — | | [260330-wrg-redesign-sprint-board-subtask-card-to-ma](./quick/260330-wrg-redesign-sprint-board-subtask-card-to-ma/) |
-| 260330-x68 | Auto-collapse done story swimlanes on sprint board | 2026-03-30 | 5ad4b09 | | [260330-x68-on-sprint-board-if-a-story-is-done-and-a](./quick/260330-x68-on-sprint-board-if-a-story-is-done-and-a/) |
