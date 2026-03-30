@@ -1,11 +1,13 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
 const mockGetCachedBlobUrl = vi.fn();
 const mockFetchAndCacheAvatar = vi.fn();
+const mockEvictAvatar = vi.fn();
 vi.mock('@/services/avatarCache', () => ({
   getCachedBlobUrl: (...args: unknown[]) => mockGetCachedBlobUrl(...args),
   fetchAndCacheAvatar: (...args: unknown[]) => mockFetchAndCacheAvatar(...args),
+  evictAvatar: (...args: unknown[]) => mockEvictAvatar(...args),
 }));
 
 beforeEach(() => {
@@ -72,7 +74,34 @@ describe('CachedAvatar component', () => {
     expect(getInitials('')).toBe('');
   });
 
-  it('Test 5 (size prop): renders correct Tailwind size class for each size value', async () => {
+  it('Test 5 (onError fallback): when img fires onError, hides img and shows initials again', async () => {
+    mockFetchAndCacheAvatar.mockResolvedValue('blob:bad-data');
+    const { CachedAvatar } = await import('@/components/ui/cached-avatar');
+
+    const { container } = render(
+      <CachedAvatar url="https://example.com/avatar.jpg" name="Jane Doe" />
+    );
+
+    // Wait for img to appear
+    await waitFor(() => {
+      expect(container.querySelector('img')).toBeTruthy();
+    });
+
+    // Simulate img decode failure
+    const img = container.querySelector('img')!;
+    fireEvent.error(img);
+
+    // After error, img should be removed and initials should be visible again
+    await waitFor(() => {
+      expect(container.querySelector('img')).toBeNull();
+    });
+    const initialsEl = screen.getByRole('img');
+    expect(initialsEl).toHaveTextContent('JD');
+    // Bad entry should be evicted from cache
+    expect(mockEvictAvatar).toHaveBeenCalledWith('https://example.com/avatar.jpg');
+  });
+
+  it('Test 6 (size prop): renders correct Tailwind size class for each size value', async () => {
     const { CachedAvatar } = await import('@/components/ui/cached-avatar');
 
     const { rerender, container } = render(
