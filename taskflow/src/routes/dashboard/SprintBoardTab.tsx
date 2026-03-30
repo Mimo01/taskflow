@@ -6,27 +6,15 @@
  * statusCategory.key === "new" land in To Do, "indeterminate" in In Progress,
  * "done" in Done — regardless of how many workflow statuses the project has.
  *
- * fetchProjectStatuses is used to build a statusId -> category map so that
- * drag-and-drop can find a valid transition to the target category.
- *
  * Layout: sticky column headers -> collapsible story swimlanes -> card cells.
- * Drag-and-drop: optimistic update + rollback on API failure.
+ * Status transitions: right-click context menu with optimistic update + rollback on failure.
  * Swimlane rows are virtualized via @tanstack/react-virtual for large boards.
  */
 
-import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
-import {
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  useDroppable,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Bookmark, Columns3, RefreshCw } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useIsActiveRoute } from '@/hooks/useIsActiveRoute';
@@ -55,7 +43,6 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useFilterStore } from '@/stores/filter.store';
 import { useSavedFilterStore } from '@/stores/saved-filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import DraggableCard from './DraggableCard';
 import { QuickFilterChipRow } from './QuickFilterChipRow';
 import { SprintGoalBanner } from './SprintGoalBanner';
 import { StoryHeaderRow } from './StoryHeaderRow';
@@ -74,41 +61,6 @@ function categoryOf(issue: JiraIssue): CategoryKey {
   return (issue.fields.status.statusCategory?.key as CategoryKey) ?? 'new';
 }
 
-/**
- * A droppable cell for one category column inside a story swimlane.
- * ID: "{storyKey}|{categoryKey}" so handleDragEnd can extract the category.
- */
-function DroppableCell({
-  storyKey,
-  categoryKey,
-  isDisabled,
-  children,
-}: {
-  storyKey: string;
-  categoryKey: string;
-  isDisabled: boolean;
-  children: React.ReactNode;
-}) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `${storyKey}|${categoryKey}`,
-    disabled: isDisabled,
-  });
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={[
-        'flex-1 min-h-[80px] flex flex-col gap-1.5 p-2 border-l border-border/20 transition-colors',
-        isOver && !isDisabled ? 'bg-primary/5 ring-inset ring-1 ring-primary/40' : '',
-        isDisabled ? 'opacity-40 pointer-events-none bg-disabled-stripe' : '',
-      ]
-        .filter(Boolean)
-        .join(' ')}
-    >
-      {children}
-    </div>
-  );
-}
 
 /** Data needed to render the sticky swimlane header overlay outside the scroll flow. */
 type StickyHeaderData = {
@@ -124,20 +76,18 @@ function VirtualizedSwimlanes({
   collapsedStories,
   toggleStory,
   setSelectedIssueKey,
-  activeIssue,
-  validTargetCategories,
   cardErrors,
   subtasksLoading,
   onStickyHeaderChange,
   stickyHeaderInnerRef,
+  getTransitions,
+  onTransition,
 }: {
   filteredSwimlanes: { story: JiraIssue; subtasks: JiraIssue[] }[];
   scrollElement: HTMLElement | null;
   collapsedStories: Set<string>;
   toggleStory: (key: string) => void;
   setSelectedIssueKey: (key: string) => void;
-  activeIssue: JiraIssue | null;
-  validTargetCategories: Set<CategoryKey>;
   cardErrors: Map<string, string>;
   /**
    * When true, subtask cells show Skeleton placeholders instead of cards.
@@ -150,6 +100,8 @@ function VirtualizedSwimlanes({
   onStickyHeaderChange: (data: StickyHeaderData) => void;
   /** Ref to the sticky header inner div — push offset is applied directly for 60fps performance */
   stickyHeaderInnerRef: React.RefObject<HTMLDivElement | null>;
+  getTransitions: (issueKey: string) => JiraTransition[] | undefined;
+  onTransition: (issueKey: string, transitionId: string, toStatusName: string, toStatusId: string, toStatusCategoryKey?: string) => void;
 }) {
   const swimlaneVirtualizer = useVirtualizer({
     count: filteredSwimlanes.length,
@@ -201,9 +153,24 @@ function VirtualizedSwimlanes({
   const collapsedStoriesRef = useRef(collapsedStories);
   collapsedStoriesRef.current = collapsedStories;
 
+  // Keep a ref of filteredSwimlanes so the scroll handler always has the latest
+  // data without needing filteredSwimlanes in the useEffect dep array.
+  // Including filteredSwimlanes (a new array every render) in deps caused an infinite
+  // loop: effect runs → onScroll() → setStickyHeader(new object) → re-render →
+  // new filteredSwimlanes ref → effect runs again → repeat.
+  const filteredSwimlanesRef = useRef(filteredSwimlanes);
+  filteredSwimlanesRef.current = filteredSwimlanes;
+
+  // Track the last reported sticky header key so we avoid calling setStickyHeader
+  // when the pinned swimlane hasn't actually changed (avoids spurious re-renders).
+  const lastStickyKeyRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!scrollElement || filteredSwimlanes.length === 0) {
-      onStickyHeaderChangeRef.current(null);
+    if (!scrollElement || filteredSwimlanesRef.current.length === 0) {
+      if (lastStickyKeyRef.current !== null) {
+        lastStickyKeyRef.current = null;
+        onStickyHeaderChangeRef.current(null);
+      }
       return;
     }
 
@@ -215,7 +182,10 @@ function VirtualizedSwimlanes({
       const relativeScroll = scrollTop - listOffset;
 
       if (relativeScroll <= 0) {
-        onStickyHeaderChangeRef.current(null);
+        if (lastStickyKeyRef.current !== null) {
+          lastStickyKeyRef.current = null;
+          onStickyHeaderChangeRef.current(null);
+        }
         return;
       }
 
@@ -223,7 +193,10 @@ function VirtualizedSwimlanes({
       // Walk visible virtual items backwards to find the last one whose start <= relativeScroll.
       const items = swimlaneVirtualizer.getVirtualItems();
       if (items.length === 0) {
-        onStickyHeaderChangeRef.current(null);
+        if (lastStickyKeyRef.current !== null) {
+          lastStickyKeyRef.current = null;
+          onStickyHeaderChangeRef.current(null);
+        }
         return;
       }
 
@@ -236,13 +209,19 @@ function VirtualizedSwimlanes({
       }
 
       if (foundIndex === null) {
-        onStickyHeaderChangeRef.current(null);
+        if (lastStickyKeyRef.current !== null) {
+          lastStickyKeyRef.current = null;
+          onStickyHeaderChangeRef.current(null);
+        }
         return;
       }
 
-      const swimlane = filteredSwimlanes[foundIndex];
+      const swimlane = filteredSwimlanesRef.current[foundIndex];
       if (!swimlane) {
-        onStickyHeaderChangeRef.current(null);
+        if (lastStickyKeyRef.current !== null) {
+          lastStickyKeyRef.current = null;
+          onStickyHeaderChangeRef.current(null);
+        }
         return;
       }
 
@@ -266,18 +245,29 @@ function VirtualizedSwimlanes({
           pushOffset > 0 ? `translateY(-${pushOffset}px)` : '';
       }
 
-      onStickyHeaderChangeRef.current({
-        story: swimlane.story,
-        subtasks: swimlane.subtasks,
-        isExpanded: !collapsedStoriesRef.current.has(swimlane.story.key),
-      });
+      // Only call setStickyHeader when the pinned swimlane actually changes.
+      // Calling it with a new object on every scroll event (even when story is same)
+      // would trigger a parent re-render on every scroll frame.
+      const newKey = swimlane.story.key;
+      const isExpanded = !collapsedStoriesRef.current.has(swimlane.story.key);
+      if (lastStickyKeyRef.current !== newKey) {
+        lastStickyKeyRef.current = newKey;
+        onStickyHeaderChangeRef.current({
+          story: swimlane.story,
+          subtasks: swimlane.subtasks,
+          isExpanded,
+        });
+      }
     }
 
     scrollElement.addEventListener('scroll', onScroll, { passive: true });
-    // Run once immediately
+    // Run once immediately to sync sticky header with current scroll position
     onScroll();
     return () => scrollElement.removeEventListener('scroll', onScroll);
-  }, [scrollElement, filteredSwimlanes, swimlaneVirtualizer]);
+  // filteredSwimlanes intentionally excluded — accessed via ref to avoid infinite loop.
+  // swimlaneVirtualizer is included to re-register the listener when virtual items change.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrollElement, swimlaneVirtualizer]);
 
   function renderSwimlane(
     swimlane: { story: JiraIssue; subtasks: JiraIssue[] },
@@ -313,35 +303,28 @@ function VirtualizedSwimlanes({
           <div className="flex bg-muted/10">
             {CATEGORY_COLUMNS.map((col) => {
               const colCards = cards.filter((c) => categoryOf(c) === col.key);
-              const isDisabled =
-                activeIssue !== null &&
-                validTargetCategories.size > 0 &&
-                !validTargetCategories.has(col.key);
               return (
-                <DroppableCell
+                <div
                   key={col.key}
-                  storyKey={story.key}
-                  categoryKey={col.key}
-                  isDisabled={isDisabled}
+                  className="flex-1 min-h-[80px] flex flex-col gap-1.5 p-2 border-l border-border/20"
                 >
                   {subtasksLoading ? (
                     <Skeleton className="h-8 w-full" />
                   ) : (
                     colCards.map((card) => (
-                      <React.Fragment key={card.key}>
-                        <DraggableCard
-                          issue={card}
-                          isSubtask={card.fields.issuetype.subtask}
-                          showStatus
-                          onOpenDetail={setSelectedIssueKey}
-                        />
-                        {cardErrors.get(card.key) && (
-                          <p className="text-xs text-destructive px-1">{cardErrors.get(card.key)}</p>
-                        )}
-                      </React.Fragment>
+                      <TaskCard
+                        key={card.key}
+                        issue={card}
+                        isSubtask={card.fields.issuetype.subtask}
+                        showStatus
+                        onClick={() => setSelectedIssueKey(card.key)}
+                        transitions={getTransitions(card.key)}
+                        onTransition={(tid, name, toId, catKey) => onTransition(card.key, tid, name, toId, catKey)}
+                        transitionError={cardErrors.get(card.key)}
+                      />
                     ))
                   )}
-                </DroppableCell>
+                </div>
               );
             })}
           </div>
@@ -400,37 +383,28 @@ function VirtualizedSwimlanes({
               <div className="flex bg-muted/10">
                 {CATEGORY_COLUMNS.map((col) => {
                   const colCards = cards.filter((c) => categoryOf(c) === col.key);
-                  const isDisabled =
-                    activeIssue !== null &&
-                    validTargetCategories.size > 0 &&
-                    !validTargetCategories.has(col.key);
                   return (
-                    <DroppableCell
+                    <div
                       key={col.key}
-                      storyKey={story.key}
-                      categoryKey={col.key}
-                      isDisabled={isDisabled}
+                      className="flex-1 min-h-[80px] flex flex-col gap-1.5 p-2 border-l border-border/20"
                     >
                       {subtasksLoading ? (
                         <Skeleton className="h-8 w-full" />
                       ) : (
                         colCards.map((card) => (
-                          <React.Fragment key={card.key}>
-                            <DraggableCard
-                              issue={card}
-                              isSubtask={card.fields.issuetype.subtask}
-                              showStatus
-                              onOpenDetail={setSelectedIssueKey}
-                            />
-                            {cardErrors.get(card.key) && (
-                              <p className="text-xs text-destructive px-1">
-                                {cardErrors.get(card.key)}
-                              </p>
-                            )}
-                          </React.Fragment>
+                          <TaskCard
+                            key={card.key}
+                            issue={card}
+                            isSubtask={card.fields.issuetype.subtask}
+                            showStatus
+                            onClick={() => setSelectedIssueKey(card.key)}
+                            transitions={getTransitions(card.key)}
+                            onTransition={(tid, name, toId, catKey) => onTransition(card.key, tid, name, toId, catKey)}
+                            transitionError={cardErrors.get(card.key)}
+                          />
                         ))
                       )}
-                    </DroppableCell>
+                    </div>
                   );
                 })}
               </div>
@@ -465,19 +439,17 @@ export default function SprintBoardTab() {
     });
 
   const [localIssues, setLocalIssues] = useState<JiraIssue[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
-  const [activeIssue, setActiveIssue] = useState<JiraIssue | null>(null);
   const [cardErrors, setCardErrors] = useState<Map<string, string>>(new Map());
 
   // JS-driven sticky swimlane header — rendered outside the scroll flow so it
   // doesn't interfere with virtualizer layout. Updated by VirtualizedSwimlanes on scroll.
   const [stickyHeader, setStickyHeader] = useState<StickyHeaderData>(null);
   const stickyHeaderInnerRef = useRef<HTMLDivElement | null>(null);
-  const handleStickyHeaderChange = (data: StickyHeaderData) => {
+  // Stable callback — avoids re-creating the VirtualizedSwimlanes scroll listener
+  // on every SprintBoardTab render just because the prop reference changed.
+  const handleStickyHeaderChange = useCallback((data: StickyHeaderData) => {
     setStickyHeader(data);
-  };
-
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  }, []);
 
   // Scroll container — the inner scrollable area below the fixed column headers.
   // Using our own scroll container instead of <main> so column headers stay fixed.
@@ -525,7 +497,10 @@ export default function SprintBoardTab() {
     enabled: isActive && !!jiraBaseUrl && !!jiraToken && parentKeys.length > 0,
   });
 
-  const data = stories ? [...stories, ...(subtasksData ?? [])] : undefined;
+  const data = useMemo(
+    () => (stories ? [...stories, ...(subtasksData ?? [])] : undefined),
+    [stories, subtasksData],
+  );
   const isLoading = storiesLoading;
 
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -573,7 +548,7 @@ export default function SprintBoardTab() {
     setBannerDismissed(false);
   }, []);
 
-  /** Used to map transition target status IDs -> category keys for drag-and-drop */
+  /** Used for filter options — maps workflow status names */
   const { data: workflowStatuses } = useQuery({
     queryKey: ['project-statuses', activeJiraProject, jiraBaseUrl],
     queryFn: () => fetchProjectStatuses(jiraBaseUrl!, jiraToken!, activeJiraProject!),
@@ -582,18 +557,25 @@ export default function SprintBoardTab() {
   });
 
   useEffect(() => {
-    if (!isDragging) setLocalIssues(data ?? []);
-  }, [data, isDragging]);
+    setLocalIssues(data ?? []);
+  }, [data]);
 
-  // Pre-fetch transitions for all draggable cards
+  // Pre-fetch transitions for all board cards (used by right-click context menu).
+  // Depend only on stable primitives: jiraBaseUrl, jiraToken, and the count of local issues.
+  // localIssues itself is read inside the effect via a ref to avoid stale closures without
+  // adding the array reference (which changes on every data update) to the dep array.
+  const localIssuesRef = useRef(localIssues);
+  localIssuesRef.current = localIssues;
+
   useEffect(() => {
-    if (!jiraBaseUrl || !jiraToken || !localIssues.length) return;
+    if (!jiraBaseUrl || !jiraToken || !localIssuesRef.current.length) return;
+    const issues = localIssuesRef.current;
     const subtaskParentKeys = new Set(
-      localIssues
+      issues
         .filter((i) => i.fields.issuetype.subtask && i.fields.parent?.key)
         .map((i) => i.fields.parent?.key),
     );
-    const draggable = localIssues.filter(
+    const draggable = issues.filter(
       (i) => i.fields.issuetype.subtask || !subtaskParentKeys.has(i.key),
     );
     void Promise.allSettled(
@@ -605,59 +587,18 @@ export default function SprintBoardTab() {
         }),
       ),
     );
-  }, [jiraBaseUrl, jiraToken, localIssues.length, localIssues.filter, queryClient.fetchQuery]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jiraBaseUrl, jiraToken, localIssues.length, queryClient]);
 
-  /**
-   * Maps status ID -> category key.
-   * Built from workflowStatuses (authoritative) + any categories already on local issues.
-   */
-  const statusCategoryMap = new Map<string, CategoryKey>();
-  for (const s of workflowStatuses ?? []) {
-    statusCategoryMap.set(s.id, s.statusCategory.key as CategoryKey);
-  }
-  for (const issue of localIssues) {
-    if (issue.fields.status.statusCategory) {
-      statusCategoryMap.set(issue.fields.status.id, issue.fields.status.statusCategory.key as CategoryKey);
-    }
+  function getTransitions(issueKey: string): JiraTransition[] | undefined {
+    return queryClient.getQueryData<JiraTransition[]>(['transitions', issueKey]);
   }
 
-  function handleDragStart(event: DragStartEvent) {
-    const issue = localIssues.find((i) => i.key === String(event.active.id));
-    if (issue) {
-      setActiveIssue(issue);
-      setIsDragging(true);
-    }
-  }
-
-  async function handleDragEnd(event: DragEndEvent) {
-    setIsDragging(false);
-    setActiveIssue(null);
-    const { active, over } = event;
-    if (!over) return;
-
-    const issueKey = String(active.id);
-    // Droppable ID: "{storyKey}|{categoryKey}"
-    const targetCategory = String(over.id).split('|')[1] as CategoryKey;
-
+  async function handleTransition(issueKey: string, transitionId: string, toStatusName: string, toStatusId: string, toStatusCategoryKey?: string) {
     const originalIssue = localIssues.find((i) => i.key === issueKey);
     if (!originalIssue) return;
-    if (categoryOf(originalIssue) === targetCategory) return;
 
-    // Find a transition whose target status belongs to the dropped category
-    const transitions = queryClient.getQueryData<JiraTransition[]>(['transitions', issueKey]);
-    const transition = transitions?.find(
-      (t) => (statusCategoryMap.get(t.to.id) ?? 'new') === targetCategory,
-    );
-    if (!transition) {
-      setCardErrors((prev) => new Map(prev).set(issueKey, 'No valid transition'));
-      return;
-    }
-
-    const targetStatusCategory = workflowStatuses?.find(
-      (s) => s.id === transition.to.id,
-    )?.statusCategory;
-
-    // Optimistic update — move card into the target category column immediately
+    // Optimistic update
     setLocalIssues((prev) =>
       prev.map((i) =>
         i.key === issueKey
@@ -666,11 +607,9 @@ export default function SprintBoardTab() {
               fields: {
                 ...i.fields,
                 status: {
-                  id: transition.to.id,
-                  name: transition.to.name,
-                  statusCategory: (targetStatusCategory ?? { key: targetCategory }) as {
-                    key: 'new' | 'indeterminate' | 'done';
-                  },
+                  id: toStatusId,
+                  name: toStatusName,
+                  statusCategory: { key: toStatusCategoryKey ?? 'new' } as { key: 'new' | 'indeterminate' | 'done' },
                 },
               },
             }
@@ -684,9 +623,9 @@ export default function SprintBoardTab() {
     });
 
     try {
-      await postTransition(jiraBaseUrl!, jiraToken!, issueKey, transition.id);
+      await postTransition(jiraBaseUrl!, jiraToken!, issueKey, transitionId);
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
-        queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
     } catch {
       // Rollback to original status
       setLocalIssues((prev) =>
@@ -699,21 +638,6 @@ export default function SprintBoardTab() {
       setCardErrors((prev) => new Map(prev).set(issueKey, 'Transition failed'));
     }
   }
-
-  /** Set of category keys reachable by the currently dragged card */
-  const validTargetCategories = ((): Set<CategoryKey> => {
-    if (!activeIssue) return new Set();
-    const transitions = queryClient.getQueryData<JiraTransition[]>([
-      'transitions',
-      activeIssue.key,
-    ]);
-    const cats = new Set<CategoryKey>();
-    for (const t of transitions ?? []) {
-      const cat = statusCategoryMap.get(t.to.id);
-      if (cat) cats.add(cat);
-    }
-    return cats;
-  })();
 
   const storyIssues = localIssues.filter((i) => !i.fields.issuetype.subtask);
   const subtaskIssues = localIssues.filter((i) => i.fields.issuetype.subtask);
@@ -903,15 +827,7 @@ export default function SprintBoardTab() {
     : 'Refreshed: Never';
 
   return (
-    <DndContext
-      sensors={sensors}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onDragCancel={() => {
-        setActiveIssue(null);
-        setIsDragging(false);
-      }}
-    >
+    <>
       {/*
        * Flex column fills <main>. Column headers stay fixed at top (shrink-0),
        * everything else scrolls in the flex-1 overflow area below.
@@ -1071,20 +987,17 @@ export default function SprintBoardTab() {
                 collapsedStories={collapsedStories}
                 toggleStory={toggleStory}
                 setSelectedIssueKey={setSelectedIssueKey}
-                activeIssue={activeIssue}
-                validTargetCategories={validTargetCategories}
                 cardErrors={cardErrors}
                 subtasksLoading={subtasksLoading}
                 onStickyHeaderChange={handleStickyHeaderChange}
                 stickyHeaderInnerRef={stickyHeaderInnerRef}
+                getTransitions={getTransitions}
+                onTransition={handleTransition}
               />
             )}
           </div>
         </div>
       </div>
-
-      {/* DragOverlay renders OUTSIDE the board container */}
-      <DragOverlay>{activeIssue ? <TaskCard issue={activeIssue} /> : null}</DragOverlay>
-    </DndContext>
+    </>
   );
 }
