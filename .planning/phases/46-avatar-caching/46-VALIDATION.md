@@ -50,10 +50,10 @@ created: 2026-03-30
 
 ## Wave 0 Requirements
 
-- [ ] `taskflow/src/services/avatarCache.test.ts` — stubs for CACH-01 (memory cache hit, inflight dedup) and CACH-02 (disk init, TTL eviction)
-- [ ] `taskflow/src/components/ui/cached-avatar.test.tsx` — stubs for CACH-01 (component render states: initials, loaded, no-url)
-- [ ] `taskflow/src/test/setup.ts` — add `keys()` method to LazyStore mock: `async keys(): Promise<string[]> { return [...this.data.keys()]; }`
-- [ ] Mock for `@tauri-apps/plugin-http` fetch needed in test files (not globally mocked yet)
+- [x] `taskflow/src/services/avatarCache.test.ts` — stubs for CACH-01 (memory cache hit, inflight dedup) and CACH-02 (disk init, TTL eviction)
+- [x] `taskflow/src/components/ui/cached-avatar.test.tsx` — stubs for CACH-01 (component render states: initials, loaded, no-url)
+- [x] `taskflow/src/test/setup.ts` — add `keys()` method to LazyStore mock: `async keys(): Promise<string[]> { return [...this.data.keys()]; }`
+- [x] Mock for `@tauri-apps/plugin-http` fetch needed in test files (not globally mocked yet)
 
 *If none: "Existing infrastructure covers all phase requirements."*
 
@@ -69,11 +69,11 @@ created: 2026-03-30
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 15s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 15s
+- [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** complete (Phase 47 cleanup)

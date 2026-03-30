@@ -50,9 +50,9 @@ created: 2026-03-30
 
 ## Wave 0 Requirements
 
-- [ ] Test stubs for skeleton rendering assertions (LOAD-01)
-- [ ] Test stubs for useDelayedLoading hook (LOAD-05)
-- [ ] Test stubs for progressive loading behavior (LOAD-03, LOAD-04)
+- [x] Test stubs for skeleton rendering assertions (LOAD-01)
+- [x] Test stubs for useDelayedLoading hook (LOAD-05)
+- [x] Test stubs for progressive loading behavior (LOAD-03, LOAD-04)
 
 *Existing vitest infrastructure covers framework needs.*
 
@@ -69,11 +69,11 @@ created: 2026-03-30
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** complete (Phase 47 cleanup)

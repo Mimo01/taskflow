@@ -49,7 +49,7 @@ created: 2026-03-29
 
 ## Wave 0 Requirements
 
-- [ ] `taskflow/src/hooks/useIsActiveRoute.test.ts` — stubs for QOPT-04 (route matching logic) and LOAD-02 (integration check)
+- [x] `taskflow/src/hooks/useIsActiveRoute.test.ts` — stubs for QOPT-04 (route matching logic) and LOAD-02 (integration check)
 - No framework install needed — vitest already configured
 
 ---
@@ -64,11 +64,11 @@ created: 2026-03-29
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 15s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 15s
+- [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** complete (Phase 47 cleanup)
