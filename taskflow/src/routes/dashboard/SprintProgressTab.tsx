@@ -51,7 +51,7 @@ export default function SprintProgressTab() {
     }
   }, [jiraBaseUrl]);
 
-  const { data, isLoading, isError, error, dataUpdatedAt, refetch } = useQuery({
+  const { data, isLoading, isError, error, dataUpdatedAt } = useQuery({
     queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey],
     queryFn: () =>
       fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false, storyPointsFieldKey),

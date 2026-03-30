@@ -93,7 +93,6 @@ export default function MyTasksTab() {
     isError,
     error,
     dataUpdatedAt,
-    refetch,
   } = useQuery({
     queryKey: ['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey],
     queryFn: () =>

@@ -136,7 +136,6 @@ export default function EpicsPage() {
     isLoading,
     isError,
     error,
-    refetch,
   } = useQuery<EpicEnriched[]>({
     queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
     queryFn: () =>
