@@ -229,4 +229,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-29 after Phase 43 cache-correctness complete*
+*Last updated: 2026-03-30 after Phase 44 loading-ux complete — skeleton screens on all 8 views, flicker prevention, cache-invalidating refresh*
