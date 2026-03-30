@@ -300,6 +300,8 @@ function VirtualizedSwimlanes({
             transitions={getTransitions(story.key)}
             onTransition={(tid, name, toId, catKey) => onTransition(story.key, tid, name, toId, catKey)}
             transitionError={cardErrors.get(story.key)}
+            assigneeAvatarUrl={story.fields.assignee?.avatarUrls['48x48']}
+            assigneeDisplayName={story.fields.assignee?.displayName}
           />
         </div>
         {isExpanded && (
@@ -383,6 +385,8 @@ function VirtualizedSwimlanes({
                 transitions={getTransitions(story.key)}
                 onTransition={(tid, name, toId, catKey) => onTransition(story.key, tid, name, toId, catKey)}
                 transitionError={cardErrors.get(story.key)}
+                assigneeAvatarUrl={story.fields.assignee?.avatarUrls['48x48']}
+                assigneeDisplayName={story.fields.assignee?.displayName}
               />
             </div>
             {isExpanded && (
@@ -936,6 +940,8 @@ export default function SprintBoardTab() {
                   transitions={getTransitions(stickyHeader.story.key)}
                   onTransition={(tid, name, toId, catKey) => handleTransition(stickyHeader.story.key, tid, name, toId, catKey)}
                   transitionError={cardErrors.get(stickyHeader.story.key)}
+                  assigneeAvatarUrl={stickyHeader.story.fields.assignee?.avatarUrls['48x48']}
+                  assigneeDisplayName={stickyHeader.story.fields.assignee?.displayName}
                 />
               </div>
             )}

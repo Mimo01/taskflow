@@ -2,8 +2,9 @@
  * StoryHeaderRow — Collapsible story swimlane header.
  *
  * Spans the full board width. Shows: chevron toggle, story key, summary,
- * status badge, and subtask count. Clicking the row opens the detail sheet;
- * clicking the chevron toggles expand/collapse without opening the sheet.
+ * assignee avatar, status badge, and subtask count. Clicking the row opens
+ * the detail sheet; clicking the chevron toggles expand/collapse without
+ * opening the sheet.
  */
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import {
@@ -18,6 +19,7 @@ import {
 import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraTransition } from '@/services/jira';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 
 interface StoryHeaderRowProps {
   storyKey: string;
@@ -31,6 +33,8 @@ interface StoryHeaderRowProps {
   transitions?: JiraTransition[];
   onTransition?: (transitionId: string, toStatusName: string, toStatusId: string, toStatusCategoryKey?: string) => void;
   transitionError?: string | null;
+  assigneeAvatarUrl?: string | null;
+  assigneeDisplayName?: string;
 }
 
 export function StoryHeaderRow({
@@ -45,6 +49,8 @@ export function StoryHeaderRow({
   transitions,
   onTransition,
   transitionError,
+  assigneeAvatarUrl,
+  assigneeDisplayName,
 }: StoryHeaderRowProps) {
   const statusStyle = statusCategoryBadgeClass(statusCategoryKey);
 
@@ -74,6 +80,13 @@ export function StoryHeaderRow({
         <span className={cn('font-mono text-xs text-muted-foreground shrink-0', statusCategoryKey === 'done' ? 'line-through group-hover:[text-decoration-line:underline_line-through]' : 'group-hover:underline')}>{storyKey}</span>
         <span className="text-sm font-medium truncate">{summary}</span>
       </button>
+
+      {/* Assignee avatar — only rendered when story has an assignee */}
+      {assigneeDisplayName && (
+        <div className="shrink-0">
+          <CachedAvatar url={assigneeAvatarUrl} name={assigneeDisplayName} size={20} />
+        </div>
+      )}
 
       {/* Status badge */}
       <span className={cn('shrink-0 rounded px-1.5 py-0.5 text-xs font-medium', statusStyle)}>
