@@ -61,7 +61,7 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-03-30 - Completed quick task 260330-x87: Right-click context menu on story header rows for status transitions
+Last activity: 2026-03-30 - Completed quick task 260331-039: On sprint board story headers I also want to see assignee
 Stopped at: Completed quick-260331-039-PLAN.md
 Resume: `/gsd:plan-phase 38`
 
@@ -84,3 +84,4 @@ Resume: `/gsd:plan-phase 38`
 | 260329-kyx | Replace GitHub Actions with local husky hooks + full local release.sh | 2026-03-29 | 8528c2a | Verified | [260329-kyx-replace-github-actions-with-local-proces](./quick/260329-kyx-replace-github-actions-with-local-proces/) |
 | 260329-mxv | Make the changelogs look nicer. The update modals are too small. Refine the views | 2026-03-29 | a35bd3f | | [260329-mxv-make-the-changelogs-look-nicer-the-updat](./quick/260329-mxv-make-the-changelogs-look-nicer-the-updat/) |
 | 260330-x87 | Right-click context menu on story header rows for status transitions | 2026-03-30 | fba5cbf | | [260330-x87-on-sprint-board-view-right-clicking-on-s](./quick/260330-x87-on-sprint-board-view-right-clicking-on-s/) |
+| 260331-039 | On sprint board story headers I also want to see assignee | 2026-03-30 | 0b436b7 | | [260331-039-on-sprint-board-story-headers-i-also-wan](./quick/260331-039-on-sprint-board-story-headers-i-also-wan/) |
