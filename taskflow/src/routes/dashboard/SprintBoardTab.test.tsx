@@ -28,7 +28,6 @@ vi.mock('@/services/stronghold', () => ({
 
 // Mock jira service — controlled from each test
 vi.mock('@/services/jira', () => ({
-  fetchSprintIssues: vi.fn().mockResolvedValue([]),
   fetchProjectStatuses: vi.fn().mockResolvedValue([]),
   fetchTransitions: vi.fn().mockResolvedValue([]),
   postTransition: vi.fn().mockResolvedValue(undefined),

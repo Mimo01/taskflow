@@ -40,6 +40,7 @@ import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useFilterStore } from '@/stores/filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { STALE_TIME_MS } from '@/lib/query-constants';
 import { BacklogRow } from './BacklogRow';
 import { BacklogSkeleton } from './BacklogSkeleton';
 
@@ -265,7 +266,7 @@ export default function BacklogPage() {
         storyPointsFieldKey,
         epicLinkFieldKey,
       ),
-    staleTime: 30_000,
+    staleTime: STALE_TIME_MS,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
   const sprintParentKeys = (sprintStories ?? [])
@@ -275,7 +276,7 @@ export default function BacklogPage() {
   const { data: sprintSubtasks } = useQuery({
     queryKey: ['jira-sprint-subtasks', activeJiraProject, jiraBaseUrl, sprintParentKeys],
     queryFn: () => fetchSprintSubtasks(jiraBaseUrl!, jiraToken!, sprintParentKeys),
-    staleTime: 30_000,
+    staleTime: STALE_TIME_MS,
     enabled: !!jiraBaseUrl && !!jiraToken && sprintParentKeys.length > 0,
   });
   const sprintIssues = sprintStories ? [...sprintStories, ...(sprintSubtasks ?? [])] : undefined;
