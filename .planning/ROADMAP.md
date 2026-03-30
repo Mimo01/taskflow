@@ -177,7 +177,7 @@ Plans:
   1. Sprint board independent queries (sprint metadata, quick filters) fire simultaneously rather than sequentially
   2. Backlog independent queries fire in parallel where the dependency chain allows
   3. Hovering or focusing a sidebar link pre-fetches its data so the view loads from cache on click
-**Plans:** 3 plans (2 complete, 1 gap closure)
+**Plans:** 3/3 plans complete
 Plans:
 - [x] 45-01-PLAN.md — Service layer: concurrency limiter, useBoardId hook, sprint query split, backlog refactor
 - [x] 45-02-PLAN.md — Component wiring: parallel queries, sidebar prefetch, dev tools toggle
@@ -203,5 +203,5 @@ Plans:
 | 42. Foundation | v1.7 | 2/3 | Complete    | 2026-03-29 |
 | 43. Cache Correctness | v1.7 | 0/2 | Complete    | 2026-03-29 |
 | 44. Loading UX | v1.7 | 4/4 | Complete    | 2026-03-30 |
-| 45. Query Optimization | v1.7 | 2/3 | Gap closure | 2026-03-30 |
+| 45. Query Optimization | v1.7 | 2/3 | Complete    | 2026-03-30 |
 | 46. Avatar Caching | v1.7 | 0/? | Not started | - |
