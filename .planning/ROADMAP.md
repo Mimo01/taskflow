@@ -161,7 +161,11 @@ Plans:
   2. Sprint board story headers appear immediately while subtasks render progressively beneath them
   3. Backlog issue list appears immediately while epic metadata loads progressively alongside it
   4. When data arrives within 200ms, no skeleton flash occurs — the view transitions directly from empty to populated
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 44-01-PLAN.md — useDelayedLoading hook + 8 per-view skeleton components
+- [ ] 44-02-PLAN.md — Wire SprintBoard + Backlog with progressive loading and refresh
+- [ ] 44-03-PLAN.md — Wire remaining 6 views with skeletons and refresh
 **UI hint**: yes
 
 ### Phase 45: Query Optimization
@@ -193,6 +197,6 @@ Plans:
 | 41. CI Pipeline | v1.6.3 | 2/2 | Complete | 2026-03-25 |
 | 42. Foundation | v1.7 | 2/3 | Complete    | 2026-03-29 |
 | 43. Cache Correctness | v1.7 | 0/2 | Complete    | 2026-03-29 |
-| 44. Loading UX | v1.7 | 0/? | Not started | - |
+| 44. Loading UX | v1.7 | 0/3 | Not started | - |
 | 45. Query Optimization | v1.7 | 0/? | Not started | - |
 | 46. Avatar Caching | v1.7 | 0/? | Not started | - |
