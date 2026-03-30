@@ -9,7 +9,7 @@
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { GitLabMR } from '../services/gitlab';
 import { fetchAssignedMRs, fetchAuthoredMRs, fetchReviewerMRs } from '../services/gitlab';
 import { validateJira } from '../services/jira';
@@ -21,7 +21,33 @@ import { useNotificationsStore } from '../stores/notifications.store';
 import { useSettingsStore } from '../stores/settings.store';
 
 export function useNotificationPolling() {
-  const store = useNotificationsStore();
+  // Use targeted selectors to avoid re-rendering on every store update.
+  // Subscribing to the entire store (`useNotificationsStore()`) causes infinite loops
+  // because action references change on each state snapshot.
+  const prependItems = useNotificationsStore((s) => s.prependItems);
+  const setLastSeenJiraCursor = useNotificationsStore((s) => s.setLastSeenJiraCursor);
+  const setLastSeenGitlabCursor = useNotificationsStore((s) => s.setLastSeenGitlabCursor);
+  const setPermissionDenied = useNotificationsStore((s) => s.setPermissionDenied);
+  const setNotificationSendError = useNotificationsStore((s) => s.setNotificationSendError);
+  const setFetchError = useNotificationsStore((s) => s.setFetchError);
+  const setRetryFetch = useNotificationsStore((s) => s.setRetryFetch);
+
+  // Read-only transient fields — also via targeted selectors
+  const lastSeenJiraCursor = useNotificationsStore((s) => s.lastSeenJiraCursor);
+  const lastSeenGitlabCursor = useNotificationsStore((s) => s.lastSeenGitlabCursor);
+  const storeItems = useNotificationsStore((s) => s.items);
+
+  // Keep a stable ref to store items so the queryFn closure can read them without
+  // adding `storeItems` to the queryKey (would invalidate on every notification).
+  const storeItemsRef = useRef(storeItems);
+  storeItemsRef.current = storeItems;
+
+  // Keep stable refs to cursors for the same reason
+  const lastSeenJiraCursorRef = useRef(lastSeenJiraCursor);
+  lastSeenJiraCursorRef.current = lastSeenJiraCursor;
+  const lastSeenGitlabCursorRef = useRef(lastSeenGitlabCursor);
+  lastSeenGitlabCursorRef.current = lastSeenGitlabCursor;
+
   const {
     notificationPollIntervalSecs,
     osNotifJiraEnabled,
@@ -59,6 +85,17 @@ export function useNotificationPolling() {
     'issue-assignment': notifIssueAssignmentEnabled,
     'due-date-reminder': notifDueDateReminderEnabled,
   };
+
+  // Keep a stable ref to typeEnabledMap so the queryFn closure can read current
+  // notification type settings without being recreated on every toggle change.
+  const typeEnabledMapRef = useRef(typeEnabledMap);
+  typeEnabledMapRef.current = typeEnabledMap;
+
+  // Keep stable refs to OS notification settings
+  const osNotifJiraEnabledRef = useRef(osNotifJiraEnabled);
+  osNotifJiraEnabledRef.current = osNotifJiraEnabled;
+  const osNotifGitlabEnabledRef = useRef(osNotifGitlabEnabled);
+  osNotifGitlabEnabledRef.current = osNotifGitlabEnabled;
 
   // Bootstrap identity for existing sessions where jiraUsername was never persisted.
   // Runs once when Jira is connected but identity fields are missing.
@@ -128,15 +165,15 @@ export function useNotificationPolling() {
         gitlabUserId,
         gitlabUsername,
         mrList,
-        lastSeenJiraCursor: store.lastSeenJiraCursor,
-        lastSeenGitlabCursor: store.lastSeenGitlabCursor,
+        lastSeenJiraCursor: lastSeenJiraCursorRef.current,
+        lastSeenGitlabCursor: lastSeenGitlabCursorRef.current,
       });
 
       // Filter out items whose notification type toggle is disabled
       const newItems = allItems.filter((item) => {
         const nType: NotificationType | undefined = item.notificationType;
         if (!nType) return true; // items without type are always shown
-        return typeEnabledMap[nType] !== false;
+        return typeEnabledMapRef.current[nType] !== false;
       });
 
       // Advance per-source cursors independently so one source's failure
@@ -146,11 +183,11 @@ export function useNotificationPolling() {
         const gitlabItems = items.filter((i) => i.source === 'gitlab');
         if (jiraItems.length > 0) {
           const newestJira = jiraItems.reduce((a, b) => (a.createdAt > b.createdAt ? a : b));
-          store.setLastSeenJiraCursor(newestJira.createdAt);
+          setLastSeenJiraCursor(newestJira.createdAt);
         }
         if (gitlabItems.length > 0) {
           const newestGitlab = gitlabItems.reduce((a, b) => (a.createdAt > b.createdAt ? a : b));
-          store.setLastSeenGitlabCursor(newestGitlab.createdAt);
+          setLastSeenGitlabCursor(newestGitlab.createdAt);
         }
       };
 
@@ -160,22 +197,23 @@ export function useNotificationPolling() {
         // cursor (e.g. after React Query cache re-use or app restart) can cause the
         // same notification to be re-fetched and re-dispatched even though it is
         // already present in the store.
-        const existingIds = new Set(store.items.map((i) => i.id));
-        store.prependItems(newItems);
+        const existingIds = new Set(storeItemsRef.current.map((i) => i.id));
+        prependItems(newItems);
         // Use allItems to advance cursors (avoid cursor drift from filtered items)
         advanceCursors(allItems);
         // Dispatch OS notifications only for items not already known to the store
         for (const item of newItems) {
           if (existingIds.has(item.id)) continue;
-          const sourceEnabled = item.source === 'jira' ? osNotifJiraEnabled : osNotifGitlabEnabled;
+          const sourceEnabled =
+            item.source === 'jira' ? osNotifJiraEnabledRef.current : osNotifGitlabEnabledRef.current;
           // Per-type check already passed via filter above
           if (sourceEnabled) {
             const result = await tryDispatchOsNotification(
               `${item.source === 'jira' ? 'Jira' : 'GitLab'} — ${item.entityTitle}`,
               `${item.author}: ${item.bodyPreview}`,
             );
-            if (result === 'denied') store.setPermissionDenied(true);
-            if (result === 'error') store.setNotificationSendError(true);
+            if (result === 'denied') setPermissionDenied(true);
+            if (result === 'error') setNotificationSendError(true);
           }
         }
       } else if (allItems.length > 0) {
@@ -191,18 +229,22 @@ export function useNotificationPolling() {
     enabled: !!(jiraBaseUrl || gitlabBaseUrl),
   });
 
-  // Propagate error state to store so NotificationPopover can display it
+  // Propagate error state to store so NotificationPopover can display it.
+  // Use stable action selectors (not `store.setFetchError`) to avoid infinite loops —
+  // subscribing to the whole store causes action refs to change on every store update.
   useEffect(() => {
-    store.setFetchError(queryResult.isError ? (queryResult.error as Error) : null);
-  }, [queryResult.isError, queryResult.error, store.setFetchError]);
+    setFetchError(queryResult.isError ? (queryResult.error as Error) : null);
+  }, [queryResult.isError, queryResult.error, setFetchError]);
 
-  // Expose refetch via store so NotificationPopover can trigger retry
+  // Expose refetch via store so NotificationPopover can trigger retry.
+  // `setRetryFetch` is stable (Zustand selector) so this effect only re-runs when
+  // `queryResult.refetch` changes — which is infrequent (only on query key change).
   useEffect(() => {
-    store.setRetryFetch(() => {
+    setRetryFetch(() => {
       queryResult.refetch();
     });
     return () => {
-      store.setRetryFetch(null);
+      setRetryFetch(null);
     };
-  }, [queryResult.refetch, store.setRetryFetch]);
+  }, [queryResult.refetch, setRetryFetch]);
 }
