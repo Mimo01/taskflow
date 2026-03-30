@@ -119,7 +119,7 @@ See archive: `.planning/milestones/v1.6.3-ROADMAP.md`
 - [x] **Phase 44: Loading UX** — Skeleton screens, progressive data, flicker prevention (completed 2026-03-30)
 - [x] **Phase 45: Query Optimization** — Parallelization and hover prefetch (completed 2026-03-30)
 - [x] **Phase 46: Avatar Caching** — Session cache and disk persistence (completed 2026-03-30)
-- [ ] **Phase 47: v1.7 Documentation & Code Debt Cleanup** — Fix stale docs, code debt, Nyquist compliance
+- [x] **Phase 47: v1.7 Documentation & Code Debt Cleanup** — Fix stale docs, code debt, Nyquist compliance (completed 2026-03-30)
 
 ## Phase Details
 
@@ -210,10 +210,10 @@ Plans:
   6. Dead fetchSprintIssues mock removed from SprintBoardTab.test.tsx
   7. stats.html cleaned up
   8. Nyquist compliance achieved for phases 43-46
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 Plans:
-- [ ] 47-01-PLAN.md — Code debt: BacklogPage constant, dead mock removal, stats.html gitignore
-- [ ] 47-02-PLAN.md — Doc cleanup: requirement checkboxes, ROADMAP checkboxes, SUMMARY frontmatter, Nyquist compliance
+- [x] 47-01-PLAN.md — Code debt: BacklogPage constant, dead mock removal, stats.html gitignore
+- [x] 47-02-PLAN.md — Doc cleanup: requirement checkboxes, ROADMAP checkboxes, SUMMARY frontmatter, Nyquist compliance
 
 ## Progress
 
@@ -228,4 +228,4 @@ Plans:
 | 44. Loading UX | v1.7 | 4/4 | Complete    | 2026-03-30 |
 | 45. Query Optimization | v1.7 | 3/3 | Complete    | 2026-03-30 |
 | 46. Avatar Caching | v1.7 | 2/2 | Complete    | 2026-03-30 |
-| 47. v1.7 Debt Cleanup | v1.7 | 0/2 | Pending     | — |
+| 47. v1.7 Debt Cleanup | v1.7 | 2/2 | Complete   | 2026-03-30 |
