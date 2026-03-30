@@ -97,7 +97,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
 
         {/* Key cell */}
         <td className="w-24 px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap">
-          <span className="font-mono text-xs text-muted-foreground">{issue.key}</span>
+          <span className={cn('font-mono text-xs text-muted-foreground', issue.fields.status.statusCategory?.key === 'done' && 'line-through')}>{issue.key}</span>
         </td>
 
         {/* Epic badge cell -- right after key */}

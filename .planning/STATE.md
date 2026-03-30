@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Performance & Perceived Speed
 status: Milestone complete
-stopped_at: Completed 46-02-PLAN.md
-last_updated: "2026-03-30T16:49:35.142Z"
+stopped_at: Completed quick-260330-wqj
+last_updated: "2026-03-30T21:39:27.943Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 5
@@ -66,8 +66,8 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-03-30 - Completed quick task 260330-wj6: Better communicate that sprint board task headers and cards are clickable
-Stopped at: Completed 46-02-PLAN.md
+Last activity: 2026-03-30 - Completed quick task 260330-wqj: Strikethrough done issue keys in sprint board and backlog
+Stopped at: Completed quick-260330-wqj
 Resume: `/gsd:plan-phase 38`
 
 ### Quick Tasks Completed
@@ -90,3 +90,4 @@ Resume: `/gsd:plan-phase 38`
 | 260329-mxv | Make the changelogs look nicer. The update modals are too small. Refine the views | 2026-03-29 | a35bd3f | | [260329-mxv-make-the-changelogs-look-nicer-the-updat](./quick/260329-mxv-make-the-changelogs-look-nicer-the-updat/) |
 | 260330-r56 | Replace sprint board drag-and-drop with right-click status transition popup | 2026-03-30 | 74ef958 | | [260330-r56-replace-sprint-board-drag-and-drop-with-](./quick/260330-r56-replace-sprint-board-drag-and-drop-with-/) |
 | 260330-wj6 | Better communicate that sprint board task headers and cards are clickable | 2026-03-30 | f0d360f | | [260330-wj6-better-communicate-that-sprint-board-tas](./quick/260330-wj6-better-communicate-that-sprint-board-tas/) |
+| 260330-wqj | Strikethrough done issue keys in sprint board and backlog | 2026-03-30 | — | | [260330-wqj-subtasks-and-stories-that-are-done-shoul](./quick/260330-wqj-subtasks-and-stories-that-are-done-shoul/) |
