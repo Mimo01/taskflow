@@ -33,7 +33,12 @@ export function StoryHeaderRow({
   const statusStyle = statusCategoryBadgeClass(statusCategoryKey);
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 hover:bg-muted/60 transition-colors border-b border-border/30">
+    <div className={cn(
+      'flex items-center gap-2 px-3 py-2 transition-colors border-b',
+      isExpanded
+        ? 'bg-muted/40 hover:bg-muted/60 border-border/30'
+        : 'bg-muted/25 hover:bg-muted/45 border-border/50 mb-0.5',
+    )}>
       {/* Chevron — toggles collapse without opening detail sheet */}
       <button
         type="button"
