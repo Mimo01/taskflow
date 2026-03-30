@@ -29,6 +29,7 @@ import { useNotificationsStore } from '../../stores/notifications.store';
 import { useSettingsStore } from '../../stores/settings.store';
 
 const RETENTION_OPTIONS = ['50', '100', '200', '500', '1000'] as const;
+const CONCURRENCY_OPTIONS = [1, 2, 3, 4, 6, 8, 10, 12] as const;
 
 export default function DebugModeSection() {
   const devToolsEnabled = useSettingsStore((s) => s.devToolsEnabled);
@@ -43,6 +44,8 @@ export default function DebugModeSection() {
   const setPerformanceWaterfall = useSettingsStore((s) => s.setPerformanceWaterfall);
   const retentionLimit = useSettingsStore((s) => s.retentionLimit);
   const setRetentionLimit = useSettingsStore((s) => s.setRetentionLimit);
+  const jiraConcurrencyLimit = useSettingsStore((s) => s.jiraConcurrencyLimit);
+  const setJiraConcurrencyLimit = useSettingsStore((s) => s.setJiraConcurrencyLimit);
   const clearAll = useNotificationsStore((s) => s.clearAll);
   const itemCount = useNotificationsStore((s) => s.items.length);
   const [cleared, setCleared] = useState(false);
@@ -140,6 +143,28 @@ export default function DebugModeSection() {
                   {RETENTION_OPTIONS.map((opt) => (
                     <SelectItem key={opt} value={opt}>
                       {opt}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium">Jira concurrency limit</p>
+                <p className="text-xs text-muted-foreground">Max parallel API calls (default: 6)</p>
+              </div>
+              <Select
+                value={jiraConcurrencyLimit.toString()}
+                onValueChange={(val) => setJiraConcurrencyLimit(Number(val))}
+              >
+                <SelectTrigger aria-label="Jira concurrency limit">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CONCURRENCY_OPTIONS.map((n) => (
+                    <SelectItem key={n} value={n.toString()}>
+                      {n}
                     </SelectItem>
                   ))}
                 </SelectContent>

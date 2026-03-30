@@ -31,11 +31,25 @@ vi.mock('@/services/stronghold', () => ({
 }));
 
 vi.mock('@/services/jira', () => ({
-  fetchBacklogView: vi
-    .fn()
-    .mockResolvedValue({ sprints: [], backlog: [], epicNames: new Map(), epicColors: new Map() }),
   addIssuesToSprint: vi.fn().mockResolvedValue(undefined),
   fetchActiveSprint: vi.fn().mockResolvedValue(null),
+  fetchEpicsBasic: vi.fn().mockResolvedValue([]),
+  fetchProjectStatuses: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock('@/services/jira/backlog', () => ({
+  fetchBacklogView: vi
+    .fn()
+    .mockResolvedValue({ sprints: [], backlog: [] }),
+}));
+
+vi.mock('@/services/jira/issues', () => ({
+  fetchSprintStories: vi.fn().mockResolvedValue([]),
+  fetchSprintSubtasks: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock('@/hooks/useBoardId', () => ({
+  useBoardId: vi.fn().mockReturnValue({ boardId: 1, isLoading: false }),
 }));
 
 vi.mock('@/stores/auth.store', () => ({
@@ -117,7 +131,7 @@ describe('BACK-01 List', () => {
   });
 
   it('renders backlog issues AND sprint issues; sprint section headers appear', async () => {
-    const { fetchBacklogView } = await import('@/services/jira');
+    const { fetchBacklogView } = await import('@/services/jira/backlog');
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [
         {
@@ -148,7 +162,7 @@ describe('BACK-01 List', () => {
   });
 
   it('renders skeleton/loading state while query is pending', async () => {
-    const { fetchBacklogView } = await import('@/services/jira');
+    const { fetchBacklogView } = await import('@/services/jira/backlog');
     vi.mocked(fetchBacklogView).mockReturnValue(new Promise(() => {})); // never resolves
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -161,7 +175,7 @@ describe('BACK-01 List', () => {
   });
 
   it('renders empty state message when fetchBacklogView resolves with no issues', async () => {
-    const { fetchBacklogView } = await import('@/services/jira');
+    const { fetchBacklogView } = await import('@/services/jira/backlog');
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [],
       backlog: [],
@@ -178,7 +192,7 @@ describe('BACK-01 List', () => {
   });
 
   it('renders Active badge on active sprint section and Future badge on future sprint section', async () => {
-    const { fetchBacklogView } = await import('@/services/jira');
+    const { fetchBacklogView } = await import('@/services/jira/backlog');
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [
         { sprint: makeSprint(1, 'Sprint 1', 'active'), issues: [] },
@@ -205,7 +219,7 @@ describe('BACK-02 Move to sprint', () => {
   });
 
   it('selecting a row checkbox reveals the bulk action bar', async () => {
-    const { fetchBacklogView } = await import('@/services/jira');
+    const { fetchBacklogView } = await import('@/services/jira/backlog');
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [],
       backlog: [makeIssue('PROJ-1', 'Build login page')],
@@ -225,7 +239,8 @@ describe('BACK-02 Move to sprint', () => {
   });
 
   it('"Move to sprint" button is disabled when fetchActiveSprint returns null', async () => {
-    const { fetchBacklogView, fetchActiveSprint } = await import('@/services/jira');
+    const { fetchBacklogView } = await import('@/services/jira/backlog');
+    const { fetchActiveSprint } = await import('@/services/jira');
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [],
       backlog: [makeIssue('PROJ-1', 'Build login page')],
@@ -248,9 +263,8 @@ describe('BACK-02 Move to sprint', () => {
   });
 
   it('clicking "Move to sprint" removes selected backlog issues optimistically from the list', async () => {
-    const { fetchBacklogView, fetchActiveSprint, addIssuesToSprint } = await import(
-      '@/services/jira'
-    );
+    const { fetchBacklogView } = await import('@/services/jira/backlog');
+    const { fetchActiveSprint, addIssuesToSprint } = await import('@/services/jira');
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [],
       backlog: [makeIssue('PROJ-1', 'Build login page'), makeIssue('PROJ-2', 'Fix signup flow')],
@@ -282,9 +296,8 @@ describe('BACK-02 Move to sprint', () => {
   });
 
   it('clicking "Move to sprint" removes selected sprint issues optimistically from the list', async () => {
-    const { fetchBacklogView, fetchActiveSprint, addIssuesToSprint } = await import(
-      '@/services/jira'
-    );
+    const { fetchBacklogView } = await import('@/services/jira/backlog');
+    const { fetchActiveSprint, addIssuesToSprint } = await import('@/services/jira');
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [
         {
@@ -320,9 +333,8 @@ describe('BACK-02 Move to sprint', () => {
   });
 
   it('when addIssuesToSprint rejects, issues reappear and error message is shown', async () => {
-    const { fetchBacklogView, fetchActiveSprint, addIssuesToSprint } = await import(
-      '@/services/jira'
-    );
+    const { fetchBacklogView } = await import('@/services/jira/backlog');
+    const { fetchActiveSprint, addIssuesToSprint } = await import('@/services/jira');
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [],
       backlog: [makeIssue('PROJ-1', 'Build login page')],
@@ -368,7 +380,7 @@ describe('BACK-03 Create story', () => {
     const { useOutletContext } = await import('react-router-dom');
     vi.mocked(useOutletContext).mockReturnValue({ onIssueClick: vi.fn(), openCreateStory });
 
-    const { fetchBacklogView } = await import('@/services/jira');
+    const { fetchBacklogView } = await import('@/services/jira/backlog');
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [],
       backlog: [],
@@ -395,7 +407,7 @@ describe('BACK-04 Filters', () => {
   });
 
   it('selecting an epic filter hides rows with a different epic (across sections)', async () => {
-    const { fetchBacklogView } = await import('@/services/jira');
+    const { fetchBacklogView } = await import('@/services/jira/backlog');
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [
         {
@@ -427,7 +439,7 @@ describe('BACK-04 Filters', () => {
   });
 
   it('selecting an assignee filter hides rows with a different assignee', async () => {
-    const { fetchBacklogView } = await import('@/services/jira');
+    const { fetchBacklogView } = await import('@/services/jira/backlog');
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [],
       backlog: [
@@ -454,7 +466,7 @@ describe('BACK-04 Filters', () => {
   });
 
   it('two active filters narrow results using AND logic (epic AND assignee)', async () => {
-    const { fetchBacklogView } = await import('@/services/jira');
+    const { fetchBacklogView } = await import('@/services/jira/backlog');
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [],
       backlog: [
@@ -487,7 +499,7 @@ describe('BACK-04 Filters', () => {
   });
 
   it('clicking the dismiss chip on an active filter clears that filter', async () => {
-    const { fetchBacklogView } = await import('@/services/jira');
+    const { fetchBacklogView } = await import('@/services/jira/backlog');
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [],
       backlog: [
@@ -534,7 +546,7 @@ describe('BACK-05 Row click', () => {
     const { useOutletContext } = await import('react-router-dom');
     vi.mocked(useOutletContext).mockReturnValue({ onIssueClick, openCreateStory: vi.fn() });
 
-    const { fetchBacklogView } = await import('@/services/jira');
+    const { fetchBacklogView } = await import('@/services/jira/backlog');
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [],
       backlog: [makeIssue('PROJ-1', 'Build login page')],
@@ -558,7 +570,7 @@ describe('BACK-05 Row click', () => {
     const { useOutletContext } = await import('react-router-dom');
     vi.mocked(useOutletContext).mockReturnValue({ onIssueClick, openCreateStory: vi.fn() });
 
-    const { fetchBacklogView } = await import('@/services/jira');
+    const { fetchBacklogView } = await import('@/services/jira/backlog');
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [
         {
