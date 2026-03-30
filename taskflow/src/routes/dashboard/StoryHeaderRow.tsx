@@ -36,8 +36,8 @@ export function StoryHeaderRow({
     <div className={cn(
       'flex items-center gap-2 px-3 py-2 transition-colors border-b',
       isExpanded
-        ? 'bg-muted/40 hover:bg-muted/60 border-border/30'
-        : 'bg-muted/25 hover:bg-muted/45 border-border/50 mb-0.5',
+        ? 'bg-muted/40 hover:bg-muted/60 border-border/60'
+        : 'bg-muted/40 hover:bg-muted/60 border-border/60 mb-px',
     )}>
       {/* Chevron — toggles collapse without opening detail sheet */}
       <button
