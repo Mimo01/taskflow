@@ -123,6 +123,7 @@ function VirtualizedSwimlanes({
   cardErrors,
   onStickyHeaderChange,
   stickyHeaderInnerRef,
+  onTransition,
 }: {
   filteredSwimlanes: { story: JiraIssue; subtasks: JiraIssue[] }[];
   scrollElement: HTMLElement | null;
@@ -137,7 +138,21 @@ function VirtualizedSwimlanes({
   onStickyHeaderChange: (data: StickyHeaderData) => void;
   /** Ref to the sticky header inner div — push offset is applied directly for 60fps performance */
   stickyHeaderInnerRef: React.RefObject<HTMLDivElement | null>;
+  /** Called when user selects a transition from the story header context menu */
+  onTransition: (
+    issueKey: string,
+    transitionId: string,
+    toStatusName: string,
+    toStatusId: string,
+    toStatusCategoryKey?: string,
+  ) => void;
 }) {
+  const queryClient = useQueryClient();
+
+  function getTransitions(issueKey: string): JiraTransition[] {
+    return queryClient.getQueryData<JiraTransition[]>(['transitions', issueKey]) ?? [];
+  }
+
   const swimlaneVirtualizer = useVirtualizer({
     count: filteredSwimlanes.length,
     getScrollElement: () => scrollElement,
@@ -294,6 +309,9 @@ function VirtualizedSwimlanes({
             isExpanded={isExpanded}
             onToggle={() => toggleStory(story.key)}
             onOpenDetail={setSelectedIssueKey}
+            transitions={getTransitions(story.key)}
+            onTransition={(tid, name, toId, catKey) => onTransition(story.key, tid, name, toId, catKey)}
+            transitionError={cardErrors.get(story.key)}
           />
         </div>
         {isExpanded && (
@@ -377,6 +395,9 @@ function VirtualizedSwimlanes({
                 isExpanded={isExpanded}
                 onToggle={() => toggleStory(story.key)}
                 onOpenDetail={setSelectedIssueKey}
+                transitions={getTransitions(story.key)}
+                onTransition={(tid, name, toId, catKey) => onTransition(story.key, tid, name, toId, catKey)}
+                transitionError={cardErrors.get(story.key)}
               />
             </div>
             {isExpanded && (
@@ -548,19 +569,17 @@ export default function SprintBoardTab() {
     if (!isDragging) setLocalIssues(data ?? []);
   }, [data, isDragging]);
 
-  // Pre-fetch transitions for all draggable cards
+  // Pre-fetch transitions for all issues (subtasks and stories)
   useEffect(() => {
     if (!jiraBaseUrl || !jiraToken || !localIssues.length) return;
-    const subtaskParentKeys = new Set(
-      localIssues
-        .filter((i) => i.fields.issuetype.subtask && i.fields.parent?.key)
-        .map((i) => i.fields.parent?.key),
-    );
-    const draggable = localIssues.filter(
-      (i) => i.fields.issuetype.subtask || !subtaskParentKeys.has(i.key),
-    );
+    const allIssueKeys = new Set<string>();
+    const uniqueIssues = localIssues.filter((i) => {
+      if (allIssueKeys.has(i.key)) return false;
+      allIssueKeys.add(i.key);
+      return true;
+    });
     void Promise.allSettled(
-      draggable.map((issue) =>
+      uniqueIssues.map((issue) =>
         queryClient.fetchQuery({
           queryKey: ['transitions', issue.key],
           queryFn: () => fetchTransitions(jiraBaseUrl, jiraToken!, issue.key),
@@ -568,7 +587,7 @@ export default function SprintBoardTab() {
         }),
       ),
     );
-  }, [jiraBaseUrl, jiraToken, localIssues.length, localIssues.filter, queryClient.fetchQuery]);
+  }, [jiraBaseUrl, jiraToken, localIssues.length, localIssues, queryClient]);
 
   /**
    * Maps status ID -> category key.
@@ -679,6 +698,61 @@ export default function SprintBoardTab() {
     }
     return cats;
   }, [activeIssue, queryClient, statusCategoryMap]);
+
+  /** Handle a story status transition from the context menu on StoryHeaderRow. */
+  async function handleTransition(
+    issueKey: string,
+    transitionId: string,
+    toStatusName: string,
+    toStatusId: string,
+    toStatusCategoryKey?: string,
+  ) {
+    const originalIssue = localIssues.find((i) => i.key === issueKey);
+    if (!originalIssue) return;
+
+    const targetStatusCategory = toStatusCategoryKey
+      ? { key: toStatusCategoryKey as 'new' | 'indeterminate' | 'done' }
+      : undefined;
+
+    // Optimistic update
+    setLocalIssues((prev) =>
+      prev.map((i) =>
+        i.key === issueKey
+          ? {
+              ...i,
+              fields: {
+                ...i.fields,
+                status: {
+                  id: toStatusId,
+                  name: toStatusName,
+                  statusCategory: targetStatusCategory ?? i.fields.status.statusCategory,
+                },
+              },
+            }
+          : i,
+      ),
+    );
+    setCardErrors((prev) => {
+      const m = new Map(prev);
+      m.delete(issueKey);
+      return m;
+    });
+
+    try {
+      await postTransition(jiraBaseUrl!, jiraToken!, issueKey, transitionId);
+      queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
+    } catch {
+      // Rollback
+      setLocalIssues((prev) =>
+        prev.map((i) =>
+          i.key === issueKey
+            ? { ...i, fields: { ...i.fields, status: originalIssue.fields.status } }
+            : i,
+        ),
+      );
+      setCardErrors((prev) => new Map(prev).set(issueKey, 'Transition failed'));
+    }
+  }
 
   const swimlanes = useMemo(() => {
     const stories = localIssues.filter((i) => !i.fields.issuetype.subtask);
@@ -976,6 +1050,16 @@ export default function SprintBoardTab() {
                   isExpanded={stickyHeader.isExpanded}
                   onToggle={() => toggleStory(stickyHeader.story.key)}
                   onOpenDetail={setSelectedIssueKey}
+                  transitions={
+                    queryClient.getQueryData<JiraTransition[]>([
+                      'transitions',
+                      stickyHeader.story.key,
+                    ]) ?? []
+                  }
+                  onTransition={(tid, name, toId, catKey) =>
+                    handleTransition(stickyHeader.story.key, tid, name, toId, catKey)
+                  }
+                  transitionError={cardErrors.get(stickyHeader.story.key)}
                 />
               </div>
             )}
@@ -1070,6 +1154,7 @@ export default function SprintBoardTab() {
                 cardErrors={cardErrors}
                 onStickyHeaderChange={handleStickyHeaderChange}
                 stickyHeaderInnerRef={stickyHeaderInnerRef}
+                onTransition={handleTransition}
               />
             )}
           </div>
