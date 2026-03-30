@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Performance & Perceived Speed
 status: executing
-stopped_at: Completed 44-03-PLAN.md
-last_updated: "2026-03-30T07:21:37.374Z"
+stopped_at: Completed 44-04-PLAN.md
+last_updated: "2026-03-30T07:45:18.376Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 5
-  completed_phases: 2
-  total_plans: 8
-  completed_plans: 7
+  completed_phases: 3
+  total_plans: 9
+  completed_plans: 9
   percent: 78
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 ## Current Position
 
 Phase: 44 (loading-ux) — EXECUTING
-Plan: 3 of 3
+Plan: 2 of 4
 Status: Ready to execute
 Last activity: 2026-03-30
 
@@ -47,6 +47,8 @@ Recent decisions affecting current work:
 - [Phase 42-foundation]: Removed all useMemo/useCallback/memo from 35 files; useDebounce uses fnRef pattern for stable function identity without useCallback
 - [Phase 43-02]: Test mocks for useLocation return tab's own route pathname so isActive=true and queries remain enabled in tests
 - [Phase 44-loading-ux]: Content visibility guards changed from !isLoading to !showSkeleton to prevent content flash while isRefreshing=true after cache invalidation
+- [Phase 44-loading-ux]: LOAD-03 deferred: skeleton infra exists but subtasksLoading always false — requires Phase 45 query split to activate
+- [Phase 44-loading-ux]: LOAD-04 partial: epic column header progressive loading works; per-row badges use same query as rows so no per-row skeleton possible
 
 ### Pending Todos
 
@@ -61,7 +63,7 @@ None.
 ## Session Continuity
 
 Last activity: 2026-03-29
-Stopped at: Completed 44-03-PLAN.md
+Stopped at: Completed 44-04-PLAN.md
 Resume: `/gsd:execute-phase 42`
 
 ### Quick Tasks Completed
