@@ -73,23 +73,28 @@ export async function fetchBacklogIssues(
  * Fetch the full backlog view: active sprint, future sprints, and unassigned backlog.
  *
  * Strategy:
- * 1. Discover the scrum board for the project.
- * 2. Fetch active + future sprints from that board.
- * 3. Fetch issues for each sprint in parallel (JQL: sprint = {id} AND issuetype != Sub-task).
+ * 1. Use provided boardId (from shared useBoardId hook, D-03/D-05) — no internal board discovery.
+ * 2. Fetch active + future sprint issues from that board via Agile API.
+ * 3. Fetch sprint list to include empty sprints and establish canonical order.
  * 4. Fetch unassigned backlog issues (sprint is EMPTY AND issuetype != Sub-task).
  *
- * On board/sprint discovery failure the sprints array is empty and only the backlog
- * section is populated. On individual sprint issue fetch failure that sprint shows
- * zero issues (never throws).
+ * Epic names/colors are NOT fetched internally (D-04). Callers use the shared
+ * fetchEpicsBasic query cache instead. The epicNames and epicColors fields are
+ * omitted from the returned BacklogViewData.
+ *
+ * On board/sprint failure the sprints array is empty and only the backlog is populated.
+ * Never throws -- all errors are caught and partial results are returned.
+ *
+ * @param boardId - Scrum board ID (from useBoardId hook); null to skip sprint fetching
  */
 export async function fetchBacklogView(
   baseUrl: string,
   token: string,
   projectKey: string,
+  boardId: number | null,
   storyPointsFieldKey = 'customfield_10016',
   epicLinkFieldKey = 'customfield_10014',
   epicNameFieldKey = 'customfield_10015',
-  epicColorFieldKey = 'customfield_10013',
 ): Promise<BacklogViewData> {
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -145,24 +150,8 @@ export async function fetchBacklogView(
     return Array.from(map.values());
   }
 
-  // Step 1: Discover board (needed for Agile API endpoint)
-  let boardId: number | null = null;
-  try {
-    const boardRes = await apiFetch(
-      'jira',
-      `${base}/rest/agile/1.0/board?projectKeyOrId=${projectKey}&type=scrum`,
-      { headers },
-      'Load Backlog',
-    );
-    if (boardRes.ok) {
-      const boardData = await boardRes.json();
-      boardId = boardData?.values?.[0]?.id ?? null;
-    }
-  } catch {
-    /* boardId stays null */
-  }
-
   // Step 2: Fetch active + future sprint issues via Agile board endpoint.
+  // boardId is provided by the caller (from useBoardId hook, D-03/D-05).
   // /rest/agile/1.0/board/{id}/issue returns fields.sprint as a reliable object,
   // and openSprints()/futureSprints() JQL functions scope results to this project only.
   let sprints: Array<{ sprint: JiraActiveSprint; issues: JiraIssue[] }> = [];
@@ -263,30 +252,6 @@ export async function fetchBacklogView(
     headers,
   ).catch(() => [] as JiraIssue[]);
 
-  // Step 4: Batch-fetch epic names from the epic issues themselves.
-  // customfield_10015 (epic name) is often null on Jira Server -- the epic's
-  // own summary field is the authoritative display name.
-  const allIssues = [...sprints.flatMap((s) => s.issues), ...backlog];
-  const epicKeys = new Set(
-    allIssues
-      .map((i) => i.fields[epicLinkFieldKey] as string | null)
-      .filter((k): k is string => !!k),
-  );
-  const epicNames = new Map<string, string>();
-  const epicColors = new Map<string, string>();
-  if (epicKeys.size > 0) {
-    const epicFetchFields = [...new Set(['summary', epicColorFieldKey])].join(',');
-    const epicJql = encodeURIComponent(`issuekey in (${Array.from(epicKeys).join(',')})`);
-    const epicIssues = await fetchAllSearchPages(
-      `${base}/rest/api/2/search?jql=${epicJql}&fields=${epicFetchFields}`,
-      headers,
-    ).catch(() => [] as JiraIssue[]);
-    for (const epic of epicIssues) {
-      epicNames.set(epic.key, epic.fields.summary);
-      const color = epic.fields[epicColorFieldKey] as string | null;
-      if (color) epicColors.set(epic.key, color);
-    }
-  }
-
-  return { sprints, backlog, epicNames, epicColors };
+  // Epic names/colors are omitted (D-04): callers use the shared fetchEpicsBasic cache.
+  return { sprints, backlog };
 }

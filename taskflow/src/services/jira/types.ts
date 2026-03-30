@@ -188,8 +188,8 @@ export interface IssueLinkType {
 export interface BacklogViewData {
   sprints: Array<{ sprint: JiraActiveSprint; issues: JiraIssue[] }>;
   backlog: JiraIssue[];
-  epicNames: Map<string, string>; // epicKey -> epic summary (display name)
-  epicColors: Map<string, string>; // epicKey -> Jira color string (e.g. "ghx-label-5")
+  epicNames?: Map<string, string>; // epicKey -> epic summary (display name); provided by shared fetchEpicsBasic cache
+  epicColors?: Map<string, string>; // epicKey -> Jira color string; provided by shared fetchEpicsBasic cache
 }
 
 export interface EpicEnriched {

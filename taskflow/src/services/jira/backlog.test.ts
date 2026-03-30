@@ -65,28 +65,21 @@ describe('backlog service', () => {
 
   // --- fetchBacklogView ---
   describe('fetchBacklogView', () => {
-    it('returns full backlog view with sprints and backlog on success', async () => {
-      // Step 1: board discovery via apiFetch
-      vi.mocked(apiFetch)
-        .mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          json: async () => ({ values: [{ id: 42 }] }),
-        } as Response)
-        // Step 2b: sprint list
-        .mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          json: async () => ({
-            values: [{ id: 10, name: 'Sprint 1', state: 'active', originBoardId: 42 }],
-          }),
-        } as Response);
+    it('returns full backlog view with sprints and backlog on success (boardId provided)', async () => {
+      // boardId=42 provided -- no board discovery call expected
+      // Only sprint list call via apiFetch
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          values: [{ id: 10, name: 'Sprint 1', state: 'active', originBoardId: 42 }],
+        }),
+      } as Response);
 
       // fetchAllSearchPages calls:
       // 1. Active sprint issues
       // 2. Future sprint issues
       // 3. Backlog issues
-      // 4. Epic issues (may or may not be called depending on epic links)
       vi.mocked(fetchAllSearchPages)
         .mockResolvedValueOnce([
           {
@@ -100,37 +93,63 @@ describe('backlog service', () => {
         .mockResolvedValueOnce([] as any) // future sprint issues
         .mockResolvedValueOnce([{ key: 'PROJ-5', fields: { summary: 'Backlog item' } }] as any); // backlog issues
 
-      const result = await fetchBacklogView(BASE, TOKEN, 'PROJ');
+      const result = await fetchBacklogView(BASE, TOKEN, 'PROJ', 42);
       expect(result.sprints).toHaveLength(1);
       expect(result.sprints[0].sprint.name).toBe('Sprint 1');
       expect(result.backlog).toHaveLength(1);
       expect(result.backlog[0].key).toBe('PROJ-5');
     });
 
-    it('returns backlog only when board discovery fails', async () => {
-      // Board discovery fails
+    it('fetchBacklogView with boardId skips board discovery -- no agile/1.0/board?projectKeyOrId call', async () => {
+      // sprint list call only
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ values: [] }),
+      } as Response);
+
+      vi.mocked(fetchAllSearchPages).mockResolvedValue([] as any);
+
+      await fetchBacklogView(BASE, TOKEN, 'PROJ', 42);
+
+      // Verify no board discovery URL was called
+      const calls = vi.mocked(apiFetch).mock.calls;
+      const boardDiscoveryCall = calls.find(
+        (call) =>
+          typeof call[1] === 'string' && call[1].includes('board?projectKeyOrId='),
+      );
+      expect(boardDiscoveryCall).toBeUndefined();
+    });
+
+    it('fetchBacklogView return does not contain epicNames when no epic batch', async () => {
       vi.mocked(apiFetch).mockResolvedValueOnce({
         ok: false,
         status: 404,
       } as Response);
 
-      // Backlog issues
+      vi.mocked(fetchAllSearchPages).mockResolvedValueOnce([] as any);
+
+      const result = await fetchBacklogView(BASE, TOKEN, 'PROJ', null);
+      expect(result.epicNames).toBeUndefined();
+      expect(result.epicColors).toBeUndefined();
+    });
+
+    it('returns backlog only when boardId is null', async () => {
+      // Backlog issues only, no sprint list call
       vi.mocked(fetchAllSearchPages).mockResolvedValueOnce([
         { key: 'PROJ-5', fields: { summary: 'Backlog item' } },
       ] as any);
 
-      const result = await fetchBacklogView(BASE, TOKEN, 'PROJ');
+      const result = await fetchBacklogView(BASE, TOKEN, 'PROJ', null);
       expect(result.sprints).toHaveLength(0);
       expect(result.backlog).toHaveLength(1);
     });
 
-    it('returns empty backlog on all failures', async () => {
-      // Board discovery fails
-      vi.mocked(apiFetch).mockRejectedValueOnce(new Error('network'));
-      // Backlog fetch also fails (caught internally)
+    it('returns empty backlog when backlog fetch fails', async () => {
+      // Backlog fetch fails (caught internally)
       vi.mocked(fetchAllSearchPages).mockRejectedValueOnce(new Error('fail'));
 
-      const result = await fetchBacklogView(BASE, TOKEN, 'PROJ');
+      const result = await fetchBacklogView(BASE, TOKEN, 'PROJ', null);
       expect(result.sprints).toEqual([]);
       expect(result.backlog).toEqual([]);
     });
