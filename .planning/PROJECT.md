@@ -229,4 +229,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-30 after Phase 45 query-optimization complete — query parallelization, sidebar prefetch with boardId chain, concurrency limiter*
+*Last updated: 2026-03-30 after Phase 46 avatar-caching complete — in-memory + disk-persistent avatar cache, CachedAvatar component across all 11 usage sites, session dedup and 30-day TTL eviction*
