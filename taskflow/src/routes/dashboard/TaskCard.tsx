@@ -22,6 +22,7 @@ import { CachedAvatar } from '@/components/ui/cached-avatar';
 import {
   ContextMenu,
   ContextMenuContent,
+  ContextMenuGroup,
   ContextMenuItem,
   ContextMenuLabel,
   ContextMenuSeparator,
@@ -168,7 +169,9 @@ export default function TaskCard({
     <ContextMenu>
       <ContextMenuTrigger>{cardContent}</ContextMenuTrigger>
       <ContextMenuContent>
-        <ContextMenuLabel>Move to...</ContextMenuLabel>
+        <ContextMenuGroup>
+          <ContextMenuLabel>Move to...</ContextMenuLabel>
+        </ContextMenuGroup>
         <ContextMenuSeparator />
         {transitions && transitions.length > 0 ? (
           transitions.map((transition) => (
@@ -195,9 +198,11 @@ export default function TaskCard({
             </ContextMenuItem>
           ))
         ) : (
-          <ContextMenuLabel className="text-muted-foreground italic">
-            No transitions available
-          </ContextMenuLabel>
+          <ContextMenuGroup>
+            <ContextMenuLabel className="text-muted-foreground italic">
+              No transitions available
+            </ContextMenuLabel>
+          </ContextMenuGroup>
         )}
       </ContextMenuContent>
     </ContextMenu>
