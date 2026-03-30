@@ -1,9 +1,9 @@
 ---
 phase: 44
 slug: loading-ux
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-30
 ---
 
@@ -76,4 +76,4 @@ created: 2026-03-30
 - [ ] Feedback latency < 30s
 - [ ] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** complete (Phase 47 cleanup)

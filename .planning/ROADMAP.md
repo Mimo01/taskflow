@@ -150,8 +150,8 @@ Plans:
   3. All polling stops when the app is minimized and resumes on restore
 **Plans:** 2/2 plans complete
 Plans:
-- [ ] 43-01-PLAN.md — Cache infrastructure: gcTime: Infinity, useIsActiveRoute hook, shared polling constants
-- [ ] 43-02-PLAN.md — Wire route-aware polling pause into all 5 view-scoped queries
+- [x] 43-01-PLAN.md — Cache infrastructure: gcTime: Infinity, useIsActiveRoute hook, shared polling constants
+- [x] 43-02-PLAN.md — Wire route-aware polling pause into all 5 view-scoped queries
 
 ### Phase 44: Loading UX
 **Goal**: Every major data view shows a layout-matched skeleton instead of a spinner, and data loads progressively without flicker
@@ -182,7 +182,7 @@ Plans:
 Plans:
 - [x] 45-01-PLAN.md — Service layer: concurrency limiter, useBoardId hook, sprint query split, backlog refactor
 - [x] 45-02-PLAN.md — Component wiring: parallel queries, sidebar prefetch, dev tools toggle
-- [ ] 45-03-PLAN.md — Gap closure: wire backlog prefetch with boardId chain in Sidebar
+- [x] 45-03-PLAN.md — Gap closure: wire backlog prefetch with boardId chain in Sidebar
 
 ### Phase 46: Avatar Caching
 **Goal**: Avatar and user images never re-fetch within a session and survive app restarts
@@ -224,8 +224,8 @@ Plans:
 | 40. Settings, About & Menu Integration | v1.6.3 | 3/3 | Complete | 2026-03-25 |
 | 41. CI Pipeline | v1.6.3 | 2/2 | Complete | 2026-03-25 |
 | 42. Foundation | v1.7 | 2/3 | Complete    | 2026-03-29 |
-| 43. Cache Correctness | v1.7 | 0/2 | Complete    | 2026-03-29 |
+| 43. Cache Correctness | v1.7 | 2/2 | Complete    | 2026-03-29 |
 | 44. Loading UX | v1.7 | 4/4 | Complete    | 2026-03-30 |
-| 45. Query Optimization | v1.7 | 2/3 | Complete    | 2026-03-30 |
+| 45. Query Optimization | v1.7 | 3/3 | Complete    | 2026-03-30 |
 | 46. Avatar Caching | v1.7 | 2/2 | Complete    | 2026-03-30 |
 | 47. v1.7 Debt Cleanup | v1.7 | 0/2 | Pending     | — |

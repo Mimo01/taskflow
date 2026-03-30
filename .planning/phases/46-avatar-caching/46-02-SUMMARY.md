@@ -35,7 +35,7 @@ metrics:
   tasks_completed: 2
   tasks_total: 2
   files_modified: 13
-requirements: [CACH-01, CACH-02]
+requirements-completed: [CACH-01, CACH-02]
 ---
 
 # Phase 46 Plan 02: Avatar Integration Summary
