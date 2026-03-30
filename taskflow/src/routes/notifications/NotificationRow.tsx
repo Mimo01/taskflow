@@ -12,6 +12,7 @@
  * - Hover: actions float top-right over timestamp
  */
 import { Check, ExternalLink, MailOpen, X } from 'lucide-react';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import type { NotificationItem } from '../../stores/notifications.store';
 
 /* ── props ──────────────────────────────────────────── */
@@ -37,14 +38,6 @@ function relTime(iso: string): string {
   const d = Math.floor(h / 24);
   if (d < 7) return `${d}d`;
   return `${Math.floor(d / 7)}w`;
-}
-
-function initials(name: string): string {
-  if (!name || name === 'Unknown') return '?';
-  const p = name.trim().split(/\s+/);
-  return p.length === 1
-    ? (p[0][0]?.toUpperCase() ?? '?')
-    : (p[0][0] + p[p.length - 1][0]).toUpperCase();
 }
 
 function splitKey(raw: string): { key: string | null; title: string } {
@@ -204,31 +197,12 @@ export default function NotificationRow({
     >
       {/* Avatar */}
       <div className="flex-shrink-0 relative mt-0.5">
-        {item.authorAvatarUrl ? (
-          <img
-            src={item.authorAvatarUrl}
-            alt=""
-            className={`w-8 h-8 rounded-full object-cover ${isUnread ? 'ring-2 ring-blue-500/30' : ''}`}
-            onError={(e) => {
-              const img = e.currentTarget;
-              img.style.display = 'none';
-              const fallback = img.nextElementSibling as HTMLElement | null;
-              if (fallback) fallback.style.display = 'flex';
-            }}
-          />
-        ) : null}
-        <span
-          className={`items-center justify-center w-8 h-8 rounded-full text-[11px] font-semibold ${
-            isUnread ? 'ring-2 ring-blue-500/30' : ''
-          } ${
-            item.source === 'jira'
-              ? 'bg-orange-500/10 text-orange-700 dark:text-orange-300'
-              : 'bg-purple-500/10 text-purple-700 dark:text-purple-300'
-          }`}
-          style={{ display: item.authorAvatarUrl ? 'none' : 'flex' }}
-        >
-          {initials(item.author)}
-        </span>
+        <CachedAvatar
+          url={item.authorAvatarUrl}
+          name={item.author || ''}
+          size={32}
+          className={isUnread ? 'ring-2 ring-blue-500/30' : ''}
+        />
       </div>
 
       {/* Content */}

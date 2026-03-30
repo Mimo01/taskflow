@@ -24,6 +24,7 @@ import {
   Loader2,
   XCircle,
 } from 'lucide-react';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { useEffect } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
@@ -381,11 +382,7 @@ function MetaRow({ label, children }: { label: string; children: React.ReactNode
 function PersonDisplay({ name, avatarUrl }: { name: string; avatarUrl?: string }) {
   return (
     <div className="flex items-center gap-2">
-      {avatarUrl ? (
-        <img src={avatarUrl} alt="" className="size-5 rounded-full shrink-0" />
-      ) : (
-        <div className="size-5 rounded-full bg-muted shrink-0" />
-      )}
+      <CachedAvatar url={avatarUrl} name={name} size={20} className="shrink-0" />
       <span className="text-sm truncate">{name}</span>
     </div>
   );

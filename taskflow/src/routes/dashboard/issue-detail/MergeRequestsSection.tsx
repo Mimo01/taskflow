@@ -1,6 +1,7 @@
 import { GitBranch } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import type { GitLabMR } from '@/services/gitlab';
 import { mrDot, mrStateClasses } from './utils';
 
@@ -47,7 +48,7 @@ export function MergeRequestsSection({
             </div>
             <p className="text-xs text-muted-foreground truncate pl-[18px]">{mr.title}</p>
             <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground pl-[18px] mt-0.5">
-              <img src={mr.author.avatar_url} alt="" className="size-3 rounded-full shrink-0" />
+              <CachedAvatar url={mr.author.avatar_url} name={mr.author.name} size={20} className="shrink-0" />
               <span className="truncate">{mr.author.name}</span>
               <GitBranch className="size-2.5 shrink-0 opacity-50" />
               <span className="font-mono truncate">{mr.source_branch}</span>

@@ -24,11 +24,11 @@ function makeItem(
 
 describe('NotificationRow', () => {
   // Avatar rendering
-  it('renders author avatar image when authorAvatarUrl is provided', () => {
-    const { container } = render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
-    const img = container.querySelector('img');
-    expect(img).toBeInTheDocument();
-    expect(img?.src).toContain('avatar.jpg');
+  it('renders author avatar element when authorAvatarUrl is provided', () => {
+    render(<NotificationRow item={makeItem('jira')} onClick={() => {}} />);
+    // CachedAvatar renders an accessible div with role="img" while the blob URL loads
+    const avatar = screen.getByRole('img', { name: 'Jane Smith' });
+    expect(avatar).toBeInTheDocument();
   });
 
   it('renders initials fallback when no avatar', () => {

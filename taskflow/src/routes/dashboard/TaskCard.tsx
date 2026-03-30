@@ -12,6 +12,7 @@
  */
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
@@ -22,15 +23,6 @@ const HEALTH_COLORS: Record<ReviewHealth, string> = {
   changes_requested: 'bg-red-500',
   waiting_for_review: 'bg-amber-400',
 };
-
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-}
 
 interface TaskCardProps {
   issue: JiraIssue;
@@ -103,31 +95,8 @@ export default function TaskCard({
       {/* Bottom row: assignee avatar + health dot */}
       <div className="flex items-center justify-between mt-1">
         <div className="flex items-center">
-          {assignee ? (
-            avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt={displayName}
-                className="size-5 rounded-full"
-                onError={(e) => {
-                  // Fallback to initials on broken image
-                  const target = e.currentTarget;
-                  target.style.display = 'none';
-                  const sibling = target.nextElementSibling as HTMLElement | null;
-                  if (sibling) sibling.style.display = 'flex';
-                }}
-              />
-            ) : null
-          ) : null}
           {assignee && (
-            <div
-              className={cn(
-                'size-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium',
-                avatarUrl ? 'hidden' : 'flex',
-              )}
-            >
-              {getInitials(displayName)}
-            </div>
+            <CachedAvatar url={avatarUrl} name={displayName} size={20} />
           )}
         </div>
 
