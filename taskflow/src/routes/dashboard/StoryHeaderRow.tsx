@@ -96,7 +96,7 @@ export function StoryHeaderRow({
 
       {/* Subtask count */}
       {subtaskCount > 0 && (
-        <span className="shrink-0 text-xs text-muted-foreground">
+        <span className="shrink-0 min-w-[5rem] text-xs text-muted-foreground">
           {subtaskCount} subtask{subtaskCount !== 1 ? 's' : ''}
         </span>
       )}
