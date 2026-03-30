@@ -136,7 +136,6 @@ export default function MrAttentionTab() {
     isError,
     error,
     dataUpdatedAt,
-    refetch,
   } = useQuery({
     queryKey: ['gitlab-mrs', gitlabBaseUrl, userId],
     queryFn: async () => {

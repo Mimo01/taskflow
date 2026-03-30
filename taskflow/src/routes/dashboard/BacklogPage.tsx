@@ -195,7 +195,6 @@ export default function BacklogPage() {
     isLoading,
     isError,
     error,
-    refetch,
   } = useQuery<BacklogViewData>({
     queryKey: ['jira-backlog-view', activeJiraProject, jiraBaseUrl],
     queryFn: () =>

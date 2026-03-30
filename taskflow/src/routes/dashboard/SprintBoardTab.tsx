@@ -493,7 +493,7 @@ export default function SprintBoardTab() {
     }
   }, [jiraBaseUrl]);
 
-  const { data, isLoading, isError, error, dataUpdatedAt, refetch } = useQuery({
+  const { data, isLoading, isError, error, dataUpdatedAt } = useQuery({
     queryKey: [
       'jira-issues',
       'sprint-board',

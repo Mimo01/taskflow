@@ -80,7 +80,7 @@ export default function WorkloadTab() {
     }
   }, [jiraBaseUrl]);
 
-  const { data, isLoading, isError, error, dataUpdatedAt, refetch } = useQuery({
+  const { data, isLoading, isError, error, dataUpdatedAt } = useQuery({
     // Include storyPointsFieldKey in cache key: when discovery changes the key, the query
     // re-fires with the updated fields list so the response actually contains the value.
     queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey],

@@ -135,7 +135,6 @@ export default function ReleasesTab() {
     isError: errorVersions,
     error: versionError,
     dataUpdatedAt,
-    refetch,
   } = useQuery({
     queryKey: ['jira-fix-versions', activeJiraProject],
     queryFn: () => fetchFixVersions(jiraBaseUrl!, jiraToken!, activeJiraProject!),
