@@ -431,12 +431,17 @@ export default function SprintBoardTab() {
   const isActive = useIsActiveRoute('/sprint-board');
 
   const [collapsedStories, setCollapsedStories] = useState<Set<string>>(new Set());
-  const toggleStory = (key: string) =>
+  // Tracks which story keys the user has manually toggled — prevents data polling
+  // from overriding user intent (e.g. user expands a done story, polling should not re-collapse it).
+  const userToggledRef = useRef<Set<string>>(new Set());
+  const toggleStory = (key: string) => {
+    userToggledRef.current.add(key);
     setCollapsedStories((prev) => {
       const next = new Set(prev);
       next.has(key) ? next.delete(key) : next.add(key);
       return next;
     });
+  };
 
   const [localIssues, setLocalIssues] = useState<JiraIssue[]>([]);
   const [cardErrors, setCardErrors] = useState<Map<string, string>>(new Map());
@@ -650,6 +655,40 @@ export default function SprintBoardTab() {
     story,
     subtasks: subtasksByParent.get(story.key) ?? [],
   }));
+
+  // Stable fingerprint for the done-state of each swimlane — avoids a new array
+  // reference every render triggering an infinite re-render loop in the effect below.
+  const allDoneFingerprint = useMemo(() => {
+    return swimlanes
+      .map(({ story, subtasks }) => {
+        const storyDone = categoryOf(story) === 'done';
+        const allSubsDone = subtasks.length === 0 || subtasks.every((st) => categoryOf(st) === 'done');
+        return `${story.key}:${storyDone && allSubsDone ? '1' : '0'}`;
+      })
+      .join(',');
+  }, [swimlanes]);
+
+  // Auto-collapse story swimlanes where the story AND all its subtasks are done.
+  // Re-runs whenever the done-state of any lane changes (data refresh / initial load).
+  // Respects user-toggled lanes — those are never overridden by auto-collapse.
+  useEffect(() => {
+    if (!allDoneFingerprint) return;
+    const autoCollapsed = new Set<string>();
+    for (const entry of allDoneFingerprint.split(',')) {
+      const [key, done] = entry.split(':');
+      if (done === '1') autoCollapsed.add(key);
+    }
+    setCollapsedStories((prev) => {
+      const next = new Set(prev);
+      for (const key of autoCollapsed) {
+        if (!userToggledRef.current.has(key)) next.add(key);
+      }
+      for (const key of prev) {
+        if (!autoCollapsed.has(key) && !userToggledRef.current.has(key)) next.delete(key);
+      }
+      return next;
+    });
+  }, [allDoneFingerprint]);
 
   const {
     activeEpics,
