@@ -25,15 +25,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useListNavigation } from '@/hooks/useListNavigation';
-import type { BacklogViewData, JiraActiveSprint, JiraIssue } from '@/services/jira';
+import type { JiraActiveSprint, JiraIssue } from '@/services/jira';
 import {
   addIssuesToSprint,
   fetchActiveSprint,
-  fetchBacklogView,
   fetchEpicsBasic,
   fetchProjectStatuses,
-  fetchSprintIssues,
 } from '@/services/jira';
+import { fetchBacklogView } from '@/services/jira/backlog';
+import { fetchSprintStories, fetchSprintSubtasks } from '@/services/jira/issues';
+import type { BacklogViewData } from '@/services/jira/types';
+import { useBoardId } from '@/hooks/useBoardId';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useFilterStore } from '@/stores/filter.store';
@@ -188,6 +190,8 @@ export default function BacklogPage() {
       .catch(() => setJiraToken(null));
   }, []);
 
+  const { boardId } = useBoardId(jiraBaseUrl, jiraToken, activeJiraProject);
+
   // ── Queries ─────────────────────────────────────────────────────────────────
 
   const {
@@ -202,13 +206,13 @@ export default function BacklogPage() {
         jiraBaseUrl!,
         jiraToken!,
         activeJiraProject!,
+        boardId,
         storyPointsFieldKey,
         epicLinkFieldKey,
         epicNameFieldKey,
-        epicColorFieldKey,
       ),
     staleTime: 60_000,
-    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
+    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken && boardId !== null,
   });
 
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -248,19 +252,12 @@ export default function BacklogPage() {
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
 
-  // Sprint issues (shared cache with SprintBoardTab) — includes subtasks as
-  // separate issues with their own status. Used to build parentKey → subtask
-  // statuses map for status filtering.
-  const { data: sprintIssues } = useQuery({
-    queryKey: [
-      'jira-issues',
-      'sprint-board',
-      activeJiraProject,
-      storyPointsFieldKey,
-      epicLinkFieldKey,
-    ],
+  // Sprint issues (shared cache with SprintBoardTab) — split into stories + subtasks.
+  // Used to build parentKey → subtask statuses map for status filtering.
+  const { data: sprintStories } = useQuery({
+    queryKey: ['jira-sprint-stories', activeJiraProject, jiraBaseUrl, storyPointsFieldKey, epicLinkFieldKey],
     queryFn: () =>
-      fetchSprintIssues(
+      fetchSprintStories(
         jiraBaseUrl!,
         jiraToken!,
         activeJiraProject!,
@@ -271,6 +268,17 @@ export default function BacklogPage() {
     staleTime: 30_000,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
+  const sprintParentKeys = (sprintStories ?? [])
+    .filter((i) => !i.fields.issuetype.subtask)
+    .map((i) => i.key)
+    .sort();
+  const { data: sprintSubtasks } = useQuery({
+    queryKey: ['jira-sprint-subtasks', activeJiraProject, jiraBaseUrl, sprintParentKeys],
+    queryFn: () => fetchSprintSubtasks(jiraBaseUrl!, jiraToken!, sprintParentKeys),
+    staleTime: 30_000,
+    enabled: !!jiraBaseUrl && !!jiraToken && sprintParentKeys.length > 0,
+  });
+  const sprintIssues = sprintStories ? [...sprintStories, ...(sprintSubtasks ?? [])] : undefined;
 
   // Map parentKey → Set of subtask status names (from sprint board data)
   const subtaskStatusMap = new Map<string, Set<string>>();
@@ -347,10 +355,17 @@ export default function BacklogPage() {
     ...(backlogView?.backlog ?? []),
   ];
 
+  // ── Epic name/color maps built from allEpics query (not backlogView) ───────────
+  const epicNames = new Map<string, string>();
+  const epicColors = new Map<string, string>();
+  for (const e of allEpics ?? []) {
+    epicNames.set(e.key, e.epicName);
+    if (e.color) epicColors.set(e.key, e.color);
+  }
+
   // ── Filter options (derived from all issues across all sections) ──────────────
 
   const filterOptions = (() => {
-    const epicNames = backlogView?.epicNames ?? new Map<string, string>();
     // Epics: all project epics (not just those on current backlog issues)
     const epics = new Map<string, string>();
     for (const e of allEpics ?? []) epics.set(e.key, e.epicName);
@@ -504,7 +519,8 @@ export default function BacklogPage() {
     setBulkError(null);
     try {
       await addIssuesToSprint(jiraBaseUrl!, jiraToken!, activeSprint.id, keysToMove);
-      queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
       queryClient.invalidateQueries({ queryKey: ['jira-backlog-view'] });
     } catch (err) {
       // Rollback on failure
@@ -575,8 +591,8 @@ export default function BacklogPage() {
                 storyPointsFieldKey={storyPointsFieldKey}
                 epicLinkFieldKey={epicLinkFieldKey}
                 epicNameFieldKey={epicNameFieldKey}
-                epicNames={backlogView?.epicNames}
-                epicColors={backlogView?.epicColors}
+                epicNames={epicNames}
+                epicColors={epicColors}
                 epicsLoading={allEpicsPending}
                 visibleIssueKeys={visibleIssueKeys}
                 focusIndex={focusIndex}
