@@ -118,7 +118,7 @@ See archive: `.planning/milestones/v1.6.3-ROADMAP.md`
 - [x] **Phase 43: Cache Correctness** — staleTime tuning and smart polling (completed 2026-03-29)
 - [x] **Phase 44: Loading UX** — Skeleton screens, progressive data, flicker prevention (completed 2026-03-30)
 - [x] **Phase 45: Query Optimization** — Parallelization and hover prefetch (completed 2026-03-30)
-- [ ] **Phase 46: Avatar Caching** — Session cache and disk persistence
+- [x] **Phase 46: Avatar Caching** — Session cache and disk persistence (completed 2026-03-30)
 
 ## Phase Details
 
@@ -190,10 +190,10 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Avatar images fetched once per session are served from memory on all subsequent renders — no repeated network requests for the same image
   2. Avatar cache persists to disk and is available immediately on the next app launch without re-fetching
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 Plans:
-- [ ] 46-01-PLAN.md — Cache service + hook + CachedAvatar component with tests
-- [ ] 46-02-PLAN.md — Wire CachedAvatar into all 11 usage sites + app startup init
+- [x] 46-01-PLAN.md — Cache service + hook + CachedAvatar component with tests
+- [x] 46-02-PLAN.md — Wire CachedAvatar into all 11 usage sites + app startup init
 
 ## Progress
 
@@ -207,4 +207,4 @@ Plans:
 | 43. Cache Correctness | v1.7 | 0/2 | Complete    | 2026-03-29 |
 | 44. Loading UX | v1.7 | 4/4 | Complete    | 2026-03-30 |
 | 45. Query Optimization | v1.7 | 2/3 | Complete    | 2026-03-30 |
-| 46. Avatar Caching | v1.7 | 0/2 | Not started | - |
+| 46. Avatar Caching | v1.7 | 2/2 | Complete   | 2026-03-30 |
