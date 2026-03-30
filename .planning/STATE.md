@@ -66,7 +66,7 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-03-30 - Completed quick task 260330-r56: Replace sprint board drag-and-drop with right-click status transition popup
+Last activity: 2026-03-30 - Completed quick task 260330-wj6: Better communicate that sprint board task headers and cards are clickable
 Stopped at: Completed 46-02-PLAN.md
 Resume: `/gsd:plan-phase 38`
 
@@ -89,3 +89,4 @@ Resume: `/gsd:plan-phase 38`
 | 260329-kyx | Replace GitHub Actions with local husky hooks + full local release.sh | 2026-03-29 | 8528c2a | Verified | [260329-kyx-replace-github-actions-with-local-proces](./quick/260329-kyx-replace-github-actions-with-local-proces/) |
 | 260329-mxv | Make the changelogs look nicer. The update modals are too small. Refine the views | 2026-03-29 | a35bd3f | | [260329-mxv-make-the-changelogs-look-nicer-the-updat](./quick/260329-mxv-make-the-changelogs-look-nicer-the-updat/) |
 | 260330-r56 | Replace sprint board drag-and-drop with right-click status transition popup | 2026-03-30 | 74ef958 | | [260330-r56-replace-sprint-board-drag-and-drop-with-](./quick/260330-r56-replace-sprint-board-drag-and-drop-with-/) |
+| 260330-wj6 | Better communicate that sprint board task headers and cards are clickable | 2026-03-30 | f0d360f | | [260330-wj6-better-communicate-that-sprint-board-tas](./quick/260330-wj6-better-communicate-that-sprint-board-tas/) |

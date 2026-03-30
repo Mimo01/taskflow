@@ -47,10 +47,10 @@ export function StoryHeaderRow({
       {/* Key + summary — opens detail sheet */}
       <button
         type="button"
-        className="flex items-center gap-2 flex-1 min-w-0 text-left"
+        className="group flex items-center gap-2 flex-1 min-w-0 text-left cursor-pointer"
         onClick={() => onOpenDetail(storyKey)}
       >
-        <span className="font-mono text-xs text-muted-foreground shrink-0">{storyKey}</span>
+        <span className="font-mono text-xs text-muted-foreground shrink-0 group-hover:underline">{storyKey}</span>
         <span className="text-sm font-medium truncate">{summary}</span>
       </button>
 
