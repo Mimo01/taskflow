@@ -41,13 +41,14 @@ import type { JiraIssue, JiraTransition } from '@/services/jira';
 import {
   fetchEpicsBasic,
   fetchProjectStatuses,
-  fetchSprintIssues,
   fetchTransitions,
   postTransition,
 } from '@/services/jira';
 import { fetchBoardQuickFilters } from '@/services/jira/board-config';
 import { fetchAllSearchPages } from '@/services/jira/client';
+import { fetchSprintStories, fetchSprintSubtasks } from '@/services/jira/issues';
 import { fetchActiveSprint } from '@/services/jira/sprints';
+import { useBoardId } from '@/hooks/useBoardId';
 import type { JiraBoardQuickFilter } from '@/services/jira/types';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
@@ -446,6 +447,8 @@ export default function SprintBoardTab() {
   const { storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey, epicColorFieldKey } =
     useSettingsStore();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
+
+  const { boardId } = useBoardId(jiraBaseUrl, jiraToken, activeJiraProject);
   const { onIssueClick: setSelectedIssueKey } = useOutletContext<{
     onIssueClick: (key: string) => void;
   }>();
@@ -493,16 +496,10 @@ export default function SprintBoardTab() {
     }
   }, [jiraBaseUrl]);
 
-  const { data, isLoading, isError, error, dataUpdatedAt } = useQuery({
-    queryKey: [
-      'jira-issues',
-      'sprint-board',
-      activeJiraProject,
-      storyPointsFieldKey,
-      epicLinkFieldKey,
-    ],
+  const { data: stories, isLoading: storiesLoading, isError, error, dataUpdatedAt } = useQuery({
+    queryKey: ['jira-sprint-stories', activeJiraProject, jiraBaseUrl, storyPointsFieldKey, epicLinkFieldKey],
     queryFn: () =>
-      fetchSprintIssues(
+      fetchSprintStories(
         jiraBaseUrl!,
         jiraToken!,
         activeJiraProject!,
@@ -515,6 +512,21 @@ export default function SprintBoardTab() {
     staleTime: STALE_TIME_MS,
     enabled: isActive && !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
+
+  const parentKeys = (stories ?? [])
+    .filter((i) => !i.fields.issuetype.subtask)
+    .map((i) => i.key)
+    .sort(); // Pitfall 1: sorted for stable query key
+
+  const { data: subtasksData, isLoading: subtasksLoading } = useQuery({
+    queryKey: ['jira-sprint-subtasks', activeJiraProject, jiraBaseUrl, parentKeys],
+    queryFn: () => fetchSprintSubtasks(jiraBaseUrl!, jiraToken!, parentKeys),
+    staleTime: STALE_TIME_MS,
+    enabled: isActive && !!jiraBaseUrl && !!jiraToken && parentKeys.length > 0,
+  });
+
+  const data = stories ? [...stories, ...(subtasksData ?? [])] : undefined;
+  const isLoading = storiesLoading;
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const showSkeleton = useDelayedLoading(isLoading) || isRefreshing;
@@ -548,8 +560,7 @@ export default function SprintBoardTab() {
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
 
-  // Fetch board quick filters using the board ID from active sprint
-  const boardId = activeSprint?.originBoardId;
+  // Fetch board quick filters using the board ID from useBoardId hook (not activeSprint)
   const { data: boardQuickFilters } = useQuery({
     queryKey: ['jira-board-quickfilters', boardId],
     queryFn: () => fetchBoardQuickFilters(jiraBaseUrl!, jiraToken!, boardId!),
@@ -674,7 +685,8 @@ export default function SprintBoardTab() {
 
     try {
       await postTransition(jiraBaseUrl!, jiraToken!, issueKey, transition.id);
-      queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
+        queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
     } catch {
       // Rollback to original status
       setLocalIssues((prev) =>
@@ -703,14 +715,14 @@ export default function SprintBoardTab() {
     return cats;
   })();
 
-  const stories = localIssues.filter((i) => !i.fields.issuetype.subtask);
-  const subtasks = localIssues.filter((i) => i.fields.issuetype.subtask);
+  const storyIssues = localIssues.filter((i) => !i.fields.issuetype.subtask);
+  const subtaskIssues = localIssues.filter((i) => i.fields.issuetype.subtask);
   const subtasksByParent = new Map<string, JiraIssue[]>();
-  for (const sub of subtasks) {
+  for (const sub of subtaskIssues) {
     const pk = sub.fields.parent?.key;
     if (pk) subtasksByParent.set(pk, [...(subtasksByParent.get(pk) ?? []), sub]);
   }
-  const swimlanes = stories.map((story) => ({
+  const swimlanes = storyIssues.map((story) => ({
     story,
     subtasks: subtasksByParent.get(story.key) ?? [],
   }));
@@ -933,7 +945,8 @@ export default function SprintBoardTab() {
               type="button"
               onClick={() => {
                 setIsRefreshing(true);
-                queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
+                queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
+        queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
               }}
               className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Refresh"
@@ -984,7 +997,8 @@ export default function SprintBoardTab() {
                   error={error}
                   onRetry={() => {
                     setIsRefreshing(true);
-                    queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
+                    queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
+        queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
                   }}
                   viewName="sprint board"
                 />
@@ -997,7 +1011,8 @@ export default function SprintBoardTab() {
                 <StaleDataBanner
                   onRetry={() => {
                     setIsRefreshing(true);
-                    queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
+                    queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
+        queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
                   }}
                   onDismiss={() => setBannerDismissed(true)}
                 />
@@ -1059,7 +1074,7 @@ export default function SprintBoardTab() {
                 activeIssue={activeIssue}
                 validTargetCategories={validTargetCategories}
                 cardErrors={cardErrors}
-                subtasksLoading={false}
+                subtasksLoading={subtasksLoading}
                 onStickyHeaderChange={handleStickyHeaderChange}
                 stickyHeaderInnerRef={stickyHeaderInnerRef}
               />
