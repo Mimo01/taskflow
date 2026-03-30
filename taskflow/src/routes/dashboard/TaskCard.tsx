@@ -73,7 +73,7 @@ export default function TaskCard({
       }}
     >
       {/* Issue key */}
-      <div className="text-xs font-mono text-muted-foreground">{issue.key}</div>
+      <div className={cn('text-xs font-mono text-muted-foreground', issue.fields.status.statusCategory?.key === 'done' && 'line-through')}>{issue.key}</div>
 
       {/* Summary — max 2 lines */}
       <div
