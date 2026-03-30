@@ -4,7 +4,7 @@ milestone: v1.7
 milestone_name: Performance & Perceived Speed
 status: Milestone complete
 stopped_at: Completed 46-02-PLAN.md
-last_updated: "2026-03-30T14:34:45.538Z"
+last_updated: "2026-03-30T16:49:35.142Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 5
@@ -20,10 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Planning next milestone
+**Current focus:** Phase 47 — v17-debt-cleanup
 
 ## Current Position
 
+Phase: 47
+Plan: Not started
 Milestone v1.6.3 complete. No active phase.
 
 ## Accumulated Context

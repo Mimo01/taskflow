@@ -228,4 +228,4 @@ Plans:
 | 44. Loading UX | v1.7 | 4/4 | Complete    | 2026-03-30 |
 | 45. Query Optimization | v1.7 | 3/3 | Complete    | 2026-03-30 |
 | 46. Avatar Caching | v1.7 | 2/2 | Complete    | 2026-03-30 |
-| 47. v1.7 Debt Cleanup | v1.7 | 2/2 | Complete   | 2026-03-30 |
+| 47. v1.7 Debt Cleanup | v1.7 | 2/2 | Complete    | 2026-03-30 |
