@@ -190,7 +190,10 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Avatar images fetched once per session are served from memory on all subsequent renders — no repeated network requests for the same image
   2. Avatar cache persists to disk and is available immediately on the next app launch without re-fetching
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 46-01-PLAN.md — Cache service + hook + CachedAvatar component with tests
+- [ ] 46-02-PLAN.md — Wire CachedAvatar into all 11 usage sites + app startup init
 
 ## Progress
 
@@ -204,4 +207,4 @@ Plans:
 | 43. Cache Correctness | v1.7 | 0/2 | Complete    | 2026-03-29 |
 | 44. Loading UX | v1.7 | 4/4 | Complete    | 2026-03-30 |
 | 45. Query Optimization | v1.7 | 2/3 | Complete    | 2026-03-30 |
-| 46. Avatar Caching | v1.7 | 0/? | Not started | - |
+| 46. Avatar Caching | v1.7 | 0/2 | Not started | - |
