@@ -87,6 +87,7 @@ describe('avatarCache service', () => {
 
     // Manually set disk entries
     const store = new LazyStore('avatar-cache.json');
+    await store.set('__cache_version__', 2);
     const entry = {
       base64: btoa('fake-image-bytes'),
       mimeType: 'image/jpeg',
@@ -107,6 +108,7 @@ describe('avatarCache service', () => {
     const { initAvatarCache, getCachedBlobUrl } = await import('@/services/avatarCache');
 
     const store = new LazyStore('avatar-cache.json');
+    await store.set('__cache_version__', 2);
     const thirtyOneDaysAgo = Date.now() - 31 * 24 * 60 * 60 * 1000;
     const staleEntry = {
       base64: btoa('stale-image'),
@@ -196,5 +198,79 @@ describe('avatarCache service', () => {
     await fetchAndCacheAvatar(url);
 
     expect(mockFetch).toHaveBeenCalledWith(url, undefined);
+  });
+
+  it('Test 12: content-type guard — rejects non-image responses (e.g. HTML login page)', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: { get: (h: string) => h === 'content-type' ? 'text/html; charset=utf-8' : null },
+      blob: () => Promise.resolve(new Blob(['<html>login page</html>'], { type: 'text/html' })),
+    });
+    const { fetchAndCacheAvatar, getCachedBlobUrl } = await import('@/services/avatarCache');
+
+    const url = 'https://jira.example.com/secure/useravatar?ownerId=alice';
+    const result = await fetchAndCacheAvatar(url);
+
+    expect(result).toBeNull();
+    expect(getCachedBlobUrl(url)).toBeNull();
+  });
+
+  it('Test 13: content-type guard — accepts image/png responses', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      headers: { get: (h: string) => h === 'content-type' ? 'image/png' : null },
+      blob: () => Promise.resolve(new Blob(['fake-png-data'], { type: 'image/png' })),
+    });
+    const { fetchAndCacheAvatar } = await import('@/services/avatarCache');
+
+    const url = 'https://jira.example.com/secure/useravatar?ownerId=bob';
+    const result = await fetchAndCacheAvatar(url);
+
+    expect(result).toBe('blob:test-1');
+  });
+
+  it('Test 14: hostname matching — adds Jira auth even when avatar URL uses http instead of https', async () => {
+    makeFetchSuccess();
+    const { readSecret } = await import('@/services/stronghold');
+    const { fetchAndCacheAvatar } = await import('@/services/avatarCache');
+
+    // jiraBaseUrl is https://jira.example.com but avatar URL returned by Jira uses http
+    const url = 'http://jira.example.com/secure/useravatar?ownerId=carol&avatarId=10300';
+    await fetchAndCacheAvatar(url);
+
+    expect(readSecret).toHaveBeenCalledWith('jira-pat');
+    expect(mockFetch).toHaveBeenCalledWith(url, {
+      headers: { Authorization: 'Bearer test-token' },
+    });
+  });
+
+  it('Test 15: hostname matching — adds Jira auth when avatar URL has different port', async () => {
+    makeFetchSuccess();
+    const { readSecret } = await import('@/services/stronghold');
+    const { fetchAndCacheAvatar } = await import('@/services/avatarCache');
+
+    // jiraBaseUrl is https://jira.example.com but avatar URL has port 8443
+    const url = 'https://jira.example.com:8443/secure/useravatar?ownerId=dave';
+    await fetchAndCacheAvatar(url);
+
+    expect(readSecret).toHaveBeenCalledWith('jira-pat');
+    expect(mockFetch).toHaveBeenCalledWith(url, {
+      headers: { Authorization: 'Bearer test-token' },
+    });
+  });
+
+  it('Test 16: hostname matching — adds Jira auth case-insensitively', async () => {
+    makeFetchSuccess();
+    const { readSecret } = await import('@/services/stronghold');
+    const { fetchAndCacheAvatar } = await import('@/services/avatarCache');
+
+    // jiraBaseUrl is https://jira.example.com but avatar URL has different casing
+    const url = 'https://Jira.Example.Com/secure/useravatar?ownerId=eve';
+    await fetchAndCacheAvatar(url);
+
+    expect(readSecret).toHaveBeenCalledWith('jira-pat');
+    expect(mockFetch).toHaveBeenCalledWith(url, {
+      headers: { Authorization: 'Bearer test-token' },
+    });
   });
 });

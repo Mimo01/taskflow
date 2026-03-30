@@ -1,5 +1,7 @@
+import { useCallback, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useAvatarCache } from '@/hooks/useAvatarCache';
+import { evictAvatar } from '@/services/avatarCache';
 
 /** Generate 1-2 uppercase initials from a display name. */
 export function getInitials(name: string): string {
@@ -29,12 +31,24 @@ interface CachedAvatarProps {
  * - Shows initials immediately as placeholder (no skeleton — initials are meaningful content per D-06)
  * - Swaps to <img> instantly when blob URL resolves from cache
  * - Handles null/undefined URL gracefully (permanent initials fallback)
- * - No onError handler — blob URLs don't produce network errors after creation
+ * - onError fallback: if blob URL contains non-image data (e.g. HTML auth redirect page),
+ *   the img element fires onError and we fall back to initials
  */
 export function CachedAvatar({ url, name, size = 32, className }: CachedAvatarProps) {
   const { blobUrl } = useAvatarCache(url);
   const sizeClass = SIZE_MAP[size];
   const initials = getInitials(name);
+  const [imgFailed, setImgFailed] = useState(false);
+
+  // Reset failure state when the source URL changes (different avatar)
+  useEffect(() => setImgFailed(false), [url]);
+
+  const handleError = useCallback(() => {
+    setImgFailed(true);
+    if (url) evictAvatar(url);
+  }, [url]);
+
+  const showImage = blobUrl && !imgFailed;
 
   return (
     <div className={cn('relative', sizeClass, className)}>
@@ -44,19 +58,20 @@ export function CachedAvatar({ url, name, size = 32, className }: CachedAvatarPr
           sizeClass,
           'rounded-full bg-muted flex items-center justify-center',
           'text-[10px] font-medium text-foreground',
-          blobUrl ? 'hidden' : 'flex',
+          showImage ? 'hidden' : 'flex',
         )}
         role="img"
         aria-label={name}
       >
         {initials}
       </div>
-      {/* Image — shown only when blob URL is available */}
-      {blobUrl && (
+      {/* Image — shown only when blob URL is available and hasn't errored */}
+      {showImage && (
         <img
           src={blobUrl}
           alt={name}
           className={cn(sizeClass, 'rounded-full object-cover')}
+          onError={handleError}
         />
       )}
     </div>
