@@ -22,6 +22,7 @@ import { useOutletContext } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useIsActiveRoute } from '@/hooks/useIsActiveRoute';
 import { useListNavigation } from '@/hooks/useListNavigation';
 import { POLL_INTERVAL_MS, STALE_TIME_MS } from '@/lib/query-constants';
@@ -43,6 +44,7 @@ import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import TaskRow from './TaskRow';
+import { MyTasksSkeleton } from './MyTasksSkeleton';
 
 export default function MyTasksTab() {
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, activeGitlabProject, gitlabUserId } =
@@ -218,6 +220,12 @@ export default function MyTasksTab() {
   }
 
   const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const showSkeleton = useDelayedLoading(isLoading) || isRefreshing;
+
+  useEffect(() => {
+    if (!isLoading) setIsRefreshing(false);
+  }, [isLoading]);
 
   // Banner dismissed state for stale data banner
   const [bannerDismissed, setBannerDismissed] = useState(false);
@@ -337,7 +345,7 @@ export default function MyTasksTab() {
   const { focusIndex } = useListNavigation({
     itemCount: flatIssueKeys.length,
     onSelect: (index) => setSelectedIssueKey(flatIssueKeys[index]),
-    enabled: !isLoading && flatIssueKeys.length > 0,
+    enabled: !showSkeleton && flatIssueKeys.length > 0,
   });
 
   const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -361,7 +369,10 @@ export default function MyTasksTab() {
         <span className="text-xs text-muted-foreground">{lastRefreshed}</span>
         <button
           type="button"
-          onClick={() => refetch()}
+          onClick={() => {
+            setIsRefreshing(true);
+            queryClient.invalidateQueries({ queryKey: ['jira-issues', 'my-tasks'] });
+          }}
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
           aria-label="Refresh"
         >
@@ -371,28 +382,33 @@ export default function MyTasksTab() {
       </div>
 
       {/* Loading skeleton */}
-      {isLoading && (
-        <div className="flex flex-col gap-2">
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              data-testid="skeleton-row"
-              className="h-10 rounded bg-muted animate-pulse"
-            />
-          ))}
-        </div>
-      )}
+      {showSkeleton && <MyTasksSkeleton />}
 
       {/* Error state — no cached data */}
-      {isError && !data && <ErrorState error={error} onRetry={refetch} viewName="tasks" />}
+      {isError && !data && (
+        <ErrorState
+          error={error}
+          onRetry={() => {
+            setIsRefreshing(true);
+            queryClient.invalidateQueries({ queryKey: ['jira-issues', 'my-tasks'] });
+          }}
+          viewName="tasks"
+        />
+      )}
 
       {/* Stale data banner — error with cached data */}
       {isError && data && !bannerDismissed && (
-        <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
+        <StaleDataBanner
+          onRetry={() => {
+            setIsRefreshing(true);
+            queryClient.invalidateQueries({ queryKey: ['jira-issues', 'my-tasks'] });
+          }}
+          onDismiss={() => setBannerDismissed(true)}
+        />
       )}
 
       {/* Empty state */}
-      {!isLoading && !isError && data && data.length === 0 && (
+      {!showSkeleton && !isError && data && data.length === 0 && (
         <EmptyState
           icon={ClipboardList}
           title="You're all caught up!"
@@ -401,7 +417,7 @@ export default function MyTasksTab() {
       )}
 
       {/* Task list — grouped by parent→subtasks */}
-      {!isLoading && !isError && data && data.length > 0 && (
+      {!showSkeleton && !isError && data && data.length > 0 && (
         <div className="flex flex-col">
           {groupedData.groups.map(({ parent, subtasks: children }) => {
             const renderRow = (issue: JiraIssue, isSubtask: boolean) => {
