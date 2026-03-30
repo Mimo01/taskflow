@@ -11,8 +11,8 @@ Requirements for v1.7 Performance & Perceived Speed. Each maps to roadmap phases
 
 - [x] **LOAD-01**: User sees layout-matched skeleton screens instead of spinners on all major data views (sprint board, backlog, my tasks, workload, epics, releases, notifications, dashboard widgets)
 - [ ] **LOAD-02**: User sees cached data instantly when navigating back to a previously visited view (stale-while-revalidate)
-- [ ] **LOAD-03**: User sees sprint board story headers immediately while subtasks load progressively beneath them
-- [ ] **LOAD-04**: User sees backlog issue list immediately while epic metadata loads progressively
+- [ ] **LOAD-03**: User sees sprint board story headers immediately while subtasks load progressively beneath them — **Infra complete, deferred pending query split** (skeleton infrastructure exists in VirtualizedSwimlanes but subtasksLoading is always false because fetchSprintIssues returns stories+subtasks in a single query; requires Phase 45 query parallelization to activate)
+- [~] **LOAD-04**: User sees backlog issue list immediately while epic metadata loads progressively — **Partial** (epic column header shows Skeleton while allEpics query is pending via separate jira-epics-basic query; per-row epic badges come from same query as rows so no per-row progressive loading)
 - [x] **LOAD-05**: User does not see skeleton flicker when data loads within 200ms (delayed loading hook)
 
 ### Route & Bundle
@@ -66,8 +66,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | LOAD-01 | Phase 44 | Complete |
 | LOAD-02 | Phase 43 | Pending |
-| LOAD-03 | Phase 44 | Pending |
-| LOAD-04 | Phase 44 | Pending |
+| LOAD-03 | Phase 44 | Deferred — infra complete, blocked on query split |
+| LOAD-04 | Phase 44 | Partial — header-level progressive loading implemented |
 | LOAD-05 | Phase 44 | Complete |
 | ROUT-01 | Phase 42 | Pending |
 | ROUT-02 | Phase 42 | Pending |
