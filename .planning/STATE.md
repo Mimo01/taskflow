@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Performance & Perceived Speed
-status: completed
-stopped_at: Phase 44 UI-SPEC approved
-last_updated: "2026-03-29T21:46:13.334Z"
-last_activity: 2026-03-29
+status: executing
+stopped_at: Completed 44-01-PLAN.md
+last_updated: "2026-03-30T07:14:20.405Z"
+last_activity: 2026-03-30
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 8
+  completed_plans: 6
   percent: 78
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Phase 43 — cache-correctness
+**Current focus:** Phase 44 — loading-ux
 
 ## Current Position
 
-Phase: 44
-Plan: Not started
-Status: Phase 43 complete
-Last activity: 2026-03-29
+Phase: 44 (loading-ux) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-03-30
 
 Progress: [████████░░] 78% (v1.6.3 complete, v1.7 in progress)
 
@@ -60,7 +60,7 @@ None.
 ## Session Continuity
 
 Last activity: 2026-03-29
-Stopped at: Phase 44 UI-SPEC approved
+Stopped at: Completed 44-01-PLAN.md
 Resume: `/gsd:execute-phase 42`
 
 ### Quick Tasks Completed
