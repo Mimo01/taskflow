@@ -40,6 +40,7 @@ import {
 } from './routes/dashboard/CreateEditIssueModal';
 import ErrorPage from './routes/error/ErrorPage';
 import { routes } from './routes/routes';
+import { initAvatarCache } from './services/avatarCache';
 import { discoverCustomFields, fetchIssueSummary } from './services/jira';
 import { readSecret } from './services/stronghold';
 import { applyDensity, loadTheme } from './services/theme';
@@ -540,7 +541,10 @@ const router = createHashRouter([
 // because 'default' means no data-density attribute (CSS baseline sizing).
 // After hydration, AppearanceSection's useEffect will apply the stored density.
 applyDensity('default');
-loadTheme().then(() => {
+Promise.all([
+  loadTheme(),
+  initAvatarCache().catch(() => {}),
+]).then(() => {
   ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
