@@ -84,7 +84,7 @@ export default function TaskCard({
     <>
       <div
         className={cn(
-          'border rounded-lg px-2 py-2 density-compact:py-1 density-comfortable:py-3 bg-card w-full flex flex-col gap-1',
+          'group border rounded-lg px-2 py-2 density-compact:py-1 density-comfortable:py-3 bg-card w-full flex flex-col gap-1 cursor-pointer hover:bg-accent/50 transition-colors',
           isSubtask && 'border-l-2 border-l-muted',
         )}
         role="button"
@@ -95,7 +95,7 @@ export default function TaskCard({
         }}
       >
         {/* Issue key */}
-        <div className="text-xs font-mono text-muted-foreground">{issue.key}</div>
+        <div className="text-xs font-mono text-muted-foreground group-hover:underline">{issue.key}</div>
 
         {/* Summary — max 2 lines */}
         <div
