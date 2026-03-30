@@ -5,7 +5,7 @@
  * progress are deferred to EpicDetailSheet — no expensive bulk story query here.
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Layers } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import type { EpicEnriched } from '@/services/jira';
@@ -21,6 +22,7 @@ import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { CreateEpicDialog } from './CreateEpicDialog';
+import { EpicsSkeleton } from './EpicsSkeleton';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -124,8 +126,10 @@ export default function EpicsPage() {
       .catch(() => setToken(null));
   }, []);
 
+  const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const {
     data: epicsData,
@@ -146,6 +150,12 @@ export default function EpicsPage() {
     enabled: !!jiraBaseUrl && !!token && !!activeJiraProject,
   });
   const epics = epicsData ?? [];
+
+  const showSkeleton = useDelayedLoading(isLoading) || isRefreshing;
+
+  useEffect(() => {
+    if (!isLoading) setIsRefreshing(false);
+  }, [isLoading]);
 
   // Reset banner dismissal when error state changes
   useEffect(() => {
@@ -171,22 +181,33 @@ export default function EpicsPage() {
         {/* Error state -- full error when no cached data */}
         {isError && !epicsData && (
           <div className="p-4">
-            <ErrorState error={error} onRetry={refetch} viewName="epics" />
+            <ErrorState
+              error={error}
+              onRetry={() => {
+                setIsRefreshing(true);
+                queryClient.invalidateQueries({ queryKey: ['jira-epics-basic'] });
+              }}
+              viewName="epics"
+            />
           </div>
         )}
 
         {/* Stale data banner -- error with cached data still visible */}
         {isError && epicsData && !bannerDismissed && (
           <div className="px-4 pt-4">
-            <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
+            <StaleDataBanner
+              onRetry={() => {
+                setIsRefreshing(true);
+                queryClient.invalidateQueries({ queryKey: ['jira-epics-basic'] });
+              }}
+              onDismiss={() => setBannerDismissed(true)}
+            />
           </div>
         )}
 
-        {isLoading ? (
-          <div className="p-4 space-y-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-10 animate-pulse rounded bg-muted" />
-            ))}
+        {showSkeleton ? (
+          <div className="p-4">
+            <EpicsSkeleton />
           </div>
         ) : !isError ? (
           <>
