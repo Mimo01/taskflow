@@ -39,9 +39,9 @@ decisions:
   - "BacklogPage imports BacklogViewData from @/services/jira/types (not jira.ts) to match new optional epicNames/epicColors"
   - "BacklogPage imports fetchBacklogView from @/services/jira/backlog (new module) not @/services/jira"
 metrics:
-  duration: "~16 minutes"
+  duration: "~20 minutes"
   completed: "2026-03-30"
-  tasks_completed: 2
+  tasks_completed: 3
   tasks_total: 3
   files_created: 0
   files_modified: 7
@@ -59,6 +59,7 @@ metrics:
 |------|------|--------|-------|
 | 1 | Wire SprintBoardTab parallel queries and BacklogPage useBoardId | baad23e | SprintBoardTab.tsx, BacklogPage.tsx, package.json |
 | 2 | Sidebar prefetch + dev tools concurrency toggle | 80060c0 | Sidebar.tsx, DebugModeSection.tsx, settings.store.ts, SprintBoardTab.test.tsx, BacklogPage.test.tsx |
+| 3 | Verify + fix prefetch (checkpoint resolution) | 9e9107d | Sidebar.tsx (queryFn added to all prefetchQuery calls) |
 
 ## What Was Built
 
@@ -86,17 +87,19 @@ metrics:
 
 **Sidebar.tsx:**
 - Added `useQueryClient`, `useAuthStore`, `useSettingsStore` for prefetch support
+- Added `jiraToken` state loaded from Stronghold `readSecret('jira-pat')` via useEffect
 - `PREFETCH_ROUTES` set defines the 5 heavy routes: `/dashboard`, `/my-tasks`, `/sprint-board`, `/backlog`, `/epics`
-- `prefetchForPath()` dispatches `queryClient.prefetchQuery()` per route with matching query keys
-  - `/sprint-board`: jira-sprint-stories + jira-active-sprint + jira-epics-basic + project-statuses
-  - `/backlog`: jira-backlog-view (NO boardId, matches BacklogPage key exactly) + jira-epics-basic
-  - `/epics`: jira-epics-basic
-  - `/my-tasks`: jira-issues/my-tasks
-  - `/dashboard`: jira-sprint-stories
+- `prefetchForPath()` dispatches `queryClient.prefetchQuery()` per route with real `queryFn` callbacks:
+  - `/sprint-board`: fetchSprintStories + fetchActiveSprint + fetchEpicsBasic + fetchProjectStatuses
+  - `/dashboard`: fetchSprintStories (primary dashboard query)
+  - `/backlog` and `/epics`: fetchEpicsBasic (backlog-view skipped since boardId is async)
+  - `/my-tasks`: skipped (fetchMyTasksHierarchy has complex internal logic)
 - `handleNavMouseEnter`: 100ms `setTimeout` debounce before prefetch fires
 - `handleNavMouseLeave`: `clearTimeout` cleanup — no wasted prefetch on quick hover-through
 - `handleNavFocus`: immediate prefetch (keyboard navigation)
 - Handlers wired onto all nav `NavLink` elements
+
+**Prefetch fix (Task 3 checkpoint):** Initial implementation used `prefetchQuery` without `queryFn`, which is a no-op for cold caches (queries never registered have no function to execute). Fixed by providing real service function calls as `queryFn` to each prefetchQuery, requiring token loading in Sidebar.
 
 **settings.store.ts:**
 - Added `jiraConcurrencyLimit: number` (default 6) to `SettingsState` and initial state
@@ -164,14 +167,12 @@ metrics:
 - **Files modified:** SprintBoardTab.test.tsx, BacklogPage.test.tsx
 - **Commit:** 80060c0
 
-## Checkpoint: Human Verification Required
-
-Task 3 requires browser verification. The following items need manual checking in the running app:
-
-1. **Sprint board progressive loading** — open Network tab, navigate to Sprint Board, verify multiple API calls fire simultaneously and story headers appear before subtask cards
-2. **Backlog epic display** — verify epic column shows colored badges from `allEpics` (not blank)
-3. **Sidebar prefetch** — hover Sprint Board link ~200ms, verify Network requests fire; click link — page should show cached data immediately
-4. **Concurrency selector** — Settings > Advanced > Developer Tools: verify "Jira concurrency limit" select shows "6", persists on change
+**6. [Rule 1 - Bug] Sidebar prefetch was a no-op (reported during human-verify checkpoint)**
+- **Found during:** Task 3 (checkpoint:human-verify — user reported "prefetch doesn't seem to work")
+- **Issue:** `queryClient.prefetchQuery()` called without `queryFn`. TanStack Query's prefetchQuery without a queryFn only checks if cache data exists and is fresh — it cannot actually fetch anything for queries that were never previously registered (cold cache)
+- **Fix:** Added `jiraToken` state via `readSecret('jira-pat')` in Sidebar, provided real `queryFn` callbacks using actual service functions (fetchSprintStories, fetchActiveSprint, fetchEpicsBasic, fetchProjectStatuses). Merged /sprint-board and /dashboard cases. Skipped backlog-view (needs async boardId) and /my-tasks (complex internal logic) prefetch.
+- **Files modified:** Sidebar.tsx
+- **Commit:** 9e9107d
 
 ## Known Stubs
 
@@ -200,4 +201,7 @@ None — no stub patterns or placeholder data in this plan's changes.
 - [x] taskflow/src/stores/settings.store.ts contains `setJiraConcurrencyLimit` action
 - [x] commit baad23e exists (Task 1)
 - [x] commit 80060c0 exists (Task 2)
+- [x] commit 9e9107d exists (Task 3 fix)
+- [x] Sidebar.tsx prefetchQuery calls include queryFn with real service functions
+- [x] Sidebar.tsx loads jiraToken from Stronghold via readSecret
 - [x] 817 tests passing, 0 failures, TypeScript compiles clean
