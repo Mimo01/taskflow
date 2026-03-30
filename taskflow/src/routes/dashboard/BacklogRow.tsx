@@ -12,6 +12,7 @@
  * independent behavior (toggle selection / navigate to epic).
  */
 import React from 'react';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
@@ -146,21 +147,11 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
 
         {/* Assignee cell */}
         <td className="w-10 px-2 py-2 density-compact:py-1 density-comfortable:py-3">
-          {issue.fields.assignee ? (
-            <img
-              src={issue.fields.assignee.avatarUrls['48x48'] || undefined}
-              alt={issue.fields.assignee.displayName}
-              title={issue.fields.assignee.displayName}
-              className="rounded-full w-6 h-6 object-cover"
-            />
-          ) : (
-            <span
-              className="inline-flex items-center justify-center rounded-full w-6 h-6 bg-muted text-xs text-muted-foreground"
-              title="Unassigned"
-            >
-              ?
-            </span>
-          )}
+          <CachedAvatar
+            url={issue.fields.assignee?.avatarUrls?.['48x48']}
+            name={issue.fields.assignee?.displayName || 'Unassigned'}
+            size={24}
+          />
         </td>
       </tr>
     );

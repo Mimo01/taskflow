@@ -10,6 +10,7 @@ import { Layers } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
@@ -23,17 +24,6 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { CreateEpicDialog } from './CreateEpicDialog';
 import { EpicsSkeleton } from './EpicsSkeleton';
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function getInitials(displayName: string): string {
-  return displayName
-    .split(' ')
-    .map((p) => p[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-}
 
 // ── EpicRow ───────────────────────────────────────────────────────────────────
 
@@ -83,26 +73,11 @@ function EpicRow({ epic, onEpicClick }: EpicRowProps) {
       {/* Assignee */}
       <td className="px-3 py-3">
         {epic.assignee ? (
-          <div className="relative h-6 w-6" title={epic.assignee.displayName}>
-            {epic.assignee.avatarUrls?.['48x48'] && (
-              <img
-                src={epic.assignee.avatarUrls['48x48']}
-                alt={epic.assignee.displayName}
-                className="h-6 w-6 rounded-full"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  const sib = e.currentTarget.nextElementSibling as HTMLElement | null;
-                  if (sib) sib.style.display = 'flex';
-                }}
-              />
-            )}
-            <div
-              className="h-6 w-6 rounded-full bg-primary text-primary-foreground items-center justify-center text-xs font-medium"
-              style={{ display: epic.assignee.avatarUrls?.['48x48'] ? 'none' : 'flex' }}
-            >
-              {getInitials(epic.assignee.displayName)}
-            </div>
-          </div>
+          <CachedAvatar
+            url={epic.assignee.avatarUrls?.['48x48']}
+            name={epic.assignee.displayName}
+            size={24}
+          />
         ) : null}
       </td>
     </tr>

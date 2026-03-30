@@ -9,6 +9,7 @@ import { MoreVertical } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { Input } from '@/components/ui/input';
 import type { JiraWorklog } from '@/services/jira/types';
 import { relativeTime } from '../IssueDetailContent';
@@ -61,29 +62,16 @@ export function WorklogEntry({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showMenu]);
 
-  const initials = worklog.author.displayName
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-
   return (
     <div className="rounded-lg border bg-card p-3 space-y-2">
       {/* Header line */}
       <div className="flex items-center gap-2 text-xs">
         {/* Avatar */}
-        {worklog.author.avatarUrls?.['48x48'] ? (
-          <img
-            src={worklog.author.avatarUrls['48x48']}
-            alt={worklog.author.displayName}
-            className="size-5 rounded-full"
-          />
-        ) : (
-          <span className="size-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium">
-            {initials}
-          </span>
-        )}
+        <CachedAvatar
+          url={worklog.author.avatarUrls?.['48x48']}
+          name={worklog.author.displayName}
+          size={20}
+        />
         <span className="font-semibold text-sm">{worklog.author.displayName}</span>
         {!isEditing && <Badge variant="secondary">{worklog.timeSpent}</Badge>}
         <span

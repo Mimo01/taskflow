@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Flag, GitBranch, GitMerge, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -201,11 +202,7 @@ export default function MergeRequestListPage() {
                     <span className="text-sm font-medium truncate">{mr.title}</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <img
-                      src={mr.author.avatar_url}
-                      alt=""
-                      className="size-4 rounded-full shrink-0"
-                    />
+                    <CachedAvatar url={mr.author.avatar_url} name={mr.author.name || mr.author.username} size={20} className="shrink-0" />
                     <span className="shrink-0">{mr.author.name}</span>
                     <span className="text-muted-foreground/50">·</span>
                     <GitBranch className="size-3 shrink-0 opacity-50" />

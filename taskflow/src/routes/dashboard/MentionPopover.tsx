@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import type { JiraAssignableUser } from '@/services/jira/types';
 import { fetchAssignableUsers } from '@/services/jira/users';
 import { readSecret } from '@/services/stronghold';
@@ -100,13 +101,7 @@ export const MentionPopover = forwardRef<MentionPopoverHandle, MentionPopoverPro
         {users.map((user, index) => {
           const optionId = `mention-option-${index}`;
           const isActive = index === activeIndex;
-          const avatarUrl = user.avatarUrls?.['24x24'] ?? user.avatarUrls?.['16x16'];
-          const initials = user.displayName
-            .split(' ')
-            .map((w) => w[0])
-            .join('')
-            .slice(0, 2)
-            .toUpperCase();
+          const avatarUrl = user.avatarUrls?.['48x48'] ?? user.avatarUrls?.['24x24'] ?? user.avatarUrls?.['16x16'];
 
           return (
             <div
@@ -122,13 +117,7 @@ export const MentionPopover = forwardRef<MentionPopoverHandle, MentionPopoverPro
               onClick={() => onSelect(user)}
               onMouseEnter={() => setActiveIndex(index)}
             >
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="" className="size-5 rounded-full shrink-0" />
-              ) : (
-                <span className="size-5 rounded-full shrink-0 bg-muted flex items-center justify-center text-[10px] font-medium text-muted-foreground">
-                  {initials}
-                </span>
-              )}
+              <CachedAvatar url={avatarUrl} name={user.displayName} size={20} className="shrink-0" />
               <span className="truncate">{user.displayName}</span>
               <span className="text-muted-foreground text-xs ml-auto truncate">{user.name}</span>
             </div>

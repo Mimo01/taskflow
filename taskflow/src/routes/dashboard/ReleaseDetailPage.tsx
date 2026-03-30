@@ -29,6 +29,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
@@ -565,10 +566,10 @@ export default function ReleaseDetailPage() {
                           <td className="py-1.5 px-2 border-b border-border/50 whitespace-nowrap">
                             {row.issue.fields.assignee ? (
                               <span className="inline-flex items-center gap-1.5 text-xs">
-                                <img
-                                  src={row.issue.fields.assignee.avatarUrls['48x48']}
-                                  alt=""
-                                  className="size-4 rounded-full"
+                                <CachedAvatar
+                                  url={row.issue.fields.assignee.avatarUrls['48x48']}
+                                  name={row.issue.fields.assignee.displayName}
+                                  size={20}
                                 />
                                 <span className="line-clamp-1">
                                   {row.issue.fields.assignee.displayName}
@@ -707,10 +708,10 @@ export default function ReleaseDetailPage() {
                             })()}
                           </span>
                           <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground ml-auto shrink-0">
-                            <img
-                              src={mr.author.avatar_url}
-                              alt=""
-                              className="size-4 rounded-full"
+                            <CachedAvatar
+                              url={mr.author.avatar_url}
+                              name={mr.author.name}
+                              size={20}
                             />
                             {mr.author.name}
                           </span>
