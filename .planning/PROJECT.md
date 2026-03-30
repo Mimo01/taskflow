@@ -229,4 +229,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-30 after Phase 46 avatar-caching complete — in-memory + disk-persistent avatar cache, CachedAvatar component across all 11 usage sites, session dedup and 30-day TTL eviction*
+*Last updated: 2026-03-30 after Phase 47 v1.7-debt-cleanup complete — all v1.7 milestone documentation gaps, code debt, and Nyquist compliance issues resolved*
