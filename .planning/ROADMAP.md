@@ -117,7 +117,7 @@ See archive: `.planning/milestones/v1.6.3-ROADMAP.md`
 - [x] **Phase 42: Foundation** — Route code splitting, React Compiler, bundle analysis
 - [x] **Phase 43: Cache Correctness** — staleTime tuning and smart polling (completed 2026-03-29)
 - [x] **Phase 44: Loading UX** — Skeleton screens, progressive data, flicker prevention (completed 2026-03-30)
-- [ ] **Phase 45: Query Optimization** — Parallelization and hover prefetch
+- [x] **Phase 45: Query Optimization** — Parallelization and hover prefetch (completed 2026-03-30)
 - [ ] **Phase 46: Avatar Caching** — Session cache and disk persistence
 
 ## Phase Details
@@ -177,10 +177,10 @@ Plans:
   1. Sprint board independent queries (sprint metadata, quick filters) fire simultaneously rather than sequentially
   2. Backlog independent queries fire in parallel where the dependency chain allows
   3. Hovering or focusing a sidebar link pre-fetches its data so the view loads from cache on click
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 Plans:
-- [ ] 45-01-PLAN.md — Service layer: concurrency limiter, useBoardId hook, sprint query split, backlog refactor
-- [ ] 45-02-PLAN.md — Component wiring: parallel queries, sidebar prefetch, dev tools toggle
+- [x] 45-01-PLAN.md — Service layer: concurrency limiter, useBoardId hook, sprint query split, backlog refactor
+- [x] 45-02-PLAN.md — Component wiring: parallel queries, sidebar prefetch, dev tools toggle
 
 ### Phase 46: Avatar Caching
 **Goal**: Avatar and user images never re-fetch within a session and survive app restarts
@@ -202,5 +202,5 @@ Plans:
 | 42. Foundation | v1.7 | 2/3 | Complete    | 2026-03-29 |
 | 43. Cache Correctness | v1.7 | 0/2 | Complete    | 2026-03-29 |
 | 44. Loading UX | v1.7 | 4/4 | Complete    | 2026-03-30 |
-| 45. Query Optimization | v1.7 | 0/2 | In progress | - |
+| 45. Query Optimization | v1.7 | 2/2 | Complete   | 2026-03-30 |
 | 46. Avatar Caching | v1.7 | 0/? | Not started | - |
