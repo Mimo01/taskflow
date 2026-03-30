@@ -34,6 +34,17 @@ vi.mock('@/services/jira', () => ({
   postTransition: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Mock jira issues service — new split sprint queries
+vi.mock('@/services/jira/issues', () => ({
+  fetchSprintStories: vi.fn().mockResolvedValue([]),
+  fetchSprintSubtasks: vi.fn().mockResolvedValue([]),
+}));
+
+// Mock useBoardId hook — returns null (no board discovery in tests)
+vi.mock('@/hooks/useBoardId', () => ({
+  useBoardId: vi.fn().mockReturnValue({ boardId: null, isLoading: false }),
+}));
+
 // Mock auth store
 vi.mock('@/stores/auth.store', () => ({
   useAuthStore: vi.fn(() => ({
@@ -142,9 +153,9 @@ describe('SprintBoardTab', () => {
   // ─── Infrastructure tests (PASS against current implementation) ────────────
 
   it('renders loading skeleton when isLoading', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
+    const { fetchSprintStories } = await import('@/services/jira/issues');
     // Never resolve — keep loading state
-    vi.mocked(fetchSprintIssues).mockReturnValue(new Promise(() => {}));
+    vi.mocked(fetchSprintStories).mockReturnValue(new Promise(() => {}));
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -165,8 +176,8 @@ describe('SprintBoardTab', () => {
   });
 
   it('renders error message when isError', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
-    vi.mocked(fetchSprintIssues).mockRejectedValue(new Error('Failed to load sprint board'));
+    const { fetchSprintStories } = await import('@/services/jira/issues');
+    vi.mocked(fetchSprintStories).mockRejectedValue(new Error('Failed to load sprint board'));
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -182,8 +193,8 @@ describe('SprintBoardTab', () => {
   });
 
   it('renders empty state when data is empty array', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([]);
+    const { fetchSprintStories } = await import('@/services/jira/issues');
+    vi.mocked(fetchSprintStories).mockResolvedValue([]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -201,10 +212,12 @@ describe('SprintBoardTab', () => {
   // ─── HIER-02 behavior stubs (RED state — FAIL against current implementation) ─
 
   it('story swimlane renders story header and its subtask cards', async () => {
-    const { fetchSprintIssues, fetchProjectStatuses } = await import('@/services/jira');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchProjectStatuses } = await import('@/services/jira');
     const story = makeIssue('PROJ-1', 'Story One', false, undefined, 'In Progress');
     const subtask = makeIssue('PROJ-2', 'Subtask One', true, 'PROJ-1', 'Done');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([story, subtask]);
+    vi.mocked(fetchSprintStories).mockResolvedValue([story]);
+    vi.mocked(fetchSprintSubtasks).mockResolvedValue([subtask]);
     vi.mocked(fetchProjectStatuses).mockResolvedValue([
       makeStatus('In Progress', 'indeterminate'),
       makeStatus('Done', 'done'),
@@ -231,10 +244,12 @@ describe('SprintBoardTab', () => {
   it('subtask card is always visible under its story header (no collapse)', async () => {
     // New design: subtasks are always shown as cards under a StoryHeaderRow — no collapse.
     // Replaces the old "collapsed by default" behavior.
-    const { fetchSprintIssues, fetchProjectStatuses } = await import('@/services/jira');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchProjectStatuses } = await import('@/services/jira');
     const story = makeIssue('PROJ-1', 'Story One', false, undefined, 'In Progress');
     const subtask = makeIssue('PROJ-2', 'Subtask One', true, 'PROJ-1', 'In Progress');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([story, subtask]);
+    vi.mocked(fetchSprintStories).mockResolvedValue([story]);
+    vi.mocked(fetchSprintSubtasks).mockResolvedValue([subtask]);
     vi.mocked(fetchProjectStatuses).mockResolvedValue([makeStatus('In Progress', 'indeterminate')]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
@@ -256,10 +271,12 @@ describe('SprintBoardTab', () => {
   it('clicking a story header row opens IssueDetailSheet for that story', async () => {
     // New design: story header rows are clickable — clicking opens the detail sheet.
     // Replaces old "expand subtasks chevron" behavior (no collapse in new design).
-    const { fetchSprintIssues, fetchProjectStatuses } = await import('@/services/jira');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchProjectStatuses } = await import('@/services/jira');
     const story = makeIssue('PROJ-1', 'Story One', false, undefined, 'In Progress');
     const subtask = makeIssue('PROJ-2', 'Subtask One', true, 'PROJ-1', 'In Progress');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([story, subtask]);
+    vi.mocked(fetchSprintStories).mockResolvedValue([story]);
+    vi.mocked(fetchSprintSubtasks).mockResolvedValue([subtask]);
     vi.mocked(fetchProjectStatuses).mockResolvedValue([makeStatus('In Progress', 'indeterminate')]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
@@ -281,10 +298,11 @@ describe('SprintBoardTab', () => {
   });
 
   it('orphan subtask (parent not in sprint) is not rendered', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
     // Subtask whose parent is NOT in the sprint
     const orphanSubtask = makeIssue('PROJ-99', 'Orphan Subtask', true, 'PROJ-999', 'In Progress');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([orphanSubtask]);
+    vi.mocked(fetchSprintStories).mockResolvedValue([]);
+    vi.mocked(fetchSprintSubtasks).mockResolvedValue([orphanSubtask]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -313,12 +331,14 @@ describe('SprintBoardTab', () => {
   // and has no drag support. They will pass after the relevant plan implementations.
 
   it('multiple stories render as separate swimlane sections (BOARD-01)', async () => {
-    const { fetchSprintIssues, fetchProjectStatuses } = await import('@/services/jira');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchProjectStatuses } = await import('@/services/jira');
     const story1 = makeIssue('PROJ-1', 'Story One', false, undefined, 'In Progress');
     const story2 = makeIssue('PROJ-2', 'Story Two', false, undefined, 'To Do');
     const subtask1 = makeIssue('PROJ-3', 'Subtask of One', true, 'PROJ-1', 'In Progress');
     const subtask2 = makeIssue('PROJ-4', 'Subtask of Two', true, 'PROJ-2', 'To Do');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([story1, story2, subtask1, subtask2]);
+    vi.mocked(fetchSprintStories).mockResolvedValue([story1, story2]);
+    vi.mocked(fetchSprintSubtasks).mockResolvedValue([subtask1, subtask2]);
     vi.mocked(fetchProjectStatuses).mockResolvedValue([
       makeStatus('To Do', 'new'),
       makeStatus('In Progress', 'indeterminate'),
@@ -345,12 +365,14 @@ describe('SprintBoardTab', () => {
   });
 
   it('story header appears exactly once per story (not per column) (BOARD-01)', async () => {
-    const { fetchSprintIssues, fetchProjectStatuses } = await import('@/services/jira');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchProjectStatuses } = await import('@/services/jira');
     // Story with subtasks in two different statuses — header still appears once
     const story = makeIssue('PROJ-1', 'My Story', false, undefined, 'To Do');
     const subtask1 = makeIssue('PROJ-2', 'My Subtask', true, 'PROJ-1', 'In Progress');
     const subtask2 = makeIssue('PROJ-3', 'Another Subtask', true, 'PROJ-1', 'To Do');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([story, subtask1, subtask2]);
+    vi.mocked(fetchSprintStories).mockResolvedValue([story]);
+    vi.mocked(fetchSprintSubtasks).mockResolvedValue([subtask1, subtask2]);
     vi.mocked(fetchProjectStatuses).mockResolvedValue([
       makeStatus('To Do', 'new'),
       makeStatus('In Progress', 'indeterminate'),
@@ -376,10 +398,11 @@ describe('SprintBoardTab', () => {
   });
 
   it('subtask card shows status badge (BOARD-03)', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
     const story = makeIssue('PROJ-1', 'My Story', false, undefined, 'To Do');
     const subtask = makeIssue('PROJ-2', 'My Subtask', true, 'PROJ-1', 'In Progress');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([story, subtask]);
+    vi.mocked(fetchSprintStories).mockResolvedValue([story]);
+    vi.mocked(fetchSprintSubtasks).mockResolvedValue([subtask]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -401,9 +424,10 @@ describe('SprintBoardTab', () => {
   });
 
   it('bare story (no subtasks) renders as a standalone card (BOARD-03)', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
     const bareStory = makeIssue('PROJ-1', 'Bare Story', false, undefined, 'To Do');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([bareStory]);
+    vi.mocked(fetchSprintStories).mockResolvedValue([bareStory]);
+    vi.mocked(fetchSprintSubtasks).mockResolvedValue([]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -440,7 +464,7 @@ describe('SprintBoardTab', () => {
     }
 
     it('EPIC-02: filtering by epic key hides non-matching swimlanes', async () => {
-      const { fetchSprintIssues } = await import('@/services/jira');
+      const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
       const { useSettingsStore } = await import('@/stores/settings.store');
       vi.mocked(useSettingsStore).mockReturnValue({
         storyPointsFieldKey: 'customfield_10016',
@@ -458,7 +482,8 @@ describe('SprintBoardTab', () => {
       const story2 = makeIssueWithEpic('PROJ-2', 'Story Beta', false, undefined, 'PROJ-20');
       const sub1 = makeIssueWithEpic('PROJ-3', 'Sub of Alpha', true, 'PROJ-1', 'PROJ-10');
       const sub2 = makeIssueWithEpic('PROJ-4', 'Sub of Beta', true, 'PROJ-2', 'PROJ-20');
-      vi.mocked(fetchSprintIssues).mockResolvedValue([story1, story2, sub1, sub2]);
+      vi.mocked(fetchSprintStories).mockResolvedValue([story1, story2]);
+      vi.mocked(fetchSprintSubtasks).mockResolvedValue([sub1, sub2]);
 
       const { useAuthStore } = await import('@/stores/auth.store');
       vi.mocked(useAuthStore).mockReturnValue({
@@ -488,7 +513,7 @@ describe('SprintBoardTab', () => {
     });
 
     it('EPIC-02: stories with no epic link are hidden when filter is active', async () => {
-      const { fetchSprintIssues } = await import('@/services/jira');
+      const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
       const { useSettingsStore } = await import('@/stores/settings.store');
       vi.mocked(useSettingsStore).mockReturnValue({
         storyPointsFieldKey: 'customfield_10016',
@@ -504,7 +529,8 @@ describe('SprintBoardTab', () => {
 
       const storyWithEpic = makeIssueWithEpic('PROJ-1', 'Epic Story', false, undefined, 'PROJ-10');
       const storyNoEpic = makeIssue('PROJ-2', 'No Epic Story', false);
-      vi.mocked(fetchSprintIssues).mockResolvedValue([storyWithEpic, storyNoEpic]);
+      vi.mocked(fetchSprintStories).mockResolvedValue([storyWithEpic, storyNoEpic]);
+      vi.mocked(fetchSprintSubtasks).mockResolvedValue([]);
 
       const { useAuthStore } = await import('@/stores/auth.store');
       vi.mocked(useAuthStore).mockReturnValue({
@@ -532,7 +558,7 @@ describe('SprintBoardTab', () => {
     });
 
     it('EPIC-02: clearing filter shows all swimlanes again', async () => {
-      const { fetchSprintIssues } = await import('@/services/jira');
+      const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
       const { useSettingsStore } = await import('@/stores/settings.store');
       vi.mocked(useSettingsStore).mockReturnValue({
         storyPointsFieldKey: 'customfield_10016',
@@ -548,7 +574,8 @@ describe('SprintBoardTab', () => {
 
       const story1 = makeIssueWithEpic('PROJ-1', 'Story Alpha', false, undefined, 'PROJ-10');
       const story2 = makeIssueWithEpic('PROJ-2', 'Story Beta', false, undefined, 'PROJ-20');
-      vi.mocked(fetchSprintIssues).mockResolvedValue([story1, story2]);
+      vi.mocked(fetchSprintStories).mockResolvedValue([story1, story2]);
+      vi.mocked(fetchSprintSubtasks).mockResolvedValue([]);
 
       const { useAuthStore } = await import('@/stores/auth.store');
       vi.mocked(useAuthStore).mockReturnValue({
@@ -589,7 +616,7 @@ describe('BOARD-02: board shows all team members issues', () => {
   });
 
   it('shows cards for issues assigned to different team members', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
 
     function makeIssueWithAssignee(
       key: string,
@@ -628,7 +655,8 @@ describe('BOARD-02: board shows all team members issues', () => {
     const story2 = makeIssueWithAssignee('PROJ-2', 'Bob Story', false, undefined, 'Bob Jones');
     const sub1 = makeIssueWithAssignee('PROJ-3', 'Alice Subtask', true, 'PROJ-1', 'Alice Smith');
     const sub2 = makeIssueWithAssignee('PROJ-4', 'Bob Subtask', true, 'PROJ-2', 'Bob Jones');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([story1, story2, sub1, sub2]);
+    vi.mocked(fetchSprintStories).mockResolvedValue([story1, story2]);
+    vi.mocked(fetchSprintSubtasks).mockResolvedValue([sub1, sub2]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -658,10 +686,11 @@ describe('BOARD-05: clicking a card opens issue detail', () => {
   });
 
   it('clicking a subtask card fires onIssueClick with the card issue key', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
     const story = makeIssue('PROJ-1', 'My Story', false, undefined, 'In Progress');
     const subtask = makeIssue('PROJ-2', 'Click Me Subtask', true, 'PROJ-1', 'In Progress');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([story, subtask]);
+    vi.mocked(fetchSprintStories).mockResolvedValue([story]);
+    vi.mocked(fetchSprintSubtasks).mockResolvedValue([subtask]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -686,11 +715,12 @@ describe('BOARD-05: clicking a card opens issue detail', () => {
   });
 
   it('clicking a story header fires onIssueClick with the story key', async () => {
-    const { fetchSprintIssues } = await import('@/services/jira');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
     // Use a story with a subtask so the bare-story card doesn't appear alongside the header
     const story = makeIssue('PROJ-1', 'My Story', false, undefined, 'In Progress');
     const subtask = makeIssue('PROJ-2', 'A Subtask', true, 'PROJ-1', 'In Progress');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([story, subtask]);
+    vi.mocked(fetchSprintStories).mockResolvedValue([story]);
+    vi.mocked(fetchSprintSubtasks).mockResolvedValue([subtask]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
     vi.mocked(useAuthStore).mockReturnValue({
@@ -725,7 +755,8 @@ describe('FILT-02: saved filter integration', () => {
   });
 
   it('saved filter constrains sprint board to matching issues', async () => {
-    const { fetchSprintIssues, fetchProjectStatuses } = await import('@/services/jira');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchProjectStatuses } = await import('@/services/jira');
     const { fetchAllSearchPages } = await import('@/services/jira/client');
     const { useSavedFilterStore } = await import('@/stores/saved-filter.store');
 
@@ -733,7 +764,8 @@ describe('FILT-02: saved filter integration', () => {
     const story2 = makeIssue('PROJ-2', 'Story Two', false, undefined, 'To Do');
     const subtask1 = makeIssue('PROJ-3', 'Subtask of One', true, 'PROJ-1', 'In Progress');
     const subtask2 = makeIssue('PROJ-4', 'Subtask of Two', true, 'PROJ-2', 'To Do');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([story1, story2, subtask1, subtask2]);
+    vi.mocked(fetchSprintStories).mockResolvedValue([story1, story2]);
+    vi.mocked(fetchSprintSubtasks).mockResolvedValue([subtask1, subtask2]);
     vi.mocked(fetchProjectStatuses).mockResolvedValue([
       makeStatus('To Do', 'new'),
       makeStatus('In Progress', 'indeterminate'),
@@ -777,7 +809,8 @@ describe('FILT-02: saved filter integration', () => {
   });
 
   it('clear saved filter restores default board view', async () => {
-    const { fetchSprintIssues, fetchProjectStatuses } = await import('@/services/jira');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchProjectStatuses } = await import('@/services/jira');
     const { fetchAllSearchPages } = await import('@/services/jira/client');
     const { useSavedFilterStore } = await import('@/stores/saved-filter.store');
 
@@ -785,7 +818,8 @@ describe('FILT-02: saved filter integration', () => {
     const story2 = makeIssue('PROJ-2', 'Story Two', false, undefined, 'To Do');
     const subtask1 = makeIssue('PROJ-3', 'Subtask of One', true, 'PROJ-1', 'In Progress');
     const subtask2 = makeIssue('PROJ-4', 'Subtask of Two', true, 'PROJ-2', 'To Do');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([story1, story2, subtask1, subtask2]);
+    vi.mocked(fetchSprintStories).mockResolvedValue([story1, story2]);
+    vi.mocked(fetchSprintSubtasks).mockResolvedValue([subtask1, subtask2]);
     vi.mocked(fetchProjectStatuses).mockResolvedValue([
       makeStatus('To Do', 'new'),
       makeStatus('In Progress', 'indeterminate'),
@@ -834,12 +868,14 @@ describe('FILT-02: saved filter integration', () => {
   });
 
   it('active filter banner shows filter name and clear button', async () => {
-    const { fetchSprintIssues, fetchProjectStatuses } = await import('@/services/jira');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchProjectStatuses } = await import('@/services/jira');
     const { fetchAllSearchPages } = await import('@/services/jira/client');
     const { useSavedFilterStore } = await import('@/stores/saved-filter.store');
 
     const story1 = makeIssue('PROJ-1', 'Story One', false, undefined, 'In Progress');
-    vi.mocked(fetchSprintIssues).mockResolvedValue([story1]);
+    vi.mocked(fetchSprintStories).mockResolvedValue([story1]);
+    vi.mocked(fetchSprintSubtasks).mockResolvedValue([]);
     vi.mocked(fetchProjectStatuses).mockResolvedValue([makeStatus('In Progress', 'indeterminate')]);
     vi.mocked(fetchAllSearchPages).mockResolvedValue([{ key: 'PROJ-1' } as any]);
 

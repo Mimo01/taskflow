@@ -9,6 +9,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { createTauriStorage } from '../lib/tauri-storage';
+import { setJiraConcurrencyLimit as setConcurrencyRuntime } from '../lib/concurrency';
 import type { Theme } from '../services/theme';
 import type { QuickFilter } from './filter.store';
 import { getDefaultSidebarItems } from '@/components/app/sidebar-items';
@@ -71,6 +72,8 @@ interface SettingsState {
   performanceWaterfall: boolean;
   /** Maximum number of retained log/profiler entries. Default: 200. */
   retentionLimit: number;
+  /** Maximum number of parallel Jira API calls. Default: 6. */
+  jiraConcurrencyLimit: number;
   /** UI density preference. Default: 'default'. */
   density: Density;
   /** Collapse sprints by default in the board view. Default: false. */
@@ -128,6 +131,7 @@ interface SettingsState {
   setOperationProfiling: (v: boolean) => void;
   setPerformanceWaterfall: (v: boolean) => void;
   setRetentionLimit: (v: number) => void;
+  setJiraConcurrencyLimit: (v: number) => void;
   setDensity: (d: Density) => void;
   setSprintCollapseByDefault: (v: boolean) => void;
   setShowSubtasksInMyTasks: (v: boolean) => void;
@@ -181,6 +185,7 @@ export const useSettingsStore = create<SettingsState>()(
       operationProfiling: false,
       performanceWaterfall: false,
       retentionLimit: 200,
+      jiraConcurrencyLimit: 6,
       density: 'default' as Density,
       sprintCollapseByDefault: false,
       showSubtasksInMyTasks: true,
@@ -251,6 +256,10 @@ export const useSettingsStore = create<SettingsState>()(
       setOperationProfiling: (v) => set({ operationProfiling: v }),
       setPerformanceWaterfall: (v) => set({ performanceWaterfall: v }),
       setRetentionLimit: (v) => set({ retentionLimit: v }),
+      setJiraConcurrencyLimit: (v) => {
+        set({ jiraConcurrencyLimit: v });
+        setConcurrencyRuntime(v);
+      },
       setDensity: (d) => set({ density: d }),
       setSprintCollapseByDefault: (v) => set({ sprintCollapseByDefault: v }),
       setShowSubtasksInMyTasks: (v) => set({ showSubtasksInMyTasks: v }),
@@ -323,7 +332,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 12,
+      version: 13,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -381,6 +390,9 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 12) {
           if (s.lastChecked === undefined) s.lastChecked = null;
+        }
+        if (version < 13) {
+          if (s.jiraConcurrencyLimit === undefined) s.jiraConcurrencyLimit = 6;
         }
         return persisted as SettingsState;
       },

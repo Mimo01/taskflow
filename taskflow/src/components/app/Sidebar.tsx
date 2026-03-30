@@ -22,8 +22,11 @@ import {
   Users,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { STALE_TIME_MS } from '@/lib/query-constants';
+import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import AppIcon from './AppIcon';
 import { SIDEBAR_NAV_ITEMS, SIDEBAR_SECTIONS } from './sidebar-items';
@@ -49,11 +52,86 @@ function navLinkClassFn(collapsed: boolean) {
     isActive ? `${base} bg-accent text-accent-foreground font-semibold` : `${base} hover:bg-accent`;
 }
 
+const PREFETCH_ROUTES = new Set(['/dashboard', '/my-tasks', '/sprint-board', '/backlog', '/epics']);
+
 export default function Sidebar() {
   const { devToolsEnabled, sidebarItems } = useSettingsStore();
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);
   const toggleSidebarCollapsed = useSettingsStore((s) => s.toggleSidebarCollapsed);
   const [hovered, setHovered] = useState(false);
+
+  const queryClient = useQueryClient();
+  const { jiraBaseUrl, activeJiraProject } = useAuthStore();
+  const { storyPointsFieldKey, epicLinkFieldKey } = useSettingsStore();
+
+  const prefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function prefetchForPath(path: string) {
+    if (!jiraBaseUrl || !activeJiraProject) return;
+    const baseOpts = { staleTime: STALE_TIME_MS };
+
+    if (path === '/sprint-board') {
+      queryClient.prefetchQuery({
+        queryKey: ['jira-sprint-stories', activeJiraProject, jiraBaseUrl, storyPointsFieldKey, epicLinkFieldKey],
+        ...baseOpts,
+      });
+      queryClient.prefetchQuery({
+        queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl],
+        staleTime: 5 * 60 * 1000,
+      });
+      queryClient.prefetchQuery({
+        queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
+        staleTime: 5 * 60 * 1000,
+      });
+      queryClient.prefetchQuery({
+        queryKey: ['project-statuses', activeJiraProject, jiraBaseUrl],
+        staleTime: Infinity,
+      });
+    } else if (path === '/backlog') {
+      queryClient.prefetchQuery({
+        queryKey: ['jira-backlog-view', activeJiraProject, jiraBaseUrl],
+        ...baseOpts,
+      });
+      queryClient.prefetchQuery({
+        queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
+        staleTime: 5 * 60 * 1000,
+      });
+    } else if (path === '/epics') {
+      queryClient.prefetchQuery({
+        queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
+        staleTime: 5 * 60 * 1000,
+      });
+    } else if (path === '/my-tasks') {
+      queryClient.prefetchQuery({
+        queryKey: ['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey],
+        ...baseOpts,
+      });
+    } else if (path === '/dashboard') {
+      queryClient.prefetchQuery({
+        queryKey: ['jira-sprint-stories', activeJiraProject, jiraBaseUrl, storyPointsFieldKey, epicLinkFieldKey],
+        ...baseOpts,
+      });
+    }
+  }
+
+  function handleNavMouseEnter(path: string) {
+    if (!PREFETCH_ROUTES.has(path)) return;
+    prefetchTimerRef.current = setTimeout(() => {
+      prefetchForPath(path);
+    }, 100); // 100ms debounce
+  }
+
+  function handleNavMouseLeave() {
+    if (prefetchTimerRef.current) {
+      clearTimeout(prefetchTimerRef.current);
+      prefetchTimerRef.current = null;
+    }
+  }
+
+  function handleNavFocus(path: string) {
+    if (!PREFETCH_ROUTES.has(path)) return;
+    prefetchForPath(path); // immediate on focus
+  }
 
   const navLinkClass = navLinkClassFn(sidebarCollapsed);
   const labelClass = sidebarCollapsed ? 'hidden' : 'hidden md:block';
@@ -117,6 +195,9 @@ export default function Sidebar() {
                   to={nav.path}
                   className={navLinkClass}
                   title={sidebarCollapsed ? nav.label : undefined}
+                  onMouseEnter={() => handleNavMouseEnter(nav.path)}
+                  onMouseLeave={handleNavMouseLeave}
+                  onFocus={() => handleNavFocus(nav.path)}
                 >
                   {Icon ? <Icon className="h-4 w-4 shrink-0" /> : null}
                   <span className={labelClass}>{nav.label}</span>
