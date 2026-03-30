@@ -7,6 +7,41 @@ import { apiFetch } from '../../lib/apiFetch';
 import type { JiraActiveSprint } from './types';
 
 /**
+ * Discover the scrum board ID for a Jira project.
+ *
+ * Used by useBoardId() hook to cache the board ID with staleTime: Infinity
+ * so both sprint board and backlog consume it without redundant API calls.
+ *
+ * Returns null on any failure (board not found, network error, non-scrum board).
+ *
+ * @param baseUrl    - Jira base URL
+ * @param token      - Personal Access Token
+ * @param projectKey - Jira project key (e.g. "PROJ")
+ * @returns Board ID or null
+ */
+export async function fetchBoardId(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+): Promise<number | null> {
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  try {
+    const boardRes = await apiFetch(
+      'jira',
+      `${base}/rest/agile/1.0/board?projectKeyOrId=${projectKey}&type=scrum`,
+      { headers },
+      'Discover Board',
+    );
+    if (!boardRes.ok) return null;
+    const data = await boardRes.json();
+    return data?.values?.[0]?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Fetch the active sprint for a Jira project using the Agile REST API.
  *
  * Step 1: Discover the scrum board for the project via GET /rest/agile/1.0/board.

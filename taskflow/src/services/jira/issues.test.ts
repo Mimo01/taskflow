@@ -4,6 +4,8 @@ import {
   createIssue,
   fetchIssueDetail,
   fetchSprintIssues,
+  fetchSprintStories,
+  fetchSprintSubtasks,
   searchJira,
   updateIssueField,
 } from './issues';
@@ -211,6 +213,97 @@ describe('issues service', () => {
       await expect(updateIssueField(BASE, TOKEN, 'PROJ-1', 'summary', 'Fail')).rejects.toThrow(
         'Failed to update summary on PROJ-1: 500',
       );
+    });
+  });
+
+  // --- fetchSprintStories ---
+  describe('fetchSprintStories', () => {
+    it('returns non-subtask issues on success', async () => {
+      const stories = [
+        { key: 'PROJ-1', fields: { summary: 'Story 1' } },
+        { key: 'PROJ-2', fields: { summary: 'Story 2' } },
+      ];
+      vi.mocked(fetchAllSearchPages).mockResolvedValueOnce(stories as any);
+
+      const result = await fetchSprintStories(BASE, TOKEN, 'PROJ');
+      expect(result).toHaveLength(2);
+      expect(result[0].key).toBe('PROJ-1');
+    });
+
+    it('returns empty array when no stories found', async () => {
+      vi.mocked(fetchAllSearchPages).mockResolvedValueOnce([]);
+      const result = await fetchSprintStories(BASE, TOKEN, 'PROJ');
+      expect(result).toEqual([]);
+    });
+
+    it('throws ApiError on auth failure', async () => {
+      vi.mocked(fetchAllSearchPages).mockRejectedValueOnce(
+        new ApiError('Token expired', 401, 'jira'),
+      );
+      await expect(fetchSprintStories(BASE, TOKEN, 'PROJ')).rejects.toThrow(ApiError);
+    });
+
+    it('throws user-friendly message on status 400 with sprint error', async () => {
+      const responseError = { status: 400, text: async () => 'function not recognized' };
+      vi.mocked(fetchAllSearchPages).mockRejectedValueOnce(responseError);
+      vi.mocked(isResponseLikeError).mockReturnValue(true);
+
+      await expect(fetchSprintStories(BASE, TOKEN, 'PROJ')).rejects.toThrow(
+        'Sprint filtering unavailable',
+      );
+    });
+
+    it('throws generic error on status 500', async () => {
+      const responseError = { status: 500 };
+      vi.mocked(fetchAllSearchPages).mockRejectedValueOnce(responseError);
+      vi.mocked(isResponseLikeError).mockReturnValue(true);
+
+      await expect(fetchSprintStories(BASE, TOKEN, 'PROJ')).rejects.toThrow(
+        'Jira search failed with status 500',
+      );
+    });
+  });
+
+  // --- fetchSprintSubtasks ---
+  describe('fetchSprintSubtasks', () => {
+    it('returns empty array when parentKeys is empty', async () => {
+      const result = await fetchSprintSubtasks(BASE, TOKEN, []);
+      expect(result).toEqual([]);
+      expect(vi.mocked(fetchAllSearchPages)).not.toHaveBeenCalled();
+    });
+
+    it('returns subtasks for a single chunk of parent keys', async () => {
+      const subtasks = [{ key: 'PROJ-10', fields: { summary: 'Subtask 1' } }];
+      vi.mocked(fetchAllSearchPages).mockResolvedValueOnce(subtasks as any);
+
+      const result = await fetchSprintSubtasks(BASE, TOKEN, ['PROJ-1', 'PROJ-2', 'PROJ-3']);
+      expect(result).toHaveLength(1);
+      expect(result[0].key).toBe('PROJ-10');
+    });
+
+    it('returns partial results when a chunk fails', async () => {
+      const subtasks = [{ key: 'PROJ-10', fields: { summary: 'Subtask 1' } }];
+      vi.mocked(fetchAllSearchPages)
+        .mockResolvedValueOnce(subtasks as any) // chunk 1 succeeds
+        .mockRejectedValueOnce(new Error('chunk fail')); // chunk 2 fails
+
+      // 60 keys = 2 chunks (50 + 10)
+      const parentKeys = Array.from({ length: 60 }, (_, i) => `PROJ-${i + 1}`);
+      const result = await fetchSprintSubtasks(BASE, TOKEN, parentKeys);
+
+      // Only chunk 1 results returned; chunk 2 fails silently
+      expect(result).toHaveLength(1);
+    });
+
+    it('splits 60 parent keys into 2 chunks (50 + 10) via SUBTASK_CHUNK_SIZE', async () => {
+      vi.mocked(fetchAllSearchPages)
+        .mockResolvedValueOnce([] as any) // chunk 1
+        .mockResolvedValueOnce([] as any); // chunk 2
+
+      const parentKeys = Array.from({ length: 60 }, (_, i) => `PROJ-${i + 1}`);
+      await fetchSprintSubtasks(BASE, TOKEN, parentKeys);
+
+      expect(vi.mocked(fetchAllSearchPages)).toHaveBeenCalledTimes(2);
     });
   });
 
