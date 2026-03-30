@@ -47,6 +47,7 @@ metrics:
   files_modified: 7
   tests_updated: 36
   tests_total_passing: 817
+requirements-completed: [QOPT-01, QOPT-02, QOPT-03]
 ---
 
 # Phase 45 Plan 02: UI Wiring for Query Parallelization Summary

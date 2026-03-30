@@ -53,6 +53,7 @@ metrics:
   files_modified: 8
   tests_added: 22
   tests_total_passing: 142
+requirements-completed: [QOPT-01, QOPT-02]
 ---
 
 # Phase 45 Plan 01: Service Layer Infrastructure for Query Parallelization Summary

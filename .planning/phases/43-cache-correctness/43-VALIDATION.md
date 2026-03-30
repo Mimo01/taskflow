@@ -1,9 +1,9 @@
 ---
 phase: 43
 slug: cache-correctness
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-29
 ---
 
@@ -71,4 +71,4 @@ created: 2026-03-29
 - [ ] Feedback latency < 15s
 - [ ] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** complete (Phase 47 cleanup)

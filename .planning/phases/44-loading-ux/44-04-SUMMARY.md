@@ -30,7 +30,7 @@ metrics:
   completed_date: "2026-03-30"
   tasks_completed: 2
   files_changed: 9
-requirements_completed: []
+requirements-completed: []
 ---
 
 # Phase 44 Plan 04: Gap Closure — TS Compilation Fix + Requirements Tracking Summary

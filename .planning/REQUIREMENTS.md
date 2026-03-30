@@ -10,16 +10,16 @@ Requirements for v1.7 Performance & Perceived Speed. Each maps to roadmap phases
 ### Loading UX
 
 - [x] **LOAD-01**: User sees layout-matched skeleton screens instead of spinners on all major data views (sprint board, backlog, my tasks, workload, epics, releases, notifications, dashboard widgets)
-- [ ] **LOAD-02**: User sees cached data instantly when navigating back to a previously visited view (stale-while-revalidate)
-- [x] **LOAD-03**: User sees sprint board story headers immediately while subtasks load progressively beneath them — **Infra complete, deferred pending query split** (skeleton infrastructure exists in VirtualizedSwimlanes but subtasksLoading is always false because fetchSprintIssues returns stories+subtasks in a single query; requires Phase 45 query parallelization to activate)
+- [x] **LOAD-02**: User sees cached data instantly when navigating back to a previously visited view (stale-while-revalidate)
+- [x] **LOAD-03**: User sees sprint board story headers immediately while subtasks load progressively beneath them — activated by Phase 45-02 query split (subtasksLoading wired from real jira-sprint-subtasks query at SprintBoardTab.tsx)
 - [~] **LOAD-04**: User sees backlog issue list immediately while epic metadata loads progressively — **Partial** (epic column header shows Skeleton while allEpics query is pending via separate jira-epics-basic query; per-row epic badges come from same query as rows so no per-row progressive loading)
 - [x] **LOAD-05**: User does not see skeleton flicker when data loads within 200ms (delayed loading hook)
 
 ### Route & Bundle
 
-- [ ] **ROUT-01**: App startup is faster with heavy routes (sprint board, backlog, issue detail, epics, workload, sprint progress) loaded on demand via code splitting
-- [ ] **ROUT-02**: User sees a skeleton fallback (not blank screen) while a lazy-loaded route chunk loads
-- [ ] **ROUT-03**: User sees a meaningful error boundary (not white screen) when a lazy-loaded chunk fails
+- [x] **ROUT-01**: App startup is faster with heavy routes (sprint board, backlog, issue detail, epics, workload, sprint progress) loaded on demand via code splitting
+- [x] **ROUT-02**: User sees a skeleton fallback (not blank screen) while a lazy-loaded route chunk loads
+- [x] **ROUT-03**: User sees a meaningful error boundary (not white screen) when a lazy-loaded chunk fails
 - [x] **ROUT-04**: React Compiler auto-memoizes all components at build time, eliminating manual memo overhead
 - [x] **ROUT-05**: Bundle analysis identifies and eliminates dead code or oversized dependencies
 
@@ -28,13 +28,13 @@ Requirements for v1.7 Performance & Perceived Speed. Each maps to roadmap phases
 - [x] **QOPT-01**: Sprint board loads faster by parallelizing independent API calls (sprint metadata + quick filters fetched simultaneously)
 - [x] **QOPT-02**: Backlog loads faster by parallelizing independent queries where dependency chains allow
 - [x] **QOPT-03**: User experiences pre-warmed cache when clicking sidebar navigation (data prefetched on hover/focus)
-- [ ] **QOPT-04**: App pauses polling for views not currently visible (smart polling with background pause)
-- [ ] **QOPT-05**: App pauses all polling when minimized and refetches active view on restore (visibility-aware polling)
+- [x] **QOPT-04**: App pauses polling for views not currently visible (smart polling with background pause)
+- [x] **QOPT-05**: App pauses all polling when minimized and refetches active view on restore (visibility-aware polling)
 
 ### Caching
 
 - [x] **CACH-01**: Avatar and user images are cached in memory during the session (no re-fetch on re-render)
-- [x] **CACH-02**: Avatar cache persists to disk and survives app restarts (via @tauri-apps/plugin-fs)
+- [x] **CACH-02**: Avatar cache persists to disk and survives app restarts (via @tauri-apps/plugin-store)
 
 ## Future Requirements
 
@@ -65,20 +65,20 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | LOAD-01 | Phase 44 | Complete |
-| LOAD-02 | Phase 43 | Pending |
-| LOAD-03 | Phase 47 | Pending |
+| LOAD-02 | Phase 43 | Complete |
+| LOAD-03 | Phase 44 | Complete |
 | LOAD-04 | Phase 44 | Partial — header-level progressive loading implemented |
 | LOAD-05 | Phase 44 | Complete |
-| ROUT-01 | Phase 42 | Pending |
-| ROUT-02 | Phase 42 | Pending |
-| ROUT-03 | Phase 42 | Pending |
+| ROUT-01 | Phase 42 | Complete |
+| ROUT-02 | Phase 42 | Complete |
+| ROUT-03 | Phase 42 | Complete |
 | ROUT-04 | Phase 42 | Complete |
 | ROUT-05 | Phase 42 | Complete |
 | QOPT-01 | Phase 45 | Complete |
 | QOPT-02 | Phase 45 | Complete |
 | QOPT-03 | Phase 45 | Complete |
-| QOPT-04 | Phase 43 | Pending |
-| QOPT-05 | Phase 43 | Pending |
+| QOPT-04 | Phase 43 | Complete |
+| QOPT-05 | Phase 43 | Complete |
 | CACH-01 | Phase 46 | Complete |
 | CACH-02 | Phase 46 | Complete |
 
