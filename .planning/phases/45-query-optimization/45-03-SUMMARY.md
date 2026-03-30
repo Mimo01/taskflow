@@ -90,3 +90,18 @@ None — no stub patterns or placeholder data in this plan's changes.
 ---
 *Phase: 45-query-optimization*
 *Completed: 2026-03-30*
+
+## Self-Check: PASSED
+
+- [x] taskflow/src/components/app/Sidebar.tsx contains `jira-backlog-view` (backlog prefetch key present)
+- [x] taskflow/src/components/app/Sidebar.tsx contains `fetchBoardId` import
+- [x] taskflow/src/components/app/Sidebar.tsx contains `fetchBacklogView` import
+- [x] taskflow/src/components/app/Sidebar.tsx contains `queryClient.fetchQuery(` with `'jira-board-id'`
+- [x] taskflow/src/components/app/Sidebar.tsx contains `.then((boardId)` chain
+- [x] taskflow/src/components/app/Sidebar.tsx contains `.catch(` silent error handling
+- [x] taskflow/src/components/app/Sidebar.tsx backlog-view key is `['jira-backlog-view', activeJiraProject, jiraBaseUrl]` (no boardId)
+- [x] taskflow/src/components/app/Sidebar.tsx does NOT contain "skip prefetch for backlog-view itself"
+- [x] TypeScript compiles with 0 errors
+- [x] 817 tests passing, 0 failures
+- [x] commit b245a8e exists (Task 1)
+- [x] 45-03-SUMMARY.md created at .planning/phases/45-query-optimization/
