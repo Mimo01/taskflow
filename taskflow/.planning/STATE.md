@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: v1.6.3 milestone complete
-stopped_at: Completed 45-02-PLAN.md (all tasks including checkpoint fix)
-last_updated: "2026-03-30T11:00:00.000Z"
+stopped_at: Completed 47-01-PLAN.md
+last_updated: "2026-03-30T16:33:17Z"
 last_activity: 2026-03-30
 ---
 
@@ -48,6 +48,7 @@ Recent decisions affecting current work:
 - [Phase 45-02]: BacklogPage imports BacklogViewData from @/services/jira/types (not jira.ts) to match optional epicNames/epicColors
 - [Phase 45-02]: BacklogPage imports fetchBacklogView from @/services/jira/backlog (new module); boardId passed to queryFn but NOT in queryKey
 - [Phase 45-02]: settings.store bumped to persist version 13 with jiraConcurrencyLimit default 6
+- [Phase 47-01]: Replace literal staleTime values with STALE_TIME_MS constant from @/lib/query-constants — single source of truth enforced
 
 ### Pending Todos
 
@@ -63,8 +64,8 @@ None.
 ## Session Continuity
 
 Last activity: 2026-03-30
-Stopped at: Completed 45-02-PLAN.md (all tasks complete, prefetch fix applied after user checkpoint report)
-Resume: Phase 45 query-optimization complete (2/2 plans)
+Stopped at: Completed 47-01-PLAN.md (stale constants, dead mock, stats.html cleanup)
+Resume: Phase 47 v17-debt-cleanup plan 01 complete — continue with plan 02 if exists
 
 ### Quick Tasks Completed
 

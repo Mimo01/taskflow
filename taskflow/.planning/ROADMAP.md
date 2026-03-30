@@ -119,6 +119,7 @@ See archive: `.planning/milestones/v1.6.3-ROADMAP.md`
 - [x] **Phase 44: Loading UX** — Skeleton screens, progressive data, flicker prevention (completed 2026-03-30)
 - [x] **Phase 45: Query Optimization** — Parallelization and hover prefetch (completed 2026-03-30)
 - [ ] **Phase 46: Avatar Caching** — Session cache and disk persistence
+- 🚧 **Phase 47: v1.7 Debt Cleanup** — Stale constants, dead mocks, artifact cleanup
 
 ## Phase Details
 
@@ -204,3 +205,4 @@ Plans:
 | 44. Loading UX | v1.7 | 4/4 | Complete    | 2026-03-30 |
 | 45. Query Optimization | v1.7 | 2/2 | Complete   | 2026-03-30 |
 | 46. Avatar Caching | v1.7 | 0/? | Not started | - |
+| 47. v1.7 Debt Cleanup | v1.7 | 1/2 | In progress | - |
