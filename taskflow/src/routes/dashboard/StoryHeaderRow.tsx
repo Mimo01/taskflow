@@ -6,8 +6,18 @@
  * clicking the chevron toggles expand/collapse without opening the sheet.
  */
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuGroup,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
+import type { JiraTransition } from '@/services/jira';
 
 interface StoryHeaderRowProps {
   storyKey: string;
@@ -18,6 +28,9 @@ interface StoryHeaderRowProps {
   isExpanded: boolean;
   onToggle: () => void;
   onOpenDetail: (key: string) => void;
+  transitions?: JiraTransition[];
+  onTransition?: (transitionId: string, toStatusName: string, toStatusId: string, toStatusCategoryKey?: string) => void;
+  transitionError?: string | null;
 }
 
 export function StoryHeaderRow({
@@ -29,10 +42,13 @@ export function StoryHeaderRow({
   isExpanded,
   onToggle,
   onOpenDetail,
+  transitions,
+  onTransition,
+  transitionError,
 }: StoryHeaderRowProps) {
   const statusStyle = statusCategoryBadgeClass(statusCategoryKey);
 
-  return (
+  const rowContent = (
     <div className={cn(
       'flex items-center gap-2 px-3 py-2 transition-colors border-b',
       isExpanded
@@ -70,6 +86,57 @@ export function StoryHeaderRow({
           {subtaskCount} subtask{subtaskCount !== 1 ? 's' : ''}
         </span>
       )}
+
+      {transitionError && (
+        <span className="shrink-0 text-xs text-destructive">{transitionError}</span>
+      )}
     </div>
+  );
+
+  if (!onTransition) {
+    return rowContent;
+  }
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger>{rowContent}</ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuGroup>
+          <ContextMenuLabel>Move to...</ContextMenuLabel>
+        </ContextMenuGroup>
+        <ContextMenuSeparator />
+        {transitions && transitions.length > 0 ? (
+          transitions.map((transition) => (
+            <ContextMenuItem
+              key={transition.id}
+              onClick={() =>
+                onTransition(
+                  transition.id,
+                  transition.to.name,
+                  transition.to.id,
+                  transition.to.statusCategory?.key,
+                )
+              }
+            >
+              <span className="text-muted-foreground">→</span>
+              <span
+                className={cn(
+                  'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+                  statusCategoryBadgeClass(transition.to.statusCategory?.key),
+                )}
+              >
+                {transition.name}
+              </span>
+            </ContextMenuItem>
+          ))
+        ) : (
+          <ContextMenuGroup>
+            <ContextMenuLabel className="text-muted-foreground italic">
+              No transitions available
+            </ContextMenuLabel>
+          </ContextMenuGroup>
+        )}
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
