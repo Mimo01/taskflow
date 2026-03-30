@@ -28,6 +28,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { STALE_TIME_MS } from '@/lib/query-constants';
 import { fetchActiveSprint, fetchEpicsBasic, fetchProjectStatuses } from '@/services/jira';
 import { fetchSprintStories } from '@/services/jira/issues';
+import { fetchBacklogView } from '@/services/jira/backlog';
+import { fetchBoardId } from '@/services/jira/sprints';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -112,8 +114,26 @@ export default function Sidebar() {
         queryFn: () => fetchEpicsBasic(jiraBaseUrl, jiraToken, activeJiraProject, epicNameFieldKey, epicColorFieldKey),
         staleTime: 5 * 60 * 1000,
       });
-      // Backlog view requires boardId which is async — skip prefetch for backlog-view itself.
-      // The epics-basic prefetch still warms the most expensive query for the backlog page.
+      if (path === '/backlog') {
+        // Resolve boardId first (staleTime: Infinity — instant from cache after first load),
+        // then prefetch the backlog view with the resolved boardId.
+        queryClient.fetchQuery({
+          queryKey: ['jira-board-id', activeJiraProject, jiraBaseUrl],
+          queryFn: () => fetchBoardId(jiraBaseUrl, jiraToken, activeJiraProject),
+          staleTime: Infinity,
+        }).then((boardId) => {
+          if (boardId != null) {
+            queryClient.prefetchQuery({
+              queryKey: ['jira-backlog-view', activeJiraProject, jiraBaseUrl],
+              queryFn: () => fetchBacklogView(jiraBaseUrl, jiraToken, activeJiraProject, boardId, storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey),
+              staleTime: STALE_TIME_MS,
+            });
+          }
+        }).catch(() => {
+          // Board discovery failed — silently skip backlog prefetch.
+          // User will still get a normal load when they navigate.
+        });
+      }
     }
     // /my-tasks uses fetchMyTasksHierarchy which has complex internal logic — skip prefetch.
     // The sprint-stories prefetch covers the dashboard's primary query.
