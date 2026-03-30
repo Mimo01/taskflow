@@ -294,6 +294,8 @@ function VirtualizedSwimlanes({
             isExpanded={isExpanded}
             onToggle={() => toggleStory(story.key)}
             onOpenDetail={setSelectedIssueKey}
+            assigneeAvatarUrl={story.fields.assignee?.avatarUrls['48x48']}
+            assigneeDisplayName={story.fields.assignee?.displayName}
           />
         </div>
         {isExpanded && (
@@ -377,6 +379,8 @@ function VirtualizedSwimlanes({
                 isExpanded={isExpanded}
                 onToggle={() => toggleStory(story.key)}
                 onOpenDetail={setSelectedIssueKey}
+                assigneeAvatarUrl={story.fields.assignee?.avatarUrls['48x48']}
+                assigneeDisplayName={story.fields.assignee?.displayName}
               />
             </div>
             {isExpanded && (
@@ -976,6 +980,8 @@ export default function SprintBoardTab() {
                   isExpanded={stickyHeader.isExpanded}
                   onToggle={() => toggleStory(stickyHeader.story.key)}
                   onOpenDetail={setSelectedIssueKey}
+                  assigneeAvatarUrl={stickyHeader.story.fields.assignee?.avatarUrls['48x48']}
+                  assigneeDisplayName={stickyHeader.story.fields.assignee?.displayName}
                 />
               </div>
             )}
