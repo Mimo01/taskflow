@@ -48,6 +48,10 @@ Recent decisions affecting current work:
 - [Phase 41-ci-pipeline]: releaseDraft: false for fully automatic release publish without manual approval
 - [Phase 41-ci-pipeline]: shell: bash on inject-version and tag_body steps for Windows PowerShell cross-platform compatibility
 
+### Roadmap Evolution
+
+- Phase 47 added: Optimize backlog view performance with progressive loading
+
 ### Pending Todos
 
 None.
@@ -61,8 +65,8 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-03-30 - Completed quick task 260331-0ir: Fix misaligned assignee on sprint board story headers
-Stopped at: Completed quick-260331-039-PLAN.md
+Last activity: 2026-03-31 - Completed quick task 260331-vwn: Redo all animations in sprint board page
+Stopped at: Completed quick-260331-vwn-PLAN.md
 Resume: `/gsd:plan-phase 38`
 
 ### Quick Tasks Completed
@@ -87,3 +91,4 @@ Resume: `/gsd:plan-phase 38`
 | 260331-039 | On sprint board story headers I also want to see assignee | 2026-03-30 | 0b436b7 | | [260331-039-on-sprint-board-story-headers-i-also-wan](./quick/260331-039-on-sprint-board-story-headers-i-also-wan/) |
 | 260331-0dp | Show assignee name (not just avatar) on sprint board story headers | 2026-03-30 | 92e6084 | | [260331-0dp-show-assignee-name-not-just-avatar-on-sp](./quick/260331-0dp-show-assignee-name-not-just-avatar-on-sp/) |
 | 260331-0ir | Fix misaligned assignee on sprint board story headers | 2026-03-30 | 207ca56 | | [260331-0ir-fix-misaligned-assignee-on-sprint-board-](./quick/260331-0ir-fix-misaligned-assignee-on-sprint-board-/) |
+| 260331-vwn | Redo all animations in sprint board page | 2026-03-31 | 751e06b | | [260331-vwn-redo-all-animations-in-sprint-board-page](./quick/260331-vwn-redo-all-animations-in-sprint-board-page/) |
