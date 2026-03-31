@@ -215,6 +215,23 @@ Plans:
 - [x] 47-01-PLAN.md — Code debt: BacklogPage constant, dead mock removal, stats.html gitignore
 - [x] 47-02-PLAN.md — Doc cleanup: requirement checkboxes, ROADMAP checkboxes, SUMMARY frontmatter, Nyquist compliance
 
+### Phase 47: Optimize backlog view performance with progressive loading
+
+**Goal:** Backlog view loads progressively with per-section queries, div-based virtualized rows, and per-row epic Skeleton placeholders completing LOAD-04
+**Requirements**: LOAD-04
+**Depends on:** Phase 46
+**Success Criteria** (what must be TRUE):
+  1. Backlog page uses per-section queries (sprint stories shared cache, sprint list, future sprint issues, backlog issues) instead of monolithic fetchBacklogView
+  2. Each section renders independently as its query resolves with per-section skeleton state
+  3. Backlog rows use div-based CSS grid layout instead of table/tr/td, enabling always-on virtualization
+  4. Per-row epic badge Skeleton appears while allEpics query is pending (LOAD-04 completion)
+  5. All existing and new tests pass
+**Plans:** 2 plans
+
+Plans:
+- [ ] 47-01-PLAN.md — Service layer (fetchSprintList) + BacklogRow div conversion + VirtualizedBacklogTable div-based CSS grid
+- [ ] 47-02-PLAN.md — Per-section query wiring in BacklogPage + mutation updates + test updates
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -229,3 +246,4 @@ Plans:
 | 45. Query Optimization | v1.7 | 3/3 | Complete    | 2026-03-30 |
 | 46. Avatar Caching | v1.7 | 2/2 | Complete    | 2026-03-30 |
 | 47. v1.7 Debt Cleanup | v1.7 | 2/2 | Complete    | 2026-03-30 |
+| 47. Optimize Backlog Performance | v1.7 | 0/2 | Planning  | — |
