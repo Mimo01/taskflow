@@ -166,11 +166,13 @@ function VirtualizedSwimlanes({
   const lastStickyKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
+    // Clear any stale sticky header from previous render/reload
+    if (lastStickyKeyRef.current !== null) {
+      lastStickyKeyRef.current = null;
+      onStickyHeaderChangeRef.current(null);
+    }
+
     if (!scrollElement || filteredSwimlanesRef.current.length === 0) {
-      if (lastStickyKeyRef.current !== null) {
-        lastStickyKeyRef.current = null;
-        onStickyHeaderChangeRef.current(null);
-      }
       return;
     }
 
@@ -304,36 +306,41 @@ function VirtualizedSwimlanes({
             assigneeDisplayName={story.fields.assignee?.displayName}
           />
         </div>
-        {isExpanded && (
-          <div className="flex bg-muted/10">
-            {CATEGORY_COLUMNS.map((col) => {
-              const colCards = cards.filter((c) => categoryOf(c) === col.key);
-              return (
-                <div
-                  key={col.key}
-                  className="flex-1 min-h-[80px] flex flex-col gap-1.5 p-2 border-l border-border/20"
-                >
-                  {subtasksLoading ? (
-                    <Skeleton className="h-8 w-full" />
-                  ) : (
-                    colCards.map((card) => (
-                      <TaskCard
-                        key={card.key}
-                        issue={card}
-                        isSubtask={card.fields.issuetype.subtask}
-                        showStatus
-                        onClick={() => setSelectedIssueKey(card.key)}
-                        transitions={getTransitions(card.key)}
-                        onTransition={(tid, name, toId, catKey) => onTransition(card.key, tid, name, toId, catKey)}
-                        transitionError={cardErrors.get(card.key)}
-                      />
-                    ))
-                  )}
-                </div>
-              );
-            })}
+        <div
+          className="grid transition-[grid-template-rows] duration-200 ease-out"
+          style={{ gridTemplateRows: isExpanded ? '1fr' : '0fr' }}
+        >
+          <div className="overflow-hidden min-h-0">
+            <div className="flex bg-muted/10">
+              {CATEGORY_COLUMNS.map((col) => {
+                const colCards = cards.filter((c) => categoryOf(c) === col.key);
+                return (
+                  <div
+                    key={col.key}
+                    className="flex-1 min-h-[80px] flex flex-col gap-1.5 p-2 border-l border-border/20"
+                  >
+                    {subtasksLoading ? (
+                      <Skeleton className="h-8 w-full" />
+                    ) : (
+                      colCards.map((card) => (
+                        <TaskCard
+                          key={card.key}
+                          issue={card}
+                          isSubtask={card.fields.issuetype.subtask}
+                          showStatus
+                          onClick={() => setSelectedIssueKey(card.key)}
+                          transitions={getTransitions(card.key)}
+                          onTransition={(tid, name, toId, catKey) => onTransition(card.key, tid, name, toId, catKey)}
+                          transitionError={cardErrors.get(card.key)}
+                        />
+                      ))
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        )}
+        </div>
       </div>
     );
   }
@@ -389,36 +396,41 @@ function VirtualizedSwimlanes({
                 assigneeDisplayName={story.fields.assignee?.displayName}
               />
             </div>
-            {isExpanded && (
-              <div className="flex bg-muted/10">
-                {CATEGORY_COLUMNS.map((col) => {
-                  const colCards = cards.filter((c) => categoryOf(c) === col.key);
-                  return (
-                    <div
-                      key={col.key}
-                      className="flex-1 min-h-[80px] flex flex-col gap-1.5 p-2 border-l border-border/20"
-                    >
-                      {subtasksLoading ? (
-                        <Skeleton className="h-8 w-full" />
-                      ) : (
-                        colCards.map((card) => (
-                          <TaskCard
-                            key={card.key}
-                            issue={card}
-                            isSubtask={card.fields.issuetype.subtask}
-                            showStatus
-                            onClick={() => setSelectedIssueKey(card.key)}
-                            transitions={getTransitions(card.key)}
-                            onTransition={(tid, name, toId, catKey) => onTransition(card.key, tid, name, toId, catKey)}
-                            transitionError={cardErrors.get(card.key)}
-                          />
-                        ))
-                      )}
-                    </div>
-                  );
-                })}
+            <div
+              className="grid transition-[grid-template-rows] duration-200 ease-out"
+              style={{ gridTemplateRows: isExpanded ? '1fr' : '0fr' }}
+            >
+              <div className="overflow-hidden min-h-0">
+                <div className="flex bg-muted/10">
+                  {CATEGORY_COLUMNS.map((col) => {
+                    const colCards = cards.filter((c) => categoryOf(c) === col.key);
+                    return (
+                      <div
+                        key={col.key}
+                        className="flex-1 min-h-[80px] flex flex-col gap-1.5 p-2 border-l border-border/20"
+                      >
+                        {subtasksLoading ? (
+                          <Skeleton className="h-8 w-full" />
+                        ) : (
+                          colCards.map((card) => (
+                            <TaskCard
+                              key={card.key}
+                              issue={card}
+                              isSubtask={card.fields.issuetype.subtask}
+                              showStatus
+                              onClick={() => setSelectedIssueKey(card.key)}
+                              transitions={getTransitions(card.key)}
+                              onTransition={(tid, name, toId, catKey) => onTransition(card.key, tid, name, toId, catKey)}
+                              transitionError={cardErrors.get(card.key)}
+                            />
+                          ))
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            )}
+            </div>
           </div>
         );
       })}
@@ -524,6 +536,18 @@ export default function SprintBoardTab() {
   useEffect(() => {
     if (!isLoading) setIsRefreshing(false);
   }, [isLoading]);
+
+  // Clear stale sticky header when data finishes loading (fixes stuck header on reload)
+  const prevShowSkeletonRef = useRef(true);
+  useEffect(() => {
+    if (prevShowSkeletonRef.current && !showSkeleton) {
+      setStickyHeader(null);
+      if (stickyHeaderInnerRef.current) {
+        stickyHeaderInnerRef.current.style.transform = '';
+      }
+    }
+    prevShowSkeletonRef.current = showSkeleton;
+  }, [showSkeleton]);
 
   // Fetch epic names for filter display (shared cache with EpicsPage)
   const { data: epicsBasic } = useQuery({
@@ -920,10 +944,11 @@ export default function SprintBoardTab() {
            *  + negative translateY creates the classic push-out effect when the next
            *  swimlane's header approaches from below. */}
           <div
-            className="absolute top-0 left-0 right-0 z-[9] bg-background border-b border-border/30 overflow-hidden transition-[max-height,opacity] duration-150 ease-out pointer-events-auto"
+            className="absolute top-0 left-0 right-0 z-[9] bg-background border-b border-border/30 overflow-hidden transition-[opacity,transform] duration-150 ease-out"
             style={{
-              maxHeight: stickyHeader ? '60px' : '0px',
               opacity: stickyHeader ? 1 : 0,
+              transform: stickyHeader ? 'translateY(0)' : 'translateY(-100%)',
+              pointerEvents: stickyHeader ? 'auto' : 'none',
             }}
           >
             {stickyHeader && (
