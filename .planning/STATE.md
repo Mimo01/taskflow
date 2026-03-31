@@ -91,5 +91,5 @@ Resume: `/gsd:plan-phase 38`
 | 260331-039 | On sprint board story headers I also want to see assignee | 2026-03-30 | 0b436b7 | | [260331-039-on-sprint-board-story-headers-i-also-wan](./quick/260331-039-on-sprint-board-story-headers-i-also-wan/) |
 | 260331-0dp | Show assignee name (not just avatar) on sprint board story headers | 2026-03-30 | 92e6084 | | [260331-0dp-show-assignee-name-not-just-avatar-on-sp](./quick/260331-0dp-show-assignee-name-not-just-avatar-on-sp/) |
 | 260331-0ir | Fix misaligned assignee on sprint board story headers | 2026-03-30 | 207ca56 | | [260331-0ir-fix-misaligned-assignee-on-sprint-board-](./quick/260331-0ir-fix-misaligned-assignee-on-sprint-board-/) |
-| 260331-vwn | Redo all animations in sprint board page | 2026-03-31 | c8d5138 | Needs Review | [260331-vwn-redo-all-animations-in-sprint-board-page](./quick/260331-vwn-redo-all-animations-in-sprint-board-page/) |
+| 260331-vwn | Redo all animations in sprint board page | 2026-03-31 | eb41471 | Verified | [260331-vwn-redo-all-animations-in-sprint-board-page](./quick/260331-vwn-redo-all-animations-in-sprint-board-page/) |
 | 260331-w44 | Full discussion threads on MR detail page | 2026-03-31 | 23465b3 | Verified | [260331-w44-in-merge-request-detail-page-i-want-to-h](./quick/260331-w44-in-merge-request-detail-page-i-want-to-h/) |
