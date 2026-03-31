@@ -15,7 +15,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ChevronDown, ChevronRight, Inbox } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
 import { Button } from '@/components/ui/button';
@@ -76,94 +76,72 @@ function VirtualizedBacklogTable({
   epicsLoading?: boolean;
   visibleIssueKeys: string[];
   focusIndex: number;
-  rowRefs: React.MutableRefObject<Map<string, HTMLTableRowElement>>;
+  rowRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
 }) {
+  const density = useSettingsStore(s => s.density);
+  const estimateSize = useCallback(() => {
+    if (density === 'compact') return 28;
+    if (density === 'comfortable') return 44;
+    return 36;
+  }, [density]);
+
   const rowVirtualizer = useVirtualizer({
     count: filteredIssues.length,
     getScrollElement: () => scrollElement,
-    estimateSize: () => 44,
-    overscan: 10,
+    estimateSize,
+    overscan: 5,
   });
 
-  const virtualItems = rowVirtualizer.getVirtualItems();
-  // Disable virtualization for table rows — position: absolute on <tr> elements
-  // is undefined behavior in CSS and causes rows to overlap in most browsers.
-  // Backlog tables are small enough to render without virtualization.
-  const useVirtual = false;
-
-  function renderRow(issue: JiraIssue, style?: React.CSSProperties) {
-    return (
-      <BacklogRow
-        key={issue.key}
-        ref={(el: HTMLTableRowElement | null) => {
-          if (el) {
-            rowRefs.current.set(issue.key, el);
-            if (style) {
-              el.style.position = style.position as string;
-              el.style.top = style.top as string;
-              el.style.left = style.left as string;
-              el.style.width = style.width as string;
-              el.style.height = style.height as string;
-              el.style.transform = style.transform as string;
-            }
-          } else {
-            rowRefs.current.delete(issue.key);
-          }
-        }}
-        issue={issue}
-        selected={selectedKeys.has(issue.key)}
-        onSelect={onSelect}
-        onIssueClick={onIssueClick}
-        storyPointsFieldKey={storyPointsFieldKey}
-        epicLinkFieldKey={epicLinkFieldKey}
-        epicNameFieldKey={epicNameFieldKey}
-        epicNames={epicNames}
-        epicColors={epicColors}
-        isFocused={visibleIssueKeys[focusIndex] === issue.key}
-      />
-    );
-  }
+  const GRID_COLS = 'grid-cols-[32px_96px_auto_1fr_56px_40px]';
 
   return (
-    <table className="w-full text-sm">
-      <thead className="border-b bg-muted/10">
-        <tr>
-          <th className="w-8 px-3 py-2" />
-          <th className="w-24 px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-            Key
-          </th>
-          <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-            {epicsLoading ? <Skeleton className="h-4 w-16" /> : 'Epic'}
-          </th>
-          <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">Summary</th>
-          <th className="w-14 px-2 py-2 text-right text-xs font-medium text-muted-foreground">
-            Points
-          </th>
-          <th className="w-10 px-2 py-2 text-xs font-medium text-muted-foreground">Assignee</th>
-        </tr>
-      </thead>
-      <tbody
-        style={
-          useVirtual
-            ? { height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }
-            : undefined
-        }
-      >
-        {useVirtual
-          ? virtualItems.map((virtualRow) => {
-              const issue = filteredIssues[virtualRow.index];
-              return renderRow(issue, {
+    <div className="w-full text-sm">
+      {/* Header row — NOT virtualized */}
+      <div className={`grid ${GRID_COLS} border-b bg-muted/10`}>
+        <div className="w-8 px-3 py-2" />
+        <div className="w-24 px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Key</div>
+        <div className="px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+          {epicsLoading ? <Skeleton className="h-4 w-16" /> : 'Epic'}
+        </div>
+        <div className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">Summary</div>
+        <div className="w-14 px-2 py-2 text-right text-xs font-medium text-muted-foreground">Points</div>
+        <div className="w-10 px-2 py-2 text-xs font-medium text-muted-foreground">Assignee</div>
+      </div>
+      {/* Virtual scroll container */}
+      <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
+        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+          const issue = filteredIssues[virtualRow.index];
+          return (
+            <BacklogRow
+              key={issue.key}
+              ref={(el: HTMLDivElement | null) => {
+                if (el) rowRefs.current.set(issue.key, el);
+                else rowRefs.current.delete(issue.key);
+              }}
+              issue={issue}
+              selected={selectedKeys.has(issue.key)}
+              onSelect={onSelect}
+              onIssueClick={onIssueClick}
+              storyPointsFieldKey={storyPointsFieldKey}
+              epicLinkFieldKey={epicLinkFieldKey}
+              epicNameFieldKey={epicNameFieldKey}
+              epicNames={epicNames}
+              epicColors={epicColors}
+              epicsLoading={epicsLoading}
+              isFocused={visibleIssueKeys[focusIndex] === issue.key}
+              style={{
                 position: 'absolute',
-                top: '0',
-                left: '0',
+                top: 0,
+                left: 0,
                 width: '100%',
                 height: `${virtualRow.size}px`,
                 transform: `translateY(${virtualRow.start}px)`,
-              });
-            })
-          : filteredIssues.map((issue) => renderRow(issue))}
-      </tbody>
-    </table>
+              }}
+            />
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -469,7 +447,7 @@ export default function BacklogPage() {
   });
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
+  const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   useEffect(() => {
     if (focusIndex >= 0 && focusIndex < visibleIssueKeys.length) {
