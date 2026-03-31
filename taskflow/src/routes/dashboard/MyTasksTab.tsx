@@ -79,7 +79,7 @@ export default function MyTasksTab() {
 
   // Use persisted GitLab user ID from auth store — avoids a validateGitLab round-trip
   // on every mount. The ID is stored during onboarding (GitLabStep) and token update
-  // (TokenSection), matching the same approach used in MrAttentionTab.
+  // (TokenSection).
   const userId = gitlabUserId ?? undefined;
 
   const isActive = useIsActiveRoute('/my-tasks');
@@ -105,7 +105,7 @@ export default function MyTasksTab() {
   const data = taskData?.issues;
   const myIssueKeys = taskData?.myIssueKeys ?? new Set<string>();
 
-  // Fetch GitLab MRs — query key matches MrAttentionTab/MrHealthPanel so all three share TanStack cache.
+  // Fetch GitLab MRs — query key matches MrHealthPanel so both share TanStack cache.
   // Returns { filtered, merged } shape to stay compatible with the shared cache contract.
   const { data: gitlabMrsData } = useQuery({
     queryKey: ['gitlab-mrs', gitlabBaseUrl, userId],
@@ -131,7 +131,7 @@ export default function MyTasksTab() {
     staleTime: STALE_TIME_MS,
     enabled: isActive && !!gitlabBaseUrl && !!gitlabToken && !!userId,
   });
-  // Normalise: cache may hold { filtered, merged } (from MrAttentionTab/MrHealthPanel) or
+  // Normalise: cache may hold { filtered, merged } (from MrHealthPanel) or
   // a legacy raw GitLabMR[] from an older version of this queryFn. Always produce GitLabMR[].
   const gitlabMrs: GitLabMR[] = Array.isArray(gitlabMrsData)
     ? gitlabMrsData
