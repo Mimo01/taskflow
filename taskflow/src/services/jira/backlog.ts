@@ -99,6 +99,50 @@ export async function fetchSprintList(
 }
 
 /**
+ * Fetch future sprint issues for a board.
+ * Returns issues in future sprints, ordered by rank.
+ * Uses the Agile board issue endpoint with futureSprints() JQL.
+ * Returns empty array on any failure (caller degrades gracefully).
+ */
+export async function fetchFutureSprintIssues(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  boardId: number,
+  storyPointsFieldKey = 'customfield_10016',
+  epicLinkFieldKey = 'customfield_10014',
+  epicNameFieldKey = 'customfield_10015',
+): Promise<JiraIssue[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const fields = [
+    ...new Set([
+      'summary',
+      'status',
+      'assignee',
+      'issuetype',
+      'labels',
+      'sprint',
+      'customfield_10016',
+      'customfield_10014',
+      'customfield_10015',
+      storyPointsFieldKey,
+      epicLinkFieldKey,
+      epicNameFieldKey,
+    ]),
+  ].join(',');
+  const jql = encodeURIComponent(
+    `project = ${projectKey} AND sprint in futureSprints() AND issuetype != Sub-task ORDER BY rank ASC`,
+  );
+  const agileBase = `${base}/rest/agile/1.0/board/${boardId}/issue`;
+  try {
+    return await fetchAllSearchPages(`${agileBase}?jql=${jql}&fields=${fields}`, headers);
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Fetch the full backlog view: active sprint, future sprints, and unassigned backlog.
  *
  * Strategy:
