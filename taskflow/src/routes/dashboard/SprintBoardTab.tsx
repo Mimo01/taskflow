@@ -243,18 +243,19 @@ function VirtualizedSwimlanes({
         }
       }
 
-      // Apply push offset directly to the DOM — avoids React re-render per scroll frame
-      if (stickyHeaderInnerRef.current) {
+      const newKey = swimlane.story.key;
+      const isExpanded = !collapsedStoriesRef.current.has(swimlane.story.key);
+      const keyChanged = lastStickyKeyRef.current !== null && lastStickyKeyRef.current !== newKey;
+
+      // Apply push offset directly to the DOM — avoids React re-render per scroll frame.
+      // Skip when the key is changing: the old header is still rendered and resetting
+      // its transform would snap it back into view for one frame before React swaps content.
+      if (!keyChanged && stickyHeaderInnerRef.current) {
         stickyHeaderInnerRef.current.style.transform =
           pushOffset > 0 ? `translateY(-${pushOffset}px)` : '';
       }
 
-      // Only call setStickyHeader when the pinned swimlane or its expanded state changes.
-      // Calling it with a new object on every scroll event (even when story is same)
-      // would trigger a parent re-render on every scroll frame.
-      const newKey = swimlane.story.key;
-      const isExpanded = !collapsedStoriesRef.current.has(swimlane.story.key);
-      if (lastStickyKeyRef.current !== newKey || lastStickyExpandedRef.current !== isExpanded) {
+      if (keyChanged || lastStickyExpandedRef.current !== isExpanded) {
         lastStickyKeyRef.current = newKey;
         lastStickyExpandedRef.current = isExpanded;
         onStickyHeaderChangeRef.current({
@@ -262,6 +263,14 @@ function VirtualizedSwimlanes({
           subtasks: swimlane.subtasks,
           isExpanded,
         });
+        // Reset transform after React renders the new header content
+        if (keyChanged) {
+          requestAnimationFrame(() => {
+            if (stickyHeaderInnerRef.current) {
+              stickyHeaderInnerRef.current.style.transform = '';
+            }
+          });
+        }
       }
     }
 
