@@ -513,6 +513,14 @@ export default function BacklogPage() {
       (old) => (old ? old.filter((i) => !selectedKeys.has(i.key)) : old),
     );
 
+    // Optimistic removal from sprint stories cache (issues moved OUT of active sprint display)
+    const sprintStoriesKey = ['jira-sprint-stories', activeJiraProject, jiraBaseUrl, storyPointsFieldKey, epicLinkFieldKey];
+    const previousSprintStories = queryClient.getQueryData<JiraIssue[]>(sprintStoriesKey);
+    queryClient.setQueryData<JiraIssue[]>(
+      sprintStoriesKey,
+      (old) => (old ? old.filter((i) => !selectedKeys.has(i.key)) : old),
+    );
+
     setSelectedKeys(new Set());
     setBulkError(null);
 
@@ -527,6 +535,7 @@ export default function BacklogPage() {
     } catch (err) {
       // Rollback on failure
       queryClient.setQueryData(['jira-backlog-issues', activeJiraProject, jiraBaseUrl], previousBacklog);
+      queryClient.setQueryData(sprintStoriesKey, previousSprintStories);
       setSelectedKeys(new Set(keysToMove));
       setBulkError(err instanceof Error ? err.message : 'Failed to add issues to sprint');
     }

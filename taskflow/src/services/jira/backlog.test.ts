@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../lib/api-error';
-import { fetchBacklogIssues, fetchBacklogView } from './backlog';
+import { fetchBacklogIssues, fetchBacklogView, fetchFutureSprintIssues, fetchSprintList } from './backlog';
 
 // backlog.ts imports BOTH apiFetch and fetchAllSearchPages/isResponseLikeError from ./client
 vi.mock('../../lib/apiFetch', () => ({
@@ -20,7 +20,7 @@ const TOKEN = 'test-token';
 
 describe('backlog service', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   // --- fetchBacklogIssues ---
@@ -152,6 +152,88 @@ describe('backlog service', () => {
       const result = await fetchBacklogView(BASE, TOKEN, 'PROJ', null);
       expect(result.sprints).toEqual([]);
       expect(result.backlog).toEqual([]);
+    });
+  });
+
+  // --- fetchSprintList ---
+  describe('fetchSprintList', () => {
+    it('fetches active and future sprints from the board API', async () => {
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          values: [
+            { id: 1, name: 'Sprint 1', state: 'active', startDate: '2026-03-01', endDate: '2026-03-15', originBoardId: 10 },
+            { id: 2, name: 'Sprint 2', state: 'future', originBoardId: 10 },
+          ],
+        }),
+      } as Response);
+
+      const result = await fetchSprintList(BASE, TOKEN, 10);
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({
+        id: 1,
+        name: 'Sprint 1',
+        state: 'active',
+        startDate: '2026-03-01',
+        endDate: '2026-03-15',
+        originBoardId: 10,
+      });
+      expect(result[1]).toEqual({
+        id: 2,
+        name: 'Sprint 2',
+        state: 'future',
+        startDate: undefined,
+        endDate: undefined,
+        originBoardId: 10,
+      });
+    });
+
+    it('returns empty array when API response is not ok', async () => {
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+      } as Response);
+
+      const result = await fetchSprintList(BASE, TOKEN, 10);
+      expect(result).toEqual([]);
+    });
+  });
+
+  // --- fetchFutureSprintIssues ---
+  describe('fetchFutureSprintIssues', () => {
+    it('fetches future sprint issues via the Agile board endpoint', async () => {
+      const mockIssues = [
+        {
+          key: 'PROJ-10',
+          fields: {
+            summary: 'Future sprint issue',
+            sprint: { id: 2, name: 'Sprint 2', state: 'future', originBoardId: 10 },
+          },
+        },
+      ];
+      vi.mocked(fetchAllSearchPages).mockResolvedValueOnce(mockIssues as any);
+
+      const result = await fetchFutureSprintIssues(BASE, TOKEN, 'PROJ', 10);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].key).toBe('PROJ-10');
+
+      // Verify it called the Agile board endpoint
+      const calls = vi.mocked(fetchAllSearchPages).mock.calls;
+      expect(calls.length).toBeGreaterThanOrEqual(1);
+      const lastCall = calls[calls.length - 1];
+      expect(typeof lastCall[0]).toBe('string');
+      expect(lastCall[0]).toContain('/rest/agile/1.0/board/10/issue');
+      expect(lastCall[0]).toContain('futureSprints');
+    });
+
+    it('returns empty array on failure', async () => {
+      vi.mocked(fetchAllSearchPages).mockRejectedValueOnce(new Error('Network error'));
+
+      const result = await fetchFutureSprintIssues(BASE, TOKEN, 'PROJ', 10);
+      expect(result).toEqual([]);
     });
   });
 });
