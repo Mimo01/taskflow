@@ -161,14 +161,16 @@ function VirtualizedSwimlanes({
   const filteredSwimlanesRef = useRef(filteredSwimlanes);
   filteredSwimlanesRef.current = filteredSwimlanes;
 
-  // Track the last reported sticky header key so we avoid calling setStickyHeader
-  // when the pinned swimlane hasn't actually changed (avoids spurious re-renders).
+  // Track the last reported sticky header key and expanded state so we avoid calling
+  // setStickyHeader when the pinned swimlane hasn't actually changed (avoids spurious re-renders).
   const lastStickyKeyRef = useRef<string | null>(null);
+  const lastStickyExpandedRef = useRef<boolean>(true);
 
   useEffect(() => {
     // Clear any stale sticky header from previous render/reload
     if (lastStickyKeyRef.current !== null) {
       lastStickyKeyRef.current = null;
+      lastStickyExpandedRef.current = true;
       onStickyHeaderChangeRef.current(null);
     }
 
@@ -247,13 +249,14 @@ function VirtualizedSwimlanes({
           pushOffset > 0 ? `translateY(-${pushOffset}px)` : '';
       }
 
-      // Only call setStickyHeader when the pinned swimlane actually changes.
+      // Only call setStickyHeader when the pinned swimlane or its expanded state changes.
       // Calling it with a new object on every scroll event (even when story is same)
       // would trigger a parent re-render on every scroll frame.
       const newKey = swimlane.story.key;
       const isExpanded = !collapsedStoriesRef.current.has(swimlane.story.key);
-      if (lastStickyKeyRef.current !== newKey) {
+      if (lastStickyKeyRef.current !== newKey || lastStickyExpandedRef.current !== isExpanded) {
         lastStickyKeyRef.current = newKey;
+        lastStickyExpandedRef.current = isExpanded;
         onStickyHeaderChangeRef.current({
           story: swimlane.story,
           subtasks: swimlane.subtasks,
@@ -472,9 +475,15 @@ export default function SprintBoardTab() {
   // doesn't interfere with virtualizer layout. Updated by VirtualizedSwimlanes on scroll.
   const [stickyHeader, setStickyHeader] = useState<StickyHeaderData>(null);
   const stickyHeaderInnerRef = useRef<HTMLDivElement | null>(null);
+  // Ref tracks showSkeleton so the stable callback can guard against stale sticky
+  // header being set during loading (reload race condition).
+  const showSkeletonRef = useRef(true);
+
   // Stable callback — avoids re-creating the VirtualizedSwimlanes scroll listener
   // on every SprintBoardTab render just because the prop reference changed.
   const handleStickyHeaderChange = useCallback((data: StickyHeaderData) => {
+    // Don't set sticky header while skeleton is showing (data not ready yet)
+    if (showSkeletonRef.current && data !== null) return;
     setStickyHeader(data);
   }, []);
 
@@ -537,9 +546,11 @@ export default function SprintBoardTab() {
     if (!isLoading) setIsRefreshing(false);
   }, [isLoading]);
 
-  // Clear stale sticky header when data finishes loading (fixes stuck header on reload)
+  // Keep showSkeletonRef in sync for the stable handleStickyHeaderChange callback
+  // and clear stale sticky header when data finishes loading (fixes stuck header on reload)
   const prevShowSkeletonRef = useRef(true);
   useEffect(() => {
+    showSkeletonRef.current = showSkeleton;
     if (prevShowSkeletonRef.current && !showSkeleton) {
       setStickyHeader(null);
       if (stickyHeaderInnerRef.current) {
@@ -926,6 +937,7 @@ export default function SprintBoardTab() {
               type="button"
               onClick={() => {
                 setIsRefreshing(true);
+                setStickyHeader(null);
                 queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
         queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
               }}
@@ -944,7 +956,7 @@ export default function SprintBoardTab() {
            *  + negative translateY creates the classic push-out effect when the next
            *  swimlane's header approaches from below. */}
           <div
-            className="absolute top-0 left-0 right-0 z-[9] bg-background border-b border-border/30 overflow-hidden transition-[opacity,transform] duration-150 ease-out"
+            className="absolute top-0 left-0 right-0 z-[9] border-b border-border/30 overflow-hidden transition-[opacity,transform] duration-150 ease-out"
             style={{
               opacity: stickyHeader ? 1 : 0,
               transform: stickyHeader ? 'translateY(0)' : 'translateY(-100%)',
