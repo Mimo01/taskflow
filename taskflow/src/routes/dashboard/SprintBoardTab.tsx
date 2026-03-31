@@ -466,6 +466,13 @@ export default function SprintBoardTab() {
       next.has(key) ? next.delete(key) : next.add(key);
       return next;
     });
+    // If toggling the currently-sticky swimlane, update the sticky header directly
+    // so the expanded/collapsed state reflects immediately. Without this, the scroll
+    // handler races with virtualizer re-measurement and may jump to a different swimlane.
+    setStickyHeader((prev) => {
+      if (!prev || prev.story.key !== key) return prev;
+      return { ...prev, isExpanded: !prev.isExpanded };
+    });
   };
 
   const [localIssues, setLocalIssues] = useState<JiraIssue[]>([]);
@@ -504,7 +511,7 @@ export default function SprintBoardTab() {
     }
   }, [jiraBaseUrl]);
 
-  const { data: stories, isLoading: storiesLoading, isError, error, dataUpdatedAt } = useQuery({
+  const { data: stories, isLoading: storiesLoading, isFetching: storiesFetching, isError, error, dataUpdatedAt } = useQuery({
     queryKey: ['jira-sprint-stories', activeJiraProject, jiraBaseUrl, storyPointsFieldKey, epicLinkFieldKey],
     queryFn: () =>
       fetchSprintStories(
@@ -543,8 +550,8 @@ export default function SprintBoardTab() {
   const showSkeleton = useDelayedLoading(isLoading) || isRefreshing;
 
   useEffect(() => {
-    if (!isLoading) setIsRefreshing(false);
-  }, [isLoading]);
+    if (isRefreshing && !storiesFetching) setIsRefreshing(false);
+  }, [isRefreshing, storiesFetching]);
 
   // Keep showSkeletonRef in sync for the stable handleStickyHeaderChange callback
   // and clear stale sticky header when data finishes loading (fixes stuck header on reload)
@@ -956,7 +963,7 @@ export default function SprintBoardTab() {
            *  + negative translateY creates the classic push-out effect when the next
            *  swimlane's header approaches from below. */}
           <div
-            className="absolute top-0 left-0 right-0 z-[9] border-b border-border/30 overflow-hidden transition-[opacity,transform] duration-150 ease-out"
+            className="absolute top-0 left-0 right-0 z-[9] bg-background border-b border-border/30 overflow-hidden transition-[opacity,transform] duration-150 ease-out"
             style={{
               opacity: stickyHeader ? 1 : 0,
               transform: stickyHeader ? 'translateY(0)' : 'translateY(-100%)',
