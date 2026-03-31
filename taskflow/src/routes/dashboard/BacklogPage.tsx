@@ -10,21 +10,27 @@
  * BacklogFilterBar applies filters across ALL sections combined.
  * Bulk "Move to sprint" action bar and handleMoveToSprint remain unchanged.
  * Create story entry point via Outlet context remains unchanged.
+ *
+ * Architecture (Plan 47-02): Per-section progressive rendering.
+ *   - jira-sprint-stories: shared cache with SprintBoardTab (D-02)
+ *   - jira-sprint-list: ordered sprint list including empty sprints
+ *   - jira-future-sprint-issues: issues in future sprints (Agile API)
+ *   - jira-backlog-issues: unsprinted issues (independent section)
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ChevronDown, ChevronRight, Inbox } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useListNavigation } from '@/hooks/useListNavigation';
+import { STALE_TIME_MS } from '@/lib/query-constants';
 import type { JiraActiveSprint, JiraIssue } from '@/services/jira';
 import {
   addIssuesToSprint,
@@ -32,15 +38,17 @@ import {
   fetchEpicsBasic,
   fetchProjectStatuses,
 } from '@/services/jira';
-import { fetchBacklogView } from '@/services/jira/backlog';
+import {
+  fetchBacklogIssues,
+  fetchFutureSprintIssues,
+  fetchSprintList,
+} from '@/services/jira/backlog';
 import { fetchSprintStories, fetchSprintSubtasks } from '@/services/jira/issues';
-import type { BacklogViewData } from '@/services/jira/types';
 import { useBoardId } from '@/hooks/useBoardId';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useFilterStore } from '@/stores/filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import { STALE_TIME_MS } from '@/lib/query-constants';
 import { BacklogRow } from './BacklogRow';
 import { BacklogSkeleton } from './BacklogSkeleton';
 
@@ -173,34 +181,6 @@ export default function BacklogPage() {
 
   // ── Queries ─────────────────────────────────────────────────────────────────
 
-  const {
-    data: backlogView,
-    isLoading,
-    isError,
-    error,
-  } = useQuery<BacklogViewData>({
-    queryKey: ['jira-backlog-view', activeJiraProject, jiraBaseUrl],
-    queryFn: () =>
-      fetchBacklogView(
-        jiraBaseUrl!,
-        jiraToken!,
-        activeJiraProject!,
-        boardId,
-        storyPointsFieldKey,
-        epicLinkFieldKey,
-        epicNameFieldKey,
-      ),
-    staleTime: 60_000,
-    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken && boardId !== null,
-  });
-
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const showSkeleton = useDelayedLoading(isLoading) || isRefreshing;
-
-  useEffect(() => {
-    if (!isLoading) setIsRefreshing(false);
-  }, [isLoading]);
-
   const { data: activeSprint } = useQuery<JiraActiveSprint | null>({
     queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl],
     queryFn: () => fetchActiveSprint(jiraBaseUrl!, jiraToken!, activeJiraProject!),
@@ -231,8 +211,7 @@ export default function BacklogPage() {
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
 
-  // Sprint issues (shared cache with SprintBoardTab) — split into stories + subtasks.
-  // Used to build parentKey → subtask statuses map for status filtering.
+  // Sprint stories — shared cache with SprintBoardTab (D-02)
   const { data: sprintStories } = useQuery({
     queryKey: ['jira-sprint-stories', activeJiraProject, jiraBaseUrl, storyPointsFieldKey, epicLinkFieldKey],
     queryFn: () =>
@@ -259,7 +238,94 @@ export default function BacklogPage() {
   });
   const sprintIssues = sprintStories ? [...sprintStories, ...(sprintSubtasks ?? [])] : undefined;
 
-  // Map parentKey → Set of subtask status names (from sprint board data)
+  // Sprint list — ordered sprint list including empty sprints (D-01)
+  const { data: sprintList, isLoading: sprintListLoading } = useQuery({
+    queryKey: ['jira-sprint-list', activeJiraProject, jiraBaseUrl, boardId],
+    queryFn: () => fetchSprintList(jiraBaseUrl!, jiraToken!, boardId!),
+    staleTime: 5 * 60_000,
+    enabled: !!jiraBaseUrl && !!jiraToken && boardId !== null,
+  });
+
+  // Future sprint issues — independent query for issues assigned to future sprints
+  const { data: futureSprintIssues, isLoading: futureSprintLoading } = useQuery({
+    queryKey: ['jira-future-sprint-issues', activeJiraProject, jiraBaseUrl, boardId],
+    queryFn: () =>
+      fetchFutureSprintIssues(
+        jiraBaseUrl!,
+        jiraToken!,
+        activeJiraProject!,
+        boardId!,
+        storyPointsFieldKey,
+        epicLinkFieldKey,
+        epicNameFieldKey,
+      ),
+    staleTime: STALE_TIME_MS,
+    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken && boardId !== null,
+  });
+
+  // Backlog issues — independent section (D-03)
+  const {
+    data: backlogIssues,
+    isLoading: backlogLoading,
+    isError: backlogError,
+    error: backlogErrorObj,
+  } = useQuery({
+    queryKey: ['jira-backlog-issues', activeJiraProject, jiraBaseUrl],
+    queryFn: () =>
+      fetchBacklogIssues(
+        jiraBaseUrl!,
+        jiraToken!,
+        activeJiraProject!,
+        storyPointsFieldKey,
+        epicLinkFieldKey,
+        epicNameFieldKey,
+      ),
+    staleTime: STALE_TIME_MS,
+    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
+  });
+
+  // ── Per-section skeleton states ──────────────────────────────────────────────
+  const sprintStoriesLoading = !sprintStories;
+  const showSprintSkeleton = useDelayedLoading(sprintStoriesLoading || sprintListLoading || futureSprintLoading);
+  const showBacklogSkeleton = useDelayedLoading(backlogLoading);
+
+  // ── Derive ordered sprint sections ──────────────────────────────────────────
+  const orderedSprintSections = useMemo(() => {
+    if (!sprintList) return [];
+
+    // Parse sprint ID from issue's sprint field (Agile API returns fields.sprint object)
+    function getSprintId(issue: JiraIssue): number | null {
+      const s = (issue.fields as Record<string, unknown>).sprint;
+      if (!s || typeof s !== 'object' || Array.isArray(s)) return null;
+      const sprint = s as Record<string, unknown>;
+      return typeof sprint.id === 'number' ? sprint.id : null;
+    }
+
+    // Group future sprint issues by sprint ID
+    const futureBySprintId = new Map<number, JiraIssue[]>();
+    for (const issue of futureSprintIssues ?? []) {
+      const sid = getSprintId(issue);
+      if (sid !== null) {
+        if (!futureBySprintId.has(sid)) futureBySprintId.set(sid, []);
+        futureBySprintId.get(sid)!.push(issue);
+      }
+    }
+
+    const sections: Array<{ sprint: JiraActiveSprint; issues: JiraIssue[] }> = [];
+    for (const sprint of sprintList) {
+      if (sprint.state === 'active') {
+        // Active sprint uses shared sprintStories cache (D-02) — non-subtask stories only
+        const stories = (sprintStories ?? []).filter((i) => !i.fields.issuetype.subtask);
+        sections.push({ sprint, issues: stories });
+      } else {
+        // Future sprints use their own query data
+        sections.push({ sprint, issues: futureBySprintId.get(sprint.id) ?? [] });
+      }
+    }
+    return sections;
+  }, [sprintList, sprintStories, futureSprintIssues]);
+
+  // ── Map parentKey → Set of subtask status names (from sprint board data) ─────
   const subtaskStatusMap = new Map<string, Set<string>>();
   for (const issue of sprintIssues ?? []) {
     if (issue.fields.issuetype.subtask && issue.fields.parent?.key) {
@@ -269,14 +335,7 @@ export default function BacklogPage() {
     }
   }
 
-  // ── Stale data banner state ───────────────────────────────────────────────────
-  const [bannerDismissed, setBannerDismissed] = useState(false);
-  useEffect(() => {
-    setBannerDismissed(false);
-  }, []);
-
   // ── Collapse state (all sections open by default) ────────────────────────────
-
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
   function toggleSection(sectionId: string) {
@@ -292,49 +351,21 @@ export default function BacklogPage() {
   }
 
   // ── Filter state (shared across views) ──────────────────────────────────────
-
   const { activeEpics, activeLabels, activeAssignees, activeStatuses } = useFilterStore();
 
   // ── Selection state ──────────────────────────────────────────────────────────
-
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
 
   // ── Move-to-sprint state ─────────────────────────────────────────────────────
-
   const [bulkError, setBulkError] = useState<string | null>(null);
 
   // ── All issues combined (for filter options) ─────────────────────────────────
-  // Merge backlog view issues with sprint board parent stories.
-  // The Agile board API may exclude some stories (board-level JQL filter),
-  // but fetchSprintIssues (REST API) returns all. Merge to ensure all sprint
-  // stories are available for filtering.
-
-  // Merge sprint board stories into backlog sprint sections.
-  // The Agile board API may exclude stories (board-level filter), but
-  // fetchSprintIssues (REST API) returns all. Merge missing stories into
-  // the active sprint section so they're visible and filterable.
-  const mergedSprints = (() => {
-    if (!backlogView) return [];
-    const existingKeys = new Set(backlogView.sprints.flatMap((s) => s.issues.map((i) => i.key)));
-    const extraStories = (sprintIssues ?? []).filter(
-      (i) => !i.fields.issuetype.subtask && !existingKeys.has(i.key),
-    );
-    if (extraStories.length === 0) return backlogView.sprints;
-    // Add extra stories to the active sprint (or first sprint if none active)
-    return backlogView.sprints.map(({ sprint, issues }) => {
-      if (sprint.state === 'active') {
-        return { sprint, issues: [...issues, ...extraStories] };
-      }
-      return { sprint, issues };
-    });
-  })();
-
   const allIssues: JiraIssue[] = [
-    ...mergedSprints.flatMap((s) => s.issues),
-    ...(backlogView?.backlog ?? []),
+    ...orderedSprintSections.flatMap((s) => s.issues),
+    ...(backlogIssues ?? []),
   ];
 
-  // ── Epic name/color maps built from allEpics query (not backlogView) ───────────
+  // ── Epic name/color maps built from allEpics query ───────────────────────────
   const epicNames = new Map<string, string>();
   const epicColors = new Map<string, string>();
   for (const e of allEpics ?? []) {
@@ -343,7 +374,6 @@ export default function BacklogPage() {
   }
 
   // ── Filter options (derived from all issues across all sections) ──────────────
-
   const filterOptions = (() => {
     // Epics: all project epics (not just those on current backlog issues)
     const epics = new Map<string, string>();
@@ -380,7 +410,6 @@ export default function BacklogPage() {
   })();
 
   // ── Filter application helper ─────────────────────────────────────────────────
-
   function applyFilters(issues: JiraIssue[]): JiraIssue[] {
     return issues.filter((issue) => {
       const epicMatch = (() => {
@@ -419,11 +448,10 @@ export default function BacklogPage() {
   }
 
   // ── J/K navigation ──────────────────────────────────────────────────────────
-
   const visibleIssueKeys = (() => {
-    if (!backlogView) return [];
+    if (orderedSprintSections.length === 0 && !backlogIssues) return [];
     const keys: string[] = [];
-    for (const { sprint, issues } of mergedSprints) {
+    for (const { sprint, issues } of orderedSprintSections) {
       const sectionId = `sprint-${sprint.id}`;
       if (collapsedSections.has(sectionId)) continue;
       const filtered = applyFilters(issues);
@@ -432,7 +460,7 @@ export default function BacklogPage() {
       }
     }
     if (!collapsedSections.has('backlog')) {
-      const filtered = applyFilters(backlogView.backlog);
+      const filtered = applyFilters(backlogIssues ?? []);
       for (const issue of filtered) {
         keys.push(issue.key);
       }
@@ -443,7 +471,7 @@ export default function BacklogPage() {
   const { focusIndex } = useListNavigation({
     itemCount: visibleIssueKeys.length,
     onSelect: (index) => onIssueClick(visibleIssueKeys[index]),
-    enabled: !isLoading && visibleIssueKeys.length > 0,
+    enabled: visibleIssueKeys.length > 0,
   });
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -458,7 +486,6 @@ export default function BacklogPage() {
   }, [focusIndex, visibleIssueKeys]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
-
   function handleSelect(key: string, isSelected: boolean) {
     setSelectedKeys((prev) => {
       const next = new Set(prev);
@@ -474,43 +501,38 @@ export default function BacklogPage() {
   async function handleMoveToSprint() {
     if (!activeSprint || selectedKeys.size === 0) return;
     const keysToMove = Array.from(selectedKeys);
-    // Optimistic removal from cache
-    const previousView = queryClient.getQueryData<BacklogViewData>([
-      'jira-backlog-view',
+
+    // Optimistic removal from backlog issues cache
+    const previousBacklog = queryClient.getQueryData<JiraIssue[]>([
+      'jira-backlog-issues',
       activeJiraProject,
       jiraBaseUrl,
     ]);
-    queryClient.setQueryData<BacklogViewData>(
-      ['jira-backlog-view', activeJiraProject, jiraBaseUrl],
-      (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          sprints: old.sprints.map((s) => ({
-            ...s,
-            issues: s.issues.filter((i) => !selectedKeys.has(i.key)),
-          })),
-          backlog: old.backlog.filter((i) => !selectedKeys.has(i.key)),
-        };
-      },
+    queryClient.setQueryData<JiraIssue[]>(
+      ['jira-backlog-issues', activeJiraProject, jiraBaseUrl],
+      (old) => (old ? old.filter((i) => !selectedKeys.has(i.key)) : old),
     );
+
     setSelectedKeys(new Set());
     setBulkError(null);
+
     try {
       await addIssuesToSprint(jiraBaseUrl!, jiraToken!, activeSprint.id, keysToMove);
+      // Invalidate sprint queries so moved issues appear in sprint section
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog-view'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-sprint-list'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-future-sprint-issues'] });
     } catch (err) {
       // Rollback on failure
-      queryClient.setQueryData(['jira-backlog-view', activeJiraProject, jiraBaseUrl], previousView);
+      queryClient.setQueryData(['jira-backlog-issues', activeJiraProject, jiraBaseUrl], previousBacklog);
       setSelectedKeys(new Set(keysToMove));
       setBulkError(err instanceof Error ? err.message : 'Failed to add issues to sprint');
     }
   }
 
   // ── Section renderer ──────────────────────────────────────────────────────────
-
   function renderSection(
     sectionId: string,
     title: string,
@@ -626,67 +648,53 @@ export default function BacklogPage() {
 
       {/* Main content */}
       <div ref={scrollRef} className="flex-1 overflow-auto">
-        {/* Filter bar — scrolls with content */}
         <UnifiedFilterBar filterOptions={filterOptions} />
-        {/* Error state — no cached data */}
-        {isError && !backlogView && (
-          <div className="p-4">
-            <ErrorState
-              error={error}
-              onRetry={() => {
-                setIsRefreshing(true);
-                queryClient.invalidateQueries({ queryKey: ['jira-backlog-view'] });
-              }}
-              viewName="backlog"
-            />
-          </div>
-        )}
 
-        {/* Stale data banner — error with cached data */}
-        {isError && backlogView && !bannerDismissed && (
-          <div className="px-4 pt-4">
-            <StaleDataBanner
-              onRetry={() => {
-                setIsRefreshing(true);
-                queryClient.invalidateQueries({ queryKey: ['jira-backlog-view'] });
-              }}
-              onDismiss={() => setBannerDismissed(true)}
-            />
-          </div>
-        )}
-
-        {showSkeleton ? (
-          /* Skeleton loading state */
+        {/* Sprint sections */}
+        {showSprintSkeleton ? (
           <BacklogSkeleton />
-        ) : !isError &&
-          (!backlogView ||
-            (backlogView.sprints.length === 0 && backlogView.backlog.length === 0)) ? (
-          /* Empty state */
-          <EmptyState
-            icon={Inbox}
-            title="Backlog is empty"
-            subtitle="All issues are assigned to sprints"
-            action={<Button onClick={() => openCreateStory()}>Create Issue</Button>}
-          />
-        ) : backlogView ? (
-          /* Sprint sections + backlog section */
+        ) : orderedSprintSections.length > 0 ? (
           <div>
-            {/* Sprint sections (active first, then future) */}
-            {mergedSprints.map(({ sprint, issues }) =>
+            {orderedSprintSections.map(({ sprint, issues }) =>
               renderSection(
                 `sprint-${sprint.id}`,
                 sprint.name,
                 sprint.state === 'active' ? 'Active' : 'Future',
                 issues,
                 false,
-                true,
+                sprint.state === 'active',
               ),
             )}
-
-            {/* Backlog section — always last */}
-            {renderSection('backlog', 'Backlog', null, backlogView.backlog, true)}
           </div>
         ) : null}
+
+        {/* Backlog section */}
+        {backlogError && !backlogIssues ? (
+          <div className="p-4">
+            <ErrorState
+              error={backlogErrorObj}
+              onRetry={() => queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] })}
+              viewName="backlog"
+            />
+          </div>
+        ) : showBacklogSkeleton ? (
+          <BacklogSkeleton />
+        ) : backlogIssues ? (
+          renderSection('backlog', 'Backlog', null, backlogIssues, true)
+        ) : null}
+
+        {/* Empty state — no sprint sections AND no backlog issues */}
+        {!showSprintSkeleton &&
+          !showBacklogSkeleton &&
+          orderedSprintSections.length === 0 &&
+          backlogIssues?.length === 0 && (
+            <EmptyState
+              icon={Inbox}
+              title="Backlog is empty"
+              subtitle="All issues are assigned to sprints"
+              action={<Button onClick={() => openCreateStory()}>Create Issue</Button>}
+            />
+          )}
       </div>
 
       {/* Bulk action bar — only shown when issues are selected */}
