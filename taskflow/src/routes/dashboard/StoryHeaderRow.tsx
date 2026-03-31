@@ -6,7 +6,7 @@
  * the detail sheet; clicking the chevron toggles expand/collapse without
  * opening the sheet.
  */
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -68,7 +68,7 @@ export function StoryHeaderRow({
         className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
         aria-label={isExpanded ? 'Collapse story' : 'Expand story'}
       >
-        {isExpanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+        <ChevronRight className={cn("size-4 transition-transform duration-200", isExpanded && "rotate-90")} />
       </button>
 
       {/* Key + summary — opens detail sheet */}
