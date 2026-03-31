@@ -963,15 +963,13 @@ export default function SprintBoardTab() {
            *  + negative translateY creates the classic push-out effect when the next
            *  swimlane's header approaches from below. */}
           <div
-            className="absolute top-0 left-0 right-0 z-[9] bg-background border-b border-border/30 overflow-hidden transition-[opacity,transform] duration-150 ease-out"
+            className="absolute top-0 left-0 right-0 z-[9] overflow-hidden pointer-events-none"
             style={{
-              opacity: stickyHeader ? 1 : 0,
-              transform: stickyHeader ? 'translateY(0)' : 'translateY(-100%)',
-              pointerEvents: stickyHeader ? 'auto' : 'none',
+              visibility: stickyHeader ? 'visible' : 'hidden',
             }}
           >
             {stickyHeader && (
-              <div ref={stickyHeaderInnerRef}>
+              <div ref={stickyHeaderInnerRef} className="bg-background border-b border-border/30 pointer-events-auto">
                 <StoryHeaderRow
                   storyKey={stickyHeader.story.key}
                   summary={stickyHeader.story.fields.summary}
