@@ -30,9 +30,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Discussion, GitLabMRDetail, MRCommit } from '@/services/gitlab';
+import type { Discussion, GitLabMRDetail, MRCommit, MRDiffFile } from '@/services/gitlab';
 import {
   fetchMRApprovals,
+  fetchMRChanges,
   fetchMRCommits,
   fetchMRDetail,
   fetchMRDiscussions,
@@ -111,6 +112,18 @@ export default function MergeRequestDetailPage() {
       return fetchMRDiscussions(gitlabBaseUrl, token, numericProjectId, numericIid);
     },
     staleTime: 30_000,
+    enabled: !!projectId && !!iid && !!gitlabBaseUrl,
+  });
+
+  // Fetch MR changes (diffs) for code context on diff notes
+  const { data: diffFiles } = useQuery<MRDiffFile[]>({
+    queryKey: ['gitlab-mr-changes', projectId, iid],
+    queryFn: async () => {
+      const token = await readSecret('gitlab-pat').catch(() => null);
+      if (!token || !gitlabBaseUrl) return [];
+      return fetchMRChanges(gitlabBaseUrl, token, numericProjectId, numericIid);
+    },
+    staleTime: 60_000,
     enabled: !!projectId && !!iid && !!gitlabBaseUrl,
   });
 
@@ -212,7 +225,7 @@ export default function MergeRequestDetailPage() {
               {/* Discussion Threads — promoted above commits, not wrapped in a card */}
               {discussions && discussions.length > 0 && (
                 <div className="pt-2">
-                  <DiscussionThreads discussions={discussions} />
+                  <DiscussionThreads discussions={discussions} diffFiles={diffFiles} />
                 </div>
               )}
 
@@ -243,28 +256,7 @@ export default function MergeRequestDetailPage() {
                 </div>
               )}
 
-              {/* Linked Jira Issues panel */}
-              {linkedJiraKeys.length > 0 && (
-                <div className="rounded-lg border bg-card p-4">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                    Linked Jira Issues
-                  </h3>
-                  <div className="space-y-0.5">
-                    {linkedJiraKeys.map((key) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => onIssueClick(key)}
-                        className="w-full text-left rounded px-2 py-1.5 hover:bg-accent transition-colors cursor-pointer flex items-center gap-2"
-                      >
-                        <span className="font-mono text-xs text-muted-foreground shrink-0">
-                          {key}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Linked Jira Issues moved to sidebar */}
             </div>
           </div>
 
@@ -385,6 +377,24 @@ export default function MergeRequestDetailPage() {
                     {mr.milestone.state === 'closed' && (
                       <span className="text-xs text-muted-foreground">(closed)</span>
                     )}
+                  </div>
+                </MetaRow>
+              )}
+
+              {/* Linked Jira Issues */}
+              {linkedJiraKeys.length > 0 && (
+                <MetaRow label="Jira Issues">
+                  <div className="flex flex-col gap-0.5">
+                    {linkedJiraKeys.map((key) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => onIssueClick(key)}
+                        className="text-left rounded px-1.5 py-0.5 hover:bg-accent transition-colors cursor-pointer font-mono text-xs text-primary hover:underline"
+                      >
+                        {key}
+                      </button>
+                    ))}
                   </div>
                 </MetaRow>
               )}

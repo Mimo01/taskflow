@@ -16,7 +16,7 @@ import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
-import type { Discussion, DiscussionNote } from '@/services/gitlab';
+import type { Discussion, DiscussionNote, MRDiffFile } from '@/services/gitlab';
 
 // ---- Relative time helper ----
 
@@ -40,27 +40,129 @@ function formatRelativeTime(isoString: string): string {
   });
 }
 
-// ---- DiffNoteHeader ----
+// ---- Diff parsing helpers ----
 
-function DiffNoteHeader({ note }: { note: DiscussionNote }) {
+function parseDiffLines(diff: string): Array<{ type: 'add' | 'remove' | 'context' | 'header'; content: string; oldLine?: number; newLine?: number }> {
+  const lines = diff.split('\n');
+  const result: Array<{ type: 'add' | 'remove' | 'context' | 'header'; content: string; oldLine?: number; newLine?: number }> = [];
+  let oldLine = 0;
+  let newLine = 0;
+
+  for (const line of lines) {
+    if (line.startsWith('@@')) {
+      const match = line.match(/@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+      if (match) {
+        oldLine = Number.parseInt(match[1], 10);
+        newLine = Number.parseInt(match[2], 10);
+      }
+      result.push({ type: 'header', content: line });
+    } else if (line.startsWith('+')) {
+      result.push({ type: 'add', content: line.slice(1), newLine });
+      newLine++;
+    } else if (line.startsWith('-')) {
+      result.push({ type: 'remove', content: line.slice(1), oldLine });
+      oldLine++;
+    } else if (line.startsWith(' ') || line === '') {
+      result.push({ type: 'context', content: line.startsWith(' ') ? line.slice(1) : line, oldLine, newLine });
+      oldLine++;
+      newLine++;
+    }
+  }
+  return result;
+}
+
+function extractCodeContext(
+  diffFiles: MRDiffFile[] | undefined,
+  filePath: string,
+  targetLine: number | null,
+  isNewFile: boolean,
+): Array<{ type: 'add' | 'remove' | 'context' | 'header'; content: string; lineNum?: number }> | null {
+  if (!diffFiles || targetLine === null) return null;
+
+  const file = diffFiles.find((f) =>
+    isNewFile ? f.new_path === filePath : f.old_path === filePath,
+  );
+  if (!file?.diff) return null;
+
+  const parsed = parseDiffLines(file.diff);
+  // Find the target line and extract surrounding context (3 lines before/after)
+  const targetIdx = parsed.findIndex((l) => {
+    if (isNewFile) return (l.type === 'add' || l.type === 'context') && l.newLine === targetLine;
+    return (l.type === 'remove' || l.type === 'context') && l.oldLine === targetLine;
+  });
+
+  if (targetIdx === -1) return null;
+
+  const CONTEXT = 3;
+  const start = Math.max(0, targetIdx - CONTEXT);
+  const end = Math.min(parsed.length, targetIdx + CONTEXT + 1);
+  const slice = parsed.slice(start, end).filter((l) => l.type !== 'header');
+
+  return slice.map((l) => ({
+    type: l.type,
+    content: l.content,
+    lineNum: isNewFile ? l.newLine : l.oldLine,
+  }));
+}
+
+// ---- DiffCodePreview ----
+
+function DiffCodePreview({ note, diffFiles }: { note: DiscussionNote; diffFiles?: MRDiffFile[] }) {
   if (!note.position) return null;
   const filePath = note.position.new_path || note.position.old_path;
-  const lineNumber = note.position.new_line ?? note.position.old_line;
+  const isNewFile = !!note.position.new_line;
+  const targetLine = note.position.new_line ?? note.position.old_line;
+
+  const codeLines = extractCodeContext(diffFiles, filePath, targetLine, isNewFile);
 
   return (
-    <div className="flex items-center gap-2 mb-2 text-xs">
-      <FileCode className="size-3.5 text-muted-foreground shrink-0" />
-      <Badge variant="secondary" className="font-mono text-xs px-2 py-0.5">
-        {filePath}
-        {lineNumber !== null && `:${lineNumber}`}
-      </Badge>
+    <div className="rounded-md border bg-muted/30 overflow-hidden mb-2 text-xs">
+      {/* File header */}
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 border-b">
+        <FileCode className="size-3.5 text-muted-foreground shrink-0" />
+        <span className="font-mono text-muted-foreground truncate">{filePath}</span>
+        {targetLine !== null && (
+          <Badge variant="secondary" className="font-mono text-[10px] px-1.5 py-0 ml-auto shrink-0">
+            L{targetLine}
+          </Badge>
+        )}
+      </div>
+      {/* Code lines */}
+      {codeLines && codeLines.length > 0 ? (
+        <div className="font-mono text-[11px] leading-[1.6] overflow-x-auto">
+          {codeLines.map((line, i) => (
+            <div
+              key={`${line.lineNum}-${i}`}
+              className={`flex ${
+                line.type === 'add'
+                  ? 'bg-green-500/10 text-green-700 dark:text-green-400'
+                  : line.type === 'remove'
+                    ? 'bg-red-500/10 text-red-700 dark:text-red-400'
+                    : 'text-muted-foreground'
+              }`}
+            >
+              <span className="w-10 shrink-0 text-right pr-2 select-none opacity-50 border-r border-muted">
+                {line.lineNum ?? ''}
+              </span>
+              <span className="w-4 shrink-0 text-center select-none opacity-60">
+                {line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' '}
+              </span>
+              <span className="flex-1 px-2 whitespace-pre">{line.content}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="px-3 py-2 text-muted-foreground italic">
+          Line {targetLine}
+        </div>
+      )}
     </div>
   );
 }
 
 // ---- NoteCard ----
 
-function NoteCard({ note }: { note: DiscussionNote }) {
+function NoteCard({ note, diffFiles }: { note: DiscussionNote; diffFiles?: MRDiffFile[] }) {
   return (
     <div className="flex gap-3">
       <div className="shrink-0 mt-0.5">
@@ -80,7 +182,7 @@ function NoteCard({ note }: { note: DiscussionNote }) {
             </Badge>
           )}
         </div>
-        {note.type === 'DiffNote' && <DiffNoteHeader note={note} />}
+        {note.type === 'DiffNote' && <DiffCodePreview note={note} diffFiles={diffFiles} />}
         <div className="prose prose-sm dark:prose-invert max-w-none text-sm">
           <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
             {note.body}
@@ -95,17 +197,21 @@ function NoteCard({ note }: { note: DiscussionNote }) {
 
 function SystemNote({ note }: { note: DiscussionNote }) {
   return (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
-      <Activity className="size-3 shrink-0" />
-      <span className="italic">{note.body}</span>
-      <span className="shrink-0">{formatRelativeTime(note.created_at)}</span>
+    <div className="flex gap-2 text-xs text-muted-foreground py-1">
+      <Activity className="size-3 shrink-0 mt-0.5" />
+      <div className="flex-1 min-w-0 prose prose-xs dark:prose-invert max-w-none [&_p]:my-0.5 [&_ul]:my-0.5 [&_li]:my-0 [&_a]:text-muted-foreground [&_a]:underline">
+        <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+          {note.body}
+        </Markdown>
+      </div>
+      <span className="shrink-0 whitespace-nowrap">{formatRelativeTime(note.created_at)}</span>
     </div>
   );
 }
 
 // ---- DiscussionThread ----
 
-function DiscussionThread({ discussion }: { discussion: Discussion }) {
+function DiscussionThread({ discussion, diffFiles }: { discussion: Discussion; diffFiles?: MRDiffFile[] }) {
   const firstNote = discussion.notes[0];
   const isResolvable = firstNote?.resolvable ?? false;
   const isResolved = isResolvable && (firstNote?.resolved ?? false);
@@ -157,7 +263,7 @@ function DiscussionThread({ discussion }: { discussion: Discussion }) {
       {expanded && (
         <div className="space-y-3">
           {/* Root note */}
-          <NoteCard note={firstNote} />
+          <NoteCard note={firstNote} diffFiles={diffFiles} />
 
           {/* Replies */}
           {hasReplies && (
@@ -168,7 +274,7 @@ function DiscussionThread({ discussion }: { discussion: Discussion }) {
                   note.system ? (
                     <SystemNote key={note.id} note={note} />
                   ) : (
-                    <NoteCard key={note.id} note={note} />
+                    <NoteCard key={note.id} note={note} diffFiles={diffFiles} />
                   ),
                 )}
             </div>
@@ -181,7 +287,7 @@ function DiscussionThread({ discussion }: { discussion: Discussion }) {
 
 // ---- DiscussionThreads (main export) ----
 
-export function DiscussionThreads({ discussions }: { discussions: Discussion[] }) {
+export function DiscussionThreads({ discussions, diffFiles }: { discussions: Discussion[]; diffFiles?: MRDiffFile[] }) {
   const [showSystemNotes, setShowSystemNotes] = useState(false);
 
   if (discussions.length === 0) {
@@ -232,7 +338,7 @@ export function DiscussionThreads({ discussions }: { discussions: Discussion[] }
 
       <div className="space-y-3">
         {visibleDiscussions.map((discussion) => (
-          <DiscussionThread key={discussion.id} discussion={discussion} />
+          <DiscussionThread key={discussion.id} discussion={discussion} diffFiles={diffFiles} />
         ))}
       </div>
     </div>

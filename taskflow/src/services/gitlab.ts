@@ -529,6 +529,46 @@ export async function fetchMRDiscussions(
   return data as Discussion[];
 }
 
+export interface MRDiffFile {
+  old_path: string;
+  new_path: string;
+  diff: string;
+}
+
+/**
+ * Fetch MR changes (diffs) for showing code context on discussion diff notes.
+ */
+export async function fetchMRChanges(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+  mrIid: number,
+): Promise<MRDiffFile[]> {
+  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/merge_requests/${mrIid}/changes`;
+
+  let response: Response;
+  try {
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
+      },
+      'Load MR Changes',
+    );
+  } catch {
+    return [];
+  }
+
+  if (!response.ok) return [];
+
+  const data = await response.json();
+  return (data.changes ?? []) as MRDiffFile[];
+}
+
 // ─── Phase 4: PM Dashboard & Search ──────────────────────────────────────────
 
 /**
