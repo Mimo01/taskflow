@@ -55,11 +55,13 @@ Source: `BacklogRow.tsx` and `BacklogPage.tsx` existing class patterns
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body (row summary) | 14px (text-sm) | 400 (regular) | 1.5 |
-| Label (column headers, section count) | 12px (text-xs) | 500 (medium) | 1.4 |
+| Label (column headers, section count) | 12px (text-xs) | 400 (regular) | 1.4 |
 | Heading (section title, page title) | 14px (text-sm) | 600 (semibold) | 1.4 |
 | Mono (issue key) | 12px (text-xs, font-mono) | 400 (regular) | 1.4 |
 
-Source: `BacklogRow.tsx` and `BacklogPage.tsx` existing class patterns. Two weights max: 400 (regular) and 600 (semibold). Note `font-medium` (500) on labels is an existing project pattern treated as the label tier.
+Two weights only: 400 (regular) and 600 (semibold). Existing `font-medium` (500) classes on label elements in `BacklogRow.tsx` are accepted as a visual alias within the 400-tier — they produce a marginally heavier stroke on variable fonts but do not constitute a third design-system weight. No code change required.
+
+Source: `BacklogRow.tsx` and `BacklogPage.tsx` existing class patterns
 
 ---
 
