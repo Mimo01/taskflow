@@ -194,7 +194,8 @@ describe('linkEngine', () => {
       const discussions: Discussion[] = [
         {
           id: 'd1',
-          notes: [{ id: 'n1', resolvable: true, resolved: false, body: 'comment' }],
+          individual_note: false,
+          notes: [{ id: 1, resolvable: true, resolved: false, body: 'comment' } as Discussion['notes'][0]],
         },
       ];
       const result = deriveReviewHealth(approvals, discussions);
@@ -215,7 +216,8 @@ describe('linkEngine', () => {
       const discussions: Discussion[] = [
         {
           id: 'd1',
-          notes: [{ id: 'n1', resolvable: true, resolved: false, body: 'comment' }],
+          individual_note: false,
+          notes: [{ id: 1, resolvable: true, resolved: false, body: 'comment' } as Discussion['notes'][0]],
         },
       ];
       const result = deriveReviewHealth(approvals, discussions);

@@ -231,15 +231,42 @@ export interface MRApprovals {
   approved: boolean;
 }
 
+export interface DiscussionNoteAuthor {
+  id: number;
+  name: string;
+  username: string;
+  avatar_url: string;
+  web_url?: string;
+}
+
+export interface DiffPosition {
+  old_path: string;
+  new_path: string;
+  old_line: number | null;
+  new_line: number | null;
+  position_type: string;
+}
+
 export interface DiscussionNote {
-  id: string;
+  id: number;
+  type: 'DiffNote' | 'DiscussionNote' | null;
+  body: string;
+  author: DiscussionNoteAuthor;
+  created_at: string;
+  updated_at: string;
+  system: boolean;
   resolvable: boolean;
   resolved: boolean;
-  body: string;
+  resolved_by: DiscussionNoteAuthor | null;
+  resolved_at: string | null;
+  position: DiffPosition | null;
+  confidential: boolean;
+  internal: boolean;
 }
 
 export interface Discussion {
   id: string;
+  individual_note: boolean;
   notes: DiscussionNote[];
 }
 
