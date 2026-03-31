@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Performance & Perceived Speed
-status: Ready to execute
-stopped_at: Completed 47-01-PLAN.md
-last_updated: "2026-03-31T21:55:53.116Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 47-02-PLAN.md
+last_updated: "2026-03-31T22:26:21.364Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 5
@@ -50,6 +50,8 @@ Recent decisions affecting current work:
 - [Phase 41-ci-pipeline]: releaseDraft: false for fully automatic release publish without manual approval
 - [Phase 41-ci-pipeline]: shell: bash on inject-version and tag_body steps for Windows PowerShell cross-platform compatibility
 - [Phase 47-01]: div-based CSS grid backlog with always-on virtualization; density-aware estimateSize (28/36/44px); per-row epic Skeleton for LOAD-04 progressive loading
+- [Phase 47-02]: handleMoveToSprint optimistically updates both jira-backlog-issues and jira-sprint-stories caches for immediate visual feedback
+- [Phase 47-02]: vi.resetAllMocks() required in backlog.test.ts beforeEach — clearAllMocks does not clear mockResolvedValueOnce queues
 
 ### Roadmap Evolution
 
@@ -69,7 +71,7 @@ None.
 ## Session Continuity
 
 Last activity: 2026-03-31
-Stopped at: Completed 47-01-PLAN.md
+Stopped at: Completed 47-02-PLAN.md
 Resume: `/gsd:plan-phase 38`
 
 ### Quick Tasks Completed
