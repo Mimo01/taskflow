@@ -2,7 +2,7 @@
  * MergeRequestDetailPage -- Full-page route-based MR detail view at /mr/:projectId/:iid.
  *
  * Two-column layout mirroring IssueDetailPage: left column shows MR title,
- * description, commits, linked Jira issues; right sidebar shows metadata
+ * description, discussions, commits, linked Jira issues; right sidebar shows metadata
  * in the same MetaRow pattern as IssueDetailSidebar.
  *
  * Read-only with "Open in GitLab" for actions.
@@ -24,19 +24,28 @@ import {
   Loader2,
   XCircle,
 } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { GitLabMRDetail, MRCommit } from '@/services/gitlab';
-import { fetchMRApprovals, fetchMRCommits, fetchMRDetail } from '@/services/gitlab';
+import type { Discussion, GitLabMRDetail, MRCommit } from '@/services/gitlab';
+import {
+  fetchMRApprovals,
+  fetchMRCommits,
+  fetchMRDetail,
+  fetchMRDiscussions,
+} from '@/services/gitlab';
 import { extractTicketKeys } from '@/services/linkEngine';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { useRecentItemsStore } from '@/stores/recent-items.store';
+import { DiscussionThreads } from './DiscussionThreads';
 import { WikiRenderer } from './WikiRenderer';
+
+const COMMIT_PREVIEW_COUNT = 5;
 
 export default function MergeRequestDetailPage() {
   const { projectId, iid } = useParams<{ projectId: string; iid: string }>();
@@ -54,6 +63,8 @@ export default function MergeRequestDetailPage() {
 
   const numericProjectId = projectId ? Number(projectId) : 0;
   const numericIid = iid ? Number(iid) : 0;
+
+  const [showAllCommits, setShowAllCommits] = useState(false);
 
   // Fetch MR detail
   const { data: mr, isLoading } = useQuery({
@@ -91,6 +102,18 @@ export default function MergeRequestDetailPage() {
     enabled: !!projectId && !!iid && !!gitlabBaseUrl,
   });
 
+  // Fetch discussions
+  const { data: discussions } = useQuery<Discussion[]>({
+    queryKey: ['gitlab-mr-discussions', projectId, iid],
+    queryFn: async () => {
+      const token = await readSecret('gitlab-pat').catch(() => null);
+      if (!token || !gitlabBaseUrl) return [];
+      return fetchMRDiscussions(gitlabBaseUrl, token, numericProjectId, numericIid);
+    },
+    staleTime: 30_000,
+    enabled: !!projectId && !!iid && !!gitlabBaseUrl,
+  });
+
   // Track recent item
   useEffect(() => {
     if (iid && mr) {
@@ -99,12 +122,9 @@ export default function MergeRequestDetailPage() {
   }, [iid, mr?.title, projectId, mr, pushRecentItem]);
 
   // Extract linked Jira issue keys from title + branch
-  const linkedJiraKeys = useMemo(() => {
-    if (!mr) return [];
-    const fromTitle = extractTicketKeys(mr.title);
-    const fromBranch = extractTicketKeys(mr.source_branch);
-    return [...new Set([...fromTitle, ...fromBranch])];
-  }, [mr?.title, mr?.source_branch, mr]);
+  const linkedJiraKeys = !mr
+    ? []
+    : [...new Set([...extractTicketKeys(mr.title), ...extractTicketKeys(mr.source_branch)])];
 
   const handleBack = () => {
     if (trail.length > 0) {
@@ -158,41 +178,75 @@ export default function MergeRequestDetailPage() {
         <div className="flex flex-1 overflow-hidden">
           {/* Left column */}
           <div className="flex-1 overflow-auto">
-            <div className="p-6 space-y-6">
-              {/* Header — matches IssueDetailContent pattern */}
+            <div className="p-6 space-y-5">
+              {/* Header — inline state badge + Open in GitLab button */}
               <div>
-                <p className="text-xs font-mono text-muted-foreground mb-1">!{mr.iid}</p>
-                <h2 className="text-xl font-semibold leading-snug">{mr.title}</h2>
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-xs font-mono text-muted-foreground">!{mr.iid}</p>
+                  <MRStateBadge state={mr.state} draft={mr.draft} />
+                </div>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-semibold leading-snug flex-1">{mr.title}</h2>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs shrink-0"
+                    onClick={() => openUrl(mr.web_url)}
+                  >
+                    <ExternalLink className="size-3.5" />
+                    Open in GitLab
+                  </Button>
+                </div>
               </div>
 
-              {/* Description */}
-              <section>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">Description</h3>
+              {/* Description panel */}
+              <div className="rounded-lg border bg-card p-4">
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">Description</h3>
                 {mr.description ? (
                   <WikiRenderer wikiText={mr.description} attachments={{}} users={{}} />
                 ) : (
                   <p className="text-sm text-muted-foreground italic">No description</p>
                 )}
-              </section>
+              </div>
 
-              {/* Commits — styled like subtask list in Jira detail */}
+              {/* Discussion Threads — promoted above commits, not wrapped in a card */}
+              {discussions && discussions.length > 0 && (
+                <div className="pt-2">
+                  <DiscussionThreads discussions={discussions} />
+                </div>
+              )}
+
+              {/* Commits panel — collapsible after first 5 */}
               {commits && commits.length > 0 && (
-                <section>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                <div className="rounded-lg border bg-card p-4">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-3">
                     Commits ({commits.length})
                   </h3>
                   <ul className="space-y-1">
-                    {commits.map((c) => (
-                      <CommitRow key={c.id} commit={c} />
-                    ))}
+                    {(showAllCommits ? commits : commits.slice(0, COMMIT_PREVIEW_COUNT)).map(
+                      (c) => (
+                        <CommitRow key={c.id} commit={c} />
+                      ),
+                    )}
                   </ul>
-                </section>
+                  {commits.length > COMMIT_PREVIEW_COUNT && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllCommits((v) => !v)}
+                      className="text-xs text-muted-foreground hover:text-foreground mt-2 transition-colors"
+                    >
+                      {showAllCommits
+                        ? 'Show less'
+                        : `Show ${commits.length - COMMIT_PREVIEW_COUNT} more commits`}
+                    </button>
+                  )}
+                </div>
               )}
 
-              {/* Linked Jira Issues — styled like linked issues in Jira sidebar */}
+              {/* Linked Jira Issues panel */}
               {linkedJiraKeys.length > 0 && (
-                <section>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                <div className="rounded-lg border bg-card p-4">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-3">
                     Linked Jira Issues
                   </h3>
                   <div className="space-y-0.5">
@@ -209,32 +263,14 @@ export default function MergeRequestDetailPage() {
                       </button>
                     ))}
                   </div>
-                </section>
+                </div>
               )}
-
-              {/* Action buttons — matches Jira's Pin/Edit/Open row */}
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 text-xs"
-                  onClick={() => openUrl(mr.web_url)}
-                >
-                  <ExternalLink className="size-3.5" />
-                  Open in GitLab
-                </Button>
-              </div>
             </div>
           </div>
 
-          {/* Right sidebar — matches IssueDetailSidebar MetaRow pattern */}
-          <div className="w-[42%] border-l overflow-auto p-4 shrink-0">
+          {/* Right sidebar — narrowed to w-72 (288px) from w-[42%] */}
+          <div className="w-72 border-l overflow-auto p-4 shrink-0">
             <div className="space-y-4 text-sm">
-              {/* Status */}
-              <MetaRow label="Status">
-                <MRStateBadge state={mr.state} draft={mr.draft} />
-              </MetaRow>
-
               {/* Author */}
               <MetaRow label="Author">
                 <PersonDisplay name={mr.author.name} avatarUrl={mr.author.avatar_url} />
@@ -294,14 +330,14 @@ export default function MergeRequestDetailPage() {
                 <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                   <GitBranch className="size-3 text-muted-foreground shrink-0" />
                   <code
-                    className="text-xs bg-muted px-1.5 py-0.5 rounded truncate max-w-[120px]"
+                    className="text-xs bg-muted px-1.5 py-0.5 rounded truncate max-w-[100px]"
                     title={mr.source_branch}
                   >
                     {mr.source_branch}
                   </code>
                   <span className="text-muted-foreground shrink-0">&#8594;</span>
                   <code
-                    className="text-xs bg-muted px-1.5 py-0.5 rounded truncate max-w-[120px]"
+                    className="text-xs bg-muted px-1.5 py-0.5 rounded truncate max-w-[100px]"
                     title={mr.target_branch}
                   >
                     {mr.target_branch}
@@ -384,11 +420,7 @@ function MetaRow({ label, children }: { label: string; children: React.ReactNode
 function PersonDisplay({ name, avatarUrl }: { name: string; avatarUrl?: string }) {
   return (
     <div className="flex items-center gap-2">
-      {avatarUrl ? (
-        <img src={avatarUrl} alt="" className="size-5 rounded-full shrink-0" />
-      ) : (
-        <div className="size-5 rounded-full bg-muted shrink-0" />
-      )}
+      <CachedAvatar url={avatarUrl} name={name} size={20} className="shrink-0" />
       <span className="text-sm truncate">{name}</span>
     </div>
   );
@@ -503,7 +535,7 @@ function MRDetailSkeleton() {
         <Skeleton className="h-4 w-5/6" />
         <Skeleton className="h-32 w-full" />
       </div>
-      <div className="w-[42%] space-y-3">
+      <div className="w-72 space-y-3">
         <Skeleton className="h-5 w-full" />
         <Skeleton className="h-5 w-full" />
         <Skeleton className="h-5 w-full" />
