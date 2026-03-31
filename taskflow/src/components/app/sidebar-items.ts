@@ -62,13 +62,6 @@ export const SIDEBAR_NAV_ITEMS: SidebarNavDef[] = [
     iconName: 'GitMerge',
     section: 'code',
   },
-  {
-    id: 'mr-attention',
-    label: 'MR Attention',
-    path: '/mr-attention',
-    iconName: 'GitMerge',
-    section: 'code',
-  },
   // Tracking
   {
     id: 'sprint-progress',
@@ -93,7 +86,6 @@ export function getDefaultSidebarItems(preset: 'dev' | 'pm'): SidebarItem[] {
     'backlog',
     'epics',
     'merge-requests',
-    'mr-attention',
   ]);
   const pmVisible = new Set([
     'dashboard',

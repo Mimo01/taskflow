@@ -125,7 +125,6 @@ const mockSettingsStore = {
     { id: 'backlog', visible: true },
     { id: 'epics', visible: true },
     { id: 'merge-requests', visible: true },
-    { id: 'mr-attention', visible: true },
     { id: 'sprint-progress', visible: false },
     { id: 'workload', visible: false },
     { id: 'releases', visible: false },
