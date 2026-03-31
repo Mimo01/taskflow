@@ -245,12 +245,14 @@ function VirtualizedSwimlanes({
 
       const newKey = swimlane.story.key;
       const isExpanded = !collapsedStoriesRef.current.has(swimlane.story.key);
-      const keyChanged = lastStickyKeyRef.current !== null && lastStickyKeyRef.current !== newKey;
+      const keyChanged = lastStickyKeyRef.current !== newKey;
+      // True swap: old header being replaced by a different one (not first appearance)
+      const isSwap = keyChanged && lastStickyKeyRef.current !== null;
 
       // Apply push offset directly to the DOM — avoids React re-render per scroll frame.
-      // Skip when the key is changing: the old header is still rendered and resetting
-      // its transform would snap it back into view for one frame before React swaps content.
-      if (!keyChanged && stickyHeaderInnerRef.current) {
+      // Skip during a swap: the old header is still rendered and resetting its transform
+      // would snap it back into view for one frame before React swaps content.
+      if (!isSwap && stickyHeaderInnerRef.current) {
         stickyHeaderInnerRef.current.style.transform =
           pushOffset > 0 ? `translateY(-${pushOffset}px)` : '';
       }
@@ -264,7 +266,7 @@ function VirtualizedSwimlanes({
           isExpanded,
         });
         // Reset transform after React renders the new header content
-        if (keyChanged) {
+        if (isSwap) {
           requestAnimationFrame(() => {
             if (stickyHeaderInnerRef.current) {
               stickyHeaderInnerRef.current.style.transform = '';
