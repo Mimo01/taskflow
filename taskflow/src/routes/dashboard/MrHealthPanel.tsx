@@ -5,8 +5,8 @@
  * Needs Review / Approved / Changes Requested counts.
  *
  * Reads from the 3-element cache key ['gitlab-mrs', gitlabBaseUrl, userId] shared
- * with MrAttentionTab. Per-MR health is read from ['mr-health', project_id, iid] entries
- * populated by MrAttentionTab and MyTasksTab. Undefined health entries → Needs Review.
+ * with MyTasksTab. Per-MR health is read from ['mr-health', project_id, iid] entries
+ * populated by MyTasksTab. Undefined health entries → Needs Review.
  */
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { GitLabMR } from '@/services/gitlab';

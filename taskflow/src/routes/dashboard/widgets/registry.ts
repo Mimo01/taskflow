@@ -2,7 +2,7 @@
  * Widget registry and dashboard layout presets.
  *
  * Defines all available dashboard widget types with metadata, size constraints,
- * and real component implementations. All 11 widget types are fully wired.
+ * and real component implementations. All 10 widget types are fully wired.
  */
 
 // biome-ignore assist/source/organizeImports: import order must match module init order to avoid TDZ circular dependency
@@ -25,7 +25,6 @@ import MrHealthWidget from './MrHealthWidget';
 import SprintHealthWidget from './SprintHealthWidget';
 import NotificationsWidget from './NotificationsWidget';
 import SprintProgressWidget from './SprintProgressWidget';
-import MrAttentionWidget from './MrAttentionWidget';
 import ReleasesWidget from './ReleasesWidget';
 import WorkloadWidget from './WorkloadWidget';
 import SavedFiltersWidget from './SavedFiltersWidget';
@@ -90,16 +89,6 @@ export const WIDGET_REGISTRY: Record<string, WidgetDef> = {
     description: 'Sprint completion with status breakdown',
     icon: BarChart2,
     component: SprintProgressWidget,
-    defaultSize: { w: 4, h: 3 },
-    minSize: { w: 3, h: 2 },
-    maxSize: { w: 8, h: 6 },
-  },
-  'mr-attention': {
-    type: 'mr-attention',
-    title: 'MR Attention',
-    description: 'Merge requests needing your review',
-    icon: GitMerge,
-    component: MrAttentionWidget,
     defaultSize: { w: 4, h: 3 },
     minSize: { w: 3, h: 2 },
     maxSize: { w: 8, h: 6 },
