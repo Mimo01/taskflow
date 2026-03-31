@@ -24,19 +24,25 @@ import {
   Loader2,
   XCircle,
 } from 'lucide-react';
-import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { useEffect } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { GitLabMRDetail, MRCommit } from '@/services/gitlab';
-import { fetchMRApprovals, fetchMRCommits, fetchMRDetail } from '@/services/gitlab';
+import type { Discussion, GitLabMRDetail, MRCommit } from '@/services/gitlab';
+import {
+  fetchMRApprovals,
+  fetchMRCommits,
+  fetchMRDetail,
+  fetchMRDiscussions,
+} from '@/services/gitlab';
 import { extractTicketKeys } from '@/services/linkEngine';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { useRecentItemsStore } from '@/stores/recent-items.store';
+import { DiscussionThreads } from './DiscussionThreads';
 import { WikiRenderer } from './WikiRenderer';
 
 export default function MergeRequestDetailPage() {
@@ -87,6 +93,18 @@ export default function MergeRequestDetailPage() {
       const token = await readSecret('gitlab-pat').catch(() => null);
       if (!token || !gitlabBaseUrl) return { approved_by: [], approved: false };
       return fetchMRApprovals(gitlabBaseUrl, token, numericProjectId, numericIid);
+    },
+    staleTime: 30_000,
+    enabled: !!projectId && !!iid && !!gitlabBaseUrl,
+  });
+
+  // Fetch discussions
+  const { data: discussions } = useQuery<Discussion[]>({
+    queryKey: ['gitlab-mr-discussions', projectId, iid],
+    queryFn: async () => {
+      const token = await readSecret('gitlab-pat').catch(() => null);
+      if (!token || !gitlabBaseUrl) return [];
+      return fetchMRDiscussions(gitlabBaseUrl, token, numericProjectId, numericIid);
     },
     staleTime: 30_000,
     enabled: !!projectId && !!iid && !!gitlabBaseUrl,
@@ -207,6 +225,13 @@ export default function MergeRequestDetailPage() {
                       </button>
                     ))}
                   </div>
+                </section>
+              )}
+
+              {/* Discussion Threads */}
+              {discussions && discussions.length > 0 && (
+                <section>
+                  <DiscussionThreads discussions={discussions} />
                 </section>
               )}
 
