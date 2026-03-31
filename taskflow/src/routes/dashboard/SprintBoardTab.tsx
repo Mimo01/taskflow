@@ -14,7 +14,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Bookmark, Columns3, RefreshCw } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useIsActiveRoute } from '@/hooks/useIsActiveRoute';
@@ -80,6 +80,7 @@ function VirtualizedSwimlanes({
   subtasksLoading,
   onStickyHeaderChange,
   stickyHeaderInnerRef,
+  stickyOverlayRef,
   getTransitions,
   onTransition,
 }: {
@@ -100,6 +101,8 @@ function VirtualizedSwimlanes({
   onStickyHeaderChange: (data: StickyHeaderData) => void;
   /** Ref to the sticky header inner div — push offset is applied directly for 60fps performance */
   stickyHeaderInnerRef: React.RefObject<HTMLDivElement | null>;
+  /** Ref to the sticky header overlay wrapper — hidden during swaps to prevent flicker */
+  stickyOverlayRef: React.RefObject<HTMLDivElement | null>;
   getTransitions: (issueKey: string) => JiraTransition[] | undefined;
   onTransition: (issueKey: string, transitionId: string, toStatusName: string, toStatusId: string, toStatusCategoryKey?: string) => void;
 }) {
@@ -246,18 +249,21 @@ function VirtualizedSwimlanes({
       const newKey = swimlane.story.key;
       const isExpanded = !collapsedStoriesRef.current.has(swimlane.story.key);
       const keyChanged = lastStickyKeyRef.current !== newKey;
-      // True swap: old header being replaced by a different one (not first appearance)
-      const isSwap = keyChanged && lastStickyKeyRef.current !== null;
 
       // Apply push offset directly to the DOM — avoids React re-render per scroll frame.
       // Skip during a swap: the old header is still rendered and resetting its transform
       // would snap it back into view for one frame before React swaps content.
-      if (!isSwap && stickyHeaderInnerRef.current) {
+      if (!keyChanged && stickyHeaderInnerRef.current) {
         stickyHeaderInnerRef.current.style.transform =
           pushOffset > 0 ? `translateY(-${pushOffset}px)` : '';
       }
 
       if (keyChanged || lastStickyExpandedRef.current !== isExpanded) {
+        // Hide overlay immediately during swap — useLayoutEffect in parent
+        // will show it after React commits the new header content (no flicker).
+        if (keyChanged && lastStickyKeyRef.current !== null && stickyOverlayRef.current) {
+          stickyOverlayRef.current.style.visibility = 'hidden';
+        }
         lastStickyKeyRef.current = newKey;
         lastStickyExpandedRef.current = isExpanded;
         onStickyHeaderChangeRef.current({
@@ -265,14 +271,6 @@ function VirtualizedSwimlanes({
           subtasks: swimlane.subtasks,
           isExpanded,
         });
-        // Reset transform after React renders the new header content
-        if (isSwap) {
-          requestAnimationFrame(() => {
-            if (stickyHeaderInnerRef.current) {
-              stickyHeaderInnerRef.current.style.transform = '';
-            }
-          });
-        }
       }
     }
 
@@ -493,9 +491,21 @@ export default function SprintBoardTab() {
   // doesn't interfere with virtualizer layout. Updated by VirtualizedSwimlanes on scroll.
   const [stickyHeader, setStickyHeader] = useState<StickyHeaderData>(null);
   const stickyHeaderInnerRef = useRef<HTMLDivElement | null>(null);
+  const stickyOverlayRef = useRef<HTMLDivElement | null>(null);
   // Ref tracks showSkeleton so the stable callback can guard against stale sticky
   // header being set during loading (reload race condition).
   const showSkeletonRef = useRef(true);
+
+  // After React commits new sticky header content, reset transform and show overlay.
+  // useLayoutEffect fires after DOM mutation but before browser paint — no flicker.
+  useLayoutEffect(() => {
+    if (stickyOverlayRef.current) {
+      stickyOverlayRef.current.style.visibility = stickyHeader ? 'visible' : 'hidden';
+    }
+    if (stickyHeaderInnerRef.current) {
+      stickyHeaderInnerRef.current.style.transform = '';
+    }
+  }, [stickyHeader]);
 
   // Stable callback — avoids re-creating the VirtualizedSwimlanes scroll listener
   // on every SprintBoardTab render just because the prop reference changed.
@@ -974,10 +984,9 @@ export default function SprintBoardTab() {
            *  + negative translateY creates the classic push-out effect when the next
            *  swimlane's header approaches from below. */}
           <div
+            ref={stickyOverlayRef}
             className="absolute top-0 left-0 right-0 z-[9] overflow-hidden pointer-events-none"
-            style={{
-              visibility: stickyHeader ? 'visible' : 'hidden',
-            }}
+            style={{ visibility: 'hidden' }}
           >
             {stickyHeader && (
               <div ref={stickyHeaderInnerRef} className="bg-background border-b border-border/30 pointer-events-auto">
@@ -1090,6 +1099,7 @@ export default function SprintBoardTab() {
                 subtasksLoading={subtasksLoading}
                 onStickyHeaderChange={handleStickyHeaderChange}
                 stickyHeaderInnerRef={stickyHeaderInnerRef}
+                stickyOverlayRef={stickyOverlayRef}
                 getTransitions={getTransitions}
                 onTransition={handleTransition}
               />
