@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Performance & Perceived Speed
-status: v1.6.3 milestone complete
+status: Executing Phase 47
 stopped_at: Phase 47 UI-SPEC approved
-last_updated: "2026-03-31T21:30:46.445Z"
-last_activity: "2026-03-31 - Completed quick task 260331-vwn: Redo all animations in sprint board page"
+last_updated: "2026-03-31T21:49:56.297Z"
+last_activity: 2026-03-31
 progress:
   total_phases: 5
   completed_phases: 5
@@ -20,10 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Planning next milestone
+**Current focus:** Phase 47 — optimize-backlog-view-performance-with-progressive-loading
 
 ## Current Position
 
+Phase: 47 (optimize-backlog-view-performance-with-progressive-loading) — EXECUTING
+Plan: 1 of 2
 Milestone v1.6.3 complete. No active phase.
 
 ## Accumulated Context
@@ -65,7 +67,7 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-03-31 - Completed quick task 260331-vwn: Redo all animations in sprint board page
+Last activity: 2026-03-31 - Completed quick task 260331-wzn: Remove the MR attention from sidebar and its page entirely without replacement
 Stopped at: Phase 47 UI-SPEC approved
 Resume: `/gsd:plan-phase 38`
 
@@ -93,3 +95,4 @@ Resume: `/gsd:plan-phase 38`
 | 260331-0ir | Fix misaligned assignee on sprint board story headers | 2026-03-30 | 207ca56 | | [260331-0ir-fix-misaligned-assignee-on-sprint-board-](./quick/260331-0ir-fix-misaligned-assignee-on-sprint-board-/) |
 | 260331-vwn | Redo all animations in sprint board page | 2026-03-31 | eb41471 | Verified | [260331-vwn-redo-all-animations-in-sprint-board-page](./quick/260331-vwn-redo-all-animations-in-sprint-board-page/) |
 | 260331-w44 | Full discussion threads on MR detail page | 2026-03-31 | 23465b3 | Verified | [260331-w44-in-merge-request-detail-page-i-want-to-h](./quick/260331-w44-in-merge-request-detail-page-i-want-to-h/) |
+| 260331-wzn | Remove the MR attention from sidebar and its page entirely without replacement | 2026-03-31 | 35f93d1 | | [260331-wzn-remove-the-mr-attention-from-sidebar-and](./quick/260331-wzn-remove-the-mr-attention-from-sidebar-and/) |
