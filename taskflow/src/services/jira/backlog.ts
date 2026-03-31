@@ -70,6 +70,35 @@ export async function fetchBacklogIssues(
 }
 
 /**
+ * Fetch the ordered sprint list (active + future) for a board.
+ * Returns sprints in Jira board order, including empty sprints.
+ */
+export async function fetchSprintList(
+  baseUrl: string,
+  token: string,
+  boardId: number,
+): Promise<JiraActiveSprint[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const res = await apiFetch(
+    'jira',
+    `${base}/rest/agile/1.0/board/${boardId}/sprint?state=active,future`,
+    { headers },
+    'Load Sprint List',
+  );
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data?.values ?? []).map((s: Record<string, unknown>) => ({
+    id: s.id as number,
+    name: String(s.name ?? ''),
+    state: String(s.state ?? '').toLowerCase() as 'active' | 'future' | 'closed',
+    startDate: typeof s.startDate === 'string' ? s.startDate : undefined,
+    endDate: typeof s.endDate === 'string' ? s.endDate : undefined,
+    originBoardId: typeof s.originBoardId === 'number' ? s.originBoardId : undefined,
+  }));
+}
+
+/**
  * Fetch the full backlog view: active sprint, future sprints, and unassigned backlog.
  *
  * Strategy:
