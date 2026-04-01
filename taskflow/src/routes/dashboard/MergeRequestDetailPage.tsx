@@ -272,7 +272,10 @@ export default function MergeRequestDetailPage() {
                 {mr.assignee ? (
                   <PersonDisplay name={mr.assignee.name} avatarUrl={mr.assignee.avatar_url} />
                 ) : (
-                  <span className="text-muted-foreground">Unassigned</span>
+                  <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                    <CachedAvatar url={null} name="Unassigned" size={20} />
+                    Unassigned
+                  </span>
                 )}
               </MetaRow>
 
