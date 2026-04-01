@@ -212,9 +212,8 @@ export default function MergeRequestDetailPage() {
                 </div>
               </div>
 
-              {/* Description panel */}
-              <div className="rounded-lg border bg-card p-4">
-                <h3 className="text-sm font-medium text-muted-foreground mb-3">Description</h3>
+              {/* Description */}
+              <div>
                 {mr.description ? (
                   <WikiRenderer wikiText={mr.description} attachments={{}} users={{}} />
                 ) : (
@@ -225,14 +224,14 @@ export default function MergeRequestDetailPage() {
               {/* Discussion Threads — promoted above commits, not wrapped in a card */}
               {discussions && discussions.length > 0 && (
                 <div className="pt-2">
-                  <DiscussionThreads discussions={discussions} diffFiles={diffFiles} />
+                  <DiscussionThreads discussions={discussions} diffFiles={diffFiles} gitlabBaseUrl={gitlabBaseUrl ?? undefined} />
                 </div>
               )}
 
-              {/* Commits panel — collapsible after first 5 */}
+              {/* Commits — collapsible after first 5 */}
               {commits && commits.length > 0 && (
-                <div className="rounded-lg border bg-card p-4">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">
                     Commits ({commits.length})
                   </h3>
                   <ul className="space-y-1">
@@ -397,6 +396,11 @@ export default function MergeRequestDetailPage() {
                     ))}
                   </div>
                 </MetaRow>
+              )}
+
+              {/* Commits */}
+              {commits && commits.length > 0 && (
+                <MetaRow label="Commits">{commits.length}</MetaRow>
               )}
 
               {/* Changes */}
