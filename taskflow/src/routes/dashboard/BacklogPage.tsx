@@ -23,7 +23,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { useListNavigation } from '@/hooks/useListNavigation';
-import type { BacklogViewData, JiraActiveSprint, JiraIssue } from '@/services/jira';
+import type { BacklogViewData, JiraIssue } from '@/services/jira';
 import {
   addIssuesToSprint,
   fetchBacklogView,
