@@ -8,7 +8,7 @@
  *
  * Each section uses BacklogRow for individual issue rows.
  * BacklogFilterBar applies filters across ALL sections combined.
- * Bulk "Move to sprint" action bar and handleMoveToSprint remain unchanged.
+ * Right-click on any row opens a context menu to move the issue to a sprint.
  * Create story entry point via Outlet context remains unchanged.
  */
 
@@ -26,7 +26,6 @@ import { useListNavigation } from '@/hooks/useListNavigation';
 import type { BacklogViewData, JiraActiveSprint, JiraIssue } from '@/services/jira';
 import {
   addIssuesToSprint,
-  fetchActiveSprint,
   fetchBacklogView,
   fetchEpicsBasic,
   fetchProjectStatuses,
@@ -43,8 +42,6 @@ import { BacklogRow } from './BacklogRow';
 function VirtualizedBacklogTable({
   filteredIssues,
   scrollElement,
-  selectedKeys,
-  onSelect,
   onIssueClick,
   storyPointsFieldKey,
   epicLinkFieldKey,
@@ -54,11 +51,11 @@ function VirtualizedBacklogTable({
   visibleIssueKeys,
   focusIndex,
   rowRefs,
+  sprints,
+  onMoveToSprint,
 }: {
   filteredIssues: JiraIssue[];
   scrollElement: HTMLDivElement | null;
-  selectedKeys: Set<string>;
-  onSelect: (key: string, selected: boolean) => void;
   onIssueClick: (key: string) => void;
   storyPointsFieldKey: string;
   epicLinkFieldKey: string;
@@ -68,6 +65,8 @@ function VirtualizedBacklogTable({
   visibleIssueKeys: string[];
   focusIndex: number;
   rowRefs: React.MutableRefObject<Map<string, HTMLTableRowElement>>;
+  sprints: Array<{ id: number; name: string; state: string }>;
+  onMoveToSprint: (issueKey: string, sprintId: number, sprintName: string) => void;
 }) {
   const rowVirtualizer = useVirtualizer({
     count: filteredIssues.length,
@@ -102,8 +101,6 @@ function VirtualizedBacklogTable({
           }
         }}
         issue={issue}
-        selected={selectedKeys.has(issue.key)}
-        onSelect={onSelect}
         onIssueClick={onIssueClick}
         storyPointsFieldKey={storyPointsFieldKey}
         epicLinkFieldKey={epicLinkFieldKey}
@@ -111,6 +108,8 @@ function VirtualizedBacklogTable({
         epicNames={epicNames}
         epicColors={epicColors}
         isFocused={visibleIssueKeys[focusIndex] === issue.key}
+        sprints={sprints}
+        onMoveToSprint={onMoveToSprint}
       />
     );
   }
@@ -119,7 +118,6 @@ function VirtualizedBacklogTable({
     <table className="w-full text-sm">
       <thead className="border-b bg-muted/10">
         <tr>
-          <th className="w-8 px-3 py-2" />
           <th className="w-24 px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
             Key
           </th>
@@ -203,13 +201,6 @@ export default function BacklogPage() {
         epicColorFieldKey,
       ),
     staleTime: 60_000,
-    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
-  });
-
-  const { data: activeSprint } = useQuery<JiraActiveSprint | null>({
-    queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl],
-    queryFn: () => fetchActiveSprint(jiraBaseUrl!, jiraToken!, activeJiraProject!),
-    staleTime: 5 * 60_000,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
 
@@ -299,14 +290,6 @@ export default function BacklogPage() {
 
   const { activeEpics, activeLabels, activeAssignees, activeStatuses } = useFilterStore();
 
-  // ── Selection state ──────────────────────────────────────────────────────────
-
-  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
-
-  // ── Move-to-sprint state ─────────────────────────────────────────────────────
-
-  const [bulkError, setBulkError] = useState<string | null>(null);
-
   // ── All issues combined (for filter options) ─────────────────────────────────
   // Merge backlog view issues with sprint board parent stories.
   // The Agile board API may exclude some stories (board-level JQL filter),
@@ -332,6 +315,12 @@ export default function BacklogPage() {
       return { sprint, issues };
     });
   }, [backlogView, sprintIssues]);
+
+  // Available sprints for context menu (active + future only)
+  const availableSprints = useMemo(
+    () => mergedSprints.map((s) => s.sprint).filter((s) => s.state !== 'closed'),
+    [mergedSprints],
+  );
 
   const allIssues = useMemo<JiraIssue[]>(() => {
     const sprintIssuesList = mergedSprints.flatMap((s) => s.issues);
@@ -464,21 +453,7 @@ export default function BacklogPage() {
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
-  function handleSelect(key: string, isSelected: boolean) {
-    setSelectedKeys((prev) => {
-      const next = new Set(prev);
-      if (isSelected) {
-        next.add(key);
-      } else {
-        next.delete(key);
-      }
-      return next;
-    });
-  }
-
-  async function handleMoveToSprint() {
-    if (!activeSprint || selectedKeys.size === 0) return;
-    const keysToMove = Array.from(selectedKeys);
+  async function handleMoveToSprint(issueKey: string, sprintId: number, sprintName: string) {
     // Optimistic removal from cache
     const previousView = queryClient.getQueryData<BacklogViewData>([
       'jira-backlog-view',
@@ -493,24 +468,22 @@ export default function BacklogPage() {
           ...old,
           sprints: old.sprints.map((s) => ({
             ...s,
-            issues: s.issues.filter((i) => !selectedKeys.has(i.key)),
+            issues: s.issues.filter((i) => i.key !== issueKey),
           })),
-          backlog: old.backlog.filter((i) => !selectedKeys.has(i.key)),
+          backlog: old.backlog.filter((i) => i.key !== issueKey),
         };
       },
     );
-    setSelectedKeys(new Set());
-    setBulkError(null);
     try {
-      await addIssuesToSprint(jiraBaseUrl!, jiraToken!, activeSprint.id, keysToMove);
+      await addIssuesToSprint(jiraBaseUrl!, jiraToken!, sprintId, [issueKey]);
       queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
       queryClient.invalidateQueries({ queryKey: ['jira-backlog-view'] });
-    } catch (err) {
+    } catch (_err) {
       // Rollback on failure
       queryClient.setQueryData(['jira-backlog-view', activeJiraProject, jiraBaseUrl], previousView);
-      setSelectedKeys(new Set(keysToMove));
-      setBulkError(err instanceof Error ? err.message : 'Failed to add issues to sprint');
     }
+    // Suppress unused variable warning — sprintName reserved for future toast notification
+    void sprintName;
   }
 
   // ── Section renderer ──────────────────────────────────────────────────────────
@@ -568,8 +541,6 @@ export default function BacklogPage() {
               <VirtualizedBacklogTable
                 filteredIssues={filteredIssues}
                 scrollElement={scrollRef.current}
-                selectedKeys={selectedKeys}
-                onSelect={handleSelect}
                 onIssueClick={onIssueClick}
                 storyPointsFieldKey={storyPointsFieldKey}
                 epicLinkFieldKey={epicLinkFieldKey}
@@ -579,6 +550,8 @@ export default function BacklogPage() {
                 visibleIssueKeys={visibleIssueKeys}
                 focusIndex={focusIndex}
                 rowRefs={rowRefs}
+                sprints={availableSprints}
+                onMoveToSprint={handleMoveToSprint}
               />
             ) : issues.length > 0 ? (
               /* All issues filtered out */
@@ -682,32 +655,6 @@ export default function BacklogPage() {
           </div>
         ) : null}
       </div>
-
-      {/* Bulk action bar — only shown when issues are selected */}
-      {selectedKeys.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-10 bg-background border-t shadow-lg p-3 flex items-center gap-4">
-          <span className="text-sm font-medium">
-            {selectedKeys.size} issue{selectedKeys.size !== 1 ? 's' : ''} selected
-          </span>
-          <button
-            type="button"
-            className="px-3 py-1.5 text-sm rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={!activeSprint || selectedKeys.size === 0}
-            title={!activeSprint ? 'No active sprint in this project' : undefined}
-            onClick={handleMoveToSprint}
-          >
-            Move to sprint
-          </button>
-          <button
-            type="button"
-            className="text-sm text-muted-foreground hover:text-foreground"
-            onClick={() => setSelectedKeys(new Set())}
-          >
-            Deselect all
-          </button>
-          {bulkError && <span className="text-sm text-destructive ml-auto">{bulkError}</span>}
-        </div>
-      )}
     </div>
   );
 }
