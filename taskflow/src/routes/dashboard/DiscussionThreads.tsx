@@ -9,14 +9,45 @@
  * - Reply indentation for thread replies
  */
 
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { Activity, CheckCircle2, ChevronDown, ChevronRight, FileCode, Lock } from 'lucide-react';
-import { useState } from 'react';
+import { type ComponentPropsWithoutRef, useCallback, useState } from 'react';
 import Markdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import type { Discussion, DiscussionNote, MRDiffFile } from '@/services/gitlab';
+
+// ---- Link rewriter for GitLab-relative URLs ----
+
+function useGitLabLinkComponents(gitlabBaseUrl?: string) {
+  return useCallback(
+    () => ({
+      a: ({ href, children, ...props }: ComponentPropsWithoutRef<'a'>) => {
+        let resolvedHref = href ?? '';
+        // Rewrite relative GitLab links to absolute
+        if (resolvedHref.startsWith('/') && gitlabBaseUrl) {
+          resolvedHref = `${gitlabBaseUrl.replace(/\/$/, '')}${resolvedHref}`;
+        }
+        return (
+          <a
+            {...props}
+            href={resolvedHref}
+            onClick={(e) => {
+              e.preventDefault();
+              if (resolvedHref) openUrl(resolvedHref);
+            }}
+            className="text-primary hover:underline cursor-pointer"
+          >
+            {children}
+          </a>
+        );
+      },
+    }),
+    [gitlabBaseUrl],
+  );
+}
 
 // ---- Relative time helper ----
 
@@ -130,26 +161,28 @@ function DiffCodePreview({ note, diffFiles }: { note: DiscussionNote; diffFiles?
       {/* Code lines */}
       {codeLines && codeLines.length > 0 ? (
         <div className="font-mono text-[11px] leading-[1.6] overflow-x-auto">
-          {codeLines.map((line, i) => (
-            <div
-              key={`${line.lineNum}-${i}`}
-              className={`flex ${
-                line.type === 'add'
-                  ? 'bg-green-500/10 text-green-700 dark:text-green-400'
-                  : line.type === 'remove'
-                    ? 'bg-red-500/10 text-red-700 dark:text-red-400'
-                    : 'text-muted-foreground'
-              }`}
-            >
-              <span className="w-10 shrink-0 text-right pr-2 select-none opacity-50 border-r border-muted">
-                {line.lineNum ?? ''}
-              </span>
-              <span className="w-4 shrink-0 text-center select-none opacity-60">
-                {line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' '}
-              </span>
-              <span className="flex-1 px-2 whitespace-pre">{line.content}</span>
-            </div>
-          ))}
+          <div className="min-w-fit">
+            {codeLines.map((line, i) => (
+              <div
+                key={`${line.lineNum}-${i}`}
+                className={`flex ${
+                  line.type === 'add'
+                    ? 'bg-green-500/10 text-green-700 dark:text-green-400'
+                    : line.type === 'remove'
+                      ? 'bg-red-500/10 text-red-700 dark:text-red-400'
+                      : 'text-muted-foreground'
+                }`}
+              >
+                <span className="w-10 shrink-0 text-right pr-2 select-none opacity-50 border-r border-muted">
+                  {line.lineNum ?? ''}
+                </span>
+                <span className="w-4 shrink-0 text-center select-none opacity-60">
+                  {line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' '}
+                </span>
+                <span className="px-2 whitespace-pre">{line.content}</span>
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <div className="px-3 py-2 text-muted-foreground italic">
@@ -162,7 +195,8 @@ function DiffCodePreview({ note, diffFiles }: { note: DiscussionNote; diffFiles?
 
 // ---- NoteCard ----
 
-function NoteCard({ note, diffFiles }: { note: DiscussionNote; diffFiles?: MRDiffFile[] }) {
+function NoteCard({ note, diffFiles, gitlabBaseUrl }: { note: DiscussionNote; diffFiles?: MRDiffFile[]; gitlabBaseUrl?: string }) {
+  const components = useGitLabLinkComponents(gitlabBaseUrl);
   return (
     <div className="flex gap-3">
       <div className="shrink-0 mt-0.5">
@@ -184,7 +218,7 @@ function NoteCard({ note, diffFiles }: { note: DiscussionNote; diffFiles?: MRDif
         </div>
         {note.type === 'DiffNote' && <DiffCodePreview note={note} diffFiles={diffFiles} />}
         <div className="prose prose-sm dark:prose-invert max-w-none text-sm">
-          <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+          <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={components()}>
             {note.body}
           </Markdown>
         </div>
@@ -195,12 +229,13 @@ function NoteCard({ note, diffFiles }: { note: DiscussionNote; diffFiles?: MRDif
 
 // ---- SystemNote ----
 
-function SystemNote({ note }: { note: DiscussionNote }) {
+function SystemNote({ note, gitlabBaseUrl }: { note: DiscussionNote; gitlabBaseUrl?: string }) {
+  const components = useGitLabLinkComponents(gitlabBaseUrl);
   return (
     <div className="flex gap-2 text-xs text-muted-foreground py-1">
       <Activity className="size-3 shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0 prose prose-xs dark:prose-invert max-w-none [&_p]:my-0.5 [&_ul]:my-0.5 [&_li]:my-0 [&_a]:text-muted-foreground [&_a]:underline">
-        <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+        <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={components()}>
           {note.body}
         </Markdown>
       </div>
@@ -211,7 +246,7 @@ function SystemNote({ note }: { note: DiscussionNote }) {
 
 // ---- DiscussionThread ----
 
-function DiscussionThread({ discussion, diffFiles }: { discussion: Discussion; diffFiles?: MRDiffFile[] }) {
+function DiscussionThread({ discussion, diffFiles, gitlabBaseUrl }: { discussion: Discussion; diffFiles?: MRDiffFile[]; gitlabBaseUrl?: string }) {
   const firstNote = discussion.notes[0];
   const isResolvable = firstNote?.resolvable ?? false;
   const isResolved = isResolvable && (firstNote?.resolved ?? false);
@@ -223,7 +258,7 @@ function DiscussionThread({ discussion, diffFiles }: { discussion: Discussion; d
 
   // System notes — compact single-line rendering
   if (firstNote.system) {
-    return <SystemNote note={firstNote} />;
+    return <SystemNote note={firstNote} gitlabBaseUrl={gitlabBaseUrl} />;
   }
 
   const hasReplies = discussion.notes.length > 1;
@@ -263,7 +298,7 @@ function DiscussionThread({ discussion, diffFiles }: { discussion: Discussion; d
       {expanded && (
         <div className="space-y-3">
           {/* Root note */}
-          <NoteCard note={firstNote} diffFiles={diffFiles} />
+          <NoteCard note={firstNote} diffFiles={diffFiles} gitlabBaseUrl={gitlabBaseUrl} />
 
           {/* Replies */}
           {hasReplies && (
@@ -272,9 +307,9 @@ function DiscussionThread({ discussion, diffFiles }: { discussion: Discussion; d
                 .slice(1)
                 .map((note) =>
                   note.system ? (
-                    <SystemNote key={note.id} note={note} />
+                    <SystemNote key={note.id} note={note} gitlabBaseUrl={gitlabBaseUrl} />
                   ) : (
-                    <NoteCard key={note.id} note={note} diffFiles={diffFiles} />
+                    <NoteCard key={note.id} note={note} diffFiles={diffFiles} gitlabBaseUrl={gitlabBaseUrl} />
                   ),
                 )}
             </div>
@@ -287,7 +322,7 @@ function DiscussionThread({ discussion, diffFiles }: { discussion: Discussion; d
 
 // ---- DiscussionThreads (main export) ----
 
-export function DiscussionThreads({ discussions, diffFiles }: { discussions: Discussion[]; diffFiles?: MRDiffFile[] }) {
+export function DiscussionThreads({ discussions, diffFiles, gitlabBaseUrl }: { discussions: Discussion[]; diffFiles?: MRDiffFile[]; gitlabBaseUrl?: string }) {
   const [showSystemNotes, setShowSystemNotes] = useState(false);
 
   if (discussions.length === 0) {
@@ -338,7 +373,7 @@ export function DiscussionThreads({ discussions, diffFiles }: { discussions: Dis
 
       <div className="space-y-3">
         {visibleDiscussions.map((discussion) => (
-          <DiscussionThread key={discussion.id} discussion={discussion} diffFiles={diffFiles} />
+          <DiscussionThread key={discussion.id} discussion={discussion} diffFiles={diffFiles} gitlabBaseUrl={gitlabBaseUrl} />
         ))}
       </div>
     </div>
