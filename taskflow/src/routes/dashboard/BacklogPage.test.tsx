@@ -8,7 +8,7 @@
  *
  * Requirements covered:
  *   BACK-01 — Backlog issue list (sprint issues + backlog issues, section headers appear)
- *   BACK-02 — Bulk "Move to sprint" action (checkbox selection, optimistic removal, rollback)
+ *   BACK-02 — Right-click context menu "Move to sprint" (per-row, optimistic removal)
  *   BACK-03 — Create story entry point (+ Create Story button)
  *   BACK-04 — Epic / assignee filters (AND logic, applies across all sections, dismiss chip)
  *   BACK-05 — Row click opens issue detail
@@ -197,14 +197,8 @@ describe('BACK-01 List', () => {
       expect(screen.getByText('Future')).toBeInTheDocument();
     });
   });
-});
 
-describe('BACK-02 Move to sprint', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('selecting a row checkbox reveals the bulk action bar', async () => {
+  it('does not render checkboxes in backlog rows', async () => {
     const { fetchBacklogView } = await import('@/services/jira');
     vi.mocked(fetchBacklogView).mockResolvedValue({
       sprints: [],
@@ -218,50 +212,46 @@ describe('BACK-02 Move to sprint', () => {
 
     await waitFor(() => screen.getByText('PROJ-1'));
 
-    const checkbox = screen.getByRole('checkbox', { name: /PROJ-1/i });
-    fireEvent.click(checkbox);
+    // No checkboxes should exist
+    expect(document.querySelectorAll('input[type="checkbox"]').length).toBe(0);
+  });
+});
 
-    expect(screen.getByRole('button', { name: /move to sprint/i })).toBeInTheDocument();
+describe('BACK-02 Move to sprint (context menu)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('"Move to sprint" button is disabled when fetchActiveSprint returns null', async () => {
-    const { fetchBacklogView, fetchActiveSprint } = await import('@/services/jira');
+  it('right-clicking a backlog row shows "Move to..." context menu label', async () => {
+    const { fetchBacklogView } = await import('@/services/jira');
     vi.mocked(fetchBacklogView).mockResolvedValue({
-      sprints: [],
+      sprints: [{ sprint: makeSprint(1, 'Sprint 1', 'active'), issues: [] }],
       backlog: [makeIssue('PROJ-1', 'Build login page')],
       epicNames: new Map(),
       epicColors: new Map(),
     });
-    vi.mocked(fetchActiveSprint).mockResolvedValue(null);
 
     const { default: BacklogPage } = await import('./BacklogPage');
     renderBacklogPage(<BacklogPage />);
 
     await waitFor(() => screen.getByText('PROJ-1'));
 
-    const checkbox = screen.getByRole('checkbox', { name: /PROJ-1/i });
-    fireEvent.click(checkbox);
+    const row = screen.getByTestId('backlog-row-PROJ-1');
+    fireEvent.contextMenu(row);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /move to sprint/i })).toBeDisabled();
+      expect(screen.getByText('Move to...')).toBeInTheDocument();
     });
   });
 
-  it('clicking "Move to sprint" removes selected backlog issues optimistically from the list', async () => {
-    const { fetchBacklogView, fetchActiveSprint, addIssuesToSprint } = await import(
-      '@/services/jira'
-    );
+  it('clicking a sprint in context menu removes the issue optimistically', async () => {
+    const { fetchBacklogView, addIssuesToSprint } = await import('@/services/jira');
     vi.mocked(fetchBacklogView).mockResolvedValue({
-      sprints: [],
+      sprints: [{ sprint: makeSprint(1, 'Sprint 1', 'active'), issues: [] }],
       backlog: [makeIssue('PROJ-1', 'Build login page'), makeIssue('PROJ-2', 'Fix signup flow')],
       epicNames: new Map(),
       epicColors: new Map(),
     });
-    vi.mocked(fetchActiveSprint).mockResolvedValue({
-      id: 42,
-      name: 'Sprint 1',
-      state: 'active',
-    });
     vi.mocked(addIssuesToSprint).mockResolvedValue(undefined);
 
     const { default: BacklogPage } = await import('./BacklogPage');
@@ -269,91 +259,17 @@ describe('BACK-02 Move to sprint', () => {
 
     await waitFor(() => screen.getByText('PROJ-1'));
 
-    const checkbox = screen.getByRole('checkbox', { name: /PROJ-1/i });
-    fireEvent.click(checkbox);
+    const row = screen.getByTestId('backlog-row-PROJ-1');
+    fireEvent.contextMenu(row);
 
-    const moveBtn = await screen.findByRole('button', { name: /move to sprint/i });
-    fireEvent.click(moveBtn);
+    await waitFor(() => screen.getByText('Move to...'));
 
-    await waitFor(() => {
-      expect(screen.queryByText('PROJ-1')).not.toBeInTheDocument();
-      expect(screen.getByText('PROJ-2')).toBeInTheDocument();
-    });
-  });
-
-  it('clicking "Move to sprint" removes selected sprint issues optimistically from the list', async () => {
-    const { fetchBacklogView, fetchActiveSprint, addIssuesToSprint } = await import(
-      '@/services/jira'
-    );
-    vi.mocked(fetchBacklogView).mockResolvedValue({
-      sprints: [
-        {
-          sprint: makeSprint(1, 'Sprint 1', 'active'),
-          issues: [
-            makeIssue('PROJ-1', 'Sprint issue one'),
-            makeIssue('PROJ-2', 'Sprint issue two'),
-          ],
-        },
-      ],
-      backlog: [],
-      epicNames: new Map(),
-      epicColors: new Map(),
-    });
-    vi.mocked(fetchActiveSprint).mockResolvedValue({ id: 1, name: 'Sprint 1', state: 'active' });
-    vi.mocked(addIssuesToSprint).mockResolvedValue(undefined);
-
-    const { default: BacklogPage } = await import('./BacklogPage');
-    renderBacklogPage(<BacklogPage />);
-
-    await waitFor(() => screen.getByText('PROJ-1'));
-
-    const checkbox = screen.getByRole('checkbox', { name: /PROJ-1/i });
-    fireEvent.click(checkbox);
-
-    const moveBtn = await screen.findByRole('button', { name: /move to sprint/i });
-    fireEvent.click(moveBtn);
+    const sprintOption = screen.getByText('Sprint 1');
+    fireEvent.click(sprintOption);
 
     await waitFor(() => {
       expect(screen.queryByText('PROJ-1')).not.toBeInTheDocument();
       expect(screen.getByText('PROJ-2')).toBeInTheDocument();
-    });
-  });
-
-  it('when addIssuesToSprint rejects, issues reappear and error message is shown', async () => {
-    const { fetchBacklogView, fetchActiveSprint, addIssuesToSprint } = await import(
-      '@/services/jira'
-    );
-    vi.mocked(fetchBacklogView).mockResolvedValue({
-      sprints: [],
-      backlog: [makeIssue('PROJ-1', 'Build login page')],
-      epicNames: new Map(),
-      epicColors: new Map(),
-    });
-    vi.mocked(fetchActiveSprint).mockResolvedValue({
-      id: 42,
-      name: 'Sprint 1',
-      state: 'active',
-    });
-    vi.mocked(addIssuesToSprint).mockRejectedValue(
-      new Error('Failed to add issues to sprint: 500'),
-    );
-
-    const { default: BacklogPage } = await import('./BacklogPage');
-    renderBacklogPage(<BacklogPage />);
-
-    await waitFor(() => screen.getByText('PROJ-1'));
-
-    const checkbox = screen.getByRole('checkbox', { name: /PROJ-1/i });
-    fireEvent.click(checkbox);
-
-    const moveBtn = await screen.findByRole('button', { name: /move to sprint/i });
-    fireEvent.click(moveBtn);
-
-    await waitFor(() => {
-      // Issue reappears (rollback)
-      expect(screen.getByText('PROJ-1')).toBeInTheDocument();
-      // Error message shown
-      expect(screen.getByText(/failed to add issues to sprint/i)).toBeInTheDocument();
     });
   });
 });
@@ -547,7 +463,7 @@ describe('BACK-05 Row click', () => {
 
     await waitFor(() => screen.getByText('PROJ-1'));
 
-    // Click the row (by summary text — not the checkbox)
+    // Click the row (by summary text)
     fireEvent.click(screen.getByText('Build login page'));
 
     expect(onIssueClick).toHaveBeenCalledWith('PROJ-1');
