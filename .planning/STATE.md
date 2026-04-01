@@ -70,8 +70,8 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-03-31
-Stopped at: Completed 47-02-PLAN.md
+Last activity: 2026-04-01
+Stopped at: Completed quick-260401-bcs-PLAN.md
 Resume: `/gsd:plan-phase 38`
 
 ### Quick Tasks Completed
@@ -100,3 +100,4 @@ Resume: `/gsd:plan-phase 38`
 | 260331-w44 | Full discussion threads on MR detail page | 2026-03-31 | 23465b3 | Verified | [260331-w44-in-merge-request-detail-page-i-want-to-h](./quick/260331-w44-in-merge-request-detail-page-i-want-to-h/) |
 | 260331-wzn | Remove the MR attention from sidebar and its page entirely without replacement | 2026-03-31 | 35f93d1 | | [260331-wzn-remove-the-mr-attention-from-sidebar-and](./quick/260331-wzn-remove-the-mr-attention-from-sidebar-and/) |
 | 260331-wj7 | Reorganize MR detail page layout and discussion threads UI | 2026-03-31 | — | Verified | [260331-wj7-reorganize-mr-detail-page-layout-and-dis](./quick/260331-wj7-reorganize-mr-detail-page-layout-and-dis/) |
+| 260401-bcs | Make the unassigned avatar nicer — person silhouette icon matching Jira style | 2026-04-01 | d98e0a9 | | [260401-bcs-make-the-unassigned-avatar-nicer-and-mat](./quick/260401-bcs-make-the-unassigned-avatar-nicer-and-mat/) |
