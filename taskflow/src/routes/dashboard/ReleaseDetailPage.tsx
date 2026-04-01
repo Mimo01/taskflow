@@ -576,7 +576,10 @@ export default function ReleaseDetailPage() {
                                 </span>
                               </span>
                             ) : (
-                              <span className="text-xs text-muted-foreground">Unassigned</span>
+                              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <CachedAvatar url={null} name="Unassigned" size={20} />
+                                Unassigned
+                              </span>
                             )}
                           </td>
                           <td className="py-1.5 px-2 border-b border-border/50 whitespace-nowrap">

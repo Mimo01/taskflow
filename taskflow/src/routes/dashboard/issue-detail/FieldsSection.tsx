@@ -351,7 +351,10 @@ export function FieldsSection({
                 {f.assignee.displayName}
               </>
             ) : (
-              'Unassigned'
+              <>
+                <CachedAvatar url={null} name="Unassigned" size={20} />
+                Unassigned
+              </>
             )}
           </PopoverTrigger>
           <PopoverContent className="w-60 p-2">
