@@ -135,7 +135,7 @@ export const BacklogRow = React.forwardRef<HTMLDivElement, BacklogRowProps>(
         </div>
 
         {/* Summary cell -- takes remaining space, truncates on overflow */}
-        <div className="max-w-0 w-full px-2 py-2 density-compact:py-1 density-comfortable:py-3 overflow-hidden whitespace-nowrap text-ellipsis">
+        <div className="min-w-0 px-2 py-2 density-compact:py-1 density-comfortable:py-3 overflow-hidden whitespace-nowrap text-ellipsis">
           <span className="inline-flex items-center gap-2 text-sm text-left">
             <span className="truncate">{issue.fields.summary}</span>
             <OverdueBadge

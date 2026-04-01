@@ -19,9 +19,8 @@
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useVirtualizer } from '@tanstack/react-virtual';
 import { ChevronDown, ChevronRight, Inbox } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
 import { Button } from '@/components/ui/button';
@@ -52,11 +51,12 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { BacklogRow } from './BacklogRow';
 import { BacklogSkeleton } from './BacklogSkeleton';
 
-// ── Virtualized table body ────────────────────────────────────────────────────
+// ── Backlog table body ────────────────────────────────────────────────────────
 
-function VirtualizedBacklogTable({
+const GRID_COLS = 'grid-cols-[32px_96px_auto_1fr_56px_40px]';
+
+function BacklogTable({
   filteredIssues,
-  scrollElement,
   selectedKeys,
   onSelect,
   onIssueClick,
@@ -71,7 +71,6 @@ function VirtualizedBacklogTable({
   rowRefs,
 }: {
   filteredIssues: JiraIssue[];
-  scrollElement: HTMLDivElement | null;
   selectedKeys: Set<string>;
   onSelect: (key: string, selected: boolean) => void;
   onIssueClick: (key: string) => void;
@@ -86,25 +85,9 @@ function VirtualizedBacklogTable({
   focusIndex: number;
   rowRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
 }) {
-  const density = useSettingsStore(s => s.density);
-  const estimateSize = useCallback(() => {
-    if (density === 'compact') return 28;
-    if (density === 'comfortable') return 44;
-    return 36;
-  }, [density]);
-
-  const rowVirtualizer = useVirtualizer({
-    count: filteredIssues.length,
-    getScrollElement: () => scrollElement,
-    estimateSize,
-    overscan: 5,
-  });
-
-  const GRID_COLS = 'grid-cols-[32px_96px_auto_1fr_56px_40px]';
-
   return (
     <div className="w-full text-sm">
-      {/* Header row — NOT virtualized */}
+      {/* Header row */}
       <div className={`grid ${GRID_COLS} border-b bg-muted/10`}>
         <div className="w-8 px-3 py-2" />
         <div className="w-24 px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Key</div>
@@ -115,40 +98,27 @@ function VirtualizedBacklogTable({
         <div className="w-14 px-2 py-2 text-right text-xs font-medium text-muted-foreground">Points</div>
         <div className="w-10 px-2 py-2 text-xs font-medium text-muted-foreground">Assignee</div>
       </div>
-      {/* Virtual scroll container */}
-      <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
-        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-          const issue = filteredIssues[virtualRow.index];
-          return (
-            <BacklogRow
-              key={issue.key}
-              ref={(el: HTMLDivElement | null) => {
-                if (el) rowRefs.current.set(issue.key, el);
-                else rowRefs.current.delete(issue.key);
-              }}
-              issue={issue}
-              selected={selectedKeys.has(issue.key)}
-              onSelect={onSelect}
-              onIssueClick={onIssueClick}
-              storyPointsFieldKey={storyPointsFieldKey}
-              epicLinkFieldKey={epicLinkFieldKey}
-              epicNameFieldKey={epicNameFieldKey}
-              epicNames={epicNames}
-              epicColors={epicColors}
-              epicsLoading={epicsLoading}
-              isFocused={visibleIssueKeys[focusIndex] === issue.key}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: `${virtualRow.size}px`,
-                transform: `translateY(${virtualRow.start}px)`,
-              }}
-            />
-          );
-        })}
-      </div>
+      {/* Rows — natural flow layout, no virtualization */}
+      {filteredIssues.map((issue) => (
+        <BacklogRow
+          key={issue.key}
+          ref={(el: HTMLDivElement | null) => {
+            if (el) rowRefs.current.set(issue.key, el);
+            else rowRefs.current.delete(issue.key);
+          }}
+          issue={issue}
+          selected={selectedKeys.has(issue.key)}
+          onSelect={onSelect}
+          onIssueClick={onIssueClick}
+          storyPointsFieldKey={storyPointsFieldKey}
+          epicLinkFieldKey={epicLinkFieldKey}
+          epicNameFieldKey={epicNameFieldKey}
+          epicNames={epicNames}
+          epicColors={epicColors}
+          epicsLoading={epicsLoading}
+          isFocused={visibleIssueKeys[focusIndex] === issue.key}
+        />
+      ))}
     </div>
   );
 }
@@ -238,35 +208,38 @@ export default function BacklogPage() {
   });
   const sprintIssues = sprintStories ? [...sprintStories, ...(sprintSubtasks ?? [])] : undefined;
 
+  // Canonical board ID: prefer activeSprint.originBoardId (authoritative) over
+  // discovered boardId which may be "Copy of X" or a shared board.
+  const canonicalBoardId = activeSprint?.originBoardId ?? boardId;
+
   // Sprint list — ordered sprint list including empty sprints (D-01)
-  const { data: sprintList, isLoading: sprintListLoading } = useQuery({
-    queryKey: ['jira-sprint-list', activeJiraProject, jiraBaseUrl, boardId],
-    queryFn: () => fetchSprintList(jiraBaseUrl!, jiraToken!, boardId!),
+  const { data: sprintList } = useQuery({
+    queryKey: ['jira-sprint-list', activeJiraProject, jiraBaseUrl, canonicalBoardId],
+    queryFn: () => fetchSprintList(jiraBaseUrl!, jiraToken!, canonicalBoardId!),
     staleTime: 5 * 60_000,
-    enabled: !!jiraBaseUrl && !!jiraToken && boardId !== null,
+    enabled: !!jiraBaseUrl && !!jiraToken && canonicalBoardId !== null,
   });
 
   // Future sprint issues — independent query for issues assigned to future sprints
-  const { data: futureSprintIssues, isLoading: futureSprintLoading } = useQuery({
-    queryKey: ['jira-future-sprint-issues', activeJiraProject, jiraBaseUrl, boardId],
+  const { data: futureSprintIssues } = useQuery({
+    queryKey: ['jira-future-sprint-issues', activeJiraProject, jiraBaseUrl, canonicalBoardId],
     queryFn: () =>
       fetchFutureSprintIssues(
         jiraBaseUrl!,
         jiraToken!,
         activeJiraProject!,
-        boardId!,
+        canonicalBoardId!,
         storyPointsFieldKey,
         epicLinkFieldKey,
         epicNameFieldKey,
       ),
     staleTime: STALE_TIME_MS,
-    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken && boardId !== null,
+    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken && canonicalBoardId !== null,
   });
 
   // Backlog issues — independent section (D-03)
   const {
     data: backlogIssues,
-    isLoading: backlogLoading,
     isError: backlogError,
     error: backlogErrorObj,
   } = useQuery({
@@ -285,13 +258,14 @@ export default function BacklogPage() {
   });
 
   // ── Per-section skeleton states ──────────────────────────────────────────────
-  const sprintStoriesLoading = !sprintStories;
-  const showSprintSkeleton = useDelayedLoading(sprintStoriesLoading || sprintListLoading || futureSprintLoading);
-  const showBacklogSkeleton = useDelayedLoading(backlogLoading);
+  const showSprintHeadersSkeleton = useDelayedLoading(!sprintList);
 
-  // ── Derive ordered sprint sections ──────────────────────────────────────────
+  // ── All sprint sections from sprintList (headers appear together, stories fill in) ──
   const orderedSprintSections = useMemo(() => {
     if (!sprintList) return [];
+
+    // Canonical board: filter out sprints from other projects sharing the board.
+    const projectBoardId = activeSprint?.originBoardId;
 
     // Parse sprint ID from issue's sprint field (Agile API returns fields.sprint object)
     function getSprintId(issue: JiraIssue): number | null {
@@ -311,19 +285,19 @@ export default function BacklogPage() {
       }
     }
 
-    const sections: Array<{ sprint: JiraActiveSprint; issues: JiraIssue[] }> = [];
+    const sections: Array<{ sprint: JiraActiveSprint; issues: JiraIssue[]; storiesLoading: boolean }> = [];
     for (const sprint of sprintList) {
+      if (projectBoardId !== undefined && sprint.originBoardId !== undefined && sprint.originBoardId !== projectBoardId) continue;
       if (sprint.state === 'active') {
-        // Active sprint uses shared sprintStories cache (D-02) — non-subtask stories only
+        // Active sprint stories from shared cache — may still be loading
         const stories = (sprintStories ?? []).filter((i) => !i.fields.issuetype.subtask);
-        sections.push({ sprint, issues: stories });
+        sections.push({ sprint, issues: stories, storiesLoading: !sprintStories });
       } else {
-        // Future sprints use their own query data
-        sections.push({ sprint, issues: futureBySprintId.get(sprint.id) ?? [] });
+        sections.push({ sprint, issues: futureBySprintId.get(sprint.id) ?? [], storiesLoading: !futureSprintIssues });
       }
     }
     return sections;
-  }, [sprintList, sprintStories, futureSprintIssues]);
+  }, [sprintList, sprintStories, futureSprintIssues, activeSprint]);
 
   // ── Map parentKey → Set of subtask status names (from sprint board data) ─────
   const subtaskStatusMap = new Map<string, Set<string>>();
@@ -476,8 +450,13 @@ export default function BacklogPage() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const prevFocusIndex = useRef(focusIndex);
 
   useEffect(() => {
+    // Only scroll when focusIndex changes from keyboard navigation,
+    // NOT when visibleIssueKeys changes from new sections loading.
+    if (focusIndex === prevFocusIndex.current) return;
+    prevFocusIndex.current = focusIndex;
     if (focusIndex >= 0 && focusIndex < visibleIssueKeys.length) {
       const key = visibleIssueKeys[focusIndex];
       const el = rowRefs.current.get(key);
@@ -549,6 +528,7 @@ export default function BacklogPage() {
     issues: JiraIssue[],
     showCreateStory: boolean,
     isSticky: boolean = false,
+    storiesLoading: boolean = false,
   ) {
     const isCollapsed = collapsedSections.has(sectionId);
     const filteredIssues = applyFilters(issues);
@@ -584,17 +564,30 @@ export default function BacklogPage() {
             </span>
           )}
           <span className="ml-auto text-xs text-muted-foreground">
-            {issues.length} {issues.length === 1 ? 'issue' : 'issues'}
+            {storiesLoading ? '…' : `${issues.length} ${issues.length === 1 ? 'issue' : 'issues'}`}
           </span>
         </button>
 
         {/* Section body */}
         {!isCollapsed && (
           <div>
-            {filteredIssues.length > 0 ? (
-              <VirtualizedBacklogTable
+            {storiesLoading ? (
+              /* Stories still loading — show inline skeleton rows */
+              <div className="space-y-0">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className={`grid ${GRID_COLS} border-b border-border py-2`}>
+                    <div className="px-3"><Skeleton className="h-4 w-4" /></div>
+                    <div className="px-2"><Skeleton className="h-4 w-16" /></div>
+                    <div className="px-2"><Skeleton className="h-4 w-14 rounded-full" /></div>
+                    <div className="px-2"><Skeleton className="h-4 w-3/4" /></div>
+                    <div className="px-2 flex justify-end"><Skeleton className="h-4 w-8" /></div>
+                    <div className="px-2"><Skeleton className="h-6 w-6 rounded-full" /></div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredIssues.length > 0 ? (
+              <BacklogTable
                 filteredIssues={filteredIssues}
-                scrollElement={scrollRef.current}
                 selectedKeys={selectedKeys}
                 onSelect={handleSelect}
                 onIssueClick={onIssueClick}
@@ -659,42 +652,39 @@ export default function BacklogPage() {
       <div ref={scrollRef} className="flex-1 overflow-auto">
         <UnifiedFilterBar filterOptions={filterOptions} />
 
-        {/* Sprint sections */}
-        {showSprintSkeleton ? (
+        {/* All sections — sprint headers + backlog header appear together, stories fill in */}
+        {showSprintHeadersSkeleton ? (
           <BacklogSkeleton />
-        ) : orderedSprintSections.length > 0 ? (
+        ) : (
           <div>
-            {orderedSprintSections.map(({ sprint, issues }) =>
+            {orderedSprintSections.map(({ sprint, issues, storiesLoading }) =>
               renderSection(
                 `sprint-${sprint.id}`,
                 sprint.name,
                 sprint.state === 'active' ? 'Active' : 'Future',
                 issues,
                 false,
-                sprint.state === 'active',
+                true,
+                storiesLoading,
               ),
             )}
+            {/* Backlog section — header appears with sprints, stories fill in */}
+            {backlogError && !backlogIssues ? (
+              <div className="p-4">
+                <ErrorState
+                  error={backlogErrorObj}
+                  onRetry={() => queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] })}
+                  viewName="backlog"
+                />
+              </div>
+            ) : (
+              renderSection('backlog', 'Backlog', null, backlogIssues ?? [], true, true, !backlogIssues)
+            )}
           </div>
-        ) : null}
-
-        {/* Backlog section */}
-        {backlogError && !backlogIssues ? (
-          <div className="p-4">
-            <ErrorState
-              error={backlogErrorObj}
-              onRetry={() => queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] })}
-              viewName="backlog"
-            />
-          </div>
-        ) : showBacklogSkeleton ? (
-          <BacklogSkeleton />
-        ) : backlogIssues ? (
-          renderSection('backlog', 'Backlog', null, backlogIssues, true)
-        ) : null}
+        )}
 
         {/* Empty state — no sprint sections AND no backlog issues */}
-        {!showSprintSkeleton &&
-          !showBacklogSkeleton &&
+        {!showSprintHeadersSkeleton &&
           orderedSprintSections.length === 0 &&
           backlogIssues?.length === 0 && (
             <EmptyState
