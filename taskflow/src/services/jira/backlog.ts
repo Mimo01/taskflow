@@ -46,7 +46,7 @@ export async function fetchBacklogIssues(
   ].join(',');
 
   const jql = encodeURIComponent(
-    `project = ${projectKey} AND (sprint is EMPTY OR sprint not in (openSprints(), futureSprints())) AND issuetype not in subtaskIssueTypes() ORDER BY created DESC`,
+    `project = ${projectKey} AND sprint is EMPTY AND issuetype != Sub-task AND statusCategory != Done ORDER BY rank ASC`,
   );
   const baseSearchUrl = `${base}/rest/api/2/search?jql=${jql}&fields=${fields}`;
 
@@ -132,7 +132,7 @@ export async function fetchFutureSprintIssues(
     ]),
   ].join(',');
   const jql = encodeURIComponent(
-    `project = ${projectKey} AND sprint in futureSprints() AND issuetype != Sub-task ORDER BY rank ASC`,
+    `project = ${projectKey} AND sprint in futureSprints() AND issuetype != Sub-task AND statusCategory != Done ORDER BY rank ASC`,
   );
   const agileBase = `${base}/rest/agile/1.0/board/${boardId}/issue`;
   try {
