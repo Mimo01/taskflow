@@ -14,6 +14,7 @@ import React from 'react';
 import {
   ContextMenu,
   ContextMenuContent,
+  ContextMenuGroup,
   ContextMenuItem,
   ContextMenuLabel,
   ContextMenuSeparator,
@@ -207,27 +208,29 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
           }
         />
         <ContextMenuContent>
-          <ContextMenuLabel>Move to...</ContextMenuLabel>
-          <ContextMenuSeparator />
-          {sprints && sprints.length > 0 ? (
-            sprints.map((sprint) => (
-              <ContextMenuItem
-                key={sprint.id}
-                onClick={() => onMoveToSprint(issue.key, sprint.id, sprint.name)}
-              >
-                {sprint.name}
-                {sprint.state === 'active' && (
-                  <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-1.5 py-0 text-[10px] font-medium text-green-800 border border-green-300">
-                    Active
-                  </span>
-                )}
-              </ContextMenuItem>
-            ))
-          ) : (
-            <ContextMenuLabel className="italic text-muted-foreground">
-              No sprints available
-            </ContextMenuLabel>
-          )}
+          <ContextMenuGroup>
+            <ContextMenuLabel>Move to...</ContextMenuLabel>
+            <ContextMenuSeparator />
+            {sprints && sprints.length > 0 ? (
+              sprints.map((sprint) => (
+                <ContextMenuItem
+                  key={sprint.id}
+                  onClick={() => onMoveToSprint(issue.key, sprint.id, sprint.name)}
+                >
+                  {sprint.name}
+                  {sprint.state === 'active' && (
+                    <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-1.5 py-0 text-[10px] font-medium text-green-800 border border-green-300">
+                      Active
+                    </span>
+                  )}
+                </ContextMenuItem>
+              ))
+            ) : (
+              <ContextMenuLabel className="italic text-muted-foreground">
+                No sprints available
+              </ContextMenuLabel>
+            )}
+          </ContextMenuGroup>
         </ContextMenuContent>
       </ContextMenu>
     );
