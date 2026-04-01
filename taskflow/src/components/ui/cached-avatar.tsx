@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAvatarCache } from '@/hooks/useAvatarCache';
 import { evictAvatar } from '@/services/avatarCache';
@@ -13,6 +14,14 @@ export function getInitials(name: string): string {
 }
 
 const SIZE_MAP = { 20: 'size-5', 24: 'size-6', 32: 'size-8', 40: 'size-10' } as const;
+
+/** Icon size in pixels for unassigned avatar, keyed by avatar size. */
+const ICON_SIZE_MAP = { 20: 12, 24: 14, 32: 18, 40: 22 } as const;
+
+/** Returns true when the name represents an unassigned state. */
+function isUnassigned(name: string): boolean {
+  return name.trim().toLowerCase() === 'unassigned';
+}
 
 interface CachedAvatarProps {
   /** Original avatar URL (Jira avatarUrls['48x48'] or GitLab avatar_url). Null/undefined shows initials permanently. */
@@ -49,21 +58,26 @@ export function CachedAvatar({ url, name, size = 32, className }: CachedAvatarPr
   }, [url]);
 
   const showImage = blobUrl && !imgFailed;
+  const showUnassigned = !url && isUnassigned(name);
 
   return (
     <div className={cn('relative', sizeClass, className)}>
-      {/* Initials fallback — always rendered, hidden when image is shown */}
+      {/* Fallback — always rendered, hidden when image is shown */}
       <div
         className={cn(
           sizeClass,
           'rounded-full bg-muted flex items-center justify-center',
-          'text-[10px] font-medium text-foreground',
+          showUnassigned ? '' : 'text-[10px] font-medium text-foreground',
           showImage ? 'hidden' : 'flex',
         )}
         role="img"
         aria-label={name}
       >
-        {initials}
+        {showUnassigned ? (
+          <User size={ICON_SIZE_MAP[size]} className="text-muted-foreground" />
+        ) : (
+          initials
+        )}
       </div>
       {/* Image — shown only when blob URL is available and hasn't errored */}
       {showImage && (

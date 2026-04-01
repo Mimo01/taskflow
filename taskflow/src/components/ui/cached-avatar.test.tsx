@@ -114,4 +114,28 @@ describe('CachedAvatar component', () => {
     // size=40 -> size-10
     expect(container.firstChild).toHaveClass('size-10');
   });
+
+  it('Test 7 (unassigned icon): when name is "Unassigned" and url is null, renders User icon (svg), not "U" text', async () => {
+    const { CachedAvatar } = await import('@/components/ui/cached-avatar');
+    const { container } = render(<CachedAvatar url={null} name="Unassigned" />);
+
+    const fallback = screen.getByRole('img');
+    expect(fallback).toHaveAttribute('aria-label', 'Unassigned');
+    // Should contain an SVG (the User icon), not the letter "U"
+    expect(fallback.querySelector('svg')).toBeTruthy();
+    expect(fallback.textContent).toBe('');
+    // No img tag
+    expect(container.querySelector('img')).toBeNull();
+  });
+
+  it('Test 8 (real name no avatar): when name is "Uma Thompson" and url is null, renders initials "UT", not icon', async () => {
+    const { CachedAvatar } = await import('@/components/ui/cached-avatar');
+    render(<CachedAvatar url={null} name="Uma Thompson" />);
+
+    const fallback = screen.getByRole('img');
+    expect(fallback).toHaveAttribute('aria-label', 'Uma Thompson');
+    expect(fallback).toHaveTextContent('UT');
+    // No svg (no unassigned icon)
+    expect(fallback.querySelector('svg')).toBeNull();
+  });
 });
