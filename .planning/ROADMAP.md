@@ -247,7 +247,11 @@ Plans:
   6. Orphaned service functions (fetchSprintList, fetchFutureSprintIssues, fetchBacklogIssues) are either re-wired or removed
   7. Context menu and right-click functionality remains unchanged
   8. All existing tests pass
-**Plans:** 0 plans
+**Plans:** 2 plans
+
+Plans:
+- [ ] 48-01-PLAN.md — Per-section queries, useDelayedLoading, BacklogSkeleton, epicsLoading prop, cache key fix
+- [ ] 48-02-PLAN.md — Test mock overhaul + LOAD-04 test case
 
 ## Progress
 
@@ -264,4 +268,4 @@ Plans:
 | 46. Avatar Caching | v1.7 | 2/2 | Complete    | 2026-03-30 |
 | 47. v1.7 Debt Cleanup | v1.7 | 2/2 | Complete    | 2026-03-31 |
 | 47. Optimize Backlog Performance | v1.7 | 0/2 | Planning  | — |
-| 48. Restore Backlog Progressive Loading | v1.7 | 0/0 | Planning  | — |
+| 48. Restore Backlog Progressive Loading | v1.7 | 0/2 | Planning  | — |
