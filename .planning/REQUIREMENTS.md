@@ -76,10 +76,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ROUT-05 | Phase 42 | Complete |
 | QOPT-01 | Phase 45 | Complete |
 | QOPT-02 | Phase 48 | Complete |
-| QOPT-03 | Phase 45 | Complete |
+| QOPT-03 | Phase 45, 49 | Complete |
 | QOPT-04 | Phase 43 | Complete |
 | QOPT-05 | Phase 43 | Complete |
-| CACH-01 | Phase 46 | Complete |
+| CACH-01 | Phase 46, 49 | Complete |
 | CACH-02 | Phase 46 | Complete |
 
 **Coverage:**
@@ -89,4 +89,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-03-29*
-*Last updated: 2026-04-04 after v1.7 gap closure planning (Phase 48)*
+*Last updated: 2026-04-04 after v1.7 gap closure planning (Phase 49)*
