@@ -45,6 +45,8 @@ duration: 8min
 completed: 2026-03-29
 ---
 
+> **Historical note (Phase 49):** `MrAttentionTab.tsx` referenced throughout this document was later removed in a subsequent phase. References below reflect the file's name at the time Phase 43 was executed.
+
 # Phase 43 Plan 02: Route-Aware Polling Wiring Summary
 
 **All 5 view-scoped polling queries now pause when their route is inactive and stop polling in background — shared constants replace all magic numbers**

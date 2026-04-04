@@ -6,6 +6,8 @@ score: 6/6 must-haves verified
 re_verification: false
 ---
 
+> **Historical note (Phase 49):** `MrAttentionTab.tsx` referenced throughout this document was later removed in a subsequent phase. References below reflect the file's name at the time Phase 43 was executed.
+
 # Phase 43: Cache Correctness Verification Report
 
 **Phase Goal:** Cache correctness — shared polling constants, route-aware polling pause, gcTime: Infinity
