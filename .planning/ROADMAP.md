@@ -269,10 +269,10 @@ Plans:
   7. Phase 43 docs no longer reference non-existent MrAttentionTab.tsx
   8. ROUT-05 added to 42-03-SUMMARY.md frontmatter
   9. VALIDATION.md `nyquist_compliant` set to true in phases 47-debt, 47-backlog, 48
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
 - [ ] 49-01-PLAN.md — Fix sidebar prefetch, mutation invalidations, CachedAvatar migration
-- [ ] 49-02-PLAN.md — Phase 43 MrAttentionTab annotation, VALIDATION.md nyquist flags
+- [x] 49-02-PLAN.md — Phase 43 MrAttentionTab annotation, VALIDATION.md nyquist flags
 
 ## Progress
 
@@ -290,4 +290,4 @@ Plans:
 | 47. v1.7 Debt Cleanup | v1.7 | 2/2 | Complete    | 2026-03-31 |
 | 47. Optimize Backlog Performance | v1.7 | 0/2 | Planning  | — |
 | 48. Restore Backlog Progressive Loading | v1.7 | 2/2 | Complete    | 2026-04-04 |
-| 49. Fix Backlog Query Key Wiring & Doc Debt | v1.7 | 0/0 | Pending | — |
+| 49. Fix Backlog Query Key Wiring & Doc Debt | v1.7 | 1/2 | In Progress|  |
