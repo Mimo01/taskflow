@@ -1,0 +1,338 @@
+name: Cross-Platform Release Build
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag (e.g. v1.6.3)"
+        required: true
+      platform:
+        description: "Platform to build (all, linux, windows)"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - linux
+          - windows
+
+permissions:
+  contents: read
+
+env:
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            os_name: linux
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+            os_name: windows
+
+    runs-on: ${{ matrix.platform }}
+
+    defaults:
+      run:
+        working-directory: taskflow
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+          fetch-depth: 0
+
+      - name: Check if this platform should run
+        id: should_run
+        shell: bash
+        working-directory: .
+        run: |
+          PLATFORM="${{ github.event.inputs.platform || 'all' }}"
+          OS_NAME="${{ matrix.os_name }}"
+          if [ "$PLATFORM" = "all" ] || [ "$PLATFORM" = "$OS_NAME" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping $OS_NAME build (requested: $PLATFORM)"
+          fi
+
+      - name: Resolve version
+        if: steps.should_run.outputs.run == 'true'
+        id: version
+        shell: bash
+        working-directory: .
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            TAG="${{ github.event.inputs.version }}"
+          else
+            TAG="${{ github.ref_name }}"
+          fi
+          BARE=$(echo "$TAG" | sed 's/^v//')
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "bare=$BARE" >> "$GITHUB_OUTPUT"
+          git tag "$TAG" 2>/dev/null || true
+
+      - name: Install Linux dependencies
+        if: steps.should_run.outputs.run == 'true' && matrix.os_name == 'linux'
+        working-directory: .
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            libwebkit2gtk-4.1-dev libssl-dev libgtk-3-dev \
+            libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Setup Node.js
+        if: steps.should_run.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: taskflow/package-lock.json
+
+      - name: Setup Rust
+        if: steps.should_run.outputs.run == 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        if: steps.should_run.outputs.run == 'true'
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: taskflow/src-tauri
+
+      - name: Install frontend dependencies
+        if: steps.should_run.outputs.run == 'true'
+        run: npm ci
+
+      - name: Inject version
+        if: steps.should_run.outputs.run == 'true'
+        shell: bash
+        run: eval "$(node scripts/inject-version.cjs)"
+
+      - name: Build frontend
+        if: steps.should_run.outputs.run == 'true'
+        run: npm run build
+
+      - name: Build Tauri app
+        if: steps.should_run.outputs.run == 'true'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ""
+          releaseName: ""
+          releaseBody: ""
+          releaseDraft: false
+          preRelease: false
+          projectPath: taskflow
+          args: --target ${{ matrix.target }}
+
+      - name: Collect Linux artifacts
+        if: steps.should_run.outputs.run == 'true' && matrix.os_name == 'linux'
+        shell: bash
+        working-directory: .
+        run: |
+          VERSION="${{ steps.version.outputs.bare }}"
+          BUNDLE="taskflow/target/${{ matrix.target }}/release/bundle"
+          mkdir -p artifacts
+          cp "$BUNDLE/appimage/taskflow_${VERSION}_amd64.AppImage.tar.gz" artifacts/ 2>/dev/null || true
+          cp "$BUNDLE/appimage/taskflow_${VERSION}_amd64.AppImage.tar.gz.sig" artifacts/ 2>/dev/null || true
+          cp "$BUNDLE/deb/taskflow_${VERSION}_amd64.deb" artifacts/ 2>/dev/null || true
+          ls -la artifacts/
+
+      - name: Collect Windows artifacts
+        if: steps.should_run.outputs.run == 'true' && matrix.os_name == 'windows'
+        shell: bash
+        working-directory: .
+        run: |
+          VERSION="${{ steps.version.outputs.bare }}"
+          BUNDLE="taskflow/target/${{ matrix.target }}/release/bundle"
+          mkdir -p artifacts
+          cp "$BUNDLE/nsis/taskflow_${VERSION}_x64-setup.exe" artifacts/ 2>/dev/null || true
+          cp "$BUNDLE/nsis/taskflow_${VERSION}_x64-setup.exe.sig" artifacts/ 2>/dev/null || true
+          cp "$BUNDLE/msi/taskflow_${VERSION}_x64_en-US.msi" artifacts/ 2>/dev/null || true
+          cp "$BUNDLE/msi/taskflow_${VERSION}_x64_en-US.msi.sig" artifacts/ 2>/dev/null || true
+          ls -la artifacts/
+
+      - name: Upload artifacts
+        if: steps.should_run.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os_name }}-artifacts
+          path: artifacts/*
+
+  upload-to-releases:
+    needs: build
+    if: always() && !cancelled()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            TAG="${{ github.event.inputs.version }}"
+          else
+            TAG="${{ github.ref_name }}"
+          fi
+          BARE=$(echo "$TAG" | sed 's/^v//')
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "bare=$BARE" >> "$GITHUB_OUTPUT"
+          git tag "$TAG" 2>/dev/null || true
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+
+      - name: List artifacts
+        run: find all-artifacts -type f | sort
+
+      - name: Get release ID from taskflow-releases
+        id: release
+        env:
+          RELEASES_TOKEN: ${{ secrets.RELEASES_REPO_PAT }}
+        shell: bash
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          RELEASE=$(curl -s -H "Authorization: token $RELEASES_TOKEN" \
+            "https://api.github.com/repos/Mimo01/taskflow-releases/releases/tags/$TAG")
+          RELEASE_ID=$(python3 -c "
+          import sys, json
+          data = json.loads(sys.argv[1], strict=False)
+          if 'id' not in data:
+              print('Release not found', file=sys.stderr)
+              sys.exit(1)
+          print(data['id'])
+          " "$RELEASE")
+          echo "id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
+          echo "Release ID: $RELEASE_ID"
+
+      - name: Upload artifacts to taskflow-releases
+        env:
+          RELEASES_TOKEN: ${{ secrets.RELEASES_REPO_PAT }}
+        shell: bash
+        run: |
+          RELEASE_ID="${{ steps.release.outputs.id }}"
+          UPLOAD_BASE="https://uploads.github.com/repos/Mimo01/taskflow-releases/releases/$RELEASE_ID/assets"
+          API_BASE="https://api.github.com/repos/Mimo01/taskflow-releases/releases"
+
+          # Get existing assets to delete duplicates
+          EXISTING_ASSETS=$(curl -s -H "Authorization: token $RELEASES_TOKEN" \
+            "$API_BASE/$RELEASE_ID/assets")
+
+          for file in all-artifacts/*/*; do
+            [ -f "$file" ] || continue
+            NAME=$(basename "$file")
+            # Delete existing asset with same name if present
+            OLD_ID=$(python3 -c "
+          import sys, json
+          assets = json.loads(sys.argv[1], strict=False)
+          found = [a['id'] for a in assets if a['name'] == sys.argv[2]]
+          print(found[0] if found else '')
+          " "$EXISTING_ASSETS" "$NAME")
+            if [ -n "$OLD_ID" ]; then
+              echo "Replacing existing $NAME (asset $OLD_ID)..."
+              curl -s -X DELETE -H "Authorization: token $RELEASES_TOKEN" \
+                "$API_BASE/assets/$OLD_ID"
+            fi
+            echo "Uploading $NAME..."
+            RESPONSE=$(curl -s -X POST \
+              -H "Authorization: token $RELEASES_TOKEN" \
+              -H "Content-Type: application/octet-stream" \
+              "$UPLOAD_BASE?name=$NAME" \
+              --data-binary @"$file")
+            python3 -c "
+          import sys, json
+          data = json.loads(sys.argv[1], strict=False)
+          if 'id' not in data:
+              print('Error:', json.dumps(data, indent=2), file=sys.stderr)
+              sys.exit(1)
+          print('  OK:', data.get('browser_download_url', '(no url)'))
+          " "$RESPONSE"
+          done
+
+      - name: Update latest.json with Linux + Windows platforms
+        env:
+          RELEASES_TOKEN: ${{ secrets.RELEASES_REPO_PAT }}
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.bare }}"
+          TAG="${{ steps.version.outputs.tag }}"
+          RELEASE_ID="${{ steps.release.outputs.id }}"
+          API_BASE="https://api.github.com/repos/Mimo01/taskflow-releases/releases"
+
+          # Download existing latest.json to a file
+          curl -sL "https://github.com/Mimo01/taskflow-releases/releases/download/$TAG/latest.json" -o /tmp/existing-latest.json || echo '{}' > /tmp/existing-latest.json
+
+          # Build updated latest.json via Python script file
+          cat > /tmp/build-latest.py << 'PYEOF'
+          import json, os, sys
+          version = sys.argv[1]
+          with open("/tmp/existing-latest.json") as f:
+              try:
+                  existing = json.load(f)
+              except Exception:
+                  existing = {}
+          platforms = existing.get("platforms", {})
+          base_url = f"https://github.com/Mimo01/taskflow-releases/releases/download/v{version}"
+          linux_sig = f"all-artifacts/linux-artifacts/taskflow_{version}_amd64.AppImage.tar.gz.sig"
+          if os.path.exists(linux_sig):
+              with open(linux_sig) as f:
+                  platforms["linux-x86_64"] = {"signature": f.read().strip(), "url": f"{base_url}/taskflow_{version}_amd64.AppImage.tar.gz"}
+          win_sig = f"all-artifacts/windows-artifacts/taskflow_{version}_x64-setup.exe.sig"
+          if os.path.exists(win_sig):
+              with open(win_sig) as f:
+                  platforms["windows-x86_64"] = {"signature": f.read().strip(), "url": f"{base_url}/taskflow_{version}_x64-setup.exe"}
+          from datetime import datetime, timezone
+          pub_date = existing.get("pub_date") or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+          result = {"version": existing.get("version", version), "notes": existing.get("notes", f"Release v{version}"), "pub_date": pub_date, "platforms": platforms}
+          print(json.dumps(result, indent=2))
+          PYEOF
+          python3 /tmp/build-latest.py "$VERSION" > /tmp/latest.json
+          cat /tmp/latest.json
+
+          # Delete old latest.json asset
+          ASSETS=$(curl -s -H "Authorization: token $RELEASES_TOKEN" "$API_BASE/$RELEASE_ID/assets")
+          LATEST_ID=$(python3 -c "
+          import sys, json
+          found = [a['id'] for a in json.loads(sys.argv[1], strict=False) if a['name'] == 'latest.json']
+          print(found[0] if found else '')
+          " "$ASSETS")
+          if [ -n "$LATEST_ID" ]; then
+            echo "Deleting old latest.json (asset $LATEST_ID)..."
+            curl -s -X DELETE -H "Authorization: token $RELEASES_TOKEN" "$API_BASE/assets/$LATEST_ID"
+          fi
+
+          # Upload new latest.json
+          echo "Uploading updated latest.json..."
+          curl -s -X POST \
+            -H "Authorization: token $RELEASES_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://uploads.github.com/repos/Mimo01/taskflow-releases/releases/$RELEASE_ID/assets?name=latest.json" \
+            --data-binary @/tmp/latest.json | python3 -c "
+          import sys, json
+          data = json.loads(sys.stdin.read(), strict=False)
+          print('OK:', data.get('browser_download_url', '(no url)'))
+          "
