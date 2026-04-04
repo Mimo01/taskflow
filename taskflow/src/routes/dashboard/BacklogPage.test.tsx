@@ -19,6 +19,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { EpicEnriched } from '@/services/jira';
 
 // ── Mocks ──────────────────────────────────────────────────────────────────────
 
@@ -152,7 +153,7 @@ async function resetMocks() {
   vi.mocked(fetchSprintList).mockResolvedValue([]);
   vi.mocked(fetchBacklogIssues).mockResolvedValue([]);
   const { useBoardId } = await import('@/hooks/useBoardId');
-  vi.mocked(useBoardId).mockReturnValue({ boardId: 1 });
+  vi.mocked(useBoardId).mockReturnValue({ boardId: 1, isLoading: false });
   const { useDelayedLoading } = await import('@/hooks/useDelayedLoading');
   vi.mocked(useDelayedLoading).mockImplementation((isPending: boolean) => isPending);
   const { useOutletContext } = await import('react-router-dom');
@@ -387,7 +388,7 @@ describe('BACK-04 Filters', () => {
     vi.mocked(fetchEpicsBasic).mockResolvedValue([
       { key: 'EPIC-1', epicName: 'EPIC-1', color: null },
       { key: 'EPIC-2', epicName: 'EPIC-2', color: null },
-    ]);
+    ] as unknown as EpicEnriched[]);
 
     const { default: BacklogPage } = await import('./BacklogPage');
     renderBacklogPage(<BacklogPage />);
@@ -443,7 +444,7 @@ describe('BACK-04 Filters', () => {
     vi.mocked(fetchEpicsBasic).mockResolvedValue([
       { key: 'EPIC-1', epicName: 'EPIC-1', color: null },
       { key: 'EPIC-2', epicName: 'EPIC-2', color: null },
-    ]);
+    ] as unknown as EpicEnriched[]);
 
     const { default: BacklogPage } = await import('./BacklogPage');
     renderBacklogPage(<BacklogPage />);
@@ -475,7 +476,7 @@ describe('BACK-04 Filters', () => {
     vi.mocked(fetchEpicsBasic).mockResolvedValue([
       { key: 'EPIC-1', epicName: 'EPIC-1', color: null },
       { key: 'EPIC-2', epicName: 'EPIC-2', color: null },
-    ]);
+    ] as unknown as EpicEnriched[]);
 
     const { default: BacklogPage } = await import('./BacklogPage');
     renderBacklogPage(<BacklogPage />);
