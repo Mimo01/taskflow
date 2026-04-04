@@ -229,4 +229,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-31 after Phase 47 optimize-backlog-performance complete — backlog view uses per-section progressive loading with div-based virtualized rows, LOAD-04 satisfied*
+*Last updated: 2026-04-04 after Phase 49 fix-backlog-wiring-and-doc-debt complete — all stale jira-backlog-view query keys replaced with actual BacklogPage keys, BacklogRow avatar migrated to CachedAvatar, doc debt closed*
