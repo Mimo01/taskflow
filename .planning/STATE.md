@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Performance & Perceived Speed
-status: Ready to execute
-stopped_at: Completed 49-02-PLAN.md
-last_updated: "2026-04-04T17:49:29.358Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 49-01-PLAN.md
+last_updated: "2026-04-04T17:51:09.323Z"
 last_activity: 2026-04-04
 progress:
   total_phases: 5
@@ -56,6 +56,7 @@ Recent decisions affecting current work:
 - [Phase 48-01]: epicColorMap uses e.color field (EpicEnriched.color, not epicColor) — corrected at compile time
 - [Phase 48]: resetMocks helper needed after vi.resetAllMocks() — re-establishes base mock implementations that resetAllMocks clears
 - [Phase 49-fix-backlog-wiring-and-doc-debt]: MrAttentionTab.tsx confirmed removed entirely — annotation uses 'was later removed' not 'renamed'
+- [Phase 49-fix-backlog-wiring-and-doc-debt]: Sprint-stories and backlog-issues prefetch fire immediately without boardId; only sprint-list prefetch is gated on boardId resolution
 
 ### Roadmap Evolution
 
@@ -75,7 +76,7 @@ None.
 ## Session Continuity
 
 Last activity: 2026-04-04
-Stopped at: Completed 49-02-PLAN.md
+Stopped at: Completed 49-01-PLAN.md
 Resume: `/gsd:plan-phase 38`
 
 ### Quick Tasks Completed
