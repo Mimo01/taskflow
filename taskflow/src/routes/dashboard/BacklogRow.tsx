@@ -20,6 +20,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import { Skeleton } from '@/components/ui/skeleton';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
@@ -35,6 +36,7 @@ export interface BacklogRowProps {
   epicNameFieldKey: string;
   epicNames?: Map<string, string>;
   epicColors?: Map<string, string>;
+  epicsLoading?: boolean;
   isFocused?: boolean;
   sprints?: Array<{ id: number; name: string; state: string }>;
   onMoveToSprint?: (issueKey: string, sprintId: number, sprintName: string) => void;
@@ -49,6 +51,7 @@ function RowCells({
   epicColorResult,
   storyPoints,
   onIssueClick,
+  epicsLoading,
 }: {
   issue: JiraIssue;
   epicKey: string | null;
@@ -56,6 +59,7 @@ function RowCells({
   epicColorResult: ReturnType<typeof epicColorToTailwind> | null;
   storyPoints: number | null;
   onIssueClick: (key: string) => void;
+  epicsLoading?: boolean;
 }) {
   return (
     <>
@@ -66,22 +70,26 @@ function RowCells({
 
       {/* Epic badge cell -- right after key */}
       <td className="px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap">
-        {epicKey && epicName && epicColorResult ? (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onIssueClick(epicKey);
-            }}
-            className={cn(
-              'inline-flex items-center rounded-full border px-1.5 py-0 text-[11px] font-medium hover:opacity-80 transition-opacity',
-              epicColorResult.className,
-            )}
-            style={epicColorResult.style}
-            title={`${epicKey}: ${epicName}`}
-          >
-            {epicName}
-          </button>
+        {epicKey ? (
+          epicsLoading ? (
+            <Skeleton className="h-4 w-14 rounded-full" />
+          ) : epicName && epicColorResult ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onIssueClick(epicKey);
+              }}
+              className={cn(
+                'inline-flex items-center rounded-full border px-1.5 py-0 text-[11px] font-medium hover:opacity-80 transition-opacity',
+                epicColorResult.className,
+              )}
+              style={epicColorResult.style}
+              title={`${epicKey}: ${epicName}`}
+            >
+              {epicName}
+            </button>
+          ) : null
         ) : null}
       </td>
 
@@ -143,6 +151,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       epicNameFieldKey,
       epicNames,
       epicColors,
+      epicsLoading,
       isFocused,
       sprints,
       onMoveToSprint,
@@ -176,6 +185,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       epicColorResult,
       storyPoints,
       onIssueClick,
+      epicsLoading,
     };
 
     if (!onMoveToSprint) {
