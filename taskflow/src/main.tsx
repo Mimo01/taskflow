@@ -318,23 +318,24 @@ function AppLayout() {
       if (resolvedTitle) break;
     }
 
-    // 2. Search backlog cache (sprints[].issues + backlog[])
+    // 2. Search backlog cache (flat JiraIssue[] arrays from Phase 48 refactor)
     if (!resolvedTitle) {
-      const backlogEntries = queryClient.getQueriesData<{
-        sprints?: Array<{ issues: CachedIssue[] }>;
-        backlog?: CachedIssue[];
-      }>({
-        queryKey: ['jira-backlog-view'],
+      const sprintStoriesEntries = queryClient.getQueriesData<CachedIssue[]>({
+        queryKey: ['jira-sprint-stories'],
       });
-      for (const [, data] of backlogEntries) {
+      for (const [, data] of sprintStoriesEntries) {
         if (!data) continue;
-        resolvedTitle = findTitle(data.backlog);
-        if (!resolvedTitle && data.sprints) {
-          for (const s of data.sprints) {
-            resolvedTitle = findTitle(s.issues);
-            if (resolvedTitle) break;
-          }
-        }
+        resolvedTitle = findTitle(data);
+        if (resolvedTitle) break;
+      }
+    }
+    if (!resolvedTitle) {
+      const backlogIssuesEntries = queryClient.getQueriesData<CachedIssue[]>({
+        queryKey: ['jira-backlog-issues'],
+      });
+      for (const [, data] of backlogIssuesEntries) {
+        if (!data) continue;
+        resolvedTitle = findTitle(data);
         if (resolvedTitle) break;
       }
     }
@@ -429,7 +430,8 @@ function AppLayout() {
 
   const handleCreateModalClose = () => {
     if (wasStoryCreate.current) {
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog-view'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] });
     }
     wasStoryCreate.current = false;
     setCreateModalOpen(false);

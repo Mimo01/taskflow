@@ -41,23 +41,23 @@ function findJiraIssueInCache(
     }
   }
 
-  // 2. Backlog cache (sprints[].issues + backlog[])
-  const backlogQueries = queryClient.getQueriesData<{
-    sprints?: Array<{ issues: JiraIssue[] }>;
-    backlog?: JiraIssue[];
-  }>({
-    queryKey: ['jira-backlog-view'],
+  // 2. Backlog cache — flat JiraIssue[] arrays from Phase 48 refactor
+  const sprintStoriesQueries = queryClient.getQueriesData<JiraIssue[]>({
+    queryKey: ['jira-sprint-stories'],
   });
-  for (const [, data] of backlogQueries) {
+  for (const [, data] of sprintStoriesQueries) {
     if (!data) continue;
-    const match = data.backlog?.find((issue) => issue.key === issueKey);
+    const match = data.find((issue) => issue.key === issueKey);
     if (match) return match;
-    if (data.sprints) {
-      for (const s of data.sprints) {
-        const m = s.issues.find((issue) => issue.key === issueKey);
-        if (m) return m;
-      }
-    }
+  }
+
+  const backlogIssuesQueries = queryClient.getQueriesData<JiraIssue[]>({
+    queryKey: ['jira-backlog-issues'],
+  });
+  for (const [, data] of backlogIssuesQueries) {
+    if (!data) continue;
+    const match = data.find((issue) => issue.key === issueKey);
+    if (match) return match;
   }
 
   // 3. Issue detail cache (single issue)

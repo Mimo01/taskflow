@@ -28,7 +28,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { STALE_TIME_MS } from '@/lib/query-constants';
 import { fetchActiveSprint, fetchEpicsBasic, fetchProjectStatuses } from '@/services/jira';
 import { fetchSprintStories } from '@/services/jira/issues';
-import { fetchBacklogView } from '@/services/jira/backlog';
+import { fetchBacklogIssues, fetchSprintList } from '@/services/jira/backlog';
 import { fetchBoardId } from '@/services/jira/sprints';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
@@ -115,8 +115,18 @@ export default function Sidebar() {
         staleTime: 5 * 60 * 1000,
       });
       if (path === '/backlog') {
-        // Resolve boardId first (staleTime: Infinity — instant from cache after first load),
-        // then prefetch the backlog view with the resolved boardId.
+        // Sprint stories and backlog issues don't depend on boardId — prefetch immediately.
+        queryClient.prefetchQuery({
+          queryKey: ['jira-sprint-stories', activeJiraProject, jiraBaseUrl, storyPointsFieldKey, epicLinkFieldKey],
+          queryFn: () => fetchSprintStories(jiraBaseUrl, jiraToken, activeJiraProject, false, storyPointsFieldKey, epicLinkFieldKey),
+          staleTime: STALE_TIME_MS,
+        });
+        queryClient.prefetchQuery({
+          queryKey: ['jira-backlog-issues', activeJiraProject, jiraBaseUrl, storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey],
+          queryFn: () => fetchBacklogIssues(jiraBaseUrl, jiraToken, activeJiraProject, storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey),
+          staleTime: STALE_TIME_MS,
+        });
+        // Sprint list needs boardId — resolve first then prefetch.
         queryClient.fetchQuery({
           queryKey: ['jira-board-id', activeJiraProject, jiraBaseUrl],
           queryFn: () => fetchBoardId(jiraBaseUrl, jiraToken, activeJiraProject),
@@ -124,13 +134,13 @@ export default function Sidebar() {
         }).then((boardId) => {
           if (boardId != null) {
             queryClient.prefetchQuery({
-              queryKey: ['jira-backlog-view', activeJiraProject, jiraBaseUrl],
-              queryFn: () => fetchBacklogView(jiraBaseUrl, jiraToken, activeJiraProject, boardId, storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey),
+              queryKey: ['jira-sprint-list', boardId, jiraBaseUrl],
+              queryFn: () => fetchSprintList(jiraBaseUrl, jiraToken, boardId),
               staleTime: STALE_TIME_MS,
             });
           }
         }).catch(() => {
-          // Board discovery failed — silently skip backlog prefetch.
+          // Board discovery failed — silently skip sprint-list prefetch.
           // User will still get a normal load when they navigate.
         });
       }
