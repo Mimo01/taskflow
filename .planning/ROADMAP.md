@@ -121,6 +121,7 @@ See archive: `.planning/milestones/v1.6.3-ROADMAP.md`
 - [x] **Phase 46: Avatar Caching** — Session cache and disk persistence (completed 2026-03-30)
 - [x] **Phase 47: v1.7 Documentation & Code Debt Cleanup** — Fix stale docs, code debt, Nyquist compliance (completed 2026-03-30)
 - [x] **Phase 48: Restore Backlog Progressive Loading** — Re-integrate per-section queries, flicker prevention, and cache key fixes alongside context menu (completed 2026-04-04)
+- [ ] **Phase 49: Fix Backlog Query Key Wiring & Doc Debt** — Update stale prefetch/mutation invalidation keys, migrate BacklogRow avatar, fix Nyquist/doc inconsistencies
 
 ## Phase Details
 
@@ -253,6 +254,23 @@ Plans:
 - [x] 48-01-PLAN.md — Per-section queries, useDelayedLoading, BacklogSkeleton, epicsLoading prop, cache key fix
 - [x] 48-02-PLAN.md — Test mock overhaul + LOAD-04 test case
 
+### Phase 49: Fix Backlog Query Key Wiring & Doc Debt
+**Goal**: Fix all stale query key references left after Phase 48's backlog refactor, migrate the missed BacklogRow avatar, and close documentation/Nyquist inconsistencies
+**Depends on**: Phase 48
+**Requirements**: QOPT-03 (fix), CACH-01 (fix)
+**Gap Closure:** Closes integration and flow gaps from v1.7 milestone audit
+**Success Criteria** (what must be TRUE):
+  1. Sidebar /backlog prefetch targets `jira-sprint-stories`, `jira-sprint-list`, `jira-backlog-issues` — not dead `jira-backlog-view`
+  2. All mutation sites (main.tsx, useIssueMutations.ts, FieldsSection.tsx, useFieldMutation.ts) and RecentItemsPopover invalidate BacklogPage's actual query keys
+  3. BacklogRow.tsx uses CachedAvatar instead of bare `<img>` for assignee avatars
+  4. E2E flow "Edit/create issue → Backlog reflects update" works without waiting for poll
+  5. E2E flow "Sidebar hover on /backlog → fast navigation" loads from cache on click
+  6. VALIDATION.md body sign-off checklists in phases 43, 44, 46 match `nyquist_compliant: true` frontmatter
+  7. Phase 43 docs no longer reference non-existent MrAttentionTab.tsx
+  8. ROUT-05 added to 42-03-SUMMARY.md frontmatter
+  9. VALIDATION.md `nyquist_compliant` set to true in phases 47-debt, 47-backlog, 48
+**Plans:** 0 plans
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -269,3 +287,4 @@ Plans:
 | 47. v1.7 Debt Cleanup | v1.7 | 2/2 | Complete    | 2026-03-31 |
 | 47. Optimize Backlog Performance | v1.7 | 0/2 | Planning  | — |
 | 48. Restore Backlog Progressive Loading | v1.7 | 2/2 | Complete    | 2026-04-04 |
+| 49. Fix Backlog Query Key Wiring & Doc Debt | v1.7 | 0/0 | Pending | — |
