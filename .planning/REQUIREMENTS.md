@@ -9,11 +9,11 @@ Requirements for v1.7 Performance & Perceived Speed. Each maps to roadmap phases
 
 ### Loading UX
 
-- [x] **LOAD-01**: User sees layout-matched skeleton screens instead of spinners on all major data views (sprint board, backlog, my tasks, workload, epics, releases, notifications, dashboard widgets)
+- [ ] **LOAD-01**: User sees layout-matched skeleton screens instead of spinners on all major data views (sprint board, backlog, my tasks, workload, epics, releases, notifications, dashboard widgets)
 - [x] **LOAD-02**: User sees cached data instantly when navigating back to a previously visited view (stale-while-revalidate)
 - [x] **LOAD-03**: User sees sprint board story headers immediately while subtasks load progressively beneath them — activated by Phase 45-02 query split (subtasksLoading wired from real jira-sprint-subtasks query at SprintBoardTab.tsx)
-- [~] **LOAD-04**: User sees backlog issue list immediately while epic metadata loads progressively — **Partial** (epic column header shows Skeleton while allEpics query is pending via separate jira-epics-basic query; per-row epic badges come from same query as rows so no per-row progressive loading)
-- [x] **LOAD-05**: User does not see skeleton flicker when data loads within 200ms (delayed loading hook)
+- [ ] **LOAD-04**: User sees backlog issue list immediately while epic metadata loads progressively — **Partial** (epic column header shows Skeleton while allEpics query is pending via separate jira-epics-basic query; per-row epic badges come from same query as rows so no per-row progressive loading)
+- [ ] **LOAD-05**: User does not see skeleton flicker when data loads within 200ms (delayed loading hook)
 
 ### Route & Bundle
 
@@ -26,7 +26,7 @@ Requirements for v1.7 Performance & Perceived Speed. Each maps to roadmap phases
 ### Query Optimization
 
 - [x] **QOPT-01**: Sprint board loads faster by parallelizing independent API calls (sprint metadata + quick filters fetched simultaneously)
-- [x] **QOPT-02**: Backlog loads faster by parallelizing independent queries where dependency chains allow
+- [ ] **QOPT-02**: Backlog loads faster by parallelizing independent queries where dependency chains allow
 - [x] **QOPT-03**: User experiences pre-warmed cache when clicking sidebar navigation (data prefetched on hover/focus)
 - [x] **QOPT-04**: App pauses polling for views not currently visible (smart polling with background pause)
 - [x] **QOPT-05**: App pauses all polling when minimized and refetches active view on restore (visibility-aware polling)
@@ -64,18 +64,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LOAD-01 | Phase 44 | Complete |
+| LOAD-01 | Phase 48 | Pending |
 | LOAD-02 | Phase 43 | Complete |
 | LOAD-03 | Phase 44 | Complete |
-| LOAD-04 | Phase 44 | Partial — header-level progressive loading implemented |
-| LOAD-05 | Phase 44 | Complete |
+| LOAD-04 | Phase 48 | Pending |
+| LOAD-05 | Phase 48 | Pending |
 | ROUT-01 | Phase 42 | Complete |
 | ROUT-02 | Phase 42 | Complete |
 | ROUT-03 | Phase 42 | Complete |
 | ROUT-04 | Phase 42 | Complete |
 | ROUT-05 | Phase 42 | Complete |
 | QOPT-01 | Phase 45 | Complete |
-| QOPT-02 | Phase 45 | Complete |
+| QOPT-02 | Phase 48 | Pending |
 | QOPT-03 | Phase 45 | Complete |
 | QOPT-04 | Phase 43 | Complete |
 | QOPT-05 | Phase 43 | Complete |
@@ -89,4 +89,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-03-29*
-*Last updated: 2026-03-30 after v1.7 milestone audit cleanup (Phase 47)*
+*Last updated: 2026-04-04 after v1.7 gap closure planning (Phase 48)*
