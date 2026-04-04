@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Performance & Perceived Speed
-status: Milestone complete
-stopped_at: Completed 47-02-PLAN.md
-last_updated: "2026-03-31T22:30:26.531Z"
-last_activity: 2026-03-31
+status: Ready to execute
+stopped_at: Completed 48-01-PLAN.md
+last_updated: "2026-04-04T16:44:18.553Z"
+last_activity: 2026-04-04
 progress:
   total_phases: 5
   completed_phases: 5
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Phase 47 — optimize-backlog-view-performance-with-progressive-loading
+**Current focus:** Phase 48 — restore-backlog-progressive-loading
 
 ## Current Position
 
-Phase: 47
-Plan: Not started
+Phase: 48 (restore-backlog-progressive-loading) — EXECUTING
+Plan: 2 of 2
 Milestone v1.6.3 complete. No active phase.
 
 ## Accumulated Context
@@ -52,6 +52,8 @@ Recent decisions affecting current work:
 - [Phase 47-01]: div-based CSS grid backlog with always-on virtualization; density-aware estimateSize (28/36/44px); per-row epic Skeleton for LOAD-04 progressive loading
 - [Phase 47-02]: handleMoveToSprint optimistically updates both jira-backlog-issues and jira-sprint-stories caches for immediate visual feedback
 - [Phase 47-02]: vi.resetAllMocks() required in backlog.test.ts beforeEach — clearAllMocks does not clear mockResolvedValueOnce queues
+- [Phase 48-01]: mergedSprints derived from sprintList + sprintStories groupBy(sprint.id) — no longer depends on backlogView.sprints
+- [Phase 48-01]: epicColorMap uses e.color field (EpicEnriched.color, not epicColor) — corrected at compile time
 
 ### Roadmap Evolution
 
@@ -70,8 +72,8 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-04-01 - Completed quick task 260401-ffx: Remove checkboxes and bottom bar in backlog view, replace with right-click popup menu
-Stopped at: Completed quick-260401-ffx
+Last activity: 2026-04-04
+Stopped at: Completed 48-01-PLAN.md
 Resume: `/gsd:plan-phase 38`
 
 ### Quick Tasks Completed
