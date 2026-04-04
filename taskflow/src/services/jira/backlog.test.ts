@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../lib/api-error';
-import { fetchBacklogIssues, fetchBacklogView, fetchFutureSprintIssues, fetchSprintList } from './backlog';
+import { fetchBacklogIssues, fetchBacklogView, fetchSprintList } from './backlog';
 
 // backlog.ts imports BOTH apiFetch and fetchAllSearchPages/isResponseLikeError from ./client
 vi.mock('../../lib/apiFetch', () => ({
@@ -201,39 +201,4 @@ describe('backlog service', () => {
     });
   });
 
-  // --- fetchFutureSprintIssues ---
-  describe('fetchFutureSprintIssues', () => {
-    it('fetches future sprint issues via the Agile board endpoint', async () => {
-      const mockIssues = [
-        {
-          key: 'PROJ-10',
-          fields: {
-            summary: 'Future sprint issue',
-            sprint: { id: 2, name: 'Sprint 2', state: 'future', originBoardId: 10 },
-          },
-        },
-      ];
-      vi.mocked(fetchAllSearchPages).mockResolvedValueOnce(mockIssues as any);
-
-      const result = await fetchFutureSprintIssues(BASE, TOKEN, 'PROJ', 10);
-
-      expect(result).toHaveLength(1);
-      expect(result[0].key).toBe('PROJ-10');
-
-      // Verify it called the Agile board endpoint
-      const calls = vi.mocked(fetchAllSearchPages).mock.calls;
-      expect(calls.length).toBeGreaterThanOrEqual(1);
-      const lastCall = calls[calls.length - 1];
-      expect(typeof lastCall[0]).toBe('string');
-      expect(lastCall[0]).toContain('/rest/agile/1.0/board/10/issue');
-      expect(lastCall[0]).toContain('futureSprints');
-    });
-
-    it('returns empty array on failure', async () => {
-      vi.mocked(fetchAllSearchPages).mockRejectedValueOnce(new Error('Network error'));
-
-      const result = await fetchFutureSprintIssues(BASE, TOKEN, 'PROJ', 10);
-      expect(result).toEqual([]);
-    });
-  });
 });
