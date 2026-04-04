@@ -159,7 +159,8 @@ export function useIssueMutations({
         });
       }
       queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog-view'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] });
       onSuccess();
     },
     onError: (err: Error) => {
