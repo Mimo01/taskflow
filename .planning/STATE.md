@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Performance & Perceived Speed
-status: Ready to execute
-stopped_at: Completed 48-01-PLAN.md
-last_updated: "2026-04-04T16:44:18.553Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 48-02-PLAN.md
+last_updated: "2026-04-04T16:50:09.615Z"
 last_activity: 2026-04-04
 progress:
   total_phases: 5
@@ -54,6 +54,7 @@ Recent decisions affecting current work:
 - [Phase 47-02]: vi.resetAllMocks() required in backlog.test.ts beforeEach — clearAllMocks does not clear mockResolvedValueOnce queues
 - [Phase 48-01]: mergedSprints derived from sprintList + sprintStories groupBy(sprint.id) — no longer depends on backlogView.sprints
 - [Phase 48-01]: epicColorMap uses e.color field (EpicEnriched.color, not epicColor) — corrected at compile time
+- [Phase 48]: resetMocks helper needed after vi.resetAllMocks() — re-establishes base mock implementations that resetAllMocks clears
 
 ### Roadmap Evolution
 
@@ -73,7 +74,7 @@ None.
 ## Session Continuity
 
 Last activity: 2026-04-04
-Stopped at: Completed 48-01-PLAN.md
+Stopped at: Completed 48-02-PLAN.md
 Resume: `/gsd:plan-phase 38`
 
 ### Quick Tasks Completed
