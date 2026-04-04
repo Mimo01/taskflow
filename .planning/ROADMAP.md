@@ -290,4 +290,4 @@ Plans:
 | 47. v1.7 Debt Cleanup | v1.7 | 2/2 | Complete    | 2026-03-31 |
 | 47. Optimize Backlog Performance | v1.7 | 0/2 | Planning  | — |
 | 48. Restore Backlog Progressive Loading | v1.7 | 2/2 | Complete    | 2026-04-04 |
-| 49. Fix Backlog Query Key Wiring & Doc Debt | v1.7 | 2/2 | Complete   | 2026-04-04 |
+| 49. Fix Backlog Query Key Wiring & Doc Debt | v1.7 | 2/2 | Complete    | 2026-04-04 |
