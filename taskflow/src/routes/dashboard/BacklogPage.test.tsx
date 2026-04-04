@@ -338,6 +338,56 @@ describe('BACK-02 Move to sprint (context menu)', () => {
     const sprintOptions = screen.getAllByText('Sprint 1');
     expect(sprintOptions.length).toBeGreaterThanOrEqual(2); // header + context menu item
   });
+
+  it('moving an issue to a sprint invalidates jira-sprint-stories cache key', async () => {
+    const { fetchSprintStories } = await import('@/services/jira/issues');
+    const { fetchSprintList, fetchBacklogIssues } = await import('@/services/jira/backlog');
+    const { addIssuesToSprint } = await import('@/services/jira');
+    vi.mocked(addIssuesToSprint).mockResolvedValue(undefined);
+    vi.mocked(fetchSprintList).mockResolvedValue([makeSprint(1, 'Sprint 1', 'active')]);
+    vi.mocked(fetchSprintStories).mockResolvedValue([]);
+    vi.mocked(fetchBacklogIssues).mockResolvedValue([makeIssue('PROJ-1', 'Build login page')]);
+
+    // Create a QueryClient we can spy on
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 0 } },
+    });
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    const { default: BacklogPage } = await import('./BacklogPage');
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BacklogPage />
+      </QueryClientProvider>,
+    );
+
+    // Wait for backlog issue to render
+    await waitFor(() => screen.getByText('PROJ-1'));
+
+    // Right-click to open context menu
+    const row = screen.getByTestId('backlog-row-PROJ-1');
+    fireEvent.contextMenu(row);
+
+    // Wait for context menu and click sprint option
+    await waitFor(() => {
+      expect(screen.getByText('Move to...')).toBeInTheDocument();
+    });
+
+    // Click the sprint option in context menu
+    const sprintOptions = screen.getAllByText('Sprint 1');
+    // The context menu item is the last one (header is first)
+    const menuItem = sprintOptions[sprintOptions.length - 1];
+    fireEvent.click(menuItem);
+
+    // Verify invalidateQueries was called with jira-sprint-stories key
+    await waitFor(() => {
+      expect(invalidateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: ['jira-sprint-stories'] }),
+      );
+    });
+
+    invalidateSpy.mockRestore();
+  });
 });
 
 describe('BACK-03 Create story', () => {
