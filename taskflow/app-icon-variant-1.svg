@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <clipPath id="sq">
+      <rect x="100" y="100" width="824" height="824" rx="185" ry="185" />
+    </clipPath>
+  </defs>
+  <g clip-path="url(#sq)">
+    <!-- White background -->
+    <rect x="100" y="100" width="824" height="824" fill="#ffffff" />
+    <!-- Blue wave: S-curve flowing left to right, top half -->
+    <path
+      d="M 180,440 C 280,280 420,680 512,512 C 604,344 740,740 844,540"
+      fill="none"
+      stroke="#0ea5e9"
+      stroke-width="72"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <!-- Orange wave: S-curve flowing left to right, offset lower -->
+    <path
+      d="M 180,580 C 280,740 420,340 512,512 C 604,684 740,280 844,480"
+      fill="none"
+      stroke="#f97316"
+      stroke-width="72"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <!-- White center overlap to make crossing clear -->
+    <circle cx="512" cy="512" r="36" fill="#ffffff" />
+  </g>
+</svg>

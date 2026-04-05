@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <clipPath id="sq">
+      <rect x="100" y="100" width="824" height="824" rx="185" ry="185" />
+    </clipPath>
+    <linearGradient id="flow-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#f97316"/>
+    </linearGradient>
+  </defs>
+  <g clip-path="url(#sq)">
+    <!-- White background -->
+    <rect x="100" y="100" width="824" height="824" fill="#ffffff" />
+    <!-- Main gradient wave body -->
+    <path
+      d="M 190,512 C 320,280 480,750 640,420 C 720,290 780,380 820,430"
+      fill="none"
+      stroke="url(#flow-grad)"
+      stroke-width="80"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <!-- Arrowhead at the end (orange, pointing right-down) -->
+    <path
+      d="M 820,430 L 750,360 M 820,430 L 752,492"
+      fill="none"
+      stroke="#f97316"
+      stroke-width="72"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <!-- Trailing dot at start (blue accent) -->
+    <circle cx="190" cy="512" r="44" fill="#0ea5e9" />
+  </g>
+</svg>
