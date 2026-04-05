@@ -4,6 +4,15 @@ import { useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { ConfirmSprintMoveDialog } from '@/components/ui/confirm-sprint-move-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -13,11 +22,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SprintMoveMenuItems } from '@/components/ui/sprint-move-menu-items';
 import { apiFetch } from '@/lib/apiFetch';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import type { JiraIssueDetail } from '@/services/jira';
 import { postTransition } from '@/services/jira/transitions';
-import { addIssuesToSprint, fetchSprintsForBoard, moveIssuesToBacklog } from '@/services/jira/sprints';
+import { fetchSprintList } from '@/services/jira/backlog';
+import { addIssuesToSprint, moveIssuesToBacklog } from '@/services/jira/sprints';
 import { fetchFixVersions } from '@/services/jira/versions';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
@@ -124,8 +135,8 @@ export function FieldsSection({
   const { boardId } = useBoardId(jiraBaseUrl, jiraToken ?? null, activeJiraProject);
 
   const sprintsQuery = useQuery({
-    queryKey: ['jira-field-sprints', boardId],
-    queryFn: () => fetchSprintsForBoard(jiraBaseUrl, jiraToken!, boardId!),
+    queryKey: ['jira-sprint-list', boardId, jiraBaseUrl],
+    queryFn: () => fetchSprintList(jiraBaseUrl, jiraToken!, boardId!),
     enabled: sprintPickerOpen && !!boardId && !!jiraToken,
   });
 
@@ -546,71 +557,52 @@ export function FieldsSection({
         </MetaRow>
       )}
 
-      {/* Sprint -- stories only (editable popover) */}
+      {/* Sprint -- stories only (dropdown menu, same component as backlog context menu) */}
       {isStory && (
         <MetaRow label="Sprint">
-          <Popover open={sprintPickerOpen} onOpenChange={setSprintPickerOpen}>
-            <PopoverTrigger
+          <DropdownMenu open={sprintPickerOpen} onOpenChange={setSprintPickerOpen}>
+            <DropdownMenuTrigger
               data-testid="sprint-edit"
               className="hover:bg-accent rounded px-1 -ml-1 cursor-pointer text-left text-sm"
               title="Click to change sprint"
             >
               {sprintName ?? 'No sprint'}
-            </PopoverTrigger>
-            <PopoverContent className="w-56 p-2">
-              {sprintsQuery.isLoading && (
-                <p className="text-xs text-muted-foreground px-1">Loading sprints...</p>
-              )}
-              {sprintsQuery.isError && (
-                <p className="text-xs text-destructive px-1">Failed to load sprints</p>
-              )}
-              {sprintsQuery.data &&
-                sprintsQuery.data
-                  .filter((s) => s.id !== currentSprintId)
-                  .map((sprint) => (
-                    <button
-                      key={sprint.id}
-                      type="button"
-                      onClick={() => {
-                        setSprintPickerOpen(false);
-                        setPendingSprintMove({ sprintId: sprint.id, sprintName: sprint.name });
-                      }}
-                      className="w-full text-left px-2 py-1 text-xs hover:bg-accent rounded flex items-center gap-2"
-                    >
-                      <span className="flex-1 truncate">{sprint.name}</span>
-                      {sprint.state === 'active' && (
-                        <Badge
-                          variant="outline"
-                          className="bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700 text-[9px] leading-none px-1 py-0 h-3.5"
-                        >
-                          active
-                        </Badge>
-                      )}
-                    </button>
-                  ))}
-              {sprintsQuery.data && sprintsQuery.data.length === 0 && (
-                <p className="text-xs text-muted-foreground px-1">No sprints available</p>
-              )}
-              {/* Backlog option -- only when issue is currently in a sprint */}
-              {currentSprintId !== null && (
-                <>
-                  {sprintsQuery.data && sprintsQuery.data.length > 0 && (
-                    <div className="my-1 border-t border-border" />
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" side="bottom" sideOffset={4}>
+              <DropdownMenuGroup>
+                {sprintsQuery.isLoading && (
+                  <DropdownMenuLabel>Loading sprints...</DropdownMenuLabel>
+                )}
+                {sprintsQuery.isError && (
+                  <DropdownMenuLabel className="text-destructive">
+                    Failed to load sprints
+                  </DropdownMenuLabel>
+                )}
+                {sprintsQuery.data && (
+                  <>
+                    <DropdownMenuLabel>Move to...</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                  <SprintMoveMenuItems
+                    sprints={sprintsQuery.data}
+                    currentSprintId={currentSprintId}
+                    showBacklog={currentSprintId !== null}
+                    onSelectSprint={(sprintId, name) => {
+                      setSprintPickerOpen(false);
+                      setPendingSprintMove({ sprintId, sprintName: name });
+                    }}
+                    onSelectBacklog={() => {
                       setSprintPickerOpen(false);
                       setPendingSprintMove({ sprintId: null, sprintName: 'Backlog' });
                     }}
-                    className="w-full text-left px-2 py-1 text-xs hover:bg-accent rounded"
-                  >
-                    Move to Backlog
-                  </button>
-                </>
-              )}
-            </PopoverContent>
-          </Popover>
+                    Item={DropdownMenuItem}
+                    Separator={DropdownMenuSeparator}
+                    Label={DropdownMenuLabel}
+                  />
+                  </>
+                )}
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </MetaRow>
       )}
 

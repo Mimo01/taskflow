@@ -21,6 +21,7 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SprintMoveMenuItems } from '@/components/ui/sprint-move-menu-items';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
@@ -214,40 +215,18 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
           <ContextMenuGroup>
             <ContextMenuLabel>Move to...</ContextMenuLabel>
             <ContextMenuSeparator />
-            {(() => {
-              // Exclude the sprint the issue is already in
-              const currentSprintId = (issue.fields.sprint as { id: number } | null)?.id;
-              const targetSprints = (sprints ?? []).filter(
-                (s) => currentSprintId == null || s.id !== currentSprintId,
-              );
-              return targetSprints.length > 0 ? (
-                targetSprints.map((sprint) => (
-                  <ContextMenuItem
-                    key={sprint.id}
-                    onClick={() => onMoveToSprint?.(issue.key, sprint.id, sprint.name)}
-                  >
-                    {sprint.name}
-                    {sprint.state === 'active' && (
-                      <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-1.5 py-0 text-[10px] font-medium text-green-800 border border-green-300">
-                        Active
-                      </span>
-                    )}
-                  </ContextMenuItem>
-                ))
-              ) : (
-                <ContextMenuLabel className="italic text-muted-foreground">
-                  No other sprints available
-                </ContextMenuLabel>
-              );
-            })()}
-            {onMoveToBacklog && (
-              <>
-                <ContextMenuSeparator />
-                <ContextMenuItem onClick={() => onMoveToBacklog(issue.key)}>
-                  Backlog
-                </ContextMenuItem>
-              </>
-            )}
+            <SprintMoveMenuItems
+              sprints={sprints ?? []}
+              currentSprintId={(issue.fields.sprint as { id: number } | null)?.id ?? null}
+              showBacklog={!!onMoveToBacklog}
+              onSelectSprint={(sprintId, sprintName) =>
+                onMoveToSprint?.(issue.key, sprintId, sprintName)
+              }
+              onSelectBacklog={() => onMoveToBacklog?.(issue.key)}
+              Item={ContextMenuItem}
+              Separator={ContextMenuSeparator}
+              Label={ContextMenuLabel}
+            />
           </ContextMenuGroup>
         </ContextMenuContent>
       </ContextMenu>
