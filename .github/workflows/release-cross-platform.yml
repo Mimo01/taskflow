@@ -125,19 +125,10 @@ jobs:
 
       - name: Build Tauri app
         if: steps.should_run.outputs.run == 'true'
-        uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        with:
-          tagName: ""
-          releaseName: ""
-          releaseBody: ""
-          releaseDraft: false
-          preRelease: false
-          projectPath: taskflow
-          args: --target ${{ matrix.target }}
+        run: npx tauri build --target ${{ matrix.target }}
 
       - name: Collect Linux artifacts
         if: steps.should_run.outputs.run == 'true' && matrix.os_name == 'linux'
