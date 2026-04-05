@@ -1,28 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <defs>
-    <!-- macOS squircle: 824×824 centered (100px gutter), rx=185.4 -->
     <clipPath id="sq">
       <rect x="100" y="100" width="824" height="824" rx="185" ry="185"/>
     </clipPath>
-    <filter id="gC" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#0ea5e9" flood-opacity="0.55"/>
-    </filter>
-    <filter id="gO" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#f97316" flood-opacity="0.55"/>
-    </filter>
-    <filter id="gW" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="0" stdDeviation="7" flood-color="#94a3b8" flood-opacity="0.35"/>
-    </filter>
   </defs>
   <g clip-path="url(#sq)">
-    <!-- Background fills the 824×824 squircle -->
     <rect x="100" y="100" width="824" height="824" fill="#ffffff"/>
-    <!-- Outer cyan square +15°, 560px centered on 512,512 -->
-    <rect x="216" y="216" width="592" height="592" rx="80" fill="none" stroke="#0ea5e9" stroke-width="22" transform="rotate(15 512 512)" filter="url(#gC)"/>
-    <!-- Outer orange square -15°, 560px centered on 512,512 -->
-    <rect x="216" y="216" width="592" height="592" rx="80" fill="none" stroke="#f97316" stroke-width="22" transform="rotate(-15 512 512)" filter="url(#gO)"/>
-    <!-- Inner neutral square 0°, 280px centered on 512,512 -->
-    <rect x="372" y="372" width="280" height="280" rx="44" fill="none" stroke="#94a3b8" stroke-width="13" filter="url(#gW)"/>
+    <path d="M 195,390 C 339,283 501,283 512,372 C 523,461 685,461 829,354 L 829,516 C 685,624 523,624 512,534 C 501,445 339,445 195,552 Z" fill="#0ea5e9"/>
+    <path d="M 204,413 C 343,310 501,310 512,395 C 523,480 681,480 821,377 L 821,417 C 681,516 523,516 512,432 C 501,346 343,346 204,450 Z" fill="#ffffff" opacity="0.18"/>
+    <path d="M 195,507 C 339,399 501,399 512,489 C 523,579 685,579 829,471 L 829,633 C 685,741 523,741 512,651 C 501,561 339,561 195,669 Z" fill="#f97316"/>
+    <path d="M 204,530 C 343,422 501,422 512,512 C 523,597 681,597 821,494 L 821,534 C 681,633 523,633 512,552 C 501,463 343,463 204,566 Z" fill="#ffffff" opacity="0.18"/>
   </g>
 </svg>
