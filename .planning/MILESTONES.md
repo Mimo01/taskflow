@@ -1,5 +1,24 @@
 # Milestones
 
+## v1.7 Performance & Perceived Speed (Shipped: 2026-04-05)
+
+**Phases completed:** 9 phases (42-49), 23 plans, 254 commits
+**Timeline:** 8 days (2026-03-29 → 2026-04-05)
+**Codebase:** ~57,000+ lines TypeScript, 339 files changed (+38,812/−4,890 lines)
+
+**Key accomplishments:**
+
+1. Route code-splitting for 6 heavy views with React.lazy(), skeleton fallbacks (RouteSpinner), and chunk error boundaries (ChunkErrorBoundary) — initial bundle reduced from 1,215 kB to 1,175 kB
+2. React Compiler auto-memoization replacing all manual useMemo/useCallback/React.memo across 35 source files — zero manual memoization remaining
+3. Session-persistent caching with gcTime: Infinity, route-aware smart polling via useIsActiveRoute hook — all 5 polling queries pause on inactive routes and stop on minimize
+4. Layout-matched skeleton screens on all 8 major data views with 200ms flicker prevention (useDelayedLoading), progressive data loading for sprint board and backlog
+5. Query parallelization for sprint board and backlog, sidebar hover prefetch for instant navigation on click — all stale query keys updated after backlog refactor
+6. Avatar caching with in-memory blob URL Map + LazyStore disk persistence, 30-day TTL eviction, inflight dedup, and CachedAvatar component wired into all usage sites
+
+**Known Tech Debt:** 7 doc-only items — VALIDATION.md body checklists unchecked in 3 phases, Phase 49 missing VALIDATION.md, ROUT-05 missing from 42-03 SUMMARY frontmatter, one test mock count mismatch (8 vs 9 invalidation calls).
+
+---
+
 ## v1.6.3 Release & Auto-Update Pipeline (Shipped: 2026-03-29)
 
 **Phases completed:** 4 phases (38-41), 10 plans, 13 quick tasks

@@ -9,7 +9,7 @@
 - ✅ **v1.4 Internal Quality & Performance** — Phases 25-30 (shipped 2026-03-20)
 - ✅ **v1.5 Dashboard Redesign & Feature Parity** — Phases 31-37 (shipped 2026-03-24)
 - ✅ **v1.6.3 Release & Auto-Update Pipeline** — Phases 38-41 (shipped 2026-03-29)
-- 🚧 **v1.7 Performance & Perceived Speed** — Phases 42-46 (in progress)
+- ✅ **v1.7 Performance & Perceived Speed** — Phases 42-49 (shipped 2026-04-05)
 
 ## Phases
 
@@ -110,184 +110,33 @@ See archive: `.planning/milestones/v1.6.3-ROADMAP.md`
 
 </details>
 
-### v1.7 Performance & Perceived Speed (In Progress)
+<details>
+<summary>✅ v1.7 Performance & Perceived Speed (Phases 42-49) — SHIPPED 2026-04-05</summary>
 
-**Milestone Goal:** Make every view feel instant — progressive loading, smarter caching, smaller bundles, and zero unnecessary waits.
+- [x] Phase 42: Foundation (3/3 plans) — completed 2026-03-29
+- [x] Phase 43: Cache Correctness (2/2 plans) — completed 2026-03-29
+- [x] Phase 44: Loading UX (4/4 plans) — completed 2026-03-30
+- [x] Phase 45: Query Optimization (3/3 plans) — completed 2026-03-30
+- [x] Phase 46: Avatar Caching (2/2 plans) — completed 2026-03-30
+- [x] Phase 47: v1.7 Debt Cleanup (2/2 plans) — completed 2026-03-31
+- [x] Phase 47: Optimize Backlog Performance (2/2 plans) — completed 2026-03-31
+- [x] Phase 48: Restore Backlog Progressive Loading (3/3 plans) — completed 2026-04-04
+- [x] Phase 49: Fix Backlog Query Key Wiring & Doc Debt (2/2 plans) — completed 2026-04-04
 
-- [x] **Phase 42: Foundation** — Route code splitting, React Compiler, bundle analysis
-- [x] **Phase 43: Cache Correctness** — staleTime tuning and smart polling (completed 2026-03-29)
-- [x] **Phase 44: Loading UX** — Skeleton screens, progressive data, flicker prevention (completed 2026-03-30)
-- [x] **Phase 45: Query Optimization** — Parallelization and hover prefetch (completed 2026-03-30)
-- [x] **Phase 46: Avatar Caching** — Session cache and disk persistence (completed 2026-03-30)
-- [x] **Phase 47: v1.7 Documentation & Code Debt Cleanup** — Fix stale docs, code debt, Nyquist compliance (completed 2026-03-30)
-- [x] **Phase 48: Restore Backlog Progressive Loading** — Re-integrate per-section queries, flicker prevention, and cache key fixes alongside context menu (completed 2026-04-04)
-- [x] **Phase 49: Fix Backlog Query Key Wiring & Doc Debt** — Update stale prefetch/mutation invalidation keys, migrate BacklogRow avatar, fix Nyquist/doc inconsistencies (completed 2026-04-04)
+See archive: `.planning/milestones/v1.7-ROADMAP.md`
 
-## Phase Details
-
-### Phase 42: Foundation
-**Goal**: App startup is faster and component re-renders are eliminated automatically
-**Depends on**: Phase 41
-**Requirements**: ROUT-01, ROUT-02, ROUT-03, ROUT-04, ROUT-05
-**Success Criteria** (what must be TRUE):
-  1. Heavy routes (sprint board, backlog, issue detail, epics, workload, sprint progress) load on demand — not at app startup
-  2. A skeleton fallback (not a blank screen) appears while a lazy-loaded route chunk loads
-  3. A meaningful error boundary (not a white screen) is displayed when a chunk fails to load
-  4. React Compiler is active at build time and auto-memoizes components across the codebase
-  5. Bundle analysis output identifies the largest chunks and any dead code candidates
-**Plans:** 3/3 plans complete
-Plans:
-- [x] 42-01-PLAN.md — Lazy routes + RouteSpinner + ChunkErrorBoundary
-- [x] 42-02-PLAN.md — React Compiler + manual memo removal
-- [x] 42-03-PLAN.md — Bundle analysis + dead code elimination
-**UI hint**: yes
-
-### Phase 43: Cache Correctness
-**Goal**: Users see cached data instantly when revisiting views, and polling behaves correctly for active vs. inactive views
-**Depends on**: Phase 42
-**Requirements**: LOAD-02, QOPT-04, QOPT-05
-**Success Criteria** (what must be TRUE):
-  1. Navigating back to a previously visited view shows data immediately with no blank-screen flash
-  2. Polling pauses automatically for views that are not currently visible
-  3. All polling stops when the app is minimized and resumes on restore
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 43-01-PLAN.md — Cache infrastructure: gcTime: Infinity, useIsActiveRoute hook, shared polling constants
-- [x] 43-02-PLAN.md — Wire route-aware polling pause into all 5 view-scoped queries
-
-### Phase 44: Loading UX
-**Goal**: Every major data view shows a layout-matched skeleton instead of a spinner, and data loads progressively without flicker
-**Depends on**: Phase 43
-**Requirements**: LOAD-01, LOAD-03, LOAD-04, LOAD-05
-**Success Criteria** (what must be TRUE):
-  1. All major data views (sprint board, backlog, my tasks, workload, epics, releases, notifications, dashboard widgets) show layout-matched skeletons instead of spinners during initial load
-  2. Sprint board story headers appear immediately while subtasks render progressively beneath them
-  3. Backlog issue list appears immediately while epic metadata loads progressively alongside it
-  4. When data arrives within 200ms, no skeleton flash occurs — the view transitions directly from empty to populated
-**Plans:** 4/4 plans complete
-Plans:
-- [x] 44-01-PLAN.md — useDelayedLoading hook + 8 per-view skeleton components
-- [x] 44-02-PLAN.md — Wire SprintBoard + Backlog with progressive loading and refresh
-- [x] 44-03-PLAN.md — Wire remaining 6 views with skeletons and refresh
-- [x] 44-04-PLAN.md — Gap closure: fix TS compilation + update REQUIREMENTS.md tracking
-**UI hint**: yes
-
-### Phase 45: Query Optimization
-**Goal**: Sprint board and backlog load faster by eliminating sequential API call chains, and sidebar navigation pre-warms the cache
-**Depends on**: Phase 43
-**Requirements**: QOPT-01, QOPT-02, QOPT-03
-**Success Criteria** (what must be TRUE):
-  1. Sprint board independent queries (sprint metadata, quick filters) fire simultaneously rather than sequentially
-  2. Backlog independent queries fire in parallel where the dependency chain allows
-  3. Hovering or focusing a sidebar link pre-fetches its data so the view loads from cache on click
-**Plans:** 3/3 plans complete
-Plans:
-- [x] 45-01-PLAN.md — Service layer: concurrency limiter, useBoardId hook, sprint query split, backlog refactor
-- [x] 45-02-PLAN.md — Component wiring: parallel queries, sidebar prefetch, dev tools toggle
-- [x] 45-03-PLAN.md — Gap closure: wire backlog prefetch with boardId chain in Sidebar
-
-### Phase 46: Avatar Caching
-**Goal**: Avatar and user images never re-fetch within a session and survive app restarts
-**Depends on**: Phase 45
-**Requirements**: CACH-01, CACH-02
-**Success Criteria** (what must be TRUE):
-  1. Avatar images fetched once per session are served from memory on all subsequent renders — no repeated network requests for the same image
-  2. Avatar cache persists to disk and is available immediately on the next app launch without re-fetching
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 46-01-PLAN.md — Cache service + hook + CachedAvatar component with tests
-- [x] 46-02-PLAN.md — Wire CachedAvatar into all 11 usage sites + app startup init
-
-### Phase 47: v1.7 Documentation & Code Debt Cleanup
-**Goal**: Close all documentation gaps, stale checkboxes, code debt, and Nyquist compliance issues identified by milestone audit
-**Depends on**: Phase 46
-**Requirements**: LOAD-03 (status update)
-**Gap Closure:** Closes gaps from v1.7 milestone audit
-**Success Criteria** (what must be TRUE):
-  1. All satisfied REQUIREMENTS.md checkboxes are `[x]` (ROUT-01/02/03, LOAD-02/03, QOPT-04/05)
-  2. CACH-02 description references plugin-store (not plugin-fs)
-  3. ROADMAP.md plan checkboxes 43-01, 43-02, 45-03 are checked
-  4. SUMMARY frontmatter has requirements-completed for all plans
-  5. BacklogPage uses shared STALE_TIME_MS constant instead of literal 30_000
-  6. Dead fetchSprintIssues mock removed from SprintBoardTab.test.tsx
-  7. stats.html cleaned up
-  8. Nyquist compliance achieved for phases 43-46
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 47-01-PLAN.md — Code debt: BacklogPage constant, dead mock removal, stats.html gitignore
-- [x] 47-02-PLAN.md — Doc cleanup: requirement checkboxes, ROADMAP checkboxes, SUMMARY frontmatter, Nyquist compliance
-
-### Phase 47: Optimize backlog view performance with progressive loading
-
-**Goal:** Backlog view loads progressively with per-section queries, div-based virtualized rows, and per-row epic Skeleton placeholders completing LOAD-04
-**Requirements**: LOAD-04
-**Depends on:** Phase 46
-**Success Criteria** (what must be TRUE):
-  1. Backlog page uses per-section queries (sprint stories shared cache, sprint list, future sprint issues, backlog issues) instead of monolithic fetchBacklogView
-  2. Each section renders independently as its query resolves with per-section skeleton state
-  3. Backlog rows use div-based CSS grid layout instead of table/tr/td, enabling always-on virtualization
-  4. Per-row epic badge Skeleton appears while allEpics query is pending (LOAD-04 completion)
-  5. All existing and new tests pass
-**Plans:** 2 plans
-
-Plans:
-- [x] 47-01-PLAN.md — Service layer (fetchSprintList) + BacklogRow div conversion + VirtualizedBacklogTable div-based CSS grid
-- [x] 47-02-PLAN.md — Per-section query wiring in BacklogPage + mutation updates + test updates
-
-### Phase 48: Restore Backlog Progressive Loading
-**Goal**: Re-integrate per-section query architecture and loading optimizations into BacklogPage without changing any visible behavior or context menu functionality
-**Depends on**: Phase 47
-**Requirements**: LOAD-01, LOAD-04, LOAD-05, QOPT-02
-**Gap Closure:** Closes gaps from v1.7 milestone audit (post-milestone regression in commit 702ff84)
-**Success Criteria** (what must be TRUE):
-  1. BacklogPage uses per-section queries (sprint stories, sprint list, future sprint issues, backlog issues) instead of monolithic fetchBacklogView — no visible behavior change
-  2. BacklogPage uses useDelayedLoading to prevent skeleton flicker on sub-200ms cache hits (LOAD-05)
-  3. BacklogPage shows layout-matched skeleton via dedicated BacklogSkeleton component (LOAD-01)
-  4. Per-row epic badge shows Skeleton while allEpics query is pending (LOAD-04)
-  5. handleMoveToSprint invalidates correct cache key `['jira-sprint-stories']` so Sprint Board refreshes immediately (QOPT-02)
-  6. Orphaned service functions (fetchSprintList, fetchFutureSprintIssues, fetchBacklogIssues) are either re-wired or removed
-  7. Context menu and right-click functionality remains unchanged
-  8. All existing tests pass
-**Plans:** 3/3 plans complete
-
-Plans:
-- [x] 48-01-PLAN.md — Per-section queries, useDelayedLoading, BacklogSkeleton, epicsLoading prop, cache key fix
-- [x] 48-02-PLAN.md — Test mock overhaul + LOAD-04 test case
-
-### Phase 49: Fix Backlog Query Key Wiring & Doc Debt
-**Goal**: Fix all stale query key references left after Phase 48's backlog refactor, migrate the missed BacklogRow avatar, and close documentation/Nyquist inconsistencies
-**Depends on**: Phase 48
-**Requirements**: QOPT-03 (fix), CACH-01 (fix)
-**Gap Closure:** Closes integration and flow gaps from v1.7 milestone audit
-**Success Criteria** (what must be TRUE):
-  1. Sidebar /backlog prefetch targets `jira-sprint-stories`, `jira-sprint-list`, `jira-backlog-issues` — not dead `jira-backlog-view`
-  2. All mutation sites (main.tsx, useIssueMutations.ts, FieldsSection.tsx, useFieldMutation.ts) and RecentItemsPopover invalidate BacklogPage's actual query keys
-  3. BacklogRow.tsx uses CachedAvatar instead of bare `<img>` for assignee avatars
-  4. E2E flow "Edit/create issue → Backlog reflects update" works without waiting for poll
-  5. E2E flow "Sidebar hover on /backlog → fast navigation" loads from cache on click
-  6. VALIDATION.md body sign-off checklists in phases 43, 44, 46 match `nyquist_compliant: true` frontmatter
-  7. Phase 43 docs no longer reference non-existent MrAttentionTab.tsx
-  8. ROUT-05 added to 42-03-SUMMARY.md frontmatter
-  9. VALIDATION.md `nyquist_compliant` set to true in phases 47-debt, 47-backlog, 48
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 49-01-PLAN.md — Fix sidebar prefetch, mutation invalidations, CachedAvatar migration
-- [x] 49-02-PLAN.md — Phase 43 MrAttentionTab annotation, VALIDATION.md nyquist flags
+</details>
 
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 38. Updater Foundation + Service Layer | v1.6.3 | 3/3 | Complete | 2026-03-24 |
-| 39. Update UX + Version Policy | v1.6.3 | 2/2 | Complete | 2026-03-24 |
-| 40. Settings, About & Menu Integration | v1.6.3 | 3/3 | Complete | 2026-03-25 |
-| 41. CI Pipeline | v1.6.3 | 2/2 | Complete | 2026-03-25 |
-| 42. Foundation | v1.7 | 2/3 | Complete    | 2026-03-29 |
-| 43. Cache Correctness | v1.7 | 2/2 | Complete    | 2026-03-29 |
-| 44. Loading UX | v1.7 | 4/4 | Complete    | 2026-03-30 |
-| 45. Query Optimization | v1.7 | 3/3 | Complete    | 2026-03-30 |
-| 46. Avatar Caching | v1.7 | 2/2 | Complete    | 2026-03-30 |
-| 47. v1.7 Debt Cleanup | v1.7 | 2/2 | Complete    | 2026-03-31 |
-| 47. Optimize Backlog Performance | v1.7 | 0/2 | Planning  | — |
-| 48. Restore Backlog Progressive Loading | v1.7 | 2/2 | Complete    | 2026-04-04 |
-| 49. Fix Backlog Query Key Wiring & Doc Debt | v1.7 | 2/2 | Complete    | 2026-04-04 |
+| 42. Foundation | v1.7 | 3/3 | Complete | 2026-03-29 |
+| 43. Cache Correctness | v1.7 | 2/2 | Complete | 2026-03-29 |
+| 44. Loading UX | v1.7 | 4/4 | Complete | 2026-03-30 |
+| 45. Query Optimization | v1.7 | 3/3 | Complete | 2026-03-30 |
+| 46. Avatar Caching | v1.7 | 2/2 | Complete | 2026-03-30 |
+| 47. v1.7 Debt Cleanup | v1.7 | 2/2 | Complete | 2026-03-31 |
+| 47. Optimize Backlog Performance | v1.7 | 2/2 | Complete | 2026-03-31 |
+| 48. Restore Backlog Progressive Loading | v1.7 | 3/3 | Complete | 2026-04-04 |
+| 49. Fix Backlog Query Key Wiring & Doc Debt | v1.7 | 2/2 | Complete | 2026-04-04 |

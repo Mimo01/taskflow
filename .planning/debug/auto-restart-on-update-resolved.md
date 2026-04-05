@@ -1,5 +1,5 @@
 ---
-status: awaiting_human_verify
+status: resolved
 trigger: "The auto restart on app updates doesn't work. The user wants to remove the auto-restart logic entirely and just have the app restart normally."
 created: 2026-03-29T00:00:00Z
 updated: 2026-03-29T00:00:00Z

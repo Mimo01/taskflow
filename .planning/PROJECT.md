@@ -76,22 +76,22 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ Two-tier force-update policy: soft minimum (nag banner) and hard minimum (blocking overlay) with fail-open — v1.6.3
 - ✓ Version policy file on public repo defining soft/hard minimum versions — v1.6.3
 - ✓ About dialog with version, build date, commit SHA, platform/arch, and update status via macOS menu bar — v1.6.3
+- ✓ Skeleton screens replacing spinners across all 8 major data views with 200ms flicker prevention — v1.7
+- ✓ Progressive/streaming data population — sprint board subtasks and backlog epic metadata load progressively — v1.7
+- ✓ Stale-while-revalidate with gcTime: Infinity — cached data shown instantly on navigation — v1.7
+- ✓ Route-level code splitting for 9 lazy-loaded route chunks with error boundaries — v1.7
+- ✓ Prefetching on hover/focus for sidebar links pre-warms cache for instant navigation — v1.7
+- ✓ Query parallelization for sprint board and backlog — sequential API chains eliminated — v1.7
+- ✓ Smart polling with route-aware pause for inactive views and minimize/restore detection — v1.7
+- ✓ React Compiler auto-memoization — all manual useMemo/useCallback/React.memo removed — v1.7
+- ✓ Avatar caching with in-memory blob URLs and disk persistence across app restarts — v1.7
+- ✓ Bundle analysis tooling (rollup-plugin-visualizer) and dead code elimination — v1.7
 
 ### Active
 
-<!-- Current milestone: v1.7 Performance & Perceived Speed -->
+<!-- Next milestone: TBD -->
 
-- [ ] Skeleton screens replacing spinners across all data views
-- [ ] Progressive/streaming data population — display data as it arrives
-- [ ] Stale-while-revalidate tuning — show cached data instantly, refresh in background
-- [x] Route-level code splitting and lazy loading of heavy components — validated Phase 42
-- [x] Prefetching on hover/focus for sidebar links and navigation paths — validated Phase 45
-- [x] Query parallelization and deduplication — eliminate redundant/sequential API calls — validated Phase 45
-- [ ] Smart polling strategy — prioritize active view, adaptive intervals
-- [x] Sprint board and backlog loading optimization (priority targets) — validated Phase 45
-- [x] Memoization audit — React Compiler auto-memoization, manual wrappers removed — validated Phase 42
-- [ ] Image/avatar local caching
-- [x] Bundle size analysis and dead code elimination — validated Phase 42
+(No active requirements — start next milestone with `/gsd:new-milestone`)
 
 ### Out of Scope
 
@@ -106,22 +106,11 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - GitLab write actions (approve, comment, request changes) — deferred to v2.0
 - Full JQL editor with syntax highlighting — months of work; plain text JQL input sufficient
 
-## Current Milestone: v1.7 Performance & Perceived Speed
+## Current State
 
-**Goal:** Make every view feel instant — progressive loading, smarter caching, smaller bundles, and zero unnecessary waits.
+**Shipped v1.7** on 2026-04-05. All performance targets met — every view feels instant with skeleton screens, progressive loading, smart caching, and zero unnecessary waits.
 
-**Target features:**
-- Skeleton screens replacing spinners across all data views
-- Progressive/streaming data population — display data as it arrives
-- Stale-while-revalidate tuning — cached data shown instantly on navigation
-- ✓ Route-level code splitting and lazy loading (Phase 42)
-- ✓ Prefetching on hover/focus for common navigation paths (Phase 45)
-- ✓ Query parallelization and deduplication (Phase 45)
-- Smart polling strategy — prioritize active view, adaptive intervals
-- ✓ Sprint board and backlog loading optimization (Phase 45)
-- ✓ Memoization handled by React Compiler (Phase 42)
-- Image/avatar local caching
-- ✓ Bundle analysis + dead code elimination (Phase 42)
+**Next milestone:** TBD — start with `/gsd:new-milestone`
 
 ## Context
 
@@ -132,15 +121,16 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - **Shipped v1.4:** 2026-03-20 — 6 phases, 21 plans, ~37,520 lines TypeScript
 - **Shipped v1.5:** 2026-03-24 — 7 phases, 25 plans, 415 files changed (+54,227/−4,827 lines)
 - **Shipped v1.6.3:** 2026-03-29 — 4 phases, 10 plans, 13 quick tasks, 334 files changed (+25,443/−2,497 lines)
-- **Tech stack:** Tauri 2, React 18, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, Biome, @dnd-kit/core, @dnd-kit/sortable, @tanstack/react-virtual, react-grid-layout, jira2md, react-markdown, react-hotkeys-hook, cmdk
+- **Shipped v1.7:** 2026-04-05 — 9 phases, 23 plans, 254 commits, 339 files changed (+38,812/−4,890 lines)
+- **Tech stack:** Tauri 2, React 18, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, Biome, @dnd-kit/core, @dnd-kit/sortable, @tanstack/react-virtual, react-grid-layout, jira2md, react-markdown, react-hotkeys-hook, cmdk, babel-plugin-react-compiler
 - **Jira instance:** On-premise (Jira Data Center v10.3.15) — REST API v2 with Bearer PAT auth; createmeta/workflow/transitions APIs used for issue management
 - **GitLab:** Self-hosted or gitlab.com — personal access token
 - **Team:** Orange eshop project — developers + project managers using the same app with role-based views
 - **Scale:** One Jira project + one GitLab project at a time
 - **Build:** Portable executable — no installer, no admin rights; `createHashRouter` for SPA routing in production
 - **Test suite:** 817+ tests, zero failures, zero warnings; Vitest with LazyStore mock
-- **Codebase:** ~51,536 lines TypeScript
-- **Known caveats (v1.6.3):** Bulk operations (BOARD-04–07) implemented but user-deferred — components on disk, not wired; Cmd+Shift nav shortcut deviation needs product owner sign-off; 13 human verification items deferred to live Jira environment; Apple/Windows code signing deferred to future release
+- **Codebase:** ~57,000+ lines TypeScript
+- **Known caveats (v1.7):** Bulk operations (BOARD-04–07) implemented but user-deferred — components on disk, not wired; Cmd+Shift nav shortcut deviation needs product owner sign-off; 13 human verification items deferred to live Jira environment; Apple/Windows code signing deferred to future release; 7 doc-only tech debt items from v1.7 milestone audit
 
 ## Constraints
 
@@ -228,5 +218,12 @@ This document evolves at phase transitions and milestone boundaries.
 3. Audit Out of Scope — reasons still valid?
 4. Update Context with current state
 
+| React Compiler auto-memoization | Eliminates all manual useMemo/useCallback/React.memo; babel-plugin-react-compiler handles memoization at IR level | ✓ Good — 35 files cleaned, zero manual memos remaining |
+| gcTime: Infinity for session-persistent cache | Users see cached data instantly on back-navigation; no gc during session | ✓ Good — stale-while-revalidate works correctly |
+| useIsActiveRoute hook for polling pause | Route-aware polling prevents background queries from burning CPU/network | ✓ Good — 5 views pause correctly |
+| useDelayedLoading with 200ms threshold | Prevents skeleton flash on fast cache hits while showing feedback on slow loads | ✓ Good — smooth UX on all 8 views |
+| Per-section backlog queries (not monolithic) | Independent queries for sprint stories, sprint list, backlog issues enable parallel fetch and progressive rendering | ✓ Good — backlog loads progressively |
+| CachedAvatar with blob URL Map + LazyStore disk persistence | Avatars cached in memory and on disk; 30-day TTL eviction; inflight dedup | ✓ Good — no repeated avatar fetches |
+
 ---
-*Last updated: 2026-04-04 after Phase 49 fix-backlog-wiring-and-doc-debt complete — all stale jira-backlog-view query keys replaced with actual BacklogPage keys, BacklogRow avatar migrated to CachedAvatar, doc debt closed*
+*Last updated: 2026-04-05 after v1.7 milestone complete*
