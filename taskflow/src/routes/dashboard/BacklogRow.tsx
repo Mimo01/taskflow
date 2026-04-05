@@ -41,6 +41,7 @@ export interface BacklogRowProps {
   isFocused?: boolean;
   sprints?: Array<{ id: number; name: string; state: string }>;
   onMoveToSprint?: (issueKey: string, sprintId: number, sprintName: string) => void;
+  onMoveToBacklog?: (issueKey: string) => void;
 }
 
 // -- Row cells (shared between both render paths) ----------------------------
@@ -146,6 +147,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       isFocused,
       sprints,
       onMoveToSprint,
+      onMoveToBacklog,
     },
     ref,
   ) {
@@ -179,7 +181,7 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       epicsLoading,
     };
 
-    if (!onMoveToSprint) {
+    if (!onMoveToSprint && !onMoveToBacklog) {
       return (
         <tr
           ref={ref}
@@ -212,24 +214,39 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
           <ContextMenuGroup>
             <ContextMenuLabel>Move to...</ContextMenuLabel>
             <ContextMenuSeparator />
-            {sprints && sprints.length > 0 ? (
-              sprints.map((sprint) => (
-                <ContextMenuItem
-                  key={sprint.id}
-                  onClick={() => onMoveToSprint(issue.key, sprint.id, sprint.name)}
-                >
-                  {sprint.name}
-                  {sprint.state === 'active' && (
-                    <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-1.5 py-0 text-[10px] font-medium text-green-800 border border-green-300">
-                      Active
-                    </span>
-                  )}
+            {(() => {
+              // Exclude the sprint the issue is already in
+              const currentSprintId = (issue.fields.sprint as { id: number } | null)?.id;
+              const targetSprints = (sprints ?? []).filter(
+                (s) => currentSprintId == null || s.id !== currentSprintId,
+              );
+              return targetSprints.length > 0 ? (
+                targetSprints.map((sprint) => (
+                  <ContextMenuItem
+                    key={sprint.id}
+                    onClick={() => onMoveToSprint?.(issue.key, sprint.id, sprint.name)}
+                  >
+                    {sprint.name}
+                    {sprint.state === 'active' && (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-1.5 py-0 text-[10px] font-medium text-green-800 border border-green-300">
+                        Active
+                      </span>
+                    )}
+                  </ContextMenuItem>
+                ))
+              ) : (
+                <ContextMenuLabel className="italic text-muted-foreground">
+                  No other sprints available
+                </ContextMenuLabel>
+              );
+            })()}
+            {onMoveToBacklog && (
+              <>
+                <ContextMenuSeparator />
+                <ContextMenuItem onClick={() => onMoveToBacklog(issue.key)}>
+                  Backlog
                 </ContextMenuItem>
-              ))
-            ) : (
-              <ContextMenuLabel className="italic text-muted-foreground">
-                No sprints available
-              </ContextMenuLabel>
+              </>
             )}
           </ContextMenuGroup>
         </ContextMenuContent>

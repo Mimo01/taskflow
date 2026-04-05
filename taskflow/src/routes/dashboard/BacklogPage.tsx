@@ -31,14 +31,14 @@ import { useBoardId } from '@/hooks/useBoardId';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useListNavigation } from '@/hooks/useListNavigation';
 import { STALE_TIME_MS } from '@/lib/query-constants';
-import { fetchBacklogIssues, fetchSprintList } from '@/services/jira/backlog';
+import { fetchBacklogIssues, fetchBacklogSprintStories, fetchSprintList } from '@/services/jira/backlog';
 import type { JiraIssue } from '@/services/jira';
 import {
   addIssuesToSprint,
   fetchEpicsBasic,
   fetchProjectStatuses,
+  moveIssuesToBacklog,
 } from '@/services/jira';
-import { fetchSprintStories } from '@/services/jira/issues';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useFilterStore } from '@/stores/filter.store';
@@ -63,6 +63,7 @@ function VirtualizedBacklogTable({
   rowRefs,
   sprints,
   onMoveToSprint,
+  onMoveToBacklog,
 }: {
   filteredIssues: JiraIssue[];
   scrollElement: HTMLDivElement | null;
@@ -78,6 +79,7 @@ function VirtualizedBacklogTable({
   rowRefs: React.MutableRefObject<Map<string, HTMLTableRowElement>>;
   sprints: Array<{ id: number; name: string; state: string }>;
   onMoveToSprint: (issueKey: string, sprintId: number, sprintName: string) => void;
+  onMoveToBacklog?: (issueKey: string) => void;
 }) {
   const rowVirtualizer = useVirtualizer({
     count: filteredIssues.length,
@@ -122,6 +124,7 @@ function VirtualizedBacklogTable({
         isFocused={visibleIssueKeys[focusIndex] === issue.key}
         sprints={sprints}
         onMoveToSprint={onMoveToSprint}
+        onMoveToBacklog={onMoveToBacklog}
       />
     );
   }
@@ -195,9 +198,12 @@ export default function BacklogPage() {
   // ── Queries ─────────────────────────────────────────────────────────────────
 
   // -- Per-section queries (progressive loading) ---
-  const { boardId } = useBoardId(jiraBaseUrl, jiraToken, activeJiraProject);
+  const { boardId, isLoading: boardIdLoading } = useBoardId(jiraBaseUrl, jiraToken, activeJiraProject);
 
-  // Query 1: Sprint stories (shared cache with SprintBoardTab)
+  // Query 1: Backlog sprint stories — active + future sprints, with sprint field for grouping.
+  // Uses fetchBacklogSprintStories (Agile board endpoint) so fields.sprint is populated.
+  // Separate from jira-sprint-stories (SprintBoardTab cache) which only fetches openSprints()
+  // and does not include the sprint field.
   const {
     data: sprintStories,
     isLoading: storiesLoading,
@@ -205,10 +211,10 @@ export default function BacklogPage() {
     error: storiesErrorObj,
     refetch: refetchStories,
   } = useQuery<JiraIssue[]>({
-    queryKey: ['jira-sprint-stories', activeJiraProject, jiraBaseUrl, storyPointsFieldKey, epicLinkFieldKey],
-    queryFn: () => fetchSprintStories(jiraBaseUrl!, jiraToken!, activeJiraProject!, false, storyPointsFieldKey, epicLinkFieldKey),
+    queryKey: ['jira-backlog-sprint-stories', activeJiraProject, jiraBaseUrl, boardId, storyPointsFieldKey, epicLinkFieldKey],
+    queryFn: () => fetchBacklogSprintStories(jiraBaseUrl!, jiraToken!, activeJiraProject!, boardId!, storyPointsFieldKey, epicLinkFieldKey),
     staleTime: STALE_TIME_MS,
-    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
+    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken && !!boardId,
   });
 
   // Query 2: Sprint list (canonical board ordering, includes empty sprints)
@@ -258,8 +264,9 @@ export default function BacklogPage() {
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
 
-  // Combined loading: show global skeleton only when no data at all
-  const isAnyLoading = storiesLoading && backlogLoading;
+  // Combined loading: show global skeleton only when no data at all.
+  // Include boardIdLoading since sprintStories is gated on boardId.
+  const isAnyLoading = (storiesLoading || boardIdLoading) && backlogLoading;
   const showSkeleton = useDelayedLoading(isAnyLoading);
 
   // Per-query loading for epics (LOAD-04)
@@ -496,14 +503,15 @@ export default function BacklogPage() {
       ['jira-backlog-issues', activeJiraProject, jiraBaseUrl, storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey],
       (old) => old?.filter((i) => i.key !== issueKey),
     );
-    // Also optimistically remove from sprint stories cache (if moving between sprints)
+    // Also optimistically remove from backlog sprint stories cache (if moving between sprints)
     queryClient.setQueryData<JiraIssue[]>(
-      ['jira-sprint-stories', activeJiraProject, jiraBaseUrl, storyPointsFieldKey, epicLinkFieldKey],
+      ['jira-backlog-sprint-stories', activeJiraProject, jiraBaseUrl, boardId, storyPointsFieldKey, epicLinkFieldKey],
       (old) => old?.filter((i) => i.key !== issueKey),
     );
     try {
       await addIssuesToSprint(jiraBaseUrl!, jiraToken!, sprintId, [issueKey]);
-      // Invalidate both caches so they refetch with correct sprint assignments
+      // Invalidate all relevant caches so they refetch with correct sprint assignments
+      queryClient.invalidateQueries({ queryKey: ['jira-backlog-sprint-stories'] });
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
       queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] });
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-list'] });
@@ -514,9 +522,34 @@ export default function BacklogPage() {
         previousBacklog,
       );
       // Refetch sprint stories to restore correct state
-      queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-backlog-sprint-stories'] });
     }
     void sprintName;
+  }
+
+  async function handleMoveToBacklog(issueKey: string) {
+    // Optimistic removal from sprint stories cache
+    const previousStories = queryClient.getQueryData<JiraIssue[]>(
+      ['jira-backlog-sprint-stories', activeJiraProject, jiraBaseUrl, boardId, storyPointsFieldKey, epicLinkFieldKey],
+    );
+    queryClient.setQueryData<JiraIssue[]>(
+      ['jira-backlog-sprint-stories', activeJiraProject, jiraBaseUrl, boardId, storyPointsFieldKey, epicLinkFieldKey],
+      (old) => old?.filter((i) => i.key !== issueKey),
+    );
+    try {
+      await moveIssuesToBacklog(jiraBaseUrl!, jiraToken!, [issueKey]);
+      // Invalidate all relevant caches so they refetch with correct sprint assignments
+      queryClient.invalidateQueries({ queryKey: ['jira-backlog-sprint-stories'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-sprint-list'] });
+    } catch (_err) {
+      // Rollback on failure
+      queryClient.setQueryData(
+        ['jira-backlog-sprint-stories', activeJiraProject, jiraBaseUrl, boardId, storyPointsFieldKey, epicLinkFieldKey],
+        previousStories,
+      );
+    }
   }
 
   // ── Section renderer ──────────────────────────────────────────────────────────
@@ -528,6 +561,7 @@ export default function BacklogPage() {
     issues: JiraIssue[],
     showCreateStory: boolean,
     isSticky: boolean = false,
+    moveToBacklog?: (issueKey: string) => void,
   ) {
     const isCollapsed = collapsedSections.has(sectionId);
     const filteredIssues = applyFilters(issues);
@@ -586,6 +620,7 @@ export default function BacklogPage() {
                 rowRefs={rowRefs}
                 sprints={availableSprints}
                 onMoveToSprint={handleMoveToSprint}
+                onMoveToBacklog={moveToBacklog}
               />
             ) : issues.length > 0 ? (
               /* All issues filtered out */
@@ -675,11 +710,12 @@ export default function BacklogPage() {
                 issues,
                 false,
                 true,
+                handleMoveToBacklog,
               ),
             )}
 
             {/* Backlog section — always last */}
-            {renderSection('backlog', 'Backlog', null, backlogIssues ?? [], true)}
+            {renderSection('backlog', 'Backlog', null, backlogIssues ?? [], true, true)}
           </div>
         ) : null}
       </div>

@@ -72,6 +72,11 @@ export async function fetchBacklogIssues(
 /**
  * Fetch the ordered sprint list (active + future) for a board.
  * Returns sprints in Jira board order, including empty sprints.
+ *
+ * Filters sprints to only those whose originBoardId matches the discovered
+ * canonical board ID. Jira DC boards can surface sprints from other boards
+ * (e.g. when a project has multiple boards or shared sprints), so this
+ * filtering prevents foreign sprints from appearing in the backlog view.
  */
 export async function fetchSprintList(
   baseUrl: string,
@@ -88,7 +93,7 @@ export async function fetchSprintList(
   );
   if (!res.ok) return [];
   const data = await res.json();
-  return (data?.values ?? []).map((s: Record<string, unknown>) => ({
+  const allSprints: JiraActiveSprint[] = (data?.values ?? []).map((s: Record<string, unknown>) => ({
     id: s.id as number,
     name: String(s.name ?? ''),
     state: String(s.state ?? '').toLowerCase() as 'active' | 'future' | 'closed',
@@ -96,6 +101,82 @@ export async function fetchSprintList(
     endDate: typeof s.endDate === 'string' ? s.endDate : undefined,
     originBoardId: typeof s.originBoardId === 'number' ? s.originBoardId : undefined,
   }));
+
+  // Determine the canonical board ID from the first sprint that has originBoardId set.
+  // This is the board that "owns" these sprints. Filter out sprints from other boards
+  // (which can appear when a Jira DC board surfaces sprints from shared projects).
+  const canonicalBoardId = allSprints.find((s) => s.originBoardId !== undefined)?.originBoardId;
+  if (canonicalBoardId === undefined) {
+    // No originBoardId on any sprint — cannot filter, return all
+    return allSprints;
+  }
+  return allSprints.filter((s) => s.originBoardId === undefined || s.originBoardId === canonicalBoardId);
+}
+
+/**
+ * Fetch parent (non-subtask) issues across ALL active and future sprints for a project,
+ * including the sprint custom field so BacklogPage can group stories by sprint section.
+ *
+ * Used exclusively by BacklogPage under query key `jira-backlog-sprint-stories`.
+ * Does NOT share cache with SprintBoardTab's `jira-sprint-stories` (which uses the
+ * standard search API without the sprint field and only targets openSprints()).
+ *
+ * Uses the Agile board endpoint so `fields.sprint` is returned as a reliable object
+ * (consistent with originBoardId-scoped sprint discovery used elsewhere).
+ *
+ * Returns [] silently on 400 (Jira Software not installed) or when boardId is null.
+ *
+ * @param boardId - Scrum board ID from useBoardId hook; pass null to return []
+ */
+export async function fetchBacklogSprintStories(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  boardId: number,
+  storyPointsFieldKey = 'customfield_10016',
+  epicLinkFieldKey = 'customfield_10014',
+): Promise<JiraIssue[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const spFields = [
+    ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
+  ].join(',');
+  // Include `sprint` in the fields list. The Agile board endpoint (/rest/agile/1.0/board/{id}/issue)
+  // returns fields.sprint as a reliable object (not via the customfield_10020 key).
+  const fields = `summary,status,assignee,issuetype,labels,sprint,${spFields},${epicLinkFieldKey},parent,subtasks,timetracking`;
+
+  // Fetch active and future sprint stories in parallel via the Agile board endpoint.
+  // Using the Agile endpoint (not /rest/api/2/search) ensures fields.sprint is populated.
+  const agileBase = `${base}/rest/agile/1.0/board/${boardId}/issue`;
+  const activeJql = encodeURIComponent(
+    `project = ${projectKey} AND sprint in openSprints() AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`,
+  );
+  const futureJql = encodeURIComponent(
+    `project = ${projectKey} AND sprint in futureSprints() AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`,
+  );
+
+  try {
+    const [activeIssues, futureIssues] = await Promise.all([
+      fetchAllSearchPages(`${agileBase}?jql=${activeJql}&fields=${fields}`, headers).catch(
+        () => [] as JiraIssue[],
+      ),
+      fetchAllSearchPages(`${agileBase}?jql=${futureJql}&fields=${fields}`, headers).catch(
+        () => [] as JiraIssue[],
+      ),
+    ]);
+    return [...activeIssues, ...futureIssues];
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    if (isResponseLikeError(err)) {
+      const status = err.status;
+      if (status === 400) {
+        // Jira Software not installed — treat as empty
+        return [];
+      }
+      throw new Error(`Jira search failed with status ${status}`);
+    }
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
 }
 
 /**
