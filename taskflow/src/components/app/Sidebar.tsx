@@ -212,10 +212,23 @@ export default function Sidebar() {
 
       {/* Branding */}
       <div
-        className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-4 border-b border-border`}
+        className={`flex items-center py-1.5 border-b border-border transition-all duration-200 ${sidebarCollapsed ? 'justify-center px-2' : 'px-3.5'}`}
       >
-        <AppIcon className="w-8 h-8 shrink-0" />
-        <span className={`text-base font-semibold text-foreground ${labelClass}`}>Taskflow</span>
+        {sidebarCollapsed ? (
+          <AppIcon className="w-8 h-8" />
+        ) : (
+          <div className="hidden md:flex items-center gap-1.5 select-none">
+            <AppIcon className="w-14 h-14 shrink-0" />
+            <div className="flex flex-col leading-none">
+              <span className="text-lg font-extrabold tracking-tight text-foreground">
+                task<span className="text-[#f97316]">flow</span>
+              </span>
+              <span className="text-[9px] font-medium tracking-[0.16em] text-muted-foreground/35 uppercase mt-0.5">
+                manage &amp; track
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Nav links grouped by section */}
