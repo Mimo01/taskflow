@@ -146,10 +146,15 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.bare }}"
           BUNDLE="taskflow/src-tauri/target/${{ matrix.target }}/release/bundle"
+          echo "Bundle dir contents:"
+          find "$BUNDLE" -type f -name "*${VERSION}*" 2>/dev/null | sort || true
           mkdir -p artifacts
-          cp "$BUNDLE/appimage/Taskflow_${VERSION}_amd64.AppImage.tar.gz" artifacts/ 2>/dev/null || true
-          cp "$BUNDLE/appimage/Taskflow_${VERSION}_amd64.AppImage.tar.gz.sig" artifacts/ 2>/dev/null || true
-          cp "$BUNDLE/deb/Taskflow_${VERSION}_amd64.deb" artifacts/ 2>/dev/null || true
+          # Copy updater archives (case-insensitive glob for AppImage tar.gz)
+          cp "$BUNDLE"/appimage/*AppImage.tar.gz artifacts/ 2>/dev/null || true
+          cp "$BUNDLE"/appimage/*AppImage.tar.gz.sig artifacts/ 2>/dev/null || true
+          # Copy installers
+          cp "$BUNDLE"/deb/*_amd64.deb artifacts/ 2>/dev/null || true
+          echo "Collected artifacts:"
           ls -la artifacts/
 
       - name: Collect Windows artifacts
@@ -159,13 +164,18 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.bare }}"
           BUNDLE="taskflow/src-tauri/target/${{ matrix.target }}/release/bundle"
+          echo "Bundle dir contents:"
+          find "$BUNDLE" -type f -name "*${VERSION}*" 2>/dev/null | sort || true
           mkdir -p artifacts
-          cp "$BUNDLE/nsis/Taskflow_${VERSION}_x64-setup.exe" artifacts/ 2>/dev/null || true
-          cp "$BUNDLE/nsis/Taskflow_${VERSION}_x64-setup.exe.sig" artifacts/ 2>/dev/null || true
-          cp "$BUNDLE/nsis/Taskflow_${VERSION}_x64-setup.nsis.zip" artifacts/ 2>/dev/null || true
-          cp "$BUNDLE/nsis/Taskflow_${VERSION}_x64-setup.nsis.zip.sig" artifacts/ 2>/dev/null || true
-          cp "$BUNDLE/msi/Taskflow_${VERSION}_x64_en-US.msi" artifacts/ 2>/dev/null || true
-          cp "$BUNDLE/msi/Taskflow_${VERSION}_x64_en-US.msi.sig" artifacts/ 2>/dev/null || true
+          # Copy updater archives
+          cp "$BUNDLE"/nsis/*nsis.zip artifacts/ 2>/dev/null || true
+          cp "$BUNDLE"/nsis/*nsis.zip.sig artifacts/ 2>/dev/null || true
+          # Copy installers
+          cp "$BUNDLE"/nsis/*setup.exe artifacts/ 2>/dev/null || true
+          cp "$BUNDLE"/nsis/*setup.exe.sig artifacts/ 2>/dev/null || true
+          cp "$BUNDLE"/msi/*.msi artifacts/ 2>/dev/null || true
+          cp "$BUNDLE"/msi/*.msi.sig artifacts/ 2>/dev/null || true
+          echo "Collected artifacts:"
           ls -la artifacts/
 
       - name: Upload artifacts
