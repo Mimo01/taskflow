@@ -121,21 +121,26 @@ export default function Sidebar() {
           queryFn: () => fetchBacklogIssues(jiraBaseUrl, jiraToken, activeJiraProject, storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey),
           staleTime: STALE_TIME_MS,
         });
-        // Sprint stories and sprint list both need boardId — resolve first then prefetch.
+        // Sprint list needs boardId; sprint stories need sprint IDs from the list.
+        // Chain: boardId → sprint list → sprint stories (per-sprint, fast search API).
         queryClient.fetchQuery({
           queryKey: ['jira-board-id', activeJiraProject, jiraBaseUrl],
           queryFn: () => fetchBoardId(jiraBaseUrl, jiraToken, activeJiraProject),
           staleTime: Infinity,
-        }).then((boardId) => {
-          if (boardId != null) {
+        }).then(async (boardId) => {
+          if (boardId == null) return;
+          const sprints = await queryClient.fetchQuery({
+            queryKey: ['jira-sprint-list', boardId, jiraBaseUrl],
+            queryFn: () => fetchSprintList(jiraBaseUrl, jiraToken, boardId),
+            staleTime: STALE_TIME_MS,
+          });
+          const sprintIds = (sprints ?? [])
+            .filter((s) => s.state === 'active' || s.state === 'future')
+            .map((s) => s.id);
+          if (sprintIds.length > 0) {
             queryClient.prefetchQuery({
-              queryKey: ['jira-backlog-sprint-stories', activeJiraProject, jiraBaseUrl, boardId, storyPointsFieldKey, epicLinkFieldKey],
-              queryFn: () => fetchBacklogSprintStories(jiraBaseUrl, jiraToken, activeJiraProject, boardId, storyPointsFieldKey, epicLinkFieldKey),
-              staleTime: STALE_TIME_MS,
-            });
-            queryClient.prefetchQuery({
-              queryKey: ['jira-sprint-list', boardId, jiraBaseUrl],
-              queryFn: () => fetchSprintList(jiraBaseUrl, jiraToken, boardId),
+              queryKey: ['jira-backlog-sprint-stories', activeJiraProject, jiraBaseUrl, sprintIds, storyPointsFieldKey, epicLinkFieldKey],
+              queryFn: () => fetchBacklogSprintStories(jiraBaseUrl, jiraToken, activeJiraProject, sprintIds, storyPointsFieldKey, epicLinkFieldKey),
               staleTime: STALE_TIME_MS,
             });
           }

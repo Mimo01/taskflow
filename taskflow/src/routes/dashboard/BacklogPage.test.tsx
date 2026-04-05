@@ -193,7 +193,10 @@ describe('BACK-01 List', () => {
   });
 
   it('renders skeleton/loading state while query is pending', async () => {
-    const { fetchBacklogSprintStories, fetchBacklogIssues } = await import('@/services/jira/backlog');
+    const { fetchBacklogSprintStories, fetchSprintList, fetchBacklogIssues } = await import('@/services/jira/backlog');
+    vi.mocked(fetchSprintList).mockResolvedValue([
+      { id: 1, name: 'Sprint 1', state: 'active' as const },
+    ]);
     vi.mocked(fetchBacklogSprintStories).mockReturnValue(new Promise(() => {})); // never resolves
     vi.mocked(fetchBacklogIssues).mockReturnValue(new Promise(() => {})); // never resolves
 

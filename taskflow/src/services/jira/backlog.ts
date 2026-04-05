@@ -114,69 +114,59 @@ export async function fetchSprintList(
 }
 
 /**
- * Fetch parent (non-subtask) issues across ALL active and future sprints for a project,
- * including the sprint custom field so BacklogPage can group stories by sprint section.
+ * Fetch parent (non-subtask) issues across specific sprints for a project.
  *
  * Used exclusively by BacklogPage under query key `jira-backlog-sprint-stories`.
- * Does NOT share cache with SprintBoardTab's `jira-sprint-stories` (which uses the
- * standard search API without the sprint field and only targets openSprints()).
+ * Does NOT share cache with SprintBoardTab's `jira-sprint-stories`.
  *
- * Uses the Agile board endpoint so `fields.sprint` is returned as a reliable object
- * (consistent with originBoardId-scoped sprint discovery used elsewhere).
+ * Uses the standard search API (`/rest/api/2/search`) per-sprint for performance.
+ * Each issue is tagged with `fields.sprint = { id }` so BacklogPage can group
+ * issues by sprint section (the search API may not return a sprint object natively).
  *
- * Returns [] silently on 400 (Jira Software not installed) or when boardId is null.
- *
- * @param boardId - Scrum board ID from useBoardId hook; pass null to return []
+ * @param sprintIds - Sprint IDs from the already-loaded sprint list
  */
 export async function fetchBacklogSprintStories(
   baseUrl: string,
   token: string,
   projectKey: string,
-  boardId: number,
+  sprintIds: number[],
   storyPointsFieldKey = 'customfield_10016',
   epicLinkFieldKey = 'customfield_10014',
 ): Promise<JiraIssue[]> {
+  if (sprintIds.length === 0) return [];
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const spFields = [
     ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
   ].join(',');
-  // Include `sprint` in the fields list. The Agile board endpoint (/rest/agile/1.0/board/{id}/issue)
-  // returns fields.sprint as a reliable object (not via the customfield_10020 key).
-  const fields = `summary,status,assignee,issuetype,labels,sprint,${spFields},${epicLinkFieldKey},parent,subtasks,timetracking`;
+  const fields = `summary,status,assignee,issuetype,labels,${spFields},${epicLinkFieldKey},parent,subtasks,timetracking`;
 
-  // Fetch active and future sprint stories in parallel via the Agile board endpoint.
-  // Using the Agile endpoint (not /rest/api/2/search) ensures fields.sprint is populated.
-  const agileBase = `${base}/rest/agile/1.0/board/${boardId}/issue`;
-  const activeJql = encodeURIComponent(
-    `project = ${projectKey} AND sprint in openSprints() AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`,
-  );
-  const futureJql = encodeURIComponent(
-    `project = ${projectKey} AND sprint in futureSprints() AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`,
-  );
-
-  try {
-    const [activeIssues, futureIssues] = await Promise.all([
-      fetchAllSearchPages(`${agileBase}?jql=${activeJql}&fields=${fields}`, headers).catch(
-        () => [] as JiraIssue[],
-      ),
-      fetchAllSearchPages(`${agileBase}?jql=${futureJql}&fields=${fields}`, headers).catch(
-        () => [] as JiraIssue[],
-      ),
-    ]);
-    return [...activeIssues, ...futureIssues];
-  } catch (err) {
-    if (err instanceof ApiError) throw err;
-    if (isResponseLikeError(err)) {
-      const status = err.status;
-      if (status === 400) {
-        // Jira Software not installed — treat as empty
+  // Fetch issues per-sprint in parallel using the fast standard search API.
+  // Since we query per sprint ID, we know which sprint each issue belongs to
+  // and inject fields.sprint = { id } so mergedSprints grouping works.
+  const results = await Promise.all(
+    sprintIds.map(async (sprintId) => {
+      const jql = encodeURIComponent(
+        `project = ${projectKey} AND sprint = ${sprintId} AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`,
+      );
+      try {
+        const issues = await fetchAllSearchPages(
+          `${base}/rest/api/2/search?jql=${jql}&fields=${fields}`,
+          headers,
+        );
+        // Tag each issue with its sprint ID so BacklogPage can group by sprint
+        for (const issue of issues) {
+          (issue.fields as Record<string, unknown>).sprint = { id: sprintId };
+        }
+        return issues;
+      } catch (err) {
+        if (err instanceof ApiError) throw err;
+        if (isResponseLikeError(err) && err.status === 400) return [];
         return [];
       }
-      throw new Error(`Jira search failed with status ${status}`);
-    }
-    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
-  }
+    }),
+  );
+  return results.flat();
 }
 
 /**
