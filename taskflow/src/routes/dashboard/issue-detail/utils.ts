@@ -76,10 +76,19 @@ export function extractSprintId(raw: unknown): number | null {
   }
   if (Array.isArray(raw) && raw.length > 0) {
     const first = raw[0];
+    // Case 1: array of objects — prefer active sprint
     if (typeof first === 'object' && first !== null) {
       const items = raw as Array<Record<string, unknown>>;
       const active = items.find((s) => String(s.state).toLowerCase() === 'active');
       return (((active ?? items[0]).id as number) ?? null);
+    }
+    // Case 2: array of Java toString strings — parse id from "id=123"
+    if (typeof first === 'string') {
+      const strings = raw as string[];
+      const active = strings.find((s) => /state=ACTIVE/i.test(s));
+      const chosen = active ?? strings[0];
+      const match = chosen.match(/id=(\d+)/);
+      return match ? Number(match[1]) : null;
     }
   }
   return null;
