@@ -65,6 +65,26 @@ function parseSprintToStringName(str: string): string | null {
   return match ? match[1] : null;
 }
 
+/**
+ * Extract the sprint ID from various Jira sprint field formats.
+ * Prefers active sprint when multiple are present.
+ */
+export function extractSprintId(raw: unknown): number | null {
+  if (raw == null) return null;
+  if (typeof raw === 'object' && !Array.isArray(raw)) {
+    return ((raw as Record<string, unknown>).id as number) ?? null;
+  }
+  if (Array.isArray(raw) && raw.length > 0) {
+    const first = raw[0];
+    if (typeof first === 'object' && first !== null) {
+      const items = raw as Array<Record<string, unknown>>;
+      const active = items.find((s) => String(s.state).toLowerCase() === 'active');
+      return (((active ?? items[0]).id as number) ?? null);
+    }
+  }
+  return null;
+}
+
 // MR state color helpers
 export function mrStateClasses(state: GitLabMR['state']): string {
   if (state === 'opened') return 'bg-green-500/10 text-green-700 dark:text-green-400';

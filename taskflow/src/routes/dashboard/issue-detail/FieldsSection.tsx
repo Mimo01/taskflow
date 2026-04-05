@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
+import { ConfirmSprintMoveDialog } from '@/components/ui/confirm-sprint-move-dialog';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -16,15 +17,17 @@ import { apiFetch } from '@/lib/apiFetch';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import type { JiraIssueDetail } from '@/services/jira';
 import { postTransition } from '@/services/jira/transitions';
+import { addIssuesToSprint, fetchSprintsForBoard, moveIssuesToBacklog } from '@/services/jira/sprints';
 import { fetchFixVersions } from '@/services/jira/versions';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
+import { useBoardId } from '@/hooks/useBoardId';
 import StatusPopover from '../StatusPopover';
 import { MetaRow } from './MetaRow';
 import { OverdueBadge } from './OverdueBadge';
 import { TimeTrackingSummary } from './TimeTrackingSummary';
 import { useDebounce } from './useFieldMutation';
-import { extractSprintName } from './utils';
+import { extractSprintId, extractSprintName } from './utils';
 import { WatcherToggle } from './WatcherToggle';
 
 const PRIORITY_OPTIONS = ['Highest', 'High', 'Medium', 'Low', 'Lowest'];
@@ -71,6 +74,7 @@ export function FieldsSection({
   const epicLink = isStory ? (f[epicLinkFieldKey] as string | null) : null;
   const rawSprint = f[sprintFieldKey] as unknown;
   const sprintName = extractSprintName(rawSprint);
+  const currentSprintId = extractSprintId(rawSprint);
 
   // Priority edit state
   const [priorityEditing, setPriorityEditing] = useState(false);
@@ -90,6 +94,13 @@ export function FieldsSection({
   const [labelInput, setLabelInput] = useState('');
   const [labelAdding, setLabelAdding] = useState(false);
 
+  // Sprint picker state
+  const [sprintPickerOpen, setSprintPickerOpen] = useState(false);
+  const [pendingSprintMove, setPendingSprintMove] = useState<{
+    sprintId: number | null; // null = move to backlog
+    sprintName: string;
+  } | null>(null);
+
   // Fix version edit state
   const [fixVersionOpen, setFixVersionOpen] = useState(false);
   const activeJiraProject = useAuthStore((s) => s.activeJiraProject);
@@ -101,6 +112,21 @@ export function FieldsSection({
       return fetchFixVersions(jiraBaseUrl, token, activeJiraProject);
     },
     enabled: fixVersionOpen && !!activeJiraProject,
+  });
+
+  // Token query for sprint picker (same pattern as fix versions)
+  const { data: jiraToken } = useQuery({
+    queryKey: ['jira-pat'],
+    queryFn: () => readSecret('jira-pat'),
+    staleTime: Infinity,
+  });
+
+  const { boardId } = useBoardId(jiraBaseUrl, jiraToken ?? null, activeJiraProject);
+
+  const sprintsQuery = useQuery({
+    queryKey: ['jira-field-sprints', boardId],
+    queryFn: () => fetchSprintsForBoard(jiraBaseUrl, jiraToken!, boardId!),
+    enabled: sprintPickerOpen && !!boardId && !!jiraToken,
   });
 
   const filteredVersions = (() => {
@@ -186,6 +212,30 @@ export function FieldsSection({
 
   function handleTransition(transitionId: string, toStatusName: string) {
     transitionMutation.mutate({ transitionId, toName: toStatusName });
+  }
+
+  const sprintMoveMutation = useMutation({
+    mutationFn: async ({ sprintId }: { sprintId: number | null }) => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token) throw new Error('No token');
+      if (sprintId === null) {
+        return moveIssuesToBacklog(jiraBaseUrl, token, [issueKey]);
+      }
+      return addIssuesToSprint(jiraBaseUrl, token, sprintId, [issueKey]);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
+      queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-backlog-sprint-stories'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-sprint-list'] });
+    },
+  });
+
+  function handleSprintMoveConfirm() {
+    if (!pendingSprintMove) return;
+    sprintMoveMutation.mutate({ sprintId: pendingSprintMove.sprintId });
+    setPendingSprintMove(null);
   }
 
   // Assignee search with debounce
@@ -496,8 +546,85 @@ export function FieldsSection({
         </MetaRow>
       )}
 
-      {/* Sprint -- stories only (epics and subtasks don't have sprints) */}
-      {isStory && <MetaRow label="Sprint">{sprintName ?? 'No sprint'}</MetaRow>}
+      {/* Sprint -- stories only (editable popover) */}
+      {isStory && (
+        <MetaRow label="Sprint">
+          <Popover open={sprintPickerOpen} onOpenChange={setSprintPickerOpen}>
+            <PopoverTrigger
+              data-testid="sprint-edit"
+              className="hover:bg-accent rounded px-1 -ml-1 cursor-pointer text-left text-sm"
+              title="Click to change sprint"
+            >
+              {sprintName ?? 'No sprint'}
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-2">
+              {sprintsQuery.isLoading && (
+                <p className="text-xs text-muted-foreground px-1">Loading sprints...</p>
+              )}
+              {sprintsQuery.isError && (
+                <p className="text-xs text-destructive px-1">Failed to load sprints</p>
+              )}
+              {sprintsQuery.data &&
+                sprintsQuery.data
+                  .filter((s) => s.id !== currentSprintId)
+                  .map((sprint) => (
+                    <button
+                      key={sprint.id}
+                      type="button"
+                      onClick={() => {
+                        setSprintPickerOpen(false);
+                        setPendingSprintMove({ sprintId: sprint.id, sprintName: sprint.name });
+                      }}
+                      className="w-full text-left px-2 py-1 text-xs hover:bg-accent rounded flex items-center gap-2"
+                    >
+                      <span className="flex-1 truncate">{sprint.name}</span>
+                      {sprint.state === 'active' && (
+                        <Badge
+                          variant="outline"
+                          className="bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700 text-[9px] leading-none px-1 py-0 h-3.5"
+                        >
+                          active
+                        </Badge>
+                      )}
+                    </button>
+                  ))}
+              {sprintsQuery.data && sprintsQuery.data.length === 0 && (
+                <p className="text-xs text-muted-foreground px-1">No sprints available</p>
+              )}
+              {/* Backlog option -- only when issue is currently in a sprint */}
+              {currentSprintId !== null && (
+                <>
+                  {sprintsQuery.data && sprintsQuery.data.length > 0 && (
+                    <div className="my-1 border-t border-border" />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSprintPickerOpen(false);
+                      setPendingSprintMove({ sprintId: null, sprintName: 'Backlog' });
+                    }}
+                    className="w-full text-left px-2 py-1 text-xs hover:bg-accent rounded"
+                  >
+                    Move to Backlog
+                  </button>
+                </>
+              )}
+            </PopoverContent>
+          </Popover>
+        </MetaRow>
+      )}
+
+      <ConfirmSprintMoveDialog
+        open={!!pendingSprintMove}
+        onOpenChange={(open) => {
+          if (!open) setPendingSprintMove(null);
+        }}
+        issueKey={issueKey}
+        fromSprintName={sprintName}
+        toSprintName={pendingSprintMove?.sprintName ?? ''}
+        onConfirm={handleSprintMoveConfirm}
+        isPending={sprintMoveMutation.isPending}
+      />
 
       {/* Labels -- badge chips with remove + add */}
       <MetaRow label="Labels">
