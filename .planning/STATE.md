@@ -75,8 +75,8 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-04-04 - Completed quick task 260404-rub: Set up GitHub Actions release process based on pmkar project
-Stopped at: Completed quick-260404-rub
+Last activity: 2026-04-05 - Completed quick task 260405-tci: Sprint change from issue detail sidebar
+Stopped at: Checkpoint in quick-260405-tci (awaiting human-verify)
 Resume: `/gsd:plan-phase 38`
 
 ### Quick Tasks Completed
@@ -109,3 +109,4 @@ Resume: `/gsd:plan-phase 38`
 | 260401-bcs | Make the unassigned avatar nicer — person silhouette icon matching Jira style | 2026-04-01 | d98e0a9 | | [260401-bcs-make-the-unassigned-avatar-nicer-and-mat](./quick/260401-bcs-make-the-unassigned-avatar-nicer-and-mat/) |
 | 260401-ffx | Remove checkboxes and bottom bulk bar from backlog; add right-click context menu to move issues to sprints | 2026-04-01 | 17d328a | Verified | [260401-ffx-remove-checkboxes-and-bottom-bar-in-back](./quick/260401-ffx-remove-checkboxes-and-bottom-bar-in-back/) |
 | 260404-rub | Set up GitHub Actions release process based on pmkar project | 2026-04-04 | e9afd62 | | [260404-rub-set-up-github-actions-release-process-ba](./quick/260404-rub-set-up-github-actions-release-process-ba/) |
+| 260405-tci | Change sprint of a story from issue detail sidebar | 2026-04-05 | 635e22e | Awaiting verify | [260405-tci-change-sprint-of-a-story-from-issue-deta](./quick/260405-tci-change-sprint-of-a-story-from-issue-deta/) |
