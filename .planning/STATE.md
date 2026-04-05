@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Performance & Perceived Speed
 status: Milestone complete
-stopped_at: Completed quick-260404-rub-PLAN.md
-last_updated: "2026-04-04T18:10:56.916Z"
-last_activity: 2026-04-04
+stopped_at: Completed quick-260405-usp-PLAN.md
+last_updated: "2026-04-05T23:15:00.000Z"
+last_activity: 2026-04-05
 progress:
   total_phases: 5
   completed_phases: 5
@@ -110,3 +110,4 @@ Resume: `/gsd:plan-phase 38`
 | 260401-ffx | Remove checkboxes and bottom bulk bar from backlog; add right-click context menu to move issues to sprints | 2026-04-01 | 17d328a | Verified | [260401-ffx-remove-checkboxes-and-bottom-bar-in-back](./quick/260401-ffx-remove-checkboxes-and-bottom-bar-in-back/) |
 | 260404-rub | Set up GitHub Actions release process based on pmkar project | 2026-04-04 | e9afd62 | | [260404-rub-set-up-github-actions-release-process-ba](./quick/260404-rub-set-up-github-actions-release-process-ba/) |
 | 260405-tci | Change sprint from issue detail sidebar with confirmation + shared sprint menu component | 2026-04-05 | 1f4c3a8 | Verified | [260405-tci-change-sprint-of-a-story-from-issue-deta](./quick/260405-tci-change-sprint-of-a-story-from-issue-deta/) |
+| 260405-usp | New Taskflow logo with flow motif — two overlapping S-curve ribbons | 2026-04-05 | 77e66c7 | | [260405-usp-new-taskflow-logo-with-flow-motif-in-whi](./quick/260405-usp-new-taskflow-logo-with-flow-motif-in-whi/) |
