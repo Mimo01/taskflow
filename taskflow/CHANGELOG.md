@@ -1,4 +1,247 @@
 
+## [1.7.0]
+
+### Miscellaneous
+
+- clean up phase directories after v1.7 archival
+- complete v1.7 milestone — Performance & Perceived Speed
+## [1.7]
+
+### Bug Fixes
+
+- use fast search API for sprint stories and fix loading sequence
+- restore sprint filtering, story mapping, and context menu behavior
+- migrate BacklogRow assignee avatar from bare img to CachedAvatar
+- replace dead jira-backlog-view references with actual BacklogPage query keys
+- fix 7 TypeScript type errors in BacklogPage test mocks
+- revise plans based on checker feedback
+- fix context menu group wrapping, unused import, and test assertions
+- fix backlog progressive loading — broken rows, scroll jumps, wrong sprints, slow query
+- polish MR detail page per user feedback
+- use useLayoutEffect to eliminate sticky header swap flicker
+- fix sticky headers not appearing on first scroll
+- eliminate one-frame flicker on sticky header swap
+- fix sticky header push-out overlap and transparency
+- fix transparent sticky header, refresh hang, and collapse jump
+- fix sticky header white flash, reload race, and collapse jump
+- add min-width to subtask count for consistent column alignment
+- add min-width to status badge for aligned assignee columns on sprint board
+- restore SprintBoardTab and StoryHeaderRow to pre-merge state
+- unify header styles, add 1px gap between collapsed rows
+- preserve strikethrough on hover for done issue keys
+- resolve Jira avatar images not loading when server omits Content-Type
+- resolve infinite re-render loops causing app freeze
+- remove cursor-pointer and hover border from sprint board task cards
+- wrap ContextMenuLabel in ContextMenuGroup to fix Base UI MenuGroupRootContext error
+- add avatars to assignee/reporter in issue detail sidebar
+- provide queryFn to sidebar prefetchQuery calls
+- remove boardId from BacklogPage queryKey to match sidebar prefetch key
+- remove unused refetch from useQuery destructurings in 8 view files
+- revise plans based on checker feedback
+- revise plans based on checker feedback
+
+### Documentation
+
+- evolve PROJECT.md after phase completion
+- complete phase execution
+- complete backlog query key wiring and BacklogRow avatar migration
+- complete doc debt closure — phase 43 annotations and nyquist flags
+- set nyquist_compliant: true in phases 47-debt, 47-backlog, 48 VALIDATION.md files
+- annotate phase 43 docs for MrAttentionTab.tsx removal
+- create phase plan — backlog wiring fixes and doc debt
+- add gap closure phase 49
+- complete phase execution
+- complete gap closure plan — TS type errors and cache invalidation test
+- create gap closure plan for TS type errors and cache invalidation test
+- complete BacklogPage test update plan
+- complete plan — restore BacklogPage per-section query architecture
+- add research, validation, and plans
+- create phase plan — restore backlog progressive loading
+- research phase — restore backlog progressive loading
+- add gap closure phase 48 — Restore Backlog Progressive Loading
+- add gap closure phase 48 — Restore Backlog Progressive Loading
+- evolve PROJECT.md after phase completion
+- complete phase execution
+- complete per-section progressive loading plan
+- complete foundation components plan - div-based backlog grid and fetchSprintList
+- create phase plans with checker fix
+- create phase plan for backlog progressive loading
+- add research and validation strategy
+- research phase domain
+- fix typography weight contradiction in UI-SPEC
+- UI design contract
+- record phase 47 context session
+- capture phase context
+- evolve PROJECT.md after phase completion
+- complete phase execution
+- fix verification gaps — check VALIDATION body checklists and update REQUIREMENTS timestamp
+- update ROADMAP plan progress to complete
+- apply phase 47 documentation fixes to correct planning directory
+- complete v1.7 debt cleanup plan 01 - stale constants, dead mock, artifact ignore
+- create phase plans for v1.7 debt cleanup
+- add validation strategy
+- research phase v1.7 debt cleanup
+- fix 45-03 roadmap action (add vs toggle)
+- create phase plan for v1.7 debt cleanup
+- add validation strategy
+- research phase v1.7 debt cleanup
+- add gap closure phase 47 for v1.7 debt cleanup
+- create milestone audit report
+- evolve PROJECT.md after phase completion
+- complete phase execution
+- complete avatar integration plan
+- complete avatar caching infrastructure plan summary and state update
+- create phase plan for avatar caching
+- add research and validation strategy
+- research avatar caching phase
+- UI design contract
+- record phase 46 context session
+- capture phase context
+- evolve PROJECT.md after phase completion
+- complete phase execution
+- re-verification passed — 9/9 must-haves after gap closure
+- add self-check to summary
+- complete backlog prefetch boardId chain plan
+- create gap closure plan for backlog prefetch
+- update SUMMARY and STATE after prefetch fix
+- complete UI wiring for query parallelization plan
+- complete service layer infrastructure plan
+- create phase plan
+- research and validation architecture for query optimization
+- research query optimization phase
+- UI design contract
+- UI design contract
+- record phase 45 context session
+- capture phase context
+- evolve PROJECT.md after phase completion
+- complete phase execution and verification
+- complete gap closure plan - TS fix and requirements tracking
+- update REQUIREMENTS.md to reflect LOAD-03 deferred and LOAD-04 partial status
+- create gap closure plan for TS compilation fix + REQUIREMENTS.md update
+- complete sprint board and backlog skeleton wiring plan
+- complete skeleton wiring for remaining 6 views plan
+- complete loading UX foundation plan
+- create phase plan — 3 plans for loading UX
+- add validation strategy
+- research phase domain
+- UI design contract
+- UI design contract
+- record phase 44 context session
+- capture phase context
+- evolve PROJECT.md after phase completion
+- complete phase execution
+- complete route-aware polling wiring plan
+- complete cache-infrastructure plan
+- create phase plan
+- add validation strategy
+- research cache correctness phase
+- UI design contract
+- record phase 43 context session
+- capture phase context
+- evolve PROJECT.md after phase completion
+- complete phase execution
+- complete bundle analysis plan — visualizer wired, 3 pages lazified
+- complete react-compiler memoization-removal plan summary and state update
+- complete code-splitting plan summary and state update
+- create phase plan
+- add validation strategy
+- research phase foundation
+- UI design contract
+- fix typography weight count and CTA copy in UI-SPEC
+- UI design contract
+- record phase 42 context session
+- capture phase context
+- create milestone v1.7 roadmap (5 phases)
+- define milestone v1.7 requirements
+- complete project research
+- start milestone v1.7 Performance & Perceived Speed
+
+### Features
+
+- apply new flow motif logo to all icon surfaces
+- design 3 flow motif logo variants with previews
+- wire confirmation dialog into backlog sprint moves
+- add sprint picker to issue detail sidebar with confirmation dialog
+- add cross-platform GitHub Actions release workflow
+- refactor BacklogPage to per-section queries and remove fetchFutureSprintIssues
+- add epicsLoading prop to BacklogRow for per-row epic skeleton
+- remove checkboxes and bulk bar, add right-click context menu to backlog rows
+- use CachedAvatar for unassigned state in all views
+- show person silhouette icon for unassigned avatar
+- replace monolithic fetchBacklogView with per-section queries
+- convert VirtualizedBacklogTable to div-based CSS grid with always-on virtualization
+- reorganize MR detail page with code previews and proper system notes
+- add fetchSprintList to backlog.ts and convert BacklogRow to div-based grid
+- remove MrAttentionWidget from registry and delete all MrAttention files
+- remove MR Attention sidebar entry, route, and breadcrumb
+- reorganize MR detail page layout
+- add DiscussionThreads component and integrate into MR detail page
+- expand Discussion and DiscussionNote types with full GitLab API fields
+- improve sheet slide animation distance and easing
+- fix sticky header, add swimlane collapse animation, fix reload bug
+- show assignee display name next to avatar on story header rows
+- add assignee avatar to sprint board story headers
+- add right-click context menu to story header rows for status transitions
+- wire transitions to all StoryHeaderRow instances and fix pre-fetch
+- add context menu support to StoryHeaderRow
+- add visual separation between collapsed story swimlane headers
+- auto-collapse fully-done story swimlanes on sprint board
+- redesign TaskCard to Jira-style layout with type, points, and assignee name
+- add strikethrough to done issue keys in backlog rows
+- add strikethrough to done issue keys in sprint board components
+- add clickability affordances to sprint board cards and story headers
+- remove DnD from sprint board, wire right-click context menu transitions
+- add right-click context menu with transitions to TaskCard
+- replace all inline avatar patterns with CachedAvatar
+- initialize avatar cache on app startup
+- useAvatarCache hook and CachedAvatar component with tests
+- avatar cache service with disk persistence and test infrastructure
+- chain boardId resolution into backlog prefetch in Sidebar
+- sidebar hover/focus prefetch and dev tools concurrency toggle
+- wire SprintBoardTab parallel queries and BacklogPage useBoardId
+- refactor fetchBacklogView to accept boardId and remove epic batch
+- split fetchSprintIssues into fetchSprintStories + fetchSprintSubtasks
+- concurrency limiter + useBoardId hook + install p-limit
+- wire BacklogSkeleton with useDelayedLoading and progressive epic badges
+- wire SprintBoardSkeleton with useDelayedLoading and cache-invalidating refresh
+- wire skeletons into EpicsPage, ReleasesTab, MrAttentionTab
+- wire skeletons into MyTasksTab, WorkloadTab, SprintProgressTab
+- create 8 per-view skeleton components
+- create useDelayedLoading hook with 5 tests
+- wire route-aware polling into MyTasksTab and MrAttentionTab
+- wire route-aware polling into SprintBoardTab, WorkloadTab, SprintProgressTab
+- add gcTime: Infinity to QueryClient defaultOptions
+- add query-constants and useIsActiveRoute hook with tests
+- add bundle analysis tooling and eliminate oversized static route chunks
+- wire 6 heavy routes as lazy chunks in routes.tsx
+- enable React Compiler via @rolldown/plugin-babel + reactCompilerPreset
+- add RouteSpinner and ChunkErrorBoundary with tests
+
+### Miscellaneous
+
+- clean up variant temp files
+- add stats.html to .gitignore and remove from disk
+
+### Refactoring
+
+- unify sprint selector with shared SprintMoveMenuItems component
+- replace literal 30_000 with STALE_TIME_MS and remove dead mock
+- remove useMemo from widget files
+- remove useMemo/useCallback/memo from dashboard and issue-detail files
+- remove manual memoization from components and notifications (batch 1)
+
+### Testing
+
+- add cache-invalidation assertion to BACK-02
+- update BacklogPage test mocks to per-section query architecture
+- update BacklogPage tests for context menu, remove checkbox tests
+- update BacklogPage tests and add LOAD-04, fetchSprintList, fetchFutureSprintIssues tests
+- persist human verification items as UAT
+- persist human verification items as UAT
+
+### Style
+
+- redesign branding with larger logo and colored text
 ## [1.6.3]
 
 ### Bug Fixes
