@@ -43,6 +43,7 @@ export function useFieldMutation(issueKey: string, jiraBaseUrl: string) {
       queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
       queryClient.invalidateQueries({ queryKey: ['jira-issues', 'my-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-backlog-sprint-stories'] });
       queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] });
       queryClient.invalidateQueries({ queryKey: ['jira-epics-basic'] });
       queryClient.invalidateQueries({ queryKey: ['jira-fixversion-issues'] });

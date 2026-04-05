@@ -1926,6 +1926,37 @@ export async function addIssuesToSprint(
   }
 }
 
+/**
+ * Move a set of issues to the backlog (remove from their current sprint).
+ *
+ * POSTs to POST /rest/agile/1.0/backlog/issue with body { issues: issueKeys }.
+ * Jira returns 204 No Content on success -- treated as success.
+ * Throws Error on any other non-ok response.
+ *
+ * @param baseUrl   - Jira base URL (e.g. "https://jira.example.com")
+ * @param token     - Personal Access Token
+ * @param issueKeys - Array of issue keys to move to backlog (e.g. ["PROJ-1"])
+ * @throws Error with status code on non-ok, non-204 response
+ */
+export async function moveIssuesToBacklog(
+  baseUrl: string,
+  token: string,
+  issueKeys: string[],
+): Promise<void> {
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/agile/1.0/backlog/issue`;
+  const response = await apiFetch('jira', url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ issues: issueKeys }),
+  });
+  if (!response.ok && response.status !== 204) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to move issues to backlog', response.status, 'jira');
+    }
+    throw new Error(`Failed to move issues to backlog: ${response.status}`);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Phase 13 — Epic Management
 // ---------------------------------------------------------------------------

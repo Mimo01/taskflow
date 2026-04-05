@@ -330,6 +330,16 @@ function AppLayout() {
       }
     }
     if (!resolvedTitle) {
+      const backlogSprintStoriesEntries = queryClient.getQueriesData<CachedIssue[]>({
+        queryKey: ['jira-backlog-sprint-stories'],
+      });
+      for (const [, data] of backlogSprintStoriesEntries) {
+        if (!data) continue;
+        resolvedTitle = findTitle(data);
+        if (resolvedTitle) break;
+      }
+    }
+    if (!resolvedTitle) {
       const backlogIssuesEntries = queryClient.getQueriesData<CachedIssue[]>({
         queryKey: ['jira-backlog-issues'],
       });
@@ -431,6 +441,7 @@ function AppLayout() {
   const handleCreateModalClose = () => {
     if (wasStoryCreate.current) {
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-backlog-sprint-stories'] });
       queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] });
     }
     wasStoryCreate.current = false;

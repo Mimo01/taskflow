@@ -51,6 +51,15 @@ function findJiraIssueInCache(
     if (match) return match;
   }
 
+  const backlogSprintStoriesQueries = queryClient.getQueriesData<JiraIssue[]>({
+    queryKey: ['jira-backlog-sprint-stories'],
+  });
+  for (const [, data] of backlogSprintStoriesQueries) {
+    if (!data) continue;
+    const match = data.find((issue) => issue.key === issueKey);
+    if (match) return match;
+  }
+
   const backlogIssuesQueries = queryClient.getQueriesData<JiraIssue[]>({
     queryKey: ['jira-backlog-issues'],
   });
