@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <clipPath id="sq">
+      <rect x="100" y="100" width="824" height="824" rx="185" ry="185" />
+    </clipPath>
+  </defs>
+  <g clip-path="url(#sq)">
+    <!-- White background -->
+    <rect x="100" y="100" width="824" height="824" fill="#ffffff" />
+    <!-- Top lane: blue, gentle S-curve -->
+    <path
+      d="M 190,360 C 330,260 440,460 512,380 C 584,300 680,460 840,380"
+      fill="none"
+      stroke="#0ea5e9"
+      stroke-width="64"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <!-- Middle lane: orange, gentle S-curve (offset) -->
+    <path
+      d="M 190,512 C 330,620 440,412 512,512 C 584,612 680,412 840,512"
+      fill="none"
+      stroke="#f97316"
+      stroke-width="64"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <!-- Bottom lane: blue (lighter), gentle S-curve (offset opposite) -->
+    <path
+      d="M 190,664 C 330,760 440,564 512,644 C 584,720 680,560 840,644"
+      fill="none"
+      stroke="#0ea5e9"
+      stroke-width="48"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      opacity="0.55"
+    />
+  </g>
+</svg>
