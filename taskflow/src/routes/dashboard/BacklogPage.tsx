@@ -269,9 +269,12 @@ export default function BacklogPage() {
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
 
-  // Combined loading: show global skeleton only when no data at all.
-  // Include boardIdLoading since sprintStories is gated on boardId.
-  const isAnyLoading = (storiesLoading || boardIdLoading) && backlogLoading;
+  // Show global skeleton until sprint list AND backlog have both loaded.
+  // Before jiraToken resolves (async readSecret), all queries are disabled — treat as loading.
+  // After boardId resolves, wait for sprint list so headers render together with backlog.
+  const authBootstrapping = !jiraToken;
+  const waitingForSprintList = boardIdLoading || (boardId != null && !sprintList);
+  const isAnyLoading = authBootstrapping || waitingForSprintList || backlogLoading;
   const showSkeleton = useDelayedLoading(isAnyLoading);
 
   // Per-query loading for epics (LOAD-04)
@@ -778,7 +781,7 @@ export default function BacklogPage() {
         {showSkeleton ? (
           /* Skeleton loading state — only when neither backlog nor sprint list has loaded */
           <BacklogSkeleton />
-        ) : !isError && mergedSprints.length === 0 && (backlogIssues ?? []).length === 0 && !storiesLoading && !backlogLoading ? (
+        ) : !isError && !authBootstrapping && mergedSprints.length === 0 && (backlogIssues ?? []).length === 0 && !storiesLoading && !backlogLoading && !waitingForSprintList ? (
           /* Empty state — all queries settled with no data */
           <EmptyState
             icon={Inbox}
