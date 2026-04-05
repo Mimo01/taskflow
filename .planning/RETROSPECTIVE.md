@@ -366,17 +366,71 @@
 
 ---
 
+## Milestone: v1.7 — Performance & Perceived Speed
+
+**Shipped:** 2026-04-05
+**Phases:** 9 (42-49) | **Plans:** 23
+
+### What Was Built
+
+- Route code-splitting for 6 heavy views with React.lazy(), skeleton fallbacks, and chunk error boundaries
+- React Compiler auto-memoization replacing all manual useMemo/useCallback/React.memo across 35 source files
+- Session-persistent caching with gcTime: Infinity, route-aware smart polling via useIsActiveRoute hook
+- Layout-matched skeleton screens on all 8 major data views with 200ms flicker prevention (useDelayedLoading)
+- Query parallelization for sprint board and backlog, sidebar hover prefetch for instant navigation
+- Avatar caching with in-memory blob URL Map + LazyStore disk persistence, 30-day TTL eviction
+- Backlog refactored to per-section queries (sprint stories, sprint list, backlog issues) with progressive epic loading
+- All stale query keys updated after backlog refactor; all mutation sites invalidate correct cache keys
+
+### What Worked
+
+- **Milestone audit as development driver** — the audit identified both functional gaps (backlog regression from commit 702ff84) and doc debt, leading to Phases 47-49 that closed all gaps before ship
+- **Per-section query architecture** — splitting monolithic fetchBacklogView into 4 independent queries enabled progressive rendering and eliminated sequential bottlenecks
+- **React Compiler as wholesale cleanup** — enabling the compiler and removing all 35 files' manual memoization in one pass was clean; no per-component decision-making needed
+- **Quick tasks for UX polish** — sprint board story header context menus, assignee display, animations, MR discussion threads, and backlog context menus shipped as quick tasks without blocking performance phases
+- **gcTime: Infinity as default** — making all queries persist for the entire session eliminated most back-navigation loading states; users see cached data instantly
+
+### What Was Inefficient
+
+- **Backlog refactored twice** — Phase 47 (optimize backlog) did the per-section query work, then quick task 260401-ffx (context menu) reverted it by restoring monolithic fetchBacklogView; Phase 48 had to redo the same work
+- **SUMMARY.md one_liner extraction still broken** — Phase 45 summaries had "One-liner:" as the extracted value; Phase 44-04 had just "LOAD-03"; same issue as v1.3/v1.4/v1.6.3 — four milestones with this problem
+- **Two Phase 47 directories** — 47-v17-debt-cleanup and 47-optimize-backlog-view-performance created ambiguous numbering; the second Phase 47 should have been renumbered
+- **VALIDATION.md body checklists never completed** — Phases 43, 44, 46 have nyquist_compliant: true in frontmatter but unchecked body checklists; the body validation step is consistently skipped
+
+### Patterns Established
+
+- **useDelayedLoading(isLoading, delay)** — 200ms threshold hook prevents skeleton flash on cache hits; used across all 8 major views
+- **useIsActiveRoute(routePath)** — pathname-based hook that pauses polling for inactive routes; guards refetchInterval in useQuery options
+- **Per-section backlog queries** — independent queries for sprint stories (shared cache with sprint board), sprint list, and backlog issues enable progressive rendering and targeted invalidation
+- **CachedAvatar with blob URL cache** — in-memory Map of URL→blobURL with LazyStore disk persistence; 30-day TTL; inflight dedup via pending Map
+- **Query key alignment across features** — sidebar prefetch, mutation invalidation, and component queries must all use the same cache keys; backlog refactor exposed 6 stale key references
+
+### Key Lessons
+
+1. **Protect refactored code from quick tasks** — the backlog per-section query work was undone by a quick task that restored the old monolithic approach; quick tasks touching refactored areas should be aware of in-progress architectural changes
+2. **Fix SUMMARY.md one_liner extraction** — five milestones with broken values; the template or CLI needs enforcement; consider requiring one_liner as a non-empty string in frontmatter validation
+3. **Avoid duplicate phase numbers** — two Phase 47 directories created confusion; use decimal numbering (47.1) or sequential numbering for inserted phases
+4. **Complete VALIDATION.md body checklists** — frontmatter says compliant but body says unchecked; either automate the body checkoff or remove the body checklist if frontmatter is the source of truth
+5. **Query key alignment is an integration concern** — after any query refactor, grep for all references to old cache keys across prefetch, invalidation, and component query sites
+
+### Cost Observations
+
+- Sessions: 23 plans across 9 phases over 8 days
+- Notable: Phases 48-49 were rework/gap-closure (5 plans, 22% of total) caused by quick task regression and stale query key references; protecting refactored code would have saved ~5 plans
+
+---
+
 ## Cross-Milestone Trends
 
-| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 | v1.5 | v1.6.3 |
-|--------|------|------|------|------|------|------|--------|
-| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) | 7 (31-37) | 4 (38-41) |
-| Plans | 20 | 24 | 29 | 27 | 21 | 25 | 10 |
-| Quick tasks | 0 | 20 | 0 | 40+ | 2 | 6 | 13 |
-| Timeline (days) | 2 | 2 | 2 | 5 | 2 | 4 | 6 |
-| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 | ~45k* | ~51,536 |
-| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) | 7 (28%) | 0 (0%) |
-| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) | 30/34 (88%)** | 15/15 (100%) |
+| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 | v1.5 | v1.6.3 | v1.7 |
+|--------|------|------|------|------|------|------|--------|------|
+| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) | 7 (31-37) | 4 (38-41) | 9 (42-49) |
+| Plans | 20 | 24 | 29 | 27 | 21 | 25 | 10 | 23 |
+| Quick tasks | 0 | 20 | 0 | 40+ | 2 | 6 | 13 | 20+ |
+| Timeline (days) | 2 | 2 | 2 | 5 | 2 | 4 | 6 | 8 |
+| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 | ~45k* | ~51,536 | ~57,000+ |
+| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) | 7 (28%) | 0 (0%) | 5 (22%) |
+| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) | 30/34 (88%)** | 15/15 (100%) | 17/17 (100%) |
 
 \* v1.5 LOC corrected from previous ~633k count
 \*\* 4 requirements user-deferred (bulk operations BOARD-04–07)
