@@ -1,7 +1,11 @@
 #!/usr/bin/env node
-// bump-version.mjs — Update all version files, regenerate changelog, commit, tag, push
-// Usage: node scripts/bump-version.mjs <new-version>
-// Example: node scripts/bump-version.mjs 1.7.0
+// bump-version.mjs — Update version files, prepend changelog entry, commit, tag, push
+// Usage: echo "<release notes>" | node scripts/bump-version.mjs <new-version>
+// Example: echo "### Added\n- New feature" | node scripts/bump-version.mjs 1.8.0
+//
+// The script reads curated release notes from stdin and prepends them as a new
+// section in CHANGELOG.md. This is designed to be driven by Claude, who analyzes
+// the git log and writes meaningful release notes before piping them in.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
@@ -15,13 +19,24 @@ const REPO_ROOT = resolve(TASKFLOW_ROOT, '..');
 const newVersion = process.argv[2];
 
 if (!newVersion) {
-  console.error('Usage: node scripts/bump-version.mjs <new-version>');
-  console.error('Example: node scripts/bump-version.mjs 1.7.0');
+  console.error('Usage: echo "<release notes>" | node scripts/bump-version.mjs <new-version>');
+  console.error('Example: echo "### Added\\n- New feature" | node scripts/bump-version.mjs 1.8.0');
   process.exit(1);
 }
 
 if (!/^\d+\.\d+\.\d+$/.test(newVersion)) {
   console.error(`Error: Invalid version "${newVersion}". Expected format: X.Y.Z (e.g., 1.7.0)`);
+  process.exit(1);
+}
+
+// --- Read release notes from stdin ---
+console.log('Reading release notes from stdin...');
+const releaseNotes = readFileSync(0, 'utf8').trim();
+
+if (!releaseNotes) {
+  console.error('Error: No release notes provided on stdin.');
+  console.error('Pipe release notes into the script, e.g.:');
+  console.error('  echo "### Added\\n- Feature" | node scripts/bump-version.mjs 1.8.0');
   process.exit(1);
 }
 
@@ -60,8 +75,6 @@ try {
   const cargoPath = resolve(TASKFLOW_ROOT, 'src-tauri', 'Cargo.toml');
   const cargoContent = readFileSync(cargoPath, 'utf8');
 
-  // Replace version = "X.Y.Z" in the [package] section only.
-  // The [package] section comes first; match only the first occurrence.
   const packageSectionEnd = cargoContent.indexOf('\n[', cargoContent.indexOf('[package]') + 1);
   const packageSection = packageSectionEnd === -1
     ? cargoContent
@@ -89,20 +102,29 @@ if (hasError) {
   process.exit(1);
 }
 
-// --- Regenerate CHANGELOG.md (full history) ---
-console.log('\nRegenerating CHANGELOG.md...');
-execSync(
-  `npx git-cliff@2.12.0 --config taskflow/cliff.toml --tag v${newVersion} -o taskflow/CHANGELOG.md`,
-  { cwd: REPO_ROOT, stdio: 'inherit' }
-);
-console.log('  CHANGELOG.md: regenerated');
+// --- Prepend new section to CHANGELOG.md ---
+console.log('\nUpdating CHANGELOG.md...');
+const changelogPath = resolve(TASKFLOW_ROOT, 'CHANGELOG.md');
+const changelog = readFileSync(changelogPath, 'utf8');
 
-// --- Generate tag body (just this version's notes) ---
-console.log('\nGenerating tag annotation body...');
-const tagBody = execSync(
-  `npx git-cliff@2.12.0 --config taskflow/cliff.toml --tag v${newVersion} --unreleased --strip header`,
-  { cwd: REPO_ROOT }
-).toString().trim();
+const today = new Date().toISOString().slice(0, 10);
+const newSection = `## [${newVersion}] — ${today}\n\n${releaseNotes}`;
+
+// Insert after the header block (before the first ## [...] section)
+const firstSectionIdx = changelog.indexOf('\n## [');
+let updatedChangelog;
+if (firstSectionIdx === -1) {
+  // No existing sections — append after header
+  updatedChangelog = changelog.trimEnd() + '\n\n' + newSection + '\n';
+} else {
+  updatedChangelog =
+    changelog.slice(0, firstSectionIdx + 1) +
+    newSection + '\n\n' +
+    changelog.slice(firstSectionIdx + 1);
+}
+
+writeFileSync(changelogPath, updatedChangelog, 'utf8');
+console.log(`  CHANGELOG.md: prepended v${newVersion} section.`);
 
 // --- Git commit ---
 console.log('\nCommitting version bump...');
@@ -117,7 +139,7 @@ try {
 
 // --- Git tag with annotation ---
 console.log(`\nCreating annotated tag v${newVersion}...`);
-const tagMessage = `v${newVersion}\n\n${tagBody}\n`;
+const tagMessage = `v${newVersion}\n\n${releaseNotes}\n`;
 try {
   execSync(`git tag -a v${newVersion} -F -`, {
     cwd: REPO_ROOT,
