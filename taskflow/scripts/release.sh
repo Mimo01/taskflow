@@ -125,7 +125,7 @@ if [[ "$SKIP_BUMP" == "true" ]]; then
   if ! git -C "$REPO_ROOT" rev-parse "v$VERSION" &>/dev/null; then
     echo "    Creating tag v$VERSION on HEAD..."
     # Extract release notes from CHANGELOG.md for this version
-    NOTES="$(sed -n "/^## \[$VERSION\]/,/^## \[/{/^## \[/!p}" "$TASKFLOW_DIR/CHANGELOG.md" | sed '/^$/d')"
+    NOTES="$(awk "/^## \\[$VERSION\\]/{found=1; next} /^## \\[/{if(found) exit} found" "$TASKFLOW_DIR/CHANGELOG.md" | sed '/^$/d')"
     TAG_MSG="$(printf 'v%s\n\n%s\n' "$VERSION" "$NOTES")"
     printf '%s' "$TAG_MSG" | git -C "$REPO_ROOT" tag -a "v$VERSION" -F -
     echo "    Tagged v$VERSION."
