@@ -3,6 +3,12 @@
 All notable changes to Taskflow are documented here.
 Entries are written by hand for each release.
 
+## [1.7.1] — 2026-04-06
+
+### Fixed
+- App now properly relaunches after installing an update
+- Resolved CI build and artifact collection issues that prevented auto-update delivery
+
 ## [1.7.0] — 2026-04-06
 
 Maintenance release to close out the v1.7 milestone.
