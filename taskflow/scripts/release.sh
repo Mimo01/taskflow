@@ -171,7 +171,7 @@ echo "    macOS artifacts built successfully."
 LINUX_BUILD_SUCCESS=false
 LINUX_BUNDLE_DIR=""
 
-if command -v docker &>/dev/null; then
+if command -v docker &>/dev/null && docker info &>/dev/null; then
   echo "  --> Linux build (Docker)..."
   LINUX_BUNDLE_DIR="$TASKFLOW_DIR/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle"
 
@@ -218,8 +218,8 @@ if command -v docker &>/dev/null; then
     echo "    Warning: Linux build completed but expected artifacts not found. Continuing without Linux." >&2
   fi
 else
-  echo "    Docker not installed. Skipping Linux build." >&2
-  echo "    To enable Linux builds: install Docker Desktop and re-run release.sh." >&2
+  echo "    Docker not available (not installed or daemon not running). Skipping Linux build." >&2
+  echo "    CI will handle Linux + Windows builds." >&2
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
