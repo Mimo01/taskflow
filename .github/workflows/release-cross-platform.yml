@@ -140,7 +140,9 @@ jobs:
           echo "Bundle dir contents:"
           find "$BUNDLE" -type f -name "*${VERSION}*" 2>/dev/null | sort || true
           mkdir -p artifacts
-          # Copy updater archives (case-insensitive glob for AppImage tar.gz)
+          # Copy all AppImage artifacts (updater uses .AppImage + .sig)
+          cp "$BUNDLE"/appimage/*AppImage artifacts/ 2>/dev/null || true
+          cp "$BUNDLE"/appimage/*AppImage.sig artifacts/ 2>/dev/null || true
           cp "$BUNDLE"/appimage/*AppImage.tar.gz artifacts/ 2>/dev/null || true
           cp "$BUNDLE"/appimage/*AppImage.tar.gz.sig artifacts/ 2>/dev/null || true
           # Copy installers
@@ -300,14 +302,14 @@ jobs:
                   existing = {}
           platforms = existing.get("platforms", {})
           base_url = f"https://github.com/Mimo01/taskflow-releases/releases/download/v{version}"
-          linux_sig = f"all-artifacts/linux-artifacts/Taskflow_{version}_amd64.AppImage.tar.gz.sig"
+          linux_sig = f"all-artifacts/linux-artifacts/Taskflow_{version}_amd64.AppImage.sig"
           if os.path.exists(linux_sig):
               with open(linux_sig) as f:
-                  platforms["linux-x86_64"] = {"signature": f.read().strip(), "url": f"{base_url}/Taskflow_{version}_amd64.AppImage.tar.gz"}
-          win_sig = f"all-artifacts/windows-artifacts/Taskflow_{version}_x64-setup.nsis.zip.sig"
+                  platforms["linux-x86_64"] = {"signature": f.read().strip(), "url": f"{base_url}/Taskflow_{version}_amd64.AppImage"}
+          win_sig = f"all-artifacts/windows-artifacts/Taskflow_{version}_x64-setup.exe.sig"
           if os.path.exists(win_sig):
               with open(win_sig) as f:
-                  platforms["windows-x86_64"] = {"signature": f.read().strip(), "url": f"{base_url}/Taskflow_{version}_x64-setup.nsis.zip"}
+                  platforms["windows-x86_64"] = {"signature": f.read().strip(), "url": f"{base_url}/Taskflow_{version}_x64-setup.exe"}
           from datetime import datetime, timezone
           pub_date = existing.get("pub_date") or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
           result = {"version": existing.get("version", version), "notes": existing.get("notes", f"Release v{version}"), "pub_date": pub_date, "platforms": platforms}
