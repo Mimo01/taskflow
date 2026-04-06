@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage: ./scripts/release.sh <version>
-# Example: ./scripts/release.sh 1.7.0
+# Usage: echo "<release notes>" | ./scripts/release.sh <version> [--skip-bump]
+# Example: printf '### Fixed\n- Bug fix' | ./scripts/release.sh 1.7.1
+# Example: ./scripts/release.sh 1.7.1 --skip-bump  (version already bumped)
 #
 # Full local release lifecycle:
 #   A. Pre-flight checks
@@ -28,7 +29,34 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TASKFLOW_DIR="$(dirname "$SCRIPT_DIR")"
 REPO_ROOT="$(dirname "$TASKFLOW_DIR")"
 
-VERSION="${1:?Usage: release.sh <version> (e.g. 1.7.0)}"
+SKIP_BUMP=false
+for arg in "$@"; do
+  case "$arg" in
+    --skip-bump) SKIP_BUMP=true ;;
+  esac
+done
+
+# Strip flags to get version
+VERSION=""
+for arg in "$@"; do
+  case "$arg" in
+    --*) ;; # skip flags
+    *) VERSION="$arg" ;;
+  esac
+done
+
+if [[ -z "$VERSION" ]]; then
+  echo "Usage: echo '<release notes>' | release.sh <version> [--skip-bump]" >&2
+  exit 1
+fi
+
+# Capture release notes from stdin early (before anything else reads stdin)
+RELEASE_NOTES="$(cat)"
+if [[ -z "$RELEASE_NOTES" ]] && [[ "$SKIP_BUMP" == "false" ]]; then
+  echo "Error: No release notes provided on stdin." >&2
+  echo "Usage: printf '### Fixed\n- Bug fix' | ./scripts/release.sh 1.7.1" >&2
+  exit 1
+fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PHASE A — Pre-flight checks
@@ -90,9 +118,23 @@ echo "    All pre-flight checks passed."
 # ─────────────────────────────────────────────────────────────────────────────
 
 echo ""
-echo "==> Phase B: Version bump..."
-cd "$TASKFLOW_DIR"
-node scripts/bump-version.mjs "$VERSION"
+if [[ "$SKIP_BUMP" == "true" ]]; then
+  echo "==> Phase B: Version bump... SKIPPED (--skip-bump)"
+  cd "$TASKFLOW_DIR"
+  # Still need the tag for Phase D (release body) and Phase H (push)
+  if ! git -C "$REPO_ROOT" rev-parse "v$VERSION" &>/dev/null; then
+    echo "    Creating tag v$VERSION on HEAD..."
+    # Extract release notes from CHANGELOG.md for this version
+    NOTES="$(sed -n "/^## \[$VERSION\]/,/^## \[/{/^## \[/!p}" "$TASKFLOW_DIR/CHANGELOG.md" | sed '/^$/d')"
+    TAG_MSG="$(printf 'v%s\n\n%s\n' "$VERSION" "$NOTES")"
+    printf '%s' "$TAG_MSG" | git -C "$REPO_ROOT" tag -a "v$VERSION" -F -
+    echo "    Tagged v$VERSION."
+  fi
+else
+  echo "==> Phase B: Version bump..."
+  cd "$TASKFLOW_DIR"
+  printf '%s' "$RELEASE_NOTES" | node scripts/bump-version.mjs "$VERSION"
+fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PHASE C — Local builds
