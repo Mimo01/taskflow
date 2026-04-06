@@ -21,6 +21,7 @@
     "notification:allow-request-permission",
     "notification:allow-notify",
     "core:window:allow-set-focus",
-    "updater:default"
+    "updater:default",
+    "process:allow-restart"
   ]
 }
