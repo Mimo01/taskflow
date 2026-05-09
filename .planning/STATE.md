@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Performance & Perceived Speed
 status: v1.7 milestone archived
-stopped_at: Phase 50 context gathered
+stopped_at: Phase 50 UI-SPEC approved
 last_updated: "2026-05-09T00:00:00.000Z"
 last_activity: 2026-05-09
 progress:
@@ -53,8 +53,9 @@ None.
 |---|-------------|------|--------|-----------|
 | 260509-qor | On issue detail when editing storypoints, the value should be able to be set as 'empty' - no storypoints set | 2026-05-09 | 0293111 | [260509-qor-on-issue-detail-storypoints-allow-empty](./quick/260509-qor-on-issue-detail-storypoints-allow-empty/) |
 | 260509-yzn | Add separate log category for update check calls (updater) in dev log system | 2026-05-09 | e26e040 | [260509-yzn-add-update-check-log-category](./quick/260509-yzn-add-update-check-log-category/) |
+| 260509-zzx | In dev logs the parameters are not logged. This is problematic especially for PUT or POST logs, where the url is not enough to determine what is happening | 2026-05-09 | 71fc294 | [260509-zzx-log-request-params-in-dev-tools](./quick/260509-zzx-log-request-params-in-dev-tools/) |
 
 ## Session Continuity
 
-Last activity: 2026-05-09 - Phase 50 context gathered (draggable sidebar resize)
+Last activity: 2026-05-09 - Completed quick task 260509-zzx: log request params in dev tools
 Resume: `/gsd:plan-phase 50`
