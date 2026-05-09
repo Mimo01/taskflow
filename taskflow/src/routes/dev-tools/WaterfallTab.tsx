@@ -11,7 +11,7 @@ import { useSettingsStore } from '../../stores/settings.store';
 import { sourceBadgeClass } from './utils';
 import WaterfallBar from './WaterfallBar';
 
-type SourceFilter = 'all' | 'jira' | 'gitlab';
+type SourceFilter = 'all' | 'jira' | 'gitlab' | 'updater';
 type SortMode = 'newest' | 'slowest';
 
 export default function WaterfallTab() {
@@ -48,7 +48,11 @@ export default function WaterfallTab() {
     const sources = op.fetches.map((f) => f.source);
     const jiraCount = sources.filter((s) => s === 'jira').length;
     const gitlabCount = sources.filter((s) => s === 'gitlab').length;
-    const dominant = jiraCount >= gitlabCount ? 'jira' : 'gitlab';
+    const updaterCount = sources.filter((s) => s === 'updater').length;
+    // Pick dominant: most frequent; ties broken jira > gitlab > updater
+    let dominant: SourceFilter = 'updater';
+    if (gitlabCount >= updaterCount) dominant = 'gitlab';
+    if (jiraCount >= gitlabCount) dominant = 'jira';
     return dominant === sourceFilter;
   });
 
@@ -98,6 +102,17 @@ export default function WaterfallTab() {
             }
           >
             GitLab
+          </button>
+          <button
+            type="button"
+            onClick={() => setSourceFilter('updater')}
+            className={
+              sourceFilter === 'updater'
+                ? sourceBadgeClass('updater')
+                : 'rounded px-1.5 py-0.5 text-xs font-semibold uppercase text-muted-foreground hover:bg-accent/50'
+            }
+          >
+            Updater
           </button>
         </div>
 

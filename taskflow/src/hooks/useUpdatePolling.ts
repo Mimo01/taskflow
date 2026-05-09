@@ -49,7 +49,7 @@ export function useUpdatePolling() {
           appendLog({
             id: crypto.randomUUID(),
             timestamp: new Date().toISOString(),
-            source: 'jira', // reusing existing source type for dev tools display
+            source: 'updater',
             method: 'GET',
             url: 'tauri://updater/check',
             requestHeaders: {},
@@ -62,7 +62,7 @@ export function useUpdatePolling() {
           appendLog({
             id: crypto.randomUUID(),
             timestamp: new Date().toISOString(),
-            source: 'jira',
+            source: 'updater',
             method: 'GET',
             url: 'tauri://updater/check',
             requestHeaders: {},
@@ -79,7 +79,7 @@ export function useUpdatePolling() {
         appendLog({
           id: crypto.randomUUID(),
           timestamp: new Date().toISOString(),
-          source: 'jira',
+          source: 'updater',
           method: 'GET',
           url: 'tauri://updater/check',
           requestHeaders: {},

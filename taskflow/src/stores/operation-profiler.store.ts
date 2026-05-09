@@ -9,7 +9,7 @@ import { useSettingsStore } from './settings.store';
 
 export interface FetchRecord {
   id: string;
-  source: 'jira' | 'gitlab';
+  source: 'jira' | 'gitlab' | 'updater';
   method: string;
   url: string;
   status: number | null;

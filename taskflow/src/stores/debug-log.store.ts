@@ -10,7 +10,7 @@ import { useSettingsStore } from './settings.store';
 export interface ApiLogEntry {
   id: string; // crypto.randomUUID()
   timestamp: string; // ISO string, new Date().toISOString()
-  source: 'jira' | 'gitlab';
+  source: 'jira' | 'gitlab' | 'updater';
   method: string; // e.g. "GET", "POST"
   url: string;
   requestHeaders: Record<string, string>;
