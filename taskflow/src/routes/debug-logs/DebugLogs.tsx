@@ -84,6 +84,16 @@ function LogCard({ entry }: { entry: ApiLogEntry }) {
               {JSON.stringify(entry.requestHeaders, null, 2)}
             </pre>
           </div>
+          {entry.requestBody && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                Request Body
+              </p>
+              <pre className="text-xs bg-muted rounded p-2 overflow-auto max-h-64 whitespace-pre-wrap break-all">
+                {entry.requestBody}
+              </pre>
+            </div>
+          )}
           {entry.responseBody && (
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
