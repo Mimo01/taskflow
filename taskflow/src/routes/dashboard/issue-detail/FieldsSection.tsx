@@ -295,6 +295,13 @@ export function FieldsSection({
 
   function commitSpEdit() {
     setSpEditing(false);
+    if (spInput.trim() === '') {
+      // Empty input = clear story points (send null)
+      if (spOriginal.current !== null) {
+        mutation.mutate({ fieldName: storyPointsFieldKey, value: null });
+      }
+      return;
+    }
     const num = Number(spInput);
     if (!Number.isNaN(num) && num !== spOriginal.current) {
       mutation.mutate({ fieldName: storyPointsFieldKey, value: num });
@@ -471,7 +478,7 @@ export function FieldsSection({
       {isStory && (
         <MetaRow label="Story Points">
           {spEditing ? (
-            <div>
+            <div className="flex items-center gap-1">
               <Input
                 type="number"
                 min={0}
@@ -486,6 +493,25 @@ export function FieldsSection({
                 autoFocus
                 className="h-6 w-20 text-xs"
               />
+              {storyPoints != null && (
+                <button
+                  data-testid="story-points-clear"
+                  type="button"
+                  onMouseDown={(e) => {
+                    // Prevent onBlur on Input from firing commitSpEdit before this click registers
+                    e.preventDefault();
+                  }}
+                  onClick={() => {
+                    setSpEditing(false);
+                    mutation.mutate({ fieldName: storyPointsFieldKey, value: null });
+                  }}
+                  className="text-muted-foreground hover:text-destructive text-xs leading-none"
+                  title="Clear story points"
+                  aria-label="Clear story points"
+                >
+                  ×
+                </button>
+              )}
               {mutation.isError && (
                 <p className="text-xs text-destructive mt-1">Save failed — changes reverted</p>
               )}
