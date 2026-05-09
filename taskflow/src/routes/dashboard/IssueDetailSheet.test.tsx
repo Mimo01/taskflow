@@ -597,6 +597,168 @@ describe('IssueDetailSheet', () => {
     });
   });
 
+  describe('ISSUE-SP: story points clear', () => {
+    it('sends null when story points input is cleared and committed', async () => {
+      const { FieldsSection } = await import('./issue-detail/FieldsSection');
+      const issue = makeIssueDetail({ customfield_10016: 5 });
+      const mutation = {
+        mutate: vi.fn(),
+        isPending: false,
+        isError: false,
+        isSuccess: false,
+        isIdle: true,
+        status: 'idle' as const,
+        error: null,
+        data: undefined,
+        variables: undefined,
+        context: undefined,
+        failureCount: 0,
+        failureReason: null,
+        submittedAt: 0,
+        mutateAsync: vi.fn(),
+        reset: vi.fn(),
+        isPaused: false,
+      };
+
+      render(
+        <QueryClientProvider
+          client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+        >
+          <FieldsSection
+            issue={issue as never}
+            issueKey="PROJ-1"
+            jiraBaseUrl="https://jira.example.com"
+            storyPointsFieldKey="customfield_10016"
+            epicLinkFieldKey="customfield_10014"
+            epicNameFieldKey="customfield_10015"
+            sprintFieldKey="customfield_10020"
+            epicColorFieldKey="customfield_10013"
+            mutation={mutation as never}
+            epicIssue={null}
+          />
+        </QueryClientProvider>,
+      );
+
+      // Click the SP edit trigger
+      const spTrigger = screen.getByTestId('story-points-edit');
+      fireEvent.click(spTrigger);
+
+      // Clear the input and press Enter
+      const spInput = screen.getByRole('spinbutton');
+      fireEvent.change(spInput, { target: { value: '' } });
+      fireEvent.keyDown(spInput, { key: 'Enter' });
+
+      expect(mutation.mutate).toHaveBeenCalledWith({
+        fieldName: 'customfield_10016',
+        value: null,
+      });
+    });
+
+    it('sends null when Clear button is clicked on a story with existing points', async () => {
+      const { FieldsSection } = await import('./issue-detail/FieldsSection');
+      const issue = makeIssueDetail({ customfield_10016: 5 });
+      const mutation = {
+        mutate: vi.fn(),
+        isPending: false,
+        isError: false,
+        isSuccess: false,
+        isIdle: true,
+        status: 'idle' as const,
+        error: null,
+        data: undefined,
+        variables: undefined,
+        context: undefined,
+        failureCount: 0,
+        failureReason: null,
+        submittedAt: 0,
+        mutateAsync: vi.fn(),
+        reset: vi.fn(),
+        isPaused: false,
+      };
+
+      render(
+        <QueryClientProvider
+          client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+        >
+          <FieldsSection
+            issue={issue as never}
+            issueKey="PROJ-1"
+            jiraBaseUrl="https://jira.example.com"
+            storyPointsFieldKey="customfield_10016"
+            epicLinkFieldKey="customfield_10014"
+            epicNameFieldKey="customfield_10015"
+            sprintFieldKey="customfield_10020"
+            epicColorFieldKey="customfield_10013"
+            mutation={mutation as never}
+            epicIssue={null}
+          />
+        </QueryClientProvider>,
+      );
+
+      // Click the SP edit trigger to enter edit mode
+      const spTrigger = screen.getByTestId('story-points-edit');
+      fireEvent.click(spTrigger);
+
+      // Click the clear button
+      const clearBtn = screen.getByTestId('story-points-clear');
+      fireEvent.click(clearBtn);
+
+      expect(mutation.mutate).toHaveBeenCalledWith({
+        fieldName: 'customfield_10016',
+        value: null,
+      });
+    });
+
+    it('does not show Clear button when story points is already null', async () => {
+      const { FieldsSection } = await import('./issue-detail/FieldsSection');
+      const issue = makeIssueDetail({ customfield_10016: null });
+      const mutation = {
+        mutate: vi.fn(),
+        isPending: false,
+        isError: false,
+        isSuccess: false,
+        isIdle: true,
+        status: 'idle' as const,
+        error: null,
+        data: undefined,
+        variables: undefined,
+        context: undefined,
+        failureCount: 0,
+        failureReason: null,
+        submittedAt: 0,
+        mutateAsync: vi.fn(),
+        reset: vi.fn(),
+        isPaused: false,
+      };
+
+      render(
+        <QueryClientProvider
+          client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+        >
+          <FieldsSection
+            issue={issue as never}
+            issueKey="PROJ-1"
+            jiraBaseUrl="https://jira.example.com"
+            storyPointsFieldKey="customfield_10016"
+            epicLinkFieldKey="customfield_10014"
+            epicNameFieldKey="customfield_10015"
+            sprintFieldKey="customfield_10020"
+            epicColorFieldKey="customfield_10013"
+            mutation={mutation as never}
+            epicIssue={null}
+          />
+        </QueryClientProvider>,
+      );
+
+      // Click the SP edit trigger to enter edit mode
+      const spTrigger = screen.getByTestId('story-points-edit');
+      fireEvent.click(spTrigger);
+
+      // Clear button should NOT be visible when SP is already null
+      expect(screen.queryByTestId('story-points-clear')).toBeNull();
+    });
+  });
+
   describe('ISSUE-09: open in Jira deep link', () => {
     it('calls openUrl with ${jiraBaseUrl}/browse/${issueKey} when button clicked', async () => {
       const { openUrl } = await import('@tauri-apps/plugin-opener');
