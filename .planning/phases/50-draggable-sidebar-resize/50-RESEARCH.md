@@ -433,17 +433,17 @@ const { width, isDragging, handleMouseDown } = useResizable({
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **IssueDetailPage `issueDetailPanelWidth = null` → first-drag width**
    - What we know: When `null`, the panel currently renders at `w-[42%]`. We need a numeric px value to initialize `useResizable`. The natural approach is to read `containerRef.current.offsetWidth * 0.42` at mousedown time.
    - What's unclear: If the container has not yet mounted or is zero-width on first mousedown, the initial width will be wrong.
-   - Recommendation: On mousedown, compute initial width as `Math.max(240, containerRef.current?.offsetWidth * 0.42 ?? 400)`. Use this only when `storedWidth` is null.
+   - **RESOLVED:** On mousedown, compute initial width as `Math.max(240, containerRef.current?.offsetWidth * 0.42 ?? 400)`. Use this only when `storedWidth` is null. Plans 03 implements this via `issueDetailPanelWidth ?? 400` initialWidth with `storedWidth !== null ? width : '42%'` style fallback.
 
 2. **Transition class on `<aside>` during drag (A3)**
    - What we know: The existing `transition-all duration-200` makes the collapse/expand animate smoothly.
    - What's unclear: Whether Chromium applies this transition to `style.width` changes caused by drag.
-   - Recommendation: Conditionally apply `transition-all duration-200` only when `!isDragging`. Use `isDragging` from `useResizable` as a gate: `className={... isDragging ? '' : 'transition-all duration-200'}`.
+   - **RESOLVED:** Conditionally apply `transition-all duration-200` only when `!isDragging`. Use `isDragging` from `useResizable` as a gate: `className={... isDragging ? '' : 'transition-all duration-200'}`. Plans 02 and 03 both implement this guard.
 
 ---
 

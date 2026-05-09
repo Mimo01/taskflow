@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Performance & Perceived Speed
-status: v1.7 milestone archived
-stopped_at: Phase 50 UI-SPEC approved
+status: Phase 50 planned — ready to execute
+stopped_at: Phase 50 planned (4 plans, 3 waves)
 last_updated: "2026-05-09T00:00:00.000Z"
 last_activity: 2026-05-09
 progress:
-  total_phases: 9
+  total_phases: 10
   completed_phases: 9
-  total_plans: 23
+  total_plans: 27
   completed_plans: 23
 ---
 
@@ -24,8 +24,8 @@ See: .planning/PROJECT.md (updated 2026-04-05)
 
 ## Current Position
 
-Milestone v1.7 complete. No active phase.
-Next step: `/gsd:new-milestone`
+Phase 50: Draggable Sidebar Resize — **Ready to execute** (4 plans, 3 waves)
+Next step: `/gsd-execute-phase 50`
 
 ## Accumulated Context
 
@@ -57,5 +57,5 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-05-09 - Completed quick task 260509-zzx: log request params in dev tools
-Resume: `/gsd:plan-phase 50`
+Last activity: 2026-05-09 - Phase 50 planned: 4 plans (Wave 1: 50-01 foundation, Wave 2: 50-02 sidebar + 50-03 detail pages parallel, Wave 3: 50-04 human verify)
+Resume: `/gsd-execute-phase 50`
