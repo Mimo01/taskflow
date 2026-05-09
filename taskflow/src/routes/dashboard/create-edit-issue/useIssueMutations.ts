@@ -1,11 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  bulkUpdateIssue,
-  type CreatemetaField,
-  createIssue,
-  createIssueLink,
-  wrapCustomFieldValue,
-} from '@/services/jira';
+import { bulkUpdateIssue, createIssue, wrapCustomFieldValue } from '@/services/jira/issues';
+import { createIssueLink } from '@/services/jira/links';
+import type { CreatemetaField } from '@/services/jira/types';
 import { readSecret } from '@/services/stronghold';
 import type { EditInitialValues, FormState } from './useCreateEditForm';
 

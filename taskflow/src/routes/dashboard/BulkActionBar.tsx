@@ -17,7 +17,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { JiraIssue } from '@/services/jira';
-import { fetchTransitions, postTransition, updateIssueField } from '@/services/jira';
+import { fetchTransitions, postTransition } from '@/services/jira';
+import { updateIssueField } from '@/services/jira/issues';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { BulkProgressIndicator } from './BulkProgressIndicator';
