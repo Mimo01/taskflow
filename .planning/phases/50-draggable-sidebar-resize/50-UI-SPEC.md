@@ -49,16 +49,7 @@ Exceptions:
 
 ## Typography
 
-No new typographic elements are introduced by this phase. The drag affordance is purely visual (cursor + border color change). All existing type scales are inherited from the app baseline.
-
-| Role | Size | Weight | Line Height |
-|------|------|--------|-------------|
-| Body | 14px | 400 | 1.5 |
-| Label | 12px | 500 | 1.4 |
-| Heading | 20px | 600 | 1.2 |
-| Display | 28px | 700 | 1.2 |
-
-Source: app-wide baseline — not new to this phase. Included for completeness per template requirement.
+No typography introduced by this phase. Inherited from app baseline.
 
 ---
 
