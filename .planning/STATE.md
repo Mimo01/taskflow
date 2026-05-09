@@ -51,8 +51,9 @@ None.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260509-qor | On issue detail when editing storypoints, the value should be able to be set as 'empty' - no storypoints set | 2026-05-09 | 0293111 | [260509-qor-on-issue-detail-storypoints-allow-empty](./quick/260509-qor-on-issue-detail-storypoints-allow-empty/) |
+| 260509-yzn | Add separate log category for update check calls (updater) in dev log system | 2026-05-09 | e26e040 | [260509-yzn-add-update-check-log-category](./quick/260509-yzn-add-update-check-log-category/) |
 
 ## Session Continuity
 
-Last activity: 2026-05-09 - Completed quick task 260509-qor: On issue detail when editing storypoints, the value should be able to be set as 'empty' - no storypoints set
+Last activity: 2026-05-09 - Completed quick task 260509-yzn: Add separate log category for update check calls (updater) in dev log system
 Resume: `/gsd:new-milestone`
