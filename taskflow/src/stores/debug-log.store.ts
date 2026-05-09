@@ -14,6 +14,8 @@ export interface ApiLogEntry {
   method: string; // e.g. "GET", "POST"
   url: string;
   requestHeaders: Record<string, string>;
+  // raw text body of the request; pretty-printed if JSON, truncated to 5_000 chars
+  requestBody?: string;
   status: number | null; // null if network error
   durationMs: number;
   responseBody: string; // raw text, truncated to 10_000 chars if longer

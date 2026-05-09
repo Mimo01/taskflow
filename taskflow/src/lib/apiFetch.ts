@@ -88,6 +88,18 @@ export async function apiFetch(
     }
   }
 
+  // Capture request body for logging when requestLogging is enabled
+  let requestBody: string | undefined;
+  if (requestLogging && init?.body != null) {
+    const raw = typeof init.body === 'string' ? init.body : String(init.body);
+    try {
+      const pretty = JSON.stringify(JSON.parse(raw), null, 2);
+      requestBody = pretty.length > 5_000 ? `${pretty.slice(0, 5_000)}\n[truncated]` : pretty;
+    } catch {
+      requestBody = raw.length > 5_000 ? `${raw.slice(0, 5_000)}\n[truncated]` : raw;
+    }
+  }
+
   let response: Response;
   let errorMsg: string | undefined;
   let status: number | null = null;
@@ -120,6 +132,7 @@ export async function apiFetch(
         method,
         url,
         requestHeaders: safeHeaders,
+        requestBody,
         status: null,
         durationMs,
         responseBody: '',
@@ -161,6 +174,7 @@ export async function apiFetch(
       method,
       url,
       requestHeaders: safeHeaders,
+      requestBody,
       status,
       durationMs,
       responseBody,
