@@ -127,6 +127,23 @@ See archive: `.planning/milestones/v1.7-ROADMAP.md`
 
 </details>
 
+### Phase 50: Draggable Sidebar Resize
+**Goal**: All pages that feature a sidebar allow users to drag the divider with the cursor to resize the sidebar width, with the preference persisted across sessions
+**Depends on**: Phase 49
+**Success Criteria** (what must be TRUE):
+  1. The main navigation sidebar can be resized by dragging its right edge with the cursor
+  2. Issue detail pages and any other detail pages with a secondary sidebar support drag-to-resize on that sidebar
+  3. Every page with a sidebar has a visible drag handle (or cursor change on hover) indicating resize is available
+  4. Sidebar width is persisted to local storage and restored on next app launch
+  5. Resize interactions are smooth and do not cause layout jank or content reflow
+**Plans:** 4 plans
+
+Plans:
+- [ ] 50-01-PLAN.md — Foundation: useResizable hook + settings store v14 extension + store tests
+- [ ] 50-02-PLAN.md — Sidebar.tsx: main nav sidebar drag-to-resize wiring
+- [ ] 50-03-PLAN.md — Detail pages: Issue/MR/Release right panel drag-to-resize wiring
+- [ ] 50-04-PLAN.md — Human verification checkpoint for all four drag handles
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -140,3 +157,4 @@ See archive: `.planning/milestones/v1.7-ROADMAP.md`
 | 47. Optimize Backlog Performance | v1.7 | 2/2 | Complete | 2026-03-31 |
 | 48. Restore Backlog Progressive Loading | v1.7 | 3/3 | Complete | 2026-04-04 |
 | 49. Fix Backlog Query Key Wiring & Doc Debt | v1.7 | 2/2 | Complete | 2026-04-04 |
+| 50. Draggable Sidebar Resize | next | 0/4 | In progress | — |
