@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Performance & Perceived Speed
 status: v1.7 milestone archived
-stopped_at: Milestone v1.7 complete
-last_updated: "2026-04-05T23:50:00.000Z"
-last_activity: 2026-04-05
+stopped_at: Phase 50 context gathered
+last_updated: "2026-05-09T00:00:00.000Z"
+last_activity: 2026-05-09
 progress:
   total_phases: 9
   completed_phases: 9
@@ -36,6 +36,7 @@ Decisions are logged in PROJECT.md Key Decisions table.
 ### Roadmap Evolution
 
 All phases 42-49 archived to `.planning/milestones/v1.7-ROADMAP.md`
+- Phase 50 added: Draggable Sidebar Resize
 
 ### Pending Todos
 
@@ -55,5 +56,5 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-05-09 - Completed quick task 260509-yzn: Add separate log category for update check calls (updater) in dev log system
-Resume: `/gsd:new-milestone`
+Last activity: 2026-05-09 - Phase 50 context gathered (draggable sidebar resize)
+Resume: `/gsd:plan-phase 50`
