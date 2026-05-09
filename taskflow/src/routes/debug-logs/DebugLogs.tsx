@@ -40,8 +40,10 @@ function LogCard({ entry }: { entry: ApiLogEntry }) {
         <span
           className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold uppercase ${
             entry.source === 'jira'
-              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-              : 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300'
+              ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400'
+              : entry.source === 'updater'
+                ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400'
+                : 'bg-purple-500/15 text-purple-600 dark:text-purple-400'
           }`}
         >
           {entry.source}

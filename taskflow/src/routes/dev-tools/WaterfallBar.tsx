@@ -10,9 +10,10 @@ import type { FetchRecord, Operation } from '../../stores/operation-profiler.sto
 import { formatBytes, statusColor } from './utils';
 
 // Stronger colors for fetch bars
-function fetchBarColor(source: 'jira' | 'gitlab', hasError: boolean): string {
+function fetchBarColor(source: 'jira' | 'gitlab' | 'updater', hasError: boolean): string {
   if (hasError) return 'bg-red-400 dark:bg-red-600';
   if (source === 'jira') return 'bg-orange-400 dark:bg-orange-600';
+  if (source === 'updater') return 'bg-sky-400 dark:bg-sky-600';
   return 'bg-purple-400 dark:bg-purple-600';
 }
 
@@ -21,8 +22,11 @@ function opBarColor(fetches: FetchRecord[]): string {
   const sources = fetches.map((f) => f.source);
   const jiraCount = sources.filter((s) => s === 'jira').length;
   const gitlabCount = sources.filter((s) => s === 'gitlab').length;
-  if (jiraCount > 0 && gitlabCount > 0) return 'bg-blue-500/20 dark:bg-blue-500/30';
+  const updaterCount = sources.filter((s) => s === 'updater').length;
+  const mixed = (jiraCount > 0 ? 1 : 0) + (gitlabCount > 0 ? 1 : 0) + (updaterCount > 0 ? 1 : 0);
+  if (mixed > 1) return 'bg-blue-500/20 dark:bg-blue-500/30';
   if (jiraCount > 0) return 'bg-orange-500/20 dark:bg-orange-500/30';
+  if (updaterCount > 0) return 'bg-sky-500/20 dark:bg-sky-500/30';
   return 'bg-purple-500/20 dark:bg-purple-500/30';
 }
 
@@ -95,7 +99,9 @@ function FetchTooltip({
             className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
               fetch.source === 'jira'
                 ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400'
-                : 'bg-purple-500/15 text-purple-600 dark:text-purple-400'
+                : fetch.source === 'updater'
+                  ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400'
+                  : 'bg-purple-500/15 text-purple-600 dark:text-purple-400'
             }`}
           >
             {fetch.source}
