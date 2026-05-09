@@ -46,7 +46,13 @@ None.
 - Apple Developer ID certificate ($99/yr) may not yet be acquired — blocks macOS notarization
 - Windows code signing decision needed (Azure Trusted Signing vs OV/EV cert)
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260509-qor | On issue detail when editing storypoints, the value should be able to be set as 'empty' - no storypoints set | 2026-05-09 | 0293111 | [260509-qor-on-issue-detail-storypoints-allow-empty](./quick/260509-qor-on-issue-detail-storypoints-allow-empty/) |
+
 ## Session Continuity
 
-Last activity: 2026-04-05 - Milestone v1.7 archived
+Last activity: 2026-05-09 - Completed quick task 260509-qor: On issue detail when editing storypoints, the value should be able to be set as 'empty' - no storypoints set
 Resume: `/gsd:new-milestone`
