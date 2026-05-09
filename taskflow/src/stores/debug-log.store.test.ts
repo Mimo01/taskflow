@@ -65,4 +65,24 @@ describe('debug-log.store', () => {
     });
     expect(useDebugLogStore.getState().entries).toHaveLength(0);
   });
+
+  it("accepts 'updater' as a source value", () => {
+    const entry: ApiLogEntry = {
+      id: 'updater-entry-1',
+      timestamp: new Date().toISOString(),
+      source: 'updater',
+      method: 'GET',
+      url: 'tauri://updater/check',
+      requestHeaders: {},
+      status: 200,
+      durationMs: 0,
+      responseBody: 'Update check: up to date',
+    };
+    act(() => {
+      useDebugLogStore.getState().append(entry);
+    });
+    const { entries } = useDebugLogStore.getState();
+    expect(entries).toHaveLength(1);
+    expect(entries[0].source).toBe('updater');
+  });
 });
