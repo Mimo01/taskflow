@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
 import type { JiraIssueDetail } from '@/services/jira';
-import { updateIssueField } from '@/services/jira';
+import { updateIssueField } from '@/services/jira/issues';
 import { readSecret } from '@/services/stronghold';
 
 /**
