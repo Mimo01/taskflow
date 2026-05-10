@@ -137,6 +137,7 @@ export default function ReleaseDetailPage() {
     min: 240,
     max: () => (containerRef.current?.offsetWidth ?? 800) * 0.5,
     onCommit: setReleaseDetailPanelWidth,
+    direction: 'left',
   });
 
   useEffect(() => {

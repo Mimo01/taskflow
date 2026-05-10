@@ -78,6 +78,7 @@ export default function MergeRequestDetailPage() {
     min: 240,
     max: () => (containerRef.current?.offsetWidth ?? 800) * 0.5,
     onCommit: setMrDetailPanelWidth,
+    direction: 'left',
   });
 
   // Fetch MR detail
