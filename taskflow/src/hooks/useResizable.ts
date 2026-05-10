@@ -41,6 +41,14 @@ export function useResizable({ initialWidth, min, max, onCommit, direction = 'ri
     widthRef.current = width;
   }, [width]);
 
+  // Sync width state when initialWidth changes after mount (e.g. store hydration)
+  useEffect(() => {
+    if (!isDragging) {
+      setWidth(initialWidth);
+      widthRef.current = initialWidth;
+    }
+  }, [initialWidth, isDragging]);
+
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     startRef.current = { x: e.clientX, width: widthRef.current };
