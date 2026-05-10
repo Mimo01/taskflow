@@ -70,6 +70,20 @@ try {
   hasError = true;
 }
 
+// --- package-lock.json ---
+try {
+  const lockPath = resolve(TASKFLOW_ROOT, 'package-lock.json');
+  const lock = JSON.parse(readFileSync(lockPath, 'utf8'));
+  const oldVersion = lock.version;
+  lock.version = newVersion;
+  if (lock.packages?.['']) lock.packages[''].version = newVersion;
+  writeFileSync(lockPath, JSON.stringify(lock, null, 2) + '\n', 'utf8');
+  console.log(`  package-lock.json: ${oldVersion} -> ${newVersion}`);
+} catch (err) {
+  console.error(`  package-lock.json: ERROR — ${err.message}`);
+  hasError = true;
+}
+
 // --- src-tauri/Cargo.toml ---
 try {
   const cargoPath = resolve(TASKFLOW_ROOT, 'src-tauri', 'Cargo.toml');
