@@ -142,6 +142,7 @@ export default function ReleaseDetailPage() {
     onCommit: setReleaseDetailPanelWidth,
     direction: 'left',
   });
+  const [handleHovered, setHandleHovered] = useState(false);
 
   useEffect(() => {
     if (gitlabBaseUrl) {
@@ -777,14 +778,10 @@ export default function ReleaseDetailPage() {
             <div
               aria-hidden="true"
               onMouseDown={handleMouseDown}
+              onMouseEnter={() => setHandleHovered(true)}
+              onMouseLeave={() => setHandleHovered(false)}
+              style={{ borderColor: isDragging || handleHovered ? 'var(--ring)' : undefined }}
               className="absolute left-0 top-0 h-full w-3 cursor-ew-resize z-20 border-l border-border transition-colors duration-100"
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.borderColor = 'var(--ring)';
-              }}
-              onMouseLeave={(e) => {
-                if (!isDragging) (e.currentTarget as HTMLElement).style.borderColor = '';
-              }}
-              style={{ borderColor: isDragging ? 'var(--ring)' : undefined }}
             />
             {editing ? (
               /* Edit form */

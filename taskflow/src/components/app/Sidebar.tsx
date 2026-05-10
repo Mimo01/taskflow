@@ -73,6 +73,7 @@ export default function Sidebar() {
     onCommit: setSidebarWidth,
   });
   const [hovered, setHovered] = useState(false);
+  const [handleHovered, setHandleHovered] = useState(false);
 
   const queryClient = useQueryClient();
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
@@ -218,14 +219,10 @@ export default function Sidebar() {
         <div
           aria-hidden="true"
           onMouseDown={handleMouseDown}
+          onMouseEnter={() => setHandleHovered(true)}
+          onMouseLeave={() => setHandleHovered(false)}
+          style={{ borderColor: isDragging || handleHovered ? 'var(--ring)' : undefined }}
           className="absolute -right-px top-0 h-full w-3 cursor-ew-resize z-20 border-r border-border transition-colors duration-100"
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.borderColor = 'var(--ring)';
-          }}
-          onMouseLeave={(e) => {
-            if (!isDragging) (e.currentTarget as HTMLElement).style.borderColor = '';
-          }}
-          style={{ borderColor: isDragging ? 'var(--ring)' : undefined }}
         />
       )}
       {/* Hover chevron toggle */}
