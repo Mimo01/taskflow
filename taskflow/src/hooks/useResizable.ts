@@ -9,6 +9,12 @@ export interface UseResizableOptions {
   max: number | (() => number);
   /** Called with the final width (px) when the user releases the mouse after a drag. Use to persist to store. */
   onCommit: (width: number) => void;
+  /**
+   * Which edge the drag handle sits on.
+   * 'right' (default): handle is on the right edge — dragging right increases width.
+   * 'left': handle is on the left edge — dragging left increases width (delta is negated).
+   */
+  direction?: 'right' | 'left';
 }
 
 /**
@@ -23,7 +29,7 @@ export interface UseResizableOptions {
  * @param options.max — maximum width in px, or a function that computes it (for container-relative bounds)
  * @param options.onCommit — called with final px width on mouseup
  */
-export function useResizable({ initialWidth, min, max, onCommit }: UseResizableOptions) {
+export function useResizable({ initialWidth, min, max, onCommit, direction = 'right' }: UseResizableOptions) {
   const [width, setWidth] = useState(initialWidth);
   const [isDragging, setIsDragging] = useState(false);
   // Ref tracks live width to avoid stale closure in mouseup handler (Pitfall 1 in RESEARCH.md)
@@ -51,7 +57,8 @@ export function useResizable({ initialWidth, min, max, onCommit }: UseResizableO
 
     function onMouseMove(e: MouseEvent) {
       if (!startRef.current) return;
-      const delta = e.clientX - startRef.current.x;
+      const rawDelta = e.clientX - startRef.current.x;
+      const delta = direction === 'left' ? -rawDelta : rawDelta;
       const maxVal = typeof max === 'function' ? max() : max;
       const next = Math.min(maxVal, Math.max(min, startRef.current.width + delta));
       setWidth(next);

@@ -202,6 +202,7 @@ export default function IssueDetailPage() {
     min: 240,
     max: () => (containerRef.current?.offsetWidth ?? 800) * 0.5,
     onCommit: setIssueDetailPanelWidth,
+    direction: 'left',
   });
 
   const handleEdit = (comment: JiraComment) => {
