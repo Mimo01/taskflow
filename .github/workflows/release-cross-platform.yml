@@ -409,21 +409,21 @@ jobs:
               platforms["darwin-x86_64"] = macos_entry
               platforms["darwin-aarch64"] = macos_entry
 
-          # Linux x86_64
-          linux_sigs = glob.glob("all-artifacts/linux-artifacts/*.AppImage.tar.gz.sig")
+          # Linux x86_64 — Tauri v2 signs the AppImage directly (no .tar.gz wrapper)
+          linux_sigs = glob.glob("all-artifacts/linux-artifacts/*.AppImage.sig")
           if linux_sigs:
               with open(linux_sigs[0]) as f:
                   linux_sig = f.read().strip()
-              linux_tgz_name = os.path.basename(linux_sigs[0]).replace(".sig", "")
-              platforms["linux-x86_64"] = {"signature": linux_sig, "url": f"{base_url}/{linux_tgz_name}"}
+              linux_name = os.path.basename(linux_sigs[0]).replace(".sig", "")
+              platforms["linux-x86_64"] = {"signature": linux_sig, "url": f"{base_url}/{linux_name}"}
 
-          # Windows x86_64
-          win_sigs = glob.glob("all-artifacts/windows-artifacts/*nsis.zip.sig")
+          # Windows x86_64 — Tauri v2 signs the NSIS installer directly (no .zip wrapper)
+          win_sigs = glob.glob("all-artifacts/windows-artifacts/*x64-setup.exe.sig")
           if win_sigs:
               with open(win_sigs[0]) as f:
                   win_sig = f.read().strip()
-              win_zip_name = os.path.basename(win_sigs[0]).replace(".sig", "")
-              platforms["windows-x86_64"] = {"signature": win_sig, "url": f"{base_url}/{win_zip_name}"}
+              win_name = os.path.basename(win_sigs[0]).replace(".sig", "")
+              platforms["windows-x86_64"] = {"signature": win_sig, "url": f"{base_url}/{win_name}"}
 
           result = {"version": version, "notes": notes, "pub_date": pub_date, "platforms": platforms}
           print(json.dumps(result, indent=2))
