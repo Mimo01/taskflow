@@ -6,7 +6,7 @@
  *   downloading → DownloadingView: progress bar, non-dismissable
  *   error       → ErrorView: error message, "Dismiss" / "Retry"
  *
- * After download completes, the app relaunches immediately via plugin:process|relaunch.
+ * After download completes, the app restarts immediately via plugin:process|restart.
  * Per D-06: downloading state is non-dismissable (no onOpenChange, no close button).
  */
 
@@ -14,7 +14,6 @@ import { invoke } from '@tauri-apps/api/core';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Button } from '@/components/ui/button';
-// Calls plugin:process|relaunch via invoke — @tauri-apps/plugin-process not installed
 import {
   Dialog,
   DialogContent,
@@ -70,7 +69,7 @@ export function UpdateDialog() {
       });
       // Persist changelog before restart, then relaunch immediately
       setLastSeenChangelog(changelog);
-      await invoke('plugin:process|relaunch');
+      await invoke('plugin:process|restart');
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
