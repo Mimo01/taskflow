@@ -62,6 +62,7 @@ async function fetchVersionIssueCounts(
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
+  if (!/^\d+$/.test(versionId)) throw new Error(`Invalid versionId: ${versionId}`);
   const baseJql = `fixVersion = ${versionId} AND issuetype not in subtaskIssueTypes()`;
   const totalJql = encodeURIComponent(baseJql);
   const doneJql = encodeURIComponent(`${baseJql} AND statusCategory = Done`);
@@ -92,6 +93,7 @@ async function fetchFixVersionIssues(
 ): Promise<JiraIssue[]> {
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  if (!/^\d+$/.test(versionId)) throw new Error(`Invalid versionId: ${versionId}`);
   const jql = `fixVersion = ${versionId} AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`;
   const fields = 'summary,status,assignee,issuetype';
   const maxResults = 200;
