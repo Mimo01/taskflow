@@ -55,7 +55,8 @@ None.
 | 260509-yzn | Add separate log category for update check calls (updater) in dev log system | 2026-05-09 | e26e040 | [260509-yzn-add-update-check-log-category](./quick/260509-yzn-add-update-check-log-category/) |
 | 260509-zzx | In dev logs the parameters are not logged. This is problematic especially for PUT or POST logs, where the url is not enough to determine what is happening | 2026-05-09 | 71fc294 | [260509-zzx-log-request-params-in-dev-tools](./quick/260509-zzx-log-request-params-in-dev-tools/) |
 | 260510-p4c | Modify the release script to build everything in github pipeline | 2026-05-10 | 822c206 | [260510-p4c-modify-release-script-to-build-in-github-pipeline](./quick/260510-p4c-modify-release-script-to-build-in-github-pipeline/) |
+| 260510-epf1fk | Add proper guard to committing — all tests and linters must pass before commit | 2026-05-10 | d284dc5 | [260510-epf1fk-add-proper-guard-to-committing-tests-and-linters](./quick/260510-epf1fk-add-proper-guard-to-committing-tests-and-linters/) |
 
 ## Session Continuity
 
-Last activity: 2026-05-10 - Completed quick task 260510-p4c: Modify the release script to build everything in github pipeline
+Last activity: 2026-05-10 - Completed quick task 260510-epf1fk: Add proper guard to committing — all tests and linters must pass before commit
