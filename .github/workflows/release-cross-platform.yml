@@ -1,4 +1,4 @@
-name: Cross-Platform Release Build
+name: Release Build
 
 on:
   push:
@@ -10,12 +10,13 @@ on:
         description: "Version tag (e.g. v1.6.3)"
         required: true
       platform:
-        description: "Platform to build (all, linux, windows)"
+        description: "Platform to build (all, macos, linux, windows)"
         required: false
         default: "all"
         type: choice
         options:
           - all
+          - macos
           - linux
           - windows
 
@@ -37,6 +38,9 @@ jobs:
           - platform: windows-latest
             target: x86_64-pc-windows-msvc
             os_name: windows
+          - platform: macos-latest
+            target: universal-apple-darwin
+            os_name: macos
 
     runs-on: ${{ matrix.platform }}
 
@@ -89,6 +93,10 @@ jobs:
           sudo apt-get install -y -qq \
             libwebkit2gtk-4.1-dev libssl-dev libgtk-3-dev \
             libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install macOS Rust targets for universal build
+        if: steps.should_run.outputs.run == 'true' && matrix.os_name == 'macos'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
       - name: Setup Node.js
         if: steps.should_run.outputs.run == 'true'
@@ -171,6 +179,22 @@ jobs:
           echo "Collected artifacts:"
           ls -la artifacts/
 
+      - name: Collect macOS artifacts
+        if: steps.should_run.outputs.run == 'true' && matrix.os_name == 'macos'
+        shell: bash
+        working-directory: .
+        run: |
+          VERSION="${{ steps.version.outputs.bare }}"
+          BUNDLE="taskflow/src-tauri/target/universal-apple-darwin/release/bundle"
+          echo "Bundle dir contents:"
+          find "$BUNDLE" -type f 2>/dev/null | sort || true
+          mkdir -p artifacts
+          cp "$BUNDLE"/dmg/Taskflow_${VERSION}_universal.dmg artifacts/ 2>/dev/null || true
+          cp "$BUNDLE"/macos/Taskflow.app.tar.gz artifacts/ 2>/dev/null || true
+          cp "$BUNDLE"/macos/Taskflow.app.tar.gz.sig artifacts/ 2>/dev/null || true
+          echo "Collected artifacts:"
+          ls -la artifacts/
+
       - name: Upload artifacts
         if: steps.should_run.outputs.run == 'true'
         uses: actions/upload-artifact@v4
@@ -178,8 +202,77 @@ jobs:
           name: ${{ matrix.os_name }}-artifacts
           path: artifacts/*
 
-  upload-to-releases:
+  create-release:
     needs: build
+    if: always() && !cancelled()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      release_id: ${{ steps.create.outputs.release_id }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            TAG="${{ github.event.inputs.version }}"
+          else
+            TAG="${{ github.ref_name }}"
+          fi
+          BARE=$(echo "$TAG" | sed 's/^v//')
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "bare=$BARE" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release on taskflow-releases
+        id: create
+        env:
+          RELEASES_TOKEN: ${{ secrets.RELEASES_REPO_PAT }}
+        shell: bash
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          VERSION="${{ steps.version.outputs.bare }}"
+
+          # Extract tag annotation body for release notes
+          TAG_BODY=$(git tag -l --format='%(contents:body)' "$TAG")
+          TAG_BODY_JSON=$(printf '%s' "$TAG_BODY" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))")
+
+          RESPONSE=$(curl -s -X POST \
+            -H "Authorization: token $RELEASES_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/Mimo01/taskflow-releases/releases" \
+            -d "{
+              \"tag_name\": \"$TAG\",
+              \"target_commitish\": \"main\",
+              \"name\": \"Taskflow $TAG\",
+              \"body\": $TAG_BODY_JSON,
+              \"draft\": false,
+              \"prerelease\": false
+            }")
+
+          RELEASE_ID=$(python3 -c "
+          import sys, json
+          data = json.loads(sys.argv[1], strict=False)
+          if 'id' not in data:
+              print('Error creating release. Response:', file=sys.stderr)
+              print(json.dumps(data, indent=2), file=sys.stderr)
+              sys.exit(1)
+          print(data['id'])
+          " "$RESPONSE")
+
+          echo "release_id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
+          echo "Created release ID: $RELEASE_ID"
+          echo "URL: https://github.com/Mimo01/taskflow-releases/releases/tag/$TAG"
+
+  upload-to-releases:
+    needs: [build, create-release]
     if: always() && !cancelled()
     runs-on: ubuntu-latest
     permissions:
@@ -214,25 +307,12 @@ jobs:
       - name: List artifacts
         run: find all-artifacts -type f | sort
 
-      - name: Get release ID from taskflow-releases
+      - name: Get release ID
         id: release
-        env:
-          RELEASES_TOKEN: ${{ secrets.RELEASES_REPO_PAT }}
         shell: bash
         run: |
-          TAG="${{ steps.version.outputs.tag }}"
-          RELEASE=$(curl -s -H "Authorization: token $RELEASES_TOKEN" \
-            "https://api.github.com/repos/Mimo01/taskflow-releases/releases/tags/$TAG")
-          RELEASE_ID=$(python3 -c "
-          import sys, json
-          data = json.loads(sys.argv[1], strict=False)
-          if 'id' not in data:
-              print('Release not found', file=sys.stderr)
-              sys.exit(1)
-          print(data['id'])
-          " "$RELEASE")
-          echo "id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
-          echo "Release ID: $RELEASE_ID"
+          echo "id=${{ needs.create-release.outputs.release_id }}" >> "$GITHUB_OUTPUT"
+          echo "Release ID: ${{ needs.create-release.outputs.release_id }}"
 
       - name: Upload artifacts to taskflow-releases
         env:
@@ -278,7 +358,7 @@ jobs:
           " "$RESPONSE"
           done
 
-      - name: Update latest.json with Linux + Windows platforms
+      - name: Generate and upload latest.json
         env:
           RELEASES_TOKEN: ${{ secrets.RELEASES_REPO_PAT }}
         shell: bash
@@ -287,38 +367,60 @@ jobs:
           TAG="${{ steps.version.outputs.tag }}"
           RELEASE_ID="${{ steps.release.outputs.id }}"
           API_BASE="https://api.github.com/repos/Mimo01/taskflow-releases/releases"
+          PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-          # Download existing latest.json to a file
-          curl -sL "https://github.com/Mimo01/taskflow-releases/releases/download/$TAG/latest.json" -o /tmp/existing-latest.json || echo '{}' > /tmp/existing-latest.json
+          # Extract release notes from git tag
+          git fetch --tags 2>/dev/null || true
+          TAG_BODY=$(git tag -l --format='%(contents:body)' "$TAG" 2>/dev/null || echo "")
 
-          # Build updated latest.json via Python script file
           cat > /tmp/build-latest.py << 'PYEOF'
-          import json, os, sys
+          import json, os, sys, glob
           version = sys.argv[1]
-          with open("/tmp/existing-latest.json") as f:
-              try:
-                  existing = json.load(f)
-              except Exception:
-                  existing = {}
-          platforms = existing.get("platforms", {})
-          base_url = f"https://github.com/Mimo01/taskflow-releases/releases/download/v{version}"
-          linux_sig = f"all-artifacts/linux-artifacts/Taskflow_{version}_amd64.AppImage.sig"
-          if os.path.exists(linux_sig):
-              with open(linux_sig) as f:
-                  platforms["linux-x86_64"] = {"signature": f.read().strip(), "url": f"{base_url}/Taskflow_{version}_amd64.AppImage"}
-          win_sig = f"all-artifacts/windows-artifacts/Taskflow_{version}_x64-setup.exe.sig"
-          if os.path.exists(win_sig):
-              with open(win_sig) as f:
-                  platforms["windows-x86_64"] = {"signature": f.read().strip(), "url": f"{base_url}/Taskflow_{version}_x64-setup.exe"}
-          from datetime import datetime, timezone
-          pub_date = existing.get("pub_date") or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-          result = {"version": existing.get("version", version), "notes": existing.get("notes", f"Release v{version}"), "pub_date": pub_date, "platforms": platforms}
+          tag = sys.argv[2]
+          pub_date = sys.argv[3]
+          notes_file = sys.argv[4]
+
+          with open(notes_file) as f:
+              notes = f.read().strip()
+
+          base_url = f"https://github.com/Mimo01/taskflow-releases/releases/download/{tag}"
+          platforms = {}
+
+          # macOS universal
+          macos_sig_path = "all-artifacts/macos-artifacts/Taskflow.app.tar.gz.sig"
+          if os.path.exists(macos_sig_path):
+              with open(macos_sig_path) as f:
+                  macos_sig = f.read().strip()
+              macos_entry = {"signature": macos_sig, "url": f"{base_url}/Taskflow.app.tar.gz"}
+              platforms["darwin-universal"] = macos_entry
+              platforms["darwin-x86_64"] = macos_entry
+              platforms["darwin-aarch64"] = macos_entry
+
+          # Linux x86_64
+          linux_sigs = glob.glob("all-artifacts/linux-artifacts/*.AppImage.tar.gz.sig")
+          if linux_sigs:
+              with open(linux_sigs[0]) as f:
+                  linux_sig = f.read().strip()
+              linux_tgz_name = os.path.basename(linux_sigs[0]).replace(".sig", "")
+              platforms["linux-x86_64"] = {"signature": linux_sig, "url": f"{base_url}/{linux_tgz_name}"}
+
+          # Windows x86_64
+          win_sigs = glob.glob("all-artifacts/windows-artifacts/*nsis.zip.sig")
+          if win_sigs:
+              with open(win_sigs[0]) as f:
+                  win_sig = f.read().strip()
+              win_zip_name = os.path.basename(win_sigs[0]).replace(".sig", "")
+              platforms["windows-x86_64"] = {"signature": win_sig, "url": f"{base_url}/{win_zip_name}"}
+
+          result = {"version": version, "notes": notes, "pub_date": pub_date, "platforms": platforms}
           print(json.dumps(result, indent=2))
           PYEOF
-          python3 /tmp/build-latest.py "$VERSION" > /tmp/latest.json
+
+          printf '%s' "$TAG_BODY" > /tmp/tag-body.txt
+          python3 /tmp/build-latest.py "$VERSION" "$TAG" "$PUB_DATE" "/tmp/tag-body.txt" > /tmp/latest.json
           cat /tmp/latest.json
 
-          # Delete old latest.json asset
+          # Delete old latest.json asset if present
           ASSETS=$(curl -s -H "Authorization: token $RELEASES_TOKEN" "$API_BASE/$RELEASE_ID/assets")
           LATEST_ID=$(python3 -c "
           import sys, json
@@ -330,8 +432,7 @@ jobs:
             curl -s -X DELETE -H "Authorization: token $RELEASES_TOKEN" "$API_BASE/assets/$LATEST_ID"
           fi
 
-          # Upload new latest.json
-          echo "Uploading updated latest.json..."
+          echo "Uploading latest.json..."
           curl -s -X POST \
             -H "Authorization: token $RELEASES_TOKEN" \
             -H "Content-Type: application/json" \
@@ -341,3 +442,52 @@ jobs:
           data = json.loads(sys.stdin.read(), strict=False)
           print('OK:', data.get('browser_download_url', '(no url)'))
           "
+
+      - name: Update README in releases repo
+        env:
+          RELEASES_TOKEN: ${{ secrets.RELEASES_REPO_PAT }}
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.bare }}"
+          RELEASES_API="https://api.github.com/repos/Mimo01/taskflow-releases"
+
+          README_CONTENT="# Taskflow
+
+          ## Download
+
+          ### macOS
+          - [Taskflow_${VERSION}_universal.dmg](https://github.com/Mimo01/taskflow-releases/releases/latest/download/Taskflow_${VERSION}_universal.dmg)
+          - [Taskflow.app.tar.gz](https://github.com/Mimo01/taskflow-releases/releases/latest/download/Taskflow.app.tar.gz) (for updater)
+
+          ### Linux
+          - [taskflow_${VERSION}_amd64.AppImage.tar.gz](https://github.com/Mimo01/taskflow-releases/releases/latest/download/taskflow_${VERSION}_amd64.AppImage.tar.gz) (AppImage)
+          - [taskflow_${VERSION}_amd64.deb](https://github.com/Mimo01/taskflow-releases/releases/latest/download/taskflow_${VERSION}_amd64.deb) (Debian/Ubuntu)
+
+          ### Windows
+          - [Taskflow_${VERSION}_x64-setup.exe](https://github.com/Mimo01/taskflow-releases/releases/latest/download/Taskflow_${VERSION}_x64-setup.exe) (NSIS installer)
+          - [Taskflow_${VERSION}_x64_en-US.msi](https://github.com/Mimo01/taskflow-releases/releases/latest/download/Taskflow_${VERSION}_x64_en-US.msi) (MSI)
+
+          ---
+          _Latest release: v${VERSION}_
+          "
+
+          README_B64=$(printf '%s' "$README_CONTENT" | base64 -w 0)
+
+          SHA=$(curl -s -H "Authorization: token $RELEASES_TOKEN" \
+            "$RELEASES_API/contents/README.md" \
+            | python3 -c "import sys,json; print(json.loads(sys.stdin.read(), strict=False).get('sha', ''))")
+
+          UPDATE_RESPONSE=$(curl -s -X PUT \
+            -H "Authorization: token $RELEASES_TOKEN" \
+            -H "Content-Type: application/json" \
+            "$RELEASES_API/contents/README.md" \
+            -d "{\"message\": \"docs: update download links to v${VERSION}\", \"content\": \"${README_B64}\", \"sha\": \"${SHA}\"}")
+
+          python3 -c "
+          import sys, json
+          data = json.loads(sys.argv[1], strict=False)
+          if 'content' not in data:
+              print('Error updating README:', json.dumps(data, indent=2), file=sys.stderr)
+              sys.exit(1)
+          print('README updated successfully.')
+          " "$UPDATE_RESPONSE"
