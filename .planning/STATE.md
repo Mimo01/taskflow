@@ -54,7 +54,8 @@ None.
 | 260509-qor | On issue detail when editing storypoints, the value should be able to be set as 'empty' - no storypoints set | 2026-05-09 | 0293111 | [260509-qor-on-issue-detail-storypoints-allow-empty](./quick/260509-qor-on-issue-detail-storypoints-allow-empty/) |
 | 260509-yzn | Add separate log category for update check calls (updater) in dev log system | 2026-05-09 | e26e040 | [260509-yzn-add-update-check-log-category](./quick/260509-yzn-add-update-check-log-category/) |
 | 260509-zzx | In dev logs the parameters are not logged. This is problematic especially for PUT or POST logs, where the url is not enough to determine what is happening | 2026-05-09 | 71fc294 | [260509-zzx-log-request-params-in-dev-tools](./quick/260509-zzx-log-request-params-in-dev-tools/) |
+| 260510-p4c | Modify the release script to build everything in github pipeline | 2026-05-10 | 822c206 | [260510-p4c-modify-release-script-to-build-in-github-pipeline](./quick/260510-p4c-modify-release-script-to-build-in-github-pipeline/) |
 
 ## Session Continuity
 
-Last activity: 2026-05-10 - Phase 50 complete: useResizable hook, settings store v14, Sidebar + 3 detail pages wired, human verified and approved. 3 inline bug fixes (drag direction, z-index, handle centering).
+Last activity: 2026-05-10 - Completed quick task 260510-p4c: Modify the release script to build everything in github pipeline
