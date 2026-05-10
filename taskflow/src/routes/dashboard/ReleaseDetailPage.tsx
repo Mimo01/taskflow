@@ -997,7 +997,9 @@ export default function ReleaseDetailPage() {
                 </MetaRow>
 
                 <MetaRow label="MR Labels">
-                  {milestoneMRs && labelCoverage ? (
+                  {gitlabMatch.type === 'none' ? (
+                    <span className="text-muted-foreground">—</span>
+                  ) : milestoneMRs && labelCoverage ? (
                     labelCoverage.allLabeled ? (
                       <span className="inline-flex items-center gap-1 text-green-600 dark:text-green-400">
                         <Check className="size-3" />
