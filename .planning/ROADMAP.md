@@ -141,14 +141,14 @@ See archive: `.planning/milestones/v1.7-ROADMAP.md`
 Plans:
 
 **Wave 1**
-- [ ] 50-01-PLAN.md — Foundation: useResizable hook + settings store v14 extension + store tests
+- [x] 50-01-PLAN.md — Foundation: useResizable hook + settings store v14 extension + store tests
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 50-02-PLAN.md — Sidebar.tsx: main nav sidebar drag-to-resize wiring
-- [ ] 50-03-PLAN.md — Detail pages: Issue/MR/Release right panel drag-to-resize wiring
+- [x] 50-02-PLAN.md — Sidebar.tsx: main nav sidebar drag-to-resize wiring
+- [x] 50-03-PLAN.md — Detail pages: Issue/MR/Release right panel drag-to-resize wiring
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 50-04-PLAN.md — Human verification checkpoint for all four drag handles
+- [x] 50-04-PLAN.md — Human verification checkpoint for all four drag handles
 
 Cross-cutting constraints:
 - `shrink-0` must be preserved on all resizable elements (Plans 02, 03)
@@ -168,4 +168,4 @@ Cross-cutting constraints:
 | 47. Optimize Backlog Performance | v1.7 | 2/2 | Complete | 2026-03-31 |
 | 48. Restore Backlog Progressive Loading | v1.7 | 3/3 | Complete | 2026-04-04 |
 | 49. Fix Backlog Query Key Wiring & Doc Debt | v1.7 | 2/2 | Complete | 2026-04-04 |
-| 50. Draggable Sidebar Resize | next | 0/4 | Ready to execute | — |
+| 50. Draggable Sidebar Resize | next | 4/4 | Complete | 2026-05-10 |
