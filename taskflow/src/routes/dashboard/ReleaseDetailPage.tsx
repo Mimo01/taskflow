@@ -25,8 +25,9 @@ import {
   X,
 } from 'lucide-react';
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useResizable } from '@/hooks/useResizable';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
@@ -44,6 +45,7 @@ import { matchGitLabToFixVersion } from '@/services/releaseLinker';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
+import { useSettingsStore } from '@/stores/settings.store';
 
 // ---- Issue count fetching (duplicated from ReleasesTab to keep self-contained) ----
 
@@ -123,8 +125,19 @@ export default function ReleaseDetailPage() {
   const breadcrumbPop = useBreadcrumbStore((s) => s.pop);
 
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, activeGitlabProject } = useAuthStore();
+  const releaseDetailPanelWidth = useSettingsStore((s) => s.releaseDetailPanelWidth);
+  const setReleaseDetailPanelWidth = useSettingsStore((s) => s.setReleaseDetailPanelWidth);
 
   const [gitlabToken, setGitlabToken] = useState<string | null>(null);
+
+  // Drag-to-resize for right panel
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { width, isDragging, handleMouseDown } = useResizable({
+    initialWidth: releaseDetailPanelWidth,
+    min: 240,
+    max: () => (containerRef.current?.offsetWidth ?? 800) * 0.5,
+    onCommit: setReleaseDetailPanelWidth,
+  });
 
   useEffect(() => {
     if (gitlabBaseUrl) {
@@ -420,7 +433,7 @@ export default function ReleaseDetailPage() {
       {isLoading || !version ? (
         <ReleaseDetailSkeleton />
       ) : (
-        <div className="flex flex-1 overflow-hidden">
+        <div ref={containerRef} className="flex flex-1 overflow-hidden">
           {/* Left column */}
           <div className="flex-1 overflow-auto">
             <div className="p-6 space-y-6">
@@ -753,7 +766,22 @@ export default function ReleaseDetailPage() {
           </div>
 
           {/* Right sidebar */}
-          <div className="w-[42%] border-l overflow-auto p-4 shrink-0">
+          <div
+            className={`relative border-l overflow-auto p-4 shrink-0${isDragging ? '' : ' transition-all duration-200'}`}
+            style={{ width }}
+          >
+            <div
+              aria-hidden="true"
+              onMouseDown={handleMouseDown}
+              className="absolute left-0 top-0 h-full w-2 cursor-ew-resize z-20 border-l border-border transition-colors duration-100"
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.borderColor = 'var(--ring)';
+              }}
+              onMouseLeave={(e) => {
+                if (!isDragging) (e.currentTarget as HTMLElement).style.borderColor = '';
+              }}
+              style={{ borderColor: isDragging ? 'var(--ring)' : undefined }}
+            />
             {editing ? (
               /* Edit form */
               <div className="space-y-4">
@@ -1042,7 +1070,7 @@ function ReleaseDetailSkeleton() {
         <Skeleton className="h-4 w-5/6" />
         <Skeleton className="h-16 w-full" />
       </div>
-      <div className="w-[42%] space-y-3">
+      <div className="shrink-0 space-y-3" style={{ width: 288 }}>
         <Skeleton className="h-5 w-full" />
         <Skeleton className="h-5 w-full" />
         <Skeleton className="h-5 w-3/4" />
