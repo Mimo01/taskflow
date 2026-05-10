@@ -100,6 +100,18 @@ interface SettingsState {
   /** Whether the sidebar is collapsed to icon-only mode. Default: false. */
   sidebarCollapsed: boolean;
   toggleSidebarCollapsed: () => void;
+  /** User-dragged main navigation sidebar width in px. Default: 224 (md:w-56 = 14rem). */
+  sidebarWidth: number;
+  setSidebarWidth: (w: number) => void;
+  /** Issue detail right panel width in px. Null = use 42% of container until first drag. */
+  issueDetailPanelWidth: number | null;
+  setIssueDetailPanelWidth: (w: number) => void;
+  /** MR detail right panel width in px. Default: 288 (w-72). */
+  mrDetailPanelWidth: number;
+  setMrDetailPanelWidth: (w: number) => void;
+  /** Release detail right panel width in px. Default: 288 (w-72). */
+  releaseDetailPanelWidth: number;
+  setReleaseDetailPanelWidth: (w: number) => void;
   /** Saved quickfilter presets. Default: []. */
   quickFilters: QuickFilter[];
   addQuickFilter: (qf: QuickFilter) => void;
@@ -202,6 +214,14 @@ export const useSettingsStore = create<SettingsState>()(
       setLastChecked: (iso) => set({ lastChecked: iso }),
       sidebarCollapsed: false,
       toggleSidebarCollapsed: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+      sidebarWidth: 224,
+      setSidebarWidth: (w) => set({ sidebarWidth: w }),
+      issueDetailPanelWidth: null,
+      setIssueDetailPanelWidth: (w) => set({ issueDetailPanelWidth: w }),
+      mrDetailPanelWidth: 288,
+      setMrDetailPanelWidth: (w) => set({ mrDetailPanelWidth: w }),
+      releaseDetailPanelWidth: 288,
+      setReleaseDetailPanelWidth: (w) => set({ releaseDetailPanelWidth: w }),
       quickFilters: [],
       addQuickFilter: (qf) => set((state) => ({ quickFilters: [...state.quickFilters, qf] })),
       removeQuickFilter: (id) =>
@@ -332,7 +352,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 13,
+      version: 14,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -393,6 +413,12 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 13) {
           if (s.jiraConcurrencyLimit === undefined) s.jiraConcurrencyLimit = 6;
+        }
+        if (version < 14) {
+          if (s.sidebarWidth === undefined) s.sidebarWidth = 224;
+          if (s.issueDetailPanelWidth === undefined) s.issueDetailPanelWidth = null;
+          if (s.mrDetailPanelWidth === undefined) s.mrDetailPanelWidth = 288;
+          if (s.releaseDetailPanelWidth === undefined) s.releaseDetailPanelWidth = 288;
         }
         return persisted as SettingsState;
       },

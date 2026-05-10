@@ -210,3 +210,52 @@ describe('settings.store — updateCheckInterval (Phase 38)', () => {
     expect(useSettingsStore.getState().updateCheckInterval).toBe('manual');
   });
 });
+
+describe('settings.store — resize panel widths (Phase 50)', () => {
+  beforeEach(() => {
+    act(() => {
+      useSettingsStore.setState({
+        sidebarWidth: 224,
+        issueDetailPanelWidth: null,
+        mrDetailPanelWidth: 288,
+        releaseDetailPanelWidth: 288,
+      } as any);
+    });
+  });
+
+  it('sidebarWidth defaults to 224', () => {
+    expect(useSettingsStore.getState().sidebarWidth).toBe(224);
+  });
+
+  it('issueDetailPanelWidth defaults to null', () => {
+    expect(useSettingsStore.getState().issueDetailPanelWidth).toBeNull();
+  });
+
+  it('mrDetailPanelWidth defaults to 288', () => {
+    expect(useSettingsStore.getState().mrDetailPanelWidth).toBe(288);
+  });
+
+  it('releaseDetailPanelWidth defaults to 288', () => {
+    expect(useSettingsStore.getState().releaseDetailPanelWidth).toBe(288);
+  });
+
+  it('setSidebarWidth persists a new value', () => {
+    act(() => useSettingsStore.getState().setSidebarWidth(280));
+    expect(useSettingsStore.getState().sidebarWidth).toBe(280);
+  });
+
+  it('setIssueDetailPanelWidth transitions from null to a number', () => {
+    act(() => useSettingsStore.getState().setIssueDetailPanelWidth(360));
+    expect(useSettingsStore.getState().issueDetailPanelWidth).toBe(360);
+  });
+
+  it('setMrDetailPanelWidth updates value', () => {
+    act(() => useSettingsStore.getState().setMrDetailPanelWidth(320));
+    expect(useSettingsStore.getState().mrDetailPanelWidth).toBe(320);
+  });
+
+  it('setReleaseDetailPanelWidth updates value', () => {
+    act(() => useSettingsStore.getState().setReleaseDetailPanelWidth(300));
+    expect(useSettingsStore.getState().releaseDetailPanelWidth).toBe(300);
+  });
+});
