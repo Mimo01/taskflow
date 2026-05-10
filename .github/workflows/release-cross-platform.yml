@@ -312,10 +312,20 @@ jobs:
 
       - name: Get release ID
         id: release
+        env:
+          RELEASES_TOKEN: ${{ secrets.RELEASES_REPO_PAT }}
         shell: bash
         run: |
-          echo "id=${{ needs.create-release.outputs.release_id }}" >> "$GITHUB_OUTPUT"
-          echo "Release ID: ${{ needs.create-release.outputs.release_id }}"
+          RELEASE_ID="${{ needs.create-release.outputs.release_id }}"
+          if [ -z "$RELEASE_ID" ]; then
+            TAG="${{ steps.version.outputs.tag }}"
+            echo "create-release output empty — looking up existing release for $TAG..."
+            RELEASE_ID=$(curl -s -H "Authorization: token $RELEASES_TOKEN" \
+              "https://api.github.com/repos/Mimo01/taskflow-releases/releases/tags/$TAG" | \
+              python3 -c "import sys,json; d=json.load(sys.stdin); print(d['id']) if 'id' in d else (print('Error:',d,file=__import__('sys').stderr) or exit(1))")
+          fi
+          echo "id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
+          echo "Release ID: $RELEASE_ID"
 
       - name: Upload artifacts to taskflow-releases
         env:
