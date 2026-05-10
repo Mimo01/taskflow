@@ -3,6 +3,27 @@
 All notable changes to Taskflow are documented here.
 Entries are written by hand for each release.
 
+## [1.7.2] — 2026-05-10
+
+### Added
+- Draggable sidebar resize — drag the sidebar edge to any width; resize handles on issue detail, MR detail, and releases detail panels
+- Story points field can now be cleared to empty (no story points set)
+- Request body now shown in Dev Tools request log for POST and PUT calls
+- Separate "updater" log category in Dev Tools for update-check calls
+
+### Fixed
+- Pagination loop no longer hangs when Jira returns empty issues with total > 0
+- versionId is validated before JQL interpolation to prevent injection
+- GitLab milestone column shows a dash instead of "Loading" when no milestone matched
+- Sidebar prefetch timer is now cleared on unmount
+- useResizable syncs width when initialWidth changes after mount
+- Drag handle border color uses state-driven hover, not CSS :hover
+- Issue detail panel pixel fallback computed correctly on first drag
+
+### Changed
+- Release script simplified: CI now owns all builds and release publishing; release.sh is a thin version-bump-and-tag-push trigger
+- Pre-commit hook now enforces a full quality gate: biome check + all tests must pass before any commit
+
 ## [1.7.1] — 2026-04-06
 
 ### Fixed
