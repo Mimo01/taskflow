@@ -3,6 +3,12 @@
 All notable changes to Taskflow are documented here.
 Entries are written by hand for each release.
 
+## [1.7.3] — 2026-05-10
+
+### Fixed
+- Updater restart now uses the correct process plugin command (app.restart()) after applying an update
+- CI pipeline: fixed macOS Rust target and Windows package-lock version mismatch that caused build failures
+
 ## [1.7.2] — 2026-05-10
 
 ### Added
