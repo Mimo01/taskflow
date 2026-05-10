@@ -774,7 +774,7 @@ export default function ReleaseDetailPage() {
             <div
               aria-hidden="true"
               onMouseDown={handleMouseDown}
-              className="absolute left-0 top-0 h-full w-2 cursor-ew-resize z-20 border-l border-border transition-colors duration-100"
+              className="absolute left-0 top-0 h-full w-3 cursor-ew-resize z-20 border-l border-border transition-colors duration-100"
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLElement).style.borderColor = 'var(--ring)';
               }}

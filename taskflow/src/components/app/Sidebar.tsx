@@ -210,7 +210,7 @@ export default function Sidebar() {
         <div
           aria-hidden="true"
           onMouseDown={handleMouseDown}
-          className="absolute right-0 top-0 h-full w-2 cursor-ew-resize z-20 border-r border-border transition-colors duration-100"
+          className="absolute -right-px top-0 h-full w-3 cursor-ew-resize z-20 border-r border-border transition-colors duration-100"
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLElement).style.borderColor = 'var(--ring)';
           }}
