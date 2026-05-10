@@ -198,7 +198,8 @@ export default function IssueDetailPage() {
   // Drag-to-resize for right panel
   const containerRef = useRef<HTMLDivElement>(null);
   const { width, isDragging, handleMouseDown } = useResizable({
-    initialWidth: issueDetailPanelWidth ?? 400,
+    initialWidth: issueDetailPanelWidth ??
+      Math.round((containerRef.current?.offsetWidth ?? 952) * 0.42),
     min: 240,
     max: () => (containerRef.current?.offsetWidth ?? 800) * 0.5,
     onCommit: setIssueDetailPanelWidth,
@@ -433,7 +434,7 @@ export default function IssueDetailPage() {
           {/* Right sidebar */}
           <div
             className={`relative border-l overflow-auto p-4 shrink-0${isDragging ? '' : ' transition-all duration-200'}`}
-            style={{ width: issueDetailPanelWidth !== null ? width : '42%' }}
+            style={{ width }}
           >
             <div
               aria-hidden="true"
