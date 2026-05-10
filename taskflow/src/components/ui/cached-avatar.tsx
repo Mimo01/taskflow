@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
 import { User } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useCallback, useEffect, useState } from 'react';
 import { useAvatarCache } from '@/hooks/useAvatarCache';
+import { cn } from '@/lib/utils';
 import { evictAvatar } from '@/services/avatarCache';
 
 /** Generate 1-2 uppercase initials from a display name. */

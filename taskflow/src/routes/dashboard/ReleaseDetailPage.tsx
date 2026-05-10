@@ -27,13 +27,13 @@ import {
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useResizable } from '@/hooks/useResizable';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { useResizable } from '@/hooks/useResizable';
 import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import type { GitLabMilestone, GitLabMR } from '@/services/gitlab';
 import { fetchMilestoneMRs, fetchProjectMilestonesInRange } from '@/services/gitlab';

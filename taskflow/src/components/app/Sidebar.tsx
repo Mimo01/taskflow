@@ -6,6 +6,7 @@
  * Section grouping is derived from sidebar-items.ts definitions.
  */
 
+import { useQueryClient } from '@tanstack/react-query';
 import {
   BarChart2,
   BookOpen,
@@ -23,12 +24,15 @@ import {
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { useResizable } from '@/hooks/useResizable';
 import { NavLink } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { useResizable } from '@/hooks/useResizable';
 import { STALE_TIME_MS } from '@/lib/query-constants';
 import { fetchActiveSprint, fetchEpicsBasic, fetchProjectStatuses } from '@/services/jira';
-import { fetchBacklogIssues, fetchBacklogSprintStories, fetchSprintList } from '@/services/jira/backlog';
+import {
+  fetchBacklogIssues,
+  fetchBacklogSprintStories,
+  fetchSprintList,
+} from '@/services/jira/backlog';
 import { fetchSprintStories } from '@/services/jira/issues';
 import { fetchBoardId } from '@/services/jira/sprints';
 import { readSecret } from '@/services/stronghold';
@@ -105,8 +109,22 @@ export default function Sidebar() {
 
     if (path === '/sprint-board' || path === '/dashboard') {
       queryClient.prefetchQuery({
-        queryKey: ['jira-sprint-stories', activeJiraProject, jiraBaseUrl, storyPointsFieldKey, epicLinkFieldKey],
-        queryFn: () => fetchSprintStories(jiraBaseUrl, jiraToken, activeJiraProject, false, storyPointsFieldKey, epicLinkFieldKey),
+        queryKey: [
+          'jira-sprint-stories',
+          activeJiraProject,
+          jiraBaseUrl,
+          storyPointsFieldKey,
+          epicLinkFieldKey,
+        ],
+        queryFn: () =>
+          fetchSprintStories(
+            jiraBaseUrl,
+            jiraToken,
+            activeJiraProject,
+            false,
+            storyPointsFieldKey,
+            epicLinkFieldKey,
+          ),
         staleTime: STALE_TIME_MS,
       });
       if (path === '/sprint-board') {
@@ -117,7 +135,14 @@ export default function Sidebar() {
         });
         queryClient.prefetchQuery({
           queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
-          queryFn: () => fetchEpicsBasic(jiraBaseUrl, jiraToken, activeJiraProject, epicNameFieldKey, epicColorFieldKey),
+          queryFn: () =>
+            fetchEpicsBasic(
+              jiraBaseUrl,
+              jiraToken,
+              activeJiraProject,
+              epicNameFieldKey,
+              epicColorFieldKey,
+            ),
           staleTime: 5 * 60 * 1000,
         });
         queryClient.prefetchQuery({
@@ -129,43 +154,83 @@ export default function Sidebar() {
     } else if (path === '/backlog' || path === '/epics') {
       queryClient.prefetchQuery({
         queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
-        queryFn: () => fetchEpicsBasic(jiraBaseUrl, jiraToken, activeJiraProject, epicNameFieldKey, epicColorFieldKey),
+        queryFn: () =>
+          fetchEpicsBasic(
+            jiraBaseUrl,
+            jiraToken,
+            activeJiraProject,
+            epicNameFieldKey,
+            epicColorFieldKey,
+          ),
         staleTime: 5 * 60 * 1000,
       });
       if (path === '/backlog') {
         // Backlog issues don't depend on boardId — prefetch immediately.
         queryClient.prefetchQuery({
-          queryKey: ['jira-backlog-issues', activeJiraProject, jiraBaseUrl, storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey],
-          queryFn: () => fetchBacklogIssues(jiraBaseUrl, jiraToken, activeJiraProject, storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey),
+          queryKey: [
+            'jira-backlog-issues',
+            activeJiraProject,
+            jiraBaseUrl,
+            storyPointsFieldKey,
+            epicLinkFieldKey,
+            epicNameFieldKey,
+          ],
+          queryFn: () =>
+            fetchBacklogIssues(
+              jiraBaseUrl,
+              jiraToken,
+              activeJiraProject,
+              storyPointsFieldKey,
+              epicLinkFieldKey,
+              epicNameFieldKey,
+            ),
           staleTime: STALE_TIME_MS,
         });
         // Sprint list needs boardId; sprint stories need sprint IDs from the list.
         // Chain: boardId → sprint list → sprint stories (per-sprint, fast search API).
-        queryClient.fetchQuery({
-          queryKey: ['jira-board-id', activeJiraProject, jiraBaseUrl],
-          queryFn: () => fetchBoardId(jiraBaseUrl, jiraToken, activeJiraProject),
-          staleTime: Infinity,
-        }).then(async (boardId) => {
-          if (boardId == null) return;
-          const sprints = await queryClient.fetchQuery({
-            queryKey: ['jira-sprint-list', boardId, jiraBaseUrl],
-            queryFn: () => fetchSprintList(jiraBaseUrl, jiraToken, boardId),
-            staleTime: STALE_TIME_MS,
-          });
-          const sprintIds = (sprints ?? [])
-            .filter((s) => s.state === 'active' || s.state === 'future')
-            .map((s) => s.id);
-          if (sprintIds.length > 0) {
-            queryClient.prefetchQuery({
-              queryKey: ['jira-backlog-sprint-stories', activeJiraProject, jiraBaseUrl, sprintIds, storyPointsFieldKey, epicLinkFieldKey],
-              queryFn: () => fetchBacklogSprintStories(jiraBaseUrl, jiraToken, activeJiraProject, sprintIds, storyPointsFieldKey, epicLinkFieldKey),
+        queryClient
+          .fetchQuery({
+            queryKey: ['jira-board-id', activeJiraProject, jiraBaseUrl],
+            queryFn: () => fetchBoardId(jiraBaseUrl, jiraToken, activeJiraProject),
+            staleTime: Infinity,
+          })
+          .then(async (boardId) => {
+            if (boardId == null) return;
+            const sprints = await queryClient.fetchQuery({
+              queryKey: ['jira-sprint-list', boardId, jiraBaseUrl],
+              queryFn: () => fetchSprintList(jiraBaseUrl, jiraToken, boardId),
               staleTime: STALE_TIME_MS,
             });
-          }
-        }).catch(() => {
-          // Board discovery failed — silently skip sprint-related prefetch.
-          // User will still get a normal load when they navigate.
-        });
+            const sprintIds = (sprints ?? [])
+              .filter((s) => s.state === 'active' || s.state === 'future')
+              .map((s) => s.id);
+            if (sprintIds.length > 0) {
+              queryClient.prefetchQuery({
+                queryKey: [
+                  'jira-backlog-sprint-stories',
+                  activeJiraProject,
+                  jiraBaseUrl,
+                  sprintIds,
+                  storyPointsFieldKey,
+                  epicLinkFieldKey,
+                ],
+                queryFn: () =>
+                  fetchBacklogSprintStories(
+                    jiraBaseUrl,
+                    jiraToken,
+                    activeJiraProject,
+                    sprintIds,
+                    storyPointsFieldKey,
+                    epicLinkFieldKey,
+                  ),
+                staleTime: STALE_TIME_MS,
+              });
+            }
+          })
+          .catch(() => {
+            // Board discovery failed — silently skip sprint-related prefetch.
+            // User will still get a normal load when they navigate.
+          });
       }
     }
     // /my-tasks uses fetchMyTasksHierarchy which has complex internal logic — skip prefetch.
@@ -203,9 +268,7 @@ export default function Sidebar() {
   // Group visible nav items by section
   const sectionedItems = SIDEBAR_SECTIONS.map((section) => ({
     ...section,
-    items: SIDEBAR_NAV_ITEMS.filter(
-      (nav) => nav.section === section.id && visibleIds.has(nav.id),
-    ),
+    items: SIDEBAR_NAV_ITEMS.filter((nav) => nav.section === section.id && visibleIds.has(nav.id)),
   })).filter((section) => section.items.length > 0);
 
   return (

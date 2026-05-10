@@ -110,7 +110,9 @@ export async function fetchSprintList(
     // No originBoardId on any sprint — cannot filter, return all
     return allSprints;
   }
-  return allSprints.filter((s) => s.originBoardId === undefined || s.originBoardId === canonicalBoardId);
+  return allSprints.filter(
+    (s) => s.originBoardId === undefined || s.originBoardId === canonicalBoardId,
+  );
 }
 
 /**

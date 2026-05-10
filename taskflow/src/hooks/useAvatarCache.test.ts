@@ -93,10 +93,9 @@ describe('useAvatarCache', () => {
       .mockResolvedValueOnce(null); // second call (new URL): resolves immediately
 
     // Start with first URL — fetch hangs
-    const { result, rerender } = renderHook(
-      ({ url }: { url: string }) => useAvatarCache(url),
-      { initialProps: { url: 'https://example.com/old.png' } },
-    );
+    const { result, rerender } = renderHook(({ url }: { url: string }) => useAvatarCache(url), {
+      initialProps: { url: 'https://example.com/old.png' },
+    });
 
     expect(result.current.loading).toBe(true);
 

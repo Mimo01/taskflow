@@ -100,12 +100,7 @@ const calloutStyles: Record<string, string> = {
   panel: 'border-l-4 border-border bg-muted/50 p-3 rounded-r-md my-2',
 };
 
-export function WikiRenderer({
-  wikiText,
-  className,
-  attachments,
-  users,
-}: WikiRendererProps) {
+export function WikiRenderer({ wikiText, className, attachments, users }: WikiRendererProps) {
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   const preprocessed = wikiText ? preprocessJiraMarkup(wikiText, attachments, users) : '';

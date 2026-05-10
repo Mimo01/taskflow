@@ -16,12 +16,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BarChart3, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useIsActiveRoute } from '@/hooks/useIsActiveRoute';
-import { POLL_INTERVAL_MS, STALE_TIME_MS } from '@/lib/query-constants';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { useIsActiveRoute } from '@/hooks/useIsActiveRoute';
+import { POLL_INTERVAL_MS, STALE_TIME_MS } from '@/lib/query-constants';
 import { fetchSprintIssues } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';

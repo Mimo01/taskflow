@@ -13,10 +13,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, MoreVertical } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
-import { useResizable } from '@/hooks/useResizable';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { useResizable } from '@/hooks/useResizable';
 import type { JiraComment, JiraIssue, TimelineFilter } from '@/services/jira';
 import { deleteComment, fetchEpicStories, fetchIssueDetail, updateComment } from '@/services/jira';
 import { parseDuration } from '@/services/jira/duration';
@@ -132,14 +132,14 @@ export default function IssueDetailPage() {
 
   // Build user lookup map from available issue data
   const userMap: UserMap = {};
-  const _assignee = issue?.fields.assignee;
-  const _reporter = issue?.fields.reporter;
-  if (_assignee) {
-    userMap[_assignee.name] = _assignee.displayName;
+  const Assignee = issue?.fields.assignee;
+  const Reporter = issue?.fields.reporter;
+  if (Assignee) {
+    userMap[Assignee.name] = Assignee.displayName;
   }
-  if (_reporter) {
-    if (_reporter.name) userMap[_reporter.name] = _reporter.displayName;
-    userMap[_reporter.displayName] = _reporter.displayName;
+  if (Reporter) {
+    if (Reporter.name) userMap[Reporter.name] = Reporter.displayName;
+    userMap[Reporter.displayName] = Reporter.displayName;
   }
   for (const c of comments) {
     if (c.author?.displayName) {
@@ -198,8 +198,8 @@ export default function IssueDetailPage() {
   // Drag-to-resize for right panel
   const containerRef = useRef<HTMLDivElement>(null);
   const { width, isDragging, handleMouseDown } = useResizable({
-    initialWidth: issueDetailPanelWidth ??
-      Math.round((containerRef.current?.offsetWidth ?? 952) * 0.42),
+    initialWidth:
+      issueDetailPanelWidth ?? Math.round((containerRef.current?.offsetWidth ?? 952) * 0.42),
     min: 240,
     max: () => (containerRef.current?.offsetWidth ?? 800) * 0.5,
     onCommit: setIssueDetailPanelWidth,

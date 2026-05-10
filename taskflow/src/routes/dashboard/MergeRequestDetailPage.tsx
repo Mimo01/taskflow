@@ -26,11 +26,11 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
-import { useResizable } from '@/hooks/useResizable';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useResizable } from '@/hooks/useResizable';
 import type { Discussion, GitLabMRDetail, MRCommit, MRDiffFile } from '@/services/gitlab';
 import {
   fetchMRApprovals,
@@ -239,7 +239,11 @@ export default function MergeRequestDetailPage() {
               {/* Discussion Threads — promoted above commits, not wrapped in a card */}
               {discussions && discussions.length > 0 && (
                 <div className="pt-2">
-                  <DiscussionThreads discussions={discussions} diffFiles={diffFiles} gitlabBaseUrl={gitlabBaseUrl ?? undefined} />
+                  <DiscussionThreads
+                    discussions={discussions}
+                    diffFiles={diffFiles}
+                    gitlabBaseUrl={gitlabBaseUrl ?? undefined}
+                  />
                 </div>
               )}
 
@@ -428,9 +432,7 @@ export default function MergeRequestDetailPage() {
               )}
 
               {/* Commits */}
-              {commits && commits.length > 0 && (
-                <MetaRow label="Commits">{commits.length}</MetaRow>
-              )}
+              {commits && commits.length > 0 && <MetaRow label="Commits">{commits.length}</MetaRow>}
 
               {/* Changes */}
               <MetaRow label="Changes">{mr.changes_count} files changed</MetaRow>

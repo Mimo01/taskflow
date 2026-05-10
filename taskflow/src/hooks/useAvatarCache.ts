@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getCachedBlobUrl, fetchAndCacheAvatar } from '@/services/avatarCache';
+import { fetchAndCacheAvatar, getCachedBlobUrl } from '@/services/avatarCache';
 
 /**
  * React hook that provides a cached blob URL for an avatar image.

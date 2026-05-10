@@ -1,5 +1,5 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGetCachedBlobUrl = vi.fn();
 const mockFetchAndCacheAvatar = vi.fn();
@@ -36,7 +36,7 @@ describe('CachedAvatar component', () => {
     const { CachedAvatar } = await import('@/components/ui/cached-avatar');
 
     const { container } = render(
-      <CachedAvatar url="https://example.com/avatar.jpg" name="Jane Doe" />
+      <CachedAvatar url="https://example.com/avatar.jpg" name="Jane Doe" />,
     );
 
     // Initially shows initials (loading state)
@@ -56,7 +56,7 @@ describe('CachedAvatar component', () => {
     const { CachedAvatar } = await import('@/components/ui/cached-avatar');
 
     const { container } = render(
-      <CachedAvatar url="https://example.com/avatar.jpg" name="Jane Doe" />
+      <CachedAvatar url="https://example.com/avatar.jpg" name="Jane Doe" />,
     );
 
     // Should render img immediately (no loading flash)
@@ -79,7 +79,7 @@ describe('CachedAvatar component', () => {
     const { CachedAvatar } = await import('@/components/ui/cached-avatar');
 
     const { container } = render(
-      <CachedAvatar url="https://example.com/avatar.jpg" name="Jane Doe" />
+      <CachedAvatar url="https://example.com/avatar.jpg" name="Jane Doe" />,
     );
 
     // Wait for img to appear
@@ -104,9 +104,7 @@ describe('CachedAvatar component', () => {
   it('Test 6 (size prop): renders correct Tailwind size class for each size value', async () => {
     const { CachedAvatar } = await import('@/components/ui/cached-avatar');
 
-    const { rerender, container } = render(
-      <CachedAvatar url={null} name="Test" size={20} />
-    );
+    const { rerender, container } = render(<CachedAvatar url={null} name="Test" size={20} />);
     // size=20 -> size-5
     expect(container.firstChild).toHaveClass('size-5');
 

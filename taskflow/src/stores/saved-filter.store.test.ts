@@ -52,7 +52,9 @@ describe('saved-filter.store', () => {
   it('updateSavedFilter leaves list unchanged when ID does not match', () => {
     act(() => useSavedFilterStore.getState().setSavedFilters([FILTER_A]));
     act(() =>
-      useSavedFilterStore.getState().updateSavedFilter('unknown', { id: 'unknown', name: 'X', jql: '' }),
+      useSavedFilterStore
+        .getState()
+        .updateSavedFilter('unknown', { id: 'unknown', name: 'X', jql: '' }),
     );
     expect(useSavedFilterStore.getState().savedFilters).toEqual([FILTER_A]);
   });

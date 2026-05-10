@@ -43,8 +43,8 @@ import { deriveReviewHealth, linkMRToTask, linkMRToTaskViaCommits } from '@/serv
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import TaskRow from './TaskRow';
 import { MyTasksSkeleton } from './MyTasksSkeleton';
+import TaskRow from './TaskRow';
 
 export default function MyTasksTab() {
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, activeGitlabProject, gitlabUserId } =
@@ -325,7 +325,10 @@ export default function MyTasksTab() {
     }
   }
   const groupedData = {
-    groups: groupedDataParents.map((p) => ({ parent: p, subtasks: groupedDataSubtasksByParent.get(p.key) ?? [] })),
+    groups: groupedDataParents.map((p) => ({
+      parent: p,
+      subtasks: groupedDataSubtasksByParent.get(p.key) ?? [],
+    })),
     orphans: groupedDataOrphans,
   };
 

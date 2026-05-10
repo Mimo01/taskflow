@@ -9,15 +9,15 @@
  */
 import pLimit from 'p-limit';
 
-let _limit = pLimit(6);
-let _current = 6;
+let Limit = pLimit(6);
+let Current = 6;
 
 /**
  * Get the current p-limit instance for Jira API calls.
  * Wrap any Jira API call: `await getJiraLimit()(() => apiFetch(...))`
  */
 export function getJiraLimit() {
-  return _limit;
+  return Limit;
 }
 
 /**
@@ -27,8 +27,8 @@ export function getJiraLimit() {
  * @param n - Maximum number of concurrent Jira API calls
  */
 export function setJiraConcurrencyLimit(n: number) {
-  if (n !== _current) {
-    _limit = pLimit(n);
-    _current = n;
+  if (n !== Current) {
+    Limit = pLimit(n);
+    Current = n;
   }
 }

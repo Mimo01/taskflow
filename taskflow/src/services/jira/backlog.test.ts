@@ -115,8 +115,7 @@ describe('backlog service', () => {
       // Verify no board discovery URL was called
       const calls = vi.mocked(apiFetch).mock.calls;
       const boardDiscoveryCall = calls.find(
-        (call) =>
-          typeof call[1] === 'string' && call[1].includes('board?projectKeyOrId='),
+        (call) => typeof call[1] === 'string' && call[1].includes('board?projectKeyOrId='),
       );
       expect(boardDiscoveryCall).toBeUndefined();
     });
@@ -163,7 +162,14 @@ describe('backlog service', () => {
         status: 200,
         json: async () => ({
           values: [
-            { id: 1, name: 'Sprint 1', state: 'active', startDate: '2026-03-01', endDate: '2026-03-15', originBoardId: 10 },
+            {
+              id: 1,
+              name: 'Sprint 1',
+              state: 'active',
+              startDate: '2026-03-01',
+              endDate: '2026-03-15',
+              originBoardId: 10,
+            },
             { id: 2, name: 'Sprint 2', state: 'future', originBoardId: 10 },
           ],
         }),
@@ -200,5 +206,4 @@ describe('backlog service', () => {
       expect(result).toEqual([]);
     });
   });
-
 });

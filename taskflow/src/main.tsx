@@ -553,10 +553,7 @@ const router = createHashRouter([
 // because 'default' means no data-density attribute (CSS baseline sizing).
 // After hydration, AppearanceSection's useEffect will apply the stored density.
 applyDensity('default');
-Promise.all([
-  loadTheme(),
-  initAvatarCache().catch(() => {}),
-]).then(() => {
+Promise.all([loadTheme(), initAvatarCache().catch(() => {})]).then(() => {
   ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>

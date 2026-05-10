@@ -33,9 +33,7 @@ describe('ChunkErrorBoundary', () => {
         <ThrowingComponent />
       </ChunkErrorBoundary>,
     );
-    expect(
-      screen.getByText('Something went wrong loading this page'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Something went wrong loading this page')).toBeInTheDocument();
   });
 
   it('renders "Retry Loading" button in error state', () => {

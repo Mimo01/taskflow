@@ -73,9 +73,19 @@ function formatRelativeTime(isoString: string): string {
 
 // ---- Diff parsing helpers ----
 
-function parseDiffLines(diff: string): Array<{ type: 'add' | 'remove' | 'context' | 'header'; content: string; oldLine?: number; newLine?: number }> {
+function parseDiffLines(diff: string): Array<{
+  type: 'add' | 'remove' | 'context' | 'header';
+  content: string;
+  oldLine?: number;
+  newLine?: number;
+}> {
   const lines = diff.split('\n');
-  const result: Array<{ type: 'add' | 'remove' | 'context' | 'header'; content: string; oldLine?: number; newLine?: number }> = [];
+  const result: Array<{
+    type: 'add' | 'remove' | 'context' | 'header';
+    content: string;
+    oldLine?: number;
+    newLine?: number;
+  }> = [];
   let oldLine = 0;
   let newLine = 0;
 
@@ -94,7 +104,12 @@ function parseDiffLines(diff: string): Array<{ type: 'add' | 'remove' | 'context
       result.push({ type: 'remove', content: line.slice(1), oldLine });
       oldLine++;
     } else if (line.startsWith(' ') || line === '') {
-      result.push({ type: 'context', content: line.startsWith(' ') ? line.slice(1) : line, oldLine, newLine });
+      result.push({
+        type: 'context',
+        content: line.startsWith(' ') ? line.slice(1) : line,
+        oldLine,
+        newLine,
+      });
       oldLine++;
       newLine++;
     }
@@ -107,7 +122,11 @@ function extractCodeContext(
   filePath: string,
   targetLine: number | null,
   isNewFile: boolean,
-): Array<{ type: 'add' | 'remove' | 'context' | 'header'; content: string; lineNum?: number }> | null {
+): Array<{
+  type: 'add' | 'remove' | 'context' | 'header';
+  content: string;
+  lineNum?: number;
+}> | null {
   if (!diffFiles || targetLine === null) return null;
 
   const file = diffFiles.find((f) =>
@@ -185,9 +204,7 @@ function DiffCodePreview({ note, diffFiles }: { note: DiscussionNote; diffFiles?
           </div>
         </div>
       ) : (
-        <div className="px-3 py-2 text-muted-foreground italic">
-          Line {targetLine}
-        </div>
+        <div className="px-3 py-2 text-muted-foreground italic">Line {targetLine}</div>
       )}
     </div>
   );
@@ -195,7 +212,15 @@ function DiffCodePreview({ note, diffFiles }: { note: DiscussionNote; diffFiles?
 
 // ---- NoteCard ----
 
-function NoteCard({ note, diffFiles, gitlabBaseUrl }: { note: DiscussionNote; diffFiles?: MRDiffFile[]; gitlabBaseUrl?: string }) {
+function NoteCard({
+  note,
+  diffFiles,
+  gitlabBaseUrl,
+}: {
+  note: DiscussionNote;
+  diffFiles?: MRDiffFile[];
+  gitlabBaseUrl?: string;
+}) {
   const components = useGitLabLinkComponents(gitlabBaseUrl);
   return (
     <div className="flex gap-3">
@@ -218,7 +243,11 @@ function NoteCard({ note, diffFiles, gitlabBaseUrl }: { note: DiscussionNote; di
         </div>
         {note.type === 'DiffNote' && <DiffCodePreview note={note} diffFiles={diffFiles} />}
         <div className="prose prose-sm dark:prose-invert max-w-none text-sm">
-          <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]} components={components()}>
+          <Markdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw]}
+            components={components()}
+          >
             {note.body}
           </Markdown>
         </div>
@@ -246,7 +275,15 @@ function SystemNote({ note, gitlabBaseUrl }: { note: DiscussionNote; gitlabBaseU
 
 // ---- DiscussionThread ----
 
-function DiscussionThread({ discussion, diffFiles, gitlabBaseUrl }: { discussion: Discussion; diffFiles?: MRDiffFile[]; gitlabBaseUrl?: string }) {
+function DiscussionThread({
+  discussion,
+  diffFiles,
+  gitlabBaseUrl,
+}: {
+  discussion: Discussion;
+  diffFiles?: MRDiffFile[];
+  gitlabBaseUrl?: string;
+}) {
   const firstNote = discussion.notes[0];
   const isResolvable = firstNote?.resolvable ?? false;
   const isResolved = isResolvable && (firstNote?.resolved ?? false);
@@ -309,7 +346,12 @@ function DiscussionThread({ discussion, diffFiles, gitlabBaseUrl }: { discussion
                   note.system ? (
                     <SystemNote key={note.id} note={note} gitlabBaseUrl={gitlabBaseUrl} />
                   ) : (
-                    <NoteCard key={note.id} note={note} diffFiles={diffFiles} gitlabBaseUrl={gitlabBaseUrl} />
+                    <NoteCard
+                      key={note.id}
+                      note={note}
+                      diffFiles={diffFiles}
+                      gitlabBaseUrl={gitlabBaseUrl}
+                    />
                   ),
                 )}
             </div>
@@ -322,7 +364,15 @@ function DiscussionThread({ discussion, diffFiles, gitlabBaseUrl }: { discussion
 
 // ---- DiscussionThreads (main export) ----
 
-export function DiscussionThreads({ discussions, diffFiles, gitlabBaseUrl }: { discussions: Discussion[]; diffFiles?: MRDiffFile[]; gitlabBaseUrl?: string }) {
+export function DiscussionThreads({
+  discussions,
+  diffFiles,
+  gitlabBaseUrl,
+}: {
+  discussions: Discussion[];
+  diffFiles?: MRDiffFile[];
+  gitlabBaseUrl?: string;
+}) {
   const [showSystemNotes, setShowSystemNotes] = useState(false);
 
   if (discussions.length === 0) {
@@ -373,7 +423,12 @@ export function DiscussionThreads({ discussions, diffFiles, gitlabBaseUrl }: { d
 
       <div className="space-y-3">
         {visibleDiscussions.map((discussion) => (
-          <DiscussionThread key={discussion.id} discussion={discussion} diffFiles={diffFiles} gitlabBaseUrl={gitlabBaseUrl} />
+          <DiscussionThread
+            key={discussion.id}
+            discussion={discussion}
+            diffFiles={diffFiles}
+            gitlabBaseUrl={gitlabBaseUrl}
+          />
         ))}
       </div>
     </div>

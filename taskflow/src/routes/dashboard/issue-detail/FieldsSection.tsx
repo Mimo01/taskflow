@@ -23,16 +23,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { SprintMoveMenuItems } from '@/components/ui/sprint-move-menu-items';
+import { useBoardId } from '@/hooks/useBoardId';
 import { apiFetch } from '@/lib/apiFetch';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import type { JiraIssueDetail } from '@/services/jira';
-import { postTransition } from '@/services/jira/transitions';
 import { fetchSprintList } from '@/services/jira/backlog';
 import { addIssuesToSprint, moveIssuesToBacklog } from '@/services/jira/sprints';
+import { postTransition } from '@/services/jira/transitions';
 import { fetchFixVersions } from '@/services/jira/versions';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
-import { useBoardId } from '@/hooks/useBoardId';
 import StatusPopover from '../StatusPopover';
 import { MetaRow } from './MetaRow';
 import { OverdueBadge } from './OverdueBadge';
@@ -608,22 +608,22 @@ export function FieldsSection({
                   <>
                     <DropdownMenuLabel>Move to...</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                  <SprintMoveMenuItems
-                    sprints={sprintsQuery.data}
-                    currentSprintId={currentSprintId}
-                    showBacklog={currentSprintId !== null}
-                    onSelectSprint={(sprintId, name) => {
-                      setSprintPickerOpen(false);
-                      setPendingSprintMove({ sprintId, sprintName: name });
-                    }}
-                    onSelectBacklog={() => {
-                      setSprintPickerOpen(false);
-                      setPendingSprintMove({ sprintId: null, sprintName: 'Backlog' });
-                    }}
-                    Item={DropdownMenuItem}
-                    Separator={DropdownMenuSeparator}
-                    Label={DropdownMenuLabel}
-                  />
+                    <SprintMoveMenuItems
+                      sprints={sprintsQuery.data}
+                      currentSprintId={currentSprintId}
+                      showBacklog={currentSprintId !== null}
+                      onSelectSprint={(sprintId, name) => {
+                        setSprintPickerOpen(false);
+                        setPendingSprintMove({ sprintId, sprintName: name });
+                      }}
+                      onSelectBacklog={() => {
+                        setSprintPickerOpen(false);
+                        setPendingSprintMove({ sprintId: null, sprintName: 'Backlog' });
+                      }}
+                      Item={DropdownMenuItem}
+                      Separator={DropdownMenuSeparator}
+                      Label={DropdownMenuLabel}
+                    />
                   </>
                 )}
               </DropdownMenuGroup>
