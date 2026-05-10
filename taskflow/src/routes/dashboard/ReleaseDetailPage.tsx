@@ -106,9 +106,10 @@ async function fetchFixVersionIssues(
     if (!resp.ok) throw new Error(`Failed to fetch issues: status ${resp.status}`);
 
     const data = (await resp.json()) as { issues: JiraIssue[]; total: number };
+    const before = allIssues.length;
     allIssues.push(...data.issues);
 
-    if (allIssues.length >= data.total) break;
+    if (allIssues.length >= data.total || allIssues.length === before) break;
     startAt = allIssues.length;
   }
 
