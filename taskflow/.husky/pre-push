@@ -1,3 +1,1 @@
-cd taskflow
-npm run check
-npx vitest run
+# Pre-push hook — quality gates are enforced at commit time (pre-commit)
