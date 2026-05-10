@@ -75,10 +75,9 @@ describe('useBoardId', () => {
   });
 
   it('is disabled and returns { boardId: null, isLoading: false } when projectKey is null', () => {
-    const { result } = renderHook(
-      () => useBoardId('https://jira.example.com', 'token123', null),
-      { wrapper: createWrapper() },
-    );
+    const { result } = renderHook(() => useBoardId('https://jira.example.com', 'token123', null), {
+      wrapper: createWrapper(),
+    });
 
     expect(result.current.boardId).toBeNull();
     expect(result.current.isLoading).toBe(false);

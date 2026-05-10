@@ -43,7 +43,9 @@ vi.mock('../stores/settings.store', () => ({
 }));
 
 // Capture useQuery options on each render
-const capturedOptions = { current: null as Parameters<typeof import('@tanstack/react-query').useQuery>[0] | null };
+const capturedOptions = {
+  current: null as Parameters<typeof import('@tanstack/react-query').useQuery>[0] | null,
+};
 
 vi.mock('@tanstack/react-query', () => ({
   useQuery: vi.fn((options) => {

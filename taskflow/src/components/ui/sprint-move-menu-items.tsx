@@ -33,9 +33,7 @@ export function SprintMoveMenuItems({
   Separator,
   Label,
 }: SprintMoveMenuItemsProps) {
-  const targetSprints = sprints.filter(
-    (s) => currentSprintId == null || s.id !== currentSprintId,
-  );
+  const targetSprints = sprints.filter((s) => currentSprintId == null || s.id !== currentSprintId);
 
   return (
     <>

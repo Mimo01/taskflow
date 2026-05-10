@@ -14,17 +14,18 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Bookmark, Columns3, RefreshCw } from 'lucide-react';
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type React from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { useDelayedLoading } from '@/hooks/useDelayedLoading';
-import { useIsActiveRoute } from '@/hooks/useIsActiveRoute';
-import { POLL_INTERVAL_MS, STALE_TIME_MS } from '@/lib/query-constants';
 import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
-import { SprintBoardSkeleton } from './SprintBoardSkeleton';
+import { useBoardId } from '@/hooks/useBoardId';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { useIsActiveRoute } from '@/hooks/useIsActiveRoute';
+import { POLL_INTERVAL_MS, STALE_TIME_MS } from '@/lib/query-constants';
 import type { JiraIssue, JiraTransition } from '@/services/jira';
 import {
   fetchEpicsBasic,
@@ -36,7 +37,6 @@ import { fetchBoardQuickFilters } from '@/services/jira/board-config';
 import { fetchAllSearchPages } from '@/services/jira/client';
 import { fetchSprintStories, fetchSprintSubtasks } from '@/services/jira/issues';
 import { fetchActiveSprint } from '@/services/jira/sprints';
-import { useBoardId } from '@/hooks/useBoardId';
 import type { JiraBoardQuickFilter } from '@/services/jira/types';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
@@ -44,6 +44,7 @@ import { useFilterStore } from '@/stores/filter.store';
 import { useSavedFilterStore } from '@/stores/saved-filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { QuickFilterChipRow } from './QuickFilterChipRow';
+import { SprintBoardSkeleton } from './SprintBoardSkeleton';
 import { SprintGoalBanner } from './SprintGoalBanner';
 import { StoryHeaderRow } from './StoryHeaderRow';
 import TaskCard from './TaskCard';
@@ -60,7 +61,6 @@ type CategoryKey = (typeof CATEGORY_COLUMNS)[number]['key'];
 function categoryOf(issue: JiraIssue): CategoryKey {
   return (issue.fields.status.statusCategory?.key as CategoryKey) ?? 'new';
 }
-
 
 /** Data needed to render the sticky swimlane header overlay outside the scroll flow. */
 type StickyHeaderData = {
@@ -104,7 +104,13 @@ function VirtualizedSwimlanes({
   /** Ref to the sticky header overlay wrapper — hidden during swaps to prevent flicker */
   stickyOverlayRef: React.RefObject<HTMLDivElement | null>;
   getTransitions: (issueKey: string) => JiraTransition[] | undefined;
-  onTransition: (issueKey: string, transitionId: string, toStatusName: string, toStatusId: string, toStatusCategoryKey?: string) => void;
+  onTransition: (
+    issueKey: string,
+    transitionId: string,
+    toStatusName: string,
+    toStatusId: string,
+    toStatusCategoryKey?: string,
+  ) => void;
 }) {
   const swimlaneVirtualizer = useVirtualizer({
     count: filteredSwimlanes.length,
@@ -278,9 +284,9 @@ function VirtualizedSwimlanes({
     // Run once immediately to sync sticky header with current scroll position
     onScroll();
     return () => scrollElement.removeEventListener('scroll', onScroll);
-  // filteredSwimlanes intentionally excluded — accessed via ref to avoid infinite loop.
-  // swimlaneVirtualizer is included to re-register the listener when virtual items change.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // filteredSwimlanes intentionally excluded — accessed via ref to avoid infinite loop.
+    // swimlaneVirtualizer is included to re-register the listener when virtual items change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollElement, swimlaneVirtualizer]);
 
   function renderSwimlane(
@@ -312,7 +318,9 @@ function VirtualizedSwimlanes({
             onToggle={() => toggleStory(story.key)}
             onOpenDetail={setSelectedIssueKey}
             transitions={getTransitions(story.key)}
-            onTransition={(tid, name, toId, catKey) => onTransition(story.key, tid, name, toId, catKey)}
+            onTransition={(tid, name, toId, catKey) =>
+              onTransition(story.key, tid, name, toId, catKey)
+            }
             transitionError={cardErrors.get(story.key)}
             assigneeAvatarUrl={story.fields.assignee?.avatarUrls['48x48']}
             assigneeDisplayName={story.fields.assignee?.displayName}
@@ -342,7 +350,9 @@ function VirtualizedSwimlanes({
                           showStatus
                           onClick={() => setSelectedIssueKey(card.key)}
                           transitions={getTransitions(card.key)}
-                          onTransition={(tid, name, toId, catKey) => onTransition(card.key, tid, name, toId, catKey)}
+                          onTransition={(tid, name, toId, catKey) =>
+                            onTransition(card.key, tid, name, toId, catKey)
+                          }
                           transitionError={cardErrors.get(card.key)}
                         />
                       ))
@@ -402,7 +412,9 @@ function VirtualizedSwimlanes({
                 onToggle={() => toggleStory(story.key)}
                 onOpenDetail={setSelectedIssueKey}
                 transitions={getTransitions(story.key)}
-                onTransition={(tid, name, toId, catKey) => onTransition(story.key, tid, name, toId, catKey)}
+                onTransition={(tid, name, toId, catKey) =>
+                  onTransition(story.key, tid, name, toId, catKey)
+                }
                 transitionError={cardErrors.get(story.key)}
                 assigneeAvatarUrl={story.fields.assignee?.avatarUrls['48x48']}
                 assigneeDisplayName={story.fields.assignee?.displayName}
@@ -432,7 +444,9 @@ function VirtualizedSwimlanes({
                               showStatus
                               onClick={() => setSelectedIssueKey(card.key)}
                               transitions={getTransitions(card.key)}
-                              onTransition={(tid, name, toId, catKey) => onTransition(card.key, tid, name, toId, catKey)}
+                              onTransition={(tid, name, toId, catKey) =>
+                                onTransition(card.key, tid, name, toId, catKey)
+                              }
                               transitionError={cardErrors.get(card.key)}
                             />
                           ))
@@ -532,8 +546,21 @@ export default function SprintBoardTab() {
     }
   }, [jiraBaseUrl]);
 
-  const { data: stories, isLoading: storiesLoading, isFetching: storiesFetching, isError, error, dataUpdatedAt } = useQuery({
-    queryKey: ['jira-sprint-stories', activeJiraProject, jiraBaseUrl, storyPointsFieldKey, epicLinkFieldKey],
+  const {
+    data: stories,
+    isLoading: storiesLoading,
+    isFetching: storiesFetching,
+    isError,
+    error,
+    dataUpdatedAt,
+  } = useQuery({
+    queryKey: [
+      'jira-sprint-stories',
+      activeJiraProject,
+      jiraBaseUrl,
+      storyPointsFieldKey,
+      epicLinkFieldKey,
+    ],
     queryFn: () =>
       fetchSprintStories(
         jiraBaseUrl!,
@@ -657,14 +684,20 @@ export default function SprintBoardTab() {
         }),
       ),
     );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jiraBaseUrl, jiraToken, localIssues.length, queryClient]);
 
   function getTransitions(issueKey: string): JiraTransition[] | undefined {
     return queryClient.getQueryData<JiraTransition[]>(['transitions', issueKey]);
   }
 
-  async function handleTransition(issueKey: string, transitionId: string, toStatusName: string, toStatusId: string, toStatusCategoryKey?: string) {
+  async function handleTransition(
+    issueKey: string,
+    transitionId: string,
+    toStatusName: string,
+    toStatusId: string,
+    toStatusCategoryKey?: string,
+  ) {
     const originalIssue = localIssues.find((i) => i.key === issueKey);
     if (!originalIssue) return;
 
@@ -679,7 +712,9 @@ export default function SprintBoardTab() {
                 status: {
                   id: toStatusId,
                   name: toStatusName,
-                  statusCategory: { key: toStatusCategoryKey ?? 'new' } as { key: 'new' | 'indeterminate' | 'done' },
+                  statusCategory: { key: toStatusCategoryKey ?? 'new' } as {
+                    key: 'new' | 'indeterminate' | 'done';
+                  },
                 },
               },
             }
@@ -727,7 +762,8 @@ export default function SprintBoardTab() {
     return swimlanes
       .map(({ story, subtasks }) => {
         const storyDone = categoryOf(story) === 'done';
-        const allSubsDone = subtasks.length === 0 || subtasks.every((st) => categoryOf(st) === 'done');
+        const allSubsDone =
+          subtasks.length === 0 || subtasks.every((st) => categoryOf(st) === 'done');
         return `${story.key}:${storyDone && allSubsDone ? '1' : '0'}`;
       })
       .join(',');
@@ -787,13 +823,16 @@ export default function SprintBoardTab() {
   for (const e of epicsBasic ?? []) filterOptionsEpics.set(e.key, e.epicName);
   for (const issue of localIssues) {
     const epicKey = issue.fields[epicLinkFieldKey] as string | null;
-    if (epicKey && !filterOptionsEpics.has(epicKey)) filterOptionsEpics.set(epicKey, epicNameMap.get(epicKey) ?? epicKey);
+    if (epicKey && !filterOptionsEpics.has(epicKey))
+      filterOptionsEpics.set(epicKey, epicNameMap.get(epicKey) ?? epicKey);
   }
   const filterOptionsLabels = new Set<string>();
   const filterOptionsAssignees = new Set<string>();
   for (const issue of localIssues) {
-    for (const label of (issue.fields.labels as string[] | undefined) ?? []) filterOptionsLabels.add(label);
-    if (issue.fields.assignee?.displayName) filterOptionsAssignees.add(issue.fields.assignee.displayName);
+    for (const label of (issue.fields.labels as string[] | undefined) ?? [])
+      filterOptionsLabels.add(label);
+    if (issue.fields.assignee?.displayName)
+      filterOptionsAssignees.add(issue.fields.assignee.displayName);
   }
   const filterOptionsStatuses = new Set<string>();
   for (const s of workflowStatuses ?? []) filterOptionsStatuses.add(s.name);
@@ -967,7 +1006,7 @@ export default function SprintBoardTab() {
                 setIsRefreshing(true);
                 setStickyHeader(null);
                 queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
-        queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
+                queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
               }}
               className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Refresh"
@@ -989,7 +1028,10 @@ export default function SprintBoardTab() {
             style={{ visibility: 'hidden' }}
           >
             {stickyHeader && (
-              <div ref={stickyHeaderInnerRef} className="bg-background border-b border-border/30 pointer-events-auto">
+              <div
+                ref={stickyHeaderInnerRef}
+                className="bg-background border-b border-border/30 pointer-events-auto"
+              >
                 <StoryHeaderRow
                   storyKey={stickyHeader.story.key}
                   summary={stickyHeader.story.fields.summary}
@@ -1000,7 +1042,9 @@ export default function SprintBoardTab() {
                   onToggle={() => toggleStory(stickyHeader.story.key)}
                   onOpenDetail={setSelectedIssueKey}
                   transitions={getTransitions(stickyHeader.story.key)}
-                  onTransition={(tid, name, toId, catKey) => handleTransition(stickyHeader.story.key, tid, name, toId, catKey)}
+                  onTransition={(tid, name, toId, catKey) =>
+                    handleTransition(stickyHeader.story.key, tid, name, toId, catKey)
+                  }
                   transitionError={cardErrors.get(stickyHeader.story.key)}
                   assigneeAvatarUrl={stickyHeader.story.fields.assignee?.avatarUrls['48x48']}
                   assigneeDisplayName={stickyHeader.story.fields.assignee?.displayName}
@@ -1022,7 +1066,7 @@ export default function SprintBoardTab() {
                   onRetry={() => {
                     setIsRefreshing(true);
                     queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
-        queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
+                    queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
                   }}
                   viewName="sprint board"
                 />
@@ -1036,7 +1080,7 @@ export default function SprintBoardTab() {
                   onRetry={() => {
                     setIsRefreshing(true);
                     queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
-        queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
+                    queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
                   }}
                   onDismiss={() => setBannerDismissed(true)}
                 />
@@ -1076,7 +1120,9 @@ export default function SprintBoardTab() {
             )}
 
             {/* Unified filter bar */}
-            {!showSkeleton && !isError && data && <UnifiedFilterBar filterOptions={filterOptions} />}
+            {!showSkeleton && !isError && data && (
+              <UnifiedFilterBar filterOptions={filterOptions} />
+            )}
 
             {/* Empty */}
             {!showSkeleton && !isError && data && swimlanes.length === 0 && (

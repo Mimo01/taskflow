@@ -7,6 +7,7 @@
  * opening the sheet.
  */
 import { ChevronRight } from 'lucide-react';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -19,7 +20,6 @@ import {
 import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraTransition } from '@/services/jira';
-import { CachedAvatar } from '@/components/ui/cached-avatar';
 
 interface StoryHeaderRowProps {
   storyKey: string;
@@ -31,7 +31,12 @@ interface StoryHeaderRowProps {
   onToggle: () => void;
   onOpenDetail: (key: string) => void;
   transitions?: JiraTransition[];
-  onTransition?: (transitionId: string, toStatusName: string, toStatusId: string, toStatusCategoryKey?: string) => void;
+  onTransition?: (
+    transitionId: string,
+    toStatusName: string,
+    toStatusId: string,
+    toStatusCategoryKey?: string,
+  ) => void;
   transitionError?: string | null;
   assigneeAvatarUrl?: string | null;
   assigneeDisplayName?: string;
@@ -55,12 +60,14 @@ export function StoryHeaderRow({
   const statusStyle = statusCategoryBadgeClass(statusCategoryKey);
 
   const rowContent = (
-    <div className={cn(
-      'flex items-center gap-2 px-3 py-2 transition-colors border-b',
-      isExpanded
-        ? 'bg-muted/40 hover:bg-muted/60 border-border/60'
-        : 'bg-muted/40 hover:bg-muted/60 border-border/60 mb-px',
-    )}>
+    <div
+      className={cn(
+        'flex items-center gap-2 px-3 py-2 transition-colors border-b',
+        isExpanded
+          ? 'bg-muted/40 hover:bg-muted/60 border-border/60'
+          : 'bg-muted/40 hover:bg-muted/60 border-border/60 mb-px',
+      )}
+    >
       {/* Chevron — toggles collapse without opening detail sheet */}
       <button
         type="button"
@@ -68,7 +75,9 @@ export function StoryHeaderRow({
         className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
         aria-label={isExpanded ? 'Collapse story' : 'Expand story'}
       >
-        <ChevronRight className={cn("size-4 transition-transform duration-200", isExpanded && "rotate-90")} />
+        <ChevronRight
+          className={cn('size-4 transition-transform duration-200', isExpanded && 'rotate-90')}
+        />
       </button>
 
       {/* Key + summary — opens detail sheet */}
@@ -77,7 +86,16 @@ export function StoryHeaderRow({
         className="group flex items-center gap-2 flex-1 min-w-0 text-left cursor-pointer"
         onClick={() => onOpenDetail(storyKey)}
       >
-        <span className={cn('font-mono text-xs text-muted-foreground shrink-0', statusCategoryKey === 'done' ? 'line-through group-hover:[text-decoration-line:underline_line-through]' : 'group-hover:underline')}>{storyKey}</span>
+        <span
+          className={cn(
+            'font-mono text-xs text-muted-foreground shrink-0',
+            statusCategoryKey === 'done'
+              ? 'line-through group-hover:[text-decoration-line:underline_line-through]'
+              : 'group-hover:underline',
+          )}
+        >
+          {storyKey}
+        </span>
         <span className="text-sm font-medium truncate">{summary}</span>
       </button>
 
@@ -85,12 +103,19 @@ export function StoryHeaderRow({
       {assigneeDisplayName && (
         <div className="shrink-0 flex items-center gap-1.5">
           <CachedAvatar url={assigneeAvatarUrl} name={assigneeDisplayName} size={20} />
-          <span className="text-xs text-muted-foreground truncate max-w-[120px]">{assigneeDisplayName}</span>
+          <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+            {assigneeDisplayName}
+          </span>
         </div>
       )}
 
       {/* Status badge */}
-      <span className={cn('shrink-0 min-w-[5.5rem] text-center rounded px-1.5 py-0.5 text-xs font-medium', statusStyle)}>
+      <span
+        className={cn(
+          'shrink-0 min-w-[5.5rem] text-center rounded px-1.5 py-0.5 text-xs font-medium',
+          statusStyle,
+        )}
+      >
         {statusName}
       </span>
 

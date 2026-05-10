@@ -80,7 +80,7 @@ export function extractSprintId(raw: unknown): number | null {
     if (typeof first === 'object' && first !== null) {
       const items = raw as Array<Record<string, unknown>>;
       const active = items.find((s) => String(s.state).toLowerCase() === 'active');
-      return (((active ?? items[0]).id as number) ?? null);
+      return ((active ?? items[0]).id as number) ?? null;
     }
     // Case 2: array of Java toString strings — parse id from "id=123"
     if (typeof first === 'string') {

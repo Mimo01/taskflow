@@ -24,6 +24,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
 import { Button } from '@/components/ui/button';
+import { ConfirmSprintMoveDialog } from '@/components/ui/confirm-sprint-move-dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
@@ -31,7 +32,6 @@ import { useBoardId } from '@/hooks/useBoardId';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useListNavigation } from '@/hooks/useListNavigation';
 import { STALE_TIME_MS } from '@/lib/query-constants';
-import { fetchBacklogIssues, fetchBacklogSprintStories, fetchSprintList } from '@/services/jira/backlog';
 import type { JiraIssue } from '@/services/jira';
 import {
   addIssuesToSprint,
@@ -39,11 +39,15 @@ import {
   fetchProjectStatuses,
   moveIssuesToBacklog,
 } from '@/services/jira';
+import {
+  fetchBacklogIssues,
+  fetchBacklogSprintStories,
+  fetchSprintList,
+} from '@/services/jira/backlog';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useFilterStore } from '@/stores/filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import { ConfirmSprintMoveDialog } from '@/components/ui/confirm-sprint-move-dialog';
 import { BacklogRow } from './BacklogRow';
 import { BacklogSkeleton } from './BacklogSkeleton';
 
@@ -199,12 +203,14 @@ export default function BacklogPage() {
   // ── Queries ─────────────────────────────────────────────────────────────────
 
   // -- Per-section queries (progressive loading) ---
-  const { boardId, isLoading: boardIdLoading } = useBoardId(jiraBaseUrl, jiraToken, activeJiraProject);
+  const { boardId, isLoading: boardIdLoading } = useBoardId(
+    jiraBaseUrl,
+    jiraToken,
+    activeJiraProject,
+  );
 
   // Query 1: Sprint list (canonical board ordering, includes empty sprints) — loads first for headers.
-  const {
-    data: sprintList,
-  } = useQuery({
+  const { data: sprintList } = useQuery({
     queryKey: ['jira-sprint-list', boardId, jiraBaseUrl],
     queryFn: () => fetchSprintList(jiraBaseUrl!, jiraToken!, boardId!),
     staleTime: STALE_TIME_MS,
@@ -213,7 +219,10 @@ export default function BacklogPage() {
 
   // Derive sprint IDs from the loaded sprint list (active + future only)
   const sprintIds = useMemo(
-    () => (sprintList ?? []).filter((s) => s.state === 'active' || s.state === 'future').map((s) => s.id),
+    () =>
+      (sprintList ?? [])
+        .filter((s) => s.state === 'active' || s.state === 'future')
+        .map((s) => s.id),
     [sprintList],
   );
 
@@ -226,8 +235,23 @@ export default function BacklogPage() {
     error: storiesErrorObj,
     refetch: refetchStories,
   } = useQuery<JiraIssue[]>({
-    queryKey: ['jira-backlog-sprint-stories', activeJiraProject, jiraBaseUrl, sprintIds, storyPointsFieldKey, epicLinkFieldKey],
-    queryFn: () => fetchBacklogSprintStories(jiraBaseUrl!, jiraToken!, activeJiraProject!, sprintIds, storyPointsFieldKey, epicLinkFieldKey),
+    queryKey: [
+      'jira-backlog-sprint-stories',
+      activeJiraProject,
+      jiraBaseUrl,
+      sprintIds,
+      storyPointsFieldKey,
+      epicLinkFieldKey,
+    ],
+    queryFn: () =>
+      fetchBacklogSprintStories(
+        jiraBaseUrl!,
+        jiraToken!,
+        activeJiraProject!,
+        sprintIds,
+        storyPointsFieldKey,
+        epicLinkFieldKey,
+      ),
     staleTime: STALE_TIME_MS,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken && sprintIds.length > 0,
   });
@@ -240,8 +264,23 @@ export default function BacklogPage() {
     error: backlogErrorObj,
     refetch: refetchBacklog,
   } = useQuery<JiraIssue[]>({
-    queryKey: ['jira-backlog-issues', activeJiraProject, jiraBaseUrl, storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey],
-    queryFn: () => fetchBacklogIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey),
+    queryKey: [
+      'jira-backlog-issues',
+      activeJiraProject,
+      jiraBaseUrl,
+      storyPointsFieldKey,
+      epicLinkFieldKey,
+      epicNameFieldKey,
+    ],
+    queryFn: () =>
+      fetchBacklogIssues(
+        jiraBaseUrl!,
+        jiraToken!,
+        activeJiraProject!,
+        storyPointsFieldKey,
+        epicLinkFieldKey,
+        epicNameFieldKey,
+      ),
     staleTime: STALE_TIME_MS,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
@@ -283,7 +322,10 @@ export default function BacklogPage() {
   // Combined error state
   const isError = storiesError || backlogError;
   const error = storiesErrorObj ?? backlogErrorObj;
-  const refetch = () => { refetchStories(); refetchBacklog(); };
+  const refetch = () => {
+    refetchStories();
+    refetchBacklog();
+  };
 
   // Map parentKey → Set of subtask status names (from sprint stories data)
   const subtaskStatusMap = useMemo(() => {
@@ -428,14 +470,7 @@ export default function BacklogPage() {
       assignees: Array.from(assignees),
       statuses: Array.from(statuses).sort(),
     };
-  }, [
-    allIssues,
-    epicLinkFieldKey,
-    epicNameFieldKey,
-    allEpics,
-    projectStatuses,
-    subtaskStatusMap,
-  ]);
+  }, [allIssues, epicLinkFieldKey, epicNameFieldKey, allEpics, projectStatuses, subtaskStatusMap]);
 
   // ── Filter application helper ─────────────────────────────────────────────────
 
@@ -539,16 +574,35 @@ export default function BacklogPage() {
   // Confirm handlers: execute the actual API calls (formerly handleMove*)
   async function confirmMoveToSprint(issueKey: string, sprintId: number, sprintName: string) {
     // Optimistic removal from backlog issues cache
-    const previousBacklog = queryClient.getQueryData<JiraIssue[]>(
-      ['jira-backlog-issues', activeJiraProject, jiraBaseUrl, storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey],
-    );
+    const previousBacklog = queryClient.getQueryData<JiraIssue[]>([
+      'jira-backlog-issues',
+      activeJiraProject,
+      jiraBaseUrl,
+      storyPointsFieldKey,
+      epicLinkFieldKey,
+      epicNameFieldKey,
+    ]);
     queryClient.setQueryData<JiraIssue[]>(
-      ['jira-backlog-issues', activeJiraProject, jiraBaseUrl, storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey],
+      [
+        'jira-backlog-issues',
+        activeJiraProject,
+        jiraBaseUrl,
+        storyPointsFieldKey,
+        epicLinkFieldKey,
+        epicNameFieldKey,
+      ],
       (old) => old?.filter((i) => i.key !== issueKey),
     );
     // Also optimistically remove from backlog sprint stories cache (if moving between sprints)
     queryClient.setQueryData<JiraIssue[]>(
-      ['jira-backlog-sprint-stories', activeJiraProject, jiraBaseUrl, sprintIds, storyPointsFieldKey, epicLinkFieldKey],
+      [
+        'jira-backlog-sprint-stories',
+        activeJiraProject,
+        jiraBaseUrl,
+        sprintIds,
+        storyPointsFieldKey,
+        epicLinkFieldKey,
+      ],
       (old) => old?.filter((i) => i.key !== issueKey),
     );
     try {
@@ -561,7 +615,14 @@ export default function BacklogPage() {
     } catch (_err) {
       // Rollback on failure
       queryClient.setQueryData(
-        ['jira-backlog-issues', activeJiraProject, jiraBaseUrl, storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey],
+        [
+          'jira-backlog-issues',
+          activeJiraProject,
+          jiraBaseUrl,
+          storyPointsFieldKey,
+          epicLinkFieldKey,
+          epicNameFieldKey,
+        ],
         previousBacklog,
       );
       // Refetch sprint stories to restore correct state
@@ -572,11 +633,23 @@ export default function BacklogPage() {
 
   async function confirmMoveToBacklog(issueKey: string) {
     // Optimistic removal from sprint stories cache
-    const previousStories = queryClient.getQueryData<JiraIssue[]>(
-      ['jira-backlog-sprint-stories', activeJiraProject, jiraBaseUrl, sprintIds, storyPointsFieldKey, epicLinkFieldKey],
-    );
+    const previousStories = queryClient.getQueryData<JiraIssue[]>([
+      'jira-backlog-sprint-stories',
+      activeJiraProject,
+      jiraBaseUrl,
+      sprintIds,
+      storyPointsFieldKey,
+      epicLinkFieldKey,
+    ]);
     queryClient.setQueryData<JiraIssue[]>(
-      ['jira-backlog-sprint-stories', activeJiraProject, jiraBaseUrl, sprintIds, storyPointsFieldKey, epicLinkFieldKey],
+      [
+        'jira-backlog-sprint-stories',
+        activeJiraProject,
+        jiraBaseUrl,
+        sprintIds,
+        storyPointsFieldKey,
+        epicLinkFieldKey,
+      ],
       (old) => old?.filter((i) => i.key !== issueKey),
     );
     try {
@@ -589,7 +662,14 @@ export default function BacklogPage() {
     } catch (_err) {
       // Rollback on failure
       queryClient.setQueryData(
-        ['jira-backlog-sprint-stories', activeJiraProject, jiraBaseUrl, sprintIds, storyPointsFieldKey, epicLinkFieldKey],
+        [
+          'jira-backlog-sprint-stories',
+          activeJiraProject,
+          jiraBaseUrl,
+          sprintIds,
+          storyPointsFieldKey,
+          epicLinkFieldKey,
+        ],
         previousStories,
       );
     }
@@ -644,7 +724,9 @@ export default function BacklogPage() {
             {sectionStoriesLoading ? (
               <span className="animate-pulse">Loading...</span>
             ) : (
-              <>{issues.length} {issues.length === 1 ? 'issue' : 'issues'}</>
+              <>
+                {issues.length} {issues.length === 1 ? 'issue' : 'issues'}
+              </>
             )}
           </span>
         </button>
@@ -781,7 +863,13 @@ export default function BacklogPage() {
         {showSkeleton ? (
           /* Skeleton loading state — only when neither backlog nor sprint list has loaded */
           <BacklogSkeleton />
-        ) : !isError && !authBootstrapping && mergedSprints.length === 0 && (backlogIssues ?? []).length === 0 && !storiesLoading && !backlogLoading && !waitingForSprintList ? (
+        ) : !isError &&
+          !authBootstrapping &&
+          mergedSprints.length === 0 &&
+          (backlogIssues ?? []).length === 0 &&
+          !storiesLoading &&
+          !backlogLoading &&
+          !waitingForSprintList ? (
           /* Empty state — all queries settled with no data */
           <EmptyState
             icon={Inbox}
@@ -789,7 +877,10 @@ export default function BacklogPage() {
             subtitle="All issues are assigned to sprints"
             action={<Button onClick={() => openCreateStory()}>Create Issue</Button>}
           />
-        ) : (mergedSprints.length > 0 || storiesLoading || (backlogIssues ?? []).length > 0 || backlogLoading) ? (
+        ) : mergedSprints.length > 0 ||
+          storiesLoading ||
+          (backlogIssues ?? []).length > 0 ||
+          backlogLoading ? (
           /* Sprint sections + backlog section */
           <div>
             {/* Sprint sections (active first, then future) */}

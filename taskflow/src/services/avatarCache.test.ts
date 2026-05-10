@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock plugin-http fetch
 const mockFetch = vi.fn();
@@ -125,7 +125,9 @@ describe('avatarCache service', () => {
 
   it('Test 6: evictAvatar — removes from memory and disk, revokes blob URL', async () => {
     makeFetchSuccess();
-    const { fetchAndCacheAvatar, evictAvatar, getCachedBlobUrl } = await import('@/services/avatarCache');
+    const { fetchAndCacheAvatar, evictAvatar, getCachedBlobUrl } = await import(
+      '@/services/avatarCache'
+    );
 
     const url = 'https://example.com/avatar6.jpg';
     const blobUrl = await fetchAndCacheAvatar(url);
@@ -203,7 +205,7 @@ describe('avatarCache service', () => {
   it('Test 12: content-type guard — rejects non-image responses (e.g. HTML login page)', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      headers: { get: (h: string) => h === 'content-type' ? 'text/html; charset=utf-8' : null },
+      headers: { get: (h: string) => (h === 'content-type' ? 'text/html; charset=utf-8' : null) },
       blob: () => Promise.resolve(new Blob(['<html>login page</html>'], { type: 'text/html' })),
     });
     const { fetchAndCacheAvatar, getCachedBlobUrl } = await import('@/services/avatarCache');
@@ -218,7 +220,7 @@ describe('avatarCache service', () => {
   it('Test 13: content-type guard — accepts image/png responses', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      headers: { get: (h: string) => h === 'content-type' ? 'image/png' : null },
+      headers: { get: (h: string) => (h === 'content-type' ? 'image/png' : null) },
       blob: () => Promise.resolve(new Blob(['fake-png-data'], { type: 'image/png' })),
     });
     const { fetchAndCacheAvatar } = await import('@/services/avatarCache');

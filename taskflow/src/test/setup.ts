@@ -34,7 +34,9 @@ vi.mock('@tauri-apps/plugin-store', () => {
     }
     async save(): Promise<void> {}
     async load(): Promise<void> {}
-    async keys(): Promise<string[]> { return [...this.data.keys()]; }
+    async keys(): Promise<string[]> {
+      return [...this.data.keys()];
+    }
     /** Test helper: clear backing store (simulates app reinstall / fresh state) */
     static clearStore(filename: string): void {
       stores.delete(filename);

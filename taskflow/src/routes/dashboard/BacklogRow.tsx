@@ -11,6 +11,7 @@
  * Right-click opens a context menu with "Move to sprint" options (when onMoveToSprint provided).
  */
 import React from 'react';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -25,7 +26,6 @@ import { SprintMoveMenuItems } from '@/components/ui/sprint-move-menu-items';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import { cn } from '@/lib/utils';
 import type { JiraIssue } from '@/services/jira';
-import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { OverdueBadge } from './issue-detail/OverdueBadge';
 
 // -- Props --------------------------------------------------------------------

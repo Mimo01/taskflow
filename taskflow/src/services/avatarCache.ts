@@ -88,16 +88,28 @@ export function getCachedBlobUrl(originalUrl: string): string | null {
 function detectMimeType(bytes: Uint8Array): string | null {
   if (bytes.length < 4) return null;
   // PNG: 89 50 4E 47
-  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) return 'image/png';
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47)
+    return 'image/png';
   // JPEG: FF D8 FF
-  if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) return 'image/jpeg';
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
   // GIF: 47 49 46 38
-  if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) return 'image/gif';
+  if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38)
+    return 'image/gif';
   // WEBP: 52 49 46 46 ... 57 45 42 50
-  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
-      bytes.length >= 12 && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return 'image/webp';
+  if (
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes.length >= 12 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  )
+    return 'image/webp';
   // SVG: starts with '<' (0x3C) — typically <?xml or <svg
-  if (bytes[0] === 0x3C) return 'image/svg+xml';
+  if (bytes[0] === 0x3c) return 'image/svg+xml';
   return null;
 }
 
@@ -145,7 +157,10 @@ export async function fetchAndCacheAvatar(originalUrl: string): Promise<string |
         }
       }
 
-      const response = await fetch(originalUrl, Object.keys(headers).length > 0 ? { headers } : undefined);
+      const response = await fetch(
+        originalUrl,
+        Object.keys(headers).length > 0 ? { headers } : undefined,
+      );
       if (!response.ok) return null;
 
       // Guard: reject non-image responses (e.g. HTML login pages from auth redirects)

@@ -205,7 +205,9 @@ export function useNotificationPolling() {
         for (const item of newItems) {
           if (existingIds.has(item.id)) continue;
           const sourceEnabled =
-            item.source === 'jira' ? osNotifJiraEnabledRef.current : osNotifGitlabEnabledRef.current;
+            item.source === 'jira'
+              ? osNotifJiraEnabledRef.current
+              : osNotifGitlabEnabledRef.current;
           // Per-type check already passed via filter above
           if (sourceEnabled) {
             const result = await tryDispatchOsNotification(

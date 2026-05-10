@@ -29,7 +29,13 @@ export interface UseResizableOptions {
  * @param options.max — maximum width in px, or a function that computes it (for container-relative bounds)
  * @param options.onCommit — called with final px width on mouseup
  */
-export function useResizable({ initialWidth, min, max, onCommit, direction = 'right' }: UseResizableOptions) {
+export function useResizable({
+  initialWidth,
+  min,
+  max,
+  onCommit,
+  direction = 'right',
+}: UseResizableOptions) {
   const [width, setWidth] = useState(initialWidth);
   const [isDragging, setIsDragging] = useState(false);
   // Ref tracks live width to avoid stale closure in mouseup handler (Pitfall 1 in RESEARCH.md)

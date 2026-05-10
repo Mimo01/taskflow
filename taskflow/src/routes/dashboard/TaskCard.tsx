@@ -88,7 +88,16 @@ export default function TaskCard({
       >
         {/* Top row: issue key (left) + issue type name (right) */}
         <div className="flex items-center justify-between">
-          <span className={cn('text-xs font-mono text-muted-foreground', issue.fields.status.statusCategory?.key === 'done' ? 'line-through group-hover:[text-decoration-line:underline_line-through]' : 'group-hover:underline')}>{issue.key}</span>
+          <span
+            className={cn(
+              'text-xs font-mono text-muted-foreground',
+              issue.fields.status.statusCategory?.key === 'done'
+                ? 'line-through group-hover:[text-decoration-line:underline_line-through]'
+                : 'group-hover:underline',
+            )}
+          >
+            {issue.key}
+          </span>
           {issueTypeName && (
             <span className="text-[11px] text-muted-foreground/60 truncate max-w-[50%] text-right">
               {issueTypeName}
@@ -115,9 +124,7 @@ export default function TaskCard({
             {assignee && (
               <>
                 <CachedAvatar url={avatarUrl} name={displayName} size={20} />
-                <span className="text-[11px] text-muted-foreground/80 truncate">
-                  {displayName}
-                </span>
+                <span className="text-[11px] text-muted-foreground/80 truncate">{displayName}</span>
               </>
             )}
           </div>
@@ -164,9 +171,7 @@ export default function TaskCard({
       </div>
 
       {/* Transition error — shown below card on failed transitions */}
-      {transitionError && (
-        <p className="text-xs text-destructive px-1">{transitionError}</p>
-      )}
+      {transitionError && <p className="text-xs text-destructive px-1">{transitionError}</p>}
     </>
   );
 

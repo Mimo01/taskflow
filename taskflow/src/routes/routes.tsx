@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ComponentType } from 'react';
+import { type ComponentType, lazy, Suspense } from 'react';
 import type { RouteObject } from 'react-router-dom';
 import { ChunkErrorBoundary } from '../components/ChunkErrorBoundary';
 import { RouteSpinner } from '../components/ui/route-spinner';
