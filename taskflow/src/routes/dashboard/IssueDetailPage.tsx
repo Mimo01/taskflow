@@ -13,6 +13,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, MoreVertical } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
+import { useResizable } from '@/hooks/useResizable';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
@@ -60,6 +61,8 @@ export default function IssueDetailPage() {
     storyPointsFieldKey,
     epicColorFieldKey,
   } = useSettingsStore();
+  const issueDetailPanelWidth = useSettingsStore((s) => s.issueDetailPanelWidth);
+  const setIssueDetailPanelWidth = useSettingsStore((s) => s.setIssueDetailPanelWidth);
 
   // Pinned state
   const isPinned = usePinnedTabsStore((s) => (issueKey ? s.pinnedKeys.includes(issueKey) : false));
@@ -191,6 +194,15 @@ export default function IssueDetailPage() {
   deleteMutateRef.current = deleteMutation.mutate;
   const editTextRef = useRef(editText);
   editTextRef.current = editText;
+
+  // Drag-to-resize for right panel
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { width, isDragging, handleMouseDown } = useResizable({
+    initialWidth: issueDetailPanelWidth ?? 400,
+    min: 240,
+    max: () => (containerRef.current?.offsetWidth ?? 800) * 0.5,
+    onCommit: setIssueDetailPanelWidth,
+  });
 
   const handleEdit = (comment: JiraComment) => {
     setEditingCommentId(comment.id);
@@ -350,7 +362,7 @@ export default function IssueDetailPage() {
       {isLoading || !issue ? (
         <IssueDetailSkeleton />
       ) : (
-        <div className="flex flex-1 overflow-hidden">
+        <div ref={containerRef} className="flex flex-1 overflow-hidden">
           {/* Left column: scrollable content */}
           <div className="flex-1 overflow-auto">
             <div className="p-6">
@@ -417,7 +429,22 @@ export default function IssueDetailPage() {
           </div>
 
           {/* Right sidebar */}
-          <div className="w-[42%] border-l overflow-auto p-4 shrink-0">
+          <div
+            className={`relative border-l overflow-auto p-4 shrink-0${isDragging ? '' : ' transition-all duration-200'}`}
+            style={{ width: issueDetailPanelWidth !== null ? width : '42%' }}
+          >
+            <div
+              aria-hidden="true"
+              onMouseDown={handleMouseDown}
+              className="absolute left-0 top-0 h-full w-2 cursor-ew-resize z-20 border-l border-border transition-colors duration-100"
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.borderColor = 'var(--ring)';
+              }}
+              onMouseLeave={(e) => {
+                if (!isDragging) (e.currentTarget as HTMLElement).style.borderColor = '';
+              }}
+              style={{ borderColor: isDragging ? 'var(--ring)' : undefined }}
+            />
             <IssueDetailSidebar
               issue={issue}
               issueKey={issueKey}
@@ -586,7 +613,7 @@ function IssueDetailSkeleton() {
         <Skeleton className="h-4 w-5/6" />
         <Skeleton className="h-32 w-full" />
       </div>
-      <div className="w-[42%] space-y-3">
+      <div className="shrink-0 space-y-3" style={{ width: '42%' }}>
         <Skeleton className="h-6 w-1/2" />
         <Skeleton className="h-5 w-full" />
         <Skeleton className="h-5 w-full" />

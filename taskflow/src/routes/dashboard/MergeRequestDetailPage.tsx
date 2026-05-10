@@ -24,8 +24,9 @@ import {
   Loader2,
   XCircle,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
+import { useResizable } from '@/hooks/useResizable';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
@@ -43,6 +44,7 @@ import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { useRecentItemsStore } from '@/stores/recent-items.store';
+import { useSettingsStore } from '@/stores/settings.store';
 import { DiscussionThreads } from './DiscussionThreads';
 import { WikiRenderer } from './WikiRenderer';
 
@@ -61,11 +63,22 @@ export default function MergeRequestDetailPage() {
 
   const { gitlabBaseUrl } = useAuthStore();
   const pushRecentItem = useRecentItemsStore((s) => s.pushItem);
+  const mrDetailPanelWidth = useSettingsStore((s) => s.mrDetailPanelWidth);
+  const setMrDetailPanelWidth = useSettingsStore((s) => s.setMrDetailPanelWidth);
 
   const numericProjectId = projectId ? Number(projectId) : 0;
   const numericIid = iid ? Number(iid) : 0;
 
   const [showAllCommits, setShowAllCommits] = useState(false);
+
+  // Drag-to-resize for right panel
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { width, isDragging, handleMouseDown } = useResizable({
+    initialWidth: mrDetailPanelWidth,
+    min: 240,
+    max: () => (containerRef.current?.offsetWidth ?? 800) * 0.5,
+    onCommit: setMrDetailPanelWidth,
+  });
 
   // Fetch MR detail
   const { data: mr, isLoading } = useQuery({
@@ -188,7 +201,7 @@ export default function MergeRequestDetailPage() {
       {isLoading || !mr ? (
         <MRDetailSkeleton />
       ) : (
-        <div className="flex flex-1 overflow-hidden">
+        <div ref={containerRef} className="flex flex-1 overflow-hidden">
           {/* Left column */}
           <div className="flex-1 overflow-auto">
             <div className="p-6 space-y-5">
@@ -259,8 +272,23 @@ export default function MergeRequestDetailPage() {
             </div>
           </div>
 
-          {/* Right sidebar — narrowed to w-72 (288px) from w-[42%] */}
-          <div className="w-72 border-l overflow-auto p-4 shrink-0">
+          {/* Right sidebar */}
+          <div
+            className={`relative border-l overflow-auto p-4 shrink-0${isDragging ? '' : ' transition-all duration-200'}`}
+            style={{ width }}
+          >
+            <div
+              aria-hidden="true"
+              onMouseDown={handleMouseDown}
+              className="absolute left-0 top-0 h-full w-2 cursor-ew-resize z-20 border-l border-border transition-colors duration-100"
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.borderColor = 'var(--ring)';
+              }}
+              onMouseLeave={(e) => {
+                if (!isDragging) (e.currentTarget as HTMLElement).style.borderColor = '';
+              }}
+              style={{ borderColor: isDragging ? 'var(--ring)' : undefined }}
+            />
             <div className="space-y-4 text-sm">
               {/* Author */}
               <MetaRow label="Author">
@@ -552,7 +580,7 @@ function MRDetailSkeleton() {
         <Skeleton className="h-4 w-5/6" />
         <Skeleton className="h-32 w-full" />
       </div>
-      <div className="w-72 space-y-3">
+      <div className="shrink-0 space-y-3" style={{ width: 288 }}>
         <Skeleton className="h-5 w-full" />
         <Skeleton className="h-5 w-full" />
         <Skeleton className="h-5 w-full" />
