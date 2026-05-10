@@ -91,6 +91,14 @@ export default function Sidebar() {
 
   const prefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => {
+    return () => {
+      if (prefetchTimerRef.current) {
+        clearTimeout(prefetchTimerRef.current);
+      }
+    };
+  }, []);
+
   function prefetchForPath(path: string) {
     if (!jiraBaseUrl || !jiraToken || !activeJiraProject) return;
 
