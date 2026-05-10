@@ -154,8 +154,10 @@ try {
 // --- Git tag with annotation ---
 console.log(`\nCreating annotated tag v${newVersion}...`);
 const tagMessage = `v${newVersion}\n\n${releaseNotes}\n`;
+// Use core.commentChar=; so git doesn't strip Markdown ATX headers (### ...) from the annotation.
+// By default git treats '#' as a comment character and silently removes those lines from tag messages.
 try {
-  execSync(`git tag -a v${newVersion} -F -`, {
+  execSync(`git -c core.commentChar=\; tag -a v${newVersion} -F -`, {
     cwd: REPO_ROOT,
     input: tagMessage,
     stdio: ['pipe', 'inherit', 'inherit'],
@@ -164,7 +166,7 @@ try {
 } catch {
   console.log(`  Tag v${newVersion} already exists. Replacing...`);
   execSync(`git tag -d v${newVersion}`, { cwd: REPO_ROOT, stdio: 'inherit' });
-  execSync(`git tag -a v${newVersion} -F -`, {
+  execSync(`git -c core.commentChar=\; tag -a v${newVersion} -F -`, {
     cwd: REPO_ROOT,
     input: tagMessage,
     stdio: ['pipe', 'inherit', 'inherit'],
