@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { useResizable } from '@/hooks/useResizable';
 import { NavLink } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { STALE_TIME_MS } from '@/lib/query-constants';
@@ -63,6 +64,14 @@ export default function Sidebar() {
   const { devToolsEnabled, sidebarItems } = useSettingsStore();
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);
   const toggleSidebarCollapsed = useSettingsStore((s) => s.toggleSidebarCollapsed);
+  const sidebarWidth = useSettingsStore((s) => s.sidebarWidth);
+  const setSidebarWidth = useSettingsStore((s) => s.setSidebarWidth);
+  const { width, isDragging, handleMouseDown } = useResizable({
+    initialWidth: sidebarWidth,
+    min: 160,
+    max: 320,
+    onCommit: setSidebarWidth,
+  });
   const [hovered, setHovered] = useState(false);
 
   const queryClient = useQueryClient();
@@ -192,10 +201,25 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`relative flex flex-col h-full ${sidebarCollapsed ? 'w-16' : 'w-16 md:w-56'} border-r border-border bg-background shrink-0 transition-all duration-200`}
+      className={`relative flex flex-col h-full border-r border-border bg-background shrink-0${isDragging ? '' : ' transition-all duration-200'}`}
+      style={{ width: sidebarCollapsed ? 64 : width }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
+      {!sidebarCollapsed && (
+        <div
+          aria-hidden="true"
+          onMouseDown={handleMouseDown}
+          className="absolute right-0 top-0 h-full w-2 cursor-ew-resize z-20 border-r border-border transition-colors duration-100"
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.borderColor = 'var(--ring)';
+          }}
+          onMouseLeave={(e) => {
+            if (!isDragging) (e.currentTarget as HTMLElement).style.borderColor = '';
+          }}
+          style={{ borderColor: isDragging ? 'var(--ring)' : undefined }}
+        />
+      )}
       {/* Hover chevron toggle */}
       <button
         type="button"
