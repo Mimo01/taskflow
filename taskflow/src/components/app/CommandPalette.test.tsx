@@ -42,10 +42,11 @@ vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-token'),
 }));
 
-// Mock jira searchJira and searchJiraClosed
+// Mock jira searchJira, searchJiraClosed, and fetchJiraIssueByKey
 vi.mock('@/services/jira', () => ({
   searchJira: vi.fn().mockResolvedValue([]),
   searchJiraClosed: vi.fn().mockResolvedValue([]),
+  fetchJiraIssueByKey: vi.fn().mockResolvedValue(null),
 }));
 
 // Mock theme services
@@ -109,6 +110,7 @@ vi.mock('@/stores/recent-items.store', () => ({
   ),
 }));
 
+import { fetchJiraIssueByKey } from '@/services/jira';
 import CommandPalette from './CommandPalette';
 
 function makeQueryClient() {
@@ -289,5 +291,60 @@ describe('CommandPalette', () => {
     // Navigation items should still render because they are outside the ternary
     // "setti" fuzzy-matches "Settings" so cmdk keeps it visible
     expect(screen.getByText('Settings')).toBeInTheDocument();
+  });
+
+  // Key pattern detection tests
+  describe('key pattern detection', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      mockRecentItems = [];
+    });
+
+    it('shows Direct Match group when query matches issue key and fetch returns issue', async () => {
+      vi.mocked(fetchJiraIssueByKey).mockResolvedValue({
+        id: '999',
+        key: 'TEST-99',
+        fields: {
+          summary: 'Key match issue',
+          status: { id: '1', name: 'Done', statusCategory: { key: 'done' } },
+          assignee: null,
+          customfield_10016: null,
+          issuetype: { name: 'Story', subtask: false },
+        },
+      });
+
+      renderPalette();
+      const input = screen.getByPlaceholderText('Search issues, MRs, and actions...');
+      fireEvent.change(input, { target: { value: 'TEST-99' } });
+
+      const heading = await screen.findByText('Direct Match');
+      expect(heading).toBeInTheDocument();
+      expect(screen.getByText('TEST-99')).toBeInTheDocument();
+      expect(screen.getByText('Key match issue')).toBeInTheDocument();
+    });
+
+    it('does not show Direct Match group when fetch returns null', async () => {
+      vi.mocked(fetchJiraIssueByKey).mockResolvedValue(null);
+
+      renderPalette();
+      const input = screen.getByPlaceholderText('Search issues, MRs, and actions...');
+      fireEvent.change(input, { target: { value: 'TEST-99' } });
+
+      // Wait a tick for any async resolution
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(screen.queryByText('Direct Match')).toBeNull();
+    });
+
+    it('does not fire key fetch for non-key query', async () => {
+      renderPalette();
+      const input = screen.getByPlaceholderText('Search issues, MRs, and actions...');
+      fireEvent.change(input, { target: { value: 'fix login' } });
+
+      // Wait a tick
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(vi.mocked(fetchJiraIssueByKey)).not.toHaveBeenCalled();
+    });
   });
 });
