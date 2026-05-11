@@ -28,7 +28,7 @@ import {
 import { NAV_SHORTCUTS } from '@/lib/shortcuts';
 import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
-import { searchJira } from '@/services/jira';
+import { searchJira, searchJiraClosed } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { applyTheme, saveTheme, type Theme } from '@/services/theme';
 import { useAuthStore } from '@/stores/auth.store';
@@ -58,6 +58,7 @@ export default function CommandPalette({
 }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [liveSearchTriggered, setLiveSearchTriggered] = useState(false);
+  const [closedSearchTriggered, setClosedSearchTriggered] = useState(false);
 
   const queryClient = useQueryClient();
   const { storyPointsFieldKey, theme, setTheme } = useSettingsStore();
@@ -76,6 +77,7 @@ export default function CommandPalette({
     if (!open) {
       setQuery('');
       setLiveSearchTriggered(false);
+      setClosedSearchTriggered(false);
     }
   }, [open]);
 
@@ -131,6 +133,19 @@ export default function CommandPalette({
       return searchJira(jiraBaseUrl!, token, activeJiraProject!, query);
     },
     enabled: query.length >= 2 && liveSearchTriggered && !!jiraBaseUrl && !!activeJiraProject,
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
+  });
+
+  // ─── Closed Jira search ────────────────────────────────────────────────────
+
+  const { data: closedResults, isLoading: closedSearchLoading } = useQuery({
+    queryKey: ['search', 'closed', query],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat');
+      return searchJiraClosed(jiraBaseUrl!, token, activeJiraProject!, query);
+    },
+    enabled: query.length >= 2 && closedSearchTriggered && !!jiraBaseUrl && !!activeJiraProject,
     staleTime: 30_000,
     placeholderData: keepPreviousData,
   });
@@ -323,6 +338,40 @@ export default function CommandPalette({
                       <CommandItem
                         key={`live-${issue.key}`}
                         value={`live-${issue.key} ${issue.fields.summary}`}
+                        onSelect={() => handleIssueSelect(issue.key, issue.fields.summary)}
+                      >
+                        <span className="text-muted-foreground font-mono">{issue.key}</span>
+                        <span className="truncate">{issue.fields.summary}</span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
+
+                {/* Closed task search tail item -- only in search state */}
+                <CommandGroup>
+                  <CommandItem
+                    forceMount
+                    onSelect={() => setClosedSearchTriggered(true)}
+                    value="search-jira-closed-query"
+                  >
+                    Search closed tasks for &ldquo;{query}&rdquo;
+                  </CommandItem>
+                </CommandGroup>
+
+                {/* Closed search results -- only in search state */}
+                {closedSearchTriggered && closedSearchLoading && (
+                  <div className="flex flex-col gap-2 p-2">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-9 rounded bg-muted animate-pulse" />
+                    ))}
+                  </div>
+                )}
+                {closedSearchTriggered && closedResults && closedResults.length > 0 && (
+                  <CommandGroup heading="Closed Jira Tasks">
+                    {closedResults.map((issue) => (
+                      <CommandItem
+                        key={`closed-${issue.key}`}
+                        value={`closed-${issue.key} ${issue.fields.summary}`}
                         onSelect={() => handleIssueSelect(issue.key, issue.fields.summary)}
                       >
                         <span className="text-muted-foreground font-mono">{issue.key}</span>
