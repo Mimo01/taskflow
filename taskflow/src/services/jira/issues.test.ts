@@ -7,6 +7,7 @@ import {
   fetchSprintStories,
   fetchSprintSubtasks,
   searchJira,
+  searchJiraClosed,
   updateIssueField,
 } from './issues';
 
@@ -337,6 +338,54 @@ describe('issues service', () => {
 
       const result = await searchJira(BASE, TOKEN, 'PROJ', 'query');
       expect(result).toEqual([]);
+    });
+  });
+
+  // --- searchJiraClosed ---
+  describe('searchJiraClosed', () => {
+    it('returns matching closed issues on success', async () => {
+      const issues = [{ key: 'PROJ-20', fields: { summary: 'Closed task' } }];
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ issues }),
+      } as Response);
+
+      const result = await searchJiraClosed(BASE, TOKEN, 'PROJ', 'Closed');
+      expect(result).toHaveLength(1);
+      expect(result[0].key).toBe('PROJ-20');
+    });
+
+    it('returns empty array on non-ok response', async () => {
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+      } as Response);
+
+      const result = await searchJiraClosed(BASE, TOKEN, 'PROJ', 'query');
+      expect(result).toEqual([]);
+    });
+
+    it('returns empty array on network error', async () => {
+      vi.mocked(apiFetch).mockRejectedValueOnce(new Error('Network error'));
+
+      const result = await searchJiraClosed(BASE, TOKEN, 'PROJ', 'query');
+      expect(result).toEqual([]);
+    });
+
+    it('includes statusCategory = Done in JQL', async () => {
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ issues: [] }),
+      } as Response);
+
+      await searchJiraClosed(BASE, TOKEN, 'PROJ', 'query');
+
+      const callArgs = vi.mocked(apiFetch).mock.calls[0];
+      const url = callArgs[1] as string;
+      expect(url).toContain('statusCategory');
+      expect(url).toContain('Done');
     });
   });
 });
