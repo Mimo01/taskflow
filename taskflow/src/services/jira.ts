@@ -872,6 +872,48 @@ export async function searchJira(
   return (data.issues ?? []) as JiraIssue[];
 }
 
+/**
+ * Search for closed (Done) Jira issues matching a free-text query.
+ *
+ * Uses statusCategory = Done to explicitly target completed issues, which Jira's
+ * text index may deprioritise or exclude in certain configurations.
+ *
+ * @param baseUrl    - Jira base URL
+ * @param token      - Personal Access Token
+ * @param projectKey - Jira project key (e.g. "PROJ")
+ * @param query      - Free-text search query
+ * @returns Array of matching closed issues (up to 20); returns empty array on error
+ */
+export async function searchJiraClosed(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  query: string,
+): Promise<JiraIssue[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const jql = `project = ${projectKey} AND statusCategory = Done AND text ~ "${query.replace(/"/g, '\\"')}" ORDER BY updated DESC`;
+  const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee,customfield_10016,description&maxResults=20`;
+
+  let response: Response;
+  try {
+    response = await apiFetch('jira', url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch {
+    return [];
+  }
+
+  if (!response.ok) {
+    return [];
+  }
+
+  const data = await response.json();
+  return (data.issues ?? []) as JiraIssue[];
+}
+
 // ─── Phase 8: Dashboard Enrichment ───────────────────────────────────────────
 
 export interface JiraActiveSprint {
