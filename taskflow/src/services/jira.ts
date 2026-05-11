@@ -891,7 +891,7 @@ export async function searchJiraClosed(
   query: string,
 ): Promise<JiraIssue[]> {
   const base = baseUrl.replace(/\/$/, '');
-  const jql = `project = ${projectKey} AND statusCategory = Done AND text ~ "${query.replace(/"/g, '\\"')}" ORDER BY updated DESC`;
+  const jql = `project = ${projectKey} AND statusCategory = Done AND summary ~ "${query.replace(/"/g, '\\"')}" ORDER BY updated DESC`;
   const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee,customfield_10016,description&maxResults=20`;
 
   let response: Response;
