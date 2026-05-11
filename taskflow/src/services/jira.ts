@@ -24,6 +24,9 @@ import { apiFetch } from '../lib/apiFetch';
 export * from './jira-changelog';
 export * from './jira-watchers';
 
+// Re-export fetchJiraIssueByKey from the issues sub-module
+export { fetchJiraIssueByKey } from './jira/issues';
+
 import type { ChangelogHistory } from './jira-changelog';
 
 export interface JiraUser {

@@ -628,6 +628,48 @@ export async function searchJira(
 }
 
 /**
+ * Fetch a single Jira issue by its key, regardless of status (open or closed).
+ *
+ * Silent-failure contract: returns null on any error (404, auth, network).
+ * Callers should show nothing when null is returned.
+ *
+ * @param baseUrl  - Jira base URL
+ * @param token    - Personal Access Token
+ * @param issueKey - Jira issue key, e.g. "PROJ-123"
+ */
+export async function fetchJiraIssueByKey(
+  baseUrl: string,
+  token: string,
+  issueKey: string,
+): Promise<JiraIssue | null> {
+  const base = baseUrl.replace(/\/$/, '');
+  const url = `${base}/rest/api/2/issue/${issueKey}?fields=summary,status,assignee,customfield_10016,issuetype`;
+
+  let response: Response;
+  try {
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      },
+      'Fetch Issue By Key',
+    );
+  } catch {
+    return null;
+  }
+
+  if (!response.ok) {
+    return null;
+  }
+
+  return response.json() as Promise<JiraIssue>;
+}
+
+/**
  * Search for closed (Done) Jira issues matching a free-text query.
  *
  * Uses statusCategory = Done to explicitly target completed issues, which Jira's
