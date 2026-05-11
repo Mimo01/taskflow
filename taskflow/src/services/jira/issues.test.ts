@@ -3,6 +3,7 @@ import { ApiError } from '../../lib/api-error';
 import {
   createIssue,
   fetchIssueDetail,
+  fetchJiraIssueByKey,
   fetchSprintIssues,
   fetchSprintStories,
   fetchSprintSubtasks,
@@ -338,6 +339,108 @@ describe('issues service', () => {
 
       const result = await searchJira(BASE, TOKEN, 'PROJ', 'query');
       expect(result).toEqual([]);
+    });
+  });
+
+  // --- fetchJiraIssueByKey ---
+  describe('fetchJiraIssueByKey', () => {
+    it('returns the parsed JiraIssue on 200', async () => {
+      const issue = {
+        key: 'PROJ-123',
+        fields: { summary: 'Direct fetch issue', status: { name: 'Done' }, assignee: null, customfield_10016: null, issuetype: { name: 'Story' } },
+      };
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => issue,
+      } as Response);
+
+      const result = await fetchJiraIssueByKey(BASE, TOKEN, 'PROJ-123');
+      expect(result).not.toBeNull();
+      expect(result!.key).toBe('PROJ-123');
+      expect(result!.fields.summary).toBe('Direct fetch issue');
+    });
+
+    it('calls the correct URL with required fields', async () => {
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ key: 'PROJ-123', fields: {} }),
+      } as Response);
+
+      await fetchJiraIssueByKey(BASE, TOKEN, 'PROJ-123');
+
+      const callArgs = vi.mocked(apiFetch).mock.calls[0];
+      const url = callArgs[1] as string;
+      expect(url).toContain('/rest/api/2/issue/PROJ-123');
+      expect(url).toContain('fields=summary,status,assignee,customfield_10016,issuetype');
+    });
+
+    it('strips trailing slash from baseUrl', async () => {
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ key: 'PROJ-1', fields: {} }),
+      } as Response);
+
+      await fetchJiraIssueByKey('https://jira.example.com/', TOKEN, 'PROJ-1');
+
+      const callArgs = vi.mocked(apiFetch).mock.calls[0];
+      const url = callArgs[1] as string;
+      expect(url).not.toContain('//rest');
+      expect(url).toContain('https://jira.example.com/rest/api/2/issue/PROJ-1');
+    });
+
+    it('returns null on 404', async () => {
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      } as Response);
+
+      const result = await fetchJiraIssueByKey(BASE, TOKEN, 'PROJ-999');
+      expect(result).toBeNull();
+    });
+
+    it('returns null on 401', async () => {
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+      } as Response);
+
+      const result = await fetchJiraIssueByKey(BASE, TOKEN, 'PROJ-123');
+      expect(result).toBeNull();
+    });
+
+    it('returns null on 403', async () => {
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+      } as Response);
+
+      const result = await fetchJiraIssueByKey(BASE, TOKEN, 'PROJ-123');
+      expect(result).toBeNull();
+    });
+
+    it('returns null on network error (thrown exception)', async () => {
+      vi.mocked(apiFetch).mockRejectedValueOnce(new Error('Network failure'));
+
+      const result = await fetchJiraIssueByKey(BASE, TOKEN, 'PROJ-123');
+      expect(result).toBeNull();
+    });
+
+    it('does not include statusCategory filter in the URL (open and closed both returned)', async () => {
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ key: 'PROJ-123', fields: {} }),
+      } as Response);
+
+      await fetchJiraIssueByKey(BASE, TOKEN, 'PROJ-123');
+
+      const callArgs = vi.mocked(apiFetch).mock.calls[0];
+      const url = callArgs[1] as string;
+      expect(url).not.toContain('statusCategory');
+      expect(url).not.toContain('jql');
     });
   });
 
