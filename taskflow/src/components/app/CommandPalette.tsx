@@ -28,7 +28,7 @@ import {
 import { NAV_SHORTCUTS } from '@/lib/shortcuts';
 import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
-import { searchJira, searchJiraClosed } from '@/services/jira';
+import { fetchJiraIssueByKey, searchJira, searchJiraClosed } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { applyTheme, saveTheme, type Theme } from '@/services/theme';
 import { useAuthStore } from '@/stores/auth.store';
@@ -59,6 +59,8 @@ export default function CommandPalette({
   const [query, setQuery] = useState('');
   const [liveSearchTriggered, setLiveSearchTriggered] = useState(false);
   const [closedSearchTriggered, setClosedSearchTriggered] = useState(false);
+
+  const isJiraKeyQuery = /^[A-Za-z]+-\d+$/i.test(query.trim());
 
   const queryClient = useQueryClient();
   const { storyPointsFieldKey, theme, setTheme } = useSettingsStore();
@@ -146,6 +148,19 @@ export default function CommandPalette({
       return searchJiraClosed(jiraBaseUrl!, token, activeJiraProject!, query);
     },
     enabled: query.length >= 2 && closedSearchTriggered && !!jiraBaseUrl && !!activeJiraProject,
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
+  });
+
+  // ─── Direct key lookup ─────────────────────────────────────────────────────
+
+  const { data: keyMatchResult } = useQuery({
+    queryKey: ['search', 'key', query],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat');
+      return fetchJiraIssueByKey(jiraBaseUrl!, token, query.trim());
+    },
+    enabled: isJiraKeyQuery && query.length >= 2 && !!jiraBaseUrl && !!activeJiraProject,
     staleTime: 30_000,
     placeholderData: keepPreviousData,
   });
@@ -284,6 +299,20 @@ export default function CommandPalette({
               </>
             ) : (
               <>
+                {/* Direct Match group -- shown when query matches a Jira issue key pattern */}
+                {keyMatchResult && (
+                  <CommandGroup heading="Direct Match">
+                    <CommandItem
+                      key={`key-match-${keyMatchResult.key}`}
+                      value={`key-match-${keyMatchResult.key} ${keyMatchResult.fields.summary}`}
+                      onSelect={() => handleIssueSelect(keyMatchResult.key, keyMatchResult.fields.summary)}
+                    >
+                      <span className="text-muted-foreground font-mono">{keyMatchResult.key}</span>
+                      <span className="truncate">{keyMatchResult.fields.summary}</span>
+                    </CommandItem>
+                  </CommandGroup>
+                )}
+
                 {/* Issues group -- only in search state */}
                 <CommandGroup heading="Issues">
                   {allIssues.map((issue) => (
