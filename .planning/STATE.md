@@ -59,7 +59,8 @@ None.
 | 260510-ju | release 1.7.2 | 2026-05-10 | 3ebb421 | [260510-ju-release-1-7-2](./quick/260510-ju-release-1-7-2/) |
 | 260510-2tt | release 1.7.3 | 2026-05-10 | 35d42b1 | [260510-2tt-release-1-7-3](./quick/260510-2tt-release-1-7-3/) |
 | 260511-3nn | Add second live search path in command palette for closed/Done Jira tasks | 2026-05-11 | 667662c | [260511-3nn-search-historic-closed-tasks](./quick/260511-3nn-search-historic-closed-tasks/) |
+| 260511-epfmqx | Fetch closed Jira task by ID in search — auto-detect key pattern and direct fetch | 2026-05-11 | e671656 | [260511-epfmqx-fetch-closed-jira-task-by-id](./quick/260511-epfmqx-fetch-closed-jira-task-by-id/) |
 
 ## Session Continuity
 
-Last activity: 2026-05-11 - Completed quick task 260511-3nn: search historic closed tasks
+Last activity: 2026-05-11 - Completed quick task 260511-epfmqx: fetch closed jira task by id in search
