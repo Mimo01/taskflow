@@ -42,9 +42,10 @@ vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-token'),
 }));
 
-// Mock jira searchJira
+// Mock jira searchJira and searchJiraClosed
 vi.mock('@/services/jira', () => ({
   searchJira: vi.fn().mockResolvedValue([]),
+  searchJiraClosed: vi.fn().mockResolvedValue([]),
 }));
 
 // Mock theme services
