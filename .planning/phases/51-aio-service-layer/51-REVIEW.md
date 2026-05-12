@@ -23,7 +23,10 @@ findings:
   warning: 3
   info: 2
   total: 7
-status: issues_found
+finding_status:
+  CR-01: fixed
+  CR-02: fixed
+status: fixed
 ---
 
 # Phase 51: Code Review Report
