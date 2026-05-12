@@ -3,6 +3,9 @@ import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Module-level variable so vi.mock factory can close over it (vi.mock is hoisted)
+let mockAioEnabled = false;
+
 // Mock NavLink as a plain anchor for test isolation
 vi.mock('react-router-dom', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-router-dom')>();
@@ -51,40 +54,42 @@ vi.mock('@/hooks/useResizable', () => ({
   useResizable: () => ({ width: 220, isDragging: false, handleMouseDown: vi.fn() }),
 }));
 
+vi.mock('@/stores/settings.store', () => ({
+  useSettingsStore: (selector?: (s: Record<string, unknown>) => unknown) => {
+    const state = {
+      devToolsEnabled: false,
+      aioEnabled: mockAioEnabled,
+      sidebarItems: [
+        { id: 'dashboard', visible: true },
+        { id: 'my-tasks', visible: true },
+        { id: 'sprint-board', visible: true },
+        { id: 'backlog', visible: true },
+        { id: 'epics', visible: true },
+        { id: 'merge-requests', visible: true },
+        { id: 'sprint-progress', visible: true },
+        { id: 'workload', visible: true },
+        { id: 'releases', visible: true },
+        { id: 'aio-projects', visible: true },
+      ],
+      sidebarCollapsed: false,
+      toggleSidebarCollapsed: vi.fn(),
+      sidebarWidth: 220,
+      setSidebarWidth: vi.fn(),
+      storyPointsFieldKey: 'customfield_10016',
+      epicLinkFieldKey: 'customfield_10014',
+      epicNameFieldKey: 'customfield_10015',
+      epicColorFieldKey: 'customfield_10016',
+    };
+    return selector ? selector(state) : state;
+  },
+}));
+
 function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
 }
 
 function renderSidebar(aioEnabled: boolean) {
-  vi.mock('@/stores/settings.store', () => ({
-    useSettingsStore: (selector?: (s: Record<string, unknown>) => unknown) => {
-      const state = {
-        devToolsEnabled: false,
-        aioEnabled,
-        sidebarItems: [
-          { id: 'dashboard', visible: true },
-          { id: 'my-tasks', visible: true },
-          { id: 'sprint-board', visible: true },
-          { id: 'backlog', visible: true },
-          { id: 'epics', visible: true },
-          { id: 'merge-requests', visible: true },
-          { id: 'sprint-progress', visible: true },
-          { id: 'workload', visible: true },
-          { id: 'releases', visible: true },
-          { id: 'aio-projects', visible: true },
-        ],
-        sidebarCollapsed: false,
-        toggleSidebarCollapsed: vi.fn(),
-        sidebarWidth: 220,
-        setSidebarWidth: vi.fn(),
-        storyPointsFieldKey: 'customfield_10016',
-        epicLinkFieldKey: 'customfield_10014',
-        epicNameFieldKey: 'customfield_10015',
-        epicColorFieldKey: 'customfield_10016',
-      };
-      return selector ? selector(state) : state;
-    },
-  }));
+  mockAioEnabled = aioEnabled;
 }
 
 describe('Sidebar — aioEnabled gate', () => {
