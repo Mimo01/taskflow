@@ -208,7 +208,21 @@ Cross-cutting constraints:
   2. The AIO projects page lists all test projects with name and summary stats, with loading skeleton and empty/error states
   3. Clicking a project opens a project overview page listing all cycles with per-cycle summary stats (pass/fail counts, run date)
   4. All three pages are lazy-loaded route chunks and follow the existing skeleton + error recovery pattern
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+
+**Wave 0**
+- [ ] 52-00-PLAN.md — Wave 0 test stubs: cycles.test.ts, AioProjectsPage.test.tsx, AioProjectOverviewPage.test.tsx, Sidebar.test.tsx (RED stubs)
+
+**Wave 1** *(blocked on Wave 0 completion)*
+- [ ] 52-01-PLAN.md — Service layer: cycles.ts pagination loop, statusStyles.ts aioCycleStatusBadgeClass, index.ts barrel update
+- [ ] 52-02-PLAN.md — Navigation infrastructure: sidebar-items.ts, Sidebar.tsx (FlaskConical + aioEnabled gate), settings.store.ts v15→v16 migration, routes.tsx lazy routes
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 52-03-PLAN.md — AioProjectsPage + AioProjectsSkeleton (AION-02)
+- [ ] 52-04-PLAN.md — AioProjectOverviewPage + AioCyclesSkeleton (AION-03)
+
 **UI hint**: yes
 
 ### Phase 53: Cycle Detail + Header Pinning
