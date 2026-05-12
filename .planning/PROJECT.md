@@ -86,6 +86,8 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ React Compiler auto-memoization — all manual useMemo/useCallback/React.memo removed — v1.7
 - ✓ Avatar caching with in-memory blob URLs and disk persistence across app restarts — v1.7
 - ✓ Bundle analysis tooling (rollup-plugin-visualizer) and dead code elimination — v1.7
+- ✓ `aioEnabled` toggle in Settings → Integrations (persists via Tauri Store, gates all AIO calls, default false) — v1.8 Phase 51
+- ✓ AIO service module (`src/services/aio/`) with probe-confirmed dual base paths, paginated response handling, `fetchAioProjects`, `fetchAioTestRunsForCycle` — v1.8 Phase 51
 
 ### Active
 
