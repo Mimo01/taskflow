@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.7
-milestone_name: Performance & Perceived Speed
-status: Phase 50 complete — milestone ready to ship
-stopped_at: Phase 50 complete (4/4 plans, verified and approved)
-last_updated: "2026-05-10T00:00:00.000Z"
-last_activity: 2026-05-10
+milestone: v1.8
+milestone_name: AIO Test Management
+status: planning
+stopped_at: —
+last_updated: "2026-05-12T00:00:00.000Z"
+last_activity: 2026-05-12
 progress:
-  total_phases: 10
-  completed_phases: 10
-  total_plans: 31
-  completed_plans: 27
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -24,8 +24,10 @@ See: .planning/PROJECT.md (updated 2026-04-05)
 
 ## Current Position
 
-Phase 50: Draggable Sidebar Resize — **Complete** (4/4 plans, verified 2026-05-10)
-Next step: Ship milestone or start next milestone planning
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-05-12 — Milestone v1.8 started
 
 ## Accumulated Context
 

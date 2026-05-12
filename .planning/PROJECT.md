@@ -89,9 +89,12 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ### Active
 
-<!-- Next milestone: TBD -->
+<!-- Current milestone: v1.8 AIO Test Management -->
 
-(No active requirements — start next milestone with `/gsd:new-milestone`)
+- [ ] AIO sidebar section with project list → project overview → cycle detail (progress, burndown, defects, test runs)
+- [ ] Pin test cycles to the header tab strip for quick access
+- [ ] Render AIO test run table on Jira issue detail (step/expected/actual, colored failure markers)
+- [ ] AIO attachment URLs fetched through authenticated HTTP client and opened in existing lightbox
 
 ### Out of Scope
 
@@ -106,11 +109,21 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - GitLab write actions (approve, comment, request changes) — deferred to v2.0
 - Full JQL editor with syntax highlighting — months of work; plain text JQL input sufficient
 
+## Current Milestone: v1.8 AIO Test Management
+
+**Goal:** Integrate AIO Test Management into Taskflow — give the team visibility into test project health, cycle execution, and defects without leaving the app.
+
+**Target features:**
+- AIO sidebar section with project list → project overview (cycles) → cycle detail (progress, burndown, defects, test runs)
+- Pin test cycles to the header tab strip
+- AIO test run table rendering on Jira issue detail
+- AIO attachment handling through authenticated HTTP client → in-app lightbox
+
 ## Current State
 
 **Shipped v1.7** on 2026-04-05. All performance targets met — every view feels instant with skeleton screens, progressive loading, smart caching, and zero unnecessary waits.
 
-**Next milestone:** TBD — start with `/gsd:new-milestone`
+**Starting v1.8** on 2026-05-12 — AIO Test Management integration.
 
 ## Context
 
@@ -226,4 +239,4 @@ This document evolves at phase transitions and milestone boundaries.
 | CachedAvatar with blob URL Map + LazyStore disk persistence | Avatars cached in memory and on disk; 30-day TTL eviction; inflight dedup | ✓ Good — no repeated avatar fetches |
 
 ---
-*Last updated: 2026-04-05 after v1.7 milestone complete*
+*Last updated: 2026-05-12 after v1.8 milestone started*
