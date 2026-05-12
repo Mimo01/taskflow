@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -44,7 +44,11 @@ describe('AioProjectOverviewPage', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    expect(true).toBe(false);
+    await waitFor(() => {
+      expect(screen.getByText('Sprint 1 Cycle')).toBeDefined();
+      expect(screen.getByText('PROJ-CY-2')).toBeDefined();
+      expect(screen.getByText('Active')).toBeDefined();
+    });
   });
 
   it('AION-03: shows EmptyState when fetchAioCycles returns empty array', async () => {
@@ -60,7 +64,9 @@ describe('AioProjectOverviewPage', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    expect(true).toBe(false);
+    await waitFor(() => {
+      expect(screen.getByText('No cycles found')).toBeDefined();
+    });
   });
 
   it('AION-03: shows ErrorState when fetchAioCycles rejects', async () => {
@@ -76,6 +82,8 @@ describe('AioProjectOverviewPage', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    expect(true).toBe(false);
+    await waitFor(() => {
+      expect(screen.getByText("Couldn't load cycles")).toBeDefined();
+    });
   });
 });
