@@ -186,10 +186,10 @@ Cross-cutting constraints:
 Plans:
 
 **Wave 1** *(manual — developer runs curl probe)*
-- [ ] 51-01-PLAN.md — Curl probe against live AIO instance; record findings as Key Decisions D-13–D-17 in CONTEXT.md
+- [x] 51-01-PLAN.md — Curl probe against live AIO instance; record findings as Key Decisions D-13–D-17 in CONTEXT.md
 
 **Wave 2** *(blocked on Wave 1 probe completion)*
-- [ ] 51-02-PLAN.md — settings.store.ts v14→v15 migration (aioEnabled), IntegrationsSection.tsx, Settings.tsx wiring, all tests
+- [x] 51-02-PLAN.md — settings.store.ts v14→v15 migration (aioEnabled), IntegrationsSection.tsx, Settings.tsx wiring, all tests
 - [ ] 51-03-PLAN.md — src/services/aio/ module: client.ts, types.ts, projects.ts, issue-runs.ts, index.ts + 14 unit tests
 
 Cross-cutting constraints:
@@ -250,7 +250,7 @@ Cross-cutting constraints:
 | 48. Restore Backlog Progressive Loading | v1.7 | 3/3 | Complete | 2026-04-04 |
 | 49. Fix Backlog Query Key Wiring & Doc Debt | v1.7 | 2/2 | Complete | 2026-04-04 |
 | 50. Draggable Sidebar Resize | next | 4/4 | Complete | 2026-05-10 |
-| 51. AIO Service Layer | v1.8 | 0/3 | Not started | - |
+| 51. AIO Service Layer | v1.8 | 2/3 | In progress | - |
 | 52. AIO Navigation + Project Pages | v1.8 | 0/? | Not started | - |
 | 53. Cycle Detail + Header Pinning | v1.8 | 0/? | Not started | - |
 | 54. AIO on Issue Detail | v1.8 | 0/? | Not started | - |
