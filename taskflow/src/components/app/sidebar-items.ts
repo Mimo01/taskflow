@@ -26,6 +26,7 @@ export const SIDEBAR_SECTIONS: { id: string; label: string }[] = [
   { id: 'planning', label: 'Planning' },
   { id: 'code', label: 'Code' },
   { id: 'tracking', label: 'Tracking' },
+  { id: 'testing', label: 'Testing' },
 ];
 
 export const SIDEBAR_NAV_ITEMS: SidebarNavDef[] = [
@@ -72,6 +73,14 @@ export const SIDEBAR_NAV_ITEMS: SidebarNavDef[] = [
   },
   { id: 'workload', label: 'Workload', path: '/workload', iconName: 'Users', section: 'tracking' },
   { id: 'releases', label: 'Releases', path: '/releases', iconName: 'Tag', section: 'tracking' },
+  // Testing (AIO)
+  {
+    id: 'aio-projects',
+    label: 'AIO Projects',
+    path: '/aio-projects',
+    iconName: 'FlaskConical',
+    section: 'testing',
+  },
 ];
 
 /**
@@ -86,6 +95,7 @@ export function getDefaultSidebarItems(preset: 'dev' | 'pm'): SidebarItem[] {
     'backlog',
     'epics',
     'merge-requests',
+    'aio-projects',
   ]);
   const pmVisible = new Set([
     'dashboard',
@@ -97,6 +107,7 @@ export function getDefaultSidebarItems(preset: 'dev' | 'pm'): SidebarItem[] {
     'sprint-progress',
     'workload',
     'releases',
+    'aio-projects',
   ]);
 
   const visibleSet = preset === 'pm' ? pmVisible : devVisible;
