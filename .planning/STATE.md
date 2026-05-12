@@ -7,7 +7,7 @@ stopped_at: —
 last_updated: "2026-05-12T00:00:00.000Z"
 last_activity: 2026-05-12
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,28 +17,48 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-05)
+See: .planning/PROJECT.md (updated 2026-05-12)
 
-**Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, and notifications — in one place, without switching between Jira and GitLab.
-**Current focus:** Planning next milestone
+**Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
+**Current focus:** Phase 51 — AIO Service Layer (ready to plan)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-05-12 — Milestone v1.8 started
+Phase: 51 of 54 (AIO Service Layer)
+Plan: — of — in current phase
+Status: Ready to plan
+Last activity: 2026-05-12 — Roadmap created for v1.8 AIO Test Management (Phases 51-54)
+
+Progress: [░░░░░░░░░░] 0%
+
+## Performance Metrics
+
+**Velocity:**
+- Total plans completed: 0 (v1.8)
+- Average duration: —
+- Total execution time: —
+
+**By Phase:**
+
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| - | - | - | - |
+
+*Updated after each plan completion*
 
 ## Accumulated Context
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
+Recent decisions affecting current work:
 
-### Roadmap Evolution
-
-All phases 42-49 archived to `.planning/milestones/v1.7-ROADMAP.md`
-- Phase 50 added: Draggable Sidebar Resize
+- Phase 51 is a hard blocker: Bearer PAT auth and REST base path must be verified against the live AIO instance before any service code is written
+- All AIO `apiFetch` calls use `source: 'jira'` (same host, same auth) — no third source type
+- AIO query keys must use `['aio', jiraBaseUrl, ...]` prefix to avoid broad Jira invalidation sweeps
+- AIO project ID (not Jira project key) resolved at session start and cached in auth store
+- Full-page routes only for AIO pages (no sheets) — matches existing Key Decision from v1.3
+- `aio:projectId:cycleId` pinned key format; `PinnedTabStrip` needs `ResolvedIssue` → `ResolvedTab` rename
 
 ### Pending Todos
 
@@ -46,8 +66,10 @@ None.
 
 ### Blockers/Concerns
 
-- Apple Developer ID certificate ($99/yr) may not yet be acquired — blocks macOS notarization
-- Windows code signing decision needed (Azure Trusted Signing vs OV/EV cert)
+- Phase 51 BLOCKER: Bearer PAT may not authenticate AIO servlet calls on this instance — some installs require Jira session cookie (cookie-jar management in tauri-plugin-http not currently used anywhere)
+- Phase 51 BLOCKER: AIO REST base path is installation-specific — three known variants must be probed before hardcoding
+- Apple Developer ID certificate ($99/yr) may not yet be acquired — blocks macOS notarization (carried from v1.7)
+- Windows code signing decision needed — Azure Trusted Signing vs OV/EV cert (carried from v1.7)
 
 ### Quick Tasks Completed
 
@@ -65,4 +87,4 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-05-11 - Completed quick task 260511-epfmqx: fetch closed jira task by id in search
+Last activity: 2026-05-12 — Roadmap created for v1.8 (Phases 51-54). Ready to plan Phase 51.
