@@ -104,6 +104,8 @@ const mockSettingsStore = {
   epicNameFieldKey: 'customfield_10015',
   sprintFieldKey: 'customfield_10020',
   accountFieldKey: null,
+  aioEnabled: false,
+  setAioEnabled: vi.fn(),
   updateCheckInterval: 6,
   setUpdateCheckInterval: vi.fn(),
   lastChecked: null,
@@ -168,12 +170,12 @@ describe('Settings sidebar nav', () => {
     vi.clearAllMocks();
   });
 
-  it('renders 7 sidebar nav buttons', () => {
+  it('renders 8 sidebar nav buttons', () => {
     renderWithQuery(<Settings />);
     const navButtons = screen.getAllByRole('button', {
-      name: /Connections|Appearance|Sidebar|Notifications|Workflow|Updates|Advanced/i,
+      name: /Connections|Appearance|Sidebar|Notifications|Workflow|Integrations|Updates|Advanced/i,
     });
-    expect(navButtons.length).toBe(7);
+    expect(navButtons.length).toBe(8);
   });
 
   it('renders sidebar buttons with correct labels', () => {
