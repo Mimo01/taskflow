@@ -181,7 +181,22 @@ Cross-cutting constraints:
   2. When AIO is disabled, no AIO API calls are made anywhere in the app
   3. The live AIO instance responds to authenticated requests (auth scheme and base path confirmed, findings recorded as Key Decisions)
   4. All AIO service functions have passing unit tests covering happy path, 401, 404, and empty-list responses
-**Plans**: TBD
+**Plans:** 3 plans
+
+Plans:
+
+**Wave 1** *(manual — developer runs curl probe)*
+- [ ] 51-01-PLAN.md — Curl probe against live AIO instance; record findings as Key Decisions D-13–D-17 in CONTEXT.md
+
+**Wave 2** *(blocked on Wave 1 probe completion)*
+- [ ] 51-02-PLAN.md — settings.store.ts v14→v15 migration (aioEnabled), IntegrationsSection.tsx, Settings.tsx wiring, all tests
+- [ ] 51-03-PLAN.md — src/services/aio/ module: client.ts, types.ts, projects.ts, issue-runs.ts, index.ts + 14 unit tests
+
+Cross-cutting constraints:
+- AIO_API_PATH in client.ts MUST be set from probe findings (D-13) before any other service code is written (Plans 01 → 03 hard dependency)
+- Plan 02 (settings store/UI) can proceed in parallel with Plan 03 (service module) once Plan 01 is done
+- client.ts must NOT be exported from index.ts barrel (anti-pattern — matches jira/ precedent)
+- Settings store persist version must be bumped to 15 in both the persist options object AND the migrate callback guard
 **UI hint**: yes
 
 ### Phase 52: AIO Navigation + Project Pages
@@ -235,7 +250,7 @@ Cross-cutting constraints:
 | 48. Restore Backlog Progressive Loading | v1.7 | 3/3 | Complete | 2026-04-04 |
 | 49. Fix Backlog Query Key Wiring & Doc Debt | v1.7 | 2/2 | Complete | 2026-04-04 |
 | 50. Draggable Sidebar Resize | next | 4/4 | Complete | 2026-05-10 |
-| 51. AIO Service Layer | v1.8 | 0/? | Not started | - |
+| 51. AIO Service Layer | v1.8 | 0/3 | Not started | - |
 | 52. AIO Navigation + Project Pages | v1.8 | 0/? | Not started | - |
 | 53. Cycle Detail + Header Pinning | v1.8 | 0/? | Not started | - |
 | 54. AIO on Issue Detail | v1.8 | 0/? | Not started | - |
