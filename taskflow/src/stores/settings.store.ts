@@ -239,7 +239,7 @@ export const useSettingsStore = create<SettingsState>()(
         set((state) => {
           const arr = [...state.quickFilters];
           const idx = arr.findIndex((q) => q.id === id);
-          if (idx === -1) return state;
+          if (idx === -1) return {};
           const [item] = arr.splice(idx, 1);
           switch (to) {
             case 'front':
