@@ -10,6 +10,7 @@
 - ✅ **v1.5 Dashboard Redesign & Feature Parity** — Phases 31-37 (shipped 2026-03-24)
 - ✅ **v1.6.3 Release & Auto-Update Pipeline** — Phases 38-41 (shipped 2026-03-29)
 - ✅ **v1.7 Performance & Perceived Speed** — Phases 42-49 (shipped 2026-04-05)
+- 🚧 **v1.8 AIO Test Management** — Phases 51-54 (in progress)
 
 ## Phases
 
@@ -127,6 +128,9 @@ See archive: `.planning/milestones/v1.7-ROADMAP.md`
 
 </details>
 
+<details>
+<summary>✅ Phase 50: Draggable Sidebar Resize — SHIPPED 2026-05-10</summary>
+
 ### Phase 50: Draggable Sidebar Resize
 **Goal**: All pages that feature a sidebar allow users to drag the divider with the cursor to resize the sidebar width, with the preference persisted across sessions
 **Depends on**: Phase 49
@@ -155,6 +159,68 @@ Cross-cutting constraints:
 - `document.documentElement.style.cursor` set on drag start, cleared on mouseup (Plans 02, 03)
 - Width applied via `style={{ width }}` inline style — never Tailwind width classes (Plans 02, 03)
 
+</details>
+
+### 🚧 v1.8 AIO Test Management (In Progress)
+
+**Milestone Goal:** Integrate AIO Test Management into Taskflow — give the team visibility into test project health, cycle execution, and defects without leaving the app.
+
+- [ ] **Phase 51: AIO Service Layer** - Live instance probe, `src/services/aio/` module, `aioEnabled` settings toggle, AIO project ID resolution
+- [ ] **Phase 52: AIO Navigation + Project Pages** - Sidebar section, routing shell, project list page, project overview page
+- [ ] **Phase 53: Cycle Detail + Header Pinning** - Full-page cycle detail (progress bar, test run table, defects), pin/unpin to header tab strip with persistence
+- [ ] **Phase 54: AIO on Issue Detail** - Lazy-loaded test runs section on issue detail, step table with colored markers, authenticated attachment lightbox
+
+## Phase Details
+
+### Phase 51: AIO Service Layer
+**Goal**: The AIO integration foundation is verified against the live instance and fully tested — auth scheme confirmed, API base path resolved, service module built, and `aioEnabled` toggle in Settings
+**Depends on**: Phase 50
+**Requirements**: AION-05
+**Success Criteria** (what must be TRUE):
+  1. User can toggle AIO integration on/off from Settings and the preference persists across restarts
+  2. When AIO is disabled, no AIO API calls are made anywhere in the app
+  3. The live AIO instance responds to authenticated requests (auth scheme and base path confirmed, findings recorded as Key Decisions)
+  4. All AIO service functions have passing unit tests covering happy path, 401, 404, and empty-list responses
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 52: AIO Navigation + Project Pages
+**Goal**: Users can navigate to AIO Test Management from the sidebar and browse all test projects and their cycle lists
+**Depends on**: Phase 51
+**Requirements**: AION-01, AION-02, AION-03
+**Success Criteria** (what must be TRUE):
+  1. A "Testing" section appears in the sidebar (visible only when `aioEnabled` is true) and navigates to the AIO projects page
+  2. The AIO projects page lists all test projects with name and summary stats, with loading skeleton and empty/error states
+  3. Clicking a project opens a project overview page listing all cycles with per-cycle summary stats (pass/fail counts, run date)
+  4. All three pages are lazy-loaded route chunks and follow the existing skeleton + error recovery pattern
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 53: Cycle Detail + Header Pinning
+**Goal**: Users can view the full cycle detail page and pin test cycles to the header tab strip for quick access
+**Depends on**: Phase 52
+**Requirements**: AION-04, AIOC-01, AIOC-02, AIOC-03, AIOP-01, AIOP-02, AIOP-03
+**Success Criteria** (what must be TRUE):
+  1. The cycle detail page shows an execution progress bar with pass/fail/blocked/not-run counts and percentages
+  2. The cycle detail page lists all test runs for the cycle (test case name, status, last run date) with status filter chips
+  3. The cycle detail page shows all defects linked from failed runs as clickable links that navigate to the Jira issue detail page
+  4. User can pin a test cycle from the cycle detail page and it appears as a tab in the header tab strip
+  5. Pinned cycle tabs persist across app restarts and can be unpinned from the header
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 54: AIO on Issue Detail
+**Goal**: Issue detail pages surface AIO test run data inline — step table with failure markers and attachment images openable in the existing lightbox
+**Depends on**: Phase 51
+**Requirements**: AIOI-01, AIOI-02, AIOI-03
+**Success Criteria** (what must be TRUE):
+  1. An AIO test runs section appears on the issue detail page only when `aioEnabled` is true, and loads lazily without blocking the main issue data
+  2. The AIO section renders a step table with step / expected / actual columns and colored failure markers per row
+  3. When the issue has no associated AIO test runs, the section is hidden (not an error state)
+  4. Attachment images within test run steps are fetched via the authenticated HTTP client and open in the existing in-app lightbox
+**Plans**: TBD
+**UI hint**: yes
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -169,3 +235,7 @@ Cross-cutting constraints:
 | 48. Restore Backlog Progressive Loading | v1.7 | 3/3 | Complete | 2026-04-04 |
 | 49. Fix Backlog Query Key Wiring & Doc Debt | v1.7 | 2/2 | Complete | 2026-04-04 |
 | 50. Draggable Sidebar Resize | next | 4/4 | Complete | 2026-05-10 |
+| 51. AIO Service Layer | v1.8 | 0/? | Not started | - |
+| 52. AIO Navigation + Project Pages | v1.8 | 0/? | Not started | - |
+| 53. Cycle Detail + Header Pinning | v1.8 | 0/? | Not started | - |
+| 54. AIO on Issue Detail | v1.8 | 0/? | Not started | - |

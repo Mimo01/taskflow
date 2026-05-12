@@ -62,26 +62,26 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AION-01 | — | Pending |
-| AION-02 | — | Pending |
-| AION-03 | — | Pending |
-| AION-04 | — | Pending |
-| AION-05 | — | Pending |
-| AIOC-01 | — | Pending |
-| AIOC-02 | — | Pending |
-| AIOC-03 | — | Pending |
-| AIOP-01 | — | Pending |
-| AIOP-02 | — | Pending |
-| AIOP-03 | — | Pending |
-| AIOI-01 | — | Pending |
-| AIOI-02 | — | Pending |
-| AIOI-03 | — | Pending |
+| AION-01 | Phase 52 | Pending |
+| AION-02 | Phase 52 | Pending |
+| AION-03 | Phase 52 | Pending |
+| AION-04 | Phase 53 | Pending |
+| AION-05 | Phase 51 | Pending |
+| AIOC-01 | Phase 53 | Pending |
+| AIOC-02 | Phase 53 | Pending |
+| AIOC-03 | Phase 53 | Pending |
+| AIOP-01 | Phase 53 | Pending |
+| AIOP-02 | Phase 53 | Pending |
+| AIOP-03 | Phase 53 | Pending |
+| AIOI-01 | Phase 54 | Pending |
+| AIOI-02 | Phase 54 | Pending |
+| AIOI-03 | Phase 54 | Pending |
 
 **Coverage:**
 - v1.8 requirements: 14 total
-- Mapped to phases: 0
-- Unmapped: 14 ⚠️
+- Mapped to phases: 14
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-05-12*
-*Last updated: 2026-05-12 after initial definition*
+*Last updated: 2026-05-12 — traceability populated after roadmap creation (Phases 51-54)*
