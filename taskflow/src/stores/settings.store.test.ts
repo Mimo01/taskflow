@@ -259,3 +259,28 @@ describe('settings.store — resize panel widths (Phase 50)', () => {
     expect(useSettingsStore.getState().releaseDetailPanelWidth).toBe(300);
   });
 });
+
+describe('settings.store — aioEnabled toggle (Phase 51)', () => {
+  beforeEach(() => {
+    act(() => {
+      useSettingsStore.setState({
+        aioEnabled: false,
+      } as any);
+    });
+  });
+
+  it('aioEnabled defaults to false', () => {
+    expect(useSettingsStore.getState().aioEnabled).toBe(false);
+  });
+
+  it('setAioEnabled(true) updates store', () => {
+    act(() => useSettingsStore.getState().setAioEnabled(true));
+    expect(useSettingsStore.getState().aioEnabled).toBe(true);
+  });
+
+  it('setAioEnabled(false) updates store', () => {
+    act(() => useSettingsStore.getState().setAioEnabled(true));
+    act(() => useSettingsStore.getState().setAioEnabled(false));
+    expect(useSettingsStore.getState().aioEnabled).toBe(false);
+  });
+});

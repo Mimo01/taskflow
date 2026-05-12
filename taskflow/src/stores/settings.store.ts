@@ -112,6 +112,9 @@ interface SettingsState {
   /** Release detail right panel width in px. Default: 288 (w-72). */
   releaseDetailPanelWidth: number;
   setReleaseDetailPanelWidth: (w: number) => void;
+  /** Enable AIO Test Management integration. Default: false. Gates all AIO API calls. */
+  aioEnabled: boolean;
+  setAioEnabled: (v: boolean) => void;
   /** Saved quickfilter presets. Default: []. */
   quickFilters: QuickFilter[];
   addQuickFilter: (qf: QuickFilter) => void;
@@ -222,6 +225,8 @@ export const useSettingsStore = create<SettingsState>()(
       setMrDetailPanelWidth: (w) => set({ mrDetailPanelWidth: w }),
       releaseDetailPanelWidth: 288,
       setReleaseDetailPanelWidth: (w) => set({ releaseDetailPanelWidth: w }),
+      aioEnabled: false,
+      setAioEnabled: (v) => set({ aioEnabled: v }),
       quickFilters: [],
       addQuickFilter: (qf) => set((state) => ({ quickFilters: [...state.quickFilters, qf] })),
       removeQuickFilter: (id) =>
@@ -352,7 +357,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 14,
+      version: 15,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -419,6 +424,9 @@ export const useSettingsStore = create<SettingsState>()(
           if (s.issueDetailPanelWidth === undefined) s.issueDetailPanelWidth = null;
           if (s.mrDetailPanelWidth === undefined) s.mrDetailPanelWidth = 288;
           if (s.releaseDetailPanelWidth === undefined) s.releaseDetailPanelWidth = 288;
+        }
+        if (version < 15) {
+          if (s.aioEnabled === undefined) s.aioEnabled = false;
         }
         return persisted as SettingsState;
       },
