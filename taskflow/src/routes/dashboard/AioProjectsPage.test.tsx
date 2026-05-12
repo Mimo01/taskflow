@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -44,7 +44,10 @@ describe('AioProjectsPage', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    expect(true).toBe(false);
+    await waitFor(() => {
+      expect(screen.getByText('Project Alpha')).toBeDefined();
+      expect(screen.getByText('PROJ')).toBeDefined();
+    });
   });
 
   it('AION-02: shows EmptyState when fetchAioProjects returns empty array', async () => {
@@ -60,7 +63,9 @@ describe('AioProjectsPage', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    expect(true).toBe(false);
+    await waitFor(() => {
+      expect(screen.getByText('No test projects found')).toBeDefined();
+    });
   });
 
   it('AION-02: shows ErrorState when fetchAioProjects rejects', async () => {
@@ -76,6 +81,8 @@ describe('AioProjectsPage', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    expect(true).toBe(false);
+    await waitFor(() => {
+      expect(screen.getByText("Couldn't load AIO projects")).toBeDefined();
+    });
   });
 });
