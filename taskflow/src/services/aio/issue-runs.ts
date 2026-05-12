@@ -33,24 +33,36 @@ export async function fetchAioTestRunsForCycle(
   projectKey: string,
   cycleKey: string,
 ): Promise<AioTestRun[]> {
-  const path = `/project/${encodeURIComponent(projectKey)}/testcycle/${encodeURIComponent(cycleKey)}/testrun`;
-  let response: Response;
-  try {
-    response = await aioFetch(baseUrl, token, path);
-  } catch {
-    throw new Error(`Cannot reach AIO at ${baseUrl}`);
+  const basePath = `/project/${encodeURIComponent(projectKey)}/testcycle/${encodeURIComponent(cycleKey)}/testrun`;
+  const allRuns: AioTestRun[] = [];
+  let startAt = 0;
+
+  for (;;) {
+    const path = `${basePath}?startAt=${startAt}`;
+    let response: Response;
+    try {
+      response = await aioFetch(baseUrl, token, path);
+    } catch {
+      throw new Error(`Cannot reach AIO at ${baseUrl}`);
+    }
+    if (response.ok) {
+      const data = (await response.json()) as AioPage<AioTestRun> | AioTestRun[];
+      // Guard: D-17 confirms AioPage wrapper for aio-tcms-api/1.0 endpoints,
+      // but guard for direct array in case of API variation.
+      if (Array.isArray(data)) {
+        return data; // Direct array — no pagination
+      }
+      allRuns.push(...(data.items ?? []));
+      if (data.isLast) return allRuns;
+      startAt += data.maxResults;
+      continue;
+    }
+    if (response.status === 401) {
+      throw new ApiError('Invalid token or token has expired', 401, 'jira');
+    }
+    if (response.status === 404) {
+      return []; // cycle not found or no runs
+    }
+    throw new Error(`AIO request failed with status ${response.status}`);
   }
-  if (response.ok) {
-    const data = (await response.json()) as AioPage<AioTestRun> | AioTestRun[];
-    // Guard: D-17 confirms AioPage wrapper for aio-tcms-api/1.0 endpoints,
-    // but guard for direct array in case of API variation.
-    return Array.isArray(data) ? data : (data.items ?? []);
-  }
-  if (response.status === 401) {
-    throw new ApiError('Invalid token or token has expired', 401, 'jira');
-  }
-  if (response.status === 404) {
-    return []; // cycle not found or no runs
-  }
-  throw new Error(`AIO request failed with status ${response.status}`);
 }
