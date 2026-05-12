@@ -165,7 +165,7 @@ Cross-cutting constraints:
 
 **Milestone Goal:** Integrate AIO Test Management into Taskflow — give the team visibility into test project health, cycle execution, and defects without leaving the app.
 
-- [ ] **Phase 51: AIO Service Layer** - Live instance probe, `src/services/aio/` module, `aioEnabled` settings toggle, AIO project ID resolution
+- [x] **Phase 51: AIO Service Layer** - Live instance probe, `src/services/aio/` module, `aioEnabled` settings toggle, AIO project ID resolution — completed 2026-05-12
 - [ ] **Phase 52: AIO Navigation + Project Pages** - Sidebar section, routing shell, project list page, project overview page
 - [ ] **Phase 53: Cycle Detail + Header Pinning** - Full-page cycle detail (progress bar, test run table, defects), pin/unpin to header tab strip with persistence
 - [ ] **Phase 54: AIO on Issue Detail** - Lazy-loaded test runs section on issue detail, step table with colored markers, authenticated attachment lightbox
@@ -190,7 +190,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 probe completion)*
 - [x] 51-02-PLAN.md — settings.store.ts v14→v15 migration (aioEnabled), IntegrationsSection.tsx, Settings.tsx wiring, all tests
-- [ ] 51-03-PLAN.md — src/services/aio/ module: client.ts, types.ts, projects.ts, issue-runs.ts, index.ts + 14 unit tests
+- [x] 51-03-PLAN.md — src/services/aio/ module: client.ts, types.ts, projects.ts, issue-runs.ts, index.ts + 14 unit tests
 
 Cross-cutting constraints:
 - AIO_API_PATH in client.ts MUST be set from probe findings (D-13) before any other service code is written (Plans 01 → 03 hard dependency)
@@ -250,7 +250,7 @@ Cross-cutting constraints:
 | 48. Restore Backlog Progressive Loading | v1.7 | 3/3 | Complete | 2026-04-04 |
 | 49. Fix Backlog Query Key Wiring & Doc Debt | v1.7 | 2/2 | Complete | 2026-04-04 |
 | 50. Draggable Sidebar Resize | next | 4/4 | Complete | 2026-05-10 |
-| 51. AIO Service Layer | v1.8 | 2/3 | In progress | - |
+| 51. AIO Service Layer | v1.8 | 3/3 | Complete | 2026-05-12 |
 | 52. AIO Navigation + Project Pages | v1.8 | 0/? | Not started | - |
 | 53. Cycle Detail + Header Pinning | v1.8 | 0/? | Not started | - |
 | 54. AIO on Issue Detail | v1.8 | 0/? | Not started | - |
