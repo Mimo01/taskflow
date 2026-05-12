@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: AIO Test Management
 status: planning
-stopped_at: "Phase 52 context gathered"
-last_updated: "2026-05-12T00:00:00.000Z"
+stopped_at: "Phase 52 planned — ready to execute"
+last_updated: "2026-05-13T00:00:00.000Z"
 last_activity: 2026-05-13
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 3
+  total_plans: 8
   completed_plans: 3
 ---
 
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 ## Current Position
 
 Phase: 52 of 54 (AIO Navigation + Project Pages)
-Plan: — of ? in current phase
-Status: Ready to plan
-Last activity: 2026-05-12 — Phase 51 complete (3/3 plans, verified + approved)
+Plan: — of 5 in current phase
+Status: Ready to execute
+Last activity: 2026-05-13 — Phase 52 planned (5 plans, 3 waves — verified)
 
 Progress: [██░░░░░░░░] 20%
 
@@ -89,4 +89,4 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-05-12 — Phase 51 complete. Probe findings recorded (D-13–D-17, two base paths confirmed). aioEnabled toggle (v14→v15 migration). src/services/aio/ module with pagination loop fix. 929/930 tests pass (1 pre-existing UpdateDialog failure).
+Last activity: 2026-05-13 — Phase 52 planned (5 plans, 3 waves). Wave 0: test stubs (cycles, AioProjectsPage, AioProjectOverviewPage, Sidebar). Wave 1: cycles.ts service + navigation infrastructure (sidebar-items, Sidebar aioEnabled gate, settings.store v16, routes). Wave 2: AioProjectsPage + AioProjectOverviewPage + skeletons. All plans verified (12 dimensions pass).

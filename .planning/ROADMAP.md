@@ -265,6 +265,6 @@ Plans:
 | 49. Fix Backlog Query Key Wiring & Doc Debt | v1.7 | 2/2 | Complete | 2026-04-04 |
 | 50. Draggable Sidebar Resize | next | 4/4 | Complete | 2026-05-10 |
 | 51. AIO Service Layer | v1.8 | 3/3 | Complete | 2026-05-12 |
-| 52. AIO Navigation + Project Pages | v1.8 | 0/? | Not started | - |
+| 52. AIO Navigation + Project Pages | v1.8 | 0/5 | Planned | - |
 | 53. Cycle Detail + Header Pinning | v1.8 | 0/? | Not started | - |
 | 54. AIO on Issue Detail | v1.8 | 0/? | Not started | - |
