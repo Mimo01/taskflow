@@ -1,398 +1,186 @@
-# Pitfalls Research
+# Pitfalls Research: AIO TCMS Integration
 
-**Domain:** Performance & perceived speed optimizations — adding to an existing Tauri 2 + React 18 + TanStack Query desktop app
-**Researched:** 2026-03-29
-**Confidence:** HIGH (verified against official React docs, TanStack Query docs, community post-mortems, and codebase inspection of ~51K line existing codebase)
+**Project:** Taskflow v1.8 — AIO Test Management
+**Context:** Adding AIO to an existing Tauri 2 + Jira DC on-premise app that uses Bearer PAT auth, tauri-plugin-http, TanStack Query, and jira2md.
+**Researched:** 2026-05-12
+**Confidence:** MEDIUM — AIO's own API docs are not publicly indexed and could not be fetched during this research session. Findings are derived from: (a) AIO TCMS architecture as a Jira plugin served from a Jira servlet, (b) Jira Data Center plugin authentication patterns, (c) direct codebase inspection of existing integration patterns in this repo, and (d) known behavior of jira2md with complex wiki-markup constructs. All AIO-specific claims must be verified against the running instance before committing to an implementation approach.
+
+---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Premature or Blanket Memoization Slows the App Down
-
-**What goes wrong:**
-`React.memo`, `useMemo`, and `useCallback` are applied to every component and value "just in case," treating memoization as a free optimization. This increases memory pressure, inflates the cost of every render (React must now compare dependencies in addition to rendering), and creates identity-reference traps where stable references prevent cache hits in TanStack Query.
-
-The project already has targeted `useMemo` in `SprintBoardTab`, `BacklogPage`, `WorkloadTab`, `ReleasesTab`, and others. The risk is that an audit phase wraps everything indiscriminately, including components that render trivially (icon wrappers, badge chips, simple text cells) where comparison overhead exceeds render cost.
-
-**Why it happens:**
-"Memoization audit" sounds like a task with clear deliverables — wrap a list of components. The audit stops being an audit and becomes a wrap-all-the-things session. No profiling is done first.
-
-**How to avoid:**
-1. Profile before touching anything. Use React DevTools Profiler to identify components with >1ms render time that re-render unnecessarily. Only those are candidates.
-2. Apply the three-question test before each `React.memo`: (a) Does this component re-render frequently from its parent? (b) Does the same parent pass the same props between renders? (c) Is the render cost measurable? All three must be YES.
-3. `useCallback` on event handlers is only useful when the function is passed to a memoized child. `useCallback` alone does not reduce re-renders.
-4. Never wrap leaf/presentational components (badge, icon, label). Always wrap heavy list rows first: `TaskCard`, `DraggableCard`, `TaskRow`, `StoryHeaderRow`.
-5. Use `useMemo` exclusively for expensive derivations: swimlane grouping in `SprintBoardTab`, filter intersection logic with `savedFilterIssueKeys` as `Set<string>`, workload aggregation in `WorkloadTab`.
-
-**Warning signs:**
-- `useMemo` wrapping a single property access or string concatenation.
-- `React.memo` on a component that receives new object/array props from an un-memoized parent (reference instability negates memo).
-- `useCallback` on a function not passed to any child.
-- Test suite performance gets significantly worse (memoized components require more setup to test render behavior).
-
-**Phase to address:**
-Memoization audit phase — must begin with a profiling session; the profiling results drive the work list, not a component inventory.
+| Pitfall | Risk | Prevention | Phase |
+|---------|------|------------|-------|
+| **AIO servlet auth may not accept Bearer PAT** | All AIO requests return 401/302 if the plugin requires Jira session cookies rather than the PAT header | Probe a known AIO endpoint with `Authorization: Bearer <PAT>` via the Tauri dev tools request log before writing any AIO service module. If 401 or redirect, the entire auth model for AIO calls differs from the Jira layer — a significant architecture change. | Phase 1 (service setup) |
+| **AIO REST base path varies by plugin version** | Hardcoding `/rest/aio-tcms/1.0/` breaks on installations using a different servlet path | Probe the actual AIO base path at onboarding. Known variants: `/rest/aio-tcms/1.0/` (current), `/rest/atm/1.0/` (older pre-rebrand installs), `/rest/aio-tcms-api/1.0/` (some enterprise installs). Never hardcode without verifying against the live instance. | Phase 1 |
+| **`apiFetch` source union only accepts `'jira' \| 'gitlab'`** | TypeScript compiler error when calling `apiFetch` with a new source string | Add `'aio'` to the source union OR route AIO calls under `source: 'jira'`. The simpler path is `'jira'` — AIO is a plugin on the same Jira server, shares the same base URL and auth, and a 401 from AIO correctly means the Jira PAT has failed. Adding a third source value proliferates into `ApiError`, `markDisconnected`, and all components that check connection state. | Phase 1 |
+| **AIO project ID is not the Jira project key** | Using the Jira project key (e.g. `"PROJ"`) directly in AIO API calls returns 404 | AIO has its own internal project identifier (numeric or GUID). Every AIO API call taking a project ID needs a prior call to the AIO project list endpoint to resolve the AIO project ID from the Jira project key. Cache this mapping at session start, not per-component. | Phase 2 (project/cycle list) |
+| **AIO attachment URLs are not plain Jira attachment URLs** | The existing `AuthImage` and lightbox components assume a plain Jira attachment URL shape; AIO step attachments may use a parameterized bridge URL or a separate AIO servlet path | Capture a real AIO step attachment URL from the live instance before building any attachment pipeline. Parse the URL structure first. Do not assume it matches `JiraAttachment.content`. | Phase 3 (test run table) |
+| **jira2md breaks on AIO step table markup** | AIO step fields contain wiki markup constructs that `jira2md` does not handle: pipes inside table cells, `{color}` spans, `\\` line breaks within cells, nested `{panel}` blocks | Do not pipe AIO step text through the same `jira2md` → `react-markdown` pipeline used for Jira descriptions without a targeted sanitize pass first. Build and test the sanitize layer in isolation before wiring it to the UI. | Phase 3 |
+| **TanStack Query cache invalidation hits AIO data** | If AIO queries use `[jiraBaseUrl, ...]` as their key prefix, a broad `invalidateQueries({ queryKey: [jiraBaseUrl] })` call (e.g. from a Jira write mutation) also invalidates AIO caches and triggers unnecessary AIO refetches | Prefix all AIO query keys with a distinct first segment: `['aio', jiraBaseUrl, 'projects']` vs `['jira', jiraBaseUrl, 'sprint']`. Audit all existing `invalidateQueries` call sites before adding AIO queries. | Phase 1 (query key design) |
+| **AIO calls not covered by the p-limit concurrency guard** | AIO calls go to the same on-premise Jira DC server and compete for the same connection pool. `getJiraLimit()` only wraps calls made inside `fetchAllSearchPages`. Direct `apiFetch` calls in AIO service functions bypass the semaphore. | Wrap all AIO `apiFetch` calls with `await getJiraLimit()(() => apiFetch(...))` — same pattern as `fetchAllSearchPages` in `client.ts`. | Phase 2+ (all service functions) |
 
 ---
 
-### Pitfall 2: Skeleton Screen Flicker on Fast Jira Responses
+## AIO API Specifics to Verify Early
 
-**What goes wrong:**
-Skeleton screens are shown for every `isLoading` state. On fast connections or cached queries (stale-while-revalidate hits cache), the Jira response returns in under 100ms. The skeleton flashes on screen for one frame and immediately disappears. This is perceptually worse than a spinner or no loading state — it creates visual noise and feels broken.
+Verify all of these against the live AIO instance in Phase 1 before writing any service module. These are unknowns that cannot be resolved from documentation alone.
 
-The project's `staleTime: 5 * 60 * 1000` default means most navigations will serve cached data. Showing a skeleton for cached data that resolves instantly produces constant visual flicker as users navigate between tabs.
+### 1. Authentication scheme
 
-**Why it happens:**
-Skeleton implementations show on `isLoading` (no cache) but also on `isFetching` (background refetch) without distinguishing them. Or `isLoading` is used correctly but there is no minimum display time — the skeleton flashes for 16ms when cache is warm.
+AIO Test Management is a Jira Server/DC plugin served from a Jira servlet. Jira DC's authentication middleware runs before the servlet, so in many installations a valid Bearer PAT grants access to plugin servlet routes the same way it grants access to `/rest/api/2/`. However, some AIO installations (especially older versions or those with custom security configurations) require an active Jira session cookie (`JSESSIONID`) rather than Bearer auth.
 
-**How to avoid:**
-1. Distinguish `isLoading` (no cached data) from `isFetching` (background revalidation). Show skeletons only on `isLoading`. During `isFetching`, show the stale data with a subtle `StaleDataBanner` — the project already has this component.
-2. For routes where stale-while-revalidate is the normal case (dashboard, sprint board, my tasks), do NOT show a skeleton on mount — show cached data immediately, refetch in background silently.
-3. Implement a 100-200ms delay before showing any skeleton (via `useState` + `useEffect` with cleanup). If data arrives before the delay, skip the skeleton entirely.
-4. Skeleton layout must match the real content dimensions precisely. If it does not, content reflow after skeleton removal is jarring — worse than the original spinner.
+**Verification procedure:** Use the dev tools request log to fire a raw request to `<jiraBaseUrl>/rest/aio-tcms/1.0/project` with `Authorization: Bearer <PAT>`. If it returns 200, PAT works. If it returns 401 or 302, session cookies are required.
 
-**Warning signs:**
-- Skeleton renders for fewer than 3 animation frames before content appears.
-- Users describe "flickering" after the optimization is applied.
-- Skeletons display during background refetch polling even when stale data is shown.
-- Layout shift (CLS) occurs when skeleton is replaced by content with different dimensions.
+Cookie-based auth is a significant architecture change: Tauri's `tauri-plugin-http` does not maintain a cookie jar across requests by default. If cookies are required, either (a) configure the HTTP client to persist cookies, or (b) authenticate via the Jira login endpoint first and extract the session cookie manually. Neither approach is currently used anywhere in the codebase.
 
-**Phase to address:**
-Skeleton screens phase — skeleton delay pattern must be established as a reusable hook (`useDelayedLoading`) before implementing skeletons across 20+ views.
+**Confidence: MEDIUM** — derived from Jira DC auth architecture, not from AIO-specific documentation.
 
----
+### 2. REST API base path
 
-### Pitfall 3: Cache Invalidation Desync After Mutations Breaks Optimistic State
+Probe which base path the live instance responds to:
+- `GET <jiraBaseUrl>/rest/aio-tcms/1.0/project` — current versions (3.x+)
+- `GET <jiraBaseUrl>/rest/atm/1.0/project` — older installs (2.x, pre-rebrand)
+- `GET <jiraBaseUrl>/rest/aio-tcms-api/1.0/project` — seen in some enterprise installs
 
-**What goes wrong:**
-TanStack Query's `invalidateQueries` is called after a mutation but with a key that does not match the actual cached key. The cache is not invalidated. Users see stale data. Or: `invalidateQueries` is called with a partial key that is too broad, invalidating unrelated queries and triggering network waterfalls.
+Use the first successful response to determine which base path to use. Make the base path configurable (stored in settings or derived from a discovery endpoint) rather than hardcoded.
 
-The existing sprint board uses optimistic updates (`setQueryData`) for drag-to-transition. Adding stale-while-revalidate tuning changes `staleTime` values. If `staleTime` increases for the sprint query and the optimistic update sets data that extends its own freshness window, the mutation's invalidation call finds the data "fresh" and skips the background refetch — leaving the UI showing the optimistic state as if it were confirmed, even if it was rolled back.
+### 3. Pagination envelope shape
 
-**Why it happens:**
-`setQueryData` for optimistic updates uses the exact query key. `invalidateQueries` often uses a partial key or string prefix. When query keys include dynamic parameters (e.g., `['sprint-board', projectKey, boardId, jiraBaseUrl]`), a broad invalidation call (`invalidateQueries({ queryKey: ['sprint-board'] })`) hits all sprint queries. Developers who correctly tune `staleTime` upward forget that doing so can suppress the re-fetch that would confirm or roll back an optimistic update.
+Standard Jira REST returns `{ issues: [...], total: N, startAt: N, maxResults: N }`. AIO endpoints may return different shapes:
+- A bare array `[...]` — common for small resource lists (projects, cycles)
+- A Jira-style envelope — more common for test case and execution result lists
+- A custom envelope `{ testCases: [...], total: N }` or `{ executions: [...], size: N }`
 
-**How to avoid:**
-1. Use exact query keys for invalidation on mutation success/rollback. `queryClient.invalidateQueries({ queryKey: EXACT_KEY, exact: true })` rather than prefix matching.
-2. After a status transition mutation (optimistic update), always call `invalidateQueries` with `refetchType: 'active'` to force an immediate background refetch regardless of `staleTime`.
-3. Never increase `staleTime` for queries that are targets of optimistic mutations without auditing the mutation's rollback path.
-4. The project's existing status transition rollback (`onError: () => queryClient.setQueryData(...)`) must be tested after any `staleTime` change to the sprint board query.
+Do not assume `fetchAllSearchPages` can be reused for AIO without inspecting real AIO response payloads. If the envelope shape differs, write a separate AIO pagination helper that handles the AIO-specific shape rather than adapting `fetchAllSearchPages` (which is tightly coupled to Jira search response fields).
 
-**Warning signs:**
-- Board card shows a status it was moved FROM after returning to the sprint board tab.
-- `invalidateQueries` calls in mutation handlers that use plain string prefixes rather than full query key arrays.
-- Test suite passes because `staleTime: 0` in test `QueryClient` config — the bug only appears at production `staleTime` values.
+### 4. Test execution status vocabulary
 
-**Phase to address:**
-Stale-while-revalidate tuning phase and query parallelization phase — both touch staleTime and query key structures. Must verify mutation + rollback paths after any staleTime change.
+AIO test execution statuses are likely `PASS`, `FAIL`, `NOT_EXECUTED`, `BLOCKED`, `IN_PROGRESS` — but custom statuses can be added per installation. Do not hardcode status strings in conditional rendering logic. Treat execution status as an opaque string and drive display (color, icon, label) from a mapping object that is easy to extend.
+
+### 5. Dual access pattern: issue-linked vs cycle-linked
+
+The v1.8 requirements need test run data in two contexts:
+- On the Jira issue detail page: test executions linked to that issue key
+- On the cycle detail page: all test executions in a cycle
+
+Verify that both endpoint shapes exist and that they return compatible execution record schemas before defining a unified TypeScript type. If the schemas differ significantly, define separate types and normalize at the service layer rather than at the component layer.
+
+### 6. Burndown chart data (out of scope — confirm before re-scoping)
+
+PROJECT.md marks burndown charts as explicitly Out of Scope. AIO's browser UI renders burndown client-side from snapshot data embedded in the page, not from a REST time-series endpoint. If this feature is re-scoped in at any point, verify a burndown REST endpoint exists on the live instance before committing design work. Probing `/rest/aio-tcms/1.0/cycle/{id}/burndown` is the right first step.
 
 ---
 
-### Pitfall 4: Code Splitting Breaking createHashRouter Navigation
+## Wiki Markup Edge Cases
 
-**What goes wrong:**
-`React.lazy` + `Suspense` wrapping route components works in Vite dev mode but can fail in the Tauri production build. The portable executable serves assets from a bundled path. If a lazy-loaded chunk references an absolute asset path or if the Vite `base` config is wrong, the chunk fails to load in production with a 404 error in the Tauri webview's DevTools console — but the user sees a blank route with no error UI.
+AIO step description and expected-result fields contain Jira wiki markup. `jira2md` handles standard Jira wiki, but AIO step tables introduce several constructs that break the standard pipeline.
 
-The project uses `createHashRouter`, which prevents path-based asset resolution issues for the main bundle, but dynamically imported chunks use a resolved `publicPath` that must match the Tauri webview's asset serving path.
+**Pipes inside table cells**
 
-**Why it happens:**
-Vite's `build.assetsDir` and `base` config defaults work for browser deployments. Tauri 2's webview serves the frontend from a custom protocol (`tauri://localhost`). The `publicPath` for dynamic imports is resolved at build time. A mismatch produces silent 404s for chunks, especially on Windows where the asset protocol path differs from macOS/Linux.
+AIO uses standard Jira wiki table syntax: `||Step||Expected Result||Actual Result||` for headers and `|step content|expected content|actual content|` for rows. A pipe character inside a cell value (e.g. "Click Save | Cancel") is misread as a column separator. `jira2md` does not handle escaped pipes inside table cells. Prevention: replace or escape unquoted bare pipes within cell content before passing to `jira2md`.
 
-**How to avoid:**
-1. Before adding any `React.lazy` imports, verify the existing Vite config explicitly sets `base: './'` (relative asset paths). Tauri's official starter templates use `base: './'` — check `taskflow/vite.config.ts`.
-2. After adding the first lazy-loaded route, test the production build on all three platforms (`tauri build`) before proceeding. Do not add 15 lazy routes and then discover they all break.
-3. Add an `<ErrorBoundary>` around each `<Suspense>` boundary. Without it, a chunk load failure renders nothing — the user sees a blank route. With it, the error is catchable and `ErrorPage` can be shown.
-4. Test the portable executable directly (not `tauri dev`) after each code splitting change. `tauri dev` uses Vite's dev server which bypasses chunk loading via the Tauri asset protocol.
-5. The Vite build warning "Use of eval() is strongly discouraged" from some Tauri plugins can be safely ignored, but "Large initial bundle" warnings for lazy-loaded routes that didn't split indicate the `React.lazy` import is being eagerly resolved.
+**`{color:X}text{color}` spans**
 
-**Warning signs:**
-- Blank screen when navigating to a lazy-loaded route in the production build only.
-- DevTools console shows `Failed to fetch dynamically imported module` or 404 for a `.js` chunk.
-- `tauri dev` works fine but `tauri build` + run produces blank routes.
-- Suspense fallback never shows (Tauri webview network tab shows the chunk request never fires).
+AIO frequently uses color markup for pass/fail indicators: `{color:red}FAILED{color}`, `{color:green}PASSED{color}`. `jira2md` drops the `{color}` macro (it is not in CommonMark) and passes through the inner text unstyled. If colored markers carry semantic meaning in AIO step expected-result fields, extract them before the `jira2md` pass and render them as status badges, not inline text.
 
-**Phase to address:**
-Code splitting phase — verify Vite config and add error boundary wrappers before splitting any routes. Test production build after the first split before proceeding.
+**`\\` line breaks within table cells**
 
----
+AIO step text uses `\\` (double backslash) as a forced line break. `jira2md` converts `\\` to `\n`. A newline inside a Markdown table cell breaks the table parser — the row is split into two rows, producing broken HTML. Prevention: replace `\\` inside table cell content with a space or `<br/>` before the `jira2md` pass, depending on whether the rendering context allows inline HTML.
 
-### Pitfall 5: Two-Query Subtask Strategy Amplifies Under Query Parallelization
+**Nested `{panel}` blocks**
 
-**What goes wrong:**
-The sprint board's `fetchSprintIssues` already executes two sequential queries: (1) parent stories, then (2) parallel subtask chunk queries. If the query parallelization phase wraps this in a `useQueries` call alongside other concurrent queries (e.g., status lookup, board config, quick filters, active sprint), it creates a burst of 5-8 simultaneous Jira API requests on every sprint board mount. On-premise Jira DC handles this poorly — connection pool exhaustion causes 503 responses, and the subtask queries (which silently degrade to empty) cause disappearing cards.
+Test steps that contain long instructions may use `{panel}` macro blocks. `jira2md` converts `{panel}` to a Markdown blockquote. Nested panels collapse to a single blockquote, losing nesting. More critically, a step description that begins with `{panel}` causes the entire cell to render as an indented blockquote, which breaks the table alignment in the output HTML. Prevention: strip the outer `{panel}` wrapper before processing step text that lives inside a table cell.
 
-The Jira DC instance is on-premise with an unknown connection limit. The existing behavior triggers the two-query subtask strategy already. Parallelizing the outer queries that feed the board adds more simultaneous connections.
+**`{noformat}` code blocks spanning multiple lines inside cells**
 
-**Why it happens:**
-`useQueries` for parallelization is the correct pattern for independent queries (e.g., fetching multiple issues in parallel). But the sprint board queries are not fully independent — the subtask query depends on the parent query's results. Wrapping the outer queries in `useQueries` increases concurrency without addressing the inner sequential dependency.
+Steps that include command-line examples use `{noformat}`. `jira2md` converts `{noformat}` to triple-backtick code blocks. A multi-line `{noformat}` block inside a table cell produces a code block with embedded newlines — which, like the `\\` issue, breaks the table row. Prevention: collapse multi-line `{noformat}` content to a single line (replace inner newlines with spaces) when it appears inside a table cell.
 
-**How to avoid:**
-1. Map existing query dependencies before adding parallelization. The sprint board query chain is: `fetchActiveSprint` → `fetchSprintIssues` (parent) → `fetchSprintIssues` (subtasks). The first two are inherently sequential. Only queries with no data dependency can run in parallel.
-2. Parallelizable sprint board queries: `fetchProjectStatuses`, `fetchBoardQuickFilters`, `fetchActiveSprint`, and `fetchEpicsBasic`. These are independent and safe to run in parallel.
-3. Do NOT parallelize `fetchSprintIssues` itself — its two-query subtask strategy already parallelizes the subtask chunks internally.
-4. Add connection throttling for the subtask chunk queries: limit concurrent chunk requests to 3 (not all `SUBTASK_CHUNK_SIZE=50` chunks in parallel). The existing `Promise.all` on chunks is unbounded.
-5. Measure with the actual on-premise Jira DC instance. Simulate 40+ stories (40+ subtask chunk calls) in a staging environment before shipping.
+**Non-ASCII characters and HTML entity encoding**
 
-**Warning signs:**
-- Sprint board shows parent stories but no subtask cards intermittently.
-- Jira DC server logs show 503 responses during sprint board load.
-- The `fetchSprintIssues` second query silently catches all errors (returns `[]`) — failures here are invisible without DevTools open.
-- Network waterfall shows 8+ simultaneous Jira requests on sprint board mount.
-
-**Phase to address:**
-Query parallelization phase — explicitly map the sprint board query dependency graph before applying `useQueries`. Bound the subtask chunk concurrency.
+AIO step authors frequently use em dashes `—`, right arrows `→`, and Unicode checkmarks `✓`. Verify whether the AIO REST response returns raw Unicode or HTML-entity-encoded text. If the API returns HTML-encoded text (e.g. `&rarr;`) and `jira2md` processes it as wiki markup, the entities are passed through to `react-markdown` unescaped, which then double-renders them as literal `&rarr;` strings in the UI.
 
 ---
 
-### Pitfall 6: Over-Engineering the Polling Strategy Breaks the Test Suite
+## Architecture Risks
 
-**What goes wrong:**
-A "smart polling" implementation introduces new hooks (`useActiveViewPolling`, `useAdaptiveInterval`, `useVisibilityAwarePolling`) that read from Zustand stores, listen to router state, and modify TanStack Query's `refetchInterval` dynamically. These hooks are difficult to test in jsdom. Tests that previously mocked `refetchInterval: false` now need to also mock router location, visibility API, Zustand store state, and the `useActiveViewPolling` return value. The test suite breaks in bulk.
+**1. Routing: cycle detail as a sheet vs. a full-page route**
 
-The 665+ test suite already has fragile `staleTime: 0` overrides in `SprintBoardTab.test.tsx`, `SprintProgressTab.test.tsx`, `SprintHealthPanel.test.tsx`, and `ReleasesTab.test.tsx`. Polling-aware hooks add another layer of test setup that existing tests do not account for.
+The v1.8 requirements describe a navigation flow: sidebar → project list → project overview → cycle detail. PROJECT.md's Key Decisions record explicitly documents that issue detail moved from a slide-over sheet to a full-page route (v1.3 decision) because sheets do not support nested navigation and the J/K keyboard guard became unmanageable. Apply the same pattern to AIO cycle detail. If cycle detail contains sub-navigation (runs tab, defects tab), it must be a full-page route with URL-addressable tabs — not a sheet. Building it as a sheet will require the same migration that issue detail went through.
 
-**Why it happens:**
-Polling optimization feels like a neat systems problem — adaptive intervals, visibility detection, active-tab priority. The implementation grows to cover edge cases. The result is a heavyweight hook that touches too many concerns and is hard to isolate in tests.
+**2. AIO project ID resolution — where to store it**
 
-**How to avoid:**
-1. Use TanStack Query's built-in `refetchIntervalInBackground: false` — this is already used correctly in `useUpdatePolling` and `useVersionPolicyCheck`. Apply the same pattern to sprint board and backlog queries.
-2. Use the Page Visibility API at the `queryClient` level (one place) rather than per-hook. TanStack Query v5 supports `networkMode: 'always'` and `refetchOnWindowFocus` — configure these globally.
-3. Active-view polling priority: simpler than it sounds. Set `refetchInterval` to `false` on queries for routes the user is not on (via `enabled: useIsActiveRoute('/sprint-board')`). This is one custom hook, not a system.
-4. Any new polling hook must be extractable from the component without side effects. Test the hook in isolation with a mock `queryClient` and controlled visibility state.
-5. The LazyStore mock in `setup.ts` is not designed for polling scenarios. New polling tests must use `vi.useFakeTimers()` and `act()` for interval advancement. Add this pattern to one test first and verify it works before applying broadly.
+The AIO project ID (resolved from Jira project key at session start) needs to be available to all AIO service calls. Two candidate stores:
 
-**Warning signs:**
-- A new hook has more than 3 external dependencies (stores, router, query client, visibility API, settings).
-- Existing tests that previously passed start failing with "cannot read properties of undefined" after polling changes.
-- `vi.useFakeTimers()` is needed in 10+ test files that did not previously use fake timers.
-- `refetchInterval` is being set from inside a Zustand store selector — this creates a re-render feedback loop.
+- Auth store (`auth.store.ts`): already holds `activeJiraProject`. Storing `activeAioProject` alongside it keeps the AIO project ID in the same rehydration cycle as the Jira project key and ensures the same null-guard patterns apply everywhere.
+- Settings store (`settings.store.ts`): holds UI preferences. Mixing in a runtime-resolved API identifier breaks the clear store separation documented in PROJECT.md. Do not use this.
 
-**Phase to address:**
-Smart polling phase — design the polling strategy to be maximally simple. Prefer built-in TanStack Query options over custom hooks. Test the hooks before applying to components.
+Store the AIO project ID in the auth store, resolved once during the project selection flow, and cleared when `activeJiraProject` is cleared.
 
----
+**3. AIO queries must respect `jiraConnected` guard**
 
-### Pitfall 7: Bundle Analysis False Positives from Bundled-by-Design Dependencies
+All existing Jira queries gate on `enabled: jiraConnected`. AIO queries must do the same. If they do not, AIO queries continue firing after the Jira PAT expires, producing a stream of 401 errors into the debug log even after `markDisconnected('jira')` has fired. Since AIO shares auth with Jira, `jiraConnected: false` means AIO is also unreachable.
 
-**What goes wrong:**
-A bundle analyzer (Vite's `rollup-plugin-visualizer` or `vite-bundle-analyzer`) shows large "chunks" from `react-grid-layout`, `@dnd-kit/core`, `jira2md`, and `react-markdown`. These are flagged for tree shaking or splitting. Attempting to lazy-load `react-grid-layout` (used in the Dashboard widget grid) breaks the grid's layout persistence because `react-grid-layout` stores responsive breakpoints in component state — splitting it across async boundaries loses layout context on first render.
+**4. Cycle-level staleTime vs issue-level staleTime**
 
-Similarly, `jira2md` + `react-markdown` appear large but are only loaded in `IssueDetailPage` and `IssueDetailContent` — they are already effectively lazy if those routes are split. Splitting them again at the component level produces redundant chunk files.
+AIO data has two different rates of change:
 
-**Why it happens:**
-Bundle analyzers show size without context. A 50KB library that is only used once is not a problem if it is on an infrequently visited route. The issue is the main bundle's blocking size, not total bundle size. Developers try to eliminate every "large" item in the visualizer without asking "is this on the critical path?"
+- Structural data (project list, cycle list): rarely changes during a session. Appropriate `staleTime`: 5 minutes.
+- Execution data (test run results, pass/fail counts): changes during active test runs. Appropriate `staleTime`: 60 seconds (match notification polling cadence).
 
-**How to avoid:**
-1. Measure the critical path metric, not total bundle size. The metric is: time from app launch to `<Dashboard>` component being interactive. Everything else is secondary.
-2. Use `rollup-plugin-visualizer` with `template: 'treemap'` to see what is in the initial chunk vs lazy chunks. The initial chunk is the target.
-3. Libraries that are already behind lazy-loaded routes (dashboard widgets, issue detail, MR detail) do not need additional splitting — they will naturally end up in the lazy chunk.
-4. `react-grid-layout` uses `window.matchMedia` internally. Lazy loading it behind `<Suspense>` with an SSR/jsdom fallback requires careful handling — the grid will flash its initial state on hydration. For a desktop Tauri app this is less critical, but the layout persistence (saved to `LazyStore`) must be loaded before the grid renders to avoid a layout jump.
-5. Tree shaking of `lucide-react` provides meaningful gains (icon library is large but most icons are unused). Use named imports only — the project already does this. Verify via the bundle analyzer that the lucide chunk is appropriately small.
+Setting `staleTime` too high for execution data shows stale pass/fail counts during an active test session. Setting it too low produces unnecessary AIO API calls on every focus/navigation event. The 60-second floor comes from the existing notification polling design — it is the shortest polling interval the codebase treats as acceptable for live data.
 
-**Warning signs:**
-- Bundle analyzer flag on a library that is already in a lazy-loaded route.
-- Dashboard widget grid loses its saved layout on first render after splitting.
-- `react-grid-layout` renders at default layout for one frame before reading persisted layout (visible jank).
-- `jira2md` being split into its own chunk for a component that renders inline (not behind a route).
+**5. Existing broad `invalidateQueries` call sites**
 
-**Phase to address:**
-Bundle analysis phase — establish critical path metric first. Only optimize what is in the initial (blocking) bundle. Do not split libraries that are already behind lazy routes.
+The sprint board mutation handlers (`useTransitionMutation`, `useCommentMutation`, and others) may call `invalidateQueries` with a partial key that includes only `jiraBaseUrl`. If AIO queries use `[jiraBaseUrl, ...]` as their prefix, those mutations will also invalidate AIO caches on every Jira write action. Audit the existing `invalidateQueries` call sites in all mutation hooks before adding AIO queries. Fix any that are too broad before the AIO query keys land.
+
+**6. AIO URL construction — `jiraBaseUrl` trailing slash**
+
+All existing service functions call `baseUrl.replace(/\/$/, '')` to strip a trailing slash before constructing URLs. AIO service functions must apply the same normalization. An inconsistent base URL produces cache misses in TanStack Query because `https://jira.example.com/rest/aio-tcms/...` and `https://jira.example.com//rest/aio-tcms/...` are different keys.
 
 ---
 
-### Pitfall 8: Image/Avatar Caching Bypassing the Tauri HTTP Plugin
+## Phase-Specific Warnings
 
-**What goes wrong:**
-Jira avatar URLs point to the on-premise Jira instance (`https://jira.example.com/secure/useravatar?...`). Browsers normally cache these via HTTP `Cache-Control` headers. In Tauri 2, image requests made via `<img src="...">` tags go through the Tauri webview, which uses `tauri-plugin-http` for same-origin requests. If avatar fetching is re-implemented as JavaScript fetch calls to enable caching, it must use `fetch` from `tauri-plugin-http` — the same pattern the rest of the app uses. Plain browser `fetch` or `XMLHttpRequest` will hit CORS restrictions.
-
-Alternatively, if avatar URLs are cached by writing to the filesystem via Tauri's `fs` plugin, the cache path must use `appLocalDataDir()` (writable without admin rights on all platforms), not `homeDir()` or a hardcoded path.
-
-**Why it happens:**
-Avatar caching seems like a simple optimization. Developers cache image blobs to `localStorage` (has 5-10MB limit, serialized as base64 = 33% size inflation) or use service workers (not supported in Tauri webviews). Neither approach works.
-
-**How to avoid:**
-1. For in-memory session caching: store avatar URLs → object URLs in a module-level `Map<string, string>`. Use `URL.createObjectURL()` on the fetched blob. This is zero-config, fast, and requires no new Tauri plugins.
-2. For persistent disk caching: use `tauri-plugin-fs` to write blobs to `appLocalDataDir()/avatars/`. Use the Jira user account ID as the filename (URL-safe). Check existence before fetching.
-3. All avatar fetch requests must use `tauri-plugin-http` (the existing `apiFetch` helper), not native browser fetch, to avoid CORS errors on the on-premise Jira instance.
-4. Avatar cache invalidation: Jira avatar URLs include a version parameter (`?ownerId=...&avatarId=...`). Cache by the full URL including version — when the avatar changes, the URL changes, and the old cache entry is orphaned. Add a TTL-based cleanup to `appLocalDataDir/avatars/` on app start.
-5. Consider whether avatar caching is worth the complexity. The primary perceived performance gain comes from skeletons, stale-while-revalidate, and code splitting. Avatars are small (1-5KB), and Jira's HTTP headers usually include `Cache-Control: max-age=31536000` for avatars — the webview may already cache them.
-
-**Warning signs:**
-- Avatar fetch uses `window.fetch()` instead of the Tauri HTTP plugin → CORS error on on-premise Jira.
-- Avatars written to `localStorage` → 5MB limit exceeded after extended use.
-- Cache stored as base64 strings → 33% size overhead compared to binary storage.
-- `fs` plugin writes to a path that requires admin rights on Windows.
-
-**Phase to address:**
-Image/avatar caching phase — evaluate whether WebView cache is already sufficient before implementing custom caching. If implementing, use module-level Map for session caching as the first approach.
+| Phase Topic | Likely Pitfall | Mitigation |
+|-------------|---------------|------------|
+| AIO service module setup | Auth scheme unknown — PAT may not work for plugin servlets | Probe live AIO endpoint with Bearer PAT before writing any service code. Document the result as a Key Decision entry. |
+| AIO service module setup | REST base path unknown | Probe `/rest/aio-tcms/1.0/project` first; try alternatives on 404. Store the resolved base path as a constant, not inline. |
+| AIO service module setup | `apiFetch` source type error | Route AIO calls under `source: 'jira'` — same server, same auth, correct behavior on 401. |
+| AIO project/cycle list | AIO project ID ≠ Jira project key | Resolve AIO project ID from Jira key at session start; cache in auth store. |
+| AIO project/cycle list | Pagination envelope differs from Jira search | Inspect real AIO list response before reusing `fetchAllSearchPages`. Write a dedicated AIO pagination helper if the shape differs. |
+| AIO project/cycle list | Broad `invalidateQueries` invalidates AIO | Use `['aio', jiraBaseUrl, ...]` prefix for all AIO query keys. Audit existing mutation invalidation call sites first. |
+| Test run table on issue detail | AIO attachment URL shape unknown | Capture a real URL from the live instance before building the fetch/render path. Do not assume it matches `JiraAttachment.content`. |
+| Test run table on issue detail | `jira2md` breaks on AIO step markup | Write and unit-test a sanitize pass (pipes, `{color}`, `\\`, `{panel}`) before connecting it to the rendering pipeline. |
+| Cycle detail page | Sheet vs. route architecture | Full-page route with URL-addressable tabs. No sheets with nested navigation. |
+| All AIO service functions | Concurrency guard bypass | Wrap all `apiFetch` calls with `await getJiraLimit()(() => apiFetch(...))`. |
+| All AIO queries | Missing `jiraConnected` guard | Add `enabled: jiraConnected` to every AIO `useQuery` call. |
 
 ---
 
-### Pitfall 9: Prefetching on Hover Triggering Unnecessary Jira API Calls
+## Confidence Notes
 
-**What goes wrong:**
-Sidebar navigation links are enhanced with `onMouseEnter` handlers that call `queryClient.prefetchQuery` for the target route's data. A developer who moves the mouse across the sidebar (scrolling past it, for example) fires 5-6 prefetch requests to Jira. Each request goes to the on-premise Jira DC. Under normal usage this is benign. During a slow network event, it creates a backlog of pending requests that delay the actual navigation the user wanted.
+**HIGH confidence (directly observed in codebase):**
+- `apiFetch` source union change required — confirmed in `apiFetch.ts` line 41: `source: 'jira' | 'gitlab'`
+- TanStack Query cache invalidation collision risk — confirmed by inspecting existing mutation hooks that invalidate by `jiraBaseUrl` prefix
+- `getJiraLimit()` covers only `fetchAllSearchPages` calls — confirmed in `client.ts`; direct `apiFetch` calls elsewhere are not wrapped
+- `jiraBaseUrl` trailing slash normalization needed — confirmed pattern across all service functions
+- `jiraConnected` guard required — confirmed in all existing `useQuery` hooks: `enabled: jiraConnected && !!jiraBaseUrl`
+- Store separation (auth vs. settings) — confirmed by auth.store.ts comment and PROJECT.md Key Decisions
 
-The notification polling hook (`useNotificationPolling`) already runs on a configurable interval. Prefetch requests compete with polling requests for the same HTTP connection pool in Tauri's webview.
+**MEDIUM confidence (architecture-derived, not verified against live AIO):**
+- Bearer PAT accepted by AIO servlet — based on Jira DC auth middleware architecture
+- AIO project ID ≠ Jira project key — known AIO data model behavior, not verified on this specific installation
+- `jira2md` breakage on AIO step table markup — based on known `jira2md` limitations documented in its source and issue tracker
 
-**Why it happens:**
-`onMouseEnter` fires immediately. There is no dwell time or intent detection. A developer who sees "prefetch on hover" as a pattern implements it without adding the debounce that makes it useful rather than aggressive.
-
-**How to avoid:**
-1. Add a 100-150ms dwell timer before firing any prefetch. If the mouse leaves before the timer fires, cancel the prefetch. This filters out incidental hover events.
-2. Check `queryClient.getQueryState(queryKey)` before prefetching. If data is fresh (within `staleTime`), skip the prefetch — the data is already in cache.
-3. Only prefetch for the currently active role's navigation items. PM users do not need sprint board prefetching; developer users do not need workload prefetching.
-4. Add a prefetch budget per navigation event: maximum 2 prefetch requests per hover intent. If the user hovers over 3 links in rapid succession, only the first 2 trigger prefetches.
-5. The sprint board `fetchSprintIssues` prefetch would trigger the two-query subtask strategy (Pitfall 5). Do not prefetch sprint board data on hover — the request is too expensive. Limit hover prefetching to lightweight queries: active sprint metadata, issue summaries.
-
-**Warning signs:**
-- DevTools network tab shows Jira API calls firing during sidebar mouseover without any navigation.
-- Notification polling gets delayed because prefetch requests occupy the connection queue.
-- Prefetch fires for routes the user visits infrequently (releases, epics) every time they hover past them in the sidebar.
-
-**Phase to address:**
-Prefetching phase — implement with dwell timer and freshness check from the start. Do not prefetch expensive queries (sprint board, backlog).
+**LOW confidence (requires live verification before implementation):**
+- AIO REST base path — installation-specific
+- Pagination envelope shape for AIO endpoints — unknown without live probe
+- Test execution status vocabulary — installation-specific custom statuses possible
+- AIO attachment URL structure — unknown without live instance
+- Cookie requirement — depends on this specific AIO installation's security configuration
 
 ---
 
-### Pitfall 10: Stale-While-Revalidate Tuning Causing Race Between Polling and Background Refetch
-
-**What goes wrong:**
-The notification polling hook (`useNotificationPolling`) uses `refetchInterval` to poll on a configurable schedule (default 60s in the codebase). Tuning `staleTime` for notification-related queries to be higher than `refetchInterval` creates a race condition: TanStack Query considers the data fresh (staleTime not expired), so `refetchInterval` fires but the refetch is skipped because the data is still "fresh." Notifications are not polled.
-
-Conversely, setting `staleTime` too low on queries that were previously stable causes aggressive re-fetching from background components, burning through Jira API calls silently.
-
-**Why it happens:**
-`staleTime` and `refetchInterval` interact in a non-obvious way. From the TanStack Query docs: a query will refetch if `refetchInterval` fires AND the data is stale. If `staleTime > refetchInterval`, the refetch is skipped. Developers tuning `staleTime` for perceived speed (higher = show cached data longer) inadvertently disable polling.
-
-**How to avoid:**
-1. The invariant to maintain: `staleTime < refetchInterval` for any query that uses polling. The existing `useNotificationPolling` already enforces this correctly: `staleTime: pollIntervalMs - 5_000`. Apply this same formula anywhere `staleTime` is tuned for a polled query.
-2. Before tuning `staleTime` for any query, check whether that query has a `refetchInterval`. If yes, staleTime must remain at `refetchInterval - smallBuffer` (5s or less).
-3. Non-polled queries (sprint board, backlog, releases) can have `staleTime` tuned aggressively (5-30 minutes) without polling side effects.
-4. After tuning, open DevTools and observe the network tab for 2+ minutes. Verify notification polling fires at the expected interval. This cannot be verified from unit tests (fake timers cannot reproduce the actual interaction).
-
-**Warning signs:**
-- Notification badge stops updating after stale-while-revalidate tuning is applied.
-- Network tab shows no Jira API calls for notification queries after the first load.
-- `useNotificationPolling` test suite passes (fake timers bypass the staleTime check), but production polling is broken.
-- User reports "notifications not updating" after v1.7 ships.
-
-**Phase to address:**
-Stale-while-revalidate tuning phase — audit every query's `staleTime` against its `refetchInterval` before and after tuning. Test polling behavior manually, not just via unit tests.
-
----
-
-## Technical Debt Patterns
-
-| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|----------------|-----------------|
-| Wrap all route components in `React.lazy` at once | Fast completion of "code splitting" task | Some routes are lightweight and gain nothing; chunk loading overhead for tiny components; production build untested per route | Never — split one route, verify build, then proceed |
-| `isLoading \|\| isFetching` as skeleton trigger | Skeleton shows during all loading states | Skeleton flickers during background polling; stale data is hidden during revalidation | Never for polled queries; acceptable for initial load only |
-| Increase `staleTime` globally in QueryClient default | Single change, immediate perceived speed improvement | Breaks polling invariant for notification queries; suppresses refetch after mutations | Never globally — tune per-query with dependency audit |
-| `useMemo` on every component that "might be slow" | Looks like optimization coverage | Reference instability negates memo; adds memory overhead; makes tests harder | Only after profiler shows >1ms render time with unnecessary re-renders |
-| Prefetch all sidebar routes on app mount (eager prefetch) | All data warm from the start | 8-12 Jira API requests on every cold start; batters on-premise Jira DC during morning standup rush | Never — prefetch only the default landing route on mount |
-| Implement avatar caching before measuring impact | Feels like a clear win | `tauri-plugin-http` required; `localStorage` limit hit; complexity for marginal gain if WebView already caches | Defer until profiler shows avatar fetching as a measurable bottleneck |
-| Add Suspense boundary at app root only | Simple setup | Entire app blanks on any lazy chunk failure; no granular error recovery | Never — Suspense must be co-located with the lazy component |
-
-## Integration Gotchas
-
-| Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| Tauri webview + `React.lazy` | Setting Vite `base: '/'` (absolute paths) for dynamic imports | Set `base: './'` (relative paths); verify with actual `tauri build` on all three platforms |
-| On-premise Jira DC + prefetching | Prefetching expensive queries (fetchSprintIssues) on hover | Only prefetch lightweight queries (active sprint metadata, issue summaries); add 100ms dwell timer |
-| TanStack Query + Zustand persist | Storing TanStack Query data in Zustand for cross-component sharing | Use TanStack Query's own cache as the source of truth; read from cache with `queryClient.getQueryData()` not from a Zustand selector |
-| `@tanstack/react-virtual` + existing usage | Adding a second Virtualizer to a list already virtualized | Check for existing `useVirtualizer` before adding; double virtualization causes hidden overflow issues |
-| TanStack Query + optimistic updates + staleTime | Increasing staleTime on a query that has optimistic mutations | Always pair staleTime increase with `invalidateQueries({ refetchType: 'active' })` in mutation handlers |
-| LazyStore (Tauri plugin-store) + performance | Loading LazyStore in the render path for layout data | Load LazyStore data in an effect, not during render; react-grid-layout layouts must be available before first paint to avoid layout jump |
-| `useNotificationPolling` + staleTime tuning | Setting staleTime ≥ refetchInterval on notification queries | Maintain `staleTime = refetchInterval - 5000` invariant; poll stops silently if data is "fresh" |
-
-## Performance Traps
-
-| Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| Unbounded subtask chunk parallelism | Jira DC 503 during sprint board load; cards disappear intermittently | Limit concurrent chunk requests to 3 via `p-limit` or manual batching | Sprint with >3 stories (3 chunk requests to Jira simultaneously) |
-| Background polling competing with user-initiated requests | Slow response to user actions while polling fires | `refetchIntervalInBackground: false` on all non-notification queries | Any tabbed workflow where user switches away from and back to the app |
-| Route-level Suspense without ErrorBoundary | Blank white screen on chunk load failure | Wrap every `<Suspense>` with an `<ErrorBoundary>` | Production builds; Tauri asset protocol path mismatches |
-| Skeleton replaces stale data during revalidation | Content "jumps" away to skeleton then back | Show stale data + `StaleDataBanner` during refetch; skeleton only on `isLoading` (no cache) | Every background refetch after stale-while-revalidate tuning |
-| `queryClient.prefetchQuery` on `onMouseEnter` without debounce | 5-10 extra Jira requests per sidebar hover | 100ms dwell timer + freshness check before prefetch | Constant during normal sidebar navigation |
-| `useMemo` with unstable dependency | Memoized value recalculates on every render (worse than no memo) | Stabilize upstream objects/arrays or use deep-comparison sparingly | Immediately — defeats the purpose |
-
-## Security Mistakes
-
-| Mistake | Risk | Prevention |
-|---------|------|------------|
-| Caching Jira avatars to filesystem with PAT-derived path | Avatar path leaks PAT derivation pattern if path is guessable | Use hashed user ID as filename, never embed PAT in cache paths |
-| Storing fetched issue data in Zustand persist store | Issue content (potentially sensitive) persists in plaintext on disk | Keep TanStack Query cache (memory-only) as the source of truth; only persist UI state (filter selections, layout) in Zustand |
-
-## UX Pitfalls
-
-| Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| Skeleton screen with wrong layout dimensions | Content reflows after skeleton removal — more disorienting than a spinner | Measure actual rendered content dimensions; match skeleton to final layout exactly |
-| Skeleton on every navigation (even cache hits) | Constant visual noise; app feels jittery | Show skeleton only when `isLoading` is true (no cached data); show stale data with subtle banner during revalidation |
-| Skeleton for <100ms loads | One-frame flash; worse than nothing | 100-200ms delay before skeleton appears; skip if data arrives first |
-| Code splitting adds perceptible navigation delay | App feels slower after optimization | Only split routes with bundles >50KB; keep navigation-critical routes (dashboard, sprint board) eager-loaded |
-| Prefetch warms data that users never visit | Wasted Jira API calls; delayed actual navigation | Prefetch only the most likely next navigation from current route; not all sidebar items |
-| Avatar images reloading after every navigation | Flickering avatars in task cards, sprint board | Implement session-level URL→objectURL Map; persist to disk for frequently seen users |
-| Sprint board shows empty while parent stories load | Two-phase visual — stories appear, then subtasks "pop in" | Stale-while-revalidate: show full prior data while refetching; skeleton for true initial load only |
-
-## "Looks Done But Isn't" Checklist
-
-- [ ] **Code splitting:** Often only tested in `tauri dev` — verify each lazy-loaded route works in a `tauri build` production binary on all three platforms
-- [ ] **Skeleton screens:** Often show during background revalidation — verify skeleton does NOT appear when TanStack Query has cached data (`isLoading: false, isFetching: true`)
-- [ ] **Stale-while-revalidate tuning:** Often breaks polling — verify notification polling fires at configured interval after every `staleTime` change
-- [ ] **Memoization:** Often applied without profiling — run React DevTools Profiler before AND after; the "after" must show fewer highlighted re-renders
-- [ ] **Query parallelization:** Often adds parallelism to already-parallelized queries — verify `fetchSprintIssues` subtask chunks are not receiving additional parallelism pressure
-- [ ] **Prefetching:** Often fires for all sidebar links — verify prefetch only fires for the specific link hovered and only after 100ms dwell
-- [ ] **Bundle analysis:** Often reports before/after total sizes without critical path metric — measure time-to-interactive on the Dashboard route specifically
-- [ ] **Avatar caching:** Often implemented with browser `fetch` — verify avatar requests use `tauri-plugin-http` to avoid CORS errors on on-premise Jira
-- [ ] **Test suite:** Often broken by polling/timing changes — run `vitest run` with full output after every phase; zero failures required before proceeding
-
-## Recovery Strategies
-
-| Pitfall | Recovery Cost | Recovery Steps |
-|---------|---------------|----------------|
-| Code splitting breaks production routes | MEDIUM | Revert `React.lazy` imports for the broken route; restore eager import; fix Vite `base` config; re-test before re-splitting |
-| Stale-while-revalidate breaks notification polling | LOW | Restore `staleTime = refetchInterval - 5000` for notification queries; one-line fix but requires revert to identify which query was changed |
-| Cache invalidation desync causes stale sprint board | MEDIUM | Add `exact: true` and `refetchType: 'active'` to all mutation invalidation calls; run board transition E2E manually |
-| Over-memoization causes reference instability | MEDIUM | Remove `React.memo` from components with unstable parent props; trace the prop reference chain via DevTools Profiler |
-| Prefetch flood on Jira DC | LOW | Remove `onMouseEnter` prefetch handlers; add dwell timer and freshness check before re-enabling |
-| Skeleton flicker after stale-while-revalidate | LOW | Change skeleton trigger from `isLoading \|\| isFetching` to `isLoading` only; add `useDelayedLoading` hook with 150ms threshold |
-| Test suite broken by timing/polling changes | MEDIUM | Scope `vi.useFakeTimers()` to only the affected test file; add explicit `act()` wrappers around interval advances |
-
-## Pitfall-to-Phase Mapping
-
-| Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| Premature/blanket memoization | Memoization audit phase | React DevTools Profiler shows target components highlighted fewer times; no useMemo on trivial values |
-| Skeleton flicker on fast loads | Skeleton screens phase | Skeleton does not appear during background revalidation; no flash on tab navigation |
-| Cache invalidation desync | Stale-while-revalidate tuning phase + mutation-touching phases | Manual test: drag card to new status, navigate away and back, confirm position persisted |
-| Code splitting breaking Tauri production builds | Code splitting phase | `tauri build` tested on all three platforms; no blank routes in production binary |
-| Subtask strategy amplified by parallelization | Query parallelization phase | DevTools network tab shows ≤3 simultaneous Jira requests on sprint board mount |
-| Polling strategy breaking test suite | Smart polling phase | `vitest run` produces zero failures after polling changes |
-| Bundle analysis false positives | Bundle analysis phase | Only libraries in the initial chunk are analyzed; already-lazy routes excluded |
-| Avatar caching CORS via wrong fetch | Image/avatar caching phase | DevTools network tab shows avatar requests via Tauri HTTP plugin; no CORS errors |
-| Prefetch flood on sidebar hover | Prefetching phase | Network tab shows at most 2 prefetch requests per deliberate hover; no requests on mouse-through |
-| staleTime/refetchInterval race on polling | Stale-while-revalidate tuning phase | Manual 5-minute observation: notification polling fires at configured interval after staleTime changes |
-
-## Sources
-
-- [React.memo official docs](https://react.dev/reference/react/memo) — when memoization is and is not helpful
-- [useMemo optimization guide — feature-sliced.design](https://feature-sliced.design/blog/react-usememo-optimization) — three-question test for useMemo
-- [TanStack Query cache invalidation docs](https://tanstack.dev/query/latest/docs/framework/react/guides/query-invalidation) — invalidateQueries semantics, refetchType parameter
-- [TanStack Query prefetching docs](https://tanstack.com/query/v5/docs/react/guides/prefetching) — prefetchQuery, ensureQueryData patterns
-- [Efficient Polling in React — Medium/Atulbanwar](https://medium.com/@atulbanwar/efficient-polling-in-react-5f8c51c8fb1a) — visibility API integration
-- [Skeleton Loading Screen Design — LogRocket](https://blog.logrocket.com/ux-design/skeleton-loading-screen-design/) — flicker prevention, delay threshold
-- [A Bone to Pick with Skeleton Screens — Viget](https://www.viget.com/articles/a-bone-to-pick-with-skeleton-screens) — when skeletons backfire
-- [React Suspense flicker prevention — Medium/Edekobifrank](https://medium.com/@edekobifrank/taming-the-white-flicker-from-lazy-loading-in-react-my-accidental-encounter-9d506b247042)
-- [Vite code splitting large chunks — Mykola Aleksandrov](https://www.mykolaaleksandrov.dev/posts/2025/11/taming-large-chunks-vite-react/) — manualChunks, chunk size analysis
-- [Tauri v2 Performance and Bundle Size Optimization](https://www.oflight.co.jp/en/columns/tauri-v2-performance-bundle-size) — Tauri-specific bundle considerations
-- [TanStack Virtual nested items discussion](https://github.com/TanStack/virtual/discussions/315) — double virtualization pitfalls
-- [Zustand persist store migration — official docs](https://zustand.docs.pmnd.rs/reference/integrations/persisting-store-data) — versioning, migrate function
-- Codebase inspection: `taskflow/src/services/jira/issues.ts` — two-query subtask strategy, `SUBTASK_CHUNK_SIZE=50`, `Promise.all` on chunks
-- Codebase inspection: `taskflow/src/hooks/useNotificationPolling.ts` — `staleTime: pollIntervalMs - 5_000` invariant (HIGH confidence pattern)
-- Codebase inspection: `taskflow/src/main.tsx` — global `staleTime: 5 * 60 * 1000` default, `gcTime: Infinity` for pinned tabs
-- Codebase inspection: `taskflow/src/routes/routes.tsx` — eager-loaded routes, no existing `React.lazy` usage
-
----
-*Pitfalls research for: Taskflow v1.7 Performance & Perceived Speed*
-*Researched: 2026-03-29*
+*Research completed: 2026-05-12*
+*Ready for roadmap: yes — LOW confidence items identified as Phase 1 verification tasks*

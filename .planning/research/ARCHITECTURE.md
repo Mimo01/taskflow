@@ -1,200 +1,339 @@
-# Architecture Research
+# Architecture Research: AIO TCMS Integration
 
-**Domain:** Performance optimization integration for existing Tauri 2 + React 19 + TanStack Query desktop app
-**Researched:** 2026-03-29
-**Confidence:** HIGH
+**Domain:** Adding AIO Test Management to existing Tauri 2 / React 18 desktop app (Taskflow v1.8)
+**Researched:** 2026-05-12
+**Approach:** Exact fit to existing patterns — no new patterns introduced unless strictly required
 
-## System Overview — Performance Layer Integration
+---
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     Route Layer (NEW)                        │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌──────────────┐  ┌───────────────────┐  │
-│  │ React.lazy  │  │ Suspense +   │  │ ErrorBoundary     │  │
-│  │ imports     │  │ Skeleton FB  │  │ per route         │  │
-│  └──────┬──────┘  └──────┬───────┘  └────────┬──────────┘  │
-│         └────────────────┴───────────────────┘              │
-├─────────────────────────────────────────────────────────────┤
-│                     View Layer (MODIFIED)                    │
-│  ┌─────────────┐  ┌──────────────┐  ┌───────────────────┐  │
-│  │ Skeleton    │  │ Progressive  │  │ Memoized leaf     │  │
-│  │ variants    │  │ data display │  │ components        │  │
-│  └──────┬──────┘  └──────┬───────┘  └────────┬──────────┘  │
-├─────────┴────────────────┴───────────────────┴──────────────┤
-│                     Query Layer (MODIFIED)                   │
-│  ┌─────────────┐  ┌──────────────┐  ┌───────────────────┐  │
-│  │ staleTime   │  │ Prefetch on  │  │ Smart polling     │  │
-│  │ tuning      │  │ hover/focus  │  │ (visibility-aware)│  │
-│  └──────┬──────┘  └──────┬───────┘  └────────┬──────────┘  │
-│         └────────────────┴───────────────────┘              │
-├─────────────────────────────────────────────────────────────┤
-│                     Cache Layer (NEW + MODIFIED)             │
-│  ┌──────────────────┐  ┌────────────────────────────────┐  │
-│  │ TanStack Query   │  │ Avatar/image cache             │  │
-│  │ (tuned gcTime,   │  │ (in-memory Map + optional      │  │
-│  │  staleTime)      │  │  plugin-fs disk persistence)   │  │
-│  └──────────────────┘  └────────────────────────────────┘  │
-├─────────────────────────────────────────────────────────────┤
-│                     Transport Layer (EXISTING)              │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │ tauri-plugin-http (Jira DC / GitLab REST)            │  │
-│  └──────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-```
+## New Modules / Files
 
-### Component Responsibilities
+### Service layer — `taskflow/src/services/aio/`
 
-| Component | Responsibility | Integration Point |
-|-----------|----------------|-------------------|
-| Route splitting (React.lazy) | Lazy-load heavy route chunks on demand | `routes.tsx` — convert eager imports to dynamic |
-| Suspense + Skeleton fallbacks | Show layout-matched placeholders during chunk load and data fetch | Wrap route outlet; per-view skeleton components |
-| staleTime tuning | Serve cached data instantly on navigation | Per-query config in all TanStack Query hooks |
-| Prefetch on hover | Warm cache before user clicks sidebar link | Sidebar nav component + `queryClient.prefetchQuery` |
-| Smart polling | Pause background polling for inactive views | `refetchIntervalInBackground: false` + visibility hook |
-| Query parallelization | Eliminate sequential await chains | `Promise.all` in queryFn bodies; `useQueries` where applicable |
-| Progressive data display | Render partial data as queries resolve independently | Decouple parent/child query dependencies in views |
-| Avatar cache | Prevent repeated authenticated image fetches | `AuthImage.tsx` + in-memory Map keyed by URL hash |
-| Memoized leaf components | Prevent unnecessary re-renders in virtualized lists | `React.memo` on TaskCard, DraggableCard, BacklogRow |
+| File | Purpose |
+|------|---------|
+| `services/aio/client.ts` | Shared AIO fetch helper — mirrors `jira/client.ts`. Wraps `apiFetch` with `source: 'jira'` (AIO runs on the same Jira host, same Bearer PAT). Exports `aioFetch(url, headers)` to centralize auth header construction. |
+| `services/aio/types.ts` | All AIO REST response shapes: `AioProject`, `AioCycle`, `AioCycleSummary`, `AioTestRun`, `AioTestStep`, `AioAttachment`. Single source of truth, mirrors `jira/types.ts` discipline. |
+| `services/aio/projects.ts` | `fetchAioProjects(baseUrl, token)` — GET `/rest/aio-tcms/1.0/project` returns paginated project list. |
+| `services/aio/cycles.ts` | `fetchAioCycles(baseUrl, token, projectId)` — GET `/rest/aio-tcms/1.0/project/{projectId}/cycle`. `fetchAioCycleSummary(baseUrl, token, projectId, cycleId)` — GET `/rest/aio-tcms/1.0/project/{projectId}/cycle/{cycleId}/summary` (progress counts, defect count). |
+| `services/aio/runs.ts` | `fetchAioTestRuns(baseUrl, token, projectId, cycleId)` — GET `/rest/aio-tcms/1.0/project/{projectId}/cycle/{cycleId}/testrun`. Returns test run list with step/expected/actual. |
+| `services/aio/issue-runs.ts` | `fetchAioRunsForIssue(baseUrl, token, issueKey)` — GET `/rest/aio-tcms/1.0/testrun?issueKey={issueKey}`. Used by the Jira issue detail page to render the AIO test run table. |
+| `services/aio/index.ts` | Barrel re-export: `export * from './projects'`, `./cycles`, `./runs`, `./issue-runs`, `./types`. Same pattern as `jira/index.ts`. |
 
-## Architectural Patterns
+### Route pages — `taskflow/src/routes/aio/`
 
-### Pattern 1: Stale-While-Revalidate with Skeleton Fallback
+| File | Purpose |
+|------|---------|
+| `routes/aio/index.tsx` | Lazy-loaded entry. Re-exports `AioProjectsPage` as default for `routes.tsx`. |
+| `routes/aio/AioProjectsPage.tsx` | `/aio` — project list view. `useQuery(['aio-projects', jiraBaseUrl])` with skeleton. NavLink to `/aio/projects/:id`. |
+| `routes/aio/AioProjectDetailPage.tsx` | `/aio/projects/:id` — project overview: cycles list with progress ring per cycle. `useQuery(['aio-cycles', projectId, jiraBaseUrl])`. NavLink to `/aio/cycles/:projectId/:cycleId`. |
+| `routes/aio/AioCycleDetailPage.tsx` | `/aio/cycles/:projectId/:cycleId` — cycle detail: progress summary, defect count, test run table. Two queries: `['aio-cycle-summary', ...]` + `['aio-test-runs', ...]`. Pin button calls `usePinnedTabsStore.togglePin`. |
+| `routes/aio/AioCycleSkeleton.tsx` | Skeleton for cycle detail (consistent with `SprintBoardSkeleton`, `WorkloadSkeleton`). |
+| `routes/aio/TestRunTable.tsx` | Table component rendering step / expected / actual / status. Status cells use colored badges (pass=green, fail=red, blocked=amber, untested=muted). |
 
-**What:** TanStack Query serves cached data instantly. Skeletons only appear on first load (no cache). Background refetch is silent.
+### Issue detail extension — existing directory `routes/dashboard/issue-detail/`
 
-**When to use:** Every data-fetching view.
+| File | Purpose |
+|------|---------|
+| `routes/dashboard/issue-detail/AioRunsSection.tsx` | New section component dropped into `IssueDetailPage`. `useQuery(['aio-issue-runs', issueKey, jiraBaseUrl])`. Renders `TestRunTable` (re-used from `routes/aio/`). Shows skeleton while loading, collapses if no runs. |
 
-**Trade-offs:**
-- Pro: Instant perceived navigation, zero blank screens on back-nav
-- Con: Users may see briefly stale data before background refetch completes
-- Mitigation: `StaleDataBanner` component (already exists) for explicit staleness indication
+---
 
-**Key implementation detail:**
+## Modified Files
+
+### `taskflow/src/lib/apiFetch.ts`
+
+**Change:** AIO uses the same Jira host and same Bearer PAT. Route AIO calls through `apiFetch` with `source: 'jira'`. This requires no code change — `aio/client.ts` simply calls `apiFetch('jira', url, headers)`. Document the decision in `aio/client.ts` as a comment. If the team later wants AIO calls labelled separately in Dev Tools logs, add `'aio'` to the source union — but do not do so preemptively.
+
+### `taskflow/src/stores/auth.store.ts`
+
+**Change:** Add `aioBaseUrl: string | null` and `setAioBaseUrl(url: string | null)`. AIO's REST API lives at the same Jira host but the team may run AIO on a different subdomain. Store the URL separately. The PAT is reused from Stronghold key `'jira-pat'` — on-premise AIO uses the same Jira PAT.
+
+Default `aioBaseUrl` to `null`; the service modules fall back to `jiraBaseUrl` when `aioBaseUrl` is null (the overwhelmingly common case).
+
+### `taskflow/src/components/app/sidebar-items.ts`
+
+**Change:** Add new section `'testing'` to `SIDEBAR_SECTIONS` and one new nav item:
+
 ```typescript
-// Skeleton shows ONLY when isLoading (no cache), NOT during isFetching (background refresh)
-if (isLoading) return <SprintBoardSkeleton />;
-// isFetching with cached data → show data + optional StaleDataBanner
-return <SprintBoard data={data} isFetching={isFetching} />;
+// Add to SIDEBAR_SECTIONS:
+{ id: 'testing', label: 'Testing' }
+
+// Add to SIDEBAR_NAV_ITEMS:
+{
+  id: 'aio-tests',
+  label: 'Test Management',
+  path: '/aio',
+  iconName: 'FlaskConical',
+  section: 'testing',
+}
 ```
 
-### Pattern 2: Hover Prefetch Pipeline
+Update `getDefaultSidebarItems`: add `'aio-tests'` to both `devVisible` and `pmVisible` sets. Update `DEV_SIDEBAR_PRESET` and `PM_SIDEBAR_PRESET` constants used in tests.
 
-**What:** Sidebar nav links trigger `queryClient.prefetchQuery` on `onMouseEnter`/`onFocus`. By the time the user clicks, data is in cache.
+### `taskflow/src/components/app/Sidebar.tsx`
 
-**When to use:** All sidebar navigation targets with deterministic query keys.
+**Change:** Add `FlaskConical` to the Lucide import and to `ICON_MAP`. One import line + one map entry. No structural change.
 
-**Trade-offs:**
-- Pro: Eliminates perceived load time for click-navigation
-- Con: May fire unnecessary network requests for items user hovers but doesn't click
-- Mitigation: `staleTime` must be > 0 (otherwise prefetched data is immediately stale and re-fetched on mount)
+### `taskflow/src/routes/routes.tsx`
 
-**Dependency:** Requires staleTime tuning to be completed first.
+**Change:** Add three lazy-loaded AIO routes:
 
-### Pattern 3: Progressive Data Population
+```typescript
+const AioProjectsPage = lazy(() => import('./aio/index'));
+const AioProjectDetailPage = lazy(() => import('./aio/AioProjectDetailPage'));
+const AioCycleDetailPage = lazy(() => import('./aio/AioCycleDetailPage'));
 
-**What:** Views display data sections independently as each query resolves, rather than waiting for all queries to complete.
-
-**When to use:** Sprint board (story headers → subtasks → MR links), backlog (issues → epic metadata).
-
-**Trade-offs:**
-- Pro: User sees useful content sooner, can start interacting before everything loads
-- Con: Layout shifts as sections fill in; more complex loading state management
-- Mitigation: Skeleton placeholders hold space for pending sections; sections animate in
-
-## Data Flow — Performance-Optimized
-
-### Navigation Flow (After Optimization)
-
-```
-[Sidebar Hover]
-    ↓ onMouseEnter
-[prefetchQuery] → [TanStack Cache] (warm)
-    ↓ user clicks
-[React.lazy] → [Suspense] → [Chunk loaded]
-    ↓
-[useQuery] → [Cache HIT] → [Render immediately with cached data]
-    ↓ background
-[refetch] → [Update cache silently] → [Re-render if data changed]
+{ path: '/aio', element: withLazy(AioProjectsPage) },
+{ path: '/aio/projects/:projectId', element: withLazy(AioProjectDetailPage) },
+{ path: '/aio/cycles/:projectId/:cycleId', element: withLazy(AioCycleDetailPage) },
 ```
 
-### Polling Flow (After Optimization)
+### `taskflow/src/components/app/PinnedTabStrip.tsx`
+
+**Change:** `PinnedTabStrip` currently assumes all pinned keys are Jira issue keys and routes all clicks to `onTabClick(key)`. AIO cycle tabs use a prefixed key format: `"aio:42:7"` (projectId:cycleId).
+
+The component is key-agnostic — it does not interpret key format. The only change needed is in the rendering:
+
+1. Rename `ResolvedIssue` interface to `ResolvedTab`, rename field `issueTypeName` to `typeLabel` (domain-neutral).
+2. Rename `IssueTypeIcon` to `TabIcon` and add a case for `typeLabel === 'aio-cycle'` that renders `FlaskConical`.
+3. The `resolvedIssues` prop is renamed to `resolvedTabs: Map<string, ResolvedTab>`.
+
+All Jira type cases in `TabIcon` carry over unchanged — only the interface field names change.
+
+### `taskflow/src/main.tsx` (AppLayout)
+
+**Changes — five touch points:**
+
+1. **`pinnedQueries` (`useQueries`):** Detect `aio:` prefix. For AIO keys, call `fetchAioCycleSummary` and map result to `{ summary: cycle.name, typeLabel: 'aio-cycle' }`. For Jira keys, existing path unchanged.
+
+2. **`handleTabClick` (new unified handler):** Replaces direct `handleIssueClick` call in `onTabClick` prop:
+   ```typescript
+   const handleTabClick = (key: string) => {
+     if (key.startsWith('aio:')) {
+       const [, projectId, cycleId] = key.split(':');
+       navigate(`/aio/cycles/${projectId}/${cycleId}`);
+     } else {
+       handleIssueClick(key, true);
+     }
+   };
+   ```
+
+3. **`activeTabKey` derivation:** Extend to cover AIO cycle routes:
+   ```typescript
+   const activeTabKey = location.pathname.startsWith('/issue/')
+     ? location.pathname.replace('/issue/', '')
+     : location.pathname.startsWith('/aio/cycles/')
+       ? 'aio:' + location.pathname.replace('/aio/cycles/', '').replace('/', ':')
+       : null;
+   ```
+
+4. **Breadcrumb reset guard:** Add `/aio/` to the exclusion list so drilling down within AIO does not reset the trail:
+   ```typescript
+   if (!pathname.startsWith('/issue/') &&
+       !pathname.startsWith('/mr/') &&
+       !pathname.startsWith('/release/') &&
+       !pathname.startsWith('/aio/')) {
+     breadcrumbReset();
+   }
+   ```
+
+5. **`routeLabel`:** Add case `if (pathname.startsWith('/aio')) return 'Test Management';`.
+
+### `taskflow/src/routes/dashboard/issue-detail/IssueDetailPage.tsx`
+
+**Change:** Import and render `AioRunsSection` below `AttachmentsSection`. Pass `issueKey` and `jiraBaseUrl`. `AioRunsSection` owns its own query — no additional props needed.
+
+### `taskflow/src/routes/dashboard/WikiRenderer.tsx`
+
+**No code change required.** AIO attachment URLs served from the same Jira host pass through `AuthImage`'s existing `needsAuth` check (`src.startsWith(jiraBaseUrl)`). The `preprocessJiraMarkup` function already handles `!http://...!` references by outputting them as `<img src="..." />` tags. `AuthImage` then fetches with Bearer token and converts to a blob URL.
+
+If AIO is deployed at a different subdomain from Jira: add `aioBaseUrl` check to `AuthImage.needsAuth` — one additional `||` condition.
+
+---
+
+## Data Flow
 
 ```
-[View Active]
-    ↓
-[refetchInterval: 30s] → [Jira/GitLab API] → [Update cache]
-    ↓ user switches tab
-[View Inactive — refetchIntervalInBackground: false]
-    ↓ polling paused
-[App Minimized — usePageVisibility detects]
-    ↓ all polling paused
-[App Restored — refetchOnWindowFocus: true]
-    ↓ immediate refetch of active view queries
+AIO REST API (same Jira host, /rest/aio-tcms/1.0/...)
+  |
+  | tauri-plugin-http fetch (Bearer PAT from Stronghold 'jira-pat')
+  |
+services/aio/client.ts  →  apiFetch(source: 'jira', url, headers)
+  |
+  +-- services/aio/projects.ts    →  fetchAioProjects()
+  +-- services/aio/cycles.ts      →  fetchAioCycles(), fetchAioCycleSummary()
+  +-- services/aio/runs.ts        →  fetchAioTestRuns()
+  +-- services/aio/issue-runs.ts  →  fetchAioRunsForIssue()
+  |
+TanStack Query  (gcTime: Infinity, staleTime per table below)
+  |
+  +-- AioProjectsPage       useQuery(['aio-projects', jiraBaseUrl])
+  +-- AioProjectDetailPage  useQuery(['aio-cycles', projectId, jiraBaseUrl])
+  +-- AioCycleDetailPage    useQuery(['aio-cycle-summary', projectId, cycleId, jiraBaseUrl])
+  |                         useQuery(['aio-test-runs', projectId, cycleId, jiraBaseUrl])
+  +-- AioRunsSection        useQuery(['aio-issue-runs', issueKey, jiraBaseUrl])
+  |
+  +-- AppLayout pinnedQueries (useQueries for aio: prefixed keys)
+        → fetchAioCycleSummary → resolvedPinnedTabs Map
+        → PinnedTabStrip (renders cycle name + FlaskConical icon)
 ```
 
-## Integration Points — What Changes vs What Stays
+### Query Key Conventions
 
-### Modified Files (Existing)
+All AIO query keys follow the same tuple pattern as Jira: `[discriminator, ...params, jiraBaseUrl]`. The `jiraBaseUrl` tail prevents stale cache across server switches — same invariant enforced throughout Jira queries.
 
-| File/Area | Current State | Modification |
-|-----------|--------------|--------------|
-| `routes.tsx` | 16 eager imports | Convert 6+ heavy routes to `React.lazy` |
-| `App.tsx` / main layout | No Suspense boundary | Add `<Suspense>` with skeleton fallback around route outlet |
-| All `useQuery` hooks | Mixed staleTime values | Standardize per-query staleTime tuning |
-| Sidebar nav component | No prefetch | Add `onMouseEnter` prefetch handlers |
-| `AuthImage.tsx` | Re-fetches on every mount | Add in-memory Map cache layer |
-| Sprint board queries | Sequential await chains | Restructure with `Promise.all` where safe |
-| Dashboard polling hooks | Some have `refetchIntervalInBackground` | Ensure all dashboard queries have it |
+| Query Key | staleTime | Rationale |
+|-----------|-----------|-----------|
+| `['aio-projects', jiraBaseUrl]` | `5 * 60 * 1000` | Project list rarely changes during a session |
+| `['aio-cycles', projectId, jiraBaseUrl]` | `5 * 60 * 1000` | Cycle list changes only when PMs create/archive cycles |
+| `['aio-cycle-summary', projectId, cycleId, jiraBaseUrl]` | `STALE_TIME_MS` (30s) | Execution progress updates during active test runs — use polling interval to stay current |
+| `['aio-test-runs', projectId, cycleId, jiraBaseUrl]` | `STALE_TIME_MS` | Same reasoning as cycle summary |
+| `['aio-issue-runs', issueKey, jiraBaseUrl]` | `5 * 60 * 1000` | Per-issue run data; refresh on focus is sufficient |
+| `['aio-pinned-summary', cycleKey, jiraBaseUrl]` | `5 * 60 * 1000` | Pinned tab cycle name; matches jira-pinned-summary pattern |
 
-### New Components
+`gcTime: Infinity` on all AIO queries — consistent with the session-persistent cache policy (v1.7 LOAD-02).
 
-| Component | Purpose | Location |
-|-----------|---------|----------|
-| `SprintBoardSkeleton` | Layout-matched skeleton for sprint board | `src/components/skeletons/` |
-| `BacklogSkeleton` | Layout-matched skeleton for backlog | `src/components/skeletons/` |
-| `MyTasksSkeleton` | Layout-matched skeleton for my tasks | `src/components/skeletons/` |
-| `useDelayedLoading` | Hook to prevent skeleton flicker on fast loads | `src/hooks/` |
-| `usePageVisibility` | Hook to detect app minimized/restored | `src/hooks/` |
-| `usePrefetch` | Hook to prefetch query on hover/focus | `src/hooks/` |
+`refetchInterval` on `aio-cycle-summary` and `aio-test-runs`: use `POLL_INTERVAL_MS` (60s) when the user is on the cycle detail route, using the same `useIsActiveRoute` hook pattern already established for sprint board and workload views.
 
-### Suggested Build Order
+### AIO Attachment Auth Flow
 
-1. **Foundation** — Route splitting + error boundaries + bundle analysis (independent, zero risk)
-2. **Cache tuning** — staleTime audit + refetchIntervalInBackground + usePageVisibility
-3. **Loading states** — Skeleton components + useDelayedLoading + progressive data display
-4. **Prefetching** — Hover prefetch on sidebar (depends on staleTime tuning)
-5. **Query optimization** — Sprint board/backlog parallelization + deduplication
-6. **Polish** — Avatar caching + memoization audit (profiler-driven) + dead code elimination
+AIO attachment URLs are served from the Jira host. `AuthImage` already checks `src.startsWith(jiraBaseUrl)` and fetches with Bearer token — no new authenticated fetch mechanism needed for the common deployment case.
 
-## Anti-Patterns
+If AIO is at a different subdomain: one additional `||` condition in `AuthImage.needsAuth`.
 
-### Anti-Pattern 1: Skeleton on isFetching
+---
 
-**What people do:** Show skeleton screens whenever `isFetching` is true, including during background refetches.
-**Why it's wrong:** With stale-while-revalidate, cached data is available. Replacing visible data with a skeleton during a background refresh defeats caching.
-**Do this instead:** Show skeletons only on `isLoading` (no cached data).
+## Route Structure
 
-### Anti-Pattern 2: Aggressive staleTime Without Mutation Audit
+```
+/aio                              AioProjectsPage       (lazy chunk: aio-projects)
+/aio/projects/:projectId          AioProjectDetailPage  (lazy chunk: aio-project-detail)
+/aio/cycles/:projectId/:cycleId   AioCycleDetailPage    (lazy chunk: aio-cycle-detail)
+```
 
-**What people do:** Set `staleTime: Infinity` globally to maximize cache hits.
-**Why it's wrong:** Optimistic mutations rely on invalidation triggering a refetch. High staleTime can suppress the confirming refetch.
-**Do this instead:** Set staleTime per-query. For mutation targets, use `refetchType: 'active'` in invalidation.
+All three use `withLazy(...)` — consistent with all non-dashboard routes in `routes.tsx`.
 
-### Anti-Pattern 3: Code Splitting Everything
+Route naming uses plural resource nouns matching the REST API path segments (`/project/`, `/cycle/`) to make the URL ↔ API mapping obvious.
 
-**What people do:** Wrap every route and component in `React.lazy`.
-**Why it's wrong:** Lightweight routes don't benefit — extra network request overhead exceeds the bundle savings.
-**Do this instead:** Only lazy-load the 6 heaviest routes; keep light routes eager.
+**Breadcrumb trail for AIO:**
+- Navigating `/aio` → `/aio/projects/:id`: push `/aio` as "Test Management" breadcrumb
+- Navigating `/aio/projects/:id` → `/aio/cycles/:p/:c`: push project page as breadcrumb
+- Navigating away from any `/aio/` path: breadcrumb resets
+
+---
+
+## Pinned Tab Extension
+
+### How it works today
+
+`pinnedKeys: string[]` stores Jira issue keys (e.g. `"PROJ-42"`). `AppLayout` runs `useQueries` to resolve each key to `{ summary, issueTypeName }`. `PinnedTabStrip` receives `resolvedIssues: Map<string, ResolvedIssue>` and renders icon + summary for each tab. Tabs are key-agnostic — the `onTabClick` callback routes navigation.
+
+### Extension strategy
+
+**Storage:** No change to `usePinnedTabsStore`. AIO cycle tabs use prefixed keys: `"aio:42:7"` (projectId:cycleId). The store persists them alongside Jira keys transparently.
+
+**Resolution in AppLayout:** `useQueries` maps over `pinnedKeys`. When a key starts with `'aio:'`, the query calls `fetchAioCycleSummary` and maps to `{ summary: cycle.name, typeLabel: 'aio-cycle' }`.
+
+**PinnedTabStrip interface change:** Rename `ResolvedIssue` → `ResolvedTab`, `issueTypeName` → `typeLabel`. Add `'aio-cycle'` case to `TabIcon` (formerly `IssueTypeIcon`). All Jira type cases unchanged.
+
+**Pin action in AioCycleDetailPage:**
+```typescript
+const { togglePin, isPinned } = usePinnedTabsStore();
+const key = `aio:${projectId}:${cycleId}`;
+togglePin(key);
+```
+
+Consistent with how issue detail pages pin Jira keys.
+
+---
+
+## Suggested Build Order
+
+### Phase 1: Service layer + types
+
+Build service modules and types before any UI. Everything downstream depends on correct API shapes.
+
+1. `services/aio/types.ts`
+2. `services/aio/client.ts`
+3. `services/aio/projects.ts`, `cycles.ts`, `runs.ts`, `issue-runs.ts`
+4. `services/aio/index.ts`
+5. Unit tests for each module (mock `apiFetch` with `vi.stubGlobal` — same pattern as `jira/*.test.ts`)
+
+Dependency: none.
+
+### Phase 2: Sidebar nav + routing scaffolding
+
+Wire nav item and empty route stubs. Establishes navigation before content is built.
+
+1. Add `'testing'` section and `'aio-tests'` item to `sidebar-items.ts`
+2. Add `FlaskConical` to `Sidebar.tsx` ICON_MAP
+3. Add three routes to `routes.tsx` (placeholder page components)
+4. Create `routes/aio/` directory with stub files
+5. Update `SidebarItemsList` tests for the new preset entries
+
+Dependency: Phase 1 (service imports in page stubs).
+
+### Phase 3: AIO project list + project detail pages
+
+Build the first two levels of the navigation hierarchy.
+
+1. `AioProjectsPage`: query + render + skeleton + empty/error states
+2. `AioProjectDetailPage`: cycle list + progress display per cycle + skeleton
+3. `AioCycleSkeleton.tsx`
+
+Dependency: Phase 2.
+
+### Phase 4: AIO cycle detail + pinned tab support
+
+Build the deepest view and pinning together — they share the same data shape.
+
+1. `TestRunTable.tsx`: step/expected/actual columns, colored status badges
+2. `AioCycleDetailPage`: two queries, `TestRunTable`, pin button
+3. Extend `PinnedTabStrip`: rename interfaces, add `'aio-cycle'` to `TabIcon`
+4. Extend `AppLayout`: `useQueries` for `aio:` keys, `handleTabClick` dispatcher, `activeTabKey` derivation, breadcrumb guard, `routeLabel`
+5. Tests for updated `PinnedTabStrip` and `handleTabClick` dispatch
+
+Dependency: Phase 3.
+
+### Phase 5: AIO test runs on Jira issue detail
+
+Integrate the test run table into the existing issue detail view.
+
+1. `AioRunsSection.tsx`: query + `TestRunTable` + loading/empty handling
+2. Mount `AioRunsSection` in `IssueDetailPage` below `AttachmentsSection`
+3. Tests for `AioRunsSection`
+
+Dependency: Phase 1 (service), Phase 4 (`TestRunTable` component lives in `routes/aio/`).
+
+### Phase 6: AIO attachment auth verification
+
+Validate that AIO attachment URLs render correctly through `AuthImage` / `WikiRenderer`.
+
+1. Confirm AIO attachment URL prefix matches `jiraBaseUrl` (likely true for on-premise AIO)
+2. If AIO uses a different host: extend `AuthImage` `needsAuth` and add `aioBaseUrl` to `auth.store.ts`
+3. Optionally: add AIO connection card to `ConnectionsSection.tsx` in Settings (only if AIO URL differs from Jira URL)
+
+Dependency: Phase 5 (need real AIO attachment URLs from test runs to verify the auth path).
+
+---
+
+## Component Boundaries Summary
+
+| Component | Owns | Does Not Own |
+|-----------|------|-------------|
+| `AioProjectsPage` | Project list query, empty/error states | Cycle data |
+| `AioProjectDetailPage` | Cycle list query, progress display | Cycle execution data |
+| `AioCycleDetailPage` | Cycle summary + run queries, pin state | Project-level data |
+| `TestRunTable` | Step/expected/actual rendering, status badges | Data fetching |
+| `AioRunsSection` | Issue-runs query, TestRunTable mounting | Issue detail page layout |
+| `PinnedTabStrip` | Tab rendering, drag reorder | Routing decisions (caller owns onClick) |
+| `AppLayout` | Pin key dispatch, query resolution for tabs | Rendering logic |
+
+---
 
 ## Sources
 
-- TanStack Query v5 docs: Prefetching, Important Defaults, Query Invalidation
-- React 19 docs: React.lazy, Suspense, code splitting
-- Tauri 2 docs: plugin-fs, plugin-http, webview asset serving
-- Vite 8 docs: code splitting, rolldown integration
-- Stack/Features/Pitfalls research from this milestone
-
----
-*Architecture research for: Taskflow v1.7 Performance & Perceived Speed*
-*Researched: 2026-03-29*
+- Codebase: `/Users/mimo/Documents/Projects/taskflow/taskflow/src/` — all service, store, route, and component files examined directly
+- Existing patterns: `services/jira/` domain module structure, `PinnedTabStrip.tsx`, `main.tsx` AppLayout, `sidebar-items.ts`, `apiFetch.ts`, `AuthImage.tsx`, `WikiRenderer.tsx`, `stores/auth.store.ts`, `routes/routes.tsx`
+- AIO TCMS API base path (`/rest/aio-tcms/1.0/`) inferred from AIO Test Management for Jira documentation conventions; exact endpoint paths must be confirmed against the live Jira instance before Phase 1 implementation

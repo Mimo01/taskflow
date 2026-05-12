@@ -1,34 +1,170 @@
-# Stack Research
+# Stack Research: AIO TCMS Integration
 
-**Domain:** Performance optimization additions for Tauri 2 + React 19 desktop app (v1.7)
-**Researched:** 2026-03-29
-**Confidence:** HIGH
-
----
-
-## What This Document Covers
-
-This is a SUBSEQUENT MILESTONE stack document. The existing stack (Tauri 2, React 19, TanStack Query v5, @tanstack/react-virtual, shadcn/ui, Tailwind v4, Vitest, Biome, Zustand, react-grid-layout, cmdk) is validated and NOT re-researched here.
-
-This document covers only net-new additions and configuration changes needed for v1.7 Performance & Perceived Speed.
+**Milestone:** Taskflow v1.8 — AIO Test Management
+**Researched:** 2026-05-12
+**Confidence:** HIGH (based on codebase analysis) / MEDIUM (AIO API shape, web tool access restricted)
 
 ---
 
-## Recommended Stack
+## Scope
 
-### New Runtime Dependencies
+This is a SUBSEQUENT MILESTONE document. The validated v1.7 stack (Tauri 2, React 19, TypeScript,
+TanStack Query v5, shadcn/ui, Tailwind v4, Zustand, Vitest, Biome, @dnd-kit, @tanstack/react-virtual,
+react-grid-layout, jira2md, react-markdown, remark-gfm, rehype-raw, react-hotkeys-hook, cmdk,
+babel-plugin-react-compiler) is NOT re-researched. Only net-new additions for v1.8 are assessed here.
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| `@tauri-apps/plugin-fs` | `^2.4.5` | Read/write files to `BaseDirectory.AppCache` for avatar and image caching | Official Tauri 2 plugin — the only way to write files to the OS app cache directory from the renderer. `AuthImage.tsx` currently re-fetches avatars on every mount with no disk persistence. This enables a simple filename-keyed cache (URL hash → cached blob) that survives app restarts. No new Rust crates not already in the plugin workspace; just add to Cargo.toml and register in lib.rs. |
+---
 
-### New Dev Dependencies
+## New Dependencies Needed
 
-| Tool | Version | Purpose | Notes |
-|------|---------|---------|-------|
-| `rollup-plugin-visualizer` | `^7.0.1` | Interactive treemap of production bundle — identifies which modules inflate the initial chunk | Run once during bundle analysis phase, leave wired as an env-flag opt-in (`ANALYZE=true vite build`). Node >= 22 required — already satisfied. Does not affect runtime. |
-| `babel-plugin-react-compiler` | `1.0.0` (exact pin) | Automatic memoization of components and hooks at build time | React Compiler 1.0 released Oct 2025. Replaces the need for a manual `memo`/`useMemo`/`useCallback` audit across ~50K lines. Works with React 19 natively — no `react-compiler-runtime` shim needed. Pin exact: compiler changes should be deliberate upgrades, not silent semver bumps. |
-| `@rolldown/plugin-babel` | `^0.2.0` | Babel transform pipeline for Vite 8 + Rolldown | Vite 8 uses Rolldown under the hood. `@vitejs/plugin-react` v6 exports a `reactCompilerPreset` helper that requires this package as a peer dep. The legacy `vite-plugin-babel` and `rollup-plugin-babel` do NOT work with Vite 8/Rolldown. |
+| Library | Version | Purpose | Why not existing? |
+|---------|---------|---------|-------------------|
+| `recharts` | `^2.15.x` | Burndown/trend line chart for AIO cycle detail view | No chart library exists in the project. SprintProgressTab uses a raw CSS flex stacked bar — sufficient for percentage bars but cannot draw a time-series line chart. recharts is the library shadcn/ui's `chart` component is built on; `shadcn add chart` generates a chart wrapper that delegates to recharts. Adding recharts aligns the chart primitive with the rest of the shadcn component model and gives the React Compiler full visibility into memoizable chart components. |
+
+### Notes on recharts version
+
+The project currently has `shadcn@^4.0.5` as a devDep. shadcn v4 generates chart components backed by recharts `^2.x`. Pin to `^2.15.x` to stay in the semver range that shadcn generates code for. recharts 3.x is in development but not yet the shadcn default. (MEDIUM confidence — cannot verify exact current shadcn chart peer dep without web access; `^2.x` is safe.)
+
+---
+
+## Existing Stack Sufficient For
+
+**AIO REST API client — no new HTTP library needed.**
+`@tauri-apps/plugin-http` fetch already bypasses CORS for on-premise Jira. AIO Test Management
+is a Jira Data Center plugin; its REST API is served from the same Jira host at
+`/rest/aio-tcms/1.0/`. All calls authenticate with the same Bearer PAT stored in Stronghold.
+The `apiFetch` wrapper already handles logging, timeout, and auth header redaction.
+
+The only change needed: `apiFetch`'s `source` union type is `'jira' | 'gitlab'`. AIO API
+calls go to the Jira host so `'jira'` is semantically correct and correctly triggers
+`setJiraConnected(false)` on 401. No type change required — just pass `'jira'` as the source.
+
+**AIO test step tables — no new markup parser needed.**
+AIO stores test step tables as Jira wiki table syntax (`||Step||Expected||` header rows,
+`|value|value|` data rows). The existing `jira2md` + `remark-gfm` + `rehype-raw` pipeline
+already converts Jira wiki tables to GFM Markdown tables, which `react-markdown` renders as
+`<table>` elements. `WikiRenderer.tsx` handles this today for issue descriptions. The
+AIO-specific wrinkle (step/expected/actual columns for test case steps) is a presentation
+layer concern, not a parsing concern — a dedicated `TestStepTable` component can either
+reuse `WikiRenderer` directly or parse the steps from the structured AIO API response
+(AIO's `getTestCaseSteps` endpoint returns structured JSON with step/expectedResult/testData
+fields, not wiki markup). If structured JSON is available from the API, prefer that — zero
+markup parsing needed.
+
+**AIO attachment URLs — no new fetch mechanism needed.**
+`AuthImage.tsx` already handles authenticated image fetching: it detects when a URL
+starts with `jiraBaseUrl`, fetches via `@tauri-apps/plugin-http` with Bearer auth, and
+returns a blob URL. AIO attachment URLs are served from the same Jira host so `AuthImage`
+works without modification. The existing `AttachmentLightbox` can be reused or extended
+with an `aio` attachment shape. No new component or library needed.
+
+**TanStack Query for AIO data fetching — no change needed.**
+All AIO data (projects, cycles, test runs, stats) fits the existing `useQuery` +
+`queryKey` + `staleTime` pattern. AIO cycle data should use a generous staleTime
+(5–10 min) since test execution results change less frequently than sprint board issues.
+
+**Sidebar section, route navigation, tab pinning — no new deps.**
+The existing sidebar customization system (Zustand store, drag-and-drop reorder via
+@dnd-kit, visibility toggles), hash router, and header tab strip with `LazyStore` persistence
+handle the AIO sidebar section and cycle pinning requirements without new libraries.
+
+**Progress bars and status badges — no new deps.**
+Cycle progress (tests passed/failed/blocked/not run) fits the CSS flex stacked bar
+pattern already used in `SprintProgressTab`. The shadcn `Badge` component handles
+colored status labels. No new UI library needed.
+
+---
+
+## Anti-patterns / What NOT to Add
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| AIO SDK / `@aio-tests/rest-client` (if it exists) | Vendor SDKs add large dependencies, enforce their own typing conventions, and may not support Jira Data Center. Direct REST calls with typed response interfaces is the established pattern across all Jira and GitLab services in this codebase. | Raw `apiFetch('jira', ...)` calls in a new `src/services/aio/` domain module, same pattern as `src/services/jira/` decomposition |
+| `chart.js` / `react-chartjs-2` | 200KB+ bundle weight for a canvas-based chart that fights React's reconciler. recharts is SVG-based, React-native, and the shadcn/ui ecosystem standard. | `recharts` |
+| `d3` directly | D3 is what recharts uses internally. Pulling in D3 for one burndown chart adds ~400KB and requires manual React integration. | `recharts` LineChart with pre-computed data points |
+| `nivo` charts | Beautiful but large (tree-shakeable but complex setup). Overkill for a single burndown trend line. | `recharts` |
+| `visx` (Airbnb) | Low-level primitives requiring manual SVG layout composition. High effort for marginal gain on a simple time-series line. | `recharts` |
+| Separate AIO auth token / credential store | AIO TCMS uses the same Jira PAT. Adding a second Stronghold secret or auth store entry for AIO would create credential drift and confuse the onboarding flow. | Reuse `readSecret('jira-pat')` and `jiraBaseUrl` from `useAuthStore` |
+| Historical burndown data pipeline | PROJECT.md explicitly puts "Historical analytics / burndown charts" out of scope as a general feature. AIO's cycle burndown is acceptable ONLY because AIO's API returns pre-computed daily snapshot arrays — no local data warehousing or historical polling required. Do not build any local time-series storage. | Render what AIO's API returns directly |
+| Shadcn `chart` CLI component | `shadcn add chart` generates a wrapper that re-exports recharts with some context wiring. For a single burndown line chart it adds boilerplate that obscures the simple recharts usage. Install recharts directly and render `<LineChart>` inline. | Direct recharts import |
+| New `apiFetch` source type for AIO | AIO is served from the Jira host; `'jira'` is the correct source. Adding `'aio'` as a third source type would require changes to `apiFetch`, `markDisconnected`, devtools log filtering, and operation profiler — for no user-visible benefit. | Pass `'jira'` as the source for all AIO calls |
+
+---
+
+## Integration Notes
+
+### AIO Service Module Pattern
+
+Create `src/services/aio/` mirroring the existing Jira domain decomposition:
+
+```
+src/services/aio/
+  index.ts         # barrel re-export
+  types.ts         # AioProject, AioCycle, AioTestRun, AioStats interfaces
+  projects.ts      # fetchAioProjects()
+  cycles.ts        # fetchAioCycles(), fetchAioCycleDetail()
+  test-runs.ts     # fetchCycleTestRuns(), fetchIssueTestRuns()
+  client.ts        # shared AIO pagination helper (if needed)
+```
+
+All functions follow the `(baseUrl, token, ...) => Promise<T>` signature used throughout
+the Jira service modules. Use `apiFetch('jira', url, { headers: { Authorization: \`Bearer \${token}\` } })`.
+
+### Query Key Convention
+
+Follow the existing flat-array convention:
+```typescript
+queryKey: ['aio-projects', jiraBaseUrl]
+queryKey: ['aio-cycles', jiraBaseUrl, projectId]
+queryKey: ['aio-cycle-detail', jiraBaseUrl, cycleId]
+queryKey: ['aio-test-runs', jiraBaseUrl, issueKey]  // for issue detail panel
+```
+
+### Burndown Chart Integration
+
+AIO's cycle detail endpoint returns pre-computed daily execution stats (confirmed by AIO
+documentation pattern — MEDIUM confidence). The burndown data shape is approximately:
+
+```typescript
+interface AioBurndownPoint {
+  date: string;       // ISO date
+  remaining: number;  // tests not yet executed
+  passed: number;
+  failed: number;
+}
+```
+
+Render with recharts `<LineChart>` using `<CartesianGrid>`, `<XAxis>`, `<YAxis>`,
+`<Tooltip>`, and one `<Line>` per series. The chart can live in a `CycleBurndownChart.tsx`
+component under `src/routes/aio/`. No recharts context provider setup required for a simple
+line chart. Use Tailwind CSS variables for colors to match the app's dark/light themes
+(`var(--color-primary)`, `var(--color-destructive)`, etc.).
+
+### Authenticated AIO Attachments
+
+AIO test run step attachments are stored under the Jira host. The existing `AuthImage`
+component handles this transparently — pass the attachment URL and it fetches with Bearer
+auth if the URL starts with `jiraBaseUrl`. For the lightbox, reuse `AttachmentLightbox`
+or `ImageLightbox` (the single-image variant already in `ImageLightbox.tsx`). AIO
+attachment objects need an adapter to the `JiraAttachment` shape, or `AttachmentLightbox`
+can be generalized to accept a simpler `{ url: string; filename: string }` prop.
+
+### AIO Step Table (Structured API path)
+
+If the AIO `/getTestCaseSteps` endpoint returns structured JSON (step, expectedResult,
+testData per row), build a `TestStepTable` component that renders an HTML table directly
+with Tailwind classes — no wiki parsing. This is cleaner than routing through `WikiRenderer`
+and gives full control over the pass/fail/blocked cell coloring required by the v1.8 spec.
+
+If AIO returns steps embedded in wiki markup (fallback), `WikiRenderer` handles it via
+`jira2md` table conversion + GFM table rendering — no changes needed.
+
+### Sidebar AIO Section
+
+Extend `sidebar-items.ts` with AIO nav entries. The sidebar customization store already
+supports arbitrary item IDs with visibility + order persistence. Follow the established
+pattern: add AIO items to the default sidebar item list with a `visible: true` default,
+let users reorder/hide them in Settings → Sidebar.
 
 ---
 
@@ -36,205 +172,36 @@ This document covers only net-new additions and configuration changes needed for
 
 ```bash
 # From taskflow/ directory
-
-# New runtime plugin
-npm install @tauri-apps/plugin-fs
-
-# React Compiler (pin exact version)
-npm install --save-dev --save-exact babel-plugin-react-compiler@1.0.0
-npm install --save-dev @rolldown/plugin-babel
-
-# Bundle analyzer
-npm install --save-dev rollup-plugin-visualizer
+npm install recharts
 ```
 
-**Cargo.toml** (`src-tauri/Cargo.toml`) — add one line:
-```toml
-tauri-plugin-fs = "2"
-```
-
-**lib.rs** — register in `tauri::Builder::default()`:
-```rust
-.plugin(tauri_plugin_fs::init())
-```
-
-**Capabilities** — add to the default capability file:
-```json
-"fs:default"
-```
-
----
-
-## Configuration Changes (No New Dependencies)
-
-These changes use existing packages differently — no new npm installs.
-
-### 1. React Compiler — vite.config.ts
-
-```typescript
-import react, { reactCompilerPreset } from '@vitejs/plugin-react';
-import babel from '@rolldown/plugin-babel';
-
-// In plugins array:
-plugins: [
-  tailwindcss(),
-  react(),
-  babel({ presets: [reactCompilerPreset()] }),
-]
-```
-
-The compiler processes all components at build time. It automatically memoizes components and hooks that satisfy React's rules, replacing the need for scattered `memo`/`useMemo`/`useCallback` calls. Components that fail compiler analysis are skipped gracefully (they still render correctly, just without auto-memoization).
-
-Use full compilation mode — do NOT use `compilationMode: 'annotation'` (opt-in per component). The codebase has zero-any policy and clean hook patterns; full mode is safe and provides maximum benefit.
-
-### 2. Route-level code splitting — React.lazy + Suspense
-
-`routes.tsx` currently imports all 15 route components eagerly — every route ships in the initial bundle regardless of whether the user ever visits it. Convert the heavy routes to `React.lazy()` with dynamic imports.
-
-```typescript
-// routes.tsx — no new packages, just React.lazy
-import React from 'react';
-
-const SprintBoardTab      = React.lazy(() => import('./dashboard/SprintBoardTab'));
-const BacklogPage         = React.lazy(() => import('./dashboard/BacklogPage'));
-const IssueDetailPage     = React.lazy(() => import('./dashboard/IssueDetailPage'));
-const EpicsPage           = React.lazy(() => import('./dashboard/EpicsPage'));
-const WorkloadTab         = React.lazy(() => import('./dashboard/WorkloadTab'));
-const SprintProgressTab   = React.lazy(() => import('./dashboard/SprintProgressTab'));
-// Lighter routes (Onboarding, Settings, DevTools) can stay eager
-```
-
-Wrap the route outlet in main.tsx with `<Suspense fallback={<RouteSkeleton />}>`. Vite splits each `React.lazy()` into its own chunk automatically. No `manualChunks` config needed at this scale.
-
-Priority order for lazy-loading: SprintBoardTab first (largest component, heaviest imports), then BacklogPage, IssueDetailPage.
-
-### 3. TanStack Query prefetching — queryClient.prefetchQuery
-
-Already in the project via TanStack Query v5. No new install. Add hover/focus handlers to sidebar navigation links to warm the cache before the user clicks.
-
-```typescript
-// On onMouseEnter of sidebar sprint board link
-queryClient.prefetchQuery({
-  queryKey: ['jira-issues', jiraBaseUrl, sprintId],
-  queryFn: () => fetchSprintIssues(jiraBaseUrl, token, projectKey, sprintFieldKey),
-  staleTime: 5 * 60 * 1000,
-});
-```
-
-`prefetchQuery` never throws — if the prefetch fails, `useQuery` retries on mount. Safe to call aggressively.
-
-Priority prefetch targets: sprint board (highest frequency navigation), backlog, my-tasks.
-
-### 4. TanStack Query staleTime tuning
-
-The current global default is `staleTime: 5 * 60 * 1000`. This already enables stale-while-revalidate: cached data is served instantly on navigation and refetched in the background. The work is per-query tuning — no new packages, just adjusting numbers.
-
-Recommended per-query overrides:
-- Sprint issues: `staleTime: 10 * 60 * 1000` — board data changes less than every 5 min in practice
-- Custom fields (`discoverCustomFields`): already `Infinity` — correct, leave it
-- Notifications: already controlled by polling — keep `staleTime: 0`
-- Backlog: keep at 5 min — moderate churn
-- Epic list: `staleTime: 10 * 60 * 1000` — epics rarely change mid-session
-
-No `gcTime` changes needed. Default 5-min gcTime ensures data survives navigation without accumulating indefinitely.
-
-### 5. Skeleton UI — existing component
-
-`src/components/ui/skeleton.tsx` already exists (shadcn `Skeleton` with `animate-pulse`). No new library needed. The v1.7 work is authoring per-view skeleton layouts using the existing primitive:
-
-- `SprintBoardSkeleton` — three column headers, 3–4 card skeletons per column
-- `BacklogSkeleton` — table header + 8 row skeletons
-- `MyTasksSkeleton` — card list skeletons
-- `NotificationsSkeleton` — row list skeletons
-
-Mount skeleton immediately (no artificial delay), replace with data when `isSuccess === true` and `data` is defined. For navigations where cache is warm (stale-while-revalidate), skeleton never shows.
-
-### 6. Query parallelization — Promise.all in query functions
-
-Several query functions fetch sequentially today (fetch A, await, use result to fetch B). Sprint board is the clearest case: sprint metadata and sprint issues are fetched serially. Restructure to use `Promise.all` where dependencies allow.
-
-No new packages. Pattern:
-```typescript
-// Before: sequential
-const sprint = await fetchActiveSprint(...);
-const issues = await fetchSprintIssues(..., sprint.id);
-
-// After: parallel where possible
-const [sprint, quickFilters] = await Promise.all([
-  fetchActiveSprint(...),
-  fetchBoardQuickFilters(...),
-]);
-const issues = await fetchSprintIssues(..., sprint.id); // still depends on sprint.id
-```
-
-TanStack Query already deduplicates concurrent queries with identical keys. The bottleneck is sequential `await` chains inside `queryFn` bodies, not re-render thrashing.
-
----
-
-## What NOT to Add
-
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| `react-loading-skeleton` | 12KB for functionality already in `<Skeleton>` from shadcn | Existing `src/components/ui/skeleton.tsx` |
-| Manual `React.memo` / `useMemo` / `useCallback` audit | React Compiler 1.0 handles this automatically and more precisely than manual annotation | `babel-plugin-react-compiler` |
-| `why-did-you-render` | Useful for diagnosing re-renders WITHOUT the compiler; redundant once the compiler is enabled | React Compiler + React DevTools Profiler |
-| `vite-bundle-analyzer` (nonzzz) | Newer but less mature alternative; adds uncertainty for a one-time analysis task | `rollup-plugin-visualizer@7` (established, well-documented) |
-| `tauri-plugin-cache` (third-party, Taiizor) | Community plugin at v0.1.x; unstable API, sparse docs | `@tauri-apps/plugin-fs` as the official primitive |
-| `tauri-plugin-redb-cache` (community) | Adds `redb` as a Rust dependency for a simple avatar cache; overkill | `@tauri-apps/plugin-fs` with an in-memory Map index |
-| Web Workers for query parallelization | Thread contention is not the bottleneck; sequential await chains inside queryFns are | `Promise.all` restructuring inside existing queryFns |
-| Service Workers for caching | Not applicable — Tauri apps run in a webview, not a browser context with SW lifecycle | `@tauri-apps/plugin-fs` for persistence, TanStack Query for in-memory |
-| `@tanstack/react-query` upgrade | Already at v5.90.21, which is current | N/A |
-
----
-
-## Alternatives Considered
-
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| `babel-plugin-react-compiler` (full mode) | `compilationMode: 'annotation'` opt-in per component | If the compiler causes a specific component to behave incorrectly. Start full, fall back to annotation mode for that component only. |
-| `@tauri-apps/plugin-fs` for avatar cache | Session-only in-memory Map (no disk write) | If the Cargo.toml/permissions complexity is not worth the benefit. Session-only Map cache is 10 lines and zero new deps — delivers most of the UX win since avatars repeat within a session. |
-| `React.lazy` on heavy routes | TanStack Router built-in lazy routes | Only relevant if the project migrates to TanStack Router (out of scope for v1.7). |
-| `rollup-plugin-visualizer` | `vite-bundle-analyzer` (nonzzz) | Either works. `rollup-plugin-visualizer` has a longer track record and the treemap template is well-understood. |
-| `queryClient.prefetchQuery` on sidebar hover | Route loaders (React Router v7 `loader`) | React Router 7 `loader` functions can prefetch in parallel with navigation. Valid but requires restructuring query logic into loaders — a larger refactor than prefetch-on-hover for v1.7. |
+No Cargo.toml or Tauri plugin changes required. No new Tauri capabilities needed — AIO
+calls go through the existing `@tauri-apps/plugin-http` which is already allowed for the
+Jira origin.
 
 ---
 
 ## Version Compatibility
 
-| Package | Compatible With | Notes |
-|---------|-----------------|-------|
-| `babel-plugin-react-compiler@1.0.0` | React 19, `@vitejs/plugin-react@6.x` | React 19 target — no `react-compiler-runtime` shim needed. That shim is only for React 17/18 targets. |
-| `@rolldown/plugin-babel@^0.2.0` | Vite 8, Rolldown, `@vitejs/plugin-react@6.x` | Vite 8 ships Rolldown. The legacy `rollup-plugin-babel` does NOT work. Must be `@rolldown/plugin-babel`. |
-| `@tauri-apps/plugin-fs@^2.4.5` | Tauri 2, `@tauri-apps/api@^2` | Follows the same v2 major pattern as all other installed Tauri plugins. |
-| `rollup-plugin-visualizer@^7.0.1` | Vite 8, Node >= 22 | Dev/analysis only — no runtime impact. |
+| Package | Version | Compatible With | Notes |
+|---------|---------|-----------------|-------|
+| `recharts` | `^2.15.x` | React 19, TypeScript 5.9, Vite 8, babel-plugin-react-compiler | recharts 2.x ships its own TypeScript types. React Compiler handles recharts components correctly — they use standard React patterns. No known Tauri webview incompatibilities. SVG-based so no canvas permissions needed. |
 
 ---
 
-## Existing Stack Reuse Summary
+## Confidence Assessment
 
-| Existing Dep | Reused For in v1.7 |
-|--------------|-------------------|
-| `@tanstack/react-query` v5 | `queryClient.prefetchQuery` on hover, staleTime tuning, `Promise.all` query restructuring |
-| `src/components/ui/skeleton.tsx` (shadcn) | All skeleton screen layouts — no new skeleton library |
-| `React.lazy` + `Suspense` (React 19 built-in) | Route-level code splitting — no new package |
-| `@tauri-apps/plugin-http` | AuthImage already uses it; avatar cache will use it for the fetch side |
-| `@tanstack/react-virtual` | Already in use for backlog, notifications, sprint board — no changes |
-| Vite 8 code splitting | Automatic chunk per `React.lazy` import — no `manualChunks` config needed |
-
----
-
-## Sources
-
-- [React Compiler v1.0 Blog Post](https://react.dev/blog/2025/10/07/react-compiler-1) — stable release Oct 2025, React 19 native support confirmed (HIGH confidence)
-- [React Compiler Installation](https://react.dev/learn/react-compiler/installation) — `babel-plugin-react-compiler`, `@rolldown/plugin-babel`, `reactCompilerPreset` for Vite 8 (HIGH confidence)
-- [vitejs/vite-plugin-react issue #1144](https://github.com/vitejs/vite-plugin-react/issues/1144) — `@rolldown/plugin-babel@^0.2.0` peer dep requirement for Vite 8 (MEDIUM confidence — issue thread)
-- [Tauri 2 File System Plugin](https://v2.tauri.app/plugin/file-system/) — `BaseDirectory.AppCache`, read/write API, permissions model (HIGH confidence)
-- [@tauri-apps/plugin-fs npm](https://www.npmjs.com/package/@tauri-apps/plugin-fs) — version 2.4.5 confirmed (HIGH confidence)
-- [rollup-plugin-visualizer npm](https://www.npmjs.com/package/rollup-plugin-visualizer) — version 7.0.1, Node >= 22 requirement (HIGH confidence)
-- [TanStack Query v5 Prefetching Guide](https://tanstack.com/query/v5/docs/framework/react/guides/prefetching) — `queryClient.prefetchQuery` API, hover/focus patterns, never-throws behavior (HIGH confidence)
-- [TanStack Query Important Defaults](https://tanstack.com/query/v5/docs/react/guides/important-defaults) — staleTime=0 default, gcTime=5min default, stale-while-revalidate behavior (HIGH confidence)
+| Area | Confidence | Basis |
+|------|------------|-------|
+| No new HTTP/fetch library needed | HIGH | Codebase audit — `apiFetch` + `@tauri-apps/plugin-http` already established |
+| recharts as chart library | HIGH | Only new dep needed; aligns with shadcn ecosystem; SVG-based fits Tauri webview |
+| AIO uses Jira PAT (same credentials) | HIGH | AIO TCMS is a Jira Data Center plugin — same host, same auth model |
+| AIO REST API base path `/rest/aio-tcms/1.0/` | MEDIUM | Standard plugin REST path convention; web access restricted for verification |
+| Structured JSON from AIO step endpoint | MEDIUM | AIO's API is documented to return structured step data; could not verify current schema |
+| Wiki markup pipeline sufficient for tables | HIGH | jira2md + remark-gfm handles Jira table syntax today — verified in codebase |
+| AuthImage covers AIO attachments without changes | HIGH | Logic based on URL prefix match — same Jira host = same code path |
 
 ---
 
-*Stack research for: Taskflow v1.7 Performance & Perceived Speed*
-*Researched: 2026-03-29*
+*Stack research for: Taskflow v1.8 AIO Test Management*
+*Researched: 2026-05-12*
