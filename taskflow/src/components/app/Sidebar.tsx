@@ -14,6 +14,7 @@ import {
   CheckSquare,
   ChevronLeft,
   ChevronRight,
+  FlaskConical,
   GitMerge,
   KanbanSquare,
   LayoutDashboard,
@@ -48,6 +49,7 @@ const ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {
   KanbanSquare,
   List,
   BookOpen,
+  FlaskConical,
   GitMerge,
   BarChart2,
   Users,
@@ -65,7 +67,7 @@ function navLinkClassFn(collapsed: boolean) {
 const PREFETCH_ROUTES = new Set(['/dashboard', '/my-tasks', '/sprint-board', '/backlog', '/epics']);
 
 export default function Sidebar() {
-  const { devToolsEnabled, sidebarItems } = useSettingsStore();
+  const { devToolsEnabled, sidebarItems, aioEnabled } = useSettingsStore();
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);
   const toggleSidebarCollapsed = useSettingsStore((s) => s.toggleSidebarCollapsed);
   const sidebarWidth = useSettingsStore((s) => s.sidebarWidth);
@@ -268,7 +270,12 @@ export default function Sidebar() {
   // Group visible nav items by section
   const sectionedItems = SIDEBAR_SECTIONS.map((section) => ({
     ...section,
-    items: SIDEBAR_NAV_ITEMS.filter((nav) => nav.section === section.id && visibleIds.has(nav.id)),
+    items: SIDEBAR_NAV_ITEMS.filter(
+      (nav) =>
+        nav.section === section.id &&
+        visibleIds.has(nav.id) &&
+        !(nav.section === 'testing' && !aioEnabled),
+    ),
   })).filter((section) => section.items.length > 0);
 
   return (
