@@ -178,6 +178,11 @@ interface SettingsState {
   applyPreset: (preset: 'dev' | 'pm') => void;
 }
 
+function appendAioItemIfMissing(items: SidebarItem[]): SidebarItem[] {
+  if (items.some((i) => i.id === 'aio-projects')) return items;
+  return [...items, { id: 'aio-projects', visible: true }];
+}
+
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
@@ -357,7 +362,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 15,
+      version: 16,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -427,6 +432,11 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 15) {
           if (s.aioEnabled === undefined) s.aioEnabled = false;
+        }
+        if (version < 16) {
+          if (Array.isArray(s.sidebarItems)) {
+            s.sidebarItems = appendAioItemIfMissing(s.sidebarItems as SidebarItem[]);
+          }
         }
         return persisted as SettingsState;
       },
