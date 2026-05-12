@@ -95,26 +95,28 @@ describe('Sidebar — aioEnabled gate', () => {
   it('AION-01: Testing section is visible when aioEnabled is true', async () => {
     renderSidebar(true);
     const { default: Sidebar } = await import('./Sidebar');
-    render(
+    const { getByText } = render(
       <QueryClientProvider client={makeClient()}>
         <MemoryRouter>
           <Sidebar />
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    expect(true).toBe(false);
+    expect(getByText('Testing')).toBeDefined();
+    expect(getByText('AIO Projects')).toBeDefined();
   });
 
   it('AION-01: Testing section is absent when aioEnabled is false', async () => {
     renderSidebar(false);
     const { default: Sidebar } = await import('./Sidebar');
-    render(
+    const { queryByText } = render(
       <QueryClientProvider client={makeClient()}>
         <MemoryRouter>
           <Sidebar />
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    expect(true).toBe(false);
+    expect(queryByText('Testing')).toBeNull();
+    expect(queryByText('AIO Projects')).toBeNull();
   });
 });
