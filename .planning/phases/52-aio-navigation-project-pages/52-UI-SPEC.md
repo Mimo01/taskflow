@@ -60,11 +60,13 @@ Tokens from `index.css` `@theme inline` block. All body text uses Geist Variable
 | Role | Size | Weight | Line Height | Usage in This Phase |
 |------|------|--------|-------------|---------------------|
 | Body | 14px (`text-sm`) | 400 (regular) | 1.5 | Table cell content, nav item labels, badge text |
-| Label | 12px (`text-xs`) | 500 (medium) | 1.4 | Table header labels, muted sub-text, project key monospace labels |
+| Label | 12px (`text-xs`) | 400 (regular) | 1.4 | Table header labels, muted sub-text, project key monospace labels |
 | Heading | 20px (`text-xl`) | 600 (semibold) | 1.2 | Page-level `<h1>` titles ("AIO Projects", "AIO Cycles — {project name}") |
 | Monospace | 12px (`text-xs font-mono`) | 400 (regular) | 1.4 | Cycle key column (e.g. "PROJ-CY-2"), project key badge |
 
-Source: EpicsPage.tsx observed usage (`text-xl font-semibold` heading, `text-sm` rows, `text-xs font-medium text-muted-foreground` headers, `text-xs font-mono` key column).
+Two weights only: 400 (regular) for Body/Label/Monospace and 600 (semibold) for Heading. The `--muted-foreground` color token provides sufficient visual separation for table header labels without requiring a distinct weight.
+
+Source: EpicsPage.tsx observed usage (`text-xl font-semibold` heading, `text-sm` rows, `text-xs text-muted-foreground` headers, `text-xs font-mono` key column).
 
 ---
 
@@ -191,7 +193,7 @@ The new sidebar section follows the existing pattern exactly:
 
 ```
 [separator line — same border-border style as between existing sections]
-TESTING (section label — text-xs font-medium text-muted-foreground px-3 mb-1)
+TESTING (section label — text-xs text-muted-foreground px-3 mb-1)
   [FlaskConical icon] AIO Projects     ← nav item
 ```
 
