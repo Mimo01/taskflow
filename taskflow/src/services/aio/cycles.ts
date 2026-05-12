@@ -44,7 +44,7 @@ export async function fetchAioCycles(
         return data; // Direct array — no pagination
       }
       allCycles.push(...(data.items ?? []));
-      if (data.isLast) return allCycles;
+      if (data.isLast || data.maxResults <= 0) return allCycles;
       startAt += data.maxResults;
       continue;
     }
