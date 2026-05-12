@@ -1,7 +1,8 @@
 ---
 phase: 51
 slug: aio-service-layer
-status: draft
+status: approved
+reviewed_at: 2026-05-12
 shadcn_initialized: true
 preset: base-nova / neutral / css-variables
 created: 2026-05-12
