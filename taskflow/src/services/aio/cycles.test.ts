@@ -26,7 +26,8 @@ describe('fetchAioCycles', () => {
         isLast: true,
       }),
     } as unknown as Response);
-    expect(true).toBe(false);
+    const result = await fetchAioCycles(BASE, TOKEN, PROJECT_KEY);
+    expect(result).toEqual([{ key: 'PROJ-CY-2', name: 'Sprint 1', status: 'Active', projectKey: 'PROJ' }]);
   });
 
   it('accumulates items across multiple pages until isLast is true', async () => {
@@ -49,21 +50,28 @@ describe('fetchAioCycles', () => {
           isLast: true,
         }),
       } as unknown as Response);
-    expect(true).toBe(false);
+    const result = await fetchAioCycles(BASE, TOKEN, PROJECT_KEY);
+    expect(result).toHaveLength(2);
+    expect(result[0].key).toBe('PROJ-CY-1');
+    expect(result[1].key).toBe('PROJ-CY-2');
   });
 
   it('throws ApiError with source "jira" on 401', async () => {
     mockedApiFetch.mockResolvedValue({ ok: false, status: 401 } as unknown as Response);
-    expect(true).toBe(false);
+    await expect(fetchAioCycles(BASE, TOKEN, PROJECT_KEY)).rejects.toMatchObject({
+      status: 401,
+      source: 'jira',
+    });
   });
 
   it('returns empty array on 404 (project not found or no cycles)', async () => {
     mockedApiFetch.mockResolvedValue({ ok: false, status: 404 } as unknown as Response);
-    expect(true).toBe(false);
+    const result = await fetchAioCycles(BASE, TOKEN, PROJECT_KEY);
+    expect(result).toEqual([]);
   });
 
   it('throws "Cannot reach AIO" on network error (aioFetch throws)', async () => {
     mockedApiFetch.mockRejectedValue(new Error('timeout'));
-    expect(true).toBe(false);
+    await expect(fetchAioCycles(BASE, TOKEN, PROJECT_KEY)).rejects.toThrow('Cannot reach AIO at');
   });
 });
