@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FlaskConical } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { NavLink, useParams } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
@@ -85,7 +85,12 @@ export default function AioProjectOverviewPage() {
                         {cycle.key}
                       </td>
                       <td className="px-4 py-3">
-                        {cycle.name}
+                        <NavLink
+                          to={`/aio-cycle/${projectKey}/${cycle.key}`}
+                          className="hover:underline"
+                        >
+                          {cycle.name}
+                        </NavLink>
                       </td>
                       <td className="px-3 py-3">
                         <span
