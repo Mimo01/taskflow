@@ -45,11 +45,11 @@ Declared values (must be multiples of 4). All values inherit from existing page 
 
 Exceptions:
 - Page header vertical: `py-4` (16px) — matches EpicsPage.tsx pattern
-- Table cell vertical: `py-3` (12px) — matches EpicsPage.tsx row pattern
-- Table cell horizontal: `px-3` or `px-4` (12px / 16px) — matches EpicsPage.tsx column pattern
 - Skeleton padding: `p-4` (16px) around rows — matches EpicsSkeleton.tsx pattern
 - Skeleton row height: `h-10` (40px) — matches EpicsSkeleton.tsx pattern
 - Nav link vertical: `py-2` with `density-compact:py-1` and `density-comfortable:py-3` — matches Sidebar.tsx NAV_LINK_BASE
+
+Note on table cell padding: EpicsPage.tsx uses `py-3` (12px) and `px-3` (12px) on table cells. These values are inherited from the mirrored EpicsPage.tsx component and are not new spacing decisions made for this phase. They exist in the codebase as pre-existing Tailwind utilities and are used here by mirror convention only.
 
 ---
 
@@ -223,6 +223,8 @@ Visibility rule: entire "Testing" section hidden when `aioEnabled === false`. Wh
 | Table header: cycle status | "Status" | Matches EpicsPage.tsx "Status" column |
 
 Destructive actions: none in this phase. No confirmation dialogs required.
+
+Note on "Retry" CTA: The "Retry" label appearing in the error state rows above is rendered by the shared `<ErrorState>` component — it is component-internal copy, not a new CTA introduced by this phase. Phase 52 passes `viewName` to `<ErrorState>` and does not control the button label directly.
 
 ---
 
