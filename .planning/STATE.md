@@ -2,7 +2,7 @@
 gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: AIO Test Management
-status: planning
+status: executing
 stopped_at: —
 last_updated: "2026-05-12T00:00:00.000Z"
 last_activity: 2026-05-12
@@ -10,7 +10,7 @@ progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 3
-  completed_plans: 0
+  completed_plans: 2
 ---
 
 # Project State
@@ -25,11 +25,11 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 ## Current Position
 
 Phase: 51 of 54 (AIO Service Layer)
-Plan: — of 3 in current phase
-Status: Ready to execute
-Last activity: 2026-05-12 — Phase 51 planned (3 plans in 2 waves)
+Plan: 3 of 3 in current phase
+Status: Executing — Wave 2
+Last activity: 2026-05-12 — Phase 51 Plan 02 complete (settings aioEnabled toggle + IntegrationsSection)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 20%
 
 ## Performance Metrics
 
@@ -59,6 +59,8 @@ Recent decisions affecting current work:
 - AIO project ID (not Jira project key) resolved at session start and cached in auth store
 - Full-page routes only for AIO pages (no sheets) — matches existing Key Decision from v1.3
 - `aio:projectId:cycleId` pinned key format; `PinnedTabStrip` needs `ResolvedIssue` → `ResolvedTab` rename
+- aioEnabled defaults to false — no AIO calls fired for users without AIO installed (Plan 02, D-04)
+- settings.store.ts version bumped 14 → 15 with migration guard; both version field and guard required (Plan 02, T-51S-01)
 
 ### Pending Todos
 
@@ -87,4 +89,4 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-05-12 — Phase 51 planned. 3 plans (51-01 probe, 51-02 settings toggle, 51-03 AIO service module) in 2 waves. Ready to execute Phase 51.
+Last activity: 2026-05-12 — Phase 51 Plan 02 complete. aioEnabled toggle (v14→v15 migration) + IntegrationsSection wired into Settings sidebar. 52/52 tests pass. Plan 03 (AIO service module) remaining.
