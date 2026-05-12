@@ -55,9 +55,11 @@ Exceptions: Settings content area uses `py-8 px-6` (32px / 24px) — matches exi
 
 Source: WorkflowSection.tsx and Settings.tsx observed patterns.
 
+Two weights only: `font-medium` (500) for body and labels, `font-semibold` (600) for headings.
+
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
-| Body | 14px (text-sm) | 400 (font-medium maps to 500 on labels) | 1.5 |
+| Body | 14px (text-sm) | 500 (font-medium) | 1.5 |
 | Label | 14px (text-sm) | 500 (font-medium) | 1.5 |
 | Subsection heading | 12px (text-xs) | 600 (font-semibold) | 1.4 |
 | Section heading | 18px (text-lg) | 600 (font-semibold) | 1.2 |
@@ -80,6 +82,8 @@ Source: src/index.css CSS custom properties. Phase 51 introduces no new colors.
 Accent reserved for: active Settings sidebar nav item (`bg-accent text-accent-foreground`). The checkbox uses `accent-primary` for the browser-native check color — this is not the shadcn `--accent` token.
 
 Toggle checkbox color: `accent-primary` (CSS `accent-color` property pointing to `--primary`).
+
+**Focal point:** The "Enable AIO Test Management" toggle row is the primary visual anchor of the Integrations section. It must be the first and only interactive element visible when the Integrations nav item is selected.
 
 ---
 
