@@ -28,3 +28,13 @@ export function statusCategoryBadgeClass(categoryKey: string | undefined): strin
 export function statusCategoryDotClass(categoryKey: string | undefined): string {
   return DOT_STYLES[categoryKey ?? 'new'] ?? DOT_STYLES.new;
 }
+
+const AIO_CYCLE_BADGE_STYLES: Record<string, string> = {
+  Active: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
+  Closed: 'bg-muted text-muted-foreground',
+};
+
+/** Tailwind classes for an AIO cycle status badge given a capitalized status string (e.g. "Active", "Closed") */
+export function aioCycleStatusBadgeClass(status: string): string {
+  return AIO_CYCLE_BADGE_STYLES[status] ?? 'bg-muted text-muted-foreground';
+}
