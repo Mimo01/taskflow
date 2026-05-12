@@ -576,17 +576,11 @@ No new test infrastructure required — vitest, jsdom, @testing-library/react, a
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Actual AIO response shapes**
-   - What we know: AIO TCMS has `/project` and `/testrun?issueKey=` endpoints.
-   - What's unclear: Exact field names in JSON responses (id, name, key? projectId? runId?).
-   - Recommendation: Probe includes full response body capture (see curl commands above). TypeScript interfaces in `types.ts` are drafted from probe output, not assumed.
+1. **Actual AIO response shapes** — RESOLVED: Deferred to curl probe. `types.ts` interfaces are drafted from D-16/D-17 probe output recorded in CONTEXT.md; if probe data is incomplete, fields carry `// [ASSUMED]` markers pending probe confirmation. The plan deliberately handles this deferral — types are the last file created in Plan 03.
 
-2. **Settings SECTIONS position note**
-   - What we know: CONTEXT.md says "5th entry after Connections, Appearance, Notifications, Workflow". But live Settings.tsx has 7 sections; 'integrations' after 'workflow' is actually 6th.
-   - What's unclear: Whether D-05 means "after Workflow" (positional) or "5th" (ordinal).
-   - Recommendation: Follow the positional rule ("after workflow, before updates"). The live SECTIONS array is the truth.
+2. **Settings SECTIONS position note** — RESOLVED: Positional rule — insert 'integrations' after 'workflow', before 'updates' (6th entry in the live SECTIONS array). Live `Settings.tsx` SECTIONS array is the truth; D-05's "5th entry" was counted against a shorter list and is superseded by the live code observation.
 
 ---
 
