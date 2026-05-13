@@ -64,4 +64,21 @@ describe('pinned-tabs.store', () => {
     });
     expect(usePinnedTabsStore.getState().pinnedKeys).toEqual(['B', 'A', 'C']);
   });
+
+  describe('cycle metadata actions', () => {
+    beforeEach(() => {
+      act(() => {
+        usePinnedTabsStore.setState({ pinnedCycleMeta: {} } as Parameters<typeof usePinnedTabsStore.setState>[0]);
+      });
+    });
+
+    it.todo('setPinnedCycleMeta stores {name, projectKey} under the cycle key in pinnedCycleMeta');
+    it.todo('clearCycleMeta removes the entry for a given key from pinnedCycleMeta');
+    it.todo('pinnedCycleMeta defaults to empty object on fresh store (no persisted state)');
+    it.todo('setPinnedCycleMeta for multiple keys stores all entries independently');
+  });
+
+  describe('v0→v1 migration', () => {
+    it.todo('sets pinnedCycleMeta = {} on persisted state with version < 1');
+  });
 });
