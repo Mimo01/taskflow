@@ -65,6 +65,7 @@ function normalizeTestRun(raw: RawTestRun, fallbackCycleKey: string): AioTestRun
       ? { title: raw.testCase.title ?? raw.testCase.name ?? '', updatedDate: normalizeDate(latestRun?.updatedDate) ?? raw.testCase.updatedDate }
       : undefined,
     defects: raw.defects ?? [],
+    jiraDefectIDs: latestRun?.jiraDefectIDs ?? [],
     executedDate: normalizeDate(latestRun?.updatedDate ?? raw.executedDate),
   };
 }

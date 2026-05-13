@@ -194,32 +194,34 @@ export function AioTestRunsSection({ issueKey, jiraBaseUrl, jiraIssueId }: AioTe
 
       // Step 1: fetch all test cases for the project, then filter by jiraRequirementIDs (probe A: no server-side filter)
       const allTestCases = await fetchAioTestCasesForIssue(jiraBaseUrl, token, projectKey, issueKey);
-      console.debug('[AIO debug] allTestCases count:', allTestCases.length, 'jiraIssueId:', jiraIssueId, 'sample jiraRequirementIDs:', allTestCases[0]?.jiraRequirementIDs);
-      const testCases = jiraIssueId
+      const requirementTestCases = jiraIssueId
         ? allTestCases.filter((tc) => tc.jiraRequirementIDs?.includes(jiraIssueId) ?? false)
         : allTestCases;
-      console.debug('[AIO debug] matched testCases after filter:', testCases.length);
-      // No linked test cases → section hidden (D-04 first case — sentinel null)
-      if (testCases.length === 0) return null;
+      // jiraNumericId used for defect-based matching (probe B: jiraDefectIDs are numeric Jira internal IDs)
+      const jiraNumericId = jiraIssueId ? Number(jiraIssueId) : null;
 
       // Step 2: find the latest active cycle
       const cycles = await fetchAioCycles(jiraBaseUrl, token, projectKey);
       const activeCycle = pickLatestActiveCycle(cycles);
-      // No active cycle → no runs possible → empty state
-      if (!activeCycle) return [];
+      // No active cycle → no runs to check; hide section if no requirements either
+      if (!activeCycle) return requirementTestCases.length > 0 ? [] : null;
 
-      // Step 3: fetch all runs in the active cycle, filter by test case keys
+      // Step 3: fetch all runs in the active cycle; match by requirements OR by defect linkage
       const allRuns = await fetchAioTestRunsForCycle(jiraBaseUrl, token, projectKey, activeCycle.key);
-      const testCaseKeys = new Set(testCases.map((tc) => tc.key));
-      const matchedRuns = allRuns.filter((r) => testCaseKeys.has(r.testCaseKey));
-      // No matched runs → empty state (D-04 second case)
-      if (matchedRuns.length === 0) return [];
+      const testCaseKeys = new Set(requirementTestCases.map((tc) => tc.key));
+      const matchedRuns = allRuns.filter(
+        (r) =>
+          testCaseKeys.has(r.testCaseKey) ||
+          (jiraNumericId !== null && (r.jiraDefectIDs?.includes(jiraNumericId) ?? false)),
+      );
+      // No matched runs → hide if no requirements, empty state if requirements exist
+      if (matchedRuns.length === 0) return requirementTestCases.length > 0 ? [] : null;
 
       // Step 4: fetch step-level data for each matched run
       const runData = await Promise.all(
         matchedRuns.map(async (run) => ({
           run,
-          testCase: testCases.find((tc) => tc.key === run.testCaseKey),
+          testCase: allTestCases.find((tc) => tc.key === run.testCaseKey),
           steps: await fetchAioTestRunSteps(jiraBaseUrl, token, projectKey, activeCycle.key, run.id),
         })),
       );

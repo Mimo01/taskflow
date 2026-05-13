@@ -95,12 +95,13 @@ function makeQueryClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
 }
 
-function renderSection(props: { issueKey?: string; jiraBaseUrl?: string } = {}) {
+function renderSection(props: { issueKey?: string; jiraBaseUrl?: string; jiraIssueId?: string } = {}) {
   return render(
     <QueryClientProvider client={makeQueryClient()}>
       <AioTestRunsSection
         issueKey={props.issueKey ?? ISSUE_KEY}
         jiraBaseUrl={props.jiraBaseUrl ?? JIRA_BASE_URL}
+        jiraIssueId={props.jiraIssueId}
       />
     </QueryClientProvider>,
   );
@@ -138,17 +139,35 @@ describe('AioTestRunsSection', () => {
     expect(screen.getByTestId('aio-test-runs-skeleton')).toBeTruthy();
   });
 
-  // Test 3: section hidden when no linked test cases (D-04 first empty state)
-  it('renders null when query returns [] (no linked test cases — section hidden per D-04)', async () => {
+  // Test 3: section hidden when no requirements-linked test cases AND no defect-matched runs
+  it('renders null when no test cases and no defect-matched runs', async () => {
     mockFetchTestCases.mockResolvedValue([]);
     mockFetchCycles.mockResolvedValue([ACTIVE_CYCLE]);
+    mockFetchRuns.mockResolvedValue([]);
 
-    const { container } = renderSection();
+    const { container } = renderSection({ jiraIssueId: '99999' });
     await waitFor(() => {
-      expect(mockFetchTestCases).toHaveBeenCalled();
+      expect(mockFetchRuns).toHaveBeenCalled();
     });
     // Section should be hidden entirely (not an error state)
     expect(container.querySelector('[data-testid="aio-test-runs-section"]')).toBeNull();
+  });
+
+  // Test 3b: section shows when issue appears as defect even with no requirements-linked test cases
+  it('renders test runs when issue is linked as defect but has no requirements-linked test cases', async () => {
+    const JIRA_ISSUE_NUMERIC_ID = 393120;
+    const defectRun = { ...TEST_RUN, testCaseKey: 'PROJ-TC-1', jiraDefectIDs: [JIRA_ISSUE_NUMERIC_ID] };
+
+    mockFetchTestCases.mockResolvedValue([TEST_CASE]);
+    mockFetchCycles.mockResolvedValue([ACTIVE_CYCLE]);
+    mockFetchRuns.mockResolvedValue([defectRun]);
+    mockFetchSteps.mockResolvedValue([STEP_PASS]);
+
+    renderSection({ jiraIssueId: String(JIRA_ISSUE_NUMERIC_ID) });
+    await waitFor(() => {
+      // Step table should be visible — defect-linked run was matched
+      expect(screen.getByText('Step')).toBeTruthy();
+    });
   });
 
   // Test 4: empty state when test cases linked but no runs have steps (D-04 second empty state)
