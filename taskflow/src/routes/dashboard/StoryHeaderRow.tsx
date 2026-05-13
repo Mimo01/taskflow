@@ -108,6 +108,16 @@ export function StoryHeaderRow({
         <span className="text-sm font-medium truncate">{summary}</span>
       </button>
 
+      {/* Assignee avatar + name — only rendered when story has an assignee */}
+      {assigneeDisplayName && (
+        <div className="shrink-0 flex items-center gap-1.5">
+          <CachedAvatar url={assigneeAvatarUrl} name={assigneeDisplayName} size={20} />
+          <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+            {assigneeDisplayName}
+          </span>
+        </div>
+      )}
+
       {/* Epic pill — only rendered when story has an epic link */}
       {epicKey && epicName && epicColorResult && (
         <button
@@ -136,16 +146,6 @@ export function StoryHeaderRow({
       >
         {statusName}
       </span>
-
-      {/* Assignee avatar + name — only rendered when story has an assignee */}
-      {assigneeDisplayName && (
-        <div className="shrink-0 flex items-center gap-1.5">
-          <CachedAvatar url={assigneeAvatarUrl} name={assigneeDisplayName} size={20} />
-          <span className="text-xs text-muted-foreground truncate max-w-[120px]">
-            {assigneeDisplayName}
-          </span>
-        </div>
-      )}
 
       {/* Subtask count */}
       {subtaskCount > 0 && (
