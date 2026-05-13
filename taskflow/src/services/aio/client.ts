@@ -34,7 +34,7 @@ export async function aioFetch(
   apiPath: string = AIO_API_PATH,
 ): Promise<Response> {
   const url = `${baseUrl.replace(/\/$/, '')}${apiPath}${path}`;
-  return apiFetch('jira', url, {
+  return apiFetch('aio', url, {
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',

@@ -18,13 +18,14 @@ describe('fetchAioProjects', () => {
     mockedApiFetch.mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => [{ id: 1, projectKey: 'PROJ', name: 'Project Alpha' }],
+      json: async () => [{ ID: 1, jiraProjectKey: 'PROJ' }],
     } as unknown as Response);
 
     const result = await fetchAioProjects(BASE, TOKEN);
     expect(result).toHaveLength(1);
-    expect(result[0].name).toBe('Project Alpha');
+    expect(result[0].id).toBe(1);
     expect(result[0].projectKey).toBe('PROJ');
+    expect(result[0].name).toBe('PROJ');
   });
 
   it('throws ApiError with "Invalid token or token has expired" on 401', async () => {

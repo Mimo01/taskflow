@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { FlaskConical } from 'lucide-react';
+import { FlaskConical, Pin } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
@@ -15,8 +15,8 @@ import { useAuthStore } from '@/stores/auth.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { AioCycleDetailSkeleton } from './AioCycleDetailSkeleton';
 
-function normalizeStatus(raw: string): 'pass' | 'fail' | 'blocked' | 'notRun' {
-  switch (raw.toUpperCase()) {
+function normalizeStatus(raw: string | undefined): 'pass' | 'fail' | 'blocked' | 'notRun' {
+  switch ((raw ?? '').toUpperCase()) {
     case 'PASS':
       return 'pass';
     case 'FAIL':
@@ -28,8 +28,8 @@ function normalizeStatus(raw: string): 'pass' | 'fail' | 'blocked' | 'notRun' {
   }
 }
 
-function normalizeStatusLabel(raw: string): string {
-  switch (raw.toUpperCase()) {
+function normalizeStatusLabel(raw: string | undefined): string {
+  switch ((raw ?? '').toUpperCase()) {
     case 'PASS':
       return 'Pass';
     case 'FAIL':
@@ -39,7 +39,7 @@ function normalizeStatusLabel(raw: string): string {
     case 'NOT_EXECUTED':
       return 'Not Run';
     default:
-      return raw;
+      return raw ?? 'Not Run';
   }
 }
 
@@ -77,8 +77,7 @@ export default function AioCycleDetailPage() {
 
   const showSkeleton = useDelayedLoading(cycleQuery.isLoading || runsQuery.isLoading);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const isPinned = usePinnedTabsStore((s: any) => s.isPinned as (key: string) => boolean);
+  const pinned = usePinnedTabsStore((s) => s.pinnedKeys.includes(cycleKey ?? ''));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const togglePin = usePinnedTabsStore((s: any) => s.togglePin as (key: string) => void);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -111,8 +110,6 @@ export default function AioCycleDetailPage() {
 
   const allDefects = [...new Set((runs ?? []).flatMap((r) => r.defects ?? []).filter(Boolean))];
 
-  const pinned = isPinned(cycleKey!);
-
   const cycleName = cycleQuery.data?.name ?? cycleKey ?? '';
 
   return (
@@ -129,8 +126,11 @@ export default function AioCycleDetailPage() {
           )}
         </div>
         <Button
-          variant="secondary"
+          variant="outline"
           size="sm"
+          className="gap-1.5 text-xs"
+          aria-label={pinned ? `Unpin cycle ${cycleKey}` : `Pin cycle ${cycleKey}`}
+          title={pinned ? 'Unpin from tabs' : 'Pin to tabs'}
           onClick={() => {
             if (pinned) {
               removePin(cycleKey!);
@@ -141,7 +141,8 @@ export default function AioCycleDetailPage() {
             }
           }}
         >
-          {pinned ? 'Unpin cycle' : 'Pin cycle'}
+          <Pin className={`size-3.5 ${pinned ? 'fill-current text-primary' : ''}`} />
+          {pinned ? 'Unpin' : 'Pin'}
         </Button>
       </div>
 
@@ -163,11 +164,11 @@ export default function AioCycleDetailPage() {
           </div>
         )}
 
-        {showSkeleton ? (
+        {showSkeleton || (cycleQuery.isLoading || runsQuery.isLoading) ? (
           <div className="p-4">
             <AioCycleDetailSkeleton />
           </div>
-        ) : !cycleQuery.isError && !runsQuery.isError ? (
+        ) : !cycleQuery.isError && !runsQuery.isError && !!cycleQuery.data ? (
           <>
             {/* Progress section */}
             <div className="px-6 py-4 border-b border-border">
@@ -311,7 +312,12 @@ export default function AioCycleDetailPage() {
                         </span>
                       </td>
                       <td className="px-3 py-3 text-xs text-muted-foreground">
-                        {run.executedDate ?? run.testCase?.updatedDate ?? '—'}
+                        {(() => {
+                          const raw = run.executedDate ?? run.testCase?.updatedDate;
+                          if (!raw) return '—';
+                          const d = new Date(raw);
+                          return isNaN(d.getTime()) ? raw : d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+                        })()}
                       </td>
                     </tr>
                   ))}

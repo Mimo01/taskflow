@@ -13,6 +13,62 @@ import { ApiError } from '../../lib/api-error';
 import { aioFetch } from './client';
 import type { AioPage, AioTestRun } from './types';
 
+// API returns test case assignments. Each item wraps a testCase and a runs[] array.
+// The most recent execution is runs[0]; status lives at runs[0].testRunStatus.name.
+// jiraDefectIDs are numeric Jira internal IDs — cannot resolve to string keys without
+// a separate API call, so defects are left empty (AIOC-03 descoped per D-14 fallback).
+type RawRunExecution = {
+  ID?: number;
+  testRunStatus?: { ID?: number; name?: string };
+  jiraDefectIDs?: number[];
+  updatedDate?: number;
+};
+
+type RawTestRun = {
+  ID?: number;
+  id?: string;
+  testCase?: { title?: string; name?: string; key?: string; updatedDate?: string };
+  cycleKey?: string;
+  runs?: RawRunExecution[];
+  // flat fields from alternative API response shapes (kept for safety)
+  status?: string;
+  executionStatus?: string;
+  testCaseKey?: string;
+  defects?: string[];
+  executedDate?: string | number;
+};
+
+function normalizeDate(raw: string | number | undefined): string | undefined {
+  if (raw == null) return undefined;
+  if (typeof raw === 'number') return new Date(raw).toISOString();
+  return raw;
+}
+
+function toChipStatus(name: string | undefined): string {
+  switch ((name ?? '').toLowerCase()) {
+    case 'pass': case 'passed': return 'PASS';
+    case 'fail': case 'failed': return 'FAIL';
+    case 'blocked': return 'BLOCKED';
+    default: return 'NOT_EXECUTED';
+  }
+}
+
+function normalizeTestRun(raw: RawTestRun, fallbackCycleKey: string): AioTestRun {
+  const latestRun = raw.runs?.[0];
+  const statusName = latestRun?.testRunStatus?.name ?? raw.status ?? raw.executionStatus;
+  return {
+    id: String(raw.ID ?? raw.id ?? ''),
+    status: toChipStatus(statusName),
+    testCaseKey: raw.testCase?.key ?? raw.testCaseKey ?? '',
+    cycleKey: raw.cycleKey ?? fallbackCycleKey,
+    testCase: raw.testCase
+      ? { title: raw.testCase.title ?? raw.testCase.name ?? '', updatedDate: normalizeDate(latestRun?.updatedDate) ?? raw.testCase.updatedDate }
+      : undefined,
+    defects: raw.defects ?? [],
+    executedDate: normalizeDate(latestRun?.updatedDate ?? raw.executedDate),
+  };
+}
+
 /**
  * Fetch all test runs for a specific test cycle.
  *
@@ -46,13 +102,13 @@ export async function fetchAioTestRunsForCycle(
       throw new Error(`Cannot reach AIO at ${baseUrl}`);
     }
     if (response.ok) {
-      const data = (await response.json()) as AioPage<AioTestRun> | AioTestRun[];
+      const data = (await response.json()) as AioPage<RawTestRun> | RawTestRun[];
       // Guard: D-17 confirms AioPage wrapper for aio-tcms-api/1.0 endpoints,
       // but guard for direct array in case of API variation.
       if (Array.isArray(data)) {
-        return data; // Direct array — no pagination
+        return data.map((r) => normalizeTestRun(r, cycleKey));
       }
-      allRuns.push(...(data.items ?? []));
+      allRuns.push(...(data.items ?? []).map((r) => normalizeTestRun(r, cycleKey)));
       if (data.isLast) return allRuns;
       startAt += data.maxResults;
       continue;
