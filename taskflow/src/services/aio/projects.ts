@@ -33,7 +33,12 @@ export async function fetchAioProjects(
     throw new Error(`Cannot reach AIO at ${baseUrl}`);
   }
   if (response.ok) {
-    return response.json() as Promise<AioProject[]>;
+    const raw = await response.json() as Array<{ ID: number; jiraProjectKey: string }>;
+    return raw.map((item) => ({
+      id: item.ID,
+      projectKey: item.jiraProjectKey,
+      name: item.jiraProjectKey,
+    }));
   }
   if (response.status === 401) {
     throw new ApiError('Invalid token or token has expired', 401, 'jira');
