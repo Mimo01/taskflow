@@ -242,7 +242,30 @@ Cross-cutting constraints:
   3. The cycle detail page shows all defects linked from failed runs as clickable links that navigate to the Jira issue detail page
   4. User can pin a test cycle from the cycle detail page and it appears as a tab in the header tab strip
   5. Pinned cycle tabs persist across app restarts and can be unpinned from the header
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+
+**Wave 0**
+- [ ] 53-00-PLAN.md — Test stubs (RED): AioCycleDetailPage.test.tsx, extend pinned-tabs.store.test.ts, new PinnedTabStrip.test.tsx
+
+**Wave 1** *(blocked on Wave 0 completion — runs in parallel)*
+- [ ] 53-01-PLAN.md — AioTestRun type update, fetchAioCycleDetail service, aioRunStatusBadgeClass, AioCycleDetailPage + AioCycleDetailSkeleton, route entry
+- [ ] 53-02-PLAN.md — pinned-tabs.store.ts extension (pinnedCycleMeta, v0→v1 migration), PinnedTabStrip.tsx refactor (resolvedTabs discriminated union, cycle tab rendering)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 53-03-PLAN.md — main.tsx: issuePinnedKeys/cyclePinnedKeys split, resolvedPinnedTabs discriminated union map, activeCycleKey, onTabClick handler, resolvedTabs prop
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 53-04-PLAN.md — Fill Wave 0 stubs with real tests + human verification checkpoint (end-to-end: pin, tab, persist, defects, filter chips)
+
+Cross-cutting constraints:
+- Plans 53-01 and 53-02 run in parallel (no shared files); Wave 2 (53-03) depends on both
+- `pinnedCycleMeta: {}` must appear as factory default in store (not only in migration) — fresh-install safety
+- `useQueries` must drive off `issuePinnedKeys` not `pinnedKeys`; `pinnedQueries[i]` indexes into `issuePinnedKeys[i]` — index misalignment is the highest-risk bug
+- `key.includes('-CY-')` is the sole detection method for cycle keys throughout (D-01, D-06)
+- `fetchAioTestRunsForCycle` already exists in `issue-runs.ts` — do NOT create a duplicate
+
 **UI hint**: yes
 
 ### Phase 54: AIO on Issue Detail
@@ -273,5 +296,5 @@ Cross-cutting constraints:
 | 50. Draggable Sidebar Resize | next | 4/4 | Complete | 2026-05-10 |
 | 51. AIO Service Layer | v1.8 | 3/3 | Complete | 2026-05-12 |
 | 52. AIO Navigation + Project Pages | v1.8 | 6/6 | Complete | 2026-05-13 |
-| 53. Cycle Detail + Header Pinning | v1.8 | 0/? | Not started | - |
+| 53. Cycle Detail + Header Pinning | v1.8 | 0/5 | Not started | - |
 | 54. AIO on Issue Detail | v1.8 | 0/? | Not started | - |
