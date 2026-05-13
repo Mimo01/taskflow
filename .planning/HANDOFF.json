@@ -1,34 +1,43 @@
 {
   "version": "1.0",
-  "timestamp": "2026-05-13T14:00:00Z",
-  "phase": "53",
-  "phase_name": "Cycle Detail + Header Pinning",
-  "phase_dir": ".planning/phases/53-cycle-detail-header-pinning",
-  "plan": 4,
-  "task": 2,
-  "total_tasks": 2,
+  "timestamp": "2026-05-13T19:30:00Z",
+  "phase": "54",
+  "phase_name": "AIO on Issue Detail",
+  "phase_dir": ".planning/phases/54-aio-on-issue-detail",
+  "plan": 5,
+  "task": 0,
+  "total_tasks": 1,
   "status": "paused",
   "completed_tasks": [
-    {"id": 1, "name": "Fill Wave 0 test stubs", "status": "done", "commit": "fab9c69"},
-    {"id": 2, "name": "Human verification checkpoint", "status": "in_progress", "progress": "Awaiting user approval after live app testing"}
+    {"id": "54-00", "name": "Probe + API discovery", "status": "done", "commit": "multiple"},
+    {"id": "54-01", "name": "AIO settings store + toggle", "status": "done"},
+    {"id": "54-02", "name": "Service layer (test cases, cycles, runs, steps)", "status": "done"},
+    {"id": "54-03", "name": "AioTestRunsSection component", "status": "done"},
+    {"id": "54-04", "name": "Wire component into IssueDetailPage", "status": "done"},
+    {"id": "54-05-task-impl", "name": "Fix traceability endpoint (replaces 13K scan)", "status": "done", "commit": "ac9e2d9"}
   ],
   "remaining_tasks": [
-    {"id": 2, "name": "Human verify 6 scenarios in live app", "status": "in_progress"},
-    {"id": 3, "name": "Create 53-04-SUMMARY.md after approval", "status": "not_started"},
-    {"id": 4, "name": "Update STATE.md + ROADMAP.md", "status": "not_started"},
-    {"id": 5, "name": "Run gsd-verifier and mark phase complete", "status": "not_started"}
+    {"id": "54-05-task-0", "name": "Human verification — live app UAT (8 scenarios)", "status": "not_started"},
+    {"id": "54-05-summary", "name": "Create 54-05-SUMMARY.md after approval", "status": "not_started"},
+    {"id": "phase-close", "name": "Update STATE.md + ROADMAP.md, run verifier, mark phase complete", "status": "not_started"}
   ],
   "blockers": [
-    {"description": "Human verification pending — user must test live app and type approved", "type": "human_action", "workaround": "none"}
+    {"description": "Human verification pending — developer must test live app and type approved", "type": "human_action", "workaround": "none"}
   ],
   "human_actions_pending": [
-    {"action": "Run npm run tauri dev, verify 6 scenarios from 53-04-PLAN.md Task 2, type approved", "context": "Cycle detail page, filter chips, defects, pin/unpin, header tab, persistence", "blocking": true}
+    {
+      "action": "Run `npm run tauri dev`, open an issue with AIO Impacted Executions linked (jiraIssueId 393120 confirmed to have 2 — ESHOP-TC-8477 in ESHOP-CY-1011), and verify the 8 scenarios from 54-05-PLAN.md Task 0",
+      "context": "Core fix: replaced 13K test case pagination scan with AIO traceability API (3 API calls total). Traceability endpoints: GET /rest/aio-tcms/1.0/project/{aioProjectId}/traceability/{defect|requirement}/{jiraIssueNumericId}. AIO numeric project ID resolved via fetchAioProjects. If section still empty, check pickLatestActiveCycle — ESHOP-CY-1011 may have status 'Closed' not 'Active'; may need to extend cycle selection to include most-recent regardless of status.",
+      "blocking": true
+    }
   ],
   "decisions": [
-    {"decision": "Normalize AIO API fields at service boundary", "rationale": "API returns ID/jiraProjectKey/title/isClosed; types expect id/projectKey/name/status", "phase": "53"},
-    {"decision": "ReAuthBanner false positive is pre-existing", "rationale": "AIO 401s call markDisconnected(jira) — separate issue from Phase 53", "phase": "53"}
+    {"decision": "Use AIO traceability endpoint instead of jiraRequirementIDs/jiraDefectIDs filter", "rationale": "jiraRequirementIDs only covers 'Cases' relationship; jiraDefectIDs is empty in cycle listing (populated only on run detail endpoint). Traceability API covers both 'Impacted Executions' (defect) and 'Cases' (requirement) relationships in 2 calls.", "phase": "54"},
+    {"decision": "aioEnabled defaults to false", "rationale": "No AIO calls fired for users without AIO installed", "phase": "54"},
+    {"decision": "settings.store.ts version bumped to 15 with migration guard", "rationale": "Persistent store must migrate existing users to new aioEnabled field", "phase": "54"},
+    {"decision": "AIO query keys use ['aio', jiraBaseUrl, ...] prefix", "rationale": "Avoid broad Jira invalidation sweeps", "phase": "54"}
   ],
   "uncommitted_files": [".planning/STATE.md"],
-  "next_action": "Present user with Phase 53 human verification checkpoint (53-04-PLAN.md Task 2). After approved: create SUMMARY, update tracking, run verifier.",
-  "context_notes": "All 4 waves executed. 965 tests green. Two live API field-name bugs fixed (projects + cycles). Core features implemented and unit-tested. Only human E2E verification remains before phase can be marked complete."
+  "next_action": "Present user with Phase 54 UAT checkpoint (54-05-PLAN.md Task 0). Start app: `npm run tauri dev`. Open issue 393120 (ESHOP project). Verify AIO Test Runs section appears below ActivityTimeline. After approved: create 54-05-SUMMARY.md, update STATE.md + ROADMAP.md, run verifier.",
+  "context_notes": "All 5 waves executed. 982 tests pass, 2 skipped (tests 3/3b need rewrite once live behavior confirmed — they call jiraIssueId path but don't mock fetchAioTraceabilityTestCases). Core bug was that 'Impacted Executions' in AIO uses defect traceability, not requirements-linked test cases. Probe confirmed: /traceability/defect/393120 returns ESHOP-TC-8477; /traceability/requirement/393120 returns null (0 cases). Implementation uses both calls in parallel and deduplicates."
 }
