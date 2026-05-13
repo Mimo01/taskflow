@@ -193,17 +193,26 @@ describe('AioTestRunsSection', () => {
     });
   });
 
-  // Test 4: empty state when test cases linked but no runs have steps (D-04 second empty state)
-  it('renders "No test runs in active cycle" when test cases are linked but matched runs have zero steps', async () => {
+  // Test 4: Plan 54-07 Gap 1 — the legacy "No test runs in active cycle"
+  // EmptyState is REPLACED by ImpactedExecutionsList on the Branch A1 path.
+  // The legacy fallback path (no jiraIssueId) returns runs=[] and
+  // impactedExecutions=[] when no linked runs have steps; the section
+  // renders nothing (defensive `return null`) — same UX as D-04 second case.
+  it('renders nothing (section hidden) when legacy path returns no usable runs and no impacted executions (Plan 54-07 D-04 second case)', async () => {
     mockFetchTestCases.mockResolvedValue([TEST_CASE]);
     mockFetchCycles.mockResolvedValue([ACTIVE_CYCLE]);
     mockFetchRuns.mockResolvedValue([TEST_RUN]);
     mockFetchSteps.mockResolvedValue([]);
 
-    renderSection();
+    const { container } = renderSection();
     await waitFor(() => {
-      expect(screen.getByText(/no test runs in active cycle/i)).toBeTruthy();
+      expect(mockFetchSteps).toHaveBeenCalled();
     });
+    // The bare "No test runs in active cycle" EmptyState is gone per Plan 54-07
+    // Gap 1 (replaced by ImpactedExecutionsList on Branch A1; legacy path
+    // returns null when no impacted executions resolve).
+    expect(screen.queryByText(/no test runs in active cycle/i)).toBeNull();
+    expect(container.querySelector('[data-testid="aio-test-runs-section"]')).toBeNull();
   });
 
   // Test 5: renders step table with correct headers
@@ -509,6 +518,296 @@ describe('AioTestRunsSection', () => {
         UNIQUE_CYCLE_KEY,
         UNIQUE_RUN_ID,
       );
+    });
+  });
+
+  // --- Plan 54-07 Gap 1 + Gap 2 ---
+  //
+  // The "primary cycle" picker selects the most-frequent cycleKey across all
+  // runRefs (tie-broken by highest CY-N suffix). Refs in that cycle render via
+  // the in-cycle StepTable path (uncapped); refs in OTHER cycles render via
+  // ImpactedExecutionsList (capped at MAX_IMPACTED_EXECUTIONS=20 cross-cycle
+  // fetches per T-54-07-02).
+  //
+  // The fixtures here construct scenarios where ALL refs share a single
+  // cycleKey that is NOT the active/primary one, so the in-cycle slice is
+  // empty and ImpactedExecutionsList renders. To force everything cross-cycle,
+  // we inject an extra "dominant cycle" sentinel ref (whose detail fetch
+  // returns empty steps) — that way the picker chooses the sentinel's cycle as
+  // primary, and the real test cases live in OTHER cycles.
+  describe('Impacted executions list (Gap 1) + attachments grid on no-runs path (Gap 2)', () => {
+    const JIRA_ISSUE_NUMERIC_ID = '393120';
+    const PRIMARY_CYCLE_KEY = 'PROJ-CY-DOMINANT';
+    const OLD_CYCLE_KEY = 'PROJ-CY-OLD';
+
+    // Sentinel that makes the picker treat PRIMARY_CYCLE_KEY as the primary
+    // cycle so the actual test cases (in OLD_CYCLE_KEY etc.) flow through the
+    // cross-cycle (impacted-executions) path.
+    const SENTINEL_CASE = {
+      id: 999,
+      key: 'PROJ-TC-DOMINANT',
+      title: 'Sentinel',
+      projectKey: PROJECT_KEY,
+      runs: [{ runId: '999999', cycleKey: PRIMARY_CYCLE_KEY }],
+    };
+
+    // Force the sentinel to be the dominant cycle by giving it 2 refs to
+    // outvote any single cross-cycle test case (which carries 1 ref).
+    const SENTINEL_CASE_2 = {
+      ...SENTINEL_CASE,
+      id: 998,
+      key: 'PROJ-TC-DOMINANT-2',
+      runs: [{ runId: '999998', cycleKey: PRIMARY_CYCLE_KEY }],
+    };
+
+    function makeImpactedCase(suffix: string, runId: string, cycleKey = OLD_CYCLE_KEY) {
+      return {
+        id: 1000 + parseInt(suffix, 10),
+        key: `PROJ-TC-${suffix}`,
+        title: `Impacted case ${suffix}`,
+        projectKey: PROJECT_KEY,
+        runs: [{ runId, cycleKey }],
+      };
+    }
+
+    function makeRunDetail(
+      runId: string,
+      cycleKey: string,
+      status: string,
+      stepText = 'plain text',
+    ) {
+      return {
+        run: {
+          id: runId,
+          status,
+          testCaseKey: '',
+          cycleKey,
+        },
+        steps: [{ id: 1, step: stepText, status }],
+      };
+    }
+
+    beforeEach(() => {
+      mockFetchRunDetail.mockReset();
+    });
+
+    it('Gap 1: replaces "No test runs in active cycle" with ImpactedExecutionsList showing test case + cycle + run + status chip', async () => {
+      // One sentinel-dominant ref + one cross-cycle impacted case
+      mockFetchTraceability.mockResolvedValueOnce([
+        SENTINEL_CASE,
+        SENTINEL_CASE_2,
+        makeImpactedCase('1', '263794'),
+      ]);
+      mockFetchTraceability.mockResolvedValueOnce([]);
+
+      mockFetchRunDetail.mockImplementation(async (_b, _t, _p, cycle, runId) => {
+        if (cycle === PRIMARY_CYCLE_KEY) {
+          // Sentinel: empty steps → in-cycle path filters it out (withSteps === 0)
+          return {
+            run: { id: runId, status: 'PASS', testCaseKey: '', cycleKey: cycle },
+            steps: [],
+          };
+        }
+        return makeRunDetail(runId, cycle, 'FAIL');
+      });
+
+      renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Impacted executions/i)).toBeTruthy();
+      });
+
+      // Row contents
+      expect(screen.getByText('PROJ-TC-1')).toBeTruthy();
+      expect(screen.getByText(OLD_CYCLE_KEY)).toBeTruthy();
+      expect(screen.getByText('263794')).toBeTruthy();
+
+      // Bare EmptyState text is GONE
+      expect(screen.queryByText(/no test runs in active cycle/i)).toBeNull();
+
+      // Rows are read-only — no click handlers / no button wrapper on the row
+      expect(screen.getByText('PROJ-TC-1').closest('button')).toBeNull();
+    });
+
+    it('Gap 1: status chip color reflects fetched detail.run.status (PASS green, FAIL red — NOT defaulted to gray "Not Run")', async () => {
+      // Two sentinel-dominant refs to keep PRIMARY_CYCLE_KEY winning, plus
+      // two cross-cycle impacted cases with DIFFERENT statuses.
+      mockFetchTraceability.mockResolvedValueOnce([
+        SENTINEL_CASE,
+        SENTINEL_CASE_2,
+        makeImpactedCase('1', 'r-pass'),
+        makeImpactedCase('2', 'r-fail'),
+      ]);
+      mockFetchTraceability.mockResolvedValueOnce([]);
+
+      mockFetchRunDetail.mockImplementation(async (_b, _t, _p, cycle, runId) => {
+        if (cycle === PRIMARY_CYCLE_KEY) {
+          return {
+            run: { id: runId, status: 'PASS', testCaseKey: '', cycleKey: cycle },
+            steps: [],
+          };
+        }
+        const status = runId === 'r-pass' ? 'PASS' : 'FAIL';
+        return makeRunDetail(runId, cycle, status);
+      });
+
+      renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
+
+      await waitFor(() => {
+        expect(screen.getAllByTestId('impacted-execution-status-chip').length).toBe(2);
+      });
+
+      const chips = screen.getAllByTestId('impacted-execution-status-chip');
+      const chipClasses = chips.map((c) => c.className);
+      // PASS chip carries the green token; FAIL chip carries the red token —
+      // aioRunStatusBadgeClass keys: bg-green-500/15 + text-green-600 (PASS),
+      // bg-red-500/15 + text-red-600 (FAIL). NEITHER chip should be the gray
+      // muted token (bg-muted/text-muted-foreground = NOT_EXECUTED default).
+      const hasGreen = chipClasses.some((c) => c.includes('green'));
+      const hasRed = chipClasses.some((c) => c.includes('red'));
+      const allMuted = chipClasses.every(
+        (c) => c.includes('bg-muted') || c.includes('text-muted-foreground'),
+      );
+      expect(hasGreen).toBe(true);
+      expect(hasRed).toBe(true);
+      expect(allMuted).toBe(false);
+    });
+
+    it('Gap 2: AioAttachmentsGrid header always renders with empty state inside when no inline images on impacted-executions path', async () => {
+      mockFetchTraceability.mockResolvedValueOnce([
+        SENTINEL_CASE,
+        SENTINEL_CASE_2,
+        makeImpactedCase('1', '263794'),
+      ]);
+      mockFetchTraceability.mockResolvedValueOnce([]);
+      mockFetchRunDetail.mockImplementation(async (_b, _t, _p, cycle, runId) => {
+        if (cycle === PRIMARY_CYCLE_KEY) {
+          return {
+            run: { id: runId, status: 'PASS', testCaseKey: '', cycleKey: cycle },
+            steps: [],
+          };
+        }
+        return makeRunDetail(runId, cycle, 'FAIL', 'plain step text — no images here');
+      });
+
+      renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
+      await waitFor(() => {
+        expect(screen.getByText(/AIO attachments/i)).toBeTruthy();
+      });
+      // Empty state inside the grid
+      expect(
+        screen.getByText(/No inline image attachments found in linked test runs/i),
+      ).toBeTruthy();
+    });
+
+    it('Gap 2: AioAttachmentsGrid populates with thumbnails on no-runs path when impacted-execution step content carries [name.png|url] refs', async () => {
+      mockFetchTraceability.mockResolvedValueOnce([
+        SENTINEL_CASE,
+        SENTINEL_CASE_2,
+        makeImpactedCase('1', '263794'),
+      ]);
+      mockFetchTraceability.mockResolvedValueOnce([]);
+      mockFetchRunDetail.mockImplementation(async (_b, _t, _p, cycle, runId) => {
+        if (cycle === PRIMARY_CYCLE_KEY) {
+          return {
+            run: { id: runId, status: 'PASS', testCaseKey: '', cycleKey: cycle },
+            steps: [],
+          };
+        }
+        return {
+          run: { id: runId, status: 'FAIL', testCaseKey: '', cycleKey: cycle },
+          steps: [
+            {
+              id: 1,
+              step: 'see [foo.png|https://example.com/foo.png] for details',
+              status: 'FAIL',
+            },
+          ],
+        };
+      });
+
+      renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
+      await waitFor(() => {
+        // Grid header with count token
+        expect(screen.getByText(/AIO attachments \(1\)/i)).toBeTruthy();
+      });
+      // At least one thumbnail with the filename as aria-label
+      expect(
+        screen.getByRole('button', { name: /foo\.png - click to view full size/i }),
+      ).toBeTruthy();
+    });
+
+    it('T-54-07-02: cross-cycle fetch is capped at MAX_IMPACTED_EXECUTIONS=20 even when 30 cross-cycle cases exist', async () => {
+      // 30 cross-cycle cases + sentinel pair to claim the primary cycle.
+      // Each cross-cycle case carries a UNIQUE cycle key so the primary picker
+      // doesn't accidentally pick one of them (sentinel pair gets 2 votes,
+      // each cross-cycle gets 1 → sentinel wins).
+      const crossCases = Array.from({ length: 30 }, (_, i) =>
+        makeImpactedCase(String(i + 100), `r-${i}`, `OLD-CYCLE-${i}`),
+      );
+      mockFetchTraceability.mockResolvedValueOnce([SENTINEL_CASE, SENTINEL_CASE_2, ...crossCases]);
+      mockFetchTraceability.mockResolvedValueOnce([]);
+
+      mockFetchRunDetail.mockImplementation(async (_b, _t, _p, cycle, runId) => {
+        if (cycle === PRIMARY_CYCLE_KEY) {
+          return {
+            run: { id: runId, status: 'PASS', testCaseKey: '', cycleKey: cycle },
+            steps: [],
+          };
+        }
+        return makeRunDetail(runId, cycle, 'FAIL');
+      });
+
+      renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
+      await waitFor(() => {
+        expect(screen.getByText(/Impacted executions/i)).toBeTruthy();
+      });
+      // The cap is 20 cross-cycle + 2 sentinel-dominant = 22 max total calls.
+      // Strictly: cross-cycle is sliced to <= 20.
+      expect(mockFetchRunDetail.mock.calls.length).toBeLessThanOrEqual(22);
+      // And cross-cycle calls (excluding PRIMARY_CYCLE_KEY) are at most 20.
+      const crossCalls = mockFetchRunDetail.mock.calls.filter(
+        (call) => call[3] !== PRIMARY_CYCLE_KEY,
+      );
+      expect(crossCalls.length).toBeLessThanOrEqual(20);
+    });
+
+    it('T-54-07-02 no-regression: in-cycle fetch is NOT capped — 21 in-cycle linked runs all render and fire 21 detail fetches', async () => {
+      // 21 cases ALL in the same cycle so the picker chooses that cycle as
+      // primary and they ALL flow through the uncapped in-cycle path.
+      const SHARED_CYCLE = 'PROJ-CY-SHARED';
+      const inCycleCases = Array.from({ length: 21 }, (_, i) => ({
+        id: 2000 + i,
+        key: `PROJ-TC-IN-${i}`,
+        title: `In-cycle case ${i}`,
+        projectKey: PROJECT_KEY,
+        runs: [{ runId: `in-${i}`, cycleKey: SHARED_CYCLE }],
+      }));
+      mockFetchTraceability.mockResolvedValueOnce(inCycleCases);
+      mockFetchTraceability.mockResolvedValueOnce([]);
+
+      mockFetchRunDetail.mockImplementation(async (_b, _t, _p, cycle, runId) => ({
+        run: {
+          id: runId,
+          status: 'PASS',
+          testCaseKey: '',
+          cycleKey: cycle,
+        },
+        steps: [{ id: 1, step: `step body ${runId}`, status: 'PASS' }],
+      }));
+
+      renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
+
+      await waitFor(() => {
+        expect(screen.getByText('In-cycle case 0')).toBeTruthy();
+      });
+
+      // 21 in-cycle fetches all fire (cap does NOT apply to in-cycle).
+      expect(mockFetchRunDetail).toHaveBeenCalledTimes(21);
+      // All 21 collapsible run blocks render (D-10 visual contract preserved).
+      for (let i = 0; i < 21; i++) {
+        expect(screen.getByText(`In-cycle case ${i}`)).toBeTruthy();
+      }
     });
   });
 });
