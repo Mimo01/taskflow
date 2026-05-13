@@ -52,8 +52,9 @@ export interface AioTestRun {
     title: string;      // Test case display name for run list
     updatedDate?: string; // ISO date fallback if executedDate absent
   };
-  defects?: string[];   // Jira issue keys inline, e.g. ["PROJ-42"] (D-14 confirmed)
-  executedDate?: string; // Run-level date — NOTE: field name unverified against live endpoint (A2)
+  defects?: string[];      // Jira issue keys inline, e.g. ["PROJ-42"] (D-14 confirmed)
+  jiraDefectIDs?: number[]; // Numeric Jira issue IDs from jiraDefectIDs on latest execution (probe B confirmed)
+  executedDate?: string;   // Run-level date — NOTE: field name unverified against live endpoint (A2)
 }
 
 /**
