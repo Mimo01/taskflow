@@ -344,5 +344,28 @@ describe('WikiRenderer', () => {
       // The onclick attribute is stripped — only href + sanitized attrs remain.
       expect(link?.getAttribute('onclick')).toBeNull();
     });
+
+    it('Plan 54-08 Gap 3 — wiki table inside a constrained-width parent is wrapped in an overflow-x-auto container (regression: panel content no longer breaks outer column layout)', () => {
+      const { container } = render(
+        <div style={{ width: 300 }} data-testid="constrained-parent">
+          <WikiRenderer wikiText={FINDING_1_FIXTURE} />
+        </div>,
+      );
+      // Exactly one wiki <table> (outer is a <div>; inner is the wiki table).
+      const tables = container.querySelectorAll('table');
+      expect(tables.length).toBe(1);
+      // The rendered <table> has an ancestor with overflow-x-auto + max-w-full.
+      const table = container.querySelector('table');
+      expect(table).not.toBeNull();
+      const overflowAncestor = table?.closest('.overflow-x-auto');
+      expect(overflowAncestor).not.toBeNull();
+      expect(overflowAncestor?.className).toContain('overflow-x-auto');
+      expect(overflowAncestor?.className).toContain('max-w-full');
+    });
+
+    it('Plan 54-08 Gap 3 — overflow-x-auto wrapper is only emitted for wiki content containing tables', () => {
+      const { container } = render(<WikiRenderer wikiText="*bold text* with no table" />);
+      expect(container.querySelector('.overflow-x-auto')).toBeNull();
+    });
   });
 });
