@@ -10,6 +10,7 @@ import {
   fetchAioCycles,
   fetchAioProjects,
   fetchAioTestCasesForIssue,
+  fetchAioTestRunDetail,
   fetchAioTestRunSteps,
   fetchAioTestRunsForCycle,
   fetchAioTraceabilityTestCases,
@@ -203,13 +204,19 @@ export function AioTestRunsSection({
 
       const jiraNumericId = jiraIssueId ? Number(jiraIssueId) : null;
 
-      // Step 1: resolve AIO numeric project ID + fetch linked test cases via traceability
-      // (both defect and requirement in parallel — replaces 13K test case scan)
-      let linkedTestCases: import('@/services/aio').AioTestCase[];
+      // Plan 54-06 Task 2 (Branch A1): direct-lookup path.
+      // Branch chosen: Direct lookup available via traceability response — sub-branch A1.
+      // Probe C1 confirmed the traceability endpoint embeds testRun.ID + testCycle.detail.key
+      // on each item, so we can skip BOTH fetchAioCycles AND fetchAioTestRunsForCycle
+      // on the success path and fetch run detail + steps directly per linked run.
+      // See .planning/phases/54-aio-on-issue-detail/54-PROBE-FINDINGS.md ## Probe C.
       if (jiraNumericId !== null) {
         const projects = await fetchAioProjects(jiraBaseUrl, token);
         const aioProject = projects.find((p) => p.projectKey === projectKey);
         if (!aioProject) return null;
+
+        // Fetch both traceability slices in parallel (defect AND requirement
+        // linkage — an issue may appear in either or both).
         const [defectCases, reqCases] = await Promise.all([
           fetchAioTraceabilityTestCases(jiraBaseUrl, token, aioProject.id, jiraNumericId, 'defect'),
           fetchAioTraceabilityTestCases(
@@ -220,18 +227,63 @@ export function AioTestRunsSection({
             'requirement',
           ),
         ]);
+        // De-duplicate by test case key (defect ∪ requirement) preserving order.
         const seen = new Set<string>();
-        linkedTestCases = [...defectCases, ...reqCases].filter((tc) =>
+        const linkedTestCases = [...defectCases, ...reqCases].filter((tc) =>
           seen.has(tc.key) ? false : seen.add(tc.key) || true,
         );
-      } else {
-        // No jiraIssueId — fall back to full project scan (legacy path, tests only)
-        linkedTestCases = await fetchAioTestCasesForIssue(jiraBaseUrl, token, projectKey, issueKey);
+        if (linkedTestCases.length === 0) return null;
+
+        // Flatten linked test cases into (testCase, runRef) pairs. Each linked
+        // test case carries an embedded run reference (runId + cycleKey) from
+        // the widened traceability response — no cycle scan needed.
+        const runRefs = linkedTestCases.flatMap((tc) =>
+          tc.runs.map((r) => ({ testCase: tc, runRef: r })),
+        );
+        if (runRefs.length === 0) return [];
+
+        // Fetch run detail + steps in parallel for every linked run.
+        const runData = await Promise.all(
+          runRefs.map(async ({ testCase, runRef }) => {
+            const detail = await fetchAioTestRunDetail(
+              jiraBaseUrl,
+              token,
+              projectKey,
+              runRef.cycleKey,
+              runRef.runId,
+            );
+            if (!detail) return null;
+            return {
+              run: {
+                ...detail.run,
+                // Prefer the test case key from traceability — it is the
+                // canonical linkage. fetchAioTestRunDetail falls back to '' when
+                // the response omits testCase.key.
+                testCaseKey: detail.run.testCaseKey || testCase.key,
+              },
+              testCase,
+              steps: detail.steps,
+            };
+          }),
+        );
+        const withSteps = runData
+          .filter((item): item is NonNullable<typeof item> => item !== null)
+          .filter((item) => item.steps.length > 0);
+        if (withSteps.length === 0) return [];
+        return withSteps;
       }
 
+      // Legacy path: no jiraIssueId — fall back to full project scan +
+      // active-cycle pagination. Tests-only / migration callers; kept intact
+      // for backwards compatibility (D-04, D-06).
+      const linkedTestCases: AioTestCase[] = await fetchAioTestCasesForIssue(
+        jiraBaseUrl,
+        token,
+        projectKey,
+        issueKey,
+      );
       if (linkedTestCases.length === 0) return null;
 
-      // Step 2: find active cycle, fetch runs, filter to linked test cases
       const cycles = await fetchAioCycles(jiraBaseUrl, token, projectKey);
       const activeCycle = pickLatestActiveCycle(cycles);
       if (!activeCycle) return [];
@@ -246,7 +298,6 @@ export function AioTestRunsSection({
       const matchedRuns = allRuns.filter((r) => testCaseKeys.has(r.testCaseKey));
       if (matchedRuns.length === 0) return [];
 
-      // Step 3: fetch steps for matched runs
       const runData = await Promise.all(
         matchedRuns.map(async (run) => ({
           run,

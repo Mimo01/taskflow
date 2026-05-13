@@ -12,9 +12,14 @@
 
 import { ApiError } from '../../lib/api-error';
 import { AIO_PROJECTS_API_PATH, aioFetch } from './client';
-import type { AioProject, AioTestCase } from './types';
+import type { AioProject, AioTestCase, AioTestCaseWithRuns, AioTraceabilityRunRef } from './types';
 
-// Raw shape of each item returned by the traceability endpoint (confirmed by probe)
+// Raw shape of each item returned by the traceability endpoint.
+// Widened by Plan 54-06 Probe C1 / Task 2 sub-branch A1:
+// - testRun: most recent execution (current run reference)
+// - latestTestRun: latest execution across cycles (may differ from testRun on re-runs)
+// - testCycle.detail.key: cycle key needed to form the run-detail URL
+// Field names confirmed verbatim by Probe C1 (see 54-PROBE-FINDINGS.md ## Probe C section).
 type RawTraceabilityItem = {
   test?: {
     ID?: number;
@@ -22,6 +27,17 @@ type RawTraceabilityItem = {
       key?: string;
       title?: string;
       name?: string;
+    };
+  };
+  testRun?: {
+    ID?: number;
+  };
+  latestTestRun?: {
+    ID?: number;
+  };
+  testCycle?: {
+    detail?: {
+      key?: string;
     };
   };
 };
@@ -42,7 +58,7 @@ export async function fetchAioTraceabilityTestCases(
   aioProjectId: number,
   jiraIssueNumericId: number,
   type: 'defect' | 'requirement',
-): Promise<AioTestCase[]> {
+): Promise<AioTestCaseWithRuns[]> {
   const path = `/project/${aioProjectId}/traceability/${type}/${jiraIssueNumericId}`;
   let response: Response;
   try {
@@ -55,12 +71,31 @@ export async function fetchAioTraceabilityTestCases(
   if (!Array.isArray(raw)) return [];
   return raw
     .filter((item) => item.test?.detail?.key)
-    .map((item) => ({
-      id: item.test?.ID ?? 0,
-      key: item.test!.detail!.key!,
-      title: item.test?.detail?.title ?? item.test?.detail?.name ?? '',
-    }));
+    .map((item) => {
+      // Plan 54-06 sub-branch A1: extract embedded run reference + cycle key
+      // so consumers can skip the full cycle scan. testRun is the current
+      // execution; latestTestRun is the most recent across cycles (used as
+      // fallback if testRun is absent on this item).
+      const runId = item.testRun?.ID ?? item.latestTestRun?.ID;
+      const cycleKey = item.testCycle?.detail?.key;
+      const runs: AioTraceabilityRunRef[] =
+        runId !== undefined && cycleKey !== undefined ? [{ runId: String(runId), cycleKey }] : [];
+      return {
+        id: item.test?.ID ?? 0,
+        key: item.test!.detail!.key!,
+        title: item.test?.detail?.title ?? item.test?.detail?.name ?? '',
+        runs,
+      };
+    });
 }
+
+/**
+ * Re-export: when the test case linkage (without runs) is needed, callers can
+ * accept the same shape as before — `AioTestCaseWithRuns` is a superset of
+ * `AioTestCase` (adds the optional `runs` field). Existing call sites that
+ * type-annotate against `AioTestCase` continue to work via structural typing.
+ */
+export type { AioTestCase };
 
 /**
  * Fetch all AIO test management projects.
@@ -74,10 +109,7 @@ export async function fetchAioTraceabilityTestCases(
  * @throws ApiError with status 401 on authentication failure
  * @throws Error on network failure
  */
-export async function fetchAioProjects(
-  baseUrl: string,
-  token: string,
-): Promise<AioProject[]> {
+export async function fetchAioProjects(baseUrl: string, token: string): Promise<AioProject[]> {
   let response: Response;
   try {
     response = await aioFetch(baseUrl, token, '/project', AIO_PROJECTS_API_PATH);
@@ -85,7 +117,7 @@ export async function fetchAioProjects(
     throw new Error(`Cannot reach AIO at ${baseUrl}`);
   }
   if (response.ok) {
-    const raw = await response.json() as Array<{ ID: number; jiraProjectKey: string }>;
+    const raw = (await response.json()) as Array<{ ID: number; jiraProjectKey: string }>;
     return raw.map((item) => ({
       id: item.ID,
       projectKey: item.jiraProjectKey,
