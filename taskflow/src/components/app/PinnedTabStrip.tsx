@@ -5,9 +5,9 @@
  *
  * A floating ghost clone follows the cursor during drag.
  *
- * Issue metadata (summary, type) comes from `resolvedIssues` -- a map
- * populated by useQueries in AppLayout so each pinned tab actively fetches
- * its own data on mount.
+ * Tab metadata (summary/type for issues, name/projectKey for cycles) comes from
+ * `resolvedTabs` -- a discriminated union map populated by main.tsx so each
+ * pinned tab has its display data available at paint time.
  */
 
 import {
@@ -17,6 +17,7 @@ import {
   Bug,
   CheckSquare,
   CornerDownRight,
+  FlaskConical,
   Loader2,
   PinOff,
 } from 'lucide-react';
@@ -37,13 +38,12 @@ interface PinnedTabStripProps {
   onTabClick: (issueKey: string) => void;
   onTabClose: (issueKey: string) => void;
   onReorder: (fromIndex: number, toIndex: number) => void;
-  resolvedIssues: Map<string, ResolvedIssue>;
+  resolvedTabs: Map<string, ResolvedTab>;
 }
 
-interface ResolvedIssue {
-  summary: string;
-  issueTypeName: string;
-}
+type IssueTab = { type: 'issue'; summary: string; issueTypeName: string };
+type CycleTab = { type: 'cycle'; name: string; projectKey: string };
+type ResolvedTab = IssueTab | CycleTab;
 
 function IssueTypeIcon({ typeName }: { typeName: string }) {
   const cls = 'w-3.5 h-3.5 shrink-0';
@@ -76,7 +76,7 @@ export default function PinnedTabStrip({
   onTabClick,
   onTabClose,
   onReorder,
-  resolvedIssues,
+  resolvedTabs,
 }: PinnedTabStripProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -159,7 +159,7 @@ export default function PinnedTabStrip({
     if (!ghost) return null;
     const key = pinnedKeys[ghost.index];
     if (!key) return null;
-    const resolved = resolvedIssues.get(key);
+    const resolved = resolvedTabs.get(key);
 
     return createPortal(
       <div
@@ -170,7 +170,17 @@ export default function PinnedTabStrip({
           width: ghost.width,
         }}
       >
-        {resolved ? (
+        {resolved?.type === 'cycle' ? (
+          <>
+            <FlaskConical className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+            <div className="flex flex-col min-w-0 leading-none">
+              <span className="font-mono text-[9px] text-muted-foreground/60 whitespace-nowrap">
+                {key}
+              </span>
+              <span className="truncate text-[11px] leading-tight">{resolved.name}</span>
+            </div>
+          </>
+        ) : resolved?.type === 'issue' ? (
           <>
             <IssueTypeIcon typeName={resolved.issueTypeName} />
             <div className="flex flex-col min-w-0 leading-none">
@@ -197,10 +207,10 @@ export default function PinnedTabStrip({
         ref={containerRef}
         className="h-10 border-b border-border flex items-end gap-1 px-3 flex-shrink-0 bg-background overflow-x-auto overflow-y-hidden no-scrollbar"
         role="tablist"
-        aria-label="Pinned issues"
+        aria-label="Pinned tabs"
       >
         {pinnedKeys.map((key, index) => {
-          const resolved = resolvedIssues.get(key);
+          const resolved = resolvedTabs.get(key);
           const isDragging = draggingIndex === index;
           const showPlaceholderBefore =
             draggingIndex !== null &&
@@ -260,7 +270,19 @@ export default function PinnedTabStrip({
                       draggingIndex !== null ? 'cursor-grabbing' : 'cursor-grab',
                     )}
                   >
-                    {resolved ? (
+                    {resolved?.type === 'cycle' ? (
+                      <>
+                        <FlaskConical className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                        <div className="flex flex-col min-w-0 leading-none">
+                          <span className="font-mono text-[9px] text-muted-foreground/60 whitespace-nowrap">
+                            {key}
+                          </span>
+                          <span className="truncate text-[11px] leading-tight">
+                            {resolved.name}
+                          </span>
+                        </div>
+                      </>
+                    ) : resolved?.type === 'issue' ? (
                       <>
                         <IssueTypeIcon typeName={resolved.issueTypeName} />
                         <div className="flex flex-col min-w-0 leading-none">
