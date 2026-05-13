@@ -5,19 +5,21 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { aioRunStatusBadgeClass } from '@/lib/statusStyles';
+import type { AioTestCase, AioTestRun, AioTestRunStep } from '@/services/aio';
 import {
   fetchAioCycles,
   fetchAioProjects,
   fetchAioTestCasesForIssue,
+  fetchAioTestRunDetail,
   fetchAioTestRunSteps,
   fetchAioTestRunsForCycle,
   fetchAioTraceabilityTestCases,
 } from '@/services/aio';
-import type { AioTestCase, AioTestRun, AioTestRunStep } from '@/services/aio';
 import { readSecret } from '@/services/stronghold';
 import { useSettingsStore } from '@/stores/settings.store';
 import { AuthImage } from '../AuthImage';
 import { ImageLightbox } from '../ImageLightbox';
+import { WikiRenderer } from '../WikiRenderer';
 import { AioTestRunsSkeleton } from './AioTestRunsSkeleton';
 
 // Local composite type for a single test run with its resolved test case and steps
@@ -30,7 +32,7 @@ interface AioIssueRunData {
 interface AioTestRunsSectionProps {
   issueKey: string;
   jiraBaseUrl: string;
-  jiraIssueId?: string;  // Jira numeric issue ID (e.g. "186227") for jiraRequirementIDs filtering
+  jiraIssueId?: string; // Jira numeric issue ID (e.g. "186227") for jiraRequirementIDs filtering
 }
 
 // Pick the latest active cycle by numeric suffix (e.g. PROJ-CY-4 > PROJ-CY-3).
@@ -92,9 +94,7 @@ function StepTable({ steps }: { steps: AioTestRunStep[] }) {
     <table className="w-full text-sm">
       <thead className="border-b bg-muted/10">
         <tr>
-          <th className="px-4 py-2 text-left text-xs font-semibold text-muted-foreground">
-            Step
-          </th>
+          <th className="px-4 py-2 text-left text-xs font-semibold text-muted-foreground">Step</th>
           <th className="w-48 px-3 py-2 text-left text-xs font-semibold text-muted-foreground">
             Expected
           </th>
@@ -108,19 +108,25 @@ function StepTable({ steps }: { steps: AioTestRunStep[] }) {
       </thead>
       <tbody>
         {steps.map((step) => (
-          <tr
-            key={step.id}
-            className="border-b border-border hover:bg-muted/30 transition-colors"
-          >
-            <td className="px-4 py-3">{step.step}</td>
-            <td className="px-3 py-3">{step.expectedResult ?? '—'}</td>
+          <tr key={step.id} className="border-b border-border hover:bg-muted/30 transition-colors">
+            <td className="px-4 py-3">
+              <WikiRenderer wikiText={step.step} />
+            </td>
+            <td className="px-3 py-3">
+              {!step.expectedResult ? '—' : <WikiRenderer wikiText={step.expectedResult} />}
+            </td>
             <td className="px-3 py-3">
               <div>
-                {step.status === 'NOT_EXECUTED' || !step.actualResult ? '—' : step.actualResult}
+                {step.status === 'NOT_EXECUTED' || !step.actualResult ? (
+                  '—'
+                ) : (
+                  <WikiRenderer wikiText={step.actualResult} />
+                )}
               </div>
               {/* Thumbnails below actual text — D-12 */}
-              {((step as AioTestRunStep & { attachments?: { url?: string; fileName?: string }[] })
-                .attachments ?? []
+              {(
+                (step as AioTestRunStep & { attachments?: { url?: string; fileName?: string }[] })
+                  .attachments ?? []
               ).length > 0 && (
                 <div className="flex flex-row gap-1 mt-1 flex-wrap">
                   {(
@@ -161,9 +167,7 @@ function CollapsibleRunBlock({ run, testCase, steps }: AioIssueRunData) {
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
         aria-label={
-          isExpanded
-            ? `Collapse test run for ${displayName}`
-            : `Expand test run for ${displayName}`
+          isExpanded ? `Collapse test run for ${displayName}` : `Expand test run for ${displayName}`
         }
         className="flex items-center gap-2 cursor-pointer min-h-[44px] px-4 py-2 hover:bg-muted/30 w-full text-left"
       >
@@ -181,7 +185,11 @@ function CollapsibleRunBlock({ run, testCase, steps }: AioIssueRunData) {
   );
 }
 
-export function AioTestRunsSection({ issueKey, jiraBaseUrl, jiraIssueId }: AioTestRunsSectionProps) {
+export function AioTestRunsSection({
+  issueKey,
+  jiraBaseUrl,
+  jiraIssueId,
+}: AioTestRunsSectionProps) {
   // aioEnabled gate — must be first, before all hooks (Rules of Hooks: conditional return after hook reads)
   const aioEnabled = useSettingsStore((s) => s.aioEnabled);
 
@@ -196,42 +204,111 @@ export function AioTestRunsSection({ issueKey, jiraBaseUrl, jiraIssueId }: AioTe
 
       const jiraNumericId = jiraIssueId ? Number(jiraIssueId) : null;
 
-      // Step 1: resolve AIO numeric project ID + fetch linked test cases via traceability
-      // (both defect and requirement in parallel — replaces 13K test case scan)
-      let linkedTestCases: import('@/services/aio').AioTestCase[];
+      // Plan 54-06 Task 2 (Branch A1): direct-lookup path.
+      // Branch chosen: Direct lookup available via traceability response — sub-branch A1.
+      // Probe C1 confirmed the traceability endpoint embeds testRun.ID + testCycle.detail.key
+      // on each item, so we can skip BOTH fetchAioCycles AND fetchAioTestRunsForCycle
+      // on the success path and fetch run detail + steps directly per linked run.
+      // See .planning/phases/54-aio-on-issue-detail/54-PROBE-FINDINGS.md ## Probe C.
       if (jiraNumericId !== null) {
         const projects = await fetchAioProjects(jiraBaseUrl, token);
         const aioProject = projects.find((p) => p.projectKey === projectKey);
         if (!aioProject) return null;
+
+        // Fetch both traceability slices in parallel (defect AND requirement
+        // linkage — an issue may appear in either or both).
         const [defectCases, reqCases] = await Promise.all([
           fetchAioTraceabilityTestCases(jiraBaseUrl, token, aioProject.id, jiraNumericId, 'defect'),
-          fetchAioTraceabilityTestCases(jiraBaseUrl, token, aioProject.id, jiraNumericId, 'requirement'),
+          fetchAioTraceabilityTestCases(
+            jiraBaseUrl,
+            token,
+            aioProject.id,
+            jiraNumericId,
+            'requirement',
+          ),
         ]);
+        // De-duplicate by test case key (defect ∪ requirement) preserving order.
         const seen = new Set<string>();
-        linkedTestCases = [...defectCases, ...reqCases].filter((tc) => seen.has(tc.key) ? false : seen.add(tc.key) || true);
-      } else {
-        // No jiraIssueId — fall back to full project scan (legacy path, tests only)
-        linkedTestCases = await fetchAioTestCasesForIssue(jiraBaseUrl, token, projectKey, issueKey);
+        const linkedTestCases = [...defectCases, ...reqCases].filter((tc) =>
+          seen.has(tc.key) ? false : seen.add(tc.key) || true,
+        );
+        if (linkedTestCases.length === 0) return null;
+
+        // Flatten linked test cases into (testCase, runRef) pairs. Each linked
+        // test case carries an embedded run reference (runId + cycleKey) from
+        // the widened traceability response — no cycle scan needed.
+        const runRefs = linkedTestCases.flatMap((tc) =>
+          tc.runs.map((r) => ({ testCase: tc, runRef: r })),
+        );
+        if (runRefs.length === 0) return [];
+
+        // Fetch run detail + steps in parallel for every linked run.
+        const runData = await Promise.all(
+          runRefs.map(async ({ testCase, runRef }) => {
+            const detail = await fetchAioTestRunDetail(
+              jiraBaseUrl,
+              token,
+              projectKey,
+              runRef.cycleKey,
+              runRef.runId,
+            );
+            if (!detail) return null;
+            return {
+              run: {
+                ...detail.run,
+                // Prefer the test case key from traceability — it is the
+                // canonical linkage. fetchAioTestRunDetail falls back to '' when
+                // the response omits testCase.key.
+                testCaseKey: detail.run.testCaseKey || testCase.key,
+              },
+              testCase,
+              steps: detail.steps,
+            };
+          }),
+        );
+        const withSteps = runData
+          .filter((item): item is NonNullable<typeof item> => item !== null)
+          .filter((item) => item.steps.length > 0);
+        if (withSteps.length === 0) return [];
+        return withSteps;
       }
 
+      // Legacy path: no jiraIssueId — fall back to full project scan +
+      // active-cycle pagination. Tests-only / migration callers; kept intact
+      // for backwards compatibility (D-04, D-06).
+      const linkedTestCases: AioTestCase[] = await fetchAioTestCasesForIssue(
+        jiraBaseUrl,
+        token,
+        projectKey,
+        issueKey,
+      );
       if (linkedTestCases.length === 0) return null;
 
-      // Step 2: find active cycle, fetch runs, filter to linked test cases
       const cycles = await fetchAioCycles(jiraBaseUrl, token, projectKey);
       const activeCycle = pickLatestActiveCycle(cycles);
       if (!activeCycle) return [];
 
-      const allRuns = await fetchAioTestRunsForCycle(jiraBaseUrl, token, projectKey, activeCycle.key);
+      const allRuns = await fetchAioTestRunsForCycle(
+        jiraBaseUrl,
+        token,
+        projectKey,
+        activeCycle.key,
+      );
       const testCaseKeys = new Set(linkedTestCases.map((tc) => tc.key));
       const matchedRuns = allRuns.filter((r) => testCaseKeys.has(r.testCaseKey));
       if (matchedRuns.length === 0) return [];
 
-      // Step 3: fetch steps for matched runs
       const runData = await Promise.all(
         matchedRuns.map(async (run) => ({
           run,
           testCase: linkedTestCases.find((tc) => tc.key === run.testCaseKey),
-          steps: await fetchAioTestRunSteps(jiraBaseUrl, token, projectKey, activeCycle.key, run.id),
+          steps: await fetchAioTestRunSteps(
+            jiraBaseUrl,
+            token,
+            projectKey,
+            activeCycle.key,
+            run.id,
+          ),
         })),
       );
       const withSteps = runData.filter((item) => item.steps.length > 0);

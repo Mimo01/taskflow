@@ -1,6 +1,7 @@
+import { openUrl } from '@tauri-apps/plugin-opener';
 // @ts-expect-error — jira2md has no default export type declarations
 import j2m from 'jira2md';
-import { type ComponentPropsWithoutRef, useState } from 'react';
+import { type ComponentPropsWithoutRef, type MouseEvent, useState } from 'react';
 import Markdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
@@ -36,6 +37,16 @@ export function preprocessJiraMarkup(
   users?: UserMap,
 ): string {
   let result = wiki;
+
+  // Plan 54-06: real ESHOP test-run content uses `hN.X` (no space) and `\\` as
+  // a hard line break. jira2md leaves both unmodified. Normalize before jira2md:
+  // - `h1.foo` … `h6.foo` → `h1. foo` (so jira2md emits valid `#…# foo`)
+  // - `\\` at end-of-line or surrounded by spaces → markdown hard break (`  \n`)
+  result = result.replace(/^(h[1-6]\.)(\S)/gm, '$1 $2');
+  // Convert standalone `\\` (Jira hard break) to a markdown hard break.
+  // Two trailing spaces + newline is the markdown hard-break form remark-gfm preserves.
+  result = result.replace(/[ \t]*\\\\[ \t]*\n/g, '  \n');
+  result = result.replace(/[ \t]\\\\[ \t]/g, '  \n');
 
   // Images: !filename.png|options! or !filename.png! → resolve via attachment map
   // Must run BEFORE jira2md which also handles !...! syntax.
@@ -138,6 +149,37 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
         @{children}
       </span>
     ),
+    // External link override (Plan 54-06 Finding 1 sub-issue): route external <a>
+    // clicks through openUrl from @tauri-apps/plugin-opener so the Tauri webview
+    // is not hijacked by Jira-wiki links (e.g. [name|https://...]). This applies
+    // globally to ALL WikiRenderer surfaces — every caller had the same problem
+    // (IssueDetailContent, InlineComment, IssueDetailPage, DescriptionEditor,
+    // MergeRequestDetailPage, ActivityTimeline, plus AIO step content).
+    a: ({ href, children, ...rest }: ComponentPropsWithoutRef<'a'>) => {
+      // Falsy href → render plain <a> with no openUrl, no preventDefault.
+      if (!href) {
+        return <a {...rest}>{children}</a>;
+      }
+      // In-document anchor → render plain <a>, let default scroll behavior apply.
+      if (href.startsWith('#')) {
+        return (
+          <a href={href} {...rest}>
+            {children}
+          </a>
+        );
+      }
+      const handleClick = (e: MouseEvent<HTMLAnchorElement>) => {
+        e.preventDefault();
+        openUrl(href).catch(() => {});
+      };
+      // Preserve href on the rendered anchor for accessibility (right-click
+      // "Copy link", screen readers, keyboard navigation).
+      return (
+        <a href={href} onClick={handleClick} {...rest}>
+          {children}
+        </a>
+      );
+    },
   };
 
   return (

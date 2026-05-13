@@ -16,9 +16,9 @@
  * Field names derived from AIO REST API docs and D-16 probe findings.
  */
 export interface AioProject {
-  id: number;           // AIO internal project ID
-  projectKey: string;   // Jira project key (e.g. "PROJ")
-  name: string;         // Project display name
+  id: number; // AIO internal project ID
+  projectKey: string; // Jira project key (e.g. "PROJ")
+  name: string; // Project display name
 }
 
 /**
@@ -27,10 +27,10 @@ export interface AioProject {
  * Key format: {PROJ}-CY-N (D-17 probe confirmed)
  */
 export interface AioCycle {
-  key: string;          // Cycle key, e.g. "PROJ-CY-2"
-  name: string;         // Cycle display name
-  status: string;       // Cycle status, e.g. "Active", "Closed"
-  projectKey: string;   // Owning Jira project key
+  key: string; // Cycle key, e.g. "PROJ-CY-2"
+  name: string; // Cycle display name
+  status: string; // Cycle status, e.g. "Active", "Closed"
+  projectKey: string; // Owning Jira project key
 }
 
 /**
@@ -44,17 +44,18 @@ export interface AioCycle {
  * Use run.executedDate ?? run.testCase?.updatedDate as defensive date fallback.
  */
 export interface AioTestRun {
-  id: string;           // Test run ID
-  status: string;       // Run status: "PASS" | "FAIL" | "NOT_EXECUTED" | "BLOCKED"
-  testCaseKey: string;  // Associated test case key, e.g. "PROJ-TC-5"
-  cycleKey: string;     // Owning cycle key, e.g. "PROJ-CY-2"
-  testCase?: {          // Nested object — verify field names against live endpoint (D-10)
-    title: string;      // Test case display name for run list
+  id: string; // Test run ID
+  status: string; // Run status: "PASS" | "FAIL" | "NOT_EXECUTED" | "BLOCKED"
+  testCaseKey: string; // Associated test case key, e.g. "PROJ-TC-5"
+  cycleKey: string; // Owning cycle key, e.g. "PROJ-CY-2"
+  testCase?: {
+    // Nested object — verify field names against live endpoint (D-10)
+    title: string; // Test case display name for run list
     updatedDate?: string; // ISO date fallback if executedDate absent
   };
-  defects?: string[];      // Jira issue keys inline, e.g. ["PROJ-42"] (D-14 confirmed)
+  defects?: string[]; // Jira issue keys inline, e.g. ["PROJ-42"] (D-14 confirmed)
   jiraDefectIDs?: number[]; // Numeric Jira issue IDs from jiraDefectIDs on latest execution (probe B confirmed)
-  executedDate?: string;   // Run-level date — NOTE: field name unverified against live endpoint (A2)
+  executedDate?: string; // Run-level date — NOTE: field name unverified against live endpoint (A2)
 }
 
 /**
@@ -76,11 +77,11 @@ export interface AioPage<T> {
  * Field names confirmed by Phase 54 probe: title (confirmed), key (confirmed).
  */
 export interface AioTestCase {
-  id: number;                        // AIO internal test case ID
-  key: string;                       // Test case key, e.g. "PROJ-TC-5" (confirmed by Phase 54 probe)
-  title: string;                     // Test case display name (confirmed field name: 'title'; probe also showed 'name' fallback needed)
-  projectKey?: string;               // Owning Jira project key
-  jiraRequirementIDs?: string[];     // Jira issue numeric IDs this test case is linked to (e.g. ['186227']); used for client-side filtering (probe finding A)
+  id: number; // AIO internal test case ID
+  key: string; // Test case key, e.g. "PROJ-TC-5" (confirmed by Phase 54 probe)
+  title: string; // Test case display name (confirmed field name: 'title'; probe also showed 'name' fallback needed)
+  projectKey?: string; // Owning Jira project key
+  jiraRequirementIDs?: string[]; // Jira issue numeric IDs this test case is linked to (e.g. ['186227']); used for client-side filtering (probe finding A)
 }
 
 /**
@@ -92,11 +93,39 @@ export interface AioTestCase {
  * NOTE: Attachments not implemented — no attachment fields observed across 26 runs in 7 cycles (probe finding B).
  */
 export interface AioTestRunStep {
-  id: number;               // Step ID (from raw 'ID' field — confirmed by Phase 54 probe)
-  step: string;             // Step action/description text (confirmed field name: 'step' — was assumed: 'stepAction')
-  expectedResult?: string;  // Expected result text (confirmed field name: 'expectedResult')
-  actualResult?: string;    // Actual result text; absent when step not yet executed (confirmed field name: 'actualResult')
-  status?: string;          // Normalized step status: "PASS" | "FAIL" | "BLOCKED" | "NOT_EXECUTED" (from testRunStepStatus.name)
+  id: number; // Step ID (from raw 'ID' field — confirmed by Phase 54 probe)
+  step: string; // Step action/description text (confirmed field name: 'step' — was assumed: 'stepAction')
+  expectedResult?: string; // Expected result text (confirmed field name: 'expectedResult')
+  actualResult?: string; // Actual result text; absent when step not yet executed (confirmed field name: 'actualResult')
+  status?: string; // Normalized step status: "PASS" | "FAIL" | "BLOCKED" | "NOT_EXECUTED" (from testRunStepStatus.name)
+}
+
+/**
+ * Plan 54-06 Branch A1: a direct run reference embedded in a traceability item.
+ * Returned per `AioTestCaseWithRuns.runs[]` from `fetchAioTraceabilityTestCases`.
+ *
+ * Source fields (Probe C1):
+ *   - testRun.ID         → runId   (string-normalized for parity with AioTestRun.id)
+ *   - latestTestRun.ID   → fallback for runId when testRun is absent on the item
+ *   - testCycle.detail.key → cycleKey
+ *
+ * Enables skipping `fetchAioCycles` + `fetchAioTestRunsForCycle` on the success
+ * path — every linked test case's most-recent run is already linked from the
+ * traceability response.
+ */
+export interface AioTraceabilityRunRef {
+  runId: string;
+  cycleKey: string;
+}
+
+/**
+ * Plan 54-06 Branch A1: `AioTestCase` extended with a list of directly-referenced
+ * runs. `runs[]` is empty when the traceability item did not carry a `testRun.ID`
+ * (rare — Probe C1 found ≥90% coverage). Structurally a superset of `AioTestCase`,
+ * so existing typed call sites continue to compile.
+ */
+export interface AioTestCaseWithRuns extends AioTestCase {
+  runs: AioTraceabilityRunRef[];
 }
 
 /**
@@ -106,6 +135,6 @@ export interface AioTestRunStep {
  * implemented in Phase 54. Shape is kept minimal until a probe confirms actual field names.
  */
 export interface AioStepAttachment {
-  url?: string;       // Full URL to the attachment (field name unconfirmed — no probe data)
-  fileName?: string;  // Filename for alt text (field name unconfirmed — no probe data)
+  url?: string; // Full URL to the attachment (field name unconfirmed — no probe data)
+  fileName?: string; // Filename for alt text (field name unconfirmed — no probe data)
 }

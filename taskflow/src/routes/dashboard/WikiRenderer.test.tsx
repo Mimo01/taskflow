@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { WikiRenderer } from './WikiRenderer';
 
 vi.mock('@/services/stronghold', () => ({
@@ -10,12 +10,18 @@ vi.mock('@tauri-apps/plugin-http', () => ({
   fetch: vi.fn().mockResolvedValue({ ok: false }),
 }));
 
+vi.mock('@tauri-apps/plugin-opener', () => ({
+  openUrl: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('@/stores/auth.store', () => ({
   useAuthStore: Object.assign(
     (selector: (s: { jiraBaseUrl: string | null }) => unknown) => selector({ jiraBaseUrl: null }),
     { getState: () => ({ jiraBaseUrl: null }) },
   ),
 }));
+
+import { openUrl } from '@tauri-apps/plugin-opener';
 
 describe('WikiRenderer', () => {
   describe('ISSUE-02: wiki markup rendering', () => {
@@ -183,6 +189,39 @@ describe('WikiRenderer', () => {
       // List items render
       const listItems = container.querySelectorAll('li');
       expect(listItems.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  describe('external link routing through openUrl (Plan 54-06)', () => {
+    beforeEach(() => {
+      vi.mocked(openUrl).mockClear();
+    });
+
+    it('renders external [name|url] link, click calls openUrl exactly once', () => {
+      render(
+        <WikiRenderer wikiText="[VAS.png|https://jira.orange.sk/secure/attachment/123/VAS.png]" />,
+      );
+      const link = screen.getByRole('link', { name: /VAS\.png/ });
+      fireEvent.click(link);
+      expect(openUrl).toHaveBeenCalledWith('https://jira.orange.sk/secure/attachment/123/VAS.png');
+      expect(openUrl).toHaveBeenCalledTimes(1);
+    });
+
+    it('in-document anchor (#section) does NOT call openUrl', () => {
+      render(<WikiRenderer wikiText="[See here|#section]" />);
+      const link = screen.getByRole('link', { name: /See here/ });
+      fireEvent.click(link);
+      expect(openUrl).not.toHaveBeenCalled();
+    });
+
+    it('falsy/empty href does NOT call openUrl', () => {
+      // Use raw HTML <a> without href — rehypeRaw allows raw HTML.
+      // Anchors without href lack the implicit "link" role, so query via text.
+      render(<WikiRenderer wikiText='<a class="bare">bare anchor</a>' />);
+      const anchor = screen.getByText('bare anchor').closest('a');
+      expect(anchor).not.toBeNull();
+      fireEvent.click(anchor as HTMLAnchorElement);
+      expect(openUrl).not.toHaveBeenCalled();
     });
   });
 
