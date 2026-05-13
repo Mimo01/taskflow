@@ -11,6 +11,17 @@ import { ApiError } from '../../lib/api-error';
 import { aioFetch } from './client';
 import type { AioPage, AioCycle } from './types';
 
+type RawCycle = { key: string; title?: string; name?: string; isClosed?: boolean; status?: string; projectKey?: string };
+
+function normalizeCycle(raw: RawCycle, fallbackProjectKey?: string): AioCycle {
+  return {
+    key: raw.key,
+    name: raw.title ?? raw.name ?? raw.key,
+    status: raw.status ?? (raw.isClosed ? 'Closed' : 'Active'),
+    projectKey: raw.projectKey ?? fallbackProjectKey ?? '',
+  };
+}
+
 /**
  * Fetch all test cycles for a project.
  *
@@ -43,9 +54,9 @@ export async function fetchAioCycles(
       // Guard: D-17 confirms AioPage wrapper for aio-tcms-api/1.0 endpoints,
       // but guard for direct array in case of API variation.
       if (Array.isArray(data)) {
-        return data; // Direct array — no pagination
+        return (data as RawCycle[]).map((r) => normalizeCycle(r, projectKey));
       }
-      allCycles.push(...(data.items ?? []));
+      allCycles.push(...(data.items as unknown as RawCycle[] ?? []).map((r) => normalizeCycle(r, projectKey)));
       if (data.isLast || data.maxResults <= 0) return allCycles;
       startAt += data.maxResults;
       continue;
@@ -89,7 +100,7 @@ export async function fetchAioCycleDetail(
     throw new Error(`Cannot reach AIO at ${baseUrl}`);
   }
   if (response.ok) {
-    return (await response.json()) as AioCycle;
+    return normalizeCycle((await response.json()) as RawCycle, projectKey);
   }
   if (response.status === 401) {
     throw new ApiError('Invalid token or token has expired', 401, 'jira');
