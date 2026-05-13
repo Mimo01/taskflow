@@ -165,3 +165,72 @@ Step keys: ['ID', 'stepID', 'stepOrder', 'testStepType', 'step', 'expectedResult
             'testRunStepStatus', 'actualResult']
 actualResult: "ok"
 ```
+
+---
+
+## Probe E — 54-07 Nested Wiki Rendering
+Probed: 2026-05-13
+
+### Fixture
+Verbatim from `54-06-UAT-FINDINGS.md` lines 14-25 (real ESHOP step content from a Failed test run on issue 393120):
+
+```
+||*S.No.*||*Step*||*Expected Result*||*Actual Result*||
+|1. |Nacitanie eshop home page |Kontrola OK |Works as expected|
+|2. |{color:#d04437}*FAILED:*{color} Plati pre paušály S, M, L: \\ • 5 GB (12657037, 5,13 €) |Kontrola OK |V kosiku mam Pro Biznis M a device na splatky...
+{panel}
+# [VAS.png|https://jira.orange.sk/plugins/servlet/aio-tcms/bridge/tcms/browse?c_pId=10134&page=run-details-attachment&params=%7B%22cycleId%22:14041,%22caseId%22:68141,%22runId%22:263794,%22attachmentId%22:150383,%22projectId%22:10134%7D]
+{panel}|
+```
+
+### Baseline behaviour (no fix)
+Confirmed by scratch probe — the `|2. |...` row terminates at the FIRST `\n` after `splatky...`, so jira2md emits only a 3-cell row. The `{panel}…{panel}` block lands OUTSIDE the table as a sibling `<div data-callout="panel">`, and the trailing `{panel}|` leaves a stray literal `|` after the panel. Observable signature on the verbatim fixture:
+
+- `tablePresent: true`
+- `panelPresent: true`
+- `panelInsideTable: false`   ← the bug
+- `vasLink: false`             ← `[VAS.png|...]` is rendered as a markdown link OUTSIDE the cell, not as a clickable `<a>` inside it
+- One stray literal `|` after the panel block
+
+### Branch 3-A — preprocess heuristic
+**Outcome: works.**
+
+Heuristic (validated against the verbatim fixture):
+1. Scan line-by-line. Detect a "data row" (line starts with `|` and not `||`) that does NOT end with `|` — that row is "open" and continues onto subsequent lines.
+2. Greedy-consume subsequent lines (capped at 50 for safety) until we find a line that ends with `|` AND brings any embedded `{panel}` markers back to balance.
+3. Inside the joined body, substitute each `{panel}…{panel}` (and `{info}`, `{warning}`, `{note}`) to an inline `<span data-callout="…">…</span>` with internal `\n` flattened to `<br/>`. This keeps the body on one logical line for jira2md / remark-gfm.
+4. Replace any remaining `\n` inside the merged row with a single space so jira2md sees one source line.
+
+After 3-A on the verbatim fixture:
+- `tablePresent: true`
+- `panelPresent: true`
+- `panelInsideTable: true`   ← fixed
+- `vasLink: true`             ← `<a href="...">VAS.png</a>` is rendered INSIDE the table cell
+
+The Branch 3-A approach uses `<span data-callout="panel">` instead of the existing `<div data-callout="panel">` so the panel renders inline inside the table cell (block `<div>` inside `<td>` works in HTML but would break flow visually). The existing `markdownComponents.div` callout renderer needs a sibling `span` override with the same `calloutStyles` map.
+
+Diff sketch for `preprocessJiraMarkup`:
+```ts
+// Before the existing global {panel} substitution, do a row-aware merge:
+let result = mergeOpenTableRows(wiki);   // new helper, ~40 LOC
+// THEN run the existing {panel}/{info}/... substitutions on the rest of the text.
+```
+
+### Branch 3-B — custom td renderer
+**Outcome: not attempted (Branch 3-A succeeded).**
+
+A `td` override in `markdownComponents` would receive parsed HAST/MDAST children, not the raw cell source, so reconstructing the panel content from React children would either require a custom remark plugin that attaches `node.raw` to table cells (non-trivial, fragile) or best-effort string reconstruction (also fragile). Branch 3-A's preprocess approach is cheaper and more deterministic.
+
+### Branch 3-C — swap to proper wiki parser
+**Outcome: not evaluated (Branch 3-A succeeded).**
+
+Reserve for future work if the preprocess heuristic accumulates edge cases. Candidate packages: `jira-wiki-markup` (npm), `marsdown-jira-wiki`. Blast radius: every WikiRenderer caller (issue descriptions, comments, MR descriptions, AIO step content). Not justified now.
+
+### T-54-07-01 (XSS) finding
+While probing 3-A I also ran a `<script>alert(1)</script>` payload through the EXISTING WikiRenderer (no Branch 3-A applied) — it renders as a REAL DOM `<script>` element in the article, NOT as literal text. This is a pre-existing rehypeRaw posture, not introduced by Branch 3-A (the 3-A output for the same fixture produces identical HTML). The Plan 54-07 T-54-07-01 mitigation therefore requires:
+
+1. Branch 3-A regex MUST NOT add new HTML attribute-injection vectors. Validated: 3-A only emits `<span data-callout="panel">…</span>` and `<br/>` — the `data-callout` value is a hard-coded string, and the inner content is interpolated literally (no `href`/`src` attribute interpolation from user data).
+2. The Task 2 implementation MUST add `rehypeSanitize` to the WikiRenderer pipeline (after `rehypeRaw`) with a schema that allows `data-callout` / `mention` / `img` / `a` (existing app surface) but blocks `<script>` / `<iframe>` / event-handler attributes. Without this, the T-54-07-01 XSS guard test (`<script>` renders as literal text) cannot pass even when run against unchanged baseline code.
+
+### Decision: Branch 3-A selected — preprocess heuristic merges multi-line `|cell|` rows + flattens embedded `{panel}` to inline `<span data-callout="panel">` so jira2md sees one logical row; lowest blast radius (no new deps, isolated to `preprocessJiraMarkup`); validated against the verbatim ESHOP fixture (panel + image-link list render inside the table cell).
+
