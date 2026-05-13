@@ -1,6 +1,5 @@
-// @ts-expect-error — jira2md has no default export type declarations
-
 import { openUrl } from '@tauri-apps/plugin-opener';
+// @ts-expect-error — jira2md has no default export type declarations
 import j2m from 'jira2md';
 import { type ComponentPropsWithoutRef, type MouseEvent, useState } from 'react';
 import Markdown from 'react-markdown';
