@@ -277,7 +277,7 @@ Cross-cutting constraints:
   2. The AIO section renders a step table with step / expected / actual columns and colored failure markers per row
   3. When the issue has no associated AIO test runs, the section is hidden (not an error state)
   4. Attachment images within test run steps are fetched via the authenticated HTTP client and open in the existing in-app lightbox
-**Plans:** 5/9 plans executed
+**Plans:** 6/9 plans executed
 
 Plans:
 
@@ -304,7 +304,7 @@ Plans:
 - [x] 54-07-PLAN.md — Gap closure for 3 net-new items routed from 54-06 UAT: (1) ImpactedExecutionsList on no-runs path with real per-run status chips, (2) AioAttachmentsGrid populated on no-runs path via bounded cross-cycle `fetchAioTestRunDetail` fan-out (in-cycle uncapped), (3) Probe E + branch implementation for nested wiki rendering inside table cells (3-A preprocess / 3-B custom td renderer / 3-C swap parser).
 
 **Wave 7** *(UAT gap closure — blocked on Wave 6 completion; closes 54-HUMAN-UAT.md Gaps 1/2/3 surfaced 2026-05-14)*
-- [ ] 54-08-PLAN.md — Gap closure for 3 remaining UAT gaps: (Gap 1) widen no-runs path so in-cycle runs with empty/null detail.steps[] promote to ImpactedExecutionsList — fixes ESHOP-393120 single-cycle silent empty section, (Gap 2) narrow line-606 short-circuit so AioAttachmentsGrid header always renders when AIO data is present (linked cases exist), (Gap 3) wrap WikiRenderer tables in overflow-x-auto + add min-w-0 to StepTable cell wrappers so nested wiki tables scroll horizontally inside outer cells instead of overflowing; plus service-level shape-lock tests for fetchAioTraceabilityTestCases.
+- [x] 54-08-PLAN.md — Gap closure for 3 remaining UAT gaps: (Gap 1) widen no-runs path so in-cycle runs with empty/null detail.steps[] promote to ImpactedExecutionsList — fixes ESHOP-393120 single-cycle silent empty section, (Gap 2) narrow line-606 short-circuit so AioAttachmentsGrid header always renders when AIO data is present (linked cases exist), (Gap 3) wrap WikiRenderer tables in overflow-x-auto + add min-w-0 to StepTable cell wrappers so nested wiki tables scroll horizontally inside outer cells instead of overflowing; plus service-level shape-lock tests for fetchAioTraceabilityTestCases.
 
 Cross-cutting constraints:
 - Plans 54-02 and 54-03 run in parallel (no shared files): 54-02 touches only test files; 54-03 touches only new component files
@@ -336,4 +336,4 @@ Cross-cutting constraints:
 | 51. AIO Service Layer | v1.8 | 3/3 | Complete | 2026-05-12 |
 | 52. AIO Navigation + Project Pages | v1.8 | 6/6 | Complete | 2026-05-13 |
 | 53. Cycle Detail + Header Pinning | v1.8 | 0/5 | Not started | - |
-| 54. AIO on Issue Detail | v1.8 | 5/8 | In Progress|  |
+| 54. AIO on Issue Detail | v1.8 | 6/9 | In Progress|  |
