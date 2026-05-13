@@ -75,10 +75,11 @@ export interface AioPage<T> {
  * Field names confirmed by Phase 54 probe: title (confirmed), key (confirmed).
  */
 export interface AioTestCase {
-  id: number;           // AIO internal test case ID
-  key: string;          // Test case key, e.g. "PROJ-TC-5" (confirmed by Phase 54 probe)
-  title: string;        // Test case display name (confirmed field name: 'title'; probe also showed 'name' fallback needed)
-  projectKey?: string;  // Owning Jira project key
+  id: number;                        // AIO internal test case ID
+  key: string;                       // Test case key, e.g. "PROJ-TC-5" (confirmed by Phase 54 probe)
+  title: string;                     // Test case display name (confirmed field name: 'title'; probe also showed 'name' fallback needed)
+  projectKey?: string;               // Owning Jira project key
+  jiraRequirementIDs?: string[];     // Jira issue numeric IDs this test case is linked to (e.g. ['186227']); used for client-side filtering (probe finding A)
 }
 
 /**
