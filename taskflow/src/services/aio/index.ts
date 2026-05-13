@@ -9,3 +9,4 @@ export * from './types';
 export * from './projects';
 export * from './issue-runs';
 export * from './cycles';
+export * from './issue-steps';
