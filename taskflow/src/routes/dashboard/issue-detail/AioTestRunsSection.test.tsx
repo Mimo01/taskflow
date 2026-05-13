@@ -218,9 +218,10 @@ describe('AioTestRunsSection', () => {
 
   // Test 8: thumbnail rendered for step with attachment
   // NOTE: AioTestRunStep does not have attachments in Phase 54 (probe found none).
-  // This test stub is forward-compatible — it will be skipped or adapted in Phase 54-03
-  // if attachment rendering is deferred. Written here to capture the design intent (D-12/D-13).
-  it('renders thumbnail image for step with an attachment url', async () => {
+  // The StepThumbnail renders a clickable div (role="button") with the fileName as aria-label.
+  // AuthImage renders "[image not available]" in the test environment (no Tauri http plugin),
+  // so we assert the clickable thumbnail container is present rather than the raw <img> alt.
+  it('renders thumbnail button for step with an attachment url', async () => {
     const stepWithAttachment = {
       ...STEP_PASS,
       // Future field — not in current AioTestRunStep type; cast to unknown
@@ -233,8 +234,10 @@ describe('AioTestRunsSection', () => {
 
     renderSection();
     await waitFor(() => {
-      // Thumbnail image with alt text from fileName
-      expect(screen.getByAltText('screenshot.png')).toBeTruthy();
+      // StepThumbnail renders a div[role="button"] with aria-label containing the fileName
+      expect(
+        screen.getByRole('button', { name: 'screenshot.png - click to view full size' }),
+      ).toBeTruthy();
     });
   });
 
@@ -252,16 +255,19 @@ describe('AioTestRunsSection', () => {
 
     renderSection();
     await waitFor(() => {
-      expect(screen.getByAltText('screenshot.png')).toBeTruthy();
+      expect(
+        screen.getByRole('button', { name: 'screenshot.png - click to view full size' }),
+      ).toBeTruthy();
     });
 
-    // Click thumbnail — lightbox should open
-    await userEvent.click(screen.getByAltText('screenshot.png'));
+    // Click thumbnail container — lightbox should open
+    await userEvent.click(
+      screen.getByRole('button', { name: 'screenshot.png - click to view full size' }),
+    );
 
-    // Lightbox is open — indicated by aria-modal dialog or lightbox image
+    // Lightbox is open — indicated by aria-modal dialog
     await waitFor(() => {
-      const dialog = document.querySelector('[aria-modal="true"]');
-      expect(dialog).not.toBeNull();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
   });
 });

@@ -33,6 +33,7 @@ import type { EditInitialValues } from './CreateEditIssueModal';
 import { IssueDetailContent, relativeTime } from './IssueDetailContent';
 import { IssueDetailSidebar } from './IssueDetailSidebar';
 import { ActivityTimeline } from './issue-detail/ActivityTimeline';
+import { AioTestRunsSection } from './issue-detail/AioTestRunsSection';
 import type { AttachmentMap, UserMap } from './WikiRenderer';
 import { WikiRenderer } from './WikiRenderer';
 
@@ -422,6 +423,9 @@ export default function IssueDetailPage() {
                 worklogEditPending={worklogEditMutation.isPending}
                 worklogEditError={worklogEditError}
               />
+
+              {/* AIO Test Runs — loads in parallel with Jira data; gated by aioEnabled inside the component (D-15, D-16) */}
+              <AioTestRunsSection issueKey={issueKey} jiraBaseUrl={jiraBaseUrl!} />
 
               {(timelineFilter === 'comment' || timelineFilter === 'all') && (
                 <div className="sticky bottom-0 border-t py-3 -mx-6 px-6 bg-background">
