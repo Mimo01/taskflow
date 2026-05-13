@@ -389,6 +389,9 @@ export default function IssueDetailPage() {
 
             {/* Activity timeline + comment composer */}
             <div className="px-6">
+              {/* AIO Test Runs — above comments per user preference; loads in parallel, gated by aioEnabled (D-15) */}
+              <AioTestRunsSection issueKey={issueKey} jiraBaseUrl={jiraBaseUrl!} jiraIssueId={issue.id} />
+
               <ActivityTimeline
                 comments={comments}
                 changelog={issue.changelog?.histories ?? []}
@@ -423,9 +426,6 @@ export default function IssueDetailPage() {
                 worklogEditPending={worklogEditMutation.isPending}
                 worklogEditError={worklogEditError}
               />
-
-              {/* AIO Test Runs — loads in parallel with Jira data; gated by aioEnabled inside the component (D-15, D-16) */}
-              <AioTestRunsSection issueKey={issueKey} jiraBaseUrl={jiraBaseUrl!} />
 
               {(timelineFilter === 'comment' || timelineFilter === 'all') && (
                 <div className="sticky bottom-0 border-t py-3 -mx-6 px-6 bg-background">

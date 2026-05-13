@@ -28,6 +28,7 @@ interface AioIssueRunData {
 interface AioTestRunsSectionProps {
   issueKey: string;
   jiraBaseUrl: string;
+  jiraIssueId?: string;  // Jira numeric issue ID (e.g. "186227") for jiraRequirementIDs filtering
 }
 
 // Pick the latest active cycle by numeric suffix (e.g. PROJ-CY-4 > PROJ-CY-3).
@@ -178,7 +179,7 @@ function CollapsibleRunBlock({ run, testCase, steps }: AioIssueRunData) {
   );
 }
 
-export function AioTestRunsSection({ issueKey, jiraBaseUrl }: AioTestRunsSectionProps) {
+export function AioTestRunsSection({ issueKey, jiraBaseUrl, jiraIssueId }: AioTestRunsSectionProps) {
   // aioEnabled gate — must be first, before all hooks (Rules of Hooks: conditional return after hook reads)
   const aioEnabled = useSettingsStore((s) => s.aioEnabled);
 
@@ -191,9 +192,12 @@ export function AioTestRunsSection({ issueKey, jiraBaseUrl }: AioTestRunsSection
 
       const projectKey = issueKey.split('-')[0];
 
-      // Step 1: fetch test cases for the project (server ignores issueKey filter — probe A)
-      const testCases = await fetchAioTestCasesForIssue(jiraBaseUrl, token, projectKey, issueKey);
-      // No test cases at all → section hidden (D-04 first case — sentinel null)
+      // Step 1: fetch all test cases for the project, then filter by jiraRequirementIDs (probe A: no server-side filter)
+      const allTestCases = await fetchAioTestCasesForIssue(jiraBaseUrl, token, projectKey, issueKey);
+      const testCases = jiraIssueId
+        ? allTestCases.filter((tc) => tc.jiraRequirementIDs?.includes(jiraIssueId) ?? false)
+        : allTestCases;
+      // No linked test cases → section hidden (D-04 first case — sentinel null)
       if (testCases.length === 0) return null;
 
       // Step 2: find the latest active cycle

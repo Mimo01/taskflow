@@ -34,6 +34,7 @@ function normalizeTestCase(raw: RawTestCase): AioTestCase {
     key: raw.key ?? '',
     title: raw.title ?? raw.name ?? '', // defensive: probe confirmed 'title', 'name' as fallback
     projectKey: raw.projectKey,
+    jiraRequirementIDs: raw.jiraRequirementIDs,
   };
 }
 
@@ -165,7 +166,8 @@ export async function fetchAioTestRunSteps(
   cycleKey: string,
   runId: string,
 ): Promise<AioTestRunStep[]> {
-  const path = `/project/${encodeURIComponent(projectKey)}/testcycle/${encodeURIComponent(cycleKey)}/testrun/${encodeURIComponent(runId)}`;
+  // assignSteps=true required — without it testRunSteps[] is always empty (probe finding B)
+  const path = `/project/${encodeURIComponent(projectKey)}/testcycle/${encodeURIComponent(cycleKey)}/testrun/${encodeURIComponent(runId)}?assignSteps=true`;
   let response: Response;
   try {
     response = await aioFetch(baseUrl, token, path);
