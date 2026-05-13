@@ -256,14 +256,20 @@ function StepTable({ steps }: { steps: AioTestRunStep[] }) {
       </thead>
       <tbody>
         {steps.map((step) => (
+          // Plan 54-08 Gap 3: min-w-0 on each <td> wrapper (Step/Expected/Actual)
+          // releases the column's min-content floor so the WikiRenderer
+          // overflow-x-auto wrapper (added in WikiRenderer.tsx
+          // markdownComponents.table) can actually contract and scroll.
+          // Without min-w-0, the inner wiki table's min-content width forces
+          // the outer column wider than the layout allows.
           <tr key={step.id} className="border-b border-border hover:bg-muted/30 transition-colors">
-            <td className="px-4 py-3">
+            <td className="px-4 py-3 min-w-0">
               <WikiRenderer wikiText={step.step} />
             </td>
-            <td className="px-3 py-3">
+            <td className="px-3 py-3 min-w-0">
               {!step.expectedResult ? '—' : <WikiRenderer wikiText={step.expectedResult} />}
             </td>
-            <td className="px-3 py-3">
+            <td className="px-3 py-3 min-w-0">
               <div>
                 {step.status === 'NOT_EXECUTED' || !step.actualResult ? (
                   '—'

@@ -261,6 +261,19 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
         />
       );
     },
+    // Plan 54-08 Gap 3: wrap rendered tables in an overflow-x-auto container so
+    // nested wiki tables (which can be wider than their constraining outer cell —
+    // e.g. AioTestRunsSection.StepTable's Step column when the wiki blob contains
+    // its OWN ||header||/|row| table with embedded {panel} content) scroll
+    // horizontally instead of bleeding past the column boundary. `max-w-full`
+    // keeps the container from growing past its parent.
+    // Pairs with the `min-w-0` additions in AioTestRunsSection.StepTable
+    // cell wrappers (see .planning/debug/panel-overflows-table-cell.md fixes 1+2).
+    table: ({ children, ...rest }: ComponentPropsWithoutRef<'table'>) => (
+      <div className="overflow-x-auto max-w-full">
+        <table {...rest}>{children}</table>
+      </div>
+    ),
     div: ({ node, children, ...rest }: ComponentPropsWithoutRef<'div'> & { node?: unknown }) => {
       const props = rest as Record<string, unknown>;
       const calloutType = props['data-callout'] as string | undefined;
