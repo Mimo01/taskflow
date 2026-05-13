@@ -25,6 +25,7 @@ import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { useBoardId } from '@/hooks/useBoardId';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useIsActiveRoute } from '@/hooks/useIsActiveRoute';
+import { epicColorToTailwind } from '@/lib/epicColors';
 import { POLL_INTERVAL_MS, STALE_TIME_MS } from '@/lib/query-constants';
 import type { JiraIssue, JiraTransition } from '@/services/jira';
 import {
@@ -83,6 +84,9 @@ function VirtualizedSwimlanes({
   stickyOverlayRef,
   getTransitions,
   onTransition,
+  epicNameMap,
+  epicColorMap,
+  epicLinkFieldKey,
 }: {
   filteredSwimlanes: { story: JiraIssue; subtasks: JiraIssue[] }[];
   scrollElement: HTMLElement | null;
@@ -111,6 +115,9 @@ function VirtualizedSwimlanes({
     toStatusId: string,
     toStatusCategoryKey?: string,
   ) => void;
+  epicNameMap: Map<string, string>;
+  epicColorMap: Map<string, string>;
+  epicLinkFieldKey: string;
 }) {
   const swimlaneVirtualizer = useVirtualizer({
     count: filteredSwimlanes.length,
@@ -298,6 +305,11 @@ function VirtualizedSwimlanes({
     const { story, subtasks } = swimlane;
     const isExpanded = !collapsedStories.has(story.key);
     const cards = subtasks.length > 0 ? subtasks : [story];
+    const storyEpicKey = story.fields[epicLinkFieldKey] as string | null;
+    const storyEpicName = storyEpicKey ? (epicNameMap.get(storyEpicKey) ?? storyEpicKey) : null;
+    const storyEpicColorResult = storyEpicKey
+      ? epicColorToTailwind(epicColorMap.get(storyEpicKey) ?? null, storyEpicKey)
+      : null;
 
     return (
       <div
@@ -324,6 +336,10 @@ function VirtualizedSwimlanes({
             transitionError={cardErrors.get(story.key)}
             assigneeAvatarUrl={story.fields.assignee?.avatarUrls['48x48']}
             assigneeDisplayName={story.fields.assignee?.displayName}
+            epicKey={storyEpicKey}
+            epicName={storyEpicName}
+            epicColorResult={storyEpicColorResult}
+            onEpicClick={setSelectedIssueKey}
           />
         </div>
         <div
@@ -398,6 +414,13 @@ function VirtualizedSwimlanes({
         const { story, subtasks } = swimlane;
         const isExpanded = !collapsedStories.has(story.key);
         const cards = subtasks.length > 0 ? subtasks : [story];
+        const fallbackEpicKey = story.fields[epicLinkFieldKey] as string | null;
+        const fallbackEpicName = fallbackEpicKey
+          ? (epicNameMap.get(fallbackEpicKey) ?? fallbackEpicKey)
+          : null;
+        const fallbackEpicColorResult = fallbackEpicKey
+          ? epicColorToTailwind(epicColorMap.get(fallbackEpicKey) ?? null, fallbackEpicKey)
+          : null;
 
         return (
           <div key={story.key} className="border-b border-border/40">
@@ -418,6 +441,10 @@ function VirtualizedSwimlanes({
                 transitionError={cardErrors.get(story.key)}
                 assigneeAvatarUrl={story.fields.assignee?.avatarUrls['48x48']}
                 assigneeDisplayName={story.fields.assignee?.displayName}
+                epicKey={fallbackEpicKey}
+                epicName={fallbackEpicName}
+                epicColorResult={fallbackEpicColorResult}
+                onEpicClick={setSelectedIssueKey}
               />
             </div>
             <div
@@ -630,7 +657,11 @@ export default function SprintBoardTab() {
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
   const epicNameMap = new Map<string, string>();
-  for (const e of epicsBasic ?? []) epicNameMap.set(e.key, e.epicName);
+  const epicColorMap = new Map<string, string>();
+  for (const e of epicsBasic ?? []) {
+    epicNameMap.set(e.key, e.epicName);
+    epicColorMap.set(e.key, e.color ?? '');
+  }
 
   // Fetch active sprint (for goal text and board ID)
   const { data: activeSprint } = useQuery({
@@ -1048,6 +1079,18 @@ export default function SprintBoardTab() {
                   transitionError={cardErrors.get(stickyHeader.story.key)}
                   assigneeAvatarUrl={stickyHeader.story.fields.assignee?.avatarUrls['48x48']}
                   assigneeDisplayName={stickyHeader.story.fields.assignee?.displayName}
+                  epicKey={stickyHeader.story.fields[epicLinkFieldKey] as string | null}
+                  epicName={(() => {
+                    const ek = stickyHeader.story.fields[epicLinkFieldKey] as string | null;
+                    return ek ? (epicNameMap.get(ek) ?? ek) : null;
+                  })()}
+                  epicColorResult={(() => {
+                    const ek = stickyHeader.story.fields[epicLinkFieldKey] as string | null;
+                    return ek
+                      ? epicColorToTailwind(epicColorMap.get(ek) ?? null, ek)
+                      : null;
+                  })()}
+                  onEpicClick={setSelectedIssueKey}
                 />
               </div>
             )}
@@ -1148,6 +1191,9 @@ export default function SprintBoardTab() {
                 stickyOverlayRef={stickyOverlayRef}
                 getTransitions={getTransitions}
                 onTransition={handleTransition}
+                epicNameMap={epicNameMap}
+                epicColorMap={epicColorMap}
+                epicLinkFieldKey={epicLinkFieldKey}
               />
             )}
           </div>
