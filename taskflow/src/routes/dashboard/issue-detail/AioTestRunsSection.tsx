@@ -463,37 +463,58 @@ export function AioTestRunsSection({
           crossCycleResults.push(...chunkResults);
         }
 
-        // In-cycle results with non-empty steps → render via the existing
-        // StepTable / CollapsibleRunBlock path (`data.runs`).
-        const runs: AioIssueRunData[] = inCycleResults
-          .filter(
-            (
-              r,
-            ): r is typeof r & {
-              detail: NonNullable<typeof r.detail>;
-            } => r.detail !== null,
-          )
-          .filter((r) => r.detail.steps.length > 0)
-          .map((r) => ({
-            run: {
-              ...r.detail.run,
-              testCaseKey: r.detail.run.testCaseKey || r.testCase.key,
-            },
-            testCase: r.testCase,
-            steps: r.detail.steps,
-          }));
+        // Plan 54-08 Gap 1: split inCycleResults into withSteps (→ data.runs,
+        // rendered via StepTable / CollapsibleRunBlock) and withoutSteps
+        // (→ data.impactedExecutions, rendered via ImpactedExecutionsList).
+        // The old behaviour silently dropped detail===null OR
+        // detail.steps.length===0 results at this point — that hid the whole
+        // section on single-cycle issues whose runs have empty testRunSteps[]
+        // (e.g. ESHOP-393120 passing runs). Promoting them into
+        // impactedExecutions[] keeps the row rendered with a status chip
+        // driven by detail.run.status (NOT defaulted to gray "Not Run").
+        const inCycleWithSteps = inCycleResults.filter(
+          (
+            r,
+          ): r is typeof r & {
+            detail: NonNullable<typeof r.detail>;
+          } => r.detail !== null && r.detail.steps.length > 0,
+        );
+        const inCycleWithoutSteps = inCycleResults.filter(
+          (r) => r.detail === null || (r.detail !== null && r.detail.steps.length === 0),
+        );
 
-        // Cross-cycle results (regardless of steps length) → render via
-        // ImpactedExecutionsList on the no-runs path. Status is sourced from
-        // detail.run.status (already normalised by toRunChipStatus); when the
-        // detail fetch returned null (404), default to NOT_EXECUTED so the
-        // row still renders with a sensible chip.
-        const impactedExecutions: AioImpactedExecution[] = crossCycleResults.map((r) => ({
+        const runs: AioIssueRunData[] = inCycleWithSteps.map((r) => ({
+          run: {
+            ...r.detail.run,
+            testCaseKey: r.detail.run.testCaseKey || r.testCase.key,
+          },
+          testCase: r.testCase,
+          steps: r.detail.steps,
+        }));
+
+        // Cross-cycle results (unchanged) + in-cycle promotions (Plan 54-08
+        // Gap 1) → render via ImpactedExecutionsList on the no-runs path.
+        // Status is sourced from detail.run.status (already normalised by
+        // toRunChipStatus); when the detail fetch returned null (404),
+        // default to NOT_EXECUTED so the row still renders with a sensible
+        // chip. Order: cross-cycle FIRST (preserves Plan 54-07 ordering),
+        // in-cycle promotions appended after.
+        const inCycleAsImpacted: AioImpactedExecution[] = inCycleWithoutSteps.map((r) => ({
           testCase: r.testCase,
           runRef: r.runRef,
           status: r.detail?.run.status ?? 'NOT_EXECUTED',
           steps: r.detail?.steps ?? [],
         }));
+
+        const impactedExecutions: AioImpactedExecution[] = [
+          ...crossCycleResults.map((r) => ({
+            testCase: r.testCase,
+            runRef: r.runRef,
+            status: r.detail?.run.status ?? 'NOT_EXECUTED',
+            steps: r.detail?.steps ?? [],
+          })),
+          ...inCycleAsImpacted,
+        ];
 
         return { runs, impactedExecutions };
       }
@@ -600,15 +621,14 @@ export function AioTestRunsSection({
   const hasInCycleRuns = data.runs.length > 0;
   const hasImpactedExecutions = data.impactedExecutions.length > 0;
 
-  // Defensive: linked cases exist but neither in-cycle runs nor cross-cycle
-  // impacted executions resolved. This can happen on transient 404s or when
-  // every linked traceability item lacked an embedded testRun.ID.
-  if (!hasInCycleRuns && !hasImpactedExecutions) return null;
-
-  // Data available — render section. AioAttachmentsGrid is rendered on BOTH
-  // branches (single call site) so the header is always visible whenever AIO
-  // data is present (Gap 2). The grid's internal empty-state covers the case
-  // where no inline image refs were found.
+  // Data available — render section. AioAttachmentsGrid is rendered on ALL
+  // THREE render arms (single call site) so the header is always visible
+  // whenever AIO data is present (Gap 2 contract — Plan 54-08 narrowed the
+  // line-606 guard). The grid's internal empty-state covers the case where
+  // no inline image refs were found. The "No executions resolved" third arm
+  // (linked cases exist but neither in-cycle runs nor impacted executions
+  // resolved — transient 404 or missing testRun.ID) is the new contract-
+  // honesty branch.
   return (
     <section aria-label="AIO Test Runs" className="mt-6" data-testid="aio-test-runs-section">
       <div className="flex items-center gap-1.5 text-sm font-semibold mb-2">
@@ -625,8 +645,12 @@ export function AioTestRunsSection({
             ))}
           </div>
         )
-      ) : (
+      ) : hasImpactedExecutions ? (
         <ImpactedExecutionsList rows={data.impactedExecutions} />
+      ) : (
+        <p className="text-xs text-muted-foreground italic" data-testid="aio-no-executions-notice">
+          No executions resolved for the linked test cases yet.
+        </p>
       )}
       <AioAttachmentsGrid attachments={aioAttachments} />
     </section>

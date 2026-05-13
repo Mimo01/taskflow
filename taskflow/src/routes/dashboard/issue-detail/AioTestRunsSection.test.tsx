@@ -193,12 +193,15 @@ describe('AioTestRunsSection', () => {
     });
   });
 
-  // Test 4: Plan 54-07 Gap 1 — the legacy "No test runs in active cycle"
-  // EmptyState is REPLACED by ImpactedExecutionsList on the Branch A1 path.
-  // The legacy fallback path (no jiraIssueId) returns runs=[] and
-  // impactedExecutions=[] when no linked runs have steps; the section
-  // renders nothing (defensive `return null`) — same UX as D-04 second case.
-  it('renders nothing (section hidden) when legacy path returns no usable runs and no impacted executions (Plan 54-07 D-04 second case)', async () => {
+  // Test 4: Plan 54-08 Gap 2 contract — when data !== null but runs[] and
+  // impactedExecutions[] are both empty, section renders with AioAttachmentsGrid
+  // empty state + "no executions resolved" notice. The old hide-section
+  // behaviour was narrowed: line-606 short-circuit was removed so the
+  // AioAttachmentsGrid header is always visible whenever AIO data is present.
+  // The legacy fallback path (no jiraIssueId) is the test vehicle: linked
+  // test cases exist but no run-steps resolve → data === { runs: [],
+  // impactedExecutions: [] } → section + grid empty-state + notice all render.
+  it('Gap 2 contract — when data !== null but runs[] and impactedExecutions[] are both empty, section renders with AioAttachmentsGrid empty state + "no executions resolved" notice (Plan 54-08 narrowed line-606 guard)', async () => {
     mockFetchTestCases.mockResolvedValue([TEST_CASE]);
     mockFetchCycles.mockResolvedValue([ACTIVE_CYCLE]);
     mockFetchRuns.mockResolvedValue([TEST_RUN]);
@@ -208,11 +211,19 @@ describe('AioTestRunsSection', () => {
     await waitFor(() => {
       expect(mockFetchSteps).toHaveBeenCalled();
     });
-    // The bare "No test runs in active cycle" EmptyState is gone per Plan 54-07
-    // Gap 1 (replaced by ImpactedExecutionsList on Branch A1; legacy path
-    // returns null when no impacted executions resolve).
+
+    // Section IS rendered (Gap 2 — line-606 guard narrowed).
+    await waitFor(() => {
+      expect(container.querySelector('[data-testid="aio-test-runs-section"]')).not.toBeNull();
+    });
+    // AioAttachmentsGrid header visible.
+    expect(screen.getByText(/AIO attachments/i)).toBeTruthy();
+    // Empty-state text inside grid.
+    expect(screen.getByText(/No inline image attachments found in linked test runs/i)).toBeTruthy();
+    // The "No executions resolved" notice (new third arm) is present.
+    expect(screen.getByText(/No executions resolved for the linked test cases yet/i)).toBeTruthy();
+    // The bare "No test runs in active cycle" EmptyState is still GONE.
     expect(screen.queryByText(/no test runs in active cycle/i)).toBeNull();
-    expect(container.querySelector('[data-testid="aio-test-runs-section"]')).toBeNull();
   });
 
   // Test 5: renders step table with correct headers
@@ -653,8 +664,13 @@ describe('AioTestRunsSection', () => {
 
       renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
 
+      // Plan 54-08 Gap 1 widening: in-cycle empty-steps runs (the sentinel
+      // pair) are now also promoted to impactedExecutions[], so we get 4
+      // chips total — 2 from the sentinel pair (PASS) and 2 from the
+      // cross-cycle refs (PASS + FAIL). The chip-color contract (status
+      // drives color, NOT gray default) holds for all 4.
       await waitFor(() => {
-        expect(screen.getAllByTestId('impacted-execution-status-chip').length).toBe(2);
+        expect(screen.getAllByTestId('impacted-execution-status-chip').length).toBe(4);
       });
 
       const chips = screen.getAllByTestId('impacted-execution-status-chip');
@@ -808,6 +824,60 @@ describe('AioTestRunsSection', () => {
       for (let i = 0; i < 21; i++) {
         expect(screen.getByText(`In-cycle case ${i}`)).toBeTruthy();
       }
+    });
+
+    // Plan 54-08 Gap 1 — the diagnosed UAT defect on ESHOP-393120: two
+    // traceability items share a single cycle (which becomes the primary
+    // cycle), and the detail fetch returns `{ run, steps: [] }` for both
+    // (passing-runs case where AIO doesn't carry step history). The old
+    // line-476 filter dropped them silently; the widened queryFn promotes
+    // them into impactedExecutions[] so the ImpactedExecutionsList renders.
+    it('Gap 1 (single-cycle empty-steps): 2 traceability items in the same cycle promoted to ImpactedExecutionsList when detail.steps[] is empty', async () => {
+      const ESHOP_CYCLE = 'ESHOP-CY-1011';
+      const linkedCases = [
+        makeImpactedCase('1', '263794', ESHOP_CYCLE),
+        makeImpactedCase('2', '263793', ESHOP_CYCLE),
+      ];
+      mockFetchTraceability.mockResolvedValueOnce(linkedCases);
+      mockFetchTraceability.mockResolvedValueOnce([]);
+
+      // Mirrors ESHOP-393120's testRunStatusID 53 passing-runs-with-no-steps
+      // behaviour: detail fetch resolves with PASS run but empty steps[].
+      mockFetchRunDetail.mockImplementation(async (_b, _t, _p, cycleKey, runId) => ({
+        run: { id: runId, status: 'PASS', testCaseKey: '', cycleKey },
+        steps: [],
+      }));
+
+      renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
+
+      // ImpactedExecutionsList container renders.
+      await waitFor(() => {
+        expect(screen.getByText(/Impacted executions/i)).toBeTruthy();
+      });
+
+      // Two rows.
+      expect(screen.getAllByTestId('impacted-execution-status-chip').length).toBe(2);
+      // Run IDs visible.
+      expect(screen.getByText('263794')).toBeTruthy();
+      expect(screen.getByText('263793')).toBeTruthy();
+      // Cycle key visible (one per row).
+      expect(screen.getAllByText(ESHOP_CYCLE).length).toBeGreaterThanOrEqual(2);
+
+      // Chips reflect status PASS (driven by detail.run.status, not defaulted
+      // to NOT_EXECUTED gray).
+      const chips = screen.getAllByTestId('impacted-execution-status-chip');
+      expect(chips.every((c) => c.className.includes('green'))).toBe(true);
+
+      // AioAttachmentsGrid header visible.
+      expect(screen.getByText(/AIO attachments/i)).toBeTruthy();
+      // Empty-state inside grid.
+      expect(
+        screen.getByText(/No inline image attachments found in linked test runs/i),
+      ).toBeTruthy();
+
+      // detail fetch called exactly 2 times (one per ref, NOT capped — in-cycle
+      // promotion is not subject to MAX_IMPACTED_EXECUTIONS).
+      expect(mockFetchRunDetail).toHaveBeenCalledTimes(2);
     });
   });
 });
