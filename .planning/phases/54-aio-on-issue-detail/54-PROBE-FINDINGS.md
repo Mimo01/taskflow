@@ -42,6 +42,50 @@ ID, stepID, stepOrder, testStepType, step, expectedResult, actualResult,
 testData, testRunStepStatus, jiraDefectIDs
 ```
 
+## Probe C — 54-06 Direct Run Lookup
+Probed: 2026-05-13
+
+### C1 — traceability item run linkage
+CONFIRMED: traceability item includes direct run reference = **yes — field name: `testRun` (and `latestTestRun`), shape: `{ID, testRunStatusID, testRunDefects[], testRunAttachments[], testRunComments[], allDefects[], executedByID, createdDate, updatedDate, ...}`**
+
+Top-level keys of each traceability defect item:
+```
+["jiraProjectID", "test", "testCycle", "testRun", "latestTestRun",
+ "testRunNumber", "latestTestRunNumber", "associatedById", "associationDate"]
+```
+
+`testRun.ID` = 263794 (numeric run ID, usable directly for run-detail fetch).
+`testCycle` is also embedded at item top-level with `detail.key` = `"ESHOP-CY-1011"` — enough to form the run-detail URL without any extra cycle lookup.
+`latestTestRun.ID` = 263794 (same here; will diverge when a test case has been re-run across cycles).
+
+Requirement traceability (`/traceability/requirement/393120`) returned an empty array — issue 393120 is a defect, not linked as a requirement. Shape confirmed identical to defect items from prior probes.
+
+### C2 — /testrun query-param filtering
+CONFIRMED: `/testrun?testCaseKey=` filters server-side = **no — silently ignored**
+CONFIRMED: `/testrun?testCaseID=` filters server-side = **no — silently ignored**
+
+Both params return the full unfiltered cycle (48 items, isLast=true) regardless of the value supplied. Identical result to unfiltered call.
+
+### C3 — cross-cycle /testcase/{key}/testrun
+CONFIRMED: cross-cycle endpoint exists = **no — all variants HTTP 404**
+
+```
+variant 1  GET /project/ESHOP/testcase/ESHOP-TC-8477/testrun  → 404
+variant 2  GET /testcase/ESHOP-TC-8477/testrun                → 404
+variant 3  GET /project/ESHOP/testcase/68141/testrun          → 404
+```
+
+### Decision
+Direct lookup available via `GET /aio-tcms/1.0/project/{aioProjectId}/traceability/defect/{jiraIssueId}` (extended extraction of embedded `testRun.ID` + `testCycle.detail.key`). Task 2 wires the direct-lookup branch — **sub-branch A1** (C1 won — extend traceability extraction).
+
+Implementation shape:
+1. `GET /aio-tcms/1.0/project/{aioProjectId}/traceability/defect/{jiraIssueId}` → array of items, each containing `testRun.ID` + `testCycle.detail.key` (and `latestTestRun.ID` when re-runs span cycles).
+2. For each item: `GET /aio-tcms-api/1.0/project/{projectKey}/testcycle/{cycleKey}/testrun/{runId}` (already proven in Probe B).
+
+No per-cycle scan needed. Skip BOTH `fetchAioCycles` AND `fetchAioTestRunsForCycle` on the success path. C2/C3 are dead ends; do not implement testCaseKey/testCaseID filter or cross-cycle testcase endpoint.
+
+---
+
 ## Raw probe output
 
 ### B — run detail top-level keys (run ID 12131, ESHOP-CY-2)
