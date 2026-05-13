@@ -3,6 +3,8 @@
  *
  * Fetch all cycles for a project via GET /rest/aio-tcms-api/1.0/project/{projectKey}/testcycle
  * with pagination loop (AioPage<AioCycle> wrapper confirmed in D-17 probe).
+ *
+ * fetchAioCycleDetail fetches a single cycle's detail via the confirmed /detail endpoint (D-17).
  */
 
 import { ApiError } from '../../lib/api-error';
@@ -56,4 +58,44 @@ export async function fetchAioCycles(
     }
     throw new Error(`AIO request failed with status ${response.status}`);
   }
+}
+
+/**
+ * Fetch the detail for a single test cycle.
+ *
+ * Endpoint: GET /rest/aio-tcms-api/1.0/project/{projectKey}/testcycle/{cycleKey}/detail
+ * Returns a single AioCycle object (not paginated — D-17 confirmed).
+ *
+ * @param baseUrl    - Jira/AIO base URL
+ * @param token      - Personal Access Token (from Stronghold key 'jira-pat')
+ * @param projectKey - Jira project key; URL-encoded via encodeURIComponent
+ * @param cycleKey   - AIO cycle key, e.g. "PROJ-CY-2"; URL-encoded via encodeURIComponent
+ * @returns AioCycle object for the given cycle
+ * @throws ApiError with status 401 on authentication failure
+ * @throws ApiError with status 404 if cycle not found
+ * @throws Error on network failure or other non-ok responses
+ */
+export async function fetchAioCycleDetail(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  cycleKey: string,
+): Promise<AioCycle> {
+  const path = `/project/${encodeURIComponent(projectKey)}/testcycle/${encodeURIComponent(cycleKey)}/detail`;
+  let response: Response;
+  try {
+    response = await aioFetch(baseUrl, token, path);
+  } catch {
+    throw new Error(`Cannot reach AIO at ${baseUrl}`);
+  }
+  if (response.ok) {
+    return (await response.json()) as AioCycle;
+  }
+  if (response.status === 401) {
+    throw new ApiError('Invalid token or token has expired', 401, 'jira');
+  }
+  if (response.status === 404) {
+    throw new ApiError('Cycle not found', 404, 'jira');
+  }
+  throw new Error(`AIO request failed with status ${response.status}`);
 }

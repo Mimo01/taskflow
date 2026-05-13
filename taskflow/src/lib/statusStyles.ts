@@ -38,3 +38,15 @@ const AIO_CYCLE_BADGE_STYLES: Record<string, string> = {
 export function aioCycleStatusBadgeClass(status: string): string {
   return AIO_CYCLE_BADGE_STYLES[status] ?? 'bg-muted text-muted-foreground';
 }
+
+const AIO_RUN_BADGE_STYLES: Record<string, string> = {
+  PASS:         'bg-green-500/15 text-green-600 dark:text-green-400',
+  FAIL:         'bg-red-500/15 text-red-600 dark:text-red-400',
+  BLOCKED:      'bg-orange-500/15 text-orange-600 dark:text-orange-400',
+  NOT_EXECUTED: 'bg-muted text-muted-foreground',
+};
+
+/** Tailwind classes for an AIO test run status badge given an uppercase status string (e.g. "PASS", "FAIL", "BLOCKED", "NOT_EXECUTED") */
+export function aioRunStatusBadgeClass(status: string): string {
+  return AIO_RUN_BADGE_STYLES[status] ?? 'bg-muted text-muted-foreground';
+}
