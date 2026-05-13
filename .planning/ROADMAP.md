@@ -166,7 +166,7 @@ Cross-cutting constraints:
 **Milestone Goal:** Integrate AIO Test Management into Taskflow — give the team visibility into test project health, cycle execution, and defects without leaving the app.
 
 - [x] **Phase 51: AIO Service Layer** - Live instance probe, `src/services/aio/` module, `aioEnabled` settings toggle, AIO project ID resolution — completed 2026-05-12
-- [ ] **Phase 52: AIO Navigation + Project Pages** - Sidebar section, routing shell, project list page, project overview page
+- [x] **Phase 52: AIO Navigation + Project Pages** - Sidebar section, routing shell, project list page, project overview page — completed 2026-05-13
 - [ ] **Phase 53: Cycle Detail + Header Pinning** - Full-page cycle detail (progress bar, test run table, defects), pin/unpin to header tab strip with persistence
 - [ ] **Phase 54: AIO on Issue Detail** - Lazy-loaded test runs section on issue detail, step table with colored markers, authenticated attachment lightbox
 
@@ -213,18 +213,18 @@ Cross-cutting constraints:
 Plans:
 
 **Wave 0**
-- [ ] 52-00-PLAN.md — Wave 0 test stubs: cycles.test.ts, AioProjectsPage.test.tsx, AioProjectOverviewPage.test.tsx, Sidebar.test.tsx (RED stubs)
+- [x] 52-00-PLAN.md — Wave 0 test stubs: cycles.test.ts, AioProjectsPage.test.tsx, AioProjectOverviewPage.test.tsx, Sidebar.test.tsx (RED stubs)
 
 **Wave 1** *(blocked on Wave 0 completion)*
-- [ ] 52-01-PLAN.md — Service layer: cycles.ts pagination loop, statusStyles.ts aioCycleStatusBadgeClass, index.ts barrel update
-- [ ] 52-02-PLAN.md — Navigation infrastructure: sidebar-items.ts, Sidebar.tsx (FlaskConical + aioEnabled gate), settings.store.ts v15→v16 migration, routes.tsx lazy routes
+- [x] 52-01-PLAN.md — Service layer: cycles.ts pagination loop, statusStyles.ts aioCycleStatusBadgeClass, index.ts barrel update
+- [x] 52-02-PLAN.md — Navigation infrastructure: sidebar-items.ts, Sidebar.tsx (FlaskConical + aioEnabled gate), settings.store.ts v15→v16 migration, routes.tsx lazy routes
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 52-03-PLAN.md — AioProjectsPage + AioProjectsSkeleton (AION-02)
-- [ ] 52-04-PLAN.md — AioProjectOverviewPage + AioCyclesSkeleton (AION-03)
+- [x] 52-03-PLAN.md — AioProjectsPage + AioProjectsSkeleton (AION-02)
+- [x] 52-04-PLAN.md — AioProjectOverviewPage + AioCyclesSkeleton (AION-03)
 
 **Wave 3** *(blocked on Wave 2 completion — gap closure)*
-- [ ] 52-05-PLAN.md — Gap: probe live AIO testcycle endpoint for stats fields; implement Pass/Fail/Run Date columns (Path A) or amend ROADMAP SC-3 (Path B)
+- [x] 52-05-PLAN.md — Gap: probe live AIO testcycle endpoint for stats fields → Path B: ROADMAP SC-3 amended (no inline stats in list endpoint)
 
 Cross-cutting constraints:
 - Plan 52-05 is a blocking probe plan (autonomous: false) — developer must run curl probe and declare Path A or Path B before executor proceeds
@@ -272,6 +272,6 @@ Cross-cutting constraints:
 | 49. Fix Backlog Query Key Wiring & Doc Debt | v1.7 | 2/2 | Complete | 2026-04-04 |
 | 50. Draggable Sidebar Resize | next | 4/4 | Complete | 2026-05-10 |
 | 51. AIO Service Layer | v1.8 | 3/3 | Complete | 2026-05-12 |
-| 52. AIO Navigation + Project Pages | v1.8 | 0/5 | Planned | - |
+| 52. AIO Navigation + Project Pages | v1.8 | 6/6 | Complete | 2026-05-13 |
 | 53. Cycle Detail + Header Pinning | v1.8 | 0/? | Not started | - |
 | 54. AIO on Issue Detail | v1.8 | 0/? | Not started | - |
