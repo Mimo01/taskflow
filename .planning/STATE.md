@@ -85,7 +85,7 @@ None.
 | 260510-2tt | release 1.7.3 | 2026-05-10 | 35d42b1 | [260510-2tt-release-1-7-3](./quick/260510-2tt-release-1-7-3/) |
 | 260511-3nn | Add second live search path in command palette for closed/Done Jira tasks | 2026-05-11 | 667662c | [260511-3nn-search-historic-closed-tasks](./quick/260511-3nn-search-historic-closed-tasks/) |
 | 260511-epfmqx | Fetch closed Jira task by ID in search — auto-detect key pattern and direct fetch | 2026-05-11 | e671656 | [260511-epfmqx-fetch-closed-jira-task-by-id](./quick/260511-epfmqx-fetch-closed-jira-task-by-id/) |
-| 260513-awc | In sprint board task headers also show a pill with epic name. It should be between status and asignee. The pill should be clickable to epic detail | 2026-05-13 | dd1d5b3 | [260513-awc-sprint-board-epic-pill](./quick/260513-awc-sprint-board-epic-pill/) |
+| 260513-awc | In sprint board task headers also show a pill with epic name. It should be between status and asignee. The pill should be clickable to epic detail | 2026-05-13 | ff61a86 | [260513-awc-sprint-board-epic-pill](./quick/260513-awc-sprint-board-epic-pill/) |
 
 ## Session Continuity
 
