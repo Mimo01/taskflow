@@ -58,14 +58,14 @@ Source: `AioProjectOverviewPage.tsx` measured values; `PinnedTabStrip.tsx` exist
 |------|------|--------|-------------|
 | Body | 14px (text-sm) | 400 (regular) | 1.5 |
 | Label / meta | 11px (text-[11px]) | 400 (regular) | tight (leading-tight ~1.25) |
-| Mono key | 9px (text-[9px]) | 400 (regular) | none (whitespace-nowrap) |
+| Small / mono key | 12px (text-xs) | 400 (regular) | none (whitespace-nowrap) |
 | Heading | 20px (text-xl) | 600 (semibold) | 1.2 |
 
 Notes:
-- Table column headers use `text-xs font-medium text-muted-foreground` — 12px/500.
+- Table column headers use `text-xs font-semibold text-muted-foreground` — 12px/600.
 - Progress bar percentage labels use `text-xs` (12px) regular.
-- Status badge text uses `text-xs font-medium` — 12px/500.
-- Cycle tab key line uses `font-mono text-[9px]`; cycle tab name uses `text-[11px] leading-tight` — matches issue tab spec in `PinnedTabStrip.tsx`.
+- Status badge text uses `text-xs font-semibold` — 12px/600.
+- Cycle tab key line uses `font-mono text-xs`; cycle tab name uses `text-[11px] leading-tight` — matches issue tab spec in `PinnedTabStrip.tsx`.
 
 Source: `AioProjectOverviewPage.tsx` heading class; `PinnedTabStrip.tsx` tab label sizes; CONTEXT.md specifics section.
 
@@ -136,7 +136,7 @@ No third-party registries. No new shadcn blocks needed.
 │   Blocked / Not Run)                    │
 │   Count + percentage labels below       │
 ├─────────────────────────────────────────┤
-│ [Filter Chips] px-3 py-1.5             │
+│ [Filter Chips] px-3 py-2               │
 │   Not Run | Pass | Fail | Blocked       │
 ├─────────────────────────────────────────┤
 │ [Test Run Table] flex-1 overflow-auto   │
@@ -170,7 +170,7 @@ Source: CONTEXT.md D-16 ("page layout top-to-bottom").
 
 ```
 ┌──────────────────────┐
-│ 🧪  PROJ-CY-2        │  ← FlaskConical icon (w-3.5 h-3.5) + key (font-mono text-[9px])
+│ 🧪  PROJ-CY-2        │  ← FlaskConical icon (w-3.5 h-3.5) + key (font-mono text-xs)
 │     Sprint 2 Cycle   │  ← name truncated (text-[11px] leading-tight)
 └──────────────────────┘
 ```
