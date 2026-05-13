@@ -27,7 +27,7 @@ Add a "Testing" sidebar section (gated by `aioEnabled`) and two lazy-loaded full
 
 ### Project overview page (`/aio-project/:projectKey`)
 - **D-09:** Calls `GET /rest/aio-tcms-api/1.0/project/{projectKey}/testcycle` (AIO_API_PATH) — returns `AioPage<AioCycle>`. Pagination loop required (same as `fetchAioTestRunsForCycle` pattern in Phase 51).
-- **D-10:** Shows cycle name + status only. Pass/fail counts and run date are **deferred to Phase 53**. No N+1 fetches per cycle.
+- **D-10:** Shows cycle name + status only. Pass/fail counts and run date deferred to Phase 53 — confirmed by Phase 52 probe: the AIO testcycle list endpoint (`GET /rest/aio-tcms-api/1.0/project/{projectKey}/testcycle`) does not return per-cycle stats fields inline. Stats are available via a per-cycle sub-endpoint (`GET /project/{projectKey}/testcycle/{cycleKey}/summary`) returning `{ totalTests, totalRuns, testRunDistribution: { [statusId]: count } }`, but require N+1 API calls and project-specific status ID resolution (`GET /project/{projectKey}/config` → `runStatuses: [{ID, name}]` — status IDs differ per project). This N+1 pattern is correctly deferred to Phase 53 cycle detail. No N+1 fetches per cycle.
 - **D-11:** Layout: table rows. Columns: cycle key (`font-mono`) + cycle name (clickable) + status badge.
 - **D-12:** Clicking a cycle row navigates to `/aio-cycle/:projectKey/:cycleKey` — this route is NOT implemented in Phase 52 (Phase 53 builds it). The link renders now; it will 404 until Phase 53 ships.
 - **D-13:** Skeleton: `AioCyclesSkeleton.tsx` sibling. Empty + error states follow the same pattern as the projects page.

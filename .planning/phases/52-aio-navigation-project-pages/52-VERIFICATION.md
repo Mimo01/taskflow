@@ -1,30 +1,20 @@
 ---
 phase: 52-aio-navigation-project-pages
 verified: 2026-05-13T09:12:00Z
-status: gaps_found
-score: 8/9 must-haves verified
+status: complete
+score: 9/9 must-haves verified
 overrides_applied: 0
 re_verification:
   previous_status: gaps_found
   previous_score: 7/9
   gaps_closed:
     - "Cycle name is a NavLink to /aio-cycle/:projectKey/:cycleKey (not full-row click)"
-  gaps_remaining:
-    - "Overview page shows per-cycle summary stats (pass/fail counts, run date) per ROADMAP SC-3"
+  gaps_remaining: []
   regressions: []
 gaps:
   - truth: "Overview page shows per-cycle summary stats (pass/fail counts, run date) per ROADMAP SC-3"
-    status: failed
-    reason: "ROADMAP SC-3 specifies 'per-cycle summary stats (pass/fail counts, run date)'. AioCycle type (types.ts) has only key/name/status/projectKey — no stats fields. The implementation correctly matches the current API model, but the ROADMAP criterion is unmet. User has decided to probe the live API to determine whether additional fields exist. This gap will be addressed in a gap-closure plan."
-    artifacts:
-      - path: "taskflow/src/routes/dashboard/AioProjectOverviewPage.tsx"
-        issue: "Renders Key, Name, Status columns only. No pass/fail counts or run date column."
-      - path: "taskflow/src/services/aio/types.ts"
-        issue: "AioCycle interface has no stats fields: { key, name, status, projectKey } only."
-    missing:
-      - "Probe the live AIO API (/project/{key}/testcycle endpoint) to confirm whether execution stats fields exist in the response"
-      - "If stats are available: add fields to AioCycle, render pass/fail counts and run date in the overview table"
-      - "If stats are not available: amend ROADMAP SC-3 to reflect the actual API scope, or move stats rendering to Phase 53 cycle detail page"
+    status: resolved_by_roadmap_amendment
+    resolution: "Phase 52 probe confirmed the AIO testcycle list endpoint returns no stats fields inline. Stats are available only via a per-cycle sub-endpoint (GET /project/{projectKey}/testcycle/{cycleKey}/summary) requiring N+1 calls and project-specific status ID resolution — prohibited by D-10. ROADMAP SC-3 amended to remove stats requirement; stats remain in Phase 53 cycle detail scope where N+1 is appropriate."
 ---
 
 # Phase 52: AIO Navigation + Project Pages — Re-Verification Report

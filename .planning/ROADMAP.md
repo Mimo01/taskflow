@@ -206,9 +206,9 @@ Cross-cutting constraints:
 **Success Criteria** (what must be TRUE):
   1. A "Testing" section appears in the sidebar (visible only when `aioEnabled` is true) and navigates to the AIO projects page
   2. The AIO projects page lists all test projects with name and summary stats, with loading skeleton and empty/error states
-  3. Clicking a project opens a project overview page listing all cycles with per-cycle summary stats (pass/fail counts, run date)
+  3. Clicking a project opens a project overview page listing all cycles with cycle key, name, and status (per-cycle summary stats deferred to Phase 53 cycle detail — AIO testcycle list endpoint does not return stats fields)
   4. All three pages are lazy-loaded route chunks and follow the existing skeleton + error recovery pattern
-**Plans**: 5 plans
+**Plans**: 6 plans
 
 Plans:
 
@@ -222,6 +222,13 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 52-03-PLAN.md — AioProjectsPage + AioProjectsSkeleton (AION-02)
 - [ ] 52-04-PLAN.md — AioProjectOverviewPage + AioCyclesSkeleton (AION-03)
+
+**Wave 3** *(blocked on Wave 2 completion — gap closure)*
+- [ ] 52-05-PLAN.md — Gap: probe live AIO testcycle endpoint for stats fields; implement Pass/Fail/Run Date columns (Path A) or amend ROADMAP SC-3 (Path B)
+
+Cross-cutting constraints:
+- Plan 52-05 is a blocking probe plan (autonomous: false) — developer must run curl probe and declare Path A or Path B before executor proceeds
+- Path A and Path B are mutually exclusive — only one executes based on probe findings
 
 **UI hint**: yes
 
