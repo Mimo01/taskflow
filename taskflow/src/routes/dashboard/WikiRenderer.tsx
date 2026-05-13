@@ -149,11 +149,10 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
         @{children}
       </span>
     ),
-    // External link override (Plan 54-06 Finding 1 sub-issue + UAT follow-up):
+    // External link override (Plan 54-06 Finding 1 sub-issue + UAT follow-ups):
     // - Image attachment links ([filename.png|url] where filename ends in an
-    //   image extension) render as inline AuthImage thumbnails that open the
-    //   existing ImageLightbox on click — same path as Jira `!image!` embeds.
-    //   Keeps attachment images in-app instead of routing to OS browser.
+    //   image extension) render as inline text anchors (preserves prose flow).
+    //   Click opens the existing ImageLightbox in-app — no OS browser.
     // - All other external links route through openUrl from
     //   @tauri-apps/plugin-opener so the Tauri webview is not hijacked.
     a: ({ href, children, ...rest }: ComponentPropsWithoutRef<'a'>) => {
@@ -169,7 +168,10 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
           </a>
         );
       }
-      // Image attachment link → render AuthImage + lightbox (in-app viewer).
+      // Image attachment link → inline text anchor that opens ImageLightbox on
+      // click. AuthImage inside the lightbox translates AIO bridge URLs to the
+      // direct download endpoint, so both same-instance bridge URLs and direct
+      // `/secure/attachment/...` URLs work.
       const childText =
         typeof children === 'string'
           ? children
@@ -177,13 +179,14 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
             ? children.filter((c): c is string => typeof c === 'string').join('')
             : '';
       if (/\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(childText)) {
+        const handleImageClick = (e: MouseEvent<HTMLAnchorElement>) => {
+          e.preventDefault();
+          setLightboxSrc(href);
+        };
         return (
-          <AuthImage
-            src={href}
-            alt={childText}
-            className="max-w-full rounded-md cursor-pointer"
-            onClick={() => setLightboxSrc(href)}
-          />
+          <a href={href} onClick={handleImageClick} {...rest}>
+            {children}
+          </a>
         );
       }
       const handleClick = (e: MouseEvent<HTMLAnchorElement>) => {
