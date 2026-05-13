@@ -39,7 +39,7 @@ function _makeClient() {
 
 // Live import — will fail with "Cannot find module" until Wave 1 creates the component.
 // This is the expected RED state for Wave 0.
-import { AioCycleDetailPage } from './AioCycleDetailPage';
+import AioCycleDetailPage from './AioCycleDetailPage';
 
 describe('AioCycleDetailPage', () => {
   beforeEach(() => {
