@@ -11,7 +11,7 @@ import {
   fetchAioTestCasesForIssue,
   fetchAioTestRunSteps,
   fetchAioTestRunsForCycle,
-  fetchAioTraceabilityRaw,
+  fetchAioTraceabilityTestCases,
 } from '@/services/aio';
 import type { AioTestCase, AioTestRun, AioTestRunStep } from '@/services/aio';
 import { readSecret } from '@/services/stronghold';
@@ -194,37 +194,43 @@ export function AioTestRunsSection({ issueKey, jiraBaseUrl, jiraIssueId }: AioTe
 
       const projectKey = issueKey.split('-')[0];
 
-      // Resolve AIO numeric project ID (required for traceability endpoints)
-      const projects = await fetchAioProjects(jiraBaseUrl, token);
-      const aioProject = projects.find((p) => p.projectKey === projectKey);
-      if (!aioProject) return null;
-      const aioProjectId = aioProject.id;
       const jiraNumericId = jiraIssueId ? Number(jiraIssueId) : null;
 
-      // Probe: log traceability response shape — fires only when jiraIssueId is available
+      // Step 1: resolve AIO numeric project ID + fetch linked test cases via traceability
+      // (both defect and requirement in parallel — replaces 13K test case scan)
+      let linkedTestCases: import('@/services/aio').AioTestCase[];
       if (jiraNumericId !== null) {
-        const [defectJson, reqJson] = await Promise.all([
-          fetchAioTraceabilityRaw(jiraBaseUrl, token, aioProjectId, jiraNumericId, 'defect'),
-          fetchAioTraceabilityRaw(jiraBaseUrl, token, aioProjectId, jiraNumericId, 'requirement'),
+        const projects = await fetchAioProjects(jiraBaseUrl, token);
+        const aioProject = projects.find((p) => p.projectKey === projectKey);
+        if (!aioProject) return null;
+        const [defectCases, reqCases] = await Promise.all([
+          fetchAioTraceabilityTestCases(jiraBaseUrl, token, aioProject.id, jiraNumericId, 'defect'),
+          fetchAioTraceabilityTestCases(jiraBaseUrl, token, aioProject.id, jiraNumericId, 'requirement'),
         ]);
-        console.debug('[AIO traceability probe] defect:', JSON.stringify(defectJson).slice(0, 800));
-        console.debug('[AIO traceability probe] requirement:', JSON.stringify(reqJson).slice(0, 800));
-        return null; // probe-only — real impl follows once shape is confirmed
+        const seen = new Set<string>();
+        linkedTestCases = [...defectCases, ...reqCases].filter((tc) => seen.has(tc.key) ? false : seen.add(tc.key) || true);
+      } else {
+        // No jiraIssueId — fall back to full project scan (legacy path, tests only)
+        linkedTestCases = await fetchAioTestCasesForIssue(jiraBaseUrl, token, projectKey, issueKey);
       }
 
-      // Fallback: requirements-based scan (used when no jiraIssueId provided)
+      if (linkedTestCases.length === 0) return null;
+
+      // Step 2: find active cycle, fetch runs, filter to linked test cases
       const cycles = await fetchAioCycles(jiraBaseUrl, token, projectKey);
       const activeCycle = pickLatestActiveCycle(cycles);
-      const allTestCases = await fetchAioTestCasesForIssue(jiraBaseUrl, token, projectKey, issueKey);
-      if (!activeCycle) return allTestCases.length > 0 ? [] : null;
+      if (!activeCycle) return [];
+
       const allRuns = await fetchAioTestRunsForCycle(jiraBaseUrl, token, projectKey, activeCycle.key);
-      const testCaseKeys = new Set(allTestCases.map((tc) => tc.key));
+      const testCaseKeys = new Set(linkedTestCases.map((tc) => tc.key));
       const matchedRuns = allRuns.filter((r) => testCaseKeys.has(r.testCaseKey));
-      if (matchedRuns.length === 0) return allTestCases.length > 0 ? [] : null;
+      if (matchedRuns.length === 0) return [];
+
+      // Step 3: fetch steps for matched runs
       const runData = await Promise.all(
         matchedRuns.map(async (run) => ({
           run,
-          testCase: allTestCases.find((tc) => tc.key === run.testCaseKey),
+          testCase: linkedTestCases.find((tc) => tc.key === run.testCaseKey),
           steps: await fetchAioTestRunSteps(jiraBaseUrl, token, projectKey, activeCycle.key, run.id),
         })),
       );
