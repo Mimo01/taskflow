@@ -22,6 +22,29 @@ import type { AioProject } from './types';
  * @throws ApiError with status 401 on authentication failure
  * @throws Error on network failure
  */
+/**
+ * Fetch raw traceability data for a Jira issue from AIO's plugin API.
+ * Uses /rest/aio-tcms/1.0/ (AIO_PROJECTS_API_PATH) — different from the TCMS REST API.
+ * Returns the raw response body as unknown JSON, or null on network/auth failure.
+ */
+export async function fetchAioTraceabilityRaw(
+  baseUrl: string,
+  token: string,
+  aioProjectId: number,
+  jiraIssueNumericId: number,
+  type: 'defect' | 'requirement',
+): Promise<unknown> {
+  const path = `/project/${aioProjectId}/traceability/${type}/${jiraIssueNumericId}`;
+  let response: Response;
+  try {
+    response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH);
+  } catch {
+    return null;
+  }
+  if (response.ok) return response.json() as Promise<unknown>;
+  return null;
+}
+
 export async function fetchAioProjects(
   baseUrl: string,
   token: string,
