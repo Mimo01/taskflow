@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: AIO Test Management
-status: verifying
-last_updated: "2026-05-12T23:15:49.415Z"
-last_activity: 2026-05-13 — Phase 52 planned (5 plans, 3 waves — verified)
+status: active
+last_updated: "2026-05-13T10:18:00.000Z"
+last_activity: 2026-05-13 — Phase 52 complete (6/6 plans, 9/9 truths verified, all 13 tests GREEN)
 progress:
   total_phases: 4
-  completed_phases: 2
-  total_plans: 8
-  completed_plans: 8
-  percent: 50
+  completed_phases: 3
+  total_plans: 15
+  completed_plans: 15
+  percent: 75
 ---
 
 # Project State
@@ -20,16 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-12)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Phase 52 — AIO Navigation + Project Pages (next)
+**Current focus:** Phase 53 — Cycle Detail + Header Pinning (next)
 
 ## Current Position
 
-Phase: 52 of 54 (AIO Navigation + Project Pages)
-Plan: 5 of 5 in current phase
-Status: Ready to execute
-Last activity: 2026-05-13 — Phase 52 planned (5 plans, 3 waves — verified)
+Phase: 53 of 54 (Cycle Detail + Header Pinning)
+Plan: 0 of TBD in current phase
+Status: Ready to plan
+Last activity: 2026-05-13 — Phase 52 complete (6/6 plans, 9/9 truths verified, all 13 tests GREEN)
 
-Progress: [██░░░░░░░░] 20%
+Progress: [███████░░░] 75%
 
 ## Performance Metrics
 
@@ -69,8 +69,6 @@ None.
 
 ### Blockers/Concerns
 
-- Phase 51 BLOCKER: Bearer PAT may not authenticate AIO servlet calls on this instance — some installs require Jira session cookie (cookie-jar management in tauri-plugin-http not currently used anywhere)
-- Phase 51 BLOCKER: AIO REST base path is installation-specific — three known variants must be probed before hardcoding
 - Apple Developer ID certificate ($99/yr) may not yet be acquired — blocks macOS notarization (carried from v1.7)
 - Windows code signing decision needed — Azure Trusted Signing vs OV/EV cert (carried from v1.7)
 
@@ -90,4 +88,4 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-05-13 — Phase 52 planned (5 plans, 3 waves). Wave 0: test stubs (cycles, AioProjectsPage, AioProjectOverviewPage, Sidebar). Wave 1: cycles.ts service + navigation infrastructure (sidebar-items, Sidebar aioEnabled gate, settings.store v16, routes). Wave 2: AioProjectsPage + AioProjectOverviewPage + skeletons. All plans verified (12 dimensions pass).
+Last activity: 2026-05-13 — Phase 52 complete. Gap-closure plan 52-05 executed: live AIO probe confirmed testcycle list endpoint returns no inline stats; per-cycle /summary sub-endpoint requires N+1 + project-specific status ID resolution (prohibited by D-10). Path B taken: ROADMAP SC-3 amended, CONTEXT.md D-10 enriched with /summary endpoint shape for Phase 53, VERIFICATION.md updated to 9/9 complete. All 13 Phase 52 tests GREEN. Phase 53 (Cycle Detail + Header Pinning) is next.
