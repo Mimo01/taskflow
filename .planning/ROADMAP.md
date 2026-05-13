@@ -277,7 +277,7 @@ Cross-cutting constraints:
   2. The AIO section renders a step table with step / expected / actual columns and colored failure markers per row
   3. When the issue has no associated AIO test runs, the section is hidden (not an error state)
   4. Attachment images within test run steps are fetched via the authenticated HTTP client and open in the existing in-app lightbox
-**Plans:** 6 plans
+**Plans:** 7 plans
 
 Plans:
 
@@ -295,11 +295,15 @@ Plans:
 - [x] 54-04-PLAN.md — IssueDetailPage.tsx integration + fill component tests GREEN; full suite passes
 
 **Wave 4** *(blocked on Wave 3 completion)*
-- [ ] 54-05-PLAN.md — Human verification checkpoint (end-to-end: section render, step table, lightbox, aioEnabled gate)
+- [x] 54-05-PLAN.md — Human verification checkpoint (end-to-end: section render, step table, lightbox, aioEnabled gate)
+
+**Wave 5** *(UAT gap closure — blocked on Wave 4 findings)*
+- [ ] 54-06-PLAN.md — Probe direct-run-lookup endpoints + render step wiki markup via WikiRenderer + route attachment links through openUrl + replace cycle scan with direct lookup (or aggressive cache fallback). Closes 54-06-UAT-FINDINGS.md (wiki rendering + slow load).
 
 Cross-cutting constraints:
 - Plans 54-02 and 54-03 run in parallel (no shared files): 54-02 touches only test files; 54-03 touches only new component files
 - Plan 54-04 depends on BOTH 54-02 and 54-03 completing first
+- Plan 54-06 contains a probe checkpoint (Task 0); Tasks 1-2 branch on probe results — see 54-06-PLAN.md "Probe C Decision"
 - Step field names in AioTestRunsSection.tsx MUST come from 54-PROBE-FINDINGS.md — not from ASSUMED names in RESEARCH.md
 - pickLatestActiveCycle MUST use numeric suffix extraction (not string sort) — see RESEARCH.md Pitfall 3
 - queryKey MUST be exactly `['aio', jiraBaseUrl, 'issue-steps', issueKey]` (D-05)
