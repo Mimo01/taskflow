@@ -1,14 +1,66 @@
 /**
- * AIO TCMS project listing operations.
+ * AIO TCMS project listing and traceability operations.
  *
  * Fetches all AIO projects visible to the authenticated user.
  * Projects are returned as a direct array (not paginated) from the
  * /rest/aio-tcms/1.0/ servlet — confirmed by D-16 probe findings.
+ *
+ * Also provides fetchAioTraceabilityTestCases which calls the traceability
+ * plugin API (/rest/aio-tcms/1.0/project/{aioProjectId}/traceability/{type}/{jiraIssueId})
+ * confirmed by browser network tab inspection (Phase 54 UAT probe).
  */
 
 import { ApiError } from '../../lib/api-error';
 import { AIO_PROJECTS_API_PATH, aioFetch } from './client';
-import type { AioProject } from './types';
+import type { AioProject, AioTestCase } from './types';
+
+// Raw shape of each item returned by the traceability endpoint (confirmed by probe)
+type RawTraceabilityItem = {
+  test?: {
+    ID?: number;
+    detail?: {
+      key?: string;
+      title?: string;
+      name?: string;
+    };
+  };
+};
+
+/**
+ * Fetch test cases linked to a Jira issue via AIO's traceability plugin API.
+ *
+ * Endpoint: GET /rest/aio-tcms/1.0/project/{aioProjectId}/traceability/{type}/{jiraIssueNumericId}
+ * type='defect'      → "Impacted Executions" in AIO Jira panel
+ * type='requirement' → "Cases" in AIO Jira panel
+ *
+ * Returns empty array on null response (issue has no linked test cases of this type),
+ * 404, or network failure. Both types are typically called in parallel and combined.
+ */
+export async function fetchAioTraceabilityTestCases(
+  baseUrl: string,
+  token: string,
+  aioProjectId: number,
+  jiraIssueNumericId: number,
+  type: 'defect' | 'requirement',
+): Promise<AioTestCase[]> {
+  const path = `/project/${aioProjectId}/traceability/${type}/${jiraIssueNumericId}`;
+  let response: Response;
+  try {
+    response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH);
+  } catch {
+    return [];
+  }
+  if (!response.ok) return [];
+  const raw = (await response.json()) as RawTraceabilityItem[] | null;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((item) => item.test?.detail?.key)
+    .map((item) => ({
+      id: item.test?.ID ?? 0,
+      key: item.test!.detail!.key!,
+      title: item.test?.detail?.title ?? item.test?.detail?.name ?? '',
+    }));
+}
 
 /**
  * Fetch all AIO test management projects.
@@ -22,29 +74,6 @@ import type { AioProject } from './types';
  * @throws ApiError with status 401 on authentication failure
  * @throws Error on network failure
  */
-/**
- * Fetch raw traceability data for a Jira issue from AIO's plugin API.
- * Uses /rest/aio-tcms/1.0/ (AIO_PROJECTS_API_PATH) — different from the TCMS REST API.
- * Returns the raw response body as unknown JSON, or null on network/auth failure.
- */
-export async function fetchAioTraceabilityRaw(
-  baseUrl: string,
-  token: string,
-  aioProjectId: number,
-  jiraIssueNumericId: number,
-  type: 'defect' | 'requirement',
-): Promise<unknown> {
-  const path = `/project/${aioProjectId}/traceability/${type}/${jiraIssueNumericId}`;
-  let response: Response;
-  try {
-    response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH);
-  } catch {
-    return null;
-  }
-  if (response.ok) return response.json() as Promise<unknown>;
-  return null;
-}
-
 export async function fetchAioProjects(
   baseUrl: string,
   token: string,
