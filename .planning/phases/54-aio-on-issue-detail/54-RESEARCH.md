@@ -430,7 +430,7 @@ The existing `client.ts` calls `apiFetch('aio', ...)` — note this differs from
 | A5 | String sort descending on cycle key (with numeric suffix extraction) correctly identifies "latest" active cycle | Architecture Patterns | Wrong cycle shown; runs for older cycle displayed |
 | A6 | `testcase` search endpoint returns `AioPage<AioTestCase>` (paginated wrapper) | Code Examples | Without pagination loop, misses test cases beyond first page |
 
-## Open Questions
+## Open Questions (RESOLVED — deferred to Wave 0 live probe; see 54-PROBE-FINDINGS.md once 54-00 completes)
 
 1. **Step endpoint exact URL and field names (D-11)**
    - What we know: AIO docs confirm GET individual testrun detail exists at `/project/{projectKey}/testcycle/{cycleKey}/testrun/{testRunId}`. The web search confirmed this endpoint returns step-level data (including `comments` and `attachments` not available in bulk endpoints).
