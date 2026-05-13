@@ -115,7 +115,6 @@ function AioAttachmentsGrid({
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  if (attachments.length === 0) return null;
   const ChevronIcon = isExpanded ? ChevronDown : ChevronRight;
   const open = lightboxIndex !== null;
   const current = open ? attachments[lightboxIndex] : null;
@@ -131,30 +130,36 @@ function AioAttachmentsGrid({
         AIO attachments ({attachments.length})
       </button>
       {isExpanded && (
-        <div className="grid grid-cols-4 gap-2">
-          {attachments.map((att, idx) => (
-            <div
-              key={att.url}
-              role="button"
-              tabIndex={0}
-              aria-label={`${att.filename} - click to view full size`}
-              className="w-20 h-20 rounded-md overflow-hidden bg-muted relative cursor-pointer"
-              onClick={() => setLightboxIndex(idx)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  setLightboxIndex(idx);
-                }
-              }}
-            >
-              <AuthImage
-                src={att.url}
-                alt={att.filename}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ))}
-        </div>
+        attachments.length === 0 ? (
+          <p className="text-xs text-muted-foreground italic">
+            No inline image attachments found in linked test runs.
+          </p>
+        ) : (
+          <div className="grid grid-cols-4 gap-2">
+            {attachments.map((att, idx) => (
+              <div
+                key={att.url}
+                role="button"
+                tabIndex={0}
+                aria-label={`${att.filename} - click to view full size`}
+                className="w-20 h-20 rounded-md overflow-hidden bg-muted relative cursor-pointer"
+                onClick={() => setLightboxIndex(idx)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setLightboxIndex(idx);
+                  }
+                }}
+              >
+                <AuthImage
+                  src={att.url}
+                  alt={att.filename}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        )
       )}
       {current && (
         <ImageLightbox
