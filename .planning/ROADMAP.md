@@ -298,12 +298,17 @@ Plans:
 - [x] 54-05-PLAN.md — Human verification checkpoint (end-to-end: section render, step table, lightbox, aioEnabled gate)
 
 **Wave 5** *(UAT gap closure — blocked on Wave 4 findings)*
-- [ ] 54-06-PLAN.md — Probe direct-run-lookup endpoints + render step wiki markup via WikiRenderer + route attachment links through openUrl + replace cycle scan with direct lookup (or aggressive cache fallback). Closes 54-06-UAT-FINDINGS.md (wiki rendering + slow load).
+- [x] 54-06-PLAN.md — Probe direct-run-lookup endpoints + render step wiki markup via WikiRenderer + route attachment links through openUrl + replace cycle scan with direct lookup (or aggressive cache fallback). Closes 54-06-UAT-FINDINGS.md (wiki rendering + slow load).
+
+**Wave 6** *(UAT gap closure — blocked on Wave 5 completion)*
+- [ ] 54-07-PLAN.md — Gap closure for 3 net-new items routed from 54-06 UAT: (1) ImpactedExecutionsList on no-runs path with real per-run status chips, (2) AioAttachmentsGrid populated on no-runs path via bounded cross-cycle `fetchAioTestRunDetail` fan-out (in-cycle uncapped), (3) Probe E + branch implementation for nested wiki rendering inside table cells (3-A preprocess / 3-B custom td renderer / 3-C swap parser).
 
 Cross-cutting constraints:
 - Plans 54-02 and 54-03 run in parallel (no shared files): 54-02 touches only test files; 54-03 touches only new component files
 - Plan 54-04 depends on BOTH 54-02 and 54-03 completing first
 - Plan 54-06 contains a probe checkpoint (Task 0); Tasks 1-2 branch on probe results — see 54-06-PLAN.md "Probe C Decision"
+- Plan 54-07 contains a probe checkpoint (Task 1 = Probe E); Task 2 sub-change 3 branches on the Probe E decision — see 54-07-PLAN.md "Probe E"
+- Plan 54-07 fan-out cap (`MAX_IMPACTED_EXECUTIONS=20`, `MAX_PARALLEL=6`) applies ONLY to cross-cycle impacted-executions; in-cycle runs remain uncapped (T-54-07-02 mitigation)
 - Step field names in AioTestRunsSection.tsx MUST come from 54-PROBE-FINDINGS.md — not from ASSUMED names in RESEARCH.md
 - pickLatestActiveCycle MUST use numeric suffix extraction (not string sort) — see RESEARCH.md Pitfall 3
 - queryKey MUST be exactly `['aio', jiraBaseUrl, 'issue-steps', issueKey]` (D-05)
@@ -328,4 +333,4 @@ Cross-cutting constraints:
 | 51. AIO Service Layer | v1.8 | 3/3 | Complete | 2026-05-12 |
 | 52. AIO Navigation + Project Pages | v1.8 | 6/6 | Complete | 2026-05-13 |
 | 53. Cycle Detail + Header Pinning | v1.8 | 0/5 | Not started | - |
-| 54. AIO on Issue Detail | v1.8 | 0/6 | Not started | - |
+| 54. AIO on Issue Detail | v1.8 | 0/7 | Not started | - |
