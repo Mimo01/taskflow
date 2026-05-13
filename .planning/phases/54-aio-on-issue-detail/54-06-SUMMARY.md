@@ -141,22 +141,52 @@ None — the plan's `<threat_model>` enumerated `T-54-06-01` (Tampering/Spoofing
 - **Pre-commit hook fails on pre-existing baseline lint warnings:** `npm run check` reports 29 errors (32 before this plan) on files we did NOT touch. Per `feedback_no_verify_lint.md`, `--no-verify` is approved when the hook fails on pre-existing unrelated issues. Both `3bfb0d2` and `16e2f4b` used `--no-verify`; biome on the 8 files we touched is clean (0 errors).
 - **Worktree node_modules missing on first `vitest` run:** spawn-time worktree had no `node_modules`. Resolved with `npm install` (243 packages). No `package.json` changes from this plan.
 
-## Task 3 Pending
+## Task 3 — UAT Outcome (APPROVED with scoped follow-ups)
 
-Task 3 is `checkpoint:human-verify gate=blocking` — the final UAT against a real ESHOP issue. The orchestrator must surface this checkpoint to the human; no automated step can close it. See plan `<how-to-verify>` for the 7 verification steps (wiki content rendering, external link click, ≤2s cold-load perf target on Branch A1, no D-10/D-08 regressions, other WikiRenderer surfaces still working).
+Task 3 ran live against ESHOP issues. The two original findings closed:
+- **Finding 1 (wiki rendering for simple constructs):** verified working — tables, `{color}`, single-line `{panel}`, `h4.`, `*bold*`, `\\` hard breaks all render correctly in step cells.
+- **Finding 1 sub-issue (Tauri webview hijack):** verified — non-image external links open in OS browser via `openUrl`; webview no longer navigates in-place.
+- **Finding 2 (direct lookup):** verified — Branch A1 active on `jiraIssueId` path; no cycle-pagination requests fire.
+
+The UAT surfaced three pieces of NEW scope (not in Finding 1 or 2) that are explicitly **routed to plan `54-07`** rather than retroactively expanding 54-06:
+
+1. **Impacted executions list across all cycles** — when an issue has linked test cases but no runs in the active cycle, show a compact list of impacted executions (test × cycle × run + status) from the traceability response. Replaces the bare "No test runs in active cycle" empty state.
+2. **AIO attachments grid visibility on no-runs path** — the inline-image-attachment aggregation scaffolded in 54-06 only renders when active-cycle runs exist. 54-07 should also show it (or an equivalent) when the impacted-executions list is showing instead.
+3. **Nested wiki rendering inside table cells** — real ESHOP step content contains `{panel}…{panel}` blocks with multi-line content and `# [name|url]` lists embedded INSIDE table cells. Jira's native renderer handles this; `jira2md` breaks on the embedded newlines. Out of scope for 54-06 (the original fixtures only proved single-line `{panel}` works); needs investigation in 54-07 (preprocess heuristics OR inline-flatten newlines inside table rows OR drop jira2md for a proper wiki parser).
+
+## UAT Follow-up Commits (in-scope for 54-06)
+
+Three product-behaviour iterations happened during UAT and were committed as 54-06 follow-ups (not feature creep — each closed a specific UAT gap on Finding 1):
+
+- **`6f45a70` fix(54-06): open image attachment links in-app via existing ImageLightbox.** Original Task 1 routed all external `<a>` clicks through `openUrl`. UAT direction: image-extension attachment files should open in-app (not OS browser). Detected by filename extension (`.png/.jpe?g/.gif/.webp/.svg/.bmp`); non-image links still go through `openUrl`.
+- **`a88f7f5` fix(54-06): translate AIO bridge URLs to direct download endpoint in AuthImage.** UAT surfaced broken-image `?` placeholders. Probe D found that `/plugins/servlet/aio-tcms/bridge/tcms/browse?...` is a browser-navigation URL returning HTML, not image bytes. Direct download endpoint is `GET /rest/aio-tcms-api/1.0/project/{projectKey}/attachment/{attachmentId}`. `AuthImage` now translates bridge URLs (same-host only) using `attachmentId` from the bridge params + `activeJiraProject` from auth store.
+- **`dbfd361` feat(54-06): inline image links stay text + new AIO attachments grid.** UAT direction: full-size image embeds inside step prose broke flow. Image-extension `[name.ext|url]` links now render as inline TEXT anchors again; click opens the lightbox in-app via the bridge-URL-translation path. Added a new "AIO attachments" sub-section below the run blocks (collapsible, 4-col grid, Paperclip icon — mirrors `AttachmentsSection`); aggregates inline `[name.ext|url]` image refs across every step of every linked run, dedupes by URL.
+- **`8a92dbb` fix(54-06): always render AIO attachments header, with empty state inside.** Earlier the grid `return null`'d when no inline image refs were found, which made it impossible to distinguish "section missing" from "section empty" during UAT. Header is now always rendered (when AIO test-run data is present) with an empty-state line inside the expanded body.
+
+Probe D was recorded in `54-PROBE-FINDINGS.md` (same commit `a88f7f5`).
+
+## Files Modified — UAT Follow-up Pass
+
+- `taskflow/src/routes/dashboard/AuthImage.tsx` — added private `resolveAttachmentUrl(src, jiraBaseUrl, activeJiraProject)` helper translating AIO bridge URLs to the direct download endpoint; `AuthImage` consumes both `jiraBaseUrl` and `activeJiraProject` from the auth store; fetch path uses the resolved URL; host-match guard prevents cross-instance accidents.
+- `taskflow/src/routes/dashboard/WikiRenderer.tsx` — image-extension branch in the `<a>` override changed from inline AuthImage to text anchor + `setLightboxSrc(href)`; comment block updated to reflect prose-flow preservation reasoning.
+- `taskflow/src/routes/dashboard/WikiRenderer.test.tsx` — VAS.png test rewritten to assert text-anchor render + click opens `[role=dialog]` lightbox + `openUrl` NOT called; new test added for non-image external link (PROJ-123) preserving the openUrl path.
+- `taskflow/src/routes/dashboard/issue-detail/AioTestRunsSection.tsx` — added `INLINE_IMAGE_ATTACHMENT_RE`, `IMAGE_EXT_RE`, `extractInlineImageAttachments`, `collectAioImageAttachments` (pure functions); new `AioAttachmentsGrid` sub-component with collapsible header + 4-col thumbnail grid + per-item `ImageLightbox`; `aioAttachments` `useMemo` placed BEFORE the conditional render returns to honour Rules of Hooks; grid wired in below the run blocks.
+- `taskflow/src/routes/dashboard/issue-detail/AioTestRunsSection.test.tsx` — VAS.png test rewritten to assert text-anchor render + lightbox dialog open after click; no `openUrl` call asserted.
+- `.planning/phases/54-aio-on-issue-detail/54-PROBE-FINDINGS.md` — Probe D appended (bridge URL behaviour, 8-variant attachment endpoint scan, direct-download winner confirmed via `file -` byte inspection).
 
 ## Next Phase Readiness
 
-- Wiki rendering for AIO step content is shipping-ready pending UAT.
-- Direct-lookup perf path is shipping-ready pending UAT — measurable target is ≤2s cold-load first-paint on a production-sized cycle.
-- No follow-up plan required if UAT passes. If UAT surfaces additional findings, scope a narrow `54-07` (the plan explicitly leaves room for this via the resume-signal protocol).
+- Wiki rendering for simple step content + direct-lookup perf path are shipping-ready and UAT-approved.
+- 54-07 plan needed for: (1) impacted executions list across all cycles, (2) AIO attachments visibility on the no-runs path, (3) nested wiki rendering inside table cells. The first two are net-new features; the third is a known limitation that needs scoped investigation.
 
 ## Self-Check: PASSED
 
 - `54-06-SUMMARY.md` present at `.planning/phases/54-aio-on-issue-detail/54-06-SUMMARY.md`
-- `taskflow/src/routes/dashboard/WikiRenderer.tsx`, `taskflow/src/services/aio/issue-steps.ts` and the other 6 modified files all present
-- Commits `340153c` (probe), `3bfb0d2` (Task 1), `16e2f4b` (Task 2) all reachable in `git log --all`
+- Original Task commits `340153c` (probe), `3bfb0d2` (Task 1), `16e2f4b` (Task 2), `ca19e4e` (SUMMARY) all reachable
+- UAT follow-up commits `6f45a70`, `a88f7f5`, `dbfd361`, `8a92dbb` all reachable
+- `cd taskflow && npx tsc --noEmit && npx vitest run` → 992 passed, 2 skipped, 39 todo at the most recent run
+- AIO bridge URL translation verified end-to-end in the running Tauri app (image thumbnails load + lightbox opens in-app)
 
 ---
 *Phase: 54-aio-on-issue-detail*
-*Completed: 2026-05-13 (Tasks 0–2 complete; Task 3 pending human UAT)*
+*Completed: 2026-05-13 (Tasks 0–3 complete; 3 net-new items routed to 54-07)*
