@@ -197,13 +197,26 @@ describe('WikiRenderer', () => {
       vi.mocked(openUrl).mockClear();
     });
 
-    it('renders external [name|url] link, click calls openUrl exactly once', () => {
-      render(
+    it('renders image-extension [name.png|url] as inline AuthImage, NOT an openUrl link (54-06 UAT follow-up)', () => {
+      const { container } = render(
         <WikiRenderer wikiText="[img-a.png|https://jira.other.example/secure/attachment/123/img-a.png]" />,
       );
-      const link = screen.getByRole('link', { name: /img-a\.png/ });
+      const img = container.querySelector('img');
+      expect(img).not.toBeNull();
+      expect(img?.getAttribute('alt')).toBe('img-a.png');
+      expect(img?.className).toContain('cursor-pointer');
+      expect(container.querySelector('a[href*="img-a.png"]')).toBeNull();
+      fireEvent.click(img as HTMLImageElement);
+      expect(openUrl).not.toHaveBeenCalled();
+    });
+
+    it('renders non-image external [name|url] link, click calls openUrl exactly once', () => {
+      render(
+        <WikiRenderer wikiText="[See PROJ-123|https://jira.other.example/browse/PROJ-123]" />,
+      );
+      const link = screen.getByRole('link', { name: /See PROJ-123/ });
       fireEvent.click(link);
-      expect(openUrl).toHaveBeenCalledWith('https://jira.other.example/secure/attachment/123/img-a.png');
+      expect(openUrl).toHaveBeenCalledWith('https://jira.other.example/browse/PROJ-123');
       expect(openUrl).toHaveBeenCalledTimes(1);
     });
 
