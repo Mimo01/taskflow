@@ -16,7 +16,7 @@
 
 import { ApiError } from '../../lib/api-error';
 import { aioFetch } from './client';
-import type { AioPage, AioTestCase, AioTestRunStep } from './types';
+import type { AioPage, AioTestCase, AioTestRun, AioTestRunStep } from './types';
 
 // Raw API shape for a test case before normalization — all fields optional (defensive)
 type RawTestCase = {
@@ -47,11 +47,12 @@ type RawStep = {
   stepID?: number;
   stepOrder?: number;
   testStepType?: string;
-  step?: string;           // confirmed action text field name (Phase 54 probe)
+  step?: string; // confirmed action text field name (Phase 54 probe)
   expectedResult?: string; // confirmed expected result field name (Phase 54 probe)
-  actualResult?: string;   // confirmed actual result field name; absent when not filled in (Phase 54 probe)
+  actualResult?: string; // confirmed actual result field name; absent when not filled in (Phase 54 probe)
   testData?: string;
-  testRunStepStatus?: {    // confirmed step status object (Phase 54 probe)
+  testRunStepStatus?: {
+    // confirmed step status object (Phase 54 probe)
     ID?: number;
     name?: string;
     description?: string;
@@ -186,6 +187,100 @@ export async function fetchAioTestRunSteps(
   }
   if (response.status === 404) {
     return []; // run not found
+  }
+  throw new Error(`AIO request failed with status ${response.status}`);
+}
+
+// Raw run-detail shape (Probe B confirmed) — top-level fields on the response of
+// GET /project/{projectKey}/testcycle/{cycleKey}/testrun/{runId}?assignSteps=true.
+// Used by fetchAioTestRunDetail (Plan 54-06 Branch A1) to return both run-level
+// status/testCase metadata AND testRunSteps[] in a single request, avoiding the
+// cycle-wide pagination scan.
+type RawRunDetail = {
+  ID?: number;
+  testRunStatus?: { ID?: number; name?: string };
+  testCase?: { key?: string; title?: string; name?: string; updatedDate?: string };
+  jiraDefectIDs?: number[];
+  updatedDate?: number | string;
+  executedDate?: number | string;
+  testRunSteps?: RawStep[];
+};
+
+function toRunChipStatus(name: string | undefined): string {
+  switch ((name ?? '').toLowerCase()) {
+    case 'pass':
+    case 'passed':
+      return 'PASS';
+    case 'fail':
+    case 'failed':
+      return 'FAIL';
+    case 'blocked':
+      return 'BLOCKED';
+    default:
+      return 'NOT_EXECUTED';
+  }
+}
+
+function normalizeRunDate(raw: string | number | undefined): string | undefined {
+  if (raw == null) return undefined;
+  if (typeof raw === 'number') return new Date(raw).toISOString();
+  return raw;
+}
+
+/**
+ * Plan 54-06 Branch A1: fetch full run detail (run-level fields + steps) for a
+ * single test run by ID. Returns `{ run, steps }` — `run` is shaped as `AioTestRun`
+ * for parity with the legacy `fetchAioTestRunsForCycle` consumer, and `steps[]` is
+ * the same shape as `fetchAioTestRunSteps`. Calling this once per linked test case
+ * (parallelised via Promise.all) replaces the full cycle scan that previously
+ * paginated thousands of runs.
+ *
+ * Endpoint: same as `fetchAioTestRunSteps` (`assignSteps=true` query param required).
+ *
+ * @returns `{ run, steps }`; `null` when the run is not found (404).
+ * @throws ApiError with status 401 on authentication failure
+ * @throws Error on network failure
+ */
+export async function fetchAioTestRunDetail(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  cycleKey: string,
+  runId: string,
+): Promise<{ run: AioTestRun; steps: AioTestRunStep[] } | null> {
+  const path = `/project/${encodeURIComponent(projectKey)}/testcycle/${encodeURIComponent(cycleKey)}/testrun/${encodeURIComponent(runId)}?assignSteps=true`;
+  let response: Response;
+  try {
+    response = await aioFetch(baseUrl, token, path);
+  } catch {
+    throw new Error(`Cannot reach AIO at ${baseUrl}`);
+  }
+  if (response.ok) {
+    const data = (await response.json()) as RawRunDetail;
+    const steps = (data.testRunSteps ?? []).map(normalizeStep);
+    const executedDate = normalizeRunDate(data.updatedDate ?? data.executedDate);
+    const run: AioTestRun = {
+      id: String(data.ID ?? runId),
+      status: toRunChipStatus(data.testRunStatus?.name),
+      testCaseKey: data.testCase?.key ?? '',
+      cycleKey,
+      testCase: data.testCase
+        ? {
+            title: data.testCase.title ?? data.testCase.name ?? '',
+            updatedDate: data.testCase.updatedDate,
+          }
+        : undefined,
+      defects: [],
+      jiraDefectIDs: data.jiraDefectIDs ?? [],
+      executedDate,
+    };
+    return { run, steps };
+  }
+  if (response.status === 401) {
+    throw new ApiError('Invalid token or token has expired', 401, 'jira');
+  }
+  if (response.status === 404) {
+    return null;
   }
   throw new Error(`AIO request failed with status ${response.status}`);
 }
