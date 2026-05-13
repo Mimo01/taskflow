@@ -38,12 +38,22 @@ export interface AioCycle {
  * Returned via AioPage<AioTestRun> from GET /rest/aio-tcms-api/1.0/project/{projectKey}/testcycle/{cycleKey}/testrun
  * Key format: {PROJ}-TC-N (test case key — D-17 probe confirmed)
  * NOTE (D-15): There is no GET /testrun?issueKey= endpoint. Test runs are scoped to cycles.
+ *
+ * NOTE: testCase.title and defects field names confirmed from AIO REST API docs (D-10, D-14).
+ * executedDate field name is unverified from public docs — executor must confirm against live endpoint.
+ * Use run.executedDate ?? run.testCase?.updatedDate as defensive date fallback.
  */
 export interface AioTestRun {
   id: string;           // Test run ID
-  status: string;       // Run status, e.g. "PASS", "FAIL", "NOT_EXECUTED"
+  status: string;       // Run status: "PASS" | "FAIL" | "NOT_EXECUTED" | "BLOCKED"
   testCaseKey: string;  // Associated test case key, e.g. "PROJ-TC-5"
   cycleKey: string;     // Owning cycle key, e.g. "PROJ-CY-2"
+  testCase?: {          // Nested object — verify field names against live endpoint (D-10)
+    title: string;      // Test case display name for run list
+    updatedDate?: string; // ISO date fallback if executedDate absent
+  };
+  defects?: string[];   // Jira issue keys inline, e.g. ["PROJ-42"] (D-14 confirmed)
+  executedDate?: string; // Run-level date — NOTE: field name unverified against live endpoint (A2)
 }
 
 /**
