@@ -4,11 +4,11 @@ milestone: v1.8
 milestone_name: AIO Test Management
 status: executing
 last_updated: "2026-05-13T14:45:50.326Z"
-last_activity: "2026-05-13 — Phase 53 execution started (Wave 0: test stubs)"
+last_activity: "2026-05-13 — Phase 54 planned (6 plans, 5 waves)"
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 14
+  total_plans: 20
   completed_plans: 14
   percent: 75
 ---
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-12)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Phase 53 — Cycle Detail + Header Pinning (next)
+**Current focus:** Phase 54 — AIO on Issue Detail (ready to execute)
 
 ## Current Position
 
-Phase: 53 of 54 (Cycle Detail + Header Pinning)
-Plan: 0 of 5 in current phase
-Status: Executing — Wave 0
-Last activity: 2026-05-13 — Phase 53 execution started (Wave 0: test stubs)
+Phase: 54 of 54 (AIO on Issue Detail)
+Plan: 0 of 6 in current phase
+Status: Ready to execute — Phase 54 planned (6 plans, 5 waves)
+Last activity: 2026-05-13 — Phase 54 planned (6 plans, 5 waves)
 
 Progress: [███████░░░] 75%
 
