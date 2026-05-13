@@ -11,6 +11,7 @@ import {
   fetchAioTestCasesForIssue,
   fetchAioTestRunSteps,
   fetchAioTestRunsForCycle,
+  fetchAioTraceabilityRaw,
 } from '@/services/aio';
 import type { AioTestCase, AioTestRun, AioTestRunStep } from '@/services/aio';
 import { readSecret } from '@/services/stronghold';
@@ -202,14 +203,10 @@ export function AioTestRunsSection({ issueKey, jiraBaseUrl, jiraIssueId }: AioTe
 
       // Probe: log traceability response shape — fires only when jiraIssueId is available
       if (jiraNumericId !== null) {
-        const base = jiraBaseUrl.replace(/\/$/, '');
-        const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-        const [defectResp, reqResp] = await Promise.all([
-          fetch(`${base}/rest/aio-tcms/1.0/project/${aioProjectId}/traceability/defect/${jiraNumericId}`, { headers }).catch(() => null),
-          fetch(`${base}/rest/aio-tcms/1.0/project/${aioProjectId}/traceability/requirement/${jiraNumericId}`, { headers }).catch(() => null),
+        const [defectJson, reqJson] = await Promise.all([
+          fetchAioTraceabilityRaw(jiraBaseUrl, token, aioProjectId, jiraNumericId, 'defect'),
+          fetchAioTraceabilityRaw(jiraBaseUrl, token, aioProjectId, jiraNumericId, 'requirement'),
         ]);
-        const defectJson = defectResp?.ok ? await defectResp.json() : `status=${defectResp?.status}`;
-        const reqJson = reqResp?.ok ? await reqResp.json() : `status=${reqResp?.status}`;
         console.debug('[AIO traceability probe] defect:', JSON.stringify(defectJson).slice(0, 800));
         console.debug('[AIO traceability probe] requirement:', JSON.stringify(reqJson).slice(0, 800));
         return null; // probe-only — real impl follows once shape is confirmed
