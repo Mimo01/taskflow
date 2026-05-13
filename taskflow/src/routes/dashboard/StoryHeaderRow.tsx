@@ -2,9 +2,9 @@
  * StoryHeaderRow — Collapsible story swimlane header.
  *
  * Spans the full board width. Shows: chevron toggle, story key, summary,
- * assignee avatar, status badge, and subtask count. Clicking the row opens
- * the detail sheet; clicking the chevron toggles expand/collapse without
- * opening the sheet.
+ * epic pill (when epic data is present), status badge, assignee avatar,
+ * and subtask count. Clicking the row opens the detail sheet; clicking
+ * the chevron toggles expand/collapse without opening the sheet.
  */
 import { ChevronRight } from 'lucide-react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
@@ -17,6 +17,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import type { EpicColorResult } from '@/lib/epicColors';
 import { statusCategoryBadgeClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraTransition } from '@/services/jira';
@@ -40,6 +41,10 @@ interface StoryHeaderRowProps {
   transitionError?: string | null;
   assigneeAvatarUrl?: string | null;
   assigneeDisplayName?: string;
+  epicKey?: string | null;
+  epicName?: string | null;
+  epicColorResult?: EpicColorResult | null;
+  onEpicClick?: (key: string) => void;
 }
 
 export function StoryHeaderRow({
@@ -56,6 +61,10 @@ export function StoryHeaderRow({
   transitionError,
   assigneeAvatarUrl,
   assigneeDisplayName,
+  epicKey,
+  epicName,
+  epicColorResult,
+  onEpicClick,
 }: StoryHeaderRowProps) {
   const statusStyle = statusCategoryBadgeClass(statusCategoryKey);
 
@@ -99,14 +108,23 @@ export function StoryHeaderRow({
         <span className="text-sm font-medium truncate">{summary}</span>
       </button>
 
-      {/* Assignee avatar + name — only rendered when story has an assignee */}
-      {assigneeDisplayName && (
-        <div className="shrink-0 flex items-center gap-1.5">
-          <CachedAvatar url={assigneeAvatarUrl} name={assigneeDisplayName} size={20} />
-          <span className="text-xs text-muted-foreground truncate max-w-[120px]">
-            {assigneeDisplayName}
-          </span>
-        </div>
+      {/* Epic pill — only rendered when story has an epic link */}
+      {epicKey && epicName && epicColorResult && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEpicClick?.(epicKey);
+          }}
+          className={cn(
+            'shrink-0 inline-flex items-center rounded-full border px-1.5 py-0 text-[11px] font-medium hover:opacity-80 transition-opacity',
+            epicColorResult.className,
+          )}
+          style={epicColorResult.style}
+          title={`${epicKey}: ${epicName}`}
+        >
+          {epicName}
+        </button>
       )}
 
       {/* Status badge */}
@@ -118,6 +136,16 @@ export function StoryHeaderRow({
       >
         {statusName}
       </span>
+
+      {/* Assignee avatar + name — only rendered when story has an assignee */}
+      {assigneeDisplayName && (
+        <div className="shrink-0 flex items-center gap-1.5">
+          <CachedAvatar url={assigneeAvatarUrl} name={assigneeDisplayName} size={20} />
+          <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+            {assigneeDisplayName}
+          </span>
+        </div>
+      )}
 
       {/* Subtask count */}
       {subtaskCount > 0 && (
