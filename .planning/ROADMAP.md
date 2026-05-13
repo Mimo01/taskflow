@@ -277,7 +277,34 @@ Cross-cutting constraints:
   2. The AIO section renders a step table with step / expected / actual columns and colored failure markers per row
   3. When the issue has no associated AIO test runs, the section is hidden (not an error state)
   4. Attachment images within test run steps are fetched via the authenticated HTTP client and open in the existing in-app lightbox
-**Plans**: TBD
+**Plans:** 6 plans
+
+Plans:
+
+**Wave 0** *(manual — developer runs curl probes)*
+- [ ] 54-00-PLAN.md — Live curl probes: confirm testcase issueKey query param name + step field names; write 54-PROBE-FINDINGS.md
+
+**Wave 1** *(blocked on Wave 0 probe completion)*
+- [ ] 54-01-PLAN.md — types.ts: AioTestCase, AioTestRunStep, AioStepAttachment; issue-steps.ts: fetchAioTestCasesForIssue + fetchAioTestRunSteps; barrel update
+
+**Wave 2** *(blocked on Wave 1; Plans 54-02 and 54-03 run in parallel)*
+- [ ] 54-02-PLAN.md — Test stubs: issue-steps.test.ts (service unit tests GREEN) + AioTestRunsSection.test.tsx (component stubs RED)
+- [ ] 54-03-PLAN.md — AioTestRunsSkeleton.tsx + AioTestRunsSection.tsx (full section component)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 54-04-PLAN.md — IssueDetailPage.tsx integration + fill component tests GREEN; full suite passes
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 54-05-PLAN.md — Human verification checkpoint (end-to-end: section render, step table, lightbox, aioEnabled gate)
+
+Cross-cutting constraints:
+- Plans 54-02 and 54-03 run in parallel (no shared files): 54-02 touches only test files; 54-03 touches only new component files
+- Plan 54-04 depends on BOTH 54-02 and 54-03 completing first
+- Step field names in AioTestRunsSection.tsx MUST come from 54-PROBE-FINDINGS.md — not from ASSUMED names in RESEARCH.md
+- pickLatestActiveCycle MUST use numeric suffix extraction (not string sort) — see RESEARCH.md Pitfall 3
+- queryKey MUST be exactly `['aio', jiraBaseUrl, 'issue-steps', issueKey]` (D-05)
+- AioTestRunsSection MUST gate with `if (!aioEnabled) return null` as the first statement (before any hooks that could violate Rules of Hooks)
+
 **UI hint**: yes
 
 ## Progress
@@ -297,4 +324,4 @@ Cross-cutting constraints:
 | 51. AIO Service Layer | v1.8 | 3/3 | Complete | 2026-05-12 |
 | 52. AIO Navigation + Project Pages | v1.8 | 6/6 | Complete | 2026-05-13 |
 | 53. Cycle Detail + Header Pinning | v1.8 | 0/5 | Not started | - |
-| 54. AIO on Issue Detail | v1.8 | 0/? | Not started | - |
+| 54. AIO on Issue Detail | v1.8 | 0/6 | Not started | - |
