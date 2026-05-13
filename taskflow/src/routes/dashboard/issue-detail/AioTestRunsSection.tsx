@@ -194,9 +194,11 @@ export function AioTestRunsSection({ issueKey, jiraBaseUrl, jiraIssueId }: AioTe
 
       // Step 1: fetch all test cases for the project, then filter by jiraRequirementIDs (probe A: no server-side filter)
       const allTestCases = await fetchAioTestCasesForIssue(jiraBaseUrl, token, projectKey, issueKey);
+      console.debug('[AIO debug] allTestCases count:', allTestCases.length, 'jiraIssueId:', jiraIssueId, 'sample jiraRequirementIDs:', allTestCases[0]?.jiraRequirementIDs);
       const testCases = jiraIssueId
         ? allTestCases.filter((tc) => tc.jiraRequirementIDs?.includes(jiraIssueId) ?? false)
         : allTestCases;
+      console.debug('[AIO debug] matched testCases after filter:', testCases.length);
       // No linked test cases → section hidden (D-04 first case — sentinel null)
       if (testCases.length === 0) return null;
 
