@@ -7,6 +7,7 @@ import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { aioRunStatusBadgeClass } from '@/lib/statusStyles';
 import {
   fetchAioCycles,
+  fetchAioProjects,
   fetchAioTestCasesForIssue,
   fetchAioTestRunSteps,
   fetchAioTestRunsForCycle,
@@ -151,7 +152,7 @@ function StepTable({ steps }: { steps: AioTestRunStep[] }) {
 function CollapsibleRunBlock({ run, testCase, steps }: AioIssueRunData) {
   const [isExpanded, setIsExpanded] = useState(run.status !== 'PASS');
   const ChevronIcon = isExpanded ? ChevronDown : ChevronRight;
-  const displayName = testCase?.title ?? run.testCaseKey;
+  const displayName = testCase?.title ?? run.testCase?.title ?? run.testCaseKey;
 
   return (
     <div className="border-b border-border last:border-0">
@@ -192,32 +193,37 @@ export function AioTestRunsSection({ issueKey, jiraBaseUrl, jiraIssueId }: AioTe
 
       const projectKey = issueKey.split('-')[0];
 
-      // Step 1: fetch all test cases for the project, then filter by jiraRequirementIDs (probe A: no server-side filter)
-      const allTestCases = await fetchAioTestCasesForIssue(jiraBaseUrl, token, projectKey, issueKey);
-      const requirementTestCases = jiraIssueId
-        ? allTestCases.filter((tc) => tc.jiraRequirementIDs?.includes(jiraIssueId) ?? false)
-        : allTestCases;
-      // jiraNumericId used for defect-based matching (probe B: jiraDefectIDs are numeric Jira internal IDs)
+      // Resolve AIO numeric project ID (required for traceability endpoints)
+      const projects = await fetchAioProjects(jiraBaseUrl, token);
+      const aioProject = projects.find((p) => p.projectKey === projectKey);
+      if (!aioProject) return null;
+      const aioProjectId = aioProject.id;
       const jiraNumericId = jiraIssueId ? Number(jiraIssueId) : null;
 
-      // Step 2: find the latest active cycle
+      // Probe: log traceability response shape — fires only when jiraIssueId is available
+      if (jiraNumericId !== null) {
+        const base = jiraBaseUrl.replace(/\/$/, '');
+        const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+        const [defectResp, reqResp] = await Promise.all([
+          fetch(`${base}/rest/aio-tcms/1.0/project/${aioProjectId}/traceability/defect/${jiraNumericId}`, { headers }).catch(() => null),
+          fetch(`${base}/rest/aio-tcms/1.0/project/${aioProjectId}/traceability/requirement/${jiraNumericId}`, { headers }).catch(() => null),
+        ]);
+        const defectJson = defectResp?.ok ? await defectResp.json() : `status=${defectResp?.status}`;
+        const reqJson = reqResp?.ok ? await reqResp.json() : `status=${reqResp?.status}`;
+        console.debug('[AIO traceability probe] defect:', JSON.stringify(defectJson).slice(0, 800));
+        console.debug('[AIO traceability probe] requirement:', JSON.stringify(reqJson).slice(0, 800));
+        return null; // probe-only — real impl follows once shape is confirmed
+      }
+
+      // Fallback: requirements-based scan (used when no jiraIssueId provided)
       const cycles = await fetchAioCycles(jiraBaseUrl, token, projectKey);
       const activeCycle = pickLatestActiveCycle(cycles);
-      // No active cycle → no runs to check; hide section if no requirements either
-      if (!activeCycle) return requirementTestCases.length > 0 ? [] : null;
-
-      // Step 3: fetch all runs in the active cycle; match by requirements OR by defect linkage
+      const allTestCases = await fetchAioTestCasesForIssue(jiraBaseUrl, token, projectKey, issueKey);
+      if (!activeCycle) return allTestCases.length > 0 ? [] : null;
       const allRuns = await fetchAioTestRunsForCycle(jiraBaseUrl, token, projectKey, activeCycle.key);
-      const testCaseKeys = new Set(requirementTestCases.map((tc) => tc.key));
-      const matchedRuns = allRuns.filter(
-        (r) =>
-          testCaseKeys.has(r.testCaseKey) ||
-          (jiraNumericId !== null && (r.jiraDefectIDs?.includes(jiraNumericId) ?? false)),
-      );
-      // No matched runs → hide if no requirements, empty state if requirements exist
-      if (matchedRuns.length === 0) return requirementTestCases.length > 0 ? [] : null;
-
-      // Step 4: fetch step-level data for each matched run
+      const testCaseKeys = new Set(allTestCases.map((tc) => tc.key));
+      const matchedRuns = allRuns.filter((r) => testCaseKeys.has(r.testCaseKey));
+      if (matchedRuns.length === 0) return allTestCases.length > 0 ? [] : null;
       const runData = await Promise.all(
         matchedRuns.map(async (run) => ({
           run,
@@ -225,11 +231,8 @@ export function AioTestRunsSection({ issueKey, jiraBaseUrl, jiraIssueId }: AioTe
           steps: await fetchAioTestRunSteps(jiraBaseUrl, token, projectKey, activeCycle.key, run.id),
         })),
       );
-
-      // Filter out runs with no steps; if all empty, return [] (empty state)
       const withSteps = runData.filter((item) => item.steps.length > 0);
       if (withSteps.length === 0) return [];
-
       return withSteps;
     },
     enabled: !!jiraBaseUrl && !!issueKey && !!aioEnabled,
