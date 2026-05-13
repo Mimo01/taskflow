@@ -167,7 +167,7 @@ Cross-cutting constraints:
 
 - [x] **Phase 51: AIO Service Layer** - Live instance probe, `src/services/aio/` module, `aioEnabled` settings toggle, AIO project ID resolution — completed 2026-05-12
 - [x] **Phase 52: AIO Navigation + Project Pages** - Sidebar section, routing shell, project list page, project overview page — completed 2026-05-13
-- [ ] **Phase 53: Cycle Detail + Header Pinning** - Full-page cycle detail (progress bar, test run table, defects), pin/unpin to header tab strip with persistence
+- [x] **Phase 53: Cycle Detail + Header Pinning** - Full-page cycle detail (progress bar, test run table, defects), pin/unpin to header tab strip with persistence
 - [ ] **Phase 54: AIO on Issue Detail** - Lazy-loaded test runs section on issue detail, step table with colored markers, authenticated attachment lightbox
 
 ## Phase Details
