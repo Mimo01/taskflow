@@ -66,3 +66,44 @@ export interface AioPage<T> {
   maxResults: number;
   isLast: boolean;
 }
+
+/**
+ * A single AIO test case, optionally linked to a Jira issue via jiraRequirementIDs.
+ * Returned via AioPage<AioTestCase> from GET /rest/aio-tcms-api/1.0/project/{projectKey}/testcase
+ * NOTE: No server-side filter by issueKey exists — fetch all and filter client-side
+ * by jiraRequirementIDs (Phase 54 probe finding A).
+ * Field names confirmed by Phase 54 probe: title (confirmed), key (confirmed).
+ */
+export interface AioTestCase {
+  id: number;           // AIO internal test case ID
+  key: string;          // Test case key, e.g. "PROJ-TC-5" (confirmed by Phase 54 probe)
+  title: string;        // Test case display name (confirmed field name: 'title'; probe also showed 'name' fallback needed)
+  projectKey?: string;  // Owning Jira project key
+}
+
+/**
+ * A single step within an executed test run.
+ * Returned inside testRunSteps[] from GET /rest/aio-tcms-api/1.0/project/{projectKey}/testcycle/{cycleKey}/testrun/{runId}
+ * All field names confirmed by Phase 54 probe finding B.
+ * NOTE: 'step' is the confirmed field name for action text (was assumed: 'stepAction' in PATTERNS.md).
+ * NOTE: 'testRunStepStatus.name' is the confirmed field for step status; normalized to a plain string here.
+ * NOTE: Attachments not implemented — no attachment fields observed across 26 runs in 7 cycles (probe finding B).
+ */
+export interface AioTestRunStep {
+  id: number;               // Step ID (from raw 'ID' field — confirmed by Phase 54 probe)
+  step: string;             // Step action/description text (confirmed field name: 'step' — was assumed: 'stepAction')
+  expectedResult?: string;  // Expected result text (confirmed field name: 'expectedResult')
+  actualResult?: string;    // Actual result text; absent when step not yet executed (confirmed field name: 'actualResult')
+  status?: string;          // Normalized step status: "PASS" | "FAIL" | "BLOCKED" | "NOT_EXECUTED" (from testRunStepStatus.name)
+}
+
+/**
+ * A file attachment on a test run step.
+ * NOTE: No attachment fields were observed in Phase 54 probe (26 runs across 7 cycles).
+ * This interface is defined for forward compatibility but attachment rendering is NOT
+ * implemented in Phase 54. Shape is kept minimal until a probe confirms actual field names.
+ */
+export interface AioStepAttachment {
+  url?: string;       // Full URL to the attachment (field name unconfirmed — no probe data)
+  fileName?: string;  // Filename for alt text (field name unconfirmed — no probe data)
+}
