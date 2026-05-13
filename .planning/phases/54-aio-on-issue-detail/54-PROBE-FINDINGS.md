@@ -86,6 +86,54 @@ No per-cycle scan needed. Skip BOTH `fetchAioCycles` AND `fetchAioTestRunsForCyc
 
 ---
 
+## Probe D — Attachment Download URL
+Probed: 2026-05-13
+
+### D1 — bridge URL behaviour
+CONFIRMED: bridge URL returns HTML, not image bytes = `HTTP/1.1 200 text/html;charset=UTF-8 3112 bytes`
+
+The bridge servlet (`/plugins/servlet/aio-tcms/bridge/tcms/browse?...`) renders a full Jira HTML page. Using it as `<img src>` will always produce a broken image. It is a browser-navigation URL, not a binary download endpoint.
+
+### D2 — attachment endpoint variants (A–H)
+```
+A: 404  /rest/aio-tcms-api/1.0/project/ESHOP/testrun/{runId}/attachment/{id}
+B: 404  /rest/aio-tcms-api/1.0/project/ESHOP/testrun/{runId}/attachment/{id}/download
+C: 200  image/png  148968 bytes  /rest/aio-tcms-api/1.0/project/ESHOP/attachment/{id}   ← WINNER
+D: 200  application/json  305 bytes  /rest/aio-tcms/1.0/project/{numericId}/attachment/{id}  (metadata)
+E: 404  /rest/aio-tcms-api/1.0/attachment/{id}
+F: 404  /rest/aio-tcms-api/1.0/project/ESHOP/testcase/{caseId}/attachment/{id}
+G: 404  /rest/aio-tcms-api/1.0/project/ESHOP/testcycle/{cycleId}/testrun/{runId}/attachment/{id}
+H: 404  /rest/aio-tcms-api/1.0/project/ESHOP/testcycle/{cycleId}/testrun/{runId}/attachment/{id}/download
+```
+
+### D3 — image bytes confirmation
+CONFIRMED: `GET /rest/aio-tcms-api/1.0/project/{projectKey}/attachment/{attachmentId}` returns real image binary.
+
+```
+/dev/stdin: PNG image data, 1318 x 1993, 8-bit/color RGB, non-interlaced
+```
+
+Variant D metadata response (for filename/mimeType lookup if needed):
+```json
+{
+  "ID": 150383,
+  "name": "VAS.png",
+  "storeName": "c6188d2d-45e0-4f6b-b90b-a08abf95f132",
+  "mimeType": "image/png",
+  "size": 148968,
+  "processedSize": "145.48 KB",
+  "ownerId": "ext94772",
+  "projectId": 10134
+}
+```
+
+### Decision
+CONFIRMED download URL = `GET /rest/aio-tcms-api/1.0/project/{projectKey}/attachment/{attachmentId}`
+
+Requires `Authorization: Bearer` header → **cannot be used as a bare `<img src>`**. Must proxy through Tauri HTTP client, convert to data URL or blob URL, then set as image src. Variant D (`/rest/aio-tcms/1.0/project/{numericId}/attachment/{id}`) gives metadata (filename, mimeType) if needed before fetching binary — single call to C is sufficient if metadata is not needed separately.
+
+---
+
 ## Raw probe output
 
 ### B — run detail top-level keys (run ID 12131, ESHOP-CY-2)
