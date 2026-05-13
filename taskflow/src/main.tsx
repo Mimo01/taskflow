@@ -140,6 +140,7 @@ function AppLayout() {
   const pinnedKeys = usePinnedTabsStore((s) => s.pinnedKeys);
   const removePin = usePinnedTabsStore((s) => s.removePin);
   const reorderPins = usePinnedTabsStore((s) => s.reorder);
+  const pinnedCycleMeta = usePinnedTabsStore((s) => s.pinnedCycleMeta);
   const breadcrumbPush = useBreadcrumbStore((s) => s.push);
   const breadcrumbReset = useBreadcrumbStore((s) => s.reset);
 
@@ -159,12 +160,16 @@ function AppLayout() {
     }
   };
 
+  // Split pinned keys: issue keys go through useQueries (API fetch), cycle keys read from store
+  const issuePinnedKeys = pinnedKeys.filter((k) => !k.includes('-CY-'));
+  const cyclePinnedKeys = pinnedKeys.filter((k) => k.includes('-CY-'));
+
   // Actively fetch summary+type for each pinned issue key so tabs load
   // independently on app start. Uses a lightweight 2-field endpoint.
   // staleTime matches the default 5-min window; gcTime: Infinity keeps
   // data around even when a tab is unpinned then re-pinned quickly.
   const pinnedQueries = useQueries({
-    queries: pinnedKeys.map((issueKey) => ({
+    queries: issuePinnedKeys.map((issueKey) => ({
       queryKey: ['jira-pinned-summary', issueKey, jiraBaseUrl],
       queryFn: async () => {
         const token = await readSecret('jira-pat').catch(() => null);
@@ -177,14 +182,33 @@ function AppLayout() {
     })),
   });
 
-  // Build a resolved map for PinnedTabStrip: issueKey -> { summary, issueTypeName }
-  const resolvedPinnedTabs = new Map<string, { summary: string; issueTypeName: string }>();
-  pinnedKeys.forEach((key, i) => {
+  // Local type aliases mirroring PinnedTabStrip's discriminated union (not exported from component)
+  type IssueTab = { type: 'issue'; summary: string; issueTypeName: string };
+  type CycleTab = { type: 'cycle'; name: string; projectKey: string };
+
+  // Build a resolved map for PinnedTabStrip: key -> IssueTab | CycleTab
+  const resolvedPinnedTabs = new Map<string, IssueTab | CycleTab>();
+
+  // Issue tabs — index i aligns with issuePinnedKeys (not pinnedKeys)
+  issuePinnedKeys.forEach((key, i) => {
     const data = pinnedQueries[i]?.data;
     if (data?.fields) {
       resolvedPinnedTabs.set(key, {
+        type: 'issue',
         summary: data.fields.summary,
         issueTypeName: data.fields.issuetype.name,
+      });
+    }
+  });
+
+  // Cycle tabs — metadata read from store (always available at paint time)
+  cyclePinnedKeys.forEach((key) => {
+    const meta = pinnedCycleMeta[key];
+    if (meta) {
+      resolvedPinnedTabs.set(key, {
+        type: 'cycle',
+        name: meta.name,
+        projectKey: meta.projectKey,
       });
     }
   });
@@ -269,6 +293,11 @@ function AppLayout() {
   // Derive active issue key from current URL for PinnedTabStrip highlight
   const activeIssueKey = location.pathname.startsWith('/issue/')
     ? location.pathname.replace('/issue/', '')
+    : null;
+
+  // Derive active cycle key from current URL: /aio-cycle/:projectKey/:cycleKey → index 3
+  const activeCycleKey = location.pathname.startsWith('/aio-cycle/')
+    ? (location.pathname.split('/')[3] ?? null)
     : null;
 
   // Navigate to full-page issue detail + track recent item.
@@ -481,11 +510,18 @@ function AppLayout() {
         {pinnedKeys.length > 0 && (
           <PinnedTabStrip
             pinnedKeys={pinnedKeys}
-            activeKey={activeIssueKey}
-            onTabClick={(key) => handleIssueClick(key, true)}
+            activeKey={activeIssueKey ?? activeCycleKey}
+            onTabClick={(key) => {
+              if (key.includes('-CY-')) {
+                const meta = pinnedCycleMeta[key];
+                if (meta) navigate(`/aio-cycle/${meta.projectKey}/${key}`);
+              } else {
+                handleIssueClick(key, true);
+              }
+            }}
             onTabClose={removePin}
             onReorder={reorderPins}
-            resolvedIssues={resolvedPinnedTabs}
+            resolvedTabs={resolvedPinnedTabs}
           />
         )}
         {_hasHydrated && !jiraConnected && <ReAuthBanner />}
