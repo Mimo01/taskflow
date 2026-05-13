@@ -148,11 +148,9 @@ export function StoryHeaderRow({
       </span>
 
       {/* Subtask count */}
-      {subtaskCount > 0 && (
-        <span className="shrink-0 min-w-[5rem] text-xs text-muted-foreground">
-          {subtaskCount} subtask{subtaskCount !== 1 ? 's' : ''}
-        </span>
-      )}
+      <span className="shrink-0 min-w-[5rem] text-xs text-muted-foreground">
+        {subtaskCount} subtask{subtaskCount !== 1 ? 's' : ''}
+      </span>
 
       {transitionError && (
         <span className="shrink-0 text-xs text-destructive">{transitionError}</span>
