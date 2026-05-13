@@ -720,7 +720,7 @@ Phase 53 is read-only UI extension consuming existing authenticated service laye
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **`executedDate` field name on AioTestRun**
    - What we know: `testCase.updatedDate` exists as a fallback (UI-SPEC.md D-10)

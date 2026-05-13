@@ -4,11 +4,11 @@ milestone: v1.8
 milestone_name: AIO Test Management
 status: active
 last_updated: "2026-05-13T12:00:00.000Z"
-last_activity: 2026-05-13 — Phase 53 UI-SPEC approved
+last_activity: 2026-05-13 — Phase 53 planned (5 plans, 4 waves)
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 15
+  total_plans: 20
   completed_plans: 15
   percent: 75
 ---
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 ## Current Position
 
 Phase: 53 of 54 (Cycle Detail + Header Pinning)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-05-13 — Phase 52 complete (6/6 plans, 9/9 truths verified, all 13 tests GREEN)
+Plan: 0 of 5 in current phase
+Status: Ready to execute
+Last activity: 2026-05-13 — Phase 53 planned (5 plans in 4 waves: Wave 0 test stubs, Wave 1 page+store, Wave 2 wiring, Wave 3 stub fill+verify)
 
 Progress: [███████░░░] 75%
 
