@@ -406,8 +406,10 @@ describe('AioTestRunsSection', () => {
       });
     });
 
-    it('routes external [VAS.png|https://...] attachment link click through openUrl exactly once', async () => {
-      // [name|url] in actualResult — exactly the Tauri-webview-hijack pattern from Finding 1.
+    it('renders image-extension [VAS.png|url] as inline AuthImage thumbnail (54-06 UAT follow-up — opens in-app, not OS browser)', async () => {
+      // [name.png|url] in actualResult: WikiRenderer detects the image extension
+      // and renders as <img> (AuthImage). Click opens ImageLightbox in-app.
+      // openUrl is NOT called for image-extension attachment links.
       mockFetchRunDetail.mockResolvedValue(
         mkRunDetail(
           mkStep({
@@ -417,16 +419,16 @@ describe('AioTestRunsSection', () => {
           }),
         ),
       );
-      renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
+      const { container } = renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
       await waitFor(() => {
-        expect(screen.getByRole('link', { name: /VAS\.png/ })).toBeTruthy();
+        expect(container.querySelector(`img[alt="VAS.png"]`)).not.toBeNull();
       });
-      const link = screen.getByRole('link', { name: /VAS\.png/ });
-      // Use fireEvent (not userEvent) to align with WikiRenderer.test.tsx canonical pattern.
+      const img = container.querySelector(`img[alt="VAS.png"]`) as HTMLImageElement;
+      expect(img.className).toContain('cursor-pointer');
+      expect(container.querySelector(`a[href="${ATTACHMENT_URL}"]`)).toBeNull();
       const { fireEvent } = await import('@testing-library/react');
-      fireEvent.click(link);
-      expect(mockOpenUrl).toHaveBeenCalledWith(ATTACHMENT_URL);
-      expect(mockOpenUrl).toHaveBeenCalledTimes(1);
+      fireEvent.click(img);
+      expect(mockOpenUrl).not.toHaveBeenCalled();
     });
 
     it('renders h4. + *bold* + hard-break (\\\\) cluster as <h4> with <strong> child and <br>', async () => {

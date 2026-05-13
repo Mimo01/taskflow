@@ -197,13 +197,26 @@ describe('WikiRenderer', () => {
       vi.mocked(openUrl).mockClear();
     });
 
-    it('renders external [name|url] link, click calls openUrl exactly once', () => {
-      render(
+    it('renders image-extension [name.png|url] as inline AuthImage, NOT an openUrl link (54-06 UAT follow-up)', () => {
+      const { container } = render(
         <WikiRenderer wikiText="[VAS.png|https://jira.orange.sk/secure/attachment/123/VAS.png]" />,
       );
-      const link = screen.getByRole('link', { name: /VAS\.png/ });
+      const img = container.querySelector('img');
+      expect(img).not.toBeNull();
+      expect(img?.getAttribute('alt')).toBe('VAS.png');
+      expect(img?.className).toContain('cursor-pointer');
+      expect(container.querySelector('a[href*="VAS.png"]')).toBeNull();
+      fireEvent.click(img as HTMLImageElement);
+      expect(openUrl).not.toHaveBeenCalled();
+    });
+
+    it('renders non-image external [name|url] link, click calls openUrl exactly once', () => {
+      render(
+        <WikiRenderer wikiText="[See PROJ-123|https://jira.orange.sk/browse/PROJ-123]" />,
+      );
+      const link = screen.getByRole('link', { name: /See PROJ-123/ });
       fireEvent.click(link);
-      expect(openUrl).toHaveBeenCalledWith('https://jira.orange.sk/secure/attachment/123/VAS.png');
+      expect(openUrl).toHaveBeenCalledWith('https://jira.orange.sk/browse/PROJ-123');
       expect(openUrl).toHaveBeenCalledTimes(1);
     });
 
