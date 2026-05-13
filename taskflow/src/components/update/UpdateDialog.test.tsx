@@ -145,6 +145,6 @@ describe('UpdateDialog', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Update Now' }));
     });
-    expect(invoke).toHaveBeenCalledWith('plugin:process|relaunch');
+    expect(invoke).toHaveBeenCalledWith('plugin:process|restart');
   });
 });
