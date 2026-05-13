@@ -216,9 +216,7 @@ describe('WikiRenderer', () => {
     });
 
     it('renders non-image external [name|url] link, click calls openUrl exactly once', () => {
-      render(
-        <WikiRenderer wikiText="[See PROJ-123|https://jira.orange.sk/browse/PROJ-123]" />,
-      );
+      render(<WikiRenderer wikiText="[See PROJ-123|https://jira.orange.sk/browse/PROJ-123]" />);
       const link = screen.getByRole('link', { name: /See PROJ-123/ });
       fireEvent.click(link);
       expect(openUrl).toHaveBeenCalledWith('https://jira.orange.sk/browse/PROJ-123');
@@ -262,6 +260,89 @@ describe('WikiRenderer', () => {
     it('still renders lists correctly', () => {
       const { container } = render(<WikiRenderer wikiText="* item" />);
       expect(container.querySelector('li')).not.toBeNull();
+    });
+  });
+
+  // --- Plan 54-07 Gap 3 — nested wiki inside table cells (Branch 3-A) ---
+  //
+  // Probe E (recorded in 54-PROBE-FINDINGS.md) selected Branch 3-A: a
+  // preprocess heuristic that pre-merges multi-line `|cell|` rows so jira2md
+  // sees one logical row, and substitutes embedded `{panel}…{panel}` blocks
+  // to inline `<span data-callout="panel">…</span>` so the panel content
+  // renders INSIDE the table cell.
+  //
+  // Verbatim ESHOP fixture from 54-06-UAT-FINDINGS.md Finding 1 lines 14-25.
+  describe('Gap 3 — nested wiki inside table cells (Branch 3-A)', () => {
+    const ATTACHMENT_URL =
+      'https://jira.orange.sk/plugins/servlet/aio-tcms/bridge/tcms/browse?c_pId=10134&page=run-details-attachment&params=%7B%22cycleId%22:14041,%22caseId%22:68141,%22runId%22:263794,%22attachmentId%22:150383,%22projectId%22:10134%7D';
+
+    // Pasted verbatim from 54-06-UAT-FINDINGS.md lines 14-25 (do NOT paraphrase).
+    // The distinctive token "Plati pre paušály" anchors the acceptance grep.
+    const FINDING_1_FIXTURE = [
+      '||*S.No.*||*Step*||*Expected Result*||*Actual Result*||',
+      '|1. |Nacitanie eshop home page |Kontrola OK |Works as expected|',
+      `|2. |{color:#d04437}*FAILED:*{color} Plati pre paušály S, M, L: \\\\ • 5 GB (12657037, 5,13 €) |Kontrola OK |V kosiku mam Pro Biznis M a device na splatky...`,
+      '{panel}',
+      `# [VAS.png|${ATTACHMENT_URL}]`,
+      '{panel}|',
+    ].join('\n');
+
+    it('renders nested {panel} block + embedded image link inside a table cell on the verbatim ESHOP fixture', () => {
+      const { container } = render(<WikiRenderer wikiText={FINDING_1_FIXTURE} />);
+
+      // The table did not break — exactly one wiki table is rendered.
+      const table = container.querySelector('table');
+      expect(table).not.toBeNull();
+
+      // The {panel} block was substituted to an inline <span data-callout="panel">
+      // and rendered INSIDE the table (not as a sibling block-level <div>).
+      const panelSpan = table?.querySelector('[data-callout="panel"]');
+      expect(panelSpan).not.toBeNull();
+
+      // The VAS.png link is rendered as an <a> inside the panel span (which is
+      // inside the table cell). 54-06 made image links open the lightbox via
+      // text anchor — preserved here.
+      const link = panelSpan?.querySelector('a');
+      expect(link).not.toBeNull();
+      expect(link?.getAttribute('href')).toBe(ATTACHMENT_URL);
+      expect(link?.textContent).toBe('VAS.png');
+
+      // Distinctive Finding 1 content is in the cell, not stray-rendered above
+      // or below the table.
+      const failedCell = Array.from(table?.querySelectorAll('td') ?? []).find((td) =>
+        td.textContent?.includes('Plati pre paušály'),
+      );
+      expect(failedCell).toBeDefined();
+    });
+
+    it('T-54-07-01 — <script> payload inside a table cell does NOT inject a script element (no XSS surface)', () => {
+      const fixture =
+        '||header||\n|cell with <script data-test="injected">alert(1)</script> payload|\n|next row|\n{panel}\nfoo\n{panel}|';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      // rehype-sanitize must strip the <script> element entirely — neither a
+      // raw script tag NOR an attribute-marked one is present in the DOM.
+      expect(container.querySelector('script')).toBeNull();
+      expect(container.querySelector('script[data-test="injected"]')).toBeNull();
+      // The surrounding cell text is still rendered (table did not break).
+      expect(container.textContent ?? '').toContain('cell with');
+      expect(container.textContent ?? '').toContain('payload');
+    });
+
+    it('T-54-07-01 — <script> payload outside a table also strips the script element (rehype-sanitize covers all surfaces)', () => {
+      const { container } = render(<WikiRenderer wikiText="<script>alert(1)</script> in prose" />);
+      expect(container.querySelector('script')).toBeNull();
+      // Surrounding prose text is preserved (only the <script> element body is stripped).
+      expect(container.textContent ?? '').toContain('in prose');
+    });
+
+    it('T-54-07-01 — on-* event handler attributes are stripped (no JS execution surface via attributes)', () => {
+      const { container } = render(
+        <WikiRenderer wikiText='<a href="https://example.com" onclick="alert(1)">click</a>' />,
+      );
+      const link = container.querySelector('a');
+      expect(link).not.toBeNull();
+      // The onclick attribute is stripped — only href + sanitized attrs remain.
+      expect(link?.getAttribute('onclick')).toBeNull();
     });
   });
 });

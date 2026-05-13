@@ -4,10 +4,41 @@ import j2m from 'jira2md';
 import { type ComponentPropsWithoutRef, type MouseEvent, useState } from 'react';
 import Markdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
 import { AuthImage } from './AuthImage';
 import { ImageLightbox } from './ImageLightbox';
+
+/**
+ * Plan 54-07 T-54-07-01 (XSS) mitigation:
+ * Apply `rehype-sanitize` AFTER `rehype-raw` to strip dangerous tags
+ * (`<script>`, `<iframe>`, `<object>`, on-* event handlers, …) while
+ * preserving the wiki-rendering surface this app already supports:
+ *  - `<div>` / `<span>` with `data-callout` + `data-title` (panel/info/etc.)
+ *  - `<mention data-id="…">` (user mentions)
+ *  - `<img src alt>` (resolved attachment images)
+ *  - `<br>` (hard breaks emitted by mergeOpenTableRows + Jira `\\` markers)
+ *  - `<a href>` (external links, routed through `openUrl` in markdownComponents)
+ * `<script>` payloads embedded in user content render as LITERAL TEXT after
+ * sanitisation — verified by the T-54-07-01 XSS guard test in WikiRenderer.test.tsx.
+ */
+const wikiSanitizeSchema = {
+  ...defaultSchema,
+  tagNames: [...(defaultSchema.tagNames ?? []), 'mention', 'br', 'span'],
+  attributes: {
+    ...defaultSchema.attributes,
+    // hast property names are camelCased — `data-callout` ↔ `dataCallout`,
+    // `data-title` ↔ `dataTitle`, `data-id` ↔ `dataId`. The whitelist must
+    // match what hast-util-from-html produces from the raw HTML emitted by
+    // mergeOpenTableRows / preprocessJiraMarkup.
+    div: [...(defaultSchema.attributes?.div ?? []), 'dataCallout', 'dataTitle'],
+    span: [...(defaultSchema.attributes?.span ?? []), 'dataCallout', 'dataTitle'],
+    mention: ['dataId'],
+    img: [...(defaultSchema.attributes?.img ?? []), 'src', 'alt'],
+    a: [...(defaultSchema.attributes?.a ?? []), 'href', 'className'],
+  },
+};
 
 /** Map from filename → full URL for resolving Jira !filename.png! references */
 export type AttachmentMap = Record<string, string>;
@@ -25,6 +56,103 @@ interface WikiRendererProps {
 }
 
 /**
+ * Plan 54-07 Gap 3 (Branch 3-A) — pre-merge multi-line table rows so jira2md
+ * sees one logical `|cell|cell|…|` line.
+ *
+ * Real Jira wiki tables fit `|cell|cell|…|` on a single source line. When a
+ * cell contains multi-line content (e.g. `{panel}…{panel}` with embedded
+ * `# [name|url]` list, or trailing prose after `\\` hard breaks), the row
+ * body spans multiple source lines and jira2md's row tokenizer terminates
+ * on the first `\n`, splitting the table.
+ *
+ * Heuristic:
+ *  1. Scan line-by-line. When we see a data row (line starts with `|` and
+ *     not `||`) that does NOT end with `|`, the row is "open" and continues
+ *     onto subsequent lines.
+ *  2. Greedy-consume subsequent lines (capped at 50 for safety) until we
+ *     find a line that ends with `|` AND brings any embedded `{panel}`
+ *     markers back to balance.
+ *  3. Inside the joined body, substitute `{panel}…{panel}` (and `{info}`,
+ *     `{warning}`, `{note}`) to an inline `<span data-callout="…">…</span>`
+ *     with internal `\n` flattened to `<br/>`. This keeps the body on one
+ *     logical line for jira2md / remark-gfm.
+ *  4. Replace any remaining `\n` inside the merged row with a single space
+ *     so jira2md sees exactly one source line.
+ *
+ * Validated against the verbatim ESHOP fixture from 54-06-UAT-FINDINGS.md
+ * Finding 1 (recorded in 54-PROBE-FINDINGS.md ## Probe E).
+ */
+const PANEL_TAG_RE = /\{panel(?::[^}]*)?\}/g;
+function flattenInlineCalloutsForTableRow(body: string): string {
+  let result = body;
+  result = result.replace(
+    /\{panel:title=([^}]+)\}([\s\S]*?)\{panel\}/g,
+    (_m, title: string, inner: string) =>
+      `<span data-callout="panel" data-title="${title}">${inner.replace(/\n/g, '<br/>').trim()}</span>`,
+  );
+  result = result.replace(
+    /\{panel\}([\s\S]*?)\{panel\}/g,
+    (_m, inner: string) =>
+      `<span data-callout="panel">${inner.replace(/\n/g, '<br/>').trim()}</span>`,
+  );
+  result = result.replace(
+    /\{info\}([\s\S]*?)\{info\}/g,
+    (_m, inner: string) =>
+      `<span data-callout="info">${inner.replace(/\n/g, '<br/>').trim()}</span>`,
+  );
+  result = result.replace(
+    /\{warning\}([\s\S]*?)\{warning\}/g,
+    (_m, inner: string) =>
+      `<span data-callout="warning">${inner.replace(/\n/g, '<br/>').trim()}</span>`,
+  );
+  result = result.replace(
+    /\{note\}([\s\S]*?)\{note\}/g,
+    (_m, inner: string) =>
+      `<span data-callout="note">${inner.replace(/\n/g, '<br/>').trim()}</span>`,
+  );
+  return result;
+}
+
+export function mergeOpenTableRows(wiki: string): string {
+  const lines = wiki.split('\n');
+  const out: string[] = [];
+  let i = 0;
+  const MAX_LOOKAHEAD = 50;
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmedRight = line.replace(/[ \t]+$/, '');
+    const isDataRow = trimmedRight.startsWith('|') && !trimmedRight.startsWith('||');
+    const endsWithPipe = trimmedRight.endsWith('|');
+    if (isDataRow && !endsWithPipe) {
+      const buf: string[] = [line];
+      let j = i + 1;
+      let panelOpenCount = (line.match(PANEL_TAG_RE) ?? []).length;
+      while (j < lines.length && j - i <= MAX_LOOKAHEAD) {
+        const next = lines[j].replace(/[ \t]+$/, '');
+        buf.push(lines[j]);
+        panelOpenCount += (next.match(PANEL_TAG_RE) ?? []).length;
+        if (next.endsWith('|') && panelOpenCount % 2 === 0) {
+          j++;
+          break;
+        }
+        j++;
+      }
+      // Join with `\n` first so the inline-callout substitution sees the panel
+      // body intact, then flatten any remaining `\n` (inside the merged row,
+      // outside callouts) to a single space so jira2md gets one source line.
+      const joined = buf.join('\n');
+      const flattened = flattenInlineCalloutsForTableRow(joined).replace(/\n/g, ' ');
+      out.push(flattened);
+      i = j;
+      continue;
+    }
+    out.push(line);
+    i++;
+  }
+  return out.join('\n');
+}
+
+/**
  * Pre-process Jira wiki markup that jira2md does not handle:
  * - User mentions: [~username] and [~accountId:xxx]
  * - Info/warning/note panels
@@ -36,7 +164,11 @@ export function preprocessJiraMarkup(
   attachments?: AttachmentMap,
   users?: UserMap,
 ): string {
-  let result = wiki;
+  // Plan 54-07 Gap 3 (Branch 3-A): merge multi-line table rows BEFORE jira2md
+  // tokenises them. Inline `{panel}` blocks inside the merged row body are
+  // substituted to `<span data-callout="panel">…</span>` here so they survive
+  // through to the markdown layer and render INSIDE the table cell.
+  let result = mergeOpenTableRows(wiki);
 
   // Plan 54-06: real ESHOP test-run content uses `hN.X` (no space) and `\\` as
   // a hard line break. jira2md leaves both unmodified. Normalize before jira2md:
@@ -143,6 +275,26 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
       }
       return <div {...rest}>{children}</div>;
     },
+    // Plan 54-07 Gap 3 (Branch 3-A): inline callout span emitted by
+    // mergeOpenTableRows when a `{panel}…{panel}` block is embedded inside a
+    // table cell. `<div>` is illegal as a child of `<td>` (HTML spec) so we
+    // emit `<span data-callout>` instead, with inline styling that matches
+    // the block-level callout colours but uses `inline-block` so it sits
+    // inside the cell flow without breaking the row.
+    span: ({ node, children, ...rest }: ComponentPropsWithoutRef<'span'> & { node?: unknown }) => {
+      const props = rest as Record<string, unknown>;
+      const calloutType = props['data-callout'] as string | undefined;
+      if (calloutType && calloutStyles[calloutType]) {
+        const title = props['data-title'] as string | undefined;
+        return (
+          <span data-callout={calloutType} className={`inline-block ${calloutStyles[calloutType]}`}>
+            {title && <span className="font-bold mr-1">{title}</span>}
+            {children}
+          </span>
+        );
+      }
+      return <span {...rest}>{children}</span>;
+    },
     // Custom element for <mention> tags produced by preprocessJiraMarkup
     mention: ({ children }: { children?: React.ReactNode }) => (
       <span className="mention-badge inline-flex items-center rounded-full bg-primary/15 text-primary px-2 py-0.5 text-xs font-medium">
@@ -207,7 +359,10 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
     <article className={cn('prose prose-sm dark:prose-invert max-w-none', className)}>
       <Markdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeRaw]}
+        // T-54-07-01 mitigation: rehypeRaw passes raw HTML through to the
+        // rehype tree; rehypeSanitize then strips dangerous tags before render.
+        // Order matters: sanitize MUST run AFTER raw so it sees the parsed HTML.
+        rehypePlugins={[rehypeRaw, [rehypeSanitize, wikiSanitizeSchema]]}
         components={markdownComponents}
       >
         {markdown}

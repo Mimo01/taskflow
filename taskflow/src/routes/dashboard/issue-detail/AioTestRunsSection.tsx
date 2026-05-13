@@ -1,11 +1,16 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight, FlaskConical, Paperclip } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { aioRunStatusBadgeClass } from '@/lib/statusStyles';
-import type { AioTestCase, AioTestRun, AioTestRunStep } from '@/services/aio';
+import type {
+  AioTestCase,
+  AioTestCaseWithRuns,
+  AioTestRun,
+  AioTestRunStep,
+  AioTraceabilityRunRef,
+} from '@/services/aio';
 import {
   fetchAioCycles,
   fetchAioProjects,
@@ -28,6 +33,40 @@ interface AioIssueRunData {
   testCase: AioTestCase | undefined;
   steps: AioTestRunStep[];
 }
+
+/**
+ * Plan 54-07 Gap 1 — one row per (testCase × run) impacted execution.
+ * Carries the fetched run.status (already normalised by fetchAioTestRunDetail
+ * via toRunChipStatus) so the row's status chip reflects the REAL run state
+ * instead of defaulting to a gray "Not Run" placeholder. Also carries the
+ * fetched steps so the AIO attachments grid can aggregate from this data on
+ * the no-runs path (Gap 2).
+ */
+interface AioImpactedExecution {
+  testCase: AioTestCaseWithRuns;
+  runRef: AioTraceabilityRunRef;
+  status: string; // "PASS" | "FAIL" | "BLOCKED" | "NOT_EXECUTED" (normalised)
+  steps: AioTestRunStep[];
+}
+
+/**
+ * Plan 54-07 widened return shape — replaces the bare `[]` sentinel from 54-06.
+ * - `null`           — no linked test cases at all (D-04 first case; section hidden)
+ * - `{ runs, impactedExecutions }` — linked test cases exist; in-cycle runs render
+ *   via `runs[]`; cross-cycle (no-active-cycle-match) runs render via
+ *   `impactedExecutions[]`. The grid aggregates attachments from BOTH.
+ */
+type AioTestRunsQueryResult = null | {
+  runs: AioIssueRunData[];
+  impactedExecutions: AioImpactedExecution[];
+};
+
+// T-54-07-02 (cross-cycle fan-out cap, no-runs path):
+// MAX_IMPACTED_EXECUTIONS bounds the cross-cycle slice; MAX_PARALLEL caps
+// in-flight requests per chunk. NEITHER applies to the in-cycle path —
+// in-cycle runs continue to use the existing uncapped Promise.all from 54-06.
+const MAX_IMPACTED_EXECUTIONS = 20;
+const MAX_PARALLEL = 6;
 
 interface AioTestRunsSectionProps {
   issueKey: string;
@@ -129,8 +168,8 @@ function AioAttachmentsGrid({
         <Paperclip className="size-3.5 text-muted-foreground" />
         AIO attachments ({attachments.length})
       </button>
-      {isExpanded && (
-        attachments.length === 0 ? (
+      {isExpanded &&
+        (attachments.length === 0 ? (
           <p className="text-xs text-muted-foreground italic">
             No inline image attachments found in linked test runs.
           </p>
@@ -159,8 +198,7 @@ function AioAttachmentsGrid({
               </div>
             ))}
           </div>
-        )
-      )}
+        ))}
       {current && (
         <ImageLightbox
           src={current.url}
@@ -306,7 +344,7 @@ export function AioTestRunsSection({
   const queryClient = useQueryClient();
   const stepsQuery = useQuery({
     queryKey: ['aio', jiraBaseUrl, 'issue-steps', issueKey],
-    queryFn: async (): Promise<AioIssueRunData[] | null> => {
+    queryFn: async (): Promise<AioTestRunsQueryResult> => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token || !jiraBaseUrl || !issueKey) return null;
 
@@ -320,6 +358,11 @@ export function AioTestRunsSection({
       // on each item, so we can skip BOTH fetchAioCycles AND fetchAioTestRunsForCycle
       // on the success path and fetch run detail + steps directly per linked run.
       // See .planning/phases/54-aio-on-issue-detail/54-PROBE-FINDINGS.md ## Probe C.
+      //
+      // Plan 54-07: widened return shape carries both in-cycle runs[] and
+      // cross-cycle impactedExecutions[]. The latter populates the no-runs path
+      // (Gap 1) and feeds the attachments grid (Gap 2). Cross-cycle fetch is
+      // capped per T-54-07-02; in-cycle fetch stays uncapped.
       if (jiraNumericId !== null) {
         const projects = await fetchAioProjects(jiraBaseUrl, token);
         const aioProject = projects.find((p) => p.projectKey === projectKey);
@@ -347,14 +390,43 @@ export function AioTestRunsSection({
         // Flatten linked test cases into (testCase, runRef) pairs. Each linked
         // test case carries an embedded run reference (runId + cycleKey) from
         // the widened traceability response — no cycle scan needed.
-        const runRefs = linkedTestCases.flatMap((tc) =>
+        const allRefs = linkedTestCases.flatMap((tc) =>
           tc.runs.map((r) => ({ testCase: tc, runRef: r })),
         );
-        if (runRefs.length === 0) return [];
+        if (allRefs.length === 0) {
+          return { runs: [], impactedExecutions: [] };
+        }
 
-        // Fetch run detail + steps in parallel for every linked run.
-        const runData = await Promise.all(
-          runRefs.map(async ({ testCase, runRef }) => {
+        // T-54-07-02: partition refs by "primary" cycle (most frequent
+        // cycleKey, tie-broken by highest CY-N numeric suffix). In-cycle
+        // refs (cycleKey === primaryCycleKey) are fetched UNCAPPED via the
+        // existing Promise.all from 54-06 — preserving today's behaviour
+        // where every in-cycle linked run renders. Cross-cycle refs are
+        // capped at MAX_IMPACTED_EXECUTIONS=20 and fetched in chunks of
+        // MAX_PARALLEL=6 to bound fan-out on pathological traceability
+        // responses (no-runs path; see threat register).
+        const cycleCounts = new Map<string, number>();
+        for (const { runRef } of allRefs) {
+          cycleCounts.set(runRef.cycleKey, (cycleCounts.get(runRef.cycleKey) ?? 0) + 1);
+        }
+        const cycleNum = (key: string) => {
+          const m = key.match(/CY-(\d+)$/);
+          return m ? parseInt(m[1], 10) : -1;
+        };
+        const primaryCycleKey =
+          [...cycleCounts.entries()].sort((a, b) => {
+            if (b[1] !== a[1]) return b[1] - a[1];
+            return cycleNum(b[0]) - cycleNum(a[0]);
+          })[0]?.[0] ?? '';
+
+        const inCycleRefs = allRefs.filter((r) => r.runRef.cycleKey === primaryCycleKey);
+        const crossCycleRefs = allRefs
+          .filter((r) => r.runRef.cycleKey !== primaryCycleKey)
+          .slice(0, MAX_IMPACTED_EXECUTIONS); // T-54-07-02 cap (cross-cycle ONLY)
+
+        // In-cycle: uncapped Promise.all (54-06 behaviour preserved).
+        const inCycleResults = await Promise.all(
+          inCycleRefs.map(async ({ testCase, runRef }) => {
             const detail = await fetchAioTestRunDetail(
               jiraBaseUrl,
               token,
@@ -362,25 +434,68 @@ export function AioTestRunsSection({
               runRef.cycleKey,
               runRef.runId,
             );
-            if (!detail) return null;
-            return {
-              run: {
-                ...detail.run,
-                // Prefer the test case key from traceability — it is the
-                // canonical linkage. fetchAioTestRunDetail falls back to '' when
-                // the response omits testCase.key.
-                testCaseKey: detail.run.testCaseKey || testCase.key,
-              },
-              testCase,
-              steps: detail.steps,
-            };
+            return { testCase, runRef, detail };
           }),
         );
-        const withSteps = runData
-          .filter((item): item is NonNullable<typeof item> => item !== null)
-          .filter((item) => item.steps.length > 0);
-        if (withSteps.length === 0) return [];
-        return withSteps;
+
+        // Cross-cycle: chunked-parallel, MAX_PARALLEL=6 in flight per slice.
+        // T-54-07-02 mitigation — prevents runaway fan-out on the no-runs
+        // path when traceability returns many cross-cycle items.
+        const crossCycleResults: Array<{
+          testCase: AioTestCaseWithRuns;
+          runRef: AioTraceabilityRunRef;
+          detail: { run: AioTestRun; steps: AioTestRunStep[] } | null;
+        }> = [];
+        for (let i = 0; i < crossCycleRefs.length; i += MAX_PARALLEL) {
+          const chunk = crossCycleRefs.slice(i, i + MAX_PARALLEL);
+          const chunkResults = await Promise.all(
+            chunk.map(async ({ testCase, runRef }) => {
+              const detail = await fetchAioTestRunDetail(
+                jiraBaseUrl,
+                token,
+                projectKey,
+                runRef.cycleKey,
+                runRef.runId,
+              );
+              return { testCase, runRef, detail };
+            }),
+          );
+          crossCycleResults.push(...chunkResults);
+        }
+
+        // In-cycle results with non-empty steps → render via the existing
+        // StepTable / CollapsibleRunBlock path (`data.runs`).
+        const runs: AioIssueRunData[] = inCycleResults
+          .filter(
+            (
+              r,
+            ): r is typeof r & {
+              detail: NonNullable<typeof r.detail>;
+            } => r.detail !== null,
+          )
+          .filter((r) => r.detail.steps.length > 0)
+          .map((r) => ({
+            run: {
+              ...r.detail.run,
+              testCaseKey: r.detail.run.testCaseKey || r.testCase.key,
+            },
+            testCase: r.testCase,
+            steps: r.detail.steps,
+          }));
+
+        // Cross-cycle results (regardless of steps length) → render via
+        // ImpactedExecutionsList on the no-runs path. Status is sourced from
+        // detail.run.status (already normalised by toRunChipStatus); when the
+        // detail fetch returned null (404), default to NOT_EXECUTED so the
+        // row still renders with a sensible chip.
+        const impactedExecutions: AioImpactedExecution[] = crossCycleResults.map((r) => ({
+          testCase: r.testCase,
+          runRef: r.runRef,
+          status: r.detail?.run.status ?? 'NOT_EXECUTED',
+          steps: r.detail?.steps ?? [],
+        }));
+
+        return { runs, impactedExecutions };
       }
 
       // Legacy path: no jiraIssueId — fall back to full project scan +
@@ -396,7 +511,7 @@ export function AioTestRunsSection({
 
       const cycles = await fetchAioCycles(jiraBaseUrl, token, projectKey);
       const activeCycle = pickLatestActiveCycle(cycles);
-      if (!activeCycle) return [];
+      if (!activeCycle) return { runs: [], impactedExecutions: [] };
 
       const allRuns = await fetchAioTestRunsForCycle(
         jiraBaseUrl,
@@ -406,7 +521,7 @@ export function AioTestRunsSection({
       );
       const testCaseKeys = new Set(linkedTestCases.map((tc) => tc.key));
       const matchedRuns = allRuns.filter((r) => testCaseKeys.has(r.testCaseKey));
-      if (matchedRuns.length === 0) return [];
+      if (matchedRuns.length === 0) return { runs: [], impactedExecutions: [] };
 
       const runData = await Promise.all(
         matchedRuns.map(async (run) => ({
@@ -422,23 +537,36 @@ export function AioTestRunsSection({
         })),
       );
       const withSteps = runData.filter((item) => item.steps.length > 0);
-      if (withSteps.length === 0) return [];
-      return withSteps;
+      return { runs: withSteps, impactedExecutions: [] };
     },
     enabled: !!jiraBaseUrl && !!issueKey && !!aioEnabled,
     staleTime: 30_000,
   });
 
   const showSkeleton = useDelayedLoading(stepsQuery.isLoading);
-  // Compute attachments aggregation BEFORE any conditional returns to honour
-  // the Rules of Hooks.
-  const aioAttachments = useMemo(
-    () =>
-      stepsQuery.data && stepsQuery.data.length > 0
-        ? collectAioImageAttachments(stepsQuery.data)
-        : [],
-    [stepsQuery.data],
-  );
+  // Plan 54-07 Gap 2: aggregate inline image attachments from BOTH the in-cycle
+  // runs (data.runs) AND the cross-cycle impacted-executions step data. The
+  // grid then populates uniformly on both render paths; T-54-07-02 cap on the
+  // cross-cycle fetch ensures the aggregation set is bounded.
+  // Computed BEFORE any conditional returns to honour the Rules of Hooks.
+  const aioAttachments = useMemo(() => {
+    const data = stepsQuery.data;
+    if (!data) return [];
+    // Adapt impactedExecutions to the AioIssueRunData shape collectAioImageAttachments
+    // expects. Run shape is synthesised from runRef + status; only `steps` is
+    // consulted by the collector.
+    const impactedAsRunData: AioIssueRunData[] = data.impactedExecutions.map((ie) => ({
+      run: {
+        id: ie.runRef.runId,
+        status: ie.status,
+        testCaseKey: ie.testCase.key,
+        cycleKey: ie.runRef.cycleKey,
+      },
+      testCase: ie.testCase,
+      steps: ie.steps,
+    }));
+    return collectAioImageAttachments([...data.runs, ...impactedAsRunData]);
+  }, [stepsQuery.data]);
 
   // Render state waterfall
   if (!aioEnabled) return null;
@@ -469,34 +597,99 @@ export function AioTestRunsSection({
   // undefined = not yet loaded (already handled above by isLoading)
   if (data === undefined) return null;
 
-  // Empty array = test cases linked but no usable runs (D-04 second case)
-  if (data.length === 0) {
-    return (
-      <EmptyState
-        icon={FlaskConical}
-        title="No test runs in active cycle"
-        subtitle="Test cases are linked but no runs have been recorded for the active cycle."
-      />
-    );
-  }
+  const hasInCycleRuns = data.runs.length > 0;
+  const hasImpactedExecutions = data.impactedExecutions.length > 0;
 
-  // Data available — render section
+  // Defensive: linked cases exist but neither in-cycle runs nor cross-cycle
+  // impacted executions resolved. This can happen on transient 404s or when
+  // every linked traceability item lacked an embedded testRun.ID.
+  if (!hasInCycleRuns && !hasImpactedExecutions) return null;
+
+  // Data available — render section. AioAttachmentsGrid is rendered on BOTH
+  // branches (single call site) so the header is always visible whenever AIO
+  // data is present (Gap 2). The grid's internal empty-state covers the case
+  // where no inline image refs were found.
   return (
     <section aria-label="AIO Test Runs" className="mt-6" data-testid="aio-test-runs-section">
       <div className="flex items-center gap-1.5 text-sm font-semibold mb-2">
         <FlaskConical className="size-3.5 text-muted-foreground" />
         AIO Test Runs
       </div>
-      {data.length === 1 ? (
-        <StepTable steps={data[0].steps} />
+      {hasInCycleRuns ? (
+        data.runs.length === 1 ? (
+          <StepTable steps={data.runs[0].steps} />
+        ) : (
+          <div>
+            {data.runs.map((item) => (
+              <CollapsibleRunBlock key={item.run.id} {...item} />
+            ))}
+          </div>
+        )
       ) : (
-        <div>
-          {data.map((item) => (
-            <CollapsibleRunBlock key={item.run.id} {...item} />
-          ))}
-        </div>
+        <ImpactedExecutionsList rows={data.impactedExecutions} />
       )}
       <AioAttachmentsGrid attachments={aioAttachments} />
     </section>
+  );
+}
+
+/**
+ * Plan 54-07 Gap 1 — read-only list of cross-cycle impacted executions.
+ * Rendered in place of the bare "No test runs in active cycle" EmptyState
+ * when linked test cases exist but none of their runs are in the active
+ * (primary) cycle. Each row shows test case key + title, cycle key, run ID,
+ * and a status chip whose color is driven by the per-row fetched status
+ * (NOT defaulted to gray "Not Run" on the render layer). No click handlers
+ * — cycle/run navigation is a phase-53 concern.
+ */
+function ImpactedExecutionsList({ rows }: { rows: AioImpactedExecution[] }) {
+  return (
+    <div className="border border-border rounded-md">
+      <div className="px-4 py-2 border-b border-border bg-muted/10 text-xs font-semibold text-muted-foreground">
+        Impacted executions (across all cycles)
+      </div>
+      <table className="w-full text-sm" aria-label="Impacted executions">
+        <thead className="sr-only">
+          <tr>
+            <th>Test case</th>
+            <th>Cycle</th>
+            <th>Run</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr
+              key={`${row.testCase.key}:${row.runRef.runId}`}
+              className="border-b border-border last:border-0"
+            >
+              <td className="px-4 py-2">
+                <div className="flex items-center gap-1.5">
+                  <FlaskConical className="size-3.5 text-muted-foreground" />
+                  <span className="font-mono text-xs">{row.testCase.key}</span>
+                  {row.testCase.title && (
+                    <span className="text-muted-foreground text-xs">— {row.testCase.title}</span>
+                  )}
+                </div>
+              </td>
+              <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
+                {row.runRef.cycleKey}
+              </td>
+              <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
+                {row.runRef.runId}
+              </td>
+              <td className="px-3 py-2">
+                <span
+                  data-testid="impacted-execution-status-chip"
+                  className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium ${aioRunStatusBadgeClass(row.status)}`}
+                >
+                  {normalizeStatusLabel(row.status)}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
