@@ -282,17 +282,17 @@ Cross-cutting constraints:
 Plans:
 
 **Wave 0** *(manual — developer runs curl probes)*
-- [ ] 54-00-PLAN.md — Live curl probes: confirm testcase issueKey query param name + step field names; write 54-PROBE-FINDINGS.md
+- [x] 54-00-PLAN.md — Live curl probes: confirm testcase issueKey query param name + step field names; write 54-PROBE-FINDINGS.md
 
 **Wave 1** *(blocked on Wave 0 probe completion)*
-- [ ] 54-01-PLAN.md — types.ts: AioTestCase, AioTestRunStep, AioStepAttachment; issue-steps.ts: fetchAioTestCasesForIssue + fetchAioTestRunSteps; barrel update
+- [x] 54-01-PLAN.md — types.ts: AioTestCase, AioTestRunStep, AioStepAttachment; issue-steps.ts: fetchAioTestCasesForIssue + fetchAioTestRunSteps; barrel update
 
 **Wave 2** *(blocked on Wave 1; Plans 54-02 and 54-03 run in parallel)*
-- [ ] 54-02-PLAN.md — Test stubs: issue-steps.test.ts (service unit tests GREEN) + AioTestRunsSection.test.tsx (component stubs RED)
-- [ ] 54-03-PLAN.md — AioTestRunsSkeleton.tsx + AioTestRunsSection.tsx (full section component)
+- [x] 54-02-PLAN.md — Test stubs: issue-steps.test.ts (service unit tests GREEN) + AioTestRunsSection.test.tsx (component stubs RED)
+- [x] 54-03-PLAN.md — AioTestRunsSkeleton.tsx + AioTestRunsSection.tsx (full section component)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 54-04-PLAN.md — IssueDetailPage.tsx integration + fill component tests GREEN; full suite passes
+- [x] 54-04-PLAN.md — IssueDetailPage.tsx integration + fill component tests GREEN; full suite passes
 
 **Wave 4** *(blocked on Wave 3 completion)*
 - [ ] 54-05-PLAN.md — Human verification checkpoint (end-to-end: section render, step table, lightbox, aioEnabled gate)
