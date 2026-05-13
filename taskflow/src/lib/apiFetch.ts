@@ -20,7 +20,8 @@ import type { FetchRecord } from '../stores/operation-profiler.store';
 import { useOperationProfilerStore } from '../stores/operation-profiler.store';
 import { useSettingsStore } from '../stores/settings.store';
 
-function markDisconnected(source: 'jira' | 'gitlab') {
+function markDisconnected(source: 'jira' | 'gitlab' | 'aio' | 'updater') {
+  if (source === 'aio' || source === 'updater') return;
   const auth = useAuthStore.getState();
   if (source === 'gitlab') auth.setGitlabConnected(false);
   else auth.setJiraConnected(false);
@@ -39,7 +40,7 @@ const API_TIMEOUT_MS = 15_000;
  * @param operation - Optional operation label for grouping fetches in the profiler
  */
 export async function apiFetch(
-  source: 'jira' | 'gitlab',
+  source: 'jira' | 'gitlab' | 'aio' | 'updater',
   url: string,
   init?: RequestInit,
   operation?: string,

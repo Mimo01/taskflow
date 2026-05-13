@@ -24,13 +24,16 @@ export function formatBytes(bytes: number | undefined): string {
   return `${(bytes / 1048576).toFixed(1)} MB`;
 }
 
-export function sourceBadgeClass(source: 'jira' | 'gitlab' | 'updater'): string {
+export function sourceBadgeClass(source: 'jira' | 'gitlab' | 'updater' | 'aio'): string {
   const base = 'shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold uppercase';
   if (source === 'jira') {
     return `${base} bg-orange-500/15 text-orange-600 dark:text-orange-400`;
   }
   if (source === 'updater') {
     return `${base} bg-sky-500/15 text-sky-600 dark:text-sky-400`;
+  }
+  if (source === 'aio') {
+    return `${base} bg-teal-500/15 text-teal-600 dark:text-teal-400`;
   }
   return `${base} bg-purple-500/15 text-purple-600 dark:text-purple-400`;
 }

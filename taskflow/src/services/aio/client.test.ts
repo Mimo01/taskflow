@@ -21,7 +21,7 @@ describe('aioFetch', () => {
     await aioFetch(BASE, TOKEN, PATH);
     const expectedUrl = `${BASE}${AIO_API_PATH}${PATH}`;
     expect(vi.mocked(apiFetch)).toHaveBeenCalledWith(
-      'jira',
+      'aio',
       expectedUrl,
       expect.objectContaining({
         headers: expect.objectContaining({ Authorization: `Bearer ${TOKEN}` }),
@@ -32,13 +32,13 @@ describe('aioFetch', () => {
   it('strips trailing slash from baseUrl before constructing URL', async () => {
     await aioFetch(`${BASE}/`, TOKEN, PATH);
     const expectedUrl = `${BASE}${AIO_API_PATH}${PATH}`;
-    expect(vi.mocked(apiFetch)).toHaveBeenCalledWith('jira', expectedUrl, expect.anything());
+    expect(vi.mocked(apiFetch)).toHaveBeenCalledWith('aio', expectedUrl, expect.anything());
   });
 
-  it('calls apiFetch with source "jira" (never "gitlab")', async () => {
+  it('calls apiFetch with source "aio" (not "jira" or "gitlab")', async () => {
     await aioFetch(BASE, TOKEN, PATH);
     expect(vi.mocked(apiFetch)).toHaveBeenCalledWith(
-      'jira',
+      'aio',
       expect.any(String),
       expect.anything(),
     );
@@ -47,7 +47,7 @@ describe('aioFetch', () => {
   it('passes Authorization: Bearer <token> header', async () => {
     await aioFetch(BASE, TOKEN, PATH);
     expect(vi.mocked(apiFetch)).toHaveBeenCalledWith(
-      'jira',
+      'aio',
       expect.any(String),
       expect.objectContaining({
         headers: expect.objectContaining({ Authorization: `Bearer ${TOKEN}` }),
@@ -58,7 +58,7 @@ describe('aioFetch', () => {
   it('passes Content-Type: application/json header', async () => {
     await aioFetch(BASE, TOKEN, PATH);
     expect(vi.mocked(apiFetch)).toHaveBeenCalledWith(
-      'jira',
+      'aio',
       expect.any(String),
       expect.objectContaining({
         headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
@@ -69,6 +69,6 @@ describe('aioFetch', () => {
   it('uses AIO_PROJECTS_API_PATH when passed as apiPath', async () => {
     await aioFetch(BASE, TOKEN, PATH, AIO_PROJECTS_API_PATH);
     const expectedUrl = `${BASE}${AIO_PROJECTS_API_PATH}${PATH}`;
-    expect(vi.mocked(apiFetch)).toHaveBeenCalledWith('jira', expectedUrl, expect.anything());
+    expect(vi.mocked(apiFetch)).toHaveBeenCalledWith('aio', expectedUrl, expect.anything());
   });
 });

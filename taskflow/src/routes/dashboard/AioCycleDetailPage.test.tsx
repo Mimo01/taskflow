@@ -23,7 +23,7 @@ vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('fake-token'),
 }));
 
-const mockIsPinned = vi.fn().mockReturnValue(false);
+let mockPinnedKeys: string[] = [];
 const mockTogglePin = vi.fn();
 const mockSetPinnedCycleMeta = vi.fn();
 const mockRemovePin = vi.fn();
@@ -32,7 +32,7 @@ const mockClearCycleMeta = vi.fn();
 vi.mock('@/stores/pinned-tabs.store', () => ({
   usePinnedTabsStore: (selector?: (s: Record<string, unknown>) => unknown) => {
     const state = {
-      isPinned: mockIsPinned,
+      pinnedKeys: mockPinnedKeys,
       togglePin: mockTogglePin,
       setPinnedCycleMeta: mockSetPinnedCycleMeta,
       removePin: mockRemovePin,
@@ -87,7 +87,7 @@ import AioCycleDetailPage from './AioCycleDetailPage';
 describe('AioCycleDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockIsPinned.mockReturnValue(false);
+    mockPinnedKeys = [];
   });
 
   it('renders AioCycleDetailPage without crashing', async () => {
@@ -297,7 +297,7 @@ describe('AioCycleDetailPage', () => {
       const { fetchAioCycleDetail, fetchAioTestRunsForCycle } = await import('@/services/aio');
       (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
       (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
-      mockIsPinned.mockReturnValue(false);
+      mockPinnedKeys = [];
       render(
         <QueryClientProvider client={makeClient()}>
           <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
@@ -308,7 +308,7 @@ describe('AioCycleDetailPage', () => {
         </QueryClientProvider>,
       );
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: 'Pin cycle' })).toBeDefined();
+        expect(screen.getByRole('button', { name: /Pin cycle/ })).toBeDefined();
       });
     });
 
@@ -316,7 +316,7 @@ describe('AioCycleDetailPage', () => {
       const { fetchAioCycleDetail, fetchAioTestRunsForCycle } = await import('@/services/aio');
       (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
       (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
-      mockIsPinned.mockReturnValue(true);
+      mockPinnedKeys = ['PROJ-CY-2'];
       render(
         <QueryClientProvider client={makeClient()}>
           <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
@@ -327,7 +327,7 @@ describe('AioCycleDetailPage', () => {
         </QueryClientProvider>,
       );
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: 'Unpin cycle' })).toBeDefined();
+        expect(screen.getByRole('button', { name: /Unpin cycle/ })).toBeDefined();
       });
     });
 
@@ -336,7 +336,7 @@ describe('AioCycleDetailPage', () => {
       const { fetchAioCycleDetail, fetchAioTestRunsForCycle } = await import('@/services/aio');
       (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
       (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
-      mockIsPinned.mockReturnValue(false);
+      mockPinnedKeys = [];
       render(
         <QueryClientProvider client={makeClient()}>
           <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
@@ -347,9 +347,9 @@ describe('AioCycleDetailPage', () => {
         </QueryClientProvider>,
       );
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: 'Pin cycle' })).toBeDefined();
+        expect(screen.getByRole('button', { name: /Pin cycle/ })).toBeDefined();
       });
-      const pinBtn = screen.getByRole('button', { name: 'Pin cycle' });
+      const pinBtn = screen.getByRole('button', { name: /Pin cycle/ });
       await user.click(pinBtn);
       expect(mockTogglePin).toHaveBeenCalledWith('PROJ-CY-2');
       expect(mockSetPinnedCycleMeta).toHaveBeenCalledWith('PROJ-CY-2', {

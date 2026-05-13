@@ -10,10 +10,11 @@ import type { FetchRecord, Operation } from '../../stores/operation-profiler.sto
 import { formatBytes, statusColor } from './utils';
 
 // Stronger colors for fetch bars
-function fetchBarColor(source: 'jira' | 'gitlab' | 'updater', hasError: boolean): string {
+function fetchBarColor(source: 'jira' | 'gitlab' | 'updater' | 'aio', hasError: boolean): string {
   if (hasError) return 'bg-red-400 dark:bg-red-600';
   if (source === 'jira') return 'bg-orange-400 dark:bg-orange-600';
   if (source === 'updater') return 'bg-sky-400 dark:bg-sky-600';
+  if (source === 'aio') return 'bg-teal-400 dark:bg-teal-600';
   return 'bg-purple-400 dark:bg-purple-600';
 }
 
@@ -23,10 +24,12 @@ function opBarColor(fetches: FetchRecord[]): string {
   const jiraCount = sources.filter((s) => s === 'jira').length;
   const gitlabCount = sources.filter((s) => s === 'gitlab').length;
   const updaterCount = sources.filter((s) => s === 'updater').length;
-  const mixed = (jiraCount > 0 ? 1 : 0) + (gitlabCount > 0 ? 1 : 0) + (updaterCount > 0 ? 1 : 0);
+  const aioCount = sources.filter((s) => s === 'aio').length;
+  const mixed = (jiraCount > 0 ? 1 : 0) + (gitlabCount > 0 ? 1 : 0) + (updaterCount > 0 ? 1 : 0) + (aioCount > 0 ? 1 : 0);
   if (mixed > 1) return 'bg-blue-500/20 dark:bg-blue-500/30';
   if (jiraCount > 0) return 'bg-orange-500/20 dark:bg-orange-500/30';
   if (updaterCount > 0) return 'bg-sky-500/20 dark:bg-sky-500/30';
+  if (aioCount > 0) return 'bg-teal-500/20 dark:bg-teal-500/30';
   return 'bg-purple-500/20 dark:bg-purple-500/30';
 }
 
