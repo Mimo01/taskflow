@@ -277,7 +277,7 @@ Cross-cutting constraints:
   2. The AIO section renders a step table with step / expected / actual columns and colored failure markers per row
   3. When the issue has no associated AIO test runs, the section is hidden (not an error state)
   4. Attachment images within test run steps are fetched via the authenticated HTTP client and open in the existing in-app lightbox
-**Plans:** 7 plans
+**Plans:** 5/8 plans executed
 
 Plans:
 
@@ -301,7 +301,7 @@ Plans:
 - [x] 54-06-PLAN.md — Probe direct-run-lookup endpoints + render step wiki markup via WikiRenderer + route attachment links through openUrl + replace cycle scan with direct lookup (or aggressive cache fallback). Closes 54-06-UAT-FINDINGS.md (wiki rendering + slow load).
 
 **Wave 6** *(UAT gap closure — blocked on Wave 5 completion)*
-- [ ] 54-07-PLAN.md — Gap closure for 3 net-new items routed from 54-06 UAT: (1) ImpactedExecutionsList on no-runs path with real per-run status chips, (2) AioAttachmentsGrid populated on no-runs path via bounded cross-cycle `fetchAioTestRunDetail` fan-out (in-cycle uncapped), (3) Probe E + branch implementation for nested wiki rendering inside table cells (3-A preprocess / 3-B custom td renderer / 3-C swap parser).
+- [x] 54-07-PLAN.md — Gap closure for 3 net-new items routed from 54-06 UAT: (1) ImpactedExecutionsList on no-runs path with real per-run status chips, (2) AioAttachmentsGrid populated on no-runs path via bounded cross-cycle `fetchAioTestRunDetail` fan-out (in-cycle uncapped), (3) Probe E + branch implementation for nested wiki rendering inside table cells (3-A preprocess / 3-B custom td renderer / 3-C swap parser).
 
 Cross-cutting constraints:
 - Plans 54-02 and 54-03 run in parallel (no shared files): 54-02 touches only test files; 54-03 touches only new component files
@@ -333,4 +333,4 @@ Cross-cutting constraints:
 | 51. AIO Service Layer | v1.8 | 3/3 | Complete | 2026-05-12 |
 | 52. AIO Navigation + Project Pages | v1.8 | 6/6 | Complete | 2026-05-13 |
 | 53. Cycle Detail + Header Pinning | v1.8 | 0/5 | Not started | - |
-| 54. AIO on Issue Detail | v1.8 | 0/7 | Not started | - |
+| 54. AIO on Issue Detail | v1.8 | 5/8 | In Progress|  |
