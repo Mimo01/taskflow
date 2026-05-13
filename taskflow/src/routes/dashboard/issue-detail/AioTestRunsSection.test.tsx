@@ -406,10 +406,10 @@ describe('AioTestRunsSection', () => {
       });
     });
 
-    it('renders image-extension [VAS.png|url] as inline AuthImage thumbnail (54-06 UAT follow-up — opens in-app, not OS browser)', async () => {
+    it('renders image-extension [VAS.png|url] as inline text anchor, click opens ImageLightbox (NOT openUrl) — 54-06 UAT follow-up', async () => {
       // [name.png|url] in actualResult: WikiRenderer detects the image extension
-      // and renders as <img> (AuthImage). Click opens ImageLightbox in-app.
-      // openUrl is NOT called for image-extension attachment links.
+      // and renders as a text <a>. Click opens ImageLightbox in-app without
+      // breaking prose flow (no inline image thumbnail). openUrl is NOT called.
       mockFetchRunDetail.mockResolvedValue(
         mkRunDetail(
           mkStep({
@@ -421,14 +421,15 @@ describe('AioTestRunsSection', () => {
       );
       const { container } = renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
       await waitFor(() => {
-        expect(container.querySelector(`img[alt="VAS.png"]`)).not.toBeNull();
+        expect(screen.getByRole('link', { name: /VAS\.png/ })).toBeTruthy();
       });
-      const img = container.querySelector(`img[alt="VAS.png"]`) as HTMLImageElement;
-      expect(img.className).toContain('cursor-pointer');
-      expect(container.querySelector(`a[href="${ATTACHMENT_URL}"]`)).toBeNull();
+      const link = screen.getByRole('link', { name: /VAS\.png/ });
+      expect(link.getAttribute('href')).toBe(ATTACHMENT_URL);
+      expect(container.querySelector('[role="dialog"]')).toBeNull();
       const { fireEvent } = await import('@testing-library/react');
-      fireEvent.click(img);
+      fireEvent.click(link);
       expect(mockOpenUrl).not.toHaveBeenCalled();
+      expect(container.querySelector('[role="dialog"]')).not.toBeNull();
     });
 
     it('renders h4. + *bold* + hard-break (\\\\) cluster as <h4> with <strong> child and <br>', async () => {

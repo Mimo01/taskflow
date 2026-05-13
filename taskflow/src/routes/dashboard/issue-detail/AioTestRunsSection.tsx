@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, ChevronRight, FlaskConical } from 'lucide-react';
-import { useState } from 'react';
+import { ChevronDown, ChevronRight, FlaskConical, Paperclip } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
@@ -61,6 +61,111 @@ function normalizeStatusLabel(raw: string | undefined): string {
     default:
       return raw ?? 'Not Run';
   }
+}
+
+// Aggregates inline `[name.ext|url]` image attachments from a run's steps.
+// Only image extensions are collected — non-image attachment links remain
+// in-flow as openUrl-routed text anchors via WikiRenderer.
+const INLINE_IMAGE_ATTACHMENT_RE = /\[([^|\]]+)\|([^\]]+)\]/g;
+const IMAGE_EXT_RE = /\.(png|jpe?g|gif|webp|svg|bmp)$/i;
+
+function extractInlineImageAttachments(
+  text: string | undefined | null,
+): Array<{ filename: string; url: string }> {
+  if (!text) return [];
+  const out: Array<{ filename: string; url: string }> = [];
+  for (const m of text.matchAll(INLINE_IMAGE_ATTACHMENT_RE)) {
+    const filename = m[1].trim();
+    const url = m[2].trim();
+    if (IMAGE_EXT_RE.test(filename) && /^https?:\/\//i.test(url)) {
+      out.push({ filename, url });
+    }
+  }
+  return out;
+}
+
+function collectAioImageAttachments(
+  runs: AioIssueRunData[],
+): Array<{ filename: string; url: string }> {
+  const all: Array<{ filename: string; url: string }> = [];
+  for (const item of runs) {
+    for (const step of item.steps) {
+      all.push(...extractInlineImageAttachments(step.step));
+      all.push(...extractInlineImageAttachments(step.expectedResult));
+      all.push(...extractInlineImageAttachments(step.actualResult));
+    }
+  }
+  // Dedupe by URL — same attachment can appear in multiple steps / runs.
+  const seen = new Set<string>();
+  return all.filter((a) => {
+    if (seen.has(a.url)) return false;
+    seen.add(a.url);
+    return true;
+  });
+}
+
+// Grid of AIO image attachments aggregated from inline `[name.ext|url]` refs
+// across every step of every linked run. Collapsible header matches the Jira
+// `AttachmentsSection` style. Hidden entirely when no image attachments are
+// present (no empty state — same convention as the section-level empty case).
+function AioAttachmentsGrid({
+  attachments,
+}: {
+  attachments: Array<{ filename: string; url: string }>;
+}) {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  if (attachments.length === 0) return null;
+  const ChevronIcon = isExpanded ? ChevronDown : ChevronRight;
+  const open = lightboxIndex !== null;
+  const current = open ? attachments[lightboxIndex] : null;
+  return (
+    <div className="mt-4">
+      <button
+        type="button"
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex items-center gap-1.5 text-sm font-semibold mb-2 hover:text-foreground/80"
+      >
+        <ChevronIcon className="size-4" />
+        <Paperclip className="size-3.5 text-muted-foreground" />
+        AIO attachments ({attachments.length})
+      </button>
+      {isExpanded && (
+        <div className="grid grid-cols-4 gap-2">
+          {attachments.map((att, idx) => (
+            <div
+              key={att.url}
+              role="button"
+              tabIndex={0}
+              aria-label={`${att.filename} - click to view full size`}
+              className="w-20 h-20 rounded-md overflow-hidden bg-muted relative cursor-pointer"
+              onClick={() => setLightboxIndex(idx)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setLightboxIndex(idx);
+                }
+              }}
+            >
+              <AuthImage
+                src={att.url}
+                alt={att.filename}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+      {current && (
+        <ImageLightbox
+          src={current.url}
+          alt={current.filename}
+          open={open}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
+    </div>
+  );
 }
 
 // Step thumbnail sub-component — each thumbnail has its own independent lightbox state (D-14)
@@ -320,6 +425,15 @@ export function AioTestRunsSection({
   });
 
   const showSkeleton = useDelayedLoading(stepsQuery.isLoading);
+  // Compute attachments aggregation BEFORE any conditional returns to honour
+  // the Rules of Hooks.
+  const aioAttachments = useMemo(
+    () =>
+      stepsQuery.data && stepsQuery.data.length > 0
+        ? collectAioImageAttachments(stepsQuery.data)
+        : [],
+    [stepsQuery.data],
+  );
 
   // Render state waterfall
   if (!aioEnabled) return null;
@@ -377,6 +491,7 @@ export function AioTestRunsSection({
           ))}
         </div>
       )}
+      <AioAttachmentsGrid attachments={aioAttachments} />
     </section>
   );
 }

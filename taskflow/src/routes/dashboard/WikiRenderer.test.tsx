@@ -197,17 +197,22 @@ describe('WikiRenderer', () => {
       vi.mocked(openUrl).mockClear();
     });
 
-    it('renders image-extension [name.png|url] as inline AuthImage, NOT an openUrl link (54-06 UAT follow-up)', () => {
+    it('renders image-extension [name.png|url] as inline text anchor, click opens lightbox (NOT openUrl) — 54-06 UAT follow-up', () => {
       const { container } = render(
         <WikiRenderer wikiText="[VAS.png|https://jira.orange.sk/secure/attachment/123/VAS.png]" />,
       );
-      const img = container.querySelector('img');
-      expect(img).not.toBeNull();
-      expect(img?.getAttribute('alt')).toBe('VAS.png');
-      expect(img?.className).toContain('cursor-pointer');
-      expect(container.querySelector('a[href*="VAS.png"]')).toBeNull();
-      fireEvent.click(img as HTMLImageElement);
+      // Prose flow preserved: rendered as text <a>, NOT an inline <img> thumbnail.
+      const link = screen.getByRole('link', { name: /VAS\.png/ });
+      expect(link.getAttribute('href')).toBe(
+        'https://jira.orange.sk/secure/attachment/123/VAS.png',
+      );
+      // No lightbox open before click.
+      expect(container.querySelector('[role="dialog"]')).toBeNull();
+      fireEvent.click(link);
+      // Click does NOT route to OS browser.
       expect(openUrl).not.toHaveBeenCalled();
+      // Click opens the in-app ImageLightbox.
+      expect(container.querySelector('[role="dialog"]')).not.toBeNull();
     });
 
     it('renders non-image external [name|url] link, click calls openUrl exactly once', () => {
