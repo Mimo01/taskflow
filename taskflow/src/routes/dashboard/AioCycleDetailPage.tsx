@@ -249,7 +249,7 @@ export default function AioCycleDetailPage() {
         </div>
       )}
 
-      {showSkeleton || cycleQuery.isLoading || runsQuery.isLoading ? (
+      {!cycleQuery.isError && !runsQuery.isError && (showSkeleton || cycleQuery.isLoading || runsQuery.isLoading) ? (
         <div className="flex-1 overflow-auto">
           <div className="p-4">
             <AioCycleDetailSkeleton />
