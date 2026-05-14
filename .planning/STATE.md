@@ -2,16 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: AIO Test Management
-status: verified_pending
-stopped_at: Phase 54 round-4 UAT approved by user (2026-05-14T14:15Z) — ready for `/gsd:verify-work 54` to mark `verified`
-last_updated: "2026-05-14T14:15:00.000Z"
-last_activity: 2026-05-14 -- Phase 54 UAT PASS (all 4 tests + Gaps 1-6 resolved); next step verify-work
+status: context_gathered
+stopped_at: Phase 55 context gathered — ready for `/gsd:plan-phase 55`. Phase 54 verify-work still pending.
+resume_file: .planning/phases/55-aio-project-selection-in-settings/55-CONTEXT.md
+last_updated: "2026-05-14T22:00:00.000Z"
+last_activity: 2026-05-14 -- Phase 55 CONTEXT.md written; Settings-side AIO picker scoped (delete /aio-projects list page, persist selectedAioProjectKey, sidebar deep-links). Phase 54 verify-work still queued.
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 3
   total_plans: 27
   completed_plans: 27
-  percent: 100
+  percent: 60
 ---
 
 # Project State
@@ -21,14 +22,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-12)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Phase 54 — aio-on-issue-detail
+**Current focus:** Phase 55 — aio-project-selection-in-settings (context gathered)
 
 ## Current Position
 
-Phase: 54 (aio-on-issue-detail) — UAT APPROVED, awaiting verify-work
-Plan: 54-11 of 11 (final — cross-project + breadcrumb integration into useBreadcrumbStore)
-Status: All 4 UAT tests PASS (Tests 1-3, Test 4 + Gaps 1-6 resolved). User approved 2026-05-14T14:15Z. Run `/gsd:verify-work 54` to mark phase `verified`.
-Last activity: 2026-05-14 - 260514-k2u UAT approved (round-3 fix accepted: stray leading/trailing <br/> stripped from inline panel span at preprocess layer)
+Phase: 55 (aio-project-selection-in-settings) — CONTEXT.md written, ready for plan-phase
+Plan: not yet planned (0/0)
+Status: 55-CONTEXT.md captures 15 decisions across picker placement (Integrations section), picker UI (shadcn `<Select>` mirroring GitLabStep.tsx), sidebar gating (hide entry until selectedAioProjectKey set), list page deletion, settings store v16→v17 migration, and silent-persist UX on selection change. Next: `/gsd:plan-phase 55`.
+Last activity: 2026-05-14 — Phase 55 context discussion completed; CONTEXT.md + DISCUSSION-LOG.md committed (docs(55): capture phase context).
+
+**Parallel pending:** Phase 54 verify-work — UAT APPROVED 2026-05-14T14:15Z, awaiting `/gsd:verify-work 54` to mark `verified`. All 4 UAT tests PASS, Gaps 1-6 resolved.
 
 Progress: [██████████] 100%
 
@@ -63,6 +66,10 @@ Recent decisions affecting current work:
 - `aio:projectId:cycleId` pinned key format; `PinnedTabStrip` needs `ResolvedIssue` → `ResolvedTab` rename
 - aioEnabled defaults to false — no AIO calls fired for users without AIO installed (Plan 02, D-04)
 - settings.store.ts version bumped 14 → 15 with migration guard; both version field and guard required (Plan 02, T-51S-01)
+
+### Roadmap Evolution
+
+- Phase 55 added: Move AIO project selection from the AIO Projects list page into Settings → AIO; sidebar "AIO Projects" entry navigates directly to the configured project's overview
 
 ### Pending Todos
 
