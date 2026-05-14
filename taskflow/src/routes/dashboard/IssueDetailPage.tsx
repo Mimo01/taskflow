@@ -390,7 +390,12 @@ export default function IssueDetailPage() {
             {/* Activity timeline + comment composer */}
             <div className="px-6">
               {/* AIO Test Runs — above comments per user preference; loads in parallel, gated by aioEnabled (D-15) */}
-              <AioTestRunsSection issueKey={issueKey} jiraBaseUrl={jiraBaseUrl!} jiraIssueId={issue.id} />
+              <AioTestRunsSection
+                issueKey={issueKey}
+                jiraBaseUrl={jiraBaseUrl!}
+                jiraIssueId={issue.id}
+                description={issue.fields.description}
+              />
 
               <ActivityTimeline
                 comments={comments}

@@ -112,7 +112,12 @@ function makeQueryClient() {
 }
 
 function renderSection(
-  props: { issueKey?: string; jiraBaseUrl?: string; jiraIssueId?: string } = {},
+  props: {
+    issueKey?: string;
+    jiraBaseUrl?: string;
+    jiraIssueId?: string;
+    description?: string | null;
+  } = {},
 ) {
   return render(
     <QueryClientProvider client={makeQueryClient()}>
@@ -120,6 +125,7 @@ function renderSection(
         issueKey={props.issueKey ?? ISSUE_KEY}
         jiraBaseUrl={props.jiraBaseUrl ?? JIRA_BASE_URL}
         jiraIssueId={props.jiraIssueId}
+        description={props.description}
       />
     </QueryClientProvider>,
   );
@@ -714,6 +720,101 @@ describe('AioTestRunsSection', () => {
       expect(
         screen.getByText(/No inline image attachments found in linked test runs/i),
       ).toBeTruthy();
+    });
+
+    it('Plan 54-10: AIO grid surfaces image refs from the Jira issue description body (description-only path)', async () => {
+      // Setup: data resolves with empty runs/impactedExecutions → grid section
+      // renders via the Gap 2 contract (line-606 guard narrowed). The new
+      // description prop carries an inline `[name.png|bridge-url]` ref.
+      mockFetchTraceability.mockResolvedValueOnce([
+        SENTINEL_CASE,
+        SENTINEL_CASE_2,
+        makeImpactedCase('1', '263794'),
+      ]);
+      mockFetchTraceability.mockResolvedValueOnce([]);
+      mockFetchRunDetail.mockImplementation(async (_b, _t, _p, _cycle, runId) => ({
+        run: { id: runId, status: 'PASS', testCaseKey: '', cycleKey: 'X' },
+        steps: [], // no step images
+      }));
+
+      const description =
+        'See [Diagram.png|https://jira.example/plugins/servlet/aio-tcms/bridge/attachment/100/Diagram.png] for the layout.';
+
+      renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID, description });
+      await waitFor(() => {
+        // Grid header reflects 1 attachment derived from the description.
+        expect(screen.getByText(/AIO attachments \(1\)/i)).toBeTruthy();
+      });
+      // Thumbnail button rendered with filename as aria-label.
+      expect(
+        screen.getByRole('button', { name: /Diagram\.png - click to view full size/i }),
+      ).toBeTruthy();
+    });
+
+    it('Plan 54-10: AIO grid dedupes by URL across description and step content (same image referenced in both surfaces appears once)', async () => {
+      const SHARED_URL =
+        'https://jira.example/plugins/servlet/aio-tcms/bridge/attachment/200/Shared.png';
+      mockFetchTraceability.mockResolvedValueOnce([
+        SENTINEL_CASE,
+        SENTINEL_CASE_2,
+        makeImpactedCase('1', '263794'),
+      ]);
+      mockFetchTraceability.mockResolvedValueOnce([]);
+      mockFetchRunDetail.mockImplementation(async (_b, _t, _p, cycle, runId) => {
+        if (cycle === PRIMARY_CYCLE_KEY) {
+          return {
+            run: { id: runId, status: 'PASS', testCaseKey: '', cycleKey: cycle },
+            steps: [],
+          };
+        }
+        return {
+          run: { id: runId, status: 'FAIL', testCaseKey: '', cycleKey: cycle },
+          steps: [
+            { id: 1, step: `repro: see [Shared.png|${SHARED_URL}]`, status: 'FAIL' },
+          ],
+        };
+      });
+
+      const description = `Background image: [Shared.png|${SHARED_URL}].`;
+      renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID, description });
+
+      await waitFor(() => {
+        // Exactly ONE attachment despite the image appearing in both surfaces.
+        expect(screen.getByText(/AIO attachments \(1\)/i)).toBeTruthy();
+      });
+    });
+
+    it('Plan 54-10: AIO grid contract unchanged when description prop is omitted (regression guard)', async () => {
+      mockFetchTraceability.mockResolvedValueOnce([
+        SENTINEL_CASE,
+        SENTINEL_CASE_2,
+        makeImpactedCase('1', '263794'),
+      ]);
+      mockFetchTraceability.mockResolvedValueOnce([]);
+      mockFetchRunDetail.mockImplementation(async (_b, _t, _p, cycle, runId) => {
+        if (cycle === PRIMARY_CYCLE_KEY) {
+          return {
+            run: { id: runId, status: 'PASS', testCaseKey: '', cycleKey: cycle },
+            steps: [],
+          };
+        }
+        return {
+          run: { id: runId, status: 'FAIL', testCaseKey: '', cycleKey: cycle },
+          steps: [
+            {
+              id: 1,
+              step: 'see [a.png|https://example.com/a.png] and [b.png|https://example.com/b.png]',
+              status: 'FAIL',
+            },
+          ],
+        };
+      });
+
+      // No description prop — undefined treated as empty by extractInlineImageAttachments.
+      renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
+      await waitFor(() => {
+        expect(screen.getByText(/AIO attachments \(2\)/i)).toBeTruthy();
+      });
     });
 
     it('Gap 2: AioAttachmentsGrid populates with thumbnails on no-runs path when impacted-execution step content carries [name.png|url] refs', async () => {
