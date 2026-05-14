@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { FlaskConical } from 'lucide-react';
+import { ChevronRight, FlaskConical } from 'lucide-react';
 import { NavLink, useParams } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
@@ -12,6 +13,16 @@ import type { AioCycle, AioTestRun } from '@/services/aio';
 import { fetchAioCycles, fetchAioTestRunsForCycle } from '@/services/aio';
 import { useAuthStore } from '@/stores/auth.store';
 import { AioCyclesSkeleton } from './AioCyclesSkeleton';
+
+function groupCyclesByFolder(cycles: AioCycle[]): Map<string, AioCycle[]> {
+  const map = new Map<string, AioCycle[]>();
+  for (const cycle of cycles) {
+    const key = cycle.folder ?? 'Ungrouped';
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(cycle);
+  }
+  return map;
+}
 
 function CycleStatsCell({
   projectKey,
@@ -109,6 +120,19 @@ export default function AioProjectOverviewPage() {
 
   const showSkeleton = useDelayedLoading(isLoading);
 
+  const [expandedFolder, setExpandedFolder] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (data && data.length > 0 && expandedFolder === null) {
+      const first = groupCyclesByFolder(data).keys().next().value;
+      setExpandedFolder(first ?? null);
+    }
+  }, [data]);
+
+  const toggleFolder = (folderName: string) => {
+    setExpandedFolder((prev) => (prev === folderName ? null : folderName));
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
@@ -137,60 +161,91 @@ export default function AioProjectOverviewPage() {
         ) : !isError ? (
           <>
             {(data ?? []).length > 0 ? (
-              <table className="w-full text-sm">
-                <thead className="border-b bg-muted/10">
-                  <tr>
-                    <th className="w-28 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                      Key
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
-                      Name
-                    </th>
-                    <th className="w-32 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                      Status
-                    </th>
-                    <th className="w-40 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                      Progress
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(data ?? []).map((cycle) => (
-                    <tr
-                      key={cycle.key}
-                      className="border-b border-border hover:bg-muted/30 transition-colors"
+              <div className="flex flex-col">
+                {[...groupCyclesByFolder(data ?? []).entries()].map(
+                  ([folderName, folderCycles]) => (
+                    <section
+                      key={folderName}
+                      data-testid={`folder-section-${folderName}`}
                     >
-                      <td className="px-3 py-3 text-xs text-muted-foreground font-mono">
-                        {cycle.key}
-                      </td>
-                      <td className="px-4 py-3">
-                        <NavLink
-                          to={`/aio-cycle/${projectKey}/${cycle.key}`}
-                          className="hover:underline"
-                        >
-                          {cycle.name}
-                        </NavLink>
-                      </td>
-                      <td className="px-3 py-3">
-                        <span
-                          className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium ${aioCycleStatusBadgeClass(cycle.status)}`}
-                        >
-                          {cycle.status}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3">
-                        <CycleStatsCell
-                          projectKey={projectKey!}
-                          cycleKey={cycle.key}
-                          jiraBaseUrl={jiraBaseUrl}
-                          token={token}
-                          tokenLoading={tokenLoading}
+                      {/* Folder header row — acts as accordion toggle */}
+                      <button
+                        type="button"
+                        className="w-full flex items-center gap-2 px-3 py-2.5 border-b border-border bg-muted/5 hover:bg-muted/20 transition-colors text-left"
+                        aria-expanded={expandedFolder === folderName}
+                        onClick={() => toggleFolder(folderName)}
+                        data-testid={`folder-toggle-${folderName}`}
+                      >
+                        <ChevronRight
+                          className={`size-4 text-muted-foreground shrink-0 transition-transform ${expandedFolder === folderName ? 'rotate-90' : ''}`}
                         />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        <span className="text-sm font-medium">{folderName}</span>
+                        <span className="text-xs text-muted-foreground ml-1">
+                          ({folderCycles.length})
+                        </span>
+                      </button>
+
+                      {/* Cycles table — only rendered when this folder is expanded */}
+                      {expandedFolder === folderName && (
+                        <table className="w-full text-sm">
+                          <thead className="border-b bg-muted/10">
+                            <tr>
+                              <th className="w-28 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                                Key
+                              </th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
+                                Name
+                              </th>
+                              <th className="w-32 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                                Status
+                              </th>
+                              <th className="w-40 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                                Progress
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {folderCycles.map((cycle) => (
+                              <tr
+                                key={cycle.key}
+                                className="border-b border-border hover:bg-muted/30 transition-colors"
+                              >
+                                <td className="px-3 py-3 text-xs text-muted-foreground font-mono">
+                                  {cycle.key}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <NavLink
+                                    to={`/aio-cycle/${projectKey}/${cycle.key}`}
+                                    className="hover:underline"
+                                  >
+                                    {cycle.name}
+                                  </NavLink>
+                                </td>
+                                <td className="px-3 py-3">
+                                  <span
+                                    className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium ${aioCycleStatusBadgeClass(cycle.status)}`}
+                                  >
+                                    {cycle.status}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-3">
+                                  <CycleStatsCell
+                                    projectKey={projectKey!}
+                                    cycleKey={cycle.key}
+                                    jiraBaseUrl={jiraBaseUrl ?? undefined}
+                                    token={token}
+                                    tokenLoading={tokenLoading}
+                                  />
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </section>
+                  ),
+                )}
+              </div>
             ) : null}
 
             {data !== undefined && data.length === 0 && (

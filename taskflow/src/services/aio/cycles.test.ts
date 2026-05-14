@@ -28,7 +28,7 @@ describe('fetchAioCycles', () => {
     } as unknown as Response);
     const result = await fetchAioCycles(BASE, TOKEN, PROJECT_KEY);
     expect(result).toEqual([
-      { key: 'PROJ-CY-2', name: 'Sprint 1', status: 'Active', projectKey: 'PROJ' },
+      { key: 'PROJ-CY-2', name: 'Sprint 1', status: 'Active', projectKey: 'PROJ', folder: 'Active' },
     ]);
   });
 
