@@ -17,7 +17,13 @@ findings:
   warning: 4
   info: 4
   total: 8
-status: issues_found
+status: resolved
+fixed:
+  - WR-01
+  - WR-02
+  - WR-03
+  - WR-04
+fixed_at: 2026-05-14T18:21:30Z
 ---
 
 # Phase 55: Code Review Report
@@ -43,7 +49,7 @@ Test coverage for the store, picker, and sidebar gate is adequate. Test-side fin
 
 ## Warnings
 
-### WR-01: Stale `selectedAioProjectKey` produces silently inconsistent UI / deep-link
+### WR-01 [FIXED]: Stale `selectedAioProjectKey` produces silently inconsistent UI / deep-link
 
 **File:** `taskflow/src/routes/settings/IntegrationsSection.tsx:35`
 **Issue:** `selectedProject = projects?.find((p) => p.projectKey === selectedAioProjectKey)`. If the persisted `selectedAioProjectKey` is no longer in the fetched `projects` list (project deleted, renamed, or access revoked upstream), `selectedProject` is `undefined` and the trigger silently falls back to the "Choose a project..." placeholder. Meanwhile, `Sidebar.tsx:347` still deep-links to `/aio-project/${selectedAioProjectKey}` — pointing the user at a 404/empty project page on click — and the store still holds the stale key. There is no UI feedback that the persisted selection has gone stale.
@@ -72,7 +78,7 @@ useEffect(() => {
 
 Option A is preferable — it preserves user state and visibility while D-14 ("silent persist") was about not redirecting on _user-initiated_ change, not about hiding upstream data shifts.
 
-### WR-02: `selectedAioProjectKey` interpolated into URL without encoding
+### WR-02 [FIXED]: `selectedAioProjectKey` interpolated into URL without encoding
 
 **File:** `taskflow/src/components/app/Sidebar.tsx:347`
 **Issue:** `` `/aio-project/${selectedAioProjectKey}` `` interpolates the persisted string directly into the path. Jira project keys today are uppercase-alphanumeric and safe, but the store accepts any `string | null` and `AioProject.projectKey` is sourced from a remote API response (`fetchAioProjects` → `item.jiraProjectKey`). A project key containing `/`, `?`, `#`, or a space would produce a broken `<NavLink to=...>` that either splits the route segments or fails to match `/aio-project/:projectKey`. Defensive encoding prevents silent breakage on any future schema drift.
@@ -88,7 +94,7 @@ const navTo =
 
 The reverse decode happens automatically when React Router populates `useParams().projectKey`.
 
-### WR-03: `readSecret('jira-pat')` runs even when `jiraBaseUrl` is null
+### WR-03 [FIXED]: `readSecret('jira-pat')` runs even when `jiraBaseUrl` is null
 
 **File:** `taskflow/src/routes/settings/IntegrationsSection.tsx:18-22`
 **Issue:** The effect runs on every `jiraBaseUrl` change, including `null`. Inside it, `readSecret('jira-pat')` is called unconditionally. The matching pattern in `Sidebar.tsx:91-97` guards with `if (jiraBaseUrl)` before reading the secret. The query is later gated by `enabled: !!jiraBaseUrl && !!token` (line 32) so no network call leaks, but Stronghold IPC is still invoked needlessly on first render when Jira is unconfigured, and the symbol-level inconsistency with the Sidebar copy of the same pattern is a maintenance hazard.
@@ -104,7 +110,7 @@ useEffect(() => {
 }, [jiraBaseUrl]);
 ```
 
-### WR-04: `path: '/aio'` sentinel in `sidebar-items.ts` is a real-looking route
+### WR-04 [FIXED]: `path: '/aio'` sentinel in `sidebar-items.ts` is a real-looking route
 
 **File:** `taskflow/src/components/app/sidebar-items.ts:81`
 **Issue:** The comment on line 80 explains the field is a sentinel, but `'/aio'` is shaped exactly like a real route. If a future phase adds a `/aio` route (e.g., a settings shortcut or summary page), this nav item would silently start using it whenever `nav.id !== 'aio-projects'` logic in `Sidebar.tsx:347` ever changes. The CONTEXT.md (D-10) explicitly invited the planner to pick "a sentinel like `null`/`/aio`, or extend the `SidebarItem` type" — choosing `'/aio'` is the most fragile of those options.
