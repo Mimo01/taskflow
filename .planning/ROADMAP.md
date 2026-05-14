@@ -389,7 +389,7 @@ Cross-cutting constraints:
   5. Defects tab shows a 4-column enriched table (Key NavLink | Title from fetchJiraIssueByKey | Status chip | Triggered By test case keys) OR an EmptyState when no defects
   6. All three AIO pages consume `useAioCredentials()` and gate useQueries with `!!jiraBaseUrl && !!token && !tokenLoading` — no first-load auth-error flash
   7. `normalizeStatus` and `normalizeStatusLabel` are extracted to `@/lib/aioUtils` and consumed from both AioCycleDetailPage and AioProjectOverviewPage
-**Plans:** 3/4 plans executed
+**Plans:** 6 plans (4 executed + 2 gap-closure)
 
 Plans:
 
@@ -401,7 +401,11 @@ Plans:
 - [x] 56-03-PLAN.md — AioCycleDetailPage tabbed redesign: Tabs wrapper, clickable run rows in Executions, enriched Defects tab via fetchJiraIssueByKey, AIOC-03 + D-08 tests
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 56-04-PLAN.md — Human verification checkpoint: live AIO instance E2E covering progressive loading, tabs UX, token-flash-fire absence, graceful degradation, skeleton no-jump, regression smoke
+- [x] 56-04-PLAN.md — Human verification checkpoint: live AIO instance E2E covering progressive loading, tabs UX, token-flash-fire absence, graceful degradation, skeleton no-jump, regression smoke
+
+**Wave 4** *(gap closure — blocked on Wave 3 checkpoint; 56-05 and 56-06 run in parallel — no shared files)*
+- [ ] 56-05-PLAN.md — Gap 3 fix: probe jiraDefectIDs resolution + fix normalizeTestRun to populate AioTestRun.defects[] with real Jira issue keys (AIOC-03)
+- [ ] 56-06-PLAN.md — Gaps 1+2 fix: probe raw cycle folder field + replace flat table with folder accordion + lazy CycleStatsCell per open folder (AION-03)
 
 Cross-cutting constraints:
 - Plans 56-02 and 56-03 both depend on Plan 56-01 (hook + aioUtils must ship first) but have ZERO file overlap with each other — safe to run in parallel in Wave 2
