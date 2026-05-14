@@ -16,8 +16,8 @@ import {
   fetchAioCyclesWithDetail,
   fetchAioFolderCycleCounts,
   fetchAioFolderTree,
-  fetchAioProjects,
 } from '@/services/aio';
+import { fetchJiraProjectNumericId } from '@/services/jira/projects';
 import { fetchJiraUserByUsername } from '@/services/jira/users';
 import { useAuthStore } from '@/stores/auth.store';
 
@@ -231,17 +231,16 @@ export default function AioProjectOverviewPage() {
 
   const credGate = !!jiraBaseUrl && !!token && !tokenLoading && !!projectKey;
 
-  // Resolve numeric jiraProjectId from projectKey
-  const projectsQuery = useQuery({
-    queryKey: ['aio', jiraBaseUrl, 'projects'],
-    queryFn: () => fetchAioProjects(jiraBaseUrl!, token!),
+  // Resolve numeric Jira project ID (required by AIO folder/count/paged endpoints).
+  // Uses GET /rest/api/2/project/{key} — the Jira numeric id, not the AIO-internal ID.
+  const jiraProjectIdQuery = useQuery({
+    queryKey: ['jira', jiraBaseUrl, 'project-numeric-id', projectKey],
+    queryFn: () => fetchJiraProjectNumericId(jiraBaseUrl!, token!, projectKey!),
     enabled: credGate,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 60 * 1000,
   });
 
-  const jiraProjectId = useMemo(() => {
-    return projectsQuery.data?.find((p) => p.projectKey === projectKey)?.id ?? null;
-  }, [projectsQuery.data, projectKey]);
+  const jiraProjectId = jiraProjectIdQuery.data ?? null;
 
   const aioGate = credGate && !!jiraProjectId;
 
@@ -313,7 +312,7 @@ export default function AioProjectOverviewPage() {
     }
   }, [foldersQuery.data, countMapQuery.data]);
 
-  const showFolderSkeleton = useDelayedLoading(foldersQuery.isLoading || projectsQuery.isLoading);
+  const showFolderSkeleton = useDelayedLoading(foldersQuery.isLoading || jiraProjectIdQuery.isLoading);
   const showCycleSkeleton = useDelayedLoading(cyclesWithDetailQuery.isLoading);
 
   const toggleFolder = (id: number) => {

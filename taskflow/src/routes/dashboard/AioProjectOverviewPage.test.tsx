@@ -14,11 +14,14 @@ vi.mock('@/hooks/useAioCredentials', () => ({
 }));
 
 vi.mock('@/services/aio', () => ({
-  fetchAioProjects: vi.fn(),
   fetchAioFolderTree: vi.fn(),
   fetchAioFolderCycleCounts: vi.fn(),
   fetchAioCyclesWithDetail: vi.fn(),
   fetchAioCycleSummaries: vi.fn(),
+}));
+
+vi.mock('@/services/jira/projects', () => ({
+  fetchJiraProjectNumericId: vi.fn(),
 }));
 
 vi.mock('@/services/jira/users', () => ({
@@ -111,9 +114,10 @@ const PAGED_RESPONSE = {
 };
 
 async function setupStandardMocks() {
-  const { fetchAioProjects, fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries } =
+  const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+  (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(PROJECT.id);
+  const { fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries } =
     await import('@/services/aio');
-  (fetchAioProjects as ReturnType<typeof vi.fn>).mockResolvedValue([PROJECT]);
   (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockResolvedValue([FOLDER_A]);
   (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({ '101': 1 });
   (fetchAioCyclesWithDetail as ReturnType<typeof vi.fn>).mockResolvedValue(PAGED_RESPONSE);
@@ -179,10 +183,11 @@ describe('AioProjectOverviewPage — cycle list', () => {
   });
 
   it('dedupes user lookups — 2 cycles same owner fires fetchJiraUserByUsername once', async () => {
-    const { fetchAioProjects, fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries } =
+    const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+    (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(PROJECT.id);
+    const { fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries } =
       await import('@/services/aio');
     const CYCLE_2 = { ...CYCLE_1, ID: 1002 };
-    (fetchAioProjects as ReturnType<typeof vi.fn>).mockResolvedValue([PROJECT]);
     (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockResolvedValue([FOLDER_A]);
     (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({ '101': 2 });
     (fetchAioCyclesWithDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -214,9 +219,10 @@ describe('AioProjectOverviewPage — Show closed toggle', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
   it('hides closed cycles by default; shows them after toggle', async () => {
-    const { fetchAioProjects, fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries } =
+    const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+    (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(PROJECT.id);
+    const { fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries } =
       await import('@/services/aio');
-    (fetchAioProjects as ReturnType<typeof vi.fn>).mockResolvedValue([PROJECT]);
     (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockResolvedValue([FOLDER_A]);
     (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({ '101': 2 });
     (fetchAioCyclesWithDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -249,9 +255,10 @@ describe('AioProjectOverviewPage — error states', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
   it('renders error state when folder tree query fails', async () => {
-    const { fetchAioProjects, fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries } =
+    const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+    (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(PROJECT.id);
+    const { fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries } =
       await import('@/services/aio');
-    (fetchAioProjects as ReturnType<typeof vi.fn>).mockResolvedValue([PROJECT]);
     (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Network fail'));
     (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({});
     (fetchAioCyclesWithDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
