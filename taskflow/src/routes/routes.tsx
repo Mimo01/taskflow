@@ -18,7 +18,6 @@ const SprintProgressTab = lazy(() => import('./dashboard/SprintProgressTab'));
 const ReleaseDetailPage = lazy(() => import('./dashboard/ReleaseDetailPage'));
 const MergeRequestListPage = lazy(() => import('./dashboard/MergeRequestListPage'));
 const MergeRequestDetailPage = lazy(() => import('./dashboard/MergeRequestDetailPage'));
-const AioProjectsPage = lazy(() => import('./dashboard/AioProjectsPage'));
 const AioProjectOverviewPage = lazy(() => import('./dashboard/AioProjectOverviewPage'));
 const AioCycleDetailPage = lazy(() => import('./dashboard/AioCycleDetailPage'));
 const AioTestRunDetailPage = lazy(() => import('./dashboard/AioTestRunDetailPage'));
@@ -49,7 +48,6 @@ export const routes: RouteObject[] = [
   { path: '/issue/:key', element: withLazy(IssueDetailPage) },
   { path: '/merge-requests', element: withLazy(MergeRequestListPage) },
   { path: '/mr/:projectId/:iid', element: withLazy(MergeRequestDetailPage) },
-  { path: '/aio-projects', element: withLazy(AioProjectsPage) },
   { path: '/aio-project/:projectKey', element: withLazy(AioProjectOverviewPage) },
   { path: '/aio-cycle/:projectKey/:cycleKey', element: withLazy(AioCycleDetailPage) },
   {
