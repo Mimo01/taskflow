@@ -169,7 +169,7 @@ Cross-cutting constraints:
 - [x] **Phase 52: AIO Navigation + Project Pages** - Sidebar section, routing shell, project list page, project overview page — completed 2026-05-13
 - [x] **Phase 53: Cycle Detail + Header Pinning** - Full-page cycle detail (progress bar, test run table, defects), pin/unpin to header tab strip with persistence
 - [ ] **Phase 54: AIO on Issue Detail** - Lazy-loaded test runs section on issue detail, step table with colored markers, authenticated attachment lightbox
-- [ ] **Phase 55: AIO Project Selection in Settings** - Move AIO project picker from the AIO Projects list page to Settings; sidebar entry navigates directly to the configured project's overview
+- [x] **Phase 55: AIO Project Selection in Settings** - Move AIO project picker from the AIO Projects list page to Settings; sidebar entry navigates directly to the configured project's overview (completed 2026-05-14)
 
 ## Phase Details
 
@@ -332,7 +332,7 @@ Cross-cutting constraints:
   2. The picker fetches all AIO projects via fetchAioProjects with cache key ["aio", jiraBaseUrl, "projects"]; selecting an item persists projectKey to selectedAioProjectKey in useSettingsStore (silent persist — no toast, no redirect)
   3. The sidebar "AIO Projects" nav item is hidden when aioEnabled === false OR selectedAioProjectKey === null, and visible otherwise; when visible, the NavLink href is /aio-project/${selectedAioProjectKey}
   4. The legacy /aio-projects route, AioProjectsPage, and AioProjectsSkeleton are removed; REQUIREMENTS.md AION-02 traceability points at Phase 55
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 
@@ -344,7 +344,7 @@ Plans:
 - [x] 55-03-PLAN.md — Sidebar gating + dynamic deep-link: extend destructure + filter at line 277 + override NavLink to= for 'aio-projects'; flip sidebar-items.ts path to '/aio' sentinel; extend Sidebar tests
 
 **Wave 3** *(destructive — blocked on Waves 2 and 3 both completing)*
-- [ ] 55-04-PLAN.md — Delete AioProjectsPage/Skeleton/test + remove /aio-projects route + AION-02 traceability update in REQUIREMENTS.md
+- [x] 55-04-PLAN.md — Delete AioProjectsPage/Skeleton/test + remove /aio-projects route + AION-02 traceability update in REQUIREMENTS.md
 
 Cross-cutting constraints:
 - Plan 04 (destructive) MUST run last — until Plans 02 and 03 ship, removing the list page strands the user with no AIO project selection surface
@@ -369,4 +369,4 @@ Cross-cutting constraints:
 | 52. AIO Navigation + Project Pages | v1.8 | 6/6 | Complete | 2026-05-13 |
 | 53. Cycle Detail + Header Pinning | v1.8 | 0/5 | Not started | - |
 | 54. AIO on Issue Detail | v1.8 | 6/9 | In Progress|  |
-| 55. AIO Project Selection in Settings | v1.8 | 3/4 | In Progress|  |
+| 55. AIO Project Selection in Settings | v1.8 | 4/4 | Complete   | 2026-05-14 |
