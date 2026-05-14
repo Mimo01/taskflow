@@ -77,7 +77,8 @@ export const SIDEBAR_NAV_ITEMS: SidebarNavDef[] = [
   {
     id: 'aio-projects',
     label: 'AIO Projects',
-    path: '/aio-projects',
+    // sentinel: real `to` is computed in Sidebar.tsx as `/aio-project/${selectedAioProjectKey}` — see Phase 55 D-10
+    path: '/aio',
     iconName: 'FlaskConical',
     section: 'testing',
   },
