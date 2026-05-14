@@ -111,13 +111,27 @@ None.
 
 ## Round-4 UAT Outcome
 
-**Status: pending_human_uat.** Task 5 is the next gate. The user re-tests:
-1. Same VTE-* story from round-3 — status chips now show real PASS/FAIL/BLOCKED states.
-2. Clicking the cycle key cell navigates to the in-app cycle detail page.
-3. Clicking the run ID cell navigates to the new in-app run detail page.
-4. Test 4 ROADMAP SC end-to-end on a happy-path issue (was deferred behind Gap 4 + Gap 5 + Gap 6).
+**Status: PASS** (user-approved 2026-05-14T14:15Z).
 
-Phase 54 closes once round-4 UAT passes.
+Verified in UAT:
+1. ✓ Cross-project impacted-execution status chips render REAL run status (PASS/FAIL/BLOCKED) — no more always "Not Run".
+2. ✓ Cycle key cell navigates to the in-app cycle detail page.
+3. ✓ Run ID cell navigates to the new in-app run detail page.
+4. ✓ Single-run case uses CollapsibleRunBlock for consistency with multi-run case.
+5. ✓ In-cycle CollapsibleRunBlock header shows cycle key + run ID alongside test case + status chip.
+6. ✓ Breadcrumb integration uses the existing `useBreadcrumbStore` (IssueDetailPage convention) — not a parallel custom breadcrumb.
+7. ✓ Test 4 ROADMAP SC end-to-end passes on a happy-path issue.
+
+Phase 54 closes with this UAT round.
+
+## Post-Plan Mid-UAT Iterations
+
+The plan as originally written covered Tasks 1–4 (status fix, new page, click wiring, doc). Round-4 UAT surfaced four additional user requests that landed as inline follow-up commits inside the same plan boundary:
+
+- **Single-run consistency (`4c7d16f`):** User asked the single-run path to use the same `CollapsibleRunBlock` as the multi-run path. Test fixture `TEST_RUN.status` switched PASS→FAIL so the existing step-rendering tests still see the expanded table.
+- **In-cycle header info (`c9202cf`):** User wanted cycle key + run ID in the in-cycle header too. Added Link elements (later refactored to buttons — see breadcrumb integration below).
+- **Custom-breadcrumb attempt → reverted (`a0894e6` → `27108bb`):** First attempt used `location.state` for breadcrumbs. User flagged: "we already have a breadcrumb system, integrate it into that one." Reverted to use `useBreadcrumbStore` with the standard back-arrow + trail-entries + current-segment rendering used by `IssueDetailPage` and `ReleaseDetailPage`.
+- **Trail-preservation route allowlist (`8baeb70`):** `main.tsx`'s pathname-change effect was wiping the trail on AIO routes. Added `/aio-cycle/` to the preserve-trail allowlist so the trail survives the issue → cycle/run navigation.
 
 ## Next Phase Readiness
 

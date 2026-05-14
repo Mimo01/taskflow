@@ -3,9 +3,26 @@ status: partial
 phase: 54-aio-on-issue-detail
 source: [54-VERIFICATION.md]
 started: 2026-05-14T00:25:00Z
-updated: 2026-05-14T13:45:00Z
+status: pass
+updated: 2026-05-14T14:15:00Z
 re_uat_round: 4
-fix_commits: ["7a99427", "9862672", "65463bb", "6fdee86", "25881bf", "db693d9", "21a4b4d", "ca06965"]
+re_uat_round_4_result: pass
+re_uat_round_4_reported: "approved"
+re_uat_round_4_at: "2026-05-14T14:15:00Z"
+fix_commits:
+  - "7a99427"
+  - "9862672"
+  - "65463bb"
+  - "6fdee86"
+  - "25881bf"
+  - "db693d9"
+  - "21a4b4d"
+  - "ca06965"
+  - "4c7d16f"
+  - "c9202cf"
+  - "a0894e6"
+  - "27108bb"
+  - "8baeb70"
 ---
 
 ## Current Test
@@ -72,10 +89,12 @@ debug_session: .planning/debug/panel-still-breaks-table-round-2.md
 
 ### 4. ROADMAP SC end-to-end UAT on a happy-path issue
 expected: Verify all four ROADMAP success criteria on a happy-path ESHOP issue (e.g. a defect linked to an active cycle with populated step content) — (1) section appears only when aioEnabled=true and loads lazily without blocking the main issue body; (2) step table renders Step/Expected/Actual columns with colored failure chips per row (PASS green / FAIL red / BLOCKED orange); (3) section is hidden (no error state) when no AIO test cases are linked to the issue; (4) attachment images within steps + AIO attachments grid thumbnails both open in the existing in-app ImageLightbox (NOT the OS browser). Toggle aioEnabled OFF/ON in Settings to confirm gating. Plan 54-10 follow-up: also confirm AIO attachments grid now surfaces image refs from the Jira issue description body (not just step content).
-result: pending
-note: Test 3 round 3 PASSED (panel rendering fixed). Plan 54-10 landed to close Gap 4 (description-body images now included in grid). Run Test 4 on a happy-path ESHOP issue + re-verify the original round-3 grid issue on the same story.
-prerequisites: ["Test 3 round 3 PASS (confirmed 2026-05-14)", "Plan 54-10 fix landed (commit db693d9)"]
-prior_round_1_result: skipped (deferred until Tests 1-3 resolved — now ready)
+result: pass
+result_round_4_at: "2026-05-14T14:15:00Z"
+result_round_4_reported: "approved"
+note: All round-4 fixes verified by user — cross-project status chips render correctly, cycle/run links navigate via shared useBreadcrumbStore, single-run case uses CollapsibleRunBlock for consistency, in-cycle header shows cycle + run info, and the breadcrumb integration uses the existing IssueDetailPage convention.
+prerequisites: ["Test 3 round 3 PASS (confirmed 2026-05-14)", "Plan 54-10 fix landed (commit db693d9)", "Plan 54-11 fixes landed (commits 21a4b4d through 8baeb70)"]
+prior_round_1_result: skipped (deferred until Tests 1-3 resolved)
 
 ## How to run
 
@@ -90,9 +109,9 @@ Reply "approved" if all 4 PASS, or describe failures with screenshots/DOM if any
 ## Summary
 
 total: 4
-passed: 3
+passed: 4
 issues: 0
-pending: 1
+pending: 0
 skipped: 0
 blocked: 0
 
