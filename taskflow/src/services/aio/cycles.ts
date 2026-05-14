@@ -8,8 +8,14 @@
  */
 
 import { ApiError } from '../../lib/api-error';
-import { aioFetch } from './client';
-import type { AioCycle, AioPage } from './types';
+import { AIO_PROJECTS_API_PATH, aioFetch } from './client';
+import type {
+  AioCycle,
+  AioCycleDetailPagedResponse,
+  AioCycleSummaryItem,
+  AioFolder,
+  AioPage,
+} from './types';
 
 // AIO API returns several fields as { ID, name } objects rather than plain strings.
 type AioNamedObject = { ID?: number; name?: string };
@@ -140,6 +146,135 @@ export async function fetchAioCycleDetail(
   }
   if (response.status === 404) {
     throw new ApiError('Cycle not found', 404, 'jira');
+  }
+  throw new Error(`AIO request failed with status ${response.status}`);
+}
+
+/**
+ * Fetch the folder tree for a project.
+ * GET /rest/aio-tcms/1.0/project/{jiraProjectId}/testcycle/folder (probe A1)
+ * @returns Array of root AioFolder nodes (with nested children); empty array on 404
+ * @throws ApiError 401 on auth failure
+ * @throws Error on network failure
+ */
+export async function fetchAioFolderTree(
+  baseUrl: string,
+  token: string,
+  jiraProjectId: number,
+): Promise<AioFolder[]> {
+  const path = `/project/${jiraProjectId}/testcycle/folder`;
+  let response: Response;
+  try {
+    response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH);
+  } catch {
+    throw new Error(`Cannot reach AIO at ${baseUrl}`);
+  }
+  if (response.ok) {
+    return (await response.json()) as AioFolder[];
+  }
+  if (response.status === 401) {
+    throw new ApiError('Invalid token or token has expired', 401, 'jira');
+  }
+  if (response.status === 404) {
+    return [];
+  }
+  throw new Error(`AIO request failed with status ${response.status}`);
+}
+
+/**
+ * Fetch per-folder cycle counts for a project.
+ * GET /rest/aio-tcms/1.0/project/{jiraProjectId}/testcycle/folder/count?archive=false (probe A2)
+ * Keys are folder ID strings; key "-1" = ungrouped cycles.
+ * @returns Record<string, number>; empty object on 404
+ * @throws ApiError 401 on auth failure
+ * @throws Error on network failure
+ */
+export async function fetchAioFolderCycleCounts(
+  baseUrl: string,
+  token: string,
+  jiraProjectId: number,
+): Promise<Record<string, number>> {
+  const path = `/project/${jiraProjectId}/testcycle/folder/count?archive=false`;
+  let response: Response;
+  try {
+    response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH);
+  } catch {
+    throw new Error(`Cannot reach AIO at ${baseUrl}`);
+  }
+  if (response.ok) {
+    return (await response.json()) as Record<string, number>;
+  }
+  if (response.status === 401) {
+    throw new ApiError('Invalid token or token has expired', 401, 'jira');
+  }
+  if (response.status === 404) {
+    return {};
+  }
+  throw new Error(`AIO request failed with status ${response.status}`);
+}
+
+/**
+ * Fetch paged cycle list with detail for a project.
+ * GET /rest/aio-tcms/1.0/project/{jiraProjectId}/testcycle/paged[?folderID={id}] (probe A4, A5)
+ * A5 confirmed server-side folder filter via ?folderID param.
+ * @returns AioCycleDetailPagedResponse; empty paged envelope on 404
+ * @throws ApiError 401 on auth failure
+ * @throws Error on network failure
+ */
+export async function fetchAioCyclesWithDetail(
+  baseUrl: string,
+  token: string,
+  jiraProjectId: number,
+  folderID?: number,
+): Promise<AioCycleDetailPagedResponse> {
+  const folderParam = folderID !== undefined ? `?folderID=${folderID}` : '';
+  const path = `/project/${jiraProjectId}/testcycle/paged${folderParam}`;
+  let response: Response;
+  try {
+    response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH);
+  } catch {
+    throw new Error(`Cannot reach AIO at ${baseUrl}`);
+  }
+  if (response.ok) {
+    return (await response.json()) as AioCycleDetailPagedResponse;
+  }
+  if (response.status === 401) {
+    throw new ApiError('Invalid token or token has expired', 401, 'jira');
+  }
+  if (response.status === 404) {
+    return { items: [], allIDs: [], startAt: 0, maxResults: 0, isLast: true };
+  }
+  throw new Error(`AIO request failed with status ${response.status}`);
+}
+
+/**
+ * Fetch all cycle summaries (including testRunDistribution) for a project.
+ * GET /rest/aio-tcms/1.0/project/{jiraProjectId}/testcycle/summary/paged (probe A3)
+ * A3 confirmed: single GET returns all summaries — no ids param needed.
+ * @returns AioCycleSummaryItem[]; empty array on 404
+ * @throws ApiError 401 on auth failure
+ * @throws Error on network failure
+ */
+export async function fetchAioCycleSummaries(
+  baseUrl: string,
+  token: string,
+  jiraProjectId: number,
+): Promise<AioCycleSummaryItem[]> {
+  const path = `/project/${jiraProjectId}/testcycle/summary/paged`;
+  let response: Response;
+  try {
+    response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH);
+  } catch {
+    throw new Error(`Cannot reach AIO at ${baseUrl}`);
+  }
+  if (response.ok) {
+    return (await response.json()) as AioCycleSummaryItem[];
+  }
+  if (response.status === 401) {
+    throw new ApiError('Invalid token or token has expired', 401, 'jira');
+  }
+  if (response.status === 404) {
+    return [];
   }
   throw new Error(`AIO request failed with status ${response.status}`);
 }

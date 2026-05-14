@@ -139,3 +139,81 @@ export interface AioStepAttachment {
   url?: string; // Full URL to the attachment (field name unconfirmed — no probe data)
   fileName?: string; // Filename for alt text (field name unconfirmed — no probe data)
 }
+
+/**
+ * A node in the AIO folder tree.
+ * Returned by GET /rest/aio-tcms/1.0/project/{jiraProjectID}/testcycle/folder
+ * (Phase 57 probe finding A1). Field names verbatim from API-EXAMPLES.md `folder` section.
+ * Children is a recursive self-reference — the tree is fully nested in a single response.
+ */
+export interface AioFolder {
+  ID: number;
+  name: string;
+  description: string | null;
+  parentID: number | null;
+  rankOrder: number | null;
+  children: AioFolder[];
+}
+
+/**
+ * A single cycle entry in the paged detail response.
+ * Returned by GET /rest/aio-tcms/1.0/project/{jiraProjectID}/testcycle/paged
+ * (Phase 57 probe finding A4). Matches API-EXAMPLES.md `paged` section.
+ * NOTE: detail.folder is ALWAYS null — folder association comes from the server-side
+ * ?folderID filter, not from the cycle record (Pitfall 2, 57-RESEARCH.md).
+ */
+export interface AioCycleDetailItem {
+  ID: number;
+  jiraProjectID: number;
+  permission?: { value: number };
+  detail: {
+    key: string;
+    title: string;
+    ownedByID: string;
+    folder: number | null;
+    isClosed: boolean;
+    startDate: string | null;
+    endDate: string | null;
+    objective?: string | null;
+  };
+  summary: null;
+  objectiveAttachments?: unknown[];
+}
+
+/**
+ * A single cycle entry in the paged summary response.
+ * Returned by GET /rest/aio-tcms/1.0/project/{jiraProjectID}/testcycle/summary/paged
+ * (Phase 57 probe finding A3). Matches API-EXAMPLES.md `paged2` section.
+ * NOTE: testRunDistribution keys are JSON numeric strings (e.g. '53', '901') — always
+ * convert via Number() before AIO_STATUS_MAP lookup (Pitfall 3, 57-RESEARCH.md).
+ */
+export interface AioCycleSummaryItem {
+  ID: number;
+  jiraProjectID?: number;
+  detail: null;
+  summary: {
+    totalTests: number;
+    testRunDistribution: Record<string, number>;
+    totalRuns?: number | null;
+    totalTestsWithDS?: number | null;
+    estimatedEffort?: number | null;
+    actualEffort?: number | null;
+    assignees?: unknown;
+  };
+  objectiveAttachments?: unknown[];
+}
+
+/**
+ * Paginated response from GET /rest/aio-tcms/1.0/project/{jiraProjectID}/testcycle/paged
+ * (Phase 57 probe finding A4). Extends the AioPage envelope with allIDs, which
+ * drives the single-call summary fetch (fetchAioCycleSummaries).
+ */
+export interface AioCycleDetailPagedResponse {
+  items: AioCycleDetailItem[];
+  allIDs: number[];
+  startAt: number;
+  maxResults: number;
+  total?: number;
+  isLast: boolean;
+  additionalData?: unknown;
+}
