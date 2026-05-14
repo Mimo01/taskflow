@@ -67,7 +67,7 @@ function navLinkClassFn(collapsed: boolean) {
 const PREFETCH_ROUTES = new Set(['/dashboard', '/my-tasks', '/sprint-board', '/backlog', '/epics']);
 
 export default function Sidebar() {
-  const { devToolsEnabled, sidebarItems, aioEnabled } = useSettingsStore();
+  const { devToolsEnabled, sidebarItems, aioEnabled, selectedAioProjectKey } = useSettingsStore();
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);
   const toggleSidebarCollapsed = useSettingsStore((s) => s.toggleSidebarCollapsed);
   const sidebarWidth = useSettingsStore((s) => s.sidebarWidth);
@@ -274,7 +274,7 @@ export default function Sidebar() {
       (nav) =>
         nav.section === section.id &&
         visibleIds.has(nav.id) &&
-        !(nav.section === 'testing' && !aioEnabled),
+        !(nav.section === 'testing' && (!aioEnabled || !selectedAioProjectKey)),
     ),
   })).filter((section) => section.items.length > 0);
 
@@ -341,10 +341,14 @@ export default function Sidebar() {
             )}
             {section.items.map((nav) => {
               const Icon = ICON_MAP[nav.iconName];
+              // Phase 55 D-10: 'aio-projects' nav item deep-links to the configured project.
+              // The filter above guarantees selectedAioProjectKey is non-null when this branch is hit.
+              const navTo =
+                nav.id === 'aio-projects' ? `/aio-project/${selectedAioProjectKey}` : nav.path;
               return (
                 <NavLink
                   key={nav.id}
-                  to={nav.path}
+                  to={navTo}
                   className={navLinkClass}
                   title={sidebarCollapsed ? nav.label : undefined}
                   onMouseEnter={() => handleNavMouseEnter(nav.path)}
