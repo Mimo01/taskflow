@@ -215,8 +215,9 @@ export async function fetchAioFolderCycleCounts(
 
 /**
  * Fetch paged cycle list with detail for a project.
- * GET /rest/aio-tcms/1.0/project/{jiraProjectId}/testcycle/paged[?folderID={id}] (probe A4, A5)
- * A5 confirmed server-side folder filter via ?folderID param.
+ * GET /rest/aio-tcms/1.0/project/{jiraProjectId}/testcycle/paged?c_pId={jiraProjectId}
+ * Live UAT confirmed: the AIO server does NOT accept ?folderID= as a query param (returns 500).
+ * The real AIO web UI always sends ?c_pId= with no folder filter in the URL.
  * @returns AioCycleDetailPagedResponse; empty paged envelope on 404
  * @throws ApiError 401 on auth failure
  * @throws Error on network failure
@@ -225,10 +226,8 @@ export async function fetchAioCyclesWithDetail(
   baseUrl: string,
   token: string,
   jiraProjectId: number,
-  folderID?: number,
 ): Promise<AioCycleDetailPagedResponse> {
-  const folderParam = folderID !== undefined ? `?folderID=${folderID}` : '';
-  const path = `/project/${jiraProjectId}/testcycle/paged${folderParam}`;
+  const path = `/project/${jiraProjectId}/testcycle/paged?c_pId=${jiraProjectId}`;
   let response: Response;
   try {
     response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH);
@@ -260,7 +259,7 @@ export async function fetchAioCycleSummaries(
   token: string,
   jiraProjectId: number,
 ): Promise<AioCycleSummaryItem[]> {
-  const path = `/project/${jiraProjectId}/testcycle/summary/paged`;
+  const path = `/project/${jiraProjectId}/testcycle/summary/paged?c_pId=${jiraProjectId}`;
   let response: Response;
   try {
     response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH);

@@ -257,17 +257,12 @@ export default function AioProjectOverviewPage() {
     enabled: aioGate,
   });
 
-  // Cycle list (server-side filtered by selected folder — A5: server-filter confirmed)
+  // Cycle list — loads all cycles for the project.
+  // Live UAT confirmed: ?folderID= query param causes 500; real AIO UI loads all cycles at once.
   const cyclesWithDetailQuery = useQuery({
-    queryKey: ['aio', jiraBaseUrl, 'cycles-detail', projectKey, selectedFolderID],
-    queryFn: () =>
-      fetchAioCyclesWithDetail(
-        jiraBaseUrl!,
-        token!,
-        jiraProjectId!,
-        selectedFolderID ?? undefined,
-      ),
-    enabled: aioGate && selectedFolderID !== null,
+    queryKey: ['aio', jiraBaseUrl, 'cycles-detail', projectKey],
+    queryFn: () => fetchAioCyclesWithDetail(jiraBaseUrl!, token!, jiraProjectId!),
+    enabled: aioGate,
   });
 
   // Summaries — fired when we have cycle IDs
@@ -443,7 +438,7 @@ export default function AioProjectOverviewPage() {
                 error={cyclesWithDetailQuery.error}
                 onRetry={() =>
                   queryClient.invalidateQueries({
-                    queryKey: ['aio', jiraBaseUrl, 'cycles-detail', projectKey, selectedFolderID],
+                    queryKey: ['aio', jiraBaseUrl, 'cycles-detail', projectKey],
                   })
                 }
                 viewName="cycles"
