@@ -18,30 +18,35 @@ type RawCycle = {
   isClosed?: boolean;
   status?: string;
   projectKey?: string;
-  // Folder/grouping fields — one of these is expected from the AIO API.
-  // Candidate fields inspected during Plan 56-06 probe:
-  folder?: string;       // Direct folder name string (most likely candidate)
-  testSet?: string;      // Test-set name string (alternative naming)
-  folderName?: string;   // Explicit folderName alias
-  testSetKey?: string;   // Test-set key (e.g. "PROJ-TS-1")
+  // Folder/grouping fields — confirmed from live AIO: testSet is an object { ID, name }.
+  folder?: string;
+  testSet?: { ID?: number; name?: string } | string; // AIO returns object { ID, name }
+  folderName?: string;
+  testSetKey?: string;
 };
 
-// PROBE FINDINGS (Plan 56-06):
-// Folder/grouping field confirmed: Unable to run live app probe — static analysis of RawCycle.
-// Decision: use multi-candidate fallback chain (folder ?? testSet ?? folderName ?? testSetKey)
-// with status-based grouping (Active/Closed) as final fallback when no folder field is present.
-// This is the plan-specified safe default (see 56-06-PLAN.md Task 1 action).
-// If the AIO instance returns a folder field under a different name, update the fallback chain
-// by placing the confirmed field first (e.g. raw.groupName ?? raw.folder ?? ...).
+// PROBE FINDINGS (Plan 56-06, updated from live error):
+// testSet is returned as an object { ID: number, name: string } by this AIO instance —
+// NOT a plain string as the static-analysis probe assumed. Extracting .name is required.
+// folder, folderName, testSetKey remain string fields if present.
+function resolveRawFolder(raw: RawCycle): string | undefined {
+  if (raw.folder) return raw.folder;
+  if (raw.testSet) {
+    return typeof raw.testSet === 'string' ? raw.testSet : raw.testSet.name;
+  }
+  if (raw.folderName) return raw.folderName;
+  if (raw.testSetKey) return raw.testSetKey;
+  return undefined;
+}
+
 function normalizeCycle(raw: RawCycle, fallbackProjectKey?: string): AioCycle {
+  const status = raw.status ?? (raw.isClosed ? 'Closed' : 'Active');
   return {
     key: raw.key,
     name: raw.title ?? raw.name ?? raw.key,
-    status: raw.status ?? (raw.isClosed ? 'Closed' : 'Active'),
+    status,
     projectKey: raw.projectKey ?? fallbackProjectKey ?? '',
-    folder:
-      raw.folder ?? raw.testSet ?? raw.folderName ?? raw.testSetKey ??
-      (raw.status ?? (raw.isClosed ? 'Closed' : 'Active')),
+    folder: resolveRawFolder(raw) ?? status,
   };
 }
 
