@@ -374,7 +374,7 @@ Cross-cutting constraints:
 | 53. Cycle Detail + Header Pinning | v1.8 | 0/5 | Not started | - |
 | 54. AIO on Issue Detail | v1.8 | 6/9 | In Progress|  |
 | 55. AIO Project Selection in Settings | v1.8 | 4/4 | Complete    | 2026-05-14 |
-| 56. Redesign AIO cycles page + tabs + loading optimization | v1.8 | 3/4 | In Progress|  |
+| 56. Redesign AIO cycles page + tabs + loading optimization | v1.8 | 6/6 | Complete    | 2026-05-14 |
 
 ### Phase 56: Redesign AIO cycles page, optimize AIO loading performance, add defects and executions views
 
