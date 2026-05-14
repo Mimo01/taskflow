@@ -19,7 +19,8 @@ const mockStore: {
 };
 
 vi.mock('../../stores/settings.store', () => ({
-  useSettingsStore: () => mockStore,
+  useSettingsStore: (selector?: (s: typeof mockStore) => unknown) =>
+    selector ? selector(mockStore) : mockStore,
 }));
 
 vi.mock('@/services/stronghold', () => ({
