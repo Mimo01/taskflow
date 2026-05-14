@@ -3,9 +3,9 @@ status: partial
 phase: 54-aio-on-issue-detail
 source: [54-VERIFICATION.md]
 started: 2026-05-14T00:25:00Z
-updated: 2026-05-14T09:21:46Z
+updated: 2026-05-14T13:10:00Z
 re_uat_round: 3
-fix_commits: ["7a99427", "9862672", "65463bb", "6fdee86"]
+fix_commits: ["7a99427", "9862672", "65463bb", "6fdee86", "25881bf"]
 ---
 
 ## Current Test
@@ -37,8 +37,8 @@ evidence:
   actual_screenshot: .planning/phases/54-aio-on-issue-detail/screenshots/gap3-round2-actual.png
 round_3_fix:
   plan: "54-09"
-  commits: ["6fdee86"]
-  landed_at: "2026-05-14T09:21:46Z"
+  commits: ["6fdee86", "25881bf"]
+  landed_at: "2026-05-14T13:10:00Z"
   summary: |
     Parser-level fix landed inside WikiRenderer.tsx::flattenInlineCalloutsForTableRow:
     (Concern B) transformPanelListItems converts `# [name|url]` items inside {panel}
@@ -50,8 +50,14 @@ round_3_fix:
     so they cannot re-fracture the row via preprocessJiraMarkup's later
     `\\` → `  \n` substitution. Concern A confirmed non-issue via direct
     mergeOpenTableRows unit test. The 54-08 overflow-x-auto wrapper stays as
-    defensive CSS. 5 new regression tests pass; full vitest suite GREEN
-    (1019 passed, baseline 1014 + 5 new).
+    defensive CSS.
+    Round-3 UAT follow-up (commit 25881bf): `\\` immediately before `{panel}`
+    (no space, e.g. `text\\{panel}`) is now also recognised as a hard break.
+    Prior two regex patterns required surrounding whitespace and missed the
+    no-space form; replaced with a single `/\\\\/g → <br/>` pattern applied
+    BEFORE callout substitution so the panel sits on a new line as Jira renders
+    natively. 6 new regression tests pass; full vitest suite GREEN
+    (1020 passed, baseline 1014 + 6 new).
 note: |
   Round 2 evidence shows the breakage is PARSER-LEVEL (not CSS overflow as 54-08 assumed):
   (1) Multi-line cell content fractures vertically — `• 5 GB (12657037, 5,13 €)` becomes a phantom row beneath `FAILED: Plati pre paušály S, M, L:` instead of staying in the Step cell.
@@ -131,7 +137,7 @@ blocked: 0
   uat_round_2: issue
   uat_round_2_at: "2026-05-14T09:25:00Z"
   uat_round_3: pending_uat
-  round_3_fix_commit: "6fdee86"
+  round_3_fix_commit: "6fdee86, 25881bf"
   round_3_fix_plan: "54-09"
   round_3_root_cause: |
     Parser-level — not CSS. (B) wiki-link `[name|url]` literal `|` survives into the
@@ -140,15 +146,20 @@ blocked: 0
     non-issue: mergeOpenTableRows correctly consumes the 6-line panel-bearing row.
     Full diagnosis: .planning/debug/panel-still-breaks-table-round-2.md.
   round_3_fix_landed: |
-    Plan 54-09 (commit 6fdee86) — flattenInlineCalloutsForTableRow gains a
+    Plan 54-09 (commits 6fdee86, 25881bf) — flattenInlineCalloutsForTableRow gains a
     transformPanelListItems helper that converts `# [name|url]` inside {panel} to
     `<ol><li><a href="url">name</a></li></ol>`; remaining literal `|` chars in
     non-list panel body escaped to `\|` before reaching jira2md. Phantom-row
     prevention: mergeOpenTableRows now substitutes Jira `\\` hard-break markers
     to `<br/>` inside merged rows so they cannot re-fracture the row via
-    preprocessJiraMarkup's later `\\` → `  \n` substitution. 54-08 overflow-x-auto
-    wrapper preserved. 5 new regression tests in WikiRenderer.test.tsx using the
-    verbatim two-item ESHOP fixture (VAS.png + Kosik.png).
+    preprocessJiraMarkup's later `\\` → `  \n` substitution. Round-3 UAT
+    follow-up (25881bf): `\\` immediately before `{panel}` with NO surrounding
+    whitespace (real ESHOP source `text\\{panel}`) now also handled — replaced
+    two prior whitespace-padded patterns with a single `/\\\\/g → <br/>`
+    applied BEFORE callout substitution so the panel renders on a new line.
+    54-08 overflow-x-auto wrapper preserved. 6 new regression tests in
+    WikiRenderer.test.tsx using the verbatim two-item ESHOP fixture
+    (VAS.png + Kosik.png) + the no-space `\\{panel}` form.
   uat_note: |
     Round 2: 'rendering of the panel is better but it still breaks the table'. Screenshots received.
     Reframed root cause: PARSER-LEVEL fractures (not CSS overflow). Three independent concerns surfaced:
