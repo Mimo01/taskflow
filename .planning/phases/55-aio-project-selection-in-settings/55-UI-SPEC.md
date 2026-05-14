@@ -1,11 +1,12 @@
 ---
 phase: 55
 slug: aio-project-selection-in-settings
-status: draft
+status: approved
 shadcn_initialized: true
 preset: base-nova
 created: 2026-05-14
 revised: 2026-05-14
+reviewed_at: 2026-05-14
 ---
 
 # Phase 55 — UI Design Contract
