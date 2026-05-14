@@ -46,8 +46,8 @@ describe('fetchJiraUserByUsername', () => {
     } as unknown as Response);
     await fetchJiraUserByUsername(BASE, TOKEN, 'ext94772');
     const calledUrl = mockedApiFetch.mock.calls[0][1] as string;
-    expect(calledUrl).toContain('/rest/api/2/user');
-    expect(calledUrl).toContain('username=ext94772');
+    expect(calledUrl).toContain('/rest/api/latest/user');
+    expect(calledUrl).toContain('key=ext94772');
   });
 
   it('returns null on any non-ok response (e.g. 403)', async () => {
