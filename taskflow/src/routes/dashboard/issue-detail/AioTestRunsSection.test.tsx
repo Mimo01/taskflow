@@ -528,10 +528,16 @@ describe('AioTestRunsSection', () => {
       expect(mockFetchRuns).not.toHaveBeenCalled();
       // And uses the direct-lookup fetcher exactly once per linked run reference.
       expect(mockFetchRunDetail).toHaveBeenCalledTimes(1);
+      // Plan 54-11 cross-project fix: the detail-fetch projectKey is derived
+      // from the CYCLE key (UNIQUE_CYCLE_KEY='ESHOP-CY-1011' → 'ESHOP'), not
+      // from the parent issue's project (PROJECT_KEY='PROJ'). The cycle is
+      // in the ESHOP project — calling the API with 'PROJ' was the round-3
+      // UAT bug that returned 'No Cycle found' and defaulted status to
+      // NOT_EXECUTED.
       expect(mockFetchRunDetail).toHaveBeenCalledWith(
         JIRA_BASE_URL,
         'mock-token',
-        PROJECT_KEY,
+        'ESHOP',
         UNIQUE_CYCLE_KEY,
         UNIQUE_RUN_ID,
       );
@@ -720,6 +726,50 @@ describe('AioTestRunsSection', () => {
       expect(
         screen.getByText(/No inline image attachments found in linked test runs/i),
       ).toBeTruthy();
+    });
+
+    it('Plan 54-11: cross-project impacted execution uses the cycle-derived projectKey for the detail fetch (status bug fix)', async () => {
+      // Round-3 UAT diagnostic: a VTE-* issue with an ESHOP-CY-759 impacted
+      // execution hit URL /project/VTE/testcycle/ESHOP-CY-759/... → 404 →
+      // detail null → status defaulted to NOT_EXECUTED. Fix: derive
+      // projectKey from cycleKey.split('-')[0] per row so cross-project
+      // routing works.
+      mockFetchTraceability.mockResolvedValueOnce([
+        SENTINEL_CASE,
+        SENTINEL_CASE_2,
+        // Cross-project impacted case: its cycle key starts with 'OTHER',
+        // a different project from PROJECT_KEY ('PROJ').
+        {
+          id: 1234,
+          key: 'OTHER-TC-1',
+          title: 'Cross-project case',
+          projectKey: 'OTHER',
+          runs: [{ runId: '99999', cycleKey: 'OTHER-CY-9' }],
+        },
+      ]);
+      mockFetchTraceability.mockResolvedValueOnce([]);
+      mockFetchRunDetail.mockImplementation(async (_b, _t, _p, cycle, runId) => {
+        if (cycle === PRIMARY_CYCLE_KEY) {
+          return {
+            run: { id: runId, status: 'PASS', testCaseKey: '', cycleKey: cycle },
+            steps: [],
+          };
+        }
+        return makeRunDetail(runId, cycle, 'PASS');
+      });
+
+      renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
+      await waitFor(() => {
+        expect(screen.getByText(/Impacted executions/i)).toBeTruthy();
+      });
+
+      // The cross-cycle detail fetch must have been called with projectKey='OTHER'
+      // (derived from 'OTHER-CY-9'), NOT 'PROJ' (the parent issue's project).
+      const crossProjectCall = mockFetchRunDetail.mock.calls.find(
+        (call) => call[3] === 'OTHER-CY-9',
+      );
+      expect(crossProjectCall).toBeDefined();
+      expect(crossProjectCall![2]).toBe('OTHER');
     });
 
     it('Plan 54-10: AIO grid surfaces image refs from the Jira issue description body (description-only path)', async () => {

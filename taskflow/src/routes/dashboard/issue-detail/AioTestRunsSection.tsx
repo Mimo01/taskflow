@@ -436,12 +436,20 @@ export function AioTestRunsSection({
           .slice(0, MAX_IMPACTED_EXECUTIONS); // T-54-07-02 cap (cross-cycle ONLY)
 
         // In-cycle: uncapped Promise.all (54-06 behaviour preserved).
+        // Plan 54-11 status-bug fix: the detail-fetch projectKey must be
+        // derived from the cycle key (e.g. ESHOP-CY-759 → 'ESHOP'), NOT from
+        // the parent issue's projectKey. Round-3 UAT diagnostic confirmed:
+        // a VTE-* issue with an ESHOP-CY-759 impacted execution hit URL
+        // `/project/VTE/testcycle/ESHOP-CY-759/...` → 'No Cycle found' → null
+        // → status defaulted to NOT_EXECUTED ('Not Run') on every cross-project
+        // row. Derive per-cycle so cross-project routing works.
         const inCycleResults = await Promise.all(
           inCycleRefs.map(async ({ testCase, runRef }) => {
+            const cycleProjectKey = runRef.cycleKey.split('-')[0] || projectKey;
             const detail = await fetchAioTestRunDetail(
               jiraBaseUrl,
               token,
-              projectKey,
+              cycleProjectKey,
               runRef.cycleKey,
               runRef.runId,
             );
@@ -461,10 +469,12 @@ export function AioTestRunsSection({
           const chunk = crossCycleRefs.slice(i, i + MAX_PARALLEL);
           const chunkResults = await Promise.all(
             chunk.map(async ({ testCase, runRef }) => {
+              // Plan 54-11: per-cycle projectKey (see in-cycle comment above).
+              const cycleProjectKey = runRef.cycleKey.split('-')[0] || projectKey;
               const detail = await fetchAioTestRunDetail(
                 jiraBaseUrl,
                 token,
-                projectKey,
+                cycleProjectKey,
                 runRef.cycleKey,
                 runRef.runId,
               );
