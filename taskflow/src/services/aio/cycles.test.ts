@@ -188,15 +188,15 @@ describe('fetchAioCyclesWithDetail', () => {
     expect(result.isLast).toBe(true);
   });
 
-  it('passes folderID as query param when provided', async () => {
+  it('includes c_pId query param in URL', async () => {
     mockedApiFetch.mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => ({ items: [], allIDs: [], startAt: 0, maxResults: 20, total: 0, isLast: true, additionalData: {} }),
     } as unknown as Response);
-    await fetchAioCyclesWithDetail(BASE, TOKEN, PROJECT_ID, 10763);
+    await fetchAioCyclesWithDetail(BASE, TOKEN, PROJECT_ID);
     const calledUrl = vi.mocked(apiFetch).mock.calls[0][1] as string;
-    expect(calledUrl).toContain('folderID=10763');
+    expect(calledUrl).toContain(`c_pId=${PROJECT_ID}`);
   });
 
   it('returns empty response on 404', async () => {
