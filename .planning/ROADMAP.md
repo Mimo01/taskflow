@@ -277,7 +277,7 @@ Cross-cutting constraints:
   2. The AIO section renders a step table with step / expected / actual columns and colored failure markers per row
   3. When the issue has no associated AIO test runs, the section is hidden (not an error state)
   4. Attachment images within test run steps are fetched via the authenticated HTTP client and open in the existing in-app lightbox
-**Plans:** 6/9 plans executed
+**Plans:** 6/10 plans executed
 
 Plans:
 
@@ -305,6 +305,9 @@ Plans:
 
 **Wave 7** *(UAT gap closure — blocked on Wave 6 completion; closes 54-HUMAN-UAT.md Gaps 1/2/3 surfaced 2026-05-14)*
 - [x] 54-08-PLAN.md — Gap closure for 3 remaining UAT gaps: (Gap 1) widen no-runs path so in-cycle runs with empty/null detail.steps[] promote to ImpactedExecutionsList — fixes ESHOP-393120 single-cycle silent empty section, (Gap 2) narrow line-606 short-circuit so AioAttachmentsGrid header always renders when AIO data is present (linked cases exist), (Gap 3) wrap WikiRenderer tables in overflow-x-auto + add min-w-0 to StepTable cell wrappers so nested wiki tables scroll horizontally inside outer cells instead of overflowing; plus service-level shape-lock tests for fetchAioTraceabilityTestCases.
+
+**Wave 8** *(UAT gap closure round 2 — blocked on Wave 7 completion; closes 54-HUMAN-UAT.md round-2 residual Gap 3 + still-pending Test 4)*
+- [ ] 54-09-PLAN.md — Parser-level fix for nested `{panel}` inside `|cell|` of wiki table rows: (Concern A) verify `mergeOpenTableRows` consumes the full panel-bearing row via a direct unit test, (Concern B) escape literal `|` inside the flattened `<span data-callout>` substituted content so wiki links `[name|url]` no longer break the markdown table tokeniser, (Concern C) preserve numbered-list semantics `# item` inside `{panel}` by emitting `<ol><li>` HTML; plus verbatim two-item ESHOP fixture regression tests; final `checkpoint:human-verify` covers Gap 3 RE-UAT + still-pending Test 4 (ROADMAP SC end-to-end UAT on a happy-path issue).
 
 Cross-cutting constraints:
 - Plans 54-02 and 54-03 run in parallel (no shared files): 54-02 touches only test files; 54-03 touches only new component files
