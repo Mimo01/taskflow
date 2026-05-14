@@ -737,6 +737,46 @@ describe('AioTestRunsSection', () => {
       ).toBeTruthy();
     });
 
+    it('Plan 54-11: in-cycle CollapsibleRunBlock header shows cycle key + run ID as Links (cycle-derived projectKey)', async () => {
+      // In-cycle path: linked test case with detail.steps populated → renders
+      // via CollapsibleRunBlock. Round-4 UAT (mimopn): "I see the test runs
+      // but there are no links or info to test cycle." Header now mirrors the
+      // ImpactedExecutionsList cycle + run link pattern.
+      mockFetchTraceability.mockResolvedValueOnce([
+        {
+          id: 1,
+          key: 'PROJ-TC-1',
+          title: 'Login flow',
+          projectKey: PROJECT_KEY,
+          runs: [{ runId: '5555', cycleKey: 'PROJ-CY-9' }],
+        },
+      ]);
+      mockFetchTraceability.mockResolvedValueOnce([]);
+      mockFetchRunDetail.mockResolvedValueOnce({
+        run: { id: '5555', status: 'FAIL', testCaseKey: 'PROJ-TC-1', cycleKey: 'PROJ-CY-9' },
+        steps: [{ id: 1, step: 'open page', status: 'PASS' }],
+      });
+
+      const { container } = renderSection({ jiraIssueId: '393120' });
+      await waitFor(() => {
+        expect(screen.getByTestId('aio-test-runs-section')).toBeTruthy();
+      });
+
+      const cycleLink = container.querySelector(
+        '[data-testid="in-cycle-run-cycle-link"]',
+      ) as HTMLAnchorElement | null;
+      expect(cycleLink).not.toBeNull();
+      expect(cycleLink!.getAttribute('href')).toBe('/aio-cycle/PROJ/PROJ-CY-9');
+      expect(cycleLink!.textContent).toBe('PROJ-CY-9');
+
+      const runLink = container.querySelector(
+        '[data-testid="in-cycle-run-run-link"]',
+      ) as HTMLAnchorElement | null;
+      expect(runLink).not.toBeNull();
+      expect(runLink!.getAttribute('href')).toBe('/aio-cycle/PROJ/PROJ-CY-9/run/5555');
+      expect(runLink!.textContent).toBe('5555');
+    });
+
     it('Plan 54-11: cycle key cell is a Link to the in-app cycle detail page (derived projectKey)', async () => {
       mockFetchTraceability.mockResolvedValueOnce([
         SENTINEL_CASE,

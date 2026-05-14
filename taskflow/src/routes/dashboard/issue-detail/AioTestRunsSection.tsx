@@ -314,31 +314,56 @@ function StepTable({ steps }: { steps: AioTestRunStep[] }) {
   );
 }
 
-// Collapsible block for multi-test-case grouping — collapsed for PASS, expanded for FAIL/BLOCKED (D-10)
+// Collapsible block for in-cycle runs — collapsed for PASS, expanded for FAIL/BLOCKED (D-10).
+// Plan 54-11 round-4 follow-up: header now shows cycle key + run ID as Links
+// (cycle → /aio-cycle/.../...; run → /aio-cycle/.../.../run/{runId}) for
+// symmetry with ImpactedExecutionsList. Both targets use the cycle-derived
+// projectKey so cross-project navigation works.
 function CollapsibleRunBlock({ run, testCase, steps }: AioIssueRunData) {
   const [isExpanded, setIsExpanded] = useState(run.status !== 'PASS');
   const ChevronIcon = isExpanded ? ChevronDown : ChevronRight;
   const displayName = testCase?.title ?? run.testCase?.title ?? run.testCaseKey;
+  const cycleProjectKey = run.cycleKey.split('-')[0] || '';
+  const cycleHref = `/aio-cycle/${cycleProjectKey}/${run.cycleKey}`;
+  const runHref = `${cycleHref}/run/${run.id}`;
 
   return (
     <div className="border-b border-border last:border-0">
-      <button
-        type="button"
-        onClick={() => setIsExpanded(!isExpanded)}
-        aria-label={
-          isExpanded ? `Collapse test run for ${displayName}` : `Expand test run for ${displayName}`
-        }
-        className="flex items-center gap-2 cursor-pointer min-h-[44px] px-4 py-2 hover:bg-muted/30 w-full text-left"
-      >
-        <ChevronIcon className="size-4" />
-        <FlaskConical className="size-3.5 text-muted-foreground" />
-        <span className="text-sm">{displayName}</span>
+      <div className="flex items-center gap-2 min-h-[44px] px-4 py-2 hover:bg-muted/30">
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          aria-label={
+            isExpanded
+              ? `Collapse test run for ${displayName}`
+              : `Expand test run for ${displayName}`
+          }
+          className="flex items-center gap-2 cursor-pointer text-left flex-1 min-w-0"
+        >
+          <ChevronIcon className="size-4 shrink-0" />
+          <FlaskConical className="size-3.5 text-muted-foreground shrink-0" />
+          <span className="text-sm truncate">{displayName}</span>
+        </button>
+        <Link
+          to={cycleHref}
+          data-testid="in-cycle-run-cycle-link"
+          className="font-mono text-xs text-muted-foreground hover:text-foreground hover:underline shrink-0"
+        >
+          {run.cycleKey}
+        </Link>
+        <Link
+          to={runHref}
+          data-testid="in-cycle-run-run-link"
+          className="font-mono text-xs text-muted-foreground hover:text-foreground hover:underline shrink-0"
+        >
+          {run.id}
+        </Link>
         <span
-          className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium ${aioRunStatusBadgeClass(run.status)}`}
+          className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium shrink-0 ${aioRunStatusBadgeClass(run.status)}`}
         >
           {normalizeStatusLabel(run.status)}
         </span>
-      </button>
+      </div>
       {isExpanded && <StepTable steps={steps} />}
     </div>
   );
