@@ -72,6 +72,10 @@ interface AioTestRunsSectionProps {
   issueKey: string;
   jiraBaseUrl: string;
   jiraIssueId?: string; // Jira numeric issue ID (e.g. "186227") for jiraRequirementIDs filtering
+  // Plan 54-10: Jira issue description body. When present, inline `[name.ext|url]`
+  // image refs in the description are aggregated into AioAttachmentsGrid alongside
+  // test-run step content (deduped by URL).
+  description?: string | null;
 }
 
 // Pick the latest active cycle by numeric suffix (e.g. PROJ-CY-4 > PROJ-CY-3).
@@ -343,6 +347,7 @@ export function AioTestRunsSection({
   issueKey,
   jiraBaseUrl,
   jiraIssueId,
+  description,
 }: AioTestRunsSectionProps) {
   // aioEnabled gate — must be first, before all hooks (Rules of Hooks: conditional return after hook reads)
   const aioEnabled = useSettingsStore((s) => s.aioEnabled);
@@ -577,8 +582,14 @@ export function AioTestRunsSection({
   // cross-cycle fetch ensures the aggregation set is bounded.
   // Computed BEFORE any conditional returns to honour the Rules of Hooks.
   const aioAttachments = useMemo(() => {
+    // Plan 54-10: extract image refs from the Jira issue description body too,
+    // so the grid is a unified surface for "all AIO images on this issue" (not
+    // just test-run step content). Description-derived refs are listed first
+    // so the dedup-by-URL chain prefers the description as the canonical
+    // source when an image appears in both surfaces.
+    const descriptionImages = extractInlineImageAttachments(description);
     const data = stepsQuery.data;
-    if (!data) return [];
+    if (!data) return descriptionImages;
     // Adapt impactedExecutions to the AioIssueRunData shape collectAioImageAttachments
     // expects. Run shape is synthesised from runRef + status; only `steps` is
     // consulted by the collector.
@@ -592,8 +603,12 @@ export function AioTestRunsSection({
       testCase: ie.testCase,
       steps: ie.steps,
     }));
-    return collectAioImageAttachments([...data.runs, ...impactedAsRunData]);
-  }, [stepsQuery.data]);
+    const runImages = collectAioImageAttachments([...data.runs, ...impactedAsRunData]);
+    const seen = new Set<string>();
+    return [...descriptionImages, ...runImages].filter((a) =>
+      seen.has(a.url) ? false : (seen.add(a.url), true),
+    );
+  }, [stepsQuery.data, description]);
 
   // Render state waterfall
   if (!aioEnabled) return null;
