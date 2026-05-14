@@ -478,7 +478,7 @@ export default function AioCycleDetailPage() {
                     <DefectRow
                       key={defectKey}
                       defectKey={defectKey}
-                      jiraBaseUrl={jiraBaseUrl}
+                      jiraBaseUrl={jiraBaseUrl ?? undefined}
                       token={token}
                       tokenLoading={tokenLoading}
                       triggeredBy={triggeredBy}
