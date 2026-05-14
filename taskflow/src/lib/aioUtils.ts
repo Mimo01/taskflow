@@ -46,3 +46,27 @@ export function normalizeStatusLabel(raw: string | undefined): string {
       return raw ?? 'Not Run';
   }
 }
+
+/**
+ * Maps numeric AIO status IDs to canonical status strings.
+ * Source: UI-SPEC.md Status Color Palette + CONTEXT.md D-05. Five entries only.
+ * Used by progress-bar rendering in AioProjectOverviewPage (Plan 57-04).
+ */
+export const AIO_STATUS_MAP: Record<number, 'pass' | 'fail' | 'blocked' | 'notRun' | 'inProgress'> = {
+  901: 'pass',
+  51: 'fail',
+  55: 'blocked',
+  53: 'notRun',
+  54: 'inProgress',
+};
+
+/**
+ * Resolve a numeric AIO status ID to its canonical status string.
+ * Falls back to 'notRun' for any unknown ID — never throws.
+ * NOTE: testRunDistribution keys are JSON strings — always call Number(key) before this (Pitfall 3).
+ */
+export function normalizeStatusById(
+  id: number,
+): 'pass' | 'fail' | 'blocked' | 'notRun' | 'inProgress' {
+  return AIO_STATUS_MAP[id] ?? 'notRun';
+}
