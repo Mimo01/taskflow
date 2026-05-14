@@ -1,7 +1,8 @@
 ---
 phase: 56
 slug: redesign-aio-cycles-page-optimize-aio-loading-performance-ad
-status: draft
+status: approved
+reviewed_at: 2026-05-14
 shadcn_initialized: true
 preset: base-nova / neutral / cssVariables
 created: 2026-05-14
