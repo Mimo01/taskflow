@@ -318,9 +318,12 @@ describe('settings.store — selectedAioProjectKey (Phase 55)', () => {
 
   it('selectedAioProjectKey is defined (not undefined) on a fresh store (D-07 migration smoke)', () => {
     // Migration guard at settings.store.ts: `if (version < 17) { if (s.selectedAioProjectKey === undefined) s.selectedAioProjectKey = null; }`
-    // Direct invocation of migrate() is not the established pattern in this test file (PATTERNS.md note);
-    // the default-value check is the functional substitute — a freshly initialized store must have the
-    // field present and equal to null, mirroring the migration outcome for absent persisted state.
+    // IN-02 (deferred): direct migrate() invocation would require exporting the
+    // inline migrate function from settings.store.ts — a production-code refactor
+    // out of scope for Phase 55. The gap is recorded in deferred-items.md.
+    // Default-value check is the functional substitute: a freshly initialized
+    // store must have the field present and equal to null, mirroring the
+    // migration outcome for absent persisted state.
     const state = useSettingsStore.getState();
     expect('selectedAioProjectKey' in state).toBe(true);
     expect(state.selectedAioProjectKey).toBeNull();
