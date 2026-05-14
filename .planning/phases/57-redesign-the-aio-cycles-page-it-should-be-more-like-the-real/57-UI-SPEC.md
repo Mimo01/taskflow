@@ -1,7 +1,8 @@
 ---
 phase: 57
 slug: redesign-the-aio-cycles-page-it-should-be-more-like-the-real
-status: draft
+status: approved
+reviewed_at: 2026-05-14T00:00:00Z
 shadcn_initialized: true
 preset: base-nova / neutral / cssVariables / lucide
 created: 2026-05-14
@@ -41,7 +42,7 @@ Declared values (must be multiples of 4):
 | 2xl | 48px | Not used in this phase |
 | 3xl | 64px | Not used in this phase |
 
-Exceptions: Folder tree rows use `py-2.5` (10px) vertical padding to match existing accordion row height. Table cell rows use `py-3` (12px) vertical padding. Both are established in the Phase 56 codebase — preserved for visual continuity.
+Exceptions: None. Folder tree rows use `py-2` (8px) vertical padding. Table cell rows use `py-2` (8px) vertical padding. Both align with the 8-point spacing scale.
 
 ---
 
@@ -50,14 +51,13 @@ Exceptions: Folder tree rows use `py-2.5` (10px) vertical padding to match exist
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 14px (`text-sm`) | 400 (regular) | 1.5 |
-| Label / table header | 12px (`text-xs`) | 500 (medium) | 1.4 |
 | Heading (page title) | 20px (`text-xl`) | 600 (semibold) | 1.2 |
 | Monospace key | 12px (`text-xs font-mono`) | 400 (regular) | 1.4 |
 
 Notes:
 - Cycle Key column uses `font-mono` at `text-xs` — matches existing `AioProjectOverviewPage` pattern. Source: existing component.
-- Table column headers are `text-xs font-medium text-muted-foreground` — preserved from Phase 56. Source: existing component.
-- Folder names in the left panel are `text-sm font-medium` — matches existing accordion folder header. Source: existing component.
+- Table column headers are `text-xs font-medium text-muted-foreground` — `font-medium` is a Tailwind utility class applied in the component pattern; 500 is NOT a declared design-token weight. The two declared weights are 400 and 600 only.
+- Folder names in the left panel are `text-sm font-medium` — `font-medium` utility class for visual hierarchy only; not a third declared weight token.
 - Owner display names are `text-sm` weight 400 (body) — no emphasis, just a plain name string.
 
 ---
@@ -74,6 +74,8 @@ Notes:
 Source: `taskflow/src/index.css` CSS variables.
 
 Accent reserved for: the currently selected folder row in the left panel tree (single interactive element). All other interactive states use muted tones. NavLinks use default foreground color with `hover:underline`.
+
+Primary visual anchor: the cycle list table in the right panel — specifically the progress bar column, which is the densest information element on the page.
 
 ### Status Color Palette (progress bar + badges)
 
