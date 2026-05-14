@@ -141,6 +141,30 @@ describe('WikiRenderer', () => {
       expect(callout).not.toBeNull();
       expect(callout?.textContent).toContain('untitled');
     });
+
+    it('panels reset first/last-child paragraph margins to neutralize prose spacing', () => {
+      // Verify all four callout types carry the surgical margin-reset classes that
+      // prevent prose-sm paragraph margins from stacking with the panel's own p-3
+      // padding (root cause: first <p> top-margin + p-3 = doubled apparent padding).
+      const calloutCases: Array<{ type: string; wikiText: string }> = [
+        { type: 'panel', wikiText: '{panel}line 1\n\nline 2{panel}' },
+        { type: 'info', wikiText: '{info}line 1\n\nline 2{info}' },
+        { type: 'warning', wikiText: '{warning}line 1\n\nline 2{warning}' },
+        { type: 'note', wikiText: '{note}line 1\n\nline 2{note}' },
+      ];
+      for (const { type, wikiText } of calloutCases) {
+        const { container } = render(<WikiRenderer wikiText={wikiText} />);
+        const callout = container.querySelector(`[data-callout="${type}"]`);
+        expect(callout, `${type}: callout element should exist`).not.toBeNull();
+        const cls = callout!.className;
+        expect(cls, `${type}: should contain [&>p:first-child]:mt-0`).toContain(
+          '[&>p:first-child]:mt-0',
+        );
+        expect(cls, `${type}: should contain [&>p:last-child]:mb-0`).toContain(
+          '[&>p:last-child]:mb-0',
+        );
+      }
+    });
   });
 
   describe('image rendering', () => {
