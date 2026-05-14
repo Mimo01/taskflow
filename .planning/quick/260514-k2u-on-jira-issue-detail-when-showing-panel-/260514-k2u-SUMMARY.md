@@ -110,3 +110,17 @@ None — plan executed exactly as written.
 **Test added:** Mounts the ESHOP table-cell fixture and asserts (a) no `<br>` is a direct child of `<span data-callout>`, and (b) `firstElementChild` / `lastElementChild` of the panel span are both the `<ol>`. 42/42 tests pass.
 
 **Commit (round 3):** `613568e` — fix(260514-k2u): strip stray leading/trailing <br/> from inline panel span
+
+## UAT Approved (2026-05-14)
+
+User confirmed round-3 fix resolved the visible padding issue. Task 2 (visual verification) is complete.
+
+**Final commit chain:**
+- `5a72844` test — RED regression
+- `131f813` feat — GREEN round-1 (added `[&>p:…]` reset; insufficient for non-`<p>` children)
+- `901052c` fix — round-2 broadened to `[&>*:…]` (still insufficient — selector zeroed `<br>` margins that don't exist)
+- `613568e` fix — round-3 stripped stray leading/trailing `<br/>` at the preprocess layer (resolved)
+
+## Postmortem
+
+Three rounds were needed because the diagnosis chain ran in the wrong order: CSS first, DOM last. The actual cause was an upstream DOM problem (stray `<br/>` tokens left by a `.trim()` that ran AFTER `.replace(/\n/g, '<br/>')` and so was a no-op for the tokenized newlines). The CSS reset utilities added in rounds 1-2 were genuinely useful — they're still in the code and remain the correct defense against `prose-sm` margin stacking for any non-`<br>` content — but they were never going to fix line-height-of-padding contributed by element-children that have no margins. Lesson for future visual bugs: inspect the rendered DOM before iterating on CSS.
