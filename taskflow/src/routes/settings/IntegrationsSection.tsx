@@ -16,6 +16,9 @@ export default function IntegrationsSection() {
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
+    // WR-03: skip the Stronghold IPC when Jira is unconfigured. Mirrors the
+    // matching guard in Sidebar.tsx so the two copies of this pattern stay aligned.
+    if (!jiraBaseUrl) return;
     readSecret('jira-pat')
       .then(setToken)
       .catch(() => setToken(null));
