@@ -3,35 +3,42 @@ status: partial
 phase: 54-aio-on-issue-detail
 source: [54-VERIFICATION.md]
 started: 2026-05-14T00:25:00Z
-updated: 2026-05-14T08:55:00Z
+updated: 2026-05-14T09:15:00Z
 re_uat_round: 2
 fix_commits: ["7a99427", "9862672", "65463bb"]
 ---
 
 ## Current Test
 
-[awaiting human re-UAT after 54-08 fix landings]
+Round 2 partial: Test 1 PASS, Test 2 PASS, Test 3 FAIL (awaiting user screenshots), Test 4 pending.
 
 ## Tests
 
 ### 1. Gap 1 RE-UAT — Impacted executions list renders on no-runs path with real per-run status chips
 expected: On ESHOP-393120 (defect with 2 linked test runs in single cycle ESHOP-CY-1011, both testRunStatusID 53 = Passed), the AIO Test Runs section MUST appear with the "Impacted executions (across all cycles)" header and 2 rows (one per linked test case: ESHOP-TC-8477 / ESHOP-TC-8478), each showing test case key + title + cycle key (ESHOP-CY-1011) + run ID (263794 / 263793) + a colored status chip whose color reflects the live API's run.status (green PASS chip). Rows are read-only.
-result: pending
+result: pass
+reported: "I can see AIO test runs correctly."
 prior_round_1_result: issue (gap diagnosed, fix landed in 54-08 commit 7a99427)
 
 ### 2. Gap 2 RE-UAT — AioAttachmentsGrid header always visible on no-runs path
 expected: On the same ESHOP-393120 issue, BELOW the Impacted executions list, the collapsible "AIO attachments" header MUST be visible (paperclip icon + count). Expanded by default. Either ≥1 thumbnail (if step content carries `[file.png|url]` refs) OR the "No inline image attachments found in linked test runs." empty state visible inside. Clicking a thumbnail (if present) opens the in-app ImageLightbox via the AuthImage bridge-URL translation path.
-result: pending
+result: pass
+reported: "I can see AIO attachments but they are always empty (empty-state text visible)."
+note: Empty-state behavior is the contract — ESHOP-393120 runs have empty testRunSteps[] so there are no inline [file.png|url] refs to discover. Header visible + empty-state text matches the Gap 2 contract truth.
 prior_round_1_result: issue (gap diagnosed, fix landed in 54-08 commit 7a99427 — line-606 guard narrowed, AioAttachmentsGrid now sibling on all 3 render arms)
 
 ### 3. Gap 3 RE-UAT — Nested wiki (`{panel}` inside `|cell|`) renders inside table cell without breaking outer column
 expected: Open an ESHOP issue whose failed test runs contain step content matching the verbatim Finding 1 fixture (a `{panel}` block embedded inside a `|cell|` table row with `# [VAS.png|...]`). The outer StepTable renders WITHOUT BREAKING LAYOUT. The inner wiki table either fits inside the Step column OR scrolls horizontally inside it (the page itself does NOT widen). The `{panel}` content (including the VAS.png anchor) renders INSIDE the step table cell. Clicking the VAS.png anchor opens the in-app ImageLightbox (not the OS browser).
-result: pending
+result: issue
+reported: "The rendering of the 'panel' is better but it still breaks the table. (Screenshots: how it should be vs how it is — pending)"
+severity: major
+note: Partial improvement from commit 9862672 (overflow-x-auto + min-w-0) — visual loudness/escape behavior softened but the panel still breaks layout. Awaiting user screenshots to characterize the residual breakage (overflow horizontal vs structural escape vs page widening). Will route to a new debug session + plan 54-09 once screenshots arrive.
 prior_round_1_result: issue (gap diagnosed, fix landed in 54-08 commit 9862672 — WikiRenderer.markdownComponents.table wraps in overflow-x-auto, StepTable td wrappers gain min-w-0)
 
 ### 4. ROADMAP SC end-to-end UAT on a happy-path issue
 expected: Verify all four ROADMAP success criteria on a happy-path ESHOP issue (e.g. a defect linked to an active cycle with populated step content) — (1) section appears only when aioEnabled=true and loads lazily without blocking the main issue body; (2) step table renders Step/Expected/Actual columns with colored failure chips per row (PASS green / FAIL red / BLOCKED orange); (3) section is hidden (no error state) when no AIO test cases are linked to the issue; (4) attachment images within steps + AIO attachments grid thumbnails both open in the existing in-app ImageLightbox (NOT the OS browser). Toggle aioEnabled OFF/ON in Settings to confirm gating.
 result: pending
+note: Deferred until Gap 3 resolved — end-to-end SC4 (attachment images open in lightbox) cannot be fully verified while the failed-step rendering still breaks layout.
 prior_round_1_result: skipped (deferred until Tests 1-3 resolved — now ready)
 
 ## How to run
@@ -47,9 +54,9 @@ Reply "approved" if all 4 PASS, or describe failures with screenshots/DOM if any
 ## Summary
 
 total: 4
-passed: 0
-issues: 0
-pending: 4
+passed: 2
+issues: 1
+pending: 1
 skipped: 0
 blocked: 0
 
@@ -58,7 +65,9 @@ blocked: 0
 <!-- Round 1 gaps preserved below for diagnosis history. All three have fix commits landed in plan 54-08; status will move to `resolved` once re-UAT confirms. -->
 
 - truth: "Impacted executions list renders on no-runs path showing one row per impacted execution (test case key + title, cycle key, run ID, colored status chip) when linked test cases have runs only in non-primary cycles."
-  status: fixed_pending_uat
+  status: resolved
+  uat_round_2: pass
+  resolved_at: "2026-05-14T09:15:00Z"
   fix_commit: "7a99427"
   fix_plan: "54-08"
   reason: |
@@ -73,7 +82,10 @@ blocked: 0
   debug_session: .planning/debug/aio-no-impacted-executions-eshop-393120.md
 
 - truth: "AioAttachmentsGrid header is visible on no-runs path with either thumbnails or an empty-state message; clicking a thumbnail opens in-app ImageLightbox via AuthImage bridge translation."
-  status: fixed_pending_uat
+  status: resolved
+  uat_round_2: pass
+  resolved_at: "2026-05-14T09:15:00Z"
+  uat_note: "Header visible + empty-state text shown on ESHOP-393120 — matches contract since runs have empty testRunSteps[] (no inline [file.png|url] refs to discover)."
   fix_commit: "7a99427"
   fix_plan: "54-08"
   reason: |
@@ -88,7 +100,10 @@ blocked: 0
   debug_session: .planning/debug/aio-attachments-header-missing.md
 
 - truth: "Nested {panel} blocks embedded inside |cell| of a wiki table row render INSIDE the cell without breaking table layout; links open in-app ImageLightbox."
-  status: fixed_pending_uat
+  status: partial
+  uat_round_2: issue
+  uat_round_2_at: "2026-05-14T09:15:00Z"
+  uat_note: "Round 2: 'rendering of the panel is better but it still breaks the table'. Awaiting screenshots (expected vs actual) before planning next fix iteration."
   fix_commit: "9862672"
   fix_plan: "54-08"
   reason: |
