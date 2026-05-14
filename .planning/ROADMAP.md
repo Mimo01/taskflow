@@ -404,7 +404,7 @@ Plans:
 - [x] 56-04-PLAN.md — Human verification checkpoint: live AIO instance E2E covering progressive loading, tabs UX, token-flash-fire absence, graceful degradation, skeleton no-jump, regression smoke
 
 **Wave 4** *(gap closure — blocked on Wave 3 checkpoint; 56-05 and 56-06 run in parallel — no shared files)*
-- [ ] 56-05-PLAN.md — Gap 3 fix: probe jiraDefectIDs resolution + fix normalizeTestRun to populate AioTestRun.defects[] with real Jira issue keys (AIOC-03)
+- [x] 56-05-PLAN.md — Gap 3 fix: probe jiraDefectIDs resolution + fix normalizeTestRun to populate AioTestRun.defects[] with real Jira issue keys (AIOC-03)
 - [ ] 56-06-PLAN.md — Gaps 1+2 fix: probe raw cycle folder field + replace flat table with folder accordion + lazy CycleStatsCell per open folder (AION-03)
 
 Cross-cutting constraints:
