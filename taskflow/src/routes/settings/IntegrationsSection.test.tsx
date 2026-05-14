@@ -255,4 +255,39 @@ describe('IntegrationsSection — AIO project picker', () => {
   // D-14 silent persist — negative assertion: no useNavigate is mocked or imported,
   // so any router call would be undefined and throw. Existence of passing tests above
   // that select items implicitly verifies no navigation happens on change.
+
+  it('WR-01: shows destructive stale-key warning when selectedAioProjectKey is not in fetched projects', async () => {
+    mockStore.aioEnabled = true;
+    mockStore.selectedAioProjectKey = 'GHOST'; // persisted key not present in the list below
+    vi.mocked(fetchAioProjects).mockResolvedValue([
+      { id: 1, projectKey: 'PROJ1', name: 'Project One' },
+      { id: 2, projectKey: 'PROJ2', name: 'Project Two' },
+    ]);
+    renderWithClient(<IntegrationsSection />);
+    // Wait for projects to resolve so the stale-key derivation has Array projects + non-match.
+    await waitFor(() => {
+      const opts = document.querySelectorAll('[data-testid="aio-project-select"] option');
+      expect(opts.length).toBeGreaterThan(1);
+    });
+    expect(
+      await screen.findByText(
+        /Previously selected project "GHOST" is no longer available\. Pick another or clear the selection\./,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('WR-01: stale-key warning is absent when selectedProject resolves to a known project', async () => {
+    mockStore.aioEnabled = true;
+    mockStore.selectedAioProjectKey = 'PROJ2';
+    vi.mocked(fetchAioProjects).mockResolvedValue([
+      { id: 1, projectKey: 'PROJ1', name: 'Project One' },
+      { id: 2, projectKey: 'PROJ2', name: 'Project Two' },
+    ]);
+    renderWithClient(<IntegrationsSection />);
+    await waitFor(() => {
+      const opts = document.querySelectorAll('[data-testid="aio-project-select"] option');
+      expect(opts.length).toBeGreaterThan(1);
+    });
+    expect(screen.queryByText(/no longer available/)).toBeNull();
+  });
 });
