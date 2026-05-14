@@ -171,10 +171,11 @@ describe('IntegrationsSection — AIO project picker', () => {
   it('renders the project list when aioEnabled is true and the query resolves', async () => {
     mockStore.aioEnabled = true;
     mockStore.selectedAioProjectKey = 'PROJ2'; // pre-select to verify trigger label lookup
+    // Non-alphabetical order: Three, One, Two — after sorting must render One, Three, Two
     vi.mocked(fetchAioProjects).mockResolvedValue([
+      { id: 3, projectKey: 'PROJ3', name: 'Project Three' },
       { id: 1, projectKey: 'PROJ1', name: 'Project One' },
       { id: 2, projectKey: 'PROJ2', name: 'Project Two' },
-      { id: 3, projectKey: 'PROJ3', name: 'Project Three' },
     ]);
     renderWithClient(<IntegrationsSection />);
     // Label is visible
@@ -185,6 +186,13 @@ describe('IntegrationsSection — AIO project picker', () => {
       const opts = document.querySelectorAll('[data-testid="aio-project-select"] option');
       expect(opts.length).toBe(4); // 1 placeholder + 3 projects
     });
+    // Assert alphabetical order: Project One, Project Three, Project Two (alphabetical by name)
+    const opts = Array.from(
+      document.querySelectorAll('[data-testid="aio-project-select"] option'),
+    );
+    const names = opts.map((el) => el.textContent);
+    // First option is the placeholder (—), then sorted alphabetically
+    expect(names).toEqual(['—', 'Project One', 'Project Three', 'Project Two']);
     // The trigger label displays the project NAME from the selectedProject lookup
     // (Pitfall 3) — name appears in both the trigger span and the matching option,
     // so assert via findAllByText and require at least 2 occurrences (trigger + option).
@@ -194,6 +202,28 @@ describe('IntegrationsSection — AIO project picker', () => {
     expect(
       screen.getByText('Pick the AIO Test Management project this app shows.'),
     ).toBeInTheDocument();
+  });
+
+  it('sorts AIO project options alphabetically by name (case-insensitive)', async () => {
+    mockStore.aioEnabled = true;
+    mockStore.selectedAioProjectKey = null;
+    // Mixed-case names in non-alphabetical order
+    vi.mocked(fetchAioProjects).mockResolvedValue([
+      { id: 3, projectKey: 'C', name: 'charlie' },
+      { id: 1, projectKey: 'A', name: 'Alpha' },
+      { id: 2, projectKey: 'B', name: 'bravo' },
+    ]);
+    renderWithClient(<IntegrationsSection />);
+    await waitFor(() => {
+      const opts = document.querySelectorAll('[data-testid="aio-project-select"] option');
+      expect(opts.length).toBe(4); // 1 placeholder + 3 projects
+    });
+    const opts = Array.from(
+      document.querySelectorAll('[data-testid="aio-project-select"] option'),
+    );
+    const names = opts.map((el) => el.textContent);
+    // Case-insensitive alphabetical: Alpha → bravo → charlie
+    expect(names).toEqual(['—', 'Alpha', 'bravo', 'charlie']);
   });
 
   it('calls setSelectedAioProjectKey with the projectKey when an option is selected', async () => {
