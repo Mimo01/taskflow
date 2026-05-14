@@ -452,6 +452,55 @@ describe('WikiRenderer', () => {
       expect(container.querySelector('[role="dialog"]')).not.toBeNull();
     });
 
+    it('Plan 54-09 follow-up — `\\\\` hard-break immediately before `{panel}` (no space) renders panel on a new line', () => {
+      // Real Jira ESHOP source from round-3 UAT feedback: the wiki body contains
+      // `text\\{panel}` (zero whitespace between the `\\` hard-break marker and
+      // the `{panel}` open). Jira native render puts the panel block on a new
+      // line below the preceding text. Without the fix, our parser leaves the
+      // literal `\\` as text and the panel `<span>` sits inline with the prose.
+      const FIXTURE_NO_SPACE = [
+        '||*Header*||*Result*||',
+        `|Row 1 |Prefix text\\\\{panel}`,
+        `# [VAS.png|${ATTACHMENT_URL}]`,
+        '# [Kosik.png|https://jira.orange.sk/secure/attachment/124/Kosik.png]',
+        '{panel}|',
+      ].join('\n');
+
+      const { container } = render(<WikiRenderer wikiText={FIXTURE_NO_SPACE} />);
+
+      // Anti-regression: exactly one rendered table.
+      expect(container.querySelectorAll('table').length).toBe(1);
+
+      const table = container.querySelector('table');
+      const cell = table?.querySelectorAll('tbody td')[1]; // the second-column Result cell
+      expect(cell).not.toBeNull();
+
+      // The cell must contain a <br/> hard break BEFORE the panel <span>.
+      // (The `\\` literally preceded the `{panel}` open in the source — that
+      // marker is the hard break per Jira wiki spec, and it must put the panel
+      // on a new line visually.)
+      const cellChildren = Array.from(cell?.childNodes ?? []);
+      const brIndex = cellChildren.findIndex(
+        (n) => n.nodeType === Node.ELEMENT_NODE && (n as Element).tagName === 'BR',
+      );
+      const panelIndex = cellChildren.findIndex(
+        (n) =>
+          n.nodeType === Node.ELEMENT_NODE &&
+          (n as Element).getAttribute?.('data-callout') === 'panel',
+      );
+      expect(brIndex).toBeGreaterThanOrEqual(0);
+      expect(panelIndex).toBeGreaterThan(brIndex);
+
+      // Literal `\\` must NOT appear as text in the cell.
+      expect(cell?.textContent ?? '').not.toMatch(/\\\\/);
+
+      // Panel still has its <ol><li> contents with both items.
+      const panelSpan = cell?.querySelector('[data-callout="panel"]');
+      const ol = panelSpan?.querySelector('ol');
+      expect(ol).not.toBeNull();
+      expect(ol?.querySelectorAll('li').length).toBe(2);
+    });
+
     it('Plan 54-09 Concern B — title panel with embedded wiki link does NOT split the table', () => {
       const fixture = [
         '||*Header*||*Result*||',
