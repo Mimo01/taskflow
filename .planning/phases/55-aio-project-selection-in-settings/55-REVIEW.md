@@ -23,7 +23,12 @@ fixed:
   - WR-02
   - WR-03
   - WR-04
-fixed_at: 2026-05-14T18:21:30Z
+  - IN-01
+  - IN-03
+  - IN-04
+deferred:
+  - IN-02
+fixed_at: 2026-05-14T18:42:35Z
 ---
 
 # Phase 55: Code Review Report
@@ -143,7 +148,7 @@ This also makes the dynamic-path branch in `Sidebar.tsx:347` easier to discover 
 
 ## Info
 
-### IN-01: Settings store full-state destructure causes broad re-renders
+### IN-01 [FIXED]: Settings store full-state destructure causes broad re-renders
 
 **File:** `taskflow/src/routes/settings/IntegrationsSection.tsx:12` and `taskflow/src/components/app/Sidebar.tsx:70,86-87`
 **Issue:** `const { aioEnabled, setAioEnabled, selectedAioProjectKey, setSelectedAioProjectKey } = useSettingsStore();` subscribes the component to the entire settings store, so any unrelated setter (theme, density, sidebarCollapsed, sidebarWidth — anything) triggers a re-render. The Sidebar also uses fine-grained selectors elsewhere (`useSettingsStore((s) => s.sidebarCollapsed)`), showing the project knows the better pattern. Phase 55 added `selectedAioProjectKey` to an existing antipattern destructure rather than fixing it.
@@ -159,7 +164,12 @@ const setSelectedAioProjectKey = useSettingsStore((s) => s.setSelectedAioProject
 
 Pre-existing pattern in the codebase — not introduced by Phase 55 — but the phase compounds it.
 
-### IN-02: Migration smoke test asserts default value, not migration code path
+### IN-02 [DEFERRED]: Migration smoke test asserts default value, not migration code path
+
+> Deferred per the report's "accept the gap explicitly" option. Direct `migrate()` invocation
+> requires exporting the inline migrate function from `settings.store.ts` — a production-code
+> refactor outside Phase 55 scope. Documented in `deferred-items.md` with a suggested
+> follow-up: extract `migrateSettings` as named export + add direct fixture test.
 
 **File:** `taskflow/src/stores/settings.store.test.ts:319-327`
 **Issue:** The test comment ("Direct invocation of migrate() is not the established pattern in this test file") acknowledges that the assertion `state.selectedAioProjectKey === null` only verifies the in-memory default, not the migration guard at `settings.store.ts:446-448`. If the migration block were accidentally deleted, the test would still pass because the default initializer would supply `null`. The migration only matters for users upgrading from v16 — exactly the case this test does not cover.
@@ -176,7 +186,7 @@ it('migration v16 → v17 sets selectedAioProjectKey to null when missing', () =
 
 If direct `migrate()` invocation is genuinely not the codebase's established pattern, add a brief inline `// biome-ignore` justification or move this guarantee into the validation phase's responsibility.
 
-### IN-03: `IntegrationsSection.test.tsx` mock ignores selector arg
+### IN-03 [FIXED]: `IntegrationsSection.test.tsx` mock ignores selector arg
 
 **File:** `taskflow/src/routes/settings/IntegrationsSection.test.tsx:21-23`
 **Issue:** `useSettingsStore: () => mockStore` returns the full mockStore regardless of any selector function passed in. The Sidebar test (lines 66-95) correctly handles both selector and no-arg call shapes. If `IntegrationsSection.tsx` ever switches to selector subscriptions (per IN-01), every test would silently keep passing while subscribing the component to the wrong state slice in production.
@@ -190,7 +200,7 @@ vi.mock('../../stores/settings.store', () => ({
 }));
 ```
 
-### IN-04: Helper text "Pick the AIO Test Management project…" renders during empty/error states
+### IN-04 [FIXED]: Helper text "Pick the AIO Test Management project…" renders during empty/error states
 
 **File:** `taskflow/src/routes/settings/IntegrationsSection.tsx:110-112`
 **Issue:** The helper paragraph sits outside the conditional state branches (loading / error / empty / normal — lines 62-109) but inside the `{aioEnabled && ...}` block. So when the API returns zero projects (showing "No AIO projects available") or errors out (showing "Couldn't load AIO projects. Retry"), the user still sees "Pick the AIO Test Management project this app shows." — which is misleading: there is nothing to pick. Mild UX bug.
