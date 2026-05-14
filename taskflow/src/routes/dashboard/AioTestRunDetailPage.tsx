@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { FlaskConical, ChevronLeft, FileQuestion } from 'lucide-react';
+import { FlaskConical, FileQuestion } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { NavLink, useParams } from 'react-router-dom';
+import { NavLink, useLocation, useParams } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
@@ -43,12 +43,19 @@ function formatDate(iso: string | undefined): string {
  * cycleKey, runId. Reuses the same fetchAioTestRunDetail call as
  * AioTestRunsSection so the same data flows here.
  */
+type FromState = { from?: { type: 'issue'; issueKey?: string } };
+
 export default function AioTestRunDetailPage() {
   const { projectKey, cycleKey, runId } = useParams<{
     projectKey: string;
     cycleKey: string;
     runId: string;
   }>();
+  const location = useLocation();
+  const fromIssueKey =
+    (location.state as FromState | null)?.from?.type === 'issue'
+      ? (location.state as FromState).from?.issueKey
+      : undefined;
   const { jiraBaseUrl } = useAuthStore();
   const [token, setToken] = useState<string | null>(null);
 
@@ -83,16 +90,39 @@ export default function AioTestRunDetailPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="flex flex-col px-6 py-4 border-b border-border flex-shrink-0 gap-1">
+        {/* Breadcrumb — full trail when navigated from a Jira issue,
+            cycle-only otherwise. */}
+        <nav
+          aria-label="Breadcrumb"
+          className="flex items-center gap-1 text-xs text-muted-foreground"
+          data-testid="aio-run-detail-breadcrumb"
+        >
+          {fromIssueKey && (
+            <>
+              <NavLink
+                to={`/issue/${fromIssueKey}`}
+                className="hover:text-foreground hover:underline font-mono"
+                data-testid="aio-run-detail-breadcrumb-issue"
+              >
+                {fromIssueKey}
+              </NavLink>
+              <span aria-hidden="true">/</span>
+            </>
+          )}
           <NavLink
             to={`/aio-cycle/${projectKey}/${cycleKey}`}
-            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground hover:underline shrink-0"
-            aria-label={`Back to cycle ${cycleKey}`}
+            state={fromIssueKey ? { from: { type: 'issue', issueKey: fromIssueKey } } : undefined}
+            className="hover:text-foreground hover:underline font-mono"
+            data-testid="aio-run-detail-breadcrumb-cycle"
+            aria-label={`Cycle ${cycleKey}`}
           >
-            <ChevronLeft className="size-4" />
-            <span className="font-mono text-xs">{cycleKey}</span>
+            {cycleKey}
           </NavLink>
+          <span aria-hidden="true">/</span>
+          <span className="font-mono">Run {runId}</span>
+        </nav>
+        <div className="flex items-center gap-3 min-w-0">
           <div className="flex items-center gap-1.5 min-w-0">
             <FlaskConical className="size-4 text-muted-foreground shrink-0" />
             <h1 className="text-base font-semibold truncate" data-testid="aio-run-detail-title">

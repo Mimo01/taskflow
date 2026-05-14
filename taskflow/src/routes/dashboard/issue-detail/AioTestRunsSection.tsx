@@ -318,8 +318,16 @@ function StepTable({ steps }: { steps: AioTestRunStep[] }) {
 // Plan 54-11 round-4 follow-up: header now shows cycle key + run ID as Links
 // (cycle → /aio-cycle/.../...; run → /aio-cycle/.../.../run/{runId}) for
 // symmetry with ImpactedExecutionsList. Both targets use the cycle-derived
-// projectKey so cross-project navigation works.
-function CollapsibleRunBlock({ run, testCase, steps }: AioIssueRunData) {
+// projectKey so cross-project navigation works. Each Link also passes
+// `state={ from: { type: 'issue', issueKey } }` so the destination page can
+// render an issue-rooted breadcrumb (user feedback: clicking from the issue
+// should breadcrumb back to that issue, not to the cycle).
+function CollapsibleRunBlock({
+  run,
+  testCase,
+  steps,
+  issueKey,
+}: AioIssueRunData & { issueKey: string }) {
   const [isExpanded, setIsExpanded] = useState(run.status !== 'PASS');
   const ChevronIcon = isExpanded ? ChevronDown : ChevronRight;
   const displayName = testCase?.title ?? run.testCase?.title ?? run.testCaseKey;
@@ -346,6 +354,7 @@ function CollapsibleRunBlock({ run, testCase, steps }: AioIssueRunData) {
         </button>
         <Link
           to={cycleHref}
+          state={{ from: { type: 'issue', issueKey } }}
           data-testid="in-cycle-run-cycle-link"
           className="font-mono text-xs text-muted-foreground hover:text-foreground hover:underline shrink-0"
         >
@@ -353,6 +362,7 @@ function CollapsibleRunBlock({ run, testCase, steps }: AioIssueRunData) {
         </Link>
         <Link
           to={runHref}
+          state={{ from: { type: 'issue', issueKey } }}
           data-testid="in-cycle-run-run-link"
           className="font-mono text-xs text-muted-foreground hover:text-foreground hover:underline shrink-0"
         >
@@ -699,11 +709,11 @@ export function AioTestRunsSection({
         // collapsed (D-10); FAIL/BLOCKED start expanded.
         <div>
           {data.runs.map((item) => (
-            <CollapsibleRunBlock key={item.run.id} {...item} />
+            <CollapsibleRunBlock key={item.run.id} {...item} issueKey={issueKey} />
           ))}
         </div>
       ) : hasImpactedExecutions ? (
-        <ImpactedExecutionsList rows={data.impactedExecutions} />
+        <ImpactedExecutionsList rows={data.impactedExecutions} issueKey={issueKey} />
       ) : (
         <p className="text-xs text-muted-foreground italic" data-testid="aio-no-executions-notice">
           No executions resolved for the linked test cases yet.
@@ -727,7 +737,13 @@ export function AioTestRunsSection({
  * navigation works correctly (the parent issue's projectKey can differ
  * from the cycle's project — round-3 UAT bug fix).
  */
-function ImpactedExecutionsList({ rows }: { rows: AioImpactedExecution[] }) {
+function ImpactedExecutionsList({
+  rows,
+  issueKey,
+}: {
+  rows: AioImpactedExecution[];
+  issueKey: string;
+}) {
   return (
     <div className="border border-border rounded-md">
       <div className="px-4 py-2 border-b border-border bg-muted/10 text-xs font-semibold text-muted-foreground">
@@ -767,6 +783,7 @@ function ImpactedExecutionsList({ rows }: { rows: AioImpactedExecution[] }) {
                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
                   <Link
                     to={cycleHref}
+                    state={{ from: { type: 'issue', issueKey } }}
                     data-testid="impacted-execution-cycle-link"
                     className="hover:text-foreground hover:underline"
                   >
@@ -776,6 +793,7 @@ function ImpactedExecutionsList({ rows }: { rows: AioImpactedExecution[] }) {
                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
                   <Link
                     to={runHref}
+                    state={{ from: { type: 'issue', issueKey } }}
                     data-testid="impacted-execution-run-link"
                     className="hover:text-foreground hover:underline"
                   >

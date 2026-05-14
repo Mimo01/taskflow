@@ -30,10 +30,13 @@ function makeClient() {
 
 import AioTestRunDetailPage from './AioTestRunDetailPage';
 
-function renderAt(path: string) {
+function renderAt(
+  path: string,
+  options: { state?: { from?: { type: 'issue'; issueKey: string } } } = {},
+) {
   return render(
     <QueryClientProvider client={makeClient()}>
-      <MemoryRouter initialEntries={[path]}>
+      <MemoryRouter initialEntries={[{ pathname: path, state: options.state }]}>
         <Routes>
           <Route
             path="/aio-cycle/:projectKey/:cycleKey/run/:runId"
@@ -96,6 +99,55 @@ describe('AioTestRunDetailPage', () => {
     });
     // No status chip rendered when detail is null.
     expect(screen.queryByTestId('aio-run-detail-status-chip')).toBeNull();
+  });
+
+  it('renders issue-rooted breadcrumb when navigated with location.state.from.type=issue', async () => {
+    const { fetchAioTestRunDetail } = await import('@/services/aio');
+    (fetchAioTestRunDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
+      run: {
+        id: '263794',
+        status: 'FAIL',
+        testCaseKey: 'ESHOP-TC-8477',
+        cycleKey: 'ESHOP-CY-1011',
+        executedDate: '2026-05-01T10:00:00Z',
+      },
+      steps: [],
+    });
+
+    renderAt('/aio-cycle/ESHOP/ESHOP-CY-1011/run/263794', {
+      state: { from: { type: 'issue', issueKey: 'VTE-1234' } },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('aio-run-detail-breadcrumb')).toBeTruthy();
+    });
+    const issueLink = screen.getByTestId('aio-run-detail-breadcrumb-issue') as HTMLAnchorElement;
+    expect(issueLink.getAttribute('href')).toBe('/issue/VTE-1234');
+    expect(issueLink.textContent).toBe('VTE-1234');
+    // Cycle still appears in the trail (clickable).
+    const cycleLink = screen.getByTestId(
+      'aio-run-detail-breadcrumb-cycle',
+    ) as HTMLAnchorElement;
+    expect(cycleLink.getAttribute('href')).toBe('/aio-cycle/ESHOP/ESHOP-CY-1011');
+    expect(cycleLink.textContent).toBe('ESHOP-CY-1011');
+  });
+
+  it('omits the issue breadcrumb when navigated without location state (direct URL access)', async () => {
+    const { fetchAioTestRunDetail } = await import('@/services/aio');
+    (fetchAioTestRunDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
+      run: { id: '1', status: 'PASS', testCaseKey: 'X', cycleKey: 'X-CY-1' },
+      steps: [],
+    });
+
+    renderAt('/aio-cycle/X/X-CY-1/run/1');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('aio-run-detail-breadcrumb')).toBeTruthy();
+    });
+    // No issue breadcrumb segment.
+    expect(screen.queryByTestId('aio-run-detail-breadcrumb-issue')).toBeNull();
+    // Cycle segment still present.
+    expect(screen.getByTestId('aio-run-detail-breadcrumb-cycle')).toBeTruthy();
   });
 
   it('uses the cycle-derived projectKey from the URL (cross-project routing)', async () => {
