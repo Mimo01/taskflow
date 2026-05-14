@@ -205,19 +205,19 @@ export function mergeOpenTableRows(wiki: string): string {
       // body intact, then flatten any remaining `\n` (inside the merged row,
       // outside callouts) to a single space so jira2md gets one source line.
       const joined = buf.join('\n');
-      // Plan 54-09 phantom-row prevention: Jira `\\` hard-break markers
-      // inside the merged row body would otherwise be converted to `  \n`
-      // (markdown hard break) by preprocessJiraMarkup *after* this merge,
-      // re-fracturing the row into phantom <tr> children of <tbody>.
-      // Pre-emptively substitute `\\` markers to `<br/>` inside the merged
-      // row content so they survive the markdown-table tokenizer as inline
-      // line breaks. (Outside merged rows, preprocessJiraMarkup's existing
-      // `\\` → `  \n` substitution still runs and preserves prose hard breaks.)
-      const calloutsFlattened = flattenInlineCalloutsForTableRow(joined);
-      const hardBreaksReplaced = calloutsFlattened
-        .replace(/[ \t]*\\\\[ \t]*\n/g, '<br/>')
-        .replace(/[ \t]\\\\[ \t]/g, '<br/>');
-      const flattened = hardBreaksReplaced.replace(/\n/g, ' ');
+      // Plan 54-09 hard-break handling (rounds 2+3): Jira `\\` is unambiguously
+      // a hard break wherever it appears — prose-with-whitespace, immediately
+      // before `{panel}` with NO surrounding whitespace (round-3 UAT report),
+      // or inside a panel body. Convert ALL `\\` to `<br/>` BEFORE callout
+      // substitution so the resulting `<br/>` sits OUTSIDE the panel `<span>`
+      // when the source was `text\\{panel}…{panel}` and the panel renders on
+      // a new line as Jira does natively. Inside the panel body, `\\` also
+      // becomes `<br/>`, matching Jira's render of multi-line panel content.
+      // This single pattern subsumes the two prior whitespace-padded patterns
+      // (`/[ \t]*\\\\[ \t]*\n/` and `/[ \t]\\\\[ \t]/`).
+      const hardBreaksReplaced = joined.replace(/\\\\/g, '<br/>');
+      const calloutsFlattened = flattenInlineCalloutsForTableRow(hardBreaksReplaced);
+      const flattened = calloutsFlattened.replace(/\n/g, ' ');
       out.push(flattened);
       i = j;
       continue;
