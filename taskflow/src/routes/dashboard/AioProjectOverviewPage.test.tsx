@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -81,20 +80,6 @@ const CYCLE_1: AioCycleDetailItem = {
   summary: null,
 };
 
-const CYCLE_CLOSED: AioCycleDetailItem = {
-  ID: 1002,
-  jiraProjectID: 10134,
-  detail: {
-    key: 'PROJ-CY-2',
-    title: 'Cycle Beta closed',
-    ownedByID: 'JIRAUSER23429',
-    folder: null,
-    isClosed: true,
-    startDate: null,
-    endDate: null,
-  },
-  summary: null,
-};
 
 const SUMMARY_1: AioCycleSummaryItem = {
   ID: 1001,

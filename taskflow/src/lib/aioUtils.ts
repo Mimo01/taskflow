@@ -53,11 +53,12 @@ export function normalizeStatusLabel(raw: string | undefined): string {
  * Used by progress-bar rendering in AioProjectOverviewPage (Plan 57-04).
  */
 export const AIO_STATUS_MAP: Record<number, 'pass' | 'fail' | 'blocked' | 'notRun' | 'inProgress'> = {
-  901: 'pass',
-  51: 'fail',
+  51: 'notRun',
+  52: 'inProgress',
+  53: 'pass',
+  54: 'fail',
   55: 'blocked',
-  53: 'notRun',
-  54: 'inProgress',
+  901: 'pass', // N/A — statusType PASSED per /config
 };
 
 /**
