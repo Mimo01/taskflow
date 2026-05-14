@@ -40,3 +40,29 @@ export async function fetchAssignableUsers(
     return [];
   }
 }
+
+/**
+ * Resolve an AIO ownedByID to a Jira DC user record.
+ * GET /rest/api/2/user?username={username} (probe A6, Phase 57).
+ * Returns null on 404/any error — D-08: caller shows raw ownedByID as fallback.
+ * NOTE: Jira DC uses ?username= param on this instance (same as fetchAssignableUsers).
+ */
+export async function fetchJiraUserByUsername(
+  baseUrl: string,
+  token: string,
+  username: string,
+): Promise<JiraAssignableUser | null> {
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/user?username=${encodeURIComponent(username)}`;
+  try {
+    const response = await apiFetch('jira', url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+      },
+    });
+    if (!response.ok) return null;
+    return (await response.json()) as JiraAssignableUser;
+  } catch {
+    return null;
+  }
+}
