@@ -405,7 +405,7 @@ Plans:
 
 **Wave 4** *(gap closure — blocked on Wave 3 checkpoint; 56-05 and 56-06 run in parallel — no shared files)*
 - [x] 56-05-PLAN.md — Gap 3 fix: probe jiraDefectIDs resolution + fix normalizeTestRun to populate AioTestRun.defects[] with real Jira issue keys (AIOC-03)
-- [ ] 56-06-PLAN.md — Gaps 1+2 fix: probe raw cycle folder field + replace flat table with folder accordion + lazy CycleStatsCell per open folder (AION-03)
+- [x] 56-06-PLAN.md — Gaps 1+2 fix: probe raw cycle folder field + replace flat table with folder accordion + lazy CycleStatsCell per open folder (AION-03)
 
 Cross-cutting constraints:
 - Plans 56-02 and 56-03 both depend on Plan 56-01 (hook + aioUtils must ship first) but have ZERO file overlap with each other — safe to run in parallel in Wave 2
