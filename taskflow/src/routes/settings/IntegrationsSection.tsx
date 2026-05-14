@@ -16,6 +16,9 @@ export default function IntegrationsSection() {
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
+    // WR-03: skip the Stronghold IPC when Jira is unconfigured. Mirrors the
+    // matching guard in Sidebar.tsx so the two copies of this pattern stay aligned.
+    if (!jiraBaseUrl) return;
     readSecret('jira-pat')
       .then(setToken)
       .catch(() => setToken(null));
@@ -33,6 +36,12 @@ export default function IntegrationsSection() {
   });
 
   const selectedProject = projects?.find((p) => p.projectKey === selectedAioProjectKey);
+  // WR-01: surface a stale persisted key (project deleted/renamed upstream).
+  // Only flag when projects has loaded as an array AND the persisted key is non-empty
+  // AND no matching project was found — otherwise loading and "no projects" states
+  // would spuriously render the warning.
+  const selectedKeyIsStale =
+    !!selectedAioProjectKey && Array.isArray(projects) && !selectedProject;
 
   return (
     <div data-testid="section-integrations" className="flex flex-col gap-8">
@@ -106,6 +115,12 @@ export default function IntegrationsSection() {
                   ))}
                 </SelectContent>
               </Select>
+            )}
+            {selectedKeyIsStale && (
+              <p className="text-xs text-destructive">
+                Previously selected project "{selectedAioProjectKey}" is no longer available. Pick
+                another or clear the selection.
+              </p>
             )}
             <p className="text-xs text-muted-foreground">
               Pick the AIO Test Management project this app shows.
