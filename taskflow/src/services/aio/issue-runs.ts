@@ -158,13 +158,11 @@ export async function fetchAioTestRunsForCycle(
       // but guard for direct array in case of API variation.
       if (Array.isArray(data)) {
         const runs = data.map((r) => normalizeTestRun(r, cycleKey));
-        await resolveDefectsForRuns(baseUrl, token, runs);
-        return runs;
+        return resolveDefectsForRuns(baseUrl, token, runs);
       }
       allRuns.push(...(data.items ?? []).map((r) => normalizeTestRun(r, cycleKey)));
       if (data.isLast || !data.maxResults || data.maxResults <= 0) {
-        await resolveDefectsForRuns(baseUrl, token, allRuns);
-        return allRuns;
+        return resolveDefectsForRuns(baseUrl, token, allRuns);
       }
       startAt += data.maxResults;
       continue;
@@ -181,20 +179,20 @@ export async function fetchAioTestRunsForCycle(
 
 /**
  * Post-process a batch of normalized AioTestRun objects by resolving each run's
- * jiraDefectIDs to string Jira issue keys, storing them in run.defects[].
- * Runs with no jiraDefectIDs are skipped. Mutates the array elements in place.
+ * jiraDefectIDs to string Jira issue keys. Returns a new array of run objects
+ * with the resolved defects field — does not mutate the input objects.
  */
 async function resolveDefectsForRuns(
   baseUrl: string,
   token: string,
   runs: AioTestRun[],
-): Promise<void> {
-  await Promise.all(
+): Promise<AioTestRun[]> {
+  return Promise.all(
     runs.map(async (run) => {
       const ids = run.jiraDefectIDs ?? [];
-      if (ids.length > 0) {
-        run.defects = await resolveJiraDefectKeys(baseUrl, token, ids);
-      }
+      if (ids.length === 0) return run;
+      const defects = await resolveJiraDefectKeys(baseUrl, token, ids);
+      return { ...run, defects };
     }),
   );
 }
