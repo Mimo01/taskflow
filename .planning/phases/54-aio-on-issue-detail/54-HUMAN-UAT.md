@@ -30,10 +30,19 @@ prior_round_1_result: issue (gap diagnosed, fix landed in 54-08 commit 7a99427 �
 ### 3. Gap 3 RE-UAT — Nested wiki (`{panel}` inside `|cell|`) renders inside table cell without breaking outer column
 expected: Open an ESHOP issue whose failed test runs contain step content matching the verbatim Finding 1 fixture (a `{panel}` block embedded inside a `|cell|` table row with `# [VAS.png|...]`). The outer StepTable renders WITHOUT BREAKING LAYOUT. The inner wiki table either fits inside the Step column OR scrolls horizontally inside it (the page itself does NOT widen). The `{panel}` content (including the VAS.png anchor) renders INSIDE the step table cell. Clicking the VAS.png anchor opens the in-app ImageLightbox (not the OS browser).
 result: issue
-reported: "The rendering of the 'panel' is better but it still breaks the table. (Screenshots: how it should be vs how it is — pending)"
+reported: "The rendering of the 'panel' is better but it still breaks the table."
 severity: major
-note: Partial improvement from commit 9862672 (overflow-x-auto + min-w-0) — visual loudness/escape behavior softened but the panel still breaks layout. Awaiting user screenshots to characterize the residual breakage (overflow horizontal vs structural escape vs page widening). Will route to a new debug session + plan 54-09 once screenshots arrive.
-prior_round_1_result: issue (gap diagnosed, fix landed in 54-08 commit 9862672 — WikiRenderer.markdownComponents.table wraps in overflow-x-auto, StepTable td wrappers gain min-w-0)
+evidence:
+  expected_screenshot: .planning/phases/54-aio-on-issue-detail/screenshots/gap3-round2-expected.png
+  actual_screenshot: .planning/phases/54-aio-on-issue-detail/screenshots/gap3-round2-actual.png
+note: |
+  Round 2 evidence shows the breakage is PARSER-LEVEL (not CSS overflow as 54-08 assumed):
+  (1) Multi-line cell content fractures vertically — `• 5 GB (12657037, 5,13 €)` becomes a phantom row beneath `FAILED: Plati pre paušály S, M, L:` instead of staying in the Step cell.
+  (2) Wiki link `[VAS.png|url]` inside the flattened panel span keeps its literal `|`, breaking markdown table column parsing — `# Kosik.png` escapes the table entirely as a sibling below.
+  (3) Numbered list `# item` inside the panel loses its semantics — demoted to bare `#` text with awkward panel styling.
+  Full diagnosis: .planning/debug/panel-still-breaks-table-round-2.md
+prior_round_1_result: issue (gap diagnosed, fix landed in 54-08 commit 9862672 — WikiRenderer.markdownComponents.table wraps in overflow-x-auto, StepTable td wrappers gain min-w-0 — but root cause was misframed as CSS overflow when actual cause is parser-level)
+debug_session: .planning/debug/panel-still-breaks-table-round-2.md
 
 ### 4. ROADMAP SC end-to-end UAT on a happy-path issue
 expected: Verify all four ROADMAP success criteria on a happy-path ESHOP issue (e.g. a defect linked to an active cycle with populated step content) — (1) section appears only when aioEnabled=true and loads lazily without blocking the main issue body; (2) step table renders Step/Expected/Actual columns with colored failure chips per row (PASS green / FAIL red / BLOCKED orange); (3) section is hidden (no error state) when no AIO test cases are linked to the issue; (4) attachment images within steps + AIO attachments grid thumbnails both open in the existing in-app ImageLightbox (NOT the OS browser). Toggle aioEnabled OFF/ON in Settings to confirm gating.
@@ -102,10 +111,14 @@ blocked: 0
 - truth: "Nested {panel} blocks embedded inside |cell| of a wiki table row render INSIDE the cell without breaking table layout; links open in-app ImageLightbox."
   status: partial
   uat_round_2: issue
-  uat_round_2_at: "2026-05-14T09:15:00Z"
-  uat_note: "Round 2: 'rendering of the panel is better but it still breaks the table'. Awaiting screenshots (expected vs actual) before planning next fix iteration."
+  uat_round_2_at: "2026-05-14T09:25:00Z"
+  uat_note: |
+    Round 2: 'rendering of the panel is better but it still breaks the table'. Screenshots received.
+    Reframed root cause: PARSER-LEVEL fractures (not CSS overflow). Three independent concerns surfaced:
+    (A) mergeOpenTableRows may not consume full panel-bearing row; (B) wiki link `[name|url]` literal `|` breaks markdown table parsing — `# Kosik.png` escapes the table; (C) wiki numbered list `# item` inside panel loses semantics. Full diagnosis: .planning/debug/panel-still-breaks-table-round-2.md
   fix_commit: "9862672"
   fix_plan: "54-08"
+  next_plan: "54-09 (pending /gsd:plan-phase 54 --gaps)"
   reason: |
     User reported: 'images work but the layout is still kind of broken. The table doesnt break in the middle like it used to but the pannel is not rendered in one cell of a table but overflows and breaks the layout in the section of the table where it is located'. Partial Branch 3-A improvement (no mid-table break, image routing intact) but the panel content still escapes its containing <td> — appears as sibling rather than child of the cell, or overflows the cell's bounds.
   severity: major
