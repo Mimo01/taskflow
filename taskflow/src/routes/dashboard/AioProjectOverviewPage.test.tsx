@@ -32,6 +32,8 @@ vi.mock('@/hooks/useDelayedLoading', () => ({
   useDelayedLoading: (v: boolean) => v,
 }));
 
+// REMOVED: Show closed toggle tests — toggle was deleted from UI
+
 function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
 }
@@ -215,41 +217,6 @@ describe('AioProjectOverviewPage — cycle list', () => {
   });
 });
 
-describe('AioProjectOverviewPage — Show closed toggle', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
-
-  it('hides closed cycles by default; shows them after toggle', async () => {
-    const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
-    (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(PROJECT.id);
-    const { fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries } =
-      await import('@/services/aio');
-    (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockResolvedValue([FOLDER_A]);
-    (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({ '101': 2 });
-    (fetchAioCyclesWithDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
-      items: [CYCLE_1, CYCLE_CLOSED],
-      allIDs: [1001, 1002],
-      startAt: 0,
-      maxResults: 20,
-      isLast: true,
-    });
-    (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue([SUMMARY_1]);
-    const { fetchJiraUserByUsername } = await import('@/services/jira/users');
-    (fetchJiraUserByUsername as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-    const Page = await importPage();
-    wrap(Page);
-
-    await waitFor(() => {
-      expect(screen.getByText('Cycle Alpha')).toBeDefined();
-    });
-    expect(screen.queryByText('Cycle Beta closed')).toBeNull();
-
-    const toggle = screen.getByRole('switch');
-    await userEvent.click(toggle);
-    await waitFor(() => {
-      expect(screen.getByText('Cycle Beta closed')).toBeDefined();
-    });
-  });
-});
 
 describe('AioProjectOverviewPage — error states', () => {
   beforeEach(() => { vi.clearAllMocks(); });
