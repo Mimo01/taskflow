@@ -3,9 +3,9 @@ status: partial
 phase: 54-aio-on-issue-detail
 source: [54-VERIFICATION.md]
 started: 2026-05-14T00:25:00Z
-updated: 2026-05-14T13:25:00Z
-re_uat_round: 3
-fix_commits: ["7a99427", "9862672", "65463bb", "6fdee86", "25881bf", "db693d9"]
+updated: 2026-05-14T13:45:00Z
+re_uat_round: 4
+fix_commits: ["7a99427", "9862672", "65463bb", "6fdee86", "25881bf", "db693d9", "21a4b4d", "ca06965"]
 ---
 
 ## Current Test
@@ -198,6 +198,32 @@ new_gap_round_3: |
     with the existing run-derived list, deduped by URL. IssueDetailPage wires
     `issue.fields.description` to it. 3 new tests cover description-only,
     dedup-across-sources, and omitted-description regression guard.
+
+- truth: "Cross-project impacted execution detail fetch uses the cycle-derived projectKey, not the parent issue's projectKey. Status chips reflect the REAL run status (not always 'Not Run')."
+  status: resolved
+  uat_round_4: pending_uat
+  uat_round_4_at: "2026-05-14T13:45:00Z"
+  reason: |
+    Round-3 UAT (mimopn): "The impacted executions are not clickable to their detail. Their status is always 'not run' even though some have other states." User shared verbatim diagnostic URL: /project/VTE/testcycle/ESHOP-CY-759/testrun/209620?assignSteps=true → 'For the selected project, No Cycle found with Key: ESHOP-CY-759'. Root cause: the detail fetch used the parent issue's projectKey ('VTE') for ALL impacted executions, but cross-project cycles (ESHOP-CY-759) require their OWN project key.
+  severity: major
+  test: 4
+  fix_commit: "21a4b4d"
+  fix_plan: "54-11"
+  fix_landed: |
+    Detail fetch projectKey now derived per-row from `runRef.cycleKey.split('-')[0]` (AIO convention {PROJECT}-CY-{N}). Applied at both in-cycle and cross-cycle fetch sites for consistency. Updated the prior direct-lookup perf-path test that asserted the buggy behavior (UNIQUE_CYCLE_KEY='ESHOP-CY-1011' was always cross-project to PROJECT_KEY='PROJ'). Added dedicated cross-project test that asserts the projectKey derivation for a different project prefix ('OTHER-CY-9').
+
+- truth: "Impacted Executions list rows are clickable: cycle key cell links to the in-app cycle detail page; run ID cell links to a NEW in-app run detail page (`/aio-cycle/{projectKey}/{cycleKey}/run/{runId}`)."
+  status: resolved
+  uat_round_4: pending_uat
+  uat_round_4_at: "2026-05-14T13:45:00Z"
+  reason: |
+    Round-3 UAT (mimopn): rows were previously read-only by design ("No click handlers — cycle/run navigation is a phase-53 concern"). User requested two link targets per row. Accepted as scope expansion.
+  severity: minor
+  test: 4
+  fix_commit: "ca06965"
+  fix_plan: "54-11"
+  fix_landed: |
+    New `AioTestRunDetailPage` route at `/aio-cycle/:projectKey/:cycleKey/run/:runId` (commit 2 of 3 in plan 54-11). Cycle key + run ID cells in `ImpactedExecutionsList` wrapped in `<Link>` with hrefs derived from `cycleKey.split('-')[0]` so cross-project navigation works. 5 new tests in plan 54-11: cross-project detail fetch (21a4b4d), 3 for the new page (commit 2), 2 for the click targets (ca06965).
   reason: |
     User reported: 'images work but the layout is still kind of broken. The table doesnt break in the middle like it used to but the pannel is not rendered in one cell of a table but overflows and breaks the layout in the section of the table where it is located'. Partial Branch 3-A improvement (no mid-table break, image routing intact) but the panel content still escapes its containing <td> — appears as sibling rather than child of the cell, or overflows the cell's bounds.
   severity: major
