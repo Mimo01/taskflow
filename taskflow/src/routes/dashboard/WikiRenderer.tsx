@@ -83,17 +83,81 @@ interface WikiRendererProps {
  * Finding 1 (recorded in 54-PROBE-FINDINGS.md ## Probe E).
  */
 const PANEL_TAG_RE = /\{panel(?::[^}]*)?\}/g;
+
+/**
+ * Plan 54-09 Concern C (root cause #2): wiki numbered-list marker `# item`
+ * inside a `{panel}` block inside a `|cell|` row loses its semantics when the
+ * panel body is flattened into a `<span data-callout="panel">…</span>`. Round-2
+ * UAT showed `# [VAS.png|url]` rendering as bare `#` text instead of an `<ol>`.
+ *
+ * Plan 54-09 Concern B (root cause #1): the literal `|` inside wiki-link
+ * syntax `[name|url]` survives the panel flatten and is consumed by
+ * remark-gfm's table tokenizer as a column separator, splitting the row.
+ *
+ * This helper scans the panel body for consecutive `# ` lines and converts
+ * each run to `<ol><li>…</li></ol>`. When an item is a single wiki link
+ * `[name|url]`, it is emitted as `<a href="url">name</a>` — consuming the
+ * `|` directly so it never reaches the table tokenizer. Non-link items keep
+ * any remaining `|` escaped to `\|` for the same reason. Plain (non-list)
+ * panel content is returned unchanged; the caller (flattenInlineCalloutsForTableRow)
+ * applies the final `|` → `\|` escape to the merged result.
+ *
+ * Private helper — not exported.
+ */
+function transformPanelListItems(panelBody: string): string {
+  const lines = panelBody.split('\n');
+  const out: string[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (/^\s*#\s+/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\s*#\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\s*#\s+/, ''));
+        i++;
+      }
+      const liItems = items
+        .map((item) => {
+          const linkMatch = /^\[([^|\]]+)\|([^\]]+)\]$/.exec(item.trim());
+          if (linkMatch) {
+            return `<li><a href="${linkMatch[2]}">${linkMatch[1]}</a></li>`;
+          }
+          // Non-link item — still escape any remaining `|` to prevent table split.
+          return `<li>${item.replace(/\|/g, '\\|')}</li>`;
+        })
+        .join('');
+      out.push(`<ol>${liItems}</ol>`);
+      continue;
+    }
+    out.push(line);
+    i++;
+  }
+  return out.join('\n');
+}
+
 function flattenInlineCalloutsForTableRow(body: string): string {
   let result = body;
   result = result.replace(
     /\{panel:title=([^}]+)\}([\s\S]*?)\{panel\}/g,
-    (_m, title: string, inner: string) =>
-      `<span data-callout="panel" data-title="${title}">${inner.replace(/\n/g, '<br/>').trim()}</span>`,
+    (_m, title: string, inner: string) => {
+      const withLists = transformPanelListItems(inner);
+      // Escape any remaining literal `|` (e.g. in non-list panel prose) so the
+      // markdown table tokenizer does not split the row. The <ol><li><a href="…">
+      // HTML emitted by transformPanelListItems contains no `|` chars by
+      // construction, so this escape is safe.
+      const escaped = withLists.replace(/\|/g, '\\|');
+      const flattened = escaped.replace(/\n/g, '<br/>').trim();
+      return `<span data-callout="panel" data-title="${title}">${flattened}</span>`;
+    },
   );
   result = result.replace(
     /\{panel\}([\s\S]*?)\{panel\}/g,
-    (_m, inner: string) =>
-      `<span data-callout="panel">${inner.replace(/\n/g, '<br/>').trim()}</span>`,
+    (_m, inner: string) => {
+      const withLists = transformPanelListItems(inner);
+      const escaped = withLists.replace(/\|/g, '\\|');
+      const flattened = escaped.replace(/\n/g, '<br/>').trim();
+      return `<span data-callout="panel">${flattened}</span>`;
+    },
   );
   result = result.replace(
     /\{info\}([\s\S]*?)\{info\}/g,
@@ -141,7 +205,19 @@ export function mergeOpenTableRows(wiki: string): string {
       // body intact, then flatten any remaining `\n` (inside the merged row,
       // outside callouts) to a single space so jira2md gets one source line.
       const joined = buf.join('\n');
-      const flattened = flattenInlineCalloutsForTableRow(joined).replace(/\n/g, ' ');
+      // Plan 54-09 phantom-row prevention: Jira `\\` hard-break markers
+      // inside the merged row body would otherwise be converted to `  \n`
+      // (markdown hard break) by preprocessJiraMarkup *after* this merge,
+      // re-fracturing the row into phantom <tr> children of <tbody>.
+      // Pre-emptively substitute `\\` markers to `<br/>` inside the merged
+      // row content so they survive the markdown-table tokenizer as inline
+      // line breaks. (Outside merged rows, preprocessJiraMarkup's existing
+      // `\\` → `  \n` substitution still runs and preserves prose hard breaks.)
+      const calloutsFlattened = flattenInlineCalloutsForTableRow(joined);
+      const hardBreaksReplaced = calloutsFlattened
+        .replace(/[ \t]*\\\\[ \t]*\n/g, '<br/>')
+        .replace(/[ \t]\\\\[ \t]/g, '<br/>');
+      const flattened = hardBreaksReplaced.replace(/\n/g, ' ');
       out.push(flattened);
       i = j;
       continue;

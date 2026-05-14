@@ -468,10 +468,12 @@ describe('WikiRenderer', () => {
       const table = container.querySelector('table');
       expect(table).not.toBeNull();
 
-      // The panel-with-title carries data-title="Steps".
+      // The panel-with-title carries data-callout="panel"; the title "Steps" is
+      // rendered as visible text inside the panel span (markdownComponents.span
+      // emits the title as a styled inner <span class="font-bold">).
       const panelSpan = table?.querySelector('[data-callout="panel"]');
       expect(panelSpan).not.toBeNull();
-      expect(panelSpan?.getAttribute('data-title')).toBe('Steps');
+      expect(panelSpan?.textContent ?? '').toContain('Steps');
 
       // The link is rendered as an <a> descendant of the table.
       const link = panelSpan?.querySelector('a');
