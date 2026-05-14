@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeStatus, normalizeStatusLabel } from './aioUtils';
+import { AIO_STATUS_MAP, normalizeStatus, normalizeStatusById, normalizeStatusLabel } from './aioUtils';
 
 describe('normalizeStatus', () => {
   it("returns 'pass' for 'PASS'", () => {
@@ -50,5 +50,59 @@ describe('normalizeStatusLabel', () => {
 
   it("returns 'Not Run' for undefined", () => {
     expect(normalizeStatusLabel(undefined)).toBe('Not Run');
+  });
+});
+
+// RED stubs — Phase 57 Wave 0. These fail until Plan 02 adds AIO_STATUS_MAP + normalizeStatusById.
+
+describe('AIO_STATUS_MAP', () => {
+  it('maps status ID 901 to "pass"', () => {
+    expect(AIO_STATUS_MAP[901]).toBe('pass');
+  });
+
+  it('maps status ID 51 to "fail"', () => {
+    expect(AIO_STATUS_MAP[51]).toBe('fail');
+  });
+
+  it('maps status ID 55 to "blocked"', () => {
+    expect(AIO_STATUS_MAP[55]).toBe('blocked');
+  });
+
+  it('maps status ID 53 to "notRun"', () => {
+    expect(AIO_STATUS_MAP[53]).toBe('notRun');
+  });
+
+  it('maps status ID 54 to "inProgress"', () => {
+    expect(AIO_STATUS_MAP[54]).toBe('inProgress');
+  });
+});
+
+describe('normalizeStatusById', () => {
+  it('returns "pass" for ID 901', () => {
+    expect(normalizeStatusById(901)).toBe('pass');
+  });
+
+  it('returns "fail" for ID 51', () => {
+    expect(normalizeStatusById(51)).toBe('fail');
+  });
+
+  it('returns "blocked" for ID 55', () => {
+    expect(normalizeStatusById(55)).toBe('blocked');
+  });
+
+  it('returns "notRun" for ID 53', () => {
+    expect(normalizeStatusById(53)).toBe('notRun');
+  });
+
+  it('returns "inProgress" for ID 54', () => {
+    expect(normalizeStatusById(54)).toBe('inProgress');
+  });
+
+  it('returns "notRun" for unknown ID (e.g. 0)', () => {
+    expect(normalizeStatusById(0)).toBe('notRun');
+  });
+
+  it('returns "notRun" for unknown ID (e.g. 999)', () => {
+    expect(normalizeStatusById(999)).toBe('notRun');
   });
 });
