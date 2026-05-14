@@ -42,9 +42,9 @@ Declared values (must be multiples of 4):
 | 3xl | 64px | — |
 
 Exceptions:
-- Progress bar height: 8px (`h-2`) — full-size bar on cycle detail; 6px (`h-1.5`) — mini bar on cycle list rows
+- Progress bar height: 8px (`h-2`) — full-size bar on cycle detail; 6px (`h-1.5`) — mini bar on cycle list rows. **Justification: bar height is a CSS height visual primitive, not a layout spacing token. It controls the rendered thickness of a data-visualization element, not the distance between layout components. 6px is intentionally sub-grid to produce a slim, unobtrusive bar in dense table rows.**
 - Tab list height: 32px (`h-8`) — matches shadcn Tabs default
-- Breadcrumb back button: 28px square (`h-7 w-7`) — touch target exception below 32px minimum, preserved from existing pattern
+- Breadcrumb back button: 28px square (`h-7 w-7`) — **Justification: inherited UI pattern preserved from the existing breadcrumb component used across all AIO phases. Changing to 32px would require a cross-phase audit and is out of scope for this phase.**
 
 Source: extracted from `AioCycleDetailPage.tsx` and `AioProjectOverviewPage.tsx` (existing pages)
 
@@ -57,12 +57,14 @@ Source: extracted from `AioCycleDetailPage.tsx` and `AioProjectOverviewPage.tsx`
 | Page heading | 20px (`text-xl`) | 600 (`font-semibold`) | 1.2 |
 | Section heading | 14px (`text-sm`) | 600 (`font-semibold`) | 1.4 |
 | Body / table cell | 14px (`text-sm`) | 400 (`font-normal`) | 1.5 |
-| Label / badge / meta | 12px (`text-xs`) | 500 (`font-medium`) | 1.4 |
+| Label / badge / meta | 12px (`text-xs`) | 600 (`font-semibold`) | 1.4 |
+
+Declared weights: `font-normal` (400) and `font-semibold` (600) only. The Label/badge/meta role uses `font-semibold` — at 12px, semibold renders clearly and the visual weight is appropriate for badge chips and meta counts in a dense table context.
 
 Notes:
 - Mono font (system monospace via `font-mono`) used for cycle key and defect key columns only
 - No additional sizes permitted in this phase
-- Source: extracted from existing `AioCycleDetailPage.tsx` (`text-xl font-semibold`, `text-sm`, `text-xs font-medium`)
+- Source: extracted from existing `AioCycleDetailPage.tsx` (`text-xl font-semibold`, `text-sm`, `text-xs font-medium` collapsed to `font-semibold`)
 
 ---
 
@@ -84,6 +86,8 @@ Semantic status colors (not part of 60/30/10 — fixed data colors):
 - Fail: `bg-red-500` — progress bar segment, run status badge
 - Blocked: `bg-orange-400` — progress bar segment, run status badge
 - Not Run: `bg-muted` — progress bar segment (uses muted token, not a fixed color)
+
+Focal point: the Progress bar + counts column is the primary visual anchor on the cycles list, drawing the eye to cycle health at a glance.
 
 Source: `AioCycleDetailPage.tsx` existing progress bar implementation + `56-CONTEXT.md` D-01
 
@@ -155,7 +159,7 @@ Clicking a run row navigates to `/aio-cycle/:projectKey/:cycleKey/run/:runId`. B
 
 Column layout: Key (mono NavLink) | Title (body text) | Jira Status chip | Triggered By (test case key(s), plain text or comma-separated)
 
-Each defect key fires one `useQuery` for Jira issue data. While loading: `<Skeleton className="h-4 w-32" />` in Title cell. Jira status chip uses the existing status badge pattern from issue detail pages (`text-xs font-medium px-2 py-0.5 rounded-full`).
+Each defect key fires one `useQuery` for Jira issue data. While loading: `<Skeleton className="h-4 w-32" />` in Title cell. Jira status chip uses the existing status badge pattern from issue detail pages (`text-xs font-semibold px-2 py-0.5 rounded-full`).
 
 ---
 
