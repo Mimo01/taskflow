@@ -91,3 +91,22 @@ None — plan executed exactly as written.
 **Commit (round 2):** `901052c` — fix(260514-k2u): broaden callout margin-reset selector to all element types
 
 **Re-UAT pending.** Verify by reopening the same Jira issue/test-run cell that originally exposed the bug — the panel containing the numbered list of attachment links should now have ~12px top/bottom padding (matching `p-3`) instead of the previous doubled spacing shown in the round-1 UAT screenshot.
+
+## Round 3 — UAT failure & stray-`<br/>` fix (2026-05-14)
+
+**Symptom:** UAT round-2 still showed doubled padding. User pasted the actual DOM:
+```html
+<span data-callout="panel" class="… [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+  <br>
+  <ol>…</ol>
+  <br>
+</span>
+```
+
+**Root cause:** `flattenInlineCalloutsForTableRow` in `WikiRenderer.tsx` (lines 138-175) substitutes source newlines around `{panel}\n…\n{panel}` to `<br/>` and then calls `.trim()` — but `.trim()` is a no-op for `<br/>` tokens (they aren't whitespace). So the leading newline immediately after `{panel}` opening and the trailing newline immediately before `{panel}` closing both became stray `<br/>` elements at the start and end of the panel span. Each `<br/>` adds a full line-height of vertical space, on top of the panel's `p-3` padding — producing the doubled apparent padding the prior selector-broadening fixes could not address (the `[&>*:first-child]:mt-0` reset zeroed margins on the `<br>` elements, which `<br>` doesn't have).
+
+**Fix (round 3):** Swap the order: `.trim().replace(/\n/g, '<br/>')` instead of `.replace(/\n/g, '<br/>').trim()`. Now leading/trailing newlines are stripped from the inner body BEFORE they become `<br/>` tokens — so they never enter the DOM. Internal newlines between content lines still become `<br/>` as before. Same change applied consistently across all five callout variants (panel with title, plain panel, info, warning, note).
+
+**Test added:** Mounts the ESHOP table-cell fixture and asserts (a) no `<br>` is a direct child of `<span data-callout>`, and (b) `firstElementChild` / `lastElementChild` of the panel span are both the `<ol>`. 42/42 tests pass.
+
+**Commit (round 3):** `613568e` — fix(260514-k2u): strip stray leading/trailing <br/> from inline panel span
