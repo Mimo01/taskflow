@@ -22,6 +22,7 @@ tech-stack:
     - "Inline numbered-list transform inside table-cell callouts: scan panel body for `# ` runs, emit `<ol><li><a href=…>name</a></li></ol>` so wiki-link `|` is consumed before remark-gfm tokenisation."
     - "Pipe escaping for non-list panel content: `\\|` to preserve any remaining literal `|` chars (markdown table column-separator) that survive the list transform."
     - "Phantom-row prevention for Jira `\\` hard-break inside merged rows: substitute to `<br/>` in mergeOpenTableRows so preprocessJiraMarkup's later `\\` → `  \n` substitution cannot re-fracture the row."
+    - "Hard-break handling for `\\` in ALL positions (round-3 follow-up): single `/\\\\/g → <br/>` pattern subsumes the prior whitespace-padded patterns, so `text\\{panel}` (no space) puts the panel on a new line as Jira renders natively."
 
 key-files:
   created: []
@@ -75,6 +76,13 @@ Each task was committed atomically:
 5. **Task 4 (checkpoint:human-verify)** — NOT executed; orchestrator handles the human UAT gate.
 
 _Note: Task 2 was a TDD task (`tdd="true"`), so RED + GREEN are separate commits._
+
+### Round-3 UAT Follow-up Commits
+
+During UAT round-3 (Task 4 checkpoint), the user reported a remaining symptom: `\\` immediately preceding `{panel}` (zero whitespace) was rendered as literal text and the panel sat inline with the surrounding prose. Per Jira wiki spec, `\\` is unambiguously a hard break in all positions. Fixed inline as a continuation of plan 54-09:
+
+6. **Round-3 RED: failing test for `\\{panel}` no-space form** — `5e291c7` (test)
+7. **Round-3 GREEN: `\\` hard-break before `{panel}` now renders panel on a new line** — `25881bf` (fix)
 
 ## Files Created/Modified
 
@@ -143,9 +151,9 @@ Both sub-tests passing → Phase 54 closes; next orchestrator step is `/gsd-veri
 - File `taskflow/src/routes/dashboard/WikiRenderer.tsx` exists and contains `function transformPanelListItems` (grep: 1) and 2 call sites (grep: 3 including the function definition).
 - File `taskflow/src/routes/dashboard/WikiRenderer.test.tsx` exists and contains all 5 expected test names (Plan 54-09 Concern A: 1, Plan 54-09 Concerns B: 3, Plan 54-09 Concern B —: 1).
 - File `.planning/phases/54-aio-on-issue-detail/54-HUMAN-UAT.md` exists and contains all 5 required tokens (`re_uat_round: 3`, `pending_uat_round_3`, `round_3_fix`, `round_3_fix_plan: "54-09"`, `transformPanelListItems`).
-- Commits exist in git log: ad34ec2, 48a2c7c, 6fdee86, c52fb12 (all `git log --oneline -10` confirmed).
+- Commits exist in git log: ad34ec2, 48a2c7c, 6fdee86, c52fb12, plus round-3 follow-up 5e291c7 + 25881bf.
 - `tsc --noEmit` exit 0.
-- Full vitest suite: 1019 passed, 2 skipped, 39 todo, 0 failed.
+- Full vitest suite: 1020 passed (was 1019 — round-3 follow-up added one test), 2 skipped, 39 todo, 0 failed.
 
 ---
 *Phase: 54-aio-on-issue-detail*
