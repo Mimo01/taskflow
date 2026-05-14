@@ -232,7 +232,7 @@ describe('fetchAioCycleSummaries', () => {
         },
       ],
     } as unknown as Response);
-    const result = await fetchAioCycleSummaries(BASE, TOKEN, PROJECT_ID);
+    const result = await fetchAioCycleSummaries(BASE, TOKEN, PROJECT_ID, [1001]);
     expect(result).toHaveLength(1);
     expect(result[0].ID).toBe(1001);
     expect(result[0].summary.totalTests).toBe(261);
@@ -241,13 +241,13 @@ describe('fetchAioCycleSummaries', () => {
 
   it('returns [] on 404', async () => {
     mockedApiFetch.mockResolvedValue({ ok: false, status: 404 } as unknown as Response);
-    const result = await fetchAioCycleSummaries(BASE, TOKEN, PROJECT_ID);
+    const result = await fetchAioCycleSummaries(BASE, TOKEN, PROJECT_ID, []);
     expect(result).toEqual([]);
   });
 
   it('throws ApiError on 401', async () => {
     mockedApiFetch.mockResolvedValue({ ok: false, status: 401 } as unknown as Response);
-    await expect(fetchAioCycleSummaries(BASE, TOKEN, PROJECT_ID)).rejects.toMatchObject({
+    await expect(fetchAioCycleSummaries(BASE, TOKEN, PROJECT_ID, [])).rejects.toMatchObject({
       status: 401,
       source: 'jira',
     });
@@ -255,6 +255,6 @@ describe('fetchAioCycleSummaries', () => {
 
   it('throws "Cannot reach AIO" on network error', async () => {
     mockedApiFetch.mockRejectedValue(new Error('timeout'));
-    await expect(fetchAioCycleSummaries(BASE, TOKEN, PROJECT_ID)).rejects.toThrow('Cannot reach AIO at');
+    await expect(fetchAioCycleSummaries(BASE, TOKEN, PROJECT_ID, [])).rejects.toThrow('Cannot reach AIO at');
   });
 });

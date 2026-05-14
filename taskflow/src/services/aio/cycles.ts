@@ -222,15 +222,34 @@ export async function fetchAioFolderCycleCounts(
  * @throws ApiError 401 on auth failure
  * @throws Error on network failure
  */
+const PAGED_COLUMNS = ['key', 'title', 'ownedByID', 'caseProgress', 'jiraComponentID'];
+const PAGED_SORTING = {
+  sortColumn: 'key',
+  sortOrder: 'ASC',
+  jiraComponents: [],
+  jiraReleases: [],
+  customFieldID: null,
+  customFieldType: null,
+};
+
 export async function fetchAioCyclesWithDetail(
   baseUrl: string,
   token: string,
   jiraProjectId: number,
 ): Promise<AioCycleDetailPagedResponse> {
   const path = `/project/${jiraProjectId}/testcycle/paged?c_pId=${jiraProjectId}&t=${Date.now()}`;
+  const body = JSON.stringify({
+    startAt: 0,
+    maxResults: 500,
+    columns: PAGED_COLUMNS,
+    customFields: [],
+    runCustomFields: [],
+    sortingData: PAGED_SORTING,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  });
   let response: Response;
   try {
-    response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH, { method: 'POST', body: '{}' });
+    response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH, { method: 'POST', body });
   } catch {
     throw new Error(`Cannot reach AIO at ${baseUrl}`);
   }
@@ -258,11 +277,15 @@ export async function fetchAioCycleSummaries(
   baseUrl: string,
   token: string,
   jiraProjectId: number,
+  cycleIds: number[],
 ): Promise<AioCycleSummaryItem[]> {
   const path = `/project/${jiraProjectId}/testcycle/summary/paged?c_pId=${jiraProjectId}&t=${Date.now()}`;
   let response: Response;
   try {
-    response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH, { method: 'POST', body: '{}' });
+    response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH, {
+      method: 'POST',
+      body: JSON.stringify(cycleIds),
+    });
   } catch {
     throw new Error(`Cannot reach AIO at ${baseUrl}`);
   }
