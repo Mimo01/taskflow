@@ -67,7 +67,13 @@ function navLinkClassFn(collapsed: boolean) {
 const PREFETCH_ROUTES = new Set(['/dashboard', '/my-tasks', '/sprint-board', '/backlog', '/epics']);
 
 export default function Sidebar() {
-  const { devToolsEnabled, sidebarItems, aioEnabled, selectedAioProjectKey } = useSettingsStore();
+  // IN-01: fine-grained selectors avoid re-rendering Sidebar on every unrelated
+  // settings-store mutation. Match the pattern already used below for
+  // sidebarCollapsed / sidebarWidth.
+  const devToolsEnabled = useSettingsStore((s) => s.devToolsEnabled);
+  const sidebarItems = useSettingsStore((s) => s.sidebarItems);
+  const aioEnabled = useSettingsStore((s) => s.aioEnabled);
+  const selectedAioProjectKey = useSettingsStore((s) => s.selectedAioProjectKey);
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);
   const toggleSidebarCollapsed = useSettingsStore((s) => s.toggleSidebarCollapsed);
   const sidebarWidth = useSettingsStore((s) => s.sidebarWidth);
@@ -83,8 +89,10 @@ export default function Sidebar() {
 
   const queryClient = useQueryClient();
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
-  const { storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey, epicColorFieldKey } =
-    useSettingsStore();
+  const storyPointsFieldKey = useSettingsStore((s) => s.storyPointsFieldKey);
+  const epicLinkFieldKey = useSettingsStore((s) => s.epicLinkFieldKey);
+  const epicNameFieldKey = useSettingsStore((s) => s.epicNameFieldKey);
+  const epicColorFieldKey = useSettingsStore((s) => s.epicColorFieldKey);
 
   // Load jira token for prefetch queryFn calls
   const [jiraToken, setJiraToken] = useState<string | null>(null);

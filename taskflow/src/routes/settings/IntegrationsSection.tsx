@@ -9,8 +9,12 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '../../stores/settings.store';
 
 export default function IntegrationsSection() {
-  const { aioEnabled, setAioEnabled, selectedAioProjectKey, setSelectedAioProjectKey } =
-    useSettingsStore();
+  // IN-01: fine-grained selectors avoid re-rendering this component on every
+  // unrelated settings-store mutation (theme, density, sidebarCollapsed, etc.).
+  const aioEnabled = useSettingsStore((s) => s.aioEnabled);
+  const setAioEnabled = useSettingsStore((s) => s.setAioEnabled);
+  const selectedAioProjectKey = useSettingsStore((s) => s.selectedAioProjectKey);
+  const setSelectedAioProjectKey = useSettingsStore((s) => s.setSelectedAioProjectKey);
 
   const { jiraBaseUrl } = useAuthStore();
   const [token, setToken] = useState<string | null>(null);
