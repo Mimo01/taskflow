@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { WikiRenderer, mergeOpenTableRows } from './WikiRenderer';
+import { mergeOpenTableRows, WikiRenderer } from './WikiRenderer';
 
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-token'),
@@ -414,7 +414,7 @@ describe('WikiRenderer', () => {
       expect(article).not.toBeNull();
       // Clone the article and remove the table; what remains is "sibling content".
       const cloned = article!.cloneNode(true) as HTMLElement;
-      cloned.querySelectorAll('table').forEach((t) => t.remove());
+      for (const t of cloned.querySelectorAll('table')) t.remove();
       const outsideText = cloned.textContent ?? '';
 
       // Round-2 symptom: `# Kosik.png` (and `# VAS.png`) escaping outside the table.

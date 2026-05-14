@@ -65,7 +65,13 @@ describe('AioTestRunDetailPage', () => {
       },
       steps: [
         { id: 1, step: 'Open page', expectedResult: 'OK', actualResult: 'OK', status: 'PASS' },
-        { id: 2, step: 'Submit form', expectedResult: 'OK', actualResult: '', status: 'NOT_EXECUTED' },
+        {
+          id: 2,
+          step: 'Submit form',
+          expectedResult: 'OK',
+          actualResult: '',
+          status: 'NOT_EXECUTED',
+        },
       ],
     });
 
@@ -127,9 +133,7 @@ describe('AioTestRunDetailPage', () => {
     // Trail entry is rendered as a button labeled with the issue key.
     expect(screen.getByRole('button', { name: 'VTE-1234' })).toBeTruthy();
     // Current segment shows the run id.
-    expect(screen.getByTestId('aio-run-detail-breadcrumb-current').textContent).toBe(
-      'Run 263794',
-    );
+    expect(screen.getByTestId('aio-run-detail-breadcrumb-current').textContent).toBe('Run 263794');
   });
 
   it('omits the breadcrumb header when the trail is empty (direct URL access)', async () => {

@@ -347,7 +347,13 @@ describe('issues service', () => {
     it('returns the parsed JiraIssue on 200', async () => {
       const issue = {
         key: 'PROJ-123',
-        fields: { summary: 'Direct fetch issue', status: { name: 'Done' }, assignee: null, customfield_10016: null, issuetype: { name: 'Story' } },
+        fields: {
+          summary: 'Direct fetch issue',
+          status: { name: 'Done' },
+          assignee: null,
+          customfield_10016: null,
+          issuetype: { name: 'Story' },
+        },
       };
       vi.mocked(apiFetch).mockResolvedValueOnce({
         ok: true,

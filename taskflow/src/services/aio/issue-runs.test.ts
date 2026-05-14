@@ -60,8 +60,8 @@ describe('fetchAioTestRunsForCycle', () => {
 
   it('throws "Cannot reach AIO" on network error', async () => {
     mockedApiFetch.mockRejectedValue(new Error('timeout'));
-    await expect(
-      fetchAioTestRunsForCycle(BASE, TOKEN, PROJECT_KEY, CYCLE_KEY),
-    ).rejects.toThrow('Cannot reach AIO');
+    await expect(fetchAioTestRunsForCycle(BASE, TOKEN, PROJECT_KEY, CYCLE_KEY)).rejects.toThrow(
+      'Cannot reach AIO',
+    );
   });
 });

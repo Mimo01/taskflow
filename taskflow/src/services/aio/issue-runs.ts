@@ -46,10 +46,16 @@ function normalizeDate(raw: string | number | undefined): string | undefined {
 
 function toChipStatus(name: string | undefined): string {
   switch ((name ?? '').toLowerCase()) {
-    case 'pass': case 'passed': return 'PASS';
-    case 'fail': case 'failed': return 'FAIL';
-    case 'blocked': return 'BLOCKED';
-    default: return 'NOT_EXECUTED';
+    case 'pass':
+    case 'passed':
+      return 'PASS';
+    case 'fail':
+    case 'failed':
+      return 'FAIL';
+    case 'blocked':
+      return 'BLOCKED';
+    default:
+      return 'NOT_EXECUTED';
   }
 }
 
@@ -62,7 +68,10 @@ function normalizeTestRun(raw: RawTestRun, fallbackCycleKey: string): AioTestRun
     testCaseKey: raw.testCase?.key ?? raw.testCaseKey ?? '',
     cycleKey: raw.cycleKey ?? fallbackCycleKey,
     testCase: raw.testCase
-      ? { title: raw.testCase.title ?? raw.testCase.name ?? '', updatedDate: normalizeDate(latestRun?.updatedDate) ?? raw.testCase.updatedDate }
+      ? {
+          title: raw.testCase.title ?? raw.testCase.name ?? '',
+          updatedDate: normalizeDate(latestRun?.updatedDate) ?? raw.testCase.updatedDate,
+        }
       : undefined,
     defects: raw.defects ?? [],
     jiraDefectIDs: latestRun?.jiraDefectIDs ?? [],

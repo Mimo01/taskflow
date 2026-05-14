@@ -25,7 +25,11 @@ function opBarColor(fetches: FetchRecord[]): string {
   const gitlabCount = sources.filter((s) => s === 'gitlab').length;
   const updaterCount = sources.filter((s) => s === 'updater').length;
   const aioCount = sources.filter((s) => s === 'aio').length;
-  const mixed = (jiraCount > 0 ? 1 : 0) + (gitlabCount > 0 ? 1 : 0) + (updaterCount > 0 ? 1 : 0) + (aioCount > 0 ? 1 : 0);
+  const mixed =
+    (jiraCount > 0 ? 1 : 0) +
+    (gitlabCount > 0 ? 1 : 0) +
+    (updaterCount > 0 ? 1 : 0) +
+    (aioCount > 0 ? 1 : 0);
   if (mixed > 1) return 'bg-blue-500/20 dark:bg-blue-500/30';
   if (jiraCount > 0) return 'bg-orange-500/20 dark:bg-orange-500/30';
   if (updaterCount > 0) return 'bg-sky-500/20 dark:bg-sky-500/30';

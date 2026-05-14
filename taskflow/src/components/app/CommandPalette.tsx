@@ -305,7 +305,9 @@ export default function CommandPalette({
                     <CommandItem
                       key={`key-match-${keyMatchResult.key}`}
                       value={`key-match-${keyMatchResult.key} ${keyMatchResult.fields.summary}`}
-                      onSelect={() => handleIssueSelect(keyMatchResult.key, keyMatchResult.fields.summary)}
+                      onSelect={() =>
+                        handleIssueSelect(keyMatchResult.key, keyMatchResult.fields.summary)
+                      }
                     >
                       <span className="text-muted-foreground font-mono">{keyMatchResult.key}</span>
                       <span className="truncate">{keyMatchResult.fields.summary}</span>

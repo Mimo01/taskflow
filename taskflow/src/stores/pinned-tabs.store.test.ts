@@ -68,13 +68,17 @@ describe('pinned-tabs.store', () => {
   describe('cycle metadata actions', () => {
     beforeEach(() => {
       act(() => {
-        usePinnedTabsStore.setState({ pinnedCycleMeta: {} } as Parameters<typeof usePinnedTabsStore.setState>[0]);
+        usePinnedTabsStore.setState({ pinnedCycleMeta: {} } as Parameters<
+          typeof usePinnedTabsStore.setState
+        >[0]);
       });
     });
 
     it('setPinnedCycleMeta stores {name, projectKey} under the cycle key in pinnedCycleMeta', () => {
       act(() => {
-        usePinnedTabsStore.getState().setPinnedCycleMeta('PROJ-CY-2', { name: 'Sprint 2', projectKey: 'PROJ' });
+        usePinnedTabsStore
+          .getState()
+          .setPinnedCycleMeta('PROJ-CY-2', { name: 'Sprint 2', projectKey: 'PROJ' });
       });
       expect(usePinnedTabsStore.getState().pinnedCycleMeta['PROJ-CY-2']).toEqual({
         name: 'Sprint 2',
@@ -84,7 +88,9 @@ describe('pinned-tabs.store', () => {
 
     it('clearCycleMeta removes the entry for a given key from pinnedCycleMeta', () => {
       act(() => {
-        usePinnedTabsStore.getState().setPinnedCycleMeta('PROJ-CY-2', { name: 'Sprint 2', projectKey: 'PROJ' });
+        usePinnedTabsStore
+          .getState()
+          .setPinnedCycleMeta('PROJ-CY-2', { name: 'Sprint 2', projectKey: 'PROJ' });
       });
       act(() => {
         usePinnedTabsStore.getState().clearCycleMeta('PROJ-CY-2');
@@ -94,15 +100,21 @@ describe('pinned-tabs.store', () => {
 
     it('pinnedCycleMeta defaults to empty object on fresh store (no persisted state)', () => {
       act(() => {
-        usePinnedTabsStore.setState({ pinnedCycleMeta: {} } as Parameters<typeof usePinnedTabsStore.setState>[0]);
+        usePinnedTabsStore.setState({ pinnedCycleMeta: {} } as Parameters<
+          typeof usePinnedTabsStore.setState
+        >[0]);
       });
       expect(usePinnedTabsStore.getState().pinnedCycleMeta).toEqual({});
     });
 
     it('setPinnedCycleMeta for multiple keys stores all entries independently', () => {
       act(() => {
-        usePinnedTabsStore.getState().setPinnedCycleMeta('PROJ-CY-1', { name: 'Sprint 1', projectKey: 'PROJ' });
-        usePinnedTabsStore.getState().setPinnedCycleMeta('PROJ-CY-2', { name: 'Sprint 2', projectKey: 'PROJ' });
+        usePinnedTabsStore
+          .getState()
+          .setPinnedCycleMeta('PROJ-CY-1', { name: 'Sprint 1', projectKey: 'PROJ' });
+        usePinnedTabsStore
+          .getState()
+          .setPinnedCycleMeta('PROJ-CY-2', { name: 'Sprint 2', projectKey: 'PROJ' });
       });
       const meta = usePinnedTabsStore.getState().pinnedCycleMeta;
       expect(meta['PROJ-CY-1']).toEqual({ name: 'Sprint 1', projectKey: 'PROJ' });
@@ -113,7 +125,9 @@ describe('pinned-tabs.store', () => {
   describe('v0→v1 migration', () => {
     it('sets pinnedCycleMeta = {} on persisted state with version < 1', () => {
       // Simulate a v0 persisted state (no pinnedCycleMeta field)
-      const v0State = { pinnedKeys: ['PROJ-1'] } as Parameters<typeof usePinnedTabsStore.setState>[0];
+      const v0State = { pinnedKeys: ['PROJ-1'] } as Parameters<
+        typeof usePinnedTabsStore.setState
+      >[0];
 
       // Access the migrate function by extracting it from the store config
       // We test migration by calling the store's migrate logic directly:

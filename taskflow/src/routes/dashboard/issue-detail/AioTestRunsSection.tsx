@@ -3,7 +3,6 @@ import { ChevronDown, ChevronRight, FlaskConical, Paperclip } from 'lucide-react
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ErrorState } from '@/components/ui/error-state';
-import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { aioRunStatusBadgeClass } from '@/lib/statusStyles';
 import type {
@@ -23,6 +22,7 @@ import {
   fetchAioTraceabilityTestCases,
 } from '@/services/aio';
 import { readSecret } from '@/services/stronghold';
+import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { AuthImage } from '../AuthImage';
 import { ImageLightbox } from '../ImageLightbox';
