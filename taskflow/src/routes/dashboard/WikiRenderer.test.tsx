@@ -287,6 +287,20 @@ describe('WikiRenderer', () => {
       '{panel}|',
     ].join('\n');
 
+    // Plan 54-09 — verbatim two-item ESHOP fixture (extends FINDING_1_FIXTURE).
+    // Round-2 evidence: both VAS.png AND Kosik.png appear inside the SAME `{panel}`
+    // block as numbered-list items. Source: .planning/debug/panel-still-breaks-table-round-2.md.
+    const KOSIK_URL = 'https://jira.orange.sk/secure/attachment/124/Kosik.png';
+    const FINDING_1_TWO_ITEM_FIXTURE = [
+      '||*S.No.*||*Step*||*Expected Result*||*Actual Result*||',
+      '|1. |Nacitanie eshop home page |Kontrola OK |Works as expected|',
+      `|2. |{color:#d04437}*FAILED:*{color} Plati pre paušály S, M, L: \\\\ • 5 GB (12657037, 5,13 €) |Kontrola OK |V kosiku mam Pro Biznis M a device na splatky...`,
+      '{panel}',
+      `# [VAS.png|${ATTACHMENT_URL}]`,
+      `# [Kosik.png|${KOSIK_URL}]`,
+      '{panel}|',
+    ].join('\n');
+
     it('renders nested {panel} block + embedded image link inside a table cell on the verbatim ESHOP fixture', () => {
       const { container } = render(<WikiRenderer wikiText={FINDING_1_FIXTURE} />);
 
@@ -347,6 +361,124 @@ describe('WikiRenderer', () => {
       // No raw `\n` characters inside the merged row (they were either substituted to
       // `<br/>` inside the span body or collapsed to a single space outside callouts).
       expect(lines[2].includes('\\n')).toBe(false);
+    });
+
+    it('Plan 54-09 Concerns B+C — two-item panel renders both items inside the same `<td>` as `<ol><li>`', () => {
+      const { container } = render(<WikiRenderer wikiText={FINDING_1_TWO_ITEM_FIXTURE} />);
+
+      // Anti-regression: single rendered table (no row escape splitting it).
+      expect(container.querySelectorAll('table').length).toBe(1);
+      const table = container.querySelector('table');
+      expect(table).not.toBeNull();
+
+      // tbody has exactly 2 rows (header row in <thead>; data rows in <tbody>).
+      const tbody = table?.querySelector('tbody');
+      expect(tbody).not.toBeNull();
+      expect(tbody?.querySelectorAll('tr').length).toBe(2);
+
+      // The panel span lives inside a <td> of the second data row.
+      const secondRow = tbody?.querySelectorAll('tr')[1];
+      const panelSpan = secondRow?.querySelector('[data-callout="panel"]');
+      expect(panelSpan).not.toBeNull();
+
+      // Concern C — numbered list semantics preserved: <ol> with 2 <li> children.
+      const ol = panelSpan?.querySelector('ol');
+      expect(ol).not.toBeNull();
+      const items = ol?.querySelectorAll('li');
+      expect(items?.length).toBe(2);
+
+      // li[0] anchor → VAS.png; li[1] anchor → Kosik.png.
+      const link0 = items?.[0]?.querySelector('a');
+      expect(link0).not.toBeNull();
+      expect(link0?.textContent).toBe('VAS.png');
+      expect(link0?.getAttribute('href')).toBe(ATTACHMENT_URL);
+
+      const link1 = items?.[1]?.querySelector('a');
+      expect(link1).not.toBeNull();
+      expect(link1?.textContent).toBe('Kosik.png');
+      expect(link1?.getAttribute('href')).toBe(KOSIK_URL);
+
+      // Concern C — no bare `#` character leaks into the panel span text content.
+      expect(panelSpan?.textContent ?? '').not.toMatch(/^\s*#/);
+      expect(panelSpan?.textContent ?? '').not.toMatch(/\s#\s/);
+    });
+
+    it('Plan 54-09 Concerns B+C — no sibling escape of panel list items outside the table', () => {
+      const { container } = render(<WikiRenderer wikiText={FINDING_1_TWO_ITEM_FIXTURE} />);
+
+      const table = container.querySelector('table');
+      expect(table).not.toBeNull();
+
+      // Gather text from elements that are NOT inside the table.
+      const article = container.querySelector('article');
+      expect(article).not.toBeNull();
+      // Clone the article and remove the table; what remains is "sibling content".
+      const cloned = article!.cloneNode(true) as HTMLElement;
+      cloned.querySelectorAll('table').forEach((t) => t.remove());
+      const outsideText = cloned.textContent ?? '';
+
+      // Round-2 symptom: `# Kosik.png` (and `# VAS.png`) escaping outside the table.
+      // After parser fix, these tokens must NOT appear outside the table at all.
+      expect(outsideText).not.toContain('# Kosik.png');
+      expect(outsideText).not.toContain('# VAS.png');
+      // The link TEXT itself should also live only inside the table.
+      expect(outsideText).not.toContain('Kosik.png');
+      expect(outsideText).not.toContain('VAS.png');
+
+      // All anchors with these texts must be descendants of the rendered table.
+      const allLinks = Array.from(container.querySelectorAll('a'));
+      const vasLinks = allLinks.filter((a) => a.textContent === 'VAS.png');
+      const kosikLinks = allLinks.filter((a) => a.textContent === 'Kosik.png');
+      expect(vasLinks.length).toBeGreaterThanOrEqual(1);
+      expect(kosikLinks.length).toBeGreaterThanOrEqual(1);
+      for (const link of [...vasLinks, ...kosikLinks]) {
+        expect(table?.contains(link)).toBe(true);
+      }
+    });
+
+    it('Plan 54-09 Concerns B+C — clicking VAS.png or Kosik.png inside the panel opens lightbox, NOT openUrl', () => {
+      vi.mocked(openUrl).mockClear();
+      const { container } = render(<WikiRenderer wikiText={FINDING_1_TWO_ITEM_FIXTURE} />);
+
+      // No lightbox open before any click.
+      expect(container.querySelector('[role="dialog"]')).toBeNull();
+
+      const vasLink = Array.from(container.querySelectorAll('a')).find(
+        (a) => a.textContent === 'VAS.png',
+      );
+      expect(vasLink).toBeDefined();
+      fireEvent.click(vasLink as HTMLAnchorElement);
+      expect(openUrl).not.toHaveBeenCalled();
+      expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+    });
+
+    it('Plan 54-09 Concern B — title panel with embedded wiki link does NOT split the table', () => {
+      const fixture = [
+        '||*Header*||*Result*||',
+        `|Row 1 |Body before panel`,
+        '{panel:title=Steps}',
+        `# [VAS.png|${ATTACHMENT_URL}]`,
+        '{panel}|',
+      ].join('\n');
+
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+
+      // Anti-regression: exactly one rendered table.
+      expect(container.querySelectorAll('table').length).toBe(1);
+      const table = container.querySelector('table');
+      expect(table).not.toBeNull();
+
+      // The panel-with-title carries data-title="Steps".
+      const panelSpan = table?.querySelector('[data-callout="panel"]');
+      expect(panelSpan).not.toBeNull();
+      expect(panelSpan?.getAttribute('data-title')).toBe('Steps');
+
+      // The link is rendered as an <a> descendant of the table.
+      const link = panelSpan?.querySelector('a');
+      expect(link).not.toBeNull();
+      expect(link?.textContent).toBe('VAS.png');
+      expect(link?.getAttribute('href')).toBe(ATTACHMENT_URL);
+      expect(table?.contains(link as Node)).toBe(true);
     });
 
     it('T-54-07-01 — <script> payload inside a table cell does NOT inject a script element (no XSS surface)', () => {
