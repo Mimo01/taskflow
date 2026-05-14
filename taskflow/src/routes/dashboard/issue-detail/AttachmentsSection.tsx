@@ -163,7 +163,7 @@ export function AttachmentsSection({
             <>
               {/* Image thumbnails grid */}
               {images.length > 0 && (
-                <div className="grid grid-cols-4 gap-2">
+                <div className="flex flex-wrap gap-2">
                   {images.map((img, idx) => (
                     <AttachmentThumbnail
                       key={img.id}

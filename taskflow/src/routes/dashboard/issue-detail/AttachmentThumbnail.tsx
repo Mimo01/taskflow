@@ -12,7 +12,7 @@ export function AttachmentThumbnail({ attachment, onClick }: AttachmentThumbnail
       role="button"
       tabIndex={0}
       aria-label={`${attachment.filename} - click to view full size`}
-      className="w-20 h-20 rounded-md overflow-hidden bg-muted relative group cursor-pointer"
+      className="w-20 h-20 rounded-md overflow-hidden bg-muted relative group cursor-pointer border border-border"
       onClick={onClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {

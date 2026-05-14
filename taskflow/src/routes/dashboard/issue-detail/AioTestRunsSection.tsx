@@ -180,14 +180,14 @@ function AioAttachmentsGrid({
             No inline image attachments found in linked test runs.
           </p>
         ) : (
-          <div className="grid grid-cols-4 gap-2">
+          <div className="flex flex-wrap gap-2">
             {attachments.map((att, idx) => (
               <div
                 key={att.url}
                 role="button"
                 tabIndex={0}
                 aria-label={`${att.filename} - click to view full size`}
-                className="w-20 h-20 rounded-md overflow-hidden bg-muted relative cursor-pointer"
+                className="w-20 h-20 rounded-md overflow-hidden bg-muted relative cursor-pointer border border-border"
                 onClick={() => setLightboxIndex(idx)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
