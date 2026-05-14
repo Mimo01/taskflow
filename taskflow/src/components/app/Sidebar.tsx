@@ -342,9 +342,14 @@ export default function Sidebar() {
             {section.items.map((nav) => {
               const Icon = ICON_MAP[nav.iconName];
               // Phase 55 D-10: 'aio-projects' nav item deep-links to the configured project.
-              // The filter above guarantees selectedAioProjectKey is non-null when this branch is hit.
+              // The filter above guarantees selectedAioProjectKey is non-null when this branch is hit;
+              // the `?? ''` is defensive belt-and-braces in case the gate is ever loosened.
+              // WR-02: encodeURIComponent protects against any future project-key shape
+              // containing URL-reserved characters (`/`, `?`, `#`, space).
               const navTo =
-                nav.id === 'aio-projects' ? `/aio-project/${selectedAioProjectKey}` : nav.path;
+                nav.id === 'aio-projects'
+                  ? `/aio-project/${encodeURIComponent(selectedAioProjectKey ?? '')}`
+                  : nav.path;
               return (
                 <NavLink
                   key={nav.id}
