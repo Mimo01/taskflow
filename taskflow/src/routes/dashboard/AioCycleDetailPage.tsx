@@ -1,48 +1,22 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, FlaskConical, Pin } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { NavLink, useNavigate, useParams } from 'react-router-dom';
+import { useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { normalizeStatus, normalizeStatusLabel } from '@/lib/aioUtils';
 import { aioCycleStatusBadgeClass, aioRunStatusBadgeClass } from '@/lib/statusStyles';
 import type { AioCycle, AioTestRun } from '@/services/aio';
 import { fetchAioCycleDetail, fetchAioTestRunsForCycle } from '@/services/aio';
-import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { AioCycleDetailSkeleton } from './AioCycleDetailSkeleton';
-
-function normalizeStatus(raw: string | undefined): 'pass' | 'fail' | 'blocked' | 'notRun' {
-  switch ((raw ?? '').toUpperCase()) {
-    case 'PASS':
-      return 'pass';
-    case 'FAIL':
-      return 'fail';
-    case 'BLOCKED':
-      return 'blocked';
-    default:
-      return 'notRun';
-  }
-}
-
-function normalizeStatusLabel(raw: string | undefined): string {
-  switch ((raw ?? '').toUpperCase()) {
-    case 'PASS':
-      return 'Pass';
-    case 'FAIL':
-      return 'Fail';
-    case 'BLOCKED':
-      return 'Blocked';
-    case 'NOT_EXECUTED':
-      return 'Not Run';
-    default:
-      return raw ?? 'Not Run';
-  }
-}
 
 const CHIPS = [
   { status: 'NOT_EXECUTED', label: 'Not Run' },
@@ -57,7 +31,7 @@ export default function AioCycleDetailPage() {
   const trail = useBreadcrumbStore((s) => s.trail);
   const breadcrumbPop = useBreadcrumbStore((s) => s.pop);
   const { jiraBaseUrl } = useAuthStore();
-  const [token, setToken] = useState<string | null>(null);
+  const { token, isLoading: tokenLoading } = useAioCredentials();
 
   const handleBack = () => {
     if (trail.length > 0) {
@@ -69,24 +43,18 @@ export default function AioCycleDetailPage() {
     }
   };
 
-  useEffect(() => {
-    readSecret('jira-pat')
-      .then(setToken)
-      .catch(() => setToken(null));
-  }, []);
-
   const queryClient = useQueryClient();
 
   const cycleQuery = useQuery<AioCycle>({
     queryKey: ['aio', jiraBaseUrl, 'cycle-detail', projectKey, cycleKey],
     queryFn: () => fetchAioCycleDetail(jiraBaseUrl!, token!, projectKey!, cycleKey!),
-    enabled: !!jiraBaseUrl && !!token && !!projectKey && !!cycleKey,
+    enabled: !!jiraBaseUrl && !!token && !tokenLoading && !!projectKey && !!cycleKey,
   });
 
   const runsQuery = useQuery<AioTestRun[]>({
     queryKey: ['aio', jiraBaseUrl, 'runs', projectKey, cycleKey],
     queryFn: () => fetchAioTestRunsForCycle(jiraBaseUrl!, token!, projectKey!, cycleKey!),
-    enabled: !!jiraBaseUrl && !!token && !!projectKey && !!cycleKey,
+    enabled: !!jiraBaseUrl && !!token && !tokenLoading && !!projectKey && !!cycleKey,
   });
 
   const showSkeleton = useDelayedLoading(cycleQuery.isLoading || runsQuery.isLoading);
@@ -194,8 +162,8 @@ export default function AioCycleDetailPage() {
         </Button>
       </div>
 
-      <div className="flex-1 overflow-auto">
-        {(cycleQuery.isError || runsQuery.isError) && !cycleQuery.data && !runsQuery.data && (
+      {(cycleQuery.isError || runsQuery.isError) && !cycleQuery.data && !runsQuery.data && (
+        <div className="flex-1 overflow-auto">
           <div className="p-4">
             <ErrorState
               error={cycleQuery.error ?? runsQuery.error}
@@ -210,64 +178,73 @@ export default function AioCycleDetailPage() {
               viewName="cycle detail"
             />
           </div>
-        )}
+        </div>
+      )}
 
-        {showSkeleton || cycleQuery.isLoading || runsQuery.isLoading ? (
+      {showSkeleton || cycleQuery.isLoading || runsQuery.isLoading ? (
+        <div className="flex-1 overflow-auto">
           <div className="p-4">
             <AioCycleDetailSkeleton />
           </div>
-        ) : !cycleQuery.isError && !runsQuery.isError && !!cycleQuery.data ? (
-          <>
-            {/* Progress section */}
-            <div className="px-6 py-4 border-b border-border">
-              {total === 0 ? (
-                <p className="text-sm text-muted-foreground">No runs recorded</p>
-              ) : (
-                <>
-                  <div className="w-full h-2 rounded-full overflow-hidden flex">
-                    {counts.pass > 0 && (
-                      <div
-                        className="bg-green-500 h-full"
-                        style={{ width: `${pct(counts.pass)}%` }}
-                      />
-                    )}
-                    {counts.fail > 0 && (
-                      <div
-                        className="bg-red-500 h-full"
-                        style={{ width: `${pct(counts.fail)}%` }}
-                      />
-                    )}
-                    {counts.blocked > 0 && (
-                      <div
-                        className="bg-orange-400 h-full"
-                        style={{ width: `${pct(counts.blocked)}%` }}
-                      />
-                    )}
-                    {counts.notRun > 0 && (
-                      <div
-                        className="bg-muted h-full"
-                        style={{ width: `${pct(counts.notRun)}%` }}
-                      />
-                    )}
-                  </div>
-                  <div className="flex gap-4 mt-1.5 text-xs text-muted-foreground">
-                    <span>
-                      Pass: {counts.pass} ({pct(counts.pass)}%)
-                    </span>
-                    <span>
-                      Fail: {counts.fail} ({pct(counts.fail)}%)
-                    </span>
-                    <span>
-                      Blocked: {counts.blocked} ({pct(counts.blocked)}%)
-                    </span>
-                    <span>
-                      Not Run: {counts.notRun} ({pct(counts.notRun)}%)
-                    </span>
-                  </div>
-                </>
-              )}
-            </div>
+        </div>
+      ) : !cycleQuery.isError && !runsQuery.isError && !!cycleQuery.data ? (
+        <Tabs defaultValue="executions" className="flex-1 flex flex-col min-h-0">
+          {/* Progress section — stays OUTSIDE TabsContent, INSIDE Tabs root */}
+          <div className="px-6 py-4 border-b border-border">
+            {total === 0 ? (
+              <p className="text-sm text-muted-foreground">No runs recorded</p>
+            ) : (
+              <>
+                <div className="w-full h-2 rounded-full overflow-hidden flex">
+                  {counts.pass > 0 && (
+                    <div
+                      className="bg-green-500 h-full"
+                      style={{ width: `${pct(counts.pass)}%` }}
+                    />
+                  )}
+                  {counts.fail > 0 && (
+                    <div
+                      className="bg-red-500 h-full"
+                      style={{ width: `${pct(counts.fail)}%` }}
+                    />
+                  )}
+                  {counts.blocked > 0 && (
+                    <div
+                      className="bg-orange-400 h-full"
+                      style={{ width: `${pct(counts.blocked)}%` }}
+                    />
+                  )}
+                  {counts.notRun > 0 && (
+                    <div
+                      className="bg-muted h-full"
+                      style={{ width: `${pct(counts.notRun)}%` }}
+                    />
+                  )}
+                </div>
+                <div className="flex gap-4 mt-1.5 text-xs text-muted-foreground">
+                  <span>
+                    Pass: {counts.pass} ({pct(counts.pass)}%)
+                  </span>
+                  <span>
+                    Fail: {counts.fail} ({pct(counts.fail)}%)
+                  </span>
+                  <span>
+                    Blocked: {counts.blocked} ({pct(counts.blocked)}%)
+                  </span>
+                  <span>
+                    Not Run: {counts.notRun} ({pct(counts.notRun)}%)
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
 
+          <TabsList className="mx-6 my-1.5">
+            <TabsTrigger value="executions">Executions</TabsTrigger>
+            <TabsTrigger value="defects">Defects</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="executions" className="flex-1 overflow-auto">
             {/* Filter chips toolbar */}
             <div
               role="toolbar"
@@ -390,27 +367,14 @@ export default function AioCycleDetailPage() {
                 </tbody>
               </table>
             )}
+          </TabsContent>
 
-            {/* Defects section */}
-            {allDefects.length > 0 && (
-              <div className="px-6 py-4 border-t border-border">
-                <h2 className="text-sm font-semibold mb-2">Defects</h2>
-                <div className="flex flex-col gap-1">
-                  {allDefects.map((defectKey) => (
-                    <NavLink
-                      key={defectKey}
-                      to={`/issue/${defectKey}`}
-                      className="hover:underline text-sm"
-                    >
-                      {defectKey}
-                    </NavLink>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        ) : null}
-      </div>
+          <TabsContent value="defects" className="flex-1 overflow-auto">
+            {/* defect enrichment replaces this placeholder in Task 3 */}
+            <div data-testid="defects-tab-placeholder" data-defect-count={allDefects.length} />
+          </TabsContent>
+        </Tabs>
+      ) : null}
     </div>
   );
 }
