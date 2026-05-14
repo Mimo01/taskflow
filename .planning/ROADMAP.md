@@ -10,7 +10,7 @@
 - ✅ **v1.5 Dashboard Redesign & Feature Parity** — Phases 31-37 (shipped 2026-03-24)
 - ✅ **v1.6.3 Release & Auto-Update Pipeline** — Phases 38-41 (shipped 2026-03-29)
 - ✅ **v1.7 Performance & Perceived Speed** — Phases 42-49 (shipped 2026-04-05)
-- 🚧 **v1.8 AIO Test Management** — Phases 51-54 (in progress)
+- 🚧 **v1.8 AIO Test Management** — Phases 51-55 (in progress)
 
 ## Phases
 
@@ -169,6 +169,7 @@ Cross-cutting constraints:
 - [x] **Phase 52: AIO Navigation + Project Pages** - Sidebar section, routing shell, project list page, project overview page — completed 2026-05-13
 - [x] **Phase 53: Cycle Detail + Header Pinning** - Full-page cycle detail (progress bar, test run table, defects), pin/unpin to header tab strip with persistence
 - [ ] **Phase 54: AIO on Issue Detail** - Lazy-loaded test runs section on issue detail, step table with colored markers, authenticated attachment lightbox
+- [ ] **Phase 55: AIO Project Selection in Settings** - Move AIO project picker from the AIO Projects list page to Settings; sidebar entry navigates directly to the configured project's overview
 
 ## Phase Details
 
@@ -322,6 +323,34 @@ Cross-cutting constraints:
 
 **UI hint**: yes
 
+### Phase 55: AIO Project Selection in Settings
+**Goal**: Move AIO project selection from the AIO Projects list page into the Settings → AIO section so a single configured project drives the app, and the sidebar "AIO Projects" entry navigates directly to that selected project's overview.
+**Depends on**: Phase 51, Phase 52
+**Requirements**: AION-02 (re-pointed from Phase 52 per CONTEXT.md D-13 — picker in Settings subsumes the deleted list page surface)
+**Success Criteria** (what must be TRUE):
+  1. User opens Settings → Integrations and sees the AIO Test Management subsection with the existing aioEnabled toggle and a new AIO project picker (gated on aioEnabled === true)
+  2. The picker fetches all AIO projects via fetchAioProjects with cache key ["aio", jiraBaseUrl, "projects"]; selecting an item persists projectKey to selectedAioProjectKey in useSettingsStore (silent persist — no toast, no redirect)
+  3. The sidebar "AIO Projects" nav item is hidden when aioEnabled === false OR selectedAioProjectKey === null, and visible otherwise; when visible, the NavLink href is /aio-project/${selectedAioProjectKey}
+  4. The legacy /aio-projects route, AioProjectsPage, and AioProjectsSkeleton are removed; REQUIREMENTS.md AION-02 traceability points at Phase 55
+**Plans:** 4 plans
+
+Plans:
+
+**Wave 1**
+- [ ] 55-01-PLAN.md — Settings store v16 → v17: add selectedAioProjectKey field + setter + migration guard; extend store tests
+
+**Wave 2** *(blocked on Wave 1 completion; 55-02 and 55-03 run in parallel — no shared files)*
+- [ ] 55-02-PLAN.md — IntegrationsSection picker: credential loader + useQuery + shadcn Select + loading/error/empty/loaded states; extend component tests
+- [ ] 55-03-PLAN.md — Sidebar gating + dynamic deep-link: extend destructure + filter at line 277 + override NavLink to= for 'aio-projects'; flip sidebar-items.ts path to '/aio' sentinel; extend Sidebar tests
+
+**Wave 3** *(destructive — blocked on Waves 2 and 3 both completing)*
+- [ ] 55-04-PLAN.md — Delete AioProjectsPage/Skeleton/test + remove /aio-projects route + AION-02 traceability update in REQUIREMENTS.md
+
+Cross-cutting constraints:
+- Plan 04 (destructive) MUST run last — until Plans 02 and 03 ship, removing the list page strands the user with no AIO project selection surface
+- Plans 02 and 03 both depend on Plan 01's selectedAioProjectKey field but have zero file overlap with each other — safe to run in parallel
+- sidebar-items.ts 'aio-projects' path becomes '/aio' sentinel (RESEARCH.md D-10 Option B); the real to= is computed inline in Sidebar.tsx based on selectedAioProjectKey
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -340,3 +369,4 @@ Cross-cutting constraints:
 | 52. AIO Navigation + Project Pages | v1.8 | 6/6 | Complete | 2026-05-13 |
 | 53. Cycle Detail + Header Pinning | v1.8 | 0/5 | Not started | - |
 | 54. AIO on Issue Detail | v1.8 | 6/9 | In Progress|  |
+| 55. AIO Project Selection in Settings | v1.8 | 0/4 | Not started | - |
