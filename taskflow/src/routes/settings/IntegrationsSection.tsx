@@ -126,9 +126,11 @@ export default function IntegrationsSection() {
                 another or clear the selection.
               </p>
             )}
-            <p className="text-xs text-muted-foreground">
-              Pick the AIO Test Management project this app shows.
-            </p>
+            {!isLoading && !isError && projects && projects.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Pick the AIO Test Management project this app shows.
+              </p>
+            )}
           </div>
         )}
       </div>
