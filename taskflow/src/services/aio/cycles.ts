@@ -11,36 +11,39 @@ import { ApiError } from '../../lib/api-error';
 import { aioFetch } from './client';
 import type { AioCycle, AioPage } from './types';
 
+// AIO API returns several fields as { ID, name } objects rather than plain strings.
+type AioNamedObject = { ID?: number; name?: string };
+type AioStringOrObject = string | AioNamedObject;
+
 type RawCycle = {
   key: string;
   title?: string;
   name?: string;
   isClosed?: boolean;
-  status?: string;
+  status?: AioStringOrObject; // AIO returns { ID, name } object, not a plain string
   projectKey?: string;
-  // Folder/grouping fields — confirmed from live AIO: testSet is an object { ID, name }.
-  folder?: string;
-  testSet?: { ID?: number; name?: string } | string; // AIO returns object { ID, name }
-  folderName?: string;
-  testSetKey?: string;
+  folder?: AioStringOrObject;
+  testSet?: AioStringOrObject; // confirmed object { ID, name } from live AIO
+  folderName?: AioStringOrObject;
+  testSetKey?: AioStringOrObject;
 };
 
-// PROBE FINDINGS (Plan 56-06, updated from live error):
-// testSet is returned as an object { ID: number, name: string } by this AIO instance —
-// NOT a plain string as the static-analysis probe assumed. Extracting .name is required.
-// folder, folderName, testSetKey remain string fields if present.
+// Extract a plain string from a field that AIO may return as { ID, name } or a plain string.
+function toStr(v: AioStringOrObject | undefined): string | undefined {
+  if (v == null) return undefined;
+  if (typeof v === 'string') return v || undefined;
+  return v.name || undefined;
+}
+
+// PROBE FINDINGS (Plan 56-06, updated from live errors):
+// Both testSet and status are returned as { ID, name } objects by this AIO instance.
+// All candidate folder/status fields are now normalised through toStr() to extract .name.
 function resolveRawFolder(raw: RawCycle): string | undefined {
-  if (raw.folder) return raw.folder;
-  if (raw.testSet) {
-    return typeof raw.testSet === 'string' ? raw.testSet : raw.testSet.name;
-  }
-  if (raw.folderName) return raw.folderName;
-  if (raw.testSetKey) return raw.testSetKey;
-  return undefined;
+  return toStr(raw.folder) ?? toStr(raw.testSet) ?? toStr(raw.folderName) ?? toStr(raw.testSetKey);
 }
 
 function normalizeCycle(raw: RawCycle, fallbackProjectKey?: string): AioCycle {
-  const status = raw.status ?? (raw.isClosed ? 'Closed' : 'Active');
+  const status = toStr(raw.status) ?? (raw.isClosed ? 'Closed' : 'Active');
   return {
     key: raw.key,
     name: raw.title ?? raw.name ?? raw.key,
