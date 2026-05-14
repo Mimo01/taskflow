@@ -374,3 +374,41 @@ Cross-cutting constraints:
 | 53. Cycle Detail + Header Pinning | v1.8 | 0/5 | Not started | - |
 | 54. AIO on Issue Detail | v1.8 | 6/9 | In Progress|  |
 | 55. AIO Project Selection in Settings | v1.8 | 4/4 | Complete    | 2026-05-14 |
+| 56. Redesign AIO cycles page + tabs + loading optimization | v1.8 | 0/4 | Not started | - |
+
+### Phase 56: Redesign AIO cycles page, optimize AIO loading performance, add defects and executions views
+
+**Goal:** Deliver three closely-related AIO UX improvements: (1) the cycles page renders per-cycle progress stats progressively (mini bar + counts) so users see cycle health at a glance without blocking on N fetches; (2) the cycle detail page reorganizes into Executions + Defects tabs with clickable run rows and a Jira-enriched defects table; (3) the repeated `useEffect + readSecret('jira-pat')` credential pattern is extracted into a shared `useAioCredentials()` hook with a `!isLoading` guard that eliminates the auth-error-flash on first AIO page load.
+**Requirements**: AION-03, AIOC-03
+**Depends on:** Phase 55
+**Success Criteria** (what must be TRUE):
+  1. Cycles page shows a Progress column with a mini h-1.5 bar + `{N}P {N}F {N}B {N}N` counts per row, loaded progressively per cycle
+  2. AioCyclesSkeleton matches the 4-column layout — no layout jump from skeleton to data
+  3. Cycle detail page uses shadcn Tabs with Executions (default) + Defects; progress section stays visible above the tab bar; filter chips moved into Executions tab
+  4. Run rows in Executions tab are clickable via mouse and keyboard (Enter/Space), navigating to /aio-cycle/:projectKey/:cycleKey/run/:runId with breadcrumb push
+  5. Defects tab shows a 4-column enriched table (Key NavLink | Title from fetchJiraIssueByKey | Status chip | Triggered By test case keys) OR an EmptyState when no defects
+  6. All three AIO pages consume `useAioCredentials()` and gate useQueries with `!!jiraBaseUrl && !!token && !tokenLoading` — no first-load auth-error flash
+  7. `normalizeStatus` and `normalizeStatusLabel` are extracted to `@/lib/aioUtils` and consumed from both AioCycleDetailPage and AioProjectOverviewPage
+**Plans:** 4 plans
+
+Plans:
+
+**Wave 1**
+- [ ] 56-01-PLAN.md — Foundations: `useAioCredentials()` hook + `aioUtils.ts` (normalizeStatus + normalizeStatusLabel) + tests + migrate AioTestRunDetailPage to the hook
+
+**Wave 2** *(blocked on Wave 1; 56-02 and 56-03 run in parallel — no shared files)*
+- [ ] 56-02-PLAN.md — AioProjectOverviewPage redesign: 4-column layout, CycleStatsCell per-row progressive stats, AioCyclesSkeleton 4-column update, AION-03 tests
+- [ ] 56-03-PLAN.md — AioCycleDetailPage tabbed redesign: Tabs wrapper, clickable run rows in Executions, enriched Defects tab via fetchJiraIssueByKey, AIOC-03 + D-08 tests
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 56-04-PLAN.md — Human verification checkpoint: live AIO instance E2E covering progressive loading, tabs UX, token-flash-fire absence, graceful degradation, skeleton no-jump, regression smoke
+
+Cross-cutting constraints:
+- Plans 56-02 and 56-03 both depend on Plan 56-01 (hook + aioUtils must ship first) but have ZERO file overlap with each other — safe to run in parallel in Wave 2
+- All `useQuery.enabled` clauses across the 3 AIO pages MUST include `!tokenLoading` (Pitfall 1 — without it, queries fire once with null token → 401 flash)
+- Per-row stats queries on the cycles page MUST use key `['aio', jiraBaseUrl, 'runs', projectKey, cycleKey]` — exact alignment with AioCycleDetailPage's runs query enables cache-hit on cycle detail visit
+- Defect Jira queries MUST use key prefix `['jira', jiraBaseUrl, 'issue-lightweight', defectKey]` to avoid collision with `fetchIssueDetail` (Pitfall 5)
+- Per D-16 + Pitfall 6: token is prop-drilled from page components to row sub-components (CycleStatsCell, DefectRow) — sub-components do NOT call useAioCredentials() themselves (avoids N redundant Stronghold reads)
+- Run rows in Executions tab use `<tr role="button" tabIndex={0} onClick + onKeyDown>` — NOT `<NavLink>` on `<tr>` (invalid HTML — RESEARCH Anti-Pattern)
+
+**UI hint**: yes
