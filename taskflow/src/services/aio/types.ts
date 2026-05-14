@@ -53,7 +53,7 @@ export interface AioTestRun {
     title: string; // Test case display name for run list
     updatedDate?: string; // ISO date fallback if executedDate absent
   };
-  defects?: string[]; // Jira issue keys inline, e.g. ["PROJ-42"] (D-14 confirmed)
+  defects?: string[]; // Resolved Jira issue keys (e.g. ['PROJ-42']). Populated by resolving jiraDefectIDs from the latest run execution via Jira REST API (Plan 56-05 fix).
   jiraDefectIDs?: number[]; // Numeric Jira issue IDs from jiraDefectIDs on latest execution (probe B confirmed)
   executedDate?: string; // Run-level date — NOTE: field name unverified against live endpoint (A2)
 }

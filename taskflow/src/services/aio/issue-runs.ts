@@ -32,8 +32,8 @@ import type { AioPage, AioTestRun } from './types';
 
 // API returns test case assignments. Each item wraps a testCase and a runs[] array.
 // The most recent execution is runs[0]; status lives at runs[0].testRunStatus.name.
-// jiraDefectIDs are numeric Jira internal IDs — cannot resolve to string keys without
-// a separate API call, so defects are left empty (AIOC-03 descoped per D-14 fallback).
+// jiraDefectIDs are numeric Jira internal IDs resolved to string Jira keys via
+// resolveJiraDefectKeys (Plan 56-05 fix — AIOC-03).
 type RawRunExecution = {
   ID?: number;
   testRunStatus?: { ID?: number; name?: string };
@@ -74,6 +74,30 @@ function toChipStatus(name: string | undefined): string {
     default:
       return 'NOT_EXECUTED';
   }
+}
+
+/**
+ * Resolve an array of numeric Jira internal IDs to string issue keys (e.g. 'PROJ-42').
+ *
+ * Uses fetchJiraIssueByKey with the numeric ID as a string — Jira REST API v2 accepts
+ * both the issue key and the numeric internal ID in the URL path.
+ * Results where fetchJiraIssueByKey returns null (404, auth, network) are silently
+ * dropped so the caller receives only successfully resolved keys.
+ *
+ * @param baseUrl    - Jira base URL
+ * @param token      - Personal Access Token
+ * @param numericIds - Array of numeric Jira internal issue IDs
+ * @returns Array of resolved Jira issue keys (e.g. ['PROJ-42', 'PROJ-57'])
+ */
+async function resolveJiraDefectKeys(
+  baseUrl: string,
+  token: string,
+  numericIds: number[],
+): Promise<string[]> {
+  const results = await Promise.all(
+    numericIds.map((id) => fetchJiraIssueByKey(baseUrl, token, String(id))),
+  );
+  return results.filter((issue) => issue !== null).map((issue) => issue.key);
 }
 
 function normalizeTestRun(raw: RawTestRun, fallbackCycleKey: string): AioTestRun {
@@ -133,10 +157,15 @@ export async function fetchAioTestRunsForCycle(
       // Guard: D-17 confirms AioPage wrapper for aio-tcms-api/1.0 endpoints,
       // but guard for direct array in case of API variation.
       if (Array.isArray(data)) {
-        return data.map((r) => normalizeTestRun(r, cycleKey));
+        const runs = data.map((r) => normalizeTestRun(r, cycleKey));
+        await resolveDefectsForRuns(baseUrl, token, runs);
+        return runs;
       }
       allRuns.push(...(data.items ?? []).map((r) => normalizeTestRun(r, cycleKey)));
-      if (data.isLast) return allRuns;
+      if (data.isLast) {
+        await resolveDefectsForRuns(baseUrl, token, allRuns);
+        return allRuns;
+      }
       startAt += data.maxResults;
       continue;
     }
@@ -148,4 +177,24 @@ export async function fetchAioTestRunsForCycle(
     }
     throw new Error(`AIO request failed with status ${response.status}`);
   }
+}
+
+/**
+ * Post-process a batch of normalized AioTestRun objects by resolving each run's
+ * jiraDefectIDs to string Jira issue keys, storing them in run.defects[].
+ * Runs with no jiraDefectIDs are skipped. Mutates the array elements in place.
+ */
+async function resolveDefectsForRuns(
+  baseUrl: string,
+  token: string,
+  runs: AioTestRun[],
+): Promise<void> {
+  await Promise.all(
+    runs.map(async (run) => {
+      const ids = run.jiraDefectIDs ?? [];
+      if (ids.length > 0) {
+        run.defects = await resolveJiraDefectKeys(baseUrl, token, ids);
+      }
+    }),
+  );
 }
