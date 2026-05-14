@@ -374,7 +374,7 @@ Cross-cutting constraints:
 | 53. Cycle Detail + Header Pinning | v1.8 | 0/5 | Not started | - |
 | 54. AIO on Issue Detail | v1.8 | 6/9 | In Progress|  |
 | 55. AIO Project Selection in Settings | v1.8 | 4/4 | Complete    | 2026-05-14 |
-| 56. Redesign AIO cycles page + tabs + loading optimization | v1.8 | 0/4 | Not started | - |
+| 56. Redesign AIO cycles page + tabs + loading optimization | v1.8 | 3/4 | In Progress|  |
 
 ### Phase 56: Redesign AIO cycles page, optimize AIO loading performance, add defects and executions views
 
@@ -389,16 +389,16 @@ Cross-cutting constraints:
   5. Defects tab shows a 4-column enriched table (Key NavLink | Title from fetchJiraIssueByKey | Status chip | Triggered By test case keys) OR an EmptyState when no defects
   6. All three AIO pages consume `useAioCredentials()` and gate useQueries with `!!jiraBaseUrl && !!token && !tokenLoading` — no first-load auth-error flash
   7. `normalizeStatus` and `normalizeStatusLabel` are extracted to `@/lib/aioUtils` and consumed from both AioCycleDetailPage and AioProjectOverviewPage
-**Plans:** 4 plans
+**Plans:** 3/4 plans executed
 
 Plans:
 
 **Wave 1**
-- [ ] 56-01-PLAN.md — Foundations: `useAioCredentials()` hook + `aioUtils.ts` (normalizeStatus + normalizeStatusLabel) + tests + migrate AioTestRunDetailPage to the hook
+- [x] 56-01-PLAN.md — Foundations: `useAioCredentials()` hook + `aioUtils.ts` (normalizeStatus + normalizeStatusLabel) + tests + migrate AioTestRunDetailPage to the hook
 
 **Wave 2** *(blocked on Wave 1; 56-02 and 56-03 run in parallel — no shared files)*
-- [ ] 56-02-PLAN.md — AioProjectOverviewPage redesign: 4-column layout, CycleStatsCell per-row progressive stats, AioCyclesSkeleton 4-column update, AION-03 tests
-- [ ] 56-03-PLAN.md — AioCycleDetailPage tabbed redesign: Tabs wrapper, clickable run rows in Executions, enriched Defects tab via fetchJiraIssueByKey, AIOC-03 + D-08 tests
+- [x] 56-02-PLAN.md — AioProjectOverviewPage redesign: 4-column layout, CycleStatsCell per-row progressive stats, AioCyclesSkeleton 4-column update, AION-03 tests
+- [x] 56-03-PLAN.md — AioCycleDetailPage tabbed redesign: Tabs wrapper, clickable run rows in Executions, enriched Defects tab via fetchJiraIssueByKey, AIOC-03 + D-08 tests
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 56-04-PLAN.md — Human verification checkpoint: live AIO instance E2E covering progressive loading, tabs UX, token-flash-fire absence, graceful degradation, skeleton no-jump, regression smoke
