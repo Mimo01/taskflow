@@ -142,10 +142,14 @@ describe('WikiRenderer', () => {
       expect(callout?.textContent).toContain('untitled');
     });
 
-    it('panels reset first/last-child paragraph margins to neutralize prose spacing', () => {
-      // Verify all four callout types carry the surgical margin-reset classes that
-      // prevent prose-sm paragraph margins from stacking with the panel's own p-3
-      // padding (root cause: first <p> top-margin + p-3 = doubled apparent padding).
+    it('panels reset first/last-child margins (any element type) to neutralize prose spacing', () => {
+      // Round-1 used [&>p:first-child]:mt-0, which only matched <p> first children.
+      // When the panel body is an <ol> / <ul> / heading / etc. (e.g. a numbered
+      // image-link list inside `{panel}…{panel}`), prose-sm still stacks the
+      // element's top/bottom margin on top of the panel's `p-3` padding and the
+      // panel still looks doubly-padded. The selector must be universal:
+      // [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 — covers <p>, <ol>, <ul>,
+      // headings, etc. equally.
       const calloutCases: Array<{ type: string; wikiText: string }> = [
         { type: 'panel', wikiText: '{panel}line 1\n\nline 2{panel}' },
         { type: 'info', wikiText: '{info}line 1\n\nline 2{info}' },
@@ -157,13 +161,41 @@ describe('WikiRenderer', () => {
         const callout = container.querySelector(`[data-callout="${type}"]`);
         expect(callout, `${type}: callout element should exist`).not.toBeNull();
         const cls = callout!.className;
-        expect(cls, `${type}: should contain [&>p:first-child]:mt-0`).toContain(
-          '[&>p:first-child]:mt-0',
+        expect(cls, `${type}: should contain [&>*:first-child]:mt-0`).toContain(
+          '[&>*:first-child]:mt-0',
         );
-        expect(cls, `${type}: should contain [&>p:last-child]:mb-0`).toContain(
-          '[&>p:last-child]:mb-0',
+        expect(cls, `${type}: should contain [&>*:last-child]:mb-0`).toContain(
+          '[&>*:last-child]:mb-0',
         );
       }
+    });
+
+    it('inline panel containing an <ol> (table-cell variant) carries the universal margin-reset classes (regression: round-1 [&>p:…] selector missed the ESHOP <ol> case shown in UAT)', () => {
+      // ESHOP fixture from Plan 54-09: `{panel}` with a numbered image-link
+      // list nested inside a table cell. The renderer emits this as
+      // `<span data-callout="panel"><ol>…</ol></span>` — so the panel's only
+      // direct child is <ol>, not <p>. Round-1 selector `[&>p:first-child]:mt-0`
+      // did not match, prose-sm `<ol>` margins kept stacking on top of `p-3`,
+      // and the panel still rendered with doubled apparent padding (UAT screenshot).
+      const fixture = [
+        '||*S.No.*||*Step*||',
+        '|1. |Body before panel',
+        '{panel}',
+        '# [VAS.png|https://jira.orange.sk/secure/attachment/123/VAS.png]',
+        '# [Kosik.png|https://jira.orange.sk/secure/attachment/124/Kosik.png]',
+        '{panel}|',
+      ].join('\n');
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const panelSpan = container.querySelector('[data-callout="panel"]');
+      expect(panelSpan).not.toBeNull();
+      // The panel actually wraps an <ol> (proves the case we're regressing on).
+      expect(panelSpan?.querySelector('ol')).not.toBeNull();
+      // And the universal selector classes are present (this is what enables
+      // the prose-sm <ol> margin to be zeroed — the [&>p:…] selector would
+      // not have matched).
+      const cls = panelSpan!.className;
+      expect(cls).toContain('[&>*:first-child]:mt-0');
+      expect(cls).toContain('[&>*:last-child]:mb-0');
     });
   });
 
