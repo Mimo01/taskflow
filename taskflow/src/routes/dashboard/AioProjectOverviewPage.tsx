@@ -8,19 +8,33 @@ import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
-import { normalizeStatusById } from '@/lib/aioUtils';
 import type { AioCycleDetailItem, AioCycleSummaryItem, AioFolder } from '@/services/aio/types';
+import type { AioTestRunStatusConfig } from '@/services/aio/types';
 import {
   fetchAioCycleSummaries,
   fetchAioCyclesWithDetail,
   fetchAioFolderCycleCounts,
   fetchAioFolderTree,
+  fetchAioProjectConfig,
 } from '@/services/aio';
 import { fetchJiraProjectNumericId } from '@/services/jira/projects';
 import { fetchJiraUserByUsername } from '@/services/jira/users';
 import { useAuthStore } from '@/stores/auth.store';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
+
+type StatusKey = 'pass' | 'fail' | 'blocked' | 'notRun' | 'inProgress';
+const STATUS_TYPE_MAP: Record<string, StatusKey> = {
+  PASSED: 'pass',
+  FAILED: 'fail',
+  BLOCKED: 'blocked',
+  NOT_RUN: 'notRun',
+  IN_PROGRESS: 'inProgress',
+};
+
+function buildStatusMap(statuses: AioTestRunStatusConfig[]): Record<number, StatusKey> {
+  return Object.fromEntries(statuses.map((s) => [s.ID, STATUS_TYPE_MAP[s.statusType] ?? 'notRun']));
+}
 
 function isDescendant(tree: AioFolder[], ancestorID: number, candidateID: number): boolean {
   for (const node of tree) {
@@ -174,9 +188,11 @@ function OwnerCell({
 function ProgressBarCell({
   summary,
   isLoading,
+  statusMap,
 }: {
   summary: AioCycleSummaryItem['summary'] | undefined;
   isLoading?: boolean;
+  statusMap: Record<number, StatusKey>;
 }) {
   if (isLoading && !summary) {
     return (
@@ -192,7 +208,7 @@ function ProgressBarCell({
 
   const counts = { pass: 0, fail: 0, blocked: 0, notRun: 0, inProgress: 0 };
   for (const [idStr, count] of Object.entries(summary.testRunDistribution)) {
-    const status = normalizeStatusById(Number(idStr));
+    const status = statusMap[Number(idStr)] ?? 'notRun';
     counts[status] += count;
   }
 
@@ -257,6 +273,19 @@ export default function AioProjectOverviewPage() {
   const jiraProjectId = jiraProjectIdQuery.data ?? null;
 
   const aioGate = credGate && !!jiraProjectId;
+
+  // Project config — testRunStatus entries for dynamic status ID → canonical key mapping.
+  const configQuery = useQuery({
+    queryKey: ['aio', jiraBaseUrl, 'project-config', projectKey],
+    queryFn: () => fetchAioProjectConfig(jiraBaseUrl!, token!, jiraProjectId!),
+    enabled: aioGate,
+    staleTime: 60 * 60 * 1000,
+  });
+
+  const statusMap = useMemo(
+    () => buildStatusMap(configQuery.data ?? []),
+    [configQuery.data],
+  );
 
   // Folder tree + count map (parallel)
   const foldersQuery = useQuery({
@@ -515,6 +544,7 @@ export default function AioProjectOverviewPage() {
                         <ProgressBarCell
                           summary={summary}
                           isLoading={cycleSummariesQuery.isLoading}
+                          statusMap={statusMap}
                         />
                       </td>
                     </tr>
