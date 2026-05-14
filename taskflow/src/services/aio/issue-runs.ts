@@ -162,7 +162,7 @@ export async function fetchAioTestRunsForCycle(
         return runs;
       }
       allRuns.push(...(data.items ?? []).map((r) => normalizeTestRun(r, cycleKey)));
-      if (data.isLast) {
+      if (data.isLast || !data.maxResults || data.maxResults <= 0) {
         await resolveDefectsForRuns(baseUrl, token, allRuns);
         return allRuns;
       }
