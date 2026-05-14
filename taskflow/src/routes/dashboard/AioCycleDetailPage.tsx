@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, FlaskConical, Pin } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -28,6 +28,7 @@ const CHIPS = [
 export default function AioCycleDetailPage() {
   const { projectKey, cycleKey } = useParams<{ projectKey: string; cycleKey: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const trail = useBreadcrumbStore((s) => s.trail);
   const breadcrumbPop = useBreadcrumbStore((s) => s.pop);
   const { jiraBaseUrl } = useAuthStore();
@@ -89,6 +90,11 @@ export default function AioCycleDetailPage() {
   const allDefects = [...new Set((runs ?? []).flatMap((r) => r.defects ?? []).filter(Boolean))];
 
   const cycleName = cycleQuery.data?.name ?? cycleKey ?? '';
+
+  const openRun = (run: AioTestRun) => {
+    useBreadcrumbStore.getState().push({ label: cycleName, path: location.pathname });
+    navigate(`/aio-cycle/${projectKey}/${cycleKey}/run/${run.id}`);
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -338,7 +344,18 @@ export default function AioCycleDetailPage() {
                   {filteredRuns.map((run) => (
                     <tr
                       key={run.id}
-                      className="border-b border-border hover:bg-muted/30 transition-colors"
+                      className="border-b border-border hover:bg-muted/30 transition-colors cursor-pointer"
+                      role="button"
+                      tabIndex={0}
+                      data-testid={`run-row-${run.id}`}
+                      aria-label={`Open run for ${run.testCase?.title ?? run.testCaseKey}`}
+                      onClick={() => openRun(run)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          openRun(run);
+                        }
+                      }}
                     >
                       <td className="px-4 py-3">{run.testCase?.title ?? run.testCaseKey}</td>
                       <td className="px-3 py-3">
