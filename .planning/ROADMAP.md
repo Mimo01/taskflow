@@ -168,7 +168,7 @@ Cross-cutting constraints:
 - [x] **Phase 51: AIO Service Layer** - Live instance probe, `src/services/aio/` module, `aioEnabled` settings toggle, AIO project ID resolution — completed 2026-05-12
 - [x] **Phase 52: AIO Navigation + Project Pages** - Sidebar section, routing shell, project list page, project overview page — completed 2026-05-13
 - [x] **Phase 53: Cycle Detail + Header Pinning** - Full-page cycle detail (progress bar, test run table, defects), pin/unpin to header tab strip with persistence
-- [ ] **Phase 54: AIO on Issue Detail** - Lazy-loaded test runs section on issue detail, step table with colored markers, authenticated attachment lightbox
+- [x] **Phase 54: AIO on Issue Detail** - Lazy-loaded test runs section on issue detail, step table with colored markers, authenticated attachment lightbox — completed 2026-05-14
 - [x] **Phase 55: AIO Project Selection in Settings** - Move AIO project picker from the AIO Projects list page to Settings; sidebar entry navigates directly to the configured project's overview (completed 2026-05-14)
 
 ## Phase Details
@@ -278,7 +278,7 @@ Cross-cutting constraints:
   2. The AIO section renders a step table with step / expected / actual columns and colored failure markers per row
   3. When the issue has no associated AIO test runs, the section is hidden (not an error state)
   4. Attachment images within test run steps are fetched via the authenticated HTTP client and open in the existing in-app lightbox
-**Plans:** 6/10 plans executed
+**Plans:** 12/12 plans executed
 
 Plans:
 
@@ -308,7 +308,11 @@ Plans:
 - [x] 54-08-PLAN.md — Gap closure for 3 remaining UAT gaps: (Gap 1) widen no-runs path so in-cycle runs with empty/null detail.steps[] promote to ImpactedExecutionsList — fixes ESHOP-393120 single-cycle silent empty section, (Gap 2) narrow line-606 short-circuit so AioAttachmentsGrid header always renders when AIO data is present (linked cases exist), (Gap 3) wrap WikiRenderer tables in overflow-x-auto + add min-w-0 to StepTable cell wrappers so nested wiki tables scroll horizontally inside outer cells instead of overflowing; plus service-level shape-lock tests for fetchAioTraceabilityTestCases.
 
 **Wave 8** *(UAT gap closure round 2 — blocked on Wave 7 completion; closes 54-HUMAN-UAT.md round-2 residual Gap 3 + still-pending Test 4)*
-- [ ] 54-09-PLAN.md — Parser-level fix for nested `{panel}` inside `|cell|` of wiki table rows: (Concern A) verify `mergeOpenTableRows` consumes the full panel-bearing row via a direct unit test, (Concern B) escape literal `|` inside the flattened `<span data-callout>` substituted content so wiki links `[name|url]` no longer break the markdown table tokeniser, (Concern C) preserve numbered-list semantics `# item` inside `{panel}` by emitting `<ol><li>` HTML; plus verbatim two-item ESHOP fixture regression tests; final `checkpoint:human-verify` covers Gap 3 RE-UAT + still-pending Test 4 (ROADMAP SC end-to-end UAT on a happy-path issue).
+- [x] 54-09-PLAN.md — Parser-level fix for nested `{panel}` inside `|cell|` of wiki table rows: (Concern A) verify `mergeOpenTableRows` consumes the full panel-bearing row via a direct unit test, (Concern B) escape literal `|` inside the flattened `<span data-callout>` substituted content so wiki links `[name|url]` no longer break the markdown table tokeniser, (Concern C) preserve numbered-list semantics `# item` inside `{panel}` by emitting `<ol><li>` HTML; plus verbatim two-item ESHOP fixture regression tests; final `checkpoint:human-verify` covers Gap 3 RE-UAT + still-pending Test 4 (ROADMAP SC end-to-end UAT on a happy-path issue).
+
+**Wave 9** *(UAT gap closure round 3 — description-body image refs + cross-project status chips)*
+- [x] 54-10-PLAN.md — AioTestRunsSection accepts `description?: string | null`; aggregates inline `[name.ext|url]` image refs from description body alongside run-derived refs, deduped by URL; IssueDetailPage wires `issue.fields.description`.
+- [x] 54-11-PLAN.md — Cross-project detail fetch uses cycle-derived projectKey; impacted execution rows are clickable (cycle key → cycle detail, run ID → new `/aio-cycle/:projectKey/:cycleKey/run/:runId` page); CollapsibleRunBlock used for single-run consistency; breadcrumb integration via useBreadcrumbStore.
 
 Cross-cutting constraints:
 - Plans 54-02 and 54-03 run in parallel (no shared files): 54-02 touches only test files; 54-03 touches only new component files
