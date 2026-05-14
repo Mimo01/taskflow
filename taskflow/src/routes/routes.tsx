@@ -21,6 +21,7 @@ const MergeRequestDetailPage = lazy(() => import('./dashboard/MergeRequestDetail
 const AioProjectsPage = lazy(() => import('./dashboard/AioProjectsPage'));
 const AioProjectOverviewPage = lazy(() => import('./dashboard/AioProjectOverviewPage'));
 const AioCycleDetailPage = lazy(() => import('./dashboard/AioCycleDetailPage'));
+const AioTestRunDetailPage = lazy(() => import('./dashboard/AioTestRunDetailPage'));
 
 function withLazy(Component: ComponentType) {
   return (
@@ -51,4 +52,8 @@ export const routes: RouteObject[] = [
   { path: '/aio-projects', element: withLazy(AioProjectsPage) },
   { path: '/aio-project/:projectKey', element: withLazy(AioProjectOverviewPage) },
   { path: '/aio-cycle/:projectKey/:cycleKey', element: withLazy(AioCycleDetailPage) },
+  {
+    path: '/aio-cycle/:projectKey/:cycleKey/run/:runId',
+    element: withLazy(AioTestRunDetailPage),
+  },
 ];
