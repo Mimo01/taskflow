@@ -332,7 +332,7 @@ Cross-cutting constraints:
   2. The picker fetches all AIO projects via fetchAioProjects with cache key ["aio", jiraBaseUrl, "projects"]; selecting an item persists projectKey to selectedAioProjectKey in useSettingsStore (silent persist — no toast, no redirect)
   3. The sidebar "AIO Projects" nav item is hidden when aioEnabled === false OR selectedAioProjectKey === null, and visible otherwise; when visible, the NavLink href is /aio-project/${selectedAioProjectKey}
   4. The legacy /aio-projects route, AioProjectsPage, and AioProjectsSkeleton are removed; REQUIREMENTS.md AION-02 traceability points at Phase 55
-**Plans:** 1/4 plans executed
+**Plans:** 3/4 plans executed
 
 Plans:
 
@@ -340,8 +340,8 @@ Plans:
 - [x] 55-01-PLAN.md — Settings store v16 → v17: add selectedAioProjectKey field + setter + migration guard; extend store tests
 
 **Wave 2** *(blocked on Wave 1 completion; 55-02 and 55-03 run in parallel — no shared files)*
-- [ ] 55-02-PLAN.md — IntegrationsSection picker: credential loader + useQuery + shadcn Select + loading/error/empty/loaded states; extend component tests
-- [ ] 55-03-PLAN.md — Sidebar gating + dynamic deep-link: extend destructure + filter at line 277 + override NavLink to= for 'aio-projects'; flip sidebar-items.ts path to '/aio' sentinel; extend Sidebar tests
+- [x] 55-02-PLAN.md — IntegrationsSection picker: credential loader + useQuery + shadcn Select + loading/error/empty/loaded states; extend component tests
+- [x] 55-03-PLAN.md — Sidebar gating + dynamic deep-link: extend destructure + filter at line 277 + override NavLink to= for 'aio-projects'; flip sidebar-items.ts path to '/aio' sentinel; extend Sidebar tests
 
 **Wave 3** *(destructive — blocked on Waves 2 and 3 both completing)*
 - [ ] 55-04-PLAN.md — Delete AioProjectsPage/Skeleton/test + remove /aio-projects route + AION-02 traceability update in REQUIREMENTS.md
@@ -369,4 +369,4 @@ Cross-cutting constraints:
 | 52. AIO Navigation + Project Pages | v1.8 | 6/6 | Complete | 2026-05-13 |
 | 53. Cycle Detail + Header Pinning | v1.8 | 0/5 | Not started | - |
 | 54. AIO on Issue Detail | v1.8 | 6/9 | In Progress|  |
-| 55. AIO Project Selection in Settings | v1.8 | 1/4 | In Progress|  |
+| 55. AIO Project Selection in Settings | v1.8 | 3/4 | In Progress|  |
