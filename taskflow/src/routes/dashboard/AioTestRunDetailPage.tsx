@@ -1,33 +1,18 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, FileQuestion, FlaskConical } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
+import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { normalizeStatusLabel } from '@/lib/aioUtils';
 import { aioRunStatusBadgeClass } from '@/lib/statusStyles';
 import type { AioTestRun, AioTestRunStep } from '@/services/aio';
 import { fetchAioTestRunDetail } from '@/services/aio';
-import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { AioCycleDetailSkeleton } from './AioCycleDetailSkeleton';
 import { WikiRenderer } from './WikiRenderer';
-
-function normalizeStatusLabel(raw: string | undefined): string {
-  switch ((raw ?? '').toUpperCase()) {
-    case 'PASS':
-      return 'Pass';
-    case 'FAIL':
-      return 'Fail';
-    case 'BLOCKED':
-      return 'Blocked';
-    case 'NOT_EXECUTED':
-      return 'Not Run';
-    default:
-      return raw ?? 'Not Run';
-  }
-}
 
 function formatDate(iso: string | undefined): string {
   if (!iso) return '—';
@@ -54,7 +39,7 @@ export default function AioTestRunDetailPage() {
   const trail = useBreadcrumbStore((s) => s.trail);
   const breadcrumbPop = useBreadcrumbStore((s) => s.pop);
   const { jiraBaseUrl } = useAuthStore();
-  const [token, setToken] = useState<string | null>(null);
+  const { token, isLoading: tokenLoading } = useAioCredentials();
 
   const handleBack = () => {
     if (trail.length > 0) {
@@ -66,18 +51,12 @@ export default function AioTestRunDetailPage() {
     }
   };
 
-  useEffect(() => {
-    readSecret('jira-pat')
-      .then(setToken)
-      .catch(() => setToken(null));
-  }, []);
-
   const queryClient = useQueryClient();
 
   const detailQuery = useQuery<{ run: AioTestRun; steps: AioTestRunStep[] } | null>({
     queryKey: ['aio', jiraBaseUrl, 'run-detail', projectKey, cycleKey, runId],
     queryFn: () => fetchAioTestRunDetail(jiraBaseUrl!, token!, projectKey!, cycleKey!, runId!),
-    enabled: !!jiraBaseUrl && !!token && !!projectKey && !!cycleKey && !!runId,
+    enabled: !!jiraBaseUrl && !!token && !tokenLoading && !!projectKey && !!cycleKey && !!runId,
   });
 
   const showSkeleton = useDelayedLoading(detailQuery.isLoading);
