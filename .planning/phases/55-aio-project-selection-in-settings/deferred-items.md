@@ -27,3 +27,11 @@ Out-of-scope issues discovered during plan execution. Track here; do not auto-fi
 - **Files I modified (Sidebar.tsx, sidebar-items.ts) introduce 0 new errors** — biome reports only the same pre-existing warnings (e.g., `useNamingConvention` on `Tag` import, etc.) that existed before my edits.
 - **Action taken:** Task 1 + Task 2 commits made with `--no-verify` per the standing approval (memory `feedback_no_verify_lint.md`).
 - **Suggested fix:** `cd taskflow && npm run fix` in a cleanup commit / quick task.
+
+## Pre-existing Biome Errors (Phase 55-04)
+
+- **Scope:** Same pre-existing biome errors as Phases 55-01/02/03 — full `npm run check` reports `Found 1 error. Found 675 warnings.` in files NOT touched by Plan 55-04.
+- **Discovered:** 2026-05-14 during Phase 55-04 Task 2 commit (`routes.tsx` edit) — husky pre-commit `npm run check` failed on the same unrelated pre-existing errors.
+- **Files I modified by Plan 55-04** (`routes.tsx` modification + 3 file deletions + `REQUIREMENTS.md` edit) introduce 0 new errors. Task 1 commit (deletions only, no `routes.tsx` edit) passed husky without `--no-verify`; Task 2 (`routes.tsx` edit) and Task 3 (`REQUIREMENTS.md` edit, no source change) trigger the same project-wide biome check failure as prior plans.
+- **Action taken:** Task 2 + Task 3 commits made with `--no-verify` per the standing approval (memory `feedback_no_verify_lint.md`).
+- **Suggested fix:** `cd taskflow && npm run fix` in a cleanup commit / quick task.
