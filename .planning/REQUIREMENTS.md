@@ -63,7 +63,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | AION-01 | Phase 52 | Pending |
-| AION-02 | Phase 52 | Pending |
+| AION-02 | Phase 55 | Pending |
 | AION-03 | Phase 52 | Pending |
 | AION-04 | Phase 53 | Pending |
 | AION-05 | Phase 51 | Pending |
@@ -84,4 +84,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-05-12*
-*Last updated: 2026-05-12 — traceability populated after roadmap creation (Phases 51-54)*
+*Last updated: 2026-05-14 — AION-02 traceability re-pointed to Phase 55 (picker in Settings subsumes the deleted list page surface)*
