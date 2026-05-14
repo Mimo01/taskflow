@@ -461,19 +461,19 @@ vi.mock('@/hooks/useAioCredentials', () => ({
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **`normalizeStatus` extraction vs. duplication**
+1. **`normalizeStatus` extraction vs. duplication** — RESOLVED by Plan 01-T2: extracted to `src/lib/aioUtils.ts`
    - What we know: Function exists in `AioCycleDetailPage.tsx`, not exported. Cycles page needs the same logic.
    - What's unclear: Whether the planner prefers extracting to `lib/aioUtils.ts` or duplicating inline.
    - Recommendation: Extract to shared util — two copies that can diverge is a maintenance risk.
 
-2. **`AioCyclesSkeleton` 4-column update**
+2. **`AioCyclesSkeleton` 4-column update** — RESOLVED by Plan 02-T2: skeleton updated to 4-column layout
    - What we know: Current skeleton renders 5 `h-10 w-full` rows with no column structure.
    - What's unclear: Whether visual mismatch is acceptable or the skeleton should be updated.
    - Recommendation: Planner updates the skeleton to roughly match the 4-column layout to avoid layout jump.
 
-3. **Defect query key prefix for `fetchJiraIssueByKey`**
+3. **Defect query key prefix for `fetchJiraIssueByKey`** — RESOLVED by Plan 03-T3: uses `['jira', jiraBaseUrl, 'issue-lightweight', defectKey]`
    - What we know: No existing query key standard for lightweight issue fetches.
    - Recommendation: Use `['jira', jiraBaseUrl, 'issue-lightweight', defectKey]` to avoid collisions with `fetchIssueDetail` results.
 
