@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 Phase: 54 (aio-on-issue-detail) — UAT APPROVED, awaiting verify-work
 Plan: 54-11 of 11 (final — cross-project + breadcrumb integration into useBreadcrumbStore)
 Status: All 4 UAT tests PASS (Tests 1-3, Test 4 + Gaps 1-6 resolved). User approved 2026-05-14T14:15Z. Run `/gsd:verify-work 54` to mark phase `verified`.
-Last activity: 2026-05-14 - Completed quick task 260514-k2u: zero first/last-child paragraph margins inside wiki callout panels
+Last activity: 2026-05-14 - 260514-k2u round-2: broadened callout margin-reset to [&>*:first-child]/[&>*:last-child] (round-1 only matched <p>; UAT showed <ol> inside table-cell panel still doubled)
 
 Progress: [██████████] 100%
 
@@ -88,7 +88,7 @@ None.
 | 260511-epfmqx | Fetch closed Jira task by ID in search — auto-detect key pattern and direct fetch | 2026-05-11 | e671656 | [260511-epfmqx-fetch-closed-jira-task-by-id](./quick/260511-epfmqx-fetch-closed-jira-task-by-id/) |
 | 260513-awc | In sprint board task headers also show a pill with epic name. It should be between status and asignee. The pill should be clickable to epic detail | 2026-05-13 | ff61a86 | [260513-awc-sprint-board-epic-pill](./quick/260513-awc-sprint-board-epic-pill/) |
 | 260513-axn | On sprint board if story has 0 subtasks print the text in the header the same way as if it did | 2026-05-13 | da7f9d9 | [260513-axn-sprint-board-story-0-subtasks-header](./quick/260513-axn-sprint-board-story-0-subtasks-header/) |
-| 260514-k2u | On jira issue detail when showing `{panel}` everything renders correctly but the panel has huge internal padding | 2026-05-14 | 131f813 | [260514-k2u-on-jira-issue-detail-when-showing-panel-](./quick/260514-k2u-on-jira-issue-detail-when-showing-panel-/) |
+| 260514-k2u | On jira issue detail when showing `{panel}` everything renders correctly but the panel has huge internal padding | 2026-05-14 | 901052c | [260514-k2u-on-jira-issue-detail-when-showing-panel-](./quick/260514-k2u-on-jira-issue-detail-when-showing-panel-/) |
 
 ## Session Continuity
 
