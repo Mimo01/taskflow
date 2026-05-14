@@ -416,3 +416,44 @@ Cross-cutting constraints:
 - Run rows in Executions tab use `<tr role="button" tabIndex={0} onClick + onKeyDown>` — NOT `<NavLink>` on `<tr>` (invalid HTML — RESEARCH Anti-Pattern)
 
 **UI hint**: yes
+
+### Phase 57: Redesign the AIO cycles page. It should be more like the real AIO page. You can find 4 example requests here /Users/mimo/Downloads and use this schema for loading the page
+
+**Goal:** Redesign `AioProjectOverviewPage.tsx` to mirror the real AIO product: a two-panel layout (left = recursive folder tree from `/folder` endpoint, right = cycle list for the selected folder), with the cycle list driven by a batch summary endpoint (`paged2` shape) instead of N+1 test-run fetches, plus a new owner column resolved via the Jira user lookup API and a "Show closed" toggle.
+**Requirements**: AION-03
+**Depends on:** Phase 56
+**Success Criteria** (what must be TRUE):
+  1. The AIO project overview page renders a two-panel layout (left folder tree + right cycle list) — no flat accordion
+  2. The folder tree renders the full recursive hierarchy from the `/folder` endpoint, with expand/collapse and per-folder cycle count badges from the `/count` endpoint
+  3. The cycle table has 5 columns — Key (mono) | Name (NavLink) | Owner (Jira displayName) | Total tests | Progress bar — driven by the cycle summary endpoint (`paged2`); zero N+1 fetches per cycle
+  4. The progress bar uses the AIO_STATUS_MAP (901=pass, 51=fail, 55=blocked, 53=notRun, 54=inProgress) and renders 5 segments with correct colors
+  5. The Owner column dedupes by unique ownedByID — N cycles with K unique owners fire exactly K Jira user-lookup requests; resolves to displayName on success, falls back to raw ownedByID on 404
+  6. The "Show closed" toggle (default off) hides cycles where `detail.isClosed === true`; toggled on, those cycles render with a `Closed` badge and muted text
+  7. The credential gate prevents the first-load auth-error flash — all useQuery calls gate on `!!jiraBaseUrl && !!token && !tokenLoading && !!projectKey`
+**Plans:** 5 plans
+
+Plans:
+
+**Wave 0** *(blocking probe — developer captures live URLs)*
+- [ ] 57-01-PLAN.md — Live endpoint probe (folder tree, count, paged detail, batch summary, Jira user lookup) + RED test stubs for the four new fetch functions, fetchJiraUserByUsername, AIO_STATUS_MAP, normalizeStatusById
+
+**Wave 1** *(blocked on Wave 0; 57-02 and 57-03 run in parallel — no shared files)*
+- [ ] 57-02-PLAN.md — AIO service layer: AioFolder/AioCycleDetailItem/AioCycleSummaryItem/AioCycleDetailPagedResponse types + fetchAioFolderTree/fetchAioFolderCycleCounts/fetchAioCyclesWithDetail/fetchAioCycleSummaries fetch functions + AIO_STATUS_MAP/normalizeStatusById in aioUtils
+- [ ] 57-03-PLAN.md — Jira service layer: fetchJiraUserByUsername direct-lookup function in jira/users.ts
+
+**Wave 2** *(blocked on Wave 1)*
+- [ ] 57-04-PLAN.md — AioProjectOverviewPage rewrite (two-panel layout, FolderNode, OwnerCell, ProgressBarCell, Show-closed toggle) + AioCyclesSkeleton two-panel rewrite + 17+ test cases covering tree, selection, toggle, owner states, progress, empty/error states
+
+**Wave 3** *(blocked on Wave 2 — human verification checkpoint)*
+- [ ] 57-05-PLAN.md — Live UAT against real AIO instance (13 checks: layout, tree levels, count badges, Ungrouped entry, folder selection, 5-col table, progress colors, owner resolve, toggle, no auth flash, no skeleton jump, NavLink, regression smoke); produces 57-UAT.md
+
+Cross-cutting constraints:
+- Wave 0 is BLOCKING — endpoint URLs must be confirmed in 57-PROBE-FINDINGS.md before Wave 1 ships service code (Pitfall 1 — wrong URL → 404 on first load)
+- Plans 57-02 and 57-03 run in parallel (no shared files) — Plan 02 touches aio/, Plan 03 touches jira/users.ts only
+- Plan 57-04 hard-depends on BOTH 57-02 and 57-03 (component imports from both)
+- Status ID mapping hardcoded: `901=pass`, `51=fail`, `55=blocked`, `53=notRun`, `54=inProgress` (D-05, confirmed in UI-SPEC color table)
+- Token NEVER in queryKey — all AIO keys use `['aio', jiraBaseUrl, ...]` prefix; user-by-username keys use `['jira', jiraBaseUrl, 'user-by-username', ownedByID]`
+- Owner deduplication relies on TanStack Query's built-in key-based dedup (D-07 — no parent-level dedup logic required)
+- The A5 finding (folder filter convention — `?folderID=` server-filter vs client-filter) drives whether fetchAioCyclesWithDetail is called per-folder or once-on-mount; the choice propagates from 57-PROBE-FINDINGS.md to Plan 04 component code
+
+**UI hint**: yes
