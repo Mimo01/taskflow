@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, XCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { fetchAioProjects } from '@/services/aio';
@@ -38,6 +38,14 @@ export default function IntegrationsSection() {
     queryFn: () => fetchAioProjects(jiraBaseUrl!, token!),
     enabled: !!jiraBaseUrl && !!token,
   });
+
+  const sortedProjects = useMemo(
+    () =>
+      projects
+        ? [...projects].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+        : [],
+    [projects],
+  );
 
   const selectedProject = projects?.find((p) => p.projectKey === selectedAioProjectKey);
   // WR-01: surface a stale persisted key (project deleted/renamed upstream).
@@ -112,7 +120,7 @@ export default function IntegrationsSection() {
                   </span>
                 </SelectTrigger>
                 <SelectContent>
-                  {(projects ?? []).map((p) => (
+                  {sortedProjects.map((p) => (
                     <SelectItem key={p.projectKey} value={p.projectKey}>
                       {p.name}
                     </SelectItem>
