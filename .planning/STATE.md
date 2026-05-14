@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 Phase: 55 (complete)
 Plan: Complete
 Status: Milestone v1.8 complete — all 5 phases done
-Last activity: 2026-05-14
+Last activity: 2026-05-14 - Completed quick task 260514-qr8: In settings in AIO project selector sort the options alphabetically
 
 Progress: [██████████] 100%
 
@@ -93,6 +93,7 @@ None.
 | 260513-awc | In sprint board task headers also show a pill with epic name. It should be between status and asignee. The pill should be clickable to epic detail | 2026-05-13 | ff61a86 | [260513-awc-sprint-board-epic-pill](./quick/260513-awc-sprint-board-epic-pill/) |
 | 260513-axn | On sprint board if story has 0 subtasks print the text in the header the same way as if it did | 2026-05-13 | da7f9d9 | [260513-axn-sprint-board-story-0-subtasks-header](./quick/260513-axn-sprint-board-story-0-subtasks-header/) |
 | 260514-k2u | On jira issue detail when showing `{panel}` everything renders correctly but the panel has huge internal padding | 2026-05-14 | 613568e | [260514-k2u-on-jira-issue-detail-when-showing-panel-](./quick/260514-k2u-on-jira-issue-detail-when-showing-panel-/) |
+| 260514-qr8 | In settings in AIO project selector sort the options alphabetically | 2026-05-14 | cb7cc4b | [260514-qr8-in-settings-in-aio-project-selector-sort](./quick/260514-qr8-in-settings-in-aio-project-selector-sort/) |
 
 ## Session Continuity
 
