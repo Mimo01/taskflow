@@ -236,9 +236,10 @@ export async function fetchAioCyclesWithDetail(
   baseUrl: string,
   token: string,
   jiraProjectId: number,
+  folderIds?: number[],
 ): Promise<AioCycleDetailPagedResponse> {
   const path = `/project/${jiraProjectId}/testcycle/paged?c_pId=${jiraProjectId}&t=${Date.now()}`;
-  const body = JSON.stringify({
+  const bodyObj: Record<string, unknown> = {
     startAt: 0,
     maxResults: 500,
     columns: PAGED_COLUMNS,
@@ -246,7 +247,11 @@ export async function fetchAioCyclesWithDetail(
     runCustomFields: [],
     sortingData: PAGED_SORTING,
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  });
+  };
+  if (folderIds && folderIds.length > 0) {
+    bodyObj.folderID = { comparisonType: 'IN', list: folderIds };
+  }
+  const body = JSON.stringify(bodyObj);
   let response: Response;
   try {
     response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH, { method: 'POST', body });
