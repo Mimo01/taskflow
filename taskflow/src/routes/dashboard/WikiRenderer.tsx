@@ -310,12 +310,12 @@ export function preprocessJiraMarkup(
 }
 
 const calloutStyles: Record<string, string> = {
-  info: 'border-l-4 border-blue-500 bg-blue-500/10 p-3 rounded-r-md my-2 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0',
+  info: 'border-l-4 border-blue-500 bg-blue-500/10 p-3 rounded-r-md my-2 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
   warning:
-    'border-l-4 border-amber-500 bg-amber-500/10 p-3 rounded-r-md my-2 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0',
-  note: 'border-l-4 border-yellow-500 bg-yellow-500/10 p-3 rounded-r-md my-2 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0',
+    'border-l-4 border-amber-500 bg-amber-500/10 p-3 rounded-r-md my-2 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
+  note: 'border-l-4 border-yellow-500 bg-yellow-500/10 p-3 rounded-r-md my-2 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
   panel:
-    'border-l-4 border-border bg-muted/50 p-3 rounded-r-md my-2 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0',
+    'border-l-4 border-border bg-muted/50 p-3 rounded-r-md my-2 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
 };
 
 export function WikiRenderer({ wikiText, className, attachments, users }: WikiRendererProps) {
