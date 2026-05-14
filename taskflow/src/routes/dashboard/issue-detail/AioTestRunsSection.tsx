@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight, FlaskConical, Paperclip } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ErrorState } from '@/components/ui/error-state';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { aioRunStatusBadgeClass } from '@/lib/statusStyles';
@@ -689,13 +690,17 @@ export function AioTestRunsSection({
 }
 
 /**
- * Plan 54-07 Gap 1 — read-only list of cross-cycle impacted executions.
+ * Plan 54-07 Gap 1 — list of cross-cycle impacted executions.
  * Rendered in place of the bare "No test runs in active cycle" EmptyState
  * when linked test cases exist but none of their runs are in the active
  * (primary) cycle. Each row shows test case key + title, cycle key, run ID,
  * and a status chip whose color is driven by the per-row fetched status
- * (NOT defaulted to gray "Not Run" on the render layer). No click handlers
- * — cycle/run navigation is a phase-53 concern.
+ * (NOT defaulted to gray "Not Run" on the render layer). Plan 54-11: two
+ * click targets per row — cycle key cell links to the in-app cycle detail
+ * page; run ID cell links to the new in-app run detail page. Both targets
+ * derive the projectKey from `cycleKey.split('-')[0]` so cross-project
+ * navigation works correctly (the parent issue's projectKey can differ
+ * from the cycle's project — round-3 UAT bug fix).
  */
 function ImpactedExecutionsList({ rows }: { rows: AioImpactedExecution[] }) {
   return (
@@ -713,36 +718,56 @@ function ImpactedExecutionsList({ rows }: { rows: AioImpactedExecution[] }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr
-              key={`${row.testCase.key}:${row.runRef.runId}`}
-              className="border-b border-border last:border-0"
-            >
-              <td className="px-4 py-2">
-                <div className="flex items-center gap-1.5">
-                  <FlaskConical className="size-3.5 text-muted-foreground" />
-                  <span className="font-mono text-xs">{row.testCase.key}</span>
-                  {row.testCase.title && (
-                    <span className="text-muted-foreground text-xs">— {row.testCase.title}</span>
-                  )}
-                </div>
-              </td>
-              <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
-                {row.runRef.cycleKey}
-              </td>
-              <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
-                {row.runRef.runId}
-              </td>
-              <td className="px-3 py-2">
-                <span
-                  data-testid="impacted-execution-status-chip"
-                  className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium ${aioRunStatusBadgeClass(row.status)}`}
-                >
-                  {normalizeStatusLabel(row.status)}
-                </span>
-              </td>
-            </tr>
-          ))}
+          {rows.map((row) => {
+            // Plan 54-11 cross-project routing: derive the cycle's project
+            // from the cycle key (e.g. ESHOP-CY-759 → 'ESHOP'). The parent
+            // issue's projectKey is NOT correct for cross-project cycles.
+            const cycleProjectKey = row.runRef.cycleKey.split('-')[0] || '';
+            const cycleHref = `/aio-cycle/${cycleProjectKey}/${row.runRef.cycleKey}`;
+            const runHref = `${cycleHref}/run/${row.runRef.runId}`;
+            return (
+              <tr
+                key={`${row.testCase.key}:${row.runRef.runId}`}
+                className="border-b border-border last:border-0"
+              >
+                <td className="px-4 py-2">
+                  <div className="flex items-center gap-1.5">
+                    <FlaskConical className="size-3.5 text-muted-foreground" />
+                    <span className="font-mono text-xs">{row.testCase.key}</span>
+                    {row.testCase.title && (
+                      <span className="text-muted-foreground text-xs">— {row.testCase.title}</span>
+                    )}
+                  </div>
+                </td>
+                <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
+                  <Link
+                    to={cycleHref}
+                    data-testid="impacted-execution-cycle-link"
+                    className="hover:text-foreground hover:underline"
+                  >
+                    {row.runRef.cycleKey}
+                  </Link>
+                </td>
+                <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
+                  <Link
+                    to={runHref}
+                    data-testid="impacted-execution-run-link"
+                    className="hover:text-foreground hover:underline"
+                  >
+                    {row.runRef.runId}
+                  </Link>
+                </td>
+                <td className="px-3 py-2">
+                  <span
+                    data-testid="impacted-execution-status-chip"
+                    className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium ${aioRunStatusBadgeClass(row.status)}`}
+                  >
+                    {normalizeStatusLabel(row.status)}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

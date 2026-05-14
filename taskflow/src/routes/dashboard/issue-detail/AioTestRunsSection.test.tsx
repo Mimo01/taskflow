@@ -5,6 +5,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -121,12 +122,14 @@ function renderSection(
 ) {
   return render(
     <QueryClientProvider client={makeQueryClient()}>
-      <AioTestRunsSection
-        issueKey={props.issueKey ?? ISSUE_KEY}
-        jiraBaseUrl={props.jiraBaseUrl ?? JIRA_BASE_URL}
-        jiraIssueId={props.jiraIssueId}
-        description={props.description}
-      />
+      <MemoryRouter>
+        <AioTestRunsSection
+          issueKey={props.issueKey ?? ISSUE_KEY}
+          jiraBaseUrl={props.jiraBaseUrl ?? JIRA_BASE_URL}
+          jiraIssueId={props.jiraIssueId}
+          description={props.description}
+        />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -726,6 +729,74 @@ describe('AioTestRunsSection', () => {
       expect(
         screen.getByText(/No inline image attachments found in linked test runs/i),
       ).toBeTruthy();
+    });
+
+    it('Plan 54-11: cycle key cell is a Link to the in-app cycle detail page (derived projectKey)', async () => {
+      mockFetchTraceability.mockResolvedValueOnce([
+        SENTINEL_CASE,
+        SENTINEL_CASE_2,
+        {
+          id: 1234,
+          key: 'OTHER-TC-1',
+          title: 'Cross-project case',
+          projectKey: 'OTHER',
+          runs: [{ runId: '99999', cycleKey: 'OTHER-CY-9' }],
+        },
+      ]);
+      mockFetchTraceability.mockResolvedValueOnce([]);
+      mockFetchRunDetail.mockImplementation(async (_b, _t, _p, cycle, runId) => {
+        if (cycle === PRIMARY_CYCLE_KEY) {
+          return { run: { id: runId, status: 'PASS', testCaseKey: '', cycleKey: cycle }, steps: [] };
+        }
+        return makeRunDetail(runId, cycle, 'FAIL');
+      });
+
+      const { container } = renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
+      await waitFor(() => {
+        expect(screen.getByText(/Impacted executions/i)).toBeTruthy();
+      });
+
+      const cycleLinks = Array.from(
+        container.querySelectorAll('[data-testid="impacted-execution-cycle-link"]'),
+      ) as HTMLAnchorElement[];
+      const crossLink = cycleLinks.find((l) => l.getAttribute('href') === '/aio-cycle/OTHER/OTHER-CY-9');
+      expect(crossLink).toBeDefined();
+      expect(crossLink!.textContent).toBe('OTHER-CY-9');
+    });
+
+    it('Plan 54-11: run ID cell is a Link to the new in-app run detail page', async () => {
+      mockFetchTraceability.mockResolvedValueOnce([
+        SENTINEL_CASE,
+        SENTINEL_CASE_2,
+        {
+          id: 1234,
+          key: 'OTHER-TC-1',
+          title: 'Cross-project case',
+          projectKey: 'OTHER',
+          runs: [{ runId: '99999', cycleKey: 'OTHER-CY-9' }],
+        },
+      ]);
+      mockFetchTraceability.mockResolvedValueOnce([]);
+      mockFetchRunDetail.mockImplementation(async (_b, _t, _p, cycle, runId) => {
+        if (cycle === PRIMARY_CYCLE_KEY) {
+          return { run: { id: runId, status: 'PASS', testCaseKey: '', cycleKey: cycle }, steps: [] };
+        }
+        return makeRunDetail(runId, cycle, 'FAIL');
+      });
+
+      const { container } = renderSection({ jiraIssueId: JIRA_ISSUE_NUMERIC_ID });
+      await waitFor(() => {
+        expect(screen.getByText(/Impacted executions/i)).toBeTruthy();
+      });
+
+      const runLinks = Array.from(
+        container.querySelectorAll('[data-testid="impacted-execution-run-link"]'),
+      ) as HTMLAnchorElement[];
+      const crossRunLink = runLinks.find(
+        (l) => l.getAttribute('href') === '/aio-cycle/OTHER/OTHER-CY-9/run/99999',
+      );
+      expect(crossRunLink).toBeDefined();
+      expect(crossRunLink!.textContent).toBe('99999');
     });
 
     it('Plan 54-11: cross-project impacted execution uses the cycle-derived projectKey for the detail fetch (status bug fix)', async () => {
