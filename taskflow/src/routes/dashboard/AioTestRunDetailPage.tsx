@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { normalizeStatusLabel } from '@/lib/aioUtils';
 import { aioRunStatusBadgeClass } from '@/lib/statusStyles';
 import type { AioTestRun, AioTestRunStep } from '@/services/aio';
 import { fetchAioTestRunDetail } from '@/services/aio';
@@ -13,21 +14,6 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { AioCycleDetailSkeleton } from './AioCycleDetailSkeleton';
 import { WikiRenderer } from './WikiRenderer';
-
-function normalizeStatusLabel(raw: string | undefined): string {
-  switch ((raw ?? '').toUpperCase()) {
-    case 'PASS':
-      return 'Pass';
-    case 'FAIL':
-      return 'Fail';
-    case 'BLOCKED':
-      return 'Blocked';
-    case 'NOT_EXECUTED':
-      return 'Not Run';
-    default:
-      return raw ?? 'Not Run';
-  }
-}
 
 function formatDate(iso: string | undefined): string {
   if (!iso) return '—';
