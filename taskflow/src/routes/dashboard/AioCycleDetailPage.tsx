@@ -1,11 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, FlaskConical, Pin } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
@@ -13,6 +14,8 @@ import { normalizeStatus, normalizeStatusLabel } from '@/lib/aioUtils';
 import { aioCycleStatusBadgeClass, aioRunStatusBadgeClass } from '@/lib/statusStyles';
 import type { AioCycle, AioTestRun } from '@/services/aio';
 import { fetchAioCycleDetail, fetchAioTestRunsForCycle } from '@/services/aio';
+import { fetchJiraIssueByKey } from '@/services/jira';
+import type { JiraIssue } from '@/services/jira/types';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
@@ -24,6 +27,56 @@ const CHIPS = [
   { status: 'FAIL', label: 'Fail' },
   { status: 'BLOCKED', label: 'Blocked' },
 ] as const;
+
+function DefectRow({
+  defectKey,
+  jiraBaseUrl,
+  token,
+  tokenLoading,
+  triggeredBy,
+}: {
+  defectKey: string;
+  jiraBaseUrl: string | undefined;
+  token: string | null;
+  tokenLoading: boolean;
+  triggeredBy: string;
+}) {
+  const issueQuery = useQuery<JiraIssue | null>({
+    queryKey: ['jira', jiraBaseUrl, 'issue-lightweight', defectKey],
+    queryFn: () => fetchJiraIssueByKey(jiraBaseUrl!, token!, defectKey),
+    enabled: !!jiraBaseUrl && !!token && !tokenLoading,
+  });
+
+  return (
+    <tr className="border-b border-border hover:bg-muted/30 transition-colors">
+      <td className="px-3 py-3 font-mono text-sm">
+        <NavLink to={`/issue/${defectKey}`} className="hover:underline">
+          {defectKey}
+        </NavLink>
+      </td>
+      <td className="px-3 py-3 text-sm">
+        {issueQuery.isLoading ? (
+          <Skeleton
+            className="h-4 w-32"
+            data-testid={`defect-title-loading-${defectKey}`}
+          />
+        ) : (
+          <span>{issueQuery.data?.fields.summary ?? defectKey}</span>
+        )}
+      </td>
+      <td className="px-3 py-3">
+        {issueQuery.data?.fields.status.name ? (
+          <span className="inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-semibold bg-muted text-muted-foreground">
+            {issueQuery.data.fields.status.name}
+          </span>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </td>
+      <td className="px-3 py-3 text-xs text-muted-foreground">{triggeredBy || '—'}</td>
+    </tr>
+  );
+}
 
 export default function AioCycleDetailPage() {
   const { projectKey, cycleKey } = useParams<{ projectKey: string; cycleKey: string }>();
@@ -88,6 +141,15 @@ export default function AioCycleDetailPage() {
   const filteredRuns = (runs ?? []).filter((r) => activeStatuses.has(r.status));
 
   const allDefects = [...new Set((runs ?? []).flatMap((r) => r.defects ?? []).filter(Boolean))];
+
+  const defectsWithTriggers = allDefects.map((defectKey) => ({
+    defectKey,
+    triggeredBy: (runs ?? [])
+      .filter((r) => (r.defects ?? []).includes(defectKey))
+      .map((r) => r.testCaseKey)
+      .filter(Boolean)
+      .join(', '),
+  }));
 
   const cycleName = cycleQuery.data?.name ?? cycleKey ?? '';
 
@@ -387,8 +449,44 @@ export default function AioCycleDetailPage() {
           </TabsContent>
 
           <TabsContent value="defects" className="flex-1 overflow-auto">
-            {/* defect enrichment replaces this placeholder in Task 3 */}
-            <div data-testid="defects-tab-placeholder" data-defect-count={allDefects.length} />
+            {allDefects.length === 0 ? (
+              <EmptyState
+                icon={FlaskConical}
+                title="No defects"
+                subtitle="No defects are linked to runs in this cycle."
+              />
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="border-b bg-muted/10">
+                  <tr>
+                    <th className="w-32 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                      Key
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                      Title
+                    </th>
+                    <th className="w-32 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                      Status
+                    </th>
+                    <th className="w-48 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                      Triggered By
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {defectsWithTriggers.map(({ defectKey, triggeredBy }) => (
+                    <DefectRow
+                      key={defectKey}
+                      defectKey={defectKey}
+                      jiraBaseUrl={jiraBaseUrl}
+                      token={token}
+                      tokenLoading={tokenLoading}
+                      triggeredBy={triggeredBy}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            )}
           </TabsContent>
         </Tabs>
       ) : null}

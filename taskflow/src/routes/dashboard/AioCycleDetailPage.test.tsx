@@ -22,6 +22,9 @@ vi.mock('@/services/aio', () => ({
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('fake-token'),
 }));
+vi.mock('@/services/jira', () => ({
+  fetchJiraIssueByKey: vi.fn(),
+}));
 
 let mockPinnedKeys: string[] = [];
 const mockTogglePin = vi.fn();
@@ -249,8 +252,17 @@ describe('AioCycleDetailPage', () => {
     });
   });
 
-  describe('defects section', () => {
-    it('renders deduplicated Jira issue keys as NavLinks when runs have defects', async () => {
+  describe('Defects tab', () => {
+    beforeEach(async () => {
+      const { fetchJiraIssueByKey } = await import('@/services/jira');
+      (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockResolvedValue({
+        key: 'PROJ-42',
+        fields: { summary: 'Login broken', status: { name: 'Open' } },
+      });
+    });
+
+    it('AIOC-03: renders a defect row per unique defect key after clicking Defects tab', async () => {
+      const user = userEvent.setup();
       const { fetchAioCycleDetail, fetchAioTestRunsForCycle } = await import('@/services/aio');
       (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
       (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
@@ -263,14 +275,17 @@ describe('AioCycleDetailPage', () => {
           </MemoryRouter>
         </QueryClientProvider>,
       );
+      await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+      await user.click(screen.getByRole('tab', { name: 'Defects' }));
       await waitFor(() => {
-        const link = screen.getByText('PROJ-42');
-        expect(link).toBeDefined();
-        expect(link.closest('a')?.getAttribute('href')).toBe('/issue/PROJ-42');
+        expect(screen.getByText('PROJ-42')).toBeDefined();
+        expect(screen.getByText('Login broken')).toBeDefined();
+        expect(screen.getByText('Open')).toBeDefined();
       });
     });
 
-    it('hides defects section when no runs have non-empty defects array', async () => {
+    it('AIOC-03: shows EmptyState when no defects', async () => {
+      const user = userEvent.setup();
       const { fetchAioCycleDetail, fetchAioTestRunsForCycle } = await import('@/services/aio');
       (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
       const runsNoDefects = mockRuns.map((r) => ({ ...r, defects: [] }));
@@ -284,11 +299,115 @@ describe('AioCycleDetailPage', () => {
           </MemoryRouter>
         </QueryClientProvider>,
       );
+      await waitFor(() => expect(screen.getByText('Login test')).toBeDefined());
+      await user.click(screen.getByRole('tab', { name: 'Defects' }));
       await waitFor(() => {
-        // Data should be loaded (check a run title)
-        expect(screen.getByText('Login test')).toBeDefined();
+        expect(screen.getByText('No defects')).toBeDefined();
+        expect(screen.getByText('No defects are linked to runs in this cycle.')).toBeDefined();
       });
-      expect(screen.queryByText('Defects')).toBeNull();
+    });
+
+    it('AIOC-03: shows skeleton in title cell while fetchJiraIssueByKey is pending', async () => {
+      const user = userEvent.setup();
+      const { fetchAioCycleDetail, fetchAioTestRunsForCycle } = await import('@/services/aio');
+      const { fetchJiraIssueByKey } = await import('@/services/jira');
+      (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+      (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
+      (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
+      render(
+        <QueryClientProvider client={makeClient()}>
+          <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
+            <Routes>
+              <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+      await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+      await user.click(screen.getByRole('tab', { name: 'Defects' }));
+      await waitFor(() => {
+        expect(screen.getByText('PROJ-42')).toBeDefined();
+        expect(screen.getByTestId('defect-title-loading-PROJ-42')).toBeDefined();
+      });
+    });
+
+    it('AIOC-03: defect key links to /issue/:key', async () => {
+      const user = userEvent.setup();
+      const { fetchAioCycleDetail, fetchAioTestRunsForCycle } = await import('@/services/aio');
+      (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+      (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
+      render(
+        <QueryClientProvider client={makeClient()}>
+          <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
+            <Routes>
+              <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+      await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+      await user.click(screen.getByRole('tab', { name: 'Defects' }));
+      await waitFor(() => expect(screen.getByText('PROJ-42')).toBeDefined());
+      expect(screen.getByText('PROJ-42').closest('a')?.getAttribute('href')).toBe('/issue/PROJ-42');
+    });
+
+    it('AIOC-03: triggered-by column lists test case keys from runs whose defects[] contains the key', async () => {
+      const user = userEvent.setup();
+      const { fetchAioCycleDetail, fetchAioTestRunsForCycle } = await import('@/services/aio');
+      (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+      const multiRuns = [
+        ...mockRuns,
+        {
+          id: 'run-4',
+          status: 'FAIL',
+          testCaseKey: 'PROJ-TC-X',
+          cycleKey: 'PROJ-CY-2',
+          testCase: { title: 'Extra test', updatedDate: '2024-01-04' },
+          defects: ['PROJ-42'],
+        },
+      ];
+      (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue(multiRuns);
+      render(
+        <QueryClientProvider client={makeClient()}>
+          <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
+            <Routes>
+              <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+      await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+      await user.click(screen.getByRole('tab', { name: 'Defects' }));
+      await waitFor(() => {
+        expect(screen.getByText(/PROJ-TC-2/)).toBeDefined();
+        expect(screen.getByText(/PROJ-TC-X/)).toBeDefined();
+      });
+    });
+
+    it('Pitfall 5: fetchJiraIssueByKey called with correct args (not issue-detail key)', async () => {
+      const user = userEvent.setup();
+      const { fetchAioCycleDetail, fetchAioTestRunsForCycle } = await import('@/services/aio');
+      const { fetchJiraIssueByKey } = await import('@/services/jira');
+      (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+      (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
+      render(
+        <QueryClientProvider client={makeClient()}>
+          <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
+            <Routes>
+              <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+      await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+      await user.click(screen.getByRole('tab', { name: 'Defects' }));
+      await waitFor(() => {
+        expect(fetchJiraIssueByKey).toHaveBeenCalledWith(
+          'https://jira.example.com',
+          'fake-token',
+          'PROJ-42',
+        );
+      });
     });
   });
 
@@ -376,10 +495,12 @@ vi.mock('@/stores/breadcrumb.store', () => ({
 }));
 
 describe('Executions tab — clickable rows', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     mockPinnedKeys = [];
     mockBreadcrumbPush.mockReset();
+    const { fetchJiraIssueByKey } = await import('@/services/jira');
+    (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockResolvedValue(null);
   });
 
   it('renders Executions tab as default active with run table inside', async () => {
@@ -420,7 +541,7 @@ describe('Executions tab — clickable rows', () => {
     });
     await user.click(screen.getByRole('tab', { name: 'Defects' }));
     await waitFor(() => {
-      expect(screen.getByTestId('defects-tab-placeholder')).toBeDefined();
+      expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined();
     });
   });
 
