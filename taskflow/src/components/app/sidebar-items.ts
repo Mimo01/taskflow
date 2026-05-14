@@ -76,7 +76,7 @@ export const SIDEBAR_NAV_ITEMS: SidebarNavDef[] = [
   // Testing (AIO)
   {
     id: 'aio-projects',
-    label: 'AIO Projects',
+    label: 'AIO Cycles',
     // WR-04 sentinel — Sidebar.tsx computes the real `to` from selectedAioProjectKey
     // (Phase 55 D-10). Use `#aio-dynamic` instead of a real-looking URL path so a
     // future `/aio` route cannot accidentally collide with this placeholder.
