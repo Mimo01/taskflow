@@ -146,30 +146,37 @@ function flattenInlineCalloutsForTableRow(body: string): string {
       // HTML emitted by transformPanelListItems contains no `|` chars by
       // construction, so this escape is safe.
       const escaped = withLists.replace(/\|/g, '\\|');
-      const flattened = escaped.replace(/\n/g, '<br/>').trim();
+      // Trim BEFORE the newline→<br/> substitution. Trimming after is a no-op
+      // for <br/> tokens (they aren't whitespace), so leading/trailing newlines
+      // — the ones immediately after `{panel}` opening and immediately before
+      // `{panel}` closing — would otherwise become stray <br/> elements at the
+      // start/end of the panel span, adding a full line of line-height padding
+      // on each side (UAT round-3 finding: visible doubled padding around the
+      // inner <ol> was caused by exactly these stray edge <br/> tags).
+      const flattened = escaped.trim().replace(/\n/g, '<br/>');
       return `<span data-callout="panel" data-title="${title}">${flattened}</span>`;
     },
   );
   result = result.replace(/\{panel\}([\s\S]*?)\{panel\}/g, (_m, inner: string) => {
     const withLists = transformPanelListItems(inner);
     const escaped = withLists.replace(/\|/g, '\\|');
-    const flattened = escaped.replace(/\n/g, '<br/>').trim();
+    const flattened = escaped.trim().replace(/\n/g, '<br/>');
     return `<span data-callout="panel">${flattened}</span>`;
   });
   result = result.replace(
     /\{info\}([\s\S]*?)\{info\}/g,
     (_m, inner: string) =>
-      `<span data-callout="info">${inner.replace(/\n/g, '<br/>').trim()}</span>`,
+      `<span data-callout="info">${inner.trim().replace(/\n/g, '<br/>')}</span>`,
   );
   result = result.replace(
     /\{warning\}([\s\S]*?)\{warning\}/g,
     (_m, inner: string) =>
-      `<span data-callout="warning">${inner.replace(/\n/g, '<br/>').trim()}</span>`,
+      `<span data-callout="warning">${inner.trim().replace(/\n/g, '<br/>')}</span>`,
   );
   result = result.replace(
     /\{note\}([\s\S]*?)\{note\}/g,
     (_m, inner: string) =>
-      `<span data-callout="note">${inner.replace(/\n/g, '<br/>').trim()}</span>`,
+      `<span data-callout="note">${inner.trim().replace(/\n/g, '<br/>')}</span>`,
   );
   return result;
 }

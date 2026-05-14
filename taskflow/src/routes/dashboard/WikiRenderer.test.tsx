@@ -170,6 +170,41 @@ describe('WikiRenderer', () => {
       }
     });
 
+    it('inline panel does NOT emit stray leading/trailing <br/> tags around its inner <ol> (round-3 UAT: leading/trailing <br/> inside <span data-callout> added line-height of padding that the [&>*:…] reset could not zero)', () => {
+      // Round-3 DOM observation: the rendered span looked like
+      //   <span data-callout="panel"> <br/> <ol>…</ol> <br/> </span>
+      // Those leading + trailing <br/> tokens are line breaks emitted by
+      // `flattenInlineCalloutsForTableRow` substituting the source newlines
+      // around `{panel}\n…\n{panel}` to `<br/>`. They each add a line-height
+      // of visible space at the top/bottom of the panel, on top of `p-3`.
+      // Trimming the inner body BEFORE the newline→<br/> substitution removes
+      // those leading/trailing newlines entirely so they never become <br/>.
+      const fixture = [
+        '||*S.No.*||*Step*||',
+        '|1. |Body before panel',
+        '{panel}',
+        '# [VAS.png|https://jira.orange.sk/secure/attachment/123/VAS.png]',
+        '# [Kosik.png|https://jira.orange.sk/secure/attachment/124/Kosik.png]',
+        '{panel}|',
+      ].join('\n');
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const panelSpan = container.querySelector('[data-callout="panel"]');
+      expect(panelSpan).not.toBeNull();
+      // The <ol> is present.
+      const ol = panelSpan?.querySelector('ol');
+      expect(ol).not.toBeNull();
+      // The first AND last element children of the panel span must be the
+      // <ol>, not a <br>. (If the <br>s leaked through, firstElementChild
+      // would be the leading <br>.)
+      expect(panelSpan?.firstElementChild?.tagName).toBe('OL');
+      expect(panelSpan?.lastElementChild?.tagName).toBe('OL');
+      // And there must be NO <br> as a direct child of the panel span.
+      const directBrs = Array.from(panelSpan?.children ?? []).filter(
+        (c) => c.tagName === 'BR',
+      );
+      expect(directBrs.length).toBe(0);
+    });
+
     it('inline panel containing an <ol> (table-cell variant) carries the universal margin-reset classes (regression: round-1 [&>p:…] selector missed the ESHOP <ol> case shown in UAT)', () => {
       // ESHOP fixture from Plan 54-09: `{panel}` with a numbered image-link
       // list nested inside a table cell. The renderer emits this as
