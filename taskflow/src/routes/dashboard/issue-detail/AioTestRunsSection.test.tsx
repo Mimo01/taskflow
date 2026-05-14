@@ -93,7 +93,13 @@ const ACTIVE_CYCLE = {
   status: 'Active',
   projectKey: PROJECT_KEY,
 };
-const TEST_RUN = { id: '12131', status: 'PASS', testCaseKey: 'PROJ-TC-1', cycleKey: CYCLE_KEY };
+// Plan 54-11 follow-up: TEST_RUN status changed PASS → FAIL so the single-run
+// case (which now always renders via CollapsibleRunBlock for UI consistency
+// with the multi-run case) auto-expands the step table. PASS runs collapse by
+// default per D-10; FAIL/BLOCKED auto-expand. Tests that target step-rendering
+// behavior don't care about run-level status semantics, so FAIL is functionally
+// equivalent here and unblocks the consistent-collapsible behavior change.
+const TEST_RUN = { id: '12131', status: 'FAIL', testCaseKey: 'PROJ-TC-1', cycleKey: CYCLE_KEY };
 const STEP_PASS = {
   id: 37989,
   step: 'Click login',

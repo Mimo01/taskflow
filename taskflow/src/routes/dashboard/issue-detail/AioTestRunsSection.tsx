@@ -668,15 +668,15 @@ export function AioTestRunsSection({
         AIO Test Runs
       </div>
       {hasInCycleRuns ? (
-        data.runs.length === 1 ? (
-          <StepTable steps={data.runs[0].steps} />
-        ) : (
-          <div>
-            {data.runs.map((item) => (
-              <CollapsibleRunBlock key={item.run.id} {...item} />
-            ))}
-          </div>
-        )
+        // Plan 54-11 follow-up: render single-run case via CollapsibleRunBlock
+        // too (user request 2026-05-14) so the UX is consistent — collapsible
+        // header + status chip whether there's 1 run or many. PASS runs start
+        // collapsed (D-10); FAIL/BLOCKED start expanded.
+        <div>
+          {data.runs.map((item) => (
+            <CollapsibleRunBlock key={item.run.id} {...item} />
+          ))}
+        </div>
       ) : hasImpactedExecutions ? (
         <ImpactedExecutionsList rows={data.impactedExecutions} />
       ) : (
