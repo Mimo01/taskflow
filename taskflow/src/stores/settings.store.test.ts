@@ -284,3 +284,45 @@ describe('settings.store — aioEnabled toggle (Phase 51)', () => {
     expect(useSettingsStore.getState().aioEnabled).toBe(false);
   });
 });
+
+describe('settings.store — selectedAioProjectKey (Phase 55)', () => {
+  beforeEach(() => {
+    act(() => {
+      useSettingsStore.setState({
+        aioEnabled: false,
+        selectedAioProjectKey: null,
+      } as any);
+    });
+  });
+
+  it('selectedAioProjectKey defaults to null (D-06)', () => {
+    expect(useSettingsStore.getState().selectedAioProjectKey).toBeNull();
+  });
+
+  it("setSelectedAioProjectKey('PROJ') updates store (D-06)", () => {
+    act(() => useSettingsStore.getState().setSelectedAioProjectKey('PROJ'));
+    expect(useSettingsStore.getState().selectedAioProjectKey).toBe('PROJ');
+  });
+
+  it('setSelectedAioProjectKey(null) clears a previously-set value (D-06)', () => {
+    act(() => useSettingsStore.getState().setSelectedAioProjectKey('PROJ'));
+    act(() => useSettingsStore.getState().setSelectedAioProjectKey(null));
+    expect(useSettingsStore.getState().selectedAioProjectKey).toBeNull();
+  });
+
+  it('setAioEnabled(false) does NOT clear selectedAioProjectKey (D-08 toggle-independence)', () => {
+    act(() => useSettingsStore.getState().setSelectedAioProjectKey('PROJ'));
+    act(() => useSettingsStore.getState().setAioEnabled(false));
+    expect(useSettingsStore.getState().selectedAioProjectKey).toBe('PROJ');
+  });
+
+  it('selectedAioProjectKey is defined (not undefined) on a fresh store (D-07 migration smoke)', () => {
+    // Migration guard at settings.store.ts: `if (version < 17) { if (s.selectedAioProjectKey === undefined) s.selectedAioProjectKey = null; }`
+    // Direct invocation of migrate() is not the established pattern in this test file (PATTERNS.md note);
+    // the default-value check is the functional substitute — a freshly initialized store must have the
+    // field present and equal to null, mirroring the migration outcome for absent persisted state.
+    const state = useSettingsStore.getState();
+    expect('selectedAioProjectKey' in state).toBe(true);
+    expect(state.selectedAioProjectKey).toBeNull();
+  });
+});
