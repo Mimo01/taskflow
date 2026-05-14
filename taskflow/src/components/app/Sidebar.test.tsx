@@ -11,7 +11,15 @@ vi.mock('react-router-dom', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-router-dom')>();
   return {
     ...actual,
-    NavLink: ({ to, children, className }: { to: string; children: React.ReactNode; className?: unknown }) => (
+    NavLink: ({
+      to,
+      children,
+      className,
+    }: {
+      to: string;
+      children: React.ReactNode;
+      className?: unknown;
+    }) => (
       <a href={String(to)} className={typeof className === 'string' ? className : undefined}>
         {children}
       </a>

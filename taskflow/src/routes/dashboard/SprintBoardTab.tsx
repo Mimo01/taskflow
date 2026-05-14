@@ -1086,9 +1086,7 @@ export default function SprintBoardTab() {
                   })()}
                   epicColorResult={(() => {
                     const ek = stickyHeader.story.fields[epicLinkFieldKey] as string | null;
-                    return ek
-                      ? epicColorToTailwind(epicColorMap.get(ek) ?? null, ek)
-                      : null;
+                    return ek ? epicColorToTailwind(epicColorMap.get(ek) ?? null, ek) : null;
                   })()}
                   onEpicClick={setSelectedIssueKey}
                 />

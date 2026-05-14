@@ -5,9 +5,9 @@
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // --- Mocks (declared before any imports that use them) ---
@@ -790,7 +790,10 @@ describe('AioTestRunsSection', () => {
       mockFetchTraceability.mockResolvedValueOnce([]);
       mockFetchRunDetail.mockImplementation(async (_b, _t, _p, cycle, runId) => {
         if (cycle === PRIMARY_CYCLE_KEY) {
-          return { run: { id: runId, status: 'PASS', testCaseKey: '', cycleKey: cycle }, steps: [] };
+          return {
+            run: { id: runId, status: 'PASS', testCaseKey: '', cycleKey: cycle },
+            steps: [],
+          };
         }
         return makeRunDetail(runId, cycle, 'FAIL');
       });
@@ -822,7 +825,10 @@ describe('AioTestRunsSection', () => {
       mockFetchTraceability.mockResolvedValueOnce([]);
       mockFetchRunDetail.mockImplementation(async (_b, _t, _p, cycle, runId) => {
         if (cycle === PRIMARY_CYCLE_KEY) {
-          return { run: { id: runId, status: 'PASS', testCaseKey: '', cycleKey: cycle }, steps: [] };
+          return {
+            run: { id: runId, status: 'PASS', testCaseKey: '', cycleKey: cycle },
+            steps: [],
+          };
         }
         return makeRunDetail(runId, cycle, 'FAIL');
       });
@@ -930,9 +936,7 @@ describe('AioTestRunsSection', () => {
         }
         return {
           run: { id: runId, status: 'FAIL', testCaseKey: '', cycleKey: cycle },
-          steps: [
-            { id: 1, step: `repro: see [Shared.png|${SHARED_URL}]`, status: 'FAIL' },
-          ],
+          steps: [{ id: 1, step: `repro: see [Shared.png|${SHARED_URL}]`, status: 'FAIL' }],
         };
       });
 

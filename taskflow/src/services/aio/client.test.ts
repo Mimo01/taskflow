@@ -37,11 +37,7 @@ describe('aioFetch', () => {
 
   it('calls apiFetch with source "aio" (not "jira" or "gitlab")', async () => {
     await aioFetch(BASE, TOKEN, PATH);
-    expect(vi.mocked(apiFetch)).toHaveBeenCalledWith(
-      'aio',
-      expect.any(String),
-      expect.anything(),
-    );
+    expect(vi.mocked(apiFetch)).toHaveBeenCalledWith('aio', expect.any(String), expect.anything());
   });
 
   it('passes Authorization: Bearer <token> header', async () => {

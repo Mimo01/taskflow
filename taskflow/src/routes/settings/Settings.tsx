@@ -12,13 +12,22 @@
  *   - RoleSection: existing, unchanged
  */
 
-import { Bell, GitBranch, Link2, Palette, PanelLeft, Plug, RefreshCw, Settings2 } from 'lucide-react';
+import {
+  Bell,
+  GitBranch,
+  Link2,
+  Palette,
+  PanelLeft,
+  Plug,
+  RefreshCw,
+  Settings2,
+} from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import AppearanceSection from './AppearanceSection';
 import ConnectionsSection from './ConnectionsSection';
-import IntegrationsSection from './IntegrationsSection';
 import DebugModeSection from './DebugModeSection';
+import IntegrationsSection from './IntegrationsSection';
 import NotificationsSection from './NotificationsSection';
 import SidebarSection from './SidebarSection';
 import UpdatesSection from './UpdatesSection';

@@ -5,8 +5,8 @@
  * Domain modules (projects, issue-runs) import aioFetch directly from './client'.
  */
 
-export * from './types';
-export * from './projects';
-export * from './issue-runs';
 export * from './cycles';
+export * from './issue-runs';
 export * from './issue-steps';
+export * from './projects';
+export * from './types';

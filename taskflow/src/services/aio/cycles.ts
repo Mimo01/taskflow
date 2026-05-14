@@ -9,9 +9,16 @@
 
 import { ApiError } from '../../lib/api-error';
 import { aioFetch } from './client';
-import type { AioPage, AioCycle } from './types';
+import type { AioCycle, AioPage } from './types';
 
-type RawCycle = { key: string; title?: string; name?: string; isClosed?: boolean; status?: string; projectKey?: string };
+type RawCycle = {
+  key: string;
+  title?: string;
+  name?: string;
+  isClosed?: boolean;
+  status?: string;
+  projectKey?: string;
+};
 
 function normalizeCycle(raw: RawCycle, fallbackProjectKey?: string): AioCycle {
   return {
@@ -56,7 +63,9 @@ export async function fetchAioCycles(
       if (Array.isArray(data)) {
         return (data as RawCycle[]).map((r) => normalizeCycle(r, projectKey));
       }
-      allCycles.push(...(data.items as unknown as RawCycle[] ?? []).map((r) => normalizeCycle(r, projectKey)));
+      allCycles.push(
+        ...((data.items as unknown as RawCycle[]) ?? []).map((r) => normalizeCycle(r, projectKey)),
+      );
       if (data.isLast || data.maxResults <= 0) return allCycles;
       startAt += data.maxResults;
       continue;

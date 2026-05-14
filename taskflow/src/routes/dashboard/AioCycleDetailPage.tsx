@@ -8,8 +8,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { aioCycleStatusBadgeClass, aioRunStatusBadgeClass } from '@/lib/statusStyles';
-import { fetchAioCycleDetail, fetchAioTestRunsForCycle } from '@/services/aio';
 import type { AioCycle, AioTestRun } from '@/services/aio';
+import { fetchAioCycleDetail, fetchAioTestRunsForCycle } from '@/services/aio';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
@@ -92,14 +92,10 @@ export default function AioCycleDetailPage() {
   const showSkeleton = useDelayedLoading(cycleQuery.isLoading || runsQuery.isLoading);
 
   const pinned = usePinnedTabsStore((s) => s.pinnedKeys.includes(cycleKey ?? ''));
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const togglePin = usePinnedTabsStore((s: any) => s.togglePin as (key: string) => void);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const removePin = usePinnedTabsStore((s: any) => s.removePin as (key: string) => void);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const setPinnedCycleMeta = usePinnedTabsStore((s: any) => s.setPinnedCycleMeta as (key: string, meta: { name: string; projectKey: string }) => void);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const clearCycleMeta = usePinnedTabsStore((s: any) => s.clearCycleMeta as (key: string) => void);
+  const togglePin = usePinnedTabsStore((s) => s.togglePin);
+  const removePin = usePinnedTabsStore((s) => s.removePin);
+  const setPinnedCycleMeta = usePinnedTabsStore((s) => s.setPinnedCycleMeta);
+  const clearCycleMeta = usePinnedTabsStore((s) => s.clearCycleMeta);
 
   const [activeStatuses, setActiveStatuses] = useState<Set<string>>(
     new Set(['NOT_EXECUTED', 'PASS', 'FAIL', 'BLOCKED']),
@@ -216,7 +212,7 @@ export default function AioCycleDetailPage() {
           </div>
         )}
 
-        {showSkeleton || (cycleQuery.isLoading || runsQuery.isLoading) ? (
+        {showSkeleton || cycleQuery.isLoading || runsQuery.isLoading ? (
           <div className="p-4">
             <AioCycleDetailSkeleton />
           </div>
@@ -255,17 +251,29 @@ export default function AioCycleDetailPage() {
                     )}
                   </div>
                   <div className="flex gap-4 mt-1.5 text-xs text-muted-foreground">
-                    <span>Pass: {counts.pass} ({pct(counts.pass)}%)</span>
-                    <span>Fail: {counts.fail} ({pct(counts.fail)}%)</span>
-                    <span>Blocked: {counts.blocked} ({pct(counts.blocked)}%)</span>
-                    <span>Not Run: {counts.notRun} ({pct(counts.notRun)}%)</span>
+                    <span>
+                      Pass: {counts.pass} ({pct(counts.pass)}%)
+                    </span>
+                    <span>
+                      Fail: {counts.fail} ({pct(counts.fail)}%)
+                    </span>
+                    <span>
+                      Blocked: {counts.blocked} ({pct(counts.blocked)}%)
+                    </span>
+                    <span>
+                      Not Run: {counts.notRun} ({pct(counts.notRun)}%)
+                    </span>
                   </div>
                 </>
               )}
             </div>
 
             {/* Filter chips toolbar */}
-            <div role="toolbar" aria-label="Status filters" className="flex items-center gap-2 px-3 py-1.5">
+            <div
+              role="toolbar"
+              aria-label="Status filters"
+              className="flex items-center gap-2 px-3 py-1.5"
+            >
               {CHIPS.map((chip, i) => {
                 const isActive = activeStatuses.has(chip.status);
                 return (
@@ -368,7 +376,13 @@ export default function AioCycleDetailPage() {
                           const raw = run.executedDate ?? run.testCase?.updatedDate;
                           if (!raw) return '—';
                           const d = new Date(raw);
-                          return isNaN(d.getTime()) ? raw : d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+                          return isNaN(d.getTime())
+                            ? raw
+                            : d.toLocaleDateString(undefined, {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              });
                         })()}
                       </td>
                     </tr>

@@ -150,15 +150,12 @@ function flattenInlineCalloutsForTableRow(body: string): string {
       return `<span data-callout="panel" data-title="${title}">${flattened}</span>`;
     },
   );
-  result = result.replace(
-    /\{panel\}([\s\S]*?)\{panel\}/g,
-    (_m, inner: string) => {
-      const withLists = transformPanelListItems(inner);
-      const escaped = withLists.replace(/\|/g, '\\|');
-      const flattened = escaped.replace(/\n/g, '<br/>').trim();
-      return `<span data-callout="panel">${flattened}</span>`;
-    },
-  );
+  result = result.replace(/\{panel\}([\s\S]*?)\{panel\}/g, (_m, inner: string) => {
+    const withLists = transformPanelListItems(inner);
+    const escaped = withLists.replace(/\|/g, '\\|');
+    const flattened = escaped.replace(/\n/g, '<br/>').trim();
+    return `<span data-callout="panel">${flattened}</span>`;
+  });
   result = result.replace(
     /\{info\}([\s\S]*?)\{info\}/g,
     (_m, inner: string) =>

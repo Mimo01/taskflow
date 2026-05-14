@@ -20,12 +20,11 @@
 import { ApiError } from '../lib/api-error';
 import { apiFetch } from '../lib/apiFetch';
 
+// Re-export fetchJiraIssueByKey from the issues sub-module
+export { fetchJiraIssueByKey } from './jira/issues';
 // Re-export changelog and watcher modules for barrel access via '@/services/jira'
 export * from './jira-changelog';
 export * from './jira-watchers';
-
-// Re-export fetchJiraIssueByKey from the issues sub-module
-export { fetchJiraIssueByKey } from './jira/issues';
 
 import type { ChangelogHistory } from './jira-changelog';
 

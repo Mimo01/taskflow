@@ -1,13 +1,13 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, FlaskConical, FileQuestion } from 'lucide-react';
+import { ArrowLeft, FileQuestion, FlaskConical } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { aioRunStatusBadgeClass } from '@/lib/statusStyles';
-import { fetchAioTestRunDetail } from '@/services/aio';
 import type { AioTestRun, AioTestRunStep } from '@/services/aio';
+import { fetchAioTestRunDetail } from '@/services/aio';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
@@ -76,8 +76,7 @@ export default function AioTestRunDetailPage() {
 
   const detailQuery = useQuery<{ run: AioTestRun; steps: AioTestRunStep[] } | null>({
     queryKey: ['aio', jiraBaseUrl, 'run-detail', projectKey, cycleKey, runId],
-    queryFn: () =>
-      fetchAioTestRunDetail(jiraBaseUrl!, token!, projectKey!, cycleKey!, runId!),
+    queryFn: () => fetchAioTestRunDetail(jiraBaseUrl!, token!, projectKey!, cycleKey!, runId!),
     enabled: !!jiraBaseUrl && !!token && !!projectKey && !!cycleKey && !!runId,
   });
 
@@ -222,10 +221,7 @@ export default function AioTestRunDetailPage() {
                   </thead>
                   <tbody>
                     {detailQuery.data.steps.map((step, idx) => (
-                      <tr
-                        key={step.id ?? idx}
-                        className="border-t border-border align-top"
-                      >
+                      <tr key={step.id ?? idx} className="border-t border-border align-top">
                         <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
                           {idx + 1}
                         </td>
