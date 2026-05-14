@@ -10,7 +10,7 @@ Requirements for milestone v1.8 — AIO Test Management integration.
 ### AIO Navigation
 
 - [ ] **AION-01**: User can access AIO Test Management from a new sidebar section
-- [ ] **AION-02**: User can view a list of all AIO test projects
+- [x] **AION-02**: User can view a list of all AIO test projects
 - [ ] **AION-03**: User can view a project overview page showing all cycles with per-cycle summary stats
 - [ ] **AION-04**: User can view a full-page cycle detail page (progress, test runs, defects)
 - [ ] **AION-05**: User can enable/disable AIO integration from Settings (aioEnabled toggle)
@@ -63,7 +63,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | AION-01 | Phase 52 | Pending |
-| AION-02 | Phase 55 | Pending |
+| AION-02 | Phase 55 | Complete |
 | AION-03 | Phase 52 | Pending |
 | AION-04 | Phase 53 | Pending |
 | AION-05 | Phase 51 | Pending |

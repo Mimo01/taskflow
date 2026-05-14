@@ -369,4 +369,4 @@ Cross-cutting constraints:
 | 52. AIO Navigation + Project Pages | v1.8 | 6/6 | Complete | 2026-05-13 |
 | 53. Cycle Detail + Header Pinning | v1.8 | 0/5 | Not started | - |
 | 54. AIO on Issue Detail | v1.8 | 6/9 | In Progress|  |
-| 55. AIO Project Selection in Settings | v1.8 | 4/4 | Complete   | 2026-05-14 |
+| 55. AIO Project Selection in Settings | v1.8 | 4/4 | Complete    | 2026-05-14 |
