@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { WikiRenderer } from './WikiRenderer';
+import { WikiRenderer, mergeOpenTableRows } from './WikiRenderer';
 
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-token'),
@@ -313,6 +313,40 @@ describe('WikiRenderer', () => {
         td.textContent?.includes('Plati pre paušály'),
       );
       expect(failedCell).toBeDefined();
+    });
+
+    it('Plan 54-09 Concern A — mergeOpenTableRows consumes the full panel-bearing row with TWO numbered-list items', () => {
+      const fixture = [
+        '||*S.No.*||*Step*||*Expected Result*||*Actual Result*||',
+        '|1. |Nacitanie eshop home page |Kontrola OK |Works as expected|',
+        `|2. |FAILED step |Kontrola OK |Body before panel`,
+        '{panel}',
+        `# [VAS.png|https://jira.orange.sk/secure/attachment/123/VAS.png]`,
+        `# [Kosik.png|https://jira.orange.sk/secure/attachment/124/Kosik.png]`,
+        '{panel}|',
+      ].join('\n');
+
+      const merged = mergeOpenTableRows(fixture);
+      const lines = merged.split('\n');
+
+      // The 6-line panel-bearing row collapses into ONE merged line. Header + row 1 stay,
+      // row 2 (lines 3-8 in source) becomes a single line. Expected: 3 lines total.
+      expect(lines.length).toBe(3);
+
+      // The merged row 2 line ends with `|` (proper table-row terminator after consumption).
+      expect(lines[2].endsWith('|')).toBe(true);
+
+      // BOTH panel list items survive inside the merged row.
+      expect(lines[2]).toContain('VAS.png');
+      expect(lines[2]).toContain('Kosik.png');
+
+      // The panel body has been flattened to an inline <span data-callout="panel"> — no
+      // raw `{panel}` markers remain in the merged row.
+      expect(lines[2]).not.toMatch(/\{panel(:|\})/);
+
+      // No raw `\n` characters inside the merged row (they were either substituted to
+      // `<br/>` inside the span body or collapsed to a single space outside callouts).
+      expect(lines[2].includes('\\n')).toBe(false);
     });
 
     it('T-54-07-01 — <script> payload inside a table cell does NOT inject a script element (no XSS surface)', () => {
