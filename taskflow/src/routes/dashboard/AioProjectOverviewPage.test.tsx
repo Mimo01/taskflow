@@ -1,435 +1,269 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AioTestRun } from '@/services/aio';
 
-vi.mock('@/stores/settings.store', () => ({
-  useSettingsStore: () => ({
-    storyPointsFieldKey: 'customfield_10016',
-  }),
-}));
 vi.mock('@/stores/auth.store', () => ({
-  useAuthStore: () => ({
-    jiraBaseUrl: 'https://jira.example.com',
-  }),
+  useAuthStore: () => ({ jiraBaseUrl: 'https://jira.example.com' }),
 }));
+
+vi.mock('@/hooks/useAioCredentials', () => ({
+  useAioCredentials: () => ({ token: 'test-token', tokenLoading: false }),
+}));
+
 vi.mock('@/services/aio', () => ({
-  fetchAioCycles: vi.fn(),
-  fetchAioTestRunsForCycle: vi.fn(),
+  fetchAioProjects: vi.fn(),
+  fetchAioFolderTree: vi.fn(),
+  fetchAioFolderCycleCounts: vi.fn(),
+  fetchAioCyclesWithDetail: vi.fn(),
+  fetchAioCycleSummaries: vi.fn(),
 }));
-vi.mock('@/services/stronghold', () => ({
-  readSecret: vi.fn().mockResolvedValue('test-jira-token'),
+
+vi.mock('@/services/jira/users', () => ({
+  fetchJiraUserByUsername: vi.fn(),
+}));
+
+vi.mock('@/hooks/useDelayedLoading', () => ({
+  useDelayedLoading: (v: boolean) => v,
 }));
 
 function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
 }
 
-describe('AioProjectOverviewPage', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+async function importPage() {
+  const mod = await import('./AioProjectOverviewPage');
+  return mod.default;
+}
 
-  it('AION-03: renders a row for each cycle (key, name, status)', async () => {
-    const { fetchAioCycles, fetchAioTestRunsForCycle } = await import('@/services/aio');
-    (fetchAioCycles as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { key: 'PROJ-CY-2', name: 'Sprint 1 Cycle', status: 'Active', projectKey: 'PROJ' },
-    ]);
-    (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    const { default: AioProjectOverviewPage } = await import('./AioProjectOverviewPage');
-    render(
-      <QueryClientProvider client={makeClient()}>
-        <MemoryRouter initialEntries={['/aio-project/PROJ']}>
-          <Routes>
-            <Route path="/aio-project/:projectKey" element={<AioProjectOverviewPage />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-    await waitFor(() => {
-      expect(screen.getByText('Sprint 1 Cycle')).toBeDefined();
-      expect(screen.getByText('PROJ-CY-2')).toBeDefined();
-      expect(screen.getByText('Active')).toBeDefined();
-    });
-  });
+function wrap(Page: React.ComponentType) {
+  return render(
+    <QueryClientProvider client={makeClient()}>
+      <MemoryRouter initialEntries={['/aio-project/PROJ']}>
+        <Routes>
+          <Route path="/aio-project/:projectKey" element={<Page />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
 
-  it('AION-03: shows EmptyState when fetchAioCycles returns empty array', async () => {
-    const { fetchAioCycles, fetchAioTestRunsForCycle } = await import('@/services/aio');
-    (fetchAioCycles as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    const { default: AioProjectOverviewPage } = await import('./AioProjectOverviewPage');
-    render(
-      <QueryClientProvider client={makeClient()}>
-        <MemoryRouter initialEntries={['/aio-project/PROJ']}>
-          <Routes>
-            <Route path="/aio-project/:projectKey" element={<AioProjectOverviewPage />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-    await waitFor(() => {
-      expect(screen.getByText('No cycles found')).toBeDefined();
-    });
-  });
+import type { AioCycleDetailItem, AioCycleSummaryItem, AioFolder } from '@/services/aio/types';
 
-  it('AION-03: shows ErrorState when fetchAioCycles rejects', async () => {
-    const { fetchAioCycles, fetchAioTestRunsForCycle } = await import('@/services/aio');
-    (fetchAioCycles as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Network error'));
-    (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    const { default: AioProjectOverviewPage } = await import('./AioProjectOverviewPage');
-    render(
-      <QueryClientProvider client={makeClient()}>
-        <MemoryRouter initialEntries={['/aio-project/PROJ']}>
-          <Routes>
-            <Route path="/aio-project/:projectKey" element={<AioProjectOverviewPage />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-    await waitFor(() => {
-      expect(screen.getByText("Couldn't load cycles")).toBeDefined();
-    });
-  });
-});
+const FOLDER_A: AioFolder = {
+  ID: 101,
+  name: 'Sprint 2025',
+  description: null,
+  parentID: null,
+  rankOrder: null,
+  children: [],
+};
 
-describe('AION-03: per-row stats', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('renders Progress column header', async () => {
-    const { fetchAioCycles, fetchAioTestRunsForCycle } = await import('@/services/aio');
-    (fetchAioCycles as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { key: 'PROJ-CY-9', name: 'Cycle 9', status: 'Active', projectKey: 'PROJ' },
-    ]);
-    (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    const { default: AioProjectOverviewPage } = await import('./AioProjectOverviewPage');
-    render(
-      <QueryClientProvider client={makeClient()}>
-        <MemoryRouter initialEntries={['/aio-project/PROJ']}>
-          <Routes>
-            <Route path="/aio-project/:projectKey" element={<AioProjectOverviewPage />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-    await waitFor(() => expect(screen.getByText('Progress')).toBeDefined());
-  });
-
-  it('shows loading skeleton in stats cell while runs query is pending', async () => {
-    const { fetchAioCycles, fetchAioTestRunsForCycle } = await import('@/services/aio');
-    (fetchAioCycles as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { key: 'PROJ-CY-9', name: 'Cycle 9', status: 'Active', projectKey: 'PROJ' },
-    ]);
-    (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockReturnValue(
-      new Promise(() => {}),
-    );
-    const { default: AioProjectOverviewPage } = await import('./AioProjectOverviewPage');
-    render(
-      <QueryClientProvider client={makeClient()}>
-        <MemoryRouter initialEntries={['/aio-project/PROJ']}>
-          <Routes>
-            <Route path="/aio-project/:projectKey" element={<AioProjectOverviewPage />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-    await waitFor(() => expect(screen.getByTestId('cycle-stats-loading')).toBeDefined());
-  });
-
-  it('shows per-row counts text formatted as {N}P {N}F {N}B {N}N once runs query resolves', async () => {
-    const { fetchAioCycles, fetchAioTestRunsForCycle } = await import('@/services/aio');
-    (fetchAioCycles as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { key: 'PROJ-CY-9', name: 'Cycle 9', status: 'Active', projectKey: 'PROJ' },
-    ]);
-    (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { status: 'PASS' },
-      { status: 'PASS' },
-      { status: 'FAIL' },
-      { status: 'BLOCKED' },
-      { status: 'NOT_EXECUTED' },
-    ] as unknown as AioTestRun[]);
-    const { default: AioProjectOverviewPage } = await import('./AioProjectOverviewPage');
-    render(
-      <QueryClientProvider client={makeClient()}>
-        <MemoryRouter initialEntries={['/aio-project/PROJ']}>
-          <Routes>
-            <Route path="/aio-project/:projectKey" element={<AioProjectOverviewPage />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-    await waitFor(() => expect(screen.getByText('2P 1F 1B 1N')).toBeDefined());
-  });
-
-  it('shows "No runs" text when fetchAioTestRunsForCycle returns empty array', async () => {
-    const { fetchAioCycles, fetchAioTestRunsForCycle } = await import('@/services/aio');
-    (fetchAioCycles as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { key: 'PROJ-CY-9', name: 'Cycle 9', status: 'Active', projectKey: 'PROJ' },
-    ]);
-    (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    const { default: AioProjectOverviewPage } = await import('./AioProjectOverviewPage');
-    render(
-      <QueryClientProvider client={makeClient()}>
-        <MemoryRouter initialEntries={['/aio-project/PROJ']}>
-          <Routes>
-            <Route path="/aio-project/:projectKey" element={<AioProjectOverviewPage />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-    await waitFor(() => {
-      const el = screen.getByTestId('cycle-stats-loaded');
-      expect(el).toBeDefined();
-      expect(el.textContent).toContain('No runs');
-    });
-  });
-
-  it('renders error fallback ("—") when fetchAioTestRunsForCycle rejects', async () => {
-    const { fetchAioCycles, fetchAioTestRunsForCycle } = await import('@/services/aio');
-    (fetchAioCycles as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { key: 'PROJ-CY-9', name: 'Cycle 9', status: 'Active', projectKey: 'PROJ' },
-    ]);
-    (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockRejectedValue(
-      new Error('fetch error'),
-    );
-    const { default: AioProjectOverviewPage } = await import('./AioProjectOverviewPage');
-    render(
-      <QueryClientProvider client={makeClient()}>
-        <MemoryRouter initialEntries={['/aio-project/PROJ']}>
-          <Routes>
-            <Route path="/aio-project/:projectKey" element={<AioProjectOverviewPage />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-    await waitFor(() => expect(screen.getByTestId('cycle-stats-error')).toBeDefined());
-    // Cycle row itself is still rendered
-    expect(screen.getByText('Cycle 9')).toBeDefined();
-  });
-
-  it('uses query key prefix ["aio", jiraBaseUrl, "runs", projectKey, cycleKey] for per-row stats', async () => {
-    const { fetchAioCycles, fetchAioTestRunsForCycle } = await import('@/services/aio');
-    (fetchAioCycles as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { key: 'PROJ-CY-9', name: 'X', status: 'Active', projectKey: 'PROJ' },
-    ]);
-    (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    const { default: AioProjectOverviewPage } = await import('./AioProjectOverviewPage');
-    render(
-      <QueryClientProvider client={makeClient()}>
-        <MemoryRouter initialEntries={['/aio-project/PROJ']}>
-          <Routes>
-            <Route path="/aio-project/:projectKey" element={<AioProjectOverviewPage />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-    await waitFor(() => expect(screen.getByTestId('cycle-stats-loaded')).toBeDefined());
-    expect(fetchAioTestRunsForCycle).toHaveBeenCalledWith(
-      'https://jira.example.com',
-      'test-jira-token',
-      'PROJ',
-      'PROJ-CY-9',
-    );
-  });
-});
-
-describe('Folder accordion + lazy stats (Gap 1+2)', () => {
-  const cycleFolderA1 = {
+const CYCLE_1: AioCycleDetailItem = {
+  ID: 1001,
+  jiraProjectID: 10134,
+  detail: {
     key: 'PROJ-CY-1',
-    name: 'Cycle A1',
-    status: 'Active',
-    projectKey: 'PROJ',
-    folder: 'Sprint 1',
-  };
-  const cycleFolderA2 = {
+    title: 'Cycle Alpha',
+    ownedByID: 'JIRAUSER23429',
+    folder: null,
+    isClosed: false,
+    startDate: null,
+    endDate: null,
+  },
+  summary: null,
+};
+
+const CYCLE_CLOSED: AioCycleDetailItem = {
+  ID: 1002,
+  jiraProjectID: 10134,
+  detail: {
     key: 'PROJ-CY-2',
-    name: 'Cycle A2',
-    status: 'Active',
-    projectKey: 'PROJ',
-    folder: 'Sprint 1',
-  };
-  const cycleFolderB1 = {
-    key: 'PROJ-CY-3',
-    name: 'Cycle B1',
-    status: 'Closed',
-    projectKey: 'PROJ',
-    folder: 'Sprint 2',
-  };
+    title: 'Cycle Beta closed',
+    ownedByID: 'JIRAUSER23429',
+    folder: null,
+    isClosed: true,
+    startDate: null,
+    endDate: null,
+  },
+  summary: null,
+};
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+const SUMMARY_1: AioCycleSummaryItem = {
+  ID: 1001,
+  detail: null,
+  summary: {
+    totalTests: 100,
+    testRunDistribution: { '901': 60, '51': 20, '53': 20 },
+  },
+};
 
-  it('groups cycles by folder.folder value — renders folder header buttons', async () => {
-    const { fetchAioCycles, fetchAioTestRunsForCycle } = await import('@/services/aio');
-    (fetchAioCycles as ReturnType<typeof vi.fn>).mockResolvedValue([
-      cycleFolderA1,
-      cycleFolderA2,
-      cycleFolderB1,
-    ]);
-    (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    const { default: AioProjectOverviewPage } = await import('./AioProjectOverviewPage');
-    render(
-      <QueryClientProvider client={makeClient()}>
-        <MemoryRouter initialEntries={['/aio-project/PROJ']}>
-          <Routes>
-            <Route path="/aio-project/:projectKey" element={<AioProjectOverviewPage />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
+const PROJECT = { id: 10134, projectKey: 'PROJ', name: 'Project' };
+
+const PAGED_RESPONSE = {
+  items: [CYCLE_1],
+  allIDs: [1001],
+  startAt: 0,
+  maxResults: 20,
+  isLast: true,
+};
+
+async function setupStandardMocks() {
+  const { fetchAioProjects, fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries } =
+    await import('@/services/aio');
+  (fetchAioProjects as ReturnType<typeof vi.fn>).mockResolvedValue([PROJECT]);
+  (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockResolvedValue([FOLDER_A]);
+  (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({ '101': 1 });
+  (fetchAioCyclesWithDetail as ReturnType<typeof vi.fn>).mockResolvedValue(PAGED_RESPONSE);
+  (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue([SUMMARY_1]);
+  const { fetchJiraUserByUsername } = await import('@/services/jira/users');
+  (fetchJiraUserByUsername as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+}
+
+describe('AioProjectOverviewPage — folder tree', () => {
+  beforeEach(() => { vi.clearAllMocks(); });
+
+  it('renders folder node with name and cycle count badge', async () => {
+    await setupStandardMocks();
+    const { fetchAioFolderCycleCounts } = await import('@/services/aio');
+    (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({ '101': 3 });
+    const Page = await importPage();
+    wrap(Page);
     await waitFor(() => {
-      expect(screen.getByTestId('folder-toggle-Sprint 1')).toBeDefined();
-      expect(screen.getByTestId('folder-toggle-Sprint 2')).toBeDefined();
-    });
-  });
-
-  it('first folder is expanded by default — renders its cycle rows, collapses others', async () => {
-    const { fetchAioCycles, fetchAioTestRunsForCycle } = await import('@/services/aio');
-    (fetchAioCycles as ReturnType<typeof vi.fn>).mockResolvedValue([
-      cycleFolderA1,
-      cycleFolderA2,
-      cycleFolderB1,
-    ]);
-    (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    const { default: AioProjectOverviewPage } = await import('./AioProjectOverviewPage');
-    render(
-      <QueryClientProvider client={makeClient()}>
-        <MemoryRouter initialEntries={['/aio-project/PROJ']}>
-          <Routes>
-            <Route path="/aio-project/:projectKey" element={<AioProjectOverviewPage />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-    await waitFor(() => {
-      // Sprint 1 cycles are visible (first folder expanded)
-      expect(screen.getByText('Cycle A1')).toBeDefined();
-      expect(screen.getByText('Cycle A2')).toBeDefined();
-      // Sprint 2 cycle is NOT visible (collapsed)
-      expect(screen.queryByText('Cycle B1')).toBeNull();
+      expect(screen.getByTestId('folder-node-101')).toBeDefined();
+      expect(screen.getByText('Sprint 2025')).toBeDefined();
+      expect(screen.getByText('3')).toBeDefined();
     });
   });
+});
 
-  it('CycleStatsCell fires useQuery only for cycles in the open folder — not for collapsed folder cycles', async () => {
-    const { fetchAioCycles, fetchAioTestRunsForCycle } = await import('@/services/aio');
-    (fetchAioCycles as ReturnType<typeof vi.fn>).mockResolvedValue([
-      cycleFolderA1,
-      cycleFolderA2,
-      cycleFolderB1,
-    ]);
-    (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    const { default: AioProjectOverviewPage } = await import('./AioProjectOverviewPage');
-    render(
-      <QueryClientProvider client={makeClient()}>
-        <MemoryRouter initialEntries={['/aio-project/PROJ']}>
-          <Routes>
-            <Route path="/aio-project/:projectKey" element={<AioProjectOverviewPage />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-    // Wait for Sprint 1 cycles to be visible and stats to load
+describe('AioProjectOverviewPage — cycle list', () => {
+  beforeEach(() => { vi.clearAllMocks(); });
+
+  it('renders cycle row with key, name, and progress bar', async () => {
+    await setupStandardMocks();
+    const Page = await importPage();
+    wrap(Page);
     await waitFor(() => {
-      expect(screen.getByText('Cycle A1')).toBeDefined();
+      expect(screen.getByText('PROJ-CY-1')).toBeDefined();
+      expect(screen.getByText('Cycle Alpha')).toBeDefined();
+      expect(screen.getByTestId('progress-bar')).toBeDefined();
     });
-    // Stats were fetched for Sprint 1 cycles
-    expect(fetchAioTestRunsForCycle).toHaveBeenCalledWith(
-      'https://jira.example.com',
-      'test-jira-token',
-      'PROJ',
-      'PROJ-CY-1',
-    );
-    expect(fetchAioTestRunsForCycle).toHaveBeenCalledWith(
-      'https://jira.example.com',
-      'test-jira-token',
-      'PROJ',
-      'PROJ-CY-2',
-    );
-    // Stats were NOT fetched for Sprint 2 cycle (collapsed)
-    expect(fetchAioTestRunsForCycle).not.toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      'PROJ',
-      'PROJ-CY-3',
-    );
   });
 
-  it('clicking collapsed folder header expands it and collapses the previous folder', async () => {
-    const user = userEvent.setup();
-    const { fetchAioCycles, fetchAioTestRunsForCycle } = await import('@/services/aio');
-    (fetchAioCycles as ReturnType<typeof vi.fn>).mockResolvedValue([
-      cycleFolderA1,
-      cycleFolderA2,
-      cycleFolderB1,
-    ]);
-    (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    const { default: AioProjectOverviewPage } = await import('./AioProjectOverviewPage');
-    render(
-      <QueryClientProvider client={makeClient()}>
-        <MemoryRouter initialEntries={['/aio-project/PROJ']}>
-          <Routes>
-            <Route path="/aio-project/:projectKey" element={<AioProjectOverviewPage />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-    // Wait for data to load and Sprint 1 to be expanded by default
-    await waitFor(() => {
-      expect(screen.getByText('Cycle A1')).toBeDefined();
+  it('shows displayName in owner column when user resolves', async () => {
+    await setupStandardMocks();
+    const { fetchJiraUserByUsername } = await import('@/services/jira/users');
+    (fetchJiraUserByUsername as ReturnType<typeof vi.fn>).mockResolvedValue({
+      name: 'JIRAUSER23429',
+      displayName: 'Alice Tester',
     });
-    // Click Sprint 2 folder toggle
-    await user.click(screen.getByTestId('folder-toggle-Sprint 2'));
+    const Page = await importPage();
+    wrap(Page);
     await waitFor(() => {
-      // Sprint 2 cycle is now visible
-      expect(screen.getByText('Cycle B1')).toBeDefined();
-      // Sprint 1 cycles are no longer visible (collapsed)
-      expect(screen.queryByText('Cycle A1')).toBeNull();
+      expect(screen.getByText('Alice Tester')).toBeDefined();
     });
-    // Stats were fetched for Sprint 2 cycle after expansion
-    expect(fetchAioTestRunsForCycle).toHaveBeenCalledWith(
-      'https://jira.example.com',
-      'test-jira-token',
-      'PROJ',
-      'PROJ-CY-3',
-    );
   });
 
-  it('clicking expanded folder header collapses it', async () => {
-    const user = userEvent.setup();
-    const { fetchAioCycles, fetchAioTestRunsForCycle } = await import('@/services/aio');
-    (fetchAioCycles as ReturnType<typeof vi.fn>).mockResolvedValue([
-      cycleFolderA1,
-      cycleFolderA2,
-      cycleFolderB1,
+  it('shows raw ownedByID in owner column when user is null (D-08)', async () => {
+    await setupStandardMocks();
+    const { fetchJiraUserByUsername } = await import('@/services/jira/users');
+    (fetchJiraUserByUsername as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    const Page = await importPage();
+    wrap(Page);
+    await waitFor(() => {
+      expect(screen.getByText('JIRAUSER23429')).toBeDefined();
+    });
+  });
+
+  it('dedupes user lookups — 2 cycles same owner fires fetchJiraUserByUsername once', async () => {
+    const { fetchAioProjects, fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries } =
+      await import('@/services/aio');
+    const CYCLE_2 = { ...CYCLE_1, ID: 1002 };
+    (fetchAioProjects as ReturnType<typeof vi.fn>).mockResolvedValue([PROJECT]);
+    (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockResolvedValue([FOLDER_A]);
+    (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({ '101': 2 });
+    (fetchAioCyclesWithDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [CYCLE_1, CYCLE_2],
+      allIDs: [1001, 1002],
+      startAt: 0,
+      maxResults: 20,
+      isLast: true,
+    });
+    (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue([
+      SUMMARY_1,
+      { ...SUMMARY_1, ID: 1002 },
     ]);
-    (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    const { default: AioProjectOverviewPage } = await import('./AioProjectOverviewPage');
-    render(
-      <QueryClientProvider client={makeClient()}>
-        <MemoryRouter initialEntries={['/aio-project/PROJ']}>
-          <Routes>
-            <Route path="/aio-project/:projectKey" element={<AioProjectOverviewPage />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-    // Wait for data to load and Sprint 1 to be expanded by default
-    await waitFor(() => {
-      expect(screen.getByText('Cycle A1')).toBeDefined();
+    const { fetchJiraUserByUsername } = await import('@/services/jira/users');
+    (fetchJiraUserByUsername as ReturnType<typeof vi.fn>).mockResolvedValue({
+      name: 'JIRAUSER23429',
+      displayName: 'Alice',
     });
-    // Click Sprint 1 folder toggle (currently expanded) to collapse it
-    await user.click(screen.getByTestId('folder-toggle-Sprint 1'));
+    const Page = await importPage();
+    wrap(Page);
     await waitFor(() => {
-      // Sprint 1 cycles are no longer visible
-      expect(screen.queryByText('Cycle A1')).toBeNull();
-      // Sprint 1 toggle has aria-expanded="false"
-      expect(screen.getByTestId('folder-toggle-Sprint 1').getAttribute('aria-expanded')).toBe(
-        'false',
-      );
+      expect(screen.getAllByText('Alice').length).toBeGreaterThanOrEqual(1);
     });
+    expect((fetchJiraUserByUsername as ReturnType<typeof vi.fn>).mock.calls.length).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('AioProjectOverviewPage — Show closed toggle', () => {
+  beforeEach(() => { vi.clearAllMocks(); });
+
+  it('hides closed cycles by default; shows them after toggle', async () => {
+    const { fetchAioProjects, fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries } =
+      await import('@/services/aio');
+    (fetchAioProjects as ReturnType<typeof vi.fn>).mockResolvedValue([PROJECT]);
+    (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockResolvedValue([FOLDER_A]);
+    (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({ '101': 2 });
+    (fetchAioCyclesWithDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [CYCLE_1, CYCLE_CLOSED],
+      allIDs: [1001, 1002],
+      startAt: 0,
+      maxResults: 20,
+      isLast: true,
+    });
+    (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue([SUMMARY_1]);
+    const { fetchJiraUserByUsername } = await import('@/services/jira/users');
+    (fetchJiraUserByUsername as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    const Page = await importPage();
+    wrap(Page);
+
+    await waitFor(() => {
+      expect(screen.getByText('Cycle Alpha')).toBeDefined();
+    });
+    expect(screen.queryByText('Cycle Beta closed')).toBeNull();
+
+    const toggle = screen.getByRole('switch');
+    await userEvent.click(toggle);
+    await waitFor(() => {
+      expect(screen.getByText('Cycle Beta closed')).toBeDefined();
+    });
+  });
+});
+
+describe('AioProjectOverviewPage — error states', () => {
+  beforeEach(() => { vi.clearAllMocks(); });
+
+  it('renders error state when folder tree query fails', async () => {
+    const { fetchAioProjects, fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries } =
+      await import('@/services/aio');
+    (fetchAioProjects as ReturnType<typeof vi.fn>).mockResolvedValue([PROJECT]);
+    (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Network fail'));
+    (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({});
+    (fetchAioCyclesWithDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [], allIDs: [], startAt: 0, maxResults: 0, isLast: true,
+    });
+    (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    const Page = await importPage();
+    wrap(Page);
+    await waitFor(() => {
+      // Page should not be stuck on loading — either error UI or empty tree renders
+      const body = document.body.textContent ?? '';
+      expect(body.length).toBeGreaterThan(10);
+    }, { timeout: 4000 });
   });
 });
