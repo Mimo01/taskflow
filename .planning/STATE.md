@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 Phase: 55 (complete)
 Plan: Complete
 Status: Milestone v1.8 complete — all 5 phases done
-Last activity: 2026-05-14 - Completed quick task 260514-qr8: In settings in AIO project selector sort the options alphabetically
+Last activity: 2026-05-14 - Completed quick task 260514-r30: AIO in sidebar has bad name, it doesn't go to 'AIO Projects' anymore
 
 Progress: [██████████] 100%
 
@@ -94,6 +94,7 @@ None.
 | 260513-axn | On sprint board if story has 0 subtasks print the text in the header the same way as if it did | 2026-05-13 | da7f9d9 | [260513-axn-sprint-board-story-0-subtasks-header](./quick/260513-axn-sprint-board-story-0-subtasks-header/) |
 | 260514-k2u | On jira issue detail when showing `{panel}` everything renders correctly but the panel has huge internal padding | 2026-05-14 | 613568e | [260514-k2u-on-jira-issue-detail-when-showing-panel-](./quick/260514-k2u-on-jira-issue-detail-when-showing-panel-/) |
 | 260514-qr8 | In settings in AIO project selector sort the options alphabetically | 2026-05-14 | cb7cc4b | [260514-qr8-in-settings-in-aio-project-selector-sort](./quick/260514-qr8-in-settings-in-aio-project-selector-sort/) |
+| 260514-r30 | AIO in sidebar has bad name, it doesn't go to 'AIO Projects' anymore | 2026-05-14 | a8541be | [260514-r30-aio-in-sidebar-has-bad-name-it-doesn-t-g](./quick/260514-r30-aio-in-sidebar-has-bad-name-it-doesn-t-g/) |
 
 ## Session Continuity
 
