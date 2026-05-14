@@ -15,6 +15,7 @@ import type {
   AioCycleSummaryItem,
   AioFolder,
   AioPage,
+  AioTestRunStatusConfig,
 } from './types';
 
 // AIO API returns several fields as { ID, name } objects rather than plain strings.
@@ -296,6 +297,38 @@ export async function fetchAioCycleSummaries(
   }
   if (response.ok) {
     return (await response.json()) as AioCycleSummaryItem[];
+  }
+  if (response.status === 401) {
+    throw new ApiError('Invalid token or token has expired', 401, 'jira');
+  }
+  if (response.status === 404) {
+    return [];
+  }
+  throw new Error(`AIO request failed with status ${response.status}`);
+}
+
+/**
+ * Fetch project config — extracts testRunStatus entries for dynamic status ID mapping.
+ * GET /rest/aio-tcms/1.0/project/{jiraProjectId}/config?c_pId={id}&t={ts}
+ * @returns AioTestRunStatusConfig[]; empty array on 404
+ * @throws ApiError 401 on auth failure
+ * @throws Error on network failure
+ */
+export async function fetchAioProjectConfig(
+  baseUrl: string,
+  token: string,
+  jiraProjectId: number,
+): Promise<AioTestRunStatusConfig[]> {
+  const path = `/project/${jiraProjectId}/config?c_pId=${jiraProjectId}&t=${Date.now()}`;
+  let response: Response;
+  try {
+    response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH);
+  } catch {
+    throw new Error(`Cannot reach AIO at ${baseUrl}`);
+  }
+  if (response.ok) {
+    const data = (await response.json()) as { testRunStatus?: AioTestRunStatusConfig[] };
+    return data.testRunStatus ?? [];
   }
   if (response.status === 401) {
     throw new ApiError('Invalid token or token has expired', 401, 'jira');

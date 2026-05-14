@@ -204,6 +204,17 @@ export interface AioCycleSummaryItem {
 }
 
 /**
+ * Single entry from the testRunStatus array in GET /rest/aio-tcms/1.0/project/{id}/config.
+ * statusType is the stable key used for canonical mapping (PASSED, FAILED, BLOCKED, NOT_RUN, IN_PROGRESS).
+ */
+export interface AioTestRunStatusConfig {
+  ID: number;
+  name: string;
+  statusType: string;
+  color: string;
+}
+
+/**
  * Paginated response from GET /rest/aio-tcms/1.0/project/{jiraProjectID}/testcycle/paged
  * (Phase 57 probe finding A4). Extends the AioPage envelope with allIDs, which
  * drives the single-call summary fetch (fetchAioCycleSummaries).
