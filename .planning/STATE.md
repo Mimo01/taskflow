@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 Phase: 54 (aio-on-issue-detail) — UAT APPROVED, awaiting verify-work
 Plan: 54-11 of 11 (final — cross-project + breadcrumb integration into useBreadcrumbStore)
 Status: All 4 UAT tests PASS (Tests 1-3, Test 4 + Gaps 1-6 resolved). User approved 2026-05-14T14:15Z. Run `/gsd:verify-work 54` to mark phase `verified`.
-Last activity: 2026-05-14 - 260514-k2u round-3: stripped stray leading/trailing <br/> from inline panel span (root cause was newline→<br/> substitution running BEFORE trim, so leading/trailing newlines became visible line-height-of-padding <br/> tags; fixed by trimming first)
+Last activity: 2026-05-14 - 260514-k2u UAT approved (round-3 fix accepted: stray leading/trailing <br/> stripped from inline panel span at preprocess layer)
 
 Progress: [██████████] 100%
 
