@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Switch } from '@/components/ui/switch';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { normalizeStatusById } from '@/lib/aioUtils';
@@ -243,7 +242,6 @@ export default function AioProjectOverviewPage() {
 
   const [selectedFolderID, setSelectedFolderID] = useState<number | null>(null);
   const [expandedIDs, setExpandedIDs] = useState<Set<number>>(new Set());
-  const [showClosed, setShowClosed] = useState<boolean>(false);
 
   const credGate = !!jiraBaseUrl && !!token && !tokenLoading && !!projectKey;
 
@@ -305,11 +303,7 @@ export default function AioProjectOverviewPage() {
     [cycleSummariesQuery.data],
   );
 
-  // Visible cycles (filter by showClosed)
-  const visibleCycles = useMemo(() => {
-    const items = cyclesWithDetailQuery.data?.items ?? [];
-    return items.filter((c) => showClosed || !c.detail.isClosed);
-  }, [cyclesWithDetailQuery.data, showClosed]);
+  const visibleCycles = cyclesWithDetailQuery.data?.items ?? [];
 
   // Auto-expand first root folder + auto-select first non-empty folder (one-time)
   const autoExpandedRef = useRef(false);
@@ -367,12 +361,6 @@ export default function AioProjectOverviewPage() {
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
         <h1 className="text-xl font-semibold">Cycles — {projectKey ?? ''}</h1>
-        <div className="flex items-center gap-2">
-          <Switch id="show-closed" checked={showClosed} onCheckedChange={setShowClosed} />
-          <label htmlFor="show-closed" className="text-sm">
-            Show closed
-          </label>
-        </div>
       </div>
 
       {/* Content: two-panel layout */}
@@ -495,7 +483,6 @@ export default function AioProjectOverviewPage() {
               </thead>
               <tbody>
                 {visibleCycles.map((cycle: AioCycleDetailItem) => {
-                  const isClosed = cycle.detail.isClosed && showClosed;
                   const summary = summaryByID[cycle.ID]?.summary;
                   return (
                     <tr
@@ -503,23 +490,16 @@ export default function AioProjectOverviewPage() {
                       data-testid={`cycle-row-${cycle.ID}`}
                       className="border-b border-border hover:bg-muted/30 transition-colors"
                     >
-                      <td
-                        className={`w-28 px-3 py-3 text-xs font-mono ${isClosed ? 'text-muted-foreground' : 'text-muted-foreground'}`}
-                      >
+                      <td className="w-28 px-3 py-3 text-xs font-mono text-muted-foreground">
                         {cycle.detail.key}
                       </td>
-                      <td className={`px-4 py-3 ${isClosed ? 'text-muted-foreground' : ''}`}>
+                      <td className="px-4 py-3">
                         <NavLink
                           to={`/aio-cycle/${projectKey}/${cycle.detail.key}`}
                           className="hover:underline"
                         >
                           {cycle.detail.title}
                         </NavLink>
-                        {cycle.detail.isClosed && showClosed && (
-                          <Badge variant="secondary" className="ml-2">
-                            Closed
-                          </Badge>
-                        )}
                       </td>
                       <td className="w-32 px-3 py-3">
                         <OwnerCell
