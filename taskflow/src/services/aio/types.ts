@@ -31,6 +31,7 @@ export interface AioCycle {
   name: string; // Cycle display name
   status: string; // Cycle status, e.g. "Active", "Closed"
   projectKey: string; // Owning Jira project key
+  folder?: string; // Folder/test-set grouping name. Mapped from raw.folder ?? raw.testSet ?? raw.folderName ?? raw.testSetKey ?? raw.status (Plan 56-06 probe — see normalizeCycle in cycles.ts)
 }
 
 /**
