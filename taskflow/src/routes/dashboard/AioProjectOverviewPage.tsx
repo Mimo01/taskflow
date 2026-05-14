@@ -127,7 +127,7 @@ export default function AioProjectOverviewPage() {
       const first = groupCyclesByFolder(data).keys().next().value;
       setExpandedFolder(first ?? null);
     }
-  }, [data]);
+  }, [data, expandedFolder]);
 
   const toggleFolder = (folderName: string) => {
     setExpandedFolder((prev) => (prev === folderName ? null : folderName));
