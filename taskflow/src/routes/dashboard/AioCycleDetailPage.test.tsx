@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -356,6 +356,158 @@ describe('AioCycleDetailPage', () => {
         name: 'Sprint 2',
         projectKey: 'PROJ',
       });
+    });
+  });
+});
+
+const mockBreadcrumbPush = vi.fn();
+
+vi.mock('@/stores/breadcrumb.store', () => ({
+  useBreadcrumbStore: Object.assign(
+    (selector?: (s: { trail: never[]; pop: () => void; push: typeof mockBreadcrumbPush }) => unknown) => {
+      const state = { trail: [], pop: vi.fn(), push: mockBreadcrumbPush };
+      return selector ? selector(state) : state;
+    },
+    {
+      getState: () => ({ push: mockBreadcrumbPush, pop: vi.fn(), trail: [] }),
+      setState: vi.fn(),
+    },
+  ),
+}));
+
+describe('Executions tab — clickable rows', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPinnedKeys = [];
+    mockBreadcrumbPush.mockReset();
+  });
+
+  it('renders Executions tab as default active with run table inside', async () => {
+    const { fetchAioCycleDetail, fetchAioTestRunsForCycle } = await import('@/services/aio');
+    (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+    (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
+    render(
+      <QueryClientProvider client={makeClient()}>
+        <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
+          <Routes>
+            <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: 'Executions' })).toBeDefined();
+    });
+    expect(screen.getByText('Login test')).toBeDefined();
+  });
+
+  it('renders Defects tab trigger that can be activated', async () => {
+    const user = userEvent.setup();
+    const { fetchAioCycleDetail, fetchAioTestRunsForCycle } = await import('@/services/aio');
+    (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+    (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
+    render(
+      <QueryClientProvider client={makeClient()}>
+        <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
+          <Routes>
+            <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: 'Executions' })).toBeDefined();
+    });
+    await user.click(screen.getByRole('tab', { name: 'Defects' }));
+    await waitFor(() => {
+      expect(screen.getByTestId('defects-tab-placeholder')).toBeDefined();
+    });
+  });
+
+  it('D-08: clicking a run row navigates to /aio-cycle/PROJ/PROJ-CY-2/run/{run.id} and pushes breadcrumb', async () => {
+    const user = userEvent.setup();
+    const { fetchAioCycleDetail, fetchAioTestRunsForCycle } = await import('@/services/aio');
+    (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+    (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
+    render(
+      <QueryClientProvider client={makeClient()}>
+        <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
+          <Routes>
+            <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
+            <Route
+              path="/aio-cycle/:projectKey/:cycleKey/run/:runId"
+              element={<div data-testid="run-detail-route">Run Detail</div>}
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => {
+      expect(screen.getByText('Login test')).toBeDefined();
+    });
+    await user.click(screen.getByTestId('run-row-run-1'));
+    await waitFor(() => {
+      expect(screen.getByTestId('run-detail-route')).toBeDefined();
+    });
+    expect(mockBreadcrumbPush).toHaveBeenCalledWith({
+      label: 'Sprint 2',
+      path: '/aio-cycle/PROJ/PROJ-CY-2',
+    });
+  });
+
+  it('D-09: Enter key on focused run row navigates same as click', async () => {
+    const { fetchAioCycleDetail, fetchAioTestRunsForCycle } = await import('@/services/aio');
+    (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+    (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
+    render(
+      <QueryClientProvider client={makeClient()}>
+        <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
+          <Routes>
+            <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
+            <Route
+              path="/aio-cycle/:projectKey/:cycleKey/run/:runId"
+              element={<div data-testid="run-detail-route">Run Detail</div>}
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => {
+      expect(screen.getByText('Login test')).toBeDefined();
+    });
+    const row = screen.getByTestId('run-row-run-1');
+    row.focus();
+    fireEvent.keyDown(row, { key: 'Enter' });
+    await waitFor(() => {
+      expect(screen.getByTestId('run-detail-route')).toBeDefined();
+    });
+  });
+
+  it('D-09: Space key on focused run row navigates same as click', async () => {
+    const { fetchAioCycleDetail, fetchAioTestRunsForCycle } = await import('@/services/aio');
+    (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+    (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
+    render(
+      <QueryClientProvider client={makeClient()}>
+        <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
+          <Routes>
+            <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
+            <Route
+              path="/aio-cycle/:projectKey/:cycleKey/run/:runId"
+              element={<div data-testid="run-detail-route">Run Detail</div>}
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => {
+      expect(screen.getByText('Login test')).toBeDefined();
+    });
+    const row = screen.getByTestId('run-row-run-1');
+    row.focus();
+    fireEvent.keyDown(row, { key: ' ' });
+    await waitFor(() => {
+      expect(screen.getByTestId('run-detail-route')).toBeDefined();
     });
   });
 });
