@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { FlaskConical, Pin } from 'lucide-react';
+import { ArrowLeft, FlaskConical, Pin } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, useLocation, useParams } from 'react-router-dom';
+import { NavLink, useNavigate, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -12,6 +12,7 @@ import { fetchAioCycleDetail, fetchAioTestRunsForCycle } from '@/services/aio';
 import type { AioCycle, AioTestRun } from '@/services/aio';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
+import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { AioCycleDetailSkeleton } from './AioCycleDetailSkeleton';
 
@@ -50,17 +51,23 @@ const CHIPS = [
   { status: 'BLOCKED', label: 'Blocked' },
 ] as const;
 
-type FromState = { from?: { type: 'issue'; issueKey?: string } };
-
 export default function AioCycleDetailPage() {
   const { projectKey, cycleKey } = useParams<{ projectKey: string; cycleKey: string }>();
-  const location = useLocation();
-  const fromIssueKey =
-    (location.state as FromState | null)?.from?.type === 'issue'
-      ? (location.state as FromState).from?.issueKey
-      : undefined;
+  const navigate = useNavigate();
+  const trail = useBreadcrumbStore((s) => s.trail);
+  const breadcrumbPop = useBreadcrumbStore((s) => s.pop);
   const { jiraBaseUrl } = useAuthStore();
   const [token, setToken] = useState<string | null>(null);
+
+  const handleBack = () => {
+    if (trail.length > 0) {
+      const target = trail[trail.length - 1];
+      breadcrumbPop();
+      navigate(target.path, { replace: true });
+    } else {
+      navigate('/dashboard');
+    }
+  };
 
   useEffect(() => {
     readSecret('jira-pat')
@@ -121,37 +128,55 @@ export default function AioCycleDetailPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex flex-col px-6 py-4 border-b border-border flex-shrink-0 gap-1">
-        {/* Breadcrumb — Plan 54-11 round-4 follow-up: shown when navigated
-            from a Jira issue so the user can return to the source issue. */}
-        {fromIssueKey && (
-          <nav
-            aria-label="Breadcrumb"
-            className="flex items-center gap-1 text-xs text-muted-foreground"
-            data-testid="aio-cycle-detail-breadcrumb"
+      {/* Shared breadcrumb header — uses useBreadcrumbStore trail
+          (matches IssueDetailPage / ReleaseDetailPage convention). Final
+          segment is the current cycle. Source pages push their entry to
+          the trail before navigating here. */}
+      {trail.length > 0 && (
+        <div
+          className="px-6 py-3 border-b flex items-center gap-2 text-sm flex-shrink-0"
+          data-testid="aio-cycle-detail-breadcrumb"
+        >
+          <button
+            type="button"
+            onClick={handleBack}
+            className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted"
+            aria-label="Back"
           >
-            <NavLink
-              to={`/issue/${fromIssueKey}`}
-              className="hover:text-foreground hover:underline font-mono"
-              data-testid="aio-cycle-detail-breadcrumb-issue"
-            >
-              {fromIssueKey}
-            </NavLink>
-            <span aria-hidden="true">/</span>
-            <span className="font-mono">{cycleKey}</span>
-          </nav>
-        )}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-semibold">{cycleName}</h1>
-            {cycleQuery.data && (
-              <span
-                className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium ${aioCycleStatusBadgeClass(cycleQuery.data.status)}`}
+            <ArrowLeft className="size-4" />
+          </button>
+          {trail.map((entry, i) => (
+            <span key={entry.path} className="flex items-center gap-2">
+              {i > 0 && <span className="text-muted-foreground">/</span>}
+              <button
+                type="button"
+                onClick={() => {
+                  useBreadcrumbStore.setState({ trail: trail.slice(0, i) });
+                  navigate(entry.path, { replace: true });
+                }}
+                className="text-muted-foreground hover:text-foreground"
               >
-                {cycleQuery.data.status}
-              </span>
-            )}
-          </div>
+                {entry.label}
+              </button>
+            </span>
+          ))}
+          <span className="text-muted-foreground">/</span>
+          <span className="font-medium" data-testid="aio-cycle-detail-breadcrumb-current">
+            {cycleKey}
+          </span>
+        </div>
+      )}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-semibold">{cycleName}</h1>
+          {cycleQuery.data && (
+            <span
+              className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium ${aioCycleStatusBadgeClass(cycleQuery.data.status)}`}
+            >
+              {cycleQuery.data.status}
+            </span>
+          )}
+        </div>
         <Button
           variant="outline"
           size="sm"
@@ -171,7 +196,6 @@ export default function AioCycleDetailPage() {
           <Pin className={`size-3.5 ${pinned ? 'fill-current text-primary' : ''}`} />
           {pinned ? 'Unpin' : 'Pin'}
         </Button>
-        </div>
       </div>
 
       <div className="flex-1 overflow-auto">

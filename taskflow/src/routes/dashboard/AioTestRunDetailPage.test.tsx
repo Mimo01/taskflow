@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 
 vi.mock('@/stores/auth.store', () => ({
   useAuthStore: () => ({ jiraBaseUrl: 'https://jira.example.com' }),
@@ -30,13 +31,10 @@ function makeClient() {
 
 import AioTestRunDetailPage from './AioTestRunDetailPage';
 
-function renderAt(
-  path: string,
-  options: { state?: { from?: { type: 'issue'; issueKey: string } } } = {},
-) {
+function renderAt(path: string) {
   return render(
     <QueryClientProvider client={makeClient()}>
-      <MemoryRouter initialEntries={[{ pathname: path, state: options.state }]}>
+      <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route
             path="/aio-cycle/:projectKey/:cycleKey/run/:runId"
@@ -51,6 +49,7 @@ function renderAt(
 describe('AioTestRunDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useBreadcrumbStore.setState({ trail: [] });
   });
 
   it('renders run header + step table when the detail fetch succeeds', async () => {
@@ -101,7 +100,7 @@ describe('AioTestRunDetailPage', () => {
     expect(screen.queryByTestId('aio-run-detail-status-chip')).toBeNull();
   });
 
-  it('renders issue-rooted breadcrumb when navigated with location.state.from.type=issue', async () => {
+  it('renders breadcrumb header from useBreadcrumbStore trail; current segment is "Run {runId}"', async () => {
     const { fetchAioTestRunDetail } = await import('@/services/aio');
     (fetchAioTestRunDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
       run: {
@@ -114,40 +113,39 @@ describe('AioTestRunDetailPage', () => {
       steps: [],
     });
 
-    renderAt('/aio-cycle/ESHOP/ESHOP-CY-1011/run/263794', {
-      state: { from: { type: 'issue', issueKey: 'VTE-1234' } },
+    // Source page (e.g. IssueDetailPage) pushed its entry to the trail before
+    // navigating here — this is the existing breadcrumb-store convention.
+    useBreadcrumbStore.setState({
+      trail: [{ path: '/issue/VTE-1234', label: 'VTE-1234' }],
     });
+
+    renderAt('/aio-cycle/ESHOP/ESHOP-CY-1011/run/263794');
 
     await waitFor(() => {
       expect(screen.getByTestId('aio-run-detail-breadcrumb')).toBeTruthy();
     });
-    const issueLink = screen.getByTestId('aio-run-detail-breadcrumb-issue') as HTMLAnchorElement;
-    expect(issueLink.getAttribute('href')).toBe('/issue/VTE-1234');
-    expect(issueLink.textContent).toBe('VTE-1234');
-    // Cycle still appears in the trail (clickable).
-    const cycleLink = screen.getByTestId(
-      'aio-run-detail-breadcrumb-cycle',
-    ) as HTMLAnchorElement;
-    expect(cycleLink.getAttribute('href')).toBe('/aio-cycle/ESHOP/ESHOP-CY-1011');
-    expect(cycleLink.textContent).toBe('ESHOP-CY-1011');
+    // Trail entry is rendered as a button labeled with the issue key.
+    expect(screen.getByRole('button', { name: 'VTE-1234' })).toBeTruthy();
+    // Current segment shows the run id.
+    expect(screen.getByTestId('aio-run-detail-breadcrumb-current').textContent).toBe(
+      'Run 263794',
+    );
   });
 
-  it('omits the issue breadcrumb when navigated without location state (direct URL access)', async () => {
+  it('omits the breadcrumb header when the trail is empty (direct URL access)', async () => {
     const { fetchAioTestRunDetail } = await import('@/services/aio');
     (fetchAioTestRunDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
       run: { id: '1', status: 'PASS', testCaseKey: 'X', cycleKey: 'X-CY-1' },
       steps: [],
     });
 
+    // Trail empty (beforeEach already resets it) — no breadcrumb header.
     renderAt('/aio-cycle/X/X-CY-1/run/1');
 
     await waitFor(() => {
-      expect(screen.getByTestId('aio-run-detail-breadcrumb')).toBeTruthy();
+      expect(screen.getByTestId('aio-run-detail-status-chip')).toBeTruthy();
     });
-    // No issue breadcrumb segment.
-    expect(screen.queryByTestId('aio-run-detail-breadcrumb-issue')).toBeNull();
-    // Cycle segment still present.
-    expect(screen.getByTestId('aio-run-detail-breadcrumb-cycle')).toBeTruthy();
+    expect(screen.queryByTestId('aio-run-detail-breadcrumb')).toBeNull();
   });
 
   it('uses the cycle-derived projectKey from the URL (cross-project routing)', async () => {
