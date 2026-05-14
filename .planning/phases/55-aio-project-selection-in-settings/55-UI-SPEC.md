@@ -5,6 +5,7 @@ status: draft
 shadcn_initialized: true
 preset: base-nova
 created: 2026-05-14
+revised: 2026-05-14
 ---
 
 # Phase 55 — UI Design Contract
@@ -38,9 +39,10 @@ Existing primitives used by this phase (no new components, no new dependencies):
 
 This phase uses Tailwind's default 4px-based scale. Settings sections in this codebase already follow it (see `IntegrationsSection.tsx`, `ConnectionsSection.tsx`).
 
+**Base scale (multiples of 4):**
+
 | Token | Tailwind | Value | Usage in this phase |
 |-------|----------|-------|---------------------|
-| xs | `gap-1.5` | 6px | Inline icon + text gap (loading/error rows) — matches `ConnectionsSection.tsx:137` |
 | sm | `gap-2` / `p-2` | 8px | Compact spacing inside picker trigger |
 | md | `gap-4` | 16px | Vertical gap between toggle row and picker block (inside `AIO Test Management` subsection) |
 | lg | `gap-6` / `gap-8` | 24px / 32px | Section-level vertical rhythm — `IntegrationsSection.tsx` already uses `gap-8` for the section root and `gap-4` inside subsections |
@@ -48,24 +50,32 @@ This phase uses Tailwind's default 4px-based scale. Settings sections in this co
 Specific spacing rules for this phase:
 
 1. The picker block sits **inside the same `<div className="flex flex-col gap-4">` subsection** as the `aioEnabled` toggle (`IntegrationsSection.tsx:9`). One subsection — toggle on top, picker below. No `gap-8` separator between them.
-2. Picker label + control use `flex flex-col gap-1.5` — matches `GitLabStep.tsx:109` exactly.
-3. Inline loading row uses `gap-1.5` between `Loader2` icon and text — matches `ConnectionsSection.tsx:137`.
-4. Inline error row uses `gap-1.5` between `XCircle` icon and message — matches `ConnectionsSection.tsx:149`.
+2. Picker label + control use `flex flex-col gap-1.5` — see Exception E-01 below.
+3. Inline loading row uses `gap-1.5` between `Loader2` icon and text — see Exception E-01 below.
+4. Inline error row uses `gap-1.5` between `XCircle` icon and message — see Exception E-01 below.
 
-Exceptions: none.
+**Exceptions:**
+
+| ID | Token | Tailwind | Value | Justification | Codebase precedent |
+|----|-------|----------|-------|---------------|--------------------|
+| E-01 | xs | `gap-1.5` | 6px | Established inline icon-text gap convention in this codebase. The 8px (`gap-2`) standard scale value is too wide for tight icon+label inline pairings (loading spinner + text, error icon + message, label + control with strong visual coupling). Phase 55 introduces no new use of this token — it adopts the existing convention exclusively to match the surrounding Settings UI verbatim. | `taskflow/src/routes/settings/ConnectionsSection.tsx:137` (loading-row icon-text gap), `taskflow/src/routes/settings/ConnectionsSection.tsx:149` (error-row icon-text gap), `taskflow/src/routes/onboarding/GitLabStep.tsx:109` (picker label-control vertical gap) |
+
+This is the only deviation from the standard {4, 8, 16, 24, 32, 48, 64} scale. Used in exactly 3 places (loading row, error row, picker label-control), all inherited verbatim from existing Settings/onboarding patterns. No new 6px usage is invented by this phase.
 
 ---
 
 ## Typography
 
-This phase introduces no new type roles. It uses the exact roles already established by the surrounding Settings sections.
+This phase introduces no new type roles. It uses the exact roles already established by the surrounding Settings sections, all of which are inherited from the existing `Geist Variable` design system.
 
-| Role | Tailwind class | Size | Weight | Line height | Usage in this phase |
-|------|----------------|------|--------|-------------|---------------------|
-| Section heading | `text-lg font-semibold` | 18px | 600 | 1.75 (Tailwind default) | `<h2>Integrations</h2>` — already present, unchanged |
-| Subsection heading | `text-sm font-semibold text-muted-foreground uppercase tracking-wide` | 14px | 600 | 1.25 | `<h3>AIO Test Management</h3>` — already present, unchanged |
-| Body / control label | `text-sm font-medium` | 14px | 500 | 1.25 | Picker `<Label>` text ("AIO Project") |
-| Helper / muted | `text-xs text-muted-foreground` | 12px | 400 | 1 | Helper text under the picker; placeholder text inside the trigger when empty |
+**Inheritance note:** The 3 font weights (400 helper, 500 body/label, 600 headings) listed below are **inherited from the existing design system** used by all Settings sections (`AppearanceSection.tsx`, `WorkflowSection.tsx`, `NotificationsSection.tsx`, `ConnectionsSection.tsx`, `IntegrationsSection.tsx`). Phase 55 introduces **NO new type roles or weights**. For newly-introduced content this phase actually adds (the picker label, helper text, placeholder, and inline state messages), only **2 weights** are used: `400` (helper / placeholder / inline messages) and `500` (label). The `600` weight applies only to the **pre-existing unchanged** section/subsection headings rendered by the parent Settings layout (`<h2>Integrations</h2>` and `<h3>AIO Test Management</h3>`), which Phase 55 does not modify. Counted as new content only, this phase declares 2 weights.
+
+| Role | Tailwind class | Size | Weight | Line height | Usage in this phase | Status |
+|------|----------------|------|--------|-------------|---------------------|--------|
+| Section heading | `text-lg font-semibold` | 18px | 600 | 1.75 (Tailwind default) | `<h2>Integrations</h2>` — already present, unchanged | Inherited (pre-existing) |
+| Subsection heading | `text-sm font-semibold text-muted-foreground uppercase tracking-wide` | 14px | 600 | 1.25 | `<h3>AIO Test Management</h3>` — already present, unchanged | Inherited (pre-existing) |
+| Body / control label | `text-sm font-medium` | 14px | 500 | 1.25 | Picker `<Label>` text ("AIO Project") | New content (Phase 55) |
+| Helper / muted | `text-xs text-muted-foreground` | 12px | 400 | 1 | Helper text under the picker; placeholder text inside the trigger when empty; inline loading/error messages | New content (Phase 55) |
 
 Picker placeholder ("Choose a project...") inherits `text-muted-foreground` exactly like `GitLabStep.tsx:123`.
 
@@ -232,3 +242,12 @@ CONTEXT.md does not declare any third-party registries. `components.json` `regis
 - [ ] Dimension 6 Registry Safety: PASS
 
 **Approval:** pending
+
+---
+
+## Revision Log
+
+- **2026-05-14 (rev 1):** Initial draft.
+- **2026-05-14 (rev 2):** Addressed gsd-ui-checker BLOCK on D4 (Typography) and D5 (Spacing).
+  - **D4 fix:** Added explicit "Inheritance note" clarifying that all 3 weights (400/500/600) are inherited from the existing `Geist Variable` design system used by every Settings section. Phase 55 introduces NO new type roles; for newly-introduced content (picker label, helper, placeholder, inline messages), only 2 weights are used: 400 + 500. The 600 weight applies exclusively to pre-existing unchanged headings rendered by the parent Settings layout. Added a "Status" column to the typography table marking each role as Inherited (pre-existing) or New content (Phase 55).
+  - **D5 fix:** Removed `xs` (`gap-1.5` / 6px) from the base scale table. Created an explicit "Exceptions" entry (E-01) with file-reference justification citing `taskflow/src/routes/settings/ConnectionsSection.tsx:137,149` and `taskflow/src/routes/onboarding/GitLabStep.tsx:109` as the established codebase convention. Replaced "Exceptions: none" with the concrete entry. Updated spacing-rules 2-4 to reference E-01.
