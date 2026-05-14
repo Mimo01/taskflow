@@ -88,15 +88,15 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ Bundle analysis tooling (rollup-plugin-visualizer) and dead code elimination — v1.7
 - ✓ `aioEnabled` toggle in Settings → Integrations (persists via Tauri Store, gates all AIO calls, default false) — v1.8 Phase 51
 - ✓ AIO service module (`src/services/aio/`) with probe-confirmed dual base paths, paginated response handling, `fetchAioProjects`, `fetchAioTestRunsForCycle` — v1.8 Phase 51
+- ✓ AIO sidebar section (Project Overview → Cycle Detail) with routing shell; cycle detail page with progress bar, test run table, and defects panel; pin/unpin cycles to header tab strip — v1.8 Phases 52, 53
+- ✓ AIO project selection in Settings → Integrations: single configured project drives the app, sidebar "AIO Projects" entry deep-links to the selected project's overview, legacy list page removed — v1.8 Phase 55
 
 ### Active
 
 <!-- Current milestone: v1.8 AIO Test Management -->
 
-- [ ] AIO sidebar section with project list → project overview → cycle detail (progress, burndown, defects, test runs)
-- [ ] Pin test cycles to the header tab strip for quick access
-- [ ] Render AIO test run table on Jira issue detail (step/expected/actual, colored failure markers)
-- [ ] AIO attachment URLs fetched through authenticated HTTP client and opened in existing lightbox
+- [ ] Render AIO test run table on Jira issue detail (step/expected/actual, colored failure markers) — Phase 54
+- [ ] AIO attachment URLs fetched through authenticated HTTP client and opened in existing lightbox — Phase 54
 
 ### Out of Scope
 
@@ -125,7 +125,7 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 **Shipped v1.7** on 2026-04-05. All performance targets met — every view feels instant with skeleton screens, progressive loading, smart caching, and zero unnecessary waits.
 
-**Starting v1.8** on 2026-05-12 — AIO Test Management integration.
+**v1.8 AIO Test Management in progress** — started 2026-05-12. Phases 51, 52, 53, 55 complete (4/5). Phase 54 (AIO on Issue Detail — test run table + attachment lightbox) remaining.
 
 ## Context
 
@@ -241,4 +241,4 @@ This document evolves at phase transitions and milestone boundaries.
 | CachedAvatar with blob URL Map + LazyStore disk persistence | Avatars cached in memory and on disk; 30-day TTL eviction; inflight dedup | ✓ Good — no repeated avatar fetches |
 
 ---
-*Last updated: 2026-05-12 after v1.8 milestone started*
+*Last updated: 2026-05-14 after Phase 55 (AIO project selection in Settings) completion*
