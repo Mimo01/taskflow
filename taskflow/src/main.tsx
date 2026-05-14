@@ -262,12 +262,17 @@ function AppLayout() {
     invoke('toggle_debug_menu', { enabled: devToolsEnabled }).catch(() => {});
   }, [devToolsEnabled]);
 
-  // Reset breadcrumb trail when navigating away from issue detail
+  // Reset breadcrumb trail when navigating away from a "detail" route that
+  // participates in the breadcrumb system. AIO cycle and run detail pages
+  // (Plan 54-11) also render breadcrumbs sourced from the same store —
+  // include `/aio-cycle/` so the trail is preserved on issue → cycle/run
+  // navigation.
   useEffect(() => {
     if (
       !location.pathname.startsWith('/issue/') &&
       !location.pathname.startsWith('/mr/') &&
-      !location.pathname.startsWith('/release/')
+      !location.pathname.startsWith('/release/') &&
+      !location.pathname.startsWith('/aio-cycle/')
     ) {
       breadcrumbReset();
     }
