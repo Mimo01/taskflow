@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: AIO Test Management
-status: context_gathered
-stopped_at: Phase 55 context gathered — ready for `/gsd:plan-phase 55`. Phase 54 verify-work still pending.
-resume_file: .planning/phases/55-aio-project-selection-in-settings/55-CONTEXT.md
-last_updated: "2026-05-14T22:00:00.000Z"
-last_activity: 2026-05-14 -- Phase 55 CONTEXT.md written; Settings-side AIO picker scoped (delete /aio-projects list page, persist selectedAioProjectKey, sidebar deep-links). Phase 54 verify-work still queued.
+status: ui_spec_approved
+stopped_at: Phase 55 UI-SPEC approved (6/6 dimensions PASS, rev 2) — ready for `/gsd:plan-phase 55`. Phase 54 verify-work still pending.
+resume_file: .planning/phases/55-aio-project-selection-in-settings/55-UI-SPEC.md
+last_updated: "2026-05-14T23:00:00.000Z"
+last_activity: 2026-05-14 -- Phase 55 UI-SPEC.md written and approved by checker (rev 2 after D4 typography weights + D5 6px spacing re-justified as inherited tokens / explicit Exceptions entry). Picker contract locked: shadcn Select, GitLabStep pattern, silent persist, no new visual primitives.
 progress:
   total_phases: 5
   completed_phases: 3
@@ -22,14 +22,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-12)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Phase 55 — aio-project-selection-in-settings (context gathered)
+**Current focus:** Phase 55 — aio-project-selection-in-settings (UI-SPEC approved)
 
 ## Current Position
 
-Phase: 55 (aio-project-selection-in-settings) — CONTEXT.md written, ready for plan-phase
+Phase: 55 (aio-project-selection-in-settings) — UI-SPEC.md approved, ready for plan-phase
 Plan: not yet planned (0/0)
-Status: 55-CONTEXT.md captures 15 decisions across picker placement (Integrations section), picker UI (shadcn `<Select>` mirroring GitLabStep.tsx), sidebar gating (hide entry until selectedAioProjectKey set), list page deletion, settings store v16→v17 migration, and silent-persist UX on selection change. Next: `/gsd:plan-phase 55`.
-Last activity: 2026-05-14 — Phase 55 context discussion completed; CONTEXT.md + DISCUSSION-LOG.md committed (docs(55): capture phase context).
+Status: 55-UI-SPEC.md locks the design contract — shadcn `<Select>` picker inside `IntegrationsSection.tsx` (mirrors `GitLabStep.tsx:107-136`), 8 copywriting strings, 6-state color matrix, base spacing scale {8,16,24,32} with E-01 Exceptions entry for `gap-1.5` (inherited inline icon-text gap). Checker rev 2 PASS on all 6 dimensions. Next: `/gsd:plan-phase 55`.
+Last activity: 2026-05-14 — Phase 55 UI-SPEC approved (rev 2 after re-justifying D4 typography weights as inherited tokens + D5 6px as explicit Exceptions entry); 55-UI-SPEC.md committed.
 
 **Parallel pending:** Phase 54 verify-work — UAT APPROVED 2026-05-14T14:15Z, awaiting `/gsd:verify-work 54` to mark `verified`. All 4 UAT tests PASS, Gaps 1-6 resolved.
 
