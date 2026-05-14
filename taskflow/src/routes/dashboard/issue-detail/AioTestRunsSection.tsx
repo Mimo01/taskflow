@@ -1,8 +1,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight, FlaskConical, Paperclip } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ErrorState } from '@/components/ui/error-state';
+import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { aioRunStatusBadgeClass } from '@/lib/statusStyles';
 import type {
@@ -334,6 +335,20 @@ function CollapsibleRunBlock({
   const cycleProjectKey = run.cycleKey.split('-')[0] || '';
   const cycleHref = `/aio-cycle/${cycleProjectKey}/${run.cycleKey}`;
   const runHref = `${cycleHref}/run/${run.id}`;
+  const navigate = useNavigate();
+  const breadcrumbReset = useBreadcrumbStore((s) => s.reset);
+  const breadcrumbPush = useBreadcrumbStore((s) => s.push);
+
+  // Plan 54-11 follow-up: push the originating issue onto the shared
+  // breadcrumb trail before navigating, so the destination page renders the
+  // app's existing breadcrumb header (matches IssueDetailPage / ReleaseDetailPage
+  // convention). breadcrumbReset() clears any stale trail so the issue is the
+  // first segment.
+  const navigateFromIssue = (href: string) => {
+    breadcrumbReset();
+    breadcrumbPush({ path: `/issue/${issueKey}`, label: issueKey });
+    navigate(href);
+  };
 
   return (
     <div className="border-b border-border last:border-0">
@@ -352,22 +367,22 @@ function CollapsibleRunBlock({
           <FlaskConical className="size-3.5 text-muted-foreground shrink-0" />
           <span className="text-sm truncate">{displayName}</span>
         </button>
-        <Link
-          to={cycleHref}
-          state={{ from: { type: 'issue', issueKey } }}
+        <button
+          type="button"
+          onClick={() => navigateFromIssue(cycleHref)}
           data-testid="in-cycle-run-cycle-link"
           className="font-mono text-xs text-muted-foreground hover:text-foreground hover:underline shrink-0"
         >
           {run.cycleKey}
-        </Link>
-        <Link
-          to={runHref}
-          state={{ from: { type: 'issue', issueKey } }}
+        </button>
+        <button
+          type="button"
+          onClick={() => navigateFromIssue(runHref)}
           data-testid="in-cycle-run-run-link"
           className="font-mono text-xs text-muted-foreground hover:text-foreground hover:underline shrink-0"
         >
           {run.id}
-        </Link>
+        </button>
         <span
           className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium shrink-0 ${aioRunStatusBadgeClass(run.status)}`}
         >
@@ -744,6 +759,14 @@ function ImpactedExecutionsList({
   rows: AioImpactedExecution[];
   issueKey: string;
 }) {
+  const navigate = useNavigate();
+  const breadcrumbReset = useBreadcrumbStore((s) => s.reset);
+  const breadcrumbPush = useBreadcrumbStore((s) => s.push);
+  const navigateFromIssue = (href: string) => {
+    breadcrumbReset();
+    breadcrumbPush({ path: `/issue/${issueKey}`, label: issueKey });
+    navigate(href);
+  };
   return (
     <div className="border border-border rounded-md">
       <div className="px-4 py-2 border-b border-border bg-muted/10 text-xs font-semibold text-muted-foreground">
@@ -781,24 +804,24 @@ function ImpactedExecutionsList({
                   </div>
                 </td>
                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
-                  <Link
-                    to={cycleHref}
-                    state={{ from: { type: 'issue', issueKey } }}
+                  <button
+                    type="button"
+                    onClick={() => navigateFromIssue(cycleHref)}
                     data-testid="impacted-execution-cycle-link"
                     className="hover:text-foreground hover:underline"
                   >
                     {row.runRef.cycleKey}
-                  </Link>
+                  </button>
                 </td>
                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
-                  <Link
-                    to={runHref}
-                    state={{ from: { type: 'issue', issueKey } }}
+                  <button
+                    type="button"
+                    onClick={() => navigateFromIssue(runHref)}
                     data-testid="impacted-execution-run-link"
                     className="hover:text-foreground hover:underline"
                   >
                     {row.runRef.runId}
-                  </Link>
+                  </button>
                 </td>
                 <td className="px-3 py-2">
                   <span

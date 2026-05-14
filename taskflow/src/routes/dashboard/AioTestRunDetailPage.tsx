@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { FlaskConical, FileQuestion } from 'lucide-react';
+import { ArrowLeft, FlaskConical, FileQuestion } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { NavLink, useLocation, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
@@ -10,6 +10,7 @@ import { fetchAioTestRunDetail } from '@/services/aio';
 import type { AioTestRun, AioTestRunStep } from '@/services/aio';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
+import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { AioCycleDetailSkeleton } from './AioCycleDetailSkeleton';
 import { WikiRenderer } from './WikiRenderer';
 
@@ -43,21 +44,27 @@ function formatDate(iso: string | undefined): string {
  * cycleKey, runId. Reuses the same fetchAioTestRunDetail call as
  * AioTestRunsSection so the same data flows here.
  */
-type FromState = { from?: { type: 'issue'; issueKey?: string } };
-
 export default function AioTestRunDetailPage() {
   const { projectKey, cycleKey, runId } = useParams<{
     projectKey: string;
     cycleKey: string;
     runId: string;
   }>();
-  const location = useLocation();
-  const fromIssueKey =
-    (location.state as FromState | null)?.from?.type === 'issue'
-      ? (location.state as FromState).from?.issueKey
-      : undefined;
+  const navigate = useNavigate();
+  const trail = useBreadcrumbStore((s) => s.trail);
+  const breadcrumbPop = useBreadcrumbStore((s) => s.pop);
   const { jiraBaseUrl } = useAuthStore();
   const [token, setToken] = useState<string | null>(null);
+
+  const handleBack = () => {
+    if (trail.length > 0) {
+      const target = trail[trail.length - 1];
+      breadcrumbPop();
+      navigate(target.path, { replace: true });
+    } else {
+      navigate(`/aio-cycle/${projectKey}/${cycleKey}`, { replace: true });
+    }
+  };
 
   useEffect(() => {
     readSecret('jira-pat')
@@ -90,54 +97,58 @@ export default function AioTestRunDetailPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex flex-col px-6 py-4 border-b border-border flex-shrink-0 gap-1">
-        {/* Breadcrumb — full trail when navigated from a Jira issue,
-            cycle-only otherwise. */}
-        <nav
-          aria-label="Breadcrumb"
-          className="flex items-center gap-1 text-xs text-muted-foreground"
+      {/* Shared breadcrumb header — only rendered when there's a trail
+          (matches IssueDetailPage / ReleaseDetailPage convention). The
+          current page identifier (`Run {runId}`) is the final segment. */}
+      {trail.length > 0 && (
+        <div
+          className="px-6 py-3 border-b flex items-center gap-2 text-sm flex-shrink-0"
           data-testid="aio-run-detail-breadcrumb"
         >
-          {fromIssueKey && (
-            <>
-              <NavLink
-                to={`/issue/${fromIssueKey}`}
-                className="hover:text-foreground hover:underline font-mono"
-                data-testid="aio-run-detail-breadcrumb-issue"
-              >
-                {fromIssueKey}
-              </NavLink>
-              <span aria-hidden="true">/</span>
-            </>
-          )}
-          <NavLink
-            to={`/aio-cycle/${projectKey}/${cycleKey}`}
-            state={fromIssueKey ? { from: { type: 'issue', issueKey: fromIssueKey } } : undefined}
-            className="hover:text-foreground hover:underline font-mono"
-            data-testid="aio-run-detail-breadcrumb-cycle"
-            aria-label={`Cycle ${cycleKey}`}
+          <button
+            type="button"
+            onClick={handleBack}
+            className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted"
+            aria-label="Back"
           >
-            {cycleKey}
-          </NavLink>
-          <span aria-hidden="true">/</span>
-          <span className="font-mono">Run {runId}</span>
-        </nav>
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <FlaskConical className="size-4 text-muted-foreground shrink-0" />
-            <h1 className="text-base font-semibold truncate" data-testid="aio-run-detail-title">
-              Run {runId}
-            </h1>
-          </div>
-          {detailQuery.data && (
-            <span
-              data-testid="aio-run-detail-status-chip"
-              className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium ${aioRunStatusBadgeClass(detailQuery.data.run.status)}`}
-            >
-              {normalizeStatusLabel(detailQuery.data.run.status)}
+            <ArrowLeft className="size-4" />
+          </button>
+          {trail.map((entry, i) => (
+            <span key={entry.path} className="flex items-center gap-2">
+              {i > 0 && <span className="text-muted-foreground">/</span>}
+              <button
+                type="button"
+                onClick={() => {
+                  useBreadcrumbStore.setState({ trail: trail.slice(0, i) });
+                  navigate(entry.path, { replace: true });
+                }}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                {entry.label}
+              </button>
             </span>
-          )}
+          ))}
+          <span className="text-muted-foreground">/</span>
+          <span className="font-medium" data-testid="aio-run-detail-breadcrumb-current">
+            Run {runId}
+          </span>
         </div>
+      )}
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-border flex-shrink-0 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <FlaskConical className="size-4 text-muted-foreground shrink-0" />
+          <h1 className="text-base font-semibold truncate" data-testid="aio-run-detail-title">
+            Run {runId}
+          </h1>
+        </div>
+        {detailQuery.data && (
+          <span
+            data-testid="aio-run-detail-status-chip"
+            className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium ${aioRunStatusBadgeClass(detailQuery.data.run.status)}`}
+          >
+            {normalizeStatusLabel(detailQuery.data.run.status)}
+          </span>
+        )}
       </div>
 
       <div className="flex-1 overflow-auto">

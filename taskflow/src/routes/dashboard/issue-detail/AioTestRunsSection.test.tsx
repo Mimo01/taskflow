@@ -737,11 +737,11 @@ describe('AioTestRunsSection', () => {
       ).toBeTruthy();
     });
 
-    it('Plan 54-11: in-cycle CollapsibleRunBlock header shows cycle key + run ID as Links (cycle-derived projectKey)', async () => {
+    it('Plan 54-11: in-cycle CollapsibleRunBlock header shows cycle key + run ID buttons that push the issue to the breadcrumb trail', async () => {
       // In-cycle path: linked test case with detail.steps populated → renders
       // via CollapsibleRunBlock. Round-4 UAT (mimopn): "I see the test runs
-      // but there are no links or info to test cycle." Header now mirrors the
-      // ImpactedExecutionsList cycle + run link pattern.
+      // but there are no links or info to test cycle." Header mirrors the
+      // ImpactedExecutionsList cycle + run button pattern.
       mockFetchTraceability.mockResolvedValueOnce([
         {
           id: 1,
@@ -762,22 +762,20 @@ describe('AioTestRunsSection', () => {
         expect(screen.getByTestId('aio-test-runs-section')).toBeTruthy();
       });
 
-      const cycleLink = container.querySelector(
+      const cycleButton = container.querySelector(
         '[data-testid="in-cycle-run-cycle-link"]',
-      ) as HTMLAnchorElement | null;
-      expect(cycleLink).not.toBeNull();
-      expect(cycleLink!.getAttribute('href')).toBe('/aio-cycle/PROJ/PROJ-CY-9');
-      expect(cycleLink!.textContent).toBe('PROJ-CY-9');
+      ) as HTMLButtonElement | null;
+      expect(cycleButton).not.toBeNull();
+      expect(cycleButton!.textContent).toBe('PROJ-CY-9');
 
-      const runLink = container.querySelector(
+      const runButton = container.querySelector(
         '[data-testid="in-cycle-run-run-link"]',
-      ) as HTMLAnchorElement | null;
-      expect(runLink).not.toBeNull();
-      expect(runLink!.getAttribute('href')).toBe('/aio-cycle/PROJ/PROJ-CY-9/run/5555');
-      expect(runLink!.textContent).toBe('5555');
+      ) as HTMLButtonElement | null;
+      expect(runButton).not.toBeNull();
+      expect(runButton!.textContent).toBe('5555');
     });
 
-    it('Plan 54-11: cycle key cell is a Link to the in-app cycle detail page (derived projectKey)', async () => {
+    it('Plan 54-11: cycle key cell is a button labeled with the cycle key (navigation pushes the issue to the breadcrumb trail)', async () => {
       mockFetchTraceability.mockResolvedValueOnce([
         SENTINEL_CASE,
         SENTINEL_CASE_2,
@@ -802,15 +800,14 @@ describe('AioTestRunsSection', () => {
         expect(screen.getByText(/Impacted executions/i)).toBeTruthy();
       });
 
-      const cycleLinks = Array.from(
+      const cycleButtons = Array.from(
         container.querySelectorAll('[data-testid="impacted-execution-cycle-link"]'),
-      ) as HTMLAnchorElement[];
-      const crossLink = cycleLinks.find((l) => l.getAttribute('href') === '/aio-cycle/OTHER/OTHER-CY-9');
-      expect(crossLink).toBeDefined();
-      expect(crossLink!.textContent).toBe('OTHER-CY-9');
+      ) as HTMLButtonElement[];
+      const crossButton = cycleButtons.find((b) => b.textContent === 'OTHER-CY-9');
+      expect(crossButton).toBeDefined();
     });
 
-    it('Plan 54-11: run ID cell is a Link to the new in-app run detail page', async () => {
+    it('Plan 54-11: run ID cell is a button labeled with the run ID', async () => {
       mockFetchTraceability.mockResolvedValueOnce([
         SENTINEL_CASE,
         SENTINEL_CASE_2,
@@ -835,14 +832,11 @@ describe('AioTestRunsSection', () => {
         expect(screen.getByText(/Impacted executions/i)).toBeTruthy();
       });
 
-      const runLinks = Array.from(
+      const runButtons = Array.from(
         container.querySelectorAll('[data-testid="impacted-execution-run-link"]'),
-      ) as HTMLAnchorElement[];
-      const crossRunLink = runLinks.find(
-        (l) => l.getAttribute('href') === '/aio-cycle/OTHER/OTHER-CY-9/run/99999',
-      );
-      expect(crossRunLink).toBeDefined();
-      expect(crossRunLink!.textContent).toBe('99999');
+      ) as HTMLButtonElement[];
+      const crossRunButton = runButtons.find((b) => b.textContent === '99999');
+      expect(crossRunButton).toBeDefined();
     });
 
     it('Plan 54-11: cross-project impacted execution uses the cycle-derived projectKey for the detail fetch (status bug fix)', async () => {
