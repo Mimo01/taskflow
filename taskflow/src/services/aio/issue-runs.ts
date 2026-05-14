@@ -9,7 +9,24 @@
  * inspect AioTestRun fields to find runs referencing a specific Jira issue key.
  */
 
+// PROBE FINDINGS (Plan 56-05):
+// A: raw.defects on RawTestRun is absent/always []. Confirmed from live AIO testing in Plan 56-04
+//    (Gap 3 root cause): the AIO API does not populate a top-level `defects: string[]` field on
+//    the test run item. There is no `jiraDefects`, `defectKeys`, or `jiraDefectKeys` field with
+//    string keys at the RawTestRun level.
+//    raw.runs[0].jiraDefectIDs is number[] (confirmed in production — Plan 56-04 gap analysis).
+//    No other fields on RawRunExecution contain string issue keys.
+// B: GET /rest/api/2/issue/{numericId}?fields=key,summary,status returns { key: 'PROJ-NNN' } (confirmed).
+//    Jira REST API v2 accepts both the issue key ("PROJ-42") and the numeric internal ID ("186227")
+//    in the URL path. The response includes `key` at the top level of the issue object.
+// C: fetchJiraIssueByKey(baseUrl, token, String(numericId)) resolves to { key, fields } (confirmed).
+//    The existing function constructs /rest/api/2/issue/${issueKey}?fields=summary,status,...
+//    and returns null on any error — safe for our use case.
+// Resolution strategy chosen: B/C — resolve jiraDefectIDs to string Jira keys via fetchJiraIssueByKey.
+//    Fast-path (A) is not available because raw.defects is never populated by this AIO instance.
+
 import { ApiError } from '../../lib/api-error';
+import { fetchJiraIssueByKey } from '../jira/issues';
 import { aioFetch } from './client';
 import type { AioPage, AioTestRun } from './types';
 
