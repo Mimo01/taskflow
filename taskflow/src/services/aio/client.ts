@@ -32,12 +32,15 @@ export async function aioFetch(
   token: string,
   path: string,
   apiPath: string = AIO_API_PATH,
+  init?: { method?: string; body?: string },
 ): Promise<Response> {
   const url = `${baseUrl.replace(/\/$/, '')}${apiPath}${path}`;
   return apiFetch('aio', url, {
+    method: init?.method ?? 'GET',
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
+    ...(init?.body !== undefined ? { body: init.body } : {}),
   });
 }
