@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronRight, FlaskConical } from 'lucide-react';
 import { NavLink, useParams } from 'react-router-dom';
@@ -121,13 +121,15 @@ export default function AioProjectOverviewPage() {
   const showSkeleton = useDelayedLoading(isLoading);
 
   const [expandedFolder, setExpandedFolder] = useState<string | null>(null);
+  const autoExpandedRef = useRef(false);
 
   useEffect(() => {
-    if (data && data.length > 0 && expandedFolder === null) {
+    if (!autoExpandedRef.current && data && data.length > 0) {
+      autoExpandedRef.current = true;
       const first = groupCyclesByFolder(data).keys().next().value;
       setExpandedFolder(first ?? null);
     }
-  }, [data, expandedFolder]);
+  }, [data]);
 
   const toggleFolder = (folderName: string) => {
     setExpandedFolder((prev) => (prev === folderName ? null : folderName));
