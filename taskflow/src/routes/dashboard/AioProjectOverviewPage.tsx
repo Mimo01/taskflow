@@ -269,7 +269,7 @@ export default function AioProjectOverviewPage() {
   const allIDs = cyclesWithDetailQuery.data?.allIDs ?? [];
   const cycleSummariesQuery = useQuery({
     queryKey: ['aio', jiraBaseUrl, 'cycle-summaries', projectKey, allIDs.join(',')],
-    queryFn: () => fetchAioCycleSummaries(jiraBaseUrl!, token!, jiraProjectId!),
+    queryFn: () => fetchAioCycleSummaries(jiraBaseUrl!, token!, jiraProjectId!, allIDs),
     enabled: aioGate && allIDs.length > 0,
   });
 
