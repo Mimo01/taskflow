@@ -53,6 +53,22 @@ function findFirstNonEmptyFolder(
   return null;
 }
 
+function collectSubtreeIDs(tree: AioFolder[], rootID: number): number[] {
+  for (const node of tree) {
+    if (node.ID === rootID) {
+      const ids: number[] = [node.ID];
+      const collect = (nodes: AioFolder[]) => {
+        for (const n of nodes) { ids.push(n.ID); collect(n.children); }
+      };
+      collect(node.children);
+      return ids;
+    }
+    const found = collectSubtreeIDs(node.children, rootID);
+    if (found.length > 0) return found;
+  }
+  return [rootID];
+}
+
 // ─── sub-components ──────────────────────────────────────────────────────────
 
 function FolderNode({
@@ -257,12 +273,18 @@ export default function AioProjectOverviewPage() {
     enabled: aioGate,
   });
 
-  // Cycle list — loads all cycles for the project.
-  // Live UAT confirmed: ?folderID= query param causes 500; real AIO UI loads all cycles at once.
+  // Folder IDs to pass as server-side filter: selected folder + all its descendants.
+  const activeFolderIds = useMemo(() => {
+    if (selectedFolderID === null) return [];
+    if (selectedFolderID === -1) return [-1];
+    return collectSubtreeIDs(foldersQuery.data ?? [], selectedFolderID);
+  }, [selectedFolderID, foldersQuery.data]);
+
+  // Cycle list — re-fetches whenever the selected folder changes.
   const cyclesWithDetailQuery = useQuery({
-    queryKey: ['aio', jiraBaseUrl, 'cycles-detail', projectKey],
-    queryFn: () => fetchAioCyclesWithDetail(jiraBaseUrl!, token!, jiraProjectId!),
-    enabled: aioGate,
+    queryKey: ['aio', jiraBaseUrl, 'cycles-detail', projectKey, selectedFolderID],
+    queryFn: () => fetchAioCyclesWithDetail(jiraBaseUrl!, token!, jiraProjectId!, activeFolderIds),
+    enabled: aioGate && selectedFolderID !== null,
   });
 
   // Summaries — fired when we have cycle IDs
@@ -438,7 +460,7 @@ export default function AioProjectOverviewPage() {
                 error={cyclesWithDetailQuery.error}
                 onRetry={() =>
                   queryClient.invalidateQueries({
-                    queryKey: ['aio', jiraBaseUrl, 'cycles-detail', projectKey],
+                    queryKey: ['aio', jiraBaseUrl, 'cycles-detail', projectKey, selectedFolderID],
                   })
                 }
                 viewName="cycles"
