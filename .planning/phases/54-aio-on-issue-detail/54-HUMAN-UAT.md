@@ -3,9 +3,9 @@ status: partial
 phase: 54-aio-on-issue-detail
 source: [54-VERIFICATION.md]
 started: 2026-05-14T00:25:00Z
-updated: 2026-05-14T13:10:00Z
+updated: 2026-05-14T13:25:00Z
 re_uat_round: 3
-fix_commits: ["7a99427", "9862672", "65463bb", "6fdee86", "25881bf"]
+fix_commits: ["7a99427", "9862672", "65463bb", "6fdee86", "25881bf", "db693d9"]
 ---
 
 ## Current Test
@@ -29,7 +29,10 @@ prior_round_1_result: issue (gap diagnosed, fix landed in 54-08 commit 7a99427 �
 
 ### 3. Gap 3 RE-UAT — Nested wiki (`{panel}` inside `|cell|`) renders inside table cell without breaking outer column
 expected: Open an ESHOP issue whose failed test runs contain step content matching the verbatim Finding 1 fixture (a `{panel}` block embedded inside a `|cell|` table row with `# [VAS.png|...]`). The outer StepTable renders WITHOUT BREAKING LAYOUT. The inner wiki table either fits inside the Step column OR scrolls horizontally inside it (the page itself does NOT widen). The `{panel}` content (including the VAS.png anchor) renders INSIDE the step table cell. Clicking the VAS.png anchor opens the in-app ImageLightbox (not the OS browser).
-result: pending_uat_round_3
+result: pass
+result_round_3_at: "2026-05-14T13:15:00Z"
+result_round_3_reported: "The panel rendering is fixed, this part is approved."
+prior_round_2_result: issue
 reported: "The rendering of the 'panel' is better but it still breaks the table."
 severity: major
 evidence:
@@ -68,10 +71,10 @@ prior_round_1_result: issue (gap diagnosed, fix landed in 54-08 commit 9862672 �
 debug_session: .planning/debug/panel-still-breaks-table-round-2.md
 
 ### 4. ROADMAP SC end-to-end UAT on a happy-path issue
-expected: Verify all four ROADMAP success criteria on a happy-path ESHOP issue (e.g. a defect linked to an active cycle with populated step content) — (1) section appears only when aioEnabled=true and loads lazily without blocking the main issue body; (2) step table renders Step/Expected/Actual columns with colored failure chips per row (PASS green / FAIL red / BLOCKED orange); (3) section is hidden (no error state) when no AIO test cases are linked to the issue; (4) attachment images within steps + AIO attachments grid thumbnails both open in the existing in-app ImageLightbox (NOT the OS browser). Toggle aioEnabled OFF/ON in Settings to confirm gating.
+expected: Verify all four ROADMAP success criteria on a happy-path ESHOP issue (e.g. a defect linked to an active cycle with populated step content) — (1) section appears only when aioEnabled=true and loads lazily without blocking the main issue body; (2) step table renders Step/Expected/Actual columns with colored failure chips per row (PASS green / FAIL red / BLOCKED orange); (3) section is hidden (no error state) when no AIO test cases are linked to the issue; (4) attachment images within steps + AIO attachments grid thumbnails both open in the existing in-app ImageLightbox (NOT the OS browser). Toggle aioEnabled OFF/ON in Settings to confirm gating. Plan 54-10 follow-up: also confirm AIO attachments grid now surfaces image refs from the Jira issue description body (not just step content).
 result: pending
-note: Deferred until Gap 3 round 3 PASS. Once Test 3 confirms PASS on round 3, run this Test 4 immediately afterward on a happy-path ESHOP issue.
-prerequisites: ["Test 3 round 3 PASS"]
+note: Test 3 round 3 PASSED (panel rendering fixed). Plan 54-10 landed to close Gap 4 (description-body images now included in grid). Run Test 4 on a happy-path ESHOP issue + re-verify the original round-3 grid issue on the same story.
+prerequisites: ["Test 3 round 3 PASS (confirmed 2026-05-14)", "Plan 54-10 fix landed (commit db693d9)"]
 prior_round_1_result: skipped (deferred until Tests 1-3 resolved — now ready)
 
 ## How to run
@@ -87,11 +90,22 @@ Reply "approved" if all 4 PASS, or describe failures with screenshots/DOM if any
 ## Summary
 
 total: 4
-passed: 2
+passed: 3
 issues: 0
-pending: 2
+pending: 1
 skipped: 0
 blocked: 0
+
+new_gap_round_3: |
+  Gap 4 (new, round 3): AIO attachments grid was empty even though the issue
+  description contained AIO image references. Root cause confirmed as scope:
+  AioAttachmentsGrid scanned test-run step content only. User accepted scope
+  expansion as plan 54-10. Fix landed: commit db693d9 — AioTestRunsSection
+  now accepts `description?: string | null`, aggregates image refs from
+  description body alongside step-derived refs (deduped by URL), and
+  IssueDetailPage wires `issue.fields.description` to it. 3 new tests pass;
+  full vitest suite GREEN (1023 passed, +3 new on 54-10).
+  Test 4 ROADMAP SC end-to-end UAT is the remaining gate.
 
 ## Gaps
 
@@ -166,7 +180,24 @@ blocked: 0
     (A) mergeOpenTableRows may not consume full panel-bearing row; (B) wiki link `[name|url]` literal `|` breaks markdown table parsing — `# Kosik.png` escapes the table; (C) wiki numbered list `# item` inside panel loses semantics. Full diagnosis: .planning/debug/panel-still-breaks-table-round-2.md
   fix_commit: "9862672"
   fix_plan: "54-08"
-  next_plan: "54-09 (landed; awaiting round-3 UAT)"
+  next_plan: "54-09 (landed; round-3 UAT PASS confirmed 2026-05-14)"
+
+- truth: "AioAttachmentsGrid aggregates inline `[name.ext|url]` image refs from BOTH AIO test-run step content AND the Jira issue description body, deduped by URL."
+  status: resolved
+  uat_round_3: pending_uat
+  uat_round_3_at: "2026-05-14T13:25:00Z"
+  reason: |
+    Round-3 UAT: 'There is still an issue with AIO attachments being empty even though the story has AIO images in the description.' By design, the grid scanned test-run step content only. Description-body refs were never extracted. User accepted scope expansion as plan 54-10.
+  severity: minor
+  test: 4
+  fix_commit: "db693d9"
+  fix_plan: "54-10"
+  fix_landed: |
+    AioTestRunsSection accepts a new `description?: string | null` prop; the
+    aioAttachments useMemo merges `extractInlineImageAttachments(description)`
+    with the existing run-derived list, deduped by URL. IssueDetailPage wires
+    `issue.fields.description` to it. 3 new tests cover description-only,
+    dedup-across-sources, and omitted-description regression guard.
   reason: |
     User reported: 'images work but the layout is still kind of broken. The table doesnt break in the middle like it used to but the pannel is not rendered in one cell of a table but overflows and breaks the layout in the section of the table where it is located'. Partial Branch 3-A improvement (no mid-table break, image routing intact) but the panel content still escapes its containing <td> — appears as sibling rather than child of the cell, or overflows the cell's bounds.
   severity: major
