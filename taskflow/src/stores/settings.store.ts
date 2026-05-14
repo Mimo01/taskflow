@@ -115,6 +115,9 @@ interface SettingsState {
   /** Enable AIO Test Management integration. Default: false. Gates all AIO API calls. */
   aioEnabled: boolean;
   setAioEnabled: (v: boolean) => void;
+  /** Selected AIO project key. Null until user picks a project. */
+  selectedAioProjectKey: string | null;
+  setSelectedAioProjectKey: (key: string | null) => void;
   /** Saved quickfilter presets. Default: []. */
   quickFilters: QuickFilter[];
   addQuickFilter: (qf: QuickFilter) => void;
@@ -232,6 +235,8 @@ export const useSettingsStore = create<SettingsState>()(
       setReleaseDetailPanelWidth: (w) => set({ releaseDetailPanelWidth: w }),
       aioEnabled: false,
       setAioEnabled: (v) => set({ aioEnabled: v }),
+      selectedAioProjectKey: null,
+      setSelectedAioProjectKey: (key) => set({ selectedAioProjectKey: key }),
       quickFilters: [],
       addQuickFilter: (qf) => set((state) => ({ quickFilters: [...state.quickFilters, qf] })),
       removeQuickFilter: (id) =>
@@ -362,7 +367,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 16,
+      version: 17,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -437,6 +442,9 @@ export const useSettingsStore = create<SettingsState>()(
           if (Array.isArray(s.sidebarItems)) {
             s.sidebarItems = appendAioItemIfMissing(s.sidebarItems as SidebarItem[]);
           }
+        }
+        if (version < 17) {
+          if (s.selectedAioProjectKey === undefined) s.selectedAioProjectKey = null;
         }
         return persisted as SettingsState;
       },
