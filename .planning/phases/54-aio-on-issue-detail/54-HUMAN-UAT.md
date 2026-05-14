@@ -3,9 +3,9 @@ status: partial
 phase: 54-aio-on-issue-detail
 source: [54-VERIFICATION.md]
 started: 2026-05-14T00:25:00Z
-updated: 2026-05-14T09:15:00Z
-re_uat_round: 2
-fix_commits: ["7a99427", "9862672", "65463bb"]
+updated: 2026-05-14T09:21:46Z
+re_uat_round: 3
+fix_commits: ["7a99427", "9862672", "65463bb", "6fdee86"]
 ---
 
 ## Current Test
@@ -29,12 +29,29 @@ prior_round_1_result: issue (gap diagnosed, fix landed in 54-08 commit 7a99427 �
 
 ### 3. Gap 3 RE-UAT — Nested wiki (`{panel}` inside `|cell|`) renders inside table cell without breaking outer column
 expected: Open an ESHOP issue whose failed test runs contain step content matching the verbatim Finding 1 fixture (a `{panel}` block embedded inside a `|cell|` table row with `# [VAS.png|...]`). The outer StepTable renders WITHOUT BREAKING LAYOUT. The inner wiki table either fits inside the Step column OR scrolls horizontally inside it (the page itself does NOT widen). The `{panel}` content (including the VAS.png anchor) renders INSIDE the step table cell. Clicking the VAS.png anchor opens the in-app ImageLightbox (not the OS browser).
-result: issue
+result: pending_uat_round_3
 reported: "The rendering of the 'panel' is better but it still breaks the table."
 severity: major
 evidence:
   expected_screenshot: .planning/phases/54-aio-on-issue-detail/screenshots/gap3-round2-expected.png
   actual_screenshot: .planning/phases/54-aio-on-issue-detail/screenshots/gap3-round2-actual.png
+round_3_fix:
+  plan: "54-09"
+  commits: ["6fdee86"]
+  landed_at: "2026-05-14T09:21:46Z"
+  summary: |
+    Parser-level fix landed inside WikiRenderer.tsx::flattenInlineCalloutsForTableRow:
+    (Concern B) transformPanelListItems converts `# [name|url]` items inside {panel}
+    to `<ol><li><a href="url">name</a></li></ol>` so the literal `|` from wiki-link
+    syntax never reaches the markdown table tokeniser. (Concern C) numbered-list
+    semantics preserved as <ol><li>. Remaining `|` characters in non-list panel
+    content are escaped to `\|`. Phantom-row prevention: Jira `\\` hard-break
+    markers inside merged rows now converted to `<br/>` in mergeOpenTableRows
+    so they cannot re-fracture the row via preprocessJiraMarkup's later
+    `\\` → `  \n` substitution. Concern A confirmed non-issue via direct
+    mergeOpenTableRows unit test. The 54-08 overflow-x-auto wrapper stays as
+    defensive CSS. 5 new regression tests pass; full vitest suite GREEN
+    (1019 passed, baseline 1014 + 5 new).
 note: |
   Round 2 evidence shows the breakage is PARSER-LEVEL (not CSS overflow as 54-08 assumed):
   (1) Multi-line cell content fractures vertically — `• 5 GB (12657037, 5,13 €)` becomes a phantom row beneath `FAILED: Plati pre paušály S, M, L:` instead of staying in the Step cell.
@@ -47,7 +64,8 @@ debug_session: .planning/debug/panel-still-breaks-table-round-2.md
 ### 4. ROADMAP SC end-to-end UAT on a happy-path issue
 expected: Verify all four ROADMAP success criteria on a happy-path ESHOP issue (e.g. a defect linked to an active cycle with populated step content) — (1) section appears only when aioEnabled=true and loads lazily without blocking the main issue body; (2) step table renders Step/Expected/Actual columns with colored failure chips per row (PASS green / FAIL red / BLOCKED orange); (3) section is hidden (no error state) when no AIO test cases are linked to the issue; (4) attachment images within steps + AIO attachments grid thumbnails both open in the existing in-app ImageLightbox (NOT the OS browser). Toggle aioEnabled OFF/ON in Settings to confirm gating.
 result: pending
-note: Deferred until Gap 3 resolved — end-to-end SC4 (attachment images open in lightbox) cannot be fully verified while the failed-step rendering still breaks layout.
+note: Deferred until Gap 3 round 3 PASS. Once Test 3 confirms PASS on round 3, run this Test 4 immediately afterward on a happy-path ESHOP issue.
+prerequisites: ["Test 3 round 3 PASS"]
 prior_round_1_result: skipped (deferred until Tests 1-3 resolved — now ready)
 
 ## How to run
@@ -64,8 +82,8 @@ Reply "approved" if all 4 PASS, or describe failures with screenshots/DOM if any
 
 total: 4
 passed: 2
-issues: 1
-pending: 1
+issues: 0
+pending: 2
 skipped: 0
 blocked: 0
 
@@ -109,16 +127,35 @@ blocked: 0
   debug_session: .planning/debug/aio-attachments-header-missing.md
 
 - truth: "Nested {panel} blocks embedded inside |cell| of a wiki table row render INSIDE the cell without breaking table layout; links open in-app ImageLightbox."
-  status: partial
+  status: partial_round_3_pending
   uat_round_2: issue
   uat_round_2_at: "2026-05-14T09:25:00Z"
+  uat_round_3: pending_uat
+  round_3_fix_commit: "6fdee86"
+  round_3_fix_plan: "54-09"
+  round_3_root_cause: |
+    Parser-level — not CSS. (B) wiki-link `[name|url]` literal `|` survives into the
+    jira2md tokenisation surface as an unescaped column separator. (C) wiki `# item`
+    list marker inside {panel} loses numbered-list semantics. (A) confirmed
+    non-issue: mergeOpenTableRows correctly consumes the 6-line panel-bearing row.
+    Full diagnosis: .planning/debug/panel-still-breaks-table-round-2.md.
+  round_3_fix_landed: |
+    Plan 54-09 (commit 6fdee86) — flattenInlineCalloutsForTableRow gains a
+    transformPanelListItems helper that converts `# [name|url]` inside {panel} to
+    `<ol><li><a href="url">name</a></li></ol>`; remaining literal `|` chars in
+    non-list panel body escaped to `\|` before reaching jira2md. Phantom-row
+    prevention: mergeOpenTableRows now substitutes Jira `\\` hard-break markers
+    to `<br/>` inside merged rows so they cannot re-fracture the row via
+    preprocessJiraMarkup's later `\\` → `  \n` substitution. 54-08 overflow-x-auto
+    wrapper preserved. 5 new regression tests in WikiRenderer.test.tsx using the
+    verbatim two-item ESHOP fixture (VAS.png + Kosik.png).
   uat_note: |
     Round 2: 'rendering of the panel is better but it still breaks the table'. Screenshots received.
     Reframed root cause: PARSER-LEVEL fractures (not CSS overflow). Three independent concerns surfaced:
     (A) mergeOpenTableRows may not consume full panel-bearing row; (B) wiki link `[name|url]` literal `|` breaks markdown table parsing — `# Kosik.png` escapes the table; (C) wiki numbered list `# item` inside panel loses semantics. Full diagnosis: .planning/debug/panel-still-breaks-table-round-2.md
   fix_commit: "9862672"
   fix_plan: "54-08"
-  next_plan: "54-09 (pending /gsd:plan-phase 54 --gaps)"
+  next_plan: "54-09 (landed; awaiting round-3 UAT)"
   reason: |
     User reported: 'images work but the layout is still kind of broken. The table doesnt break in the middle like it used to but the pannel is not rendered in one cell of a table but overflows and breaks the layout in the section of the table where it is located'. Partial Branch 3-A improvement (no mid-table break, image routing intact) but the panel content still escapes its containing <td> — appears as sibling rather than child of the cell, or overflows the cell's bounds.
   severity: major
