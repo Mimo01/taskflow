@@ -119,7 +119,7 @@ describe('Sidebar — aioEnabled gate', () => {
       </QueryClientProvider>,
     );
     expect(getByText('Testing')).toBeDefined();
-    expect(getByText('AIO Projects')).toBeDefined();
+    expect(getByText('AIO Cycles')).toBeDefined();
   });
 
   it('AION-01: Testing section is absent when aioEnabled is false', async () => {
@@ -133,7 +133,7 @@ describe('Sidebar — aioEnabled gate', () => {
       </QueryClientProvider>,
     );
     expect(queryByText('Testing')).toBeNull();
-    expect(queryByText('AIO Projects')).toBeNull();
+    expect(queryByText('AIO Cycles')).toBeNull();
   });
 
   it('hides Testing section when aioEnabled=true but selectedAioProjectKey is null (Phase 55 D-09)', async () => {
@@ -146,10 +146,10 @@ describe('Sidebar — aioEnabled gate', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    expect(queryByText('AIO Projects')).toBeNull();
+    expect(queryByText('AIO Cycles')).toBeNull();
   });
 
-  it('shows AIO Projects nav item when aioEnabled=true AND selectedAioProjectKey is set (Phase 55 D-09)', async () => {
+  it('shows AIO Cycles nav item when aioEnabled=true AND selectedAioProjectKey is set (Phase 55 D-09)', async () => {
     renderSidebar(true, 'PROJ');
     const { default: Sidebar } = await import('./Sidebar');
     const { findByText } = render(
@@ -159,10 +159,10 @@ describe('Sidebar — aioEnabled gate', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    expect(await findByText('AIO Projects')).toBeDefined();
+    expect(await findByText('AIO Cycles')).toBeDefined();
   });
 
-  it('renders AIO Projects NavLink href as /aio-project/<selectedAioProjectKey> (Phase 55 D-09)', async () => {
+  it('renders AIO Cycles NavLink href as /aio-project/<selectedAioProjectKey> (Phase 55 D-09)', async () => {
     renderSidebar(true, 'PROJ');
     const { default: Sidebar } = await import('./Sidebar');
     const { findByText } = render(
@@ -172,7 +172,7 @@ describe('Sidebar — aioEnabled gate', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    const link = (await findByText('AIO Projects')).closest('a');
+    const link = (await findByText('AIO Cycles')).closest('a');
     expect(link).not.toBeNull();
     expect(link?.getAttribute('href')).toBe('/aio-project/PROJ');
   });
