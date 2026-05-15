@@ -122,10 +122,8 @@ export default function AioCycleDetailPage() {
   // aioGate requires the numeric jiraProjectId to be resolved
   const aioGate = credGate && !!jiraProjectId;
 
-  // CYCLE_NUMERIC_ID_DECISION: USE-DETAIL-ID
-  // The cycle detail response (P4 confirmed) includes top-level ID: number.
-  // AioCycle in types.ts does not model ID — cast locally to avoid touching types.ts.
-  const cycleNumericId = (cycleQuery.data as unknown as { ID?: number })?.ID ?? null;
+  // CYCLE_NUMERIC_ID_DECISION: USE-DETAIL-ID — AioCycle.ID populated by normalizeCycle from /detail response
+  const cycleNumericId = cycleQuery.data?.ID ?? null;
 
   // Summary query — drives progress bar independently of runsQuery (Pattern 2)
   // Key matches AioProjectOverviewPage convention for shared cache.
@@ -144,6 +142,7 @@ export default function AioCycleDetailPage() {
 
   // Full-page skeleton gates only on cycleQuery (not runsQuery) — progress bar decoupled
   const showSkeleton = useDelayedLoading(cycleQuery.isLoading);
+
 
   const pinned = usePinnedTabsStore((s) => s.pinnedKeys.includes(cycleKey ?? ''));
   const togglePin = usePinnedTabsStore((s) => s.togglePin);

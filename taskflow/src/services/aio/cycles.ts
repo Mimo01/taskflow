@@ -23,6 +23,7 @@ type AioNamedObject = { ID?: number; name?: string };
 type AioStringOrObject = string | AioNamedObject;
 
 type RawCycle = {
+  ID?: number; // numeric cycle ID returned by /detail endpoint (P4 probe — Phase 58)
   key: string;
   title?: string;
   name?: string;
@@ -52,6 +53,7 @@ function resolveRawFolder(raw: RawCycle): string | undefined {
 function normalizeCycle(raw: RawCycle, fallbackProjectKey?: string): AioCycle {
   const status = toStr(raw.status) ?? (raw.isClosed ? 'Closed' : 'Active');
   return {
+    ID: raw.ID,
     key: raw.key,
     name: raw.title ?? raw.name ?? raw.key,
     status,
