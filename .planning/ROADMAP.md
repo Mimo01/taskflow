@@ -435,17 +435,17 @@ Cross-cutting constraints:
 Plans:
 
 **Wave 0** *(blocking probe — developer captures live URLs)*
-- [ ] 57-01-PLAN.md — Live endpoint probe (folder tree, count, paged detail, batch summary, Jira user lookup) + RED test stubs for the four new fetch functions, fetchJiraUserByUsername, AIO_STATUS_MAP, normalizeStatusById
+- [x] 57-01-PLAN.md — Live endpoint probe (folder tree, count, paged detail, batch summary, Jira user lookup) + RED test stubs for the four new fetch functions, fetchJiraUserByUsername, AIO_STATUS_MAP, normalizeStatusById
 
 **Wave 1** *(blocked on Wave 0; 57-02 and 57-03 run in parallel — no shared files)*
-- [ ] 57-02-PLAN.md — AIO service layer: AioFolder/AioCycleDetailItem/AioCycleSummaryItem/AioCycleDetailPagedResponse types + fetchAioFolderTree/fetchAioFolderCycleCounts/fetchAioCyclesWithDetail/fetchAioCycleSummaries fetch functions + AIO_STATUS_MAP/normalizeStatusById in aioUtils
-- [ ] 57-03-PLAN.md — Jira service layer: fetchJiraUserByUsername direct-lookup function in jira/users.ts
+- [x] 57-02-PLAN.md — AIO service layer: AioFolder/AioCycleDetailItem/AioCycleSummaryItem/AioCycleDetailPagedResponse types + fetchAioFolderTree/fetchAioFolderCycleCounts/fetchAioCyclesWithDetail/fetchAioCycleSummaries fetch functions + AIO_STATUS_MAP/normalizeStatusById in aioUtils
+- [x] 57-03-PLAN.md — Jira service layer: fetchJiraUserByUsername direct-lookup function in jira/users.ts
 
 **Wave 2** *(blocked on Wave 1)*
-- [ ] 57-04-PLAN.md — AioProjectOverviewPage rewrite (two-panel layout, FolderNode, OwnerCell, ProgressBarCell, Show-closed toggle) + AioCyclesSkeleton two-panel rewrite + 17+ test cases covering tree, selection, toggle, owner states, progress, empty/error states
+- [x] 57-04-PLAN.md — AioProjectOverviewPage rewrite (two-panel layout, FolderNode, OwnerCell, ProgressBarCell, Show-closed toggle) + AioCyclesSkeleton two-panel rewrite + 17+ test cases covering tree, selection, toggle, owner states, progress, empty/error states
 
 **Wave 3** *(blocked on Wave 2 — human verification checkpoint)*
-- [ ] 57-05-PLAN.md — Live UAT against real AIO instance (13 checks: layout, tree levels, count badges, Ungrouped entry, folder selection, 5-col table, progress colors, owner resolve, toggle, no auth flash, no skeleton jump, NavLink, regression smoke); produces 57-UAT.md
+- [x] 57-05-PLAN.md — Live UAT against real AIO instance (13 checks: layout, tree levels, count badges, Ungrouped entry, folder selection, 5-col table, progress colors, owner resolve, toggle, no auth flash, no skeleton jump, NavLink, regression smoke); produces 57-UAT.md
 
 Cross-cutting constraints:
 - Wave 0 is BLOCKING — endpoint URLs must be confirmed in 57-PROBE-FINDINGS.md before Wave 1 ships service code (Pitfall 1 — wrong URL → 404 on first load)
