@@ -5,7 +5,7 @@ milestone_name: AIO Test Management
 status: executing
 stopped_at: Phase 57 complete — UAT approved
 last_updated: "2026-05-15"
-last_activity: 2026-05-15 -- Phase 57 UAT approved, all 5 plans complete
+last_activity: 2026-05-15 - Completed quick task 260515-fti: remember last opened cycle in AIO cycles page
 progress:
   total_phases: 7
   completed_phases: 6
@@ -97,6 +97,7 @@ None.
 | 260514-k2u | On jira issue detail when showing `{panel}` everything renders correctly but the panel has huge internal padding | 2026-05-14 | 613568e | [260514-k2u-on-jira-issue-detail-when-showing-panel-](./quick/260514-k2u-on-jira-issue-detail-when-showing-panel-/) |
 | 260514-qr8 | In settings in AIO project selector sort the options alphabetically | 2026-05-14 | cb7cc4b | [260514-qr8-in-settings-in-aio-project-selector-sort](./quick/260514-qr8-in-settings-in-aio-project-selector-sort/) |
 | 260514-r30 | AIO in sidebar has bad name, it doesn't go to 'AIO Projects' anymore | 2026-05-14 | a8541be | [260514-r30-aio-in-sidebar-has-bad-name-it-doesn-t-g](./quick/260514-r30-aio-in-sidebar-has-bad-name-it-doesn-t-g/) |
+| 260515-fti | In AIO cycles page there is a folder like structure. After loaded it always opens the fist cycle in order. I want the app to remember last opened cycle and after load to open that instead | 2026-05-15 | e737311 | [260515-fti-in-aio-cycles-page-there-is-a-folder-lik](./quick/260515-fti-in-aio-cycles-page-there-is-a-folder-lik/) |
 
 ## Session Continuity
 
