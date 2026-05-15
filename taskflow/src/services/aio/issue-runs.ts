@@ -32,6 +32,8 @@ import type { AioPage, AioTestRun } from './types';
 
 // API returns test case assignments. Each item wraps a testCase and a runs[] array.
 // The most recent execution is runs[0]; status lives at runs[0].testRunStatus.name.
+// runs[0].ID is the execution run ID used by GET /testrun/{runId} — the top-level
+// raw.ID is the test case assignment ID and must NOT be used for run detail navigation.
 // jiraDefectIDs are numeric Jira internal IDs resolved to string Jira keys via
 // resolveJiraDefectKeys (Plan 56-05 fix — AIOC-03).
 type RawRunExecution = {
@@ -103,8 +105,12 @@ async function resolveJiraDefectKeys(
 function normalizeTestRun(raw: RawTestRun, fallbackCycleKey: string): AioTestRun {
   const latestRun = raw.runs?.[0];
   const statusName = latestRun?.testRunStatus?.name ?? raw.status ?? raw.executionStatus;
+  // Use the execution run ID (runs[0].ID) as the canonical run ID for detail navigation.
+  // The top-level raw.ID is the test case assignment ID — a different concept.
+  // GET /testrun/{runId} expects the execution run ID (confirmed by Phase 54 Probe B/C1).
+  const runId = String(latestRun?.ID ?? raw.ID ?? raw.id ?? '');
   return {
-    id: String(raw.ID ?? raw.id ?? ''),
+    id: runId,
     status: toChipStatus(statusName),
     testCaseKey: raw.testCase?.key ?? raw.testCaseKey ?? '',
     cycleKey: raw.cycleKey ?? fallbackCycleKey,

@@ -10,11 +10,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
-import { normalizeStatus, normalizeStatusLabel } from '@/lib/aioUtils';
+import { AIO_STATUS_MAP, normalizeStatus, normalizeStatusLabel } from '@/lib/aioUtils';
 import { aioCycleStatusBadgeClass, aioRunStatusBadgeClass } from '@/lib/statusStyles';
-import type { AioCycle, AioTestRun } from '@/services/aio';
-import { fetchAioCycleDetail, fetchAioTestRunsForCycle } from '@/services/aio';
+import type { AioCycle, AioCycleSummaryItem, AioTestRun } from '@/services/aio';
+import { fetchAioCycleDetail, fetchAioCycleSummaries, fetchAioTestRunsForCycle } from '@/services/aio';
 import { fetchJiraIssueByKey } from '@/services/jira';
+import { fetchJiraProjectNumericId } from '@/services/jira/projects';
 import type { JiraIssue } from '@/services/jira/types';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
@@ -99,19 +100,50 @@ export default function AioCycleDetailPage() {
 
   const queryClient = useQueryClient();
 
+  // Credential gate — must include !tokenLoading to prevent first-load 401 flash (Pitfall 6)
+  const credGate = !!jiraBaseUrl && !!token && !tokenLoading && !!projectKey && !!cycleKey;
+
   const cycleQuery = useQuery<AioCycle>({
     queryKey: ['aio', jiraBaseUrl, 'cycle-detail', projectKey, cycleKey],
     queryFn: () => fetchAioCycleDetail(jiraBaseUrl!, token!, projectKey!, cycleKey!),
-    enabled: !!jiraBaseUrl && !!token && !tokenLoading && !!projectKey && !!cycleKey,
+    enabled: credGate,
   });
 
+  // Resolve numeric Jira project ID — required for fetchAioCycleSummaries (AIO paged endpoint)
+  // Mirrors AioProjectOverviewPage.tsx lines 281-288.
+  const jiraProjectIdQuery = useQuery({
+    queryKey: ['jira', jiraBaseUrl, 'project-numeric-id', projectKey],
+    queryFn: () => fetchJiraProjectNumericId(jiraBaseUrl!, token!, projectKey!),
+    enabled: credGate,
+    staleTime: 60 * 60 * 1000,
+  });
+  const jiraProjectId = jiraProjectIdQuery.data ?? null;
+
+  // aioGate requires the numeric jiraProjectId to be resolved
+  const aioGate = credGate && !!jiraProjectId;
+
+  // CYCLE_NUMERIC_ID_DECISION: USE-DETAIL-ID
+  // The cycle detail response (P4 confirmed) includes top-level ID: number.
+  // AioCycle in types.ts does not model ID — cast locally to avoid touching types.ts.
+  const cycleNumericId = (cycleQuery.data as unknown as { ID?: number })?.ID ?? null;
+
+  // Summary query — drives progress bar independently of runsQuery (Pattern 2)
+  // Key matches AioProjectOverviewPage convention for shared cache.
+  const summaryQuery = useQuery<AioCycleSummaryItem[]>({
+    queryKey: ['aio', jiraBaseUrl, 'cycle-summaries', projectKey, String(cycleNumericId)],
+    queryFn: () => fetchAioCycleSummaries(jiraBaseUrl!, token!, jiraProjectId!, [cycleNumericId!]),
+    enabled: aioGate && !!cycleNumericId && !tokenLoading,
+  });
+
+  // Runs query — RUNS_ENDPOINT_DECISION: NONE-RETAIN-EXISTING
   const runsQuery = useQuery<AioTestRun[]>({
     queryKey: ['aio', jiraBaseUrl, 'runs', projectKey, cycleKey],
     queryFn: () => fetchAioTestRunsForCycle(jiraBaseUrl!, token!, projectKey!, cycleKey!),
-    enabled: !!jiraBaseUrl && !!token && !tokenLoading && !!projectKey && !!cycleKey,
+    enabled: credGate,
   });
 
-  const showSkeleton = useDelayedLoading(cycleQuery.isLoading || runsQuery.isLoading);
+  // Full-page skeleton gates only on cycleQuery (not runsQuery) — progress bar decoupled
+  const showSkeleton = useDelayedLoading(cycleQuery.isLoading);
 
   const pinned = usePinnedTabsStore((s) => s.pinnedKeys.includes(cycleKey ?? ''));
   const togglePin = usePinnedTabsStore((s) => s.togglePin);
@@ -125,27 +157,62 @@ export default function AioCycleDetailPage() {
   const chipRefs = useRef<(HTMLElement | null)[]>([]);
 
   const runs = runsQuery.data;
-  const total = runs?.length ?? 0;
+  const runsTotal = runs?.length ?? 0;
 
-  const counts = (runs ?? []).reduce(
+  // Runs-derived counts — kept as graceful degradation fallback when summaryQuery errors
+  const runsCounts = (runs ?? []).reduce(
     (acc, run) => {
       const norm = normalizeStatus(run.status);
       acc[norm] = (acc[norm] ?? 0) + 1;
       return acc;
     },
-    { pass: 0, fail: 0, blocked: 0, notRun: 0 },
+    { pass: 0, fail: 0, blocked: 0, notRun: 0, inProgress: 0 },
   );
+
+  // Summary-derived counts — primary source (fast path, independent of full run list)
+  // Pitfall 5: testRunDistribution keys are JSON strings — ALWAYS Number(idStr) before lookup
+  const summaryDistribution = summaryQuery.data?.[0]?.summary.testRunDistribution;
+  const summaryTotal = summaryQuery.data?.[0]?.summary.totalTests ?? 0;
+  const summaryCounts = summaryDistribution
+    ? Object.entries(summaryDistribution).reduce(
+        (acc, [idStr, count]) => {
+          const statusKey = AIO_STATUS_MAP[Number(idStr)] ?? 'notRun';
+          acc[statusKey] = (acc[statusKey] ?? 0) + count;
+          return acc;
+        },
+        { pass: 0, fail: 0, blocked: 0, notRun: 0, inProgress: 0 },
+      )
+    : null;
+
+  // Final counts/total resolution:
+  // 1. summaryQuery resolved with data → use summaryCounts + summaryTotal
+  // 2. summaryQuery errored but runs available → graceful degradation to runsCounts
+  // 3. Both loading or no data → use runsCounts (may be zeros initially)
+  const counts =
+    summaryQuery.data && summaryTotal > 0
+      ? summaryCounts!
+      : summaryQuery.isError && runs
+        ? runsCounts
+        : runsCounts;
+  const total =
+    summaryQuery.data && summaryTotal > 0
+      ? summaryTotal
+      : summaryQuery.isError && runs
+        ? runsTotal
+        : runsTotal;
 
   const pct = (n: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
 
   const filteredRuns = (runs ?? []).filter((r) => activeStatuses.has(r.status));
 
-  const allDefects = [...new Set((runs ?? []).flatMap((r) => r.defects ?? []).filter(Boolean))];
+  // DefectRow data source — switched from r.defects (service-resolved) to r.jiraDefectIDs (raw numeric IDs as strings)
+  // DefectRow's own useQuery resolves each key via fetchJiraIssueByKey — unchanged and correct.
+  const allDefects = [...new Set((runs ?? []).flatMap((r) => (r.jiraDefectIDs ?? []).map(String)).filter(Boolean))];
 
   const defectsWithTriggers = allDefects.map((defectKey) => ({
     defectKey,
     triggeredBy: (runs ?? [])
-      .filter((r) => (r.defects ?? []).includes(defectKey))
+      .filter((r) => (r.jiraDefectIDs ?? []).map(String).includes(defectKey))
       .map((r) => r.testCaseKey)
       .filter(Boolean)
       .join(', '),
@@ -157,6 +224,13 @@ export default function AioCycleDetailPage() {
     useBreadcrumbStore.getState().push({ label: cycleName, path: location.pathname });
     navigate(`/aio-cycle/${projectKey}/${cycleKey}/run/${run.id}`);
   };
+
+  // Determine whether progress bar should be visible
+  // Show when summaryQuery has data OR runs are available — do NOT wait for both
+  const hasSummaryData = !!summaryQuery.data && summaryTotal > 0;
+  const hasRunsData = !!runs;
+  const showProgressBar = hasSummaryData || hasRunsData;
+  const showProgressSkeleton = summaryQuery.isLoading && !hasSummaryData && !hasRunsData;
 
   return (
     <div className="flex flex-col h-full">
@@ -249,7 +323,7 @@ export default function AioCycleDetailPage() {
         </div>
       )}
 
-      {!cycleQuery.isError && !runsQuery.isError && (showSkeleton || cycleQuery.isLoading || runsQuery.isLoading) ? (
+      {!cycleQuery.isError && !runsQuery.isError && (showSkeleton || cycleQuery.isLoading) ? (
         <div className="flex-1 overflow-auto">
           <div className="p-4">
             <AioCycleDetailSkeleton />
@@ -257,9 +331,12 @@ export default function AioCycleDetailPage() {
         </div>
       ) : !cycleQuery.isError && !runsQuery.isError && !!cycleQuery.data ? (
         <Tabs defaultValue="executions" className="flex-1 flex flex-col min-h-0">
-          {/* Progress section — stays OUTSIDE TabsContent, INSIDE Tabs root */}
+          {/* Progress section — driven by summaryQuery (fast path) with runs fallback.
+              Renders independently of runsQuery — decoupled from full run enumeration. */}
           <div className="px-6 py-4 border-b border-border">
-            {total === 0 ? (
+            {showProgressSkeleton ? (
+              <Skeleton className="h-2 w-full rounded-full" />
+            ) : !showProgressBar || total === 0 ? (
               <p className="text-sm text-muted-foreground">No runs recorded</p>
             ) : (
               <>
@@ -282,6 +359,12 @@ export default function AioCycleDetailPage() {
                       style={{ width: `${pct(counts.blocked)}%` }}
                     />
                   )}
+                  {counts.inProgress > 0 && (
+                    <div
+                      className="bg-blue-500 h-full"
+                      style={{ width: `${pct(counts.inProgress)}%` }}
+                    />
+                  )}
                   {counts.notRun > 0 && (
                     <div
                       className="bg-muted h-full"
@@ -299,6 +382,11 @@ export default function AioCycleDetailPage() {
                   <span>
                     Blocked: {counts.blocked} ({pct(counts.blocked)}%)
                   </span>
+                  {counts.inProgress > 0 && (
+                    <span>
+                      In Progress: {counts.inProgress} ({pct(counts.inProgress)}%)
+                    </span>
+                  )}
                   <span>
                     Not Run: {counts.notRun} ({pct(counts.notRun)}%)
                   </span>
@@ -375,6 +463,11 @@ export default function AioCycleDetailPage() {
                 );
               })}
             </div>
+
+            {/* Runs table — shows skeleton while runsQuery is loading */}
+            {runsQuery.isLoading && !runsQuery.data && (
+              <Skeleton className="h-6 w-full mx-3 my-2" data-testid="runs-table-skeleton" />
+            )}
 
             {/* Run table */}
             {runs !== undefined && runs.length === 0 ? (
