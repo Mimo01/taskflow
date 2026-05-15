@@ -123,7 +123,7 @@ function FolderNode({
       <button
         type="button"
         data-testid={`folder-node-${node.ID}`}
-        className={`w-full flex items-center gap-1 py-2 text-left text-sm transition-colors ${
+        className={`w-full flex items-center gap-1 py-2 pr-3 text-left text-sm transition-colors ${
           isSelected
             ? 'bg-primary text-primary-foreground'
             : 'hover:bg-muted/30'
