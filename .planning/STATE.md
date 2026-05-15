@@ -4,14 +4,14 @@ milestone: v1.8
 milestone_name: AIO Test Management
 status: executing
 stopped_at: Phase 57 UAT approved — milestone v1.8 complete
-last_updated: "2026-05-15T12:04:58.307Z"
-last_activity: 2026-05-15 -- Phase 58 planning complete
+last_updated: "2026-05-15T18:44:00.000Z"
+last_activity: 2026-05-15 -- Phase 58 Wave 1 complete (plans 02+03 merged)
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 45
-  completed_plans: 38
-  percent: 75
+  completed_plans: 41
+  percent: 80
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 
 ## Current Position
 
-Phase: 57 (redesign-the-aio-cycles-page-it-should-be-more-like-the-real) — COMPLETE
-Plan: 5 of 5 — UAT approved 2026-05-15
-Status: Ready to execute
-Last activity: 2026-05-15 -- Phase 58 planning complete
+Phase: 58 (redesign-data-fetch-of-aio-cycle-detail-executions-list-and-) — EXECUTING
+Plan: 3 of 4 complete — Wave 2 pending UAT
+Status: Awaiting developer UAT (plan 04)
+Last activity: 2026-05-15 -- Wave 1 complete: service-layer defect resolution removed (02) + progress bar decoupled (03)
 
-Progress: [██████████] 100%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
