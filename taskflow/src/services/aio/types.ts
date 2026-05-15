@@ -27,6 +27,7 @@ export interface AioProject {
  * Key format: {PROJ}-CY-N (D-17 probe confirmed)
  */
 export interface AioCycle {
+  ID?: number; // Numeric cycle ID from /detail endpoint (P4 probe — Phase 58); absent on list responses
   key: string; // Cycle key, e.g. "PROJ-CY-2"
   name: string; // Cycle display name
   status: string; // Cycle status, e.g. "Active", "Closed"
