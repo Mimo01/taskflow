@@ -70,6 +70,63 @@ describe('fetchAioTestRunsForCycle', () => {
     );
   });
 
+  it('uses runs[0].ID as run.id (execution run ID, not assignment ID)', async () => {
+    // The list endpoint returns test case assignment items where:
+    //   raw.ID = assignment ID (e.g. 5000) — NOT usable for /testrun/{runId}
+    //   raw.runs[0].ID = execution run ID (e.g. 184382) — required by the detail endpoint
+    mockedApiFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: [
+          {
+            ID: 5000, // assignment ID — must NOT be used as run.id
+            runs: [
+              {
+                ID: 184382, // execution run ID — must be used as run.id
+                testRunStatus: { name: 'Passed' },
+              },
+            ],
+            testCase: { key: 'PROJ-TC-1', title: 'Login test' },
+            cycleKey: CYCLE_KEY,
+          },
+        ],
+        startAt: 0,
+        maxResults: 50,
+        isLast: true,
+      }),
+    } as unknown as Response);
+
+    const result = await fetchAioTestRunsForCycle(BASE, TOKEN, PROJECT_KEY, CYCLE_KEY);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('184382');
+    expect(result[0].status).toBe('PASS');
+  });
+
+  it('falls back to raw.ID when runs[] is absent (flat response shape)', async () => {
+    mockedApiFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: [
+          {
+            ID: 99,
+            testCase: { key: 'PROJ-TC-2', title: 'Checkout test' },
+            cycleKey: CYCLE_KEY,
+            status: 'PASS',
+          },
+        ],
+        startAt: 0,
+        maxResults: 50,
+        isLast: true,
+      }),
+    } as unknown as Response);
+
+    const result = await fetchAioTestRunsForCycle(BASE, TOKEN, PROJECT_KEY, CYCLE_KEY);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('99');
+  });
+
   it('resolves jiraDefectIDs to string Jira keys in run.defects[]', async () => {
     mockedApiFetch.mockResolvedValue({
       ok: true,
