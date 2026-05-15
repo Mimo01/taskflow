@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { mergeOpenTableRows, WikiRenderer } from './WikiRenderer';
+import { injectHeaderlessTableSeparators, mergeOpenTableRows, WikiRenderer } from './WikiRenderer';
 
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-token'),
@@ -674,6 +674,150 @@ describe('WikiRenderer', () => {
     it('Plan 54-08 Gap 3 — overflow-x-auto wrapper is only emitted for wiki content containing tables', () => {
       const { container } = render(<WikiRenderer wikiText="*bold text* with no table" />);
       expect(container.querySelector('.overflow-x-auto')).toBeNull();
+    });
+  });
+
+  // --- Headerless table fix ---
+  //
+  // Jira issue descriptions sometimes contain tables with only data rows
+  // (`|cell|cell|`) and no `||header||` row. jira2md only emits the GFM
+  // `| --- | --- |` separator when it sees `||header||` source, so remark-gfm
+  // does not recognise the plain-pipe rows as a table and renders them as text.
+  //
+  // `injectHeaderlessTableSeparators` scans the preprocessed wiki and inserts
+  // a synthetic empty-header + separator before each run of data rows that is
+  // not preceded by a header row.
+  describe('headerless table rendering', () => {
+    it('injectHeaderlessTableSeparators — inserts header+separator before a headerless 3-column table', () => {
+      const input = [
+        'Some intro text',
+        '|0905473496|Go Biznis 22 eur|[Shop|https://www.orange.sk/shop]|',
+        '|0908807289|Go Biznis 22 eur|[Shop|https://www.orange.sk/shop2]|',
+      ].join('\n');
+
+      const result = injectHeaderlessTableSeparators(input);
+      const lines = result.split('\n');
+
+      // Two synthetic rows must be injected before the first data row.
+      // Output: intro, header, separator, row1, row2 = 5 lines
+      expect(lines.length).toBe(5);
+      // lines[1] is the synthetic empty header: | | | |
+      expect(lines[1]).toMatch(/^\|.*\|.*\|.*\|$/);
+      // lines[2] is the separator: |---|---|---|
+      expect(lines[2]).toMatch(/^\|---\|---\|---\|$/);
+      // Original data rows are preserved.
+      expect(lines[3]).toContain('0905473496');
+      expect(lines[4]).toContain('0908807289');
+    });
+
+    it('injectHeaderlessTableSeparators — does NOT inject a separator when header row is present', () => {
+      const input = [
+        '||Phone||Plan||Link||',
+        '|0905473496|Go Biznis 22 eur|[Shop|https://www.orange.sk/shop]|',
+      ].join('\n');
+
+      const result = injectHeaderlessTableSeparators(input);
+      const lines = result.split('\n');
+
+      // No injection: header + data row only (jira2md will produce the separator).
+      expect(lines.length).toBe(2);
+    });
+
+    it('injectHeaderlessTableSeparators — only injects once per run, not before every row', () => {
+      const input = [
+        '|row one|data|',
+        '|row two|data|',
+        '|row three|data|',
+      ].join('\n');
+
+      const result = injectHeaderlessTableSeparators(input);
+      const lines = result.split('\n');
+
+      // 3 original rows + 2 injected rows (header + sep) = 5 lines total.
+      expect(lines.length).toBe(5);
+      // Only one separator present.
+      const sepLines = lines.filter((l) => /^\|---/.test(l));
+      expect(sepLines.length).toBe(1);
+    });
+
+    it('injectHeaderlessTableSeparators — bracket-aware column count: [display|url] counts as one cell', () => {
+      // Row has 3 logical columns even though there are 4 `|` inside `[text|url]`
+      const input = '|phone|plan|[Beta Shop|https://beta.orange.sk]|';
+      const result = injectHeaderlessTableSeparators(input);
+      const lines = result.split('\n');
+
+      // Separator must have exactly 3 `---` segments.
+      const sep = lines.find((l) => /^\|---/.test(l));
+      expect(sep).toBeDefined();
+      expect(sep).toBe('|---|---|---|');
+    });
+
+    it('WikiRenderer renders headerless table as an HTML <table> element (end-to-end fix)', () => {
+      // Verbatim fixture from the bug report (simplified URLs for test stability).
+      const fixture = [
+        'B2B Voice issue description',
+        '|0905473496|Go Biznis 22 eur|[Beta Shop|https://www.orange.sk/eshop-beta]|',
+        '|0908807289|Go Biznis 22 eur|[Live Shop|https://www.orange.sk/eshop]|',
+      ].join('\n');
+
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+
+      // The two data rows must render as an HTML table, not raw text.
+      const table = container.querySelector('table');
+      expect(table).not.toBeNull();
+
+      // Both rows are present as <tr> elements inside the table body.
+      const rows = table?.querySelectorAll('tbody tr');
+      expect(rows?.length).toBe(2);
+
+      // Cell data is preserved.
+      const allText = table?.textContent ?? '';
+      expect(allText).toContain('0905473496');
+      expect(allText).toContain('0908807289');
+      expect(allText).toContain('Go Biznis 22 eur');
+    });
+
+    it('WikiRenderer headerless table — links in cells are rendered as <a> elements', () => {
+      const fixture = [
+        '|0905473496|Go Biznis 22 eur|[Beta Shop|https://www.orange.sk/eshop-beta]|',
+      ].join('\n');
+
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+
+      const table = container.querySelector('table');
+      expect(table).not.toBeNull();
+
+      // The named-link [Beta Shop|url] must become an <a> element inside the table.
+      const link = table?.querySelector('a');
+      expect(link).not.toBeNull();
+      expect(link?.textContent).toContain('Beta Shop');
+      expect(link?.getAttribute('href')).toBe('https://www.orange.sk/eshop-beta');
+    });
+
+    it('WikiRenderer headerless table — does not affect existing headed tables (regression)', () => {
+      // A table WITH a header row must still render exactly as before.
+      const fixture = [
+        '||Phone||Plan||',
+        '|0905473496|Go Biznis 22 eur|',
+      ].join('\n');
+
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+
+      const table = container.querySelector('table');
+      expect(table).not.toBeNull();
+
+      // Exactly one table (no double-injection).
+      expect(container.querySelectorAll('table').length).toBe(1);
+
+      // Header row rendered in <thead>.
+      const thead = table?.querySelector('thead');
+      expect(thead).not.toBeNull();
+      expect(thead?.textContent).toContain('Phone');
+      expect(thead?.textContent).toContain('Plan');
+
+      // Data row rendered in <tbody>.
+      const tbody = table?.querySelector('tbody');
+      expect(tbody?.textContent).toContain('0905473496');
     });
   });
 });

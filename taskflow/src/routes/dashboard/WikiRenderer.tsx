@@ -233,6 +233,86 @@ export function mergeOpenTableRows(wiki: string): string {
 }
 
 /**
+ * Count the logical number of columns in a Jira table data row, ignoring
+ * pipe characters that appear inside `[display|url]` named-link brackets.
+ *
+ * A row like `|phone|plan|[Shop|https://url]|` has 3 logical columns, but a
+ * naive `split('|')` would yield 5 tokens. This function walks the string and
+ * only counts `|` characters that are not enclosed in square brackets.
+ *
+ * Private helper used by injectHeaderlessTableSeparators.
+ */
+function countJiraTableRowColumns(row: string): number {
+  let cols = 0;
+  let depth = 0;
+  const trimmed = row.replace(/[ \t]+$/, '');
+  // Skip the mandatory leading `|`
+  let pos = trimmed.startsWith('|') ? 1 : 0;
+  for (; pos < trimmed.length; pos++) {
+    const ch = trimmed[pos];
+    if (ch === '[') depth++;
+    else if (ch === ']') depth--;
+    else if (ch === '|' && depth === 0) cols++;
+  }
+  return cols;
+}
+
+/**
+ * Jira tables that have only data rows (no `||header||` row) are not rendered
+ * as HTML tables by remark-gfm, because GFM table syntax requires a header row
+ * followed by a `| --- | --- |` separator row. jira2md only emits the separator
+ * when it sees a `||header||` source row; rows with only `|data|` are passed
+ * through unchanged.
+ *
+ * This function scans the wiki source (after mergeOpenTableRows) and, for each
+ * run of data rows that is NOT preceded by a header row or separator, injects a
+ * synthetic empty header row and a separator row sized to the column count of
+ * the first data row in the run.
+ *
+ * Column counting is bracket-aware so that `[display|url]` named-link syntax
+ * (which contains a literal `|`) does not inflate the column count.
+ *
+ * Exported for unit-testing.
+ */
+export function injectHeaderlessTableSeparators(wiki: string): string {
+  const lines = wiki.split('\n');
+  const out: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.replace(/[ \t]+$/, '');
+    const isDataRow = trimmed.startsWith('|') && !trimmed.startsWith('||');
+
+    if (isDataRow) {
+      // Look back through `out` to the last non-blank line to decide whether
+      // this data row already belongs to a table that has a header/separator.
+      let prevIdx = out.length - 1;
+      while (prevIdx >= 0 && out[prevIdx].trim() === '') prevIdx--;
+
+      const prevLine = prevIdx >= 0 ? out[prevIdx].replace(/[ \t]+$/, '') : '';
+      const prevIsHeader = prevLine.startsWith('||');
+      const prevIsSeparator = /^\|[\s]*:?-+:?[\s]*\|/.test(prevLine);
+      const prevIsDataRow = prevLine.startsWith('|') && !prevLine.startsWith('||');
+
+      if (!prevIsHeader && !prevIsSeparator && !prevIsDataRow) {
+        // First data row of a headerless table — inject synthetic header + separator.
+        const cols = countJiraTableRowColumns(trimmed);
+        if (cols >= 1) {
+          const emptyCells = Array(cols).fill(' ').join('|');
+          const sepCells = Array(cols).fill('---').join('|');
+          out.push(`|${emptyCells}|`);
+          out.push(`|${sepCells}|`);
+        }
+      }
+    }
+
+    out.push(line);
+  }
+
+  return out.join('\n');
+}
+
+/**
  * Pre-process Jira wiki markup that jira2md does not handle:
  * - User mentions: [~username] and [~accountId:xxx]
  * - Info/warning/note panels
@@ -249,6 +329,12 @@ export function preprocessJiraMarkup(
   // substituted to `<span data-callout="panel">…</span>` here so they survive
   // through to the markdown layer and render INSIDE the table cell.
   let result = mergeOpenTableRows(wiki);
+
+  // Headerless table fix: inject a synthetic GFM header+separator row before
+  // any run of Jira data rows (`|cell|`) that has no preceding `||header||`
+  // row. Without the separator, remark-gfm does not recognise the rows as a
+  // table and renders them as plain text.
+  result = injectHeaderlessTableSeparators(result);
 
   // Plan 54-06: real ESHOP test-run content uses `hN.X` (no space) and `\\` as
   // a hard line break. jira2md leaves both unmodified. Normalize before jira2md:
