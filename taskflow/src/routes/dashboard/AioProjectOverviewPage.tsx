@@ -83,6 +83,16 @@ function collectSubtreeIDs(tree: AioFolder[], rootID: number): number[] {
   return [rootID];
 }
 
+function findAncestorPath(tree: AioFolder[], targetID: number): number[] {
+  for (const node of tree) {
+    if (node.ID === targetID) return [];
+    if (searchSubtree(node.children, targetID)) {
+      return [node.ID, ...findAncestorPath(node.children, targetID)];
+    }
+  }
+  return [];
+}
+
 // ─── sub-components ──────────────────────────────────────────────────────────
 
 function FolderNode({
@@ -355,8 +365,6 @@ export default function AioProjectOverviewPage() {
       countMapQuery.data
     ) {
       autoExpandedRef.current = true;
-      // Expand first root folder
-      setExpandedIDs(new Set([foldersQuery.data[0].ID]));
 
       // Check persisted selection
       const stored = projectKey ? getSelectedFolder(projectKey) : null;
@@ -367,15 +375,30 @@ export default function AioProjectOverviewPage() {
         isStoredValid = searchSubtree(foldersQuery.data, stored);
       }
 
+      let folderToSelect: number | null;
       if (isStoredValid && stored !== null) {
-        setSelectedFolderID(stored);
+        folderToSelect = stored;
       } else {
-        // Fall back to first non-empty folder
-        const firstWithCycles = findFirstNonEmptyFolder(foldersQuery.data, countMapQuery.data);
-        if (firstWithCycles !== null) setSelectedFolderID(firstWithCycles);
-        // Clear stale stored entry if one existed
+        folderToSelect = findFirstNonEmptyFolder(foldersQuery.data, countMapQuery.data);
         if (stored !== null && projectKey) {
           clearSelectedFolder(projectKey);
+        }
+      }
+
+      if (folderToSelect !== null) {
+        setSelectedFolderID(folderToSelect);
+        if (folderToSelect === -1) {
+          // Ungrouped is always visible at the bottom; expand first root for context
+          setExpandedIDs(new Set([foldersQuery.data[0].ID]));
+        } else {
+          const ancestorPath = findAncestorPath(foldersQuery.data, folderToSelect);
+          if (ancestorPath.length > 0) {
+            // Nested folder — expand all ancestors so it is visible in the tree
+            setExpandedIDs(new Set(ancestorPath));
+          } else {
+            // Root-level folder — expand it so its children are visible
+            setExpandedIDs(new Set([folderToSelect]));
+          }
         }
       }
     }
