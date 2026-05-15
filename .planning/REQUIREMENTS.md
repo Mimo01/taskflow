@@ -33,6 +33,13 @@ Requirements for milestone v1.8 — AIO Test Management integration.
 - [ ] **AIOI-02**: AIO test run section renders a step table (step / expected / actual columns, colored failure markers)
 - [ ] **AIOI-03**: AIO attachment images are fetched via authenticated HTTP client and open in the existing in-app lightbox
 
+### Phase 58 — Cycle Detail Data-Fetch Redesign
+
+- [ ] **AIO58-01**: Cycle detail page renders the execution progress bar from the cycle summary endpoint (`POST /rest/aio-tcms/1.0/project/{id}/testcycle/summary/paged`) independently of the runs list, so the bar appears before the runs table finishes loading
+- [ ] **AIO58-02**: Defect Jira-key resolution is performed at the component level via TanStack Query (per-defect-key `useQuery`) so duplicate defect IDs across runs deduplicate via the cache — the service layer (`fetchAioTestRunsForCycle`) no longer calls `fetchJiraIssueByKey`
+- [ ] **AIO58-03**: When Wave 0 probe finds a `/rest/aio-tcms/1.0` run-listing endpoint, the cycle detail page uses it for fast paged run fetches; otherwise the legacy `aio-tcms-api/1.0` endpoint is retained without regression
+- [ ] **AIO58-04**: Credential gate (`!!jiraBaseUrl && !!token && !tokenLoading`) is applied to every `useQuery` on AioCycleDetailPage so the page never fires a request with `token: null` on first load (no 401 flash)
+
 ## Future Requirements
 
 Features acknowledged but deferred beyond v1.8.
@@ -76,12 +83,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AIOI-01 | Phase 54 | Pending |
 | AIOI-02 | Phase 54 | Pending |
 | AIOI-03 | Phase 54 | Pending |
+| AIO58-01 | Phase 58 | Pending |
+| AIO58-02 | Phase 58 | Pending |
+| AIO58-03 | Phase 58 | Pending |
+| AIO58-04 | Phase 58 | Pending |
 
 **Coverage:**
-- v1.8 requirements: 14 total
-- Mapped to phases: 14
+- v1.8 requirements: 18 total (14 original + 4 added by Phase 58 cycle-detail-data-fetch redesign)
+- Mapped to phases: 18
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-05-12*
-*Last updated: 2026-05-14 — AION-02 traceability re-pointed to Phase 55 (picker in Settings subsumes the deleted list page surface)*
+*Last updated: 2026-05-15 — AIO58-01..04 added for Phase 58 cycle-detail-data-fetch redesign*
