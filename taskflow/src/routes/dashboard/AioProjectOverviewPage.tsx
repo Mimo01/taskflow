@@ -20,6 +20,7 @@ import {
 import { fetchJiraProjectNumericId } from '@/services/jira/projects';
 import { fetchJiraUserByUsername } from '@/services/jira/users';
 import { useAuthStore } from '@/stores/auth.store';
+import { useAioCyclesSelectionStore } from '@/stores/aio-cycles-selection.store';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -256,6 +257,10 @@ export default function AioProjectOverviewPage() {
   const { token, isLoading: tokenLoading } = useAioCredentials();
   const queryClient = useQueryClient();
 
+  const getSelectedFolder = useAioCyclesSelectionStore((s) => s.getSelectedFolder);
+  const setSelectedFolder = useAioCyclesSelectionStore((s) => s.setSelectedFolder);
+  const clearSelectedFolder = useAioCyclesSelectionStore((s) => s.clearSelectedFolder);
+
   const [selectedFolderID, setSelectedFolderID] = useState<number | null>(null);
   const [expandedIDs, setExpandedIDs] = useState<Set<number>>(new Set());
 
@@ -334,8 +339,14 @@ export default function AioProjectOverviewPage() {
 
   const visibleCycles = cyclesWithDetailQuery.data?.items ?? [];
 
-  // Auto-expand first root folder + auto-select first non-empty folder (one-time)
+  // Auto-expand first root folder + auto-select persisted or first non-empty folder (one-time per projectKey)
   const autoExpandedRef = useRef(false);
+
+  // Reset one-shot guard whenever projectKey changes so navigation to a new project re-runs the effect
+  useEffect(() => {
+    autoExpandedRef.current = false;
+  }, [projectKey]);
+
   useEffect(() => {
     if (
       !autoExpandedRef.current &&
@@ -346,11 +357,29 @@ export default function AioProjectOverviewPage() {
       autoExpandedRef.current = true;
       // Expand first root folder
       setExpandedIDs(new Set([foldersQuery.data[0].ID]));
-      // Auto-select first folder with non-zero count
-      const firstWithCycles = findFirstNonEmptyFolder(foldersQuery.data, countMapQuery.data);
-      if (firstWithCycles !== null) setSelectedFolderID(firstWithCycles);
+
+      // Check persisted selection
+      const stored = projectKey ? getSelectedFolder(projectKey) : null;
+      let isStoredValid = false;
+      if (stored === -1) {
+        isStoredValid = (countMapQuery.data['-1'] ?? 0) > 0;
+      } else if (stored !== null && stored > 0) {
+        isStoredValid = searchSubtree(foldersQuery.data, stored);
+      }
+
+      if (isStoredValid && stored !== null) {
+        setSelectedFolderID(stored);
+      } else {
+        // Fall back to first non-empty folder
+        const firstWithCycles = findFirstNonEmptyFolder(foldersQuery.data, countMapQuery.data);
+        if (firstWithCycles !== null) setSelectedFolderID(firstWithCycles);
+        // Clear stale stored entry if one existed
+        if (stored !== null && projectKey) {
+          clearSelectedFolder(projectKey);
+        }
+      }
     }
-  }, [foldersQuery.data, countMapQuery.data]);
+  }, [foldersQuery.data, countMapQuery.data, projectKey, getSelectedFolder, clearSelectedFolder]);
 
   const showFolderSkeleton = useDelayedLoading(foldersQuery.isLoading || jiraProjectIdQuery.isLoading);
   const showCycleSkeleton = useDelayedLoading(cyclesWithDetailQuery.isLoading);
@@ -377,7 +406,10 @@ export default function AioProjectOverviewPage() {
     });
   };
 
-  const selectFolder = (id: number) => setSelectedFolderID(id);
+  const selectFolder = (id: number) => {
+    setSelectedFolderID(id);
+    if (projectKey) setSelectedFolder(projectKey, id);
+  };
 
   const countMap = countMapQuery.data ?? {};
   const folderTree = foldersQuery.data ?? [];

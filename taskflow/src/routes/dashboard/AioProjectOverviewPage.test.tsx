@@ -1,11 +1,32 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/stores/auth.store', () => ({
   useAuthStore: () => ({ jiraBaseUrl: 'https://jira.example.com' }),
+}));
+
+// In-memory adapter for the selection store — lets tests control persisted values
+const _selectionStore: { byProjectKey: Record<string, number> } = { byProjectKey: {} };
+const mockGetSelectedFolder = vi.fn((key: string) => _selectionStore.byProjectKey[key] ?? null);
+const mockSetSelectedFolder = vi.fn((key: string, id: number) => {
+  _selectionStore.byProjectKey[key] = id;
+});
+const mockClearSelectedFolder = vi.fn((key: string) => {
+  delete _selectionStore.byProjectKey[key];
+});
+
+vi.mock('@/stores/aio-cycles-selection.store', () => ({
+  useAioCyclesSelectionStore: (selector: (s: unknown) => unknown) => {
+    const state = {
+      getSelectedFolder: mockGetSelectedFolder,
+      setSelectedFolder: mockSetSelectedFolder,
+      clearSelectedFolder: mockClearSelectedFolder,
+    };
+    return selector ? selector(state) : state;
+  },
 }));
 
 vi.mock('@/hooks/useAioCredentials', () => ({
@@ -60,6 +81,15 @@ import type { AioCycleDetailItem, AioCycleSummaryItem, AioFolder } from '@/servi
 const FOLDER_A: AioFolder = {
   ID: 101,
   name: 'Sprint 2025',
+  description: null,
+  parentID: null,
+  rankOrder: null,
+  children: [],
+};
+
+const FOLDER_B: AioFolder = {
+  ID: 102,
+  name: 'Sprint 2026',
   description: null,
   parentID: null,
   rankOrder: null,
@@ -212,6 +242,114 @@ describe('AioProjectOverviewPage — cycle list', () => {
   });
 });
 
+
+describe('AioProjectOverviewPage — persisted folder selection', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Reset in-memory selection store
+    _selectionStore.byProjectKey = {};
+    mockGetSelectedFolder.mockImplementation((key: string) => _selectionStore.byProjectKey[key] ?? null);
+    mockSetSelectedFolder.mockImplementation((key: string, id: number) => {
+      _selectionStore.byProjectKey[key] = id;
+    });
+    mockClearSelectedFolder.mockImplementation((key: string) => {
+      delete _selectionStore.byProjectKey[key];
+    });
+  });
+
+  it('auto-selects persisted folder on second load', async () => {
+    // Pre-load stored selection for PROJ = folder 102
+    _selectionStore.byProjectKey['PROJ'] = 102;
+
+    const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+    (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
+    const { fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries, fetchAioProjectConfig } =
+      await import('@/services/aio');
+    // Both folders have cycles; without persistence, 101 would be auto-selected
+    (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockResolvedValue([FOLDER_A, FOLDER_B]);
+    (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({ '101': 1, '102': 1 });
+    (fetchAioCyclesWithDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [], allIDs: [], startAt: 0, maxResults: 20, isLast: true,
+    });
+    (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (fetchAioProjectConfig as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    const { fetchJiraUserByUsername } = await import('@/services/jira/users');
+    (fetchJiraUserByUsername as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+    const Page = await importPage();
+    wrap(Page);
+
+    await waitFor(() => {
+      const folder102 = screen.getByTestId('folder-node-102');
+      expect(folder102.className).toContain('bg-primary');
+    });
+    // folder 101 should NOT be selected
+    const folder101 = screen.getByTestId('folder-node-101');
+    expect(folder101.className).not.toContain('bg-primary');
+  });
+
+  it('falls back to first non-empty when persisted ID is stale', async () => {
+    // Pre-load a stale folder ID that does not exist in the tree
+    _selectionStore.byProjectKey['PROJ'] = 999;
+
+    const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+    (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
+    const { fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries, fetchAioProjectConfig } =
+      await import('@/services/aio');
+    (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockResolvedValue([FOLDER_A]);
+    (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({ '101': 1 });
+    (fetchAioCyclesWithDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [], allIDs: [], startAt: 0, maxResults: 20, isLast: true,
+    });
+    (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (fetchAioProjectConfig as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    const { fetchJiraUserByUsername } = await import('@/services/jira/users');
+    (fetchJiraUserByUsername as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+    const Page = await importPage();
+    wrap(Page);
+
+    await waitFor(() => {
+      const folder101 = screen.getByTestId('folder-node-101');
+      expect(folder101.className).toContain('bg-primary');
+    });
+    // Stale entry should be cleared
+    await waitFor(() => {
+      expect(mockClearSelectedFolder).toHaveBeenCalledWith('PROJ');
+    });
+  });
+
+  it('persists selection on folder click', async () => {
+    const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+    (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
+    const { fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries, fetchAioProjectConfig } =
+      await import('@/services/aio');
+    (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockResolvedValue([FOLDER_A, FOLDER_B]);
+    (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({ '101': 1, '102': 1 });
+    (fetchAioCyclesWithDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
+      items: [], allIDs: [], startAt: 0, maxResults: 20, isLast: true,
+    });
+    (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (fetchAioProjectConfig as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    const { fetchJiraUserByUsername } = await import('@/services/jira/users');
+    (fetchJiraUserByUsername as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+    const Page = await importPage();
+    wrap(Page);
+
+    // Wait for folder tree to render
+    await waitFor(() => {
+      expect(screen.getByTestId('folder-node-101')).toBeDefined();
+    });
+
+    // Click folder 101
+    fireEvent.click(screen.getByTestId('folder-node-101'));
+
+    await waitFor(() => {
+      expect(mockSetSelectedFolder).toHaveBeenCalledWith('PROJ', 101);
+    });
+  });
+});
 
 describe('AioProjectOverviewPage — error states', () => {
   beforeEach(() => { vi.clearAllMocks(); });
