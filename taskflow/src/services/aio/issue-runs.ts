@@ -24,9 +24,13 @@
 //    and returns null on any error — safe for our use case.
 // Resolution strategy chosen: B/C — resolve jiraDefectIDs to string Jira keys via fetchJiraIssueByKey.
 //    Fast-path (A) is not available because raw.defects is never populated by this AIO instance.
+//
+// Phase 58-02 refactor: service-level defect resolution removed (resolveDefectsForRuns,
+// resolveJiraDefectKeys). Returns runs with raw jiraDefectIDs populated and defects: [].
+// Component-level useQuery per defect key resolves to Jira issue keys (see DefectRow in
+// AioCycleDetailPage).
 
 import { ApiError } from '../../lib/api-error';
-import { fetchJiraIssueByKey } from '../jira/issues';
 import { aioFetch } from './client';
 import type { AioPage, AioTestRun } from './types';
 
@@ -34,8 +38,8 @@ import type { AioPage, AioTestRun } from './types';
 // The most recent execution is runs[0]; status lives at runs[0].testRunStatus.name.
 // runs[0].ID is the execution run ID used by GET /testrun/{runId} — the top-level
 // raw.ID is the test case assignment ID and must NOT be used for run detail navigation.
-// jiraDefectIDs are numeric Jira internal IDs resolved to string Jira keys via
-// resolveJiraDefectKeys (Plan 56-05 fix — AIOC-03).
+// jiraDefectIDs are numeric Jira internal IDs; component-level useQuery resolves them
+// to string Jira keys (Phase 58-02 — DefectRow in AioCycleDetailPage).
 type RawRunExecution = {
   ID?: number;
   testRunStatus?: { ID?: number; name?: string };
@@ -78,29 +82,6 @@ function toChipStatus(name: string | undefined): string {
   }
 }
 
-/**
- * Resolve an array of numeric Jira internal IDs to string issue keys (e.g. 'PROJ-42').
- *
- * Uses fetchJiraIssueByKey with the numeric ID as a string — Jira REST API v2 accepts
- * both the issue key and the numeric internal ID in the URL path.
- * Results where fetchJiraIssueByKey returns null (404, auth, network) are silently
- * dropped so the caller receives only successfully resolved keys.
- *
- * @param baseUrl    - Jira base URL
- * @param token      - Personal Access Token
- * @param numericIds - Array of numeric Jira internal issue IDs
- * @returns Array of resolved Jira issue keys (e.g. ['PROJ-42', 'PROJ-57'])
- */
-async function resolveJiraDefectKeys(
-  baseUrl: string,
-  token: string,
-  numericIds: number[],
-): Promise<string[]> {
-  const results = await Promise.all(
-    numericIds.map((id) => fetchJiraIssueByKey(baseUrl, token, String(id))),
-  );
-  return results.filter((issue) => issue !== null).map((issue) => issue.key);
-}
 
 function normalizeTestRun(raw: RawTestRun, fallbackCycleKey: string): AioTestRun {
   const latestRun = raw.runs?.[0];
@@ -131,6 +112,11 @@ function normalizeTestRun(raw: RawTestRun, fallbackCycleKey: string): AioTestRun
  *
  * NOTE (D-15): There is no GET /testrun?issueKey= endpoint. Test runs are always
  * fetched by cycle. Phase 54 will filter runs by Jira issue key client-side.
+ *
+ * Returns runs with raw `jiraDefectIDs` populated; component-level useQuery per defect
+ * key resolves to Jira issue keys (see DefectRow in AioCycleDetailPage). The `defects`
+ * field is always `[]` — service-level resolution was removed in Phase 58-02 to
+ * eliminate the N+1 Jira HTTP round-trip pattern.
  *
  * @param baseUrl    - Jira/AIO base URL (same host as Jira)
  * @param token      - Personal Access Token (from Stronghold key 'jira-pat')
@@ -163,12 +149,11 @@ export async function fetchAioTestRunsForCycle(
       // Guard: D-17 confirms AioPage wrapper for aio-tcms-api/1.0 endpoints,
       // but guard for direct array in case of API variation.
       if (Array.isArray(data)) {
-        const runs = data.map((r) => normalizeTestRun(r, cycleKey));
-        return resolveDefectsForRuns(baseUrl, token, runs);
+        return data.map((r) => normalizeTestRun(r, cycleKey));
       }
       allRuns.push(...(data.items ?? []).map((r) => normalizeTestRun(r, cycleKey)));
       if (data.isLast || !data.maxResults || data.maxResults <= 0) {
-        return resolveDefectsForRuns(baseUrl, token, allRuns);
+        return allRuns;
       }
       startAt += data.maxResults;
       continue;
@@ -183,22 +168,3 @@ export async function fetchAioTestRunsForCycle(
   }
 }
 
-/**
- * Post-process a batch of normalized AioTestRun objects by resolving each run's
- * jiraDefectIDs to string Jira issue keys. Returns a new array of run objects
- * with the resolved defects field — does not mutate the input objects.
- */
-async function resolveDefectsForRuns(
-  baseUrl: string,
-  token: string,
-  runs: AioTestRun[],
-): Promise<AioTestRun[]> {
-  return Promise.all(
-    runs.map(async (run) => {
-      const ids = run.jiraDefectIDs ?? [];
-      if (ids.length === 0) return run;
-      const defects = await resolveJiraDefectKeys(baseUrl, token, ids);
-      return { ...run, defects };
-    }),
-  );
-}
