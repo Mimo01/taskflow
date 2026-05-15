@@ -375,6 +375,8 @@ Cross-cutting constraints:
 | 54. AIO on Issue Detail | v1.8 | 6/9 | In Progress|  |
 | 55. AIO Project Selection in Settings | v1.8 | 4/4 | Complete    | 2026-05-14 |
 | 56. Redesign AIO cycles page + tabs + loading optimization | v1.8 | 6/6 | Complete    | 2026-05-14 |
+| 57. Redesign AIO cycles page (folder tree + batch summary) | v1.8 | 5/5 | Complete    | 2026-05-15 |
+| 58. Redesign data fetch of AIO cycle detail | v1.8 | 0/4 | Not started | - |
 
 ### Phase 56: Redesign AIO cycles page, optimize AIO loading performance, add defects and executions views
 
@@ -432,8 +434,6 @@ Cross-cutting constraints:
   7. The credential gate prevents the first-load auth-error flash — all useQuery calls gate on `!!jiraBaseUrl && !!token && !tokenLoading && !!projectKey`
 **Plans:** 5 plans
 
-Plans:
-
 **Wave 0** *(blocking probe — developer captures live URLs)*
 - [x] 57-01-PLAN.md — Live endpoint probe (folder tree, count, paged detail, batch summary, Jira user lookup) + RED test stubs for the four new fetch functions, fetchJiraUserByUsername, AIO_STATUS_MAP, normalizeStatusById
 
@@ -455,5 +455,41 @@ Cross-cutting constraints:
 - Token NEVER in queryKey — all AIO keys use `['aio', jiraBaseUrl, ...]` prefix; user-by-username keys use `['jira', jiraBaseUrl, 'user-by-username', ownedByID]`
 - Owner deduplication relies on TanStack Query's built-in key-based dedup (D-07 — no parent-level dedup logic required)
 - The A5 finding (folder filter convention — `?folderID=` server-filter vs client-filter) drives whether fetchAioCyclesWithDetail is called per-folder or once-on-mount; the choice propagates from 57-PROBE-FINDINGS.md to Plan 04 component code
+
+**UI hint**: yes
+
+### Phase 58: Redesign data fetch of AIO cycle detail executions list and execution detail
+
+**Goal:** Redesign the AIO cycle detail page's data-fetch architecture so that (1) the execution progress bar renders from the batch cycle-summary endpoint (`POST /rest/aio-tcms/1.0/project/{id}/testcycle/summary/paged`) independently of the slow paginated run list; (2) defect Jira-key resolution moves from the service layer to per-defect-key component `useQuery` calls so duplicate defect IDs across runs deduplicate via TanStack Query's cache; (3) if Wave 0 probe finds a `/rest/aio-tcms/1.0` run-listing endpoint, the cycle detail page consumes it in place of the legacy paginated `aio-tcms-api/1.0` endpoint. The page must continue to satisfy the existing AIOC-01..03 behaviours (progress bar, run table with filter chips, defects tab with Triggered-By).
+**Requirements**: AIO58-01, AIO58-02, AIO58-03, AIO58-04
+**Depends on:** Phase 57
+**Success Criteria** (what must be TRUE):
+  1. The execution progress bar is visible as soon as `fetchAioCycleSummaries` resolves — independent of `fetchAioTestRunsForCycle` (or the probe-found replacement)
+  2. `fetchAioTestRunsForCycle` no longer calls `fetchJiraIssueByKey`; the service returns runs with `defects: []` and `jiraDefectIDs: number[]` populated; the page's `DefectRow` resolves keys via per-key `useQuery`
+  3. Every `useQuery` on `AioCycleDetailPage` gates on `!!jiraBaseUrl && !!token && !tokenLoading` (and `!!jiraProjectId` for AIO-paged-surface queries) — no first-load 401 flash
+  4. Existing UAT-validated behaviours preserved: filter chips, Pin/Unpin, breadcrumb, run-row click navigation, "No runs recorded" empty state, Defects tab with Triggered-By column
+  5. Wave 0 probe verdict is committed to `58-PROBE-FINDINGS.md` with explicit `RUNS_ENDPOINT_DECISION` and `CYCLE_NUMERIC_ID_DECISION` enum values before any Wave 1 source-code change
+**Plans:** 4 plans
+
+Plans:
+
+**Wave 0** *(blocking probe — developer captures live endpoint shapes)*
+- [ ] 58-01-PLAN.md — Live probe for `/rest/aio-tcms/1.0` test-run-listing endpoint candidates (P1 GET, P2 POST-paged, P3 GET summary) + confirm whether `/detail` includes top-level `ID: number` → write 58-PROBE-FINDINGS.md Decision Summary
+
+**Wave 1** *(blocked on Wave 0; 58-02 and 58-03 run in parallel — no shared files)*
+- [ ] 58-02-PLAN.md — Service refactor: remove `resolveDefectsForRuns` + `resolveJiraDefectKeys` from `issue-runs.ts`; update `issue-runs.test.ts` to assert `defects: []` and `fetchJiraIssueByKey` not called; optionally add new paged-runs fetch function to `cycles.ts` (Branch B) per probe verdict, with 4 unit tests covering 200/404/401/network paths
+- [ ] 58-03-PLAN.md — Component refactor: wire `jiraProjectIdQuery` + `cycleNumericId` resolution (branch on Decision Summary), add `summaryQuery` driving the progress bar from `fetchAioCycleSummaries`, switch `DefectRow` data source from `r.defects` to `r.jiraDefectIDs?.map(String)`, optionally swap runsQuery to new endpoint (Branch B); add tests for decoupled progress bar, graceful degradation, defect dedup, and credential gate
+
+**Wave 2** *(blocked on Waves 1 — both 58-02 and 58-03 must be GREEN)*
+- [ ] 58-04-PLAN.md — Live UAT against production AIO instance (15 checks: progress-bar-before-runs, request ordering, defect cache dedup, no 401 flash, regression smoke for filter chips/Pin/breadcrumb/row-click/empty state, graceful degradation); produces 58-UAT.md with `UAT_VERDICT:` line
+
+Cross-cutting constraints:
+- Wave 0 is BLOCKING — Wave 1 plans 02 and 03 both read the Decision Summary from `58-PROBE-FINDINGS.md` to branch their implementation (no new endpoint vs new endpoint; detail-ID vs paged-lookup for cycle numeric ID)
+- Plans 58-02 and 58-03 share NO file paths — Plan 02 touches `services/aio/{issue-runs,cycles,index}.{ts,test.ts}`; Plan 03 touches `routes/dashboard/AioCycleDetailPage.{tsx,test.tsx}` — safe to parallelise
+- `AioTestRun` interface in `types.ts` is UNCHANGED (both `defects: string[]` and `jiraDefectIDs: number[]` fields already exist); Plan 02 only changes runtime semantics (service no longer populates `defects`)
+- Plan 03 MUST preserve the existing `['aio', jiraBaseUrl, 'runs', projectKey, cycleKey]` key for compatibility with Phase 56-02 cache prefetch; new keys: `['aio', jiraBaseUrl, 'cycle-summaries', projectKey, String(cycleNumericId)]` (matches AioProjectOverviewPage convention) and `['jira', jiraBaseUrl, 'project-numeric-id', projectKey]` (60-min staleTime)
+- `AIO_STATUS_MAP` lookups MUST use `Number(idStr)` — testRunDistribution keys are JSON numeric strings (Pitfall 5)
+- Every `useQuery.enabled` clause MUST include `!tokenLoading` (Pitfall 6 — first-load 401 flash)
+- Graceful degradation: if `summaryQuery` errors, fall back to `runsQuery`-derived counts so the progress bar still renders
 
 **UI hint**: yes
