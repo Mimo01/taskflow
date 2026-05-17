@@ -18,7 +18,7 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import type { EpicColorResult } from '@/lib/epicColors';
-import { statusCategoryBadgeClass } from '@/lib/statusStyles';
+import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraTransition } from '@/services/jira';
 
@@ -66,8 +66,6 @@ export function StoryHeaderRow({
   epicColorResult,
   onEpicClick,
 }: StoryHeaderRowProps) {
-  const statusStyle = statusCategoryBadgeClass(statusCategoryKey);
-
   const rowContent = (
     <div
       className={cn(
@@ -138,12 +136,7 @@ export function StoryHeaderRow({
       )}
 
       {/* Status badge */}
-      <span
-        className={cn(
-          'shrink-0 min-w-[5.5rem] text-center rounded px-1.5 py-0.5 text-xs font-medium',
-          statusStyle,
-        )}
-      >
+      <span className={statusPillClass(statusCategoryKey)}>
         {statusName}
       </span>
 
@@ -184,12 +177,7 @@ export function StoryHeaderRow({
               }
             >
               <span className="text-muted-foreground">→</span>
-              <span
-                className={cn(
-                  'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-                  statusCategoryBadgeClass(transition.to.statusCategory?.key),
-                )}
-              >
+              <span className={statusPillClass(transition.to.statusCategory?.key)}>
                 {transition.name}
               </span>
             </ContextMenuItem>

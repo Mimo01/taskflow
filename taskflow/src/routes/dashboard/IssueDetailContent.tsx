@@ -3,7 +3,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { Copy, ExternalLink, Pencil, Pin, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
-import { statusCategoryBadgeClass } from '@/lib/statusStyles';
+import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraAttachment, JiraIssue, JiraIssueDetail, JiraIssueLink } from '@/services/jira';
 import { deleteAttachment } from '@/services/jira/attachments';
@@ -155,12 +155,7 @@ export function IssueDetailContent({
                         </span>
                       </div>
                     )}
-                    <span
-                      className={cn(
-                        'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0',
-                        statusCategoryBadgeClass(story.fields.status.statusCategory?.key),
-                      )}
-                    >
+                    <span className={statusPillClass(story.fields.status.statusCategory?.key)}>
                       {story.fields.status.name}
                     </span>
                   </button>
@@ -206,12 +201,7 @@ export function IssueDetailContent({
                           </span>
                         </div>
                       )}
-                      <span
-                        className={cn(
-                          'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0',
-                          statusCategoryBadgeClass(sub.fields.status.statusCategory?.key),
-                        )}
-                      >
+                      <span className={statusPillClass(sub.fields.status.statusCategory?.key)}>
                         {sub.fields.status.name}
                       </span>
                     </button>

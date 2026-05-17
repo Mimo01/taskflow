@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { AIO_STATUS_MAP, normalizeStatus, normalizeStatusLabel } from '@/lib/aioUtils';
-import { aioCycleStatusBadgeClass, aioRunStatusBadgeClass } from '@/lib/statusStyles';
+import { STATUS_PILL_LAYOUT_CLASS, aioCycleStatusPillClass, aioRunStatusPillClass } from '@/lib/statusStyles';
 import type { AioCycle, AioCycleSummaryItem, AioTestRun } from '@/services/aio';
 import { fetchAioCycleDetail, fetchAioCycleSummaries, fetchAioTestRunsForCycle } from '@/services/aio';
 import { fetchJiraIssueByKey } from '@/services/jira';
@@ -67,7 +67,7 @@ function DefectRow({
       </td>
       <td className="px-3 py-3">
         {issueQuery.data?.fields.status.name ? (
-          <span className="inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-semibold bg-muted text-muted-foreground">
+          <span className={`${STATUS_PILL_LAYOUT_CLASS} bg-muted text-muted-foreground`}>
             {issueQuery.data.fields.status.name}
           </span>
         ) : (
@@ -275,9 +275,7 @@ export default function AioCycleDetailPage() {
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-semibold">{cycleName}</h1>
           {cycleQuery.data && (
-            <span
-              className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium ${aioCycleStatusBadgeClass(cycleQuery.data.status)}`}
-            >
+            <span className={aioCycleStatusPillClass(cycleQuery.data.status)}>
               {cycleQuery.data.status}
             </span>
           )}
@@ -513,9 +511,7 @@ export default function AioCycleDetailPage() {
                     >
                       <td className="px-4 py-3">{run.testCase?.title ?? run.testCaseKey}</td>
                       <td className="px-3 py-3">
-                        <span
-                          className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium ${aioRunStatusBadgeClass(run.status)}`}
-                        >
+                        <span className={aioRunStatusPillClass(run.status)}>
                           {normalizeStatusLabel(run.status)}
                         </span>
                       </td>
