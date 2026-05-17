@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ErrorState } from '@/components/ui/error-state';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
-import { aioRunStatusBadgeClass } from '@/lib/statusStyles';
+import { aioRunStatusPillClass } from '@/lib/statusStyles';
 import type {
   AioTestCase,
   AioTestCaseWithRuns,
@@ -302,9 +302,7 @@ function StepTable({ steps }: { steps: AioTestRunStep[] }) {
               )}
             </td>
             <td className="px-3 py-3">
-              <span
-                className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium ${aioRunStatusBadgeClass(step.status ?? 'NOT_EXECUTED')}`}
-              >
+              <span className={aioRunStatusPillClass(step.status ?? 'NOT_EXECUTED')}>
                 {normalizeStatusLabel(step.status)}
               </span>
             </td>
@@ -383,9 +381,7 @@ function CollapsibleRunBlock({
         >
           {run.id}
         </button>
-        <span
-          className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium shrink-0 ${aioRunStatusBadgeClass(run.status)}`}
-        >
+        <span className={aioRunStatusPillClass(run.status)}>
           {normalizeStatusLabel(run.status)}
         </span>
       </div>
@@ -826,7 +822,7 @@ function ImpactedExecutionsList({
                 <td className="px-3 py-2">
                   <span
                     data-testid="impacted-execution-status-chip"
-                    className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium ${aioRunStatusBadgeClass(row.status)}`}
+                    className={aioRunStatusPillClass(row.status)}
                   >
                     {normalizeStatusLabel(row.status)}
                   </span>

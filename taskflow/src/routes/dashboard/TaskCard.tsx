@@ -29,7 +29,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
-import { statusCategoryBadgeClass } from '@/lib/statusStyles';
+import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraIssue, JiraTransition } from '@/services/jira';
 
@@ -139,12 +139,7 @@ export default function TaskCard({
 
             {/* Status badge — shown when not in a column context */}
             {showStatus && (
-              <span
-                className={cn(
-                  'rounded px-1.5 py-0.5 text-xs font-medium',
-                  statusCategoryBadgeClass(issue.fields.status.statusCategory?.key),
-                )}
-              >
+              <span className={statusPillClass(issue.fields.status.statusCategory?.key)}>
                 {issue.fields.status.name}
               </span>
             )}
@@ -202,12 +197,7 @@ export default function TaskCard({
               }
             >
               <span className="text-muted-foreground">→</span>
-              <span
-                className={cn(
-                  'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-                  statusCategoryBadgeClass(transition.to.statusCategory?.key),
-                )}
-              >
+              <span className={statusPillClass(transition.to.statusCategory?.key)}>
                 {transition.name}
               </span>
             </ContextMenuItem>
