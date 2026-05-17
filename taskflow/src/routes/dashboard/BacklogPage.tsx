@@ -48,6 +48,7 @@ import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useFilterStore } from '@/stores/filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { Badge } from '@/components/ui/badge';
 import { BacklogRow } from './BacklogRow';
 import { BacklogSkeleton } from './BacklogSkeleton';
 
@@ -710,15 +711,7 @@ export default function BacklogPage() {
           )}
           <span className="text-sm font-semibold">{title}</span>
           {badge && (
-            <span
-              className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border ${
-                badge === 'Active'
-                  ? 'bg-green-100 text-green-800 border-green-300'
-                  : 'bg-blue-100 text-blue-800 border-blue-300'
-              }`}
-            >
-              {badge}
-            </span>
+            <Badge tone={badge === 'Active' ? 'green' : 'blue'}>{badge}</Badge>
           )}
           <span className="ml-auto text-xs text-muted-foreground">
             {sectionStoriesLoading ? (

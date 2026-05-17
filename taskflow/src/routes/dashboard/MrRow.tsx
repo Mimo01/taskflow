@@ -4,6 +4,7 @@
  * Shows: MR title (clickable to internal detail page), author, stale badge (if stale),
  * review health dot (colored), and linked Jira task badge (if linked via Plan 03).
  */
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
@@ -64,15 +65,9 @@ export default function MrRow({
 
       {/* Stale badge */}
       {stale && (
-        <span
-          className={cn(
-            'rounded-full px-2 py-0.5 text-xs bg-amber-100 text-amber-800',
-            'dark:bg-amber-900 dark:text-amber-200',
-            'whitespace-nowrap',
-          )}
-        >
+        <Badge tone="amber" className="whitespace-nowrap">
           Stale &bull; {staleDays}d
-        </span>
+        </Badge>
       )}
 
       {/* Linked task badge */}

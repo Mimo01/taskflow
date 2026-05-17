@@ -386,7 +386,7 @@ export default function MergeRequestDetailPage() {
                     {mr.labels.map((l) => (
                       <span
                         key={l.name}
-                        className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium"
+                        className="inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium"
                         style={{
                           backgroundColor: l.color,
                           color: l.text_color,
@@ -473,6 +473,13 @@ function PersonDisplay({ name, avatarUrl }: { name: string; avatarUrl?: string }
 
 // ---- State & status badges ----
 
+const MR_STATE_DETAIL_CONFIG: Record<string, { tone: 'green' | 'purple' | 'red' | 'muted'; label: string; icon: React.ReactNode }> = {
+  opened: { tone: 'green', label: 'Open', icon: <CircleDot className="size-3" /> },
+  merged: { tone: 'purple', label: 'Merged', icon: <CheckCircle2 className="size-3" /> },
+  closed: { tone: 'red', label: 'Closed', icon: <XCircle className="size-3" /> },
+  locked: { tone: 'muted', label: 'Locked', icon: <Ban className="size-3" /> },
+};
+
 function MRStateBadge({ state, draft }: { state: GitLabMRDetail['state']; draft?: boolean }) {
   if (draft && state === 'opened') {
     return (
@@ -483,41 +490,12 @@ function MRStateBadge({ state, draft }: { state: GitLabMRDetail['state']; draft?
     );
   }
 
-  const config: Record<string, { className: string; label: string; icon: React.ReactNode }> = {
-    opened: {
-      className:
-        'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800',
-      label: 'Open',
-      icon: <CircleDot className="size-3" />,
-    },
-    merged: {
-      className:
-        'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
-      label: 'Merged',
-      icon: <CheckCircle2 className="size-3" />,
-    },
-    closed: {
-      className:
-        'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
-      label: 'Closed',
-      icon: <XCircle className="size-3" />,
-    },
-    locked: {
-      className:
-        'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800',
-      label: 'Locked',
-      icon: <Ban className="size-3" />,
-    },
-  };
-
-  const c = config[state] ?? config.locked;
+  const c = MR_STATE_DETAIL_CONFIG[state] ?? MR_STATE_DETAIL_CONFIG.locked;
   return (
-    <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${c.className}`}
-    >
+    <Badge tone={c.tone}>
       {c.icon}
       {c.label}
-    </span>
+    </Badge>
   );
 }
 

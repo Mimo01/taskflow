@@ -10,6 +10,7 @@
  */
 
 import { useRef, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
 
 // ─── MultiFilterCombobox ───────────────────────────────────────────────────────
 
@@ -168,10 +169,11 @@ export function BacklogFilterBar({
       {/* Active filter chips */}
 
       {Array.from(activeEpics).map((epic) => (
-        <span
+        <Badge
           key={epic}
+          tone="muted"
           data-testid={`epic-chip-${epic}`}
-          className="inline-flex items-center gap-1 rounded-full bg-muted text-foreground px-2 py-0.5 text-xs"
+          className="gap-1"
         >
           {epic}
           <button
@@ -182,14 +184,15 @@ export function BacklogFilterBar({
           >
             ×
           </button>
-        </span>
+        </Badge>
       ))}
 
       {Array.from(activeLabels).map((label) => (
-        <span
+        <Badge
           key={label}
+          tone="muted"
           data-testid={`label-chip-${label}`}
-          className="inline-flex items-center gap-1 rounded-full bg-muted text-foreground px-2 py-0.5 text-xs"
+          className="gap-1"
         >
           {label}
           <button
@@ -200,14 +203,15 @@ export function BacklogFilterBar({
           >
             ×
           </button>
-        </span>
+        </Badge>
       ))}
 
       {Array.from(activeAssignees).map((assignee) => (
-        <span
+        <Badge
           key={assignee}
+          tone="muted"
           data-testid={`assignee-chip-${assignee}`}
-          className="inline-flex items-center gap-1 rounded-full bg-muted text-foreground px-2 py-0.5 text-xs"
+          className="gap-1"
         >
           {assignee}
           <button
@@ -218,7 +222,7 @@ export function BacklogFilterBar({
           >
             ×
           </button>
-        </span>
+        </Badge>
       ))}
     </div>
   );

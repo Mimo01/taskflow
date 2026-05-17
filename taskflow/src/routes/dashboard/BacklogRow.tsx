@@ -84,7 +84,7 @@ function RowCells({
                 onIssueClick(epicKey);
               }}
               className={cn(
-                'inline-flex items-center rounded-full border px-1.5 py-0 text-[11px] font-medium hover:opacity-80 transition-opacity',
+                'inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium hover:opacity-80 transition-opacity',
                 epicColorResult.className,
               )}
               style={epicColorResult.style}

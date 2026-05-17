@@ -51,7 +51,7 @@ function EpicRow({ epic, onEpicClick }: EpicRowProps) {
       {/* Epic name as colored badge */}
       <td className="px-4 py-3">
         <span
-          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-medium text-left ${colorResult.className}`}
+          className={`inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium text-left ${colorResult.className}`}
           style={colorResult.style}
         >
           {epic.epicName}

@@ -541,7 +541,7 @@ export function FieldsSection({
                   <button
                     type="button"
                     onClick={() => onOpenIssue?.(epicLink)}
-                    className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium hover:opacity-80 transition-opacity ${colorResult.className}`}
+                    className={`inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium hover:opacity-80 transition-opacity ${colorResult.className}`}
                     style={colorResult.style}
                   >
                     {epicName || epicLink}
@@ -560,7 +560,7 @@ export function FieldsSection({
           return (
             <MetaRow label="Color">
               <span
-                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${colorResult.className}`}
+                className={`inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium ${colorResult.className}`}
                 style={colorResult.style}
               >
                 {epicColor ?? 'Default'}

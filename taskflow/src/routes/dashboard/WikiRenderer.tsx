@@ -478,7 +478,7 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
     },
     // Custom element for <mention> tags produced by preprocessJiraMarkup
     mention: ({ children }: { children?: React.ReactNode }) => (
-      <span className="mention-badge inline-flex items-center rounded-full bg-primary/15 text-primary px-2 py-0.5 text-xs font-medium">
+      <span className="mention-badge inline-flex items-center rounded bg-primary/15 text-primary px-1.5 py-0.5 text-xs font-medium">
         @{children}
       </span>
     ),
