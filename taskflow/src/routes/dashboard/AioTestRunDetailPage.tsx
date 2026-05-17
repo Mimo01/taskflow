@@ -6,7 +6,7 @@ import { ErrorState } from '@/components/ui/error-state';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { normalizeStatusLabel } from '@/lib/aioUtils';
-import { aioRunStatusBadgeClass } from '@/lib/statusStyles';
+import { aioRunStatusPillClass } from '@/lib/statusStyles';
 import type { AioTestRun, AioTestRunStep } from '@/services/aio';
 import { fetchAioTestRunDetail } from '@/services/aio';
 import { useAuthStore } from '@/stores/auth.store';
@@ -122,7 +122,7 @@ export default function AioTestRunDetailPage() {
         {detailQuery.data && (
           <span
             data-testid="aio-run-detail-status-chip"
-            className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium ${aioRunStatusBadgeClass(detailQuery.data.run.status)}`}
+            className={aioRunStatusPillClass(detailQuery.data.run.status)}
           >
             {normalizeStatusLabel(detailQuery.data.run.status)}
           </span>
@@ -218,9 +218,7 @@ export default function AioTestRunDetailPage() {
                           )}
                         </td>
                         <td className="px-3 py-2">
-                          <span
-                            className={`inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-xs font-medium ${aioRunStatusBadgeClass(step.status ?? 'NOT_EXECUTED')}`}
-                          >
+                          <span className={aioRunStatusPillClass(step.status ?? 'NOT_EXECUTED')}>
                             {normalizeStatusLabel(step.status)}
                           </span>
                         </td>

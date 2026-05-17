@@ -34,7 +34,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useResizable } from '@/hooks/useResizable';
-import { statusCategoryBadgeClass } from '@/lib/statusStyles';
+import { statusPillClass } from '@/lib/statusStyles';
 import type { GitLabMilestone, GitLabMR } from '@/services/gitlab';
 import { fetchMilestoneMRs, fetchProjectMilestonesInRange } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
@@ -601,9 +601,7 @@ export default function ReleaseDetailPage() {
                             )}
                           </td>
                           <td className="py-1.5 px-2 border-b border-border/50 whitespace-nowrap">
-                            <span
-                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusCategoryBadgeClass(row.issue.fields.status.statusCategory?.key)}`}
-                            >
+                            <span className={statusPillClass(row.issue.fields.status.statusCategory?.key)}>
                               {row.issue.fields.status.name}
                             </span>
                           </td>
