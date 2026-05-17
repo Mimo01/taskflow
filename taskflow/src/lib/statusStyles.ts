@@ -91,3 +91,39 @@ export function aioCycleStatusPillClass(status: string): string {
 export function aioRunStatusPillClass(status: string): string {
   return `${STATUS_PILL_LAYOUT_CLASS} ${aioRunStatusBadgeClass(status)}`;
 }
+
+// ── Shared muted-tint palette ─────────────────────────────────────────────────
+//
+// These tokens are the single source of truth for the seven-color muted-tint
+// palette used by both the Badge primitive (badge.tsx) and any hand-rolled chip
+// that needs to match the unified pill visual language.
+//
+// Do NOT duplicate these color strings in badge.tsx — import CHIP_TONE_CLASS there.
+
+/** The seven tones available for the unified chip/badge color family. */
+export type ChipTone = 'blue' | 'green' | 'red' | 'orange' | 'amber' | 'purple' | 'muted';
+
+/**
+ * Muted-tint color classes for each tone.
+ * Single source of truth — used by the Badge `tone` prop and `tonePillClass()`.
+ */
+export const CHIP_TONE_CLASS: Record<ChipTone, string> = {
+  blue: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
+  green: 'bg-green-500/15 text-green-600 dark:text-green-400',
+  red: 'bg-red-500/15 text-red-600 dark:text-red-400',
+  orange: 'bg-orange-500/15 text-orange-600 dark:text-orange-400',
+  amber: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+  purple: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
+  muted: 'bg-muted text-muted-foreground',
+};
+
+/**
+ * Returns the muted-tint color classes for a given tone.
+ *
+ * Use this for hand-rolled chips that already apply `STATUS_PILL_LAYOUT_CLASS`
+ * (or equivalent geometry) and only need the color portion from the shared palette.
+ * For standalone badges, prefer `<Badge tone="...">` instead.
+ */
+export function tonePillClass(tone: ChipTone): string {
+  return CHIP_TONE_CLASS[tone];
+}
