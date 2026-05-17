@@ -12,7 +12,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { statusCategoryBadgeClass } from '@/lib/statusStyles';
+import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import { fetchTransitions } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
@@ -67,18 +67,14 @@ export default function StatusPopover({
     setOpen(false);
   }
 
-  const categoryStyle = statusCategoryKey
-    ? `${statusCategoryBadgeClass(statusCategoryKey)} border-transparent`
-    : 'border-border text-foreground';
-
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
         disabled={disabled}
         aria-label={currentStatus}
         className={cn(
-          'cursor-pointer rounded-full border px-2 py-0.5 text-xs font-medium hover:opacity-80 transition-colors whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60',
-          categoryStyle,
+          statusPillClass(statusCategoryKey),
+          'cursor-pointer hover:opacity-80 transition-colors whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60',
         )}
       >
         {currentStatus}
@@ -98,12 +94,7 @@ export default function StatusPopover({
               className="w-full text-left px-2 py-1.5 hover:bg-accent rounded flex items-center gap-2"
             >
               <span className="text-muted-foreground">→</span>
-              <span
-                className={cn(
-                  'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-                  statusCategoryBadgeClass(transition.to.statusCategory?.key),
-                )}
-              >
+              <span className={statusPillClass(transition.to.statusCategory?.key)}>
                 {transition.name}
               </span>
             </button>

@@ -50,3 +50,44 @@ const AIO_RUN_BADGE_STYLES: Record<string, string> = {
 export function aioRunStatusBadgeClass(status: string): string {
   return AIO_RUN_BADGE_STYLES[status] ?? 'bg-muted text-muted-foreground';
 }
+
+// ── Unified pill helpers ───────────────────────────────────────────────────────
+//
+// These helpers return the FULL className for a status pill (layout + color).
+// Callers must NOT add additional geometry classes such as `rounded*`, `px-*`,
+// `py-*`, `text-xs`, `font-*`, `inline-flex`, `min-w-*`, or `text-center` —
+// all of those are already included in STATUS_PILL_LAYOUT_CLASS.
+//
+// For non-pill renderings that only need the color tokens (e.g. a <Badge>
+// component with its own geometry), continue using the color-only helpers above.
+
+/**
+ * Shared layout class applied to every status pill across the app.
+ * Matches the sprint board reference style.
+ */
+export const STATUS_PILL_LAYOUT_CLASS =
+  'shrink-0 min-w-[5.5rem] text-center rounded px-1.5 py-0.5 text-xs font-medium';
+
+/**
+ * Full className for a Jira status pill (layout + color).
+ * Do NOT add additional geometry classes when using this helper.
+ */
+export function statusPillClass(categoryKey: string | undefined): string {
+  return `${STATUS_PILL_LAYOUT_CLASS} ${statusCategoryBadgeClass(categoryKey)}`;
+}
+
+/**
+ * Full className for an AIO cycle status pill (layout + color).
+ * Do NOT add additional geometry classes when using this helper.
+ */
+export function aioCycleStatusPillClass(status: string): string {
+  return `${STATUS_PILL_LAYOUT_CLASS} ${aioCycleStatusBadgeClass(status)}`;
+}
+
+/**
+ * Full className for an AIO test run / step status pill (layout + color).
+ * Do NOT add additional geometry classes when using this helper.
+ */
+export function aioRunStatusPillClass(status: string): string {
+  return `${STATUS_PILL_LAYOUT_CLASS} ${aioRunStatusBadgeClass(status)}`;
+}
