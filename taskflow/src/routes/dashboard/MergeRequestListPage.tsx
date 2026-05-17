@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Flag, GitBranch, GitMerge, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
@@ -221,7 +222,7 @@ export default function MergeRequestListPage() {
                       {mr.labels?.map((l) => (
                         <span
                           key={l.name}
-                          className="inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] font-medium"
+                          className="inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium"
                           style={{
                             backgroundColor: l.color,
                             color: l.text_color,
@@ -256,19 +257,18 @@ const STATE_LABELS: Record<string, string> = {
   locked: 'Locked',
 };
 
+const MR_STATE_TONE: Record<string, 'green' | 'purple' | 'red' | 'muted'> = {
+  opened: 'green',
+  merged: 'purple',
+  closed: 'red',
+  locked: 'muted',
+};
+
 function MRStateBadge({ state }: { state: GitLabMR['state'] }) {
-  const colors: Record<string, string> = {
-    opened: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-    merged: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
-    closed: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-    locked: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
-  };
   return (
-    <span
-      className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium shrink-0 ${colors[state] ?? colors.locked}`}
-    >
+    <Badge tone={MR_STATE_TONE[state] ?? 'muted'} className="shrink-0">
       {STATE_LABELS[state] ?? state}
-    </span>
+    </Badge>
   );
 }
 

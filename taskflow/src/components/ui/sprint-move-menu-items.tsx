@@ -1,13 +1,11 @@
 import type { ComponentType, ReactNode } from 'react';
+import { Badge } from '@/components/ui/badge';
 
 interface Sprint {
   id: number;
   name: string;
   state?: string;
 }
-
-const activeBadgeClass =
-  'ml-2 inline-flex items-center rounded-full bg-green-100 px-1.5 py-0 text-[10px] font-medium text-green-800 border border-green-300';
 
 export interface SprintMoveMenuItemsProps {
   sprints: Sprint[];
@@ -41,7 +39,7 @@ export function SprintMoveMenuItems({
         targetSprints.map((sprint) => (
           <Item key={sprint.id} onClick={() => onSelectSprint(sprint.id, sprint.name)}>
             {sprint.name}
-            {sprint.state === 'active' && <span className={activeBadgeClass}>Active</span>}
+            {sprint.state === 'active' && <Badge tone="green" className="ml-2">Active</Badge>}
           </Item>
         ))
       ) : (

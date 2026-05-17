@@ -92,13 +92,9 @@ export default function ReleasesWidget(_props: { widgetId: string }) {
           <span className="truncate font-medium">{v.name}</span>
           <div className="flex items-center gap-2 shrink-0">
             {v.released ? (
-              <Badge variant="default" className="bg-green-600 text-white">
-                Released
-              </Badge>
+              <Badge tone="green">Released</Badge>
             ) : (
-              <Badge variant="default" className="bg-amber-500 text-white">
-                Unreleased
-              </Badge>
+              <Badge tone="amber">Unreleased</Badge>
             )}
             {v.releaseDate && (
               <span className="text-xs text-muted-foreground tabular-nums">{v.releaseDate}</span>

@@ -345,7 +345,7 @@ export default function ReleasesTab() {
                     const timing = getReleaseTimingLabel(version.releaseDate, version.released);
                     if (version.released) {
                       return (
-                        <Badge variant="default" className="bg-green-600 text-white shrink-0">
+                        <Badge tone="green" className="shrink-0">
                           Released
                         </Badge>
                       );
@@ -353,10 +353,10 @@ export default function ReleasesTab() {
                     if (timing === 'overdue') {
                       return (
                         <>
-                          <Badge variant="destructive" className="shrink-0">
+                          <Badge tone="red" className="shrink-0">
                             Unreleased
                           </Badge>
-                          <Badge variant="destructive" className="shrink-0">
+                          <Badge tone="red" className="shrink-0">
                             Overdue
                           </Badge>
                         </>
@@ -365,10 +365,10 @@ export default function ReleasesTab() {
                     if (timing === 'due-today') {
                       return (
                         <>
-                          <Badge variant="default" className="bg-blue-600 text-white shrink-0">
+                          <Badge tone="blue" className="shrink-0">
                             Unreleased
                           </Badge>
-                          <Badge variant="default" className="bg-blue-600 text-white shrink-0">
+                          <Badge tone="blue" className="shrink-0">
                             Due today
                           </Badge>
                         </>
@@ -377,7 +377,7 @@ export default function ReleasesTab() {
                     if (timing && typeof timing === 'object' && 'daysUntil' in timing) {
                       return (
                         <>
-                          <Badge variant="default" className="bg-amber-500 text-white shrink-0">
+                          <Badge tone="amber" className="shrink-0">
                             Unreleased
                           </Badge>
                           <span className="text-xs text-muted-foreground shrink-0">
@@ -388,14 +388,14 @@ export default function ReleasesTab() {
                     }
                     // Unreleased with no date
                     return (
-                      <Badge variant="default" className="bg-amber-500 text-white shrink-0">
+                      <Badge tone="amber" className="shrink-0">
                         Unreleased
                       </Badge>
                     );
                   })()}
                   {/* No date warning — solid badge after status, only for undated unreleased */}
                   {!version.releaseDate && !version.released && (
-                    <Badge variant="default" className="shrink-0 bg-orange-500 text-white">
+                    <Badge tone="orange" className="shrink-0">
                       ⚠ No date set
                     </Badge>
                   )}

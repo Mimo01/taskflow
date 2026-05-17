@@ -454,13 +454,9 @@ export default function ReleaseDetailPage() {
               {/* Status badge */}
               <div className="flex items-center gap-2">
                 {version.released ? (
-                  <Badge variant="default" className="bg-green-600 text-white">
-                    Released
-                  </Badge>
+                  <Badge tone="green">Released</Badge>
                 ) : (
-                  <Badge variant="default" className="bg-amber-500 text-white">
-                    Unreleased
-                  </Badge>
+                  <Badge tone="amber">Unreleased</Badge>
                 )}
                 {version.releaseDate && (
                   <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -494,7 +490,7 @@ export default function ReleaseDetailPage() {
                     {labelSummary.map((l) => (
                       <span
                         key={l.label.name}
-                        className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium"
+                        className="inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium"
                         style={{
                           backgroundColor: l.label.color,
                           color: l.label.text_color,
@@ -906,13 +902,9 @@ export default function ReleaseDetailPage() {
 
                 <MetaRow label="Status">
                   {version.released ? (
-                    <Badge variant="default" className="bg-green-600 text-white">
-                      Released
-                    </Badge>
+                    <Badge tone="green">Released</Badge>
                   ) : (
-                    <Badge variant="default" className="bg-amber-500 text-white">
-                      Unreleased
-                    </Badge>
+                    <Badge tone="amber">Unreleased</Badge>
                   )}
                 </MetaRow>
 
