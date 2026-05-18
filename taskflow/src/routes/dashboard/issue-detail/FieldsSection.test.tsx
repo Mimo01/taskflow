@@ -192,7 +192,7 @@ describe('FieldsSection', () => {
     it('renders priority icon img when iconUrl is present', async () => {
       const issue = makeIssue({ priority: { name: 'High', iconUrl: 'http://example.com/icon.svg' } });
       await renderFieldsSection(issue);
-      const img = screen.getByRole('img', { hidden: true });
+      const img = screen.getByTestId('priority-icon');
       expect(img).toBeTruthy();
       expect(img.getAttribute('src')).toBe('http://example.com/icon.svg');
     });
@@ -200,7 +200,7 @@ describe('FieldsSection', () => {
     it('renders priority name text without img when iconUrl is absent', async () => {
       const issue = makeIssue({ priority: { name: 'Low' } });
       await renderFieldsSection(issue);
-      expect(screen.queryByRole('img', { hidden: true })).toBeNull();
+      expect(screen.queryByTestId('priority-icon')).toBeNull();
       expect(screen.getByText('Low')).toBeTruthy();
     });
   });
