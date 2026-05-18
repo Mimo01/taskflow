@@ -115,6 +115,8 @@ export function FieldsSection({
   // Fix version edit state
   const [fixVersionOpen, setFixVersionOpen] = useState(false);
   const activeJiraProject = useAuthStore((s) => s.activeJiraProject);
+  const jiraUsername = useAuthStore((s) => s.jiraUsername);
+  const jiraUserDisplayName = useAuthStore((s) => s.jiraUserDisplayName);
   const versionsQuery = useQuery({
     queryKey: ['jira-fix-versions', activeJiraProject, jiraBaseUrl],
     queryFn: async () => {
@@ -320,6 +322,14 @@ export function FieldsSection({
     mutation.mutate({ fieldName: 'assignee', value: { name: user.name } });
   }
 
+  function handleAssignToMe() {
+    if (!jiraUsername) return;
+    setAssigneeOpen(false);
+    setAssigneeQuery('');
+    setAssigneeResults([]);
+    mutation.mutate({ fieldName: 'assignee', value: { name: jiraUsername } });
+  }
+
   function handleLabelAdd() {
     const trimmed = labelInput.trim();
     if (!trimmed) return;
@@ -428,6 +438,25 @@ export function FieldsSection({
             )}
           </PopoverTrigger>
           <PopoverContent className="w-60 p-2">
+            {jiraUsername && f.assignee?.name !== jiraUsername && (
+              <>
+                <button
+                  data-testid="assignee-assign-to-me"
+                  type="button"
+                  onClick={handleAssignToMe}
+                  className="w-full text-left px-2 py-1 text-xs hover:bg-accent rounded flex items-center gap-1.5"
+                >
+                  <CachedAvatar url={null} name={jiraUserDisplayName ?? jiraUsername} size={20} />
+                  <span>
+                    Assign to me
+                    {jiraUserDisplayName && (
+                      <span className="text-muted-foreground ml-1">({jiraUserDisplayName})</span>
+                    )}
+                  </span>
+                </button>
+                <div className="border-b my-1" />
+              </>
+            )}
             <Input
               placeholder="Search users..."
               value={assigneeQuery}
