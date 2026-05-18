@@ -63,6 +63,34 @@ describe('tryInternalPath — Jira browse URLs', () => {
     ).toBeNull();
   });
 
+  it('handles Jira with context path (e.g. company.com/jira)', () => {
+    expect(
+      tryInternalPath('https://company.com/jira/browse/PROJ-1', {
+        ...JIRA_CTX,
+        jiraBaseUrl: 'https://company.com/jira',
+      }),
+    ).toBe('/issue/PROJ-1');
+  });
+
+  it('handles Jira with context path and trailing slash on baseUrl', () => {
+    expect(
+      tryInternalPath('https://company.com/jira/browse/PROJ-1', {
+        ...JIRA_CTX,
+        jiraBaseUrl: 'https://company.com/jira/',
+      }),
+    ).toBe('/issue/PROJ-1');
+  });
+
+  it('returns null for Jira URL that matches origin but not context path', () => {
+    // jiraBaseUrl has /jira context path but href uses /other prefix
+    expect(
+      tryInternalPath('https://company.com/other/browse/PROJ-1', {
+        ...JIRA_CTX,
+        jiraBaseUrl: 'https://company.com/jira',
+      }),
+    ).toBeNull();
+  });
+
   it('returns null for Jira non-browse URL (e.g. /secure/attachment)', () => {
     expect(
       tryInternalPath('https://jira.example.com/secure/attachment/123/file.png', JIRA_CTX),
