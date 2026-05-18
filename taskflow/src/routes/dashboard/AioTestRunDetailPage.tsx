@@ -1,14 +1,18 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, FileQuestion, FlaskConical } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, BookOpen, Bug, CheckSquare, CornerDownRight, FileQuestion, FlaskConical } from 'lucide-react';
+import { NavLink, useNavigate, useParams } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
+import { Skeleton } from '@/components/ui/skeleton';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { normalizeStatusLabel } from '@/lib/aioUtils';
-import { aioRunStatusPillClass } from '@/lib/statusStyles';
+import { aioRunStatusPillClass, statusPillClass } from '@/lib/statusStyles';
 import type { AioTestRun, AioTestRunStep } from '@/services/aio';
 import { fetchAioTestRunDetail } from '@/services/aio';
+import { fetchJiraIssueByKey } from '@/services/jira';
+import type { JiraIssue } from '@/services/jira/types';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { AioCycleDetailSkeleton } from './AioCycleDetailSkeleton';
@@ -21,6 +25,127 @@ function formatDate(iso: string | undefined): string {
   } catch {
     return iso;
   }
+}
+
+function IssueTypeIcon({ typeName }: { typeName: string }) {
+  const cls = 'w-3.5 h-3.5 shrink-0';
+  switch (typeName) {
+    case 'Bug':
+      return <Bug className={`${cls} text-red-500`} />;
+    case 'Story':
+      return <BookOpen className={`${cls} text-green-600`} />;
+    case 'Subtask':
+    case 'Sub-task':
+      return <CornerDownRight className={`${cls} text-blue-500`} />;
+    case 'Epic':
+      return <BookOpen className={`${cls} text-purple-500`} />;
+    default:
+      return <CheckSquare className={`${cls} text-blue-500`} />;
+  }
+}
+
+function DefectRow({
+  defectId,
+  issue,
+  isLoading,
+}: {
+  defectId: string;
+  issue: JiraIssue | null;
+  isLoading: boolean;
+}) {
+  const displayKey = issue?.key ?? defectId;
+  const linkTarget = `/issue/${displayKey}`;
+
+  const severityValue =
+    issue?.fields.customfield_13415?.value ?? issue?.fields.customfield_13415?.name ?? null;
+
+  return (
+    <tr className="border-t border-border align-top">
+      <td className="px-3 py-2 font-mono text-sm">
+        <div className="flex items-center gap-1.5">
+          {issue?.fields.issuetype?.name !== undefined && (
+            <IssueTypeIcon typeName={issue.fields.issuetype.name} />
+          )}
+          <NavLink to={linkTarget} className="hover:underline">
+            {displayKey}
+          </NavLink>
+        </div>
+      </td>
+      <td className="px-3 py-2 text-sm">
+        {isLoading ? (
+          <Skeleton className="h-4 w-32" />
+        ) : (
+          <span>{issue?.fields.summary ?? displayKey}</span>
+        )}
+      </td>
+      <td className="px-3 py-2">
+        {issue?.fields.status ? (
+          <span className={statusPillClass(issue.fields.status.statusCategory?.key)}>
+            {issue.fields.status.name}
+          </span>
+        ) : isLoading ? (
+          <Skeleton className="h-4 w-16" />
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </td>
+      <td className="px-3 py-2 text-xs text-muted-foreground">
+        {isLoading ? (
+          <Skeleton className="h-4 w-20" />
+        ) : issue?.fields.assignee ? (
+          <div className="flex items-center gap-1.5">
+            <CachedAvatar
+              url={issue.fields.assignee.avatarUrls['48x48']}
+              name={issue.fields.assignee.displayName}
+              size={20}
+            />
+            <span className="truncate max-w-[120px]">{issue.fields.assignee.displayName}</span>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </td>
+      <td className="px-3 py-2 text-xs text-muted-foreground">
+        {isLoading ? (
+          <Skeleton className="h-4 w-20" />
+        ) : issue?.fields.reporter ? (
+          <div className="flex items-center gap-1.5">
+            <CachedAvatar
+              url={issue.fields.reporter.avatarUrls['48x48']}
+              name={issue.fields.reporter.displayName}
+              size={20}
+            />
+            <span className="truncate max-w-[120px]">{issue.fields.reporter.displayName}</span>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </td>
+      <td className="px-3 py-2 text-xs text-muted-foreground">
+        {isLoading ? (
+          <Skeleton className="h-4 w-16" />
+        ) : issue?.fields.priority ? (
+          <div className="flex items-center gap-1.5">
+            {issue.fields.priority.iconUrl && (
+              <img src={issue.fields.priority.iconUrl} alt="" className="w-3.5 h-3.5 shrink-0" />
+            )}
+            <span>{issue.fields.priority.name}</span>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </td>
+      <td className="px-3 py-2 text-xs text-muted-foreground">
+        {isLoading ? (
+          <Skeleton className="h-4 w-16" />
+        ) : severityValue ? (
+          <span>{severityValue}</span>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </td>
+    </tr>
+  );
 }
 
 /**
@@ -60,6 +185,18 @@ export default function AioTestRunDetailPage() {
   });
 
   const showSkeleton = useDelayedLoading(detailQuery.isLoading);
+
+  // Derive defect IDs as strings from the run data
+  const defectIds = (detailQuery.data?.run.jiraDefectIDs ?? []).map(String);
+
+  // Per-defect issue resolution via useQueries — same pattern as AioCycleDetailPage
+  const issueQueries = useQueries({
+    queries: defectIds.map((defectId) => ({
+      queryKey: ['jira', jiraBaseUrl, 'issue-lightweight', defectId],
+      queryFn: () => fetchJiraIssueByKey(jiraBaseUrl!, token!, defectId),
+      enabled: !!jiraBaseUrl && !!token && !tokenLoading,
+    })),
+  });
 
   if (!projectKey || !cycleKey || !runId) {
     return (
@@ -226,6 +363,38 @@ export default function AioTestRunDetailPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Defects section — only rendered when this run has linked defect IDs */}
+            {defectIds.length > 0 && (
+              <div data-testid="aio-run-defects-section">
+                <h2 className="text-sm font-semibold mb-2">Defects</h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border border-border rounded-md">
+                    <thead className="bg-muted/30">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Key</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Title</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Status</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Assignee</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Reporter</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Priority</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Severity</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {defectIds.map((defectId, i) => (
+                        <DefectRow
+                          key={defectId}
+                          defectId={defectId}
+                          issue={(issueQueries[i]?.data ?? null) as JiraIssue | null}
+                          isLoading={issueQueries[i]?.isLoading ?? false}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
