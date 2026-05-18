@@ -14,13 +14,45 @@ import { AIO_STATUS_MAP, normalizeStatus, normalizeStatusLabel } from '@/lib/aio
 import { STATUS_PILL_LAYOUT_CLASS, aioCycleStatusPillClass, aioRunStatusPillClass } from '@/lib/statusStyles';
 import type { AioCycle, AioCycleSummaryItem, AioTestRun } from '@/services/aio';
 import { fetchAioCycleDetail, fetchAioCycleSummaries, fetchAioCycleTestCasesWithRuns } from '@/services/aio';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { fetchJiraIssueByKey } from '@/services/jira';
 import { fetchJiraProjectNumericId } from '@/services/jira/projects';
-import type { JiraIssue } from '@/services/jira/types';
+import type { JiraAssignableUser, JiraIssue } from '@/services/jira/types';
+import { fetchJiraUserByUsername } from '@/services/jira/users';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { AioCycleDetailSkeleton } from './AioCycleDetailSkeleton';
+
+function AssigneeCell({
+  assignedToID,
+  jiraBaseUrl,
+  token,
+}: {
+  assignedToID: string;
+  jiraBaseUrl: string | undefined;
+  token: string | null;
+}) {
+  const { data: user, isLoading } = useQuery<JiraAssignableUser | null>({
+    queryKey: ['jira', jiraBaseUrl, 'user-by-username', assignedToID],
+    queryFn: () => fetchJiraUserByUsername(jiraBaseUrl!, token!, assignedToID),
+    enabled: !!jiraBaseUrl && !!token && !!assignedToID,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  if (isLoading) return <Skeleton className="h-4 w-20" />;
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <CachedAvatar
+        url={user?.avatarUrls?.['48x48']}
+        name={user?.displayName ?? assignedToID}
+        size={20}
+      />
+      <span className="truncate max-w-[80px]">{user?.displayName ?? assignedToID}</span>
+    </div>
+  );
+}
 
 const CHIPS = [
   { status: 'NOT_EXECUTED', label: 'Not Run' },
@@ -543,8 +575,16 @@ export default function AioCycleDetailPage() {
                       <td className="px-3 py-3 text-xs text-muted-foreground">
                         {run.runCount ?? '—'}
                       </td>
-                      <td className="px-3 py-3 text-xs text-muted-foreground font-mono">
-                        {run.assignedToID ?? '—'}
+                      <td className="px-3 py-3 text-xs text-muted-foreground">
+                        {run.assignedToID ? (
+                          <AssigneeCell
+                            assignedToID={run.assignedToID}
+                            jiraBaseUrl={jiraBaseUrl ?? undefined}
+                            token={token}
+                          />
+                        ) : (
+                          <span>—</span>
+                        )}
                       </td>
                       <td className="px-3 py-3 text-xs text-muted-foreground">
                         {(() => {
