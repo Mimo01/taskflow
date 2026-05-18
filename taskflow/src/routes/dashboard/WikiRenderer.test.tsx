@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { JIRA_EMOTICON_MAP, injectHeaderlessTableSeparators, mergeOpenTableRows, WikiRenderer } from './WikiRenderer';
+import { JIRA_EMOTICON_MAP, injectHeaderlessTableSeparators, mergeOpenTableRows, splitInlineSingleLineTables, WikiRenderer } from './WikiRenderer';
 
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-token'),
@@ -1334,6 +1334,265 @@ describe('WikiRenderer', () => {
       );
       expect(container.textContent).toContain('No color here');
       expect(container.querySelector('span[style]')).toBeNull();
+    });
+  });
+
+  // --- Inline single-line table expansion (table-not-render-issue-detail) ---
+  //
+  // Some Jira issues have table rows collapsed onto a single line — no `\n`
+  // between rows. The entire heading, header cells, GFM separator (|---|---|),
+  // and data rows appear space-separated on one source line. Neither
+  // mergeOpenTableRows nor injectHeaderlessTableSeparators can handle this
+  // because both are line-based and the line does not start with `|`.
+  //
+  // `splitInlineSingleLineTables` detects a multi-column inline separator row
+  // (|---|---| preceded by a space) and reconstructs proper multi-line form.
+  describe('inline single-line table expansion (table-not-render-issue-detail)', () => {
+    // Verbatim failing input from the bug report.
+    const FAILING_FIXTURE =
+      '## Novy system sa bude nazyvat LST - Local Sales Tool | | | | | | | | | | | | | | | | | | | | | | |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---| |**Nazov systemu*|*Odkial ma data*|*Kto kalkuluje offer*|*Kto zobrazuje offer**| |Mpc|*Mpc_|_Noe_|_Noe*| |Ost|*Ost_|_Ost_|_Noe*| |Lst|*Noe_|_Noe_|_Noe*|';
+
+    it('splitInlineSingleLineTables — splits the verbatim bug fixture into separate lines', () => {
+      const result = splitInlineSingleLineTables(FAILING_FIXTURE);
+      const lines = result.split('\n');
+
+      // The single line must be split into at least 3 lines:
+      // prefix, header row, separator row, and at least one data row.
+      expect(lines.length).toBeGreaterThanOrEqual(4);
+
+      // Separator row must be on its own line (starts with | and all cells are dashes).
+      const sepLine = lines.find((l) => /^\|(?::?-+:?\|)+$/.test(l.trim()));
+      expect(sepLine).toBeDefined();
+
+      // Header prefix (heading text) must be on its own line.
+      const headingLine = lines.find((l) => l.includes('Novy system'));
+      expect(headingLine).toBeDefined();
+      // Heading line must NOT contain the separator row pattern.
+      expect(headingLine).not.toMatch(/\|---/);
+
+      // Data rows must be present as separate lines starting with |.
+      const dataLines = lines.filter((l) => l.trim().startsWith('|') && !/^\|(?::?-+:?\|)+$/.test(l.trim()));
+      expect(dataLines.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('splitInlineSingleLineTables — leaves normal multi-line tables unchanged', () => {
+      const normal = 'h2. Heading\n||col1||col2||\n|a|b|\n|c|d|';
+      expect(splitInlineSingleLineTables(normal)).toBe(normal);
+    });
+
+    it('splitInlineSingleLineTables — leaves regular prose unchanged (no false positive)', () => {
+      const prose = 'This text has dashes --- and pipes | but no inline table separator';
+      expect(splitInlineSingleLineTables(prose)).toBe(prose);
+    });
+
+    it('splitInlineSingleLineTables — single |---| does not trigger (requires 2+ separator cells)', () => {
+      const singleSep = 'Some text |---| more text';
+      expect(splitInlineSingleLineTables(singleSep)).toBe(singleSep);
+    });
+
+    it('splitInlineSingleLineTables — leaves lines already starting with | unchanged', () => {
+      const tableRow = '| cell1 | cell2 |';
+      expect(splitInlineSingleLineTables(tableRow)).toBe(tableRow);
+    });
+
+    it('splitInlineSingleLineTables — two-cell inline table (minimal valid case)', () => {
+      const input = 'Heading text | h1 | h2 | |---|---| |d1|d2| |d3|d4|';
+      const result = splitInlineSingleLineTables(input);
+      const lines = result.split('\n');
+
+      expect(lines.length).toBeGreaterThanOrEqual(3);
+      // Separator present as its own line.
+      expect(lines.some((l) => /^\|---\|---\|$/.test(l.trim()))).toBe(true);
+    });
+
+    it('WikiRenderer renders the verbatim bug fixture as an HTML table (end-to-end fix)', () => {
+      const { container } = render(<WikiRenderer wikiText={FAILING_FIXTURE} />);
+
+      // The table must be rendered — not shown as raw pipe text.
+      const table = container.querySelector('table');
+      expect(table).not.toBeNull();
+
+      // Data rows contain cell content from the fixture.
+      const allText = table?.textContent ?? '';
+      expect(allText).toContain('Mpc');
+      expect(allText).toContain('Ost');
+      expect(allText).toContain('Lst');
+    });
+
+    it('WikiRenderer — plain prose with a single |---| (regression: must not trigger split)', () => {
+      // A sentence like "score |---| range" must not be mangled into a table.
+      const { container } = render(<WikiRenderer wikiText="Score |---| range: 1 to 10" />);
+      expect(container.querySelector('table')).toBeNull();
+      expect(container.textContent).toContain('Score');
+      expect(container.textContent).toContain('range');
+    });
+  });
+
+  // --- Jira bold/italic in table cells (table-not-render-issue-detail, cycle 2) ---
+  //
+  // Jira tables that use |*bold*| and |_italic_| syntax in data cells (single-pipe
+  // rows) are corrupted by jira2md's greedy bold/italic regexes, which match across
+  // cell-separator | characters. normalizeTableCellInlineFormatting converts the
+  // markers per-cell before jira2md runs, preventing cross-boundary pairing.
+  describe('table cell bold/italic normalization (table-not-render-issue-detail cycle-2)', () => {
+    // Verbatim actual Jira source from the bug report (multi-line, with image macros).
+    const ACTUAL_JIRA_SOURCE = [
+      'h1. Vysledok analyzy',
+      'h2. Strucny popis aktualneho stavu',
+      '',
+      'Mame 3 systemy v eshope: Mpc, Ost, Rework',
+      '',
+      '!aktualny-stav.png|width=899,height=770!',
+      'h2. Chceny stav',
+      '',
+      'Chceme novy system...',
+      '',
+      '!checkouty.png|width=851,height=718!',
+      'h2. Novy system sa bude nazyvat LST - Local Sales Tool',
+      '|*Nazov systemu*|*Odkial ma data*|*Kto kalkuluje offer*|*Kto zobrazuje offer*|',
+      '|Mpc|_Mpc_|_Noe_|_Noe_|',
+      '|Ost|_Ost_|_Ost_|_Noe_|',
+      '|Lst|_Noe_|_Noe_|_Noe_|',
+    ].join('\n');
+
+    it('renders a Jira table with *bold* headers after image macros as an HTML table', () => {
+      const { container } = render(<WikiRenderer wikiText={ACTUAL_JIRA_SOURCE} />);
+
+      // The table must be rendered as an actual HTML table.
+      const table = container.querySelector('table');
+      expect(table).not.toBeNull();
+
+      // All data rows must appear in the table.
+      const allText = table?.textContent ?? '';
+      expect(allText).toContain('Mpc');
+      expect(allText).toContain('Ost');
+      expect(allText).toContain('Lst');
+      expect(allText).toContain('Noe');
+    });
+
+    it('bold header row cells render as <strong> elements within table cells', () => {
+      const { container } = render(<WikiRenderer wikiText={ACTUAL_JIRA_SOURCE} />);
+      const table = container.querySelector('table');
+      expect(table).not.toBeNull();
+
+      // At least one strong element must exist — from *Nazov systemu* etc.
+      const strong = table?.querySelector('strong');
+      expect(strong).not.toBeNull();
+    });
+
+    it('italic data cells render as <em> elements (not raw asterisks)', () => {
+      // A simpler fixture: one row with italic cells.
+      const fixture = [
+        '||Header A||Header B||',
+        '|_italic value_|plain|',
+      ].join('\n');
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const table = container.querySelector('table');
+      expect(table).not.toBeNull();
+
+      // em element must exist inside the table.
+      const em = table?.querySelector('em');
+      expect(em).not.toBeNull();
+      expect(em?.textContent).toBe('italic value');
+
+      // Must NOT contain raw asterisks from jira2md bold corruption.
+      const allText = table?.textContent ?? '';
+      expect(allText).not.toContain('*italic');
+    });
+
+    it('bold in table cells renders as <strong> (not cross-cell bleed)', () => {
+      // Without the fix, |*A*|*B*| becomes |**A*|*B**| — two "cells" with broken
+      // bold syntax and no true cell separation. With the fix, each cell is
+      // independently converted: |**A**|**B**|.
+      const fixture = [
+        '||Col1||Col2||',
+        '|*Alpha*|*Beta*|',
+      ].join('\n');
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const table = container.querySelector('table');
+      expect(table).not.toBeNull();
+
+      // Both bold cells must render as individual <strong> elements.
+      const strongs = table?.querySelectorAll('strong');
+      expect(strongs?.length).toBeGreaterThanOrEqual(2);
+
+      // Text content of both bold cells must be correct.
+      const boldTexts = Array.from(strongs ?? []).map((s) => s.textContent);
+      expect(boldTexts).toContain('Alpha');
+      expect(boldTexts).toContain('Beta');
+    });
+
+    it('image macros with dimension options do not break content after them', () => {
+      // !filename.png|width=N,height=N! — the | inside the options must not be
+      // treated as a table cell separator or interfere with surrounding content.
+      const fixture = [
+        'Before image',
+        '!diagram.png|width=800,height=600!',
+        'After image text',
+      ].join('\n');
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      // "Before image" and "After image text" must both be visible.
+      expect(container.textContent).toContain('Before image');
+      expect(container.textContent).toContain('After image text');
+      // No table should be created from the image options.
+      expect(container.querySelector('table')).toBeNull();
+    });
+
+    it('content between two image macros on separate lines is not swallowed', () => {
+      // Regression: /!([^!\n]+?)(?:\|[^!]*)?!/g with [^!]* (no \n exclusion) was
+      // greedy across newlines — consuming everything between the first ! and the
+      // closing ! of the second macro, silently dropping all content in between.
+      const fixture = [
+        '!first.png|width=899,height=770!',
+        'h2. Section between images',
+        '',
+        'Some paragraph text here.',
+        '',
+        '!second.png|width=851,height=718!',
+        'h2. Section after second image',
+      ].join('\n');
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      expect(container.textContent).toContain('Section between images');
+      expect(container.textContent).toContain('Some paragraph text here');
+      expect(container.textContent).toContain('Section after second image');
+    });
+
+    it('CRLF line endings (Jira Server) do not break table or post-image content', () => {
+      // Jira Server/Data Center returns descriptions with \r\n line endings.
+      // mergeOpenTableRows splits by \n and checks trimmedRight.endsWith('|'), but
+      // \r left on line endings caused endsWithPipe to always be false — making
+      // every table row appear "open" and causing mergeOpenTableRows to consume
+      // up to 50 subsequent lines into one row, swallowing all content after it.
+      const CRLF = '\r\n';
+      const fixture = [
+        'h2. Section before image',
+        '!photo.png|width=800,height=600!',
+        'h2. Section after image',
+        'Some text after the image.',
+        '|*Col A*|*Col B*|',
+        '|val1|val2|',
+      ].join(CRLF);
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      expect(container.textContent).toContain('Section before image');
+      expect(container.textContent).toContain('Section after image');
+      expect(container.textContent).toContain('Some text after the image');
+      const table = container.querySelector('table');
+      expect(table).not.toBeNull();
+      expect(table?.textContent).toContain('val1');
+      expect(table?.textContent).toContain('val2');
+    });
+
+    it('resolved attachment <img> does not swallow the heading immediately after it', () => {
+      // jira2md heading conversion adds no blank lines. <img> on its own line with
+      // only one \n before the next heading starts a CommonMark HTML block that
+      // absorbs the heading. Fix: preprocessor appends \n to every <img> it emits.
+      const attachments = { 'diagram.png': 'https://jira.example.com/secure/attachment/1/diagram.png' };
+      const fixture = ['!diagram.png!', 'h2. Section After Image', '', 'Paragraph under section.'].join('\n');
+      const { container } = render(<WikiRenderer wikiText={fixture} attachments={attachments} />);
+      const headings = container.querySelectorAll('h2');
+      expect(headings.length).toBeGreaterThanOrEqual(1);
+      expect(Array.from(headings).some((h) => h.textContent?.includes('Section After Image'))).toBe(true);
+      expect(container.textContent).toContain('Paragraph under section');
     });
   });
 });
