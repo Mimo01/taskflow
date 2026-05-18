@@ -1445,7 +1445,7 @@ export async function fetchProjectStatuses(
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/project/${projectKey}/statuses`;
   const response = await apiFetch('jira', url, {
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-  }, 'Create/Edit Issue');
+  }, 'Load Board');
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError('Failed to fetch project statuses', response.status, 'jira');
