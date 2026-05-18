@@ -444,17 +444,14 @@ export function FieldsSection({
                   data-testid="assignee-assign-to-me"
                   type="button"
                   onClick={handleAssignToMe}
-                  className="w-full text-left px-2 py-1 text-xs hover:bg-accent rounded flex items-center gap-1.5"
+                  className="text-left px-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
                 >
-                  <CachedAvatar url={null} name={jiraUserDisplayName ?? jiraUsername} size={20} />
-                  <span>
-                    Assign to me
-                    {jiraUserDisplayName && (
-                      <span className="text-muted-foreground ml-1">({jiraUserDisplayName})</span>
-                    )}
-                  </span>
+                  Assign to me →
+                  {jiraUserDisplayName && (
+                    <span className="text-muted-foreground ml-1">({jiraUserDisplayName})</span>
+                  )}
                 </button>
-                <div className="border-b my-1" />
+                <div className="border-b border-border/40 my-2" />
               </>
             )}
             <Input
