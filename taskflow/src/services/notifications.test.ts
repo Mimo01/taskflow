@@ -373,6 +373,333 @@ describe('notifications service', () => {
     });
   });
 
+  describe('NOTF-self-author filter — Jira', () => {
+    it('filters out self: Query A — changelog authored by current user is skipped', async () => {
+      // History entry where the CURRENT user (John Doe) made the change — should be suppressed
+      const issueUpdatesResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          issues: [
+            {
+              key: 'PROJ-100',
+              fields: {
+                summary: 'Self-change issue',
+                status: { name: 'In Progress' },
+                assignee: { displayName: 'John Doe' },
+                reporter: { displayName: 'John Doe' },
+                updated: '2026-03-12T10:00:00.000Z',
+              },
+              changelog: {
+                histories: [
+                  {
+                    created: '2026-03-12T10:00:00.000Z',
+                    author: { displayName: 'John Doe' }, // current user
+                    items: [{ field: 'status', fromString: 'To Do', toString: 'In Progress' }],
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      };
+      const empty = { ok: true, status: 200, json: async () => ({ issues: [] }) };
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(issueUpdatesResp as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response);
+
+      const result = await fetchNewNotifications(
+        'https://jira.example.com',
+        null,
+        { jira: 'jira-token', gitlab: null },
+        {
+          activeJiraProject: 'PROJ',
+          jiraUserDisplayName: 'John Doe',
+          jiraUsername: 'jdoe',
+          gitlabUserId: null,
+          gitlabUsername: null,
+          mrList: [],
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
+        },
+      );
+
+      expect(result).toHaveLength(0);
+    });
+
+    it('passes through: Query A — changelog authored by someone else still produces notification', async () => {
+      const issueUpdatesResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          issues: [
+            {
+              key: 'PROJ-101',
+              fields: {
+                summary: 'Other-change issue',
+                status: { name: 'In Progress' },
+                assignee: { displayName: 'John Doe' },
+                reporter: { displayName: 'John Doe' },
+                updated: '2026-03-12T10:00:00.000Z',
+              },
+              changelog: {
+                histories: [
+                  {
+                    created: '2026-03-12T10:00:00.000Z',
+                    author: { displayName: 'Alice' }, // someone else
+                    items: [{ field: 'status', fromString: 'To Do', toString: 'In Progress' }],
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      };
+      const empty = { ok: true, status: 200, json: async () => ({ issues: [] }) };
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(issueUpdatesResp as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response);
+
+      const result = await fetchNewNotifications(
+        'https://jira.example.com',
+        null,
+        { jira: 'jira-token', gitlab: null },
+        {
+          activeJiraProject: 'PROJ',
+          jiraUserDisplayName: 'John Doe',
+          jiraUsername: 'jdoe',
+          gitlabUserId: null,
+          gitlabUsername: null,
+          mrList: [],
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
+        },
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toMatch(/^jira-issue-/);
+      expect(result[0].author).toBe('Alice');
+    });
+
+    it('filters out self: Query A — self-assignment (user assigns themselves) is skipped', async () => {
+      const issueUpdatesResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          issues: [
+            {
+              key: 'PROJ-102',
+              fields: {
+                summary: 'Self-assign issue',
+                status: { name: 'To Do' },
+                assignee: { displayName: 'John Doe' },
+                reporter: { displayName: 'John Doe' },
+                updated: '2026-03-12T10:00:00.000Z',
+              },
+              changelog: {
+                histories: [
+                  {
+                    created: '2026-03-12T10:00:00.000Z',
+                    author: { displayName: 'John Doe' }, // current user assigns themselves
+                    items: [{ field: 'assignee', fromString: null, toString: 'John Doe' }],
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      };
+      const empty = { ok: true, status: 200, json: async () => ({ issues: [] }) };
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(issueUpdatesResp as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response);
+
+      const result = await fetchNewNotifications(
+        'https://jira.example.com',
+        null,
+        { jira: 'jira-token', gitlab: null },
+        {
+          activeJiraProject: 'PROJ',
+          jiraUserDisplayName: 'John Doe',
+          jiraUsername: 'jdoe',
+          gitlabUserId: null,
+          gitlabUsername: null,
+          mrList: [],
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
+        },
+      );
+
+      // No jira-assign-* and no jira-issue-* should be emitted
+      expect(result.filter((r) => r.id.startsWith('jira-assign-'))).toHaveLength(0);
+      expect(result.filter((r) => r.id.startsWith('jira-issue-'))).toHaveLength(0);
+    });
+
+    it('passes through: Query A — assignment by someone else still produces jira-assign notification', async () => {
+      const issueUpdatesResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          issues: [
+            {
+              key: 'PROJ-103',
+              fields: {
+                summary: 'Assigned by Alice',
+                status: { name: 'To Do' },
+                assignee: { displayName: 'John Doe' },
+                reporter: { displayName: 'Alice' },
+                updated: '2026-03-12T10:00:00.000Z',
+              },
+              changelog: {
+                histories: [
+                  {
+                    created: '2026-03-12T10:00:00.000Z',
+                    author: { displayName: 'Alice' }, // someone else assigns
+                    items: [{ field: 'assignee', fromString: null, toString: 'John Doe' }],
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      };
+      const empty = { ok: true, status: 200, json: async () => ({ issues: [] }) };
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(issueUpdatesResp as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response)
+        .mockResolvedValueOnce(empty as unknown as Response);
+
+      const result = await fetchNewNotifications(
+        'https://jira.example.com',
+        null,
+        { jira: 'jira-token', gitlab: null },
+        {
+          activeJiraProject: 'PROJ',
+          jiraUserDisplayName: 'John Doe',
+          jiraUsername: 'jdoe',
+          gitlabUserId: null,
+          gitlabUsername: null,
+          mrList: [],
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
+        },
+      );
+
+      expect(result.filter((r) => r.id.startsWith('jira-assign-'))).toHaveLength(1);
+    });
+
+    it('filters out self: Query C — self comment skipped via displayName', async () => {
+      const allCommentsResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          issues: [
+            {
+              key: 'PROJ-104',
+              fields: {
+                summary: 'Self-comment issue',
+                comment: {
+                  comments: [
+                    {
+                      id: 'sc001',
+                      author: { displayName: 'John Doe', name: 'jdoe' },
+                      body: 'My own comment',
+                      updated: '2026-03-12T10:00:00.000Z',
+                      created: '2026-03-12T10:00:00.000Z',
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        }),
+      };
+      const empty = { ok: true, status: 200, json: async () => ({ issues: [] }) };
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(empty as unknown as Response) // Query A
+        .mockResolvedValueOnce(empty as unknown as Response) // Query B
+        .mockResolvedValueOnce(allCommentsResp as unknown as Response) // Query C
+        .mockResolvedValueOnce(empty as unknown as Response); // Query D
+
+      const result = await fetchNewNotifications(
+        'https://jira.example.com',
+        null,
+        { jira: 'jira-token', gitlab: null },
+        {
+          activeJiraProject: 'PROJ',
+          jiraUserDisplayName: 'John Doe',
+          jiraUsername: 'jdoe',
+          gitlabUserId: null,
+          gitlabUsername: null,
+          mrList: [],
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
+        },
+      );
+
+      expect(result.filter((r) => r.id.startsWith('jira-allcomment-'))).toHaveLength(0);
+    });
+
+    it('filters out self: Query C — self comment skipped when displayName is null but username matches author.name', async () => {
+      const allCommentsResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          issues: [
+            {
+              key: 'PROJ-105',
+              fields: {
+                summary: 'Self-comment fallback issue',
+                comment: {
+                  comments: [
+                    {
+                      id: 'sc002',
+                      author: { displayName: 'John Doe', name: 'jdoe' },
+                      body: 'My own comment via username fallback',
+                      updated: '2026-03-12T10:00:00.000Z',
+                      created: '2026-03-12T10:00:00.000Z',
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        }),
+      };
+      const empty = { ok: true, status: 200, json: async () => ({ issues: [] }) };
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(empty as unknown as Response) // Query A
+        .mockResolvedValueOnce(empty as unknown as Response) // Query B
+        .mockResolvedValueOnce(allCommentsResp as unknown as Response) // Query C
+        .mockResolvedValueOnce(empty as unknown as Response); // Query D
+
+      const result = await fetchNewNotifications(
+        'https://jira.example.com',
+        null,
+        { jira: 'jira-token', gitlab: null },
+        {
+          activeJiraProject: 'PROJ',
+          jiraUserDisplayName: null, // null — must fall back to username check
+          jiraUsername: 'jdoe',
+          gitlabUserId: null,
+          gitlabUsername: null,
+          mrList: [],
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
+        },
+      );
+
+      expect(result.filter((r) => r.id.startsWith('jira-allcomment-'))).toHaveLength(0);
+    });
+  });
+
   describe('QUICK-19: broadened Jira notifications — assignee/reporter/watcher', () => {
     it('returns items for issues where jiraUsername matches assignee', async () => {
       // Query A: assignee/reporter/watcher issues (with changelog for change detection)
