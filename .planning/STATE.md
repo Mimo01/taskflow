@@ -115,10 +115,11 @@ None.
 | 260518-ot8 | On AIO execution detail I also want to see the run's defects | 2026-05-18 | ebac1569 | [260518-ot8-on-aio-execution-detail-i-also-want-to-s](./quick/260518-ot8-on-aio-execution-detail-i-also-want-to-s/) |
 | 260518-p45 | On AIO execution detail defects table make the whole row clickable to issue detail | 2026-05-18 | e62b1b99 | [260518-p45-on-aio-execution-detail-defects-table-ma](./quick/260518-p45-on-aio-execution-detail-defects-table-ma/) |
 | 260518-pq2 | In the app when link to jira or gitlab is rendered, first try to link it to the app itself. Example would be https://jira.exmpla.com/browse/PROJ-12345 going to issue detail | 2026-05-18 | 9e93b8b6 | [260518-pq2-in-the-app-when-link-to-jira-or-gitlab-i](./quick/260518-pq2-in-the-app-when-link-to-jira-or-gitlab-i/) |
+| 260518-qw8 | When navigating in-app from a rendered Jira or GitLab link, add the source page to breadcrumbs so the user can go back | 2026-05-18 | 61da08d0 | [260518-qw8-when-navigating-in-app-from-a-rendered-j](./quick/260518-qw8-when-navigating-in-app-from-a-rendered-j/) |
 
 ## Session Continuity
 
-Last activity: 2026-05-18 - Completed quick task 260518-pq2: In the app when link to jira or gitlab is rendered, first try to link it to the app itself
+Last activity: 2026-05-18 - Completed quick task 260518-qw8: When navigating in-app from a rendered Jira or GitLab link, add the source page to breadcrumbs so the user can go back
 
 Last session: 2026-05-15
 Stopped at: Phase 57 UAT approved — milestone v1.8 complete
