@@ -1,8 +1,8 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "Gap 3 — Nested wiki ({panel} with embedded [name|url] list) — images work but layout is still kind of broken. Table doesn't break mid-table any more, but the panel is not rendered in one cell of the table — it overflows and breaks layout in the section where it is located."
 created: 2026-05-14T20:30:00Z
-updated: 2026-05-14T20:45:00Z
+updated: 2026-05-18T00:00:00Z
 ---
 
 ## Current Focus
@@ -90,5 +90,7 @@ fix: Apply ONE of (in order of least to most invasive):
   2. **Constrain the outer step-table cell width AND tell inner tables to wrap.** In AioTestRunsSection.tsx's StepTable, wrap each WikiRenderer cell in `<div className="min-w-0 overflow-x-auto">` so the outer cell's flex/grid context lets it contract and scroll. Optionally add `table-fixed` + cell `break-words` to the inner table.
   3. **Force inline-only rendering for panels inside tables (no padding/margin).** Modify the `span data-callout` component override (line 284) to use a SLIM inline style (`px-1 border-l-2`) when the parent is a table cell — but React-markdown doesn't expose parent context easily, so this requires a context-aware wrapper or a different `data-callout` value (e.g. `data-callout="panel-inline"`) emitted by `flattenInlineCalloutsForTableRow`. More invasive.
   Recommended: **Fix 1 (table-wrap in WikiRenderer)** + **Fix 2 (min-w-0 around WikiRenderer in StepTable)**. Together they make the inner table scroll horizontally inside its outer column without breaking layout. Fix 3 is nice-to-have for visual polish but not required.
-verification: pending
-files_changed: []
+verification: confirmed — both fixes present in codebase
+files_changed:
+  - taskflow/src/routes/dashboard/WikiRenderer.tsx (markdownComponents.table override with overflow-x-auto wrapper)
+  - taskflow/src/routes/dashboard/issue-detail/AioTestRunsSection.tsx (min-w-0 on StepTable td cells)

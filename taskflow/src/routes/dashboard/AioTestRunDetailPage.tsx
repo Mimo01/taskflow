@@ -1,6 +1,6 @@
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, BookOpen, Bug, CheckSquare, CornerDownRight, FileQuestion, FlaskConical } from 'lucide-react';
-import { NavLink, useNavigate, useParams } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -181,6 +181,7 @@ export default function AioTestRunDetailPage() {
     runId: string;
   }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const trail = useBreadcrumbStore((s) => s.trail);
   const breadcrumbPop = useBreadcrumbStore((s) => s.pop);
   const { jiraBaseUrl } = useAuthStore();
@@ -194,6 +195,11 @@ export default function AioTestRunDetailPage() {
     } else {
       navigate(`/aio-cycle/${projectKey}/${cycleKey}`, { replace: true });
     }
+  };
+
+  const openDefect = (key: string) => {
+    useBreadcrumbStore.getState().push({ label: `Run ${runId}`, path: location.pathname });
+    navigate(`/issue/${key}`);
   };
 
   const queryClient = useQueryClient();
@@ -410,7 +416,7 @@ export default function AioTestRunDetailPage() {
                           defectId={defectId}
                           issue={(issueQueries[i]?.data ?? null) as JiraIssue | null}
                           isLoading={issueQueries[i]?.isLoading ?? false}
-                          onOpen={(key) => navigate(`/issue/${key}`)}
+                          onOpen={openDefect}
                         />
                       ))}
                     </tbody>

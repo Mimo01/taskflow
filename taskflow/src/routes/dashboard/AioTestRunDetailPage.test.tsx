@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 
@@ -263,5 +264,56 @@ describe('AioTestRunDetailPage', () => {
     });
     // No defects section when jiraDefectIDs is undefined
     expect(screen.queryByTestId('aio-run-defects-section')).toBeNull();
+  });
+
+  it('clicking a defect row pushes the run page onto the breadcrumb trail before navigating', async () => {
+    const { fetchAioTestRunDetail } = await import('@/services/aio');
+    const { fetchJiraIssueByKey } = await import('@/services/jira');
+    (fetchAioTestRunDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
+      run: {
+        id: '263794',
+        status: 'FAIL',
+        testCaseKey: 'ESHOP-TC-8477',
+        cycleKey: 'ESHOP-CY-1011',
+        executedDate: '2026-05-01T10:00:00Z',
+        jiraDefectIDs: [186227],
+      },
+      steps: [],
+    });
+    (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockResolvedValue({
+      key: 'VTE-186227',
+      fields: {
+        summary: 'Login regression',
+        status: { name: 'Open', statusCategory: { key: 'new' } },
+        assignee: null,
+        reporter: null,
+        priority: null,
+        customfield_13415: null,
+        issuetype: { name: 'Bug' },
+      },
+    });
+
+    // Trail is empty — simulates arriving at the run page directly (no prior breadcrumb).
+    useBreadcrumbStore.setState({ trail: [] });
+
+    renderAt('/aio-cycle/ESHOP/ESHOP-CY-1011/run/263794');
+
+    // Wait for the defects section and the resolved defect key to appear.
+    await waitFor(() => {
+      expect(screen.getByTestId('aio-run-defects-section')).toBeTruthy();
+    });
+    await waitFor(() => {
+      expect(screen.getByText('VTE-186227')).toBeTruthy();
+    });
+
+    // Click the defect row (role=button).
+    const defectRow = screen.getByRole('button', { name: 'Open defect VTE-186227' });
+    await userEvent.click(defectRow);
+
+    // The breadcrumb trail must now contain the run page so the user can go back.
+    const trail = useBreadcrumbStore.getState().trail;
+    expect(trail).toHaveLength(1);
+    expect(trail[0].label).toBe('Run 263794');
+    expect(trail[0].path).toMatch(/aio-cycle\/ESHOP\/ESHOP-CY-1011\/run\/263794/);
   });
 });

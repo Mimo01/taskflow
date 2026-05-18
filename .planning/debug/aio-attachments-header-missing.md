@@ -1,8 +1,8 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "UAT Test 2 Gap 2 - AIO attachments collapsible header absent on no-runs ESHOP issue"
 created: 2026-05-14T00:00:00Z
-updated: 2026-05-14T01:00:00Z
+updated: 2026-05-18
 ---
 
 ## Current Focus

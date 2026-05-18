@@ -1,8 +1,8 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "ESHOP issue 393120 shows no executions in AIO test runs section but live traceability endpoint returns 2 impacted executions both in cycle ESHOP-CY-1011 (cycle ID 14041): testRun 263794 (ESHOP-TC-8477) and testRun 263793 (ESHOP-TC-8478)."
 created: 2026-05-13T22:56:00Z
-updated: 2026-05-13T23:00:00Z
+updated: 2026-05-18
 ---
 
 ## Current Focus
@@ -102,31 +102,14 @@ root_cause: |
   or step assignment") was not implemented for the single-cycle case.
 
 fix: |
-  Pending — diagnose-only mode.
+  Option A applied in commit 7a994279 (fix(54-08): widen no-runs path + narrow line-606 guard).
+  - inCycleResults split into withSteps (→ data.runs, StepTable) and withoutSteps (→ data.impactedExecutions, ImpactedExecutionsList).
+  - Old line-606 blanket null-return removed; replaced with graceful third arm ("No executions resolved yet.").
+  - AioAttachmentsGrid rendered unconditionally on all three arms.
 
-  Recommended direction for plan-phase --gaps (any ONE of the three is sufficient):
+verification: confirmed in code — AioTestRunsSection.tsx lines 533-577 (data layer) and lines 706-723 (render layer)
 
-  OPTION A — Widen ImpactedExecutionsList to cover BOTH in-cycle empty-steps and cross-cycle runs.
-    Change: when an in-cycle run's `detail.steps.length === 0` OR detail === null, ALSO push it into impactedExecutions[] (not just data.runs[]).
-    Render rule: ImpactedExecutionsList shown whenever data.runs is empty AND data.impactedExecutions has any rows.
-
-  OPTION B — Drop the `steps.length > 0` filter at line 476; let StepTable render an empty body or a "No step data captured" inline message.
-    Lower complexity, but produces a less informative UI (an empty 4-column table is uglier than a row-per-run list).
-
-  OPTION C — Skip primary-cycle partitioning when only ONE distinct cycle is referenced; route all runs through impactedExecutions[].
-    Simplest, but changes behaviour for single-cycle issues that DO have step content (they would also render via ImpactedExecutionsList instead of StepTable — likely undesirable).
-
-  OPTION A is recommended. It is the smallest behavioural change that satisfies the
-  user's stated truth: "When linked test cases have runs (regardless of cycle or step
-  presence), the section MUST show one row per impacted execution."
-
-  Plan-phase should also add a service-level unit test for fetchAioTraceabilityTestCases
-  in projects.test.ts to lock down the test.detail.key shape assumption AND add a unit
-  test for AioTestRunsSection covering the single-cycle empty-steps scenario (currently
-  there is NO test for this case).
-
-verification: pending — diagnose-only mode
-
-files_changed: []
+files_changed:
+  - taskflow/src/routes/dashboard/issue-detail/AioTestRunsSection.tsx
 </content>
 </invoke>

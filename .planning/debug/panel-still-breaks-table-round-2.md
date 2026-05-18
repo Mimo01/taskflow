@@ -1,5 +1,5 @@
 ---
-status: open
+status: resolved
 session: 2026-05-14T09:25:00Z
 phase: 54-aio-on-issue-detail
 related:
