@@ -3,6 +3,33 @@
 All notable changes to Taskflow are documented here.
 Entries are written by hand for each release.
 
+## [1.8.0] — 2026-05-18
+
+### Added
+
+- **AIO Test Management integration** — connect to an AIO TCMS instance via Settings → Integrations; the Testing sidebar section appears when enabled
+- **AIO project overview** — two-panel layout with recursive folder tree (expand/collapse, per-folder cycle count badges) and a 5-column cycle table driven by the batch summary endpoint with zero N+1 fetches
+- **AIO cycle detail** — execution progress bar decoupled from run list (resolves ~0.4 s faster via batch summary POST); Executions tab with filterable run table and clickable rows; Defects tab with Jira-enriched reporter, assignee, priority, and severity columns
+- **Pin test cycles** — pin any AIO cycle to the header tab strip from the cycle detail page; tabs persist across restarts and can be unpinned
+- **AIO on issue detail** — lazy-loaded test runs section shows an impacted executions list with per-run status chips, step table (Step / Expected / Actual) with WikiRenderer rendering and failure markers, and an AIO attachments grid; opens in the existing in-app lightbox
+- **Draggable sidebar resize** — drag the right edge of the main nav sidebar or any detail panel sidebar to any width; preference persisted to local storage and restored on next launch
+- **Search closed Jira tasks** — command palette now searches resolved and closed issues; type a Jira key (`PROJ-123`) for a direct match at the top of results
+- **Assign to me** — quick action in the assignee popover sets the current user without opening the full picker
+- **Internal link routing** — Jira issue URLs and `fixForVersion` links in rendered wiki/descriptions now navigate within the app instead of opening the browser; source page is pushed to the breadcrumb trail
+
+### Fixed
+
+- WikiRenderer: `\+` and `\\` in table cells, brace-quoted formatting (`{*}bold{*}`, `{_}italic{_}`), image rendering in issue descriptions, nested panel blocks inside table cells, numbered lists inside panels
+- Sprint board: epic pill now displays data; assignee-before-status column ordering restored
+- Self-authored changelog entries and comments filtered from the issue activity timeline
+- AIO credentials gate on all queries prevents first-load 401 flash
+
+### Changed
+
+- Backlog: Summary and Epic columns swapped; Epic column right-aligned
+- Status badges and pills unified to a single `statusPillClass` helper across all views
+- All API calls now carry an operation group label (visible in Dev Tools request log)
+
 ## [1.7.3] — 2026-05-10
 
 ### Fixed
