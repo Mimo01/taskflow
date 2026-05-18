@@ -13,7 +13,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { Activity, CheckCircle2, ChevronDown, ChevronRight, FileCode, Lock } from 'lucide-react';
 import { type ComponentPropsWithoutRef, useCallback, useState } from 'react';
 import Markdown from 'react-markdown';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import { tryInternalPath } from '@/lib/internalLinks';
@@ -21,11 +21,53 @@ import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import type { Discussion, DiscussionNote, MRDiffFile } from '@/services/gitlab';
 import { useAuthStore } from '@/stores/auth.store';
+import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 
 // ---- Link rewriter for GitLab-relative URLs ----
 
+/** Derives a breadcrumb TrailEntry for the given pathname.
+ * Labels mirror the `routeLabel()` mapping in main.tsx so the breadcrumb
+ * header is consistent regardless of where the push originates.
+ */
+function deriveSourceCrumb(pathname: string): { path: string; label: string } {
+  // /issue/:key  →  label is the key itself (e.g. "PROJ-123")
+  const issueMatch = pathname.match(/^\/issue\/(.+)$/);
+  if (issueMatch) return { path: pathname, label: issueMatch[1] };
+
+  // /mr/:projectId/:iid  →  label "!{iid}"
+  const mrMatch = pathname.match(/^\/mr\/[^/]+\/(\d+)/);
+  if (mrMatch) return { path: pathname, label: `!${mrMatch[1]}` };
+
+  // /aio-cycle/:proj/:cycle/run/:runId  →  label "Run {runId}"
+  const aioRunMatch = pathname.match(/^\/aio-cycle\/[^/]+\/[^/]+\/run\/([^/]+)/);
+  if (aioRunMatch) return { path: pathname, label: `Run ${aioRunMatch[1]}` };
+
+  // /aio-cycle/:proj/:cycle  →  label is the cycle key (last segment)
+  const aioCycleMatch = pathname.match(/^\/aio-cycle\/[^/]+\/([^/]+)/);
+  if (aioCycleMatch) return { path: pathname, label: aioCycleMatch[1] };
+
+  // /release/:id  →  "Release"
+  if (pathname.startsWith('/release/')) return { path: pathname, label: 'Release' };
+
+  // Static roots — match routeLabel() in main.tsx
+  const staticLabels: Record<string, string> = {
+    '/sprint-board': 'Sprint Board',
+    '/backlog': 'Backlog',
+    '/my-tasks': 'My Tasks',
+    '/epics': 'Epics',
+    '/dashboard': 'Overview',
+    '/sprint-progress': 'Sprint Progress',
+    '/workload': 'Workload',
+    '/releases': 'Releases',
+    '/merge-requests': 'Merge Requests',
+  };
+  return { path: pathname, label: staticLabels[pathname] ?? 'Home' };
+}
+
 function useGitLabLinkComponents(gitlabBaseUrl?: string) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const breadcrumbPush = useBreadcrumbStore((s) => s.push);
   const { jiraBaseUrl, activeGitlabProject, activeGitlabProjectPath } = useAuthStore();
   const linkCtx = {
     jiraBaseUrl,
@@ -53,6 +95,7 @@ function useGitLabLinkComponents(gitlabBaseUrl?: string) {
               // GitLab MR → /mr/:projectId/:iid on path match).
               const internalPath = tryInternalPath(resolvedHref, linkCtx);
               if (internalPath !== null) {
+                breadcrumbPush(deriveSourceCrumb(location.pathname));
                 navigate(internalPath);
                 return;
               }
@@ -66,7 +109,7 @@ function useGitLabLinkComponents(gitlabBaseUrl?: string) {
       },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [gitlabBaseUrl, navigate, linkCtx.jiraBaseUrl, linkCtx.activeGitlabProject, linkCtx.activeGitlabProjectPath],
+    [gitlabBaseUrl, navigate, breadcrumbPush, location.pathname, linkCtx.jiraBaseUrl, linkCtx.activeGitlabProject, linkCtx.activeGitlabProjectPath],
   );
 }
 
