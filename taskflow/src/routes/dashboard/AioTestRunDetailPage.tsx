@@ -1,10 +1,18 @@
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, BookOpen, Bug, CheckSquare, CornerDownRight, FileQuestion, FlaskConical } from 'lucide-react';
+import {
+  ArrowLeft,
+  BookOpen,
+  Bug,
+  CheckSquare,
+  CornerDownRight,
+  FileQuestion,
+  FlaskConical,
+} from 'lucide-react';
 import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { normalizeStatusLabel } from '@/lib/aioUtils';
@@ -400,13 +408,27 @@ export default function AioTestRunDetailPage() {
                   <table className="w-full text-sm border border-border rounded-md">
                     <thead className="bg-muted/30">
                       <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Key</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Title</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Status</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Assignee</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Reporter</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Priority</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Severity</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                          Key
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                          Title
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                          Status
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                          Assignee
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                          Reporter
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                          Priority
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                          Severity
+                        </th>
                       </tr>
                     </thead>
                     <tbody>

@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronRight, FlaskConical } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -8,8 +8,6 @@ import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
-import type { AioCycleDetailItem, AioCycleSummaryItem, AioFolder } from '@/services/aio/types';
-import type { AioTestRunStatusConfig } from '@/services/aio/types';
 import {
   fetchAioCycleSummaries,
   fetchAioCyclesWithDetail,
@@ -17,10 +15,16 @@ import {
   fetchAioFolderTree,
   fetchAioProjectConfig,
 } from '@/services/aio';
+import type {
+  AioCycleDetailItem,
+  AioCycleSummaryItem,
+  AioFolder,
+  AioTestRunStatusConfig,
+} from '@/services/aio/types';
 import { fetchJiraProjectNumericId } from '@/services/jira/projects';
 import { fetchJiraUserByUsername } from '@/services/jira/users';
-import { useAuthStore } from '@/stores/auth.store';
 import { useAioCyclesSelectionStore } from '@/stores/aio-cycles-selection.store';
+import { useAuthStore } from '@/stores/auth.store';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -72,7 +76,10 @@ function collectSubtreeIDs(tree: AioFolder[], rootID: number): number[] {
     if (node.ID === rootID) {
       const ids: number[] = [node.ID];
       const collect = (nodes: AioFolder[]) => {
-        for (const n of nodes) { ids.push(n.ID); collect(n.children); }
+        for (const n of nodes) {
+          ids.push(n.ID);
+          collect(n.children);
+        }
       };
       collect(node.children);
       return ids;
@@ -124,9 +131,7 @@ function FolderNode({
         type="button"
         data-testid={`folder-node-${node.ID}`}
         className={`w-full flex items-center gap-1 py-2 pr-3 text-left text-sm transition-colors ${
-          isSelected
-            ? 'bg-primary text-primary-foreground'
-            : 'hover:bg-muted/30'
+          isSelected ? 'bg-primary text-primary-foreground' : 'hover:bg-muted/30'
         }`}
         style={{ paddingLeft }}
         onClick={() => {
@@ -189,11 +194,7 @@ function OwnerCell({
     );
   }
 
-  return (
-    <div data-testid="owner-cell">
-      {user ? user.displayName : ownedByID}
-    </div>
-  );
+  return <div data-testid="owner-cell">{user ? user.displayName : ownedByID}</div>;
 }
 
 function ProgressBarCell({
@@ -297,10 +298,7 @@ export default function AioProjectOverviewPage() {
     staleTime: 60 * 60 * 1000,
   });
 
-  const statusMap = useMemo(
-    () => buildStatusMap(configQuery.data ?? []),
-    [configQuery.data],
-  );
+  const statusMap = useMemo(() => buildStatusMap(configQuery.data ?? []), [configQuery.data]);
 
   // Folder tree + count map (parallel)
   const foldersQuery = useQuery({
@@ -404,7 +402,9 @@ export default function AioProjectOverviewPage() {
     }
   }, [foldersQuery.data, countMapQuery.data, projectKey, getSelectedFolder, clearSelectedFolder]);
 
-  const showFolderSkeleton = useDelayedLoading(foldersQuery.isLoading || jiraProjectIdQuery.isLoading);
+  const showFolderSkeleton = useDelayedLoading(
+    foldersQuery.isLoading || jiraProjectIdQuery.isLoading,
+  );
   const showCycleSkeleton = useDelayedLoading(cyclesWithDetailQuery.isLoading);
 
   const toggleFolder = (id: number) => {

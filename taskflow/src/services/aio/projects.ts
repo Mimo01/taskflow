@@ -112,7 +112,13 @@ export type { AioTestCase };
 export async function fetchAioProjects(baseUrl: string, token: string): Promise<AioProject[]> {
   let response: Response;
   try {
-    response = await aioFetch(baseUrl, token, '/project', 'Load AIO Projects', AIO_PROJECTS_API_PATH);
+    response = await aioFetch(
+      baseUrl,
+      token,
+      '/project',
+      'Load AIO Projects',
+      AIO_PROJECTS_API_PATH,
+    );
   } catch {
     throw new Error(`Cannot reach AIO at ${baseUrl}`);
   }

@@ -104,9 +104,8 @@ const mockRuns = [
 
 // Helper: set up default mocks for the happy path
 async function setupDefaultMocks() {
-  const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } = await import(
-    '@/services/aio'
-  );
+  const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
+    await import('@/services/aio');
   const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
   (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
   (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
@@ -183,10 +182,38 @@ describe('AioCycleDetailPage', () => {
       (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
       // 2 pass, 2 fail = 50% each
       const evenRuns = [
-        { id: 'r1', status: 'PASS', testCaseKey: 'TC-1', cycleKey: 'PROJ-CY-2', defects: [], jiraDefectIDs: [] },
-        { id: 'r2', status: 'PASS', testCaseKey: 'TC-2', cycleKey: 'PROJ-CY-2', defects: [], jiraDefectIDs: [] },
-        { id: 'r3', status: 'FAIL', testCaseKey: 'TC-3', cycleKey: 'PROJ-CY-2', defects: [], jiraDefectIDs: [] },
-        { id: 'r4', status: 'FAIL', testCaseKey: 'TC-4', cycleKey: 'PROJ-CY-2', defects: [], jiraDefectIDs: [] },
+        {
+          id: 'r1',
+          status: 'PASS',
+          testCaseKey: 'TC-1',
+          cycleKey: 'PROJ-CY-2',
+          defects: [],
+          jiraDefectIDs: [],
+        },
+        {
+          id: 'r2',
+          status: 'PASS',
+          testCaseKey: 'TC-2',
+          cycleKey: 'PROJ-CY-2',
+          defects: [],
+          jiraDefectIDs: [],
+        },
+        {
+          id: 'r3',
+          status: 'FAIL',
+          testCaseKey: 'TC-3',
+          cycleKey: 'PROJ-CY-2',
+          defects: [],
+          jiraDefectIDs: [],
+        },
+        {
+          id: 'r4',
+          status: 'FAIL',
+          testCaseKey: 'TC-4',
+          cycleKey: 'PROJ-CY-2',
+          defects: [],
+          jiraDefectIDs: [],
+        },
       ];
       (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(evenRuns);
       // Summary with 2 pass (901), 2 fail (54)
@@ -221,7 +248,9 @@ describe('AioCycleDetailPage', () => {
       ]);
       (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
       // runs query never resolves — simulates slow runs endpoint
-      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockReturnValue(
+        new Promise(() => {}),
+      );
       renderPage();
       // Progress bar must be visible even though runs never resolved
       await waitFor(() => {
@@ -305,7 +334,10 @@ describe('AioCycleDetailPage', () => {
         fields: {
           summary: 'Login broken',
           status: { name: 'In Progress', statusCategory: { key: 'indeterminate' } },
-          assignee: { displayName: 'Jane Doe', avatarUrls: { '48x48': 'https://example.com/jane.png' } },
+          assignee: {
+            displayName: 'Jane Doe',
+            avatarUrls: { '48x48': 'https://example.com/jane.png' },
+          },
           issuetype: { name: 'Bug', subtask: false },
         },
       });
@@ -373,7 +405,9 @@ describe('AioCycleDetailPage', () => {
       await user.click(screen.getByRole('tab', { name: 'Defects' }));
       // Wait for the resolved key to appear (not the raw numeric ID)
       await waitFor(() => expect(screen.getByText('PROJ-1234')).toBeDefined());
-      expect(screen.getByText('PROJ-1234').closest('a')?.getAttribute('href')).toBe('/issue/PROJ-1234');
+      expect(screen.getByText('PROJ-1234').closest('a')?.getAttribute('href')).toBe(
+        '/issue/PROJ-1234',
+      );
     });
 
     it('AIOC-03: triggered-by column lists test case keys from runs whose jiraDefectIDs contains the ID', async () => {
@@ -425,7 +459,9 @@ describe('AioCycleDetailPage', () => {
         },
       ];
       (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
-      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(runsWithNumericDefects);
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(
+        runsWithNumericDefects,
+      );
       (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
       (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
       (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -491,7 +527,9 @@ describe('AioCycleDetailPage', () => {
       await waitFor(() => expect(screen.getByText('PROJ-1234')).toBeDefined());
 
       // Link points to resolved key
-      expect(screen.getByText('PROJ-1234').closest('a')?.getAttribute('href')).toBe('/issue/PROJ-1234');
+      expect(screen.getByText('PROJ-1234').closest('a')?.getAttribute('href')).toBe(
+        '/issue/PROJ-1234',
+      );
 
       // Status pill carries color class from statusPillClass('indeterminate')
       const statusEl = screen.getByText('In Progress');
@@ -627,9 +665,7 @@ describe('AioCycleDetailPage', () => {
       await user.click(screen.getByRole('tab', { name: 'Defects' }));
 
       // Skeleton visible → still loading
-      await waitFor(() =>
-        expect(screen.getByTestId('defect-title-loading-186227')).toBeDefined(),
-      );
+      await waitFor(() => expect(screen.getByTestId('defect-title-loading-186227')).toBeDefined());
 
       const row = screen.getByTestId('defect-row-186227');
       // Must not have role="button" while loading
@@ -803,7 +839,13 @@ const mockBreadcrumbPush = vi.fn();
 
 vi.mock('@/stores/breadcrumb.store', () => ({
   useBreadcrumbStore: Object.assign(
-    (selector?: (s: { trail: never[]; pop: () => void; push: typeof mockBreadcrumbPush }) => unknown) => {
+    (
+      selector?: (s: {
+        trail: never[];
+        pop: () => void;
+        push: typeof mockBreadcrumbPush;
+      }) => unknown,
+    ) => {
       const state = { trail: [], pop: vi.fn(), push: mockBreadcrumbPush };
       return selector ? selector(state) : state;
     },
@@ -981,12 +1023,23 @@ describe('AIOC-N3S-T1: parent-owned issue queries (useQueries refactor)', () => 
     (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(multiDefectRuns);
     (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
     (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
-    (fetchJiraIssueByKey as ReturnType<typeof vi.fn>)
-      .mockImplementation((_base: string, _token: string, key: string) => {
-        if (key === '111111') return Promise.resolve({ id: '111111', key: 'PROJ-100', fields: { summary: 'Bug 100', status: { name: 'Open' } } });
-        if (key === '222222') return Promise.resolve({ id: '222222', key: 'PROJ-200', fields: { summary: 'Bug 200', status: { name: 'Done' } } });
+    (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockImplementation(
+      (_base: string, _token: string, key: string) => {
+        if (key === '111111')
+          return Promise.resolve({
+            id: '111111',
+            key: 'PROJ-100',
+            fields: { summary: 'Bug 100', status: { name: 'Open' } },
+          });
+        if (key === '222222')
+          return Promise.resolve({
+            id: '222222',
+            key: 'PROJ-200',
+            fields: { summary: 'Bug 200', status: { name: 'Done' } },
+          });
         return Promise.resolve(null);
-      });
+      },
+    );
 
     renderPage();
     await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
@@ -999,8 +1052,16 @@ describe('AIOC-N3S-T1: parent-owned issue queries (useQueries refactor)', () => 
     });
 
     // fetchJiraIssueByKey must be called for both keys (from parent's useQueries)
-    expect(fetchJiraIssueByKey).toHaveBeenCalledWith('https://jira.example.com', 'fake-token', '111111');
-    expect(fetchJiraIssueByKey).toHaveBeenCalledWith('https://jira.example.com', 'fake-token', '222222');
+    expect(fetchJiraIssueByKey).toHaveBeenCalledWith(
+      'https://jira.example.com',
+      'fake-token',
+      '111111',
+    );
+    expect(fetchJiraIssueByKey).toHaveBeenCalledWith(
+      'https://jira.example.com',
+      'fake-token',
+      '222222',
+    );
   });
 
   it('T1-02: DefectRow shows skeleton for a loading defect while another resolved defect shows its data', async () => {
@@ -1024,12 +1085,18 @@ describe('AIOC-N3S-T1: parent-owned issue queries (useQueries refactor)', () => 
     (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(multiDefectRuns);
     (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
     (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
-    (fetchJiraIssueByKey as ReturnType<typeof vi.fn>)
-      .mockImplementation((_base: string, _token: string, key: string) => {
-        if (key === '333333') return Promise.resolve({ id: '333333', key: 'PROJ-333', fields: { summary: 'Resolved bug', status: { name: 'Open' } } });
+    (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockImplementation(
+      (_base: string, _token: string, key: string) => {
+        if (key === '333333')
+          return Promise.resolve({
+            id: '333333',
+            key: 'PROJ-333',
+            fields: { summary: 'Resolved bug', status: { name: 'Open' } },
+          });
         if (key === '444444') return new Promise(() => {}); // never resolves
         return Promise.resolve(null);
-      });
+      },
+    );
 
     renderPage();
     await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
@@ -1063,7 +1130,9 @@ const defectFixtureRuns = [
 ];
 
 const defectIssueA = {
-  id: '1001', key: 'PROJ-1', fields: {
+  id: '1001',
+  key: 'PROJ-1',
+  fields: {
     summary: 'Issue A summary',
     status: { name: 'Open', statusCategory: { key: 'new' } },
     priority: { name: 'High' },
@@ -1075,7 +1144,9 @@ const defectIssueA = {
 };
 
 const defectIssueB = {
-  id: '1002', key: 'PROJ-2', fields: {
+  id: '1002',
+  key: 'PROJ-2',
+  fields: {
     summary: 'Issue B summary',
     status: { name: 'Done', statusCategory: { key: 'done' } },
     priority: { name: 'Low' },
@@ -1087,7 +1158,9 @@ const defectIssueB = {
 };
 
 const defectIssueC = {
-  id: '1003', key: 'PROJ-3', fields: {
+  id: '1003',
+  key: 'PROJ-3',
+  fields: {
     summary: 'Issue C summary',
     status: { name: 'Open', statusCategory: { key: 'new' } },
     priority: { name: 'Medium' },
@@ -1156,17 +1229,22 @@ describe('AIOC-N3S: defects sort + filter', () => {
 
     // Click again → desc order: PROJ-3, PROJ-2, PROJ-1
     await user.click(keyHeader);
-    await waitFor(() => {
-      const rowsDesc = screen.getAllByTestId(/^defect-row-/);
-      expect(rowsDesc[0].getAttribute('data-testid')).toBe('defect-row-1003');
-      expect(rowsDesc[1].getAttribute('data-testid')).toBe('defect-row-1002');
-      expect(rowsDesc[2].getAttribute('data-testid')).toBe('defect-row-1001');
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        const rowsDesc = screen.getAllByTestId(/^defect-row-/);
+        expect(rowsDesc[0].getAttribute('data-testid')).toBe('defect-row-1003');
+        expect(rowsDesc[1].getAttribute('data-testid')).toBe('defect-row-1002');
+        expect(rowsDesc[2].getAttribute('data-testid')).toBe('defect-row-1001');
+      },
+      { timeout: 3000 },
+    );
 
     // Click again → unsorted (original input order: 1001, 1002, 1003)
     await user.click(keyHeader);
     // No sort indicator
-    await waitFor(() => expect(screen.queryByTestId('defects-sort-indicator-key')).toBeNull(), { timeout: 3000 });
+    await waitFor(() => expect(screen.queryByTestId('defects-sort-indicator-key')).toBeNull(), {
+      timeout: 3000,
+    });
     const rowsUnsorted = screen.getAllByTestId(/^defect-row-/);
     expect(rowsUnsorted[0].getAttribute('data-testid')).toBe('defect-row-1001');
   });
@@ -1212,11 +1290,15 @@ describe('AIOC-N3S: defects sort + filter', () => {
 
     // Click again → ChevronDown (still has indicator)
     await user.click(statusHeader);
-    await waitFor(() => expect(screen.getByTestId('defects-sort-indicator-status')).toBeDefined(), { timeout: 3000 });
+    await waitFor(() => expect(screen.getByTestId('defects-sort-indicator-status')).toBeDefined(), {
+      timeout: 3000,
+    });
 
     // Click again → no indicator (unsorted)
     await user.click(statusHeader);
-    await waitFor(() => expect(screen.queryByTestId('defects-sort-indicator-status')).toBeNull(), { timeout: 3000 });
+    await waitFor(() => expect(screen.queryByTestId('defects-sort-indicator-status')).toBeNull(), {
+      timeout: 3000,
+    });
   });
 
   it('Test 4 (filter by Status): selecting Open shows only Open defects', async () => {
@@ -1314,11 +1396,14 @@ describe('AIOC-N3S: defects sort + filter', () => {
     await user.click(keyHeader); // desc
 
     // Rows: PROJ-3 (1003) then PROJ-1 (1001) — desc by resolved key
-    await waitFor(() => {
-      const rows = screen.getAllByTestId(/^defect-row-/);
-      expect(rows[0].getAttribute('data-testid')).toBe('defect-row-1003');
-      expect(rows[1].getAttribute('data-testid')).toBe('defect-row-1001');
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        const rows = screen.getAllByTestId(/^defect-row-/);
+        expect(rows[0].getAttribute('data-testid')).toBe('defect-row-1003');
+        expect(rows[1].getAttribute('data-testid')).toBe('defect-row-1001');
+      },
+      { timeout: 3000 },
+    );
   });
 
   it('Test 7 (no matches): filter that matches nothing shows "No defects match the selected filters."', async () => {
@@ -1332,7 +1417,9 @@ describe('AIOC-N3S: defects sort + filter', () => {
     // Apply Assignee=Bob AND Status=Open → Bob's defect is Done, not Open → zero matches
     await user.click(screen.getByTestId('defects-filter-assignee'));
     // "Bob" may appear in assignee cells too — use role=button to target the popover option
-    await waitFor(() => expect(screen.queryAllByRole('button', { name: /^Bob$/ }).length).toBeGreaterThan(0));
+    await waitFor(() =>
+      expect(screen.queryAllByRole('button', { name: /^Bob$/ }).length).toBeGreaterThan(0),
+    );
     const bobOptions = screen.getAllByRole('button', { name: /^Bob$/ });
     await user.click(bobOptions[bobOptions.length - 1]);
 

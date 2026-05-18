@@ -39,7 +39,11 @@ export function SprintMoveMenuItems({
         targetSprints.map((sprint) => (
           <Item key={sprint.id} onClick={() => onSelectSprint(sprint.id, sprint.name)}>
             {sprint.name}
-            {sprint.state === 'active' && <Badge tone="green" className="ml-2">Active</Badge>}
+            {sprint.state === 'active' && (
+              <Badge tone="green" className="ml-2">
+                Active
+              </Badge>
+            )}
           </Item>
         ))
       ) : (

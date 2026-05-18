@@ -190,7 +190,9 @@ async function renderFieldsSection(issue: JiraIssueDetail) {
 describe('FieldsSection', () => {
   describe('Priority row', () => {
     it('renders priority icon img when iconUrl is present', async () => {
-      const issue = makeIssue({ priority: { name: 'High', iconUrl: 'http://example.com/icon.svg' } });
+      const issue = makeIssue({
+        priority: { name: 'High', iconUrl: 'http://example.com/icon.svg' },
+      });
       await renderFieldsSection(issue);
       const img = screen.getByTestId('priority-icon');
       expect(img).toBeTruthy();

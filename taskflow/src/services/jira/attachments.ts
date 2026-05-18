@@ -33,14 +33,19 @@ export async function uploadAttachment(
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'X-Atlassian-Token': 'no-check',
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'X-Atlassian-Token': 'no-check',
+        },
+        body: formData,
       },
-      body: formData,
-    }, 'Manage Attachments');
+      'Manage Attachments',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -71,12 +76,17 @@ export async function deleteAttachment(
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-    }, 'Manage Attachments');
+      'Manage Attachments',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }

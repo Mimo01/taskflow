@@ -12,13 +12,19 @@ const TOKEN = 'test-token';
 // RED stubs — Phase 57 Wave 0. These fail until Plan 02 adds fetchJiraUserByUsername export.
 
 describe('fetchJiraUserByUsername', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns JiraAssignableUser on 200', async () => {
     mockedApiFetch.mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({ name: 'JIRAUSER23429', displayName: 'Alice Tester', emailAddress: 'alice@example.com' }),
+      json: async () => ({
+        name: 'JIRAUSER23429',
+        displayName: 'Alice Tester',
+        emailAddress: 'alice@example.com',
+      }),
     } as unknown as Response);
     const result = await fetchJiraUserByUsername(BASE, TOKEN, 'JIRAUSER23429');
     expect(result).not.toBeNull();

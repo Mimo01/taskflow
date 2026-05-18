@@ -620,7 +620,11 @@ describe('AioTestRunsSection', () => {
     }
 
     beforeEach(() => {
+      // Reset once-queue mocks (vi.clearAllMocks does not clear mockResolvedValueOnce queues).
+      // Without this reset, leftover queued [] responses from previous tests consume the first
+      // call in the next test, causing the component to see [] and return null.
       mockFetchRunDetail.mockReset();
+      mockFetchTraceability.mockReset();
     });
 
     it('Gap 1: replaces "No test runs in active cycle" with ImpactedExecutionsList showing test case + cycle + run + status chip', async () => {

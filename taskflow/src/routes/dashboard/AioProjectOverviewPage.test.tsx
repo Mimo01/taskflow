@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import React from 'react';
+import type React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -9,13 +9,13 @@ vi.mock('@/stores/auth.store', () => ({
 }));
 
 // In-memory adapter for the selection store — lets tests control persisted values
-const _selectionStore: { byProjectKey: Record<string, number> } = { byProjectKey: {} };
-const mockGetSelectedFolder = vi.fn((key: string) => _selectionStore.byProjectKey[key] ?? null);
+const SelectionStore: { byProjectKey: Record<string, number> } = { byProjectKey: {} };
+const mockGetSelectedFolder = vi.fn((key: string) => SelectionStore.byProjectKey[key] ?? null);
 const mockSetSelectedFolder = vi.fn((key: string, id: number) => {
-  _selectionStore.byProjectKey[key] = id;
+  SelectionStore.byProjectKey[key] = id;
 });
 const mockClearSelectedFolder = vi.fn((key: string) => {
-  delete _selectionStore.byProjectKey[key];
+  delete SelectionStore.byProjectKey[key];
 });
 
 vi.mock('@/stores/aio-cycles-selection.store', () => ({
@@ -111,7 +111,6 @@ const CYCLE_1: AioCycleDetailItem = {
   summary: null,
 };
 
-
 const SUMMARY_1: AioCycleSummaryItem = {
   ID: 1001,
   detail: null,
@@ -134,8 +133,13 @@ const PAGED_RESPONSE = {
 async function setupStandardMocks() {
   const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
   (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(PROJECT.id);
-  const { fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries, fetchAioProjectConfig } =
-    await import('@/services/aio');
+  const {
+    fetchAioFolderTree,
+    fetchAioFolderCycleCounts,
+    fetchAioCyclesWithDetail,
+    fetchAioCycleSummaries,
+    fetchAioProjectConfig,
+  } = await import('@/services/aio');
   (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockResolvedValue([FOLDER_A]);
   (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({ '101': 1 });
   (fetchAioCyclesWithDetail as ReturnType<typeof vi.fn>).mockResolvedValue(PAGED_RESPONSE);
@@ -153,7 +157,9 @@ async function setupStandardMocks() {
 }
 
 describe('AioProjectOverviewPage — folder tree', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('renders folder node with name and cycle count badge', async () => {
     await setupStandardMocks();
@@ -170,7 +176,9 @@ describe('AioProjectOverviewPage — folder tree', () => {
 });
 
 describe('AioProjectOverviewPage — cycle list', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('renders cycle row with key, name, and progress bar', async () => {
     await setupStandardMocks();
@@ -211,8 +219,13 @@ describe('AioProjectOverviewPage — cycle list', () => {
   it('dedupes user lookups — 2 cycles same owner fires fetchJiraUserByUsername once', async () => {
     const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
     (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(PROJECT.id);
-    const { fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries, fetchAioProjectConfig } =
-      await import('@/services/aio');
+    const {
+      fetchAioFolderTree,
+      fetchAioFolderCycleCounts,
+      fetchAioCyclesWithDetail,
+      fetchAioCycleSummaries,
+      fetchAioProjectConfig,
+    } = await import('@/services/aio');
     const CYCLE_2 = { ...CYCLE_1, ID: 1002 };
     (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockResolvedValue([FOLDER_A]);
     (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({ '101': 2 });
@@ -238,38 +251,53 @@ describe('AioProjectOverviewPage — cycle list', () => {
     await waitFor(() => {
       expect(screen.getAllByText('Alice').length).toBeGreaterThanOrEqual(1);
     });
-    expect((fetchJiraUserByUsername as ReturnType<typeof vi.fn>).mock.calls.length).toBeLessThanOrEqual(1);
+    expect(
+      (fetchJiraUserByUsername as ReturnType<typeof vi.fn>).mock.calls.length,
+    ).toBeLessThanOrEqual(1);
   });
 });
-
 
 describe('AioProjectOverviewPage — persisted folder selection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset in-memory selection store
-    _selectionStore.byProjectKey = {};
-    mockGetSelectedFolder.mockImplementation((key: string) => _selectionStore.byProjectKey[key] ?? null);
+    SelectionStore.byProjectKey = {};
+    mockGetSelectedFolder.mockImplementation(
+      (key: string) => SelectionStore.byProjectKey[key] ?? null,
+    );
     mockSetSelectedFolder.mockImplementation((key: string, id: number) => {
-      _selectionStore.byProjectKey[key] = id;
+      SelectionStore.byProjectKey[key] = id;
     });
     mockClearSelectedFolder.mockImplementation((key: string) => {
-      delete _selectionStore.byProjectKey[key];
+      delete SelectionStore.byProjectKey[key];
     });
   });
 
   it('auto-selects persisted folder on second load', async () => {
     // Pre-load stored selection for PROJ = folder 102
-    _selectionStore.byProjectKey['PROJ'] = 102;
+    SelectionStore.byProjectKey['PROJ'] = 102;
 
     const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
     (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
-    const { fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries, fetchAioProjectConfig } =
-      await import('@/services/aio');
+    const {
+      fetchAioFolderTree,
+      fetchAioFolderCycleCounts,
+      fetchAioCyclesWithDetail,
+      fetchAioCycleSummaries,
+      fetchAioProjectConfig,
+    } = await import('@/services/aio');
     // Both folders have cycles; without persistence, 101 would be auto-selected
     (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockResolvedValue([FOLDER_A, FOLDER_B]);
-    (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({ '101': 1, '102': 1 });
+    (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({
+      '101': 1,
+      '102': 1,
+    });
     (fetchAioCyclesWithDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
-      items: [], allIDs: [], startAt: 0, maxResults: 20, isLast: true,
+      items: [],
+      allIDs: [],
+      startAt: 0,
+      maxResults: 20,
+      isLast: true,
     });
     (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (fetchAioProjectConfig as ReturnType<typeof vi.fn>).mockResolvedValue([]);
@@ -290,16 +318,25 @@ describe('AioProjectOverviewPage — persisted folder selection', () => {
 
   it('falls back to first non-empty when persisted ID is stale', async () => {
     // Pre-load a stale folder ID that does not exist in the tree
-    _selectionStore.byProjectKey['PROJ'] = 999;
+    SelectionStore.byProjectKey['PROJ'] = 999;
 
     const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
     (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
-    const { fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries, fetchAioProjectConfig } =
-      await import('@/services/aio');
+    const {
+      fetchAioFolderTree,
+      fetchAioFolderCycleCounts,
+      fetchAioCyclesWithDetail,
+      fetchAioCycleSummaries,
+      fetchAioProjectConfig,
+    } = await import('@/services/aio');
     (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockResolvedValue([FOLDER_A]);
     (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({ '101': 1 });
     (fetchAioCyclesWithDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
-      items: [], allIDs: [], startAt: 0, maxResults: 20, isLast: true,
+      items: [],
+      allIDs: [],
+      startAt: 0,
+      maxResults: 20,
+      isLast: true,
     });
     (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (fetchAioProjectConfig as ReturnType<typeof vi.fn>).mockResolvedValue([]);
@@ -322,12 +359,24 @@ describe('AioProjectOverviewPage — persisted folder selection', () => {
   it('persists selection on folder click', async () => {
     const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
     (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
-    const { fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries, fetchAioProjectConfig } =
-      await import('@/services/aio');
+    const {
+      fetchAioFolderTree,
+      fetchAioFolderCycleCounts,
+      fetchAioCyclesWithDetail,
+      fetchAioCycleSummaries,
+      fetchAioProjectConfig,
+    } = await import('@/services/aio');
     (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockResolvedValue([FOLDER_A, FOLDER_B]);
-    (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({ '101': 1, '102': 1 });
+    (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({
+      '101': 1,
+      '102': 1,
+    });
     (fetchAioCyclesWithDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
-      items: [], allIDs: [], startAt: 0, maxResults: 20, isLast: true,
+      items: [],
+      allIDs: [],
+      startAt: 0,
+      maxResults: 20,
+      isLast: true,
     });
     (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (fetchAioProjectConfig as ReturnType<typeof vi.fn>).mockResolvedValue([]);
@@ -352,26 +401,40 @@ describe('AioProjectOverviewPage — persisted folder selection', () => {
 });
 
 describe('AioProjectOverviewPage — error states', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('renders error state when folder tree query fails', async () => {
     const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
     (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(PROJECT.id);
-    const { fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries, fetchAioProjectConfig } =
-      await import('@/services/aio');
+    const {
+      fetchAioFolderTree,
+      fetchAioFolderCycleCounts,
+      fetchAioCyclesWithDetail,
+      fetchAioCycleSummaries,
+      fetchAioProjectConfig,
+    } = await import('@/services/aio');
     (fetchAioFolderTree as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Network fail'));
     (fetchAioFolderCycleCounts as ReturnType<typeof vi.fn>).mockResolvedValue({});
     (fetchAioProjectConfig as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (fetchAioCyclesWithDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
-      items: [], allIDs: [], startAt: 0, maxResults: 0, isLast: true,
+      items: [],
+      allIDs: [],
+      startAt: 0,
+      maxResults: 0,
+      isLast: true,
     });
     (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     const Page = await importPage();
     wrap(Page);
-    await waitFor(() => {
-      // Page should not be stuck on loading — either error UI or empty tree renders
-      const body = document.body.textContent ?? '';
-      expect(body.length).toBeGreaterThan(10);
-    }, { timeout: 4000 });
+    await waitFor(
+      () => {
+        // Page should not be stuck on loading — either error UI or empty tree renders
+        const body = document.body.textContent ?? '';
+        expect(body.length).toBeGreaterThan(10);
+      },
+      { timeout: 4000 },
+    );
   });
 });

@@ -63,9 +63,7 @@ function EpicRow({ epic, onEpicClick }: EpicRowProps) {
 
       {/* Status badge */}
       <td className="px-3 py-3">
-        <span className={statusPillClass(epic.status.statusCategory?.key)}>
-          {epic.status.name}
-        </span>
+        <span className={statusPillClass(epic.status.statusCategory?.key)}>{epic.status.name}</span>
       </td>
 
       {/* Assignee */}

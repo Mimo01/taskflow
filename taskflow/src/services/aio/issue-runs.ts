@@ -82,7 +82,6 @@ function toChipStatus(name: string | undefined): string {
   }
 }
 
-
 function normalizeTestRun(raw: RawTestRun, fallbackCycleKey: string): AioTestRun {
   const latestRun = raw.runs?.[0];
   const statusName = latestRun?.testRunStatus?.name ?? raw.status ?? raw.executionStatus;
@@ -167,4 +166,3 @@ export async function fetchAioTestRunsForCycle(
     throw new Error(`AIO request failed with status ${response.status}`);
   }
 }
-

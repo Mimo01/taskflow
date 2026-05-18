@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../lib/apiFetch', () => ({ apiFetch: vi.fn() }));
 
 import { apiFetch } from '../../lib/apiFetch';
-import { fetchAioCycles } from './cycles';
 import {
   fetchAioCycleSummaries,
+  fetchAioCycles,
   fetchAioCyclesWithDetail,
   fetchAioFolderCycleCounts,
   fetchAioFolderTree,
@@ -34,7 +34,13 @@ describe('fetchAioCycles', () => {
     } as unknown as Response);
     const result = await fetchAioCycles(BASE, TOKEN, PROJECT_KEY);
     expect(result).toEqual([
-      { key: 'PROJ-CY-2', name: 'Sprint 1', status: 'Active', projectKey: 'PROJ', folder: 'Active' },
+      {
+        key: 'PROJ-CY-2',
+        name: 'Sprint 1',
+        status: 'Active',
+        projectKey: 'PROJ',
+        folder: 'Active',
+      },
     ]);
   });
 
@@ -89,15 +95,15 @@ const PROJECT_ID = 10134;
 // RED stubs — Phase 57 Wave 0. These fail until Plan 02 adds the exports.
 
 describe('fetchAioFolderTree', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns AioFolder[] on 200', async () => {
     mockedApiFetch.mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => [
-        { ID: 1, name: 'Root', parentID: null, children: [] },
-      ],
+      json: async () => [{ ID: 1, name: 'Root', parentID: null, children: [] }],
     } as unknown as Response);
     const result = await fetchAioFolderTree(BASE, TOKEN, PROJECT_ID);
     expect(result).toHaveLength(1);
@@ -121,12 +127,16 @@ describe('fetchAioFolderTree', () => {
 
   it('throws "Cannot reach AIO" on network error', async () => {
     mockedApiFetch.mockRejectedValue(new Error('timeout'));
-    await expect(fetchAioFolderTree(BASE, TOKEN, PROJECT_ID)).rejects.toThrow('Cannot reach AIO at');
+    await expect(fetchAioFolderTree(BASE, TOKEN, PROJECT_ID)).rejects.toThrow(
+      'Cannot reach AIO at',
+    );
   });
 });
 
 describe('fetchAioFolderCycleCounts', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns Record<string, number> on 200 including "-1" key for ungrouped', async () => {
     mockedApiFetch.mockResolvedValue({
@@ -155,7 +165,9 @@ describe('fetchAioFolderCycleCounts', () => {
 });
 
 describe('fetchAioCyclesWithDetail', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns paged response with items and allIDs on 200', async () => {
     mockedApiFetch.mockResolvedValue({
@@ -167,7 +179,13 @@ describe('fetchAioCyclesWithDetail', () => {
             ID: 1001,
             jiraProjectID: PROJECT_ID,
             permission: { value: 15 },
-            detail: { key: 'PROJ-CY-1', title: 'Cycle A', ownedByID: 'user1', folder: null, isClosed: false },
+            detail: {
+              key: 'PROJ-CY-1',
+              title: 'Cycle A',
+              ownedByID: 'user1',
+              folder: null,
+              isClosed: false,
+            },
             summary: null,
             objectiveAttachments: [],
           },
@@ -192,7 +210,15 @@ describe('fetchAioCyclesWithDetail', () => {
     mockedApiFetch.mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({ items: [], allIDs: [], startAt: 0, maxResults: 20, total: 0, isLast: true, additionalData: {} }),
+      json: async () => ({
+        items: [],
+        allIDs: [],
+        startAt: 0,
+        maxResults: 20,
+        total: 0,
+        isLast: true,
+        additionalData: {},
+      }),
     } as unknown as Response);
     await fetchAioCyclesWithDetail(BASE, TOKEN, PROJECT_ID);
     const calledUrl = vi.mocked(apiFetch).mock.calls[0][1] as string;
@@ -216,7 +242,9 @@ describe('fetchAioCyclesWithDetail', () => {
 });
 
 describe('fetchAioCycleSummaries', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns AioCycleSummaryItem[] on 200', async () => {
     mockedApiFetch.mockResolvedValue({
@@ -255,6 +283,8 @@ describe('fetchAioCycleSummaries', () => {
 
   it('throws "Cannot reach AIO" on network error', async () => {
     mockedApiFetch.mockRejectedValue(new Error('timeout'));
-    await expect(fetchAioCycleSummaries(BASE, TOKEN, PROJECT_ID, [])).rejects.toThrow('Cannot reach AIO at');
+    await expect(fetchAioCycleSummaries(BASE, TOKEN, PROJECT_ID, [])).rejects.toThrow(
+      'Cannot reach AIO at',
+    );
   });
 });

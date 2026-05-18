@@ -52,14 +52,15 @@ export function normalizeStatusLabel(raw: string | undefined): string {
  * Source: UI-SPEC.md Status Color Palette + CONTEXT.md D-05. Five entries only.
  * Used by progress-bar rendering in AioProjectOverviewPage (Plan 57-04).
  */
-export const AIO_STATUS_MAP: Record<number, 'pass' | 'fail' | 'blocked' | 'notRun' | 'inProgress'> = {
-  51: 'notRun',
-  52: 'inProgress',
-  53: 'pass',
-  54: 'fail',
-  55: 'blocked',
-  901: 'pass', // N/A — statusType PASSED per /config
-};
+export const AIO_STATUS_MAP: Record<number, 'pass' | 'fail' | 'blocked' | 'notRun' | 'inProgress'> =
+  {
+    51: 'notRun',
+    52: 'inProgress',
+    53: 'pass',
+    54: 'fail',
+    55: 'blocked',
+    901: 'pass', // N/A — statusType PASSED per /config
+  };
 
 /**
  * Resolve a numeric AIO status ID to its canonical status string.

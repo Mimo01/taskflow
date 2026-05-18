@@ -31,12 +31,13 @@ import type { JiraIssue, JiraTransition } from '@/services/jira';
 import {
   fetchEpicsBasic,
   fetchProjectStatuses,
+  fetchSprintStories,
+  fetchSprintSubtasks,
   fetchTransitions,
   postTransition,
 } from '@/services/jira';
 import { fetchBoardQuickFilters } from '@/services/jira/board-config';
 import { fetchAllSearchPages } from '@/services/jira/client';
-import { fetchSprintStories, fetchSprintSubtasks } from '@/services/jira';
 import { fetchActiveSprint } from '@/services/jira/sprints';
 import type { JiraBoardQuickFilter } from '@/services/jira/types';
 import { readSecret } from '@/services/stronghold';

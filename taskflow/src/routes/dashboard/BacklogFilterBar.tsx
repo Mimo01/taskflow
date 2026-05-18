@@ -169,12 +169,7 @@ export function BacklogFilterBar({
       {/* Active filter chips */}
 
       {Array.from(activeEpics).map((epic) => (
-        <Badge
-          key={epic}
-          tone="muted"
-          data-testid={`epic-chip-${epic}`}
-          className="gap-1"
-        >
+        <Badge key={epic} tone="muted" data-testid={`epic-chip-${epic}`} className="gap-1">
           {epic}
           <button
             type="button"
@@ -188,12 +183,7 @@ export function BacklogFilterBar({
       ))}
 
       {Array.from(activeLabels).map((label) => (
-        <Badge
-          key={label}
-          tone="muted"
-          data-testid={`label-chip-${label}`}
-          className="gap-1"
-        >
+        <Badge key={label} tone="muted" data-testid={`label-chip-${label}`} className="gap-1">
           {label}
           <button
             type="button"

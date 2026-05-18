@@ -760,7 +760,7 @@ describe('IssueDetailSheet', () => {
   });
 
   describe('ISSUE-09: open in Jira deep link', () => {
-    it('calls openUrl with ${jiraBaseUrl}/browse/${issueKey} when button clicked', async () => {
+    it(`calls openUrl with \${jiraBaseUrl}/browse/\${issueKey} when button clicked`, async () => {
       const { openUrl } = await import('@tauri-apps/plugin-opener');
       vi.mocked(openUrl).mockResolvedValue(undefined);
 

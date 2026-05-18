@@ -21,6 +21,7 @@ import { ApiError } from '../lib/api-error';
 import { apiFetch } from '../lib/apiFetch';
 import { isResponseLikeError } from './jira/client';
 
+export { addIssuesToSprint } from './jira/sprints';
 // Re-export changelog and watcher modules for barrel access via '@/services/jira'
 export * from './jira-changelog';
 export * from './jira-watchers';
@@ -52,12 +53,17 @@ export async function validateJira(baseUrl: string, token: string): Promise<Jira
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       },
-    }, 'Validate Connection');
+      'Validate Connection',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -94,12 +100,17 @@ export async function listJiraProjects(baseUrl: string, token: string): Promise<
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       },
-    }, 'Load Projects');
+      'Load Projects',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -636,12 +647,17 @@ export async function fetchTransitions(
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       },
-    }, 'Issue Transition');
+      'Issue Transition',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -675,14 +691,19 @@ export async function postTransition(
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ transition: { id: transitionId } }),
       },
-      body: JSON.stringify({ transition: { id: transitionId } }),
-    }, 'Issue Transition');
+      'Issue Transition',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -713,14 +734,19 @@ export async function postComment(
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ body }),
       },
-      body: JSON.stringify({ body }),
-    }, 'Manage Comments');
+      'Manage Comments',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -749,9 +775,14 @@ export async function fetchComments(
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/comment`;
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      headers: { Authorization: `Bearer ${token}` },
-    }, 'Load Issue Detail');
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+      'Load Issue Detail',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -776,14 +807,19 @@ export async function updateComment(
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ body }),
       },
-      body: JSON.stringify({ body }),
-    }, 'Manage Comments');
+      'Manage Comments',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -806,12 +842,17 @@ export async function deleteComment(
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-    }, 'Manage Comments');
+      'Manage Comments',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -844,12 +885,17 @@ export async function fetchFixVersions(
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       },
-    }, 'Load Releases');
+      'Load Releases',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -1202,9 +1248,14 @@ export async function discoverCustomFields(
     epicColorFieldKey: 'customfield_10013',
   };
   try {
-    const response = await apiFetch('jira', `${baseUrl.replace(/\/$/, '')}/rest/api/2/field`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }, 'Load Fields');
+    const response = await apiFetch(
+      'jira',
+      `${baseUrl.replace(/\/$/, '')}/rest/api/2/field`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+      'Load Fields',
+    );
     if (!response.ok) return defaults;
     const fields: Array<{ id: string; name: string; schema?: { custom?: string } }> =
       await response.json();
@@ -1443,9 +1494,14 @@ export async function fetchProjectStatuses(
   projectKey: string,
 ): Promise<JiraProjectStatus[]> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/project/${projectKey}/statuses`;
-  const response = await apiFetch('jira', url, {
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-  }, 'Load Board');
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    },
+    'Load Board',
+  );
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError('Failed to fetch project statuses', response.status, 'jira');
@@ -1659,7 +1715,12 @@ export async function fetchIssueLinkTypes(
   token: string,
 ): Promise<IssueLinkType[]> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issueLinkType`;
-  const resp = await apiFetch('jira', url, { headers: { Authorization: `Bearer ${token}` } }, 'Validate Connection');
+  const resp = await apiFetch(
+    'jira',
+    url,
+    { headers: { Authorization: `Bearer ${token}` } },
+    'Validate Connection',
+  );
   if (!resp.ok) return [];
   const data = await resp.json();
   return data.issueLinkTypes ?? [];
@@ -1688,15 +1749,20 @@ export async function createIssueLink(
   outwardKey: string,
 ): Promise<void> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issueLink`;
-  const response = await apiFetch('jira', url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      type: { id: linkTypeId },
-      inwardIssue: { key: inwardKey },
-      outwardIssue: { key: outwardKey },
-    }),
-  }, 'Manage Links');
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: { id: linkTypeId },
+        inwardIssue: { key: inwardKey },
+        outwardIssue: { key: outwardKey },
+      }),
+    },
+    'Manage Links',
+  );
   if (!response.ok && response.status !== 201) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError('Failed to create issue link', response.status, 'jira');
@@ -2110,40 +2176,6 @@ export async function fetchBacklogView(
 }
 
 /**
- * Move a set of issues into a sprint via the Jira Agile REST API.
- *
- * POSTs to POST /rest/agile/1.0/sprint/{sprintId}/issue with body { issues: issueKeys }.
- * Jira returns 204 No Content on success — treated as success.
- * Throws Error on any other non-ok response.
- *
- * @param baseUrl   - Jira base URL (e.g. "https://jira.example.com")
- * @param token     - Personal Access Token
- * @param sprintId  - Numeric sprint ID (JiraActiveSprint.id)
- * @param issueKeys - Array of issue keys to add (e.g. ["PROJ-1", "PROJ-2"])
- * @throws Error with status code on non-ok, non-204 response
- */
-export async function addIssuesToSprint(
-  baseUrl: string,
-  token: string,
-  sprintId: number,
-  issueKeys: string[],
-): Promise<void> {
-  const url = `${baseUrl.replace(/\/$/, '')}/rest/agile/1.0/sprint/${sprintId}/issue`;
-  const response = await apiFetch('jira', url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ issues: issueKeys }),
-  }, 'Move to Sprint');
-  // 204 No Content is the expected success response for this endpoint
-  if (!response.ok && response.status !== 204) {
-    if (response.status === 401 || response.status === 403) {
-      throw new ApiError('Failed to add issues to sprint', response.status, 'jira');
-    }
-    throw new Error(`Failed to add issues to sprint: ${response.status}`);
-  }
-}
-
-/**
  * Move a set of issues to the backlog (remove from their current sprint).
  *
  * POSTs to POST /rest/agile/1.0/backlog/issue with body { issues: issueKeys }.
@@ -2161,11 +2193,16 @@ export async function moveIssuesToBacklog(
   issueKeys: string[],
 ): Promise<void> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/agile/1.0/backlog/issue`;
-  const response = await apiFetch('jira', url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ issues: issueKeys }),
-  }, 'Move to Backlog');
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ issues: issueKeys }),
+    },
+    'Move to Backlog',
+  );
   if (!response.ok && response.status !== 204) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError('Failed to move issues to backlog', response.status, 'jira');

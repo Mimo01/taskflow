@@ -23,6 +23,7 @@ import { ChevronDown, ChevronRight, Inbox } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfirmSprintMoveDialog } from '@/components/ui/confirm-sprint-move-dialog';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -48,7 +49,6 @@ import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useFilterStore } from '@/stores/filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import { Badge } from '@/components/ui/badge';
 import { BacklogRow } from './BacklogRow';
 import { BacklogSkeleton } from './BacklogSkeleton';
 
@@ -710,9 +710,7 @@ export default function BacklogPage() {
             <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
           )}
           <span className="text-sm font-semibold">{title}</span>
-          {badge && (
-            <Badge tone={badge === 'Active' ? 'green' : 'blue'}>{badge}</Badge>
-          )}
+          {badge && <Badge tone={badge === 'Active' ? 'green' : 'blue'}>{badge}</Badge>}
           <span className="ml-auto text-xs text-muted-foreground">
             {sectionStoriesLoading ? (
               <span className="animate-pulse">Loading...</span>

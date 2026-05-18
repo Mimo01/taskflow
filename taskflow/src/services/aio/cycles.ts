@@ -257,7 +257,10 @@ export async function fetchAioCyclesWithDetail(
   const body = JSON.stringify(bodyObj);
   let response: Response;
   try {
-    response = await aioFetch(baseUrl, token, path, 'Load AIO Cycles', AIO_PROJECTS_API_PATH, { method: 'POST', body });
+    response = await aioFetch(baseUrl, token, path, 'Load AIO Cycles', AIO_PROJECTS_API_PATH, {
+      method: 'POST',
+      body,
+    });
   } catch {
     throw new Error(`Cannot reach AIO at ${baseUrl}`);
   }
@@ -384,7 +387,10 @@ export async function fetchAioCycleTestCasesWithRuns(
   });
   let response: Response;
   try {
-    response = await aioFetch(baseUrl, token, path, 'Load AIO Cycles', AIO_PROJECTS_API_PATH, { method: 'POST', body });
+    response = await aioFetch(baseUrl, token, path, 'Load AIO Cycles', AIO_PROJECTS_API_PATH, {
+      method: 'POST',
+      body,
+    });
   } catch {
     throw new Error(`Cannot reach AIO at ${baseUrl}`);
   }

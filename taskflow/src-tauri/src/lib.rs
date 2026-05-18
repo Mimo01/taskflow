@@ -47,9 +47,7 @@ pub fn run() {
         .setup(|app| {
             let salt_path = get_salt_path(app);
             app.handle()
-                .plugin(
-                    tauri_plugin_stronghold::Builder::with_argon2(&salt_path).build(),
-                )
+                .plugin(tauri_plugin_stronghold::Builder::with_argon2(&salt_path).build())
                 .expect("failed to register stronghold plugin");
 
             #[cfg(desktop)]
@@ -115,12 +113,7 @@ pub fn run() {
                 .id("menu-dev-tools")
                 .accelerator("CmdOrCtrl+Shift+D")
                 .build(handle)?;
-            let debug_submenu = Submenu::with_items(
-                handle,
-                "Dev Tools",
-                true,
-                &[&dev_tools_item],
-            )?;
+            let debug_submenu = Submenu::with_items(handle, "Dev Tools", true, &[&dev_tools_item])?;
             app.manage(DebugMenuState {
                 submenu: debug_submenu,
                 visible: Mutex::new(false),
@@ -167,15 +160,7 @@ pub fn run() {
             )?;
 
             // Build full menu bar
-            let menu = Menu::with_items(
-                handle,
-                &[
-                    &app_menu,
-                    &edit_menu,
-                    &go_menu,
-                    &help_menu,
-                ],
-            )?;
+            let menu = Menu::with_items(handle, &[&app_menu, &edit_menu, &go_menu, &help_menu])?;
 
             app.set_menu(menu)?;
 

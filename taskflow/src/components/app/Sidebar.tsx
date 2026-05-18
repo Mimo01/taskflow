@@ -28,13 +28,17 @@ import { useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useResizable } from '@/hooks/useResizable';
 import { STALE_TIME_MS } from '@/lib/query-constants';
-import { fetchActiveSprint, fetchEpicsBasic, fetchProjectStatuses } from '@/services/jira';
+import {
+  fetchActiveSprint,
+  fetchEpicsBasic,
+  fetchProjectStatuses,
+  fetchSprintStories,
+} from '@/services/jira';
 import {
   fetchBacklogIssues,
   fetchBacklogSprintStories,
   fetchSprintList,
 } from '@/services/jira/backlog';
-import { fetchSprintStories } from '@/services/jira';
 import { fetchBoardId } from '@/services/jira/sprints';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';

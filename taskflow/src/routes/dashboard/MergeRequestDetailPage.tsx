@@ -473,7 +473,10 @@ function PersonDisplay({ name, avatarUrl }: { name: string; avatarUrl?: string }
 
 // ---- State & status badges ----
 
-const MR_STATE_DETAIL_CONFIG: Record<string, { tone: 'green' | 'purple' | 'red' | 'muted'; label: string; icon: React.ReactNode }> = {
+const MR_STATE_DETAIL_CONFIG: Record<
+  string,
+  { tone: 'green' | 'purple' | 'red' | 'muted'; label: string; icon: React.ReactNode }
+> = {
   opened: { tone: 'green', label: 'Open', icon: <CircleDot className="size-3" /> },
   merged: { tone: 'purple', label: 'Merged', icon: <CheckCircle2 className="size-3" /> },
   closed: { tone: 'red', label: 'Closed', icon: <XCircle className="size-3" /> },

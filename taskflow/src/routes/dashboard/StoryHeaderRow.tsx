@@ -136,9 +136,7 @@ export function StoryHeaderRow({
       )}
 
       {/* Status badge */}
-      <span className={statusPillClass(statusCategoryKey)}>
-        {statusName}
-      </span>
+      <span className={statusPillClass(statusCategoryKey)}>{statusName}</span>
 
       {/* Subtask count */}
       <span className="shrink-0 min-w-[5rem] text-xs text-muted-foreground">
