@@ -204,6 +204,7 @@ jobs:
         with:
           name: ${{ matrix.os_name }}-artifacts
           path: artifacts/*
+          retention-days: 7
 
   create-release:
     needs: build
