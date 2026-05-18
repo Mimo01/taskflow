@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { bulkUpdateIssue, createIssue, wrapCustomFieldValue } from '@/services/jira/issues';
+import { bulkUpdateIssue, createIssue, wrapCustomFieldValue } from '@/services/jira';
 import { createIssueLink } from '@/services/jira/links';
 import type { CreatemetaField } from '@/services/jira/types';
 import { readSecret } from '@/services/stronghold';
