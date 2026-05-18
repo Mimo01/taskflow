@@ -69,7 +69,7 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-05-18 - Completed quick task 260518-ist: Show test case key badge, defect count, run count, and assignedToID in executions table
+Last activity: 2026-05-18 - Enriched cycle detail executions table: fast paged endpoint, key badge, defect/run counts, avatar+name assignee
 Stopped at: context exhaustion at 75% (2026-05-14)
 Resume: Phase 47 v17-debt-cleanup plan 01 complete — continue with plan 02 if exists
 
