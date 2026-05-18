@@ -16,9 +16,9 @@ import Markdown from 'react-markdown';
 import { useLocation, useNavigate } from 'react-router-dom';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
-import { tryInternalPath } from '@/lib/internalLinks';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
+import { tryInternalPath } from '@/lib/internalLinks';
 import type { Discussion, DiscussionNote, MRDiffFile } from '@/services/gitlab';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
@@ -109,7 +109,15 @@ function useGitLabLinkComponents(gitlabBaseUrl?: string) {
       },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [gitlabBaseUrl, navigate, breadcrumbPush, location.pathname, linkCtx.jiraBaseUrl, linkCtx.activeGitlabProject, linkCtx.activeGitlabProjectPath],
+    [
+      gitlabBaseUrl,
+      navigate,
+      breadcrumbPush,
+      location.pathname,
+      linkCtx.jiraBaseUrl,
+      linkCtx.activeGitlabProject,
+      linkCtx.activeGitlabProjectPath,
+    ],
   );
 }
 

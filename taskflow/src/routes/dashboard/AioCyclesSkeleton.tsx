@@ -13,11 +13,7 @@ export function AioCyclesSkeleton() {
           { w: 'w-40', indent: 16 },
           { w: 'w-36', indent: 16 },
         ].map((item, i) => (
-          <Skeleton
-            key={i}
-            className={`h-6 ${item.w}`}
-            style={{ marginLeft: item.indent }}
-          />
+          <Skeleton key={i} className={`h-6 ${item.w}`} style={{ marginLeft: item.indent }} />
         ))}
       </div>
       {/* Right panel — cycle list skeleton */}

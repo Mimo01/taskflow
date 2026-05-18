@@ -42,7 +42,9 @@ export default function IntegrationsSection() {
   const sortedProjects = useMemo(
     () =>
       projects
-        ? [...projects].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+        ? [...projects].sort((a, b) =>
+            a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+          )
         : [],
     [projects],
   );
@@ -52,8 +54,7 @@ export default function IntegrationsSection() {
   // Only flag when projects has loaded as an array AND the persisted key is non-empty
   // AND no matching project was found — otherwise loading and "no projects" states
   // would spuriously render the warning.
-  const selectedKeyIsStale =
-    !!selectedAioProjectKey && Array.isArray(projects) && !selectedProject;
+  const selectedKeyIsStale = !!selectedAioProjectKey && Array.isArray(projects) && !selectedProject;
 
   return (
     <div data-testid="section-integrations" className="flex flex-col gap-8">

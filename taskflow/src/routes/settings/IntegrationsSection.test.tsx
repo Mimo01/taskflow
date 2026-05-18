@@ -187,9 +187,7 @@ describe('IntegrationsSection — AIO project picker', () => {
       expect(opts.length).toBe(4); // 1 placeholder + 3 projects
     });
     // Assert alphabetical order: Project One, Project Three, Project Two (alphabetical by name)
-    const opts = Array.from(
-      document.querySelectorAll('[data-testid="aio-project-select"] option'),
-    );
+    const opts = Array.from(document.querySelectorAll('[data-testid="aio-project-select"] option'));
     const names = opts.map((el) => el.textContent);
     // First option is the placeholder (—), then sorted alphabetically
     expect(names).toEqual(['—', 'Project One', 'Project Three', 'Project Two']);
@@ -218,9 +216,7 @@ describe('IntegrationsSection — AIO project picker', () => {
       const opts = document.querySelectorAll('[data-testid="aio-project-select"] option');
       expect(opts.length).toBe(4); // 1 placeholder + 3 projects
     });
-    const opts = Array.from(
-      document.querySelectorAll('[data-testid="aio-project-select"] option'),
-    );
+    const opts = Array.from(document.querySelectorAll('[data-testid="aio-project-select"] option'));
     const names = opts.map((el) => el.textContent);
     // Case-insensitive alphabetical: Alpha → bravo → charlie
     expect(names).toEqual(['—', 'Alpha', 'bravo', 'charlie']);

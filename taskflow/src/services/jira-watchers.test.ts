@@ -39,7 +39,7 @@ describe('fetchWatchers', () => {
       expect.objectContaining({
         headers: expect.objectContaining({ Authorization: `Bearer ${TOKEN}` }),
       }),
-      'Load Issue Detail',
+      'Load Watchers',
     );
   });
 

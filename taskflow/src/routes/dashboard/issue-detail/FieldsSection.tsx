@@ -441,9 +441,7 @@ export function FieldsSection({
           | null
           | undefined;
         const severityValue = extractSeverity(severityField);
-        return severityValue ? (
-          <MetaRow label="Severity">{severityValue}</MetaRow>
-        ) : null;
+        return severityValue ? <MetaRow label="Severity">{severityValue}</MetaRow> : null;
       })()}
 
       {/* Assignee -- click to open typeahead popover */}

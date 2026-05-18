@@ -26,12 +26,17 @@ export async function fetchAssignableUsers(
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/user/assignable/search?project=${encodeURIComponent(projectKey)}&username=${encodeURIComponent(query)}`;
 
   try {
-    const response = await apiFetch('jira', url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
+    const response = await apiFetch(
+      'jira',
+      url,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
       },
-    }, 'Load Users');
+      'Load Users',
+    );
 
     if (!response.ok) return [];
 
@@ -54,12 +59,17 @@ export async function fetchJiraUserByUsername(
 ): Promise<JiraAssignableUser | null> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/latest/user?key=${encodeURIComponent(username)}`;
   try {
-    const response = await apiFetch('jira', url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
+    const response = await apiFetch(
+      'jira',
+      url,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
       },
-    }, 'Load User');
+      'Load User',
+    );
     if (!response.ok) return null;
     return (await response.json()) as JiraAssignableUser;
   } catch {

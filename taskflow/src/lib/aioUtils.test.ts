@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { AIO_STATUS_MAP, normalizeStatus, normalizeStatusById, normalizeStatusLabel } from './aioUtils';
+import {
+  AIO_STATUS_MAP,
+  normalizeStatus,
+  normalizeStatusById,
+  normalizeStatusLabel,
+} from './aioUtils';
 
 describe('normalizeStatus', () => {
   it("returns 'pass' for 'PASS'", () => {

@@ -75,14 +75,19 @@ export async function createWorklog(
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(params),
       },
-      body: JSON.stringify(params),
-    }, 'Manage Worklogs');
+      'Manage Worklogs',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -109,14 +114,19 @@ export async function updateWorklog(
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(params),
       },
-      body: JSON.stringify(params),
-    }, 'Manage Worklogs');
+      'Manage Worklogs',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -142,12 +152,17 @@ export async function deleteWorklog(
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-    }, 'Manage Worklogs');
+      'Manage Worklogs',
+    );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }

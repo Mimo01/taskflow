@@ -597,7 +597,11 @@ export default function ReleaseDetailPage() {
                             )}
                           </td>
                           <td className="py-1.5 px-2 border-b border-border/50 whitespace-nowrap">
-                            <span className={statusPillClass(row.issue.fields.status.statusCategory?.key)}>
+                            <span
+                              className={statusPillClass(
+                                row.issue.fields.status.statusCategory?.key,
+                              )}
+                            >
                               {row.issue.fields.status.name}
                             </span>
                           </td>

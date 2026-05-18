@@ -31,9 +31,9 @@ const NULL_CTX = {
 
 describe('tryInternalPath — Jira browse URLs', () => {
   it('returns /issue/PROJ-12345 for a matching Jira browse URL', () => {
-    expect(
-      tryInternalPath('https://jira.example.com/browse/PROJ-12345', JIRA_CTX),
-    ).toBe('/issue/PROJ-12345');
+    expect(tryInternalPath('https://jira.example.com/browse/PROJ-12345', JIRA_CTX)).toBe(
+      '/issue/PROJ-12345',
+    );
   });
 
   it('handles trailing slash on jiraBaseUrl', () => {
@@ -46,15 +46,15 @@ describe('tryInternalPath — Jira browse URLs', () => {
   });
 
   it('handles trailing slash on href', () => {
-    expect(
-      tryInternalPath('https://jira.example.com/browse/PROJ-1/', JIRA_CTX),
-    ).toBe('/issue/PROJ-1');
+    expect(tryInternalPath('https://jira.example.com/browse/PROJ-1/', JIRA_CTX)).toBe(
+      '/issue/PROJ-1',
+    );
   });
 
   it('strips query string from Jira browse URL', () => {
-    expect(
-      tryInternalPath('https://jira.example.com/browse/PROJ-1?foo=bar', JIRA_CTX),
-    ).toBe('/issue/PROJ-1');
+    expect(tryInternalPath('https://jira.example.com/browse/PROJ-1?foo=bar', JIRA_CTX)).toBe(
+      '/issue/PROJ-1',
+    );
   });
 
   it('returns null for Jira browse URL on wrong host', () => {
@@ -145,10 +145,7 @@ describe('tryInternalPath — Jira fixforversion URLs', () => {
 describe('tryInternalPath — GitLab MR URLs', () => {
   it('returns /mr/:projectId/:iid for a matching GitLab MR URL (path form group/repo)', () => {
     expect(
-      tryInternalPath(
-        'https://gitlab.example.com/group/repo/-/merge_requests/42',
-        GITLAB_CTX,
-      ),
+      tryInternalPath('https://gitlab.example.com/group/repo/-/merge_requests/42', GITLAB_CTX),
     ).toBe('/mr/99/42');
   });
 
@@ -157,81 +154,60 @@ describe('tryInternalPath — GitLab MR URLs', () => {
     // URL path segment: "org/my-project" → normalized: "org/my-project"
     // These differ after normalization so the result is null (safer than wrong navigation)
     expect(
-      tryInternalPath(
-        'https://gitlab.example.com/org/my-project/-/merge_requests/7',
-        {
-          ...GITLAB_CTX,
-          activeGitlabProject: 12,
-          activeGitlabProjectPath: 'Org / My Project',
-        },
-      ),
+      tryInternalPath('https://gitlab.example.com/org/my-project/-/merge_requests/7', {
+        ...GITLAB_CTX,
+        activeGitlabProject: 12,
+        activeGitlabProjectPath: 'Org / My Project',
+      }),
     ).toBeNull();
   });
 
   it('returns /mr/:projectId/:iid when normalized paths match exactly (display label with same slugs)', () => {
     // "Group / Repo" normalizes to "group/repo" which matches URL path "group/repo"
     expect(
-      tryInternalPath(
-        'https://gitlab.example.com/group/repo/-/merge_requests/42',
-        {
-          ...GITLAB_CTX,
-          activeGitlabProjectPath: 'Group / Repo',
-        },
-      ),
+      tryInternalPath('https://gitlab.example.com/group/repo/-/merge_requests/42', {
+        ...GITLAB_CTX,
+        activeGitlabProjectPath: 'Group / Repo',
+      }),
     ).toBe('/mr/99/42');
   });
 
   it('returns null for GitLab MR URL with different group/project path', () => {
     expect(
-      tryInternalPath(
-        'https://gitlab.example.com/other/repo/-/merge_requests/1',
-        GITLAB_CTX,
-      ),
+      tryInternalPath('https://gitlab.example.com/other/repo/-/merge_requests/1', GITLAB_CTX),
     ).toBeNull();
   });
 
   it('returns null when gitlabBaseUrl host differs', () => {
     expect(
-      tryInternalPath(
-        'https://other-gitlab.example.com/group/repo/-/merge_requests/1',
-        GITLAB_CTX,
-      ),
+      tryInternalPath('https://other-gitlab.example.com/group/repo/-/merge_requests/1', GITLAB_CTX),
     ).toBeNull();
   });
 
   it('returns null when activeGitlabProject is null', () => {
     expect(
-      tryInternalPath(
-        'https://gitlab.example.com/group/repo/-/merge_requests/42',
-        { ...GITLAB_CTX, activeGitlabProject: null },
-      ),
+      tryInternalPath('https://gitlab.example.com/group/repo/-/merge_requests/42', {
+        ...GITLAB_CTX,
+        activeGitlabProject: null,
+      }),
     ).toBeNull();
   });
 
   it('returns null when gitlabBaseUrl is not configured', () => {
     expect(
-      tryInternalPath(
-        'https://gitlab.example.com/group/repo/-/merge_requests/42',
-        NULL_CTX,
-      ),
+      tryInternalPath('https://gitlab.example.com/group/repo/-/merge_requests/42', NULL_CTX),
     ).toBeNull();
   });
 
   it('returns null for GitLab non-MR URL (issues)', () => {
     expect(
-      tryInternalPath(
-        'https://gitlab.example.com/group/repo/-/issues/5',
-        GITLAB_CTX,
-      ),
+      tryInternalPath('https://gitlab.example.com/group/repo/-/issues/5', GITLAB_CTX),
     ).toBeNull();
   });
 
   it('returns null for GitLab non-MR URL (pipelines)', () => {
     expect(
-      tryInternalPath(
-        'https://gitlab.example.com/group/repo/-/pipelines/9',
-        GITLAB_CTX,
-      ),
+      tryInternalPath('https://gitlab.example.com/group/repo/-/pipelines/9', GITLAB_CTX),
     ).toBeNull();
   });
 });

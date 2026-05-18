@@ -439,22 +439,22 @@ export function injectHeaderlessTableSeparators(wiki: string): string {
  * Exported for unit-testing.
  */
 export const JIRA_EMOTICON_MAP: ReadonlyArray<[RegExp, string]> = [
-  [/\(\/\)/g,      '✅'],        // (/)      → ✅ green tick / check mark
-  [/\(x\)/g,       '❌'],        // (x)      → ❌ red cross
-  [/\(!\)/g,       '⚠️'],  // (!)      → ⚠️ warning
-  [/\(\+\)/g,      '➕'],        // (+)      → ➕ plus / add
-  [/\(-\)/g,       '➖'],        // (-)      → ➖ minus / remove
-  [/\(\?\)/g,      '❓'],        // (?)      → ❓ question mark
-  [/\(i\)/g,       'ℹ️'],  // (i)      → ℹ️ information
-  [/\(\*r\)/g,     '⭐'],        // (*r)     → ⭐ red star (closest Unicode)
-  [/\(\*g\)/g,     '🌟'],       // (*g)     → 🌟 green star
-  [/\(\*b\)/g,     '💫'],       // (*b)     → 💫 blue star (closest Unicode)
-  [/\(\*y\)/g,     '⭐'],        // (*y)     → ⭐ yellow star
-  [/\(\*\)/g,      '⭐'],        // (*)      → ⭐ star (catch-all; after *r/*g/*b/*y)
-  [/\(on\)/g,      '💡'],       // (on)     → 💡 light bulb on
-  [/\(off\)/g,     '🔕'],       // (off)    → 🔕 muted bell / light off
+  [/\(\/\)/g, '✅'], // (/)      → ✅ green tick / check mark
+  [/\(x\)/g, '❌'], // (x)      → ❌ red cross
+  [/\(!\)/g, '⚠️'], // (!)      → ⚠️ warning
+  [/\(\+\)/g, '➕'], // (+)      → ➕ plus / add
+  [/\(-\)/g, '➖'], // (-)      → ➖ minus / remove
+  [/\(\?\)/g, '❓'], // (?)      → ❓ question mark
+  [/\(i\)/g, 'ℹ️'], // (i)      → ℹ️ information
+  [/\(\*r\)/g, '⭐'], // (*r)     → ⭐ red star (closest Unicode)
+  [/\(\*g\)/g, '🌟'], // (*g)     → 🌟 green star
+  [/\(\*b\)/g, '💫'], // (*b)     → 💫 blue star (closest Unicode)
+  [/\(\*y\)/g, '⭐'], // (*y)     → ⭐ yellow star
+  [/\(\*\)/g, '⭐'], // (*)      → ⭐ star (catch-all; after *r/*g/*b/*y)
+  [/\(on\)/g, '💡'], // (on)     → 💡 light bulb on
+  [/\(off\)/g, '🔕'], // (off)    → 🔕 muted bell / light off
   [/\(flagoff\)/g, '🏳️'], // (flagoff)→ 🏳️ white flag (before flag)
-  [/\(flag\)/g,    '🚩'],       // (flag)   → 🚩 red flag
+  [/\(flag\)/g, '🚩'], // (flag)   → 🚩 red flag
 ];
 
 /**
@@ -518,9 +518,13 @@ function normalizeTableCellInlineFormatting(wiki: string): string {
     let depth = 0;
     for (let i = 0; i < trimmed.length; i++) {
       const ch = trimmed[i];
-      if (ch === '[') { depth++; current += ch; }
-      else if (ch === ']') { depth--; current += ch; }
-      else if (ch === '|' && depth === 0) {
+      if (ch === '[') {
+        depth++;
+        current += ch;
+      } else if (ch === ']') {
+        depth--;
+        current += ch;
+      } else if (ch === '|' && depth === 0) {
         segments.push(current);
         current = '';
       } else {
@@ -546,10 +550,14 @@ function normalizeTableCellInlineFormatting(wiki: string): string {
       // **text** under jira2md's bold rule, and _text_ → *text* → **text**.
       // <strong> and <em> pass through jira2md unmodified and are allowed by
       // the rehype-sanitize default schema.
-      let c = withPlaceholders.replace(/(?<!\*)\*(\S[^*\n]*?\S|\S)\*(?!\*)/g, '<strong>$1</strong>');
+      let c = withPlaceholders.replace(
+        /(?<!\*)\*(\S[^*\n]*?\S|\S)\*(?!\*)/g,
+        '<strong>$1</strong>',
+      );
       // Italic: _text_ → <em>text</em>
       c = c.replace(/(?<!_)_(\S[^_\n]*?\S|\S)_(?!_)/g, '<em>$1</em>');
       // Restore link placeholders
+      // biome-ignore lint/suspicious/noControlCharactersInRegex: \x00 (null byte) is intentionally used as a unique sentinel delimiter — it cannot appear in wiki markup text, making false-positive matches impossible
       return c.replace(/\x00LINK(\d+)\x00/g, (_, i) => linkPlaceholders[parseInt(i, 10)]);
     });
 
@@ -839,7 +847,8 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
   const navigate = useNavigate();
   const location = useLocation();
   const breadcrumbPush = useBreadcrumbStore((s) => s.push);
-  const { jiraBaseUrl, gitlabBaseUrl, activeGitlabProject, activeGitlabProjectPath } = useAuthStore();
+  const { jiraBaseUrl, gitlabBaseUrl, activeGitlabProject, activeGitlabProjectPath } =
+    useAuthStore();
   const linkCtx = { jiraBaseUrl, gitlabBaseUrl, activeGitlabProject, activeGitlabProjectPath };
 
   const preprocessed = wikiText ? preprocessJiraMarkup(wikiText, attachments, users) : '';
@@ -909,7 +918,11 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
       }
       return <span {...rest}>{children}</span>;
     },
-    strong: ({ node, children, ...rest }: ComponentPropsWithoutRef<'strong'> & { node?: unknown }) => {
+    strong: ({
+      node,
+      children,
+      ...rest
+    }: ComponentPropsWithoutRef<'strong'> & { node?: unknown }) => {
       const colorValue = (rest as Record<string, unknown>)['data-color'] as string | undefined;
       if (colorValue) {
         return <strong style={{ color: colorValue }}>{children}</strong>;

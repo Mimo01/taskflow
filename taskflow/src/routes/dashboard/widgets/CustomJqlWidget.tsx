@@ -20,12 +20,17 @@ async function searchByJql(baseUrl: string, token: string, jql: string): Promise
   const { apiFetch } = await import('@/lib/apiFetch');
   const base = baseUrl.replace(/\/$/, '');
   const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=summary,status,assignee&maxResults=20`;
-  const response = await apiFetch('jira', url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
     },
-  }, 'Search Issues');
+    'Search Issues',
+  );
   if (!response.ok) {
     throw new Error(`JQL query failed (${response.status})`);
   }

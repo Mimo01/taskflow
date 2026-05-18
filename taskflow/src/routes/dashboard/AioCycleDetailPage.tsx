@@ -1,9 +1,21 @@
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, BookOpen, Bug, CheckSquare, ChevronDown, ChevronUp, CornerDownRight, FlaskConical, Pin, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  BookOpen,
+  Bug,
+  CheckSquare,
+  ChevronDown,
+  ChevronUp,
+  CornerDownRight,
+  FlaskConical,
+  Pin,
+  X,
+} from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -12,10 +24,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { AIO_STATUS_MAP, normalizeStatus, normalizeStatusLabel } from '@/lib/aioUtils';
-import { aioCycleStatusPillClass, aioRunStatusPillClass, statusPillClass } from '@/lib/statusStyles';
+import {
+  aioCycleStatusPillClass,
+  aioRunStatusPillClass,
+  statusPillClass,
+} from '@/lib/statusStyles';
 import type { AioCycle, AioCycleSummaryItem, AioTestRun } from '@/services/aio';
-import { fetchAioCycleDetail, fetchAioCycleSummaries, fetchAioCycleTestCasesWithRuns } from '@/services/aio';
-import { CachedAvatar } from '@/components/ui/cached-avatar';
+import {
+  fetchAioCycleDetail,
+  fetchAioCycleSummaries,
+  fetchAioCycleTestCasesWithRuns,
+} from '@/services/aio';
 import { fetchJiraIssueByKey } from '@/services/jira';
 import { fetchJiraProjectNumericId } from '@/services/jira/projects';
 import type { JiraAssignableUser, JiraIssue } from '@/services/jira/types';
@@ -108,7 +127,9 @@ function SortableHeader({
 }) {
   const isActive = activeSortKey === sortKey;
   return (
-    <th className={`px-3 py-2 text-left text-xs font-medium text-muted-foreground ${className ?? ''}`}>
+    <th
+      className={`px-3 py-2 text-left text-xs font-medium text-muted-foreground ${className ?? ''}`}
+    >
       <button
         type="button"
         data-testid={`defects-sort-header-${sortKey}`}
@@ -143,16 +164,18 @@ function FilterPopover({
   const isActive = selected.size > 0;
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant={isActive ? 'default' : 'outline'}
-          size="sm"
-          className="h-7 text-xs gap-1"
-          data-testid={testId}
-        >
-          {dimension}
-          {isActive && <span className="ml-0.5 opacity-70">({selected.size})</span>}
-        </Button>
+      <PopoverTrigger
+        render={
+          <Button
+            variant={isActive ? 'default' : 'outline'}
+            size="sm"
+            className="h-7 text-xs gap-1"
+            data-testid={testId}
+          />
+        }
+      >
+        {dimension}
+        {isActive && <span className="ml-0.5 opacity-70">({selected.size})</span>}
       </PopoverTrigger>
       <PopoverContent className="w-52 p-2">
         {options.length === 0 ? (
@@ -175,8 +198,12 @@ function FilterPopover({
                       });
                     }}
                   >
-                    <span className={`w-3 h-3 border rounded-sm flex items-center justify-center shrink-0 ${checked ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
-                      {checked && <span className="text-primary-foreground text-[8px] leading-none">✓</span>}
+                    <span
+                      className={`w-3 h-3 border rounded-sm flex items-center justify-center shrink-0 ${checked ? 'bg-primary border-primary' : 'border-muted-foreground'}`}
+                    >
+                      {checked && (
+                        <span className="text-primary-foreground text-[8px] leading-none">✓</span>
+                      )}
                     </span>
                     {opt}
                   </button>
@@ -240,10 +267,7 @@ function DefectRow({
       </td>
       <td className="px-3 py-3 text-sm">
         {isLoading ? (
-          <Skeleton
-            className="h-4 w-32"
-            data-testid={`defect-title-loading-${defectIdOrKey}`}
-          />
+          <Skeleton className="h-4 w-32" data-testid={`defect-title-loading-${defectIdOrKey}`} />
         ) : (
           <span>{issue?.fields.summary ?? displayKey}</span>
         )}
@@ -295,11 +319,7 @@ function DefectRow({
         ) : issue?.fields.priority ? (
           <div className="flex items-center gap-1.5">
             {issue.fields.priority.iconUrl && (
-              <img
-                src={issue.fields.priority.iconUrl}
-                alt=""
-                className="w-3.5 h-3.5 shrink-0"
-              />
+              <img src={issue.fields.priority.iconUrl} alt="" className="w-3.5 h-3.5 shrink-0" />
             )}
             <span>{issue.fields.priority.name}</span>
           </div>
@@ -310,17 +330,19 @@ function DefectRow({
       <td className="px-3 py-3 text-xs text-muted-foreground">
         {isLoading ? (
           <Skeleton className="h-4 w-16" />
-        ) : (() => {
-          const severityValue =
-            issue?.fields.customfield_13415?.value ??
-            issue?.fields.customfield_13415?.name ??
-            null;
-          return severityValue ? (
-            <span>{severityValue}</span>
-          ) : (
-            <span className="text-muted-foreground">—</span>
-          );
-        })()}
+        ) : (
+          (() => {
+            const severityValue =
+              issue?.fields.customfield_13415?.value ??
+              issue?.fields.customfield_13415?.name ??
+              null;
+            return severityValue ? (
+              <span>{severityValue}</span>
+            ) : (
+              <span className="text-muted-foreground">—</span>
+            );
+          })()
+        )}
       </td>
       <td className="px-3 py-3 text-xs text-muted-foreground">{triggeredBy || '—'}</td>
     </tr>
@@ -384,13 +406,19 @@ export default function AioCycleDetailPage() {
   // Runs query — uses fast POST paged endpoint (numeric IDs required, gated on aioGate + cycleNumericId)
   const runsQuery = useQuery<AioTestRun[]>({
     queryKey: ['aio', jiraBaseUrl, 'runs', projectKey, cycleKey],
-    queryFn: () => fetchAioCycleTestCasesWithRuns(jiraBaseUrl!, token!, jiraProjectId!, cycleNumericId!, cycleKey!),
+    queryFn: () =>
+      fetchAioCycleTestCasesWithRuns(
+        jiraBaseUrl!,
+        token!,
+        jiraProjectId!,
+        cycleNumericId!,
+        cycleKey!,
+      ),
     enabled: aioGate && !!cycleNumericId,
   });
 
   // Full-page skeleton gates only on cycleQuery (not runsQuery) — progress bar decoupled
   const showSkeleton = useDelayedLoading(cycleQuery.isLoading);
-
 
   const pinned = usePinnedTabsStore((s) => s.pinnedKeys.includes(cycleKey ?? ''));
   const togglePin = usePinnedTabsStore((s) => s.togglePin);
@@ -453,7 +481,9 @@ export default function AioCycleDetailPage() {
   const filteredRuns = (runs ?? []).filter((r) => activeStatuses.has(r.status));
 
   // DefectRow data source — switched from r.defects (service-resolved) to r.jiraDefectIDs (raw numeric IDs as strings)
-  const allDefects = [...new Set((runs ?? []).flatMap((r) => (r.jiraDefectIDs ?? []).map(String)).filter(Boolean))];
+  const allDefects = [
+    ...new Set((runs ?? []).flatMap((r) => (r.jiraDefectIDs ?? []).map(String)).filter(Boolean)),
+  ];
 
   const defectsWithTriggers = allDefects.map((defectKey) => ({
     defectKey,
@@ -515,7 +545,9 @@ export default function AioCycleDetailPage() {
   const severityOptions = useMemo(() => {
     const vals = resolvedDefects
       .filter((d) => !d.isLoading && d.issue)
-      .map((d) => d.issue!.fields.customfield_13415?.value ?? d.issue!.fields.customfield_13415?.name)
+      .map(
+        (d) => d.issue!.fields.customfield_13415?.value ?? d.issue!.fields.customfield_13415?.name,
+      )
       .filter(Boolean) as string[];
     return [...new Set(vals)].sort();
   }, [resolvedDefects]);
@@ -547,7 +579,9 @@ export default function AioCycleDetailPage() {
         (d.issue.fields.status?.name ? defectStatusFilter.has(d.issue.fields.status.name) : false);
       const priorityMatch =
         defectPriorityFilter.size === 0 ||
-        (d.issue.fields.priority?.name ? defectPriorityFilter.has(d.issue.fields.priority.name) : false);
+        (d.issue.fields.priority?.name
+          ? defectPriorityFilter.has(d.issue.fields.priority.name)
+          : false);
       const severityVal =
         d.issue.fields.customfield_13415?.value ?? d.issue.fields.customfield_13415?.name ?? null;
       const severityMatch =
@@ -561,7 +595,14 @@ export default function AioCycleDetailPage() {
 
       return statusMatch && priorityMatch && severityMatch && assigneeMatch;
     });
-  }, [resolvedDefects, anyFilterActive, defectStatusFilter, defectPriorityFilter, defectSeverityFilter, defectAssigneeFilter]);
+  }, [
+    resolvedDefects,
+    anyFilterActive,
+    defectStatusFilter,
+    defectPriorityFilter,
+    defectSeverityFilter,
+    defectAssigneeFilter,
+  ]);
 
   // Sort pipeline — stable sort; missing/loading values always sort to the bottom
   const sortedDefects = useMemo(() => {
@@ -582,7 +623,11 @@ export default function AioCycleDetailPage() {
             return name !== null ? (PRIORITY_RANK[name] ?? Number.POSITIVE_INFINITY) : null;
           }
           case 'severity':
-            return d.issue.fields.customfield_13415?.value ?? d.issue.fields.customfield_13415?.name ?? null;
+            return (
+              d.issue.fields.customfield_13415?.value ??
+              d.issue.fields.customfield_13415?.name ??
+              null
+            );
           case 'assignee':
             return d.issue.fields.assignee?.displayName ?? null;
           default:
@@ -625,28 +670,48 @@ export default function AioCycleDetailPage() {
       chips.push({
         dimension: 'Status',
         value: v,
-        remove: () => setDefectStatusFilter((prev) => { const n = new Set(prev); n.delete(v); return n; }),
+        remove: () =>
+          setDefectStatusFilter((prev) => {
+            const n = new Set(prev);
+            n.delete(v);
+            return n;
+          }),
       });
     }
     for (const v of defectPriorityFilter) {
       chips.push({
         dimension: 'Priority',
         value: v,
-        remove: () => setDefectPriorityFilter((prev) => { const n = new Set(prev); n.delete(v); return n; }),
+        remove: () =>
+          setDefectPriorityFilter((prev) => {
+            const n = new Set(prev);
+            n.delete(v);
+            return n;
+          }),
       });
     }
     for (const v of defectSeverityFilter) {
       chips.push({
         dimension: 'Severity',
         value: v,
-        remove: () => setDefectSeverityFilter((prev) => { const n = new Set(prev); n.delete(v); return n; }),
+        remove: () =>
+          setDefectSeverityFilter((prev) => {
+            const n = new Set(prev);
+            n.delete(v);
+            return n;
+          }),
       });
     }
     for (const v of defectAssigneeFilter) {
       chips.push({
         dimension: 'Assignee',
         value: v,
-        remove: () => setDefectAssigneeFilter((prev) => { const n = new Set(prev); n.delete(v); return n; }),
+        remove: () =>
+          setDefectAssigneeFilter((prev) => {
+            const n = new Set(prev);
+            n.delete(v);
+            return n;
+          }),
       });
     }
     return chips;
@@ -792,10 +857,7 @@ export default function AioCycleDetailPage() {
                     />
                   )}
                   {counts.fail > 0 && (
-                    <div
-                      className="bg-red-500 h-full"
-                      style={{ width: `${pct(counts.fail)}%` }}
-                    />
+                    <div className="bg-red-500 h-full" style={{ width: `${pct(counts.fail)}%` }} />
                   )}
                   {counts.blocked > 0 && (
                     <div
@@ -810,10 +872,7 @@ export default function AioCycleDetailPage() {
                     />
                   )}
                   {counts.notRun > 0 && (
-                    <div
-                      className="bg-muted h-full"
-                      style={{ width: `${pct(counts.notRun)}%` }}
-                    />
+                    <div className="bg-muted h-full" style={{ width: `${pct(counts.notRun)}%` }} />
                   )}
                 </div>
                 <div className="flex gap-4 mt-1.5 text-xs text-muted-foreground">
@@ -1006,7 +1065,7 @@ export default function AioCycleDetailPage() {
                           const raw = run.executedDate ?? run.testCase?.updatedDate;
                           if (!raw) return '—';
                           const d = new Date(raw);
-                          return isNaN(d.getTime())
+                          return Number.isNaN(d.getTime())
                             ? raw
                             : d.toLocaleDateString(undefined, {
                                 year: 'numeric',
@@ -1106,33 +1165,70 @@ export default function AioCycleDetailPage() {
                   <table className="w-full text-sm">
                     <thead className="border-b bg-muted/10">
                       <tr>
-                        <SortableHeader sortKey="key" label="Key" className="w-36" activeSortKey={defectSortKey} activeSortDir={defectSortDir} onSort={handleSortHeader} />
+                        <SortableHeader
+                          sortKey="key"
+                          label="Key"
+                          className="w-36"
+                          activeSortKey={defectSortKey}
+                          activeSortDir={defectSortDir}
+                          onSort={handleSortHeader}
+                        />
                         <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
                           Title
                         </th>
-                        <SortableHeader sortKey="status" label="Status" className="w-32" activeSortKey={defectSortKey} activeSortDir={defectSortDir} onSort={handleSortHeader} />
-                        <SortableHeader sortKey="assignee" label="Assignee" className="w-32" activeSortKey={defectSortKey} activeSortDir={defectSortDir} onSort={handleSortHeader} />
+                        <SortableHeader
+                          sortKey="status"
+                          label="Status"
+                          className="w-32"
+                          activeSortKey={defectSortKey}
+                          activeSortDir={defectSortDir}
+                          onSort={handleSortHeader}
+                        />
+                        <SortableHeader
+                          sortKey="assignee"
+                          label="Assignee"
+                          className="w-32"
+                          activeSortKey={defectSortKey}
+                          activeSortDir={defectSortDir}
+                          onSort={handleSortHeader}
+                        />
                         <th className="w-36 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
                           Reporter
                         </th>
-                        <SortableHeader sortKey="priority" label="Priority" className="w-24" activeSortKey={defectSortKey} activeSortDir={defectSortDir} onSort={handleSortHeader} />
-                        <SortableHeader sortKey="severity" label="Severity" className="w-24" activeSortKey={defectSortKey} activeSortDir={defectSortDir} onSort={handleSortHeader} />
+                        <SortableHeader
+                          sortKey="priority"
+                          label="Priority"
+                          className="w-24"
+                          activeSortKey={defectSortKey}
+                          activeSortDir={defectSortDir}
+                          onSort={handleSortHeader}
+                        />
+                        <SortableHeader
+                          sortKey="severity"
+                          label="Severity"
+                          className="w-24"
+                          activeSortKey={defectSortKey}
+                          activeSortDir={defectSortDir}
+                          onSort={handleSortHeader}
+                        />
                         <th className="w-48 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
                           Triggered By
                         </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedDefects.map(({ defectKey, triggeredBy, issue, isLoading: defectLoading }) => (
-                        <DefectRow
-                          key={defectKey}
-                          defectIdOrKey={defectKey}
-                          issue={issue}
-                          isLoading={defectLoading}
-                          triggeredBy={triggeredBy}
-                          onOpen={openDefect}
-                        />
-                      ))}
+                      {sortedDefects.map(
+                        ({ defectKey, triggeredBy, issue, isLoading: defectLoading }) => (
+                          <DefectRow
+                            key={defectKey}
+                            defectIdOrKey={defectKey}
+                            issue={issue}
+                            isLoading={defectLoading}
+                            triggeredBy={triggeredBy}
+                            onOpen={openDefect}
+                          />
+                        ),
+                      )}
                     </tbody>
                   </table>
                 )}

@@ -1,7 +1,13 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { JIRA_EMOTICON_MAP, injectHeaderlessTableSeparators, mergeOpenTableRows, splitInlineSingleLineTables, WikiRenderer } from './WikiRenderer';
+import {
+  injectHeaderlessTableSeparators,
+  JIRA_EMOTICON_MAP,
+  mergeOpenTableRows,
+  splitInlineSingleLineTables,
+  WikiRenderer,
+} from './WikiRenderer';
 
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-token'),
@@ -56,7 +62,9 @@ const pushMock = vi.fn((entry: TrailEntry) => {
 vi.mock('@/stores/breadcrumb.store', () => ({
   useBreadcrumbStore: Object.assign(
     (selector?: (s: { push: typeof pushMock; trail: TrailEntry[] }) => unknown) =>
-      typeof selector === 'function' ? selector({ push: pushMock, trail: breadcrumbState.trail }) : breadcrumbState,
+      typeof selector === 'function'
+        ? selector({ push: pushMock, trail: breadcrumbState.trail })
+        : breadcrumbState,
     { getState: () => ({ push: pushMock, trail: breadcrumbState.trail }) },
   ),
 }));
@@ -239,9 +247,7 @@ describe('WikiRenderer', () => {
       expect(panelSpan?.firstElementChild?.tagName).toBe('OL');
       expect(panelSpan?.lastElementChild?.tagName).toBe('OL');
       // And there must be NO <br> as a direct child of the panel span.
-      const directBrs = Array.from(panelSpan?.children ?? []).filter(
-        (c) => c.tagName === 'BR',
-      );
+      const directBrs = Array.from(panelSpan?.children ?? []).filter((c) => c.tagName === 'BR');
       expect(directBrs.length).toBe(0);
     });
 
@@ -770,11 +776,7 @@ describe('WikiRenderer', () => {
     });
 
     it('injectHeaderlessTableSeparators — only injects once per run, not before every row', () => {
-      const input = [
-        '|row one|data|',
-        '|row two|data|',
-        '|row three|data|',
-      ].join('\n');
+      const input = ['|row one|data|', '|row two|data|', '|row three|data|'].join('\n');
 
       const result = injectHeaderlessTableSeparators(input);
       const lines = result.split('\n');
@@ -842,10 +844,7 @@ describe('WikiRenderer', () => {
 
     it('WikiRenderer headerless table — does not affect existing headed tables (regression)', () => {
       // A table WITH a header row must still render exactly as before.
-      const fixture = [
-        '||Phone||Plan||',
-        '|0905473496|Go Biznis 22 eur|',
-      ].join('\n');
+      const fixture = ['||Phone||Plan||', '|0905473496|Go Biznis 22 eur|'].join('\n');
 
       const { container } = render(<WikiRenderer wikiText={fixture} />);
 
@@ -951,7 +950,8 @@ describe('WikiRenderer', () => {
     });
 
     it('underscores in URL in plain prose (outside table) are also preserved', () => {
-      const fixture = 'Check this out: [https://example.com/hash=Ve_Zpl_Xug|https://example.com/hash=Ve_Zpl_Xug]';
+      const fixture =
+        'Check this out: [https://example.com/hash=Ve_Zpl_Xug|https://example.com/hash=Ve_Zpl_Xug]';
       const { container } = render(<WikiRenderer wikiText={fixture} />);
       const link = container.querySelector('a');
       expect(link).not.toBeNull();
@@ -1170,7 +1170,9 @@ describe('WikiRenderer', () => {
       );
       const link = screen.getByRole('link', { name: /Other MR/ });
       fireEvent.click(link);
-      expect(openUrl).toHaveBeenCalledWith('https://gitlab.example.com/other/repo/-/merge_requests/1');
+      expect(openUrl).toHaveBeenCalledWith(
+        'https://gitlab.example.com/other/repo/-/merge_requests/1',
+      );
       expect(navigateMock).not.toHaveBeenCalled();
     });
 
@@ -1244,7 +1246,9 @@ describe('WikiRenderer', () => {
       authStoreState.activeGitlabProject = 99;
       authStoreState.activeGitlabProjectPath = 'group/repo';
       locationPathname = '/issue/SOURCE-1';
-      render(<WikiRenderer wikiText="[See MR|https://gitlab.example.com/group/repo/-/merge_requests/42]" />);
+      render(
+        <WikiRenderer wikiText="[See MR|https://gitlab.example.com/group/repo/-/merge_requests/42]" />,
+      );
       const link = screen.getByRole('link', { name: /See MR/ });
       fireEvent.click(link);
       expect(pushMock).toHaveBeenCalledWith({ path: '/issue/SOURCE-1', label: 'SOURCE-1' });
@@ -1280,9 +1284,7 @@ describe('WikiRenderer', () => {
   // pre-process them in preprocessJiraMarkup before jira2md runs.
   describe('Jira {color} macro rendering (jira-color-macro)', () => {
     it('renders {color:#hex}text{color} with inline color style', () => {
-      const { container } = render(
-        <WikiRenderer wikiText="{color:#d04437}FAILED:{color}" />,
-      );
+      const { container } = render(<WikiRenderer wikiText="{color:#d04437}FAILED:{color}" />);
       // Text is present
       expect(container.textContent).toContain('FAILED:');
       // A span with the color style is rendered
@@ -1293,9 +1295,7 @@ describe('WikiRenderer', () => {
     });
 
     it('renders {color:#hex}*bold*{color} — bold survives inside color span', () => {
-      const { container } = render(
-        <WikiRenderer wikiText="{color:#d04437}*FAILED:*{color}" />,
-      );
+      const { container } = render(<WikiRenderer wikiText="{color:#d04437}*FAILED:*{color}" />);
       expect(container.textContent).toContain('FAILED:');
       const colored = container.querySelector('span[style]');
       expect(colored).not.toBeNull();
@@ -1318,8 +1318,7 @@ describe('WikiRenderer', () => {
     });
 
     it('color macro in a table cell renders with color', () => {
-      const fixture =
-        '||Status||Note||\n|{color:#d04437}FAIL{color}|See logs|';
+      const fixture = '||Status||Note||\n|{color:#d04437}FAIL{color}|See logs|';
       const { container } = render(<WikiRenderer wikiText={fixture} />);
       expect(container.textContent).toContain('FAIL');
       const colored = container.querySelector('span[style]');
@@ -1329,9 +1328,7 @@ describe('WikiRenderer', () => {
     });
 
     it('text without color macro is unaffected', () => {
-      const { container } = render(
-        <WikiRenderer wikiText="No color here" />,
-      );
+      const { container } = render(<WikiRenderer wikiText="No color here" />);
       expect(container.textContent).toContain('No color here');
       expect(container.querySelector('span[style]')).toBeNull();
     });
@@ -1380,9 +1377,7 @@ describe('WikiRenderer', () => {
     });
 
     it('multiple {*}..{*} spans on the same line all render bold', () => {
-      const { container } = render(
-        <WikiRenderer wikiText="{*}first{*} and {*}second{*}" />,
-      );
+      const { container } = render(<WikiRenderer wikiText="{*}first{*} and {*}second{*}" />);
       const strongs = container.querySelectorAll('strong');
       expect(strongs.length).toBeGreaterThanOrEqual(2);
       const boldTexts = Array.from(strongs).map((s) => s.textContent);
@@ -1391,9 +1386,7 @@ describe('WikiRenderer', () => {
     });
 
     it('{*}bold{*} inside a {color} macro renders bold AND colored', () => {
-      const { container } = render(
-        <WikiRenderer wikiText="{color:#d04437}{*}FAILED:{*}{color}" />,
-      );
+      const { container } = render(<WikiRenderer wikiText="{color:#d04437}{*}FAILED:{*}{color}" />);
       expect(container.textContent).toContain('FAILED:');
       // Bold element must be present inside the colored span
       const colored = container.querySelector('span[style]');
@@ -1427,7 +1420,6 @@ describe('WikiRenderer', () => {
       expect(container.textContent).not.toMatch(/\}$/);
     });
   });
-
 
   // --- Inline single-line table expansion (table-not-render-issue-detail) ---
   //
@@ -1463,7 +1455,9 @@ describe('WikiRenderer', () => {
       expect(headingLine).not.toMatch(/\|---/);
 
       // Data rows must be present as separate lines starting with |.
-      const dataLines = lines.filter((l) => l.trim().startsWith('|') && !/^\|(?::?-+:?\|)+$/.test(l.trim()));
+      const dataLines = lines.filter(
+        (l) => l.trim().startsWith('|') && !/^\|(?::?-+:?\|)+$/.test(l.trim()),
+      );
       expect(dataLines.length).toBeGreaterThanOrEqual(2);
     });
 
@@ -1574,10 +1568,7 @@ describe('WikiRenderer', () => {
 
     it('italic data cells render as <em> elements (not raw asterisks)', () => {
       // A simpler fixture: one row with italic cells.
-      const fixture = [
-        '||Header A||Header B||',
-        '|_italic value_|plain|',
-      ].join('\n');
+      const fixture = ['||Header A||Header B||', '|_italic value_|plain|'].join('\n');
       const { container } = render(<WikiRenderer wikiText={fixture} />);
       const table = container.querySelector('table');
       expect(table).not.toBeNull();
@@ -1596,10 +1587,7 @@ describe('WikiRenderer', () => {
       // Without the fix, |*A*|*B*| becomes |**A*|*B**| — two "cells" with broken
       // bold syntax and no true cell separation. With the fix, each cell is
       // independently converted: |**A**|**B**|.
-      const fixture = [
-        '||Col1||Col2||',
-        '|*Alpha*|*Beta*|',
-      ].join('\n');
+      const fixture = ['||Col1||Col2||', '|*Alpha*|*Beta*|'].join('\n');
       const { container } = render(<WikiRenderer wikiText={fixture} />);
       const table = container.querySelector('table');
       expect(table).not.toBeNull();
@@ -1678,12 +1666,21 @@ describe('WikiRenderer', () => {
       // jira2md heading conversion adds no blank lines. <img> on its own line with
       // only one \n before the next heading starts a CommonMark HTML block that
       // absorbs the heading. Fix: preprocessor appends \n to every <img> it emits.
-      const attachments = { 'diagram.png': 'https://jira.example.com/secure/attachment/1/diagram.png' };
-      const fixture = ['!diagram.png!', 'h2. Section After Image', '', 'Paragraph under section.'].join('\n');
+      const attachments = {
+        'diagram.png': 'https://jira.example.com/secure/attachment/1/diagram.png',
+      };
+      const fixture = [
+        '!diagram.png!',
+        'h2. Section After Image',
+        '',
+        'Paragraph under section.',
+      ].join('\n');
       const { container } = render(<WikiRenderer wikiText={fixture} attachments={attachments} />);
       const headings = container.querySelectorAll('h2');
       expect(headings.length).toBeGreaterThanOrEqual(1);
-      expect(Array.from(headings).some((h) => h.textContent?.includes('Section After Image'))).toBe(true);
+      expect(Array.from(headings).some((h) => h.textContent?.includes('Section After Image'))).toBe(
+        true,
+      );
       expect(container.textContent).toContain('Paragraph under section');
     });
   });
@@ -1717,10 +1714,7 @@ describe('WikiRenderer', () => {
       // already ends with |, mergeOpenTableRows passes it through unchanged.
       // The global \\\\ → "  \n" conversion must NOT apply inside table rows
       // because inserting \n mid-row breaks the GFM table structure.
-      const fixture = [
-        '||*Step*||*Expected*||',
-        '|Row text \\\\ continued |OK |',
-      ].join('\n');
+      const fixture = ['||*Step*||*Expected*||', '|Row text \\\\ continued |OK |'].join('\n');
       const { container } = render(<WikiRenderer wikiText={fixture} />);
       const table = container.querySelector('table');
       expect(table).not.toBeNull();
@@ -1762,5 +1756,4 @@ describe('WikiRenderer', () => {
       expect(allText).toContain('Pro Biznis M');
     });
   });
-
 });
