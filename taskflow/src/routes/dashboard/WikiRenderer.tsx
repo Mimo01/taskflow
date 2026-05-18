@@ -597,6 +597,14 @@ export function preprocessJiraMarkup(
   result = result.replace(/\{\*\}(.*?)\{\*\}/gs, '<strong>$1</strong>');
   result = result.replace(/\{_\}(.*?)\{_\}/gs, '<em>$1</em>');
 
+  // Jira backslash-escaped plus: \\+ is a Jira escape sequence meaning a literal `+`.
+  // jira2md does not understand Jira escape sequences — it applies its `+text+` →
+  // `<ins>text</ins>` underline rule globally, so a bare `+` left after stripping
+  // the backslash can pair with another `+` in a different cell, producing cross-cell
+  // <ins> tags that corrupt the table structure. Replace \\+ with the HTML entity
+  // &#43; (renders as `+`) so the underline regex in jira2md never sees it.
+  result = result.replace(/\\\+/g, '&#43;');
+
   // Inline single-line table expansion: detect table rows (including the GFM
   // separator |---|---|) collapsed onto a single line and split them into proper
   // multi-line form so that mergeOpenTableRows and remark-gfm can process them.
@@ -627,8 +635,26 @@ export function preprocessJiraMarkup(
   // - `h1.foo` … `h6.foo` → `h1. foo` (so jira2md emits valid `#…# foo`)
   // - `\\` at end-of-line or surrounded by spaces → markdown hard break (`  \n`)
   result = result.replace(/^(h[1-6]\.)(\S)/gm, '$1 $2');
+
+  // Table data rows (starting with `|` but not `||`) may contain `\\` hard-break
+  // markers that were not processed by mergeOpenTableRows (which only handles merged
+  // multi-line rows, not rows that already end with `|`). Convert remaining `\\`
+  // in single-line table rows to `<br/>` before the global `\\` → markdown
+  // hard-break pass below, which would otherwise insert a raw `\n` inside the row
+  // and break the GFM table structure.
+  result = result
+    .split('\n')
+    .map((line) => {
+      const trimmed = line.replace(/[ \t]+$/, '');
+      if (trimmed.startsWith('|') && !trimmed.startsWith('||')) {
+        return line.replace(/\\\\/g, '<br/>');
+      }
+      return line;
+    })
+    .join('\n');
   // Convert standalone `\\` (Jira hard break) to a markdown hard break.
   // Two trailing spaces + newline is the markdown hard-break form remark-gfm preserves.
+  // The table-row pass above ensures no `\\` remains in table rows by this point.
   result = result.replace(/[ \t]*\\\\[ \t]*\n/g, '  \n');
   result = result.replace(/[ \t]\\\\[ \t]/g, '  \n');
 
