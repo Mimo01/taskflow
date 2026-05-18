@@ -2,11 +2,11 @@
 
 ## What This Is
 
-Taskflow is a cross-platform Tauri 2 desktop app for Orange's eshop development team. It unifies Jira (on-premise) and GitLab into a single fast, focused interface — replacing the need to juggle multiple slow tools. It ships as a portable executable (no installer, no admin rights), stores credentials in the OS keychain, and serves both developers and project managers with role-specific dashboards, automatic task-to-MR linking, a unified notifications hub, global search, and a developer dashboard enriched with subtask tracking, MR health, sprint health, and notifications at a glance.
+Taskflow is a cross-platform Tauri 2 desktop app for Orange's eshop development team. It unifies Jira (on-premise), GitLab, and AIO Test Management into a single fast, focused interface — replacing the need to juggle multiple slow tools. It ships as a portable executable (no installer, no admin rights), stores credentials in the OS keychain, and serves both developers and project managers with role-specific dashboards, automatic task-to-MR linking, a unified notifications hub, global search, AIO test execution visibility, and a developer dashboard enriched with subtask tracking, MR health, sprint health, and test run data at a glance.
 
 ## Core Value
 
-Developers and PMs can see everything they need — tasks, merge requests, sprint state, and notifications — in one place, without switching between Jira and GitLab.
+Developers and PMs can see everything they need — tasks, merge requests, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
 
 ## Requirements
 
@@ -88,9 +88,11 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ Bundle analysis tooling (rollup-plugin-visualizer) and dead code elimination — v1.7
 - ✓ `aioEnabled` toggle in Settings → Integrations (persists via Tauri Store, gates all AIO calls, default false) — v1.8 Phase 51
 - ✓ AIO service module (`src/services/aio/`) with probe-confirmed dual base paths, paginated response handling, `fetchAioProjects`, `fetchAioTestRunsForCycle` — v1.8 Phase 51
-- ✓ AIO sidebar section (Project Overview → Cycle Detail) with routing shell; cycle detail page with progress bar, test run table, and defects panel; pin/unpin cycles to header tab strip — v1.8 Phases 52, 53
-- ✓ AIO project selection in Settings → Integrations: single configured project drives the app, sidebar "AIO Projects" entry deep-links to the selected project's overview, legacy list page removed — v1.8 Phase 55
-- ✓ AIO test runs section on Jira issue detail: impacted executions list with per-run status chips, step table with Step/Expected/Actual columns and colored failure markers, AIO attachments grid with in-app lightbox, cross-project navigation — v1.8 Phase 54
+- ✓ AIO sidebar "Testing" section with FlaskConical icon (gated on aioEnabled + selectedAioProjectKey); two-panel project overview with recursive folder tree (expand/collapse, cycle count badges), 5-column cycle table from batch summary endpoint — v1.8 Phases 52, 57
+- ✓ Cycle detail page: execution progress bar (decoupled from run list via batch summary endpoint, ~0.4s), tabbed Executions+Defects layout, clickable run rows, Jira-enriched defect table with sort/filter; pin/unpin cycles to header tab strip with Tauri Store persistence — v1.8 Phases 53, 56, 58
+- ✓ AIO project selection in Settings → Integrations: single configured project drives the app, sidebar deep-links to selected project overview, legacy list page deleted — v1.8 Phase 55
+- ✓ AIO test runs section on Jira issue detail: impacted executions with per-run status chips, step table with Step/Expected/Actual columns and failure markers via WikiRenderer, AIO attachments grid with authenticated lightbox, cross-project run navigation — v1.8 Phase 54
+- ✓ Cycle detail data-fetch redesign: progress bar from `fetchAioCycleSummaries` (one POST) independent of paginated runs; per-defect-key `useQuery` dedup eliminating N+1 Jira fetches; credential gate preventing first-load 401 flash on all AIO pages — v1.8 Phase 58
 
 ### Active
 
@@ -109,21 +111,9 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - GitLab write actions (approve, comment, request changes) — deferred to v2.0
 - Full JQL editor with syntax highlighting — months of work; plain text JQL input sufficient
 
-## Current Milestone: v1.8 AIO Test Management
-
-**Goal:** Integrate AIO Test Management into Taskflow — give the team visibility into test project health, cycle execution, and defects without leaving the app.
-
-**Target features:**
-- AIO sidebar section with project list → project overview (cycles) → cycle detail (progress, burndown, defects, test runs)
-- Pin test cycles to the header tab strip
-- AIO test run table rendering on Jira issue detail
-- AIO attachment handling through authenticated HTTP client → in-app lightbox
-
 ## Current State
 
-**Shipped v1.7** on 2026-04-05. All performance targets met — every view feels instant with skeleton screens, progressive loading, smart caching, and zero unnecessary waits.
-
-**v1.8 AIO Test Management complete** — started 2026-05-12, verified 2026-05-14. All 5 phases (51–55) done. AIO sidebar, cycle detail, pin/unpin, issue-detail test runs section, and Settings project picker all shipped and UAT-verified.
+**Shipped v1.8 AIO Test Management** on 2026-05-19. Started 2026-05-12. All 8 phases (51–58) complete. AIO sidebar, folder-tree project overview, cycle detail with tabbed layout and decoupled progress bar, pin/unpin to header tabs, issue-detail test runs section, Settings project picker, and cycle detail data-fetch redesign all shipped and UAT-verified.
 
 ## Context
 
@@ -135,15 +125,16 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - **Shipped v1.5:** 2026-03-24 — 7 phases, 25 plans, 415 files changed (+54,227/−4,827 lines)
 - **Shipped v1.6.3:** 2026-03-29 — 4 phases, 10 plans, 13 quick tasks, 334 files changed (+25,443/−2,497 lines)
 - **Shipped v1.7:** 2026-04-05 — 9 phases, 23 plans, 254 commits, 339 files changed (+38,812/−4,890 lines)
+- **Shipped v1.8:** 2026-05-19 — 8 phases (51–58), 45 plans, 464 commits, 367 files changed (+62,924/−2,759 lines)
 - **Tech stack:** Tauri 2, React 18, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, Biome, @dnd-kit/core, @dnd-kit/sortable, @tanstack/react-virtual, react-grid-layout, jira2md, react-markdown, react-hotkeys-hook, cmdk, babel-plugin-react-compiler
 - **Jira instance:** On-premise (Jira Data Center v10.3.15) — REST API v2 with Bearer PAT auth; createmeta/workflow/transitions APIs used for issue management
 - **GitLab:** Self-hosted or gitlab.com — personal access token
 - **Team:** Orange eshop project — developers + project managers using the same app with role-based views
 - **Scale:** One Jira project + one GitLab project at a time
 - **Build:** Portable executable — no installer, no admin rights; `createHashRouter` for SPA routing in production
-- **Test suite:** 817+ tests, zero failures, zero warnings; Vitest with LazyStore mock
-- **Codebase:** ~57,000+ lines TypeScript
-- **Known caveats (v1.7):** Bulk operations (BOARD-04–07) implemented but user-deferred — components on disk, not wired; Cmd+Shift nav shortcut deviation needs product owner sign-off; 13 human verification items deferred to live Jira environment; Apple/Windows code signing deferred to future release; 7 doc-only tech debt items from v1.7 milestone audit
+- **Test suite:** 983+ tests, zero failures, zero warnings; Vitest with LazyStore mock
+- **Codebase:** ~68,000+ lines TypeScript
+- **Known caveats (v1.8):** 3 phases (53, 57, 58) missing VERIFICATION.md — all UAT-verified, retroactive production deferred; hardcoded AIO_STATUS_MAP (non-standard instances may mis-bucket); TESTCASE_STATUS_MAP missing IDs 51/52 (in-progress runs show as NOT_EXECUTED); Bulk operations (BOARD-04–07) components on disk, not wired; Cmd+Shift nav shortcut deviation needs product owner sign-off; Apple/Windows code signing deferred to future release
 
 ## Constraints
 
@@ -232,6 +223,16 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 | React Compiler auto-memoization | Eliminates all manual useMemo/useCallback/React.memo; babel-plugin-react-compiler handles memoization at IR level | ✓ Good — 35 files cleaned, zero manual memos remaining |
+| AIO uses same Bearer PAT auth as Jira (source: 'jira') | AIO plugin lives on the same host as Jira; adding a third credential type was unnecessary complexity | ✓ Good — no extra credentials; aioFetch shares the Jira PAT |
+| AIO dual base paths (`aio-tcms-api/1.0` + `rest/aio-tcms/1.0`) | Probe confirmed two distinct path prefixes; legacy endpoint for runs, new path for folder/summary/count endpoints | ✓ Good — probe-first approach prevented hardcoded wrong paths |
+| AIO query keys use `['aio', jiraBaseUrl, ...]` prefix | Prevents Jira invalidation sweeps from clearing AIO cache; avoids cross-contamination between jira/aio queries | ✓ Good — invalidation scoped correctly |
+| aioEnabled defaults to false, gates all AIO calls | Users without AIO installed see no AIO UI and fire zero AIO requests | ✓ Good — clean opt-in; no noise for non-AIO teams |
+| Settings → Integrations as AIO project selection surface (not a list page) | List page required navigation to select a project; Settings picker is single global state with immediate sidebar effect | ✓ Good — one-click setup; sidebar deep-links instantly |
+| Folder-tree cycle organization with server-side `?folderID=` filter | Probe A5 confirmed server-side filtering; avoids fetching all cycles on mount and client-filtering | ✓ Good — zero unnecessary fetches on folder switch |
+| Batch summary endpoint (`POST paged2`) for cycle progress stats | Eliminates N+1 per-cycle run fetches on project overview page; single POST returns all stats | ✓ Good — overview loads in ~1s vs minutes for N+1 approach |
+| Progress bar from summary endpoint, decoupled from run list | `fetchAioCycleSummaries` resolves ~0.4s; `fetchAioTestRunsForCycle` resolves ~11s — visible progress before runs table | ✓ Good — dramatically improves perceived load time |
+| Per-defect-key `useQuery` in DefectRow (not service-level N+1) | TanStack Query deduplicates same key across rows; service layer returns raw IDs | ✓ Good — identical defect IDs across runs fire exactly one Jira fetch |
+| Token never in AIO queryKey | Following same convention as Jira; token rotation should not bust cache; credential is read inside queryFn | ✓ Good — cache stable across token refreshes |
 | gcTime: Infinity for session-persistent cache | Users see cached data instantly on back-navigation; no gc during session | ✓ Good — stale-while-revalidate works correctly |
 | useIsActiveRoute hook for polling pause | Route-aware polling prevents background queries from burning CPU/network | ✓ Good — 5 views pause correctly |
 | useDelayedLoading with 200ms threshold | Prevents skeleton flash on fast cache hits while showing feedback on slow loads | ✓ Good — smooth UX on all 8 views |
@@ -239,4 +240,4 @@ This document evolves at phase transitions and milestone boundaries.
 | CachedAvatar with blob URL Map + LazyStore disk persistence | Avatars cached in memory and on disk; 30-day TTL eviction; inflight dedup | ✓ Good — no repeated avatar fetches |
 
 ---
-*Last updated: 2026-05-14 after Phase 54 UAT verification — Milestone v1.8 AIO Test Management complete (all 5 phases)*
+*Last updated: 2026-05-19 after v1.8 milestone close — AIO Test Management complete (Phases 51–58)*

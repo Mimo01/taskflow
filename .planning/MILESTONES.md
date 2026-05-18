@@ -1,5 +1,28 @@
 # Milestones
 
+## v1.8 AIO Test Management (Shipped: 2026-05-19)
+
+**Phases completed:** 8 phases (51–58), 45 plans
+**Timeline:** 7 days (2026-05-12 → 2026-05-19)
+**Codebase:** 367 files changed (+62,924/−2,759 lines), 464 commits
+**Git range:** a05cb2a (docs: start milestone v1.8) → fbbbf48 (docs(phase-58): validation strategy)
+
+**Key accomplishments:**
+
+1. AIO service layer — Bearer PAT probe confirmed on live instance, `src/services/aio/` module with dual base paths (`aio-tcms-api/1.0` legacy + `rest/aio-tcms/1.0` new endpoints), `aioEnabled` toggle in Settings → Integrations with Tauri Store persistence (default false, gates all AIO calls)
+2. AIO sidebar + project overview — "Testing" sidebar section (FlaskConical icon, gated on aioEnabled + selectedAioProjectKey), two-panel project overview with recursive folder tree (expand/collapse + cycle count badges), 5-column cycle table driven by batch summary endpoint with zero N+1 fetches; owner column resolved via Jira user-lookup API
+3. Cycle detail page — execution progress bar decoupled from run list (batch summary endpoint resolves ~0.4s before paginated runs), tabbed Executions+Defects layout with clickable run rows and Jira-enriched defect table; pin/unpin cycles to header tab strip with Tauri Store persistence across restarts
+4. AIO on issue detail — lazy-loaded test runs section (gated on aioEnabled), impacted executions list with per-run status chips, step table with Step/Expected/Actual columns and failure markers via WikiRenderer, AIO attachments grid (in-cycle runs + description image refs, deduplicated by URL), cross-project run navigation; authenticated lightbox
+5. Settings AIO project picker — single-project selection moved from `/aio-projects` list page into Settings → Integrations; sidebar deep-links directly to the configured project's overview; legacy list page and route deleted; settings store v17 migration
+6. Cycle detail data-fetch redesign — progress bar driven by `fetchAioCycleSummaries` (one POST) independent of `fetchAioTestRunsForCycle`; per-defect-key `useQuery` in `DefectRow` eliminates N+1 Jira fetches and deduplicates duplicate defect IDs via TanStack Query cache; credential gate (`!!jiraBaseUrl && !!token && !tokenLoading`) on all queries prevents first-load 401 flash
+
+**Known Gaps (acknowledged at close):**
+- 3 phases missing VERIFICATION.md (Phases 53, 57, 58) — all UAT-verified (13/13, 15/15, 6/6 scenarios PASS); retroactive VERIFICATION.md deferred
+- W-1: AioCycleDetailPage uses hardcoded AIO_STATUS_MAP; non-standard AIO instances may mis-bucket progress bar segments
+- W-2: TESTCASE_STATUS_MAP missing IDs 51/52 — in-progress runs display as NOT_EXECUTED in Executions tab
+
+---
+
 ## v1.7 Performance & Perceived Speed (Shipped: 2026-04-05)
 
 **Phases completed:** 9 phases (42-49), 23 plans, 254 commits
