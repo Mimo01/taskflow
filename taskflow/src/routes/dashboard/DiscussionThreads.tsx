@@ -13,20 +13,32 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { Activity, CheckCircle2, ChevronDown, ChevronRight, FileCode, Lock } from 'lucide-react';
 import { type ComponentPropsWithoutRef, useCallback, useState } from 'react';
 import Markdown from 'react-markdown';
+import { useNavigate } from 'react-router-dom';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
+import { tryInternalPath } from '@/lib/internalLinks';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import type { Discussion, DiscussionNote, MRDiffFile } from '@/services/gitlab';
+import { useAuthStore } from '@/stores/auth.store';
 
 // ---- Link rewriter for GitLab-relative URLs ----
 
 function useGitLabLinkComponents(gitlabBaseUrl?: string) {
+  const navigate = useNavigate();
+  const { jiraBaseUrl, activeGitlabProject, activeGitlabProjectPath } = useAuthStore();
+  const linkCtx = {
+    jiraBaseUrl,
+    gitlabBaseUrl: gitlabBaseUrl ?? null,
+    activeGitlabProject,
+    activeGitlabProjectPath,
+  };
+
   return useCallback(
     () => ({
       a: ({ href, children, ...props }: ComponentPropsWithoutRef<'a'>) => {
         let resolvedHref = href ?? '';
-        // Rewrite relative GitLab links to absolute
+        // Rewrite relative GitLab links to absolute before routing.
         if (resolvedHref.startsWith('/') && gitlabBaseUrl) {
           resolvedHref = `${gitlabBaseUrl.replace(/\/$/, '')}${resolvedHref}`;
         }
@@ -36,7 +48,15 @@ function useGitLabLinkComponents(gitlabBaseUrl?: string) {
             href={resolvedHref}
             onClick={(e) => {
               e.preventDefault();
-              if (resolvedHref) openUrl(resolvedHref);
+              if (!resolvedHref) return;
+              // Try in-app routing first (Jira browse → /issue/:key,
+              // GitLab MR → /mr/:projectId/:iid on path match).
+              const internalPath = tryInternalPath(resolvedHref, linkCtx);
+              if (internalPath !== null) {
+                navigate(internalPath);
+                return;
+              }
+              openUrl(resolvedHref);
             }}
             className="text-primary hover:underline cursor-pointer"
           >
@@ -45,7 +65,8 @@ function useGitLabLinkComponents(gitlabBaseUrl?: string) {
         );
       },
     }),
-    [gitlabBaseUrl],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [gitlabBaseUrl, navigate, linkCtx.jiraBaseUrl, linkCtx.activeGitlabProject, linkCtx.activeGitlabProjectPath],
   );
 }
 

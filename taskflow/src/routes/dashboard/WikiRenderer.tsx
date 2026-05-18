@@ -3,10 +3,13 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import j2m from 'jira2md';
 import { type ComponentPropsWithoutRef, type MouseEvent, useState } from 'react';
 import Markdown from 'react-markdown';
+import { useNavigate } from 'react-router-dom';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
+import { tryInternalPath } from '@/lib/internalLinks';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth.store';
 import { AuthImage } from './AuthImage';
 import { ImageLightbox } from './ImageLightbox';
 
@@ -510,6 +513,9 @@ const calloutStyles: Record<string, string> = {
 
 export function WikiRenderer({ wikiText, className, attachments, users }: WikiRendererProps) {
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { jiraBaseUrl, gitlabBaseUrl, activeGitlabProject, activeGitlabProjectPath } = useAuthStore();
+  const linkCtx = { jiraBaseUrl, gitlabBaseUrl, activeGitlabProject, activeGitlabProjectPath };
 
   const preprocessed = wikiText ? preprocessJiraMarkup(wikiText, attachments, users) : '';
   const markdown = preprocessed ? fixMarkdownLinkUnderscores(j2m.to_markdown(preprocessed)) : '';
@@ -579,12 +585,18 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
         @{children}
       </span>
     ),
-    // External link override (Plan 54-06 Finding 1 sub-issue + UAT follow-ups):
+    // External link override (Plan 54-06 Finding 1 sub-issue + UAT follow-ups,
+    // updated 260518-pq2):
     // - Image attachment links ([filename.png|url] where filename ends in an
     //   image extension) render as inline text anchors (preserves prose flow).
     //   Click opens the existing ImageLightbox in-app — no OS browser.
-    // - All other external links route through openUrl from
-    //   @tauri-apps/plugin-opener so the Tauri webview is not hijacked.
+    // - Other external links first consult tryInternalPath (Jira browse URLs
+    //   → /issue/:key; GitLab MR URLs → /mr/:projectId/:iid when the URL's
+    //   group/project path matches activeGitlabProjectPath). On a hit, the app
+    //   navigates in-app via useNavigate() without touching the OS browser.
+    // - Only on a miss (no known internal route) do links fall through to
+    //   openUrl from @tauri-apps/plugin-opener so the Tauri webview is not
+    //   hijacked.
     a: ({ href, children, ...rest }: ComponentPropsWithoutRef<'a'>) => {
       // Falsy href → render plain <a> with no openUrl, no preventDefault.
       if (!href) {
@@ -621,6 +633,11 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
       }
       const handleClick = (e: MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
+        const internalPath = tryInternalPath(href, linkCtx);
+        if (internalPath !== null) {
+          navigate(internalPath);
+          return;
+        }
         openUrl(href).catch(() => {});
       };
       // Preserve href on the rendered anchor for accessibility (right-click
