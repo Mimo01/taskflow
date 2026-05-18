@@ -140,7 +140,7 @@ export async function fetchAioTestRunsForCycle(
     const path = `${basePath}?startAt=${startAt}`;
     let response: Response;
     try {
-      response = await aioFetch(baseUrl, token, path);
+      response = await aioFetch(baseUrl, token, path, 'Load AIO Execution Detail');
     } catch {
       throw new Error(`Cannot reach AIO at ${baseUrl}`);
     }
