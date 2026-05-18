@@ -300,8 +300,14 @@ describe('AioCycleDetailPage', () => {
     beforeEach(async () => {
       const { fetchJiraIssueByKey } = await import('@/services/jira');
       (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockResolvedValue({
-        key: 'PROJ-42',
-        fields: { summary: 'Login broken', status: { name: 'Open' } },
+        id: '186227',
+        key: 'PROJ-1234',
+        fields: {
+          summary: 'Login broken',
+          status: { name: 'In Progress', statusCategory: { key: 'indeterminate' } },
+          assignee: { displayName: 'Jane Doe', avatarUrls: { '48x48': 'https://example.com/jane.png' } },
+          issuetype: { name: 'Bug', subtask: false },
+        },
       });
     });
 
@@ -312,10 +318,10 @@ describe('AioCycleDetailPage', () => {
       await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
       await user.click(screen.getByRole('tab', { name: 'Defects' }));
       await waitFor(() => {
-        // defect key rendered as string '186227' (jiraDefectIDs[0].toString())
-        expect(screen.getByText('186227')).toBeDefined();
+        // resolved Jira key rendered, not the raw numeric ID
+        expect(screen.getByText('PROJ-1234')).toBeDefined();
         expect(screen.getByText('Login broken')).toBeDefined();
-        expect(screen.getByText('Open')).toBeDefined();
+        expect(screen.getByText('In Progress')).toBeDefined();
       });
     });
 
@@ -359,14 +365,15 @@ describe('AioCycleDetailPage', () => {
       });
     });
 
-    it('AIOC-03: defect key links to /issue/:key', async () => {
+    it('AIOC-03: defect key links to /issue/:resolvedKey after issue resolves', async () => {
       const user = userEvent.setup();
       await setupDefaultMocks();
       renderPage();
       await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
       await user.click(screen.getByRole('tab', { name: 'Defects' }));
-      await waitFor(() => expect(screen.getByText('186227')).toBeDefined());
-      expect(screen.getByText('186227').closest('a')?.getAttribute('href')).toBe('/issue/186227');
+      // Wait for the resolved key to appear (not the raw numeric ID)
+      await waitFor(() => expect(screen.getByText('PROJ-1234')).toBeDefined());
+      expect(screen.getByText('PROJ-1234').closest('a')?.getAttribute('href')).toBe('/issue/PROJ-1234');
     });
 
     it('AIOC-03: triggered-by column lists test case keys from runs whose jiraDefectIDs contains the ID', async () => {
@@ -471,6 +478,53 @@ describe('AioCycleDetailPage', () => {
           '186227',
         );
       });
+    });
+
+    it('AIOC-03: renders resolved Jira key, colored status, and assignee from fetchJiraIssueByKey response', async () => {
+      const user = userEvent.setup();
+      await setupDefaultMocks();
+      renderPage();
+      await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+      await user.click(screen.getByRole('tab', { name: 'Defects' }));
+
+      // Resolved key shown (not raw numeric ID)
+      await waitFor(() => expect(screen.getByText('PROJ-1234')).toBeDefined());
+
+      // Link points to resolved key
+      expect(screen.getByText('PROJ-1234').closest('a')?.getAttribute('href')).toBe('/issue/PROJ-1234');
+
+      // Status pill carries color class from statusPillClass('indeterminate')
+      const statusEl = screen.getByText('In Progress');
+      expect(statusEl).toBeDefined();
+      expect(statusEl.className).toContain('bg-blue-500/15');
+
+      // Assignee name shown in defect row
+      expect(screen.getByText('Jane Doe')).toBeDefined();
+    });
+
+    it('AIOC-03: falls back to numeric ID and em-dashes when fetchJiraIssueByKey returns null', async () => {
+      const user = userEvent.setup();
+      const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
+        await import('@/services/aio');
+      const { fetchJiraIssueByKey } = await import('@/services/jira');
+      const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+      (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
+      (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
+      (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
+      // Null response — issue not found or unreachable
+      (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+      renderPage();
+      await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+      await user.click(screen.getByRole('tab', { name: 'Defects' }));
+
+      // Falls back to raw numeric ID (may appear in both key cell and title cell when issue is null)
+      await waitFor(() => expect(screen.getAllByText('186227').length).toBeGreaterThan(0));
+
+      // Table has 5 column headers (Key, Title, Status, Assignee, Triggered By)
+      const headers = screen.getAllByRole('columnheader');
+      expect(headers.length).toBe(5);
     });
   });
 
