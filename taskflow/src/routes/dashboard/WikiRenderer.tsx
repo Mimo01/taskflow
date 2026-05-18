@@ -453,18 +453,24 @@ export function preprocessJiraMarkup(
 
 /**
  * jira2md applies its italic transformation (`_text_` → `*text*`) globally
- * across the entire input string — including inside `[display|url]` link
- * syntax — before it extracts the link parts. When a URL contains two or more
- * underscores (e.g. a hash parameter like `hash=1D_D5LJtmN2Xr1bQQRvAcywIXXCd7fBCUz3Ve_ZplpPeXug`),
- * the first and last `_` form an "italic pair" and the content between them
- * is wrapped in `*`, corrupting both the display text and the href in the
- * resulting markdown link `[display](url)`.
+ * across the entire input string — including inside `[display|url]` and
+ * `[URL]` link syntax — before it extracts the link parts. When a URL
+ * contains two or more underscores (e.g. a hash parameter like
+ * `hash=L_0mIHoqvPqgwUAu6FML8le7k8K_uXCDZ8OUVHEeqnheLRQ%3D`), the first
+ * and last `_` form an "italic pair" and the content between them is wrapped
+ * in `*`, corrupting both the display text and the href.
+ *
+ * jira2md emits two markdown link forms:
+ *  - `[display|url]` → standard link `[display](url)`
+ *  - `[URL]`         → autolink `<https://…>` (URL-only bracket syntax)
  *
  * URLs never contain `*` as a valid character in practice, so we can safely
  * revert any `*` back to `_` in:
  *  1. The URL portion (inside the closing parens) of every `[text](url)` link.
  *  2. The display text of links where the display text is itself a URL (starts
  *     with `http://` or `https://`) — the same italic corruption applies there.
+ *  3. The body of every `<https://…>` or `<http://…>` autolink — jira2md
+ *     emits these for `[URL]` bracket syntax (URL-only, no display text).
  *
  * This function is applied to the full markdown string produced by
  * `j2m.to_markdown()` before it is passed to react-markdown. It does NOT
@@ -474,7 +480,8 @@ export function preprocessJiraMarkup(
  * Private helper — not exported.
  */
 function fixMarkdownLinkUnderscores(md: string): string {
-  return md.replace(/\[([^\]]*)\]\(([^)]*)\)/g, (_match, text: string, url: string) => {
+  // Fix standard markdown links: [text](url)
+  let result = md.replace(/\[([^\]]*)\]\(([^)]*)\)/g, (_match, text: string, url: string) => {
     // Always restore * → _ in the URL (href) portion — * is not valid in URLs.
     const fixedUrl = url.replace(/\*/g, '_');
     // Only restore * → _ in display text when the text itself is a URL.
@@ -482,6 +489,14 @@ function fixMarkdownLinkUnderscores(md: string): string {
     const fixedText = /^https?:\/\//.test(text) ? text.replace(/\*/g, '_') : text;
     return `[${fixedText}](${fixedUrl})`;
   });
+  // Fix markdown autolinks: <https://…> or <http://…>
+  // jira2md emits these for `[URL]` bracket syntax (no display text).
+  // The italic pass runs before link extraction, so underscores in the URL
+  // are already corrupted to `*` by the time we see the autolink token.
+  result = result.replace(/<(https?:\/\/[^>]*)>/g, (_match, url: string) => {
+    return `<${url.replace(/\*/g, '_')}>`;
+  });
+  return result;
 }
 
 const calloutStyles: Record<string, string> = {

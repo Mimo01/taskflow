@@ -912,6 +912,42 @@ describe('WikiRenderer', () => {
       expect(link?.getAttribute('href')).toContain('Ve_Zpl_Xug');
       expect(link?.getAttribute('href')).not.toContain('*');
     });
+
+    it('[URL]-only syntax (autolink) — verbatim bug report URL: underscores in hash param are preserved', () => {
+      // Exact reproduction URL from the bug report. [URL] without a display name
+      // causes jira2md to emit a markdown autolink <https://...> instead of
+      // [text](url). The italic pass corrupts underscores to * before the autolink
+      // is formed; fixMarkdownLinkUnderscores must now also handle <https://...>.
+      const fixture =
+        '[https://www.orange.euro/e-shop-beta/vymena-internetu-a-televizie/rychla-vymena?hash=L_0mIHoqvPqgwUAu6FML8le7k8K_uXCDZ8OUVHEeqnheLRQ%3D]';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const link = container.querySelector('a');
+      expect(link).not.toBeNull();
+      // href must use _ not *
+      const href = link?.getAttribute('href') ?? '';
+      expect(href).toContain('L_0mIH');
+      expect(href).toContain('K_uXCDZ');
+      expect(href).not.toContain('L*0mIH');
+      expect(href).not.toContain('K*uXCDZ');
+    });
+
+    it('[URL]-only syntax (autolink) — URL with two underscores renders both as _ not *', () => {
+      const fixture = 'See: [https://example.com/hash=abc_def_ghi]';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const link = container.querySelector('a');
+      expect(link).not.toBeNull();
+      expect(link?.getAttribute('href')).toBe('https://example.com/hash=abc_def_ghi');
+      expect(link?.getAttribute('href')).not.toContain('*');
+    });
+
+    it('[URL]-only syntax (autolink) — inside a list item underscores are preserved', () => {
+      const fixture = '* [https://example.com/a_b_c]';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const link = container.querySelector('a');
+      expect(link).not.toBeNull();
+      expect(link?.getAttribute('href')).toBe('https://example.com/a_b_c');
+      expect(link?.getAttribute('href')).not.toContain('*');
+    });
   });
 
   // --- Jira emoticon shortcodes (jira-icons-not-rendered) ---
