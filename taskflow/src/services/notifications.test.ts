@@ -373,6 +373,106 @@ describe('notifications service', () => {
     });
   });
 
+  describe('NOTF-self-author filter — GitLab', () => {
+    // MR authored by user id=1 so that the approvals branch is entered
+    const selfAuthorMR = {
+      id: 200,
+      iid: 10,
+      project_id: 5,
+      title: 'My MR',
+      source_branch: 'feature/my-mr',
+      state: 'opened' as const,
+      author: { id: 1, name: 'John Doe', username: 'jdoe', avatar_url: '' },
+      reviewers: [],
+      updated_at: '2026-03-12T10:00:00Z',
+      web_url: 'https://gitlab.example.com/project/mr/10',
+      labels: [],
+      milestone: null,
+    };
+
+    it('filters out self: self-approval (approved_by entry with own id) is skipped', async () => {
+      const notesResp = { ok: true, status: 200, json: async () => [] };
+      const approvalsResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          approved_by: [
+            {
+              user: { id: 1, name: 'John Doe', username: 'jdoe' },
+              approved_at: '2026-03-12T10:00:00Z',
+            },
+          ],
+        }),
+      };
+      const pipelinesResp = { ok: true, status: 200, json: async () => [] };
+
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(notesResp as unknown as Response)
+        .mockResolvedValueOnce(approvalsResp as unknown as Response)
+        .mockResolvedValueOnce(pipelinesResp as unknown as Response);
+
+      const result = await fetchNewNotifications(
+        null,
+        'https://gitlab.example.com',
+        { jira: null, gitlab: 'gitlab-token' },
+        {
+          activeJiraProject: null,
+          jiraUserDisplayName: null,
+          jiraUsername: null,
+          gitlabUserId: 1, // same as approved_by[0].user.id
+          gitlabUsername: 'jdoe',
+          mrList: [selfAuthorMR],
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
+        },
+      );
+
+      expect(result.filter((r) => r.id.startsWith('gitlab-approval-'))).toHaveLength(0);
+    });
+
+    it('passes through: approval by someone else still produces gitlab-approval notification', async () => {
+      const notesResp = { ok: true, status: 200, json: async () => [] };
+      const approvalsResp = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          approved_by: [
+            {
+              user: { id: 2, name: 'Alice', username: 'alice' },
+              approved_at: '2026-03-12T10:00:00Z',
+            },
+          ],
+        }),
+      };
+      const pipelinesResp = { ok: true, status: 200, json: async () => [] };
+
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce(notesResp as unknown as Response)
+        .mockResolvedValueOnce(approvalsResp as unknown as Response)
+        .mockResolvedValueOnce(pipelinesResp as unknown as Response);
+
+      const result = await fetchNewNotifications(
+        null,
+        'https://gitlab.example.com',
+        { jira: null, gitlab: 'gitlab-token' },
+        {
+          activeJiraProject: null,
+          jiraUserDisplayName: null,
+          jiraUsername: null,
+          gitlabUserId: 1, // different from approved_by[0].user.id=2
+          gitlabUsername: 'jdoe',
+          mrList: [selfAuthorMR],
+          lastSeenJiraCursor: '2026-03-11T10:00:00.000Z',
+          lastSeenGitlabCursor: '2026-03-11T10:00:00.000Z',
+        },
+      );
+
+      const approvals = result.filter((r) => r.id.startsWith('gitlab-approval-'));
+      expect(approvals).toHaveLength(1);
+      expect(approvals[0].author).toBe('Alice');
+    });
+  });
+
   describe('NOTF-self-author filter — Jira', () => {
     it('filters out self: Query A — changelog authored by current user is skipped', async () => {
       // History entry where the CURRENT user (John Doe) made the change — should be suppressed
