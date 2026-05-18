@@ -1,7 +1,7 @@
 ---
 phase: 50-draggable-sidebar-resize
 verified: 2026-05-10T19:31:00Z
-status: human_needed
+status: complete
 score: 12/12
 overrides_applied: 0
 human_verification:
