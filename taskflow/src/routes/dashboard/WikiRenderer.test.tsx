@@ -1193,4 +1193,67 @@ describe('WikiRenderer', () => {
       expect(container.querySelector('[role="dialog"]')).not.toBeNull();
     });
   });
+
+  // --- Color macros (jira-color-macro) ---
+  // {color:#hex}...{color} must render as inline colored text.
+  // jira2md strips color macros entirely (index.js line 82); the fix is to
+  // pre-process them in preprocessJiraMarkup before jira2md runs.
+  describe('Jira {color} macro rendering (jira-color-macro)', () => {
+    it('renders {color:#hex}text{color} with inline color style', () => {
+      const { container } = render(
+        <WikiRenderer wikiText="{color:#d04437}FAILED:{color}" />,
+      );
+      // Text is present
+      expect(container.textContent).toContain('FAILED:');
+      // A span with the color style is rendered
+      const colored = container.querySelector('span[style]');
+      expect(colored).not.toBeNull();
+      // JSDOM converts hex colors to rgb() when reading back computed style
+      expect(colored?.getAttribute('style')).toMatch(/color/);
+    });
+
+    it('renders {color:#hex}*bold*{color} — bold survives inside color span', () => {
+      const { container } = render(
+        <WikiRenderer wikiText="{color:#d04437}*FAILED:*{color}" />,
+      );
+      expect(container.textContent).toContain('FAILED:');
+      const colored = container.querySelector('span[style]');
+      expect(colored).not.toBeNull();
+      // JSDOM converts hex colors to rgb() when reading back computed style
+      expect(colored?.getAttribute('style')).toMatch(/color/);
+      // Bold element must be inside the colored span
+      const bold = colored?.querySelector('strong');
+      expect(bold).not.toBeNull();
+      expect(bold?.textContent).toContain('FAILED:');
+    });
+
+    it('renders multiple color macros in the same block', () => {
+      const { container } = render(
+        <WikiRenderer wikiText="{color:#d04437}RED{color} and {color:#00875a}GREEN{color}" />,
+      );
+      expect(container.textContent).toContain('RED');
+      expect(container.textContent).toContain('GREEN');
+      const spans = container.querySelectorAll('span[style]');
+      expect(spans.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('color macro in a table cell renders with color', () => {
+      const fixture =
+        '||Status||Note||\n|{color:#d04437}FAIL{color}|See logs|';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      expect(container.textContent).toContain('FAIL');
+      const colored = container.querySelector('span[style]');
+      expect(colored).not.toBeNull();
+      // JSDOM converts hex colors to rgb() when reading back computed style
+      expect(colored?.getAttribute('style')).toMatch(/color/);
+    });
+
+    it('text without color macro is unaffected', () => {
+      const { container } = render(
+        <WikiRenderer wikiText="No color here" />,
+      );
+      expect(container.textContent).toContain('No color here');
+      expect(container.querySelector('span[style]')).toBeNull();
+    });
+  });
 });
