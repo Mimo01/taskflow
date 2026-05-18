@@ -522,9 +522,90 @@ describe('AioCycleDetailPage', () => {
       // Falls back to raw numeric ID (may appear in both key cell and title cell when issue is null)
       await waitFor(() => expect(screen.getAllByText('186227').length).toBeGreaterThan(0));
 
-      // Table has 5 column headers (Key, Title, Status, Assignee, Triggered By)
+      // Table has 8 column headers (Key, Title, Status, Assignee, Reporter, Priority, Severity, Triggered By)
       const headers = screen.getAllByRole('columnheader');
-      expect(headers.length).toBe(5);
+      expect(headers.length).toBe(8);
+    });
+
+    it('AIOC-03: Defects tab shows Reporter, Priority, Severity column headers', async () => {
+      const user = userEvent.setup();
+      await setupDefaultMocks();
+      renderPage();
+      await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+      await user.click(screen.getByRole('tab', { name: 'Defects' }));
+      await waitFor(() => expect(screen.getByText('PROJ-1234')).toBeDefined());
+      // All 8 column headers present
+      expect(screen.getByRole('columnheader', { name: 'Key' })).toBeDefined();
+      expect(screen.getByRole('columnheader', { name: 'Title' })).toBeDefined();
+      expect(screen.getByRole('columnheader', { name: 'Status' })).toBeDefined();
+      expect(screen.getByRole('columnheader', { name: 'Assignee' })).toBeDefined();
+      expect(screen.getByRole('columnheader', { name: 'Reporter' })).toBeDefined();
+      expect(screen.getByRole('columnheader', { name: 'Priority' })).toBeDefined();
+      expect(screen.getByRole('columnheader', { name: 'Severity' })).toBeDefined();
+      expect(screen.getByRole('columnheader', { name: 'Triggered By' })).toBeDefined();
+    });
+
+    it('AIOC-03: renders reporter displayName, priority name, and severity value when populated', async () => {
+      const user = userEvent.setup();
+      const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
+        await import('@/services/aio');
+      const { fetchJiraIssueByKey } = await import('@/services/jira');
+      const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+      (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
+      (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
+      (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
+      (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: '186227',
+        key: 'PROJ-1234',
+        fields: {
+          summary: 'Login broken',
+          status: { name: 'In Progress', statusCategory: { key: 'indeterminate' } },
+          assignee: { displayName: 'Jane Doe', avatarUrls: { '48x48': '' } },
+          issuetype: { name: 'Bug', subtask: false },
+          reporter: { displayName: 'Alice Reporter', avatarUrls: { '48x48': '' } },
+          priority: { name: 'High' },
+          severity: { value: 'Major' },
+        },
+      });
+      renderPage();
+      await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+      await user.click(screen.getByRole('tab', { name: 'Defects' }));
+      await waitFor(() => expect(screen.getByText('Alice Reporter')).toBeDefined());
+      expect(screen.getByText('High')).toBeDefined();
+      expect(screen.getByText('Major')).toBeDefined();
+    });
+
+    it('AIOC-03: renders em-dashes for Reporter, Priority, Severity when fields are null', async () => {
+      const user = userEvent.setup();
+      const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
+        await import('@/services/aio');
+      const { fetchJiraIssueByKey } = await import('@/services/jira');
+      const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+      (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
+      (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
+      (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
+      (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: '186227',
+        key: 'PROJ-1234',
+        fields: {
+          summary: 'Login broken',
+          status: { name: 'In Progress', statusCategory: { key: 'indeterminate' } },
+          assignee: null,
+          issuetype: { name: 'Bug', subtask: false },
+          reporter: null,
+          priority: null,
+          severity: null,
+        },
+      });
+      renderPage();
+      await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+      await user.click(screen.getByRole('tab', { name: 'Defects' }));
+      await waitFor(() => expect(screen.getByText('PROJ-1234')).toBeDefined());
+      // At least three em-dashes in the row (Reporter, Priority, Severity — plus possibly Assignee)
+      const emDashes = screen.getAllByText('—');
+      expect(emDashes.length).toBeGreaterThanOrEqual(3);
     });
   });
 
