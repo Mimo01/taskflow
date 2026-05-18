@@ -27,6 +27,7 @@ export type InternalLinkCtx = {
  *
  * Mapping rules:
  * - `{jiraBaseUrl}/browse/{KEY}` → `/issue/{KEY}`
+ *   Handles Jira instances with context paths (e.g. company.com/jira/browse/KEY).
  * - `{gitlabBaseUrl}/{activeGitlabProjectPath}/-/merge_requests/{iid}` → `/mr/{activeGitlabProject}/{iid}`
  *   (only when the URL's group/project path normalizes to the same value as
  *    `activeGitlabProjectPath`, to avoid navigating to the wrong project's MR)
@@ -52,44 +53,60 @@ export function tryInternalPath(href: string, ctx: InternalLinkCtx): string | nu
 
   // 2. Try Jira browse mapping.
   if (ctx.jiraBaseUrl) {
-    const jiraOrigin = normalizeOrigin(ctx.jiraBaseUrl);
-    if (url.origin === jiraOrigin) {
-      // pathname may end with a trailing slash; strip it before matching.
-      const pathname = url.pathname.replace(/\/$/, '');
-      const match = pathname.match(/^\/browse\/([A-Z][A-Z0-9_]+-\d+)$/);
-      if (match) {
-        return `/issue/${match[1]}`;
+    const jiraBase = normalizeBase(ctx.jiraBaseUrl);
+    if (jiraBase) {
+      // Check origin match first (cheap), then full prefix match.
+      // Full prefix match is needed for Jira instances with context paths
+      // (e.g. company.com/jira — the browse URL is company.com/jira/browse/KEY
+      // so we must match the full prefix, not just the origin).
+      if (url.origin === jiraBase.origin) {
+        // Strip the jiraBaseUrl path prefix from the href pathname before
+        // applying the browse regex. For jiraBase.pathname = "/", this is a no-op.
+        const relPath = stripPathPrefix(url.pathname, jiraBase.pathname);
+        if (relPath !== null) {
+          const match = relPath.replace(/\/$/, '').match(/^\/browse\/([A-Z][A-Z0-9_]+-\d+)$/);
+          if (match) {
+            return `/issue/${match[1]}`;
+          }
+        }
+        // Host (and context path) matched but not a browse path.
+        // Do not fall through to GitLab check — the Jira host matched,
+        // so this is a Jira URL that we don't have an internal route for.
+        return null;
       }
-      // Host matched but not a browse path — do not fall through to GitLab check.
-      return null;
     }
   }
 
   // 3. Try GitLab MR mapping.
   if (ctx.gitlabBaseUrl) {
-    const gitlabOrigin = normalizeOrigin(ctx.gitlabBaseUrl);
-    if (url.origin === gitlabOrigin) {
-      const pathname = url.pathname.replace(/\/$/, '');
-      // Match paths of the form /group/repo(s)?/-/merge_requests/42
-      const match = pathname.match(/^\/(.+?)\/-\/merge_requests\/(\d+)$/);
-      if (match) {
-        const urlPathPart = match[1];
-        const iid = match[2];
+    const gitlabBase = normalizeBase(ctx.gitlabBaseUrl);
+    if (gitlabBase) {
+      if (url.origin === gitlabBase.origin) {
+        const relPath = stripPathPrefix(url.pathname, gitlabBase.pathname);
+        if (relPath !== null) {
+          const pathname = relPath.replace(/\/$/, '');
+          // Match paths of the form /group/repo/-/merge_requests/42
+          const match = pathname.match(/^\/(.+?)\/-\/merge_requests\/(\d+)$/);
+          if (match) {
+            const urlPathPart = match[1];
+            const iid = match[2];
 
-        if (ctx.activeGitlabProject === null) return null;
-        if (!ctx.activeGitlabProjectPath) return null;
+            if (ctx.activeGitlabProject === null) return null;
+            if (!ctx.activeGitlabProjectPath) return null;
 
-        const normalizedUrl = normalizeProjectPath(urlPathPart);
-        const normalizedCtx = normalizeProjectPath(ctx.activeGitlabProjectPath);
+            const normalizedUrl = normalizeProjectPath(urlPathPart);
+            const normalizedCtx = normalizeProjectPath(ctx.activeGitlabProjectPath);
 
-        if (normalizedUrl === normalizedCtx) {
-          return `/mr/${ctx.activeGitlabProject}/${iid}`;
+            if (normalizedUrl === normalizedCtx) {
+              return `/mr/${ctx.activeGitlabProject}/${iid}`;
+            }
+            // Path mismatch — safer to open externally than navigate to the wrong project.
+            return null;
+          }
         }
-        // Path mismatch — safer to open externally than navigate to the wrong project.
+        // GitLab host but not an MR URL — fall through to null.
         return null;
       }
-      // GitLab host but not an MR URL — fall through to null.
-      return null;
     }
   }
 
@@ -97,13 +114,55 @@ export function tryInternalPath(href: string, ctx: InternalLinkCtx): string | nu
   return null;
 }
 
-/** Strip trailing slash from a base URL and return just the origin (scheme + host + port). */
-function normalizeOrigin(baseUrl: string): string {
+/**
+ * Parse a base URL into origin + pathname (the context path prefix).
+ * Returns null if the URL is invalid.
+ *
+ * Trailing slashes on the pathname are preserved as a single "/" (root).
+ * This is used to support Jira/GitLab instances installed at a context path
+ * (e.g. company.com/jira instead of jira.company.com).
+ */
+function normalizeBase(baseUrl: string): URL | null {
   try {
-    return new URL(baseUrl.replace(/\/$/, '')).origin;
+    // Strip trailing slash — we'll add our own separator when comparing.
+    const u = new URL(baseUrl.replace(/\/$/, ''));
+    // Ensure the pathname ends without a trailing slash for consistent prefix matching.
+    return u;
   } catch {
-    return baseUrl.replace(/\/$/, '');
+    return null;
   }
+}
+
+/**
+ * Strip a base path prefix from a full URL pathname.
+ *
+ * Returns the remaining path (starting with `/`) if `pathname` starts with
+ * `basePath`, or null if it does not.
+ *
+ * Examples:
+ *   stripPathPrefix("/jira/browse/PROJ-1", "/jira") → "/browse/PROJ-1"
+ *   stripPathPrefix("/browse/PROJ-1",       "/")    → "/browse/PROJ-1"
+ *   stripPathPrefix("/other/path",           "/jira") → null
+ */
+function stripPathPrefix(pathname: string, basePath: string): string | null {
+  // Normalize basePath: strip trailing slash if it's not the root.
+  const base = basePath === '/' ? '' : basePath.replace(/\/$/, '');
+
+  if (base === '') {
+    // No context path (root installation) — pathname is the full relative path.
+    return pathname;
+  }
+
+  // The pathname must start with the base path followed by "/" or end exactly.
+  if (pathname === base) {
+    // href is exactly the base URL with no additional path (e.g. "https://host/jira")
+    return '/';
+  }
+  if (pathname.startsWith(base + '/')) {
+    return pathname.slice(base.length);
+  }
+
+  return null;
 }
 
 /**
