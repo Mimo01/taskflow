@@ -106,10 +106,11 @@ None.
 | 260518-d7z | When I am assigning person to jira task I want to have a quick action to 'assign to me' | 2026-05-18 | ec8930c | [260518-d7z-when-i-am-assigning-person-to-jira-task-](./quick/260518-d7z-when-i-am-assigning-person-to-jira-task-/) |
 | 260518-dks | Redesign the visual style of the "Assign to me" button in the assignee popover to be a subtle text link | 2026-05-18 | 0e4a610 | [260518-dks-redesign-the-visual-style-of-the-assign-](./quick/260518-dks-redesign-the-visual-style-of-the-assign-/) |
 | 260518-j1c | On AIO cycle detail defects page I want to see more details. There is also a bug that the ID is not the numeric AIO but jira PROJ-ID. Status badges are not colored, asignee is not visible | 2026-05-18 | b0b53be | [260518-j1c-on-aio-cycle-detail-defects-page-i-want-](./quick/260518-j1c-on-aio-cycle-detail-defects-page-i-want-/) |
+| 260518-jbe | On AIO cycle detail defects page also show reporter, priority and severity columns | 2026-05-18 | 1cd7350 | [260518-jbe-on-aio-cycle-detail-defects-page-also-sh](./quick/260518-jbe-on-aio-cycle-detail-defects-page-also-sh/) |
 
 ## Session Continuity
 
-Last activity: 2026-05-18 - Completed quick task 260518-j1c: On AIO cycle detail defects page — fixed Jira key display, colored status badges, assignee column
+Last activity: 2026-05-18 - Completed quick task 260518-jbe: AIO defects page — added reporter, priority, severity columns
 
 Last session: 2026-05-15
 Stopped at: Phase 57 UAT approved — milestone v1.8 complete
