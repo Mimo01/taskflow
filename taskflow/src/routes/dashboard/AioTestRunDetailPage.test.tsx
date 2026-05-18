@@ -10,6 +10,9 @@ vi.mock('@/stores/auth.store', () => ({
 vi.mock('@/services/aio', () => ({
   fetchAioTestRunDetail: vi.fn(),
 }));
+vi.mock('@/services/jira', () => ({
+  fetchJiraIssueByKey: vi.fn(),
+}));
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('fake-token'),
 }));
@@ -177,5 +180,88 @@ describe('AioTestRunDetailPage', () => {
     expect(mockFn.mock.calls[0][2]).toBe('ESHOP');
     expect(mockFn.mock.calls[0][3]).toBe('ESHOP-CY-759');
     expect(mockFn.mock.calls[0][4]).toBe('209620');
+  });
+
+  it('renders defects section with resolved issue when jiraDefectIDs is non-empty', async () => {
+    const { fetchAioTestRunDetail } = await import('@/services/aio');
+    const { fetchJiraIssueByKey } = await import('@/services/jira');
+    (fetchAioTestRunDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
+      run: {
+        id: '263794',
+        status: 'FAIL',
+        testCaseKey: 'ESHOP-TC-8477',
+        cycleKey: 'ESHOP-CY-1011',
+        executedDate: '2026-05-01T10:00:00Z',
+        jiraDefectIDs: [186227],
+      },
+      steps: [],
+    });
+    (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockResolvedValue({
+      key: 'VTE-186227',
+      fields: {
+        summary: 'Login regression',
+        status: { name: 'Open', statusCategory: { key: 'new' } },
+        assignee: null,
+        reporter: null,
+        priority: null,
+        customfield_13415: null,
+        issuetype: { name: 'Bug' },
+      },
+    });
+
+    renderAt('/aio-cycle/ESHOP/ESHOP-CY-1011/run/263794');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('aio-run-defects-section')).toBeTruthy();
+    });
+    // Defect key is rendered
+    expect(screen.getByText('VTE-186227')).toBeTruthy();
+    // Defect summary is rendered
+    expect(screen.getByText('Login regression')).toBeTruthy();
+  });
+
+  it('omits defects section when jiraDefectIDs is empty', async () => {
+    const { fetchAioTestRunDetail } = await import('@/services/aio');
+    (fetchAioTestRunDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
+      run: {
+        id: '263794',
+        status: 'PASS',
+        testCaseKey: 'ESHOP-TC-8477',
+        cycleKey: 'ESHOP-CY-1011',
+        executedDate: '2026-05-01T10:00:00Z',
+        jiraDefectIDs: [],
+      },
+      steps: [],
+    });
+
+    renderAt('/aio-cycle/ESHOP/ESHOP-CY-1011/run/263794');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('aio-run-detail-status-chip')).toBeTruthy();
+    });
+    // No defects section when list is empty
+    expect(screen.queryByTestId('aio-run-defects-section')).toBeNull();
+  });
+
+  it('omits defects section when jiraDefectIDs is undefined', async () => {
+    const { fetchAioTestRunDetail } = await import('@/services/aio');
+    (fetchAioTestRunDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
+      run: {
+        id: '263794',
+        status: 'PASS',
+        testCaseKey: 'ESHOP-TC-8477',
+        cycleKey: 'ESHOP-CY-1011',
+        executedDate: '2026-05-01T10:00:00Z',
+      },
+      steps: [],
+    });
+
+    renderAt('/aio-cycle/ESHOP/ESHOP-CY-1011/run/263794');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('aio-run-detail-status-chip')).toBeTruthy();
+    });
+    // No defects section when jiraDefectIDs is undefined
+    expect(screen.queryByTestId('aio-run-defects-section')).toBeNull();
   });
 });
