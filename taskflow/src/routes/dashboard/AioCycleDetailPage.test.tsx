@@ -607,6 +607,158 @@ describe('AioCycleDetailPage', () => {
       const emDashes = screen.getAllByText('—');
       expect(emDashes.length).toBeGreaterThanOrEqual(3);
     });
+
+    // Test A: loading state — row must NOT be interactive while issueQuery is loading
+    it('AIOC-03-A: defect row is NOT interactive while issue is still loading', async () => {
+      const user = userEvent.setup();
+      const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
+        await import('@/services/aio');
+      const { fetchJiraIssueByKey } = await import('@/services/jira');
+      const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+      (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
+      (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
+      (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
+      // Never-resolving promise — keeps issue in loading state
+      (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
+
+      renderPage();
+      await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+      await user.click(screen.getByRole('tab', { name: 'Defects' }));
+
+      // Skeleton visible → still loading
+      await waitFor(() =>
+        expect(screen.getByTestId('defect-title-loading-186227')).toBeDefined(),
+      );
+
+      const row = screen.getByTestId('defect-row-186227');
+      // Must not have role="button" while loading
+      expect(row.getAttribute('role')).not.toBe('button');
+      // Must not have cursor-pointer class while loading
+      expect(row.className).not.toContain('cursor-pointer');
+    });
+
+    // Test B: resolved + click — row navigates when clicked anywhere
+    it('AIOC-03-B: clicking resolved defect row navigates to /issue/{resolvedKey}', async () => {
+      const user = userEvent.setup();
+      await setupDefaultMocks();
+      render(
+        <QueryClientProvider client={makeClient()}>
+          <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
+            <Routes>
+              <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
+              <Route
+                path="/issue/:issueKey"
+                element={<div data-testid="issue-detail-route">Issue Detail</div>}
+              />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+      await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+      await user.click(screen.getByRole('tab', { name: 'Defects' }));
+
+      // Wait for issue to resolve
+      await waitFor(() => expect(screen.getByText('PROJ-1234')).toBeDefined());
+
+      const row = screen.getByTestId('defect-row-186227');
+      // Must have role="button" and cursor-pointer once resolved
+      expect(row.getAttribute('role')).toBe('button');
+      expect(row.className).toContain('cursor-pointer');
+
+      // Click the Title cell (not the NavLink) — simulates clicking the row body
+      const titleCell = screen.getByText('Login broken');
+      await user.click(titleCell);
+
+      // Should have navigated to issue detail route
+      await waitFor(() => expect(screen.getByTestId('issue-detail-route')).toBeDefined());
+    });
+
+    // Test C: resolved + keyboard — Enter and Space trigger navigation
+    it('AIOC-03-C: Enter key on resolved defect row navigates to /issue/{resolvedKey}', async () => {
+      await setupDefaultMocks();
+      render(
+        <QueryClientProvider client={makeClient()}>
+          <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
+            <Routes>
+              <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
+              <Route
+                path="/issue/:issueKey"
+                element={<div data-testid="issue-detail-route-enter">Issue Detail</div>}
+              />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+      const user = userEvent.setup();
+      await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+      await user.click(screen.getByRole('tab', { name: 'Defects' }));
+      await waitFor(() => expect(screen.getByText('PROJ-1234')).toBeDefined());
+
+      const row = screen.getByTestId('defect-row-186227');
+      row.focus();
+      fireEvent.keyDown(row, { key: 'Enter' });
+      await waitFor(() => expect(screen.getByTestId('issue-detail-route-enter')).toBeDefined());
+    });
+
+    it('AIOC-03-C: Space key on resolved defect row navigates to /issue/{resolvedKey}', async () => {
+      await setupDefaultMocks();
+      render(
+        <QueryClientProvider client={makeClient()}>
+          <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
+            <Routes>
+              <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
+              <Route
+                path="/issue/:issueKey"
+                element={<div data-testid="issue-detail-route-space">Issue Detail</div>}
+              />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+      const user = userEvent.setup();
+      await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+      await user.click(screen.getByRole('tab', { name: 'Defects' }));
+      await waitFor(() => expect(screen.getByText('PROJ-1234')).toBeDefined());
+
+      const row = screen.getByTestId('defect-row-186227');
+      row.focus();
+      fireEvent.keyDown(row, { key: ' ' });
+      await waitFor(() => expect(screen.getByTestId('issue-detail-route-space')).toBeDefined());
+    });
+
+    // Test D: breadcrumb push before navigation
+    it('AIOC-03-D: clicking resolved defect row pushes breadcrumb before navigation', async () => {
+      const user = userEvent.setup();
+      await setupDefaultMocks();
+      render(
+        <QueryClientProvider client={makeClient()}>
+          <MemoryRouter initialEntries={['/aio-cycle/PROJ/PROJ-CY-2']}>
+            <Routes>
+              <Route path="/aio-cycle/:projectKey/:cycleKey" element={<AioCycleDetailPage />} />
+              <Route
+                path="/issue/:issueKey"
+                element={<div data-testid="issue-detail-route-bc">Issue Detail</div>}
+              />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+      await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+      await user.click(screen.getByRole('tab', { name: 'Defects' }));
+      await waitFor(() => expect(screen.getByText('PROJ-1234')).toBeDefined());
+
+      mockBreadcrumbPush.mockReset();
+
+      const row = screen.getByTestId('defect-row-186227');
+      await user.click(row);
+
+      expect(mockBreadcrumbPush).toHaveBeenCalledWith({
+        label: 'Sprint 2',
+        path: '/aio-cycle/PROJ/PROJ-CY-2',
+      });
+      await waitFor(() => expect(screen.getByTestId('issue-detail-route-bc')).toBeDefined());
+    });
   });
 
   describe('pin button', () => {
