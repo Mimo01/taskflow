@@ -426,22 +426,12 @@ export function AioTestRunsSection({
         const aioProject = projects.find((p) => p.projectKey === projectKey);
         if (!aioProject) return null;
 
-        // Fetch both traceability slices in parallel (defect AND requirement
-        // linkage — an issue may appear in either or both).
-        const [defectCases, reqCases] = await Promise.all([
-          fetchAioTraceabilityTestCases(jiraBaseUrl, token, aioProject.id, jiraNumericId, 'defect'),
-          fetchAioTraceabilityTestCases(
-            jiraBaseUrl,
-            token,
-            aioProject.id,
-            jiraNumericId,
-            'requirement',
-          ),
-        ]);
-        // De-duplicate by test case key (defect ∪ requirement) preserving order.
-        const seen = new Set<string>();
-        const linkedTestCases = [...defectCases, ...reqCases].filter((tc) =>
-          seen.has(tc.key) ? false : seen.add(tc.key) || true,
+        const linkedTestCases = await fetchAioTraceabilityTestCases(
+          jiraBaseUrl,
+          token,
+          aioProject.id,
+          jiraNumericId,
+          'defect',
         );
         if (linkedTestCases.length === 0) return null;
 
