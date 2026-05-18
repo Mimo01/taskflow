@@ -48,25 +48,45 @@ function DefectRow({
   defectId,
   issue,
   isLoading,
+  onOpen,
 }: {
   defectId: string;
   issue: JiraIssue | null;
   isLoading: boolean;
+  onOpen: (resolvedKey: string) => void;
 }) {
   const displayKey = issue?.key ?? defectId;
   const linkTarget = `/issue/${displayKey}`;
+  const resolvedKey = issue?.key ?? null;
+  const isClickable = !isLoading && !!resolvedKey;
 
   const severityValue =
     issue?.fields.customfield_13415?.value ?? issue?.fields.customfield_13415?.name ?? null;
 
   return (
-    <tr className="border-t border-border align-top">
+    <tr
+      className={`border-t border-border align-top hover:bg-muted/30 transition-colors${isClickable ? ' cursor-pointer' : ''}`}
+      {...(isClickable
+        ? {
+            role: 'button' as const,
+            tabIndex: 0,
+            'aria-label': `Open defect ${resolvedKey}`,
+            onClick: () => onOpen(resolvedKey!),
+            onKeyDown: (e: React.KeyboardEvent) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onOpen(resolvedKey!);
+              }
+            },
+          }
+        : {})}
+    >
       <td className="px-3 py-2 font-mono text-sm">
         <div className="flex items-center gap-1.5">
           {issue?.fields.issuetype?.name !== undefined && (
             <IssueTypeIcon typeName={issue.fields.issuetype.name} />
           )}
-          <NavLink to={linkTarget} className="hover:underline">
+          <NavLink to={linkTarget} className="hover:underline" onClick={(e) => e.stopPropagation()}>
             {displayKey}
           </NavLink>
         </div>
@@ -390,6 +410,7 @@ export default function AioTestRunDetailPage() {
                           defectId={defectId}
                           issue={(issueQueries[i]?.data ?? null) as JiraIssue | null}
                           isLoading={issueQueries[i]?.isLoading ?? false}
+                          onOpen={(key) => navigate(`/issue/${key}`)}
                         />
                       ))}
                     </tbody>
