@@ -84,7 +84,7 @@ export function IssueDetailSidebar({
           {
             headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
           },
-          'Load Issue Detail',
+          'Load Merge Requests',
         );
         if (!resp.ok) return [] as GitLabMR[];
         return (await resp.json()) as GitLabMR[];

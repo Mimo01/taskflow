@@ -21,7 +21,7 @@ export async function fetchIssueLinkTypes(
     'jira',
     url,
     { headers: { Authorization: `Bearer ${token}` } },
-    'Load Issue Detail',
+    'Load Fields',
   );
   if (!resp.ok) return [];
   const data = await resp.json();

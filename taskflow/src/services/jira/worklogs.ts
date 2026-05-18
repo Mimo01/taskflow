@@ -36,7 +36,7 @@ export async function fetchFullWorklogs(
       const url = `${baseWorklogUrl}?maxResults=${PAGE_SIZE}&startAt=${startAt}`;
       let response: Response;
       try {
-        response = await apiFetch('jira', url, { headers }, 'Manage Worklogs');
+        response = await apiFetch('jira', url, { headers }, 'Load Worklogs');
       } catch {
         break;
       }

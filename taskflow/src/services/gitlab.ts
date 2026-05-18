@@ -100,7 +100,7 @@ export async function listGitLabGroups(baseUrl: string, token: string): Promise<
           'Content-Type': 'application/json',
         },
       },
-      'Validate Connection',
+      'Load Groups',
     );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
@@ -143,7 +143,7 @@ export async function listGitLabProjects(baseUrl: string, token: string): Promis
           'Content-Type': 'application/json',
         },
       },
-      'Validate Connection',
+      'Load Projects',
     );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
@@ -842,7 +842,7 @@ export async function fetchProjectMRs(
       {
         headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' },
       },
-      'Load MR Detail',
+      'Load Merge Requests',
     );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);

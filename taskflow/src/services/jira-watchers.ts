@@ -28,7 +28,7 @@ export async function fetchWatchers(
     {
       headers: { Authorization: `Bearer ${token}` },
     },
-    'Load Issue Detail',
+    'Load Watchers',
   );
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
