@@ -3,13 +3,14 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import j2m from 'jira2md';
 import { type ComponentPropsWithoutRef, type MouseEvent, useState } from 'react';
 import Markdown from 'react-markdown';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import { tryInternalPath } from '@/lib/internalLinks';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth.store';
+import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { AuthImage } from './AuthImage';
 import { ImageLightbox } from './ImageLightbox';
 
@@ -502,6 +503,45 @@ function fixMarkdownLinkUnderscores(md: string): string {
   return result;
 }
 
+/** Derives a breadcrumb TrailEntry for the given pathname.
+ * Labels mirror the `routeLabel()` mapping in main.tsx so the breadcrumb
+ * header is consistent regardless of where the push originates.
+ */
+function deriveSourceCrumb(pathname: string): { path: string; label: string } {
+  // /issue/:key  →  label is the key itself (e.g. "PROJ-123")
+  const issueMatch = pathname.match(/^\/issue\/(.+)$/);
+  if (issueMatch) return { path: pathname, label: issueMatch[1] };
+
+  // /mr/:projectId/:iid  →  label "!{iid}"
+  const mrMatch = pathname.match(/^\/mr\/[^/]+\/(\d+)/);
+  if (mrMatch) return { path: pathname, label: `!${mrMatch[1]}` };
+
+  // /aio-cycle/:proj/:cycle/run/:runId  →  label "Run {runId}"
+  const aioRunMatch = pathname.match(/^\/aio-cycle\/[^/]+\/[^/]+\/run\/([^/]+)/);
+  if (aioRunMatch) return { path: pathname, label: `Run ${aioRunMatch[1]}` };
+
+  // /aio-cycle/:proj/:cycle  →  label is the cycle key (last segment)
+  const aioCycleMatch = pathname.match(/^\/aio-cycle\/[^/]+\/([^/]+)/);
+  if (aioCycleMatch) return { path: pathname, label: aioCycleMatch[1] };
+
+  // /release/:id  →  "Release"
+  if (pathname.startsWith('/release/')) return { path: pathname, label: 'Release' };
+
+  // Static roots — match routeLabel() in main.tsx
+  const staticLabels: Record<string, string> = {
+    '/sprint-board': 'Sprint Board',
+    '/backlog': 'Backlog',
+    '/my-tasks': 'My Tasks',
+    '/epics': 'Epics',
+    '/dashboard': 'Overview',
+    '/sprint-progress': 'Sprint Progress',
+    '/workload': 'Workload',
+    '/releases': 'Releases',
+    '/merge-requests': 'Merge Requests',
+  };
+  return { path: pathname, label: staticLabels[pathname] ?? 'Home' };
+}
+
 const calloutStyles: Record<string, string> = {
   info: 'border-l-4 border-blue-500 bg-blue-500/10 p-3 rounded-r-md my-2 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
   warning:
@@ -514,6 +554,8 @@ const calloutStyles: Record<string, string> = {
 export function WikiRenderer({ wikiText, className, attachments, users }: WikiRendererProps) {
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const breadcrumbPush = useBreadcrumbStore((s) => s.push);
   const { jiraBaseUrl, gitlabBaseUrl, activeGitlabProject, activeGitlabProjectPath } = useAuthStore();
   const linkCtx = { jiraBaseUrl, gitlabBaseUrl, activeGitlabProject, activeGitlabProjectPath };
 
@@ -635,6 +677,7 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
         e.preventDefault();
         const internalPath = tryInternalPath(href, linkCtx);
         if (internalPath !== null) {
+          breadcrumbPush(deriveSourceCrumb(location.pathname));
           navigate(internalPath);
           return;
         }
