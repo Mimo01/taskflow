@@ -75,7 +75,7 @@ export async function listJiraProjects(baseUrl: string, token: string): Promise<
           'Content-Type': 'application/json',
         },
       },
-      'Validate Connection',
+      'Load Projects',
     );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);

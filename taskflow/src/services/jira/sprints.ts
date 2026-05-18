@@ -202,7 +202,7 @@ export async function addIssuesToSprint(
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ issues: issueKeys }),
     },
-    'Load Sprint Board',
+    'Move to Sprint',
   );
   // 204 No Content is the expected success response for this endpoint
   if (!response.ok && response.status !== 204) {

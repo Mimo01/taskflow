@@ -99,7 +99,7 @@ export async function listJiraProjects(baseUrl: string, token: string): Promise<
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-    }, 'Validate Connection');
+    }, 'Load Projects');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -1377,7 +1377,7 @@ export async function fetchJiraIssueByKey(
           'Content-Type': 'application/json',
         },
       },
-      'Fetch Issue By Key',
+      'Load Issue Detail',
     );
   } catch {
     return null;
@@ -2133,7 +2133,7 @@ export async function addIssuesToSprint(
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ issues: issueKeys }),
-  }, 'Load Sprint Board');
+  }, 'Move to Sprint');
   // 204 No Content is the expected success response for this endpoint
   if (!response.ok && response.status !== 204) {
     if (response.status === 401 || response.status === 403) {
