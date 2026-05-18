@@ -1687,4 +1687,80 @@ describe('WikiRenderer', () => {
       expect(container.textContent).toContain('Paragraph under section');
     });
   });
+
+  describe('escaped-plus and single-line table hard-break (jira-detail-rendering-of-pages)', () => {
+    it('\\+ in a table cell renders as literal + not as <ins> underline', () => {
+      // Jira \+ is a backslash escape meaning literal +. jira2md's +text+ →
+      // <ins>text</ins> rule must not fire on escaped plus characters.
+      // If the bug is present, (karticky + modal) in row 2 and (popis + modal)
+      // in row 3 are paired by jira2md as <ins>…</ins> open/close across cell
+      // boundaries, producing stringified &lt;ins&gt; / &lt;/ins&gt; in the output.
+      const fixture = [
+        '||*Step*||*Expected*||',
+        '|Kontrola \\(karticky \\+ modal\\) |Kontrola OK |',
+        '|Kontrola \\(popis \\+ modal\\) |Kontrola OK |',
+      ].join('\n');
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const text = container.textContent ?? '';
+      // Literal + must appear in the cell text
+      expect(text).toContain('(karticky + modal)');
+      expect(text).toContain('(popis + modal)');
+      // No <ins> or stringified ins tags
+      expect(text).not.toContain('<ins>');
+      expect(text).not.toContain('</ins>');
+      expect(text).not.toContain('&lt;ins&gt;');
+      expect(text).not.toContain('&lt;/ins&gt;');
+    });
+
+    it('\\\\  in a single-line table row renders as <br/> not a row split', () => {
+      // Jira \\\\ (double-backslash) is a hard line-break. Inside a table row that
+      // already ends with |, mergeOpenTableRows passes it through unchanged.
+      // The global \\\\ → "  \n" conversion must NOT apply inside table rows
+      // because inserting \n mid-row breaks the GFM table structure.
+      const fixture = [
+        '||*Step*||*Expected*||',
+        '|Row text \\\\ continued |OK |',
+      ].join('\n');
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const table = container.querySelector('table');
+      expect(table).not.toBeNull();
+      // The content after \\\\ must still be inside the table, not in a separate row
+      const rows = table?.querySelectorAll('tr');
+      // Should be 2 rows (header + 1 data row), not 3+
+      expect(rows?.length).toBe(2);
+      // "continued" must appear in the single data row, not spill outside
+      expect(table?.textContent).toContain('continued');
+    });
+
+    it('full fixture — table with both \\+ and \\\\ in same row renders all rows correctly', () => {
+      // Regression fixture from the bug report: a table where cells contain both
+      // \+ (escaped plus) and \\\\ (hard break with price list items).
+      // Expected: 3 data rows, each with their step text intact, no extra rows.
+      const fixture = [
+        '||*S.No.*||*Step*||*Expected*||',
+        '|1. |Nacitanie eshop home page |Kontrola OK |',
+        '|2. |Kontrola cien \\(karticky \\+ modal\\): \\\\ Pro Biznis S = 17,89 € \\\\ Pro Biznis M = 23,58 € |Kontrola OK |',
+        '|3. |Kontrola cien \\(popis \\+ modal\\): \\\\ Pro Biznis S = 17,89 € \\\\ Pro Biznis M = 23,58 € |Kontrola OK |',
+      ].join('\n');
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const table = container.querySelector('table');
+      expect(table).not.toBeNull();
+
+      const rows = table?.querySelectorAll('tr');
+      // 1 header row + 3 data rows = 4 total; price lines must be inside cells, not extra rows
+      expect(rows?.length).toBe(4);
+
+      const allText = table?.textContent ?? '';
+      // Escaped plus → literal +
+      expect(allText).toContain('karticky + modal');
+      expect(allText).toContain('popis + modal');
+      // No cross-cell <ins> pairing
+      expect(allText).not.toContain('<ins>');
+      expect(allText).not.toContain('&lt;ins&gt;');
+      // Price lines must be present (inside cells)
+      expect(allText).toContain('Pro Biznis S');
+      expect(allText).toContain('Pro Biznis M');
+    });
+  });
+
 });
