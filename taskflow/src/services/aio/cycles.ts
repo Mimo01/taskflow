@@ -324,6 +324,8 @@ type RawTestCaseWithRun = {
     allDefects?: number[];
     updatedDate?: number;
   };
+  assignedToID?: string;
+  runCount?: number;
 };
 
 // Maps numeric AIO testRunStatusID to chip status string
@@ -403,6 +405,8 @@ export async function fetchAioCycleTestCasesWithRuns(
         defects: [],
         jiraDefectIDs: item.latestTestRun?.allDefects ?? [],
         executedDate: isoDate,
+        assignedToID: item.assignedToID,
+        runCount: item.runCount,
       };
     });
   }

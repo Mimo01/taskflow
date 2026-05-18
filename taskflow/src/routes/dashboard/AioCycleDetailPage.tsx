@@ -487,7 +487,16 @@ export default function AioCycleDetailPage() {
                     <th className="w-28 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
                       Status
                     </th>
-                    <th className="w-36 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                    <th className="w-20 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                      Defects
+                    </th>
+                    <th className="w-16 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                      Runs
+                    </th>
+                    <th className="w-28 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                      Assignee
+                    </th>
+                    <th className="w-32 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
                       Date
                     </th>
                   </tr>
@@ -509,11 +518,33 @@ export default function AioCycleDetailPage() {
                         }
                       }}
                     >
-                      <td className="px-4 py-3">{run.testCase?.title ?? run.testCaseKey}</td>
+                      <td className="px-4 py-3">
+                        {run.testCaseKey && (
+                          <span className="block font-mono text-xs text-muted-foreground mb-0.5">
+                            {run.testCaseKey}
+                          </span>
+                        )}
+                        {run.testCase?.title ?? run.testCaseKey}
+                      </td>
                       <td className="px-3 py-3">
                         <span className={aioRunStatusPillClass(run.status)}>
                           {normalizeStatusLabel(run.status)}
                         </span>
+                      </td>
+                      <td className="px-3 py-3">
+                        {(run.jiraDefectIDs?.length ?? 0) > 0 ? (
+                          <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                            {run.jiraDefectIDs!.length}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-xs text-muted-foreground">
+                        {run.runCount ?? '—'}
+                      </td>
+                      <td className="px-3 py-3 text-xs text-muted-foreground font-mono">
+                        {run.assignedToID ?? '—'}
                       </td>
                       <td className="px-3 py-3 text-xs text-muted-foreground">
                         {(() => {
