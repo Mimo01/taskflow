@@ -134,6 +134,45 @@ describe('issues service', () => {
         'Failed to fetch issue PROJ-1: 404',
       );
     });
+
+    it('request URL includes customfield_13415 in the fields query string', async () => {
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          id: '1001',
+          key: 'PROJ-1',
+          fields: { summary: 'Test', customfield_13415: { value: 'Major' } },
+        }),
+      } as Response);
+
+      await fetchIssueDetail(BASE, TOKEN, 'PROJ-1', customFields);
+
+      const callArgs = vi.mocked(apiFetch).mock.calls[0];
+      const url = callArgs[1] as string;
+      expect(url).toContain('customfield_13415');
+    });
+
+    it('response with customfield_13415 is accessible on JiraIssueDetail.fields', async () => {
+      const issueData = {
+        id: '1001',
+        key: 'PROJ-1',
+        fields: {
+          summary: 'Defect with severity',
+          customfield_13415: { value: 'Major' },
+        },
+      };
+      vi.mocked(apiFetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => issueData,
+      } as Response);
+
+      const result = await fetchIssueDetail(BASE, TOKEN, 'PROJ-1', customFields);
+      // TypeScript type allows accessing .customfield_13415?.value without unknown widening
+      const severityValue = result.fields.customfield_13415?.value;
+      expect(severityValue).toBe('Major');
+    });
   });
 
   // --- createIssue ---
