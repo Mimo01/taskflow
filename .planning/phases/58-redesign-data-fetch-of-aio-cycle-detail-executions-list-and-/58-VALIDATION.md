@@ -1,10 +1,11 @@
 ---
 phase: 58
 slug: redesign-data-fetch-of-aio-cycle-detail-executions-list-and
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-05-15
+audited: 2026-05-19
 ---
 
 # Phase 58 — Validation Strategy
@@ -19,16 +20,16 @@ created: 2026-05-15
 |----------|-------|
 | **Framework** | Vitest + @testing-library/react |
 | **Config file** | `taskflow/vitest.config.ts` |
-| **Quick run command** | `cd taskflow && npm test -- --reporter=verbose AioCycleDetailPage` |
-| **Full suite command** | `cd taskflow && npm test` |
+| **Quick run command** | `npm test -- --reporter=verbose AioCycleDetailPage` |
+| **Full suite command** | `npm test` |
 | **Estimated runtime** | ~30 seconds (quick), ~2 minutes (full) |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Run `cd taskflow && npm test -- --reporter=verbose AioCycleDetailPage`
-- **After every plan wave:** Run `cd taskflow && npm test`
+- **After every task commit:** Run `npm test -- --reporter=verbose AioCycleDetailPage`
+- **After every plan wave:** Run `npm test`
 - **Before `/gsd:verify-work`:** Full suite must be green
 - **Max feedback latency:** 30 seconds
 
@@ -38,12 +39,12 @@ created: 2026-05-15
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 58-probe-01 | probe | 0 | — | — | N/A | manual | — | — | ⬜ pending |
-| 58-01-01 | 01 | 1 | progress-bar-decoupled | — | N/A | component | `npm test -- AioCycleDetailPage` | ⚠️ W0 | ⬜ pending |
-| 58-01-02 | 01 | 1 | run-table-concurrent | — | N/A | component | `npm test -- AioCycleDetailPage` | ❌ W0 | ⬜ pending |
-| 58-02-01 | 02 | 1 | defect-no-double-resolution | — | N/A | unit | `npm test -- issue-runs` | ❌ W0 | ⬜ pending |
-| 58-02-02 | 02 | 1 | new-fetch-error-handling | — | N/A | unit | `npm test -- cycles` | ❌ W0 | ⬜ pending |
-| 58-03-01 | 03 | 2 | credential-gate-no-401-flash | — | N/A | component | `npm test -- AioCycleDetailPage` | ⚠️ partial | ⬜ pending |
+| 58-probe-01 | probe | 0 | — | — | N/A | manual | — | — | ✅ green |
+| 58-01-01 | 01 | 1 | progress-bar-decoupled | — | N/A | component | `npm test -- AioCycleDetailPage` | ✅ exists | ✅ green |
+| 58-01-02 | 01 | 1 | run-table-concurrent | — | N/A | component | `npm test -- AioCycleDetailPage` | ✅ exists | ✅ green |
+| 58-02-01 | 02 | 1 | defect-no-double-resolution | — | N/A | unit | `npm test -- issue-runs` | ✅ exists | ✅ green |
+| 58-02-02 | 02 | 1 | new-fetch-error-handling | — | N/A | N/A | N/A — task was no-op (NONE-RETAIN-EXISTING) | N/A | ✅ green |
+| 58-03-01 | 03 | 2 | credential-gate-no-401-flash | — | N/A | component | `npm test -- AioCycleDetailPage` | ✅ exists | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -51,11 +52,9 @@ created: 2026-05-15
 
 ## Wave 0 Requirements
 
-- [ ] `taskflow/src/pages/aio/AioCycleDetailPage.test.tsx` — update to cover decoupled progress bar behavior
-- [ ] `taskflow/src/services/aio/cycles.test.ts` — add coverage for any new fetch function discovered by probe
-- [ ] `taskflow/src/services/aio/issue-runs.test.ts` — add test verifying defects are NOT double-resolved (service returns raw IDs, component resolves)
-
-*Wave 0 gaps reduce if probe finds no new fetch function is needed.*
+- [x] `src/routes/dashboard/AioCycleDetailPage.test.tsx` — 45 tests covering decoupled progress bar, concurrent run-table skeleton, defect resolution, credential gate
+- [x] `src/services/aio/issue-runs.test.ts` — 9 tests asserting `defects: []` and `jiraDefectIDs` populated, no service-level Jira resolution
+- [x] `src/services/aio/cycles.test.ts` — no-op (NONE-RETAIN-EXISTING branch confirmed; cycles.ts unchanged)
 
 ---
 
@@ -70,11 +69,23 @@ created: 2026-05-15
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** ✅ APPROVED — 2026-05-19
+
+---
+
+## Validation Audit 2026-05-19
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 |
+| Resolved | 0 |
+| Escalated | 0 |
+| Tests passing | 54 (45 component + 9 unit) |
+| Nyquist compliant | true |
