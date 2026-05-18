@@ -1,11 +1,12 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, BookOpen, Bug, CheckSquare, CornerDownRight, FlaskConical, Pin } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, BookOpen, Bug, CheckSquare, ChevronDown, ChevronUp, CornerDownRight, FlaskConical, Pin, X } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
@@ -78,33 +79,135 @@ const CHIPS = [
   { status: 'BLOCKED', label: 'Blocked' },
 ] as const;
 
+// Priority rank map for sort order (lower = higher priority)
+const PRIORITY_RANK: Record<string, number> = {
+  Highest: 0,
+  High: 1,
+  Medium: 2,
+  Low: 3,
+  Lowest: 4,
+};
+
+type DefectSortKey = 'key' | 'status' | 'priority' | 'severity' | 'assignee' | null;
+
+// Module-level helper components (stable references — not recreated on parent render)
+function SortableHeader({
+  sortKey,
+  label,
+  className,
+  activeSortKey,
+  activeSortDir,
+  onSort,
+}: {
+  sortKey: Exclude<DefectSortKey, null>;
+  label: string;
+  className?: string;
+  activeSortKey: DefectSortKey;
+  activeSortDir: 'asc' | 'desc';
+  onSort: (key: Exclude<DefectSortKey, null>) => void;
+}) {
+  const isActive = activeSortKey === sortKey;
+  return (
+    <th className={`px-3 py-2 text-left text-xs font-medium text-muted-foreground ${className ?? ''}`}>
+      <button
+        type="button"
+        data-testid={`defects-sort-header-${sortKey}`}
+        className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+        onClick={() => onSort(sortKey)}
+      >
+        {label}
+        {isActive && activeSortDir === 'asc' && (
+          <ChevronUp className="w-3 h-3" data-testid={`defects-sort-indicator-${sortKey}`} />
+        )}
+        {isActive && activeSortDir === 'desc' && (
+          <ChevronDown className="w-3 h-3" data-testid={`defects-sort-indicator-${sortKey}`} />
+        )}
+      </button>
+    </th>
+  );
+}
+
+function FilterPopover({
+  dimension,
+  testId,
+  options,
+  selected,
+  setSelected,
+}: {
+  dimension: string;
+  testId: string;
+  options: string[];
+  selected: Set<string>;
+  setSelected: React.Dispatch<React.SetStateAction<Set<string>>>;
+}) {
+  const isActive = selected.size > 0;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant={isActive ? 'default' : 'outline'}
+          size="sm"
+          className="h-7 text-xs gap-1"
+          data-testid={testId}
+        >
+          {dimension}
+          {isActive && <span className="ml-0.5 opacity-70">({selected.size})</span>}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-52 p-2">
+        {options.length === 0 ? (
+          <p className="text-xs text-muted-foreground px-2 py-1">No options available</p>
+        ) : (
+          <ul className="max-h-48 overflow-auto space-y-0.5">
+            {options.map((opt) => {
+              const checked = selected.has(opt);
+              return (
+                <li key={opt}>
+                  <button
+                    type="button"
+                    className={`w-full text-left px-2 py-1 rounded text-xs hover:bg-muted flex items-center gap-2 ${checked ? 'font-medium' : ''}`}
+                    onClick={() => {
+                      setSelected((prev) => {
+                        const n = new Set(prev);
+                        if (n.has(opt)) n.delete(opt);
+                        else n.add(opt);
+                        return n;
+                      });
+                    }}
+                  >
+                    <span className={`w-3 h-3 border rounded-sm flex items-center justify-center shrink-0 ${checked ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
+                      {checked && <span className="text-primary-foreground text-[8px] leading-none">✓</span>}
+                    </span>
+                    {opt}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// DefectRow is now purely presentational — issue resolution is owned by parent via useQueries
 function DefectRow({
   defectIdOrKey,
-  jiraBaseUrl,
-  token,
-  tokenLoading,
+  issue,
+  isLoading,
   triggeredBy,
   onOpen,
 }: {
-  // May be either a numeric Jira internal ID string (e.g. "186227") or a real key (e.g. "PROJ-1234").
-  // Jira REST /issue/{idOrKey} accepts both. We render issueQuery.data.key once resolved.
   defectIdOrKey: string;
-  jiraBaseUrl: string | undefined;
-  token: string | null;
-  tokenLoading: boolean;
+  issue: JiraIssue | null;
+  isLoading: boolean;
   triggeredBy: string;
   onOpen: (resolvedKey: string) => void;
 }) {
-  const issueQuery = useQuery<JiraIssue | null>({
-    queryKey: ['jira', jiraBaseUrl, 'issue-lightweight', defectIdOrKey],
-    queryFn: () => fetchJiraIssueByKey(jiraBaseUrl!, token!, defectIdOrKey),
-    enabled: !!jiraBaseUrl && !!token && !tokenLoading,
-  });
-
-  const displayKey = issueQuery.data?.key ?? defectIdOrKey;
-  const linkTarget = `/issue/${issueQuery.data?.key ?? defectIdOrKey}`;
-  const resolvedKey = issueQuery.data?.key ?? null;
-  const isClickable = !issueQuery.isLoading && !!resolvedKey;
+  const displayKey = issue?.key ?? defectIdOrKey;
+  const linkTarget = `/issue/${issue?.key ?? defectIdOrKey}`;
+  const resolvedKey = issue?.key ?? null;
+  const isClickable = !isLoading && !!resolvedKey;
 
   return (
     <tr
@@ -127,8 +230,8 @@ function DefectRow({
     >
       <td className="px-3 py-3 font-mono text-sm">
         <div className="flex items-center gap-1.5">
-          {issueQuery.data?.fields.issuetype?.name !== undefined && (
-            <IssueTypeIcon typeName={issueQuery.data.fields.issuetype.name} />
+          {issue?.fields.issuetype?.name !== undefined && (
+            <IssueTypeIcon typeName={issue.fields.issuetype.name} />
           )}
           <NavLink to={linkTarget} className="hover:underline" onClick={(e) => e.stopPropagation()}>
             {displayKey}
@@ -136,81 +239,81 @@ function DefectRow({
         </div>
       </td>
       <td className="px-3 py-3 text-sm">
-        {issueQuery.isLoading ? (
+        {isLoading ? (
           <Skeleton
             className="h-4 w-32"
             data-testid={`defect-title-loading-${defectIdOrKey}`}
           />
         ) : (
-          <span>{issueQuery.data?.fields.summary ?? displayKey}</span>
+          <span>{issue?.fields.summary ?? displayKey}</span>
         )}
       </td>
       <td className="px-3 py-3">
-        {issueQuery.data?.fields.status ? (
-          <span className={statusPillClass(issueQuery.data.fields.status.statusCategory?.key)}>
-            {issueQuery.data.fields.status.name}
+        {issue?.fields.status ? (
+          <span className={statusPillClass(issue.fields.status.statusCategory?.key)}>
+            {issue.fields.status.name}
           </span>
         ) : (
           <span className="text-muted-foreground">—</span>
         )}
       </td>
       <td className="px-3 py-3 text-xs text-muted-foreground">
-        {issueQuery.isLoading ? (
+        {isLoading ? (
           <Skeleton className="h-4 w-20" />
-        ) : issueQuery.data?.fields.assignee ? (
+        ) : issue?.fields.assignee ? (
           <div className="flex items-center gap-1.5">
             <CachedAvatar
-              url={issueQuery.data.fields.assignee.avatarUrls['48x48']}
-              name={issueQuery.data.fields.assignee.displayName}
+              url={issue.fields.assignee.avatarUrls['48x48']}
+              name={issue.fields.assignee.displayName}
               size={20}
             />
-            <span className="truncate max-w-[120px]">{issueQuery.data.fields.assignee.displayName}</span>
+            <span className="truncate max-w-[120px]">{issue.fields.assignee.displayName}</span>
           </div>
         ) : (
           <span className="text-muted-foreground">—</span>
         )}
       </td>
       <td className="px-3 py-3 text-xs text-muted-foreground">
-        {issueQuery.isLoading ? (
+        {isLoading ? (
           <Skeleton className="h-4 w-20" />
-        ) : issueQuery.data?.fields.reporter ? (
+        ) : issue?.fields.reporter ? (
           <div className="flex items-center gap-1.5">
             <CachedAvatar
-              url={issueQuery.data.fields.reporter.avatarUrls['48x48']}
-              name={issueQuery.data.fields.reporter.displayName}
+              url={issue.fields.reporter.avatarUrls['48x48']}
+              name={issue.fields.reporter.displayName}
               size={20}
             />
-            <span className="truncate max-w-[120px]">{issueQuery.data.fields.reporter.displayName}</span>
+            <span className="truncate max-w-[120px]">{issue.fields.reporter.displayName}</span>
           </div>
         ) : (
           <span className="text-muted-foreground">—</span>
         )}
       </td>
       <td className="px-3 py-3 text-xs text-muted-foreground">
-        {issueQuery.isLoading ? (
+        {isLoading ? (
           <Skeleton className="h-4 w-16" />
-        ) : issueQuery.data?.fields.priority ? (
+        ) : issue?.fields.priority ? (
           <div className="flex items-center gap-1.5">
-            {issueQuery.data.fields.priority.iconUrl && (
+            {issue.fields.priority.iconUrl && (
               <img
-                src={issueQuery.data.fields.priority.iconUrl}
+                src={issue.fields.priority.iconUrl}
                 alt=""
                 className="w-3.5 h-3.5 shrink-0"
               />
             )}
-            <span>{issueQuery.data.fields.priority.name}</span>
+            <span>{issue.fields.priority.name}</span>
           </div>
         ) : (
           <span className="text-muted-foreground">—</span>
         )}
       </td>
       <td className="px-3 py-3 text-xs text-muted-foreground">
-        {issueQuery.isLoading ? (
+        {isLoading ? (
           <Skeleton className="h-4 w-16" />
         ) : (() => {
           const severityValue =
-            issueQuery.data?.fields.customfield_13415?.value ??
-            issueQuery.data?.fields.customfield_13415?.name ??
+            issue?.fields.customfield_13415?.value ??
+            issue?.fields.customfield_13415?.name ??
             null;
           return severityValue ? (
             <span>{severityValue}</span>
@@ -350,7 +453,6 @@ export default function AioCycleDetailPage() {
   const filteredRuns = (runs ?? []).filter((r) => activeStatuses.has(r.status));
 
   // DefectRow data source — switched from r.defects (service-resolved) to r.jiraDefectIDs (raw numeric IDs as strings)
-  // DefectRow's own useQuery resolves each key via fetchJiraIssueByKey — unchanged and correct.
   const allDefects = [...new Set((runs ?? []).flatMap((r) => (r.jiraDefectIDs ?? []).map(String)).filter(Boolean))];
 
   const defectsWithTriggers = allDefects.map((defectKey) => ({
@@ -361,6 +463,201 @@ export default function AioCycleDetailPage() {
       .filter(Boolean)
       .join(', '),
   }));
+
+  // Parent-owned issue queries — all defect issues resolved in one place via useQueries
+  // so the parent has access to all JiraIssue objects for sorting and filtering
+  const issueQueries = useQueries({
+    queries: defectsWithTriggers.map((d) => ({
+      queryKey: ['jira', jiraBaseUrl, 'issue-lightweight', d.defectKey],
+      queryFn: () => fetchJiraIssueByKey(jiraBaseUrl!, token!, d.defectKey),
+      enabled: !!jiraBaseUrl && !!token && !tokenLoading,
+    })),
+  });
+
+  // Build resolved defects array: { defectKey, triggeredBy, issue, isLoading }
+  const resolvedDefects = useMemo(
+    () =>
+      defectsWithTriggers.map((d, i) => ({
+        defectKey: d.defectKey,
+        triggeredBy: d.triggeredBy,
+        issue: (issueQueries[i]?.data ?? null) as JiraIssue | null,
+        isLoading: issueQueries[i]?.isLoading ?? false,
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [defectsWithTriggers, issueQueries],
+  );
+
+  // ── Defect sort + filter state ──────────────────────────────────────────────
+  const [defectSortKey, setDefectSortKey] = useState<DefectSortKey>(null);
+  const [defectSortDir, setDefectSortDir] = useState<'asc' | 'desc'>('asc');
+  const [defectStatusFilter, setDefectStatusFilter] = useState<Set<string>>(new Set());
+  const [defectPriorityFilter, setDefectPriorityFilter] = useState<Set<string>>(new Set());
+  const [defectSeverityFilter, setDefectSeverityFilter] = useState<Set<string>>(new Set());
+  const [defectAssigneeFilter, setDefectAssigneeFilter] = useState<Set<string>>(new Set());
+
+  // Derived filter options from resolved (non-loading) issues
+  const statusOptions = useMemo(() => {
+    const vals = resolvedDefects
+      .filter((d) => !d.isLoading && d.issue)
+      .map((d) => d.issue!.fields.status?.name)
+      .filter(Boolean) as string[];
+    return [...new Set(vals)].sort();
+  }, [resolvedDefects]);
+
+  const priorityOptions = useMemo(() => {
+    const vals = resolvedDefects
+      .filter((d) => !d.isLoading && d.issue)
+      .map((d) => d.issue!.fields.priority?.name)
+      .filter(Boolean) as string[];
+    return [...new Set(vals)].sort();
+  }, [resolvedDefects]);
+
+  const severityOptions = useMemo(() => {
+    const vals = resolvedDefects
+      .filter((d) => !d.isLoading && d.issue)
+      .map((d) => d.issue!.fields.customfield_13415?.value ?? d.issue!.fields.customfield_13415?.name)
+      .filter(Boolean) as string[];
+    return [...new Set(vals)].sort();
+  }, [resolvedDefects]);
+
+  const assigneeOptions = useMemo(() => {
+    const vals = resolvedDefects
+      .filter((d) => !d.isLoading && d.issue)
+      .map((d) => d.issue!.fields.assignee?.displayName)
+      .filter(Boolean) as string[];
+    return [...new Set(vals)].sort();
+  }, [resolvedDefects]);
+
+  const anyFilterActive =
+    defectStatusFilter.size > 0 ||
+    defectPriorityFilter.size > 0 ||
+    defectSeverityFilter.size > 0 ||
+    defectAssigneeFilter.size > 0;
+
+  // Filter pipeline
+  const filteredDefects = useMemo(() => {
+    if (!anyFilterActive) return resolvedDefects;
+    return resolvedDefects.filter((d) => {
+      // Loading rows excluded when any filter is active
+      if (d.isLoading) return false;
+      if (!d.issue) return false;
+
+      const statusMatch =
+        defectStatusFilter.size === 0 ||
+        (d.issue.fields.status?.name ? defectStatusFilter.has(d.issue.fields.status.name) : false);
+      const priorityMatch =
+        defectPriorityFilter.size === 0 ||
+        (d.issue.fields.priority?.name ? defectPriorityFilter.has(d.issue.fields.priority.name) : false);
+      const severityVal =
+        d.issue.fields.customfield_13415?.value ?? d.issue.fields.customfield_13415?.name ?? null;
+      const severityMatch =
+        defectSeverityFilter.size === 0 ||
+        (severityVal ? defectSeverityFilter.has(severityVal) : false);
+      const assigneeMatch =
+        defectAssigneeFilter.size === 0 ||
+        (d.issue.fields.assignee?.displayName
+          ? defectAssigneeFilter.has(d.issue.fields.assignee.displayName)
+          : false);
+
+      return statusMatch && priorityMatch && severityMatch && assigneeMatch;
+    });
+  }, [resolvedDefects, anyFilterActive, defectStatusFilter, defectPriorityFilter, defectSeverityFilter, defectAssigneeFilter]);
+
+  // Sort pipeline — stable sort; missing/loading values always sort to the bottom
+  const sortedDefects = useMemo(() => {
+    if (defectSortKey === null) return filteredDefects;
+
+    return [...filteredDefects].sort((a, b) => {
+      const dir = defectSortDir === 'asc' ? 1 : -1;
+
+      const getVal = (d: typeof a): string | number | null => {
+        if (d.isLoading || !d.issue) return null;
+        switch (defectSortKey) {
+          case 'key':
+            return d.issue.key ?? d.defectKey;
+          case 'status':
+            return d.issue.fields.status?.name ?? null;
+          case 'priority': {
+            const name = d.issue.fields.priority?.name ?? null;
+            return name !== null ? (PRIORITY_RANK[name] ?? Number.POSITIVE_INFINITY) : null;
+          }
+          case 'severity':
+            return d.issue.fields.customfield_13415?.value ?? d.issue.fields.customfield_13415?.name ?? null;
+          case 'assignee':
+            return d.issue.fields.assignee?.displayName ?? null;
+          default:
+            return null;
+        }
+      };
+
+      const aVal = getVal(a);
+      const bVal = getVal(b);
+
+      // Missing values always go to bottom regardless of sort direction
+      if (aVal === null && bVal === null) return 0;
+      if (aVal === null) return 1;
+      if (bVal === null) return -1;
+
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return (aVal - bVal) * dir;
+      }
+      return String(aVal).localeCompare(String(bVal)) * dir;
+    });
+  }, [filteredDefects, defectSortKey, defectSortDir]);
+
+  // Sort header cycling
+  const handleSortHeader = (key: Exclude<DefectSortKey, null>) => {
+    if (defectSortKey !== key) {
+      setDefectSortKey(key);
+      setDefectSortDir('asc');
+    } else if (defectSortDir === 'asc') {
+      setDefectSortDir('desc');
+    } else {
+      setDefectSortKey(null);
+      setDefectSortDir('asc');
+    }
+  };
+
+  // Active filter chips: [{dimension, value}]
+  const activeChips = useMemo(() => {
+    const chips: { dimension: string; value: string; remove: () => void }[] = [];
+    for (const v of defectStatusFilter) {
+      chips.push({
+        dimension: 'Status',
+        value: v,
+        remove: () => setDefectStatusFilter((prev) => { const n = new Set(prev); n.delete(v); return n; }),
+      });
+    }
+    for (const v of defectPriorityFilter) {
+      chips.push({
+        dimension: 'Priority',
+        value: v,
+        remove: () => setDefectPriorityFilter((prev) => { const n = new Set(prev); n.delete(v); return n; }),
+      });
+    }
+    for (const v of defectSeverityFilter) {
+      chips.push({
+        dimension: 'Severity',
+        value: v,
+        remove: () => setDefectSeverityFilter((prev) => { const n = new Set(prev); n.delete(v); return n; }),
+      });
+    }
+    for (const v of defectAssigneeFilter) {
+      chips.push({
+        dimension: 'Assignee',
+        value: v,
+        remove: () => setDefectAssigneeFilter((prev) => { const n = new Set(prev); n.delete(v); return n; }),
+      });
+    }
+    return chips;
+  }, [defectStatusFilter, defectPriorityFilter, defectSeverityFilter, defectAssigneeFilter]);
+
+  const clearAllFilters = () => {
+    setDefectStatusFilter(new Set());
+    setDefectPriorityFilter(new Set());
+    setDefectSeverityFilter(new Set());
+    setDefectAssigneeFilter(new Set());
+  };
 
   const cycleName = cycleQuery.data?.name ?? cycleKey ?? '';
 
@@ -733,49 +1030,113 @@ export default function AioCycleDetailPage() {
                 subtitle="No defects are linked to runs in this cycle."
               />
             ) : (
-              <table className="w-full text-sm">
-                <thead className="border-b bg-muted/10">
-                  <tr>
-                    <th className="w-36 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                      Key
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                      Title
-                    </th>
-                    <th className="w-32 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                      Status
-                    </th>
-                    <th className="w-32 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                      Assignee
-                    </th>
-                    <th className="w-36 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                      Reporter
-                    </th>
-                    <th className="w-24 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                      Priority
-                    </th>
-                    <th className="w-24 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                      Severity
-                    </th>
-                    <th className="w-48 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                      Triggered By
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {defectsWithTriggers.map(({ defectKey: defectIdOrKey, triggeredBy }) => (
-                    <DefectRow
-                      key={defectIdOrKey}
-                      defectIdOrKey={defectIdOrKey}
-                      jiraBaseUrl={jiraBaseUrl ?? undefined}
-                      token={token}
-                      tokenLoading={tokenLoading}
-                      triggeredBy={triggeredBy}
-                      onOpen={openDefect}
-                    />
+              <>
+                {/* Filter toolbar */}
+                <div
+                  role="toolbar"
+                  aria-label="Defects filters"
+                  className="flex items-center gap-2 px-3 py-2 border-b flex-wrap"
+                >
+                  <FilterPopover
+                    dimension="Status"
+                    testId="defects-filter-status"
+                    options={statusOptions}
+                    selected={defectStatusFilter}
+                    setSelected={setDefectStatusFilter}
+                  />
+                  <FilterPopover
+                    dimension="Priority"
+                    testId="defects-filter-priority"
+                    options={priorityOptions}
+                    selected={defectPriorityFilter}
+                    setSelected={setDefectPriorityFilter}
+                  />
+                  <FilterPopover
+                    dimension="Severity"
+                    testId="defects-filter-severity"
+                    options={severityOptions}
+                    selected={defectSeverityFilter}
+                    setSelected={setDefectSeverityFilter}
+                  />
+                  <FilterPopover
+                    dimension="Assignee"
+                    testId="defects-filter-assignee"
+                    options={assigneeOptions}
+                    selected={defectAssigneeFilter}
+                    setSelected={setDefectAssigneeFilter}
+                  />
+
+                  {/* Active filter chips */}
+                  {activeChips.map((chip) => (
+                    <span
+                      key={`${chip.dimension}-${chip.value}`}
+                      className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+                    >
+                      {chip.dimension}: {chip.value}
+                      <button
+                        type="button"
+                        className="hover:text-primary/60 shrink-0"
+                        data-testid={`defects-filter-chip-${chip.dimension.toLowerCase()}-${chip.value}`}
+                        onClick={chip.remove}
+                        aria-label={`Remove filter ${chip.dimension}: ${chip.value}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
                   ))}
-                </tbody>
-              </table>
+
+                  {anyFilterActive && (
+                    <button
+                      type="button"
+                      data-testid="defects-filter-clear-all"
+                      className="text-xs text-muted-foreground hover:text-foreground ml-1"
+                      onClick={clearAllFilters}
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
+
+                {/* No matches message when filter is active and nothing matches */}
+                {sortedDefects.length === 0 && anyFilterActive ? (
+                  <p className="px-4 py-3 text-sm text-muted-foreground">
+                    No defects match the selected filters.
+                  </p>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead className="border-b bg-muted/10">
+                      <tr>
+                        <SortableHeader sortKey="key" label="Key" className="w-36" activeSortKey={defectSortKey} activeSortDir={defectSortDir} onSort={handleSortHeader} />
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                          Title
+                        </th>
+                        <SortableHeader sortKey="status" label="Status" className="w-32" activeSortKey={defectSortKey} activeSortDir={defectSortDir} onSort={handleSortHeader} />
+                        <SortableHeader sortKey="assignee" label="Assignee" className="w-32" activeSortKey={defectSortKey} activeSortDir={defectSortDir} onSort={handleSortHeader} />
+                        <th className="w-36 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                          Reporter
+                        </th>
+                        <SortableHeader sortKey="priority" label="Priority" className="w-24" activeSortKey={defectSortKey} activeSortDir={defectSortDir} onSort={handleSortHeader} />
+                        <SortableHeader sortKey="severity" label="Severity" className="w-24" activeSortKey={defectSortKey} activeSortDir={defectSortDir} onSort={handleSortHeader} />
+                        <th className="w-48 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                          Triggered By
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedDefects.map(({ defectKey, triggeredBy, issue, isLoading: defectLoading }) => (
+                        <DefectRow
+                          key={defectKey}
+                          defectIdOrKey={defectKey}
+                          issue={issue}
+                          isLoading={defectLoading}
+                          triggeredBy={triggeredBy}
+                          onOpen={openDefect}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </>
             )}
           </TabsContent>
         </Tabs>
