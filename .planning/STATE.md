@@ -104,10 +104,11 @@ None.
 | 260517-py2 | unify the style of all pills and badges across the app to have the same style | 2026-05-17 | 7a60390 | [260517-py2-unify-the-style-of-all-pills-and-badges-](./quick/260517-py2-unify-the-style-of-all-pills-and-badges-/) |
 | 260518-cqs | In notifications I also get notifications from my own actions. I should only get notifications for actions that someone else does | 2026-05-18 | d207236 | [260518-cqs-in-notifications-i-also-get-notification](./quick/260518-cqs-in-notifications-i-also-get-notification/) |
 | 260518-d7z | When I am assigning person to jira task I want to have a quick action to 'assign to me' | 2026-05-18 | ec8930c | [260518-d7z-when-i-am-assigning-person-to-jira-task-](./quick/260518-d7z-when-i-am-assigning-person-to-jira-task-/) |
+| 260518-dks | Redesign the visual style of the "Assign to me" button in the assignee popover to be a subtle text link | 2026-05-18 | 0e4a610 | [260518-dks-redesign-the-visual-style-of-the-assign-](./quick/260518-dks-redesign-the-visual-style-of-the-assign-/) |
 
 ## Session Continuity
 
-Last activity: 2026-05-18 - Completed quick task 260518-d7z: When I am assigning person to jira task I want to have a quick action to 'assign to me'
+Last activity: 2026-05-18 - Completed quick task 260518-dks: Redesign the visual style of the "Assign to me" button in the assignee popover to be a subtle text link
 
 Last session: 2026-05-15
 Stopped at: Phase 57 UAT approved — milestone v1.8 complete
