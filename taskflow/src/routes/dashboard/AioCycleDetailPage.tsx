@@ -84,6 +84,7 @@ function DefectRow({
   token,
   tokenLoading,
   triggeredBy,
+  onOpen,
 }: {
   // May be either a numeric Jira internal ID string (e.g. "186227") or a real key (e.g. "PROJ-1234").
   // Jira REST /issue/{idOrKey} accepts both. We render issueQuery.data.key once resolved.
@@ -92,6 +93,7 @@ function DefectRow({
   token: string | null;
   tokenLoading: boolean;
   triggeredBy: string;
+  onOpen: (resolvedKey: string) => void;
 }) {
   const issueQuery = useQuery<JiraIssue | null>({
     queryKey: ['jira', jiraBaseUrl, 'issue-lightweight', defectIdOrKey],
@@ -101,15 +103,34 @@ function DefectRow({
 
   const displayKey = issueQuery.data?.key ?? defectIdOrKey;
   const linkTarget = `/issue/${issueQuery.data?.key ?? defectIdOrKey}`;
+  const resolvedKey = issueQuery.data?.key ?? null;
+  const isClickable = !issueQuery.isLoading && !!resolvedKey;
 
   return (
-    <tr className="border-b border-border hover:bg-muted/30 transition-colors">
+    <tr
+      className={`border-b border-border hover:bg-muted/30 transition-colors${isClickable ? ' cursor-pointer' : ''}`}
+      data-testid={`defect-row-${defectIdOrKey}`}
+      {...(isClickable
+        ? {
+            role: 'button' as const,
+            tabIndex: 0,
+            'aria-label': `Open defect ${resolvedKey}`,
+            onClick: () => onOpen(resolvedKey!),
+            onKeyDown: (e: React.KeyboardEvent) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onOpen(resolvedKey!);
+              }
+            },
+          }
+        : {})}
+    >
       <td className="px-3 py-3 font-mono text-sm">
         <div className="flex items-center gap-1.5">
           {issueQuery.data?.fields.issuetype?.name !== undefined && (
             <IssueTypeIcon typeName={issueQuery.data.fields.issuetype.name} />
           )}
-          <NavLink to={linkTarget} className="hover:underline">
+          <NavLink to={linkTarget} className="hover:underline" onClick={(e) => e.stopPropagation()}>
             {displayKey}
           </NavLink>
         </div>
@@ -346,6 +367,11 @@ export default function AioCycleDetailPage() {
   const openRun = (run: AioTestRun) => {
     useBreadcrumbStore.getState().push({ label: cycleName, path: location.pathname });
     navigate(`/aio-cycle/${projectKey}/${cycleKey}/run/${run.id}`);
+  };
+
+  const openDefect = (resolvedKey: string) => {
+    useBreadcrumbStore.getState().push({ label: cycleName, path: location.pathname });
+    navigate(`/issue/${resolvedKey}`);
   };
 
   // Determine whether progress bar should be visible
@@ -745,6 +771,7 @@ export default function AioCycleDetailPage() {
                       token={token}
                       tokenLoading={tokenLoading}
                       triggeredBy={triggeredBy}
+                      onOpen={openDefect}
                     />
                   ))}
                 </tbody>
