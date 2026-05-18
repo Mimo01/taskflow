@@ -142,10 +142,10 @@ function VirtualizedBacklogTable({
           <th className="w-24 px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
             Key
           </th>
-          <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+          <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">Summary</th>
+          <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground whitespace-nowrap">
             Epic
           </th>
-          <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">Summary</th>
           <th className="w-14 px-2 py-2 text-right text-xs font-medium text-muted-foreground">
             Points
           </th>

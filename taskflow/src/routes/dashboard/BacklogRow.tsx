@@ -71,8 +71,19 @@ function RowCells({
         <span className="font-mono text-xs text-muted-foreground">{issue.key}</span>
       </td>
 
-      {/* Epic badge cell -- right after key */}
-      <td className="px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap">
+      {/* Summary cell -- takes remaining space, truncates on overflow */}
+      <td className="max-w-0 w-full px-2 py-2 density-compact:py-1 density-comfortable:py-3 overflow-hidden whitespace-nowrap text-ellipsis">
+        <span className="inline-flex items-center gap-2 text-sm text-left">
+          <span className="truncate">{issue.fields.summary}</span>
+          <OverdueBadge
+            duedate={(issue.fields.duedate as string | null) ?? null}
+            statusCategoryKey={issue.fields.status.statusCategory?.key}
+          />
+        </span>
+      </td>
+
+      {/* Epic badge cell -- right-aligned, before Points column */}
+      <td className="px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap text-right">
         {epicKey ? (
           epicsLoading ? (
             <Skeleton className="h-4 w-14 rounded-full" />
@@ -94,17 +105,6 @@ function RowCells({
             </button>
           ) : null
         ) : null}
-      </td>
-
-      {/* Summary cell -- takes remaining space, truncates on overflow */}
-      <td className="max-w-0 w-full px-2 py-2 density-compact:py-1 density-comfortable:py-3 overflow-hidden whitespace-nowrap text-ellipsis">
-        <span className="inline-flex items-center gap-2 text-sm text-left">
-          <span className="truncate">{issue.fields.summary}</span>
-          <OverdueBadge
-            duedate={(issue.fields.duedate as string | null) ?? null}
-            statusCategoryKey={issue.fields.status.statusCategory?.key}
-          />
-        </span>
       </td>
 
       {/* Story points cell */}
