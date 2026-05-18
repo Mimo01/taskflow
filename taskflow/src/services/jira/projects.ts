@@ -121,7 +121,7 @@ export async function fetchJiraProjectNumericId(
       'jira',
       url,
       { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } },
-      'Fetch project',
+      'Load Project',
     );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);

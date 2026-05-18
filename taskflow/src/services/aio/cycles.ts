@@ -85,7 +85,7 @@ export async function fetchAioCycles(
     const path = `${basePath}?startAt=${startAt}`;
     let response: Response;
     try {
-      response = await aioFetch(baseUrl, token, path);
+      response = await aioFetch(baseUrl, token, path, 'Load AIO Cycles');
     } catch {
       throw new Error(`Cannot reach AIO at ${baseUrl}`);
     }
@@ -137,7 +137,7 @@ export async function fetchAioCycleDetail(
   const path = `/project/${encodeURIComponent(projectKey)}/testcycle/${encodeURIComponent(cycleKey)}/detail`;
   let response: Response;
   try {
-    response = await aioFetch(baseUrl, token, path);
+    response = await aioFetch(baseUrl, token, path, 'Load AIO Cycles');
   } catch {
     throw new Error(`Cannot reach AIO at ${baseUrl}`);
   }
@@ -168,7 +168,7 @@ export async function fetchAioFolderTree(
   const path = `/project/${jiraProjectId}/testcycle/folder`;
   let response: Response;
   try {
-    response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH);
+    response = await aioFetch(baseUrl, token, path, 'Load AIO Cycles', AIO_PROJECTS_API_PATH);
   } catch {
     throw new Error(`Cannot reach AIO at ${baseUrl}`);
   }
@@ -200,7 +200,7 @@ export async function fetchAioFolderCycleCounts(
   const path = `/project/${jiraProjectId}/testcycle/folder/count?archive=false`;
   let response: Response;
   try {
-    response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH);
+    response = await aioFetch(baseUrl, token, path, 'Load AIO Cycles', AIO_PROJECTS_API_PATH);
   } catch {
     throw new Error(`Cannot reach AIO at ${baseUrl}`);
   }
@@ -257,7 +257,7 @@ export async function fetchAioCyclesWithDetail(
   const body = JSON.stringify(bodyObj);
   let response: Response;
   try {
-    response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH, { method: 'POST', body });
+    response = await aioFetch(baseUrl, token, path, 'Load AIO Cycles', AIO_PROJECTS_API_PATH, { method: 'POST', body });
   } catch {
     throw new Error(`Cannot reach AIO at ${baseUrl}`);
   }
@@ -290,7 +290,7 @@ export async function fetchAioCycleSummaries(
   const path = `/project/${jiraProjectId}/testcycle/summary/paged?c_pId=${jiraProjectId}&t=${Date.now()}`;
   let response: Response;
   try {
-    response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH, {
+    response = await aioFetch(baseUrl, token, path, 'Load AIO Cycles', AIO_PROJECTS_API_PATH, {
       method: 'POST',
       body: JSON.stringify(cycleIds),
     });
@@ -384,7 +384,7 @@ export async function fetchAioCycleTestCasesWithRuns(
   });
   let response: Response;
   try {
-    response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH, { method: 'POST', body });
+    response = await aioFetch(baseUrl, token, path, 'Load AIO Cycles', AIO_PROJECTS_API_PATH, { method: 'POST', body });
   } catch {
     throw new Error(`Cannot reach AIO at ${baseUrl}`);
   }
@@ -434,7 +434,7 @@ export async function fetchAioProjectConfig(
   const path = `/project/${jiraProjectId}/config?c_pId=${jiraProjectId}&t=${Date.now()}`;
   let response: Response;
   try {
-    response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH);
+    response = await aioFetch(baseUrl, token, path, 'Load AIO Cycles', AIO_PROJECTS_API_PATH);
   } catch {
     throw new Error(`Cannot reach AIO at ${baseUrl}`);
   }

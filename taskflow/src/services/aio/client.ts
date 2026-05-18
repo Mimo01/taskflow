@@ -22,25 +22,37 @@ export const AIO_API_PATH = '/rest/aio-tcms-api/1.0';
  * Constructs the full URL as: baseUrl (trailing slash stripped) + apiPath + path
  * Sends Authorization: Bearer and Content-Type: application/json headers.
  *
- * @param baseUrl  - Jira/AIO base URL (same host; trailing slash is stripped)
- * @param token    - Personal Access Token (from Stronghold key 'jira-pat')
- * @param path     - Endpoint path, e.g. '/project' or '/project/PROJ/testcycle'
- * @param apiPath  - Base path constant to prepend; defaults to AIO_API_PATH
+ * Every call must supply a stable, user-action-shaped `operation` label so that all
+ * AIO requests are grouped in the dev-tools Operations tab (no ungrouped requests).
+ *
+ * @param baseUrl   - Jira/AIO base URL (same host; trailing slash is stripped)
+ * @param token     - Personal Access Token (from Stronghold key 'jira-pat')
+ * @param path      - Endpoint path, e.g. '/project' or '/project/PROJ/testcycle'
+ * @param operation - User-facing operation label, e.g. 'Load AIO Cycles'. Required —
+ *                    making this optional would allow silent ungrouped requests.
+ * @param apiPath   - Base path constant to prepend; defaults to AIO_API_PATH
+ * @param init      - Optional HTTP method + body overrides (default: GET, no body)
  */
 export async function aioFetch(
   baseUrl: string,
   token: string,
   path: string,
+  operation: string,
   apiPath: string = AIO_API_PATH,
   init?: { method?: string; body?: string },
 ): Promise<Response> {
   const url = `${baseUrl.replace(/\/$/, '')}${apiPath}${path}`;
-  return apiFetch('aio', url, {
-    method: init?.method ?? 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
+  return apiFetch(
+    'aio',
+    url,
+    {
+      method: init?.method ?? 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      ...(init?.body !== undefined ? { body: init.body } : {}),
     },
-    ...(init?.body !== undefined ? { body: init.body } : {}),
-  });
+    operation,
+  );
 }
