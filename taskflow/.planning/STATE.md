@@ -69,7 +69,7 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-05-18 - Completed quick task 260518-ik2: Redesign cycle detail executions list to use fast paged endpoint
+Last activity: 2026-05-18 - Completed quick task 260518-ist: Show test case key badge, defect count, run count, and assignedToID in executions table
 Stopped at: context exhaustion at 75% (2026-05-14)
 Resume: Phase 47 v17-debt-cleanup plan 01 complete — continue with plan 02 if exists
 
@@ -93,3 +93,4 @@ Resume: Phase 47 v17-debt-cleanup plan 01 complete — continue with plan 02 if 
 | 260329-mxv | Make the changelogs look nicer. The update modals are too small. Refine the views | 2026-03-29 | a35bd3f | | [260329-mxv-make-the-changelogs-look-nicer-the-updat](./quick/260329-mxv-make-the-changelogs-look-nicer-the-updat/) |
 | 260510-5b | Fix pre-commit hook failures | 2026-05-10 | 9f1d25b | | [260510-5b-fix-pre-commit-hook-failures](./quick/260510-5b-fix-pre-commit-hook-failures/) |
 | 260518-ik2 | Redesign cycle detail executions list to use fast paged endpoint | 2026-05-18 | 060cbe0 | | [260518-ik2-redesign-cycle-detail-executions-list-to](./quick/260518-ik2-redesign-cycle-detail-executions-list-to/) |
+| 260518-ist | Show test case key badge, defect count, run count, and assignedToID in executions table | 2026-05-18 | e63c5b5 | | [260518-ist-show-test-case-key-badge-defect-count-ru](./quick/260518-ist-show-test-case-key-badge-defect-count-ru/) |
