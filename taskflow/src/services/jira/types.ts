@@ -55,7 +55,7 @@ export interface JiraIssue {
     // v1.8 additions — Reporter, Priority, Severity (all optional, additive):
     reporter?: { displayName: string; name?: string; avatarUrls: { '48x48': string } } | null;
     priority?: { name: string; iconUrl?: string } | null;
-    severity?: { value?: string; name?: string } | null;
+    customfield_13415?: { value?: string; name?: string } | null;
     [key: string]: unknown; // Enables issue.fields[storyPointsFieldKey] without casting
   };
 }

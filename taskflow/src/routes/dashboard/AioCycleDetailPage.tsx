@@ -188,8 +188,8 @@ function DefectRow({
           <Skeleton className="h-4 w-16" />
         ) : (() => {
           const severityValue =
-            issueQuery.data?.fields.severity?.value ??
-            issueQuery.data?.fields.severity?.name ??
+            issueQuery.data?.fields.customfield_13415?.value ??
+            issueQuery.data?.fields.customfield_13415?.name ??
             null;
           return severityValue ? (
             <span>{severityValue}</span>

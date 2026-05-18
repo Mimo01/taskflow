@@ -565,7 +565,7 @@ describe('AioCycleDetailPage', () => {
           issuetype: { name: 'Bug', subtask: false },
           reporter: { displayName: 'Alice Reporter', avatarUrls: { '48x48': '' } },
           priority: { name: 'High' },
-          severity: { value: 'Major' },
+          customfield_13415: { value: 'Major' },
         },
       });
       renderPage();
@@ -596,7 +596,7 @@ describe('AioCycleDetailPage', () => {
           issuetype: { name: 'Bug', subtask: false },
           reporter: null,
           priority: null,
-          severity: null,
+          customfield_13415: null,
         },
       });
       renderPage();
