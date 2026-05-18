@@ -96,10 +96,48 @@ describe('tryInternalPath — Jira browse URLs', () => {
       tryInternalPath('https://jira.example.com/secure/attachment/123/file.png', JIRA_CTX),
     ).toBeNull();
   });
+});
 
-  it('returns null when jiraBaseUrl is null', () => {
+describe('tryInternalPath — Jira fixforversion URLs', () => {
+  it('maps /browse/{PROJECT}/fixforversion/{id} to /release/{id}', () => {
     expect(
-      tryInternalPath('https://jira.example.com/browse/PROJ-1', NULL_CTX),
+      tryInternalPath('https://jira.example.com/browse/ESHOP/fixforversion/17901', JIRA_CTX),
+    ).toBe('/release/17901');
+  });
+
+  it('maps fixforversion URL with trailing slash', () => {
+    expect(
+      tryInternalPath('https://jira.example.com/browse/ESHOP/fixforversion/17901/', JIRA_CTX),
+    ).toBe('/release/17901');
+  });
+
+  it('maps fixforversion URL with query string (strips it)', () => {
+    expect(
+      tryInternalPath(
+        'https://jira.example.com/browse/ESHOP/fixforversion/17901?foo=bar',
+        JIRA_CTX,
+      ),
+    ).toBe('/release/17901');
+  });
+
+  it('maps fixforversion URL with context path', () => {
+    expect(
+      tryInternalPath('https://company.com/jira/browse/ESHOP/fixforversion/17901', {
+        ...JIRA_CTX,
+        jiraBaseUrl: 'https://company.com/jira',
+      }),
+    ).toBe('/release/17901');
+  });
+
+  it('returns null for fixforversion on wrong Jira host', () => {
+    expect(
+      tryInternalPath('https://other-jira.example.com/browse/ESHOP/fixforversion/17901', JIRA_CTX),
+    ).toBeNull();
+  });
+
+  it('returns null when jiraBaseUrl is not configured', () => {
+    expect(
+      tryInternalPath('https://jira.example.com/browse/ESHOP/fixforversion/17901', NULL_CTX),
     ).toBeNull();
   });
 });
