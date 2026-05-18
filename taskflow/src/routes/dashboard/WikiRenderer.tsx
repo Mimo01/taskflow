@@ -313,7 +313,52 @@ export function injectHeaderlessTableSeparators(wiki: string): string {
 }
 
 /**
+ * Map of Jira emoticon shortcodes to Unicode equivalents.
+ * jira2md does not handle these — they pass through as raw text without this step.
+ * Source: https://confluence.atlassian.com/jiracoreserver/jira-emoticons-939937237.html
+ *
+ * Ordering matters: multi-char variants (e.g. `(*r)`, `(*g)`) must appear
+ * before the single-char catch-all `(*)` so they are matched first.
+ *
+ * Exported for unit-testing.
+ */
+export const JIRA_EMOTICON_MAP: ReadonlyArray<[RegExp, string]> = [
+  [/\(\/\)/g,      '✅'],        // (/)      → ✅ green tick / check mark
+  [/\(x\)/g,       '❌'],        // (x)      → ❌ red cross
+  [/\(!\)/g,       '⚠️'],  // (!)      → ⚠️ warning
+  [/\(\+\)/g,      '➕'],        // (+)      → ➕ plus / add
+  [/\(-\)/g,       '➖'],        // (-)      → ➖ minus / remove
+  [/\(\?\)/g,      '❓'],        // (?)      → ❓ question mark
+  [/\(i\)/g,       'ℹ️'],  // (i)      → ℹ️ information
+  [/\(\*r\)/g,     '⭐'],        // (*r)     → ⭐ red star (closest Unicode)
+  [/\(\*g\)/g,     '🌟'],       // (*g)     → 🌟 green star
+  [/\(\*b\)/g,     '💫'],       // (*b)     → 💫 blue star (closest Unicode)
+  [/\(\*y\)/g,     '⭐'],        // (*y)     → ⭐ yellow star
+  [/\(\*\)/g,      '⭐'],        // (*)      → ⭐ star (catch-all; after *r/*g/*b/*y)
+  [/\(on\)/g,      '💡'],       // (on)     → 💡 light bulb on
+  [/\(off\)/g,     '🔕'],       // (off)    → 🔕 muted bell / light off
+  [/\(flagoff\)/g, '🏳️'], // (flagoff)→ 🏳️ white flag (before flag)
+  [/\(flag\)/g,    '🚩'],       // (flag)   → 🚩 red flag
+];
+
+/**
+ * Replace Jira emoticon shortcodes with their Unicode equivalents.
+ * Must run before jira2md because jira2md's bold pattern `*...*` would
+ * otherwise corrupt `(*)` into `(**)` and similar sequences.
+ *
+ * Private helper — not exported (the map is exported for unit-tests).
+ */
+function replaceJiraEmoticons(text: string): string {
+  let result = text;
+  for (const [pattern, replacement] of JIRA_EMOTICON_MAP) {
+    result = result.replace(pattern, replacement);
+  }
+  return result;
+}
+
+/**
  * Pre-process Jira wiki markup that jira2md does not handle:
+ * - Jira emoticon shortcodes: (/) (x) (!) (+) (-) (?) (i) (*) (on) (off) (flag) etc.
  * - User mentions: [~username] and [~accountId:xxx]
  * - Info/warning/note panels
  * - Panel blocks with optional title
@@ -324,11 +369,15 @@ export function preprocessJiraMarkup(
   attachments?: AttachmentMap,
   users?: UserMap,
 ): string {
+  // Jira emoticons: replace shortcodes like "(/)", "(x)" with Unicode emoji.
+  // Must run before jira2md (which would corrupt certain patterns like (*) → bold).
+  let result = replaceJiraEmoticons(wiki);
+
   // Plan 54-07 Gap 3 (Branch 3-A): merge multi-line table rows BEFORE jira2md
   // tokenises them. Inline `{panel}` blocks inside the merged row body are
   // substituted to `<span data-callout="panel">…</span>` here so they survive
   // through to the markdown layer and render INSIDE the table cell.
-  let result = mergeOpenTableRows(wiki);
+  result = mergeOpenTableRows(result);
 
   // Headerless table fix: inject a synthetic GFM header+separator row before
   // any run of Jira data rows (`|cell|`) that has no preceding `||header||`
@@ -402,6 +451,39 @@ export function preprocessJiraMarkup(
   return result;
 }
 
+/**
+ * jira2md applies its italic transformation (`_text_` → `*text*`) globally
+ * across the entire input string — including inside `[display|url]` link
+ * syntax — before it extracts the link parts. When a URL contains two or more
+ * underscores (e.g. a hash parameter like `hash=1D_D5LJtmN2Xr1bQQRvAcywIXXCd7fBCUz3Ve_ZplpPeXug`),
+ * the first and last `_` form an "italic pair" and the content between them
+ * is wrapped in `*`, corrupting both the display text and the href in the
+ * resulting markdown link `[display](url)`.
+ *
+ * URLs never contain `*` as a valid character in practice, so we can safely
+ * revert any `*` back to `_` in:
+ *  1. The URL portion (inside the closing parens) of every `[text](url)` link.
+ *  2. The display text of links where the display text is itself a URL (starts
+ *     with `http://` or `https://`) — the same italic corruption applies there.
+ *
+ * This function is applied to the full markdown string produced by
+ * `j2m.to_markdown()` before it is passed to react-markdown. It does NOT
+ * touch display text that is not URL-shaped, preserving intentional bold/italic
+ * markdown formatting in link labels.
+ *
+ * Private helper — not exported.
+ */
+function fixMarkdownLinkUnderscores(md: string): string {
+  return md.replace(/\[([^\]]*)\]\(([^)]*)\)/g, (_match, text: string, url: string) => {
+    // Always restore * → _ in the URL (href) portion — * is not valid in URLs.
+    const fixedUrl = url.replace(/\*/g, '_');
+    // Only restore * → _ in display text when the text itself is a URL.
+    // This preserves *bold* and *italic* in human-readable link labels.
+    const fixedText = /^https?:\/\//.test(text) ? text.replace(/\*/g, '_') : text;
+    return `[${fixedText}](${fixedUrl})`;
+  });
+}
+
 const calloutStyles: Record<string, string> = {
   info: 'border-l-4 border-blue-500 bg-blue-500/10 p-3 rounded-r-md my-2 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
   warning:
@@ -415,7 +497,7 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   const preprocessed = wikiText ? preprocessJiraMarkup(wikiText, attachments, users) : '';
-  const markdown = preprocessed ? j2m.to_markdown(preprocessed) : '';
+  const markdown = preprocessed ? fixMarkdownLinkUnderscores(j2m.to_markdown(preprocessed)) : '';
 
   const markdownComponents: Record<string, unknown> = {
     img: ({ src, alt }: ComponentPropsWithoutRef<'img'>) => {

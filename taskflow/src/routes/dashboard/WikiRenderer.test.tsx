@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { injectHeaderlessTableSeparators, mergeOpenTableRows, WikiRenderer } from './WikiRenderer';
+import { JIRA_EMOTICON_MAP, injectHeaderlessTableSeparators, mergeOpenTableRows, WikiRenderer } from './WikiRenderer';
 
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-token'),
@@ -818,6 +818,223 @@ describe('WikiRenderer', () => {
       // Data row rendered in <tbody>.
       const tbody = table?.querySelector('tbody');
       expect(tbody?.textContent).toContain('0905473496');
+    });
+  });
+
+  // --- Underscore preservation in link URLs ---
+  //
+  // jira2md's italic transformation (`_text_` → `*text*`) runs globally across
+  // the entire input string, including inside `[display|url]` link syntax, before
+  // it extracts the link parts. When a URL contains two or more underscores
+  // (e.g. a hash parameter like Ve_ZplpPeXug), the first and last `_` form an
+  // "italic pair" and content between them gets wrapped in `*`, corrupting both
+  // the href and the display text in the resulting markdown link.
+  //
+  // `fixMarkdownLinkUnderscores` is applied post-jira2md to revert `*` → `_`
+  // in link URLs (always safe — `*` is not valid in URLs) and in display text
+  // that is itself a URL (starts with http:// or https://).
+  describe('underscore preservation in link URLs (wiki-renderer-table-link-under)', () => {
+    it('verbatim bug fixture — underscore in URL hash is preserved as _ not rendered as *', () => {
+      // Exact input from the bug report: a headerless table row where the link
+      // URL contains underscore pairs in the hash parameter.
+      const fixture =
+        '|0905473496|Go Biznis 22 eur|[https://www.orange.euro/e-shop-beta/rychla-vymena?hash=1D_D5LJtmN2Xr1bQQRvAcywIXXCd7fBCUz3Ve_ZplpPeXug=#ponuka|https://www.orange.euro/e-shop/rychla-vymena?hash=1D_D5LJtmN2Xr1bQQRvAcywIXXCd7fBCUz3Ve_ZplpPeXug=#ponuka]|';
+
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+
+      const table = container.querySelector('table');
+      expect(table).not.toBeNull();
+
+      const link = table?.querySelector('a');
+      expect(link).not.toBeNull();
+
+      // The href must contain _ not * (root cause: jira2md italic corruption).
+      const href = link?.getAttribute('href') ?? '';
+      expect(href).toContain('Ve_ZplpPeXug');
+      expect(href).not.toContain('Ve*ZplpPeXug');
+      expect(href).toContain('1D_D5LJtmN2Xr1bQQRvAcywIXXCd7fBCUz3Ve_ZplpPeXug');
+
+      // The display text (which is also a URL in this fixture) must also preserve _.
+      const linkText = link?.textContent ?? '';
+      expect(linkText).toContain('Ve_ZplpPeXug');
+      expect(linkText).not.toContain('Ve*ZplpPeXug');
+    });
+
+    it('URL with a single underscore is not affected (single _ is not an italic pair)', () => {
+      const fixture = '[Go to shop|https://www.example.com/path_only]';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const link = container.querySelector('a');
+      expect(link).not.toBeNull();
+      expect(link?.getAttribute('href')).toBe('https://www.example.com/path_only');
+    });
+
+    it('URL with two underscores has both preserved (regression target)', () => {
+      const fixture = '[Shop|https://www.example.com/hash=abc_def_ghi]';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const link = container.querySelector('a');
+      expect(link).not.toBeNull();
+      expect(link?.getAttribute('href')).toBe('https://www.example.com/hash=abc_def_ghi');
+      expect(link?.getAttribute('href')).not.toContain('*');
+    });
+
+    it('bold/italic in non-URL display text is not affected by the fix', () => {
+      // [*bold label*|url] — jira2md converts this to [**bold label**](url).
+      // The fix must NOT revert the ** in the display text (it is not a URL).
+      const fixture = '[*bold link label*|https://www.example.com/path]';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const link = container.querySelector('a');
+      expect(link).not.toBeNull();
+      // The bold formatting must still render (strong element wraps the link text).
+      const strong = link?.querySelector('strong');
+      expect(strong).not.toBeNull();
+      expect(strong?.textContent).toBe('bold link label');
+    });
+
+    it('underscores in URL inside a headed table cell are also preserved (not only headerless)', () => {
+      const fixture = [
+        '||Phone||Link||',
+        '|0905473496|[Shop|https://www.example.com/hash=1A_B2_C3]|',
+      ].join('\n');
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const table = container.querySelector('table');
+      expect(table).not.toBeNull();
+      const link = table?.querySelector('a');
+      expect(link).not.toBeNull();
+      expect(link?.getAttribute('href')).toBe('https://www.example.com/hash=1A_B2_C3');
+      expect(link?.getAttribute('href')).not.toContain('*');
+    });
+
+    it('underscores in URL in plain prose (outside table) are also preserved', () => {
+      const fixture = 'Check this out: [https://example.com/hash=Ve_Zpl_Xug|https://example.com/hash=Ve_Zpl_Xug]';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const link = container.querySelector('a');
+      expect(link).not.toBeNull();
+      expect(link?.getAttribute('href')).toContain('Ve_Zpl_Xug');
+      expect(link?.getAttribute('href')).not.toContain('*');
+    });
+  });
+
+  // --- Jira emoticon shortcodes (jira-icons-not-rendered) ---
+  //
+  // Jira wiki supports shortcodes like "(/)" (green tick), "(x)" (red cross),
+  // "(!)" (warning), "(+)", "(-)", "(?)", "(i)", "(*)", "(on)", "(off)",
+  // "(flag)", "(flagoff)". jira2md does not handle these — they pass through
+  // unchanged. preprocessJiraMarkup converts them to Unicode emoji via
+  // JIRA_EMOTICON_MAP before the text reaches jira2md.
+  describe('Jira emoticon shortcodes (jira-icons-not-rendered)', () => {
+    it('JIRA_EMOTICON_MAP exports a non-empty array', () => {
+      expect(JIRA_EMOTICON_MAP.length).toBeGreaterThan(0);
+    });
+
+    it('JIRA_EMOTICON_MAP — (flagoff) entry appears before (flag) entry to prevent partial match', () => {
+      const flagoffIdx = JIRA_EMOTICON_MAP.findIndex(([re]) => re.source.includes('flagoff'));
+      const flagIdx = JIRA_EMOTICON_MAP.findIndex(
+        ([re]) => re.source.includes('flag') && !re.source.includes('flagoff'),
+      );
+      expect(flagoffIdx).toBeGreaterThanOrEqual(0);
+      expect(flagIdx).toBeGreaterThanOrEqual(0);
+      expect(flagoffIdx).toBeLessThan(flagIdx);
+    });
+
+    it('JIRA_EMOTICON_MAP — (*) catch-all appears after (*r), (*g), (*b), (*y) entries', () => {
+      // (*r), (*g), (*b), (*y) are starred variants; the plain (*) must come last
+      // so it does not shadow the named variants.
+      const rIdx = JIRA_EMOTICON_MAP.findIndex(([re]) => /\\\*r/.test(re.source));
+      const gIdx = JIRA_EMOTICON_MAP.findIndex(([re]) => /\\\*g/.test(re.source));
+      const bIdx = JIRA_EMOTICON_MAP.findIndex(([re]) => /\\\*b/.test(re.source));
+      const yIdx = JIRA_EMOTICON_MAP.findIndex(([re]) => /\\\*y/.test(re.source));
+      // The catch-all (*) pattern: source is exactly \(\*\)
+      const catchAllIdx = JIRA_EMOTICON_MAP.findIndex(([re]) => re.source === '\\(\\*\\)');
+      expect(catchAllIdx).toBeGreaterThan(rIdx);
+      expect(catchAllIdx).toBeGreaterThan(gIdx);
+      expect(catchAllIdx).toBeGreaterThan(bIdx);
+      expect(catchAllIdx).toBeGreaterThan(yIdx);
+    });
+
+    it('renders (/) as ✅ — raw text "(/) is not present in output', () => {
+      const { container } = render(<WikiRenderer wikiText="Status: (/)" />);
+      // The shortcode must be gone; the emoji must appear.
+      expect(container.textContent).not.toContain('(/)');
+      expect(container.textContent).toContain('✅');
+    });
+
+    it('renders (x) as ❌ — raw text "(x)" is not present in output', () => {
+      const { container } = render(<WikiRenderer wikiText="Status: (x)" />);
+      expect(container.textContent).not.toContain('(x)');
+      expect(container.textContent).toContain('❌');
+    });
+
+    it('renders (!) as ⚠️ — raw text "(!)" is not present in output', () => {
+      const { container } = render(<WikiRenderer wikiText="Warning: (!)" />);
+      expect(container.textContent).not.toContain('(!)');
+      expect(container.textContent).toContain('⚠');
+    });
+
+    it('renders (+) as ➕ — raw text "(+)" is not present in output', () => {
+      const { container } = render(<WikiRenderer wikiText="Add: (+)" />);
+      expect(container.textContent).not.toContain('(+)');
+      expect(container.textContent).toContain('➕');
+    });
+
+    it('renders (-) as ➖ — raw text "(-)" is not present in output', () => {
+      const { container } = render(<WikiRenderer wikiText="Remove: (-)" />);
+      expect(container.textContent).not.toContain('(-)');
+      expect(container.textContent).toContain('➖');
+    });
+
+    it('renders (?) as ❓ — raw text "(?)" is not present in output', () => {
+      const { container } = render(<WikiRenderer wikiText="Question: (?)" />);
+      expect(container.textContent).not.toContain('(?)');
+      expect(container.textContent).toContain('❓');
+    });
+
+    it('renders (i) as ℹ️ — raw text "(i)" is not present in output', () => {
+      const { container } = render(<WikiRenderer wikiText="Info: (i)" />);
+      expect(container.textContent).not.toContain('(i)');
+      expect(container.textContent).toContain('ℹ');
+    });
+
+    it('renders (*) as ⭐ — raw text "(*)" is not present in output', () => {
+      const { container } = render(<WikiRenderer wikiText="Star: (*)" />);
+      expect(container.textContent).not.toContain('(*)');
+      expect(container.textContent).toContain('⭐');
+    });
+
+    it('renders multiple emoticons in the same text block', () => {
+      const { container } = render(<WikiRenderer wikiText="Passed (/) and failed (x)" />);
+      expect(container.textContent).toContain('✅');
+      expect(container.textContent).toContain('❌');
+      expect(container.textContent).not.toContain('(/)');
+      expect(container.textContent).not.toContain('(x)');
+    });
+
+    it('emoticons inside a Jira comment with surrounding prose are all converted', () => {
+      const { container } = render(
+        <WikiRenderer wikiText="Test result: (/) passed, (x) failed, (!) warning" />,
+      );
+      expect(container.textContent).toContain('✅');
+      expect(container.textContent).toContain('❌');
+      expect(container.textContent).toContain('⚠');
+      expect(container.textContent).not.toContain('(/)');
+      expect(container.textContent).not.toContain('(x)');
+      expect(container.textContent).not.toContain('(!)');
+    });
+
+    it('emoticons inside a table cell are converted (not treated as table syntax)', () => {
+      const fixture = '||Status||Note||\n|(/)|All good|\n|(x)|Broken|';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const table = container.querySelector('table');
+      expect(table).not.toBeNull();
+      expect(table?.textContent).toContain('✅');
+      expect(table?.textContent).toContain('❌');
+      expect(table?.textContent).not.toContain('(/)');
+      expect(table?.textContent).not.toContain('(x)');
+    });
+
+    it('unrecognised parenthesised tokens are left unchanged (no over-substitution)', () => {
+      // (abc) is not a Jira emoticon — must pass through as-is.
+      const { container } = render(<WikiRenderer wikiText="See ticket (abc) for details" />);
+      expect(container.textContent).toContain('(abc)');
     });
   });
 });
