@@ -133,6 +133,7 @@ export interface JiraIssueDetail {
     labels: string[];
     fixVersions: Array<{ id: string; name: string }>;
     parent?: { id: string; key: string; fields: { summary: string } };
+    customfield_13415?: { value?: string; name?: string } | null;
     created: string;
     updated: string;
     duedate: string | null;
