@@ -34,10 +34,32 @@ vi.mock('@/stores/auth.store', () => ({
 // Navigate spy — injected via react-router-dom mock.
 const navigateMock = vi.fn();
 
+// Location stub — tests set `locationPathname` to control what useLocation() returns.
+let locationPathname = '/';
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
-  return { ...actual, useNavigate: () => navigateMock };
+  return {
+    ...actual,
+    useNavigate: () => navigateMock,
+    useLocation: () => ({ pathname: locationPathname }),
+  };
 });
+
+// Breadcrumb store mock (260518-qw8) — shared state object; pushMock mutates it.
+type TrailEntry = { path: string; label: string };
+const breadcrumbState = { trail: [] as TrailEntry[] };
+const pushMock = vi.fn((entry: TrailEntry) => {
+  breadcrumbState.trail.push(entry);
+});
+
+vi.mock('@/stores/breadcrumb.store', () => ({
+  useBreadcrumbStore: Object.assign(
+    (selector?: (s: { push: typeof pushMock; trail: TrailEntry[] }) => unknown) =>
+      typeof selector === 'function' ? selector({ push: pushMock, trail: breadcrumbState.trail }) : breadcrumbState,
+    { getState: () => ({ push: pushMock, trail: breadcrumbState.trail }) },
+  ),
+}));
 
 import { openUrl } from '@tauri-apps/plugin-opener';
 
@@ -1191,6 +1213,64 @@ describe('WikiRenderer', () => {
       expect(navigateMock).not.toHaveBeenCalled();
       // Lightbox should open.
       expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+    });
+  });
+
+  describe('breadcrumb trail (260518-qw8)', () => {
+    beforeEach(() => {
+      vi.mocked(openUrl).mockClear();
+      navigateMock.mockClear();
+      pushMock.mockClear();
+      breadcrumbState.trail.length = 0;
+      authStoreState.jiraBaseUrl = null;
+      authStoreState.gitlabBaseUrl = null;
+      authStoreState.activeGitlabProject = null;
+      authStoreState.activeGitlabProjectPath = null;
+    });
+
+    it('Jira browse URL click pushes source page onto breadcrumb trail before navigating', () => {
+      authStoreState.jiraBaseUrl = 'https://jira.example.com';
+      locationPathname = '/mr/99/42';
+      render(<WikiRenderer wikiText="[PROJ-123|https://jira.example.com/browse/PROJ-123]" />);
+      const link = screen.getByRole('link', { name: /PROJ-123/ });
+      fireEvent.click(link);
+      expect(pushMock).toHaveBeenCalledWith({ path: '/mr/99/42', label: '!42' });
+      expect(navigateMock).toHaveBeenCalledWith('/issue/PROJ-123');
+      expect(openUrl).not.toHaveBeenCalled();
+    });
+
+    it('GitLab MR URL click pushes source page (an /issue/...) onto breadcrumb trail', () => {
+      authStoreState.gitlabBaseUrl = 'https://gitlab.example.com';
+      authStoreState.activeGitlabProject = 99;
+      authStoreState.activeGitlabProjectPath = 'group/repo';
+      locationPathname = '/issue/SOURCE-1';
+      render(<WikiRenderer wikiText="[See MR|https://gitlab.example.com/group/repo/-/merge_requests/42]" />);
+      const link = screen.getByRole('link', { name: /See MR/ });
+      fireEvent.click(link);
+      expect(pushMock).toHaveBeenCalledWith({ path: '/issue/SOURCE-1', label: 'SOURCE-1' });
+      expect(navigateMock).toHaveBeenCalledWith('/mr/99/42');
+      expect(openUrl).not.toHaveBeenCalled();
+    });
+
+    it('unmatched external link does NOT push onto breadcrumb trail', () => {
+      // jira.orange.sk is a different host from jiraBaseUrl (jira.example.com), falls back to openUrl.
+      authStoreState.jiraBaseUrl = 'https://jira.example.com';
+      locationPathname = '/mr/99/42';
+      render(<WikiRenderer wikiText="[See PROJ-123|https://jira.orange.sk/browse/PROJ-123]" />);
+      const link = screen.getByRole('link', { name: /See PROJ-123/ });
+      fireEvent.click(link);
+      expect(pushMock).not.toHaveBeenCalled();
+      expect(openUrl).toHaveBeenCalledWith('https://jira.orange.sk/browse/PROJ-123');
+    });
+
+    it('in-document anchor (#section) does NOT push onto breadcrumb trail', () => {
+      locationPathname = '/mr/99/42';
+      render(<WikiRenderer wikiText="[See here|#section]" />);
+      const link = screen.getByRole('link', { name: /See here/ });
+      fireEvent.click(link);
+      expect(pushMock).not.toHaveBeenCalled();
+      expect(openUrl).not.toHaveBeenCalled();
+      expect(navigateMock).not.toHaveBeenCalled();
     });
   });
 
