@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 Phase: 58 (redesign-data-fetch-of-aio-cycle-detail-executions-list-and-) — COMPLETE
 Plan: 4 of 4 — UAT approved 2026-05-15
 Status: Phase complete — ready for next phase or milestone completion
-Last activity: 2026-05-17 - Completed quick task 260517-py2: unify the style of all pills and badges across the app to have the same style
+Last activity: 2026-05-18 - Completed quick task 260518-v8c: In backlog view switch summary and epic columns. And make the epics aligned to right
 
 Progress: [██████████] 100%
 
@@ -116,6 +116,7 @@ None.
 | 260518-p45 | On AIO execution detail defects table make the whole row clickable to issue detail | 2026-05-18 | e62b1b99 | [260518-p45-on-aio-execution-detail-defects-table-ma](./quick/260518-p45-on-aio-execution-detail-defects-table-ma/) |
 | 260518-pq2 | In the app when link to jira or gitlab is rendered, first try to link it to the app itself. Example would be https://jira.exmpla.com/browse/PROJ-12345 going to issue detail | 2026-05-18 | 9e93b8b6 | [260518-pq2-in-the-app-when-link-to-jira-or-gitlab-i](./quick/260518-pq2-in-the-app-when-link-to-jira-or-gitlab-i/) |
 | 260518-qw8 | When navigating in-app from a rendered Jira or GitLab link, add the source page to breadcrumbs so the user can go back | 2026-05-18 | 61da08d0 | [260518-qw8-when-navigating-in-app-from-a-rendered-j](./quick/260518-qw8-when-navigating-in-app-from-a-rendered-j/) |
+| 260518-v8c | In backlog view switch summary and epic columns. And make the epics aligned to right | 2026-05-18 | fa7b513a | [260518-v8c-in-backlog-view-switch-summary-and-epic-](./quick/260518-v8c-in-backlog-view-switch-summary-and-epic-/) |
 
 ## Session Continuity
 
