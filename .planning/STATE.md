@@ -102,8 +102,11 @@ None.
 | 260515-gyv | In the AIO cycle page there is a folder structure on the left. The folders have badges with counts. But they dont have any right padding, the section is cut exactly where the pill with count ends | 2026-05-15 | 176de17 | [260515-gyv-in-the-aio-cycle-page-there-is-a-folder-](./quick/260515-gyv-in-the-aio-cycle-page-there-is-a-folder-/) |
 | 260517-pjv | Unify status pills across app using sprint board style | 2026-05-17 | e50b1d3 | [260517-pjv-unify-status-pills-across-app-using-spri](./quick/260517-pjv-unify-status-pills-across-app-using-spri/) |
 | 260517-py2 | unify the style of all pills and badges across the app to have the same style | 2026-05-17 | 7a60390 | [260517-py2-unify-the-style-of-all-pills-and-badges-](./quick/260517-py2-unify-the-style-of-all-pills-and-badges-/) |
+| 260518-cqs | In notifications I also get notifications from my own actions. I should only get notifications for actions that someone else does | 2026-05-18 | d207236 | [260518-cqs-in-notifications-i-also-get-notification](./quick/260518-cqs-in-notifications-i-also-get-notification/) |
 
 ## Session Continuity
+
+Last activity: 2026-05-18 - Completed quick task 260518-cqs: In notifications I also get notifications from my own actions. I should only get notifications for actions that someone else does
 
 Last session: 2026-05-15
 Stopped at: Phase 57 UAT approved — milestone v1.8 complete
