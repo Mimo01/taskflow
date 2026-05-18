@@ -9,6 +9,7 @@ import {
   fetchAioCyclesWithDetail,
   fetchAioFolderCycleCounts,
   fetchAioFolderTree,
+  fetchAioProjectConfig,
 } from './cycles';
 
 const mockedApiFetch = vi.mocked(apiFetch);
@@ -284,6 +285,63 @@ describe('fetchAioCycleSummaries', () => {
   it('throws "Cannot reach AIO" on network error', async () => {
     mockedApiFetch.mockRejectedValue(new Error('timeout'));
     await expect(fetchAioCycleSummaries(BASE, TOKEN, PROJECT_ID, [])).rejects.toThrow(
+      'Cannot reach AIO at',
+    );
+  });
+});
+
+describe('fetchAioProjectConfig', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns AioTestRunStatusConfig[] from testRunStatus on 200', async () => {
+    mockedApiFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        testRunStatus: [
+          { ID: 53, name: 'Passed', statusType: 'pass', color: '#75B000' },
+          { ID: 51, name: 'Failed', statusType: 'fail', color: '#D0021B' },
+        ],
+      }),
+    } as unknown as Response);
+
+    const result = await fetchAioProjectConfig(BASE, TOKEN, PROJECT_ID);
+    expect(result).toHaveLength(2);
+    expect(result[0].ID).toBe(53);
+    expect(result[0].statusType).toBe('pass');
+    expect(result[1].ID).toBe(51);
+  });
+
+  it('returns [] when testRunStatus is absent from response', async () => {
+    mockedApiFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+    } as unknown as Response);
+
+    const result = await fetchAioProjectConfig(BASE, TOKEN, PROJECT_ID);
+    expect(result).toEqual([]);
+  });
+
+  it('returns [] on 404', async () => {
+    mockedApiFetch.mockResolvedValue({ ok: false, status: 404 } as unknown as Response);
+    const result = await fetchAioProjectConfig(BASE, TOKEN, PROJECT_ID);
+    expect(result).toEqual([]);
+  });
+
+  it('throws ApiError on 401', async () => {
+    mockedApiFetch.mockResolvedValue({ ok: false, status: 401 } as unknown as Response);
+    await expect(fetchAioProjectConfig(BASE, TOKEN, PROJECT_ID)).rejects.toMatchObject({
+      status: 401,
+      source: 'jira',
+    });
+  });
+
+  it('throws "Cannot reach AIO" on network error', async () => {
+    mockedApiFetch.mockRejectedValue(new Error('timeout'));
+    await expect(fetchAioProjectConfig(BASE, TOKEN, PROJECT_ID)).rejects.toThrow(
       'Cannot reach AIO at',
     );
   });
