@@ -64,9 +64,18 @@ export function tryInternalPath(href: string, ctx: InternalLinkCtx): string | nu
         // applying the browse regex. For jiraBase.pathname = "/", this is a no-op.
         const relPath = stripPathPrefix(url.pathname, jiraBase.pathname);
         if (relPath !== null) {
-          const match = relPath.replace(/\/$/, '').match(/^\/browse\/([A-Z][A-Z0-9_]+-\d+)$/);
-          if (match) {
-            return `/issue/${match[1]}`;
+          const stripped = relPath.replace(/\/$/, '');
+          // /browse/{KEY} → /issue/{KEY}
+          const issueMatch = stripped.match(/^\/browse\/([A-Z][A-Z0-9_]+-\d+)$/);
+          if (issueMatch) {
+            return `/issue/${issueMatch[1]}`;
+          }
+          // /browse/{PROJECT}/fixforversion/{versionId} → /release/{versionId}
+          const fixVersionMatch = stripped.match(
+            /^\/browse\/[A-Z][A-Z0-9_]*\/fixforversion\/(\d+)$/,
+          );
+          if (fixVersionMatch) {
+            return `/release/${fixVersionMatch[1]}`;
           }
         }
         // Host (and context path) matched but not a browse path.
