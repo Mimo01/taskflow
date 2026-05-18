@@ -1080,6 +1080,7 @@ export interface JiraIssueDetail {
       timeSpentSeconds?: number;
     };
     duedate: string | null;
+    customfield_13415?: { value?: string; name?: string } | null;
     [key: string]: unknown;
   };
   changelog?: {
@@ -1150,6 +1151,7 @@ export async function fetchIssueDetail(
     'assignee',
     'reporter',
     'priority',
+    'customfield_13415',
     'issuetype',
     'description',
     'comment',
