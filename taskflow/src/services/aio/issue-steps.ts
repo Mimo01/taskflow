@@ -119,7 +119,7 @@ export async function fetchAioTestCasesForIssue(
     const path = `${basePath}?startAt=${startAt}`;
     let response: Response;
     try {
-      response = await aioFetch(baseUrl, token, path);
+      response = await aioFetch(baseUrl, token, path, 'Load AIO Execution Detail');
     } catch {
       throw new Error(`Cannot reach AIO at ${baseUrl}`);
     }
@@ -171,7 +171,7 @@ export async function fetchAioTestRunSteps(
   const path = `/project/${encodeURIComponent(projectKey)}/testcycle/${encodeURIComponent(cycleKey)}/testrun/${encodeURIComponent(runId)}?assignSteps=true`;
   let response: Response;
   try {
-    response = await aioFetch(baseUrl, token, path);
+    response = await aioFetch(baseUrl, token, path, 'Load AIO Execution Detail');
   } catch {
     throw new Error(`Cannot reach AIO at ${baseUrl}`);
   }
@@ -251,7 +251,7 @@ export async function fetchAioTestRunDetail(
   const path = `/project/${encodeURIComponent(projectKey)}/testcycle/${encodeURIComponent(cycleKey)}/testrun/${encodeURIComponent(runId)}?assignSteps=true`;
   let response: Response;
   try {
-    response = await aioFetch(baseUrl, token, path);
+    response = await aioFetch(baseUrl, token, path, 'Load AIO Execution Detail');
   } catch {
     throw new Error(`Cannot reach AIO at ${baseUrl}`);
   }

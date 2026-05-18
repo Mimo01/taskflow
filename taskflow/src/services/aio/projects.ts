@@ -62,7 +62,7 @@ export async function fetchAioTraceabilityTestCases(
   const path = `/project/${aioProjectId}/traceability/${type}/${jiraIssueNumericId}`;
   let response: Response;
   try {
-    response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH);
+    response = await aioFetch(baseUrl, token, path, 'Load AIO Projects', AIO_PROJECTS_API_PATH);
   } catch {
     return [];
   }
@@ -112,7 +112,7 @@ export type { AioTestCase };
 export async function fetchAioProjects(baseUrl: string, token: string): Promise<AioProject[]> {
   let response: Response;
   try {
-    response = await aioFetch(baseUrl, token, '/project', AIO_PROJECTS_API_PATH);
+    response = await aioFetch(baseUrl, token, '/project', 'Load AIO Projects', AIO_PROJECTS_API_PATH);
   } catch {
     throw new Error(`Cannot reach AIO at ${baseUrl}`);
   }
