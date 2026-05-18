@@ -13,7 +13,7 @@ import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { AIO_STATUS_MAP, normalizeStatus, normalizeStatusLabel } from '@/lib/aioUtils';
 import { STATUS_PILL_LAYOUT_CLASS, aioCycleStatusPillClass, aioRunStatusPillClass } from '@/lib/statusStyles';
 import type { AioCycle, AioCycleSummaryItem, AioTestRun } from '@/services/aio';
-import { fetchAioCycleDetail, fetchAioCycleSummaries, fetchAioTestRunsForCycle } from '@/services/aio';
+import { fetchAioCycleDetail, fetchAioCycleSummaries, fetchAioCycleTestCasesWithRuns } from '@/services/aio';
 import { fetchJiraIssueByKey } from '@/services/jira';
 import { fetchJiraProjectNumericId } from '@/services/jira/projects';
 import type { JiraIssue } from '@/services/jira/types';
@@ -133,11 +133,11 @@ export default function AioCycleDetailPage() {
     enabled: aioGate && !!cycleNumericId && !tokenLoading,
   });
 
-  // Runs query — RUNS_ENDPOINT_DECISION: NONE-RETAIN-EXISTING
+  // Runs query — uses fast POST paged endpoint (numeric IDs required, gated on aioGate + cycleNumericId)
   const runsQuery = useQuery<AioTestRun[]>({
     queryKey: ['aio', jiraBaseUrl, 'runs', projectKey, cycleKey],
-    queryFn: () => fetchAioTestRunsForCycle(jiraBaseUrl!, token!, projectKey!, cycleKey!),
-    enabled: credGate,
+    queryFn: () => fetchAioCycleTestCasesWithRuns(jiraBaseUrl!, token!, jiraProjectId!, cycleNumericId!, cycleKey!),
+    enabled: aioGate && !!cycleNumericId,
   });
 
   // Full-page skeleton gates only on cycleQuery (not runsQuery) — progress bar decoupled

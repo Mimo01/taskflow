@@ -309,6 +309,112 @@ export async function fetchAioCycleSummaries(
   throw new Error(`AIO request failed with status ${response.status}`);
 }
 
+// Raw shape from POST /testcasewithrun/paged
+type RawTestCaseWithRun = {
+  ID?: number;
+  test?: {
+    detail?: {
+      key?: string;
+      title?: string;
+    };
+  };
+  latestTestRun?: {
+    ID?: number;
+    testRunStatusID?: number;
+    allDefects?: number[];
+    updatedDate?: number;
+  };
+};
+
+// Maps numeric AIO testRunStatusID to chip status string
+const TESTCASE_STATUS_MAP: Record<number, string> = {
+  53: 'PASS',
+  901: 'PASS',
+  54: 'FAIL',
+  55: 'BLOCKED',
+};
+
+function chipStatusFromId(id: number | undefined): string {
+  return TESTCASE_STATUS_MAP[id ?? 0] ?? 'NOT_EXECUTED';
+}
+
+const TESTCASE_COLUMNS = ['rank', 'key', 'title', 'testRunStatusID', 'defectCount'];
+const TESTCASE_SORTING = {
+  sortColumn: 'rank',
+  sortOrder: 'ASC',
+  jiraComponents: [],
+  jiraReleases: [],
+  customFieldID: null,
+  customFieldType: null,
+};
+
+/**
+ * Fetch test cases with their latest run for a single cycle via the fast paged endpoint.
+ * POST /rest/aio-tcms/1.0/project/{jiraProjectId}/testcycle/{cycleNumericId}/testcasewithrun/paged
+ * Returns all test cases in a single request (maxResults: 500).
+ * @returns AioTestRun[]; empty array on 404
+ * @throws ApiError 401 on auth failure
+ * @throws Error on network failure
+ */
+export async function fetchAioCycleTestCasesWithRuns(
+  baseUrl: string,
+  token: string,
+  jiraProjectId: number,
+  cycleNumericId: number,
+  cycleKey: string,
+): Promise<import('./types').AioTestRun[]> {
+  const path = `/project/${jiraProjectId}/testcycle/${cycleNumericId}/testcasewithrun/paged?c_pId=${jiraProjectId}&t=${Date.now()}`;
+  const body = JSON.stringify({
+    startAt: 0,
+    maxResults: 500,
+    columns: TESTCASE_COLUMNS,
+    customFields: [],
+    runCustomFields: [],
+    cycleID: { comparisonType: 'IN', list: [cycleNumericId] },
+    testCycleCases: true,
+    groupByFolder: false,
+    groupBySet: false,
+    filteredFromSegment: false,
+    includeComments: false,
+    includeAttachments: false,
+    sortingData: TESTCASE_SORTING,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  });
+  let response: Response;
+  try {
+    response = await aioFetch(baseUrl, token, path, AIO_PROJECTS_API_PATH, { method: 'POST', body });
+  } catch {
+    throw new Error(`Cannot reach AIO at ${baseUrl}`);
+  }
+  if (response.ok) {
+    const data = (await response.json()) as { items?: RawTestCaseWithRun[] };
+    return (data.items ?? []).map((item) => {
+      const updatedDate = item.latestTestRun?.updatedDate;
+      const isoDate = updatedDate != null ? new Date(updatedDate).toISOString() : undefined;
+      return {
+        id: String(item.latestTestRun?.ID ?? ''),
+        status: chipStatusFromId(item.latestTestRun?.testRunStatusID),
+        testCaseKey: item.test?.detail?.key ?? '',
+        cycleKey,
+        testCase: {
+          title: item.test?.detail?.title ?? '',
+          updatedDate: isoDate,
+        },
+        defects: [],
+        jiraDefectIDs: item.latestTestRun?.allDefects ?? [],
+        executedDate: isoDate,
+      };
+    });
+  }
+  if (response.status === 401) {
+    throw new ApiError('Invalid token or token has expired', 401, 'jira');
+  }
+  if (response.status === 404) {
+    return [];
+  }
+  throw new Error(`AIO request failed with status ${response.status}`);
+}
+
 /**
  * Fetch project config — extracts testRunStatus entries for dynamic status ID mapping.
  * GET /rest/aio-tcms/1.0/project/{jiraProjectId}/config?c_pId={id}&t={ts}
