@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { JIRA_EMOTICON_MAP, injectHeaderlessTableSeparators, mergeOpenTableRows, WikiRenderer } from './WikiRenderer';
 
@@ -14,12 +15,29 @@ vi.mock('@tauri-apps/plugin-opener', () => ({
   openUrl: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Auth store state shared across tests — each test suite resets it.
+const authStoreState = {
+  jiraBaseUrl: null as string | null,
+  gitlabBaseUrl: null as string | null,
+  activeGitlabProject: null as number | null,
+  activeGitlabProjectPath: null as string | null,
+};
+
 vi.mock('@/stores/auth.store', () => ({
   useAuthStore: Object.assign(
-    (selector: (s: { jiraBaseUrl: string | null }) => unknown) => selector({ jiraBaseUrl: null }),
-    { getState: () => ({ jiraBaseUrl: null }) },
+    (selector?: (s: typeof authStoreState) => unknown) =>
+      typeof selector === 'function' ? selector(authStoreState) : authStoreState,
+    { getState: () => authStoreState },
   ),
 }));
+
+// Navigate spy — injected via react-router-dom mock.
+const navigateMock = vi.fn();
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return { ...actual, useNavigate: () => navigateMock };
+});
 
 import { openUrl } from '@tauri-apps/plugin-opener';
 
@@ -286,6 +304,12 @@ describe('WikiRenderer', () => {
   describe('external link routing through openUrl (Plan 54-06)', () => {
     beforeEach(() => {
       vi.mocked(openUrl).mockClear();
+      navigateMock.mockClear();
+      // Ensure jiraBaseUrl is null so tryInternalPath always misses for these tests.
+      authStoreState.jiraBaseUrl = null;
+      authStoreState.gitlabBaseUrl = null;
+      authStoreState.activeGitlabProject = null;
+      authStoreState.activeGitlabProjectPath = null;
     });
 
     it('renders image-extension [name.png|url] as inline text anchor, click opens lightbox (NOT openUrl) — 54-06 UAT follow-up', () => {
@@ -1071,6 +1095,102 @@ describe('WikiRenderer', () => {
       // (abc) is not a Jira emoticon — must pass through as-is.
       const { container } = render(<WikiRenderer wikiText="See ticket (abc) for details" />);
       expect(container.textContent).toContain('(abc)');
+    });
+  });
+
+  describe('internal link routing (260518-pq2)', () => {
+    beforeEach(() => {
+      vi.mocked(openUrl).mockClear();
+      navigateMock.mockClear();
+      // Reset auth state before each test.
+      authStoreState.jiraBaseUrl = null;
+      authStoreState.gitlabBaseUrl = null;
+      authStoreState.activeGitlabProject = null;
+      authStoreState.activeGitlabProjectPath = null;
+    });
+
+    it('Jira browse URL matching jiraBaseUrl navigates in-app, does NOT call openUrl', () => {
+      authStoreState.jiraBaseUrl = 'https://jira.example.com';
+      render(
+        <MemoryRouter>
+          <WikiRenderer wikiText="[PROJ-123|https://jira.example.com/browse/PROJ-123]" />
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole('link', { name: /PROJ-123/ });
+      fireEvent.click(link);
+      expect(navigateMock).toHaveBeenCalledWith('/issue/PROJ-123');
+      expect(openUrl).not.toHaveBeenCalled();
+    });
+
+    it('GitLab MR URL matching active project navigates in-app, does NOT call openUrl', () => {
+      authStoreState.gitlabBaseUrl = 'https://gitlab.example.com';
+      authStoreState.activeGitlabProject = 99;
+      authStoreState.activeGitlabProjectPath = 'group/repo';
+      render(
+        <MemoryRouter>
+          <WikiRenderer wikiText="[See MR|https://gitlab.example.com/group/repo/-/merge_requests/42]" />
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole('link', { name: /See MR/ });
+      fireEvent.click(link);
+      expect(navigateMock).toHaveBeenCalledWith('/mr/99/42');
+      expect(openUrl).not.toHaveBeenCalled();
+    });
+
+    it('GitLab MR URL with mismatched project path falls back to openUrl, does NOT navigate', () => {
+      authStoreState.gitlabBaseUrl = 'https://gitlab.example.com';
+      authStoreState.activeGitlabProject = 99;
+      authStoreState.activeGitlabProjectPath = 'group/repo';
+      render(
+        <MemoryRouter>
+          <WikiRenderer wikiText="[Other MR|https://gitlab.example.com/other/repo/-/merge_requests/1]" />
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole('link', { name: /Other MR/ });
+      fireEvent.click(link);
+      expect(openUrl).toHaveBeenCalledWith('https://gitlab.example.com/other/repo/-/merge_requests/1');
+      expect(navigateMock).not.toHaveBeenCalled();
+    });
+
+    it('regression: non-Jira/non-GitLab external link still calls openUrl (host mismatch)', () => {
+      // jira.orange.sk is different from jiraBaseUrl (jira.example.com), so falls back to openUrl.
+      authStoreState.jiraBaseUrl = 'https://jira.example.com';
+      render(
+        <MemoryRouter>
+          <WikiRenderer wikiText="[See PROJ-123|https://jira.orange.sk/browse/PROJ-123]" />
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole('link', { name: /See PROJ-123/ });
+      fireEvent.click(link);
+      expect(openUrl).toHaveBeenCalledWith('https://jira.orange.sk/browse/PROJ-123');
+      expect(navigateMock).not.toHaveBeenCalled();
+    });
+
+    it('regression: in-document anchor (#section) does NOT call openUrl or navigate', () => {
+      render(
+        <MemoryRouter>
+          <WikiRenderer wikiText="[See here|#section]" />
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole('link', { name: /See here/ });
+      fireEvent.click(link);
+      expect(openUrl).not.toHaveBeenCalled();
+      expect(navigateMock).not.toHaveBeenCalled();
+    });
+
+    it('regression: image-extension anchor opens lightbox, does NOT call openUrl or navigate', () => {
+      authStoreState.jiraBaseUrl = 'https://jira.example.com';
+      const { container } = render(
+        <MemoryRouter>
+          <WikiRenderer wikiText="[VAS.png|https://jira.example.com/secure/attachment/123/VAS.png]" />
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole('link', { name: /VAS\.png/ });
+      fireEvent.click(link);
+      expect(openUrl).not.toHaveBeenCalled();
+      expect(navigateMock).not.toHaveBeenCalled();
+      // Lightbox should open.
+      expect(container.querySelector('[role="dialog"]')).not.toBeNull();
     });
   });
 });
