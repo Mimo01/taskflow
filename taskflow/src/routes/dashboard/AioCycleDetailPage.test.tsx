@@ -16,7 +16,7 @@ vi.mock('@/stores/auth.store', () => ({
 }));
 vi.mock('@/services/aio', () => ({
   fetchAioCycles: vi.fn(),
-  fetchAioTestRunsForCycle: vi.fn(),
+  fetchAioCycleTestCasesWithRuns: vi.fn(),
   fetchAioCycleDetail: vi.fn(),
   fetchAioCycleSummaries: vi.fn(),
   fetchAioCyclesWithDetail: vi.fn(),
@@ -104,12 +104,12 @@ const mockRuns = [
 
 // Helper: set up default mocks for the happy path
 async function setupDefaultMocks() {
-  const { fetchAioCycleDetail, fetchAioTestRunsForCycle, fetchAioCycleSummaries } = await import(
+  const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } = await import(
     '@/services/aio'
   );
   const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
   (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
-  (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
+  (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
   (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
   (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
 }
@@ -156,11 +156,11 @@ describe('AioCycleDetailPage', () => {
     });
 
     it('shows "No runs recorded" when runs array is empty', async () => {
-      const { fetchAioCycleDetail, fetchAioTestRunsForCycle, fetchAioCycleSummaries } =
+      const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
         await import('@/services/aio');
       const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
       (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
-      (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue([]);
       (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue([
         {
           ID: 10134,
@@ -177,7 +177,7 @@ describe('AioCycleDetailPage', () => {
     });
 
     it('percentages sum to 100 when all runs accounted for', async () => {
-      const { fetchAioCycleDetail, fetchAioTestRunsForCycle, fetchAioCycleSummaries } =
+      const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
         await import('@/services/aio');
       const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
       (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
@@ -188,7 +188,7 @@ describe('AioCycleDetailPage', () => {
         { id: 'r3', status: 'FAIL', testCaseKey: 'TC-3', cycleKey: 'PROJ-CY-2', defects: [], jiraDefectIDs: [] },
         { id: 'r4', status: 'FAIL', testCaseKey: 'TC-4', cycleKey: 'PROJ-CY-2', defects: [], jiraDefectIDs: [] },
       ];
-      (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue(evenRuns);
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(evenRuns);
       // Summary with 2 pass (901), 2 fail (54)
       (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue([
         {
@@ -207,7 +207,7 @@ describe('AioCycleDetailPage', () => {
     });
 
     it('progress bar renders from cycle summary while runs are still loading', async () => {
-      const { fetchAioCycleDetail, fetchAioTestRunsForCycle, fetchAioCycleSummaries } =
+      const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
         await import('@/services/aio');
       const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
       (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
@@ -221,7 +221,7 @@ describe('AioCycleDetailPage', () => {
       ]);
       (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
       // runs query never resolves — simulates slow runs endpoint
-      (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
       renderPage();
       // Progress bar must be visible even though runs never resolved
       await waitFor(() => {
@@ -234,13 +234,13 @@ describe('AioCycleDetailPage', () => {
     });
 
     it('falls back to runs-derived counts when summary query errors', async () => {
-      const { fetchAioCycleDetail, fetchAioTestRunsForCycle, fetchAioCycleSummaries } =
+      const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
         await import('@/services/aio');
       const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
       (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
       (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('boom'));
       (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
-      (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
       renderPage();
       // Falls back to runs-derived counts: 1 pass, 1 fail, 1 not-run
       await waitFor(() => {
@@ -321,12 +321,12 @@ describe('AioCycleDetailPage', () => {
 
     it('AIOC-03: shows EmptyState when no defects', async () => {
       const user = userEvent.setup();
-      const { fetchAioCycleDetail, fetchAioTestRunsForCycle, fetchAioCycleSummaries } =
+      const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
         await import('@/services/aio');
       const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
       (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
       const runsNoDefects = mockRuns.map((r) => ({ ...r, defects: [], jiraDefectIDs: [] }));
-      (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue(runsNoDefects);
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(runsNoDefects);
       (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
       (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
       renderPage();
@@ -340,12 +340,12 @@ describe('AioCycleDetailPage', () => {
 
     it('AIOC-03: shows skeleton in title cell while fetchJiraIssueByKey is pending', async () => {
       const user = userEvent.setup();
-      const { fetchAioCycleDetail, fetchAioTestRunsForCycle, fetchAioCycleSummaries } =
+      const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
         await import('@/services/aio');
       const { fetchJiraIssueByKey } = await import('@/services/jira');
       const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
       (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
-      (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
       (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
       (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
       (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
@@ -371,7 +371,7 @@ describe('AioCycleDetailPage', () => {
 
     it('AIOC-03: triggered-by column lists test case keys from runs whose jiraDefectIDs contains the ID', async () => {
       const user = userEvent.setup();
-      const { fetchAioCycleDetail, fetchAioTestRunsForCycle, fetchAioCycleSummaries } =
+      const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
         await import('@/services/aio');
       const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
       (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
@@ -387,7 +387,7 @@ describe('AioCycleDetailPage', () => {
           jiraDefectIDs: [186227],
         },
       ];
-      (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue(multiRuns);
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(multiRuns);
       (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
       (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
       renderPage();
@@ -401,7 +401,7 @@ describe('AioCycleDetailPage', () => {
 
     it('passes raw jiraDefectIDs (stringified) to DefectRow, not pre-resolved defects', async () => {
       const user = userEvent.setup();
-      const { fetchAioCycleDetail, fetchAioTestRunsForCycle, fetchAioCycleSummaries } =
+      const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
         await import('@/services/aio');
       const { fetchJiraIssueByKey } = await import('@/services/jira');
       const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
@@ -418,7 +418,7 @@ describe('AioCycleDetailPage', () => {
         },
       ];
       (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
-      (fetchAioTestRunsForCycle as ReturnType<typeof vi.fn>).mockResolvedValue(runsWithNumericDefects);
+      (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(runsWithNumericDefects);
       (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
       (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
       (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -443,7 +443,7 @@ describe('AioCycleDetailPage', () => {
       const { readSecret } = await import('@/services/stronghold');
       (readSecret as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
 
-      const { fetchAioCycleDetail, fetchAioTestRunsForCycle, fetchAioCycleSummaries } =
+      const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
         await import('@/services/aio');
       const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
       renderPage();
@@ -451,7 +451,7 @@ describe('AioCycleDetailPage', () => {
       await new Promise((r) => setTimeout(r, 50));
       expect(fetchAioCycleSummaries).not.toHaveBeenCalled();
       expect(fetchJiraProjectNumericId).not.toHaveBeenCalled();
-      expect(fetchAioTestRunsForCycle).not.toHaveBeenCalled();
+      expect(fetchAioCycleTestCasesWithRuns).not.toHaveBeenCalled();
       expect(fetchAioCycleDetail).not.toHaveBeenCalled();
       // Restore readSecret for subsequent tests in this describe block
       (readSecret as ReturnType<typeof vi.fn>).mockResolvedValue('fake-token');
@@ -549,8 +549,8 @@ describe('Executions tab — clickable rows', () => {
     );
     await waitFor(() => {
       expect(screen.getByRole('tab', { name: 'Executions' })).toBeDefined();
+      expect(screen.getByText('Login test')).toBeDefined();
     });
-    expect(screen.getByText('Login test')).toBeDefined();
   });
 
   it('renders Defects tab trigger that can be activated', async () => {
