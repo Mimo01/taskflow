@@ -5,7 +5,8 @@ import { cn } from '@/lib/utils';
 import { evictAvatar } from '@/services/avatarCache';
 
 /** Generate 1-2 uppercase initials from a display name. */
-export function getInitials(name: string): string {
+export function getInitials(name: string | null | undefined): string {
+  if (!name) return '';
   const trimmed = name.trim();
   if (!trimmed) return '';
   const parts = trimmed.split(/\s+/);
@@ -19,15 +20,15 @@ const SIZE_MAP = { 20: 'size-5', 24: 'size-6', 32: 'size-8', 40: 'size-10' } as 
 const ICON_SIZE_MAP = { 20: 12, 24: 14, 32: 18, 40: 22 } as const;
 
 /** Returns true when the name represents an unassigned state. */
-function isUnassigned(name: string): boolean {
-  return name.trim().toLowerCase() === 'unassigned';
+function isUnassigned(name: string | null | undefined): boolean {
+  return (name ?? '').trim().toLowerCase() === 'unassigned';
 }
 
 interface CachedAvatarProps {
   /** Original avatar URL (Jira avatarUrls['48x48'] or GitLab avatar_url). Null/undefined shows initials permanently. */
   url: string | null | undefined;
   /** Display name — used to generate initials fallback and accessible label. */
-  name: string;
+  name: string | null | undefined;
   /** Pixel size (default: 32). Permitted: 20, 24, 32, 40. */
   size?: 20 | 24 | 32 | 40;
   /** Additional Tailwind classes for layout overrides. */
@@ -71,7 +72,7 @@ export function CachedAvatar({ url, name, size = 32, className }: CachedAvatarPr
           showImage ? 'hidden' : 'flex',
         )}
         role="img"
-        aria-label={name}
+        aria-label={name ?? ''}
       >
         {showUnassigned ? (
           <User size={ICON_SIZE_MAP[size]} className="text-muted-foreground" />
@@ -83,7 +84,7 @@ export function CachedAvatar({ url, name, size = 32, className }: CachedAvatarPr
       {showImage && (
         <img
           src={blobUrl}
-          alt={name}
+          alt={name ?? ''}
           className={cn(sizeClass, 'rounded-full object-cover')}
           onError={handleError}
         />
