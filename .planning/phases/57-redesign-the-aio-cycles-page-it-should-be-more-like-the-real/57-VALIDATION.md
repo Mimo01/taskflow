@@ -1,9 +1,9 @@
 ---
 phase: 57
 slug: redesign-the-aio-cycles-page-it-should-be-more-like-the-real
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-05-14
 ---
 
@@ -36,28 +36,20 @@ created: 2026-05-14
 
 ## Per-Task Verification Map
 
-| Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
-|---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 57-W0-01 | 01 | 0 | — | — | N/A | unit | `cd taskflow && npx vitest run src/lib/aioUtils.test.ts` | ❌ W0 | ⬜ pending |
-| 57-W0-02 | 01 | 0 | — | — | N/A | unit | `cd taskflow && npx vitest run src/services/jira/users.test.ts` | ❌ W0 | ⬜ pending |
-| 57-W0-03 | 01 | 0 | — | — | N/A | unit | `cd taskflow && npx vitest run src/services/aio/cycles.test.ts` | ✅ | ⬜ pending |
-| 57-01-01 | 01 | 1 | — | — | N/A | unit | `cd taskflow && npx vitest run src/routes/dashboard/AioProjectOverviewPage.test.tsx` | ✅ | ⬜ pending |
-| 57-01-02 | 01 | 1 | — | — | N/A | unit | `cd taskflow && npx vitest run src/routes/dashboard/AioProjectOverviewPage.test.tsx` | ✅ | ⬜ pending |
-| 57-01-03 | 01 | 1 | — | — | N/A | unit | `cd taskflow && npx vitest run src/routes/dashboard/AioProjectOverviewPage.test.tsx` | ✅ | ⬜ pending |
-| 57-02-01 | 02 | 2 | — | — | N/A | unit | `cd taskflow && npx vitest run src/routes/dashboard/AioProjectOverviewPage.test.tsx` | ✅ | ⬜ pending |
+| Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
+|---------|------|------|-------------|-----------|-------------------|-------------|--------|
+| 57-W0-01 | 01 | 0 | AION-03: probe live endpoints | unit | `cd taskflow && npx vitest run src/lib/aioUtils.test.ts` | ✅ | ✅ green |
+| 57-W0-02 | 01 | 0 | AION-03: probe live endpoints | unit | `cd taskflow && npx vitest run src/services/jira/users.test.ts` | ✅ | ✅ green |
+| 57-W0-03 | 01 | 0 | AION-03: probe live endpoints | unit | `cd taskflow && npx vitest run src/services/aio/cycles.test.ts` | ✅ | ✅ green |
+| 57-02-T1 | 02 | 1 | AION-03: AioFolder, AioCycleDetailItem, AioCycleSummaryItem, AioCycleDetailPagedResponse types | unit | `cd taskflow && npx vitest run src/services/aio/cycles.test.ts` | ✅ | ✅ green |
+| 57-02-T2 | 02 | 1 | AION-03: fetchAioFolderTree, fetchAioFolderCycleCounts, fetchAioCyclesWithDetail, fetchAioCycleSummaries | unit | `cd taskflow && npx vitest run src/services/aio/cycles.test.ts` | ✅ | ✅ green |
+| 57-02-T3 | 02 | 1 | AION-03: AIO_STATUS_MAP + normalizeStatusById | unit | `cd taskflow && npx vitest run src/lib/aioUtils.test.ts` | ✅ | ✅ green |
+| 57-03-T1 | 03 | 1 | AION-03: fetchJiraUserByUsername (200/404/network) | unit | `cd taskflow && npx vitest run src/services/jira/users.test.ts` | ✅ | ✅ green |
+| 57-04-T1 | 04 | 2 | AION-03: two-panel layout, folder tree, cycle table, progress bar | unit | `cd taskflow && npx vitest run src/routes/dashboard/AioProjectOverviewPage.test.tsx` | ✅ | ✅ green |
+| 57-UAT-01 | 05 | 3 | AION-03: fetchJiraProjectNumericId (numeric id from Jira project endpoint) | unit | `cd taskflow && npx vitest run src/services/jira/projects.test.ts` | ✅ | ✅ green |
+| 57-UAT-02 | 05 | 3 | AION-03: fetchAioProjectConfig (dynamic status map from /config endpoint) | unit | `cd taskflow && npx vitest run src/services/aio/cycles.test.ts` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
-
----
-
-## Wave 0 Requirements
-
-- [ ] `taskflow/src/lib/aioUtils.test.ts` — new file for `normalizeStatusById` + `AIO_STATUS_MAP` tests
-- [ ] `taskflow/src/services/jira/users.test.ts` — new file for `fetchJiraUserByUsername` (returns user or null on 404)
-- [ ] `taskflow/src/services/aio/cycles.test.ts` — extend with `fetchAioFolderTree` and `fetchAioCycleSummaries` tests
-- [ ] `taskflow/src/routes/dashboard/AioProjectOverviewPage.test.tsx` — full rewrite after component rewrite (old tests will fail)
-
-*Note: Wave 0 must also include a live API probe to confirm endpoint URLs (folder tree, count map, summary batch). Assumptions A1–A4 from RESEARCH.md carry medium-high risk.*
 
 ---
 
@@ -65,18 +57,29 @@ created: 2026-05-14
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| API endpoint URLs correct in live environment | — | URLs are assumed (A1–A4 in RESEARCH.md); network probe required | Open DevTools → Network tab, navigate to AIO page in live app, capture actual request URLs for folder tree, count map, and summary endpoints |
-| Folder tree renders correctly with real data | — | Mocked data may not capture all edge cases | Load page with real Jira/AIO credentials, verify folder tree structure matches API-EXAMPLES.md shapes |
+| Folder tree renders correctly with real data | AION-03 | Mocked data may not capture all edge cases | Load page with real Jira/AIO credentials, verify folder tree structure matches API-EXAMPLES.md shapes |
 
 ---
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have automated verify commands
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** complete
+
+---
+
+## Validation Audit 2026-05-19
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 2 |
+| Resolved | 2 |
+| Escalated | 0 |
+
+Gaps filled: unit tests for `fetchJiraProjectNumericId` (jira/projects.test.ts) and `fetchAioProjectConfig` (aio/cycles.test.ts) — both were UAT inline fixes (commits 4937f16, eed2c3b) that were mocked in component tests but lacked dedicated unit coverage. All 4 error-path branches (200, 401, 404, network) now verified.
