@@ -36,9 +36,6 @@ vi.mock('@/services/jira', () => ({
   addIssuesToSprint: vi.fn().mockResolvedValue(undefined),
   fetchEpicsBasic: vi.fn().mockResolvedValue([]),
   fetchProjectStatuses: vi.fn().mockResolvedValue([]),
-}));
-
-vi.mock('@/services/jira/issues', () => ({
   fetchSprintStories: vi.fn().mockResolvedValue([]),
 }));
 
@@ -148,7 +145,7 @@ async function resetMocks() {
   vi.mocked(fetchEpicsBasic).mockResolvedValue([]);
   vi.mocked(fetchProjectStatuses).mockResolvedValue([]);
   vi.mocked(addIssuesToSprint).mockResolvedValue(undefined);
-  const { fetchSprintStories } = await import('@/services/jira/issues');
+  const { fetchSprintStories } = await import('@/services/jira');
   vi.mocked(fetchSprintStories).mockResolvedValue([]);
   const { fetchBacklogSprintStories, fetchSprintList, fetchBacklogIssues } = await import(
     '@/services/jira/backlog'

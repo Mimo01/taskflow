@@ -34,7 +34,7 @@ import {
   fetchBacklogSprintStories,
   fetchSprintList,
 } from '@/services/jira/backlog';
-import { fetchSprintStories } from '@/services/jira/issues';
+import { fetchSprintStories } from '@/services/jira';
 import { fetchBoardId } from '@/services/jira/sprints';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
