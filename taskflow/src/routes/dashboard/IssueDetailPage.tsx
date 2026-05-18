@@ -368,7 +368,7 @@ export default function IssueDetailPage() {
       ) : (
         <div ref={containerRef} className="flex flex-1 overflow-hidden">
           {/* Left column: scrollable content */}
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto min-w-0">
             <div className="p-6">
               <IssueDetailContent
                 issue={issue}

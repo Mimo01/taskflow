@@ -37,7 +37,8 @@ const wikiSanitizeSchema = {
     // match what hast-util-from-html produces from the raw HTML emitted by
     // mergeOpenTableRows / preprocessJiraMarkup.
     div: [...(defaultSchema.attributes?.div ?? []), 'dataCallout', 'dataTitle'],
-    span: [...(defaultSchema.attributes?.span ?? []), 'dataCallout', 'dataTitle'],
+    span: [...(defaultSchema.attributes?.span ?? []), 'dataCallout', 'dataTitle', 'dataColor'],
+    strong: [...(defaultSchema.attributes?.strong ?? []), 'dataColor'],
     mention: ['dataId'],
     img: [...(defaultSchema.attributes?.img ?? []), 'src', 'alt'],
     a: [...(defaultSchema.attributes?.a ?? []), 'href', 'className'],
@@ -452,6 +453,20 @@ export function preprocessJiraMarkup(
   // Note panels
   result = result.replace(/\{note\}([\s\S]*?)\{note\}/g, '<div data-callout="note">$1</div>');
 
+  // Color macros: {color:#hex}...{color} -> <span data-color="#hex">...</span>
+  // Must run BEFORE jira2md, which strips {color} entirely (jira2md index.js line 82).
+  // We use data-color rather than inline style so rehype-sanitize can allowlist it
+  // without permitting arbitrary CSS (an XSS vector).
+  result = result.replace(
+    /\{color:([^}]+)\}([\s\S]*?)\{color\}/g,
+    (_match: string, hex: string, inner: string) => {
+      // jira2md won't process Jira inline markup inside raw HTML, so convert it here.
+      // data-color goes on <strong> too so its inline style beats .prose strong { color }.
+      const html = inner.replace(/\*([^*\n]+)\*/g, `<strong data-color="${hex}">$1</strong>`);
+      return `<span data-color="${hex}">${html}</span>`;
+    },
+  );
+
   return result;
 }
 
@@ -619,7 +634,19 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
           </span>
         );
       }
+      // Color macro: {color:#hex}...{color} — preprocessed to <span data-color="#hex">
+      const colorValue = props['data-color'] as string | undefined;
+      if (colorValue) {
+        return <span style={{ color: colorValue }}>{children}</span>;
+      }
       return <span {...rest}>{children}</span>;
+    },
+    strong: ({ node, children, ...rest }: ComponentPropsWithoutRef<'strong'> & { node?: unknown }) => {
+      const colorValue = (rest as Record<string, unknown>)['data-color'] as string | undefined;
+      if (colorValue) {
+        return <strong style={{ color: colorValue }}>{children}</strong>;
+      }
+      return <strong {...rest}>{children}</strong>;
     },
     // Custom element for <mention> tags produced by preprocessJiraMarkup
     mention: ({ children }: { children?: React.ReactNode }) => (
@@ -694,7 +721,7 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
   };
 
   return (
-    <article className={cn('prose prose-sm dark:prose-invert max-w-none', className)}>
+    <article className={cn('prose prose-sm dark:prose-invert max-w-none break-words', className)}>
       <Markdown
         remarkPlugins={[remarkGfm]}
         // T-54-07-01 mitigation: rehypeRaw passes raw HTML through to the
