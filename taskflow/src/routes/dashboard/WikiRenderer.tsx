@@ -61,6 +61,109 @@ interface WikiRendererProps {
 }
 
 /**
+ * Detect and expand "inline single-line tables": Jira table rows (including the
+ * GFM separator row `|---|---|`) that appear collapsed onto a single source line
+ * rather than split across multiple lines with `\n`.
+ *
+ * Background: Jira issues are sometimes created or imported with table content on
+ * a single line — no `\n` between rows. The heading text, empty header cells,
+ * separator cells, and data cells are all space-separated on one line:
+ *
+ *   h2. Title | | | | |---|---| |cell|cell| |cell|cell|
+ *
+ * Neither `mergeOpenTableRows` nor `injectHeaderlessTableSeparators` can detect
+ * this, because both are line-based and the line does not start with `|`.
+ * remark-gfm requires `\n` between rows, so the entire table renders as raw text.
+ *
+ * Detection heuristic: a line contains an inline table when it has a
+ * multi-column GFM separator row (`|---|---|` — two or more separator cells)
+ * that is NOT at the start of the line (i.e. preceded by a space).
+ * A single `|---|` embedded in prose text does not qualify.
+ *
+ * Reconstruction:
+ *  1. Split at the separator: everything before = prefix text + header row cells;
+ *     everything after = data rows.
+ *  2. Split the "before" portion at the first ` |` to extract the non-table prefix
+ *     (heading text, etc.) and the header row.
+ *  3. Split the "after" portion at every `| |` boundary (pipe-space-pipe) to
+ *     recover individual data rows.
+ *  4. Reassemble as `\n`-separated lines so that the downstream processors
+ *     (`mergeOpenTableRows`, `injectHeaderlessTableSeparators`, jira2md) see a
+ *     conventional multi-line table.
+ *
+ * Lines that already start with `|` (proper table rows) and lines with no inline
+ * separator are passed through unchanged.
+ *
+ * Exported for unit-testing.
+ */
+export function splitInlineSingleLineTables(wiki: string): string {
+  // Matches a multi-column GFM separator row that appears INLINE (not at line start):
+  //   [space][|][:-dashes-:][|]([:-dashes-:][|])+ (two or more separator cells)
+  // The {2,} quantifier prevents matching a single stray |---| in prose text.
+  const INLINE_SEP_RE = / (\|(?::?-+:?\|){2,})(?=\s|$)/;
+
+  const lines = wiki.split('\n');
+  const out: string[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.replace(/[ \t]+$/, '');
+
+    // Lines that already start with `|` are proper table rows — leave them alone.
+    if (trimmed.startsWith('|')) {
+      out.push(line);
+      continue;
+    }
+
+    const sepMatch = trimmed.match(INLINE_SEP_RE);
+    if (!sepMatch) {
+      out.push(line);
+      continue;
+    }
+
+    const sepRowStr = sepMatch[1]; // e.g. "|---|---|---|"
+    const sepStartInLine = trimmed.indexOf(' ' + sepRowStr);
+    if (sepStartInLine < 0) {
+      out.push(line);
+      continue;
+    }
+
+    // Everything before the separator: "prefix text | header cells |"
+    const beforeSepPart = trimmed.substring(0, sepStartInLine);
+    // Everything after the separator: "| data | cells | | more | data |"
+    const afterSepRaw = trimmed.substring(sepStartInLine + 1 + sepRowStr.length);
+    const afterSepPart = afterSepRaw.trim();
+
+    // Split beforeSepPart into non-table prefix and header row at the first " |".
+    const firstPipePos = beforeSepPart.indexOf(' |');
+    const prefix =
+      firstPipePos >= 0 ? beforeSepPart.substring(0, firstPipePos).trim() : beforeSepPart.trim();
+    const headerRow = firstPipePos >= 0 ? beforeSepPart.substring(firstPipePos + 1) : '';
+
+    // Split data rows at each pipe-space-pipe boundary (end of one row → start of next).
+    const dataRows = afterSepPart
+      ? afterSepPart.split(/(?<=\|) (?=\|)/).filter((r) => r.trim())
+      : [];
+
+    // When non-table prefix text precedes the table (e.g. a heading), insert a
+    // blank line between the prefix and the first table row. Without the blank
+    // line, remark-gfm may absorb the table rows into the preceding block context
+    // (e.g. as continuation of a list item) and fail to render them as a table.
+    const parts: string[] = [];
+    if (prefix) {
+      parts.push(prefix);
+      parts.push(''); // blank line: table must start in its own block context
+    }
+    if (headerRow) parts.push(headerRow);
+    parts.push(sepRowStr);
+    parts.push(...dataRows);
+
+    out.push(parts.join('\n'));
+  }
+
+  return out.join('\n');
+}
+
+/**
  * Plan 54-07 Gap 3 (Branch 3-A) — pre-merge multi-line table rows so jira2md
  * sees one logical `|cell|cell|…|` line.
  *
@@ -298,8 +401,16 @@ export function injectHeaderlessTableSeparators(wiki: string): string {
       const prevIsHeader = prevLine.startsWith('||');
       const prevIsSeparator = /^\|[\s]*:?-+:?[\s]*\|/.test(prevLine);
       const prevIsDataRow = prevLine.startsWith('|') && !prevLine.startsWith('||');
+      // Look ahead: if the very next source line is already a GFM separator row
+      // (|---|---|), this row is already a proper GFM table header — injecting a
+      // synthetic header + separator before it would double-up and break the table.
+      // This case arises after `splitInlineSingleLineTables` reconstructs an inline
+      // single-line table: the split output has a header row followed by a separator
+      // row, but the preceding line is non-table text (a heading, prose, etc.).
+      const nextTrimmed = i + 1 < lines.length ? lines[i + 1].replace(/[ \t]+$/, '') : '';
+      const nextIsSeparator = /^\|[\s]*:?-+:?[\s]*\|/.test(nextTrimmed);
 
-      if (!prevIsHeader && !prevIsSeparator && !prevIsDataRow) {
+      if (!prevIsHeader && !prevIsSeparator && !prevIsDataRow && !nextIsSeparator) {
         // First data row of a headerless table — inject synthetic header + separator.
         const cols = countJiraTableRowColumns(trimmed);
         if (cols >= 1) {
@@ -362,21 +473,123 @@ function replaceJiraEmoticons(text: string): string {
 }
 
 /**
+ * Pre-process Jira table data rows (`|cell|`) to normalize Jira inline formatting
+ * (bold `*text*`, italic `_text_`) to markdown equivalents on a per-cell basis,
+ * BEFORE passing the text to jira2md.
+ *
+ * Problem: jira2md's bold and italic regexes (greedy *...* and _..._ patterns) are
+ * greedy and operate on the full input string. For a row like
+ * `|*Header A*|*Header B*|`, the bold pattern matches from the FIRST `*` to the
+ * LAST `*` across cell separators, producing `**Header A*|*Header B**` — corrupting
+ * the entire row. The same applies to italic: `|_A_|_B_|` → `|*A_|_B*|`.
+ *
+ * Fix: split each data row into cell segments using a bracket-aware character walk
+ * (so `[display|url]` named-links are treated as a single token), apply the bold
+ * and italic conversion independently to each cell, then rejoin. This guarantees
+ * that a `*` or `_` in one cell can never "pair" with a marker in a different cell.
+ *
+ * After this step, the matching Jira→markdown transformations in jira2md see no
+ * unprocessed `*...*` or `_..._` in data rows and leave them untouched (the double
+ * `**` is already markdown bold, and `*text*` inside `**...**` is unambiguous italic).
+ *
+ * Runs after `injectHeaderlessTableSeparators` (which may inject synthetic `| | |`
+ * and `|---|---|` rows — both are safe, as they contain no `*` or `_` formatting).
+ * Skips `||header||` rows and non-table lines unchanged.
+ *
+ * Private helper — not exported.
+ */
+function normalizeTableCellInlineFormatting(wiki: string): string {
+  const lines = wiki.split('\n');
+  const out: string[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.replace(/[ \t]+$/, '');
+    // Only process single-pipe data rows: starts with | but not ||
+    if (!trimmed.startsWith('|') || trimmed.startsWith('||')) {
+      out.push(line);
+      continue;
+    }
+
+    // Split the row into cell segments using a bracket-aware character walk.
+    // This ensures `[display|url]` named-link syntax is treated as a single token
+    // so its inner `|` is not confused with a cell separator.
+    const segments: string[] = [];
+    let current = '';
+    let depth = 0;
+    for (let i = 0; i < trimmed.length; i++) {
+      const ch = trimmed[i];
+      if (ch === '[') { depth++; current += ch; }
+      else if (ch === ']') { depth--; current += ch; }
+      else if (ch === '|' && depth === 0) {
+        segments.push(current);
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+    segments.push(current);
+
+    // Apply Jira→markdown inline formatting per cell (non-greedy, no cross-cell bleed).
+    // Link syntax [display|url] is protected from bold/italic conversion by replacing
+    // [...] substrings with null-byte placeholders before the regex runs, then
+    // restoring them. This prevents the italic regex from matching underscores inside
+    // URLs (e.g. hash=1A_B2_C3) or bold/italic markers spanning a named link token.
+    const normalized = segments.map((cell) => {
+      const linkPlaceholders: string[] = [];
+      const withPlaceholders = cell.replace(/\[[^\]]*\]/g, (match) => {
+        const idx = linkPlaceholders.length;
+        linkPlaceholders.push(match);
+        return `\x00LINK${idx}\x00`;
+      });
+      // Bold: *text* → <strong>text</strong>
+      // Output HTML directly so jira2md won't re-process: *text* would become
+      // **text** under jira2md's bold rule, and _text_ → *text* → **text**.
+      // <strong> and <em> pass through jira2md unmodified and are allowed by
+      // the rehype-sanitize default schema.
+      let c = withPlaceholders.replace(/(?<!\*)\*(\S[^*\n]*?\S|\S)\*(?!\*)/g, '<strong>$1</strong>');
+      // Italic: _text_ → <em>text</em>
+      c = c.replace(/(?<!_)_(\S[^_\n]*?\S|\S)_(?!_)/g, '<em>$1</em>');
+      // Restore link placeholders
+      return c.replace(/\x00LINK(\d+)\x00/g, (_, i) => linkPlaceholders[parseInt(i, 10)]);
+    });
+
+    out.push(normalized.join('|'));
+  }
+
+  return out.join('\n');
+}
+
+/**
  * Pre-process Jira wiki markup that jira2md does not handle:
  * - Jira emoticon shortcodes: (/) (x) (!) (+) (-) (?) (i) (*) (on) (off) (flag) etc.
  * - User mentions: [~username] and [~accountId:xxx]
  * - Info/warning/note panels
  * - Panel blocks with optional title
- * - Inline images: !filename.png! → resolved via attachment map
+ * - Inline images: !filename.png! → resolved via attachment map (always run; strips
+ *   Jira options like `|width=N,height=N` unconditionally so jira2md never sees them)
+ * - Table cell inline formatting: *bold* / _italic_ normalized per cell before jira2md
  */
 export function preprocessJiraMarkup(
   wiki: string,
   attachments?: AttachmentMap,
   users?: UserMap,
 ): string {
+  // Normalize CRLF → LF. Jira Server/Data Center returns descriptions with \r\n
+  // line endings. All line-based processors (mergeOpenTableRows, splitInlineSingleLineTables,
+  // injectHeaderlessTableSeparators, normalizeTableCellInlineFormatting) split by \n
+  // and trim only [ \t]+$ — leaving \r on every line, which breaks endsWithPipe
+  // checks and causes mergeOpenTableRows to greedily consume entire documents.
+  let result = wiki.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
   // Jira emoticons: replace shortcodes like "(/)", "(x)" with Unicode emoji.
   // Must run before jira2md (which would corrupt certain patterns like (*) → bold).
-  let result = replaceJiraEmoticons(wiki);
+  result = replaceJiraEmoticons(result);
+
+  // Inline single-line table expansion: detect table rows (including the GFM
+  // separator |---|---|) collapsed onto a single line and split them into proper
+  // multi-line form so that mergeOpenTableRows and remark-gfm can process them.
+  // Must run BEFORE mergeOpenTableRows (which is line-based and skips non-| lines).
+  result = splitInlineSingleLineTables(result);
 
   // Plan 54-07 Gap 3 (Branch 3-A): merge multi-line table rows BEFORE jira2md
   // tokenises them. Inline `{panel}` blocks inside the merged row body are
@@ -390,6 +603,13 @@ export function preprocessJiraMarkup(
   // table and renders them as plain text.
   result = injectHeaderlessTableSeparators(result);
 
+  // Table cell inline formatting: normalize Jira bold (*text*) and italic (_text_)
+  // to markdown equivalents on a per-cell basis, BEFORE jira2md. jira2md's bold and
+  // italic regexes are greedy and cross cell separators, corrupting rows like
+  // |*Header A*|*Header B*| into |**Header A*|*Header B**|. Running the conversion
+  // per cell prevents any cross-boundary pairing.
+  result = normalizeTableCellInlineFormatting(result);
+
   // Plan 54-06: real ESHOP test-run content uses `hN.X` (no space) and `\\` as
   // a hard line break. jira2md leaves both unmodified. Normalize before jira2md:
   // - `h1.foo` … `h6.foo` → `h1. foo` (so jira2md emits valid `#…# foo`)
@@ -400,27 +620,37 @@ export function preprocessJiraMarkup(
   result = result.replace(/[ \t]*\\\\[ \t]*\n/g, '  \n');
   result = result.replace(/[ \t]\\\\[ \t]/g, '  \n');
 
-  // Images: !filename.png|options! or !filename.png! → resolve via attachment map
+  // Images: !filename.png|options! or !filename.png! → resolve via attachment map.
+  // Always run unconditionally so that Jira image-option syntax (!file.png|width=N!)
+  // is stripped before jira2md. jira2md's /!(.+)!/g passes the full
+  // "filename|options" string as the image URL, producing ![](filename|options)
+  // with a garbage URL. When no attachment map is provided (or the filename is not
+  // in the map), strip the options part and emit !filename! for jira2md to convert
+  // to the clean markdown form ![](filename).
   // Must run BEFORE jira2md which also handles !...! syntax.
   // Resolved URLs are output as markdown ![](url) instead of Jira !url! to
   // prevent jira2md from mangling URLs that contain + characters (Jira encodes
   // spaces as + in attachment URLs, and jira2md interprets +text+ as <ins>).
-  if (attachments && Object.keys(attachments).length > 0) {
-    result = result.replace(/!([^!\n]+?)(?:\|[^!]*)?!/g, (_match, ref: string) => {
-      // If it's already a full URL, output as raw HTML <img> to bypass jira2md.
-      // Replace + with %20 so jira2md doesn't interpret +text+ as underline.
-      if (ref.startsWith('http://') || ref.startsWith('https://')) {
-        return `<img src="${ref.replace(/\+/g, '%20')}" alt="" />`;
-      }
-      // Look up in attachment map — same treatment
-      const url = attachments[ref];
-      if (url) {
-        return `<img src="${url.replace(/\+/g, '%20')}" alt="" />`;
-      }
-      // Not found — leave as-is for jira2md
-      return `!${ref}!`;
-    });
-  }
+  result = result.replace(/!([^!\n]+?)(?:\|[^!\n]*)?!/g, (_match, ref: string) => {
+    // If it's already a full URL, output as raw HTML <img> to bypass jira2md.
+    // Replace + with %20 so jira2md doesn't interpret +text+ as underline.
+    // Append \n so that a blank line separates the <img> from any following content.
+    // jira2md's heading conversion adds no blank lines, so without the extra \n,
+    // an <img> immediately followed by a heading has only one \n between them —
+    // CommonMark treats <img> on its own line as an HTML block that consumes
+    // everything until the next blank line, swallowing the heading.
+    if (ref.startsWith('http://') || ref.startsWith('https://')) {
+      return `<img src="${ref.replace(/\+/g, '%20')}" alt="" />\n`;
+    }
+    // Look up in attachment map — same treatment
+    const url = attachments?.[ref];
+    if (url) {
+      return `<img src="${url.replace(/\+/g, '%20')}" alt="" />\n`;
+    }
+    // Not in map (or no attachment map): strip Jira options, emit plain !filename!
+    // for jira2md to convert cleanly to ![](filename).
+    return `!${ref}!`;
+  });
 
   // Mentions: [~accountId:XXX] -> <mention data-id="XXX">DisplayName</mention>
   result = result.replace(/\[~accountId:([^\]]+)\]/g, (_match, id: string) => {
