@@ -36,7 +36,7 @@ export async function fetchFullWorklogs(
       const url = `${baseWorklogUrl}?maxResults=${PAGE_SIZE}&startAt=${startAt}`;
       let response: Response;
       try {
-        response = await apiFetch('jira', url, { headers });
+        response = await apiFetch('jira', url, { headers }, 'Manage Worklogs');
       } catch {
         break;
       }
@@ -82,7 +82,7 @@ export async function createWorklog(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(params),
-    });
+    }, 'Manage Worklogs');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -116,7 +116,7 @@ export async function updateWorklog(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(params),
-    });
+    }, 'Manage Worklogs');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -147,7 +147,7 @@ export async function deleteWorklog(
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    });
+    }, 'Manage Worklogs');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }

@@ -57,7 +57,7 @@ export async function validateJira(baseUrl: string, token: string): Promise<Jira
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-    });
+    }, 'Validate Connection');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -99,7 +99,7 @@ export async function listJiraProjects(baseUrl: string, token: string): Promise<
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-    });
+    }, 'Validate Connection');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -208,7 +208,7 @@ async function fetchAllSearchPages(
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const url = `${baseSearchUrl}&maxResults=${PAGE_SIZE}&startAt=${startAt}`;
-    const response = await apiFetch('jira', url, { headers });
+    const response = await apiFetch('jira', url, { headers }, 'Load Issue Detail');
 
     if (!response.ok) {
       if (startAt === 0) {
@@ -264,7 +264,7 @@ async function fetchAllWorklogPages(
     const url = `${baseWorklogUrl}?maxResults=${PAGE_SIZE}&startAt=${startAt}`;
     let response: Response;
     try {
-      response = await apiFetch('jira', url, { headers });
+      response = await apiFetch('jira', url, { headers }, 'Load Issue Detail');
     } catch {
       break;
     }
@@ -641,7 +641,7 @@ export async function fetchTransitions(
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-    });
+    }, 'Issue Transition');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -682,7 +682,7 @@ export async function postTransition(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ transition: { id: transitionId } }),
-    });
+    }, 'Issue Transition');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -720,7 +720,7 @@ export async function postComment(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ body }),
-    });
+    }, 'Manage Comments');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -751,7 +751,7 @@ export async function fetchComments(
   try {
     response = await apiFetch('jira', url, {
       headers: { Authorization: `Bearer ${token}` },
-    });
+    }, 'Load Issue Detail');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -783,7 +783,7 @@ export async function updateComment(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ body }),
-    });
+    }, 'Manage Comments');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -811,7 +811,7 @@ export async function deleteComment(
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    });
+    }, 'Manage Comments');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -849,7 +849,7 @@ export async function fetchFixVersions(
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-    });
+    }, 'Load Releases');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -1052,6 +1052,7 @@ export async function fetchActiveSprint(
       'jira',
       `${base}/rest/agile/1.0/board?projectKeyOrId=${projectKey}&type=scrum`,
       { headers },
+      'Discover Board',
     );
     if (!boardRes.ok) return null;
     const boardData = await boardRes.json();
@@ -1063,6 +1064,7 @@ export async function fetchActiveSprint(
       'jira',
       `${base}/rest/agile/1.0/board/${boardId}/sprint?state=active`,
       { headers },
+      'Discover Board',
     );
     if (!sprintRes.ok) return null;
     const sprintData = await sprintRes.json();
@@ -1202,7 +1204,7 @@ export async function discoverCustomFields(
   try {
     const response = await apiFetch('jira', `${baseUrl.replace(/\/$/, '')}/rest/api/2/field`, {
       headers: { Authorization: `Bearer ${token}` },
-    });
+    }, 'Load Fields');
     if (!response.ok) return defaults;
     const fields: Array<{ id: string; name: string; schema?: { custom?: string } }> =
       await response.json();
@@ -1443,7 +1445,7 @@ export async function fetchProjectStatuses(
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/project/${projectKey}/statuses`;
   const response = await apiFetch('jira', url, {
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-  });
+  }, 'Create/Edit Issue');
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError('Failed to fetch project statuses', response.status, 'jira');
@@ -1626,7 +1628,7 @@ export async function fetchCreatemeta(
 
   // Strategy A: Jira 8.4+ paginated endpoint
   const newEndpoint = `${base}/rest/api/2/issue/createmeta/${projectKey}/issuetypes/${issueTypeId}?maxResults=50`;
-  const resp = await apiFetch('jira', newEndpoint, { headers });
+  const resp = await apiFetch('jira', newEndpoint, { headers }, 'Load Fields');
   if (resp.ok) {
     const data = await resp.json();
     return enrich((data.values ?? []) as CreatemetaField[]);
@@ -1634,7 +1636,7 @@ export async function fetchCreatemeta(
 
   // Strategy B: Legacy flat endpoint (pre-8.4 or 9.0+ with re-enabled flag)
   const legacyUrl = `${base}/rest/api/2/issue/createmeta?projectKeys=${projectKey}&issuetypeNames=${encodeURIComponent(issueTypeName)}&expand=projects.issuetypes.fields`;
-  const legacyResp = await apiFetch('jira', legacyUrl, { headers });
+  const legacyResp = await apiFetch('jira', legacyUrl, { headers }, 'Load Fields');
   if (!legacyResp.ok) return [];
   const legacyData = await legacyResp.json();
   const fields = legacyData.projects?.[0]?.issuetypes?.[0]?.fields;
@@ -1657,7 +1659,7 @@ export async function fetchIssueLinkTypes(
   token: string,
 ): Promise<IssueLinkType[]> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issueLinkType`;
-  const resp = await apiFetch('jira', url, { headers: { Authorization: `Bearer ${token}` } });
+  const resp = await apiFetch('jira', url, { headers: { Authorization: `Bearer ${token}` } }, 'Validate Connection');
   if (!resp.ok) return [];
   const data = await resp.json();
   return data.issueLinkTypes ?? [];
@@ -1694,7 +1696,7 @@ export async function createIssueLink(
       inwardIssue: { key: inwardKey },
       outwardIssue: { key: outwardKey },
     }),
-  });
+  }, 'Manage Links');
   if (!response.ok && response.status !== 201) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError('Failed to create issue link', response.status, 'jira');
@@ -1851,6 +1853,7 @@ export async function fetchSprintsForBoard(
       'jira',
       `${base}/rest/agile/1.0/board/${boardId}/sprint?state=active,future`,
       { headers },
+      'Load Sprint Board',
     );
     if (!res.ok) return [];
     const data = await res.json();
@@ -1967,6 +1970,7 @@ export async function fetchBacklogView(
       'jira',
       `${base}/rest/agile/1.0/board?projectKeyOrId=${projectKey}&type=scrum`,
       { headers },
+      'Load Backlog',
     );
     if (boardRes.ok) {
       const boardData = await boardRes.json();
@@ -2021,6 +2025,7 @@ export async function fetchBacklogView(
         'jira',
         `${base}/rest/agile/1.0/board/${sprintListBoardId}/sprint?state=active,future`,
         { headers },
+        'Load Backlog',
       );
       if (sprintListRes.ok) {
         const sprintListData = await sprintListRes.json();
@@ -2128,7 +2133,7 @@ export async function addIssuesToSprint(
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ issues: issueKeys }),
-  });
+  }, 'Load Sprint Board');
   // 204 No Content is the expected success response for this endpoint
   if (!response.ok && response.status !== 204) {
     if (response.status === 401 || response.status === 403) {
@@ -2160,7 +2165,7 @@ export async function moveIssuesToBacklog(
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ issues: issueKeys }),
-  });
+  }, 'Move to Backlog');
   if (!response.ok && response.status !== 204) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError('Failed to move issues to backlog', response.status, 'jira');
