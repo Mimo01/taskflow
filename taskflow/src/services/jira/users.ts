@@ -31,7 +31,7 @@ export async function fetchAssignableUsers(
         Authorization: `Bearer ${token}`,
         Accept: 'application/json',
       },
-    });
+    }, 'Create/Edit Issue');
 
     if (!response.ok) return [];
 
@@ -59,7 +59,7 @@ export async function fetchJiraUserByUsername(
         Authorization: `Bearer ${token}`,
         Accept: 'application/json',
       },
-    });
+    }, 'Create/Edit Issue');
     if (!response.ok) return null;
     return (await response.json()) as JiraAssignableUser;
   } catch {

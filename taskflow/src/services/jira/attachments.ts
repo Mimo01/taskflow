@@ -40,7 +40,7 @@ export async function uploadAttachment(
         'X-Atlassian-Token': 'no-check',
       },
       body: formData,
-    });
+    }, 'Load Issue Detail');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
@@ -76,7 +76,7 @@ export async function deleteAttachment(
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    });
+    }, 'Load Issue Detail');
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }

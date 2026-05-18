@@ -25,7 +25,7 @@ async function searchByJql(baseUrl: string, token: string, jql: string): Promise
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-  });
+  }, 'Search Issues');
   if (!response.ok) {
     throw new Error(`JQL query failed (${response.status})`);
   }
