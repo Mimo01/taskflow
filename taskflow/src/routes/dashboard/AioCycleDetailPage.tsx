@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, FlaskConical, Pin } from 'lucide-react';
+import { ArrowLeft, BookOpen, Bug, CheckSquare, CornerDownRight, FlaskConical, Pin } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { AIO_STATUS_MAP, normalizeStatus, normalizeStatusLabel } from '@/lib/aioUtils';
-import { STATUS_PILL_LAYOUT_CLASS, aioCycleStatusPillClass, aioRunStatusPillClass } from '@/lib/statusStyles';
+import { aioCycleStatusPillClass, aioRunStatusPillClass, statusPillClass } from '@/lib/statusStyles';
 import type { AioCycle, AioCycleSummaryItem, AioTestRun } from '@/services/aio';
 import { fetchAioCycleDetail, fetchAioCycleSummaries, fetchAioCycleTestCasesWithRuns } from '@/services/aio';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
@@ -54,6 +54,23 @@ function AssigneeCell({
   );
 }
 
+function IssueTypeIcon({ typeName }: { typeName: string }) {
+  const cls = 'w-3.5 h-3.5 shrink-0';
+  switch (typeName) {
+    case 'Bug':
+      return <Bug className={`${cls} text-red-500`} />;
+    case 'Story':
+      return <BookOpen className={`${cls} text-green-600`} />;
+    case 'Subtask':
+    case 'Sub-task':
+      return <CornerDownRight className={`${cls} text-blue-500`} />;
+    case 'Epic':
+      return <BookOpen className={`${cls} text-purple-500`} />;
+    default:
+      return <CheckSquare className={`${cls} text-blue-500`} />;
+  }
+}
+
 const CHIPS = [
   { status: 'NOT_EXECUTED', label: 'Not Run' },
   { status: 'PASS', label: 'Pass' },
@@ -62,46 +79,72 @@ const CHIPS = [
 ] as const;
 
 function DefectRow({
-  defectKey,
+  defectIdOrKey,
   jiraBaseUrl,
   token,
   tokenLoading,
   triggeredBy,
 }: {
-  defectKey: string;
+  // May be either a numeric Jira internal ID string (e.g. "186227") or a real key (e.g. "PROJ-1234").
+  // Jira REST /issue/{idOrKey} accepts both. We render issueQuery.data.key once resolved.
+  defectIdOrKey: string;
   jiraBaseUrl: string | undefined;
   token: string | null;
   tokenLoading: boolean;
   triggeredBy: string;
 }) {
   const issueQuery = useQuery<JiraIssue | null>({
-    queryKey: ['jira', jiraBaseUrl, 'issue-lightweight', defectKey],
-    queryFn: () => fetchJiraIssueByKey(jiraBaseUrl!, token!, defectKey),
+    queryKey: ['jira', jiraBaseUrl, 'issue-lightweight', defectIdOrKey],
+    queryFn: () => fetchJiraIssueByKey(jiraBaseUrl!, token!, defectIdOrKey),
     enabled: !!jiraBaseUrl && !!token && !tokenLoading,
   });
+
+  const displayKey = issueQuery.data?.key ?? defectIdOrKey;
+  const linkTarget = `/issue/${issueQuery.data?.key ?? defectIdOrKey}`;
 
   return (
     <tr className="border-b border-border hover:bg-muted/30 transition-colors">
       <td className="px-3 py-3 font-mono text-sm">
-        <NavLink to={`/issue/${defectKey}`} className="hover:underline">
-          {defectKey}
-        </NavLink>
+        <div className="flex items-center gap-1.5">
+          {issueQuery.data?.fields.issuetype?.name !== undefined && (
+            <IssueTypeIcon typeName={issueQuery.data.fields.issuetype.name} />
+          )}
+          <NavLink to={linkTarget} className="hover:underline">
+            {displayKey}
+          </NavLink>
+        </div>
       </td>
       <td className="px-3 py-3 text-sm">
         {issueQuery.isLoading ? (
           <Skeleton
             className="h-4 w-32"
-            data-testid={`defect-title-loading-${defectKey}`}
+            data-testid={`defect-title-loading-${defectIdOrKey}`}
           />
         ) : (
-          <span>{issueQuery.data?.fields.summary ?? defectKey}</span>
+          <span>{issueQuery.data?.fields.summary ?? displayKey}</span>
         )}
       </td>
       <td className="px-3 py-3">
-        {issueQuery.data?.fields.status.name ? (
-          <span className={`${STATUS_PILL_LAYOUT_CLASS} bg-muted text-muted-foreground`}>
+        {issueQuery.data?.fields.status ? (
+          <span className={statusPillClass(issueQuery.data.fields.status.statusCategory?.key)}>
             {issueQuery.data.fields.status.name}
           </span>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </td>
+      <td className="px-3 py-3 text-xs text-muted-foreground">
+        {issueQuery.isLoading ? (
+          <Skeleton className="h-4 w-20" />
+        ) : issueQuery.data?.fields.assignee ? (
+          <div className="flex items-center gap-1.5">
+            <CachedAvatar
+              url={issueQuery.data.fields.assignee.avatarUrls['48x48']}
+              name={issueQuery.data.fields.assignee.displayName}
+              size={20}
+            />
+            <span className="truncate max-w-[120px]">{issueQuery.data.fields.assignee.displayName}</span>
+          </div>
         ) : (
           <span className="text-muted-foreground">—</span>
         )}
@@ -618,7 +661,7 @@ export default function AioCycleDetailPage() {
               <table className="w-full text-sm">
                 <thead className="border-b bg-muted/10">
                   <tr>
-                    <th className="w-32 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                    <th className="w-36 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
                       Key
                     </th>
                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
@@ -627,16 +670,19 @@ export default function AioCycleDetailPage() {
                     <th className="w-32 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
                       Status
                     </th>
+                    <th className="w-32 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                      Assignee
+                    </th>
                     <th className="w-48 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
                       Triggered By
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {defectsWithTriggers.map(({ defectKey, triggeredBy }) => (
+                  {defectsWithTriggers.map(({ defectKey: defectIdOrKey, triggeredBy }) => (
                     <DefectRow
-                      key={defectKey}
-                      defectKey={defectKey}
+                      key={defectIdOrKey}
+                      defectIdOrKey={defectIdOrKey}
                       jiraBaseUrl={jiraBaseUrl ?? undefined}
                       token={token}
                       tokenLoading={tokenLoading}
