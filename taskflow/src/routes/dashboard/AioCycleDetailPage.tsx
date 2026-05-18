@@ -149,6 +149,55 @@ function DefectRow({
           <span className="text-muted-foreground">—</span>
         )}
       </td>
+      <td className="px-3 py-3 text-xs text-muted-foreground">
+        {issueQuery.isLoading ? (
+          <Skeleton className="h-4 w-20" />
+        ) : issueQuery.data?.fields.reporter ? (
+          <div className="flex items-center gap-1.5">
+            <CachedAvatar
+              url={issueQuery.data.fields.reporter.avatarUrls['48x48']}
+              name={issueQuery.data.fields.reporter.displayName}
+              size={20}
+            />
+            <span className="truncate max-w-[120px]">{issueQuery.data.fields.reporter.displayName}</span>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </td>
+      <td className="px-3 py-3 text-xs text-muted-foreground">
+        {issueQuery.isLoading ? (
+          <Skeleton className="h-4 w-16" />
+        ) : issueQuery.data?.fields.priority ? (
+          <div className="flex items-center gap-1.5">
+            {issueQuery.data.fields.priority.iconUrl && (
+              <img
+                src={issueQuery.data.fields.priority.iconUrl}
+                alt=""
+                className="w-3.5 h-3.5 shrink-0"
+              />
+            )}
+            <span>{issueQuery.data.fields.priority.name}</span>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </td>
+      <td className="px-3 py-3 text-xs text-muted-foreground">
+        {issueQuery.isLoading ? (
+          <Skeleton className="h-4 w-16" />
+        ) : (() => {
+          const severityValue =
+            issueQuery.data?.fields.severity?.value ??
+            issueQuery.data?.fields.severity?.name ??
+            null;
+          return severityValue ? (
+            <span>{severityValue}</span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          );
+        })()}
+      </td>
       <td className="px-3 py-3 text-xs text-muted-foreground">{triggeredBy || '—'}</td>
     </tr>
   );
@@ -672,6 +721,15 @@ export default function AioCycleDetailPage() {
                     </th>
                     <th className="w-32 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
                       Assignee
+                    </th>
+                    <th className="w-36 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                      Reporter
+                    </th>
+                    <th className="w-24 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                      Priority
+                    </th>
+                    <th className="w-24 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                      Severity
                     </th>
                     <th className="w-48 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
                       Triggered By
