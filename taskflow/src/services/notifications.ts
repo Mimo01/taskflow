@@ -68,6 +68,8 @@ export interface NotificationItem {
  *   Returns recently-updated issues where the user has a stake. Each issue
  *   becomes one NotificationItem with id `jira-issue-{key}-{updated}`.
  *   Skipped when username is null (no identity to filter on).
+ *   Self-authored changelog entries (history.author.displayName === displayName)
+ *   are filtered out so the user never sees their own changes.
  *
  * Query B (comment mentions — backwards-compat):
  *   JQL finds issues with comments mentioning the user. Client-side filtering
@@ -75,6 +77,12 @@ export interface NotificationItem {
  *   @displayName. Each comment becomes one NotificationItem with id
  *   `jira-comment-{commentId}`.
  *   Skipped when both displayName and username are null.
+ *
+ * Query C (all comments on user's issues):
+ *   Self-authored comments are filtered out by displayName, with a fallback to
+ *   the Jira `name` (username) field when displayName is null.
+ *
+ * Query D (due-date reminders): time-based, not user-action events — always kept.
  *
  * Deduplication is handled by the caller (fetchNewNotifications seen Set).
  */
@@ -176,6 +184,9 @@ async function fetchNewJiraComments(
       const histories = issue.changelog?.histories ?? [];
       for (const history of histories) {
         if (toUtcIso(history.created) <= since) continue;
+        // Skip changelog entries authored by the current user — they represent
+        // the user's own actions and should not appear in their notification feed.
+        if (displayName && history.author.displayName === displayName) continue;
         for (const item of history.items) {
           if (item.field === 'status') {
             changeLines.push(
@@ -367,8 +378,15 @@ async function fetchNewJiraComments(
       const comments = issue.fields?.comment?.comments ?? [];
       for (const comment of comments) {
         if (toUtcIso(comment.updated) <= since) continue;
-        // Skip self-authored comments
+        // Skip self-authored comments — check displayName first, fall back to
+        // Jira's `name` field (username) when displayName is null.
         if (displayName && comment.author?.displayName === displayName) continue;
+        if (
+          !displayName &&
+          username &&
+          (comment.author as { name?: string } | undefined)?.name === username
+        )
+          continue;
 
         const body: string = comment.body ?? '';
         results.push({
@@ -597,6 +615,8 @@ async function fetchAllGitlabNotifications(
       for (const entry of approvedBy) {
         const approvedAt = toUtcIso(entry.approved_at ?? mr.updated_at);
         if (approvedAt <= since) continue;
+        // Skip self-approvals — the user should not be notified of their own approval
+        if (entry.user.id === currentUserId) continue;
 
         items.push({
           id: `gitlab-approval-${mr.iid}-${entry.user.id}`,
