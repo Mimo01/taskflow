@@ -381,7 +381,12 @@ async function fetchNewJiraComments(
         // Skip self-authored comments — check displayName first, fall back to
         // Jira's `name` field (username) when displayName is null.
         if (displayName && comment.author?.displayName === displayName) continue;
-        if (!displayName && username && (comment.author as { name?: string } | undefined)?.name === username) continue;
+        if (
+          !displayName &&
+          username &&
+          (comment.author as { name?: string } | undefined)?.name === username
+        )
+          continue;
 
         const body: string = comment.body ?? '';
         results.push({
@@ -610,6 +615,8 @@ async function fetchAllGitlabNotifications(
       for (const entry of approvedBy) {
         const approvedAt = toUtcIso(entry.approved_at ?? mr.updated_at);
         if (approvedAt <= since) continue;
+        // Skip self-approvals — the user should not be notified of their own approval
+        if (entry.user.id === currentUserId) continue;
 
         items.push({
           id: `gitlab-approval-${mr.iid}-${entry.user.id}`,
