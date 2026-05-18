@@ -368,6 +368,7 @@ export async function fetchIssueDetail(
     'assignee',
     'reporter',
     'priority',
+    'customfield_13415',
     'issuetype',
     'description',
     'comment',
