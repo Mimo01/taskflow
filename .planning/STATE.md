@@ -109,10 +109,11 @@ None.
 | 260518-jbe | On AIO cycle detail defects page also show reporter, priority and severity columns | 2026-05-18 | 1cd7350 | [260518-jbe-on-aio-cycle-detail-defects-page-also-sh](./quick/260518-jbe-on-aio-cycle-detail-defects-page-also-sh/) |
 | 260518-joj | Fix severity field to use customfield_13415 on AIO defects page | 2026-05-18 | 53ec526 | [260518-joj-fix-severity-field-to-use-customfield-13](./quick/260518-joj-fix-severity-field-to-use-customfield-13/) |
 | 260518-jqh | Jira issue detail sidebar: priority icon + Severity row from customfield_13415 | 2026-05-18 | 19d059c | [260518-jqh-jira-issue-detail-doesnt-show-priority-a](./quick/260518-jqh-jira-issue-detail-doesnt-show-priority-a/) |
+| 260518-krb | There are two duplicate implementations of jira fetch. jira.ts and jira/issues.ts. Analyze them and unify into one. Make sure nothing breaks | 2026-05-18 | 08d99d9 | [260518-krb-there-are-two-duplicate-implementations-](./quick/260518-krb-there-are-two-duplicate-implementations-/) |
 
 ## Session Continuity
 
-Last activity: 2026-05-18 - Completed quick task 260518-jqh: Jira issue detail sidebar priority icon and Severity MetaRow
+Last activity: 2026-05-18 - Completed quick task 260518-krb: unify jira.ts and jira/issues.ts into single canonical surface
 
 Last session: 2026-05-15
 Stopped at: Phase 57 UAT approved — milestone v1.8 complete
