@@ -43,6 +43,17 @@ import { WatcherToggle } from './WatcherToggle';
 
 const PRIORITY_OPTIONS = ['Highest', 'High', 'Medium', 'Low', 'Lowest'];
 
+/**
+ * Extract the severity display string from customfield_13415.
+ * Returns null when the field is absent, null, or has no usable value.
+ * Exported for unit testing.
+ */
+export function extractSeverity(
+  field: { value?: string; name?: string } | null | undefined,
+): string | null {
+  return field?.value ?? field?.name ?? null;
+}
+
 interface AssignableUser {
   displayName: string;
   name: string;
@@ -408,10 +419,32 @@ export function FieldsSection({
             className="hover:bg-accent rounded px-1 -ml-1 cursor-pointer text-left"
             title="Click to edit priority"
           >
-            {f.priority?.name ?? '—'}
+            <div className="flex items-center gap-1.5">
+              {f.priority?.iconUrl && (
+                <img
+                  data-testid="priority-icon"
+                  src={f.priority.iconUrl}
+                  alt=""
+                  className="w-3.5 h-3.5 shrink-0"
+                />
+              )}
+              <span>{f.priority?.name ?? '—'}</span>
+            </div>
           </button>
         )}
       </MetaRow>
+
+      {/* Severity -- shown only when customfield_13415 has a value */}
+      {(() => {
+        const severityField = f.customfield_13415 as
+          | { value?: string; name?: string }
+          | null
+          | undefined;
+        const severityValue = extractSeverity(severityField);
+        return severityValue ? (
+          <MetaRow label="Severity">{severityValue}</MetaRow>
+        ) : null;
+      })()}
 
       {/* Assignee -- click to open typeahead popover */}
       <MetaRow label="Assignee">
