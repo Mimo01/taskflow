@@ -1337,6 +1337,98 @@ describe('WikiRenderer', () => {
     });
   });
 
+  // --- Brace-quoted bold/italic ({*}text{*} and {_}text{_}) (in-jira-description-text-is-no) ---
+  //
+  // Jira allows {*}text{*} as an alternative bold syntax and {_}text{_} for italic.
+  // These are used in contexts where the bare * or _ might be ambiguous (e.g. inside
+  // color macros, after emoticons, or in complex prose). jira2md does not handle them —
+  // its bold regex matches the * inside {*} and produces {**}text{**} in the output,
+  // which renders as literal brace characters ({ and }) surrounding bold text.
+  //
+  // preprocessJiraMarkup converts {*}..{*} → *..* and {_}..{_} → _.._ before any
+  // further processing so that jira2md and normalizeTableCellInlineFormatting see
+  // standard *..* / _.._ markers.
+  describe('brace-quoted bold/italic (in-jira-description-text-is-no)', () => {
+    it('{*}text{*} renders as bold — no literal braces in output', () => {
+      const { container } = render(<WikiRenderer wikiText="{*}bold text{*}" />);
+      // Must render as <strong>, not raw text
+      const strong = container.querySelector('strong');
+      expect(strong).not.toBeNull();
+      expect(strong?.textContent).toBe('bold text');
+      // Literal { and } must NOT appear in the output
+      expect(container.textContent).not.toContain('{');
+      expect(container.textContent).not.toContain('}');
+    });
+
+    it('{_}text{_} renders as italic — no literal braces in output', () => {
+      const { container } = render(<WikiRenderer wikiText="{_}italic text{_}" />);
+      const em = container.querySelector('em');
+      expect(em).not.toBeNull();
+      expect(em?.textContent).toBe('italic text');
+      expect(container.textContent).not.toContain('{');
+      expect(container.textContent).not.toContain('}');
+    });
+
+    it('{*}text{*} surrounded by prose renders bold without braces', () => {
+      const { container } = render(<WikiRenderer wikiText="prefix {*}bold{*} suffix" />);
+      const strong = container.querySelector('strong');
+      expect(strong).not.toBeNull();
+      expect(strong?.textContent).toBe('bold');
+      expect(container.textContent).toContain('prefix');
+      expect(container.textContent).toContain('suffix');
+      expect(container.textContent).not.toContain('{');
+    });
+
+    it('multiple {*}..{*} spans on the same line all render bold', () => {
+      const { container } = render(
+        <WikiRenderer wikiText="{*}first{*} and {*}second{*}" />,
+      );
+      const strongs = container.querySelectorAll('strong');
+      expect(strongs.length).toBeGreaterThanOrEqual(2);
+      const boldTexts = Array.from(strongs).map((s) => s.textContent);
+      expect(boldTexts).toContain('first');
+      expect(boldTexts).toContain('second');
+    });
+
+    it('{*}bold{*} inside a {color} macro renders bold AND colored', () => {
+      const { container } = render(
+        <WikiRenderer wikiText="{color:#d04437}{*}FAILED:{*}{color}" />,
+      );
+      expect(container.textContent).toContain('FAILED:');
+      // Bold element must be present inside the colored span
+      const colored = container.querySelector('span[style]');
+      expect(colored).not.toBeNull();
+      const bold = colored?.querySelector('strong');
+      expect(bold).not.toBeNull();
+      expect(bold?.textContent).toContain('FAILED:');
+      // No literal brace characters
+      expect(container.textContent).not.toContain('{');
+    });
+
+    it('{*}bold{*} inside a table cell renders as <strong>', () => {
+      const fixture = '||Header||\n|{*}cell bold{*}|';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const table = container.querySelector('table');
+      expect(table).not.toBeNull();
+      const strong = table?.querySelector('strong');
+      expect(strong).not.toBeNull();
+      expect(strong?.textContent).toBe('cell bold');
+      expect(table?.textContent).not.toContain('{');
+    });
+
+    it('{*}..{*} with multi-word content renders correctly (regression: was {**}text{**})', () => {
+      // Verbatim reproduction from the bug report
+      const { container } = render(<WikiRenderer wikiText="{*}text{*}" />);
+      const strong = container.querySelector('strong');
+      expect(strong).not.toBeNull();
+      expect(strong?.textContent).toBe('text');
+      // The broken output was to show literal "{" and "}" around **text**
+      expect(container.textContent).not.toMatch(/^\{/);
+      expect(container.textContent).not.toMatch(/\}$/);
+    });
+  });
+
+
   // --- Inline single-line table expansion (table-not-render-issue-detail) ---
   //
   // Some Jira issues have table rows collapsed onto a single line — no `\n`

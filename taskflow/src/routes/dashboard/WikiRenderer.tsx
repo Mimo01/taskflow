@@ -567,6 +567,7 @@ function normalizeTableCellInlineFormatting(wiki: string): string {
  * - Panel blocks with optional title
  * - Inline images: !filename.png! → resolved via attachment map (always run; strips
  *   Jira options like `|width=N,height=N` unconditionally so jira2md never sees them)
+ * - Brace-quoted bold/italic: {*}text{*} → *text* and {_}text{_} → _text_ (jira2md does not handle these)
  * - Table cell inline formatting: *bold* / _italic_ normalized per cell before jira2md
  */
 export function preprocessJiraMarkup(
@@ -584,6 +585,17 @@ export function preprocessJiraMarkup(
   // Jira emoticons: replace shortcodes like "(/)", "(x)" with Unicode emoji.
   // Must run before jira2md (which would corrupt certain patterns like (*) → bold).
   result = replaceJiraEmoticons(result);
+
+  // Brace-quoted bold/italic: Jira allows {*}text{*} as an alternative bold syntax
+  // (equivalent to *text*) and {_}text{_} for italic. jira2md does not handle these —
+  // its bold regex \*(.*)\* matches the * inside {*}, producing {**}text{**} in the
+  // output, which renders as literal brace characters. Convert directly to HTML
+  // (<strong>/<em>) rather than to *text* / _text_ because jira2md's bold/italic regexes
+  // are greedy and cross word boundaries — two adjacent *a* *b* spans get merged into
+  // *a* b** by jira2md. <strong>/<em> pass through jira2md unmodified and are allowed
+  // by the rehype-sanitize default schema.
+  result = result.replace(/\{\*\}(.*?)\{\*\}/gs, '<strong>$1</strong>');
+  result = result.replace(/\{_\}(.*?)\{_\}/gs, '<em>$1</em>');
 
   // Inline single-line table expansion: detect table rows (including the GFM
   // separator |---|---|) collapsed onto a single line and split them into proper
