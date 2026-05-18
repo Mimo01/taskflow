@@ -110,10 +110,11 @@ None.
 | 260518-joj | Fix severity field to use customfield_13415 on AIO defects page | 2026-05-18 | 53ec526 | [260518-joj-fix-severity-field-to-use-customfield-13](./quick/260518-joj-fix-severity-field-to-use-customfield-13/) |
 | 260518-jqh | Jira issue detail sidebar: priority icon + Severity row from customfield_13415 | 2026-05-18 | 19d059c | [260518-jqh-jira-issue-detail-doesnt-show-priority-a](./quick/260518-jqh-jira-issue-detail-doesnt-show-priority-a/) |
 | 260518-krb | There are two duplicate implementations of jira fetch. jira.ts and jira/issues.ts. Analyze them and unify into one. Make sure nothing breaks | 2026-05-18 | 08d99d9 | [260518-krb-there-are-two-duplicate-implementations-](./quick/260518-krb-there-are-two-duplicate-implementations-/) |
+| 260518-m70 | On AIO cycle detail defects page make the entire row clickable, not just the issue key. Also make it clickable only after the full issue detail loads | 2026-05-18 | 309024e | [260518-m70-on-aio-cycle-detail-defects-page-make-th](./quick/260518-m70-on-aio-cycle-detail-defects-page-make-th/) |
 
 ## Session Continuity
 
-Last activity: 2026-05-18 - Completed quick task 260518-krb: unify jira.ts and jira/issues.ts into single canonical surface
+Last activity: 2026-05-18 - Completed quick task 260518-m70: On AIO cycle detail defects page make the entire row clickable, not just the issue key. Also make it clickable only after the full issue detail loads
 
 Last session: 2026-05-15
 Stopped at: Phase 57 UAT approved — milestone v1.8 complete
