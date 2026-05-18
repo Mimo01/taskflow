@@ -27,7 +27,7 @@ export async function fetchTransitions(
           'Content-Type': 'application/json',
         },
       },
-      'Load Fields',
+      'Issue Transition',
     );
   } catch {
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);

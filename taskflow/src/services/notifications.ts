@@ -142,7 +142,7 @@ async function fetchNewJiraComments(
 
     let response: Response;
     try {
-      response = await apiFetch('jira', url, { headers }, 'Fetch Notifications');
+      response = await apiFetch('jira', url, { headers }, 'Load Notifications');
     } catch {
       return [];
     }
@@ -272,7 +272,7 @@ async function fetchNewJiraComments(
 
     let response: Response;
     try {
-      response = await apiFetch('jira', url, { headers }, 'Fetch Notifications');
+      response = await apiFetch('jira', url, { headers }, 'Load Notifications');
     } catch {
       return [];
     }
@@ -346,7 +346,7 @@ async function fetchNewJiraComments(
 
     let response: Response;
     try {
-      response = await apiFetch('jira', url, { headers }, 'Fetch Notifications');
+      response = await apiFetch('jira', url, { headers }, 'Load Notifications');
     } catch {
       return [];
     }
@@ -421,7 +421,7 @@ async function fetchNewJiraComments(
 
     let response: Response;
     try {
-      response = await apiFetch('jira', url, { headers }, 'Fetch Notifications');
+      response = await apiFetch('jira', url, { headers }, 'Load Notifications');
     } catch {
       return [];
     }
