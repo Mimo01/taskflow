@@ -43,16 +43,13 @@ vi.mock('@/services/jira', () => ({
   fetchActiveSprint: vi.fn(),
   fetchEpicsBasic: vi.fn(),
   fetchProjectStatuses: vi.fn(),
+  fetchSprintStories: vi.fn(),
 }));
 
 vi.mock('@/services/jira/backlog', () => ({
   fetchBacklogIssues: vi.fn(),
   fetchBacklogSprintStories: vi.fn(),
   fetchSprintList: vi.fn(),
-}));
-
-vi.mock('@/services/jira/issues', () => ({
-  fetchSprintStories: vi.fn(),
 }));
 
 vi.mock('@/services/jira/sprints', () => ({

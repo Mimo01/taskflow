@@ -31,10 +31,6 @@ vi.mock('@/services/jira', () => ({
   fetchProjectStatuses: vi.fn().mockResolvedValue([]),
   fetchTransitions: vi.fn().mockResolvedValue([]),
   postTransition: vi.fn().mockResolvedValue(undefined),
-}));
-
-// Mock jira issues service — new split sprint queries
-vi.mock('@/services/jira/issues', () => ({
   fetchSprintStories: vi.fn().mockResolvedValue([]),
   fetchSprintSubtasks: vi.fn().mockResolvedValue([]),
 }));
@@ -152,7 +148,7 @@ describe('SprintBoardTab', () => {
   // ─── Infrastructure tests (PASS against current implementation) ────────────
 
   it('renders loading skeleton when isLoading', async () => {
-    const { fetchSprintStories } = await import('@/services/jira/issues');
+    const { fetchSprintStories } = await import('@/services/jira');
     // Never resolve — keep loading state
     vi.mocked(fetchSprintStories).mockReturnValue(new Promise(() => {}));
 
@@ -175,7 +171,7 @@ describe('SprintBoardTab', () => {
   });
 
   it('renders error message when isError', async () => {
-    const { fetchSprintStories } = await import('@/services/jira/issues');
+    const { fetchSprintStories } = await import('@/services/jira');
     vi.mocked(fetchSprintStories).mockRejectedValue(new Error('Failed to load sprint board'));
 
     const { useAuthStore } = await import('@/stores/auth.store');
@@ -192,7 +188,7 @@ describe('SprintBoardTab', () => {
   });
 
   it('renders empty state when data is empty array', async () => {
-    const { fetchSprintStories } = await import('@/services/jira/issues');
+    const { fetchSprintStories } = await import('@/services/jira');
     vi.mocked(fetchSprintStories).mockResolvedValue([]);
 
     const { useAuthStore } = await import('@/stores/auth.store');
@@ -211,7 +207,7 @@ describe('SprintBoardTab', () => {
   // ─── HIER-02 behavior stubs (RED state — FAIL against current implementation) ─
 
   it('story swimlane renders story header and its subtask cards', async () => {
-    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira');
     const { fetchProjectStatuses } = await import('@/services/jira');
     const story = makeIssue('PROJ-1', 'Story One', false, undefined, 'In Progress');
     const subtask = makeIssue('PROJ-2', 'Subtask One', true, 'PROJ-1', 'Done');
@@ -243,7 +239,7 @@ describe('SprintBoardTab', () => {
   it('subtask card is always visible under its story header (no collapse)', async () => {
     // New design: subtasks are always shown as cards under a StoryHeaderRow — no collapse.
     // Replaces the old "collapsed by default" behavior.
-    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira');
     const { fetchProjectStatuses } = await import('@/services/jira');
     const story = makeIssue('PROJ-1', 'Story One', false, undefined, 'In Progress');
     const subtask = makeIssue('PROJ-2', 'Subtask One', true, 'PROJ-1', 'In Progress');
@@ -270,7 +266,7 @@ describe('SprintBoardTab', () => {
   it('clicking a story header row opens IssueDetailSheet for that story', async () => {
     // New design: story header rows are clickable — clicking opens the detail sheet.
     // Replaces old "expand subtasks chevron" behavior (no collapse in new design).
-    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira');
     const { fetchProjectStatuses } = await import('@/services/jira');
     const story = makeIssue('PROJ-1', 'Story One', false, undefined, 'In Progress');
     const subtask = makeIssue('PROJ-2', 'Subtask One', true, 'PROJ-1', 'In Progress');
@@ -297,7 +293,7 @@ describe('SprintBoardTab', () => {
   });
 
   it('orphan subtask (parent not in sprint) is not rendered', async () => {
-    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira');
     // Subtask whose parent is NOT in the sprint
     const orphanSubtask = makeIssue('PROJ-99', 'Orphan Subtask', true, 'PROJ-999', 'In Progress');
     vi.mocked(fetchSprintStories).mockResolvedValue([]);
@@ -330,7 +326,7 @@ describe('SprintBoardTab', () => {
   // and has no drag support. They will pass after the relevant plan implementations.
 
   it('multiple stories render as separate swimlane sections (BOARD-01)', async () => {
-    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira');
     const { fetchProjectStatuses } = await import('@/services/jira');
     const story1 = makeIssue('PROJ-1', 'Story One', false, undefined, 'In Progress');
     const story2 = makeIssue('PROJ-2', 'Story Two', false, undefined, 'To Do');
@@ -364,7 +360,7 @@ describe('SprintBoardTab', () => {
   });
 
   it('story header appears exactly once per story (not per column) (BOARD-01)', async () => {
-    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira');
     const { fetchProjectStatuses } = await import('@/services/jira');
     // Story with subtasks in two different statuses — header still appears once
     const story = makeIssue('PROJ-1', 'My Story', false, undefined, 'To Do');
@@ -397,7 +393,7 @@ describe('SprintBoardTab', () => {
   });
 
   it('subtask card shows status badge (BOARD-03)', async () => {
-    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira');
     const story = makeIssue('PROJ-1', 'My Story', false, undefined, 'To Do');
     const subtask = makeIssue('PROJ-2', 'My Subtask', true, 'PROJ-1', 'In Progress');
     vi.mocked(fetchSprintStories).mockResolvedValue([story]);
@@ -423,7 +419,7 @@ describe('SprintBoardTab', () => {
   });
 
   it('bare story (no subtasks) renders as a standalone card (BOARD-03)', async () => {
-    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira');
     const bareStory = makeIssue('PROJ-1', 'Bare Story', false, undefined, 'To Do');
     vi.mocked(fetchSprintStories).mockResolvedValue([bareStory]);
     vi.mocked(fetchSprintSubtasks).mockResolvedValue([]);
@@ -463,7 +459,7 @@ describe('SprintBoardTab', () => {
     }
 
     it('EPIC-02: filtering by epic key hides non-matching swimlanes', async () => {
-      const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+      const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira');
       const { useSettingsStore } = await import('@/stores/settings.store');
       vi.mocked(useSettingsStore).mockReturnValue({
         storyPointsFieldKey: 'customfield_10016',
@@ -512,7 +508,7 @@ describe('SprintBoardTab', () => {
     });
 
     it('EPIC-02: stories with no epic link are hidden when filter is active', async () => {
-      const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+      const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira');
       const { useSettingsStore } = await import('@/stores/settings.store');
       vi.mocked(useSettingsStore).mockReturnValue({
         storyPointsFieldKey: 'customfield_10016',
@@ -557,7 +553,7 @@ describe('SprintBoardTab', () => {
     });
 
     it('EPIC-02: clearing filter shows all swimlanes again', async () => {
-      const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+      const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira');
       const { useSettingsStore } = await import('@/stores/settings.store');
       vi.mocked(useSettingsStore).mockReturnValue({
         storyPointsFieldKey: 'customfield_10016',
@@ -615,7 +611,7 @@ describe('BOARD-02: board shows all team members issues', () => {
   });
 
   it('shows cards for issues assigned to different team members', async () => {
-    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira');
 
     function makeIssueWithAssignee(
       key: string,
@@ -685,7 +681,7 @@ describe('BOARD-05: clicking a card opens issue detail', () => {
   });
 
   it('clicking a subtask card fires onIssueClick with the card issue key', async () => {
-    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira');
     const story = makeIssue('PROJ-1', 'My Story', false, undefined, 'In Progress');
     const subtask = makeIssue('PROJ-2', 'Click Me Subtask', true, 'PROJ-1', 'In Progress');
     vi.mocked(fetchSprintStories).mockResolvedValue([story]);
@@ -714,7 +710,7 @@ describe('BOARD-05: clicking a card opens issue detail', () => {
   });
 
   it('clicking a story header fires onIssueClick with the story key', async () => {
-    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira');
     // Use a story with a subtask so the bare-story card doesn't appear alongside the header
     const story = makeIssue('PROJ-1', 'My Story', false, undefined, 'In Progress');
     const subtask = makeIssue('PROJ-2', 'A Subtask', true, 'PROJ-1', 'In Progress');
@@ -754,7 +750,7 @@ describe('FILT-02: saved filter integration', () => {
   });
 
   it('saved filter constrains sprint board to matching issues', async () => {
-    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira');
     const { fetchProjectStatuses } = await import('@/services/jira');
     const { fetchAllSearchPages } = await import('@/services/jira/client');
     const { useSavedFilterStore } = await import('@/stores/saved-filter.store');
@@ -808,7 +804,7 @@ describe('FILT-02: saved filter integration', () => {
   });
 
   it('clear saved filter restores default board view', async () => {
-    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira');
     const { fetchProjectStatuses } = await import('@/services/jira');
     const { fetchAllSearchPages } = await import('@/services/jira/client');
     const { useSavedFilterStore } = await import('@/stores/saved-filter.store');
@@ -867,7 +863,7 @@ describe('FILT-02: saved filter integration', () => {
   });
 
   it('active filter banner shows filter name and clear button', async () => {
-    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira/issues');
+    const { fetchSprintStories, fetchSprintSubtasks } = await import('@/services/jira');
     const { fetchProjectStatuses } = await import('@/services/jira');
     const { fetchAllSearchPages } = await import('@/services/jira/client');
     const { useSavedFilterStore } = await import('@/stores/saved-filter.store');

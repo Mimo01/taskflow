@@ -19,9 +19,8 @@
 
 import { ApiError } from '../lib/api-error';
 import { apiFetch } from '../lib/apiFetch';
+import { isResponseLikeError } from './jira/client';
 
-// Re-export fetchJiraIssueByKey from the issues sub-module
-export { fetchJiraIssueByKey } from './jira/issues';
 // Re-export changelog and watcher modules for barrel access via '@/services/jira'
 export * from './jira-changelog';
 export * from './jira-watchers';
@@ -333,20 +332,12 @@ export async function fetchSprintIssues(
   } catch (err) {
     // Re-throw ApiError directly (auth failures from fetchAllSearchPages)
     if (err instanceof ApiError) throw err;
-    // fetchAllSearchPages throws the raw Response on first-page failure
     // fetchAllSearchPages throws the raw Response (or a Response-like mock) on first-page
-    // failure. Detect by checking for a numeric status property (duck-typing for both real
-    // Response objects and plain-object mocks used in tests).
-    if (
-      err !== null &&
-      typeof err === 'object' &&
-      'status' in err &&
-      typeof (err as { status: unknown }).status === 'number'
-    ) {
-      const errObj = err as unknown as { status: number; text?: () => Promise<string> };
-      const status = errObj.status;
+    // failure. Detect by checking for a numeric status property.
+    if (isResponseLikeError(err)) {
+      const status = err.status;
       if (status === 400) {
-        const body = typeof errObj.text === 'function' ? await errObj.text() : '';
+        const body = typeof err.text === 'function' ? await err.text() : '';
         if (body.includes('function') || body.includes('not recognized')) {
           throw new Error('Sprint filtering unavailable — ensure Jira Software is installed');
         }
@@ -392,6 +383,106 @@ export async function fetchSprintIssues(
     // Subtask query failed: return parent issues only, silently
     return parentIssues;
   }
+}
+
+/**
+ * Fetch only parent (non-subtask) issues in the active sprint for a project.
+ *
+ * Uses fetchAllSearchPages for full pagination safety. Returns stories,
+ * tasks, bugs, and epics — never subtasks. The second half of the old
+ * fetchSprintIssues two-query strategy is now a separate fetchSprintSubtasks call.
+ *
+ * @param baseUrl            - Jira base URL
+ * @param token              - Personal Access Token
+ * @param projectKey         - Jira project key (e.g. "PROJ")
+ * @param assignedToMe       - If true, adds `AND assignee = currentUser()`
+ * @param storyPointsFieldKey - Custom field key for story points
+ * @param epicLinkFieldKey    - Custom field key for epic link
+ * @throws Error('Sprint filtering unavailable -- ensure Jira Software is installed') on 400 with sprint errors
+ */
+export async function fetchSprintStories(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  assignedToMe = false,
+  storyPointsFieldKey = 'customfield_10016',
+  epicLinkFieldKey = 'customfield_10014',
+): Promise<JiraIssue[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const assigneeClause = assignedToMe ? ' AND assignee = currentUser()' : '';
+  const spFields = [
+    ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
+  ].join(',');
+  const fields = `summary,status,assignee,issuetype,labels,${spFields},${epicLinkFieldKey},parent,subtasks,timetracking,duedate`;
+  const jql = encodeURIComponent(
+    `project = ${projectKey} AND sprint in openSprints()${assigneeClause} AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`,
+  );
+  const baseSearchUrl = `${base}/rest/api/2/search?jql=${jql}&fields=${fields}`;
+
+  try {
+    return await fetchAllSearchPages(baseSearchUrl, headers);
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    if (isResponseLikeError(err)) {
+      const status = err.status;
+      if (status === 400) {
+        const body = typeof err.text === 'function' ? await err.text() : '';
+        if (body.includes('function') || body.includes('not recognized')) {
+          throw new Error('Sprint filtering unavailable — ensure Jira Software is installed');
+        }
+        throw new Error(`Jira search failed with status 400`);
+      }
+      throw new Error(`Jira search failed with status ${status}`);
+    }
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+}
+
+/**
+ * Fetch subtasks for a set of parent issue keys, chunked by SUBTASK_CHUNK_SIZE.
+ *
+ * Fires all chunk queries in parallel via Promise.all. Individual chunk failures
+ * are caught silently (returns [] for that chunk) -- callers receive partial results
+ * rather than an error. Returns empty array immediately when parentKeys is empty.
+ *
+ * @param baseUrl      - Jira base URL
+ * @param token        - Personal Access Token
+ * @param parentKeys   - Array of parent issue keys to fetch subtasks for
+ * @param assignedToMe - If true, adds `AND assignee = currentUser()`
+ */
+export async function fetchSprintSubtasks(
+  baseUrl: string,
+  token: string,
+  parentKeys: string[],
+  assignedToMe = false,
+): Promise<JiraIssue[]> {
+  if (parentKeys.length === 0) return [];
+
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const assigneeClause = assignedToMe ? ' AND assignee = currentUser()' : '';
+  const subtaskFields = 'summary,status,assignee,issuetype,parent,timetracking';
+
+  const chunks: string[][] = [];
+  for (let i = 0; i < parentKeys.length; i += SUBTASK_CHUNK_SIZE) {
+    chunks.push(parentKeys.slice(i, i + SUBTASK_CHUNK_SIZE));
+  }
+
+  const chunkResults = await Promise.all(
+    chunks.map(async (chunk) => {
+      const subtaskJql = encodeURIComponent(
+        `issuetype in subtaskIssueTypes() AND parent in (${chunk.join(',')})${assigneeClause}`,
+      );
+      const subtaskBaseUrl = `${base}/rest/api/2/search?jql=${subtaskJql}&fields=${subtaskFields}`;
+      try {
+        return await fetchAllSearchPages(subtaskBaseUrl, headers);
+      } catch {
+        return [];
+      }
+    }),
+  );
+  return chunkResults.flat();
 }
 
 /**
@@ -449,18 +540,11 @@ export async function fetchMyTasksHierarchy(
     // Re-throw ApiError directly (auth failures from fetchAllSearchPages)
     if (err instanceof ApiError) throw err;
     // fetchAllSearchPages throws the raw Response (or a Response-like mock) on first-page
-    // failure. Detect by checking for a numeric status property (duck-typing for both real
-    // Response objects and plain-object mocks used in tests).
-    if (
-      err !== null &&
-      typeof err === 'object' &&
-      'status' in err &&
-      typeof (err as { status: unknown }).status === 'number'
-    ) {
-      const errObj = err as unknown as { status: number; text?: () => Promise<string> };
-      const status = errObj.status;
+    // failure. Detect by checking for a numeric status property.
+    if (isResponseLikeError(err)) {
+      const status = err.status;
       if (status === 400) {
-        const body = typeof errObj.text === 'function' ? await errObj.text() : '';
+        const body = typeof err.text === 'function' ? await err.text() : '';
         if (body.includes('function') || body.includes('not recognized')) {
           throw new Error('Sprint filtering unavailable — ensure Jira Software is installed');
         }
@@ -856,12 +940,17 @@ export async function searchJira(
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       },
-    });
+      'Search Issues',
+    );
   } catch {
     return [];
   }
@@ -898,12 +987,17 @@ export async function searchJiraClosed(
 
   let response: Response;
   try {
-    response = await apiFetch('jira', url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       },
-    });
+      'Search Closed Issues',
+    );
   } catch {
     return [];
   }
@@ -1174,9 +1268,14 @@ export async function fetchIssueDetail(
     .filter(Boolean)
     .join(',');
   const url = `${base}/rest/api/2/issue/${issueKey}?fields=${fields}&expand=changelog`;
-  const response = await apiFetch('jira', url, {
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-  });
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    },
+    'Load Issue Detail',
+  );
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError(`Failed to fetch issue ${issueKey}`, response.status, 'jira');
@@ -1191,9 +1290,14 @@ export async function fetchIssueDetail(
       const subtaskKeys = issue.fields.subtasks.map((s) => s.key).join(',');
       const enrichJql = encodeURIComponent(`key in (${subtaskKeys})`);
       const enrichUrl = `${base}/rest/api/2/search?jql=${enrichJql}&fields=assignee&maxResults=${issue.fields.subtasks.length}`;
-      const enrichRes = await apiFetch('jira', enrichUrl, {
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      });
+      const enrichRes = await apiFetch(
+        'jira',
+        enrichUrl,
+        {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        },
+        'Load Issue Detail',
+      );
       if (enrichRes.ok) {
         const enrichData = (await enrichRes.json()) as {
           issues: Array<{
@@ -1225,9 +1329,14 @@ export async function fetchIssueSummary(
 ): Promise<{ key: string; fields: { summary: string; issuetype: { name: string } } }> {
   const base = baseUrl.replace(/\/$/, '');
   const url = `${base}/rest/api/2/issue/${issueKey}?fields=summary,issuetype`;
-  const response = await apiFetch('jira', url, {
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-  });
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    },
+    'Load Issue Detail',
+  );
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError(`Failed to fetch issue ${issueKey}`, response.status, 'jira');
@@ -1235,6 +1344,48 @@ export async function fetchIssueSummary(
     throw new Error(`Failed to fetch issue ${issueKey}: ${response.status}`);
   }
   return response.json();
+}
+
+/**
+ * Fetch a single Jira issue by its key, regardless of status (open or closed).
+ *
+ * Silent-failure contract: returns null on any error (404, auth, network).
+ * Callers should show nothing when null is returned.
+ *
+ * @param baseUrl  - Jira base URL
+ * @param token    - Personal Access Token
+ * @param issueKey - Jira issue key, e.g. "PROJ-123"
+ */
+export async function fetchJiraIssueByKey(
+  baseUrl: string,
+  token: string,
+  issueKey: string,
+): Promise<JiraIssue | null> {
+  const base = baseUrl.replace(/\/$/, '');
+  const url = `${base}/rest/api/2/issue/${issueKey}?fields=summary,status,assignee,reporter,priority,customfield_13415,customfield_10016,issuetype`;
+
+  let response: Response;
+  try {
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      },
+      'Fetch Issue By Key',
+    );
+  } catch {
+    return null;
+  }
+
+  if (!response.ok) {
+    return null;
+  }
+
+  return response.json() as Promise<JiraIssue>;
 }
 
 export async function updateIssueField(
@@ -1245,11 +1396,16 @@ export async function updateIssueField(
   value: unknown,
 ): Promise<void> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}`;
-  const response = await apiFetch('jira', url, {
-    method: 'PUT',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fields: { [fieldName]: value } }),
-  });
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: { [fieldName]: value } }),
+    },
+    'Create/Edit Issue',
+  );
   if (!response.ok && response.status !== 204) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError(`Failed to update ${fieldName} on ${issueKey}`, response.status, 'jira');
@@ -1392,11 +1548,16 @@ export async function createIssue(
     }
   }
 
-  const response = await apiFetch('jira', url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fields: baseFields }),
-  });
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: baseFields }),
+    },
+    'Create/Edit Issue',
+  );
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError('Failed to create issue', response.status, 'jira');
@@ -1564,11 +1725,16 @@ export async function bulkUpdateIssue(
   fields: Record<string, unknown>,
 ): Promise<void> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}`;
-  const response = await apiFetch('jira', url, {
-    method: 'PUT',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fields }),
-  });
+  const response = await apiFetch(
+    'jira',
+    url,
+    {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields }),
+    },
+    'Create/Edit Issue',
+  );
   if (!response.ok && response.status !== 204) {
     if (response.status === 401 || response.status === 403) {
       throw new ApiError(`Failed to update ${issueKey}`, response.status, 'jira');
