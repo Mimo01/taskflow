@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 Phase: 58 (redesign-data-fetch-of-aio-cycle-detail-executions-list-and-) — COMPLETE
 Plan: 4 of 4 — UAT approved 2026-05-15
 Status: Phase complete — ready for next phase or milestone completion
-Last activity: 2026-05-17 - Completed quick task 260517-pjv: Unify status pills across app using sprint board style
+Last activity: 2026-05-17 - Completed quick task 260517-py2: unify the style of all pills and badges across the app to have the same style
 
 Progress: [██████████] 100%
 
@@ -101,6 +101,7 @@ None.
 | 260515-fti | In AIO cycles page there is a folder like structure. After loaded it always opens the fist cycle in order. I want the app to remember last opened cycle and after load to open that instead | 2026-05-15 | e737311 | [260515-fti-in-aio-cycles-page-there-is-a-folder-lik](./quick/260515-fti-in-aio-cycles-page-there-is-a-folder-lik/) |
 | 260515-gyv | In the AIO cycle page there is a folder structure on the left. The folders have badges with counts. But they dont have any right padding, the section is cut exactly where the pill with count ends | 2026-05-15 | 176de17 | [260515-gyv-in-the-aio-cycle-page-there-is-a-folder-](./quick/260515-gyv-in-the-aio-cycle-page-there-is-a-folder-/) |
 | 260517-pjv | Unify status pills across app using sprint board style | 2026-05-17 | e50b1d3 | [260517-pjv-unify-status-pills-across-app-using-spri](./quick/260517-pjv-unify-status-pills-across-app-using-spri/) |
+| 260517-py2 | unify the style of all pills and badges across the app to have the same style | 2026-05-17 | 7a60390 | [260517-py2-unify-the-style-of-all-pills-and-badges-](./quick/260517-py2-unify-the-style-of-all-pills-and-badges-/) |
 
 ## Session Continuity
 
