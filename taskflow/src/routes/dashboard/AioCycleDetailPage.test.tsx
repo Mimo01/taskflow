@@ -949,3 +949,453 @@ void QueryClientProvider;
 void MemoryRouter;
 void Route;
 void Routes;
+
+describe('AIOC-N3S-T1: parent-owned issue queries (useQueries refactor)', () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    mockPinnedKeys = [];
+    mockBreadcrumbPush.mockReset();
+    const { fetchJiraIssueByKey } = await import('@/services/jira');
+    (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+  });
+
+  it('T1-01: all defect issues are fetched from the parent (useQueries), not individually per row — multiple defects resolved in parallel', async () => {
+    const user = userEvent.setup();
+    const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
+      await import('@/services/aio');
+    const { fetchJiraIssueByKey } = await import('@/services/jira');
+    const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+    (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+    // Two defects linked across different runs
+    const multiDefectRuns = [
+      {
+        id: 'run-a',
+        status: 'FAIL',
+        testCaseKey: 'PROJ-TC-A',
+        cycleKey: 'PROJ-CY-2',
+        testCase: { title: 'Test A', updatedDate: '2024-01-01' },
+        defects: [],
+        jiraDefectIDs: [111111, 222222],
+      },
+    ];
+    (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(multiDefectRuns);
+    (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
+    (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
+    (fetchJiraIssueByKey as ReturnType<typeof vi.fn>)
+      .mockImplementation((_base: string, _token: string, key: string) => {
+        if (key === '111111') return Promise.resolve({ id: '111111', key: 'PROJ-100', fields: { summary: 'Bug 100', status: { name: 'Open' } } });
+        if (key === '222222') return Promise.resolve({ id: '222222', key: 'PROJ-200', fields: { summary: 'Bug 200', status: { name: 'Done' } } });
+        return Promise.resolve(null);
+      });
+
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+    await user.click(screen.getByRole('tab', { name: 'Defects' }));
+
+    // Both rows should render with their resolved keys
+    await waitFor(() => {
+      expect(screen.getByText('PROJ-100')).toBeDefined();
+      expect(screen.getByText('PROJ-200')).toBeDefined();
+    });
+
+    // fetchJiraIssueByKey must be called for both keys (from parent's useQueries)
+    expect(fetchJiraIssueByKey).toHaveBeenCalledWith('https://jira.example.com', 'fake-token', '111111');
+    expect(fetchJiraIssueByKey).toHaveBeenCalledWith('https://jira.example.com', 'fake-token', '222222');
+  });
+
+  it('T1-02: DefectRow shows skeleton for a loading defect while another resolved defect shows its data', async () => {
+    const user = userEvent.setup();
+    const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
+      await import('@/services/aio');
+    const { fetchJiraIssueByKey } = await import('@/services/jira');
+    const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+    (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+    const multiDefectRuns = [
+      {
+        id: 'run-b',
+        status: 'FAIL',
+        testCaseKey: 'PROJ-TC-B',
+        cycleKey: 'PROJ-CY-2',
+        testCase: { title: 'Test B', updatedDate: '2024-01-01' },
+        defects: [],
+        jiraDefectIDs: [333333, 444444],
+      },
+    ];
+    (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(multiDefectRuns);
+    (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
+    (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
+    (fetchJiraIssueByKey as ReturnType<typeof vi.fn>)
+      .mockImplementation((_base: string, _token: string, key: string) => {
+        if (key === '333333') return Promise.resolve({ id: '333333', key: 'PROJ-333', fields: { summary: 'Resolved bug', status: { name: 'Open' } } });
+        if (key === '444444') return new Promise(() => {}); // never resolves
+        return Promise.resolve(null);
+      });
+
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+    await user.click(screen.getByRole('tab', { name: 'Defects' }));
+
+    // Resolved defect row shows its key
+    await waitFor(() => expect(screen.getByText('PROJ-333')).toBeDefined());
+
+    // Loading defect row shows skeleton (title loading)
+    expect(screen.getByTestId('defect-title-loading-444444')).toBeDefined();
+
+    // Loading row is NOT interactive
+    const loadingRow = screen.getByTestId('defect-row-444444');
+    expect(loadingRow.getAttribute('role')).not.toBe('button');
+  });
+});
+
+// ── Task 2: sort + filter tests ──────────────────────────────────────────────
+
+// Three-defect fixture: A=Open/High/Critical/Alice, B=Done/Low/Minor/Bob, C=Open/Medium/Major/Alice
+const defectFixtureRuns = [
+  {
+    id: 'run-x1',
+    status: 'FAIL',
+    testCaseKey: 'PROJ-TC-X1',
+    cycleKey: 'PROJ-CY-2',
+    testCase: { title: 'X1 test', updatedDate: '2024-01-01' },
+    defects: [],
+    jiraDefectIDs: [1001, 1002, 1003],
+  },
+];
+
+const defectIssueA = {
+  id: '1001', key: 'PROJ-1', fields: {
+    summary: 'Issue A summary',
+    status: { name: 'Open', statusCategory: { key: 'new' } },
+    priority: { name: 'High' },
+    customfield_13415: { value: 'Critical' },
+    assignee: { displayName: 'Alice', avatarUrls: { '48x48': '' } },
+    reporter: null,
+    issuetype: { name: 'Bug' },
+  },
+};
+
+const defectIssueB = {
+  id: '1002', key: 'PROJ-2', fields: {
+    summary: 'Issue B summary',
+    status: { name: 'Done', statusCategory: { key: 'done' } },
+    priority: { name: 'Low' },
+    customfield_13415: { value: 'Minor' },
+    assignee: { displayName: 'Bob', avatarUrls: { '48x48': '' } },
+    reporter: null,
+    issuetype: { name: 'Bug' },
+  },
+};
+
+const defectIssueC = {
+  id: '1003', key: 'PROJ-3', fields: {
+    summary: 'Issue C summary',
+    status: { name: 'Open', statusCategory: { key: 'new' } },
+    priority: { name: 'Medium' },
+    customfield_13415: { value: 'Major' },
+    assignee: { displayName: 'Alice', avatarUrls: { '48x48': '' } },
+    reporter: null,
+    issuetype: { name: 'Bug' },
+  },
+};
+
+async function setupSortFilterMocks() {
+  const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
+    await import('@/services/aio');
+  const { fetchJiraIssueByKey } = await import('@/services/jira');
+  const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+  (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+  (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(defectFixtureRuns);
+  (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
+  (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
+  (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockImplementation(
+    (_base: string, _token: string, key: string) => {
+      if (key === '1001') return Promise.resolve(defectIssueA);
+      if (key === '1002') return Promise.resolve(defectIssueB);
+      if (key === '1003') return Promise.resolve(defectIssueC);
+      return Promise.resolve(null);
+    },
+  );
+}
+
+describe('AIOC-N3S: defects sort + filter', () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    mockPinnedKeys = [];
+    mockBreadcrumbPush.mockReset();
+  });
+
+  it('Test 1 (sort by Key asc/desc/unsorted): clicking Key header cycles sort order', async () => {
+    const user = userEvent.setup();
+    await setupSortFilterMocks();
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+    await user.click(screen.getByRole('tab', { name: 'Defects' }));
+
+    // Wait for all three defects to load
+    await waitFor(() => {
+      expect(screen.getByText('PROJ-1')).toBeDefined();
+      expect(screen.getByText('PROJ-2')).toBeDefined();
+      expect(screen.getByText('PROJ-3')).toBeDefined();
+    });
+
+    // Click Key header → asc order
+    const keyHeader = screen.getByTestId('defects-sort-header-key');
+    await user.click(keyHeader);
+
+    // Chevron-up indicator should be visible
+    await waitFor(() => expect(screen.getByTestId('defects-sort-indicator-key')).toBeDefined());
+
+    // All three rows still visible in asc order (by resolved key: PROJ-1 < PROJ-2 < PROJ-3)
+    await waitFor(() => {
+      const rows = screen.getAllByTestId(/^defect-row-/);
+      expect(rows.length).toBe(3);
+      expect(rows[0].getAttribute('data-testid')).toBe('defect-row-1001');
+      expect(rows[1].getAttribute('data-testid')).toBe('defect-row-1002');
+      expect(rows[2].getAttribute('data-testid')).toBe('defect-row-1003');
+    });
+
+    // Click again → desc order: PROJ-3, PROJ-2, PROJ-1
+    await user.click(keyHeader);
+    await waitFor(() => {
+      const rowsDesc = screen.getAllByTestId(/^defect-row-/);
+      expect(rowsDesc[0].getAttribute('data-testid')).toBe('defect-row-1003');
+      expect(rowsDesc[1].getAttribute('data-testid')).toBe('defect-row-1002');
+      expect(rowsDesc[2].getAttribute('data-testid')).toBe('defect-row-1001');
+    }, { timeout: 3000 });
+
+    // Click again → unsorted (original input order: 1001, 1002, 1003)
+    await user.click(keyHeader);
+    // No sort indicator
+    await waitFor(() => expect(screen.queryByTestId('defects-sort-indicator-key')).toBeNull(), { timeout: 3000 });
+    const rowsUnsorted = screen.getAllByTestId(/^defect-row-/);
+    expect(rowsUnsorted[0].getAttribute('data-testid')).toBe('defect-row-1001');
+  });
+
+  it('Test 2 (sort by Priority): clicking Priority header sorts by rank High → Medium → Low', async () => {
+    const user = userEvent.setup();
+    await setupSortFilterMocks();
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+    await user.click(screen.getByRole('tab', { name: 'Defects' }));
+
+    await waitFor(() => expect(screen.getByText('PROJ-1')).toBeDefined());
+
+    const priorityHeader = screen.getByTestId('defects-sort-header-priority');
+    await user.click(priorityHeader);
+
+    // High (rank 1) → Medium (rank 2) → Low (rank 3)
+    await waitFor(() => {
+      const rows = screen.getAllByTestId(/^defect-row-/);
+      expect(rows[0].getAttribute('data-testid')).toBe('defect-row-1001'); // High
+      expect(rows[1].getAttribute('data-testid')).toBe('defect-row-1003'); // Medium
+      expect(rows[2].getAttribute('data-testid')).toBe('defect-row-1002'); // Low
+    });
+  });
+
+  it('Test 3 (sort indicator): active column shows chevron, inactive columns do not', async () => {
+    const user = userEvent.setup();
+    await setupSortFilterMocks();
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+    await user.click(screen.getByRole('tab', { name: 'Defects' }));
+    await waitFor(() => expect(screen.getByText('PROJ-1')).toBeDefined());
+
+    // No indicator initially
+    expect(screen.queryByTestId('defects-sort-indicator-status')).toBeNull();
+
+    const statusHeader = screen.getByTestId('defects-sort-header-status');
+    await user.click(statusHeader);
+    // ChevronUp shown for asc
+    await waitFor(() => expect(screen.getByTestId('defects-sort-indicator-status')).toBeDefined());
+    // Priority header has no indicator
+    expect(screen.queryByTestId('defects-sort-indicator-priority')).toBeNull();
+
+    // Click again → ChevronDown (still has indicator)
+    await user.click(statusHeader);
+    await waitFor(() => expect(screen.getByTestId('defects-sort-indicator-status')).toBeDefined(), { timeout: 3000 });
+
+    // Click again → no indicator (unsorted)
+    await user.click(statusHeader);
+    await waitFor(() => expect(screen.queryByTestId('defects-sort-indicator-status')).toBeNull(), { timeout: 3000 });
+  });
+
+  it('Test 4 (filter by Status): selecting Open shows only Open defects', async () => {
+    const user = userEvent.setup();
+    await setupSortFilterMocks();
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+    await user.click(screen.getByRole('tab', { name: 'Defects' }));
+    await waitFor(() => expect(screen.getByText('PROJ-1')).toBeDefined());
+
+    // All three visible
+    expect(screen.getAllByTestId(/^defect-row-/).length).toBe(3);
+
+    // Open Status filter popover
+    const statusFilterBtn = screen.getByTestId('defects-filter-status');
+    await user.click(statusFilterBtn);
+
+    // Wait for popover to appear — popover renders options as buttons
+    await waitFor(() => {
+      const openOptions = screen.queryAllByRole('button', { name: /^Open$/ });
+      expect(openOptions.length).toBeGreaterThan(0);
+    });
+
+    // Find "Open" option button in the popover (it's a <button>, unlike the status pill <span>)
+    // Use getAllByRole to find button with exact text "Open"
+    const openOptionButtons = screen.getAllByRole('button', { name: /^Open$/ });
+    const openOption = openOptionButtons[openOptionButtons.length - 1]; // last = popover option
+    await user.click(openOption);
+
+    // Only defects A and C (both Open) remain — 1002 (Done) is hidden
+    await waitFor(() => {
+      const rows = screen.getAllByTestId(/^defect-row-/);
+      expect(rows.length).toBe(2);
+    });
+    expect(screen.queryByTestId('defect-row-1002')).toBeNull(); // Done → hidden
+
+    // Test chip removal: the "Status: Open" chip close button removes the filter
+    const chip = screen.getByTestId('defects-filter-chip-status-Open');
+    await user.click(chip);
+
+    // All three rows visible again after removing the chip
+    await waitFor(() => {
+      expect(screen.getAllByTestId(/^defect-row-/).length).toBe(3);
+    });
+  });
+
+  it('Test 5 (filter chip + clear all): chip renders with close; Clear all resets', async () => {
+    const user = userEvent.setup();
+    await setupSortFilterMocks();
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+    await user.click(screen.getByRole('tab', { name: 'Defects' }));
+    await waitFor(() => expect(screen.getByText('PROJ-1')).toBeDefined());
+
+    // Apply Status=Open filter via popover
+    await user.click(screen.getByTestId('defects-filter-status'));
+    const openOptions = screen.getAllByRole('button', { name: /^Open$/ });
+    await user.click(openOptions[openOptions.length - 1]);
+
+    // Chip "Status: Open" appears with close button
+    await waitFor(() => {
+      expect(screen.getByTestId('defects-filter-chip-status-Open')).toBeDefined();
+    });
+
+    // Clear all button appears
+    expect(screen.getByTestId('defects-filter-clear-all')).toBeDefined();
+
+    // Click clear all → all three defects visible again
+    await user.click(screen.getByTestId('defects-filter-clear-all'));
+    await waitFor(() => {
+      expect(screen.getAllByTestId(/^defect-row-/).length).toBe(3);
+    });
+    expect(screen.queryByTestId('defects-filter-chip-status-Open')).toBeNull();
+  });
+
+  it('Test 6 (filter + sort compose): Status=Open AND sort by Key desc → C then A', async () => {
+    const user = userEvent.setup();
+    await setupSortFilterMocks();
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+    await user.click(screen.getByRole('tab', { name: 'Defects' }));
+    await waitFor(() => expect(screen.getByText('PROJ-1')).toBeDefined());
+
+    // Apply Status=Open filter
+    await user.click(screen.getByTestId('defects-filter-status'));
+    const openOptions = screen.getAllByRole('button', { name: /^Open$/ });
+    await user.click(openOptions[openOptions.length - 1]);
+
+    // Only 2 rows (A and C)
+    await waitFor(() => expect(screen.getAllByTestId(/^defect-row-/).length).toBe(2));
+
+    // Sort by Key desc (two clicks: first asc, then desc)
+    const keyHeader = screen.getByTestId('defects-sort-header-key');
+    await user.click(keyHeader); // asc
+    await user.click(keyHeader); // desc
+
+    // Rows: PROJ-3 (1003) then PROJ-1 (1001) — desc by resolved key
+    await waitFor(() => {
+      const rows = screen.getAllByTestId(/^defect-row-/);
+      expect(rows[0].getAttribute('data-testid')).toBe('defect-row-1003');
+      expect(rows[1].getAttribute('data-testid')).toBe('defect-row-1001');
+    }, { timeout: 3000 });
+  });
+
+  it('Test 7 (no matches): filter that matches nothing shows "No defects match the selected filters."', async () => {
+    const user = userEvent.setup();
+    await setupSortFilterMocks();
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+    await user.click(screen.getByRole('tab', { name: 'Defects' }));
+    await waitFor(() => expect(screen.getByText('PROJ-1')).toBeDefined());
+
+    // Apply Assignee=Bob AND Status=Open → Bob's defect is Done, not Open → zero matches
+    await user.click(screen.getByTestId('defects-filter-assignee'));
+    // "Bob" may appear in assignee cells too — use role=button to target the popover option
+    await waitFor(() => expect(screen.queryAllByRole('button', { name: /^Bob$/ }).length).toBeGreaterThan(0));
+    const bobOptions = screen.getAllByRole('button', { name: /^Bob$/ });
+    await user.click(bobOptions[bobOptions.length - 1]);
+
+    await user.click(screen.getByTestId('defects-filter-status'));
+    const openOptions = screen.getAllByRole('button', { name: /^Open$/ });
+    await user.click(openOptions[openOptions.length - 1]);
+
+    await waitFor(() => {
+      expect(screen.getByText('No defects match the selected filters.')).toBeDefined();
+    });
+
+    // EmptyState "No defects" title must NOT be present (that's for allDefects.length === 0)
+    expect(screen.queryByText('No defects are linked to runs in this cycle.')).toBeNull();
+  });
+
+  it('Test 8 (loading rows excluded from filter but present unfiltered): loading defect sorts to bottom', async () => {
+    const user = userEvent.setup();
+    const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
+      await import('@/services/aio');
+    const { fetchJiraIssueByKey } = await import('@/services/jira');
+    const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+    (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
+    // Two defects: 1001 resolves, 9999 never resolves
+    (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'run-t8',
+        status: 'FAIL',
+        testCaseKey: 'PROJ-TC-T8',
+        cycleKey: 'PROJ-CY-2',
+        testCase: { title: 'T8 test', updatedDate: '2024-01-01' },
+        defects: [],
+        jiraDefectIDs: [1001, 9999],
+      },
+    ]);
+    (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
+    (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
+    (fetchJiraIssueByKey as ReturnType<typeof vi.fn>).mockImplementation(
+      (_base: string, _token: string, key: string) => {
+        if (key === '1001') return Promise.resolve(defectIssueA);
+        if (key === '9999') return new Promise(() => {}); // never resolves
+        return Promise.resolve(null);
+      },
+    );
+
+    renderPage();
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Defects' })).toBeDefined());
+    await user.click(screen.getByRole('tab', { name: 'Defects' }));
+
+    // Wait for resolved row
+    await waitFor(() => expect(screen.getByText('PROJ-1')).toBeDefined());
+    // Loading row is also present (unfiltered)
+    expect(screen.getByTestId('defect-row-9999')).toBeDefined();
+    expect(screen.getAllByTestId(/^defect-row-/).length).toBe(2);
+
+    // Apply Status=Open filter — loading row should be excluded
+    await user.click(screen.getByTestId('defects-filter-status'));
+    const openOptions = screen.getAllByRole('button', { name: /^Open$/ });
+    await user.click(openOptions[openOptions.length - 1]);
+
+    await waitFor(() => {
+      // Only PROJ-1 (resolved, Open) remains
+      expect(screen.getAllByTestId(/^defect-row-/).length).toBe(1);
+    });
+    expect(screen.queryByTestId('defect-row-9999')).toBeNull();
+  });
+});
