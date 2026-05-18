@@ -643,7 +643,7 @@ export async function fetchJiraIssueByKey(
   issueKey: string,
 ): Promise<JiraIssue | null> {
   const base = baseUrl.replace(/\/$/, '');
-  const url = `${base}/rest/api/2/issue/${issueKey}?fields=summary,status,assignee,customfield_10016,issuetype`;
+  const url = `${base}/rest/api/2/issue/${issueKey}?fields=summary,status,assignee,reporter,priority,severity,customfield_10016,issuetype`;
 
   let response: Response;
   try {
