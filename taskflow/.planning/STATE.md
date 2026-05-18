@@ -3,9 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: v1.6.3 milestone complete
-stopped_at: Completed 47-01-PLAN.md
-last_updated: "2026-03-30T16:33:17Z"
-last_activity: 2026-03-30
+stopped_at: context exhaustion at 75% (2026-05-14)
+last_updated: "2026-05-14T22:40:13.199Z"
+last_activity: "2026-05-10 - Completed quick task 260510-5b: Fix pre-commit hook failures"
+progress:
+  total_phases: 5
+  completed_phases: 2
+  total_plans: 6
+  completed_plans: 6
+  percent: 40
 ---
 
 # Project State
@@ -63,8 +69,8 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-05-10 - Completed quick task 260510-5b: Fix pre-commit hook failures
-Stopped at: Completed 47-01-PLAN.md (stale constants, dead mock, stats.html cleanup)
+Last activity: 2026-05-18 - Completed quick task 260518-ik2: Redesign cycle detail executions list to use fast paged endpoint
+Stopped at: context exhaustion at 75% (2026-05-14)
 Resume: Phase 47 v17-debt-cleanup plan 01 complete — continue with plan 02 if exists
 
 ### Quick Tasks Completed
@@ -86,3 +92,4 @@ Resume: Phase 47 v17-debt-cleanup plan 01 complete — continue with plan 02 if 
 | 260329-kyx | Replace GitHub Actions with local husky hooks + full local release.sh | 2026-03-29 | 8528c2a | Verified | [260329-kyx-replace-github-actions-with-local-proces](./quick/260329-kyx-replace-github-actions-with-local-proces/) |
 | 260329-mxv | Make the changelogs look nicer. The update modals are too small. Refine the views | 2026-03-29 | a35bd3f | | [260329-mxv-make-the-changelogs-look-nicer-the-updat](./quick/260329-mxv-make-the-changelogs-look-nicer-the-updat/) |
 | 260510-5b | Fix pre-commit hook failures | 2026-05-10 | 9f1d25b | | [260510-5b-fix-pre-commit-hook-failures](./quick/260510-5b-fix-pre-commit-hook-failures/) |
+| 260518-ik2 | Redesign cycle detail executions list to use fast paged endpoint | 2026-05-18 | 060cbe0 | | [260518-ik2-redesign-cycle-detail-executions-list-to](./quick/260518-ik2-redesign-cycle-detail-executions-list-to/) |
