@@ -112,10 +112,11 @@ None.
 | 260518-krb | There are two duplicate implementations of jira fetch. jira.ts and jira/issues.ts. Analyze them and unify into one. Make sure nothing breaks | 2026-05-18 | 08d99d9 | [260518-krb-there-are-two-duplicate-implementations-](./quick/260518-krb-there-are-two-duplicate-implementations-/) |
 | 260518-m70 | On AIO cycle detail defects page make the entire row clickable, not just the issue key. Also make it clickable only after the full issue detail loads | 2026-05-18 | 309024e | [260518-m70-on-aio-cycle-detail-defects-page-make-th](./quick/260518-m70-on-aio-cycle-detail-defects-page-make-th/) |
 | 260518-n3s | On AIO cycle detail defects page I want to be able to sort and filter the defects | 2026-05-18 | 45063ce | [260518-n3s-on-aio-cycle-detail-defects-page-i-want-](./quick/260518-n3s-on-aio-cycle-detail-defects-page-i-want-/) |
+| 260518-ot8 | On AIO execution detail I also want to see the run's defects | 2026-05-18 | ebac1569 | [260518-ot8-on-aio-execution-detail-i-also-want-to-s](./quick/260518-ot8-on-aio-execution-detail-i-also-want-to-s/) |
 
 ## Session Continuity
 
-Last activity: 2026-05-18 - Completed quick task 260518-n3s: On AIO cycle detail defects page I want to be able to sort and filter the defects
+Last activity: 2026-05-18 - Completed quick task 260518-ot8: On AIO execution detail I also want to see the run's defects
 
 Last session: 2026-05-15
 Stopped at: Phase 57 UAT approved — milestone v1.8 complete
