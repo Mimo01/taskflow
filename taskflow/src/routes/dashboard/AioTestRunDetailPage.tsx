@@ -81,7 +81,7 @@ function DefectRow({
           }
         : {})}
     >
-      <td className="px-3 py-2 font-mono text-sm">
+      <td className="px-3 py-2 font-mono text-sm whitespace-nowrap">
         <div className="flex items-center gap-1.5">
           {issue?.fields.issuetype?.name !== undefined && (
             <IssueTypeIcon typeName={issue.fields.issuetype.name} />
