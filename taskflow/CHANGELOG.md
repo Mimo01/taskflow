@@ -3,6 +3,17 @@
 All notable changes to Taskflow are documented here.
 Entries are written by hand for each release.
 
+## [1.8.1] — 2026-05-19
+
+### Added
+
+- **Issue flagging** — flag and unflag issues from the sprint board, backlog, and issue detail sidebar; flagged issues are highlighted with a yellow background and flag icon; right-click context menus in the sprint board and backlog include Flag/Unflag actions
+
+### Fixed
+
+- WikiRenderer: nested ordered lists now render with correct indentation; bullet characters no longer appear on unordered list items; single newlines inside paragraphs no longer produce extra blank lines
+- Mention pills (`[~username]`) now resolve to display names for users not already present as assignee, reporter, or comment author — resolved via Jira API on first render
+
 ## [1.8.0] — 2026-05-18
 
 ### Added
