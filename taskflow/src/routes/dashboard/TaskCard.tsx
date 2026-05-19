@@ -17,7 +17,7 @@
  * - transitionError: error message shown below the card on failed transition
  * When onTransition is not provided, no context menu is rendered (safe for non-board contexts).
  */
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Flag } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import {
@@ -52,6 +52,10 @@ interface TaskCardProps {
   ) => void;
   /** Error message shown below the card after a failed transition */
   transitionError?: string;
+  /** Whether this issue is currently flagged as an impediment */
+  isFlagged?: boolean;
+  /** Called when user selects Flag/Unflag from the context menu */
+  onToggleFlag?: () => void;
 }
 
 export default function TaskCard({
@@ -65,6 +69,8 @@ export default function TaskCard({
   transitions,
   onTransition,
   transitionError,
+  isFlagged,
+  onToggleFlag,
 }: TaskCardProps) {
   const assignee = issue.fields.assignee;
   const avatarUrl = assignee?.avatarUrls['48x48'];
@@ -78,6 +84,7 @@ export default function TaskCard({
         className={cn(
           'group border rounded-lg px-2 py-2 density-compact:py-1 density-comfortable:py-3 bg-card w-full flex flex-col gap-1 cursor-pointer hover:bg-accent/50 transition-colors',
           isSubtask && 'border-l-2 border-l-muted',
+          isFlagged && 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40',
         )}
         role="button"
         tabIndex={0}
@@ -86,17 +93,22 @@ export default function TaskCard({
           if (e.key === 'Enter' || e.key === ' ') onClick?.();
         }}
       >
-        {/* Top row: issue key (left) + issue type name (right) */}
+        {/* Top row: flag icon (when flagged) + issue key (left) + issue type name (right) */}
         <div className="flex items-center justify-between">
-          <span
-            className={cn(
-              'text-xs font-mono text-muted-foreground',
-              issue.fields.status.statusCategory?.key === 'done'
-                ? 'line-through group-hover:[text-decoration-line:underline_line-through]'
-                : 'group-hover:underline',
+          <span className="flex items-center gap-1">
+            {isFlagged && (
+              <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300 shrink-0" />
             )}
-          >
-            {issue.key}
+            <span
+              className={cn(
+                'text-xs font-mono text-muted-foreground',
+                issue.fields.status.statusCategory?.key === 'done'
+                  ? 'line-through group-hover:[text-decoration-line:underline_line-through]'
+                  : 'group-hover:underline',
+              )}
+            >
+              {issue.key}
+            </span>
           </span>
           {issueTypeName && (
             <span className="text-[11px] text-muted-foreground/60 truncate max-w-[50%] text-right">
@@ -170,8 +182,8 @@ export default function TaskCard({
     </>
   );
 
-  // Only wrap in ContextMenu when onTransition is provided (sprint board context)
-  if (!onTransition) {
+  // Wrap in ContextMenu when onTransition or onToggleFlag is provided
+  if (!onTransition && !onToggleFlag) {
     return cardContent;
   }
 
@@ -179,35 +191,48 @@ export default function TaskCard({
     <ContextMenu>
       <ContextMenuTrigger>{cardContent}</ContextMenuTrigger>
       <ContextMenuContent>
-        <ContextMenuGroup>
-          <ContextMenuLabel>Move to...</ContextMenuLabel>
-        </ContextMenuGroup>
-        <ContextMenuSeparator />
-        {transitions && transitions.length > 0 ? (
-          transitions.map((transition) => (
-            <ContextMenuItem
-              key={transition.id}
-              onClick={() =>
-                onTransition(
-                  transition.id,
-                  transition.to.name,
-                  transition.to.id,
-                  transition.to.statusCategory?.key,
-                )
-              }
-            >
-              <span className="text-muted-foreground">→</span>
-              <span className={statusPillClass(transition.to.statusCategory?.key)}>
-                {transition.name}
-              </span>
+        {onTransition && (
+          <>
+            <ContextMenuGroup>
+              <ContextMenuLabel>Move to...</ContextMenuLabel>
+            </ContextMenuGroup>
+            <ContextMenuSeparator />
+            {transitions && transitions.length > 0 ? (
+              transitions.map((transition) => (
+                <ContextMenuItem
+                  key={transition.id}
+                  onClick={() =>
+                    onTransition(
+                      transition.id,
+                      transition.to.name,
+                      transition.to.id,
+                      transition.to.statusCategory?.key,
+                    )
+                  }
+                >
+                  <span className="text-muted-foreground">→</span>
+                  <span className={statusPillClass(transition.to.statusCategory?.key)}>
+                    {transition.name}
+                  </span>
+                </ContextMenuItem>
+              ))
+            ) : (
+              <ContextMenuGroup>
+                <ContextMenuLabel className="text-muted-foreground italic">
+                  No transitions available
+                </ContextMenuLabel>
+              </ContextMenuGroup>
+            )}
+          </>
+        )}
+        {onToggleFlag && (
+          <>
+            {onTransition && <ContextMenuSeparator />}
+            <ContextMenuItem onClick={onToggleFlag}>
+              <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300" />
+              {isFlagged ? 'Unflag' : 'Flag'}
             </ContextMenuItem>
-          ))
-        ) : (
-          <ContextMenuGroup>
-            <ContextMenuLabel className="text-muted-foreground italic">
-              No transitions available
-            </ContextMenuLabel>
-          </ContextMenuGroup>
+          </>
         )}
       </ContextMenuContent>
     </ContextMenu>
