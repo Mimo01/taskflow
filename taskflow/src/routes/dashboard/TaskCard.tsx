@@ -228,10 +228,14 @@ export default function TaskCard({
         {onToggleFlag && (
           <>
             {onTransition && <ContextMenuSeparator />}
-            <ContextMenuItem onClick={onToggleFlag}>
-              <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300" />
-              {isFlagged ? 'Unflag' : 'Flag'}
-            </ContextMenuItem>
+            <ContextMenuGroup>
+              <ContextMenuLabel>Flag</ContextMenuLabel>
+              <ContextMenuSeparator />
+              <ContextMenuItem onClick={onToggleFlag}>
+                <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300" />
+                {isFlagged ? 'Unflag' : 'Flag'}
+              </ContextMenuItem>
+            </ContextMenuGroup>
           </>
         )}
       </ContextMenuContent>
