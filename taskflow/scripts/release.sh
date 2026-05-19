@@ -89,6 +89,18 @@ fi
 # --- Phase C: Push tag to origin (triggers CI) ---
 echo ""
 echo "==> Phase C: Pushing to origin..."
+
+# Guard: tag body must be non-empty — CI uses it as the GitHub release body
+TAG_BODY=$(git -C "$REPO_ROOT" tag -l --format='%(contents:body)' "v$VERSION" | sed '/^[[:space:]]*$/d')
+if [[ -z "$TAG_BODY" ]]; then
+  echo "Error: tag v$VERSION annotation body is empty — release notes are required." >&2
+  echo "" >&2
+  echo "To fix, delete the tag and re-run with notes on stdin:" >&2
+  echo "  git tag -d v$VERSION" >&2
+  echo "  printf '### Fixed\n- Your notes' | ./scripts/release.sh $VERSION --skip-bump" >&2
+  exit 1
+fi
+
 git -C "$REPO_ROOT" push origin main
 git -C "$REPO_ROOT" push origin "v$VERSION"
 echo "    Pushed main and tag v$VERSION — CI will now build and publish the release."
