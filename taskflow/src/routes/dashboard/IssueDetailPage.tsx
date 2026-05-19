@@ -11,11 +11,12 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, MoreVertical } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { useResizable } from '@/hooks/useResizable';
 import type { JiraComment, JiraIssue, TimelineFilter } from '@/services/jira';
 import { deleteComment, fetchEpicStories, fetchIssueDetail, updateComment } from '@/services/jira';
@@ -131,24 +132,27 @@ export default function IssueDetailPage() {
     attachmentMap[att.filename] = att.content;
   }
 
-  // Build user lookup map from available issue data
-  const userMap: UserMap = {};
   const Assignee = issue?.fields.assignee;
   const Reporter = issue?.fields.reporter;
-  if (Assignee) {
-    userMap[Assignee.name] = Assignee.displayName;
-  }
-  if (Reporter) {
-    if (Reporter.name) userMap[Reporter.name] = Reporter.displayName;
-    userMap[Reporter.displayName] = Reporter.displayName;
-  }
-  for (const c of comments) {
-    if (c.author?.displayName) {
-      const authorObj = c.author as { displayName: string; name?: string };
-      if (authorObj.name) userMap[authorObj.name] = authorObj.displayName;
-      userMap[authorObj.displayName] = authorObj.displayName;
+  const initialUserMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    if (Assignee) map[Assignee.name] = Assignee.displayName;
+    if (Reporter) {
+      if (Reporter.name) map[Reporter.name] = Reporter.displayName;
+      map[Reporter.displayName] = Reporter.displayName;
     }
-  }
+    for (const c of comments) {
+      if (c.author?.displayName) {
+        const authorObj = c.author as { displayName: string; name?: string };
+        if (authorObj.name) map[authorObj.name] = authorObj.displayName;
+        map[authorObj.displayName] = authorObj.displayName;
+      }
+    }
+    return map;
+  }, [Assignee, Reporter, comments]);
+
+  const commentTexts = useMemo(() => comments.map((c) => c.body), [comments]);
+  const userMap = useMentionUserMap(initialUserMap, commentTexts, jiraBaseUrl ?? '');
 
   // ─── Comment edit/delete mutations (lifted from old CommentThread) ──────────
   const queryClient = useQueryClient();

@@ -47,6 +47,36 @@ export async function fetchAssignableUsers(
 }
 
 /**
+ * Resolve a [~username] mention to a Jira DC user record.
+ * GET /rest/api/2/user?username={name} — Jira DC stores mentions by the `name` field.
+ * Returns null on 404/any error — caller falls back to raw username display.
+ */
+export async function fetchJiraUserByName(
+  baseUrl: string,
+  token: string,
+  name: string,
+): Promise<JiraAssignableUser | null> {
+  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/user?username=${encodeURIComponent(name)}`;
+  try {
+    const response = await apiFetch(
+      'jira',
+      url,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+      },
+      'Load User',
+    );
+    if (!response.ok) return null;
+    return (await response.json()) as JiraAssignableUser;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Resolve an AIO ownedByID to a Jira DC user record.
  * GET /rest/api/latest/user?key={key} — AIO ownedByID values are Jira user keys,
  * not usernames. UAT confirmed ?username= returns "does not exist" for JIRAUSER* keys.

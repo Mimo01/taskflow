@@ -7,9 +7,10 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bold, Code, Italic, List, MoreVertical } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import type { JiraComment } from '@/services/jira';
 import { deleteComment, updateComment } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
@@ -61,6 +62,23 @@ export default function InlineComment({
     : commentSortOrder === 'newest'
       ? [...existingComments].reverse()
       : existingComments;
+
+  const initialUserMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const c of existingComments ?? []) {
+      const author = c.author as { displayName: string; name?: string };
+      if (author.name) map[author.name] = author.displayName;
+      map[author.displayName] = author.displayName;
+    }
+    return map;
+  }, [existingComments]);
+
+  const commentTexts = useMemo(
+    () => (existingComments ?? []).map((c) => c.body),
+    [existingComments],
+  );
+
+  const userMap = useMentionUserMap(initialUserMap, commentTexts, jiraBaseUrl);
 
   // Edit state
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
@@ -255,7 +273,7 @@ export default function InlineComment({
                     </div>
                   </div>
                 ) : (
-                  <WikiRenderer wikiText={c.body} attachments={{}} users={{}} />
+                  <WikiRenderer wikiText={c.body} attachments={{}} users={userMap} />
                 )}
 
                 {/* Delete error */}
