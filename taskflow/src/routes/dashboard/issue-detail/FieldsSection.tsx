@@ -438,38 +438,6 @@ export function FieldsSection({
         )}
       </MetaRow>
 
-      {/* Flagged -- toggle impediment flag */}
-      {(() => {
-        const isFlagged = isIssueFlagged(issue as unknown as JiraIssue, flaggedFieldKey);
-        return (
-          <MetaRow label="Flagged">
-            <button
-              type="button"
-              onClick={() =>
-                mutation.mutate({
-                  fieldName: flaggedFieldKey,
-                  value: isFlagged ? null : [{ value: 'Impediment' }],
-                })
-              }
-              className="inline-flex items-center gap-1 rounded px-1 -ml-1 hover:bg-accent cursor-pointer text-left"
-              title={isFlagged ? 'Unflag this issue' : 'Flag this issue as an impediment'}
-            >
-              {isFlagged ? (
-                <>
-                  <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300" />
-                  <span>Flagged (Impediment)</span>
-                </>
-              ) : (
-                <span className="text-muted-foreground">— Add flag</span>
-              )}
-            </button>
-            {mutation.isError && mutation.variables?.fieldName === flaggedFieldKey && (
-              <p className="text-xs text-destructive mt-1">Save failed — changes reverted</p>
-            )}
-          </MetaRow>
-        );
-      })()}
-
       {/* Severity -- shown only when customfield_13415 has a value */}
       {(() => {
         const severityField = f.customfield_13415 as
@@ -839,6 +807,37 @@ export function FieldsSection({
           </PopoverContent>
         </Popover>
       </MetaRow>
+      {/* Flagged -- toggle impediment flag */}
+      {(() => {
+        const isFlagged = isIssueFlagged(issue as unknown as JiraIssue, flaggedFieldKey);
+        return (
+          <MetaRow label="Flagged">
+            <button
+              type="button"
+              onClick={() =>
+                mutation.mutate({
+                  fieldName: flaggedFieldKey,
+                  value: isFlagged ? null : [{ value: 'Impediment' }],
+                })
+              }
+              className="inline-flex items-center gap-1 rounded px-1 -ml-1 hover:bg-accent cursor-pointer text-left"
+              title={isFlagged ? 'Unflag this issue' : 'Flag this issue as an impediment'}
+            >
+              {isFlagged ? (
+                <>
+                  <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300" />
+                  <span>Flagged (Impediment)</span>
+                </>
+              ) : (
+                <span className="text-muted-foreground">— Add flag</span>
+              )}
+            </button>
+            {mutation.isError && mutation.variables?.fieldName === flaggedFieldKey && (
+              <p className="text-xs text-destructive mt-1">Save failed — changes reverted</p>
+            )}
+          </MetaRow>
+        );
+      })()}
       <MetaRow label="Created">{new Date(f.created).toLocaleDateString()}</MetaRow>
       <MetaRow label="Updated">{new Date(f.updated).toLocaleDateString()}</MetaRow>
       {f.duedate && (

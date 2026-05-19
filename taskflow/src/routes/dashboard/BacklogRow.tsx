@@ -249,10 +249,14 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
           {onToggleFlag && (
             <>
               {(onMoveToSprint || onMoveToBacklog) && <ContextMenuSeparator />}
-              <ContextMenuItem onClick={() => onToggleFlag(issue.key)}>
-                <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300" />
-                {isFlagged ? 'Unflag' : 'Flag'}
-              </ContextMenuItem>
+              <ContextMenuGroup>
+                <ContextMenuLabel>Flag</ContextMenuLabel>
+                <ContextMenuSeparator />
+                <ContextMenuItem onClick={() => onToggleFlag(issue.key)}>
+                  <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300" />
+                  {isFlagged ? 'Unflag' : 'Flag'}
+                </ContextMenuItem>
+              </ContextMenuGroup>
             </>
           )}
         </ContextMenuContent>
