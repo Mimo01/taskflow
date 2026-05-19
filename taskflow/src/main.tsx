@@ -76,6 +76,7 @@ function useCustomFieldDiscovery() {
     setEpicNameFieldKey,
     setSprintFieldKey,
     setEpicColorFieldKey,
+    setFlaggedFieldKey,
   } = useSettingsStore();
 
   const query = useQuery({
@@ -96,6 +97,7 @@ function useCustomFieldDiscovery() {
       setEpicNameFieldKey(query.data.epicNameFieldKey);
       setSprintFieldKey(query.data.sprintFieldKey);
       setEpicColorFieldKey(query.data.epicColorFieldKey);
+      setFlaggedFieldKey(query.data.flaggedFieldKey);
     }
   }, [
     query.data,
@@ -104,6 +106,7 @@ function useCustomFieldDiscovery() {
     setEpicNameFieldKey,
     setSprintFieldKey,
     setEpicColorFieldKey,
+    setFlaggedFieldKey,
   ]);
 }
 

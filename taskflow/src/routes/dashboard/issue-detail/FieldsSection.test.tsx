@@ -234,4 +234,62 @@ describe('FieldsSection', () => {
       expect(screen.queryByText('Severity')).toBeNull();
     });
   });
+
+  describe('Flagged MetaRow', () => {
+    async function renderFieldsSectionWithFlag(
+      issue: JiraIssueDetail,
+      flaggedFieldKey = 'customfield_10021',
+    ) {
+      const { FieldsSection } = await import('./FieldsSection');
+      const mutateMock = vi.fn();
+      const mutation = {
+        isPending: false,
+        isError: false,
+        mutate: mutateMock,
+        variables: undefined,
+        data: undefined,
+      };
+      render(
+        <FieldsSection
+          issue={issue}
+          issueKey={issue.key}
+          jiraBaseUrl="https://jira.example.com"
+          storyPointsFieldKey="customfield_10016"
+          epicLinkFieldKey="customfield_10014"
+          epicNameFieldKey="customfield_10015"
+          sprintFieldKey="customfield_10020"
+          epicColorFieldKey="customfield_10013"
+          flaggedFieldKey={flaggedFieldKey}
+          mutation={mutation as any}
+          epicIssue={null}
+        />,
+        { wrapper },
+      );
+      return mutateMock;
+    }
+
+    it('renders "Add flag" button when issue is not flagged', async () => {
+      const issue = makeIssue({ customfield_10021: null });
+      await renderFieldsSectionWithFlag(issue);
+      expect(screen.getByText('— Add flag')).toBeTruthy();
+    });
+
+    it('renders "Flagged (Impediment)" when customfield is set', async () => {
+      const issue = makeIssue({ customfield_10021: [{ value: 'Impediment' }] });
+      await renderFieldsSectionWithFlag(issue);
+      expect(screen.getByText('Flagged (Impediment)')).toBeTruthy();
+    });
+
+    it('calls mutation.mutate with flag value when unflagged issue toggle is clicked', async () => {
+      const { fireEvent } = await import('@testing-library/react');
+      const issue = makeIssue({ customfield_10021: null });
+      const mutateMock = await renderFieldsSectionWithFlag(issue);
+      const btn = screen.getByTitle('Flag this issue as an impediment');
+      fireEvent.click(btn);
+      expect(mutateMock).toHaveBeenCalledWith({
+        fieldName: 'customfield_10021',
+        value: [{ value: 'Impediment' }],
+      });
+    });
+  });
 });
