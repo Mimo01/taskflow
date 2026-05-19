@@ -65,10 +65,11 @@ Decisions are logged in PROJECT.md Key Decisions table. See v1.8 entries (AIO se
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260519-eol | In sprint view and backlog view I want to see flagged issues colored with background yellow and with a flag. Right clicking should allow to flag/unflad. On issue detail the flag should be in the sidebar | 2026-05-19 | 67188ee5 | [260519-eol-in-sprint-view-and-backlog-view-i-want-t](./quick/260519-eol-in-sprint-view-and-backlog-view-i-want-t/) |
+| 260519-fgq | Fix flag feature: move flag row in issue detail between fix versions and created, fix sprint board flagging only subtasks, separate flag section in context menu popover | 2026-05-19 | f4a081fe | [260519-fgq-fix-flag-feature-move-flag-row-in-issue-](./quick/260519-fgq-fix-flag-feature-move-flag-row-in-issue-/) |
 
 ## Session Continuity
 
-Last activity: 2026-05-19 - Completed quick task 260519-eol: In sprint view and backlog view I want to see flagged issues colored with background yellow and with a flag. Right clicking should allow to flag/unflad. On issue detail the flag should be in the sidebar
+Last activity: 2026-05-19 - Completed quick task 260519-fgq: Fix flag feature (row position, story flagging, context menu section)
 Last session: 2026-05-19T11:42:12.145Z
 Stopped at: context exhaustion at 75% (2026-05-18)
 Next: `/gsd:new-milestone`
