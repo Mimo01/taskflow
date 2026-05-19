@@ -34,7 +34,9 @@ import {
   fetchSprintStories,
   fetchSprintSubtasks,
   fetchTransitions,
+  isIssueFlagged,
   postTransition,
+  setIssueFlagged,
 } from '@/services/jira';
 import { fetchBoardQuickFilters } from '@/services/jira/board-config';
 import { fetchAllSearchPages } from '@/services/jira/client';
@@ -88,6 +90,8 @@ function VirtualizedSwimlanes({
   epicNameMap,
   epicColorMap,
   epicLinkFieldKey,
+  flaggedFieldKey,
+  onToggleFlag,
 }: {
   filteredSwimlanes: { story: JiraIssue; subtasks: JiraIssue[] }[];
   scrollElement: HTMLElement | null;
@@ -119,6 +123,8 @@ function VirtualizedSwimlanes({
   epicNameMap: Map<string, string>;
   epicColorMap: Map<string, string>;
   epicLinkFieldKey: string;
+  flaggedFieldKey: string;
+  onToggleFlag: (issueKey: string) => void;
 }) {
   const swimlaneVirtualizer = useVirtualizer({
     count: filteredSwimlanes.length,
@@ -371,6 +377,8 @@ function VirtualizedSwimlanes({
                             onTransition(card.key, tid, name, toId, catKey)
                           }
                           transitionError={cardErrors.get(card.key)}
+                          isFlagged={isIssueFlagged(card, flaggedFieldKey)}
+                          onToggleFlag={() => onToggleFlag(card.key)}
                         />
                       ))
                     )}
@@ -476,6 +484,8 @@ function VirtualizedSwimlanes({
                                 onTransition(card.key, tid, name, toId, catKey)
                               }
                               transitionError={cardErrors.get(card.key)}
+                              isFlagged={isIssueFlagged(card, flaggedFieldKey)}
+                              onToggleFlag={() => onToggleFlag(card.key)}
                             />
                           ))
                         )}
@@ -494,7 +504,7 @@ function VirtualizedSwimlanes({
 
 export default function SprintBoardTab() {
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
-  const { storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey, epicColorFieldKey } =
+  const { storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey, epicColorFieldKey, flaggedFieldKey } =
     useSettingsStore();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
 
@@ -588,6 +598,7 @@ export default function SprintBoardTab() {
       jiraBaseUrl,
       storyPointsFieldKey,
       epicLinkFieldKey,
+      flaggedFieldKey,
     ],
     queryFn: () =>
       fetchSprintStories(
@@ -597,6 +608,7 @@ export default function SprintBoardTab() {
         false,
         storyPointsFieldKey,
         epicLinkFieldKey,
+        flaggedFieldKey,
       ),
     refetchInterval: POLL_INTERVAL_MS,
     refetchIntervalInBackground: false,
@@ -773,6 +785,44 @@ export default function SprintBoardTab() {
         ),
       );
       setCardErrors((prev) => new Map(prev).set(issueKey, 'Transition failed'));
+    }
+  }
+
+  async function handleToggleFlag(issueKey: string) {
+    const originalIssue = localIssues.find((i) => i.key === issueKey);
+    if (!originalIssue) return;
+
+    const currentFlagged = isIssueFlagged(originalIssue, flaggedFieldKey);
+    const newFlaggedValue = currentFlagged ? null : [{ value: 'Impediment' }];
+
+    // Optimistic update
+    setLocalIssues((prev) =>
+      prev.map((i) =>
+        i.key === issueKey
+          ? { ...i, fields: { ...i.fields, [flaggedFieldKey]: newFlaggedValue } }
+          : i,
+      ),
+    );
+    setCardErrors((prev) => {
+      const m = new Map(prev);
+      m.delete(issueKey);
+      return m;
+    });
+
+    try {
+      await setIssueFlagged(jiraBaseUrl!, jiraToken!, issueKey, !currentFlagged, flaggedFieldKey);
+      queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
+    } catch {
+      // Rollback
+      setLocalIssues((prev) =>
+        prev.map((i) =>
+          i.key === issueKey
+            ? { ...i, fields: { ...i.fields, [flaggedFieldKey]: originalIssue.fields[flaggedFieldKey] } }
+            : i,
+        ),
+      );
+      setCardErrors((prev) => new Map(prev).set(issueKey, 'Flag update failed'));
     }
   }
 
@@ -1193,6 +1243,8 @@ export default function SprintBoardTab() {
                 epicNameMap={epicNameMap}
                 epicColorMap={epicColorMap}
                 epicLinkFieldKey={epicLinkFieldKey}
+                flaggedFieldKey={flaggedFieldKey}
+                onToggleFlag={handleToggleFlag}
               />
             )}
           </div>
