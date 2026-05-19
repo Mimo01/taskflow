@@ -1,11 +1,18 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
 // @ts-expect-error — jira2md has no default export type declarations
 import j2m from 'jira2md';
-import { type ComponentPropsWithoutRef, type MouseEvent, useState } from 'react';
+import {
+  type ComponentPropsWithoutRef,
+  type MouseEvent,
+  createContext,
+  useContext,
+  useState,
+} from 'react';
 import Markdown from 'react-markdown';
 import { useLocation, useNavigate } from 'react-router-dom';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import { tryInternalPath } from '@/lib/internalLinks';
 import { cn } from '@/lib/utils';
@@ -638,6 +645,39 @@ export function preprocessJiraMarkup(
   // per cell prevents any cross-boundary pairing.
   result = normalizeTableCellInlineFormatting(result);
 
+  // Numeric/alpha/roman ordered-list prefixes: some Jira content uses `1. item`,
+  // `a. sub`, `i. sub-sub` instead of jira2md's recognized `# item` / `## sub` /
+  // `### sub-sub` hash-prefix syntax. jira2md's ordered-list regex only matches
+  // `^[ \t]*(#+)\s+` — it leaves `1.`, `a.`, `i.` lines unchanged. When
+  // react-markdown then parses the output, `1. text` starts an ordered list but
+  // `a. text` and `i. text` (no intervening blank line) become lazy paragraph
+  // continuations inside the single top-level <li>, collapsing all sub-levels
+  // into one bullet.  Pre-normalize to jira2md's `#` syntax here.
+  //
+  // Level convention (mirrors Jira DC rendering):
+  //   numeric  (1., 2., …)          → # (level 1)
+  //   alpha    (a., b., …)          → ## (level 2)
+  //   roman    (i., ii., iii., …)   → ### (level 3)
+  //
+  // Order matters: roman must run before alpha so that `i.`, `v.`, `x.` etc.
+  // are caught as level-3 before the single-letter alpha rule fires.
+  // Roman pattern covers values up to ~39 (xxxix) via the standard sub-tractive
+  // form `x{0,3}(ix|iv|v?i{0,3})`.  The empty-string guard (`num` truthy check)
+  // prevents matching a bare `.` if the alternation collapses to zero chars.
+  result = result.replace(
+    /^[ \t]*(x{0,3}(?:ix|iv|v?i{0,3}))\.\s+/gm,
+    (_m: string, num: string) => (num ? '### ' : _m),
+  );
+  result = result.replace(/^[ \t]*[a-z]\.\s+/gm, '## ');
+  result = result.replace(/^[ \t]*\d+\.\s+/gm, '# ');
+
+  // Unicode bullet character (U+2022 •): some Jira descriptions use `• item`
+  // instead of jira2md's recognized `* item` asterisk-prefix syntax. jira2md
+  // does not recognise `•` as a list marker — it passes the line through as
+  // plain inline text and react-markdown wraps it in a `<p>` instead of
+  // `<ul><li>`. Pre-normalize to the asterisk form jira2md expects.
+  result = result.replace(/^[ \t]*•[ \t]*/gm, '* ');
+
   // Plan 54-06: real ESHOP test-run content uses `hN.X` (no space) and `\\` as
   // a hard line break. jira2md leaves both unmodified. Normalize before jira2md:
   // - `h1.foo` … `h6.foo` → `h1. foo` (so jira2md emits valid `#…# foo`)
@@ -842,6 +882,9 @@ const calloutStyles: Record<string, string> = {
     'border-l-4 border-border bg-muted/50 p-3 rounded-r-md my-2 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
 };
 
+const OlDepthContext = createContext(0);
+const OL_LIST_STYLES = ['decimal', 'lower-alpha', 'lower-roman'] as const;
+
 export function WikiRenderer({ wikiText, className, attachments, users }: WikiRendererProps) {
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -879,6 +922,17 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
         <table {...rest}>{children}</table>
       </div>
     ),
+    ol: ({ children, ...rest }: ComponentPropsWithoutRef<'ol'>) => {
+      const depth = useContext(OlDepthContext);
+      const listStyle = OL_LIST_STYLES[depth % OL_LIST_STYLES.length];
+      return (
+        <OlDepthContext.Provider value={depth + 1}>
+          <ol {...rest} style={{ listStyleType: listStyle }}>
+            {children}
+          </ol>
+        </OlDepthContext.Provider>
+      );
+    },
     div: ({ node, children, ...rest }: ComponentPropsWithoutRef<'div'> & { node?: unknown }) => {
       const props = rest as Record<string, unknown>;
       const calloutType = props['data-callout'] as string | undefined;
@@ -1004,7 +1058,7 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
   return (
     <article className={cn('prose prose-sm dark:prose-invert max-w-none break-words', className)}>
       <Markdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkBreaks]}
         // T-54-07-01 mitigation: rehypeRaw passes raw HTML through to the
         // rehype tree; rehypeSanitize then strips dangerous tags before render.
         // Order matters: sanitize MUST run AFTER raw so it sees the parsed HTML.
