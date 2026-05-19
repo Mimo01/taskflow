@@ -23,6 +23,7 @@ export async function discoverCustomFields(
   epicNameFieldKey: string;
   sprintFieldKey: string;
   epicColorFieldKey: string;
+  flaggedFieldKey: string;
 }> {
   const defaults = {
     storyPointsFieldKey: 'customfield_10016',
@@ -30,6 +31,7 @@ export async function discoverCustomFields(
     epicNameFieldKey: 'customfield_10015',
     sprintFieldKey: 'customfield_10020',
     epicColorFieldKey: 'customfield_10013',
+    flaggedFieldKey: 'customfield_10021',
   };
   try {
     const response = await apiFetch(
@@ -56,6 +58,7 @@ export async function discoverCustomFields(
       )
         result.storyPointsFieldKey = f.id;
       if (f.id === 'customfield_10028') result.storyPointsFieldKey = f.id;
+      if (f.name === 'Flagged') result.flaggedFieldKey = f.id;
     }
     return result;
   } catch {

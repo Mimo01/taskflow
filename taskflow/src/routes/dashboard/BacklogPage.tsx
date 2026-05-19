@@ -38,7 +38,9 @@ import {
   addIssuesToSprint,
   fetchEpicsBasic,
   fetchProjectStatuses,
+  isIssueFlagged,
   moveIssuesToBacklog,
+  setIssueFlagged,
 } from '@/services/jira';
 import {
   fetchBacklogIssues,
@@ -70,6 +72,8 @@ function VirtualizedBacklogTable({
   sprints,
   onMoveToSprint,
   onMoveToBacklog,
+  flaggedFieldKey,
+  onToggleFlag,
 }: {
   filteredIssues: JiraIssue[];
   scrollElement: HTMLDivElement | null;
@@ -86,6 +90,8 @@ function VirtualizedBacklogTable({
   sprints: Array<{ id: number; name: string; state: string }>;
   onMoveToSprint: (issueKey: string, sprintId: number, sprintName: string) => void;
   onMoveToBacklog?: (issueKey: string) => void;
+  flaggedFieldKey: string;
+  onToggleFlag: (issueKey: string) => void;
 }) {
   const rowVirtualizer = useVirtualizer({
     count: filteredIssues.length,
@@ -131,6 +137,8 @@ function VirtualizedBacklogTable({
         sprints={sprints}
         onMoveToSprint={onMoveToSprint}
         onMoveToBacklog={onMoveToBacklog}
+        isFlagged={isIssueFlagged(issue, flaggedFieldKey)}
+        onToggleFlag={onToggleFlag}
       />
     );
   }
@@ -190,7 +198,7 @@ export default function BacklogPage() {
 
   // ── Auth / settings ─────────────────────────────────────────────────────────
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
-  const { storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey, epicColorFieldKey } =
+  const { storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey, epicColorFieldKey, flaggedFieldKey } =
     useSettingsStore();
 
   const [jiraToken, setJiraToken] = useState<string | null>(null);
@@ -243,6 +251,7 @@ export default function BacklogPage() {
       sprintIds,
       storyPointsFieldKey,
       epicLinkFieldKey,
+      flaggedFieldKey,
     ],
     queryFn: () =>
       fetchBacklogSprintStories(
@@ -252,6 +261,7 @@ export default function BacklogPage() {
         sprintIds,
         storyPointsFieldKey,
         epicLinkFieldKey,
+        flaggedFieldKey,
       ),
     staleTime: STALE_TIME_MS,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken && sprintIds.length > 0,
@@ -272,6 +282,7 @@ export default function BacklogPage() {
       storyPointsFieldKey,
       epicLinkFieldKey,
       epicNameFieldKey,
+      flaggedFieldKey,
     ],
     queryFn: () =>
       fetchBacklogIssues(
@@ -281,6 +292,7 @@ export default function BacklogPage() {
         storyPointsFieldKey,
         epicLinkFieldKey,
         epicNameFieldKey,
+        flaggedFieldKey,
       ),
     staleTime: STALE_TIME_MS,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
@@ -582,6 +594,7 @@ export default function BacklogPage() {
       storyPointsFieldKey,
       epicLinkFieldKey,
       epicNameFieldKey,
+      flaggedFieldKey,
     ]);
     queryClient.setQueryData<JiraIssue[]>(
       [
@@ -591,6 +604,7 @@ export default function BacklogPage() {
         storyPointsFieldKey,
         epicLinkFieldKey,
         epicNameFieldKey,
+        flaggedFieldKey,
       ],
       (old) => old?.filter((i) => i.key !== issueKey),
     );
@@ -603,6 +617,7 @@ export default function BacklogPage() {
         sprintIds,
         storyPointsFieldKey,
         epicLinkFieldKey,
+        flaggedFieldKey,
       ],
       (old) => old?.filter((i) => i.key !== issueKey),
     );
@@ -623,6 +638,7 @@ export default function BacklogPage() {
           storyPointsFieldKey,
           epicLinkFieldKey,
           epicNameFieldKey,
+          flaggedFieldKey,
         ],
         previousBacklog,
       );
@@ -641,6 +657,7 @@ export default function BacklogPage() {
       sprintIds,
       storyPointsFieldKey,
       epicLinkFieldKey,
+      flaggedFieldKey,
     ]);
     queryClient.setQueryData<JiraIssue[]>(
       [
@@ -650,6 +667,7 @@ export default function BacklogPage() {
         sprintIds,
         storyPointsFieldKey,
         epicLinkFieldKey,
+        flaggedFieldKey,
       ],
       (old) => old?.filter((i) => i.key !== issueKey),
     );
@@ -670,8 +688,106 @@ export default function BacklogPage() {
           sprintIds,
           storyPointsFieldKey,
           epicLinkFieldKey,
+          flaggedFieldKey,
         ],
         previousStories,
+      );
+    }
+  }
+
+  async function handleToggleFlag(issueKey: string) {
+    // Find the issue across sprint stories and backlog issues
+    const allIssuesList = [...(sprintStories ?? []), ...(backlogIssues ?? [])];
+    const issue = allIssuesList.find((i) => i.key === issueKey);
+    if (!issue) return;
+
+    const currentFlagged = isIssueFlagged(issue, flaggedFieldKey);
+    const newFlaggedValue = currentFlagged ? null : [{ value: 'Impediment' }];
+
+    // Snapshot previous cached arrays for rollback
+    const previousBacklogIssues = queryClient.getQueryData<JiraIssue[]>([
+      'jira-backlog-issues',
+      activeJiraProject,
+      jiraBaseUrl,
+      storyPointsFieldKey,
+      epicLinkFieldKey,
+      epicNameFieldKey,
+      flaggedFieldKey,
+    ]);
+    const previousSprintStories = queryClient.getQueryData<JiraIssue[]>([
+      'jira-backlog-sprint-stories',
+      activeJiraProject,
+      jiraBaseUrl,
+      sprintIds,
+      storyPointsFieldKey,
+      epicLinkFieldKey,
+      flaggedFieldKey,
+    ]);
+
+    // Optimistically update both caches
+    const updateIssueFlag = (old: JiraIssue[] | undefined) =>
+      old?.map((i) =>
+        i.key === issueKey
+          ? { ...i, fields: { ...i.fields, [flaggedFieldKey]: newFlaggedValue } }
+          : i,
+      );
+
+    queryClient.setQueryData<JiraIssue[]>(
+      [
+        'jira-backlog-issues',
+        activeJiraProject,
+        jiraBaseUrl,
+        storyPointsFieldKey,
+        epicLinkFieldKey,
+        epicNameFieldKey,
+        flaggedFieldKey,
+      ],
+      updateIssueFlag,
+    );
+    queryClient.setQueryData<JiraIssue[]>(
+      [
+        'jira-backlog-sprint-stories',
+        activeJiraProject,
+        jiraBaseUrl,
+        sprintIds,
+        storyPointsFieldKey,
+        epicLinkFieldKey,
+        flaggedFieldKey,
+      ],
+      updateIssueFlag,
+    );
+
+    try {
+      await setIssueFlagged(jiraBaseUrl!, jiraToken!, issueKey, !currentFlagged, flaggedFieldKey);
+      queryClient.invalidateQueries({ queryKey: ['jira-backlog-sprint-stories'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-detail'] });
+    } catch {
+      // Rollback both caches
+      queryClient.setQueryData(
+        [
+          'jira-backlog-issues',
+          activeJiraProject,
+          jiraBaseUrl,
+          storyPointsFieldKey,
+          epicLinkFieldKey,
+          epicNameFieldKey,
+          flaggedFieldKey,
+        ],
+        previousBacklogIssues,
+      );
+      queryClient.setQueryData(
+        [
+          'jira-backlog-sprint-stories',
+          activeJiraProject,
+          jiraBaseUrl,
+          sprintIds,
+          storyPointsFieldKey,
+          epicLinkFieldKey,
+          flaggedFieldKey,
+        ],
+        previousSprintStories,
       );
     }
   }
@@ -749,6 +865,8 @@ export default function BacklogPage() {
                 sprints={availableSprints}
                 onMoveToSprint={requestMoveToSprint}
                 onMoveToBacklog={moveToBacklog}
+                flaggedFieldKey={flaggedFieldKey}
+                onToggleFlag={handleToggleFlag}
               />
             ) : issues.length > 0 ? (
               /* All issues filtered out */

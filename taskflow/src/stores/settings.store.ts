@@ -58,6 +58,8 @@ interface SettingsState {
   sprintFieldKey: string;
   /** Discovered epic color custom field key. Defaults to customfield_10013. */
   epicColorFieldKey: string;
+  /** Discovered flagged custom field key. Defaults to customfield_10021. */
+  flaggedFieldKey: string;
   /** Discovered account custom field key. Reserved for Phase 11. */
   accountFieldKey: string | null;
   /** Master toggle for developer tools. Default: false. */
@@ -166,6 +168,7 @@ interface SettingsState {
   setEpicNameFieldKey: (key: string) => void;
   setSprintFieldKey: (key: string) => void;
   setEpicColorFieldKey: (key: string) => void;
+  setFlaggedFieldKey: (key: string) => void;
   setAccountFieldKey: (key: string | null) => void;
   /** Sidebar item visibility and order. Default: DEV_SIDEBAR_PRESET. */
   sidebarItems: SidebarItem[];
@@ -201,6 +204,7 @@ export const useSettingsStore = create<SettingsState>()(
       epicNameFieldKey: 'customfield_10015',
       sprintFieldKey: 'customfield_10020',
       epicColorFieldKey: 'customfield_10013',
+      flaggedFieldKey: 'customfield_10021',
       accountFieldKey: null,
       devToolsEnabled: false,
       requestLogging: false,
@@ -311,6 +315,7 @@ export const useSettingsStore = create<SettingsState>()(
       setEpicNameFieldKey: (key) => set({ epicNameFieldKey: key }),
       setSprintFieldKey: (key) => set({ sprintFieldKey: key }),
       setEpicColorFieldKey: (key) => set({ epicColorFieldKey: key }),
+      setFlaggedFieldKey: (key) => set({ flaggedFieldKey: key }),
       setAccountFieldKey: (key) => set({ accountFieldKey: key }),
       sidebarItems: getDefaultSidebarItems('dev'),
       dashboardLayout: getDefaultDashboardLayout('dev'),
@@ -367,7 +372,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 17,
+      version: 18,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -445,6 +450,9 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 17) {
           if (s.selectedAioProjectKey === undefined) s.selectedAioProjectKey = null;
+        }
+        if (version < 18) {
+          if (s.flaggedFieldKey === undefined) s.flaggedFieldKey = 'customfield_10021';
         }
         return persisted as SettingsState;
       },

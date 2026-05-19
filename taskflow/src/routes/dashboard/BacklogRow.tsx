@@ -11,6 +11,7 @@
  * Right-click opens a context menu with "Move to sprint" options (when onMoveToSprint provided).
  */
 import React from 'react';
+import { Flag } from 'lucide-react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import {
   ContextMenu,
@@ -43,6 +44,10 @@ export interface BacklogRowProps {
   sprints?: Array<{ id: number; name: string; state: string }>;
   onMoveToSprint?: (issueKey: string, sprintId: number, sprintName: string) => void;
   onMoveToBacklog?: (issueKey: string) => void;
+  /** Whether this issue is currently flagged as an impediment */
+  isFlagged?: boolean;
+  /** Called when user selects Flag/Unflag from the context menu */
+  onToggleFlag?: (issueKey: string) => void;
 }
 
 // -- Row cells (shared between both render paths) ----------------------------
@@ -55,6 +60,7 @@ function RowCells({
   storyPoints,
   onIssueClick,
   epicsLoading,
+  isFlagged,
 }: {
   issue: JiraIssue;
   epicKey: string | null;
@@ -63,6 +69,7 @@ function RowCells({
   storyPoints: number | null;
   onIssueClick: (key: string) => void;
   epicsLoading?: boolean;
+  isFlagged?: boolean;
 }) {
   return (
     <>
@@ -74,6 +81,9 @@ function RowCells({
       {/* Summary cell -- takes remaining space, truncates on overflow */}
       <td className="max-w-0 w-full px-2 py-2 density-compact:py-1 density-comfortable:py-3 overflow-hidden whitespace-nowrap text-ellipsis">
         <span className="inline-flex items-center gap-2 text-sm text-left">
+          {isFlagged && (
+            <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300 shrink-0" />
+          )}
           <span className="truncate">{issue.fields.summary}</span>
           <OverdueBadge
             duedate={(issue.fields.duedate as string | null) ?? null}
@@ -149,6 +159,8 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       sprints,
       onMoveToSprint,
       onMoveToBacklog,
+      isFlagged,
+      onToggleFlag,
     },
     ref,
   ) {
@@ -168,7 +180,10 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       : null;
 
     const rowClassName = cn(
-      'border-b border-border hover:bg-muted/30 transition-colors cursor-pointer',
+      'border-b border-border transition-colors cursor-pointer',
+      isFlagged
+        ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40'
+        : 'hover:bg-muted/30',
       isFocused && 'bg-muted border-l-2 border-primary',
     );
 
@@ -180,9 +195,10 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
       storyPoints,
       onIssueClick,
       epicsLoading,
+      isFlagged,
     };
 
-    if (!onMoveToSprint && !onMoveToBacklog) {
+    if (!onMoveToSprint && !onMoveToBacklog && !onToggleFlag) {
       return (
         <tr
           ref={ref}
@@ -212,22 +228,33 @@ export const BacklogRow = React.forwardRef<HTMLTableRowElement, BacklogRowProps>
           }
         />
         <ContextMenuContent>
-          <ContextMenuGroup>
-            <ContextMenuLabel>Move to...</ContextMenuLabel>
-            <ContextMenuSeparator />
-            <SprintMoveMenuItems
-              sprints={sprints ?? []}
-              currentSprintId={(issue.fields.sprint as { id: number } | null)?.id ?? null}
-              showBacklog={!!onMoveToBacklog}
-              onSelectSprint={(sprintId, sprintName) =>
-                onMoveToSprint?.(issue.key, sprintId, sprintName)
-              }
-              onSelectBacklog={() => onMoveToBacklog?.(issue.key)}
-              Item={ContextMenuItem}
-              Separator={ContextMenuSeparator}
-              Label={ContextMenuLabel}
-            />
-          </ContextMenuGroup>
+          {(onMoveToSprint || onMoveToBacklog) && (
+            <ContextMenuGroup>
+              <ContextMenuLabel>Move to...</ContextMenuLabel>
+              <ContextMenuSeparator />
+              <SprintMoveMenuItems
+                sprints={sprints ?? []}
+                currentSprintId={(issue.fields.sprint as { id: number } | null)?.id ?? null}
+                showBacklog={!!onMoveToBacklog}
+                onSelectSprint={(sprintId, sprintName) =>
+                  onMoveToSprint?.(issue.key, sprintId, sprintName)
+                }
+                onSelectBacklog={() => onMoveToBacklog?.(issue.key)}
+                Item={ContextMenuItem}
+                Separator={ContextMenuSeparator}
+                Label={ContextMenuLabel}
+              />
+            </ContextMenuGroup>
+          )}
+          {onToggleFlag && (
+            <>
+              {(onMoveToSprint || onMoveToBacklog) && <ContextMenuSeparator />}
+              <ContextMenuItem onClick={() => onToggleFlag(issue.key)}>
+                <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300" />
+                {isFlagged ? 'Unflag' : 'Flag'}
+              </ContextMenuItem>
+            </>
+          )}
         </ContextMenuContent>
       </ContextMenu>
     );
