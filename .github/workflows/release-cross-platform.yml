@@ -234,6 +234,9 @@ jobs:
           BARE=$(echo "$TAG" | sed 's/^v//')
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "bare=$BARE" >> "$GITHUB_OUTPUT"
+          # actions/checkout doesn't always dereference annotated tag objects;
+          # force-fetch ensures %(contents:body) reads the annotation, not the commit.
+          git fetch --tags --force
 
       - name: Create GitHub release on taskflow-releases
         id: create
