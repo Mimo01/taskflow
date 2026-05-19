@@ -1,8 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { Copy, ExternalLink, Pencil, Pin, Plus } from 'lucide-react';
+import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
+import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraAttachment, JiraIssue, JiraIssueDetail, JiraIssueLink } from '@/services/jira';
@@ -12,7 +14,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import type { EditInitialValues } from './CreateEditIssueModal';
 import { AttachmentsSection } from './issue-detail/AttachmentsSection';
 import { LogWorkPopover } from './issue-detail/LogWorkPopover';
-import type { AttachmentMap, UserMap } from './WikiRenderer';
+import type { AttachmentMap } from './WikiRenderer';
 import { WikiRenderer } from './WikiRenderer';
 
 interface IssueDetailContentProps {
@@ -72,24 +74,26 @@ export function IssueDetailContent({
     attachmentMap[att.filename] = att.content;
   }
 
-  // Build user lookup map from available issue data (assignee, reporter, comment authors)
-  const userMap: UserMap = {};
   const { assignee, reporter } = issue.fields;
-  if (assignee) {
-    userMap[assignee.name] = assignee.displayName;
-  }
-  if (reporter) {
-    if (reporter.name) userMap[reporter.name] = reporter.displayName;
-    userMap[reporter.displayName] = reporter.displayName;
-  }
-  for (const c of comments) {
-    if (c.author?.displayName) {
-      // Comment author may have name field in some Jira versions
-      const authorObj = c.author as { displayName: string; name?: string };
-      if (authorObj.name) userMap[authorObj.name] = authorObj.displayName;
-      userMap[authorObj.displayName] = authorObj.displayName;
+  const initialUserMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    if (assignee) map[assignee.name] = assignee.displayName;
+    if (reporter) {
+      if (reporter.name) map[reporter.name] = reporter.displayName;
+      map[reporter.displayName] = reporter.displayName;
     }
-  }
+    for (const c of comments) {
+      if (c.author?.displayName) {
+        const authorObj = c.author as { displayName: string; name?: string };
+        if (authorObj.name) map[authorObj.name] = authorObj.displayName;
+        map[authorObj.displayName] = authorObj.displayName;
+      }
+    }
+    return map;
+  }, [assignee, reporter, comments]);
+
+  const descriptionTexts = useMemo(() => [description], [description]);
+  const userMap = useMentionUserMap(initialUserMap, descriptionTexts, jiraBaseUrl);
 
   return (
     <div className="space-y-6">
