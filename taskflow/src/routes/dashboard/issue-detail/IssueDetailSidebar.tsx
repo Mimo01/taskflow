@@ -44,7 +44,7 @@ export function IssueDetailSidebar({
     gitlabConnected,
     activeGitlabProject,
   } = useAuthStore();
-  const { epicColorFieldKey } = useSettingsStore();
+  const { epicColorFieldKey, flaggedFieldKey } = useSettingsStore();
   const effectiveJiraBaseUrl = jiraBaseUrl || storeJiraBaseUrl || '';
 
   const epicLink = isStory ? (f[epicLinkFieldKey] as string | null) : null;
@@ -118,6 +118,7 @@ export function IssueDetailSidebar({
         epicNameFieldKey={epicNameFieldKey}
         sprintFieldKey={sprintFieldKey}
         epicColorFieldKey={epicColorFieldKey}
+        flaggedFieldKey={flaggedFieldKey}
         mutation={mutation}
         epicIssue={epicIssue}
         onOpenIssue={onOpenIssue}

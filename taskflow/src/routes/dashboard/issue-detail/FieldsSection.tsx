@@ -1,5 +1,6 @@
 import type { UseMutationResult } from '@tanstack/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Flag } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
@@ -26,7 +27,8 @@ import { SprintMoveMenuItems } from '@/components/ui/sprint-move-menu-items';
 import { useBoardId } from '@/hooks/useBoardId';
 import { apiFetch } from '@/lib/apiFetch';
 import { epicColorToTailwind } from '@/lib/epicColors';
-import type { JiraIssueDetail } from '@/services/jira';
+import type { JiraIssue, JiraIssueDetail } from '@/services/jira';
+import { isIssueFlagged } from '@/services/jira';
 import { fetchSprintList } from '@/services/jira/backlog';
 import { addIssuesToSprint, moveIssuesToBacklog } from '@/services/jira/sprints';
 import { postTransition } from '@/services/jira/transitions';
@@ -69,6 +71,7 @@ interface FieldsSectionProps {
   epicNameFieldKey: string;
   sprintFieldKey: string;
   epicColorFieldKey: string;
+  flaggedFieldKey?: string;
   mutation: UseMutationResult<unknown, Error, { fieldName: string; value: unknown }>;
   epicIssue: { fields: { summary: string; [k: string]: unknown } } | null | undefined;
   onOpenIssue?: (key: string) => void;
@@ -82,6 +85,7 @@ export function FieldsSection({
   epicLinkFieldKey,
   sprintFieldKey,
   epicColorFieldKey,
+  flaggedFieldKey = 'customfield_10021',
   mutation,
   epicIssue,
   epicNameFieldKey,
@@ -433,6 +437,38 @@ export function FieldsSection({
           </button>
         )}
       </MetaRow>
+
+      {/* Flagged -- toggle impediment flag */}
+      {(() => {
+        const isFlagged = isIssueFlagged(issue as unknown as JiraIssue, flaggedFieldKey);
+        return (
+          <MetaRow label="Flagged">
+            <button
+              type="button"
+              onClick={() =>
+                mutation.mutate({
+                  fieldName: flaggedFieldKey,
+                  value: isFlagged ? null : [{ value: 'Impediment' }],
+                })
+              }
+              className="inline-flex items-center gap-1 rounded px-1 -ml-1 hover:bg-accent cursor-pointer text-left"
+              title={isFlagged ? 'Unflag this issue' : 'Flag this issue as an impediment'}
+            >
+              {isFlagged ? (
+                <>
+                  <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300" />
+                  <span>Flagged (Impediment)</span>
+                </>
+              ) : (
+                <span className="text-muted-foreground">— Add flag</span>
+              )}
+            </button>
+            {mutation.isError && mutation.variables?.fieldName === flaggedFieldKey && (
+              <p className="text-xs text-destructive mt-1">Save failed — changes reverted</p>
+            )}
+          </MetaRow>
+        );
+      })()}
 
       {/* Severity -- shown only when customfield_13415 has a value */}
       {(() => {
