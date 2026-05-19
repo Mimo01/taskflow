@@ -347,6 +347,8 @@ function VirtualizedSwimlanes({
             epicName={storyEpicName}
             epicColorResult={storyEpicColorResult}
             onEpicClick={setSelectedIssueKey}
+            isFlagged={isIssueFlagged(story, flaggedFieldKey)}
+            onToggleFlag={() => onToggleFlag(story.key)}
           />
         </div>
         <div
@@ -454,6 +456,8 @@ function VirtualizedSwimlanes({
                 epicName={fallbackEpicName}
                 epicColorResult={fallbackEpicColorResult}
                 onEpicClick={setSelectedIssueKey}
+                isFlagged={isIssueFlagged(story, flaggedFieldKey)}
+                onToggleFlag={() => onToggleFlag(story.key)}
               />
             </div>
             <div
@@ -1140,6 +1144,8 @@ export default function SprintBoardTab() {
                     return ek ? epicColorToTailwind(epicColorMap.get(ek) ?? null, ek) : null;
                   })()}
                   onEpicClick={setSelectedIssueKey}
+                  isFlagged={isIssueFlagged(stickyHeader.story, flaggedFieldKey)}
+                  onToggleFlag={() => handleToggleFlag(stickyHeader.story.key)}
                 />
               </div>
             )}
