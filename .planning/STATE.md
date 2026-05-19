@@ -60,9 +60,15 @@ Decisions are logged in PROJECT.md Key Decisions table. See v1.8 entries (AIO se
 - Apple Developer ID certificate ($99/yr) may not yet be acquired — blocks macOS notarization (carried from v1.7)
 - Windows code signing decision needed — Azure Trusted Signing vs OV/EV cert (carried from v1.7)
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260519-eol | In sprint view and backlog view I want to see flagged issues colored with background yellow and with a flag. Right clicking should allow to flag/unflad. On issue detail the flag should be in the sidebar | 2026-05-19 | 67188ee5 | [260519-eol-in-sprint-view-and-backlog-view-i-want-t](./quick/260519-eol-in-sprint-view-and-backlog-view-i-want-t/) |
+
 ## Session Continuity
 
-Last activity: 2026-05-19 - Milestone v1.8 complete and archived
+Last activity: 2026-05-19 - Completed quick task 260519-eol: In sprint view and backlog view I want to see flagged issues colored with background yellow and with a flag. Right clicking should allow to flag/unflad. On issue detail the flag should be in the sidebar
 Last session: 2026-05-18T23:29:22.353Z
 Stopped at: context exhaustion at 75% (2026-05-18)
 Next: `/gsd:new-milestone`
