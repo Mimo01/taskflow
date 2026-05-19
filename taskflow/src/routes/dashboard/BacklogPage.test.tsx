@@ -37,6 +37,8 @@ vi.mock('@/services/jira', () => ({
   fetchEpicsBasic: vi.fn().mockResolvedValue([]),
   fetchProjectStatuses: vi.fn().mockResolvedValue([]),
   fetchSprintStories: vi.fn().mockResolvedValue([]),
+  isIssueFlagged: vi.fn().mockReturnValue(false),
+  setIssueFlagged: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@/services/jira/backlog', () => ({
@@ -66,6 +68,7 @@ vi.mock('@/stores/settings.store', () => ({
     epicLinkFieldKey: 'customfield_10014',
     epicNameFieldKey: 'customfield_10015',
     epicColorFieldKey: 'customfield_10013',
+    flaggedFieldKey: 'customfield_10021',
     accountFieldKey: null,
     quickFilters: [],
     addQuickFilter: vi.fn(),

@@ -6,7 +6,7 @@
  * and subtask count. Clicking the row opens the detail sheet; clicking
  * the chevron toggles expand/collapse without opening the sheet.
  */
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Flag } from 'lucide-react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import {
   ContextMenu,
@@ -45,6 +45,10 @@ interface StoryHeaderRowProps {
   epicName?: string | null;
   epicColorResult?: EpicColorResult | null;
   onEpicClick?: (key: string) => void;
+  /** Whether this story is currently flagged as an impediment */
+  isFlagged?: boolean;
+  /** Called when user selects Flag/Unflag from the context menu */
+  onToggleFlag?: () => void;
 }
 
 export function StoryHeaderRow({
@@ -65,14 +69,20 @@ export function StoryHeaderRow({
   epicName,
   epicColorResult,
   onEpicClick,
+  isFlagged,
+  onToggleFlag,
 }: StoryHeaderRowProps) {
   const rowContent = (
     <div
       className={cn(
         'flex items-center gap-2 px-3 py-2 transition-colors border-b',
         isExpanded
-          ? 'bg-muted/40 hover:bg-muted/60 border-border/60'
-          : 'bg-muted/40 hover:bg-muted/60 border-border/60 mb-px',
+          ? isFlagged
+            ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40 border-border/60'
+            : 'bg-muted/40 hover:bg-muted/60 border-border/60'
+          : isFlagged
+            ? 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40 border-border/60 mb-px'
+            : 'bg-muted/40 hover:bg-muted/60 border-border/60 mb-px',
       )}
     >
       {/* Chevron — toggles collapse without opening detail sheet */}
@@ -93,6 +103,9 @@ export function StoryHeaderRow({
         className="group flex items-center gap-2 flex-1 min-w-0 text-left cursor-pointer"
         onClick={() => onOpenDetail(storyKey)}
       >
+        {isFlagged && (
+          <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300 shrink-0" />
+        )}
         <span
           className={cn(
             'font-mono text-xs text-muted-foreground shrink-0',
@@ -149,7 +162,7 @@ export function StoryHeaderRow({
     </div>
   );
 
-  if (!onTransition) {
+  if (!onTransition && !onToggleFlag) {
     return rowContent;
   }
 
@@ -157,35 +170,52 @@ export function StoryHeaderRow({
     <ContextMenu>
       <ContextMenuTrigger>{rowContent}</ContextMenuTrigger>
       <ContextMenuContent>
-        <ContextMenuGroup>
-          <ContextMenuLabel>Move to...</ContextMenuLabel>
-        </ContextMenuGroup>
-        <ContextMenuSeparator />
-        {transitions && transitions.length > 0 ? (
-          transitions.map((transition) => (
-            <ContextMenuItem
-              key={transition.id}
-              onClick={() =>
-                onTransition(
-                  transition.id,
-                  transition.to.name,
-                  transition.to.id,
-                  transition.to.statusCategory?.key,
-                )
-              }
-            >
-              <span className="text-muted-foreground">→</span>
-              <span className={statusPillClass(transition.to.statusCategory?.key)}>
-                {transition.name}
-              </span>
-            </ContextMenuItem>
-          ))
-        ) : (
-          <ContextMenuGroup>
-            <ContextMenuLabel className="text-muted-foreground italic">
-              No transitions available
-            </ContextMenuLabel>
-          </ContextMenuGroup>
+        {onTransition && (
+          <>
+            <ContextMenuGroup>
+              <ContextMenuLabel>Move to...</ContextMenuLabel>
+            </ContextMenuGroup>
+            <ContextMenuSeparator />
+            {transitions && transitions.length > 0 ? (
+              transitions.map((transition) => (
+                <ContextMenuItem
+                  key={transition.id}
+                  onClick={() =>
+                    onTransition(
+                      transition.id,
+                      transition.to.name,
+                      transition.to.id,
+                      transition.to.statusCategory?.key,
+                    )
+                  }
+                >
+                  <span className="text-muted-foreground">→</span>
+                  <span className={statusPillClass(transition.to.statusCategory?.key)}>
+                    {transition.name}
+                  </span>
+                </ContextMenuItem>
+              ))
+            ) : (
+              <ContextMenuGroup>
+                <ContextMenuLabel className="text-muted-foreground italic">
+                  No transitions available
+                </ContextMenuLabel>
+              </ContextMenuGroup>
+            )}
+          </>
+        )}
+        {onToggleFlag && (
+          <>
+            {onTransition && <ContextMenuSeparator />}
+            <ContextMenuGroup>
+              <ContextMenuLabel>Flag</ContextMenuLabel>
+              <ContextMenuSeparator />
+              <ContextMenuItem onClick={onToggleFlag}>
+                <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300" />
+                {isFlagged ? 'Unflag' : 'Flag'}
+              </ContextMenuItem>
+            </ContextMenuGroup>
+          </>
         )}
       </ContextMenuContent>
     </ContextMenu>

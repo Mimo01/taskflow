@@ -24,6 +24,7 @@ vi.mock('@/services/stronghold', () => ({
 vi.mock('@/services/jira', () => ({
   fetchIssueDetail: vi.fn().mockResolvedValue(null),
   postComment: vi.fn().mockResolvedValue(undefined),
+  isIssueFlagged: vi.fn().mockReturnValue(false),
 }));
 
 // Mock @tauri-apps/plugin-opener
@@ -53,6 +54,7 @@ vi.mock('@/stores/settings.store', () => {
     sprintFieldKey: 'customfield_10020',
     storyPointsFieldKey: 'customfield_10016',
     epicColorFieldKey: 'customfield_10013',
+    flaggedFieldKey: 'customfield_10021',
     commentSortOrder: 'newest' as const,
   };
   return {

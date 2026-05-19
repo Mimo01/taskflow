@@ -33,6 +33,9 @@ vi.mock('@/services/jira', () => ({
   postTransition: vi.fn().mockResolvedValue(undefined),
   fetchSprintStories: vi.fn().mockResolvedValue([]),
   fetchSprintSubtasks: vi.fn().mockResolvedValue([]),
+  fetchEpicsBasic: vi.fn().mockResolvedValue([]),
+  isIssueFlagged: vi.fn().mockReturnValue(false),
+  setIssueFlagged: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock useBoardId hook — returns null (no board discovery in tests)
@@ -56,6 +59,7 @@ vi.mock('@/stores/settings.store', () => ({
     epicLinkFieldKey: 'customfield_10014',
     epicNameFieldKey: 'customfield_10015',
     epicColorFieldKey: 'customfield_10013',
+    flaggedFieldKey: 'customfield_10021',
     quickFilters: [],
     addQuickFilter: vi.fn(),
     removeQuickFilter: vi.fn(),
