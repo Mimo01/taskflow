@@ -187,6 +187,33 @@ export interface JiraTransition {
   };
 }
 
+/**
+ * Returns true when a Jira issue is flagged (has a non-empty Flagged customfield array).
+ *
+ * Jira represents the Flagged field as an array of { value: string } objects.
+ * An issue is flagged iff the array is non-empty. An unflagged issue has null or [].
+ */
+export function isIssueFlagged(issue: JiraIssue, fieldKey: string): boolean {
+  const val = issue.fields[fieldKey];
+  return Array.isArray(val) && val.length > 0;
+}
+
+/**
+ * Toggle the Flagged state of a Jira issue.
+ *
+ * FLAG:   PUT /rest/api/2/issue/{key} with fields: { [fieldKey]: [{ value: "Impediment" }] }
+ * UNFLAG: PUT /rest/api/2/issue/{key} with fields: { [fieldKey]: null }
+ */
+export async function setIssueFlagged(
+  baseUrl: string,
+  token: string,
+  issueKey: string,
+  flagged: boolean,
+  fieldKey = 'customfield_10021',
+): Promise<void> {
+  return updateIssueField(baseUrl, token, issueKey, fieldKey, flagged ? [{ value: 'Impediment' }] : null);
+}
+
 const SUBTASK_CHUNK_SIZE = 50;
 const PAGE_SIZE = 200;
 
@@ -418,6 +445,7 @@ export async function fetchSprintStories(
   assignedToMe = false,
   storyPointsFieldKey = 'customfield_10016',
   epicLinkFieldKey = 'customfield_10014',
+  flaggedFieldKey = 'customfield_10021',
 ): Promise<JiraIssue[]> {
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -425,7 +453,7 @@ export async function fetchSprintStories(
   const spFields = [
     ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
   ].join(',');
-  const fields = `summary,status,assignee,issuetype,labels,${spFields},${epicLinkFieldKey},parent,subtasks,timetracking,duedate`;
+  const fields = `summary,status,assignee,issuetype,labels,${spFields},${epicLinkFieldKey},parent,subtasks,timetracking,duedate,${flaggedFieldKey}`;
   const jql = encodeURIComponent(
     `project = ${projectKey} AND sprint in openSprints()${assigneeClause} AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`,
   );
@@ -1239,6 +1267,7 @@ export async function discoverCustomFields(
   epicNameFieldKey: string;
   sprintFieldKey: string;
   epicColorFieldKey: string;
+  flaggedFieldKey: string;
 }> {
   const defaults = {
     storyPointsFieldKey: 'customfield_10016',
@@ -1246,6 +1275,7 @@ export async function discoverCustomFields(
     epicNameFieldKey: 'customfield_10015',
     sprintFieldKey: 'customfield_10020',
     epicColorFieldKey: 'customfield_10013',
+    flaggedFieldKey: 'customfield_10021',
   };
   try {
     const response = await apiFetch(
@@ -1272,6 +1302,7 @@ export async function discoverCustomFields(
       )
         result.storyPointsFieldKey = f.id;
       if (f.id === 'customfield_10028') result.storyPointsFieldKey = f.id;
+      if (f.name === 'Flagged') result.flaggedFieldKey = f.id;
     }
     return result;
   } catch {

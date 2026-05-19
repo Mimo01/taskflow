@@ -24,6 +24,7 @@ export async function fetchBacklogIssues(
   storyPointsFieldKey = 'customfield_10016',
   epicLinkFieldKey = 'customfield_10014',
   epicNameFieldKey = 'customfield_10015',
+  flaggedFieldKey = 'customfield_10021',
 ): Promise<JiraIssue[]> {
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -42,6 +43,7 @@ export async function fetchBacklogIssues(
       storyPointsFieldKey,
       epicLinkFieldKey,
       epicNameFieldKey,
+      flaggedFieldKey,
     ]),
   ].join(',');
 
@@ -134,6 +136,7 @@ export async function fetchBacklogSprintStories(
   sprintIds: number[],
   storyPointsFieldKey = 'customfield_10016',
   epicLinkFieldKey = 'customfield_10014',
+  flaggedFieldKey = 'customfield_10021',
 ): Promise<JiraIssue[]> {
   if (sprintIds.length === 0) return [];
   const base = baseUrl.replace(/\/$/, '');
@@ -141,7 +144,7 @@ export async function fetchBacklogSprintStories(
   const spFields = [
     ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
   ].join(',');
-  const fields = `summary,status,assignee,issuetype,labels,${spFields},${epicLinkFieldKey},parent,subtasks,timetracking`;
+  const fields = `summary,status,assignee,issuetype,labels,${spFields},${epicLinkFieldKey},parent,subtasks,timetracking,${flaggedFieldKey}`;
 
   // Fetch issues per-sprint in parallel using the fast standard search API.
   // Since we query per sprint ID, we know which sprint each issue belongs to
@@ -197,6 +200,7 @@ export async function fetchBacklogView(
   storyPointsFieldKey = 'customfield_10016',
   epicLinkFieldKey = 'customfield_10014',
   epicNameFieldKey = 'customfield_10015',
+  flaggedFieldKey = 'customfield_10021',
 ): Promise<BacklogViewData> {
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -215,6 +219,7 @@ export async function fetchBacklogView(
       storyPointsFieldKey,
       epicLinkFieldKey,
       epicNameFieldKey,
+      flaggedFieldKey,
     ]),
   ].join(',');
 
