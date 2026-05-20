@@ -128,17 +128,11 @@ const mockSettingsStore = {
     { id: 'epics', visible: true },
     { id: 'merge-requests', visible: true },
     { id: 'sprint-progress', visible: false },
-    { id: 'workload', visible: false },
     { id: 'releases', visible: false },
   ],
-  dashboardLayout: [],
   setSidebarItems: vi.fn(),
   setSidebarItemVisible: vi.fn(),
   reorderSidebarItem: vi.fn(),
-  setDashboardLayout: vi.fn(),
-  addDashboardWidget: vi.fn(),
-  removeDashboardWidget: vi.fn(),
-  updateWidgetConfig: vi.fn(),
   applyPreset: vi.fn(),
 };
 
