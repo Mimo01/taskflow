@@ -52,14 +52,14 @@ Source: 8-point default (standard); consistent with existing dashboard `p-4` (16
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 14px (text-sm) | 400 (regular) | 1.5 |
-| Label | 12px (text-xs) | 500 (medium) | 1.4 |
+| Label | 12px (text-xs) | 400 (regular) | 1.4 |
 | Heading | 20px (text-xl) | 600 (semibold) | 1.2 |
 | Display | 28px (text-3xl) | 600 (semibold) | 1.1 |
 
 **Role mapping for this phase:**
 - Display (28px / semibold): hero greeting — "Welcome back, [displayName]"
 - Heading (20px / semibold): not used in cards; reserved for page-level headings (consistent with `text-xl font-semibold` in BacklogPage, AioProjectOverviewPage)
-- Label (12px / medium): card header label (e.g., "SPRINT HEALTH", "MY IN PROGRESS", "NEXT RELEASE") — uppercase tracking-wide, `text-muted-foreground`; matches existing SprintHealthPanel `text-sm font-semibold uppercase tracking-wide` pattern (downscaled to text-xs for card headers to preserve visual hierarchy)
+- Label (12px / regular): card header label (e.g., "SPRINT HEALTH", "MY IN PROGRESS", "NEXT RELEASE") — uppercase tracking-wide, `text-muted-foreground`; visual distinction from Body is achieved via `uppercase tracking-wide text-muted-foreground` alone, not via font-weight
 - Body (14px / regular): card body text — sprint name, subtask summary, release name, countdown copy, empty states
 
 Source: detected from `IssueDetailContent.tsx` (text-xl/font-semibold headings), `SprintHealthPanel.tsx` (text-sm body, text-sm font-semibold uppercase for section labels), `BacklogPage.tsx` (text-lg font-semibold page headings).
@@ -133,15 +133,15 @@ Note: `Progress` component is referenced in CONTEXT.md (D-06: "a % complete prog
 
 ### Responsive Breakpoints (Claude's Discretion — resolved)
 
-- **≥ 1024px (lg):** 3-column grid (`grid-cols-3`)
-- **640px–1023px (sm–md):** 2-column grid (`grid-cols-2`); Sprint card spans first, My In Progress second, Release wraps to second row left
+- **>= 1024px (lg):** 3-column grid (`grid-cols-3`)
+- **640px-1023px (sm-md):** 2-column grid (`grid-cols-2`); Sprint card spans first, My In Progress second, Release wraps to second row left
 - **< 640px:** Single column (`grid-cols-1`), stacked vertically
 
 ### Card Anatomy
 
 Each card uses: `rounded-lg border border-border bg-card p-4 flex flex-col gap-3` (matching SprintHealthPanel pattern from CONTEXT.md D-04).
 
-Card header: colored icon (16px, `size-4`) + uppercase label (`text-xs font-medium text-muted-foreground uppercase tracking-wide`).
+Card header: colored icon (16px, `size-4`) + uppercase label (`text-xs font-normal text-muted-foreground uppercase tracking-wide`).
 
 ---
 
