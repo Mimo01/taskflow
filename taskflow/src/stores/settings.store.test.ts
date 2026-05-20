@@ -17,7 +17,6 @@ vi.mock('@tauri-apps/plugin-store', () => {
 
 // biome-ignore assist/source/organizeImports: import order must match module init order to avoid TDZ circular dependency
 import { useSettingsStore } from './settings.store';
-import { DEV_SIDEBAR_PRESET, PM_SIDEBAR_PRESET } from '@/components/app/sidebar-items';
 
 describe('settings.store — keyboardOverrides (Phase 19)', () => {
   beforeEach(() => {
