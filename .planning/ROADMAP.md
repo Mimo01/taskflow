@@ -151,7 +151,7 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
 **Milestone Goal:** Add Tempo Timesheets worklog viewer, replace the widget dashboard with a minimal static layout, remove the Workload view and widget system, and harden the codebase with a full cleanup pass.
 
 - [x] **Phase 59: Dashboard Cleanup + Dependency Removal** — Remove widget system, Workload route, and react-grid-layout package atomically (completed 2026-05-20)
-- [ ] **Phase 60: Static Dashboard / Welcome Screen** — Replace widget grid with a minimal 3-card static layout using existing query cache
+- [ ] **Phase 60: Static Dashboard / Welcome Screen** — Replace widget grid with a minimal 3-card static layout using existing query cache (3/4 plans complete)
 - [ ] **Phase 61: Tempo Probe + Service Layer** — Verify Tempo auth, build service module and settings toggle
 - [ ] **Phase 62: Tempo Worklog Viewer UI** — Day-column table, date presets, people filter, totals row/column
 - [ ] **Phase 63: Tempo Saved Filters + Test Pass** — Saved filter persistence, dead code sweep, full test suite green
@@ -185,9 +185,9 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
   4. A "Next Release" card shows the soonest unreleased fix version name and days until its target date
   5. The layout is static — there is no widget picker, no drag handle, no resize grip, and no configuration panel anywhere on the page
 **Plans**: 4 plans (Wave 1: 60-01 + 60-02 + 60-03 parallel; Wave 2: 60-04)
-- [ ] 60-01-PLAN.md — Install shadcn Progress + create DashboardSprintCard (DASH-02)
-- [ ] 60-02-PLAN.md — Create DashboardInProgressCard with sprint-board cache reuse (DASH-03)
-- [ ] 60-03-PLAN.md — Create DashboardReleaseCard with soonest unreleased fix version (DASH-04)
+- [x] 60-01-PLAN.md — Install shadcn Progress + create DashboardSprintCard (DASH-02)
+- [x] 60-02-PLAN.md — Create DashboardInProgressCard with sprint-board cache reuse (DASH-03)
+- [x] 60-03-PLAN.md — Create DashboardReleaseCard with soonest unreleased fix version (DASH-04)
 - [ ] 60-04-PLAN.md — Overwrite dashboard/index.tsx with hero + 3-card grid orchestrator (DASH-01, DASH-05)
 **UI hint**: yes
 
@@ -240,7 +240,7 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
 | 57. Redesign AIO cycles page (folder tree + batch summary) | v1.8 | 5/5 | Complete | 2026-05-15 |
 | 58. Redesign data fetch of AIO cycle detail | v1.8 | 4/4 | Complete | 2026-05-15 |
 | 59. Dashboard Cleanup + Dependency Removal | v1.9 | 3/3 | Complete   | 2026-05-20 |
-| 60. Static Dashboard / Welcome Screen | v1.9 | 0/4 | Not started | - |
+| 60. Static Dashboard / Welcome Screen | v1.9 | 3/4 | In Progress | - |
 | 61. Tempo Probe + Service Layer | v1.9 | 0/TBD | Not started | - |
 | 62. Tempo Worklog Viewer UI | v1.9 | 0/TBD | Not started | - |
 | 63. Tempo Saved Filters + Test Pass | v1.9 | 0/TBD | Not started | - |
