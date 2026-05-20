@@ -7,7 +7,6 @@
 
 import { MemoryRouter } from 'react-router-dom';
 import { render, screen } from '@testing-library/react';
-import type React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock child card components for isolation
