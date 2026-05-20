@@ -5,7 +5,6 @@
  * reads/writes via LazyStore from @tauri-apps/plugin-store.
  */
 
-// biome-ignore assist/source/organizeImports: import order must match module init order to avoid TDZ circular dependency with registry
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { createTauriStorage } from '../lib/tauri-storage';
@@ -13,7 +12,6 @@ import { setJiraConcurrencyLimit as setConcurrencyRuntime } from '../lib/concurr
 import type { Theme } from '../services/theme';
 import type { QuickFilter } from './filter.store';
 import { getDefaultSidebarItems } from '@/components/app/sidebar-items';
-import { getDefaultDashboardLayout, WIDGET_REGISTRY } from '@/routes/dashboard/widgets/registry';
 
 export type Density = 'compact' | 'default' | 'comfortable';
 export type CommentSortOrder = 'newest' | 'oldest';
@@ -23,19 +21,6 @@ export interface SidebarItem {
   visible: boolean;
 }
 
-export interface DashboardLayoutItem {
-  i: string; // unique instance ID e.g. 'my-subtasks-1'
-  type: string; // widget type from registry e.g. 'my-subtasks'
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  minW?: number;
-  minH?: number;
-  maxW?: number;
-  maxH?: number;
-  config?: Record<string, unknown>; // widget-specific config (JQL query etc.)
-}
 interface SettingsState {
   role: 'developer' | 'pm' | 'tech-lead' | null;
   theme: Theme;
@@ -172,15 +157,9 @@ interface SettingsState {
   setAccountFieldKey: (key: string | null) => void;
   /** Sidebar item visibility and order. Default: DEV_SIDEBAR_PRESET. */
   sidebarItems: SidebarItem[];
-  /** Dashboard widget layout grid. Default: DEV_DASHBOARD_PRESET. */
-  dashboardLayout: DashboardLayoutItem[];
   setSidebarItems: (items: SidebarItem[]) => void;
   setSidebarItemVisible: (id: string, visible: boolean) => void;
   reorderSidebarItem: (fromIndex: number, toIndex: number) => void;
-  setDashboardLayout: (layout: DashboardLayoutItem[]) => void;
-  addDashboardWidget: (widgetType: string) => void;
-  removeDashboardWidget: (widgetId: string) => void;
-  updateWidgetConfig: (widgetId: string, config: Record<string, unknown>) => void;
   applyPreset: (preset: 'dev' | 'pm') => void;
 }
 
@@ -318,7 +297,6 @@ export const useSettingsStore = create<SettingsState>()(
       setFlaggedFieldKey: (key) => set({ flaggedFieldKey: key }),
       setAccountFieldKey: (key) => set({ accountFieldKey: key }),
       sidebarItems: getDefaultSidebarItems('dev'),
-      dashboardLayout: getDefaultDashboardLayout('dev'),
       setSidebarItems: (items) => set({ sidebarItems: items }),
       setSidebarItemVisible: (id, visible) =>
         set((s) => ({
@@ -333,46 +311,15 @@ export const useSettingsStore = create<SettingsState>()(
           arr.splice(toIndex, 0, item);
           return { sidebarItems: arr };
         }),
-      setDashboardLayout: (layout) => set({ dashboardLayout: layout }),
-      addDashboardWidget: (widgetType) =>
-        set((s) => {
-          const reg = WIDGET_REGISTRY[widgetType];
-          if (!reg) return s;
-          const count = s.dashboardLayout.filter((w) => w.type === widgetType).length;
-          const newItem: DashboardLayoutItem = {
-            i: `${widgetType}-${count + 1}-${Date.now()}`,
-            type: widgetType,
-            x: 0,
-            y: Infinity,
-            w: reg.defaultSize.w,
-            h: reg.defaultSize.h,
-            minW: reg.minSize.w,
-            minH: reg.minSize.h,
-            maxW: reg.maxSize.w,
-            maxH: reg.maxSize.h,
-          };
-          return { dashboardLayout: [...s.dashboardLayout, newItem] };
-        }),
-      removeDashboardWidget: (widgetId) =>
-        set((s) => ({
-          dashboardLayout: s.dashboardLayout.filter((w) => w.i !== widgetId),
-        })),
-      updateWidgetConfig: (widgetId, config) =>
-        set((s) => ({
-          dashboardLayout: s.dashboardLayout.map((w) =>
-            w.i === widgetId ? { ...w, config: { ...w.config, ...config } } : w,
-          ),
-        })),
       applyPreset: (preset) =>
         set({
           sidebarItems: getDefaultSidebarItems(preset),
-          dashboardLayout: getDefaultDashboardLayout(preset),
         }),
     }),
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 18,
+      version: 19,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -419,7 +366,6 @@ export const useSettingsStore = create<SettingsState>()(
           const role = s.role as string | null;
           const preset = role === 'pm' ? 'pm' : 'dev';
           s.sidebarItems = getDefaultSidebarItems(preset);
-          s.dashboardLayout = getDefaultDashboardLayout(preset);
         }
         if (version < 10) {
           if (s.updateCheckInterval === undefined) s.updateCheckInterval = 6;
@@ -453,6 +399,10 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 18) {
           if (s.flaggedFieldKey === undefined) s.flaggedFieldKey = 'customfield_10021';
+        }
+        if (version < 19) {
+          // No new fields to initialize. Version bump drops dashboardLayout from
+          // persisted shape implicitly — Zustand LazyStore ignores extra keys.
         }
         return persisted as SettingsState;
       },
