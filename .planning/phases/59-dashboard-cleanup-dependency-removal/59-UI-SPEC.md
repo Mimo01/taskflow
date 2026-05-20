@@ -1,7 +1,8 @@
 ---
 phase: 59
 slug: dashboard-cleanup-dependency-removal
-status: draft
+status: approved
+reviewed_at: 2026-05-20T00:00:00Z
 shadcn_initialized: true
 preset: base-nova
 created: 2026-05-20
