@@ -1,186 +1,381 @@
-# Pitfalls Research: AIO TCMS Integration
+# Pitfalls Research
 
-**Project:** Taskflow v1.8 — AIO Test Management
-**Context:** Adding AIO to an existing Tauri 2 + Jira DC on-premise app that uses Bearer PAT auth, tauri-plugin-http, TanStack Query, and jira2md.
-**Researched:** 2026-05-12
-**Confidence:** MEDIUM — AIO's own API docs are not publicly indexed and could not be fetched during this research session. Findings are derived from: (a) AIO TCMS architecture as a Jira plugin served from a Jira servlet, (b) Jira Data Center plugin authentication patterns, (c) direct codebase inspection of existing integration patterns in this repo, and (d) known behavior of jira2md with complex wiki-markup constructs. All AIO-specific claims must be verified against the running instance before committing to an implementation approach.
+**Domain:** Tempo Timesheets integration + react-grid-layout removal + dashboard redesign
+**Researched:** 2026-05-20
+**Confidence:** HIGH (codebase verified) / MEDIUM (Tempo API auth specifics — external sources contradict each other; probe required)
 
 ---
 
 ## Critical Pitfalls
 
-| Pitfall | Risk | Prevention | Phase |
-|---------|------|------------|-------|
-| **AIO servlet auth may not accept Bearer PAT** | All AIO requests return 401/302 if the plugin requires Jira session cookies rather than the PAT header | Probe a known AIO endpoint with `Authorization: Bearer <PAT>` via the Tauri dev tools request log before writing any AIO service module. If 401 or redirect, the entire auth model for AIO calls differs from the Jira layer — a significant architecture change. | Phase 1 (service setup) |
-| **AIO REST base path varies by plugin version** | Hardcoding `/rest/aio-tcms/1.0/` breaks on installations using a different servlet path | Probe the actual AIO base path at onboarding. Known variants: `/rest/aio-tcms/1.0/` (current), `/rest/atm/1.0/` (older pre-rebrand installs), `/rest/aio-tcms-api/1.0/` (some enterprise installs). Never hardcode without verifying against the live instance. | Phase 1 |
-| **`apiFetch` source union only accepts `'jira' \| 'gitlab'`** | TypeScript compiler error when calling `apiFetch` with a new source string | Add `'aio'` to the source union OR route AIO calls under `source: 'jira'`. The simpler path is `'jira'` — AIO is a plugin on the same Jira server, shares the same base URL and auth, and a 401 from AIO correctly means the Jira PAT has failed. Adding a third source value proliferates into `ApiError`, `markDisconnected`, and all components that check connection state. | Phase 1 |
-| **AIO project ID is not the Jira project key** | Using the Jira project key (e.g. `"PROJ"`) directly in AIO API calls returns 404 | AIO has its own internal project identifier (numeric or GUID). Every AIO API call taking a project ID needs a prior call to the AIO project list endpoint to resolve the AIO project ID from the Jira project key. Cache this mapping at session start, not per-component. | Phase 2 (project/cycle list) |
-| **AIO attachment URLs are not plain Jira attachment URLs** | The existing `AuthImage` and lightbox components assume a plain Jira attachment URL shape; AIO step attachments may use a parameterized bridge URL or a separate AIO servlet path | Capture a real AIO step attachment URL from the live instance before building any attachment pipeline. Parse the URL structure first. Do not assume it matches `JiraAttachment.content`. | Phase 3 (test run table) |
-| **jira2md breaks on AIO step table markup** | AIO step fields contain wiki markup constructs that `jira2md` does not handle: pipes inside table cells, `{color}` spans, `\\` line breaks within cells, nested `{panel}` blocks | Do not pipe AIO step text through the same `jira2md` → `react-markdown` pipeline used for Jira descriptions without a targeted sanitize pass first. Build and test the sanitize layer in isolation before wiring it to the UI. | Phase 3 |
-| **TanStack Query cache invalidation hits AIO data** | If AIO queries use `[jiraBaseUrl, ...]` as their key prefix, a broad `invalidateQueries({ queryKey: [jiraBaseUrl] })` call (e.g. from a Jira write mutation) also invalidates AIO caches and triggers unnecessary AIO refetches | Prefix all AIO query keys with a distinct first segment: `['aio', jiraBaseUrl, 'projects']` vs `['jira', jiraBaseUrl, 'sprint']`. Audit all existing `invalidateQueries` call sites before adding AIO queries. | Phase 1 (query key design) |
-| **AIO calls not covered by the p-limit concurrency guard** | AIO calls go to the same on-premise Jira DC server and compete for the same connection pool. `getJiraLimit()` only wraps calls made inside `fetchAllSearchPages`. Direct `apiFetch` calls in AIO service functions bypass the semaphore. | Wrap all AIO `apiFetch` calls with `await getJiraLimit()(() => apiFetch(...))` — same pattern as `fetchAllSearchPages` in `client.ts`. | Phase 2+ (all service functions) |
+### Pitfall 1: Tempo REST API auth is NOT the Jira Bearer PAT
+
+**What goes wrong:**
+The existing `aioFetch` and `jira.ts` both use `Authorization: Bearer <jira-pat>`. Developers assume the same Jira PAT token works for Tempo's REST API. It does not. Community reports consistently document that sending a Jira PAT to `/rest/tempo-timesheets/4/worklogs` returns HTTP 401. Tempo Timesheets on Jira DC uses either its own OAuth 2.0 token (generated in Tempo → Settings → API Integration) or Basic Auth — depending on the Tempo version and instance configuration. There is no public documentation confirming Bearer PAT works for this endpoint.
+
+**Why it happens:**
+AIO TCMS on the same Jira host accepted the Jira Bearer PAT (confirmed in Phase 51 probe). Developers carry this expectation into Tempo. Tempo is a third-party plugin with its own auth layer that is distinct from Jira's native token system.
+
+**How to avoid:**
+Treat Tempo auth as a new credential type requiring a dedicated probe. Write a `probeTempoAuth` function that tries `Authorization: Bearer <jira-pat>` and reports success or failure. If 401, surface a `tempoToken` input in Settings → Integrations (same pattern as `aioEnabled`). Store the Tempo token in Stronghold under key `tempo-pat`. Create a `tempoFetch` wrapper that reads from `tempo-pat` and never shares with `jiraFetch`. Do not assume the Jira PAT grants access to Tempo endpoints.
+
+**Warning signs:**
+- All Tempo API calls return 401 despite valid Jira PAT
+- Tempo UI can be opened in the browser but API calls from the app fail
+
+**Phase to address:**
+Tempo service layer phase — first task. Auth must be probe-confirmed before writing any worklog fetch logic. Do not build the UI until the probe resolves auth.
 
 ---
 
-## AIO API Specifics to Verify Early
+### Pitfall 2: Tempo API base path varies by plugin version
 
-Verify all of these against the live AIO instance in Phase 1 before writing any service module. These are unknowns that cannot be resolved from documentation alone.
+**What goes wrong:**
+The Tempo Server API has at minimum three documented base paths: `/rest/tempo-timesheets/1/`, `/rest/tempo-timesheets/3/`, `/rest/tempo-timesheets/4/`, and an undocumented internal path. Community members have confirmed that paths documented as current return 404 on actual instances. There is no standard discovery endpoint. The specific instance in this project (Orange eshop Jira DC v10.3.15) may use a different path than the documentation describes, and Tempo's own documentation is acknowledged to be outdated and misleading for DC/Server.
 
-### 1. Authentication scheme
+**Why it happens:**
+Tempo's official documentation does not clearly map plugin version to API path. The AIO probe pattern succeeded because there were two distinct path prefixes; Tempo has at least three and they are not all simultaneously active. Guessing the correct path without probing produces silent 404s that look like "no data" rather than "wrong endpoint."
 
-AIO Test Management is a Jira Server/DC plugin served from a Jira servlet. Jira DC's authentication middleware runs before the servlet, so in many installations a valid Bearer PAT grants access to plugin servlet routes the same way it grants access to `/rest/api/2/`. However, some AIO installations (especially older versions or those with custom security configurations) require an active Jira session cookie (`JSESSIONID`) rather than Bearer auth.
+**How to avoid:**
+Use the same probe-first pattern as AIO (`AIO_API_PATH` / `AIO_PROJECTS_API_PATH` in `aio/client.ts`). Write a `probeTempoEndpoints` function that tries candidate paths in sequence and records which one responds with a non-404. Gate all worklog fetches on probe success. Store the confirmed base path as a constant with a comment citing the probe result and Tempo plugin version observed.
 
-**Verification procedure:** Use the dev tools request log to fire a raw request to `<jiraBaseUrl>/rest/aio-tcms/1.0/project` with `Authorization: Bearer <PAT>`. If it returns 200, PAT works. If it returns 401 or 302, session cookies are required.
+**Warning signs:**
+- API call returns 404 with an HTML error page (Jira "page not found") rather than JSON
+- Worklog table shows an empty state error rather than "no worklogs found"
 
-Cookie-based auth is a significant architecture change: Tauri's `tauri-plugin-http` does not maintain a cookie jar across requests by default. If cookies are required, either (a) configure the HTTP client to persist cookies, or (b) authenticate via the Jira login endpoint first and extract the session cookie manually. Neither approach is currently used anywhere in the codebase.
-
-**Confidence: MEDIUM** — derived from Jira DC auth architecture, not from AIO-specific documentation.
-
-### 2. REST API base path
-
-Probe which base path the live instance responds to:
-- `GET <jiraBaseUrl>/rest/aio-tcms/1.0/project` — current versions (3.x+)
-- `GET <jiraBaseUrl>/rest/atm/1.0/project` — older installs (2.x, pre-rebrand)
-- `GET <jiraBaseUrl>/rest/aio-tcms-api/1.0/project` — seen in some enterprise installs
-
-Use the first successful response to determine which base path to use. Make the base path configurable (stored in settings or derived from a discovery endpoint) rather than hardcoded.
-
-### 3. Pagination envelope shape
-
-Standard Jira REST returns `{ issues: [...], total: N, startAt: N, maxResults: N }`. AIO endpoints may return different shapes:
-- A bare array `[...]` — common for small resource lists (projects, cycles)
-- A Jira-style envelope — more common for test case and execution result lists
-- A custom envelope `{ testCases: [...], total: N }` or `{ executions: [...], size: N }`
-
-Do not assume `fetchAllSearchPages` can be reused for AIO without inspecting real AIO response payloads. If the envelope shape differs, write a separate AIO pagination helper that handles the AIO-specific shape rather than adapting `fetchAllSearchPages` (which is tightly coupled to Jira search response fields).
-
-### 4. Test execution status vocabulary
-
-AIO test execution statuses are likely `PASS`, `FAIL`, `NOT_EXECUTED`, `BLOCKED`, `IN_PROGRESS` — but custom statuses can be added per installation. Do not hardcode status strings in conditional rendering logic. Treat execution status as an opaque string and drive display (color, icon, label) from a mapping object that is easy to extend.
-
-### 5. Dual access pattern: issue-linked vs cycle-linked
-
-The v1.8 requirements need test run data in two contexts:
-- On the Jira issue detail page: test executions linked to that issue key
-- On the cycle detail page: all test executions in a cycle
-
-Verify that both endpoint shapes exist and that they return compatible execution record schemas before defining a unified TypeScript type. If the schemas differ significantly, define separate types and normalize at the service layer rather than at the component layer.
-
-### 6. Burndown chart data (out of scope — confirm before re-scoping)
-
-PROJECT.md marks burndown charts as explicitly Out of Scope. AIO's browser UI renders burndown client-side from snapshot data embedded in the page, not from a REST time-series endpoint. If this feature is re-scoped in at any point, verify a burndown REST endpoint exists on the live instance before committing design work. Probing `/rest/aio-tcms/1.0/cycle/{id}/burndown` is the right first step.
+**Phase to address:**
+Tempo service layer phase — first task, immediately after auth probe.
 
 ---
 
-## Wiki Markup Edge Cases
+### Pitfall 3: Worklog timestamps cause off-by-one day errors across timezones
 
-AIO step description and expected-result fields contain Jira wiki markup. `jira2md` handles standard Jira wiki, but AIO step tables introduce several constructs that break the standard pipeline.
+**What goes wrong:**
+Jira's native worklog API returns `started` as `"2024-03-15T09:30:00.000+0200"` — local server time with an offset. Tempo's own API may return epoch milliseconds, a date-only string `"YYYY-MM-DD"`, or a different format depending on the endpoint version. When the frontend assigns a worklog to a calendar day column using `new Date(started).toLocaleDateString()`, DST boundaries and timezone differences cause assignments to shift by one day. A worklog logged at 23:30 CET (UTC+1) appears as the next day in UTC. For the Orange team, Jira server likely runs in CET/CEST — users running the app from UTC machines would see all late-evening worklogs on the wrong day.
 
-**Pipes inside table cells**
+**Why it happens:**
+`new Date("2024-03-15T23:30:00.000+0100")` converts to UTC as March 15 22:30:00 UTC — correct. But `new Date("2024-03-15").toLocaleDateString()` on a UTC machine produces March 14 in UTC-offset environments due to midnight-UTC parsing. The safe pattern for day bucketing is to use the date string portion directly, not a converted `Date` object.
 
-AIO uses standard Jira wiki table syntax: `||Step||Expected Result||Actual Result||` for headers and `|step content|expected content|actual content|` for rows. A pipe character inside a cell value (e.g. "Click Save | Cancel") is misread as a column separator. `jira2md` does not handle escaped pipes inside table cells. Prevention: replace or escape unquoted bare pipes within cell content before passing to `jira2md`.
+**How to avoid:**
+For day-column bucketing: parse the date portion of the timestamp as `started.slice(0, 10)` (produces `"YYYY-MM-DD"`) rather than converting through a `Date` object. If the response returns epoch milliseconds, convert using `new Date(ms).toISOString().slice(0, 10)` (UTC date) — then confirm whether the Jira server intends UTC or server-local date for the worklog's "day." Add tests with fixtures timestamped at 23:00 and 01:00 across a DST boundary (last Sunday of October for CET/CEST) and verify day assignment does not shift.
 
-**`{color:X}text{color}` spans**
+**Warning signs:**
+- Worklogs appear on the wrong day for users in timezones other than CET
+- Totals match but day-column distribution differs from Tempo's own web UI
+- Off-by-one on DST changeover dates
 
-AIO frequently uses color markup for pass/fail indicators: `{color:red}FAILED{color}`, `{color:green}PASSED{color}`. `jira2md` drops the `{color}` macro (it is not in CommonMark) and passes through the inner text unstyled. If colored markers carry semantic meaning in AIO step expected-result fields, extract them before the `jira2md` pass and render them as status badges, not inline text.
-
-**`\\` line breaks within table cells**
-
-AIO step text uses `\\` (double backslash) as a forced line break. `jira2md` converts `\\` to `\n`. A newline inside a Markdown table cell breaks the table parser — the row is split into two rows, producing broken HTML. Prevention: replace `\\` inside table cell content with a space or `<br/>` before the `jira2md` pass, depending on whether the rendering context allows inline HTML.
-
-**Nested `{panel}` blocks**
-
-Test steps that contain long instructions may use `{panel}` macro blocks. `jira2md` converts `{panel}` to a Markdown blockquote. Nested panels collapse to a single blockquote, losing nesting. More critically, a step description that begins with `{panel}` causes the entire cell to render as an indented blockquote, which breaks the table alignment in the output HTML. Prevention: strip the outer `{panel}` wrapper before processing step text that lives inside a table cell.
-
-**`{noformat}` code blocks spanning multiple lines inside cells**
-
-Steps that include command-line examples use `{noformat}`. `jira2md` converts `{noformat}` to triple-backtick code blocks. A multi-line `{noformat}` block inside a table cell produces a code block with embedded newlines — which, like the `\\` issue, breaks the table row. Prevention: collapse multi-line `{noformat}` content to a single line (replace inner newlines with spaces) when it appears inside a table cell.
-
-**Non-ASCII characters and HTML entity encoding**
-
-AIO step authors frequently use em dashes `—`, right arrows `→`, and Unicode checkmarks `✓`. Verify whether the AIO REST response returns raw Unicode or HTML-entity-encoded text. If the API returns HTML-encoded text (e.g. `&rarr;`) and `jira2md` processes it as wiki markup, the entities are passed through to `react-markdown` unescaped, which then double-renders them as literal `&rarr;` strings in the UI.
+**Phase to address:**
+Tempo worklog viewer phase. Write timezone fixtures before writing rendering logic — not after.
 
 ---
 
-## Architecture Risks
+### Pitfall 4: Persisted `dashboardLayout` and widget store actions survive in Zustand if migration is skipped
 
-**1. Routing: cycle detail as a sheet vs. a full-page route**
+**What goes wrong:**
+`settings.store.ts` currently persists `dashboardLayout: DashboardLayoutItem[]` at version 18. It exposes `addDashboardWidget`, `removeDashboardWidget`, `setDashboardLayout`, and `updateWidgetConfig`. More critically, the store imports `getDefaultDashboardLayout` and `WIDGET_REGISTRY` directly from `@/routes/dashboard/widgets/registry`:
 
-The v1.8 requirements describe a navigation flow: sidebar → project list → project overview → cycle detail. PROJECT.md's Key Decisions record explicitly documents that issue detail moved from a slide-over sheet to a full-page route (v1.3 decision) because sheets do not support nested navigation and the J/K keyboard guard became unmanageable. Apply the same pattern to AIO cycle detail. If cycle detail contains sub-navigation (runs tab, defects tab), it must be a full-page route with URL-addressable tabs — not a sheet. Building it as a sheet will require the same migration that issue detail went through.
+```typescript
+import { getDefaultDashboardLayout, WIDGET_REGISTRY } from '@/routes/dashboard/widgets/registry';
+```
 
-**2. AIO project ID resolution — where to store it**
+When `registry.ts` is deleted, the entire store module fails to compile — the app does not start. This is a hard dependency, not an optional one. If the widget fields are removed from the store interface but the migration version is not bumped, existing users keep stale `dashboardLayout` data in their `settings.json` that the new code never reads, causing type inconsistencies on rehydration.
 
-The AIO project ID (resolved from Jira project key at session start) needs to be available to all AIO service calls. Two candidate stores:
+**Why it happens:**
+The store initializes its `dashboardLayout` default from `getDefaultDashboardLayout()` and uses `WIDGET_REGISTRY` in `addDashboardWidget` to look up widget size constraints. These are used at store initialization time, so the import is load-order critical. Deleting the registry without updating the store causes an immediate module resolution failure.
 
-- Auth store (`auth.store.ts`): already holds `activeJiraProject`. Storing `activeAioProject` alongside it keeps the AIO project ID in the same rehydration cycle as the Jira project key and ensures the same null-guard patterns apply everywhere.
-- Settings store (`settings.store.ts`): holds UI preferences. Mixing in a runtime-resolved API identifier breaks the clear store separation documented in PROJECT.md. Do not use this.
+**How to avoid:**
+1. Remove `dashboardLayout`, `addDashboardWidget`, `removeDashboardWidget`, `setDashboardLayout`, `updateWidgetConfig` from the store interface and implementation in the same commit as deleting the registry.
+2. Remove the `import { getDefaultDashboardLayout, WIDGET_REGISTRY }` line from `settings.store.ts`.
+3. Update `applyPreset` to remove the `dashboardLayout: getDefaultDashboardLayout(preset)` line (line 369 in current code).
+4. Bump the store version (19) and add a migration step that `delete`s `s.dashboardLayout` from persisted state.
+5. Delete the `DashboardLayoutItem` interface from the store file.
 
-Store the AIO project ID in the auth store, resolved once during the project selection flow, and cleared when `activeJiraProject` is cleared.
+**Warning signs:**
+- TypeScript error: `Cannot find module '@/routes/dashboard/widgets/registry'`
+- App fails to start after registry deletion but before store update
 
-**3. AIO queries must respect `jiraConnected` guard**
-
-All existing Jira queries gate on `enabled: jiraConnected`. AIO queries must do the same. If they do not, AIO queries continue firing after the Jira PAT expires, producing a stream of 401 errors into the debug log even after `markDisconnected('jira')` has fired. Since AIO shares auth with Jira, `jiraConnected: false` means AIO is also unreachable.
-
-**4. Cycle-level staleTime vs issue-level staleTime**
-
-AIO data has two different rates of change:
-
-- Structural data (project list, cycle list): rarely changes during a session. Appropriate `staleTime`: 5 minutes.
-- Execution data (test run results, pass/fail counts): changes during active test runs. Appropriate `staleTime`: 60 seconds (match notification polling cadence).
-
-Setting `staleTime` too high for execution data shows stale pass/fail counts during an active test session. Setting it too low produces unnecessary AIO API calls on every focus/navigation event. The 60-second floor comes from the existing notification polling design — it is the shortest polling interval the codebase treats as acceptable for live data.
-
-**5. Existing broad `invalidateQueries` call sites**
-
-The sprint board mutation handlers (`useTransitionMutation`, `useCommentMutation`, and others) may call `invalidateQueries` with a partial key that includes only `jiraBaseUrl`. If AIO queries use `[jiraBaseUrl, ...]` as their prefix, those mutations will also invalidate AIO caches on every Jira write action. Audit the existing `invalidateQueries` call sites in all mutation hooks before adding AIO queries. Fix any that are too broad before the AIO query keys land.
-
-**6. AIO URL construction — `jiraBaseUrl` trailing slash**
-
-All existing service functions call `baseUrl.replace(/\/$/, '')` to strip a trailing slash before constructing URLs. AIO service functions must apply the same normalization. An inconsistent base URL produces cache misses in TanStack Query because `https://jira.example.com/rest/aio-tcms/...` and `https://jira.example.com//rest/aio-tcms/...` are different keys.
+**Phase to address:**
+Dashboard removal phase. Store and registry must be modified atomically in the same commit. This is the single highest-risk operation in v1.9.
 
 ---
 
-## Phase-Specific Warnings
+### Pitfall 5: `settings.store.test.ts` imports deleted symbols and crashes the entire test file
 
-| Phase Topic | Likely Pitfall | Mitigation |
-|-------------|---------------|------------|
-| AIO service module setup | Auth scheme unknown — PAT may not work for plugin servlets | Probe live AIO endpoint with Bearer PAT before writing any service code. Document the result as a Key Decision entry. |
-| AIO service module setup | REST base path unknown | Probe `/rest/aio-tcms/1.0/project` first; try alternatives on 404. Store the resolved base path as a constant, not inline. |
-| AIO service module setup | `apiFetch` source type error | Route AIO calls under `source: 'jira'` — same server, same auth, correct behavior on 401. |
-| AIO project/cycle list | AIO project ID ≠ Jira project key | Resolve AIO project ID from Jira key at session start; cache in auth store. |
-| AIO project/cycle list | Pagination envelope differs from Jira search | Inspect real AIO list response before reusing `fetchAllSearchPages`. Write a dedicated AIO pagination helper if the shape differs. |
-| AIO project/cycle list | Broad `invalidateQueries` invalidates AIO | Use `['aio', jiraBaseUrl, ...]` prefix for all AIO query keys. Audit existing mutation invalidation call sites first. |
-| Test run table on issue detail | AIO attachment URL shape unknown | Capture a real URL from the live instance before building the fetch/render path. Do not assume it matches `JiraAttachment.content`. |
-| Test run table on issue detail | `jira2md` breaks on AIO step markup | Write and unit-test a sanitize pass (pipes, `{color}`, `\\`, `{panel}`) before connecting it to the rendering pipeline. |
-| Cycle detail page | Sheet vs. route architecture | Full-page route with URL-addressable tabs. No sheets with nested navigation. |
-| All AIO service functions | Concurrency guard bypass | Wrap all `apiFetch` calls with `await getJiraLimit()(() => apiFetch(...))`. |
-| All AIO queries | Missing `jiraConnected` guard | Add `enabled: jiraConnected` to every AIO `useQuery` call. |
+**What goes wrong:**
+`settings.store.test.ts` imports `WIDGET_REGISTRY`, `DEV_DASHBOARD_PRESET`, and `PM_DASHBOARD_PRESET` from `@/routes/dashboard/widgets/registry`. When `registry.ts` is deleted, this import fails before the first test runs. Vitest reports the entire file as a suite-level failure — all tests in the file are marked as failed — which can obscure which specific change caused the failure and lead to incorrect diagnosis.
 
----
+The test file also contains a `describe('settings.store — layout customization (Phase 34)')` block with 9 tests for `addDashboardWidget`, `removeDashboardWidget`, `setDashboardLayout`, `updateWidgetConfig`, and the dashboard portion of `applyPreset`. These tests must be deleted — not commented out — because Biome will report unreachable code as an error.
 
-## Confidence Notes
+**Why it happens:**
+When removing a feature, the instinct is to delete component files and then rely on the test suite to identify what broke. But failing imports prevent the test file from loading at all, so the test suite reports failures rather than guiding cleanup.
 
-**HIGH confidence (directly observed in codebase):**
-- `apiFetch` source union change required — confirmed in `apiFetch.ts` line 41: `source: 'jira' | 'gitlab'`
-- TanStack Query cache invalidation collision risk — confirmed by inspecting existing mutation hooks that invalidate by `jiraBaseUrl` prefix
-- `getJiraLimit()` covers only `fetchAllSearchPages` calls — confirmed in `client.ts`; direct `apiFetch` calls elsewhere are not wrapped
-- `jiraBaseUrl` trailing slash normalization needed — confirmed pattern across all service functions
-- `jiraConnected` guard required — confirmed in all existing `useQuery` hooks: `enabled: jiraConnected && !!jiraBaseUrl`
-- Store separation (auth vs. settings) — confirmed by auth.store.ts comment and PROJECT.md Key Decisions
+**How to avoid:**
+Delete the entire `describe('settings.store — layout customization')` block from `settings.store.test.ts` in the same commit as deleting the registry. Run `npx vitest run src/stores/settings.store.test.ts` directly to verify the file loads and all remaining tests pass before calling the phase done.
 
-**MEDIUM confidence (architecture-derived, not verified against live AIO):**
-- Bearer PAT accepted by AIO servlet — based on Jira DC auth middleware architecture
-- AIO project ID ≠ Jira project key — known AIO data model behavior, not verified on this specific installation
-- `jira2md` breakage on AIO step table markup — based on known `jira2md` limitations documented in its source and issue tracker
+**Warning signs:**
+- `Error: Cannot find module '@/routes/dashboard/widgets/registry'` in test output
+- All 20+ tests in `settings.store.test.ts` reported as failed (not individual failures)
 
-**LOW confidence (requires live verification before implementation):**
-- AIO REST base path — installation-specific
-- Pagination envelope shape for AIO endpoints — unknown without live probe
-- Test execution status vocabulary — installation-specific custom statuses possible
-- AIO attachment URL structure — unknown without live instance
-- Cookie requirement — depends on this specific AIO installation's security configuration
+**Phase to address:**
+Dashboard removal phase. Test cleanup is a required deliverable, not an afterthought.
 
 ---
 
-*Research completed: 2026-05-12*
-*Ready for roadmap: yes — LOW confidence items identified as Phase 1 verification tasks*
+### Pitfall 6: `react-grid-layout` CSS imports break `vite build` after package uninstall
+
+**What goes wrong:**
+`WidgetGrid.tsx` imports:
+```typescript
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
+```
+When `react-grid-layout` and `react-resizable` are uninstalled, Vite fails to resolve these CSS imports at build time. TypeScript (`tsc --noEmit`) does not process CSS imports and reports no error — making it possible to pass the TypeScript check while the build is broken. The test suite (`vitest`) also does not catch this because test module resolution differs from Vite's production bundler.
+
+**Why it happens:**
+CSS imports in component files are resolved by Vite's build graph, not by TypeScript. Deleting the component file but forgetting to run `npm run build` after uninstalling the package means the build is broken but tests pass — creating a false sense of completeness.
+
+**How to avoid:**
+Delete `WidgetGrid.tsx` and all files in `src/routes/dashboard/widgets/` before running `npm uninstall react-grid-layout react-resizable`. Also remove `"@types/react-grid-layout"` from devDependencies. Include `npm run build` as an explicit step in the phase verification checklist — not just `vitest`.
+
+**Warning signs:**
+- `vite build` error: `Cannot resolve 'react-grid-layout/css/styles.css'`
+- Tests pass but CI build job fails
+
+**Phase to address:**
+Dashboard removal phase. Include `npm run build` in the verification step explicitly.
+
+---
+
+### Pitfall 7: `WorkloadTab.test.tsx` left in place with 15+ tests after component deletion
+
+**What goes wrong:**
+`WorkloadTab.test.tsx` contains at minimum 15 tests that all `import('./WorkloadTab')`. When `WorkloadTab.tsx` is deleted, every test in the file fails with a module-not-found error. The test suite appears to have ~15 new failures, which can be alarming if the developer doesn't immediately recognize these as expected cleanup failures rather than regressions.
+
+Additionally, `WorkloadSkeleton.tsx` is referenced by `WorkloadTab.tsx` — deleting `WorkloadTab.tsx` but leaving `WorkloadSkeleton.tsx` leaves a dead component on disk that Biome may not flag (no imports means no lint error, but the file adds to dead code count).
+
+**Why it happens:**
+Test files for a deleted component are easy to overlook because they are not in the component's import graph — nothing imports the test file, so no compilation error surfaces until the test runner loads it.
+
+**How to avoid:**
+Delete `WorkloadTab.test.tsx`, `WorkloadTab.tsx`, and `WorkloadSkeleton.tsx` as a group in the same commit. Run `vitest run --reporter=verbose` to confirm zero failures from this batch before proceeding.
+
+**Warning signs:**
+- 15+ test failures all reporting `Cannot find module './WorkloadTab'`
+- Dead `WorkloadSkeleton.tsx` file on disk with no imports
+
+**Phase to address:**
+Workload removal phase. Treat test file deletion as part of the component deletion step.
+
+---
+
+### Pitfall 8: Sidebar and route entries left behind after WorkloadTab deletion
+
+**What goes wrong:**
+Workload removal is a three-file operation: `WorkloadTab.tsx`, `routes.tsx`, and `sidebar-items.ts`. If any one is missed:
+- `routes.tsx` still has `const WorkloadTab = lazy(() => import('./dashboard/WorkloadTab'))` and `{ path: '/workload', element: withLazy(WorkloadTab) }`. This causes a runtime chunk-loading error on navigation to `/workload`. The `ChunkErrorBoundary` swallows the error and shows an error state — silent but broken.
+- `sidebar-items.ts` still has `{ id: 'workload', label: 'Workload', path: '/workload', ... }`. The sidebar renders a link to a broken route.
+- `PM_SIDEBAR_PRESET` includes `'workload'` in the visible set. If tests call `applyPreset('pm')` and check the sidebar items count or content, they fail because the preset references a removed item.
+
+**Why it happens:**
+Route and sidebar definitions live in separate files from the component. They are not in the compile-time dependency graph of `WorkloadTab.tsx`, so deleting the component does not trigger any TypeScript error that points to the stale references.
+
+**How to avoid:**
+Treat workload removal as an atomic four-file operation: `WorkloadTab.tsx`, `WorkloadTab.test.tsx`, `WorkloadSkeleton.tsx`, plus the entries in `routes.tsx` and `sidebar-items.ts`. Update `getDefaultSidebarItems` to remove `'workload'` from the `pmVisible` set. Run a global search for the string `'workload'` across all non-test source files before calling the phase done.
+
+**Warning signs:**
+- `ChunkErrorBoundary` shown at `/workload` route
+- Sidebar shows a Workload link that leads to an error
+- `applyPreset('pm')` test fails with unexpected sidebar item count
+
+**Phase to address:**
+Workload removal phase. Route + sidebar cleanup is step one.
+
+---
+
+### Pitfall 9: Sidebar and Settings test mocks reference removed `workload` item
+
+**What goes wrong:**
+After `workload` is removed from `sidebar-items.ts` and presets, two test files contain stale mock data:
+- `Sidebar.test.tsx` line 77: `{ id: 'workload', visible: true }` in the mock `sidebarItems` array
+- `Settings.test.tsx` line 131: `{ id: 'workload', visible: false }` in the mock `sidebarItems` array
+
+These mocks don't cause import errors (they're plain objects), so the tests will still load. But any test that validates sidebar item count, renders the sidebar with the mock, or calls `applyPreset` and checks results against the mock structure will fail with a value mismatch.
+
+**Why it happens:**
+Test mock arrays are static snapshots of the real data structure. When the real data changes, the mocks don't update automatically, and the mismatch doesn't produce a compile error.
+
+**How to avoid:**
+After removing `workload` from `sidebar-items.ts`, run `grep -rn "'workload'" src/ --include="*.test.*"` to find all test files that reference the workload item. Update every mock array that includes it. Run the full test suite to verify zero failures before proceeding.
+
+**Warning signs:**
+- `Sidebar.test.tsx` fails with unexpected array element count
+- `Settings.test.tsx` fails on sidebar-related assertions
+
+**Phase to address:**
+Workload removal phase. Search for mock references as a completion check.
+
+---
+
+### Pitfall 10: Tempo pagination defaults to 50 records — full date range silently truncated
+
+**What goes wrong:**
+The Tempo Server API defaults to paginating at 50 worklogs. A single month of worklogs for a 15-person team exceeds this. If the fetch function does not pass `paginate=false` (v1 path) or loop with offset/limit (v4 path), the viewer silently displays incomplete data. Users see hours that don't match Tempo's own reports and assume the data is wrong.
+
+**Why it happens:**
+The AIO batch summary endpoint returns a total count, making truncation obvious. Tempo's worklog endpoint returns a list without a clearly visible "there are more" indicator in the first response. Developers test with small date ranges (1 week, few users) where 50 records is sufficient, and the bug only surfaces in production with larger teams.
+
+**How to avoid:**
+For the v1 path: add `&paginate=false` to the query string. For the v4 path: implement a pagination loop that continues fetching until `offset + limit >= total`. Write a test fixture that simulates a 50-item first page with `total: 73` and verify the service function makes a second request.
+
+**Warning signs:**
+- Worklog table shows exactly 50 entries regardless of date range
+- PM reports hours don't match Tempo's own report
+- No obvious error — data appears present but is incomplete
+
+**Phase to address:**
+Tempo service layer phase. Pagination must be verified in a service test, not assumed correct.
+
+---
+
+### Pitfall 11: Worklog table renders N people × M day columns with no performance guard
+
+**What goes wrong:**
+A worklog viewer with people as rows and days as columns generates `people × days` cells. For a 30-day range with 20 people, that is 600 cells per render. Without a column count limit, users selecting a 90-day range with 30 team members produce 2700 cells. React Compiler handles memoization automatically, but re-renders from filter changes (date range update, assignee filter toggle) still reconcile all cells.
+
+**Why it happens:**
+The team already has `@tanstack/react-virtual` for row virtualization (backlog, notifications). The worklog table is two-dimensional — row virtualization alone leaves all columns rendered per row. Full 2D virtualization with `@tanstack/react-virtual` requires a flat-array mapping approach that is significantly more complex than the existing usage.
+
+**How to avoid:**
+Cap the date range selector at 31 days maximum in the UI. For 31 days × 20 people = 620 cells, full DOM rendering is acceptable at ~100-200 bytes per cell (no virtualization needed). Use an overflow-x scroll container with a sticky first column for the person/issue label. Do not attempt 2D virtualization in v1.9 — the cap makes it unnecessary. If the cap is later lifted, revisit.
+
+**Warning signs:**
+- React DevTools profiler shows >16ms render time on date range changes
+- UI input lag when typing in date range fields
+
+**Phase to address:**
+Tempo worklog viewer phase. Define the maximum date range in the product spec before building the table.
+
+---
+
+## Technical Debt Patterns
+
+| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
+|----------|-------------------|----------------|-----------------|
+| Hardcode Tempo base path without probe | Saves 1-2 hours | Breaks on instances with different Tempo plugin versions | Never — probe is cheap, inconsistency is expensive |
+| Assume Jira PAT works for Tempo | No new credential UI | 401s on every Tempo request; blocks the entire feature | Never for shipping code |
+| Leave `dashboardLayout` in store without migration version bump | Avoids boilerplate | Stale widget data in user `settings.json`; type inconsistencies | Never — migration is 3 lines |
+| Comment out instead of delete widget tests | Faster cleanup | Biome errors on dead code; misleading test counts | Never |
+| Use `new Date(timestamp).toLocaleDateString()` for day bucketing | Simplest code | Wrong day for users in non-server-timezone | Never — use `.slice(0, 10)` |
+| Skip `npm run build` in removal phase verification | Faster | CSS import errors from deleted packages pass `tsc` but fail the build | Never — add it to the checklist |
+| Delete `WorkloadTab.tsx` but not `WorkloadTab.test.tsx` | Faster commit | 15+ test failures masking as regressions | Never |
+
+---
+
+## Integration Gotchas
+
+| Integration | Common Mistake | Correct Approach |
+|-------------|----------------|------------------|
+| Tempo Timesheets DC | Reusing Jira Bearer PAT | Probe auth first; create `tempoFetch` wrapper; store Tempo token in Stronghold key `tempo-pat` |
+| Tempo Timesheets DC | Using documented base path without probing | Probe `/rest/tempo-timesheets/{1,3,4}/worklogs` in sequence; store confirmed path as a documented constant |
+| Tempo Timesheets DC | Trusting response date format without inspecting actual response | Log first raw response; confirm whether `started` is ISO string, epoch ms, or date-only string |
+| Tempo Timesheets DC | Fetching without pagination exhaustion | Pass `paginate=false` (v1) or loop with offset (v4); test with exactly-50-item fixture |
+| Tempo Timesheets DC | Assuming `timeSpent` is always seconds | v1 API may return `timeSpentSeconds` (int); v4 may return `"2h 30m"` string; verify before parsing |
+| Zustand persist | Removing fields without migration version bump | Bump `version` to 19; `delete s.dashboardLayout` in migrate function |
+
+---
+
+## Performance Traps
+
+| Trap | Symptoms | Prevention | When It Breaks |
+|------|----------|------------|----------------|
+| Rendering all N×M worklog cells | Janky filter changes, input lag | Cap date range to 31 days; overflow-x scroll with sticky column | 20+ people × 30+ days |
+| N+1 user-details fetches per worklog row | 20 Jira requests for 20 team members | Batch user lookup in one call; TanStack Query deduplication | Any team > 5 |
+| Fetching full Tempo worklog response without pagination | Silently returns 50 records maximum | Always paginate to exhaustion | Default 50-record limit |
+| Re-fetching Tempo on every keystroke in date range input | Multiple in-flight requests, stale data | `enabled: isValidDateRange` guard on `useQuery`; no debounce needed with TanStack Query's `enabled` pattern | Immediate on typing |
+
+---
+
+## Security Mistakes
+
+| Mistake | Risk | Prevention |
+|---------|------|------------|
+| Storing Tempo token in `settings.json` (Tauri Store, plaintext) | Token readable from disk | Store in Stronghold under key `tempo-pat`; same pattern as Jira PAT |
+| Sending Tempo token to Jira endpoints by accident | Token exposure in network logs, potential auth confusion | `tempoFetch` wrapper is separate from `jiraFetch`; no shared token reads |
+| Logging Tempo Authorization header in DevTools request log | Token visible in dev tools capture | Follow existing pattern: `source: 'tempo'`; dev tools must redact Authorization header same as Jira |
+
+---
+
+## UX Pitfalls
+
+| Pitfall | User Impact | Better Approach |
+|---------|-------------|-----------------|
+| Empty worklog table with no error when Tempo is unreachable | User thinks they logged nothing this period | Show `ErrorState` with "Tempo Timesheets is unreachable — verify credentials" message; same pattern as AIO disabled state |
+| Date range picker allows multi-month or open-ended ranges | 600+ cell render; table becomes unreadable | Preset shortcuts (This Week / This Month / Last Month) + 31-day max custom range |
+| Dashboard route shows blank after widget removal but before static dashboard is built | Users see empty page on app open | Build static dashboard before removing widget system; do not delete Dashboard before its replacement is wired |
+| Worklog table shows weekend columns with no hours | Visual noise; empty cells for Sat/Sun | Default to weekdays-only columns; optional "show weekends" toggle |
+
+---
+
+## "Looks Done But Isn't" Checklist
+
+- [ ] **Tempo auth probe**: A real Tempo API call returns 200 (not TypeScript-clean with no actual request made)
+- [ ] **Tempo pagination**: Service test fixture with exactly 50 worklogs verifies that a second page request is made when total > 50
+- [ ] **Widget store cleanup**: `settings.store.ts` no longer imports `registry.ts`; store version bumped to 19; migration deletes `dashboardLayout` from persisted state
+- [ ] **Dashboard removal build check**: `npm run build` passes (not just `tsc --noEmit` and `vitest`)
+- [ ] **Workload route removal**: `grep -rn "'/workload'" src/ --include="*.tsx"` returns zero matches in `routes.tsx` and `sidebar-items.ts`
+- [ ] **Workload sidebar preset**: `PM_SIDEBAR_PRESET` does not include `'workload'` in the visible set
+- [ ] **Test mock cleanup**: `grep -rn "'workload'" src/ --include="*.test.*"` returns zero matches in any mock `sidebarItems` array
+- [ ] **Test cleanup**: `grep -rn "dashboardLayout\|WIDGET_REGISTRY\|DEV_DASHBOARD_PRESET\|PM_DASHBOARD_PRESET\|addDashboardWidget\|removeDashboardWidget" src/ --include="*.test.*"` returns zero matches
+- [ ] **Worklog day bucketing**: Unit tests verify a worklog timestamped at 23:30 CET (UTC+1) is assigned to the correct calendar day for a UTC consumer
+- [ ] **Package removal**: `react-grid-layout` and `react-resizable` absent from `package.json`; `@types/react-grid-layout` absent from devDependencies
+- [ ] **WorkloadTab test file deleted**: `src/routes/dashboard/WorkloadTab.test.tsx` does not exist on disk
+
+---
+
+## Recovery Strategies
+
+| Pitfall | Recovery Cost | Recovery Steps |
+|---------|---------------|----------------|
+| Tempo auth wrong (Jira PAT rejected) | MEDIUM | Add `tempoToken` field to Settings → Integrations; store in Stronghold `tempo-pat`; update `tempoFetch` wrapper; re-probe |
+| Tempo base path wrong (404s) | LOW | Update `TEMPO_API_PATH` constant; re-run probe; no UI changes |
+| Store version not bumped after field removal | HIGH | Emergency patch release with correct migration; users with broken persisted state need store reset |
+| `react-grid-layout` CSS import missed | LOW | One-line fix; caught immediately by `vite build` |
+| Test suite broken by deleted registry import | LOW | Delete the `describe` block; 15-minute fix |
+| Day bucketing timezone bug caught in production | MEDIUM | Hotfix: replace `new Date(s).toLocaleDateString()` with `s.slice(0, 10)` throughout |
+| WorkloadTab test file left in place | LOW | Delete the file; run suite; 5-minute fix |
+
+---
+
+## Pitfall-to-Phase Mapping
+
+| Pitfall | Prevention Phase | Verification |
+|---------|------------------|--------------|
+| Tempo auth (Jira PAT rejected) | Tempo service layer — probe is first task | `probeTempoAuth` returns 200 with actual credentials |
+| Tempo base path version mismatch | Tempo service layer — probe is first task | Constant documented with probe citation; no 404s in dev tools log |
+| Worklog timestamp timezone bug | Tempo worklog viewer phase | Service test: 23:30 CET timestamp assigned to correct calendar day |
+| Tempo pagination truncation | Tempo service layer phase | Service test with 50-item fixture verifies second-page request |
+| Dashboard store import from registry | Dashboard removal phase | `settings.store.ts` compiles without `registry.ts` on disk |
+| Store version not bumped | Dashboard removal phase | `grep "version: 19"` in `settings.store.ts`; migration deletes `dashboardLayout` |
+| `react-grid-layout` CSS build failure | Dashboard removal phase | `npm run build` passes in phase verification |
+| `settings.store.test.ts` broken imports | Dashboard removal phase | `vitest run src/stores/settings.store.test.ts` passes before phase is complete |
+| `WorkloadTab.test.tsx` left behind | Workload removal phase | `ls src/routes/dashboard/WorkloadTab.test.tsx` returns not-found |
+| Workload route not removed | Workload removal phase | `grep "workload" src/routes/routes.tsx` returns zero matches |
+| Sidebar test mocks reference removed item | Workload removal phase | Full suite passes; `grep "'workload'" src/ --include="*.test.*"` zero matches |
+| N×M cell render performance | Tempo worklog viewer phase | Date range capped at 31 days in date picker component |
+
+---
+
+## Sources
+
+- Codebase inspection: `settings.store.ts` (v18 persist migration, `dashboardLayout` fields, registry import), `sidebar-items.ts` (`workload` entry, `PM_SIDEBAR_PRESET`), `routes.tsx` (`WorkloadTab` lazy import), `WidgetGrid.tsx` (CSS imports), `registry.ts` (widget definitions), `settings.store.test.ts` (WIDGET_REGISTRY/DEV_DASHBOARD_PRESET imports), `Settings.test.tsx`, `Sidebar.test.tsx`, `WorkloadTab.test.tsx`, `aio/client.ts` (probe pattern reference)
+- Tempo Server/DC REST API community: [Atlassian Community — Tempo API confusion](https://community.atlassian.com/forums/Jira-questions/Tempo-API-Documentation-is-Extra-confusing/qaq-p/2650722)
+- Tempo worklog retrieval practical guide: [Retrieving Worklogs Using Jira Tempo REST API — Dario Djuric](https://dario-djuric.medium.com/retrieving-worklogs-using-jira-tempo-rest-api-f7a0c77c4832)
+- Tempo official migration guide: [REST APIs for Jira Data Center — Tempo Help Center](https://help.tempo.io/cloudmigration/latest/rest-apis-for-jira-server-data-center)
+- Tempo Server API documentation index: [tempo.io/server-api-documentation](https://www.tempo.io/server-api-documentation)
+- Zustand persist migration patterns: [Persisting store data — Zustand docs](https://zustand.docs.pmnd.rs/reference/integrations/persisting-store-data)
+- JavaScript DST edge cases: [Say Goodbye to JavaScript's DST Date Confusion — DEV Community](https://dev.to/urin/say-goodbye-to-javascripts-dst-date-confusion-24mj)
+- Business day vs calendar day pitfalls: [Business Days vs Calendar Days — DEV Community](https://dev.to/work_hau_cb718f47075930f9/business-days-vs-calendar-days-the-date-math-mistake-that-breaks-your-deadlines-174a)
+
+---
+*Pitfalls research for: Tempo Timesheets integration + dashboard/workload removal in Tauri 2 / React 18 / Zustand / Vitest stack*
+*Researched: 2026-05-20*

@@ -1,191 +1,321 @@
-# Stack Research: AIO TCMS Integration
+# Stack Research: Tempo Timesheets Integration + Dashboard Redesign
 
-**Milestone:** Taskflow v1.8 — AIO Test Management
-**Researched:** 2026-05-12
-**Confidence:** HIGH (based on codebase analysis) / MEDIUM (AIO API shape, web tool access restricted)
+**Milestone:** Taskflow v1.9 — Tempo, Dashboard Redesign & Cleanup
+**Researched:** 2026-05-20
+**Confidence:** HIGH (codebase analysis, removal safety) / MEDIUM (Tempo Server auth model)
 
 ---
 
 ## Scope
 
-This is a SUBSEQUENT MILESTONE document. The validated v1.7 stack (Tauri 2, React 19, TypeScript,
-TanStack Query v5, shadcn/ui, Tailwind v4, Zustand, Vitest, Biome, @dnd-kit, @tanstack/react-virtual,
-react-grid-layout, jira2md, react-markdown, remark-gfm, rehype-raw, react-hotkeys-hook, cmdk,
-babel-plugin-react-compiler) is NOT re-researched. Only net-new additions for v1.8 are assessed here.
+This is a SUBSEQUENT MILESTONE document. The validated v1.8 stack (Tauri 2, React 18,
+TypeScript, TanStack Query v5, shadcn/ui, Tailwind v4, Zustand, Vitest, Biome, @dnd-kit,
+@tanstack/react-virtual, react-grid-layout, jira2md, react-markdown, react-hotkeys-hook,
+cmdk, babel-plugin-react-compiler, recharts) is NOT re-researched. Only net-new questions
+for v1.9 are assessed here.
 
 ---
 
 ## New Dependencies Needed
 
-| Library | Version | Purpose | Why not existing? |
-|---------|---------|---------|-------------------|
-| `recharts` | `^2.15.x` | Burndown/trend line chart for AIO cycle detail view | No chart library exists in the project. SprintProgressTab uses a raw CSS flex stacked bar — sufficient for percentage bars but cannot draw a time-series line chart. recharts is the library shadcn/ui's `chart` component is built on; `shadcn add chart` generates a chart wrapper that delegates to recharts. Adding recharts aligns the chart primitive with the rest of the shadcn component model and gives the React Compiler full visibility into memoizable chart components. |
+**None.**
 
-### Notes on recharts version
-
-The project currently has `shadcn@^4.0.5` as a devDep. shadcn v4 generates chart components backed by recharts `^2.x`. Pin to `^2.15.x` to stay in the semver range that shadcn generates code for. recharts 3.x is in development but not yet the shadcn default. (MEDIUM confidence — cannot verify exact current shadcn chart peer dep without web access; `^2.x` is safe.)
+The existing stack is sufficient for all v1.9 features. No new packages need to be installed.
 
 ---
 
-## Existing Stack Sufficient For
+## Dependencies to Remove
 
-**AIO REST API client — no new HTTP library needed.**
-`@tauri-apps/plugin-http` fetch already bypasses CORS for on-premise Jira. AIO Test Management
-is a Jira Data Center plugin; its REST API is served from the same Jira host at
-`/rest/aio-tcms/1.0/`. All calls authenticate with the same Bearer PAT stored in Stronghold.
-The `apiFetch` wrapper already handles logging, timeout, and auth header redaction.
+| Package | Version in package.json | Why Safe to Remove |
+|---------|--------------------------|-------------------|
+| `react-grid-layout` | `^2.2.2` | Used exclusively in `src/routes/dashboard/WidgetGrid.tsx` and `src/routes/dashboard/index.tsx`. The entire widget dashboard system is being deleted in v1.9. No other files import it — confirmed via codebase grep. |
+| `@types/react-grid-layout` | `^1.3.6` | Type declarations for `react-grid-layout` — redundant once the lib is removed. Note: react-grid-layout v2 ships its own types; `@types/react-grid-layout` is already deprecated upstream. Remove alongside the library. |
+| `react-resizable` | Transitive dep of react-grid-layout | Only imported in `WidgetGrid.tsx` via CSS (`import 'react-resizable/css/styles.css'`). Safe to remove alongside react-grid-layout. |
 
-The only change needed: `apiFetch`'s `source` union type is `'jira' | 'gitlab'`. AIO API
-calls go to the Jira host so `'jira'` is semantically correct and correctly triggers
-`setJiraConnected(false)` on 401. No type change required — just pass `'jira'` as the source.
+**Removal safety check:**
 
-**AIO test step tables — no new markup parser needed.**
-AIO stores test step tables as Jira wiki table syntax (`||Step||Expected||` header rows,
-`|value|value|` data rows). The existing `jira2md` + `remark-gfm` + `rehype-raw` pipeline
-already converts Jira wiki tables to GFM Markdown tables, which `react-markdown` renders as
-`<table>` elements. `WikiRenderer.tsx` handles this today for issue descriptions. The
-AIO-specific wrinkle (step/expected/actual columns for test case steps) is a presentation
-layer concern, not a parsing concern — a dedicated `TestStepTable` component can either
-reuse `WikiRenderer` directly or parse the steps from the structured AIO API response
-(AIO's `getTestCaseSteps` endpoint returns structured JSON with step/expectedResult/testData
-fields, not wiki markup). If structured JSON is available from the API, prefer that — zero
-markup parsing needed.
+```bash
+# These are the only two files that reference react-grid-layout:
+# taskflow/src/routes/dashboard/WidgetGrid.tsx
+# taskflow/src/routes/dashboard/index.tsx
+# Both files are being deleted entirely as part of the dashboard cleanup.
+# No other source file imports from react-grid-layout or react-resizable.
+```
 
-**AIO attachment URLs — no new fetch mechanism needed.**
-`AuthImage.tsx` already handles authenticated image fetching: it detects when a URL
-starts with `jiraBaseUrl`, fetches via `@tauri-apps/plugin-http` with Bearer auth, and
-returns a blob URL. AIO attachment URLs are served from the same Jira host so `AuthImage`
-works without modification. The existing `AttachmentLightbox` can be reused or extended
-with an `aio` attachment shape. No new component or library needed.
-
-**TanStack Query for AIO data fetching — no change needed.**
-All AIO data (projects, cycles, test runs, stats) fits the existing `useQuery` +
-`queryKey` + `staleTime` pattern. AIO cycle data should use a generous staleTime
-(5–10 min) since test execution results change less frequently than sprint board issues.
-
-**Sidebar section, route navigation, tab pinning — no new deps.**
-The existing sidebar customization system (Zustand store, drag-and-drop reorder via
-@dnd-kit, visibility toggles), hash router, and header tab strip with `LazyStore` persistence
-handle the AIO sidebar section and cycle pinning requirements without new libraries.
-
-**Progress bars and status badges — no new deps.**
-Cycle progress (tests passed/failed/blocked/not run) fits the CSS flex stacked bar
-pattern already used in `SprintProgressTab`. The shadcn `Badge` component handles
-colored status labels. No new UI library needed.
+The `DashboardLayoutItem` type exported from `src/stores/settings.store.ts` and the
+`dashboardLayout`, `addDashboardWidget`, `removeDashboardWidget` store actions are also
+being deleted. Any tests referencing these (e.g. `settings.store.test.ts`) will need
+corresponding removal. All widget components under `src/routes/dashboard/widgets/` and
+`WidgetCard.tsx`, `WidgetPicker.tsx` are deleted in the cleanup pass.
 
 ---
 
-## Anti-patterns / What NOT to Add
+## Tempo Timesheets REST API
 
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| AIO SDK / `@aio-tests/rest-client` (if it exists) | Vendor SDKs add large dependencies, enforce their own typing conventions, and may not support Jira Data Center. Direct REST calls with typed response interfaces is the established pattern across all Jira and GitLab services in this codebase. | Raw `apiFetch('jira', ...)` calls in a new `src/services/aio/` domain module, same pattern as `src/services/jira/` decomposition |
-| `chart.js` / `react-chartjs-2` | 200KB+ bundle weight for a canvas-based chart that fights React's reconciler. recharts is SVG-based, React-native, and the shadcn/ui ecosystem standard. | `recharts` |
-| `d3` directly | D3 is what recharts uses internally. Pulling in D3 for one burndown chart adds ~400KB and requires manual React integration. | `recharts` LineChart with pre-computed data points |
-| `nivo` charts | Beautiful but large (tree-shakeable but complex setup). Overkill for a single burndown trend line. | `recharts` |
-| `visx` (Airbnb) | Low-level primitives requiring manual SVG layout composition. High effort for marginal gain on a simple time-series line. | `recharts` |
-| Separate AIO auth token / credential store | AIO TCMS uses the same Jira PAT. Adding a second Stronghold secret or auth store entry for AIO would create credential drift and confuse the onboarding flow. | Reuse `readSecret('jira-pat')` and `jiraBaseUrl` from `useAuthStore` |
-| Historical burndown data pipeline | PROJECT.md explicitly puts "Historical analytics / burndown charts" out of scope as a general feature. AIO's cycle burndown is acceptable ONLY because AIO's API returns pre-computed daily snapshot arrays — no local data warehousing or historical polling required. Do not build any local time-series storage. | Render what AIO's API returns directly |
-| Shadcn `chart` CLI component | `shadcn add chart` generates a wrapper that re-exports recharts with some context wiring. For a single burndown line chart it adds boilerplate that obscures the simple recharts usage. Install recharts directly and render `<LineChart>` inline. | Direct recharts import |
-| New `apiFetch` source type for AIO | AIO is served from the Jira host; `'jira'` is the correct source. Adding `'aio'` as a third source type would require changes to `apiFetch`, `markDisconnected`, devtools log filtering, and operation profiler — for no user-visible benefit. | Pass `'jira'` as the source for all AIO calls |
+### Authentication Model — CRITICAL FINDING
 
----
+**The Tempo Timesheets Server/DC REST API does NOT accept the Jira PAT Bearer token.**
 
-## Integration Notes
+Tempo is a third-party plugin that stores its data separately from core Jira. It has its
+own authentication system requiring a **Tempo API Integration Token** generated from within
+Tempo's own settings UI:
 
-### AIO Service Module Pattern
+> Tempo → Settings → Data Access → API Integration → New Token
 
-Create `src/services/aio/` mirroring the existing Jira domain decomposition:
-
+The generated token is used as a Bearer token in a separate Authorization header:
 ```
-src/services/aio/
-  index.ts         # barrel re-export
-  types.ts         # AioProject, AioCycle, AioTestRun, AioStats interfaces
-  projects.ts      # fetchAioProjects()
-  cycles.ts        # fetchAioCycles(), fetchAioCycleDetail()
-  test-runs.ts     # fetchCycleTestRuns(), fetchIssueTestRuns()
-  client.ts        # shared AIO pagination helper (if needed)
+Authorization: Bearer <TempoAPIIntegrationToken>
 ```
 
-All functions follow the `(baseUrl, token, ...) => Promise<T>` signature used throughout
-the Jira service modules. Use `apiFetch('jira', url, { headers: { Authorization: \`Bearer \${token}\` } })`.
+The official documentation shows Basic Auth for Server/DC, but community-confirmed behavior
+is:
+- Basic Auth (`username:password`) — works on some older endpoints
+- Jira PAT Bearer — does NOT work for `tempo-timesheets` endpoints (produces 401)
+- Tempo API Integration Token as Bearer — the correct approach
 
-### Query Key Convention
+**Implication for v1.9:** A new Tempo PAT credential must be added to the onboarding flow,
+stored in Stronghold alongside the Jira PAT. This means extending `useAuthStore` with a
+`tempoToken` field, adding a Tempo token input to Settings → Connections, and storing it
+via `writeSecret('tempo-pat', token)`. A `tempoEnabled` toggle (same pattern as `aioEnabled`)
+should gate all Tempo API calls.
 
-Follow the existing flat-array convention:
-```typescript
-queryKey: ['aio-projects', jiraBaseUrl]
-queryKey: ['aio-cycles', jiraBaseUrl, projectId]
-queryKey: ['aio-cycle-detail', jiraBaseUrl, cycleId]
-queryKey: ['aio-test-runs', jiraBaseUrl, issueKey]  // for issue detail panel
+**Confidence:** MEDIUM — auth model inferred from multiple community reports and the
+architecture of Tempo as a separate plugin. Must be probe-verified in Phase 1 of v1.9
+(same probe-first approach used for AIO in v1.8).
+
+### Endpoint Structure
+
+**Base path (Timesheets plugin v4):**
+```
+{jiraBaseUrl}/rest/tempo-timesheets/4/
 ```
 
-### Burndown Chart Integration
+**Primary worklog endpoint (POST — search/filter):**
+```
+POST {jiraBaseUrl}/rest/tempo-timesheets/4/worklogs/search
+```
 
-AIO's cycle detail endpoint returns pre-computed daily execution stats (confirmed by AIO
-documentation pattern — MEDIUM confidence). The burndown data shape is approximately:
-
-```typescript
-interface AioBurndownPoint {
-  date: string;       // ISO date
-  remaining: number;  // tests not yet executed
-  passed: number;
-  failed: number;
+Request body:
+```json
+{
+  "from": "2026-05-01",
+  "to": "2026-05-31",
+  "workerKeys": ["jdoe", "jsmith"],
+  "projectKeys": ["ESHOP"]
 }
 ```
 
-Render with recharts `<LineChart>` using `<CartesianGrid>`, `<XAxis>`, `<YAxis>`,
-`<Tooltip>`, and one `<Line>` per series. The chart can live in a `CycleBurndownChart.tsx`
-component under `src/routes/aio/`. No recharts context provider setup required for a simple
-line chart. Use Tailwind CSS variables for colors to match the app's dark/light themes
-(`var(--color-primary)`, `var(--color-destructive)`, etc.).
+Query params for pagination: `?limit=1000&offset=0`
 
-### Authenticated AIO Attachments
+**Response structure:**
+```json
+{
+  "metadata": {
+    "count": 42,
+    "limit": 1000,
+    "offset": 0
+  },
+  "results": [
+    {
+      "tempoWorklogId": 3920,
+      "jiraWorklogId": 14020,
+      "issue": {
+        "key": "ESHOP-123",
+        "id": 10991
+      },
+      "timeSpentSeconds": 3600,
+      "startDate": "2026-05-15",
+      "startTime": "09:00:00",
+      "description": "Worked on checkout flow",
+      "author": {
+        "key": "jdoe",
+        "displayName": "John Doe"
+      }
+    }
+  ]
+}
+```
 
-AIO test run step attachments are stored under the Jira host. The existing `AuthImage`
-component handles this transparently — pass the attachment URL and it fetches with Bearer
-auth if the URL starts with `jiraBaseUrl`. For the lightbox, reuse `AttachmentLightbox`
-or `ImageLightbox` (the single-image variant already in `ImageLightbox.tsx`). AIO
-attachment objects need an adapter to the `JiraAttachment` shape, or `AttachmentLightbox`
-can be generalized to accept a simpler `{ url: string; filename: string }` prop.
+**Note on issue.key:** The v4 Cloud API omits `issue.key` and returns only `issue.id`.
+The Data Center v4 endpoint at `apidocs.tempo.io/dc` does return `issue.key`. This must
+be probe-verified on the actual instance — if only `issue.id` is available, issue keys
+must be resolved via a Jira API call (`/rest/api/2/issue/{id}`), which can be batched.
 
-### AIO Step Table (Structured API path)
+**Pagination:** Max 1,000 per page. For typical team date ranges (2–4 weeks, 5–10 people),
+response count is well under 1,000 — single-page fetch is sufficient. Add offset pagination
+only if needed.
 
-If the AIO `/getTestCaseSteps` endpoint returns structured JSON (step, expectedResult,
-testData per row), build a `TestStepTable` component that renders an HTML table directly
-with Tailwind classes — no wiki parsing. This is cleaner than routing through `WikiRenderer`
-and gives full control over the pass/fail/blocked cell coloring required by the v1.8 spec.
+### Additional Useful Endpoints
 
-If AIO returns steps embedded in wiki markup (fallback), `WikiRenderer` handles it via
-`jira2md` table conversion + GFM table rendering — no changes needed.
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/rest/tempo-teams/2/team` | GET | List teams (needed for team-member filter) |
+| `/rest/tempo-timesheets/4/timesheet-approval/user/{userKey}/log` | GET | Timesheet approval status per user |
 
-### Sidebar AIO Section
-
-Extend `sidebar-items.ts` with AIO nav entries. The sidebar customization store already
-supports arbitrary item IDs with visibility + order persistence. Follow the established
-pattern: add AIO items to the default sidebar item list with a `visible: true` default,
-let users reorder/hide them in Settings → Sidebar.
+For the v1.9 worklog viewer (showing people + date range), the worklogs search endpoint
+is sufficient. Teams endpoint is optional — team membership can be inferred from Jira project
+members already fetched for sprint board.
 
 ---
 
-## Installation
+## Date Range Handling — No New Library Needed
 
-```bash
-# From taskflow/ directory
-npm install recharts
+The worklog viewer needs:
+1. Date range selection (configurable from/to dates)
+2. Date preset generation ("this week", "last week", "this month", "last 2 weeks")
+3. Day-column table header generation (list of dates between from/to)
+4. Working-day calculation (optional: highlight weekends differently)
+
+**Recommendation: Use native Date API + small utility functions.**
+
+The native `Date` API is sufficient for all these use cases without adding `date-fns`
+(~18 KB gzip). The operations needed are:
+
+```typescript
+// Generate date range array
+function dateRange(from: Date, to: Date): Date[] { ... }
+
+// ISO date string for API params
+function toISODate(d: Date): string {
+  return d.toISOString().slice(0, 10);  // "YYYY-MM-DD"
+}
+
+// Preset: this week (Mon–Sun)
+function thisWeekRange(): [Date, Date] { ... }
+
+// Check weekend
+function isWeekend(d: Date): boolean {
+  return d.getDay() === 0 || d.getDay() === 6;
+}
 ```
 
-No Cargo.toml or Tauri plugin changes required. No new Tauri capabilities needed — AIO
-calls go through the existing `@tauri-apps/plugin-http` which is already allowed for the
-Jira origin.
+None of these require `date-fns`. The range length for the worklog table (max ~31 days) is
+small enough that vanilla Date arithmetic is readable and maintainable. Only add `date-fns`
+if locale-aware date formatting or complex business-day offset arithmetic is needed — neither
+is required for v1.9.
+
+**Confidence:** HIGH — confirmed via native Date API capability check.
+
+---
+
+## Table Virtualization — Existing Library Sufficient
+
+The worklog table has:
+- Rows: team members (5–15 people) × hierarchy levels (epic → story → subtask, ~3–4 levels)
+- Columns: day columns across the date range (7–31 columns) + fixed first column (issue/person)
+
+**Row count: ~50–200 rows maximum.** This is well within `@tanstack/react-virtual`'s
+sweet spot. The existing `useVirtualizer` usage in `BacklogPage.tsx` and `SprintBoardTab.tsx`
+provides proven patterns.
+
+**Column virtualization: NOT needed.** With max 31 day columns (one month) plus the fixed
+label column, the DOM column count never exceeds ~35 elements. This is trivially small —
+column virtualization adds complexity for no performance benefit at this scale.
+
+**Sticky first column and sticky header row:** Achievable with CSS `position: sticky` +
+`left: 0` / `top: 0` on the container. This is a pure CSS concern, not a library
+concern. The existing `@tanstack/react-virtual` handles vertical row virtualization if the
+hierarchical row list grows large; sticky CSS handles the fixed dimensions.
+
+**No `@tanstack/react-table` needed.** The worklog table is a specialized layout (day
+columns as sum/dot cells, not generic sortable columns). TanStack Table's column model adds
+overhead without benefit for a fixed-structure display. Build a bespoke table component
+with custom row/column rendering — the same approach used for `SprintBoardTab` and
+`BacklogPage`.
+
+---
+
+## Static Dashboard — No New Dependencies
+
+The new minimal static dashboard (sprint health bar + my in-progress subtasks + next
+release countdown) reuses:
+
+- **Sprint health data:** Already fetched by `useSprintIssues` query used in `SprintBoardTab`
+- **My in-progress subtasks:** Already fetched by `useMyTasks` query used in `MyTasksTab`
+- **Next release countdown:** Already fetched by `useFixVersions` query used in `ReleasesTab`
+
+All three panels render from cached TanStack Query data — no new API calls needed, no
+new libraries needed. The static layout is plain Tailwind CSS grid/flex — no grid
+library required. The existing `SprintHealthPanel`, `SubtasksPanel`, and `ReleasesTab`
+components can be adapted or their query hooks reused directly.
+
+---
+
+## Existing Stack — What Covers Each v1.9 Need
+
+| v1.9 Need | Covered By | No New Dep |
+|-----------|------------|------------|
+| Tempo API HTTP calls | `@tauri-apps/plugin-http` via existing `apiFetch` pattern | YES |
+| Tempo auth token storage | Stronghold (`writeSecret`/`readSecret`) — same pattern as Jira PAT | YES |
+| Date range inputs | shadcn `<Input type="date">` or `<Popover>` + `<Calendar>` (shadcn calendar already available via shadcn/ui) | YES |
+| Date preset buttons | shadcn `<Button>` + native Date arithmetic | YES |
+| Worklog table render | Custom component + CSS sticky + `@tanstack/react-virtual` for rows | YES |
+| Row hierarchy (epic/story/subtask) | Collapsible pattern already established in `SprintBoardTab` + `StoryHeaderRow` | YES |
+| Saved filters persistence | TanStack Query + `LazyStore` — same pattern as saved sprint board filters | YES |
+| Sprint health panel | `SprintHealthPanel.tsx` exists — reuse or adapt | YES |
+| Release countdown | `ReleasesTab.tsx` data + countdown display component | YES |
+| Dashboard static layout | Tailwind CSS grid/flex — no library | YES |
+
+---
+
+## What NOT to Add
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| `date-fns` | 18 KB for simple date arithmetic that 10 lines of native code handles | Native `Date` API + utility functions in `src/lib/date-utils.ts` |
+| `@tanstack/react-table` | Heavy abstraction for a fixed-schema display table; adds complexity without benefit at 50–200 row scale | Custom table component with bespoke rendering |
+| `react-datepicker` / `@mui/x-date-pickers` | Large dependencies for date inputs; shadcn/ui's `Calendar` + `Popover` pattern already available in the codebase | shadcn `<Calendar>` + `<Popover>` |
+| New grid/layout library to replace react-grid-layout | The new dashboard is static — CSS grid handles it perfectly | Tailwind `grid` classes |
+| `swr` or `axios` | Project uses TanStack Query + Tauri plugin-http exclusively | Existing `apiFetch` wrapper |
+| Tempo JavaScript SDK (if one exists) | Adds vendor lock-in; typed interfaces over raw fetch is the established pattern across all services | Raw `apiFetch('tempo', ...)` calls in a new `src/services/tempo/` module |
+
+---
+
+## Tempo Service Module Pattern
+
+Create `src/services/tempo/` mirroring the Jira domain module structure:
+
+```
+src/services/tempo/
+  index.ts           # barrel re-export
+  types.ts           # TempoWorklog, TempoAuthor, TempoSearchParams interfaces
+  worklogs.ts        # fetchWorklogs(baseUrl, token, params): Promise<TempoWorklogPage>
+  client.ts          # shared apiFetch wrapper with 'tempo' source type
+```
+
+The `apiFetch` wrapper needs a new `'tempo'` source type (unlike AIO which reused `'jira'`,
+Tempo has a separate credential and a separate auth failure signal — a 401 should mark
+`tempoConnected: false`, not `jiraConnected: false`).
+
+**Query key convention:**
+```typescript
+queryKey: ['tempo-worklogs', jiraBaseUrl, searchParams]
+queryKey: ['tempo-worklogs', jiraBaseUrl, { from, to, workerKeys }]
+```
+
+**staleTime:** 5 minutes — worklogs don't change frequently during a viewing session.
+
+---
+
+## Installation Commands
+
+```bash
+# No new packages to install
+
+# Remove:
+npm uninstall react-grid-layout @types/react-grid-layout
+# react-resizable is a transitive dep — removed automatically when react-grid-layout is removed
+```
 
 ---
 
 ## Version Compatibility
 
-| Package | Version | Compatible With | Notes |
-|---------|---------|-----------------|-------|
-| `recharts` | `^2.15.x` | React 19, TypeScript 5.9, Vite 8, babel-plugin-react-compiler | recharts 2.x ships its own TypeScript types. React Compiler handles recharts components correctly — they use standard React patterns. No known Tauri webview incompatibilities. SVG-based so no canvas permissions needed. |
+| Concern | Notes |
+|---------|-------|
+| react-grid-layout removal | v2.2.2 has no reverse dependencies in this codebase — safe to uninstall after deleting WidgetGrid.tsx, WidgetCard.tsx, WidgetPicker.tsx, widgets/ directory, and dashboard/index.tsx |
+| `@types/react-grid-layout` | Already deprecated upstream (react-grid-layout v2 ships own types) — no risk removing it |
+| Native Date API | Fully supported in all Tauri 2 webviews (Chromium-based on Windows/Linux, WebKit on macOS) — no polyfill needed |
 
 ---
 
@@ -193,15 +323,15 @@ Jira origin.
 
 | Area | Confidence | Basis |
 |------|------------|-------|
-| No new HTTP/fetch library needed | HIGH | Codebase audit — `apiFetch` + `@tauri-apps/plugin-http` already established |
-| recharts as chart library | HIGH | Only new dep needed; aligns with shadcn ecosystem; SVG-based fits Tauri webview |
-| AIO uses Jira PAT (same credentials) | HIGH | AIO TCMS is a Jira Data Center plugin — same host, same auth model |
-| AIO REST API base path `/rest/aio-tcms/1.0/` | MEDIUM | Standard plugin REST path convention; web access restricted for verification |
-| Structured JSON from AIO step endpoint | MEDIUM | AIO's API is documented to return structured step data; could not verify current schema |
-| Wiki markup pipeline sufficient for tables | HIGH | jira2md + remark-gfm handles Jira table syntax today — verified in codebase |
-| AuthImage covers AIO attachments without changes | HIGH | Logic based on URL prefix match — same Jira host = same code path |
+| react-grid-layout safe to remove | HIGH | Grep-confirmed: only 2 files import it; both are being deleted |
+| No new library needed for date handling | HIGH | All needed operations are trivial with native Date API |
+| No new library needed for table | HIGH | Row counts are small; existing @tanstack/react-virtual is sufficient |
+| Tempo auth requires separate token | MEDIUM | Multiple community reports + Tempo architecture (separate plugin, separate data store); must be probe-verified against the actual instance |
+| Tempo API base path `/rest/tempo-timesheets/4/` | MEDIUM | Documented + community-confirmed; version "4" is the current DC API version; probe required to confirm 19.2.3 uses v4 vs. newer path |
+| `issue.key` in DC v4 response | MEDIUM | DC docs suggest it's available; Cloud v4 omits it; probe required |
+| Static dashboard reuses existing queries | HIGH | Sprint health, my tasks, and releases are already fetched — TanStack Query cache makes these zero-cost for the new dashboard page |
 
 ---
 
-*Stack research for: Taskflow v1.8 AIO Test Management*
-*Researched: 2026-05-12*
+*Stack research for: Taskflow v1.9 Tempo Timesheets + Dashboard Redesign*
+*Researched: 2026-05-20*
