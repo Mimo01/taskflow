@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 60-static-dashboard-welcome-screen
 source: 60-01-SUMMARY.md, 60-02-SUMMARY.md, 60-03-SUMMARY.md, 60-04-SUMMARY.md
 started: 2026-05-21T00:00:00Z
@@ -67,9 +67,17 @@ blocked: 0
   reason: "User reported: yes, but clicking on it doesn't put it into breadcrumb so I can go easily back to dashboard"
   severity: minor
   test: 4
-  root_cause: ""
-  artifacts: []
-  missing: []
+  root_cause: "DashboardInProgressCard calls navigate('/issue/:key') directly via its own useNavigate(), bypassing handleIssueClick in AppLayout (main.tsx) which pushes the current page onto the breadcrumb trail before navigating"
+  artifacts:
+    - path: "taskflow/src/routes/dashboard/DashboardInProgressCard.tsx"
+      issue: "Calls useNavigate() directly instead of onIssueClick from outlet context"
+    - path: "taskflow/src/main.tsx"
+      issue: "handleIssueClick (lines 314-327) is the correct entry point — not called by DashboardInProgressCard"
+    - path: "taskflow/src/routes/dashboard/IssueDetailPage.tsx"
+      issue: "Breadcrumb/back-arrow header only renders when trail.length > 0"
+  missing:
+    - "DashboardInProgressCard must consume onIssueClick from useOutletContext or as a prop instead of calling navigate directly"
+    - "Dashboard index.tsx must thread onIssueClick down to DashboardInProgressCard as a prop"
   debug_session: ""
 
 - truth: "The Release card shows a progress bar indicating how many tasks in the release are done vs total"
@@ -77,7 +85,15 @@ blocked: 0
   reason: "User reported: yes but there is no progress bar of how many tasks are done"
   severity: minor
   test: 6
-  root_cause: ""
-  artifacts: []
-  missing: []
+  root_cause: "DashboardReleaseCard fetches only fix version metadata (name, date, released flag) with no query for issues tagged with the fix version, so there is no issue count data to compute done% from"
+  artifacts:
+    - path: "taskflow/src/routes/dashboard/DashboardReleaseCard.tsx"
+      issue: "Missing second useQuery for release issues; no donePct computed; no Progress bar rendered"
+    - path: "taskflow/src/services/jira.ts"
+      issue: "No fetchReleaseIssues function — needs JQL search: project={key} AND fixVersion={name}"
+  missing:
+    - "Add fetchReleaseIssues(jiraBaseUrl, jiraToken, projectKey, versionName) to jira.ts using JQL fixVersion query, returning status fields only"
+    - "Add second useQuery in DashboardReleaseCard keyed on ['jira-release-issues', activeJiraProject, soonest?.name]"
+    - "Compute donePct = doneCount / totalCount where doneCount filters statusCategory.key === 'done'"
+    - "Render <Progress value={donePct} /> and caption '{donePct}% complete · {doneCount} / {totalCount} issues' after the timing label"
   debug_session: ""
