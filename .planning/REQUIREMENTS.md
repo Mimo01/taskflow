@@ -63,29 +63,29 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REMOVE-01 | — | Pending |
-| REMOVE-02 | — | Pending |
-| QUAL-03 | — | Pending |
-| DASH-01 | — | Pending |
-| DASH-02 | — | Pending |
-| DASH-03 | — | Pending |
-| DASH-04 | — | Pending |
-| DASH-05 | — | Pending |
-| TEMPO-06 | — | Pending |
-| TEMPO-01 | — | Pending |
-| TEMPO-02 | — | Pending |
-| TEMPO-03 | — | Pending |
-| TEMPO-07 | — | Pending |
-| TEMPO-04 | — | Pending |
-| TEMPO-05 | — | Pending |
-| QUAL-01 | — | Pending |
-| QUAL-02 | — | Pending |
+| REMOVE-01 | Phase 59 | Pending |
+| REMOVE-02 | Phase 59 | Pending |
+| QUAL-03 | Phase 59 | Pending |
+| DASH-01 | Phase 60 | Pending |
+| DASH-02 | Phase 60 | Pending |
+| DASH-03 | Phase 60 | Pending |
+| DASH-04 | Phase 60 | Pending |
+| DASH-05 | Phase 60 | Pending |
+| TEMPO-06 | Phase 61 | Pending |
+| TEMPO-01 | Phase 62 | Pending |
+| TEMPO-02 | Phase 62 | Pending |
+| TEMPO-03 | Phase 62 | Pending |
+| TEMPO-07 | Phase 62 | Pending |
+| TEMPO-04 | Phase 63 | Pending |
+| TEMPO-05 | Phase 63 | Pending |
+| QUAL-01 | Phase 63 | Pending |
+| QUAL-02 | Phase 63 | Pending |
 
 **Coverage:**
 - v1.9 requirements: 17 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 17 ⚠️
+- Mapped to phases: 17 ✓
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-05-20*
-*Last updated: 2026-05-20 — initial definition*
+*Last updated: 2026-05-20 — traceability updated after roadmap creation*
