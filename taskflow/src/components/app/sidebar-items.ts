@@ -71,7 +71,6 @@ export const SIDEBAR_NAV_ITEMS: SidebarNavDef[] = [
     iconName: 'BarChart2',
     section: 'tracking',
   },
-  { id: 'workload', label: 'Workload', path: '/workload', iconName: 'Users', section: 'tracking' },
   { id: 'releases', label: 'Releases', path: '/releases', iconName: 'Tag', section: 'tracking' },
   // Testing (AIO)
   {
@@ -108,7 +107,6 @@ export function getDefaultSidebarItems(preset: 'dev' | 'pm'): SidebarItem[] {
     'epics',
     'merge-requests',
     'sprint-progress',
-    'workload',
     'releases',
     'aio-projects',
   ]);
