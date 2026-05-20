@@ -866,7 +866,6 @@ function deriveSourceCrumb(pathname: string): { path: string; label: string } {
     '/epics': 'Epics',
     '/dashboard': 'Overview',
     '/sprint-progress': 'Sprint Progress',
-    '/workload': 'Workload',
     '/releases': 'Releases',
     '/merge-requests': 'Merge Requests',
   };
