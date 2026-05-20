@@ -168,7 +168,10 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
   3. `react-grid-layout` and `@types/react-grid-layout` are absent from `package.json` and `node_modules`
   4. `npm run build` completes without errors (no dangling CSS imports or broken TypeScript references)
   5. All widget files (`WidgetGrid`, `WidgetCard`, `WidgetPicker`, `widgets/` folder) and `WorkloadTab`/`WorkloadSkeleton` are deleted; `settings.store.ts` compiles without the registry import
-**Plans**: TBD
+**Plans**: 3 plans (Wave 1: 59-01 + 59-02 parallel; Wave 2: 59-03)
+- [ ] 59-01-PLAN.md — Atomic widget+store deletion and /dashboard stub (REMOVE-01, REMOVE-02)
+- [ ] 59-02-PLAN.md — Scrub /workload references across routes, sidebar, header, staticLabels (REMOVE-01)
+- [ ] 59-03-PLAN.md — Uninstall react-grid-layout + authoritative npm run build + test suite (QUAL-03)
 **UI hint**: yes
 
 ### Phase 60: Static Dashboard / Welcome Screen
@@ -232,7 +235,7 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
 | 56. Redesign AIO cycles page + tabs + loading optimization | v1.8 | 6/6 | Complete | 2026-05-14 |
 | 57. Redesign AIO cycles page (folder tree + batch summary) | v1.8 | 5/5 | Complete | 2026-05-15 |
 | 58. Redesign data fetch of AIO cycle detail | v1.8 | 4/4 | Complete | 2026-05-15 |
-| 59. Dashboard Cleanup + Dependency Removal | v1.9 | 0/TBD | Not started | - |
+| 59. Dashboard Cleanup + Dependency Removal | v1.9 | 0/3 | Not started | - |
 | 60. Static Dashboard / Welcome Screen | v1.9 | 0/TBD | Not started | - |
 | 61. Tempo Probe + Service Layer | v1.9 | 0/TBD | Not started | - |
 | 62. Tempo Worklog Viewer UI | v1.9 | 0/TBD | Not started | - |
