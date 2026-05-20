@@ -7,7 +7,7 @@
  * - % complete progress bar (done story points / total story points)
  * - Empty state when no active sprint
  *
- * Receives all auth values as props — no readSecret or useAuthStore calls (D-16).
+ * Receives all auth values as props — no direct Stronghold or store reads (D-16).
  * Shares TanStack Query cache keys with SprintBoardTab/SprintProgressTab/SprintHealthPanel.
  */
 import { useQuery } from '@tanstack/react-query';
