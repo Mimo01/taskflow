@@ -2,7 +2,19 @@
 
 ## What This Is
 
-Taskflow is a cross-platform Tauri 2 desktop app for Orange's eshop development team. It unifies Jira (on-premise), GitLab, and AIO Test Management into a single fast, focused interface — replacing the need to juggle multiple slow tools. It ships as a portable executable (no installer, no admin rights), stores credentials in the OS keychain, and serves both developers and project managers with role-specific dashboards, automatic task-to-MR linking, a unified notifications hub, global search, AIO test execution visibility, and a developer dashboard enriched with subtask tracking, MR health, sprint health, and test run data at a glance.
+Taskflow is a cross-platform Tauri 2 desktop app for Orange's eshop development team. It unifies Jira (on-premise), Jira Tempo Timesheets, GitLab, and AIO Test Management into a single fast, focused interface — replacing the need to juggle multiple slow tools. It ships as a portable executable (no installer, no admin rights), stores credentials in the OS keychain, and serves both developers and project managers with a minimal static dashboard, sprint board, backlog, global search, notifications, AIO test execution visibility, and Tempo worklog tracking.
+
+## Current Milestone: v1.9 Tempo, Dashboard Redesign & Cleanup
+
+**Goal:** Add Tempo Timesheets worklog viewer, replace the complex widget dashboard with a minimal static dashboard, remove the Workload view, and harden the codebase with a full cleanup pass.
+
+**Target features:**
+- Tempo worklog viewer: configurable day-column table, epic/story/subtask row hierarchy, saved filters (people + date presets)
+- Remove Workload page and all its references/widgets
+- Remove entire customizable widget dashboard system
+- New minimal static dashboard: sprint health bar + my in-progress subtasks + next release countdown
+- Full test suite passing (zero regressions)
+- Thorough code cleanup: dead code, unused components, type safety, consistency
 
 ## Core Value
 
@@ -96,7 +108,14 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ### Active
 
-<!-- v1.8 complete. Next milestone TBD. -->
+<!-- v1.9 in progress -->
+
+- [ ] Tempo worklog viewer with configurable day columns, epic/story/subtask row hierarchy, and saved filters
+- [ ] Remove Workload page and all related dashboard widgets
+- [ ] Remove widget-based customizable dashboard system (react-grid-layout, 11 widget types)
+- [ ] New minimal static dashboard: sprint health + my in-progress subtasks + next release countdown
+- [ ] All tests passing, zero regressions
+- [ ] Thorough code cleanup pass (dead code, unused imports, type safety, consistency)
 
 ### Out of Scope
 
@@ -113,7 +132,7 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ## Current State
 
-**Shipped v1.8 AIO Test Management** on 2026-05-19. Started 2026-05-12. All 8 phases (51–58) complete. AIO sidebar, folder-tree project overview, cycle detail with tabbed layout and decoupled progress bar, pin/unpin to header tabs, issue-detail test runs section, Settings project picker, and cycle detail data-fetch redesign all shipped and UAT-verified.
+**Planning v1.9 Tempo, Dashboard Redesign & Cleanup** — started 2026-05-20. Adding Tempo Timesheets worklog viewer, replacing widget dashboard with minimal static page, removing Workload view, and doing a full cleanup pass.
 
 ## Context
 
@@ -240,4 +259,4 @@ This document evolves at phase transitions and milestone boundaries.
 | CachedAvatar with blob URL Map + LazyStore disk persistence | Avatars cached in memory and on disk; 30-day TTL eviction; inflight dedup | ✓ Good — no repeated avatar fetches |
 
 ---
-*Last updated: 2026-05-19 after v1.8 milestone close — AIO Test Management complete (Phases 51–58)*
+*Last updated: 2026-05-20 — v1.9 milestone started (Tempo, Dashboard Redesign & Cleanup)*
