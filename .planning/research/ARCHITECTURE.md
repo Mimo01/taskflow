@@ -1,339 +1,578 @@
-# Architecture Research: AIO TCMS Integration
+# Architecture Research
 
-**Domain:** Adding AIO Test Management to existing Tauri 2 / React 18 desktop app (Taskflow v1.8)
-**Researched:** 2026-05-12
-**Approach:** Exact fit to existing patterns — no new patterns introduced unless strictly required
-
----
-
-## New Modules / Files
-
-### Service layer — `taskflow/src/services/aio/`
-
-| File | Purpose |
-|------|---------|
-| `services/aio/client.ts` | Shared AIO fetch helper — mirrors `jira/client.ts`. Wraps `apiFetch` with `source: 'jira'` (AIO runs on the same Jira host, same Bearer PAT). Exports `aioFetch(url, headers)` to centralize auth header construction. |
-| `services/aio/types.ts` | All AIO REST response shapes: `AioProject`, `AioCycle`, `AioCycleSummary`, `AioTestRun`, `AioTestStep`, `AioAttachment`. Single source of truth, mirrors `jira/types.ts` discipline. |
-| `services/aio/projects.ts` | `fetchAioProjects(baseUrl, token)` — GET `/rest/aio-tcms/1.0/project` returns paginated project list. |
-| `services/aio/cycles.ts` | `fetchAioCycles(baseUrl, token, projectId)` — GET `/rest/aio-tcms/1.0/project/{projectId}/cycle`. `fetchAioCycleSummary(baseUrl, token, projectId, cycleId)` — GET `/rest/aio-tcms/1.0/project/{projectId}/cycle/{cycleId}/summary` (progress counts, defect count). |
-| `services/aio/runs.ts` | `fetchAioTestRuns(baseUrl, token, projectId, cycleId)` — GET `/rest/aio-tcms/1.0/project/{projectId}/cycle/{cycleId}/testrun`. Returns test run list with step/expected/actual. |
-| `services/aio/issue-runs.ts` | `fetchAioRunsForIssue(baseUrl, token, issueKey)` — GET `/rest/aio-tcms/1.0/testrun?issueKey={issueKey}`. Used by the Jira issue detail page to render the AIO test run table. |
-| `services/aio/index.ts` | Barrel re-export: `export * from './projects'`, `./cycles`, `./runs`, `./issue-runs`, `./types`. Same pattern as `jira/index.ts`. |
-
-### Route pages — `taskflow/src/routes/aio/`
-
-| File | Purpose |
-|------|---------|
-| `routes/aio/index.tsx` | Lazy-loaded entry. Re-exports `AioProjectsPage` as default for `routes.tsx`. |
-| `routes/aio/AioProjectsPage.tsx` | `/aio` — project list view. `useQuery(['aio-projects', jiraBaseUrl])` with skeleton. NavLink to `/aio/projects/:id`. |
-| `routes/aio/AioProjectDetailPage.tsx` | `/aio/projects/:id` — project overview: cycles list with progress ring per cycle. `useQuery(['aio-cycles', projectId, jiraBaseUrl])`. NavLink to `/aio/cycles/:projectId/:cycleId`. |
-| `routes/aio/AioCycleDetailPage.tsx` | `/aio/cycles/:projectId/:cycleId` — cycle detail: progress summary, defect count, test run table. Two queries: `['aio-cycle-summary', ...]` + `['aio-test-runs', ...]`. Pin button calls `usePinnedTabsStore.togglePin`. |
-| `routes/aio/AioCycleSkeleton.tsx` | Skeleton for cycle detail (consistent with `SprintBoardSkeleton`, `WorkloadSkeleton`). |
-| `routes/aio/TestRunTable.tsx` | Table component rendering step / expected / actual / status. Status cells use colored badges (pass=green, fail=red, blocked=amber, untested=muted). |
-
-### Issue detail extension — existing directory `routes/dashboard/issue-detail/`
-
-| File | Purpose |
-|------|---------|
-| `routes/dashboard/issue-detail/AioRunsSection.tsx` | New section component dropped into `IssueDetailPage`. `useQuery(['aio-issue-runs', issueKey, jiraBaseUrl])`. Renders `TestRunTable` (re-used from `routes/aio/`). Shows skeleton while loading, collapses if no runs. |
+**Domain:** Tempo Timesheets integration + dashboard redesign in existing Tauri/React app
+**Researched:** 2026-05-20
+**Confidence:** HIGH (based on direct codebase inspection + official Tempo DC documentation)
 
 ---
 
-## Modified Files
+## System Overview
 
-### `taskflow/src/lib/apiFetch.ts`
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Route Layer                               │
+│  ┌───────────────┐  ┌───────────────────────────────────────┐   │
+│  │ /dashboard    │  │ /tempo                                 │   │
+│  │ (new static)  │  │ TempoPage.tsx — table + filter bar    │   │
+│  └───────┬───────┘  └──────────────────┬────────────────────┘   │
+│          │                             │                         │
+│  ┌───────┴──────────┐    ┌────────────┴───────────────────┐     │
+│  │ SprintHealthPanel│    │ useTempoWorklogs                │     │
+│  │ MyInProgressPanel│    │ (TanStack Query hook)           │     │
+│  │ NextReleasePanel │    └────────────┬───────────────────┘     │
+│  └──────────────────┘                │                          │
+├───────────────────────────────────────┼──────────────────────────┤
+│                  Service Layer        │                          │
+│  ┌────────────────┐  ┌───────────────┴──────────────────────┐   │
+│  │ src/services/  │  │ src/services/tempo/                   │   │
+│  │ jira/ (14 mods)│  │   client.ts   (tempoFetch wrapper)   │   │
+│  │ sprints.ts     │  │   worklogs.ts (fetchWorklogs)        │   │
+│  │ versions.ts    │  │   users.ts    (fetchTempoUsers)      │   │
+│  │ worklogs.ts    │  │   types.ts                           │   │
+│  └────────┬───────┘  │   index.ts    (barrel export)       │   │
+│           │          └──────────────────────────────────────┘   │
+├───────────┴──────────────────────────────────────────────────────┤
+│                  Data / State Layer                               │
+│  ┌──────────────────┐  ┌─────────────────────────────────────┐  │
+│  │ TanStack Query   │  │ Zustand Stores                       │  │
+│  │ cache            │  │  settings.store (tempoEnabled,       │  │
+│  │ ['tempo', ...]   │  │    savedTempoFilters via Tauri Store)│  │
+│  │ ['jira-issues',  │  │  session-only active filter state    │  │
+│  │   'sprint-board']│  │    (local component state only)      │  │
+│  └──────────────────┘  └─────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-**Change:** AIO uses the same Jira host and same Bearer PAT. Route AIO calls through `apiFetch` with `source: 'jira'`. This requires no code change — `aio/client.ts` simply calls `apiFetch('jira', url, headers)`. Document the decision in `aio/client.ts` as a comment. If the team later wants AIO calls labelled separately in Dev Tools logs, add `'aio'` to the source union — but do not do so preemptively.
+### Component Responsibilities
 
-### `taskflow/src/stores/auth.store.ts`
+| Component | Responsibility | Implementation |
+|-----------|----------------|----------------|
+| `src/services/tempo/client.ts` | tempoFetch wrapper — auth, base path, apiFetch delegation | Same pattern as `aio/client.ts`: exports `tempoFetch(baseUrl, token, path, operation, params?)` |
+| `src/services/tempo/worklogs.ts` | `fetchWorklogs(baseUrl, token, params)` — date range + user filter | Calls `/rest/timesheet-gadget/1.0/raw-timesheet.json` |
+| `src/services/tempo/users.ts` | `fetchTempoUsers(baseUrl, token)` — people list for filter picker | Delegates to Jira `/rest/api/2/user/search?username=.` |
+| `src/services/tempo/types.ts` | `TempoWorklog`, `TempoSavedFilter`, `TempoRawTimesheetResponse` TypeScript interfaces | Mirrors Tempo raw-timesheet JSON shape |
+| `src/routes/dashboard/TempoPage.tsx` | Full-page worklog viewer route component | Lazy-loaded, owns filter bar + table |
+| `src/routes/dashboard/TempoTable.tsx` | Scrollable day-column table | Receives flat `TempoWorklog[]`, renders hierarchy |
+| `src/routes/dashboard/TempoFilterBar.tsx` | People picker + date preset chips + saved filters | Reads/writes settings store savedTempoFilters |
+| `src/routes/dashboard/index.tsx` (new) | Static dashboard: SprintHealth + MyInProgress + NextRelease | Replaces widget-grid Dashboard |
 
-**Change:** Add `aioBaseUrl: string | null` and `setAioBaseUrl(url: string | null)`. AIO's REST API lives at the same Jira host but the team may run AIO on a different subdomain. Store the URL separately. The PAT is reused from Stronghold key `'jira-pat'` — on-premise AIO uses the same Jira PAT.
+---
 
-Default `aioBaseUrl` to `null`; the service modules fall back to `jiraBaseUrl` when `aioBaseUrl` is null (the overwhelmingly common case).
+## Recommended Project Structure
 
-### `taskflow/src/components/app/sidebar-items.ts`
+```
+src/
+├── services/
+│   ├── jira/               # unchanged — 14 modules
+│   ├── aio/                # unchanged
+│   ├── gitlab.ts           # unchanged
+│   └── tempo/              # NEW — follows aio/ pattern exactly
+│       ├── client.ts       # tempoFetch wrapper (NOT re-exported from index)
+│       ├── worklogs.ts     # fetchWorklogs — primary data function
+│       ├── users.ts        # fetchTempoUsers — people for filter dropdown
+│       ├── types.ts        # TempoWorklog, TempoRawTimesheetResponse, TempoSavedFilter
+│       ├── index.ts        # barrel: export * from './worklogs'; export * from './types'
+│       ├── worklogs.test.ts
+│       └── users.test.ts
+│
+├── stores/
+│   ├── settings.store.ts   # MODIFIED — add tempoEnabled, savedTempoFilters[], version 19
+│   └── ...                 # rest unchanged
+│
+└── routes/
+    └── dashboard/
+        ├── index.tsx           # REPLACED — static 3-panel dashboard (no WidgetGrid)
+        ├── MyInProgressPanel.tsx  # NEW — in-progress subtasks for current user
+        ├── NextReleasePanel.tsx   # NEW — nearest unreleased fix version + countdown
+        ├── SprintHealthPanel.tsx  # UNCHANGED — already exists, reused directly
+        ├── TempoPage.tsx       # NEW — worklog viewer route
+        ├── TempoTable.tsx      # NEW — day-column table component
+        ├── TempoFilterBar.tsx  # NEW — people picker + date presets + saved filters
+        ├── TempoSkeleton.tsx   # NEW — skeleton for loading state
+        │
+        │   # DELETE — widget system (14 files)
+        ├── WidgetCard.tsx      # DELETE
+        ├── WidgetGrid.tsx      # DELETE
+        ├── WidgetPicker.tsx    # DELETE
+        ├── WorkloadTab.tsx     # DELETE
+        ├── WorkloadSkeleton.tsx# DELETE
+        ├── WorkloadTab.test.tsx# DELETE
+        └── widgets/            # DELETE entire folder
+            ├── registry.ts
+            ├── SubtasksWidget.tsx
+            ├── MrHealthWidget.tsx
+            ├── SprintHealthWidget.tsx
+            ├── NotificationsWidget.tsx
+            ├── SprintProgressWidget.tsx
+            ├── ReleasesWidget.tsx
+            ├── WorkloadWidget.tsx
+            ├── SavedFiltersWidget.tsx
+            ├── PinnedIssuesWidget.tsx
+            └── CustomJqlWidget.tsx
+```
 
-**Change:** Add new section `'testing'` to `SIDEBAR_SECTIONS` and one new nav item:
+### Structure Rationale
+
+- **`tempo/` follows `aio/` exactly:** `client.ts` internal-only, domain modules re-exported from `index.ts`, `types.ts` in same folder.
+- **Route at `/tempo`:** New first-class route, lazy-loaded like AIO pages. Workload is `/workload` (deleted), Tempo is `/tempo` (new) — no collision.
+- **Static dashboard replaces `index.tsx` in-place:** Route registration in `routes.tsx` stays `{ path: '/dashboard', element: <Dashboard /> }` — no change needed there.
+- **Widget folder fully deleted:** Nothing in `widgets/` survives. All 10 widget wrapper files are thin shells around panels that either already exist as standalone components or are deleted (WorkloadWidget).
+
+---
+
+## New vs. Modified Components
+
+| File | Status | Notes |
+|------|--------|-------|
+| `src/services/tempo/` (entire folder) | NEW | 7 files: client, worklogs, users, types, index, 2 test files |
+| `src/routes/dashboard/index.tsx` | REPLACED | Static 3-panel; all widget system code removed |
+| `src/routes/dashboard/MyInProgressPanel.tsx` | NEW | In-progress subtasks for current user |
+| `src/routes/dashboard/NextReleasePanel.tsx` | NEW | Nearest unreleased fix version with countdown |
+| `src/routes/dashboard/TempoPage.tsx` | NEW | Route component; owns filter + table |
+| `src/routes/dashboard/TempoTable.tsx` | NEW | Day-column table rendering |
+| `src/routes/dashboard/TempoFilterBar.tsx` | NEW | People picker + date presets + saved filter management |
+| `src/routes/dashboard/TempoSkeleton.tsx` | NEW | Skeleton for loading state |
+| `src/routes/routes.tsx` | MODIFIED | Add `/tempo` route, remove `/workload` route |
+| `src/stores/settings.store.ts` | MODIFIED | Add `tempoEnabled`, `savedTempoFilters`, bump to version 19; remove all widget state |
+| `src/components/app/sidebar-items.ts` | MODIFIED | Replace `workload` entry with `tempo`; update presets |
+| `src/main.tsx` | MODIFIED | Replace `/workload` pathname label with `/tempo` |
+| `src/routes/dashboard/WikiRenderer.tsx` | MODIFIED | Replace `/workload` label with `/tempo` in route name map |
+| `src/routes/dashboard/DiscussionThreads.tsx` | MODIFIED | Replace `/workload` label with `/tempo` in route name map |
+| `src/components/app/Sidebar.test.tsx` | MODIFIED | Update preset fixtures (workload → tempo) |
+
+---
+
+## Files to Delete
+
+**Widget system (14 files):**
+- `src/routes/dashboard/WidgetCard.tsx`
+- `src/routes/dashboard/WidgetGrid.tsx`
+- `src/routes/dashboard/WidgetPicker.tsx`
+- `src/routes/dashboard/widgets/registry.ts`
+- `src/routes/dashboard/widgets/SubtasksWidget.tsx`
+- `src/routes/dashboard/widgets/MrHealthWidget.tsx`
+- `src/routes/dashboard/widgets/SprintHealthWidget.tsx`
+- `src/routes/dashboard/widgets/NotificationsWidget.tsx`
+- `src/routes/dashboard/widgets/SprintProgressWidget.tsx`
+- `src/routes/dashboard/widgets/ReleasesWidget.tsx`
+- `src/routes/dashboard/widgets/WorkloadWidget.tsx`
+- `src/routes/dashboard/widgets/SavedFiltersWidget.tsx`
+- `src/routes/dashboard/widgets/PinnedIssuesWidget.tsx`
+- `src/routes/dashboard/widgets/CustomJqlWidget.tsx`
+
+**Workload page (3 files):**
+- `src/routes/dashboard/WorkloadTab.tsx`
+- `src/routes/dashboard/WorkloadSkeleton.tsx`
+- `src/routes/dashboard/WorkloadTab.test.tsx`
+
+**Dead code in `settings.store.ts` to remove:**
+- `DashboardLayoutItem` interface export
+- `dashboardLayout` state field
+- `setDashboardLayout`, `addDashboardWidget`, `removeDashboardWidget`, `updateWidgetConfig` actions
+- Import of `getDefaultDashboardLayout`, `WIDGET_REGISTRY` from `widgets/registry`
+- `dashboardLayout` initialization and migrate blocks (versions < 9)
+- `applyPreset` call to `getDefaultDashboardLayout`
+
+**`sidebar-items.ts` changes:**
+- Remove `workload` entry from `SIDEBAR_NAV_ITEMS`
+- Remove `workload` from `pmVisible` set in `getDefaultSidebarItems`
+- Add `tempo` to both `devVisible` and `pmVisible`
+
+---
+
+## Architectural Patterns
+
+### Pattern 1: Service Module with Internal Client
+
+**What:** `client.ts` exports the fetch wrapper privately to the service folder. Domain modules import directly from `./client`. Barrel `index.ts` re-exports only domain functions and types — never `client.ts`.
+
+**When to use:** Every new integration service. Established by `aio/` in v1.8.
 
 ```typescript
-// Add to SIDEBAR_SECTIONS:
-{ id: 'testing', label: 'Testing' }
-
-// Add to SIDEBAR_NAV_ITEMS:
-{
-  id: 'aio-tests',
-  label: 'Test Management',
-  path: '/aio',
-  iconName: 'FlaskConical',
-  section: 'testing',
+// src/services/tempo/client.ts  — NOT in index.ts exports
+export async function tempoFetch(
+  baseUrl: string,
+  token: string,
+  path: string,
+  operation: string,
+  params?: Record<string, string>,
+): Promise<Response> {
+  const url = new URL(`${baseUrl.replace(/\/$/, '')}/rest/timesheet-gadget/1.0${path}`);
+  if (params) {
+    for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+  }
+  return apiFetch('jira', url.toString(), {
+    headers: { Authorization: `Bearer ${token}` },
+  }, operation);
 }
 ```
 
-Update `getDefaultSidebarItems`: add `'aio-tests'` to both `devVisible` and `pmVisible` sets. Update `DEV_SIDEBAR_PRESET` and `PM_SIDEBAR_PRESET` constants used in tests.
+**Note on auth:** Tempo on Jira DC uses the same Jira host and the same PAT Bearer auth. No separate credential. `source: 'jira'` in `apiFetch` is correct — confirmed by `fields.ts` line 77 which already calls `/rest/tempo-accounts/1/account/search` using the Jira token.
 
-### `taskflow/src/components/app/Sidebar.tsx`
+### Pattern 2: Tempo API Endpoint — raw-timesheet
 
-**Change:** Add `FlaskConical` to the Lucide import and to `ICON_MAP`. One import line + one map entry. No structural change.
+**What:** `/rest/timesheet-gadget/1.0/raw-timesheet.json` is the correct DC endpoint for bulk worklog retrieval by date range and user.
 
-### `taskflow/src/routes/routes.tsx`
+**Key parameters:**
+- `targetUser` — Jira username (single user filter; omit for current authenticated user)
+- `startDate` / `endDate` — format `YYYY-MM-DD`
+- `projectid` — numeric Jira project ID (optional scope filter)
+- `moreFields` — additional issue fields to include (e.g. `issuetype`, `status`)
 
-**Change:** Add three lazy-loaded AIO routes:
-
+**Response shape (confirmed from Tempo DC documentation):**
 ```typescript
-const AioProjectsPage = lazy(() => import('./aio/index'));
-const AioProjectDetailPage = lazy(() => import('./aio/AioProjectDetailPage'));
-const AioCycleDetailPage = lazy(() => import('./aio/AioCycleDetailPage'));
-
-{ path: '/aio', element: withLazy(AioProjectsPage) },
-{ path: '/aio/projects/:projectId', element: withLazy(AioProjectDetailPage) },
-{ path: '/aio/cycles/:projectId/:cycleId', element: withLazy(AioCycleDetailPage) },
+// src/services/tempo/types.ts
+export interface TempoRawTimesheetResponse {
+  worklog: TempoWorklogGroup[];
+}
+export interface TempoWorklogGroup {
+  key: string;        // Jira issue key, e.g. "PROJ-123"
+  summary: string;    // issue summary
+  entries: TempoWorklogEntry[];
+  fields?: Array<{ label: string; value: string }>;  // moreFields content
+}
+export interface TempoWorklogEntry {
+  id: number;
+  comment: string;
+  timeSpent: number;       // seconds
+  author: string;          // Jira username
+  authorFullName: string;  // display name
+  startDate: number;       // UNIX milliseconds
+  created: number;         // UNIX milliseconds
+}
+export interface TempoWorklog {
+  id: number;
+  issueKey: string;
+  issueSummary: string;
+  comment: string;
+  timeSpentSeconds: number;
+  authorUsername: string;
+  authorDisplayName: string;
+  startDate: Date;         // parsed from UNIX ms
+}
+export interface TempoSavedFilter {
+  id: string;
+  name: string;
+  usernames: string[];
+  datePreset: 'this-week' | 'last-week' | 'this-month' | 'custom';
+  customFrom?: string;   // ISO date string
+  customTo?: string;
+}
 ```
 
-### `taskflow/src/components/app/PinnedTabStrip.tsx`
+**Important probe requirement:** The raw-timesheet endpoint behavior (single-user vs. multi-user, max results per issue) should be verified against the actual Jira instance before building the UI. The endpoint documentation states it "returns only the first 20 worklogs per issue" for the gadget view — confirm whether this applies to the REST JSON endpoint too. Plan a probe step in Phase 1.
 
-**Change:** `PinnedTabStrip` currently assumes all pinned keys are Jira issue keys and routes all clicks to `onTabClick(key)`. AIO cycle tabs use a prefixed key format: `"aio:42:7"` (projectId:cycleId).
+### Pattern 3: Jira Issue Enrichment via Cache Reads
 
-The component is key-agnostic — it does not interpret key format. The only change needed is in the rendering:
+**What:** Tempo worklogs return issue keys and summaries from the raw-timesheet endpoint but no epic, issue type, or other Jira metadata. Rather than N+1 fetches, read the TanStack Query cache for sprint-board data already loaded, and fall back to individual `fetchIssue(key)` calls only for cache misses.
 
-1. Rename `ResolvedIssue` interface to `ResolvedTab`, rename field `issueTypeName` to `typeLabel` (domain-neutral).
-2. Rename `IssueTypeIcon` to `TabIcon` and add a case for `typeLabel === 'aio-cycle'` that renders `FlaskConical`.
-3. The `resolvedIssues` prop is renamed to `resolvedTabs: Map<string, ResolvedTab>`.
+**Implementation:**
+```typescript
+// In TempoPage.tsx
+const queryClient = useQueryClient();
+const sprintIssues = queryClient.getQueryData<JiraIssue[]>(
+  ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey]
+) ?? [];
+const issueMap = new Map(sprintIssues.map(i => [i.key, i]));
 
-All Jira type cases in `TabIcon` carry over unchanged — only the interface field names change.
+// Cache misses: backlog/closed/epic issues not in sprint
+const missedKeys = worklogIssueKeys.filter(k => !issueMap.has(k));
+// useQueries for cache-deduped individual fetches — TanStack deduplicates by key
+const individualResults = useQueries({
+  queries: missedKeys.map(key => ({
+    queryKey: ['jira-issue', key, jiraBaseUrl],
+    queryFn: () => fetchIssue(jiraBaseUrl!, jiraToken!, key),
+    staleTime: 5 * 60_000,
+  }))
+});
+```
 
-### `taskflow/src/main.tsx` (AppLayout)
+**Note:** The raw-timesheet endpoint already returns `summary` for each issue group. Epic/issue type enrichment is "nice to have" for issue type icons — mark it as optional enhancement, not required for v1 of Tempo view.
 
-**Changes — five touch points:**
+### Pattern 4: Saved Tempo Filters via settings.store Persistence
 
-1. **`pinnedQueries` (`useQueries`):** Detect `aio:` prefix. For AIO keys, call `fetchAioCycleSummary` and map result to `{ summary: cycle.name, typeLabel: 'aio-cycle' }`. For Jira keys, existing path unchanged.
+**What:** Tempo filters (saved people + date presets) persist across restarts via `settings.store` Tauri Store. Active session filter state lives in local component state (not a Zustand store) because it doesn't need cross-component sharing.
 
-2. **`handleTabClick` (new unified handler):** Replaces direct `handleIssueClick` call in `onTabClick` prop:
-   ```typescript
-   const handleTabClick = (key: string) => {
-     if (key.startsWith('aio:')) {
-       const [, projectId, cycleId] = key.split(':');
-       navigate(`/aio/cycles/${projectId}/${cycleId}`);
-     } else {
-       handleIssueClick(key, true);
-     }
-   };
-   ```
+**Decision rationale:** Jira saved filters are session-only because they mirror server state. Tempo filters are app-local user preferences — no server equivalent. Use `settings.store` persist (same as `aioEnabled`, `selectedAioProjectKey`). A separate store file is not warranted for a small filter array.
 
-3. **`activeTabKey` derivation:** Extend to cover AIO cycle routes:
-   ```typescript
-   const activeTabKey = location.pathname.startsWith('/issue/')
-     ? location.pathname.replace('/issue/', '')
-     : location.pathname.startsWith('/aio/cycles/')
-       ? 'aio:' + location.pathname.replace('/aio/cycles/', '').replace('/', ':')
-       : null;
-   ```
+**settings.store additions:**
+```typescript
+// Interface additions
+tempoEnabled: boolean;
+savedTempoFilters: TempoSavedFilter[];
+addTempoFilter: (f: TempoSavedFilter) => void;
+removeTempoFilter: (id: string) => void;
+updateTempoFilter: (id: string, f: TempoSavedFilter) => void;
 
-4. **Breadcrumb reset guard:** Add `/aio/` to the exclusion list so drilling down within AIO does not reset the trail:
-   ```typescript
-   if (!pathname.startsWith('/issue/') &&
-       !pathname.startsWith('/mr/') &&
-       !pathname.startsWith('/release/') &&
-       !pathname.startsWith('/aio/')) {
-     breadcrumbReset();
-   }
-   ```
+// Initializer defaults
+tempoEnabled: false,
+savedTempoFilters: [],
 
-5. **`routeLabel`:** Add case `if (pathname.startsWith('/aio')) return 'Test Management';`.
+// migrate() — version bump to 19
+if (version < 19) {
+  if (s.tempoEnabled === undefined) s.tempoEnabled = false;
+  if (s.savedTempoFilters === undefined) s.savedTempoFilters = [];
+  // Remove dead widget state from persisted store
+  delete s.dashboardLayout;
+}
+```
 
-### `taskflow/src/routes/dashboard/issue-detail/IssueDetailPage.tsx`
+### Pattern 5: Static Dashboard — Props-Down Thin Index
 
-**Change:** Import and render `AioRunsSection` below `AttachmentsSection`. Pass `issueKey` and `jiraBaseUrl`. `AioRunsSection` owns its own query — no additional props needed.
+**What:** The new `/dashboard` follows the existing codebase decision: "Dashboard panels receive props from thin index.tsx — token loading centralized; panels own their queries." No WidgetGrid, no edit mode, no layout persistence. Three fixed panels in a CSS grid.
 
-### `taskflow/src/routes/dashboard/WikiRenderer.tsx`
+**SprintHealthPanel already exists** — reuse directly with no modifications. `MyInProgressPanel` and `NextReleasePanel` are new but each roughly 80 lines.
 
-**No code change required.** AIO attachment URLs served from the same Jira host pass through `AuthImage`'s existing `needsAuth` check (`src.startsWith(jiraBaseUrl)`). The `preprocessJiraMarkup` function already handles `!http://...!` references by outputting them as `<img src="..." />` tags. `AuthImage` then fetches with Bearer token and converts to a blob URL.
+```typescript
+// src/routes/dashboard/index.tsx — new version
+export default function Dashboard() {
+  const { jiraBaseUrl, activeJiraProject } = useAuthStore();
+  const [jiraToken, setJiraToken] = useState<string | null>(null);
+  useEffect(() => {
+    readSecret('jira-pat').then(setJiraToken).catch(() => setJiraToken(null));
+  }, [jiraBaseUrl]);
 
-If AIO is deployed at a different subdomain from Jira: add `aioBaseUrl` check to `AuthImage.needsAuth` — one additional `||` condition.
+  if (!jiraBaseUrl || !activeJiraProject || !jiraToken) return null;
+  return (
+    <div className="flex flex-col gap-4 p-4 overflow-y-auto h-full">
+      <h1 className="text-xl font-semibold">Overview</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <SprintHealthPanel jiraBaseUrl={jiraBaseUrl} jiraToken={jiraToken} activeJiraProject={activeJiraProject} />
+        <MyInProgressPanel jiraBaseUrl={jiraBaseUrl} jiraToken={jiraToken} activeJiraProject={activeJiraProject} />
+        <NextReleasePanel jiraBaseUrl={jiraBaseUrl} jiraToken={jiraToken} activeJiraProject={activeJiraProject} />
+      </div>
+    </div>
+  );
+}
+```
 
 ---
 
 ## Data Flow
 
+### Tempo Worklog Request Flow
+
 ```
-AIO REST API (same Jira host, /rest/aio-tcms/1.0/...)
-  |
-  | tauri-plugin-http fetch (Bearer PAT from Stronghold 'jira-pat')
-  |
-services/aio/client.ts  →  apiFetch(source: 'jira', url, headers)
-  |
-  +-- services/aio/projects.ts    →  fetchAioProjects()
-  +-- services/aio/cycles.ts      →  fetchAioCycles(), fetchAioCycleSummary()
-  +-- services/aio/runs.ts        →  fetchAioTestRuns()
-  +-- services/aio/issue-runs.ts  →  fetchAioRunsForIssue()
-  |
-TanStack Query  (gcTime: Infinity, staleTime per table below)
-  |
-  +-- AioProjectsPage       useQuery(['aio-projects', jiraBaseUrl])
-  +-- AioProjectDetailPage  useQuery(['aio-cycles', projectId, jiraBaseUrl])
-  +-- AioCycleDetailPage    useQuery(['aio-cycle-summary', projectId, cycleId, jiraBaseUrl])
-  |                         useQuery(['aio-test-runs', projectId, cycleId, jiraBaseUrl])
-  +-- AioRunsSection        useQuery(['aio-issue-runs', issueKey, jiraBaseUrl])
-  |
-  +-- AppLayout pinnedQueries (useQueries for aio: prefixed keys)
-        → fetchAioCycleSummary → resolvedPinnedTabs Map
-        → PinnedTabStrip (renders cycle name + FlaskConical icon)
+User selects date range + people in TempoFilterBar
+    ↓
+useQuery({ queryKey: ['tempo', jiraBaseUrl, from, to, ...usernames] })
+    ↓ (parallel per user, or omit targetUser for current user only)
+tempoFetch(baseUrl, token, '/raw-timesheet.json', 'Load Tempo Worklogs', { startDate, endDate, targetUser })
+    ↓
+apiFetch('jira', url, { Authorization: Bearer }, 'Load Tempo Worklogs')
+    ↓
+raw-timesheet.json: { worklog: [{ key, summary, entries: [...] }] }
+    ↓
+Transform: flatten groups → TempoWorklog[], sort by date
+    ↓
+TempoTable renders day-column hierarchy (epic → story → subtask rows)
 ```
 
-### Query Key Conventions
+### Jira Issue Enrichment Flow
 
-All AIO query keys follow the same tuple pattern as Jira: `[discriminator, ...params, jiraBaseUrl]`. The `jiraBaseUrl` tail prevents stale cache across server switches — same invariant enforced throughout Jira queries.
+```
+TempoPage: worklog data loaded
+    ↓
+Extract unique issue keys from worklogs
+    ↓
+queryClient.getQueryData(['jira-issues', 'sprint-board', ...]) → issueMap (zero cost)
+    ↓
+missedKeys = worklogKeys not in issueMap
+    ↓
+useQueries for missed keys → ['jira-issue', key, jiraBaseUrl]
+    → TanStack deduplicates identical keys automatically
+    ↓
+Merge issueMap + individual fetches → enriched rows (epic, issue type)
+```
 
-| Query Key | staleTime | Rationale |
-|-----------|-----------|-----------|
-| `['aio-projects', jiraBaseUrl]` | `5 * 60 * 1000` | Project list rarely changes during a session |
-| `['aio-cycles', projectId, jiraBaseUrl]` | `5 * 60 * 1000` | Cycle list changes only when PMs create/archive cycles |
-| `['aio-cycle-summary', projectId, cycleId, jiraBaseUrl]` | `STALE_TIME_MS` (30s) | Execution progress updates during active test runs — use polling interval to stay current |
-| `['aio-test-runs', projectId, cycleId, jiraBaseUrl]` | `STALE_TIME_MS` | Same reasoning as cycle summary |
-| `['aio-issue-runs', issueKey, jiraBaseUrl]` | `5 * 60 * 1000` | Per-issue run data; refresh on focus is sufficient |
-| `['aio-pinned-summary', cycleKey, jiraBaseUrl]` | `5 * 60 * 1000` | Pinned tab cycle name; matches jira-pinned-summary pattern |
+### Static Dashboard Flow
 
-`gcTime: Infinity` on all AIO queries — consistent with the session-persistent cache policy (v1.7 LOAD-02).
+```
+Dashboard mounts
+    ↓ (parallel — all cache-warm if user has visited those routes)
+SprintHealthPanel  → ['jira-issues', 'sprint-board', project, spField]
+                   → ['jira-active-sprint', project]
+MyInProgressPanel  → ['jira-issues', 'my-tasks', project, spField]
+NextReleasePanel   → ['jira-fix-versions', project]
+    ↓
+stale-while-revalidate from gcTime: Infinity — instant on repeat visits
+```
 
-`refetchInterval` on `aio-cycle-summary` and `aio-test-runs`: use `POLL_INTERVAL_MS` (60s) when the user is on the cycle detail route, using the same `useIsActiveRoute` hook pattern already established for sprint board and workload views.
+### State Management
 
-### AIO Attachment Auth Flow
+```
+settings.store (Tauri persist)
+    savedTempoFilters → TempoFilterBar (load/save presets)
+    tempoEnabled      → gates Tempo sidebar item visibility
 
-AIO attachment URLs are served from the Jira host. `AuthImage` already checks `src.startsWith(jiraBaseUrl)` and fetches with Bearer token — no new authenticated fetch mechanism needed for the common deployment case.
-
-If AIO is at a different subdomain: one additional `||` condition in `AuthImage.needsAuth`.
+TanStack Query cache
+    ['tempo', jiraBaseUrl, from, to, ...usernames] → TempoWorklog[]
+    ['jira-issues', 'sprint-board', project, spField] → JiraIssue[] (shared)
+    ['jira-issue', key, jiraBaseUrl] → JiraIssue (individual enrichment)
+```
 
 ---
 
-## Route Structure
+## Query Key Strategy
 
-```
-/aio                              AioProjectsPage       (lazy chunk: aio-projects)
-/aio/projects/:projectId          AioProjectDetailPage  (lazy chunk: aio-project-detail)
-/aio/cycles/:projectId/:cycleId   AioCycleDetailPage    (lazy chunk: aio-cycle-detail)
-```
+All Tempo queries use the `['tempo', ...]` prefix, following the established `['aio', ...]` pattern:
 
-All three use `withLazy(...)` — consistent with all non-dashboard routes in `routes.tsx`.
-
-Route naming uses plural resource nouns matching the REST API path segments (`/project/`, `/cycle/`) to make the URL ↔ API mapping obvious.
-
-**Breadcrumb trail for AIO:**
-- Navigating `/aio` → `/aio/projects/:id`: push `/aio` as "Test Management" breadcrumb
-- Navigating `/aio/projects/:id` → `/aio/cycles/:p/:c`: push project page as breadcrumb
-- Navigating away from any `/aio/` path: breadcrumb resets
-
----
-
-## Pinned Tab Extension
-
-### How it works today
-
-`pinnedKeys: string[]` stores Jira issue keys (e.g. `"PROJ-42"`). `AppLayout` runs `useQueries` to resolve each key to `{ summary, issueTypeName }`. `PinnedTabStrip` receives `resolvedIssues: Map<string, ResolvedIssue>` and renders icon + summary for each tab. Tabs are key-agnostic — the `onTabClick` callback routes navigation.
-
-### Extension strategy
-
-**Storage:** No change to `usePinnedTabsStore`. AIO cycle tabs use prefixed keys: `"aio:42:7"` (projectId:cycleId). The store persists them alongside Jira keys transparently.
-
-**Resolution in AppLayout:** `useQueries` maps over `pinnedKeys`. When a key starts with `'aio:'`, the query calls `fetchAioCycleSummary` and maps to `{ summary: cycle.name, typeLabel: 'aio-cycle' }`.
-
-**PinnedTabStrip interface change:** Rename `ResolvedIssue` → `ResolvedTab`, `issueTypeName` → `typeLabel`. Add `'aio-cycle'` case to `TabIcon` (formerly `IssueTypeIcon`). All Jira type cases unchanged.
-
-**Pin action in AioCycleDetailPage:**
 ```typescript
-const { togglePin, isPinned } = usePinnedTabsStore();
-const key = `aio:${projectId}:${cycleId}`;
-togglePin(key);
+// Tempo worklogs — one entry per unique filter combination
+['tempo', jiraBaseUrl, 'worklogs', from, to, ...usernames.sort()]
+
+// Tempo users list — for people picker
+['tempo', jiraBaseUrl, 'users']
 ```
 
-Consistent with how issue detail pages pin Jira keys.
+This is isolated from:
+- `['jira-issues', ...]` — Jira issue data
+- `['aio', ...]` — AIO test data
+
+`queryClient.invalidateQueries({ queryKey: ['jira-issues'] })` will NOT clear Tempo cache. Established pattern from PROJECT.md Key Decisions: "AIO query keys use `['aio', jiraBaseUrl, ...]` prefix — prevents Jira invalidation sweeps from clearing AIO cache."
 
 ---
 
-## Suggested Build Order
+## Build Order
 
-### Phase 1: Service layer + types
+```
+Phase 1: Deletion + cleanup
+  Delete WorkloadTab, WorkloadSkeleton, WorkloadTab.test
+  Delete widgets/ folder (10 files)
+  Delete WidgetCard, WidgetGrid, WidgetPicker
+  Remove widget state from settings.store (+ migrate version 19)
+  Remove /workload from routes.tsx, sidebar-items.ts, main.tsx,
+    WikiRenderer.tsx, DiscussionThreads.tsx
+  Rationale: Clean break before building new code; reduces noise
+             in tests and imports
 
-Build service modules and types before any UI. Everything downstream depends on correct API shapes.
+Phase 2: Service layer (src/services/tempo/)
+  types.ts → client.ts → worklogs.ts → users.ts → index.ts
+  + worklogs.test.ts, users.test.ts
+  Rationale: UI components depend on service types and functions
 
-1. `services/aio/types.ts`
-2. `services/aio/client.ts`
-3. `services/aio/projects.ts`, `cycles.ts`, `runs.ts`, `issue-runs.ts`
-4. `services/aio/index.ts`
-5. Unit tests for each module (mock `apiFetch` with `vi.stubGlobal` — same pattern as `jira/*.test.ts`)
+Phase 3: settings.store + sidebar
+  Add tempoEnabled, savedTempoFilters, version 19 migration
+  Add tempo entry to sidebar-items.ts
+  Rationale: TempoFilterBar reads saved filters from store;
+             sidebar must know about tempo item
 
-Dependency: none.
+Phase 4: New static dashboard
+  Replace src/routes/dashboard/index.tsx with static 3-panel version
+  Add MyInProgressPanel.tsx, NextReleasePanel.tsx
+  (SprintHealthPanel.tsx already exists — no changes)
+  Rationale: Dashboard replaces in-place; route registration unchanged
 
-### Phase 2: Sidebar nav + routing scaffolding
+Phase 5: Tempo route UI
+  TempoPage.tsx, TempoTable.tsx, TempoFilterBar.tsx, TempoSkeleton.tsx
+  Add /tempo route to routes.tsx
+  Add tempo item to sidebar
+  Rationale: Depends on Phase 2 (service) + Phase 3 (store)
 
-Wire nav item and empty route stubs. Establishes navigation before content is built.
-
-1. Add `'testing'` section and `'aio-tests'` item to `sidebar-items.ts`
-2. Add `FlaskConical` to `Sidebar.tsx` ICON_MAP
-3. Add three routes to `routes.tsx` (placeholder page components)
-4. Create `routes/aio/` directory with stub files
-5. Update `SidebarItemsList` tests for the new preset entries
-
-Dependency: Phase 1 (service imports in page stubs).
-
-### Phase 3: AIO project list + project detail pages
-
-Build the first two levels of the navigation hierarchy.
-
-1. `AioProjectsPage`: query + render + skeleton + empty/error states
-2. `AioProjectDetailPage`: cycle list + progress display per cycle + skeleton
-3. `AioCycleSkeleton.tsx`
-
-Dependency: Phase 2.
-
-### Phase 4: AIO cycle detail + pinned tab support
-
-Build the deepest view and pinning together — they share the same data shape.
-
-1. `TestRunTable.tsx`: step/expected/actual columns, colored status badges
-2. `AioCycleDetailPage`: two queries, `TestRunTable`, pin button
-3. Extend `PinnedTabStrip`: rename interfaces, add `'aio-cycle'` to `TabIcon`
-4. Extend `AppLayout`: `useQueries` for `aio:` keys, `handleTabClick` dispatcher, `activeTabKey` derivation, breadcrumb guard, `routeLabel`
-5. Tests for updated `PinnedTabStrip` and `handleTabClick` dispatch
-
-Dependency: Phase 3.
-
-### Phase 5: AIO test runs on Jira issue detail
-
-Integrate the test run table into the existing issue detail view.
-
-1. `AioRunsSection.tsx`: query + `TestRunTable` + loading/empty handling
-2. Mount `AioRunsSection` in `IssueDetailPage` below `AttachmentsSection`
-3. Tests for `AioRunsSection`
-
-Dependency: Phase 1 (service), Phase 4 (`TestRunTable` component lives in `routes/aio/`).
-
-### Phase 6: AIO attachment auth verification
-
-Validate that AIO attachment URLs render correctly through `AuthImage` / `WikiRenderer`.
-
-1. Confirm AIO attachment URL prefix matches `jiraBaseUrl` (likely true for on-premise AIO)
-2. If AIO uses a different host: extend `AuthImage` `needsAuth` and add `aioBaseUrl` to `auth.store.ts`
-3. Optionally: add AIO connection card to `ConnectionsSection.tsx` in Settings (only if AIO URL differs from Jira URL)
-
-Dependency: Phase 5 (need real AIO attachment URLs from test runs to verify the auth path).
+Phase 6: Test + cleanup pass
+  Update settings.store.test.ts for new fields
+  Update Sidebar.test.tsx for preset changes
+  New TempoPage smoke test
+  Dead code sweep, unused imports
+```
 
 ---
 
-## Component Boundaries Summary
+## Anti-Patterns
 
-| Component | Owns | Does Not Own |
-|-----------|------|-------------|
-| `AioProjectsPage` | Project list query, empty/error states | Cycle data |
-| `AioProjectDetailPage` | Cycle list query, progress display | Cycle execution data |
-| `AioCycleDetailPage` | Cycle summary + run queries, pin state | Project-level data |
-| `TestRunTable` | Step/expected/actual rendering, status badges | Data fetching |
-| `AioRunsSection` | Issue-runs query, TestRunTable mounting | Issue detail page layout |
-| `PinnedTabStrip` | Tab rendering, drag reorder | Routing decisions (caller owns onClick) |
-| `AppLayout` | Pin key dispatch, query resolution for tabs | Rendering logic |
+### Anti-Pattern 1: Separate Tempo Credential
+
+**What people do:** Create a new `tempo-pat` Stronghold key and a separate Tempo auth flow.
+
+**Why it's wrong:** Tempo on Jira DC lives on the same Jira host and accepts the same PAT. Evidence: `fields.ts` line 77 already calls `/rest/tempo-accounts/1/account/search` using the Jira Bearer token with no separate auth.
+
+**Do this instead:** Use `readSecret('jira-pat')` in Tempo pages as-is. Use `source: 'jira'` in `apiFetch`.
+
+### Anti-Pattern 2: Per-User Sequential Worklog Fetches
+
+**What people do:** Loop through selected users, firing one `raw-timesheet.json?targetUser=X` request at a time.
+
+**Why it's wrong:** 5 team members = 5 sequential requests. Perceived latency 5x worse than parallel.
+
+**Do this instead:** Use `Promise.all` for parallel per-user fetches. Reuse `getJiraLimit()` from `src/lib/concurrency.ts` for the concurrency guard. If the endpoint supports omitting `targetUser` to get all users' data at once, probe that first.
+
+### Anti-Pattern 3: Leaving Dead Widget State in settings.store
+
+**What people do:** Keep `dashboardLayout`, `DashboardLayoutItem`, and widget actions in the store interface after deleting the widget system.
+
+**Why it's wrong:** The store imports `WIDGET_REGISTRY` from `widgets/registry.ts` (a route file, not a lib). After deletion, this import becomes a broken reference. Additionally, dead persisted state accumulates in users' `settings.json` files.
+
+**Do this instead:** Full removal — type, state fields, actions, import. Add a migrate step that `delete s.dashboardLayout` on version < 19 upgrade.
+
+### Anti-Pattern 4: Enriching All Issue Keys via Individual Fetches
+
+**What people do:** After loading worklogs, fire `fetchIssue(key)` for every unique issue key.
+
+**Why it's wrong:** Sprint board cache already contains most current-sprint issues. Firing N fetches for already-cached data defeats stale-while-revalidate.
+
+**Do this instead:** Read sprint-board cache via `queryClient.getQueryData` first. Fire individual `useQuery` calls only for cache misses. Note: the raw-timesheet endpoint already provides `summary` per issue — individual enrichment fetches are optional (only needed for epic/issue type metadata).
+
+---
+
+## Integration Points
+
+### Sidebar Integration
+
+Add to `SIDEBAR_NAV_ITEMS` in `sidebar-items.ts`:
+```typescript
+{
+  id: 'tempo',
+  label: 'Timesheets',
+  path: '/tempo',
+  iconName: 'Clock',   // lucide-react Clock icon
+  section: 'tracking',
+}
+```
+
+Remove the `workload` entry. Add `'tempo'` to both `devVisible` and `pmVisible` sets (timesheets are relevant to both roles). The settings.store version 19 migration replaces `workload` with `tempo` in any persisted `sidebarItems` arrays:
+
+```typescript
+if (version < 19) {
+  if (Array.isArray(s.sidebarItems)) {
+    s.sidebarItems = (s.sidebarItems as Array<{ id: string; visible: boolean }>)
+      .filter(item => item.id !== 'workload')
+      .concat([{ id: 'tempo', visible: true }]);
+  }
+}
+```
+
+### tempoEnabled Toggle
+
+Mirror the `aioEnabled` pattern exactly:
+- `tempoEnabled: boolean` in settings.store, default `false`
+- Gates sidebar item visibility and all Tempo API calls
+- Settings → Integrations section (alongside `aioEnabled`)
+
+This ensures users without Tempo installed see no Tempo UI and fire zero Tempo requests.
+
+---
+
+## Probes Required Before Phase 5 Implementation
+
+The Tempo `raw-timesheet.json` endpoint behavior on this specific Jira DC instance needs verification:
+
+1. **Multi-user support:** Does omitting `targetUser` return all users' worklogs, or only the authenticated user's?
+2. **Result truncation:** The documentation mentions 20 worklogs/issue for the gadget. Does the REST JSON endpoint have the same limit?
+3. **Date format:** Confirm `YYYY-MM-DD` is accepted (vs. `DD/Mon/YYYY`).
+4. **Authentication:** Confirm Bearer PAT works (vs. Basic Auth) — very likely yes given Tempo accounts endpoint already works.
+
+Probe in a Phase 5 pre-implementation task using the same probe-first approach as v1.8 Phase 51 (AIO base path discovery).
 
 ---
 
 ## Sources
 
-- Codebase: `/Users/mimo/Documents/Projects/taskflow/taskflow/src/` — all service, store, route, and component files examined directly
-- Existing patterns: `services/jira/` domain module structure, `PinnedTabStrip.tsx`, `main.tsx` AppLayout, `sidebar-items.ts`, `apiFetch.ts`, `AuthImage.tsx`, `WikiRenderer.tsx`, `stores/auth.store.ts`, `routes/routes.tsx`
-- AIO TCMS API base path (`/rest/aio-tcms/1.0/`) inferred from AIO Test Management for Jira documentation conventions; exact endpoint paths must be confirmed against the live Jira instance before Phase 1 implementation
+- Codebase: `src/services/aio/client.ts`, `src/services/jira/client.ts`, `src/services/jira/fields.ts`, `src/stores/settings.store.ts`, `src/routes/dashboard/index.tsx`, `src/routes/routes.tsx`, `src/components/app/sidebar-items.ts` — HIGH confidence
+- PROJECT.md Key Decisions table — HIGH confidence (authoritative for this codebase)
+- [Tempo REST API Integrations for DC](https://help.tempo.io/trg-dc/latest/rest-api-integrations) — raw-timesheet.json endpoint confirmed — MEDIUM confidence
+- [Tempo raw-timesheet response shape from community sources](https://help.tempo.io/timesheet-reports-and-gadgets/en/timesheet-reports-and-gadgets-for-jira-server-and-data-center/timesheet-reports-and-gadgets/rest-api-integrations.html) — MEDIUM confidence (response fields cross-referenced from multiple sources)
+- Existing `jira/fields.ts` line 77: `/rest/tempo-accounts/1/account/search` using Bearer PAT — HIGH confidence that Tempo endpoints accept same auth
+
+---
+*Architecture research for: Tempo integration + dashboard redesign in Tauri/React app*
+*Researched: 2026-05-20*
