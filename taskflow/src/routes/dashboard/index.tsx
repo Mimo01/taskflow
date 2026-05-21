@@ -43,7 +43,7 @@ export default function Dashboard() {
 
   return (
     <div className="relative flex flex-col min-h-full bg-white dark:bg-background">
-      {/* Flowing sine waves — stacked horizontal bands, orange + cyan */}
+      {/* Radial spokes — alternating orange + cyan lines from top-right, rings from bottom-left */}
       <svg
         aria-hidden="true"
         className="absolute inset-0 w-full h-full pointer-events-none"
@@ -51,18 +51,32 @@ export default function Dashboard() {
         preserveAspectRatio="xMidYMid slice"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Filled wave bands */}
-        <path d="M0,180 C150,120 300,240 450,180 C600,120 750,240 900,180 C1050,120 1150,200 1200,170 L1200,800 L0,800 Z" fill="#f97316" fillOpacity="0.05" />
-        <path d="M0,280 C200,200 350,340 550,260 C700,200 850,320 1050,250 C1120,225 1170,245 1200,240 L1200,800 L0,800 Z" fill="#06b6d4" fillOpacity="0.06" />
-        <path d="M0,400 C180,330 320,460 500,390 C660,330 800,440 980,370 C1080,340 1150,360 1200,355 L1200,800 L0,800 Z" fill="#f97316" fillOpacity="0.04" />
+        {/* Orange spokes radiating from top-right */}
+        {([210,225,240,255,270,285,300,315,330,345,360,375,390,405,420] as number[]).map((angle, i) => {
+          const rad = (angle * Math.PI) / 180;
+          const len = 900;
+          return (
+            <line
+              key={angle}
+              x1={1200} y1={0}
+              x2={1200 + Math.cos(rad) * len}
+              y2={0 + Math.sin(rad) * len}
+              stroke={i % 2 === 0 ? '#f97316' : '#06b6d4'}
+              strokeWidth={i % 2 === 0 ? 1.5 : 1}
+              strokeOpacity={i % 2 === 0 ? 0.18 : 0.14}
+              strokeLinecap="round"
+            />
+          );
+        })}
 
-        {/* Stroke-only waves layered on top */}
-        <path d="M0,140 C150,80 300,200 450,140 C600,80 750,200 900,140 C1050,80 1150,160 1200,130" fill="none" stroke="#f97316" strokeWidth="2" strokeOpacity="0.22" strokeLinecap="round" />
-        <path d="M0,220 C200,155 380,285 560,215 C720,155 880,275 1060,205 C1130,180 1175,195 1200,190" fill="none" stroke="#06b6d4" strokeWidth="2" strokeOpacity="0.20" strokeLinecap="round" />
-        <path d="M0,320 C170,255 330,375 510,305 C670,245 840,355 1020,290 C1110,260 1165,275 1200,270" fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.15" strokeLinecap="round" />
-        <path d="M0,420 C190,360 360,470 540,400 C700,340 870,450 1050,385 C1130,355 1175,370 1200,365" fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.14" strokeLinecap="round" />
-        <path d="M0,520 C160,460 340,560 520,495 C690,435 860,545 1040,480 C1120,450 1170,465 1200,460" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.10" strokeLinecap="round" />
-        <path d="M0,620 C180,560 360,660 540,595 C710,535 880,640 1060,575 C1130,548 1175,560 1200,555" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.09" strokeLinecap="round" />
+        {/* Soft filled wedge behind spokes */}
+        <path d="M1200,0 L300,0 L0,400 L0,0 Z" fill="#f97316" fillOpacity="0.04" />
+        <path d="M1200,0 L1200,500 L600,800 L0,800 L0,400 Z" fill="#06b6d4" fillOpacity="0.04" />
+
+        {/* Ring accents at origin */}
+        <circle cx="1200" cy="0" r="100" fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.20" />
+        <circle cx="1200" cy="0" r="200" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.14" />
+        <circle cx="1200" cy="0" r="320" fill="none" stroke="#f97316" strokeWidth="0.75" strokeOpacity="0.09" />
       </svg>
 
       <section className="relative px-6 py-16 text-center">
