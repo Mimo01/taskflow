@@ -49,16 +49,6 @@ vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-jira-token'),
 }));
 
-const mockNavigate = vi.fn();
-
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: vi.fn(() => mockNavigate),
-  };
-});
-
 // Fixture builder
 function makeSprintIssue(
   key: string,
@@ -104,12 +94,13 @@ const defaultProps = {
   activeJiraProject: 'PROJ',
   jiraUserDisplayName: 'Alice Doe',
   storyPointsFieldKey: 'customfield_10016',
+  onIssueClick: vi.fn(),
 };
 
 describe('DashboardInProgressCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockNavigate.mockReset();
+    (defaultProps.onIssueClick as ReturnType<typeof vi.fn>).mockReset();
   });
 
   it('test 1: filter logic — renders only matching subtask+indeterminate+assignee rows', async () => {
@@ -185,7 +176,7 @@ describe('DashboardInProgressCard', () => {
     expect(caption.closest('a')).toBeNull();
   });
 
-  it('test 3: click navigation — clicking a row calls navigate with /issue/:key', async () => {
+  it('test 3: click navigation — clicking a row calls onIssueClick with issue key', async () => {
     const { useQuery } = await import('@tanstack/react-query');
 
     const issues = [
@@ -205,7 +196,7 @@ describe('DashboardInProgressCard', () => {
     const rowButton = screen.getByRole('button', { name: /PROJ-101/ });
     await userEvent.click(rowButton);
 
-    expect(mockNavigate).toHaveBeenCalledWith('/issue/PROJ-101');
+    expect(defaultProps.onIssueClick).toHaveBeenCalledWith('PROJ-101');
   });
 
   it('test 4: empty state — shows "No subtasks in progress — nice work!" when no matches', async () => {

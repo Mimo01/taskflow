@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -10,6 +11,7 @@ export default function Dashboard() {
   const { jiraBaseUrl, activeJiraProject, jiraUserDisplayName } = useAuthStore();
   const { storyPointsFieldKey } = useSettingsStore();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
+  const { onIssueClick } = useOutletContext<{ onIssueClick: (key: string) => void }>();
 
   // D-16: single point of PAT load; cards receive it as a prop
   useEffect(() => {
@@ -49,6 +51,7 @@ export default function Dashboard() {
           activeJiraProject={activeJiraProject ?? ''}
           jiraUserDisplayName={jiraUserDisplayName ?? ''}
           storyPointsFieldKey={storyPointsFieldKey}
+          onIssueClick={onIssueClick}
         />
         <DashboardReleaseCard
           jiraBaseUrl={jiraBaseUrl ?? ''}

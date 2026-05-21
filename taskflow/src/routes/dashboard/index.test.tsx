@@ -44,6 +44,15 @@ vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('test-jira-token'),
 }));
 
+// Mock react-router-dom — useOutletContext returns null by default in MemoryRouter; mock prevents TypeError
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useOutletContext: vi.fn(() => ({ onIssueClick: vi.fn() })),
+  };
+});
+
 import Dashboard from './index';
 import { useAuthStore } from '@/stores/auth.store';
 
