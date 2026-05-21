@@ -11,11 +11,15 @@ const mockStore: {
   setAioEnabled: ReturnType<typeof vi.fn>;
   selectedAioProjectKey: string | null;
   setSelectedAioProjectKey: ReturnType<typeof vi.fn>;
+  tempoEnabled: boolean;
+  setTempoEnabled: ReturnType<typeof vi.fn>;
 } = {
   aioEnabled: false,
   setAioEnabled: vi.fn(),
   selectedAioProjectKey: null,
   setSelectedAioProjectKey: vi.fn(),
+  tempoEnabled: false,
+  setTempoEnabled: vi.fn(),
 };
 
 vi.mock('../../stores/settings.store', () => ({
@@ -110,6 +114,7 @@ describe('IntegrationsSection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockStore.aioEnabled = false;
+    mockStore.tempoEnabled = false;
     mockStore.selectedAioProjectKey = null;
     vi.mocked(fetchAioProjects).mockReset();
     // vi.clearAllMocks() also clears the readSecret mock — re-arm it so the
@@ -152,6 +157,7 @@ describe('IntegrationsSection — AIO project picker', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockStore.aioEnabled = false;
+    mockStore.tempoEnabled = false;
     mockStore.selectedAioProjectKey = null;
     vi.mocked(fetchAioProjects).mockReset();
     // vi.clearAllMocks() also clears the readSecret mock — re-arm it so the
@@ -316,5 +322,44 @@ describe('IntegrationsSection — AIO project picker', () => {
       expect(opts.length).toBeGreaterThan(1);
     });
     expect(screen.queryByText(/no longer available/)).toBeNull();
+  });
+});
+
+describe('Tempo Timesheets toggle (Phase 61)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockStore.aioEnabled = false;
+    mockStore.tempoEnabled = false;
+    mockStore.selectedAioProjectKey = null;
+    vi.mocked(fetchAioProjects).mockReset();
+    vi.mocked(readSecret).mockResolvedValue('test-jira-token');
+  });
+
+  it('renders Tempo Timesheets checkbox', () => {
+    renderWithClient(<IntegrationsSection />);
+    expect(
+      screen.getByRole('checkbox', { name: /enable tempo timesheets/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('checkbox is unchecked when tempoEnabled=false', () => {
+    renderWithClient(<IntegrationsSection />);
+    expect(
+      screen.getByRole('checkbox', { name: /enable tempo timesheets/i }),
+    ).not.toBeChecked();
+  });
+
+  it('checkbox is checked when tempoEnabled=true', () => {
+    mockStore.tempoEnabled = true;
+    renderWithClient(<IntegrationsSection />);
+    expect(
+      screen.getByRole('checkbox', { name: /enable tempo timesheets/i }),
+    ).toBeChecked();
+  });
+
+  it('toggling checkbox calls setTempoEnabled(true)', () => {
+    renderWithClient(<IntegrationsSection />);
+    fireEvent.click(screen.getByRole('checkbox', { name: /enable tempo timesheets/i }));
+    expect(mockStore.setTempoEnabled).toHaveBeenCalledWith(true);
   });
 });

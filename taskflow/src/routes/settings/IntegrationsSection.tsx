@@ -15,6 +15,8 @@ export default function IntegrationsSection() {
   const setAioEnabled = useSettingsStore((s) => s.setAioEnabled);
   const selectedAioProjectKey = useSettingsStore((s) => s.selectedAioProjectKey);
   const setSelectedAioProjectKey = useSettingsStore((s) => s.setSelectedAioProjectKey);
+  const tempoEnabled = useSettingsStore((s) => s.tempoEnabled);
+  const setTempoEnabled = useSettingsStore((s) => s.setTempoEnabled);
 
   const { jiraBaseUrl } = useAuthStore();
   const [token, setToken] = useState<string | null>(null);
@@ -142,6 +144,26 @@ export default function IntegrationsSection() {
             )}
           </div>
         )}
+      </div>
+      <div className="flex flex-col gap-4">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          Tempo Timesheets
+        </h3>
+        <label className="flex items-center justify-between gap-4 cursor-pointer">
+          <div>
+            <p className="text-sm font-semibold">Enable Tempo Timesheets</p>
+            <p className="text-xs text-muted-foreground">
+              Show worklog data from Jira Tempo Timesheets. Requires Tempo plugin on your Jira instance.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            aria-label="Enable Tempo Timesheets"
+            checked={tempoEnabled}
+            onChange={(e) => setTempoEnabled(e.target.checked)}
+            className="h-4 w-4 accent-primary"
+          />
+        </label>
       </div>
     </div>
   );
