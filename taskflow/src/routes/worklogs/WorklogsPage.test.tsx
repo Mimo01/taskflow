@@ -19,13 +19,28 @@ import type { TempoWorklog } from '@/services/tempo';
 
 let mockTempoEnabled = true;
 let mockFetchWorklogsResult: TempoWorklog[] = [];
+let mockAssignableUsersResult: { name: string; displayName: string }[] = [];
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
 vi.mock('@/stores/auth.store', () => ({
   useAuthStore: () => ({
     jiraBaseUrl: 'https://jira.example.com',
+    activeJiraProject: 'TEST',
   }),
+}));
+
+vi.mock('@/services/jira/users', () => ({
+  fetchAssignableUsers: vi.fn().mockImplementation(
+    (_baseUrl: string, _token: string, _project: string, query: string) =>
+      Promise.resolve(
+        query
+          ? mockAssignableUsersResult.filter((u) =>
+              u.displayName.toLowerCase().includes(query.toLowerCase()),
+            )
+          : mockAssignableUsersResult,
+      ),
+  ),
 }));
 
 vi.mock('@/stores/settings.store', () => ({
@@ -224,15 +239,13 @@ describe('WorklogsPage', () => {
   // ── TEMPO-03: people filter ────────────────────────────────────────────────
 
   describe('TEMPO-03 — people filter', () => {
-    it('shows dropdown options derived from author.displayName in fetched data', async () => {
-      mockFetchWorklogsResult = [
-        makeWorklog('alice', 'Alice Smith', '2026-05-18', 4),
-        makeWorklog('bob', 'Bob Jones', '2026-05-19', 2),
+    it('shows dropdown options from assignable users (Jira user search)', async () => {
+      mockAssignableUsersResult = [
+        { name: 'alice', displayName: 'Alice Smith' },
+        { name: 'bob', displayName: 'Bob Jones' },
       ];
 
       const { getByRole, container } = await renderPage();
-      const { fetchWorklogs } = await import('@/services/tempo');
-      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
 
       // Focus the combobox input to open dropdown
       const input = getByRole('combobox');
@@ -250,23 +263,20 @@ describe('WorklogsPage', () => {
     });
 
     it('selecting a person triggers a fetch with that author.name as username', async () => {
-      mockFetchWorklogsResult = [
-        makeWorklog('alice', 'Alice Smith', '2026-05-18', 4),
-        makeWorklog('bob', 'Bob Jones', '2026-05-19', 2),
+      mockAssignableUsersResult = [
+        { name: 'alice', displayName: 'Alice Smith' },
+        { name: 'bob', displayName: 'Bob Jones' },
       ];
 
       const { getByRole, container } = await renderPage();
       const { fetchWorklogs } = await import('@/services/tempo');
       await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
 
-      // Open the dropdown
       const input = getByRole('combobox');
       fireEvent.focus(input);
 
-      // Wait for dropdown to appear, then select Alice via mouseDown (blur-safety pattern)
       await waitFor(() => {
-        const dropdown = container.querySelector('ul');
-        expect(dropdown).toBeTruthy();
+        expect(container.querySelector('ul')).toBeTruthy();
       });
 
       const dropdown = container.querySelector('ul')!;
@@ -285,13 +295,12 @@ describe('WorklogsPage', () => {
     });
 
     it('shows a dismissible chip when a person is selected and clears on X click', async () => {
-      mockFetchWorklogsResult = [makeWorklog('alice', 'Alice Smith', '2026-05-18', 4)];
+      mockAssignableUsersResult = [{ name: 'alice', displayName: 'Alice Smith' }];
 
       const { getByRole, container, queryByLabelText, getByLabelText } = await renderPage();
       const { fetchWorklogs } = await import('@/services/tempo');
       await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
 
-      // Open dropdown and select Alice
       const input = getByRole('combobox');
       fireEvent.focus(input);
 
@@ -306,42 +315,34 @@ describe('WorklogsPage', () => {
       expect(aliceButton).toBeTruthy();
       fireEvent.mouseDown(aliceButton!);
 
-      // Chip should appear
       await waitFor(() => {
         expect(getByLabelText('Remove Alice Smith filter')).toBeTruthy();
       });
 
-      // Dismiss the chip
-      const dismissBtn = getByLabelText('Remove Alice Smith filter');
-      fireEvent.click(dismissBtn);
+      fireEvent.click(getByLabelText('Remove Alice Smith filter'));
 
-      // Chip should be gone
       await waitFor(() => {
         expect(queryByLabelText('Remove Alice Smith filter')).toBeNull();
       });
 
-      // fetchWorklogs should have been called with [] after dismiss
       const calls = (fetchWorklogs as ReturnType<typeof vi.fn>).mock.calls;
-      const lastCall = calls[calls.length - 1];
-      expect(lastCall[2]).toEqual([]); // empty usernames = all people
+      expect(calls[calls.length - 1][2]).toEqual([]); // empty usernames = all
     });
 
     it('typing in input filters dropdown options', async () => {
-      mockFetchWorklogsResult = [
-        makeWorklog('alice', 'Alice Smith', '2026-05-18', 4),
-        makeWorklog('bob', 'Bob Jones', '2026-05-19', 2),
-        makeWorklog('charlie', 'Charlie Brown', '2026-05-20', 1),
+      mockAssignableUsersResult = [
+        { name: 'alice', displayName: 'Alice Smith' },
+        { name: 'bob', displayName: 'Bob Jones' },
+        { name: 'charlie', displayName: 'Charlie Brown' },
       ];
 
       const { getByRole, container } = await renderPage();
-      const { fetchWorklogs } = await import('@/services/tempo');
-      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
 
       const input = getByRole('combobox');
       fireEvent.focus(input);
       fireEvent.change(input, { target: { value: 'ali' } });
 
-      // Dropdown should show only Alice
+      // Mock filters by query — dropdown should show only Alice
       await waitFor(() => {
         const dropdown = container.querySelector('ul');
         expect(dropdown).toBeTruthy();

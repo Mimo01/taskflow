@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { fetchAssignableUsers } from '@/services/jira/users';
 import { fetchWorklogs } from '@/services/tempo';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
@@ -137,7 +138,7 @@ const DATE_PRESETS: { id: DatePreset; label: string }[] = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function WorklogsPage() {
-  const { jiraBaseUrl } = useAuthStore();
+  const { jiraBaseUrl, activeJiraProject } = useAuthStore();
   // IN-01: fine-grained selector avoids re-rendering on unrelated store mutations
   const tempoEnabled = useSettingsStore((s) => s.tempoEnabled);
 
@@ -203,18 +204,14 @@ export default function WorklogsPage() {
       (preset !== 'custom' || (!!customFrom && !!customTo && customTo >= customFrom)),
   });
 
-  // ─ People list (D-02: derived from current fetch only, no extra API call) ─
-  const people = useMemo(() => {
-    const map = new Map<string, string>(); // author.name → displayName
-    for (const w of data ?? []) {
-      if (!map.has(w.author.name)) {
-        map.set(w.author.name, w.author.displayName ?? w.author.name);
-      }
-    }
-    return Array.from(map.entries())
-      .map(([name, displayName]) => ({ name, displayName }))
-      .sort((a, b) => a.displayName.localeCompare(b.displayName));
-  }, [data]);
+  // ─ People list (assignable users from Jira, same source as assignee picker) ─
+  const { data: userResults } = useQuery({
+    queryKey: ['jira', 'assignable-users', jiraBaseUrl, activeJiraProject, query],
+    queryFn: () => fetchAssignableUsers(jiraBaseUrl!, jiraToken!, activeJiraProject!, query),
+    enabled: open && !!jiraBaseUrl && !!jiraToken && !!activeJiraProject,
+    staleTime: 30_000,
+  });
+  const people = userResults ?? [];
 
   // ─ Pivot table ────────────────────────────────────────────────────────────
   const { pivot, days, dayTotals, grandTotal } = useMemo(() => {
@@ -285,9 +282,7 @@ export default function WorklogsPage() {
     setQuery('');
   }
 
-  const filteredPeople = people.filter(
-    (p) => !query || p.displayName.toLowerCase().includes(query.toLowerCase()),
-  );
+  const filteredPeople = people;
 
   // ─ JSX ────────────────────────────────────────────────────────────────────
   return (
