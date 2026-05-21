@@ -154,7 +154,7 @@ const DATE_PRESETS: { id: DatePreset; label: string }[] = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function WorklogsPage() {
-  const { jiraBaseUrl, activeJiraProject, jiraUsername, jiraUserDisplayName } = useAuthStore();
+  const { jiraBaseUrl, activeJiraProject, jiraUsername, jiraUserDisplayName, jiraUserKey } = useAuthStore();
   // IN-01: fine-grained selector avoids re-rendering on unrelated store mutations
   const tempoEnabled = useSettingsStore((s) => s.tempoEnabled);
 
@@ -242,9 +242,9 @@ export default function WorklogsPage() {
 
   // ─ Schedule (for weekend/holiday column coloring) ────────────────────────
   const { data: scheduleData } = useQuery({
-    queryKey: ['tempo', 'schedule', jiraBaseUrl, from, to],
-    queryFn: () => fetchUserSchedule(jiraBaseUrl!, jiraToken!, from, to),
-    enabled: !!jiraBaseUrl && !!jiraToken && tempoEnabled && !!from && !!to,
+    queryKey: ['tempo', 'schedule', jiraBaseUrl, from, to, jiraUserKey ?? ''],
+    queryFn: () => fetchUserSchedule(jiraBaseUrl!, jiraToken!, from, to, jiraUserKey!),
+    enabled: !!jiraBaseUrl && !!jiraToken && !!jiraUserKey && tempoEnabled && !!from && !!to,
     staleTime: 24 * 60 * 60 * 1000,
   });
   const dayTypeMap = scheduleData ?? new Map<string, ScheduleDayType>();

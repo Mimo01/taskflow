@@ -24,6 +24,8 @@ interface AuthState {
   jiraUserDisplayName: string | null;
   /** Jira username from GET /rest/api/2/myself .name — for @mention matching in comments. */
   jiraUsername: string | null;
+  /** Jira user key from GET /rest/api/2/myself .key — for Tempo schedule API userKeys param. */
+  jiraUserKey: string | null;
   /** GitLab user ID from validation response .id — for self-exclusion in MR notes. */
   gitlabUserId: number | null;
   /** GitLab username from validation response .username — for @mention detection. */
@@ -38,8 +40,8 @@ interface AuthState {
   setGitlabConnected: (connected: boolean, baseUrl?: string) => void;
   setActiveJiraProject: (project: string | null) => void;
   setActiveGitlabProject: (id: number | null, path: string | null) => void;
-  /** Set Jira user identity for notification filtering. */
-  setJiraUser: (displayName: string, username: string) => void;
+  /** Set Jira user identity for notification filtering and Tempo API. */
+  setJiraUser: (displayName: string, username: string, key?: string | null) => void;
   /** Set GitLab user ID for self-exclusion in MR notes. */
   setGitlabUserId: (id: number) => void;
   /** Set GitLab username for @mention detection. */
@@ -58,6 +60,7 @@ export const useAuthStore = create<AuthState>()(
       activeGitlabProjectPath: null,
       jiraUserDisplayName: null,
       jiraUsername: null,
+      jiraUserKey: null,
       gitlabUserId: null,
       gitlabUsername: null,
       _hasHydrated: false,
@@ -74,8 +77,8 @@ export const useAuthStore = create<AuthState>()(
       setActiveJiraProject: (project) => set({ activeJiraProject: project }),
       setActiveGitlabProject: (id, path) =>
         set({ activeGitlabProject: id, activeGitlabProjectPath: path }),
-      setJiraUser: (displayName, username) =>
-        set({ jiraUserDisplayName: displayName, jiraUsername: username }),
+      setJiraUser: (displayName, username, key) =>
+        set({ jiraUserDisplayName: displayName, jiraUsername: username, jiraUserKey: key ?? null }),
       setGitlabUserId: (id) => set({ gitlabUserId: id }),
       setGitlabUsername: (username) => set({ gitlabUsername: username }),
     }),
