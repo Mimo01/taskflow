@@ -14,6 +14,7 @@ import {
   CheckSquare,
   ChevronLeft,
   ChevronRight,
+  Clock,
   FlaskConical,
   GitMerge,
   KanbanSquare,
@@ -53,6 +54,7 @@ const ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {
   KanbanSquare,
   List,
   BookOpen,
+  Clock,
   FlaskConical,
   GitMerge,
   BarChart2,
@@ -78,6 +80,7 @@ export default function Sidebar() {
   const sidebarItems = useSettingsStore((s) => s.sidebarItems);
   const aioEnabled = useSettingsStore((s) => s.aioEnabled);
   const selectedAioProjectKey = useSettingsStore((s) => s.selectedAioProjectKey);
+  const tempoEnabled = useSettingsStore((s) => s.tempoEnabled);
   const sidebarCollapsed = useSettingsStore((s) => s.sidebarCollapsed);
   const toggleSidebarCollapsed = useSettingsStore((s) => s.toggleSidebarCollapsed);
   const sidebarWidth = useSettingsStore((s) => s.sidebarWidth);
@@ -286,7 +289,8 @@ export default function Sidebar() {
       (nav) =>
         nav.section === section.id &&
         visibleIds.has(nav.id) &&
-        !(nav.section === 'testing' && (!aioEnabled || !selectedAioProjectKey)),
+        !(nav.section === 'testing' && (!aioEnabled || !selectedAioProjectKey)) &&
+        !(nav.id === 'worklogs' && !tempoEnabled),
     ),
   })).filter((section) => section.items.length > 0);
 
