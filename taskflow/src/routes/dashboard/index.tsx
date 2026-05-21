@@ -51,19 +51,19 @@ export default function Dashboard() {
         preserveAspectRatio="xMidYMid slice"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Orange waves — spread across top and right edges */}
-        <path d="M600,-20 C720,60 800,120 780,260 C760,400 680,480 600,600" fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.28" strokeLinecap="round"/>
-        <path d="M900,-20 C980,80 1020,180 980,340 C940,480 840,560 760,700" fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.20" strokeLinecap="round"/>
-        <path d="M1250,100 C1160,200 1060,280 960,420 C860,560 820,660 740,820" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.15" strokeLinecap="round"/>
-        <path d="M1250,350 C1140,420 1020,480 900,580 C780,680 700,740 620,830" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.10" strokeLinecap="round"/>
-        <path d="M380,-20 C460,100 500,200 460,360 C420,520 360,600 300,760" fill="none" stroke="#f97316" strokeWidth="0.75" strokeOpacity="0.08" strokeLinecap="round"/>
+        {/* Orange waves from top-right — staggered vertically */}
+        <path d="M1200,-20 C950,10 700,100 500,200 C300,300 100,280 -50,340" fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.30" strokeLinecap="round"/>
+        <path d="M1200,40  C980,90 780,170 580,290 C380,410 160,410 -50,490" fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.22" strokeLinecap="round"/>
+        <path d="M1200,90  C1020,160 860,240 660,370 C460,500 220,520 -50,620" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.15" strokeLinecap="round"/>
+        <path d="M1200,140 C1060,220 940,320 740,450 C540,580 280,620 -50,740" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.10" strokeLinecap="round"/>
+        <path d="M1200,200 C1100,320 1020,430 820,560 C620,690 340,730 -50,840" fill="none" stroke="#f97316" strokeWidth="0.75" strokeOpacity="0.06" strokeLinecap="round"/>
 
-        {/* Cyan waves — spread across bottom and left edges */}
-        <path d="M600,820 C520,700 480,600 500,460 C520,320 600,240 640,100" fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.26" strokeLinecap="round"/>
-        <path d="M300,820 C240,700 220,580 260,440 C300,300 400,220 460,80" fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.18" strokeLinecap="round"/>
-        <path d="M-50,500 C60,440 160,380 280,300 C400,220 480,160 560,40" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.14" strokeLinecap="round"/>
-        <path d="M-50,260 C80,240 200,220 320,180 C440,140 540,100 660,-20" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.09" strokeLinecap="round"/>
-        <path d="M900,820 C860,720 820,620 820,500 C820,380 860,300 880,180" fill="none" stroke="#06b6d4" strokeWidth="0.75" strokeOpacity="0.07" strokeLinecap="round"/>
+        {/* Cyan waves from bottom-left — staggered vertically */}
+        <path d="M0,660 C80,480 240,400 440,310 C640,220 860,230 1100,160" fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.28" strokeLinecap="round"/>
+        <path d="M0,710 C60,540 180,470 380,400 C580,330 820,360 1100,300" fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.20" strokeLinecap="round"/>
+        <path d="M0,750 C40,620 120,560 320,510 C520,460 780,500 1100,460" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.13" strokeLinecap="round"/>
+        <path d="M0,790 C20,710 60,680 260,650 C460,620 740,670 1100,640" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.08" strokeLinecap="round"/>
+        <path d="M0,830 C60,790 140,770 300,760 C500,750 750,790 1100,780" fill="none" stroke="#06b6d4" strokeWidth="0.75" strokeOpacity="0.05" strokeLinecap="round"/>
       </svg>
 
       <section className="relative px-8 py-12 text-center">
