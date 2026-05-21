@@ -42,40 +42,38 @@ export default function Dashboard() {
   const greeting = getGreeting(firstName);
 
   return (
-    <div className="flex flex-col">
-      <section className="relative overflow-hidden bg-gradient-to-br from-orange-50 via-background to-cyan-50 dark:from-orange-950/40 dark:via-background dark:to-cyan-950/40 px-6 py-16 text-center">
-        {/* Abstract waves — decorative, brand orange + cyan */}
-        <svg
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full pointer-events-none"
-          viewBox="0 0 800 200"
-          preserveAspectRatio="xMidYMid slice"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M0,120 C120,160 200,60 320,100 C440,140 520,60 640,90 C720,110 780,80 800,70 L800,200 L0,200 Z"
-            fill="#f97316"
-            fillOpacity="0.07"
-          />
-          <path
-            d="M0,150 C100,110 220,170 360,130 C480,95 580,155 700,120 C750,105 780,115 800,110 L800,200 L0,200 Z"
-            fill="#06b6d4"
-            fillOpacity="0.08"
-          />
-          <path
-            d="M0,170 C150,140 280,185 420,160 C540,138 650,172 800,150 L800,200 L0,200 Z"
-            fill="#f97316"
-            fillOpacity="0.05"
-          />
-        </svg>
+    <div className="relative flex flex-col bg-gradient-to-br from-orange-50 via-background to-cyan-50 dark:from-orange-950/40 dark:via-background dark:to-cyan-950/40">
+      {/* Abstract waves — span full page behind all content */}
+      <svg
+        aria-hidden="true"
+        className="absolute inset-0 w-full h-full pointer-events-none"
+        viewBox="0 0 800 200"
+        preserveAspectRatio="xMidYMid slice"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M0,120 C120,160 200,60 320,100 C440,140 520,60 640,90 C720,110 780,80 800,70 L800,200 L0,200 Z"
+          fill="#f97316"
+          fillOpacity="0.07"
+        />
+        <path
+          d="M0,150 C100,110 220,170 360,130 C480,95 580,155 700,120 C750,105 780,115 800,110 L800,200 L0,200 Z"
+          fill="#06b6d4"
+          fillOpacity="0.08"
+        />
+        <path
+          d="M0,170 C150,140 280,185 420,160 C540,138 650,172 800,150 L800,200 L0,200 Z"
+          fill="#f97316"
+          fillOpacity="0.05"
+        />
+      </svg>
 
-        <div className="relative z-10">
-          <h1 className="text-4xl font-bold tracking-tight">{greeting}</h1>
-          <p className="text-sm text-muted-foreground mt-2">{today}</p>
-        </div>
+      <section className="relative px-6 py-16 text-center">
+        <h1 className="text-4xl font-bold tracking-tight">{greeting}</h1>
+        <p className="text-sm text-muted-foreground mt-2">{today}</p>
       </section>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+      <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
         <DashboardSprintCard
           jiraBaseUrl={jiraBaseUrl ?? ''}
           jiraToken={jiraToken ?? ''}
