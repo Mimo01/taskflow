@@ -91,9 +91,13 @@ export default function Dashboard() {
       </svg>
 
       <section className="relative px-6 py-16 text-center">
-        <p className="text-base font-medium text-muted-foreground tracking-widest uppercase mb-1">{timeGreeting}</p>
-        <h1 className="text-5xl font-extrabold tracking-tight text-orange-500">{firstName ?? 'there'}</h1>
-        <p className="text-sm text-muted-foreground mt-3">{today}</p>
+        <h1 className="text-4xl sm:text-5xl font-light tracking-tight leading-tight">
+          <span className="text-foreground/60">{timeGreeting} </span>
+          <span className="font-extrabold bg-gradient-to-r from-orange-500 to-cyan-500 bg-clip-text text-transparent">
+            {firstName ?? '—'}
+          </span>
+        </h1>
+        <p className="text-sm text-muted-foreground mt-3 tracking-wide">{today}</p>
       </section>
 
       <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
