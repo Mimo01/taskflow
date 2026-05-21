@@ -13,10 +13,6 @@
 import {
   ArrowLeftToLine,
   ArrowRightToLine,
-  BookOpen,
-  Bug,
-  CheckSquare,
-  CornerDownRight,
   FlaskConical,
   Loader2,
   PinOff,
@@ -30,6 +26,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { cn } from '@/lib/utils';
 
 interface PinnedTabStripProps {
@@ -44,23 +41,6 @@ interface PinnedTabStripProps {
 type IssueTab = { type: 'issue'; summary: string; issueTypeName: string };
 type CycleTab = { type: 'cycle'; name: string; projectKey: string };
 type ResolvedTab = IssueTab | CycleTab;
-
-function IssueTypeIcon({ typeName }: { typeName: string }) {
-  const cls = 'w-3.5 h-3.5 shrink-0';
-  switch (typeName) {
-    case 'Bug':
-      return <Bug className={`${cls} text-red-500`} />;
-    case 'Story':
-      return <BookOpen className={`${cls} text-green-600`} />;
-    case 'Subtask':
-    case 'Sub-task':
-      return <CornerDownRight className={`${cls} text-blue-500`} />;
-    case 'Epic':
-      return <BookOpen className={`${cls} text-purple-500`} />;
-    default:
-      return <CheckSquare className={`${cls} text-blue-500`} />;
-  }
-}
 
 interface DragGhost {
   index: number;
