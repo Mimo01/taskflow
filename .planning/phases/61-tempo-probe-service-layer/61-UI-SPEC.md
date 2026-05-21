@@ -51,11 +51,14 @@ Declared values (must be multiples of 4):
 **Phase-specific usage:**
 - Settings section group gap: `gap-8` (32px) — mirrors existing `flex flex-col gap-8` on `section-integrations` wrapper
 - Toggle label inner gap: `gap-4` (16px) — mirrors existing AIO `<label>` element
+- Tempo section inner wrapper: `gap-4` (16px) — `<div className="flex flex-col gap-4">` wraps the `<h3>` and `<label>` pair
 
-**Exception:**
-- Toggle sub-description gap: `gap-1.5` (6px) — Exception: gap-1.5 inherited from existing AIO block (`IntegrationsSection.tsx` line 66) — not modified in this phase to avoid unintended UI change.
+Exceptions: none — this phase introduces no non-4-multiple spacing values.
 
-Source: `IntegrationsSection.tsx` line 60, 66.
+**Out of Scope / Inherited (not part of this phase's design surface):**
+`gap-1.5` (6px) exists in `IntegrationsSection.tsx` line 66 within the existing AIO block. This phase does not touch that element. It is documented here for traceability only and is explicitly excluded from this phase's spacing contract.
+
+Source: `IntegrationsSection.tsx` line 60 (gap-8 wrapper).
 
 ---
 
