@@ -57,7 +57,7 @@ function enumerateDays(from: string, to: string): string[] {
   const d = new Date(`${from}T00:00:00`);
   const end = new Date(`${to}T00:00:00`);
   while (d <= end) {
-    days.push(d.toISOString().slice(0, 10));
+    days.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
     d.setDate(d.getDate() + 1);
   }
   return days;
