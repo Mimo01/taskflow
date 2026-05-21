@@ -10,10 +10,11 @@ import type { FetchRecord, Operation } from '../../stores/operation-profiler.sto
 import { formatBytes, statusColor } from './utils';
 
 // Stronger colors for fetch bars
-function fetchBarColor(source: 'jira' | 'gitlab' | 'updater' | 'aio', hasError: boolean): string {
+function fetchBarColor(source: 'jira' | 'gitlab' | 'updater' | 'aio' | 'tempo', hasError: boolean): string {
   if (hasError) return 'bg-red-400 dark:bg-red-600';
   if (source === 'jira') return 'bg-orange-400 dark:bg-orange-600';
   if (source === 'updater') return 'bg-sky-400 dark:bg-sky-600';
+  if (source === 'tempo') return 'bg-green-400 dark:bg-green-600';
   if (source === 'aio') return 'bg-teal-400 dark:bg-teal-600';
   return 'bg-purple-400 dark:bg-purple-600';
 }
@@ -24,15 +25,18 @@ function opBarColor(fetches: FetchRecord[]): string {
   const jiraCount = sources.filter((s) => s === 'jira').length;
   const gitlabCount = sources.filter((s) => s === 'gitlab').length;
   const updaterCount = sources.filter((s) => s === 'updater').length;
+  const tempoCount = sources.filter((s) => s === 'tempo').length;
   const aioCount = sources.filter((s) => s === 'aio').length;
   const mixed =
     (jiraCount > 0 ? 1 : 0) +
     (gitlabCount > 0 ? 1 : 0) +
     (updaterCount > 0 ? 1 : 0) +
+    (tempoCount > 0 ? 1 : 0) +
     (aioCount > 0 ? 1 : 0);
   if (mixed > 1) return 'bg-blue-500/20 dark:bg-blue-500/30';
   if (jiraCount > 0) return 'bg-orange-500/20 dark:bg-orange-500/30';
   if (updaterCount > 0) return 'bg-sky-500/20 dark:bg-sky-500/30';
+  if (tempoCount > 0) return 'bg-green-500/20 dark:bg-green-500/30';
   if (aioCount > 0) return 'bg-teal-500/20 dark:bg-teal-500/30';
   return 'bg-purple-500/20 dark:bg-purple-500/30';
 }
@@ -108,7 +112,9 @@ function FetchTooltip({
                 ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400'
                 : fetch.source === 'updater'
                   ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400'
-                  : 'bg-purple-500/15 text-purple-600 dark:text-purple-400'
+                  : fetch.source === 'tempo'
+                    ? 'bg-green-500/15 text-green-600 dark:text-green-400'
+                    : 'bg-purple-500/15 text-purple-600 dark:text-purple-400'
             }`}
           >
             {fetch.source}

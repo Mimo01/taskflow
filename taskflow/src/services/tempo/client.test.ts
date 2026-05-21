@@ -20,7 +20,7 @@ describe('tempoFetch', () => {
   it('constructs URL as baseUrl + TEMPO_API_PATH + path', async () => {
     await tempoFetch(BASE, TOKEN, PATH, 'Load Tempo Worklogs');
     expect(vi.mocked(apiFetch)).toHaveBeenCalledWith(
-      'aio',
+      'tempo',
       `${BASE}${TEMPO_API_PATH}${PATH}`,
       expect.objectContaining({
         headers: expect.objectContaining({ Authorization: `Bearer ${TOKEN}` }),
@@ -32,17 +32,17 @@ describe('tempoFetch', () => {
   it('strips trailing slash from baseUrl before constructing URL', async () => {
     await tempoFetch(`${BASE}/`, TOKEN, PATH, 'Load Tempo Worklogs');
     expect(vi.mocked(apiFetch)).toHaveBeenCalledWith(
-      'aio',
+      'tempo',
       `${BASE}${TEMPO_API_PATH}${PATH}`,
       expect.anything(),
       'Load Tempo Worklogs',
     );
   });
 
-  it('calls apiFetch with source "aio" (not "jira") to avoid false Jira disconnect', async () => {
+  it('calls apiFetch with source "tempo" (not "jira") to avoid false Jira disconnect', async () => {
     await tempoFetch(BASE, TOKEN, PATH, 'Load Tempo Worklogs');
     expect(vi.mocked(apiFetch)).toHaveBeenCalledWith(
-      'aio',
+      'tempo',
       expect.any(String),
       expect.anything(),
       expect.any(String),
@@ -87,7 +87,7 @@ describe('tempoFetch', () => {
     const customPath = '/rest/tempo-timesheets/4';
     await tempoFetch(BASE, TOKEN, PATH, 'Load Tempo Worklogs', customPath);
     expect(vi.mocked(apiFetch)).toHaveBeenCalledWith(
-      'aio',
+      'tempo',
       `${BASE}${customPath}${PATH}`,
       expect.anything(),
       'Load Tempo Worklogs',

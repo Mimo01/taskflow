@@ -11,7 +11,7 @@ import { useSettingsStore } from '../../stores/settings.store';
 import { sourceBadgeClass } from './utils';
 import WaterfallBar from './WaterfallBar';
 
-type SourceFilter = 'all' | 'jira' | 'gitlab' | 'updater' | 'aio';
+type SourceFilter = 'all' | 'jira' | 'gitlab' | 'updater' | 'aio' | 'tempo';
 type SortMode = 'newest' | 'slowest';
 
 export default function WaterfallTab() {
@@ -49,12 +49,14 @@ export default function WaterfallTab() {
     const jiraCount = sources.filter((s) => s === 'jira').length;
     const gitlabCount = sources.filter((s) => s === 'gitlab').length;
     const updaterCount = sources.filter((s) => s === 'updater').length;
+    const tempoCount = sources.filter((s) => s === 'tempo').length;
     const aioCount = sources.filter((s) => s === 'aio').length;
-    // Pick dominant: most frequent; ties broken jira > aio > gitlab > updater
+    // Pick dominant: most frequent; ties broken jira > tempo > aio > gitlab > updater
     let dominant: SourceFilter = 'updater';
     if (gitlabCount >= updaterCount) dominant = 'gitlab';
     if (aioCount >= gitlabCount) dominant = 'aio';
-    if (jiraCount >= aioCount) dominant = 'jira';
+    if (tempoCount >= aioCount) dominant = 'tempo';
+    if (jiraCount >= tempoCount) dominant = 'jira';
     return dominant === sourceFilter;
   });
 
@@ -115,6 +117,17 @@ export default function WaterfallTab() {
             }
           >
             Updater
+          </button>
+          <button
+            type="button"
+            onClick={() => setSourceFilter('tempo')}
+            className={
+              sourceFilter === 'tempo'
+                ? sourceBadgeClass('tempo')
+                : 'rounded px-1.5 py-0.5 text-xs font-semibold uppercase text-muted-foreground hover:bg-accent/50'
+            }
+          >
+            Tempo
           </button>
           <button
             type="button"
