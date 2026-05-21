@@ -153,7 +153,7 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
 - [x] **Phase 59: Dashboard Cleanup + Dependency Removal** — Remove widget system, Workload route, and react-grid-layout package atomically (completed 2026-05-20)
 - [x] **Phase 60: Static Dashboard / Welcome Screen** — Replace widget grid with a minimal 3-card static layout using existing query cache
 - [ ] **Phase 61: Tempo Probe + Service Layer** — Verify Tempo auth, build service module and settings toggle
-- [ ] **Phase 62: Tempo Worklog Viewer UI** — Day-column table, date presets, people filter, totals row/column
+- [x] **Phase 62: Tempo Worklog Viewer UI** — Day-column table, date presets, people filter, totals row/column (completed 2026-05-21)
 - [ ] **Phase 63: Tempo Saved Filters + Test Pass** — Saved filter persistence, dead code sweep, full test suite green
 
 ## Phase Details
@@ -220,7 +220,7 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
   5. A totals column (sum per person) and a totals row (sum per day) are visible at all times
 **Plans**: 2 plans (Wave 1: 62-01 sidebar+route+stub; Wave 2: 62-02 page implementation + tests + human verify)
 - [x] 62-01-PLAN.md — Sidebar wiring (Clock icon + tempoEnabled gate) + /worklogs route + WorklogsPage stub + Sidebar.test.tsx extension (TEMPO-01)
-- [ ] 62-02-PLAN.md — WorklogsPage full implementation: date presets, single-select people filter, pivot table, totals + tests + human verify (TEMPO-01, TEMPO-02, TEMPO-03, TEMPO-07)
+- [x] 62-02-PLAN.md — WorklogsPage full implementation: date presets, single-select people filter, pivot table, totals + tests + human verify (TEMPO-01, TEMPO-02, TEMPO-03, TEMPO-07)
 **UI hint**: yes
 
 ### Phase 63: Tempo Saved Filters + Test Pass
@@ -254,5 +254,5 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
 | 59. Dashboard Cleanup + Dependency Removal | v1.9 | 3/3 | Complete   | 2026-05-20 |
 | 60. Static Dashboard / Welcome Screen | v1.9 | 6/6 | Complete    | 2026-05-21 |
 | 61. Tempo Probe + Service Layer | v1.9 | 4/4 | Complete   | 2026-05-21 |
-| 62. Tempo Worklog Viewer UI | v1.9 | 1/2 | In Progress|  |
+| 62. Tempo Worklog Viewer UI | v1.9 | 2/2 | Complete   | 2026-05-21 |
 | 63. Tempo Saved Filters + Test Pass | v1.9 | 0/TBD | Not started | - |
