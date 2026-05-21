@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // Module-level variable so vi.mock factory can close over it (vi.mock is hoisted)
 let mockAioEnabled = false;
 let mockSelectedAioProjectKey: string | null = null;
+let mockTempoEnabled = false;
 
 // Mock NavLink as a plain anchor for test isolation
 vi.mock('react-router-dom', async (importOriginal) => {
@@ -66,6 +67,7 @@ vi.mock('@/stores/settings.store', () => ({
       devToolsEnabled: false,
       aioEnabled: mockAioEnabled,
       selectedAioProjectKey: mockSelectedAioProjectKey,
+      tempoEnabled: mockTempoEnabled,
       sidebarItems: [
         { id: 'dashboard', visible: true },
         { id: 'my-tasks', visible: true },
@@ -76,6 +78,7 @@ vi.mock('@/stores/settings.store', () => ({
         { id: 'sprint-progress', visible: true },
         { id: 'workload', visible: true },
         { id: 'releases', visible: true },
+        { id: 'worklogs', visible: true },
         { id: 'aio-projects', visible: true },
       ],
       sidebarCollapsed: false,
@@ -172,5 +175,37 @@ describe('Sidebar — aioEnabled gate', () => {
     const link = (await findByText('AIO Cycles')).closest('a');
     expect(link).not.toBeNull();
     expect(link?.getAttribute('href')).toBe('/aio-project/PROJ');
+  });
+});
+
+describe('Sidebar — tempoEnabled gate', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('D-06: shows Worklogs link when tempoEnabled=true', async () => {
+    mockTempoEnabled = true;
+    const { default: Sidebar } = await import('./Sidebar');
+    const { getByText } = render(
+      <QueryClientProvider client={makeClient()}>
+        <MemoryRouter>
+          <Sidebar />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(getByText('Worklogs')).toBeDefined();
+  });
+
+  it('D-06: hides Worklogs link when tempoEnabled=false', async () => {
+    mockTempoEnabled = false;
+    const { default: Sidebar } = await import('./Sidebar');
+    const { queryByText } = render(
+      <QueryClientProvider client={makeClient()}>
+        <MemoryRouter>
+          <Sidebar />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(queryByText('Worklogs')).toBeNull();
   });
 });
