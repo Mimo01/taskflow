@@ -91,7 +91,7 @@ export default function DashboardReleaseCard({
 
       {/* Content */}
       {!showSkeleton && soonest && (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-2">
           <span className="text-sm font-medium">{soonest.name}</span>
           <div className="flex items-center gap-2">
             {timing === 'due-today' && <Badge tone="blue">Today</Badge>}
@@ -112,7 +112,7 @@ export default function DashboardReleaseCard({
               <span className="text-xs text-muted-foreground">{soonest.releaseDate}</span>
             )}
           </div>
-          <Progress value={donePct} className="h-1.5" />
+          <Progress value={donePct} />
           <p className="text-xs text-muted-foreground">
             {donePct}% complete · {doneCount} / {totalCount} issues
           </p>
