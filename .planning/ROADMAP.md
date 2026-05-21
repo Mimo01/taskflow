@@ -232,11 +232,10 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
   2. User can load, rename, and delete saved Tempo filters from the filter bar
   3. All tests pass with zero failures and zero warnings after all v1.9 additions and removals
   4. No dead imports, unused components, or stale widget/workload references remain in the codebase
-**Plans**: 4 plans (Wave 0: 61-01 probe gate; Wave 1: 61-02 + 61-03 parallel; Wave 2: 61-04)
-- [ ] 61-01-PLAN.md — Live curl probe + GO/NO-GO decision for Wave 1 (TEMPO-06)
-- [ ] 61-02-PLAN.md — `src/services/tempo/` module: client + types + worklogs + barrel + tests (TEMPO-06)
-- [ ] 61-03-PLAN.md — `settings.store.ts` v19→v20 bump with `tempoEnabled` + migration + tests (TEMPO-06)
-- [ ] 61-04-PLAN.md — Tempo Timesheets toggle in `IntegrationsSection.tsx` + tests + human verify (TEMPO-06)
+**Plans**: 3 plans (Wave 1: 63-01 + 63-03 parallel; Wave 2: 63-02)
+- [ ] 63-01-PLAN.md — Create `tempo-filters.store.ts` (Zustand persist + Tauri storage) + unit tests + export DatePreset from WorklogsPage (TEMPO-04)
+- [ ] 63-02-PLAN.md — Extend WorklogsPage with saved-filters row, Save button, hover-delete, dblclick rename + WorklogsPage.test.tsx coverage + human verify (TEMPO-04, TEMPO-05)
+- [ ] 63-03-PLAN.md — Fix 2 jira.test.ts discoverCustomFields expectations + dead-code sweep audit + full suite green (QUAL-01, QUAL-02)
 
 ## Progress
 
@@ -255,4 +254,4 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
 | 60. Static Dashboard / Welcome Screen | v1.9 | 6/6 | Complete    | 2026-05-21 |
 | 61. Tempo Probe + Service Layer | v1.9 | 4/4 | Complete   | 2026-05-21 |
 | 62. Tempo Worklog Viewer UI | v1.9 | 2/2 | Complete   | 2026-05-21 |
-| 63. Tempo Saved Filters + Test Pass | v1.9 | 0/TBD | Not started | - |
+| 63. Tempo Saved Filters + Test Pass | v1.9 | 0/3 | Not started | - |
