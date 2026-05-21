@@ -51,13 +51,13 @@ export default function Dashboard() {
         preserveAspectRatio="xMidYMid slice"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <path d="M-100,120 C200,80 500,160 800,100 C1000,60 1150,120 1300,90"  fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.22" strokeLinecap="round"/>
-        <path d="M-100,220 C250,170 550,260 850,190 C1050,140 1180,200 1300,170" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.14" strokeLinecap="round"/>
-        <path d="M-100,340 C300,290 600,370 900,300 C1080,260 1200,310 1300,290" fill="none" stroke="#f97316" strokeWidth="0.75" strokeOpacity="0.08" strokeLinecap="round"/>
-
-        <path d="M-100,480 C200,520 500,440 800,500 C1000,540 1150,480 1300,510" fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.20" strokeLinecap="round"/>
-        <path d="M-100,600 C250,640 550,560 850,620 C1050,660 1180,600 1300,630" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.13" strokeLinecap="round"/>
-        <path d="M-100,700 C300,740 600,670 900,720 C1080,750 1200,710 1300,730" fill="none" stroke="#06b6d4" strokeWidth="0.75" strokeOpacity="0.07" strokeLinecap="round"/>
+        <path d="M-100,80  C180,40  480,200 720,110 C940,30  1100,140 1300,70"   fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.22" strokeLinecap="round"/>
+        <path d="M-100,310 C220,230 520,420 780,300 C980,210 1140,360 1300,280"  fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.20" strokeLinecap="round"/>
+        <path d="M-100,190 C260,150 540,280 800,180 C1020,100 1160,230 1300,160" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.13" strokeLinecap="round"/>
+        <path d="M-100,500 C200,560 460,420 740,510 C940,580 1120,440 1300,520"  fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.14" strokeLinecap="round"/>
+        <path d="M-100,420 C280,340 580,500 860,390 C1060,310 1180,440 1300,370" fill="none" stroke="#f97316" strokeWidth="0.75" strokeOpacity="0.08" strokeLinecap="round"/>
+        <path d="M-100,650 C240,720 500,580 780,670 C1000,740 1160,610 1300,680" fill="none" stroke="#06b6d4" strokeWidth="0.75" strokeOpacity="0.09" strokeLinecap="round"/>
+        <path d="M-100,750 C300,690 600,790 900,710 C1100,650 1220,730 1300,700" fill="none" stroke="#f97316" strokeWidth="0.5"  strokeOpacity="0.06" strokeLinecap="round"/>
       </svg>
 
       <section className="relative px-8 py-12 text-center">
