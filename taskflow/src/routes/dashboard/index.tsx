@@ -43,7 +43,7 @@ export default function Dashboard() {
 
   return (
     <div className="relative flex flex-col min-h-full bg-background">
-      {/* Smooth flowing waves — staggered across all edges */}
+      {/* Horizontal flowing waves — orange upper, cyan lower */}
       <svg
         aria-hidden="true"
         className="absolute inset-0 w-full h-full pointer-events-none"
@@ -51,19 +51,13 @@ export default function Dashboard() {
         preserveAspectRatio="xMidYMid slice"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Orange — long gentle arcs from top/right */}
-        <path d="M1100,0 C900,120 600,80 300,200 C100,290 -20,310 -80,340"         fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.26" strokeLinecap="round"/>
-        <path d="M820,0 C640,140 420,120 200,260 C60,360 -30,400 -80,440"           fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.18" strokeLinecap="round"/>
-        <path d="M500,0 C380,160 240,180 100,320 C20,420 -30,480 -80,540"           fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.13" strokeLinecap="round"/>
-        <path d="M1200,160 C1020,260 760,240 520,380 C320,500 140,540 -80,640"      fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.09" strokeLinecap="round"/>
-        <path d="M1200,420 C1060,500 840,480 620,580 C420,670 200,700 -80,760"      fill="none" stroke="#f97316" strokeWidth="0.75" strokeOpacity="0.05" strokeLinecap="round"/>
+        <path d="M-100,120 C200,80 500,160 800,100 C1000,60 1150,120 1300,90"  fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.22" strokeLinecap="round"/>
+        <path d="M-100,220 C250,170 550,260 850,190 C1050,140 1180,200 1300,170" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.14" strokeLinecap="round"/>
+        <path d="M-100,340 C300,290 600,370 900,300 C1080,260 1200,310 1300,290" fill="none" stroke="#f97316" strokeWidth="0.75" strokeOpacity="0.08" strokeLinecap="round"/>
 
-        {/* Cyan — long gentle arcs from bottom/left */}
-        <path d="M100,800 C280,640 540,620 780,480 C960,370 1080,340 1280,280"      fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.24" strokeLinecap="round"/>
-        <path d="M400,800 C540,660 740,640 960,520 C1100,430 1180,400 1280,370"     fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.17" strokeLinecap="round"/>
-        <path d="M720,800 C800,680 940,660 1080,580 C1160,530 1220,510 1280,490"    fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.11" strokeLinecap="round"/>
-        <path d="M0,580 C160,480 380,460 620,360 C820,270 1020,260 1280,200"        fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.08" strokeLinecap="round"/>
-        <path d="M0,360 C140,300 340,290 580,220 C780,160 1000,160 1280,120"        fill="none" stroke="#06b6d4" strokeWidth="0.75" strokeOpacity="0.05" strokeLinecap="round"/>
+        <path d="M-100,480 C200,520 500,440 800,500 C1000,540 1150,480 1300,510" fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.20" strokeLinecap="round"/>
+        <path d="M-100,600 C250,640 550,560 850,620 C1050,660 1180,600 1300,630" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.13" strokeLinecap="round"/>
+        <path d="M-100,700 C300,740 600,670 900,720 C1080,750 1200,710 1300,730" fill="none" stroke="#06b6d4" strokeWidth="0.75" strokeOpacity="0.07" strokeLinecap="round"/>
       </svg>
 
       <section className="relative px-8 py-12 text-center">
