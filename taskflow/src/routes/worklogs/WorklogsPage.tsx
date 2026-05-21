@@ -311,11 +311,10 @@ export default function WorklogsPage() {
   }
 
   function clearPersonFilter() {
-    setSelectedUsername(null);
-    setSelectedDisplayName(null);
+    // Reset to "me" (the default) rather than clearing entirely
+    setSelectedUsername(jiraUsername);
+    setSelectedDisplayName(jiraUserDisplayName);
     setQuery('');
-    // Mark as touched so the default-me effect does NOT immediately re-seed
-    userTouchedFilter.current = true;
   }
 
   // ─ Saved filters handlers (TEMPO-04, TEMPO-05) ────────────────────────────
@@ -522,7 +521,7 @@ export default function WorklogsPage() {
             onChange={handleComboboxChange}
             onFocus={handleComboboxFocus}
             onBlur={handleComboboxBlur}
-            className={`rounded border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-44${selectedDisplayName !== null ? ' pr-6' : ''}`}
+            className={`rounded border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-52${selectedDisplayName !== null ? ' pr-6' : ''}`}
           />
           {/* Clear button — visible only when a person is selected; uses onMouseDown
               so it fires before the input's onBlur 150 ms close timer */}

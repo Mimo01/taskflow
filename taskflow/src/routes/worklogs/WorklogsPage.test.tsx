@@ -360,15 +360,16 @@ describe('WorklogsPage', () => {
       // Click the clear button — use mouseDown to match the component's onMouseDown handler
       fireEvent.mouseDown(getByLabelText('Clear person filter'));
 
+      // After clicking ×, filter resets to "me" (the default), not empty
       await waitFor(() => {
-        expect(queryByLabelText('Clear person filter')).toBeNull();
+        expect((input as HTMLInputElement).value).toBe('Milan Mozolak');
       });
 
-      // Input should be empty after clear
-      expect((input as HTMLInputElement).value).toBe('');
+      // Clear button still visible since "me" is selected
+      expect(getByLabelText('Clear person filter')).toBeTruthy();
 
       const calls = (fetchWorklogs as ReturnType<typeof vi.fn>).mock.calls;
-      expect(calls[calls.length - 1][2]).toEqual([]); // empty usernames = all
+      expect(calls[calls.length - 1][2]).toEqual(['mmozolak']); // reset to me
     });
 
     it('defaults the person filter to the authenticated user on first load', async () => {
