@@ -5,6 +5,8 @@
  *   TEMPO-01 — day-column pivot table (rows per author, columns per day)
  *   TEMPO-02 — date presets (6 pills, This Week active on mount, Custom reveals date inputs)
  *   TEMPO-03 — single-select people filter (dropdown, chip, dismiss)
+ *   TEMPO-04 — save named filter combining preset + person (inline input, empty-name guard)
+ *   TEMPO-05 — load, rename, delete saved filters (pill click, double-click rename, × delete)
  *   TEMPO-07 — totals column (per person) and totals row (per day)
  *   D-08     — zero-hour cells render as blank empty string (not '0h')
  */
@@ -14,12 +16,17 @@ import { fireEvent, render, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TempoWorklog } from '@/services/tempo';
+import type { TempoFilter } from '@/stores/tempo-filters.store';
 
 // ─── Module-level mutable mock state (vi.mock factories are hoisted) ──────────
 
 let mockTempoEnabled = true;
 let mockFetchWorklogsResult: TempoWorklog[] = [];
 let mockAssignableUsersResult: { name: string; displayName: string }[] = [];
+let mockSavedFilters: TempoFilter[] = [];
+let mockAddFilter = vi.fn();
+let mockRemoveFilter = vi.fn();
+let mockRenameFilter = vi.fn();
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -56,6 +63,15 @@ vi.mock('@/services/stronghold', () => ({
 
 vi.mock('@/services/tempo', () => ({
   fetchWorklogs: vi.fn().mockImplementation(() => Promise.resolve(mockFetchWorklogsResult)),
+}));
+
+vi.mock('@/stores/tempo-filters.store', () => ({
+  useTempoFiltersStore: () => ({
+    savedFilters: mockSavedFilters,
+    addFilter: mockAddFilter,
+    removeFilter: mockRemoveFilter,
+    renameFilter: mockRenameFilter,
+  }),
 }));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -99,6 +115,10 @@ describe('WorklogsPage', () => {
     vi.clearAllMocks();
     mockFetchWorklogsResult = [];
     mockTempoEnabled = true;
+    mockSavedFilters = [];
+    mockAddFilter = vi.fn();
+    mockRemoveFilter = vi.fn();
+    mockRenameFilter = vi.fn();
   });
 
   // ── TEMPO-01: day-column table ─────────────────────────────────────────────
@@ -491,6 +511,125 @@ describe('WorklogsPage', () => {
       // The table should not render when data is empty (EmptyState shown instead)
       // So '0h' should definitely not appear anywhere
       expect(queryByText('0h')).toBeNull();
+    });
+  });
+
+  // ── TEMPO-04: save saved filter ────────────────────────────────────────────
+
+  // Fixture for saved filter tests
+  const SAMPLE_FILTER: TempoFilter = {
+    id: 'f1',
+    name: 'Alice last month',
+    preset: 'last-month',
+    username: 'alice',
+    displayName: 'Alice',
+  };
+
+  describe('TEMPO-04: save saved filter', () => {
+    it('calls addFilter once with correct fields when name is typed and Confirm clicked', async () => {
+      const { getByText, getByLabelText } = await renderPage();
+
+      // Click the "Save filter" button to open the inline input
+      fireEvent.click(getByText('Save filter'));
+
+      // Type a name
+      const nameInput = getByLabelText('Filter name');
+      fireEvent.change(nameInput, { target: { value: 'My Filter' } });
+
+      // Click Confirm save
+      fireEvent.click(getByLabelText('Confirm save'));
+
+      expect(mockAddFilter).toHaveBeenCalledTimes(1);
+      const callArg = mockAddFilter.mock.calls[0][0] as TempoFilter;
+      expect(callArg.name).toBe('My Filter');
+      expect(callArg.preset).toBe('this-week'); // default preset on mount
+      expect(callArg.username).toBeNull();
+      expect(callArg.displayName).toBeNull();
+    });
+
+    it('does NOT call addFilter when Confirm clicked with empty name', async () => {
+      const { getByText, getByLabelText } = await renderPage();
+
+      fireEvent.click(getByText('Save filter'));
+
+      // Input is empty — click Confirm immediately
+      fireEvent.click(getByLabelText('Confirm save'));
+
+      expect(mockAddFilter).not.toHaveBeenCalled();
+    });
+
+    it('does NOT call addFilter and hides input when Cancel clicked', async () => {
+      const { getByText, getByLabelText, queryByLabelText } = await renderPage();
+
+      fireEvent.click(getByText('Save filter'));
+
+      // Type something then cancel
+      const nameInput = getByLabelText('Filter name');
+      fireEvent.change(nameInput, { target: { value: 'abc' } });
+
+      fireEvent.click(getByLabelText('Cancel'));
+
+      expect(mockAddFilter).not.toHaveBeenCalled();
+      // Input should no longer be in the DOM
+      expect(queryByLabelText('Filter name')).toBeNull();
+    });
+  });
+
+  // ── TEMPO-05: load/rename/delete saved filters ─────────────────────────────
+
+  describe('TEMPO-05: load/rename/delete saved filters', () => {
+    it('does NOT render saved filters row when savedFilters is empty', async () => {
+      mockSavedFilters = [];
+      const { queryByLabelText } = await renderPage();
+      expect(queryByLabelText('Saved filters')).toBeNull();
+    });
+
+    it('renders saved filters row when at least one filter exists', async () => {
+      mockSavedFilters = [SAMPLE_FILTER];
+      const { getByLabelText } = await renderPage();
+      expect(getByLabelText('Saved filters')).toBeTruthy();
+    });
+
+    it('clicking a saved filter pill activates the Last Month preset', async () => {
+      mockSavedFilters = [SAMPLE_FILTER];
+      const { getByText } = await renderPage();
+
+      // Click the saved filter pill
+      fireEvent.click(getByText('Alice last month'));
+
+      // The Last Month preset pill should now have the active (bg-accent) class
+      const lastMonthBtn = getByText('Last Month');
+      expect(lastMonthBtn.className).toContain('bg-accent');
+    });
+
+    it('clicking × delete button calls removeFilter with the filter id', async () => {
+      mockSavedFilters = [SAMPLE_FILTER];
+      const { getByLabelText } = await renderPage();
+
+      const deleteBtn = getByLabelText('Delete Alice last month filter');
+      fireEvent.click(deleteBtn);
+
+      expect(mockRemoveFilter).toHaveBeenCalledTimes(1);
+      expect(mockRemoveFilter).toHaveBeenCalledWith('f1');
+    });
+
+    it('double-clicking pill label shows rename input; Enter commits rename', async () => {
+      mockSavedFilters = [SAMPLE_FILTER];
+      const { getByText, getByLabelText } = await renderPage();
+
+      // Double-click the pill to enter rename mode
+      fireEvent.dblClick(getByText('Alice last month'));
+
+      // Rename input should appear (do NOT test focus — Pitfall 2)
+      const renameInput = getByLabelText('Rename filter');
+      expect(renameInput).toBeTruthy();
+
+      // Change value and press Enter
+      fireEvent.change(renameInput, { target: { value: 'New Name' } });
+      fireEvent.keyDown(renameInput, { key: 'Enter' });
+
+      expect(mockRenameFilter).toHaveBeenCalledTimes(1);
+      expect(mockRenameFilter).toHaveBeenCalledWith('f1', 'New Name');
     });
   });
 });
