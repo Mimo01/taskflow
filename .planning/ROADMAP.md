@@ -219,7 +219,7 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
   4. The people filter allows multi-selecting team members; selecting a subset limits the table to those rows
   5. A totals column (sum per person) and a totals row (sum per day) are visible at all times
 **Plans**: 2 plans (Wave 1: 62-01 sidebar+route+stub; Wave 2: 62-02 page implementation + tests + human verify)
-- [ ] 62-01-PLAN.md — Sidebar wiring (Clock icon + tempoEnabled gate) + /worklogs route + WorklogsPage stub + Sidebar.test.tsx extension (TEMPO-01)
+- [x] 62-01-PLAN.md — Sidebar wiring (Clock icon + tempoEnabled gate) + /worklogs route + WorklogsPage stub + Sidebar.test.tsx extension (TEMPO-01)
 - [ ] 62-02-PLAN.md — WorklogsPage full implementation: date presets, single-select people filter, pivot table, totals + tests + human verify (TEMPO-01, TEMPO-02, TEMPO-03, TEMPO-07)
 **UI hint**: yes
 
@@ -254,5 +254,5 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
 | 59. Dashboard Cleanup + Dependency Removal | v1.9 | 3/3 | Complete   | 2026-05-20 |
 | 60. Static Dashboard / Welcome Screen | v1.9 | 6/6 | Complete    | 2026-05-21 |
 | 61. Tempo Probe + Service Layer | v1.9 | 4/4 | Complete   | 2026-05-21 |
-| 62. Tempo Worklog Viewer UI | v1.9 | 0/2 | Not started | - |
+| 62. Tempo Worklog Viewer UI | v1.9 | 1/2 | In Progress|  |
 | 63. Tempo Saved Filters + Test Pass | v1.9 | 0/TBD | Not started | - |
