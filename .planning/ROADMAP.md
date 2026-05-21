@@ -218,11 +218,9 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
   3. The date range bar offers at minimum: This Week (default), Last Week, This Month, Last Month, Last Working Day, and custom date range
   4. The people filter allows multi-selecting team members; selecting a subset limits the table to those rows
   5. A totals column (sum per person) and a totals row (sum per day) are visible at all times
-**Plans**: 4 plans (Wave 0: 61-01 probe gate; Wave 1: 61-02 + 61-03 parallel; Wave 2: 61-04)
-- [x] 61-01-PLAN.md — Live curl probe + GO/NO-GO decision for Wave 1 (TEMPO-06)
-- [x] 61-02-PLAN.md — `src/services/tempo/` module: client + types + worklogs + barrel + tests (TEMPO-06)
-- [x] 61-03-PLAN.md — `settings.store.ts` v19→v20 bump with `tempoEnabled` + migration + tests (TEMPO-06)
-- [ ] 61-04-PLAN.md — Tempo Timesheets toggle in `IntegrationsSection.tsx` + tests + human verify (TEMPO-06)
+**Plans**: 2 plans (Wave 1: 62-01 sidebar+route+stub; Wave 2: 62-02 page implementation + tests + human verify)
+- [ ] 62-01-PLAN.md — Sidebar wiring (Clock icon + tempoEnabled gate) + /worklogs route + WorklogsPage stub + Sidebar.test.tsx extension (TEMPO-01)
+- [ ] 62-02-PLAN.md — WorklogsPage full implementation: date presets, single-select people filter, pivot table, totals + tests + human verify (TEMPO-01, TEMPO-02, TEMPO-03, TEMPO-07)
 **UI hint**: yes
 
 ### Phase 63: Tempo Saved Filters + Test Pass
@@ -256,5 +254,5 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
 | 59. Dashboard Cleanup + Dependency Removal | v1.9 | 3/3 | Complete   | 2026-05-20 |
 | 60. Static Dashboard / Welcome Screen | v1.9 | 6/6 | Complete    | 2026-05-21 |
 | 61. Tempo Probe + Service Layer | v1.9 | 4/4 | Complete   | 2026-05-21 |
-| 62. Tempo Worklog Viewer UI | v1.9 | 0/TBD | Not started | - |
+| 62. Tempo Worklog Viewer UI | v1.9 | 0/2 | Not started | - |
 | 63. Tempo Saved Filters + Test Pass | v1.9 | 0/TBD | Not started | - |
