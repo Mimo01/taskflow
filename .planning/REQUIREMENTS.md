@@ -12,8 +12,8 @@ Requirements for milestone v1.9 — Tempo Timesheets, Dashboard Redesign & Clean
 - [ ] **TEMPO-01**: User can view a day-column worklog table showing hours logged per person per day for a configurable date range
 - [ ] **TEMPO-02**: User can select date range using presets: This Week (default), Last Week, This Month, Last Month, Last Working Day, and custom date range
 - [ ] **TEMPO-03**: User can filter the worklog table by one or more team members (people filter with multi-select)
-- [ ] **TEMPO-04**: User can save a named filter combining a people selection and date preset
-- [ ] **TEMPO-05**: User can load, rename, and delete saved Tempo filters
+- [x] **TEMPO-04**: User can save a named filter combining a people selection and date preset
+- [x] **TEMPO-05**: User can load, rename, and delete saved Tempo filters
 - [ ] **TEMPO-06**: User can enable/disable Tempo integration via Settings → Integrations toggle (same pattern as AIO; default off)
 - [ ] **TEMPO-07**: Worklog table shows a total column (sum of hours per person) and a total row (sum of hours per day)
 
@@ -32,8 +32,8 @@ Requirements for milestone v1.9 — Tempo Timesheets, Dashboard Redesign & Clean
 
 ### Quality & Cleanup
 
-- [ ] **QUAL-01**: All tests pass with zero failures after all removals and additions (no regressions)
-- [ ] **QUAL-02**: Dead code, unused imports, and stale components from removed features are eliminated across the codebase
+- [x] **QUAL-01**: All tests pass with zero failures after all removals and additions (no regressions)
+- [x] **QUAL-02**: Dead code, unused imports, and stale components from removed features are eliminated across the codebase
 - [ ] **QUAL-03**: `react-grid-layout` and `@types/react-grid-layout` packages are removed from `package.json`
 
 ## v2 Requirements
@@ -76,16 +76,20 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TEMPO-02 | Phase 62 | Pending |
 | TEMPO-03 | Phase 62 | Pending |
 | TEMPO-07 | Phase 62 | Pending |
-| TEMPO-04 | Phase 63 | Pending |
-| TEMPO-05 | Phase 63 | Pending |
-| QUAL-01 | Phase 63 | Pending |
-| QUAL-02 | Phase 63 | Pending |
+| TEMPO-04 | Phase 63 | Complete |
+| TEMPO-05 | Phase 63 | Complete |
+| QUAL-01 | Phase 63 | Complete |
+| QUAL-02 | Phase 63 | Complete |
+| TEMPO-08 | Phase 64 | Pending — pulled forward from v2 |
+| TEMPO-EDIT-01 | Phase 64 | Pending — phase-derived (cell drill-down + per-entry edit/delete/add) |
 
 **Coverage:**
 - v1.9 requirements: 17 total
 - Mapped to phases: 17 ✓
 - Unmapped: 0 ✓
 
+Phase 64 (post-v1.9 follow-up) implements TEMPO-08 (previously v2-deferred) and a phase-derived TEMPO-EDIT-01.
+
 ---
 *Requirements defined: 2026-05-20*
-*Last updated: 2026-05-20 — traceability updated after roadmap creation*
+*Last updated: 2026-05-22 — Phase 64 added (TEMPO-08 pulled forward + TEMPO-EDIT-01 introduced)*
