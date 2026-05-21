@@ -53,20 +53,22 @@ export default function Dashboard() {
       >
         <defs>
           {/* Orange diagonal lines: top-left to bottom-right */}
-          <pattern id="grid-orange" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <line x1="0" y1="0" x2="0" y2="80" stroke="#f97316" strokeWidth="1" strokeOpacity="0.12" />
+          <pattern id="grid-orange" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="60" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.35" />
           </pattern>
           {/* Cyan diagonal lines: top-right to bottom-left */}
-          <pattern id="grid-cyan" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
-            <line x1="0" y1="0" x2="0" y2="80" stroke="#06b6d4" strokeWidth="1" strokeOpacity="0.10" />
+          <pattern id="grid-cyan" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+            <line x1="0" y1="0" x2="0" y2="60" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.30" />
           </pattern>
           {/* Radial masks so grids fade toward the center */}
-          <radialGradient id="fade-tr" cx="100%" cy="0%" r="80%">
+          <radialGradient id="fade-tr" cx="100%" cy="0%" r="75%">
             <stop offset="0%"   stopColor="white" stopOpacity="1" />
+            <stop offset="60%"  stopColor="white" stopOpacity="0.4" />
             <stop offset="100%" stopColor="white" stopOpacity="0" />
           </radialGradient>
-          <radialGradient id="fade-bl" cx="0%" cy="100%" r="80%">
+          <radialGradient id="fade-bl" cx="0%" cy="100%" r="75%">
             <stop offset="0%"   stopColor="white" stopOpacity="1" />
+            <stop offset="60%"  stopColor="white" stopOpacity="0.4" />
             <stop offset="100%" stopColor="white" stopOpacity="0" />
           </radialGradient>
           <mask id="mask-tr"><rect width="1200" height="800" fill="url(#fade-tr)" /></mask>
