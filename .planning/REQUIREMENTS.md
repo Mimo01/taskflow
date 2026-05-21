@@ -19,11 +19,11 @@ Requirements for milestone v1.9 — Tempo Timesheets, Dashboard Redesign & Clean
 
 ### Dashboard Redesign
 
-- [ ] **DASH-01**: Dashboard presents as a welcome/home screen with a personalized greeting (user's name) and today's date as the entry point
-- [ ] **DASH-02**: Sprint health card shows the current sprint name, days remaining, and a % complete progress bar
-- [ ] **DASH-03**: My In Progress card shows up to 3 of the current user's active subtasks (status = In Progress) with links to open them
-- [ ] **DASH-04**: Next release countdown card shows the soonest unreleased fix version's name and the number of days until it
-- [ ] **DASH-05**: Dashboard is a static layout — no configuration, no drag/resize, no widget picker; pure information with visual warmth
+- [x] **DASH-01**: Dashboard presents as a welcome/home screen with a personalized greeting (user's name) and today's date as the entry point
+- [x] **DASH-02**: Sprint health card shows the current sprint name, days remaining, and a % complete progress bar
+- [x] **DASH-03**: My In Progress card shows up to 3 of the current user's active subtasks (status = In Progress) with links to open them
+- [x] **DASH-04**: Next release countdown card shows the soonest unreleased fix version's name and the number of days until it
+- [x] **DASH-05**: Dashboard is a static layout — no configuration, no drag/resize, no widget picker; pure information with visual warmth
 
 ### Removals
 
@@ -66,11 +66,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REMOVE-01 | Phase 59 | Pending |
 | REMOVE-02 | Phase 59 | Pending |
 | QUAL-03 | Phase 59 | Pending |
-| DASH-01 | Phase 60 | Pending |
-| DASH-02 | Phase 60 | Pending |
-| DASH-03 | Phase 60 | Pending |
-| DASH-04 | Phase 60 | Pending |
-| DASH-05 | Phase 60 | Pending |
+| DASH-01 | Phase 60 | Complete |
+| DASH-02 | Phase 60 | Complete |
+| DASH-03 | Phase 60 | Complete |
+| DASH-04 | Phase 60 | Complete |
+| DASH-05 | Phase 60 | Complete |
 | TEMPO-06 | Phase 61 | Pending |
 | TEMPO-01 | Phase 62 | Pending |
 | TEMPO-02 | Phase 62 | Pending |

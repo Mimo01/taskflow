@@ -242,7 +242,7 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
 | 57. Redesign AIO cycles page (folder tree + batch summary) | v1.8 | 5/5 | Complete | 2026-05-15 |
 | 58. Redesign data fetch of AIO cycle detail | v1.8 | 4/4 | Complete | 2026-05-15 |
 | 59. Dashboard Cleanup + Dependency Removal | v1.9 | 3/3 | Complete   | 2026-05-20 |
-| 60. Static Dashboard / Welcome Screen | v1.9 | 6/6 | Complete | 2026-05-21 |
+| 60. Static Dashboard / Welcome Screen | v1.9 | 6/6 | Complete    | 2026-05-21 |
 | 61. Tempo Probe + Service Layer | v1.9 | 0/TBD | Not started | - |
 | 62. Tempo Worklog Viewer UI | v1.9 | 0/TBD | Not started | - |
 | 63. Tempo Saved Filters + Test Pass | v1.9 | 0/TBD | Not started | - |
