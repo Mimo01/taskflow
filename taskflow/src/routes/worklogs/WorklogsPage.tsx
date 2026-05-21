@@ -12,7 +12,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Bookmark, ChevronsLeft, ChevronsRight, Clock, Pencil, Trash2, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Bookmark, ChevronsLeft, ChevronsRight, Clock, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ContextMenu,
@@ -310,13 +310,6 @@ export default function WorklogsPage() {
     userTouchedFilter.current = true;
   }
 
-  function clearPersonFilter() {
-    // Reset to "me" (the default) rather than clearing entirely
-    setSelectedUsername(jiraUsername);
-    setSelectedDisplayName(jiraUserDisplayName);
-    setQuery('');
-  }
-
   // ─ Saved filters handlers (TEMPO-04, TEMPO-05) ────────────────────────────
 
   /** TEMPO-04: Create filter immediately and enter rename mode inline on the pill */
@@ -521,23 +514,8 @@ export default function WorklogsPage() {
             onChange={handleComboboxChange}
             onFocus={handleComboboxFocus}
             onBlur={handleComboboxBlur}
-            className={`rounded border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-52${selectedDisplayName !== null ? ' pr-6' : ''}`}
+            className="rounded border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-52"
           />
-          {/* Clear button — visible only when a person is selected; uses onMouseDown
-              so it fires before the input's onBlur 150 ms close timer */}
-          {selectedDisplayName !== null && (
-            <button
-              type="button"
-              aria-label="Clear person filter"
-              onMouseDown={(e) => {
-                e.preventDefault(); // prevent input blur before click registers
-                clearPersonFilter();
-              }}
-              className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-destructive transition-colors p-0.5"
-            >
-              <X className="size-3" />
-            </button>
-          )}
           {open && filteredPeople.length > 0 && (
             <ul className="absolute z-20 mt-1 w-max min-w-full max-h-48 overflow-y-auto rounded border border-border bg-background shadow-md">
               {filteredPeople.map((person) => (
