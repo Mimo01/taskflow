@@ -48,12 +48,12 @@ Declared values (must be multiples of 4):
 | 2xl | 48px | Major section breaks |
 | 3xl | 64px | Page-level spacing |
 
-Exceptions: none for this phase.
-
 **Phase-specific usage:**
 - Settings section group gap: `gap-8` (32px) — mirrors existing `flex flex-col gap-8` on `section-integrations` wrapper
 - Toggle label inner gap: `gap-4` (16px) — mirrors existing AIO `<label>` element
-- Toggle sub-description gap: `gap-1.5` (6px) — matches existing `flex flex-col gap-1.5` in AIO block
+
+**Exception:**
+- Toggle sub-description gap: `gap-1.5` (6px) — Exception: gap-1.5 inherited from existing AIO block (`IntegrationsSection.tsx` line 66) — not modified in this phase to avoid unintended UI change.
 
 Source: `IntegrationsSection.tsx` line 60, 66.
 
@@ -65,12 +65,14 @@ Source: `IntegrationsSection.tsx` line 60, 66.
 |------|------|--------|-------------|----------------|
 | Section heading | 18px (text-lg) | 600 (font-semibold) | 1.2 | `text-lg font-semibold` |
 | Subsection label | 14px (text-sm) | 600 (font-semibold) | 1.4 | `text-sm font-semibold text-muted-foreground uppercase tracking-wide` |
-| Toggle label | 14px (text-sm) | 500 (font-medium) | 1.4 | `text-sm font-medium` |
+| Toggle label | 14px (text-sm) | 600 (font-semibold) | 1.4 | `text-sm font-semibold` |
 | Toggle description | 12px (text-xs) | 400 (font-normal) | 1.4 | `text-xs text-muted-foreground` |
+
+Declared weights: 400 (font-normal) and 600 (font-semibold) only. font-medium (500) is not used in this phase.
 
 Font: Geist Variable, sans-serif (inherited from `html { @apply font-sans }` in index.css).
 
-Source: `IntegrationsSection.tsx` lines 61–79 — mirrored exactly for Tempo section.
+Source: `IntegrationsSection.tsx` lines 61–79 — mirrored exactly for Tempo section, with font-medium collapsed to font-semibold.
 
 ---
 
@@ -95,7 +97,7 @@ Source: `index.css` lines 80–113, `IntegrationsSection.tsx` line 78.
 | Element | Copy |
 |---------|------|
 | New section heading (h3) | `Tempo Timesheets` |
-| Toggle label (p.font-medium) | `Enable Tempo Timesheets` |
+| Toggle label (p.font-semibold) | `Enable Tempo Timesheets` |
 | Toggle description (p.text-xs) | `Show worklog data from Jira Tempo Timesheets. Requires Tempo plugin on your Jira instance.` |
 | Checkbox aria-label | `Enable Tempo Timesheets` |
 | Empty state | Not applicable — toggle has no sub-UI when enabled in Phase 61 |
@@ -113,7 +115,7 @@ No new shadcn components required. All elements are native HTML or already-insta
 | Component | Source | Status |
 |-----------|--------|--------|
 | `<input type="checkbox">` | Native HTML | Already used in AIO toggle |
-| `text-sm font-medium` label | Tailwind utility | Already used |
+| `text-sm font-semibold` label | Tailwind utility | Already used |
 | `text-xs text-muted-foreground` description | Tailwind utility | Already used |
 | `h3` subsection heading | Native HTML | Already used |
 
@@ -137,7 +139,7 @@ No `npx shadcn add` commands needed for this phase.
 ```
 <label className="flex items-center justify-between gap-4 cursor-pointer">
   <div>
-    <p className="text-sm font-medium">Enable Tempo Timesheets</p>
+    <p className="text-sm font-semibold">Enable Tempo Timesheets</p>
     <p className="text-xs text-muted-foreground">
       Show worklog data from Jira Tempo Timesheets. Requires Tempo plugin on your Jira instance.
     </p>
