@@ -15,7 +15,6 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { CheckCircle2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import type { JiraIssue } from '@/services/jira';
 import { fetchSprintIssues } from '@/services/jira';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
@@ -26,6 +25,7 @@ export interface DashboardInProgressCardProps {
   activeJiraProject: string;
   jiraUserDisplayName: string;
   storyPointsFieldKey: string;
+  onIssueClick: (key: string) => void;
 }
 
 export default function DashboardInProgressCard({
@@ -34,9 +34,8 @@ export default function DashboardInProgressCard({
   activeJiraProject,
   jiraUserDisplayName,
   storyPointsFieldKey,
+  onIssueClick,
 }: DashboardInProgressCardProps) {
-  const navigate = useNavigate();
-
   // CACHE KEY MUST MATCH DashboardSprintCard / SprintHealthPanel / SprintBoardTab exactly
   const { data: sprintIssuesRaw, isLoading } = useQuery({
     queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey],
@@ -88,9 +87,9 @@ export default function DashboardInProgressCard({
               type="button"
               key={issue.key}
               className="w-full flex items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
-              onClick={() => navigate(`/issue/${issue.key}`)}
+              onClick={() => onIssueClick(issue.key)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') navigate(`/issue/${issue.key}`);
+                if (e.key === 'Enter') onIssueClick(issue.key);
               }}
             >
               <span className="text-xs text-muted-foreground font-mono shrink-0">{issue.key}</span>
