@@ -12,9 +12,8 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Bookmark, ChevronsLeft, ChevronsRight, Clock, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Bookmark, ChevronsLeft, ChevronsRight, Clock, Pencil, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -148,7 +147,7 @@ const DATE_PRESETS: { id: DatePreset; label: string }[] = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function WorklogsPage() {
-  const { jiraBaseUrl, activeJiraProject } = useAuthStore();
+  const { jiraBaseUrl, activeJiraProject, jiraUsername, jiraUserDisplayName } = useAuthStore();
   // IN-01: fine-grained selector avoids re-rendering on unrelated store mutations
   const tempoEnabled = useSettingsStore((s) => s.tempoEnabled);
 
@@ -158,6 +157,9 @@ export default function WorklogsPage() {
   const [customTo, setCustomTo] = useState('');
   const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
   const [selectedDisplayName, setSelectedDisplayName] = useState<string | null>(null);
+  // userTouchedFilter: true once user has manually changed or cleared the person selection
+  // prevents the default-me effect from overwriting an intentional user action
+  const userTouchedFilter = useRef(false);
 
   // Saved filters state (TEMPO-04, TEMPO-05)
   const [activeFilterId, setActiveFilterId] = useState<string | null>(null);
@@ -181,6 +183,14 @@ export default function WorklogsPage() {
         .catch(() => setJiraToken(null));
     }
   }, [jiraBaseUrl]);
+
+  // ─ Default "me" selection — seed once when store hydrates, never overwrite user choice ─
+  useEffect(() => {
+    if (jiraUsername && jiraUserDisplayName && !userTouchedFilter.current) {
+      setSelectedUsername(jiraUsername);
+      setSelectedDisplayName(jiraUserDisplayName);
+    }
+  }, [jiraUsername, jiraUserDisplayName]);
 
   // ─ Compute from/to from preset ───────────────────────────────────────────
   const { from, to } = useMemo(() => {
@@ -276,6 +286,10 @@ export default function WorklogsPage() {
   // ─ Combobox handlers ──────────────────────────────────────────────────────
   function handleComboboxFocus() {
     if (closeTimer.current) clearTimeout(closeTimer.current);
+    // Clear query so the dropdown opens with the full unfiltered list;
+    // the input will display `query` (empty) while focused — selectedDisplayName
+    // is restored on blur via the inputValue computation below.
+    setQuery('');
     setOpen(true);
   }
 
@@ -293,12 +307,15 @@ export default function WorklogsPage() {
     setSelectedDisplayName(person.displayName);
     setQuery('');
     setOpen(false);
+    userTouchedFilter.current = true;
   }
 
   function clearPersonFilter() {
     setSelectedUsername(null);
     setSelectedDisplayName(null);
     setQuery('');
+    // Mark as touched so the default-me effect does NOT immediately re-seed
+    userTouchedFilter.current = true;
   }
 
   // ─ Saved filters handlers (TEMPO-04, TEMPO-05) ────────────────────────────
@@ -489,22 +506,7 @@ export default function WorklogsPage() {
         {/* Separator */}
         <div className="w-px h-5 bg-border mx-1" />
 
-        {/* Active chip — shown when a person is selected */}
-        {selectedDisplayName !== null && (
-          <Badge variant="secondary" className="gap-1">
-            {selectedDisplayName}
-            <button
-              type="button"
-              aria-label={`Remove ${selectedDisplayName} filter`}
-              onClick={clearPersonFilter}
-              className="ml-0.5 hover:text-destructive transition-colors"
-            >
-              ×
-            </button>
-          </Badge>
-        )}
-
-        {/* People filter combobox */}
+        {/* People filter combobox — input IS the selection display (no chip) */}
         <div className="relative">
           <label htmlFor="people-filter" className="sr-only">
             Filter by person
@@ -515,13 +517,28 @@ export default function WorklogsPage() {
             aria-label="Filter by person"
             aria-autocomplete="list"
             aria-expanded={open}
-            value={query}
+            value={open ? query : (selectedDisplayName ?? query)}
             placeholder="Filter by person"
             onChange={handleComboboxChange}
             onFocus={handleComboboxFocus}
             onBlur={handleComboboxBlur}
-            className="rounded border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-36"
+            className={`rounded border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-44${selectedDisplayName !== null ? ' pr-6' : ''}`}
           />
+          {/* Clear button — visible only when a person is selected; uses onMouseDown
+              so it fires before the input's onBlur 150 ms close timer */}
+          {selectedDisplayName !== null && (
+            <button
+              type="button"
+              aria-label="Clear person filter"
+              onMouseDown={(e) => {
+                e.preventDefault(); // prevent input blur before click registers
+                clearPersonFilter();
+              }}
+              className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-destructive transition-colors p-0.5"
+            >
+              <X className="size-3" />
+            </button>
+          )}
           {open && filteredPeople.length > 0 && (
             <ul className="absolute z-20 mt-1 w-max min-w-full max-h-48 overflow-y-auto rounded border border-border bg-background shadow-md">
               {filteredPeople.map((person) => (
