@@ -92,17 +92,9 @@ export default function Dashboard() {
       </svg>
 
       <section className="relative px-8 py-14">
-        <p className="text-sm font-medium text-muted-foreground mb-2">{timeGreeting}</p>
-        <h1 className="text-5xl sm:text-6xl font-bold tracking-tight leading-tight">
-          <span className="relative inline-block isolate">
-            <span className="relative z-10">{firstName ?? '—'}</span>
-            <span
-              aria-hidden="true"
-              className="absolute left-0 bottom-1 h-3 w-full rounded-sm bg-gradient-to-r from-orange-400 to-cyan-400 opacity-35 -z-10"
-            />
-          </span>
-        </h1>
-        <p className="text-sm text-muted-foreground mt-4">{today}</p>
+        <p className="text-xs font-medium text-muted-foreground tracking-widest uppercase mb-3">{timeGreeting.replace(',', '')}</p>
+        <h1 className="text-6xl font-extrabold tracking-tight text-foreground">{firstName ?? '—'}</h1>
+        <p className="text-sm text-muted-foreground mt-3">{today}</p>
       </section>
 
       <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
