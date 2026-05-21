@@ -108,14 +108,17 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ### Active
 
-<!-- v1.9 in progress -->
+<!-- v2.0 TBD -->
 
-- [ ] Tempo worklog viewer with configurable day columns, epic/story/subtask row hierarchy, and saved filters
-- [ ] Remove Workload page and all related dashboard widgets
-- [ ] Remove widget-based customizable dashboard system (react-grid-layout, 11 widget types)
-- [ ] New minimal static dashboard: sprint health + my in-progress subtasks + next release countdown
-- [ ] All tests passing, zero regressions
-- [ ] Thorough code cleanup pass (dead code, unused imports, type safety, consistency)
+### v1.9 — Validated
+
+- ✓ Tempo worklog viewer: configurable day-column table, epic/story/subtask row hierarchy, accessible from sidebar when Tempo is enabled — v1.9 Phases 61, 62
+- ✓ Tempo saved filters: persist across sessions via Zustand + Tauri Store; ContextMenu pill UX (save, load, rename, reorder, delete) — v1.9 Phase 63
+- ✓ Remove Workload page and all related dashboard widgets — v1.9 Phase 59
+- ✓ Remove widget-based customizable dashboard system (react-grid-layout, 11 widget types) — v1.9 Phase 59
+- ✓ New minimal static dashboard: sprint health + my in-progress subtasks + next release countdown — v1.9 Phase 60
+- ✓ Full test suite passing, zero regressions (1298 passing, 0 failing) — v1.9 Phase 63
+- ✓ Dead code sweep: zero stale widget/workload imports after v1.9 removals — v1.9 Phase 63
 
 ### Out of Scope
 
@@ -132,7 +135,7 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ## Current State
 
-**Executing v1.9 Tempo, Dashboard Redesign & Cleanup** — started 2026-05-20. Phase 60 complete: static dashboard with personalized greeting, sprint health card, in-progress subtasks card, and release countdown card — all backed by existing query cache, no widget system. Next: Phase 61 Tempo Probe + Service Layer.
+**v1.9 Tempo, Dashboard Redesign & Cleanup complete** — all 5 phases, 18 plans finished 2026-05-21. Deliverables: widget dashboard removed, static dashboard shipped, Tempo worklog viewer with saved filters live, full test suite green (1298/0). Ready for `/gsd:complete-milestone v1.9`.
 
 ## Context
 
@@ -215,6 +218,9 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 | Saved filter JQL results as Set<string> for sprint board | O(1) intersection with sprint swimlane issue keys | ✓ Good — efficient filtering without re-fetching sprint data |
 | Inline delete confirmation for filters (not nested dialog) | Avoids dialog-in-dialog UX; simpler interaction pattern | ✓ Good — cleaner UX |
 | Sidebar fetches favourite filters with useQuery (2min staleTime) | Syncs to Zustand store for cross-component access | ✓ Good — automatic refresh, shared state |
+| Tempo saved filters use createTauriStorage('tempo-filters.json') + Zustand persist | Exact same pattern as pinned-tabs.store.ts; no new concepts introduced | ✓ Good — consistent persistence pattern across stores |
+| Tempo filter pill UX: right-click ContextMenu (not hover-× / double-click) | Matches UnifiedFilterBar/SavedFilterList established pattern; user-approved during phase checkpoint | ✓ Good — consistent cross-feature interaction model |
+| TempoFilter shape excludes customFrom/customTo | Date range is represented by DatePreset enum; custom range not supported in v1.9 | ✓ Good — simpler shape; custom range deferred |
 | inject-version.cjs for git-tag-to-runtime version sync | No hardcoded versions in config; single source of truth from git tags | ✓ Good — version always matches release tag |
 | #[cfg(desktop)] guard on updater plugin registration | Mobile/web targets don't need updater; compile-time exclusion | ✓ Good — clean platform separation |
 | invoke('plugin:process\|relaunch') instead of @tauri-apps/plugin-process | Package not in project dependencies; invoke() is lighter | ✓ Good — no extra dependency |
@@ -259,4 +265,4 @@ This document evolves at phase transitions and milestone boundaries.
 | CachedAvatar with blob URL Map + LazyStore disk persistence | Avatars cached in memory and on disk; 30-day TTL eviction; inflight dedup | ✓ Good — no repeated avatar fetches |
 
 ---
-*Last updated: 2026-05-21 — Phase 60 complete (static dashboard / welcome screen)*
+*Last updated: 2026-05-21 — Phase 63 complete (v1.9 milestone complete)*
