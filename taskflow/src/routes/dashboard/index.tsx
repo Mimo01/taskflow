@@ -43,7 +43,7 @@ export default function Dashboard() {
 
   return (
     <div className="relative flex flex-col min-h-full bg-white dark:bg-background">
-      {/* Intersecting diagonal grids — orange NW→SE, cyan NE→SW */}
+      {/* Scattered dot field — orange + cyan bubbles of varying sizes */}
       <svg
         aria-hidden="true"
         className="absolute inset-0 w-full h-full pointer-events-none"
@@ -51,40 +51,29 @@ export default function Dashboard() {
         preserveAspectRatio="xMidYMid slice"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <defs>
-          {/* Orange diagonal lines: top-left to bottom-right */}
-          <pattern id="grid-orange" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <line x1="0" y1="0" x2="0" y2="60" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.35" />
-          </pattern>
-          {/* Cyan diagonal lines: top-right to bottom-left */}
-          <pattern id="grid-cyan" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
-            <line x1="0" y1="0" x2="0" y2="60" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.30" />
-          </pattern>
-          {/* Radial masks so grids fade toward the center */}
-          <radialGradient id="fade-tr" cx="100%" cy="0%" r="75%">
-            <stop offset="0%"   stopColor="white" stopOpacity="1" />
-            <stop offset="60%"  stopColor="white" stopOpacity="0.4" />
-            <stop offset="100%" stopColor="white" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id="fade-bl" cx="0%" cy="100%" r="75%">
-            <stop offset="0%"   stopColor="white" stopOpacity="1" />
-            <stop offset="60%"  stopColor="white" stopOpacity="0.4" />
-            <stop offset="100%" stopColor="white" stopOpacity="0" />
-          </radialGradient>
-          <mask id="mask-tr"><rect width="1200" height="800" fill="url(#fade-tr)" /></mask>
-          <mask id="mask-bl"><rect width="1200" height="800" fill="url(#fade-bl)" /></mask>
-        </defs>
+        {/* Large background wash circles */}
+        <circle cx="1050" cy="80"  r="320" fill="#f97316" fillOpacity="0.06" />
+        <circle cx="180"  cy="700" r="280" fill="#06b6d4" fillOpacity="0.07" />
+        <circle cx="900"  cy="600" r="180" fill="#06b6d4" fillOpacity="0.05" />
+        <circle cx="260"  cy="160" r="150" fill="#f97316" fillOpacity="0.05" />
 
-        {/* Orange grid fading in from top-right */}
-        <rect width="1200" height="800" fill="url(#grid-orange)" mask="url(#mask-tr)" />
-        {/* Cyan grid fading in from bottom-left */}
-        <rect width="1200" height="800" fill="url(#grid-cyan)" mask="url(#mask-bl)" />
+        {/* Medium dots */}
+        <circle cx="1100" cy="300" r="48" fill="#f97316" fillOpacity="0.12" />
+        <circle cx="80"   cy="420" r="42" fill="#06b6d4" fillOpacity="0.14" />
+        <circle cx="640"  cy="720" r="36" fill="#f97316" fillOpacity="0.10" />
+        <circle cx="440"  cy="60"  r="32" fill="#06b6d4" fillOpacity="0.12" />
+        <circle cx="820"  cy="180" r="28" fill="#06b6d4" fillOpacity="0.10" />
+        <circle cx="300"  cy="560" r="24" fill="#f97316" fillOpacity="0.13" />
 
-        {/* Anchor dots at each origin */}
-        <circle cx="1200" cy="0"   r="5" fill="#f97316" fillOpacity="0.25" />
-        <circle cx="1200" cy="0"   r="2" fill="#f97316" fillOpacity="0.50" />
-        <circle cx="0"    cy="800" r="5" fill="#06b6d4" fillOpacity="0.25" />
-        <circle cx="0"    cy="800" r="2" fill="#06b6d4" fillOpacity="0.50" />
+        {/* Small accent dots */}
+        <circle cx="700"  cy="40"  r="12" fill="#f97316" fillOpacity="0.20" />
+        <circle cx="1150" cy="500" r="10" fill="#06b6d4" fillOpacity="0.22" />
+        <circle cx="160"  cy="260" r="10" fill="#f97316" fillOpacity="0.18" />
+        <circle cx="560"  cy="660" r="8"  fill="#06b6d4" fillOpacity="0.20" />
+        <circle cx="960"  cy="740" r="8"  fill="#f97316" fillOpacity="0.18" />
+        <circle cx="380"  cy="360" r="6"  fill="#06b6d4" fillOpacity="0.16" />
+        <circle cx="1020" cy="440" r="6"  fill="#f97316" fillOpacity="0.16" />
+        <circle cx="740"  cy="520" r="5"  fill="#06b6d4" fillOpacity="0.18" />
       </svg>
 
       <section className="relative px-6 py-16 text-center">
