@@ -42,7 +42,7 @@ export default function Dashboard() {
   const greeting = getGreeting(firstName);
 
   return (
-    <div className="relative flex flex-col bg-gradient-to-br from-orange-50 via-background to-cyan-50 dark:from-orange-950/40 dark:via-background dark:to-cyan-950/40">
+    <div className="relative flex flex-col min-h-full bg-gradient-to-br from-orange-50 via-background to-cyan-50 dark:from-orange-950/40 dark:via-background dark:to-cyan-950/40">
       {/* Abstract waves — span full page behind all content */}
       <svg
         aria-hidden="true"
