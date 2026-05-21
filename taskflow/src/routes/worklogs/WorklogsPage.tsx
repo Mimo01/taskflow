@@ -375,11 +375,11 @@ export default function WorklogsPage() {
                   type="button"
                   onClick={() => handleLoadFilter(filter)}
                   onDoubleClick={() => setRenamingId(filter.id)}
-                  className={
+                  className={`inline-flex items-center gap-1 rounded-md text-xs leading-tight pl-2 pr-2.5 py-1 transition-colors cursor-pointer ${
                     filter.id === activeFilterId
-                      ? 'bg-accent text-accent-foreground font-semibold border border-border rounded-md px-3 h-7 text-xs'
-                      : 'border border-border rounded-md px-3 h-7 text-xs hover:bg-accent cursor-pointer'
-                  }
+                      ? 'bg-primary/15 text-primary border border-primary/30'
+                      : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent'
+                  }`}
                 >
                   {filter.name}
                 </button>
