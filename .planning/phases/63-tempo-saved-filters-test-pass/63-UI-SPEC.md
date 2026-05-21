@@ -46,7 +46,7 @@ Declared values (must be multiples of 4):
 Exceptions:
 - Saved filter pill height: `h-7` (28px) — matches existing preset pill height from WorklogsPage.
 - Save-filter inline input height: `h-7` (28px) — same row as pills, consistent height.
-- × delete button touch target: minimum 24×24px (`w-6 h-6`) with `p-0.5` inner padding.
+- × delete button touch target: minimum 24×24px (`w-6 h-6`) with `p-1` (4px) inner padding.
 
 Source: existing WorklogsPage filter bar uses `gap-2`, `px-6 py-3`, pill `px-3 h-7 text-xs` — this phase adds the saved-filters row directly above using the same spacing.
 
@@ -86,6 +86,8 @@ Destructive reserved for:
 
 Source: WorklogsPage active pill uses `bg-accent text-accent-foreground`; × button uses `hover:text-destructive` — this phase mirrors both patterns exactly.
 
+**Focal point:** Visual anchor is the active saved filter pill when one is set; otherwise the preset pills row.
+
 ---
 
 ## Component Inventory
@@ -111,7 +113,7 @@ No new shadcn components are installed. Phase 63 reuses:
 - **Pill shape:** Same border-radius as preset pills (`rounded-md`), height `h-7`, `text-xs`.
 - **Inactive pill:** `border border-border rounded-md px-3 h-7 text-xs hover:bg-accent cursor-pointer`.
 - **Active pill** (after load): `bg-accent text-accent-foreground font-semibold border border-border rounded-md px-3 h-7 text-xs` — mirrors active preset pill style.
-- **× delete button:** Appears on hover of the pill (`group-hover:opacity-100`). Renders as `ml-1 hover:text-destructive transition-colors` inline with the label. No confirmation dialog — inline delete (matches v1.5 Jira saved filter pattern from `saved-filter.store.ts`).
+- **× delete button:** Appears on hover of the pill (`group-hover:opacity-100`). Renders as `ml-1 w-6 h-6 p-1 hover:text-destructive transition-colors` inline with the label. No confirmation dialog — inline delete (matches v1.5 Jira saved filter pattern from `saved-filter.store.ts`).
 - **Double-click rename:** Double-clicking the pill label replaces it with an `<input type="text">` pre-filled with the filter name, `h-5 text-xs border border-ring rounded px-1 focus:outline-none`. Blur or Enter commits the rename; Escape cancels.
 
 ### Save Filter Button + Inline Input
@@ -119,8 +121,8 @@ No new shadcn components are installed. Phase 63 reuses:
 - **Button:** Positioned at the end of the main filter bar row, after the people combobox. Label: `Save filter` (text, no icon). Style: `text-xs text-muted-foreground hover:text-foreground px-2 h-7 rounded-md hover:bg-accent transition-colors` — visually subdued, not a primary CTA.
 - **Toggle behaviour:** Clicking "Save filter" shows an inline `<input type="text" placeholder="Filter name" />` + two icon buttons (confirm: `Check`, 16px; cancel: `X`, 16px). The input appears in the same row, after the button.
 - **Input style:** `rounded border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-36` — matches the people filter input style in WorklogsPage line 366.
-- **Confirm button:** `lucide Check` icon, 16px, `hover:text-primary`, commits save if input non-empty.
-- **Cancel button:** `lucide X` icon, 16px, `hover:text-muted-foreground`, dismisses the input without saving.
+- **Confirm button:** `lucide Check` icon, 16px, `aria-label="Confirm save"`, `hover:text-primary`, commits save if input non-empty.
+- **Cancel button:** `lucide X` icon, 16px, `aria-label="Cancel"`, `hover:text-muted-foreground`, dismisses the input without saving.
 - **Empty name guard:** If the input is empty on confirm, do nothing (no save, no error copy needed — the field is self-explanatory).
 
 ### Loading a Saved Filter
@@ -137,6 +139,8 @@ No new shadcn components are installed. Phase 63 reuses:
 | Save input placeholder | "Filter name" |
 | Saved filters row aria-label | "Saved filters" |
 | Delete button aria-label | "Delete {name} filter" |
+| Confirm save button aria-label | "Confirm save" |
+| Cancel button aria-label | "Cancel" |
 | Rename input aria-label | "Rename filter" |
 | Empty state heading (no worklogs) | "No worklogs found" — unchanged from Phase 62 |
 | Empty state body (person selected) | "No hours logged for {name} in the selected period." — unchanged |
