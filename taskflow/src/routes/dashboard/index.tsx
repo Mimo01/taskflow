@@ -43,7 +43,7 @@ export default function Dashboard() {
 
   return (
     <div className="relative flex flex-col min-h-full bg-background">
-      {/* Undulating wave lines — orange top-right, cyan bottom-left */}
+      {/* Undulating waves — staggered starts across all edges */}
       <svg
         aria-hidden="true"
         className="absolute inset-0 w-full h-full pointer-events-none"
@@ -51,19 +51,21 @@ export default function Dashboard() {
         preserveAspectRatio="xMidYMid slice"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Orange undulating waves from top-right */}
-        <path d="M1200,0 C1050,40 900,20 750,80 C600,140 450,100 300,160 C150,220 50,200 -50,240" fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.28" strokeLinecap="round"/>
-        <path d="M1200,0 C1060,100 880,60 720,140 C560,220 420,180 260,260 C120,330 20,320 -50,370" fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.20" strokeLinecap="round"/>
-        <path d="M1200,0 C1080,160 880,110 700,210 C520,310 400,270 220,370 C80,450 0,450 -50,500" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.14" strokeLinecap="round"/>
-        <path d="M1200,0 C1100,220 900,170 700,290 C500,410 360,380 180,480 C60,550 -10,560 -50,610" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.09" strokeLinecap="round"/>
-        <path d="M1200,0 C1120,300 920,250 720,380 C520,510 340,490 140,600 C20,670 -30,680 -50,730" fill="none" stroke="#f97316" strokeWidth="0.75" strokeOpacity="0.05" strokeLinecap="round"/>
+        {/* Orange — from top edge, varied x origins */}
+        <path d="M1100,0 C960,60 780,30 620,110 C460,190 300,150 140,230 C20,290 -40,280 -80,310"    fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.26" strokeLinecap="round"/>
+        <path d="M800,0  C700,80 540,50 400,140 C260,230 140,200 20,290 C-60,350 -80,370 -100,410"   fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.18" strokeLinecap="round"/>
+        <path d="M480,0  C420,100 300,80 200,180 C100,280 60,260 -40,360 C-100,430 -110,450 -120,500" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.13" strokeLinecap="round"/>
+        {/* Orange — from right edge, varied y origins */}
+        <path d="M1200,120 C1100,200 960,160 820,260 C680,360 580,330 420,430 C260,530 120,510 -60,580" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.10" strokeLinecap="round"/>
+        <path d="M1200,340 C1120,400 980,370 840,460 C700,550 580,520 400,610 C220,700 80,680 -60,740"  fill="none" stroke="#f97316" strokeWidth="0.75" strokeOpacity="0.06" strokeLinecap="round"/>
 
-        {/* Cyan undulating waves from bottom-left */}
-        <path d="M0,800 C100,680 80,580 200,500 C320,420 360,480 480,400 C600,320 680,360 800,280 C940,190 1060,220 1200,160" fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.26" strokeLinecap="round"/>
-        <path d="M0,800 C80,700 60,620 160,560 C280,490 340,550 460,480 C600,400 680,440 820,360 C960,280 1080,310 1200,260" fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.18" strokeLinecap="round"/>
-        <path d="M0,800 C60,730 40,670 120,620 C240,560 320,620 440,560 C600,480 680,520 840,450 C980,380 1100,410 1200,360" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.12" strokeLinecap="round"/>
-        <path d="M0,800 C40,760 20,720 80,690 C200,640 300,700 420,650 C600,580 700,620 860,560 C1000,500 1110,530 1200,490" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.07" strokeLinecap="round"/>
-        <path d="M0,800 C20,790 10,770 60,750 C180,710 280,770 420,740 C620,700 720,730 900,690 C1040,660 1140,680 1200,660" fill="none" stroke="#06b6d4" strokeWidth="0.75" strokeOpacity="0.04" strokeLinecap="round"/>
+        {/* Cyan — from bottom edge, varied x origins */}
+        <path d="M100,800  C160,680 120,580 260,500 C400,420 440,480 580,400 C720,320 800,360 960,270 C1080,200 1140,220 1200,180" fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.24" strokeLinecap="round"/>
+        <path d="M420,800  C440,700 400,620 520,550 C660,470 700,530 840,460 C980,390 1060,420 1200,370"  fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.17" strokeLinecap="round"/>
+        <path d="M740,800  C720,720 680,660 780,600 C900,530 940,580 1060,520 C1150,470 1180,490 1200,470" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.11" strokeLinecap="round"/>
+        {/* Cyan — from left edge, varied y origins */}
+        <path d="M0,560 C80,500 60,440 180,390 C320,330 380,380 520,330 C680,270 760,310 940,250 C1080,200 1150,220 1200,200" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.08" strokeLinecap="round"/>
+        <path d="M0,340 C60,300 40,260 140,230 C280,190 340,240 480,200 C640,155 720,185 900,150 C1040,120 1140,140 1200,130" fill="none" stroke="#06b6d4" strokeWidth="0.75" strokeOpacity="0.05" strokeLinecap="round"/>
       </svg>
 
       <section className="relative px-8 py-12 text-center">
