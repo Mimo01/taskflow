@@ -12,6 +12,7 @@ dependency_graph:
   affects:
     - taskflow/src/routes/worklogs/WorklogsPage.tsx
     - taskflow/src/routes/worklogs/WorklogsPage.test.tsx
+    - taskflow/src/stores/settings.store.ts
 tech_stack:
   added: []
   patterns:
@@ -27,16 +28,18 @@ key_files:
     - taskflow/src/routes/worklogs/WorklogsPage.test.tsx
   modified:
     - taskflow/src/routes/worklogs/WorklogsPage.tsx
+    - taskflow/src/stores/settings.store.ts
 decisions:
   - "Badge uses variant='secondary' (not tone) — confirmed from badge.tsx which exposes both variant and tone props; variant='secondary' matches UI-SPEC Component Inventory"
   - "Dropdown query scoped to container.querySelector('ul') in tests to avoid ambiguity with table body cells containing the same displayName text"
   - "jira.test.ts has 2 pre-existing failures (discoverCustomFields tests) unrelated to this plan — logged as deferred, not fixed per scope boundary rule"
+  - "Settings store bumped to v21 with appendWorklogsItemIfMissing migration — existing users' persisted sidebarItems lacked 'worklogs' entry, causing tempoEnabled toggle to have no visible sidebar effect"
 metrics:
   duration: ~6 minutes
   completed: "2026-05-21"
-  tasks_completed: 2
+  tasks_completed: 3
   tasks_total: 3
-  files_changed: 2
+  files_changed: 3
 ---
 
 # Phase 62 Plan 02: WorklogsPage Full Implementation Summary
@@ -131,16 +134,27 @@ None. The Plan 62-01 stub string "Plan 62-02 will implement this view." has been
 
 None. No new network endpoints, auth paths, file access, or schema changes introduced. All network calls go through `fetchWorklogs` (Phase 61 service, already in Plan 62-02 threat model T-62-04 through T-62-08).
 
-## Human Verification Checkpoint
+### Task 3: Settings Store v21 Migration — sidebarItems fix (commit acc527cf)
 
-Task 3 is `type="checkpoint:human-verify"` — paused for human smoke-test approval. See checkpoint details below.
+Human smoke-test at the Task 3 checkpoint revealed that toggling `tempoEnabled` in Settings had no visible effect on the sidebar. Root cause: existing users have a persisted `sidebarItems` array in Tauri store that was saved before the `worklogs` nav item existed. `visibleIds.has('worklogs')` was therefore always `false`, regardless of `tempoEnabled`.
+
+**Fix applied on main (`acc527cf`):**
+
+- Bumped settings store version 20 → 21
+- Added `appendWorklogsItemIfMissing(items)` helper (mirrors the `appendAioItemIfMissing` pattern from version 16 migration)
+- Added `version < 21` migration block that injects `{ id: 'worklogs', visible: true }` when the item is absent from stored `sidebarItems`
+- File modified: `taskflow/src/stores/settings.store.ts`
+
+After the migration, new and existing users both see the Worklogs sidebar item, and toggling `tempoEnabled` correctly shows/hides it via the existing `tempoEnabled` gate in `Sidebar.tsx`.
 
 ## Self-Check: PASSED
 
 - `taskflow/src/routes/worklogs/WorklogsPage.tsx` — FOUND, 340+ lines, no stub string
 - `taskflow/src/routes/worklogs/WorklogsPage.test.tsx` — FOUND, 17/17 tests pass
+- `taskflow/src/stores/settings.store.ts` — FOUND, v21 migration with appendWorklogsItemIfMissing
 - Commit 3f01e367 — FOUND (feat: WorklogsPage implementation)
 - Commit 43682341 — FOUND (test: WorklogsPage tests)
+- Commit acc527cf — FOUND (fix: settings store v21 sidebarItems migration)
 - `grep -c "fetchWorklogs" WorklogsPage.tsx` → 2 (queryFn + import)
 - `grep -c "tempoEnabled" WorklogsPage.tsx` → 2 (selector + enabled guard)
 - `grep "jiraToken" WorklogsPage.tsx | grep -c "queryKey"` → 0 (token not in key)
