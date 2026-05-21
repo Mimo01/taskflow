@@ -14,6 +14,17 @@ function getTimeGreeting(): string {
   return 'Good evening,';
 }
 
+const AMBIENT_CURVES: ReadonlyArray<{ d: string; color: 'orange' | 'blue'; w: number; o: number }> = [
+  { d: 'M -50 220 Q 400 90 1250 -20', color: 'orange', w: 1,   o: 0.35 },
+  { d: 'M -50 320 Q 500 160 1250 80',  color: 'orange', w: 0.8, o: 0.25 },
+  { d: 'M -50 420 Q 600 240 1250 180', color: 'orange', w: 0.6, o: 0.18 },
+  { d: 'M -50 760 Q 500 540 1250 380', color: 'blue',   w: 1,   o: 0.32 },
+  { d: 'M -50 860 Q 600 640 1250 480', color: 'blue',   w: 0.8, o: 0.24 },
+  { d: 'M -50 960 Q 700 740 1250 580', color: 'blue',   w: 0.6, o: 0.18 },
+  { d: 'M -50 540 Q 550 380 1250 240', color: 'orange', w: 0.5, o: 0.14 },
+  { d: 'M -50 660 Q 600 460 1250 320', color: 'blue',   w: 0.5, o: 0.14 },
+];
+
 export default function Dashboard() {
   const { jiraBaseUrl, activeJiraProject, jiraUserDisplayName } = useAuthStore();
   const { storyPointsFieldKey } = useSettingsStore();
@@ -43,27 +54,20 @@ export default function Dashboard() {
 
   return (
     <div className="relative flex flex-col min-h-full bg-background">
-      {/* Wave lines emanating from top-right (orange) and bottom-left (cyan) */}
+      {/* Ambient background curves — orange top-right, blue bottom-left */}
       <svg
         aria-hidden="true"
+        viewBox="0 0 1200 900"
+        preserveAspectRatio="none"
         className="absolute inset-0 w-full h-full pointer-events-none"
-        viewBox="0 0 1200 800"
-        preserveAspectRatio="xMidYMid slice"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Orange waves from top-right — staggered vertically */}
-        <path d="M1200,-10 C880,40 680,120 460,210 C260,295 80,270 -50,330" fill="none" stroke="#f97316" strokeWidth="2"    strokeOpacity="0.28" strokeLinecap="round"/>
-        <path d="M1200,50  C920,110 720,190 520,310 C340,420 140,420 -50,500" fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.20" strokeLinecap="round"/>
-        <path d="M1200,110 C980,180 800,270 600,400 C420,510 200,530 -50,630" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.13" strokeLinecap="round"/>
-        <path d="M1200,170 C1040,260 880,360 680,490 C500,600 260,640 -50,750" fill="none" stroke="#f97316" strokeWidth="0.75" strokeOpacity="0.08" strokeLinecap="round"/>
-        <path d="M1200,240 C1080,360 960,460 760,590 C580,700 320,740 -50,850" fill="none" stroke="#f97316" strokeWidth="0.5"  strokeOpacity="0.05" strokeLinecap="round"/>
-
-        {/* Cyan waves from bottom-left — staggered vertically */}
-        <path d="M0,650 C100,470 280,390 480,300 C660,215 880,220 1100,150" fill="none" stroke="#06b6d4" strokeWidth="2"    strokeOpacity="0.26" strokeLinecap="round"/>
-        <path d="M0,700 C80,530 220,460 420,390 C600,325 840,350 1100,290" fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.18" strokeLinecap="round"/>
-        <path d="M0,745 C60,620 160,560 360,510 C540,465 800,500 1100,460" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.12" strokeLinecap="round"/>
-        <path d="M0,785 C40,715 100,685 280,660 C480,635 750,670 1100,645" fill="none" stroke="#06b6d4" strokeWidth="0.75" strokeOpacity="0.07" strokeLinecap="round"/>
-        <path d="M0,825 C80,800 180,785 340,778 C540,770 780,800 1100,790" fill="none" stroke="#06b6d4" strokeWidth="0.5"  strokeOpacity="0.04" strokeLinecap="round"/>
+        {AMBIENT_CURVES.map((c, i) => (
+          <path key={i} d={c.d} fill="none"
+            stroke={c.color === 'orange' ? '#f97316' : '#06b6d4'}
+            strokeWidth={c.w} strokeLinecap="round"
+            opacity={c.o} />
+        ))}
       </svg>
 
       <section className="relative px-8 py-12 text-center">
