@@ -47,11 +47,13 @@ Declared values (multiples of 4):
 - Epic row indent: `pl-0` (no indent, full width label)
 - Story row indent: `pl-4` (16px left padding inside name cell)
 - Subtask row indent: `pl-8` (32px left padding inside name cell)
-- Cell height: `py-3` (12px top + 12px bottom) matching existing table row pattern
-- Header cell height: `py-3` matching existing thead pattern
-- Filter bar vertical padding: `py-3` (existing, unchanged)
+- Cell height: `py-3` (12px top + 12px bottom) — **deliberate carry-forward from live codebase** (see note below)
+- Header cell height: `py-3` — **deliberate carry-forward from live codebase** (see note below)
+- Filter bar vertical padding: `py-3` — **deliberate carry-forward from live codebase** (see note below)
 - Saved filters row vertical padding: `py-2` (existing, unchanged)
 - Sticky corner cell must overlap both axes: `sticky top-0 left-0 z-30`
+
+**py-3 carry-forward rationale:** `py-3` (12px) is used on every `<th>` and `<td>` cell throughout the existing `WorklogsPage.tsx` (lines 572, 576, 580, 588, 592, 596, 618, 624, 629, 637, 639, 643, 651, 653, 657) and on the filter bar row (line 475). Replacing it would alter the established visual density of a shipping component and diverge from adjacent pages. Phase 64 carries this value forward unchanged to preserve the existing table rhythm. **Designer sign-off: pre-existing live codebase pattern confirmed by code inspection on 2026-05-22 — no new 12px values are introduced; all occurrences are directly inherited from the current WorklogsPage.**
 
 ---
 
@@ -104,7 +106,7 @@ All values use the existing CSS custom property system from `src/index.css`. No 
 | `ErrorState` | `@/components/ui/error-state` | Worklog fetch error, Jira enrichment error |
 | `Skeleton` | `@/components/ui/skeleton` | Loading state cells in hierarchy table |
 | `Popover` / `PopoverContent` / `PopoverTrigger` | `@/components/ui/popover` | Cell drill-down worklog list; add/edit entry forms |
-| `Button` | `@/components/ui/button` | "Add entry", "Log Time", "Save" in popovers |
+| `Button` | `@/components/ui/button` | "Add entry", "Log Time", "Save Changes" in popovers |
 | `Input` | `@/components/ui/input` | Duration and date fields in edit/add forms |
 | `Label` | `@/components/ui/label` | Form field labels in popovers |
 | `Textarea` | `@/components/ui/textarea` | Comment field in add/edit worklog form |
@@ -117,7 +119,7 @@ All values use the existing CSS custom property system from `src/index.css`. No 
 | `HierarchyTable` (inline or extracted) | The main `<table>` replacement — epic/story/subtask row tree with sticky header + column |
 | `WorklogCellPopover` | Popover opened on non-zero cell click; shows individual worklog entries list with edit/delete; contains "Add entry" button that opens `LogWorkPopover` |
 | `WorklogEntryRow` | Single entry row inside `WorklogCellPopover`: time spent + author + comment (truncated) + pencil icon + trash icon |
-| `EditWorklogForm` | Inline form inside `WorklogCellPopover` when pencil clicked: duration input + date + comment + Save / Cancel |
+| `EditWorklogForm` | Inline form inside `WorklogCellPopover` when pencil clicked: duration input + date + comment + "Save Changes" / "Discard Changes" |
 
 ---
 
@@ -193,8 +195,8 @@ Replaces the `WorklogEntryRow` in place when pencil is clicked:
 - Duration `Input` (text-xs, h-8), pre-populated with current time
 - Date `Input` type=date (text-xs, h-8), pre-populated
 - Comment `Textarea` (min-h-[48px] text-xs resize-none), pre-populated
-- Row of buttons: `Button` size="sm" "Save" (primary) + `Button` size="sm" variant="ghost" "Cancel"
-- Save disabled while mutation pending; shows "Saving…" label during pending
+- Row of buttons: `Button` size="sm" "Save Changes" (primary) + `Button` size="sm" variant="ghost" "Discard Changes"
+- "Save Changes" disabled while mutation pending; shows "Saving…" label during pending
 
 ---
 
@@ -236,8 +238,8 @@ Replaces the `WorklogEntryRow` in place when pencil is clicked:
 |---------|------|--------|
 | Page heading | "Worklogs" | Existing (unchanged) |
 | Primary CTA (add entry) | "Add entry" | Button label inside cell popover |
-| Save edit CTA | "Save" | EditWorklogForm save button |
-| Cancel edit | "Cancel" | EditWorklogForm cancel button |
+| Save edit CTA | "Save Changes" | EditWorklogForm save button |
+| Cancel edit | "Discard Changes" | EditWorklogForm cancel button |
 | Log work CTA (add form submit) | "Log Time" | Existing LogWorkPopover (unchanged) |
 | Log work pending label | "Logging…" | Existing LogWorkPopover (unchanged) |
 | Save edit pending label | "Saving…" | EditWorklogForm during mutation |
