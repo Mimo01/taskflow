@@ -79,7 +79,7 @@ Key decisions affecting current work:
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
-| 260521-t6m | Redesign worklog person filter: single-select, default me, input-as-selection, no chip | 2026-05-21 | 0a7c1821 | [260521-t6m-on-worklog-page-there-is-a-filter-by-per](./quick/260521-t6m-on-worklog-page-there-is-a-filter-by-per/) |
+| 260521-t6m | Redesign worklog person filter: single-select, default me, input-as-selection, no chip | 2026-05-21 | 26a24552 | [260521-t6m-on-worklog-page-there-is-a-filter-by-per](./quick/260521-t6m-on-worklog-page-there-is-a-filter-by-per/) |
 
 ## Session Continuity
 
