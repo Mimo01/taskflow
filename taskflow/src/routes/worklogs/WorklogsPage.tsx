@@ -24,7 +24,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type DatePreset = 'this-week' | 'last-week' | 'this-month' | 'last-month' | 'last-working-day' | 'custom';
+export type DatePreset = 'this-week' | 'last-week' | 'this-month' | 'last-month' | 'last-working-day' | 'custom';
 
 // ─── Helpers (outside component for stable references) ────────────────────────
 
