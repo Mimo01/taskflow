@@ -16,6 +16,7 @@ interface TempoFiltersState {
   addFilter: (filter: TempoFilter) => void;
   removeFilter: (id: string) => void;
   renameFilter: (id: string, name: string) => void;
+  moveFilter: (id: string, direction: 'left' | 'right' | 'front' | 'back') => void;
 }
 
 export const useTempoFiltersStore = create<TempoFiltersState>()(
@@ -30,6 +31,18 @@ export const useTempoFiltersStore = create<TempoFiltersState>()(
         set((s) => ({
           savedFilters: s.savedFilters.map((f) => (f.id === id ? { ...f, name } : f)),
         })),
+      moveFilter: (id, direction) =>
+        set((s) => {
+          const idx = s.savedFilters.findIndex((f) => f.id === id);
+          if (idx === -1) return s;
+          const arr = [...s.savedFilters];
+          const [item] = arr.splice(idx, 1);
+          if (direction === 'left') arr.splice(Math.max(0, idx - 1), 0, item);
+          else if (direction === 'right') arr.splice(Math.min(arr.length, idx + 1), 0, item);
+          else if (direction === 'front') arr.unshift(item);
+          else arr.push(item);
+          return { savedFilters: arr };
+        }),
     }),
     {
       name: 'tempo-filters-store',

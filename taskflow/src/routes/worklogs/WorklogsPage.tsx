@@ -12,9 +12,16 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { Check, Clock, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Bookmark, Check, ChevronsLeft, ChevronsRight, Clock, Pencil, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -157,6 +164,8 @@ export default function WorklogsPage() {
   const [saveName, setSaveName] = useState('');
   const [activeFilterId, setActiveFilterId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameInput, setRenameInput] = useState('');
+  const renameInputRef = useRef<HTMLInputElement>(null);
 
   // Combobox state
   const [query, setQuery] = useState('');
@@ -164,7 +173,7 @@ export default function WorklogsPage() {
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Tempo filters store (TEMPO-04, TEMPO-05)
-  const { savedFilters, addFilter, removeFilter, renameFilter } = useTempoFiltersStore();
+  const { savedFilters, addFilter, removeFilter, renameFilter, moveFilter } = useTempoFiltersStore();
 
   // ─ Auth token effect (SprintProgressTab pattern) ─────────────────────────
   useEffect(() => {
@@ -330,11 +339,16 @@ export default function WorklogsPage() {
     if (activeFilterId === id) setActiveFilterId(null);
   }
 
-  /** TEMPO-05/D-05: Commit rename on Enter or blur */
-  function handleCommitRename(id: string, nextName: string) {
-    if (nextName.trim()) {
-      renameFilter(id, nextName.trim());
-    }
+  /** TEMPO-05: Open rename inline input via context menu */
+  function handleStartRename(filter: TempoFilter) {
+    setRenamingId(filter.id);
+    setRenameInput(filter.name);
+    setTimeout(() => renameInputRef.current?.select(), 0);
+  }
+
+  /** TEMPO-05: Commit rename on Enter or blur */
+  function handleCommitRename(id: string) {
+    if (renameInput.trim()) renameFilter(id, renameInput.trim());
     setRenamingId(null);
   }
 
@@ -354,46 +368,88 @@ export default function WorklogsPage() {
           aria-label="Saved filters"
           className="flex items-center gap-2 px-6 py-2 border-b border-border bg-background flex-wrap"
         >
-          {savedFilters.map((filter) => (
-            // Pitfall 3: `group` class is required for group-hover on × button
-            <div key={filter.id} className="group relative flex items-center">
-              {renamingId === filter.id ? (
-                <input
-                  type="text"
-                  defaultValue={filter.name}
-                  aria-label="Rename filter"
-                  autoFocus
-                  className="h-5 text-xs border border-ring rounded px-1 focus:outline-none"
-                  onBlur={(e) => handleCommitRename(filter.id, e.currentTarget.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleCommitRename(filter.id, e.currentTarget.value);
-                    if (e.key === 'Escape') setRenamingId(null);
-                  }}
-                />
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => handleLoadFilter(filter)}
-                  onDoubleClick={() => setRenamingId(filter.id)}
-                  className={`inline-flex items-center gap-1 rounded-md text-xs leading-tight pl-2 pr-2.5 py-1 transition-colors cursor-pointer ${
-                    filter.id === activeFilterId
-                      ? 'bg-primary/15 text-primary border border-primary/30'
-                      : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent'
-                  }`}
+          {savedFilters.map((filter, idx) => {
+            const isActive = filter.id === activeFilterId;
+            const isFirst = idx === 0;
+            const isLast = idx === savedFilters.length - 1;
+
+            if (renamingId === filter.id) {
+              return (
+                <span
+                  key={filter.id}
+                  className="inline-flex items-center gap-1 rounded-md border border-ring bg-background pl-1.5 pr-1 py-0.5"
                 >
-                  {filter.name}
-                </button>
-              )}
-              <button
-                type="button"
-                aria-label={`Delete ${filter.name} filter`}
-                onClick={() => handleDeleteFilter(filter.id)}
-                className="ml-1 w-6 h-6 p-1 opacity-0 group-hover:opacity-100 hover:text-destructive transition-colors"
-              >
-                ×
-              </button>
-            </div>
-          ))}
+                  <Bookmark className="size-3 shrink-0 text-muted-foreground" />
+                  <input
+                    ref={renameInputRef}
+                    type="text"
+                    value={renameInput}
+                    onChange={(e) => setRenameInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleCommitRename(filter.id);
+                      if (e.key === 'Escape') setRenamingId(null);
+                    }}
+                    onBlur={() => handleCommitRename(filter.id)}
+                    aria-label="Rename filter"
+                    className="bg-transparent text-xs w-24 outline-none"
+                  />
+                </span>
+              );
+            }
+
+            return (
+              <ContextMenu key={filter.id}>
+                <ContextMenuTrigger
+                  render={
+                    <button
+                      type="button"
+                      onClick={() => handleLoadFilter(filter)}
+                      className={`inline-flex items-center gap-1 rounded-md text-xs leading-tight pl-2 pr-2.5 py-1 transition-colors cursor-pointer ${
+                        isActive
+                          ? 'bg-primary/15 text-primary border border-primary/30'
+                          : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent'
+                      }`}
+                    />
+                  }
+                >
+                  <Bookmark className={`size-3 shrink-0 ${isActive ? 'fill-primary/40' : ''}`} />
+                  <span className="truncate max-w-[120px]">{filter.name}</span>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem onClick={() => handleStartRename(filter)}>
+                    <Pencil className="size-3.5" />
+                    Rename
+                  </ContextMenuItem>
+                  {savedFilters.length > 1 && (
+                    <>
+                      <ContextMenuSeparator />
+                      <ContextMenuItem disabled={isFirst} onClick={() => moveFilter(filter.id, 'left')}>
+                        <ArrowLeft className="size-3.5" />
+                        Move left
+                      </ContextMenuItem>
+                      <ContextMenuItem disabled={isLast} onClick={() => moveFilter(filter.id, 'right')}>
+                        <ArrowRight className="size-3.5" />
+                        Move right
+                      </ContextMenuItem>
+                      <ContextMenuItem disabled={isFirst} onClick={() => moveFilter(filter.id, 'front')}>
+                        <ChevronsLeft className="size-3.5" />
+                        Move to front
+                      </ContextMenuItem>
+                      <ContextMenuItem disabled={isLast} onClick={() => moveFilter(filter.id, 'back')}>
+                        <ChevronsRight className="size-3.5" />
+                        Move to back
+                      </ContextMenuItem>
+                    </>
+                  )}
+                  <ContextMenuSeparator />
+                  <ContextMenuItem variant="destructive" onClick={() => handleDeleteFilter(filter.id)}>
+                    <Trash2 className="size-3.5" />
+                    Delete
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
+            );
+          })}
         </div>
       )}
 
