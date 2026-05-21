@@ -91,9 +91,10 @@ export default function Dashboard() {
         <rect width="1200" height="800" fill="url(#dots-cyan)"   mask="url(#m-bl)" />
       </svg>
 
-      <section className="relative px-6 py-12 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">{timeGreeting} {firstName ?? 'there'}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{today}</p>
+      <section className="relative px-6 py-14 text-center">
+        <p className="text-lg text-muted-foreground font-normal mb-1">{timeGreeting}</p>
+        <h1 className="text-5xl font-bold tracking-tight">{firstName ?? 'there'}</h1>
+        <p className="text-sm text-muted-foreground mt-2">{today}</p>
       </section>
 
       <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
