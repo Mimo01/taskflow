@@ -440,11 +440,10 @@ describe('WorklogsPage', () => {
     it('renders empty string for zero-hour cells (no "0h" text)', async () => {
       // Alice only logs on Monday — Tuesday and beyond should be blank
       const monday = '2026-05-18';
-      const tuesday = '2026-05-19';
 
       mockFetchWorklogsResult = [
         makeWorklog('alice', 'Alice Smith', monday, 4),
-        // No entry for tuesday — Tuesday cell should be blank
+        // No tuesday entry — Tuesday cell should be blank
       ];
 
       const { container } = await renderPage();
