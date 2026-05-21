@@ -43,7 +43,7 @@ export default function Dashboard() {
 
   return (
     <div className="relative flex flex-col min-h-full bg-white dark:bg-background">
-      {/* Dual-origin concentric arcs — orange from top-right, cyan from bottom-left */}
+      {/* Intersecting diagonal grids — orange NW→SE, cyan NE→SW */}
       <svg
         aria-hidden="true"
         className="absolute inset-0 w-full h-full pointer-events-none"
@@ -51,20 +51,38 @@ export default function Dashboard() {
         preserveAspectRatio="xMidYMid slice"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Orange origin — top-right, tighter spacing, bolder near source */}
-        <circle cx="1200" cy="0" r="80"  fill="#f97316" fillOpacity="0.08" />
-        <circle cx="1200" cy="0" r="160" fill="none" stroke="#f97316" strokeWidth="2"    strokeOpacity="0.16" />
-        <circle cx="1200" cy="0" r="260" fill="none" stroke="#f97316" strokeWidth="1.5"  strokeOpacity="0.12" />
-        <circle cx="1200" cy="0" r="380" fill="none" stroke="#f97316" strokeWidth="1"    strokeOpacity="0.08" />
-        <circle cx="1200" cy="0" r="520" fill="none" stroke="#f97316" strokeWidth="0.75" strokeOpacity="0.05" />
-        <circle cx="1200" cy="0" r="680" fill="none" stroke="#f97316" strokeWidth="0.5"  strokeOpacity="0.03" />
-        {/* Cyan origin — bottom-left, same pattern, offset rhythm */}
-        <circle cx="0" cy="800" r="80"  fill="#06b6d4" fillOpacity="0.08" />
-        <circle cx="0" cy="800" r="180" fill="none" stroke="#06b6d4" strokeWidth="2"    strokeOpacity="0.14" />
-        <circle cx="0" cy="800" r="300" fill="none" stroke="#06b6d4" strokeWidth="1.5"  strokeOpacity="0.10" />
-        <circle cx="0" cy="800" r="440" fill="none" stroke="#06b6d4" strokeWidth="1"    strokeOpacity="0.07" />
-        <circle cx="0" cy="800" r="600" fill="none" stroke="#06b6d4" strokeWidth="0.75" strokeOpacity="0.04" />
-        <circle cx="0" cy="800" r="780" fill="none" stroke="#06b6d4" strokeWidth="0.5"  strokeOpacity="0.03" />
+        <defs>
+          {/* Orange diagonal lines: top-left to bottom-right */}
+          <pattern id="grid-orange" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="80" stroke="#f97316" strokeWidth="1" strokeOpacity="0.12" />
+          </pattern>
+          {/* Cyan diagonal lines: top-right to bottom-left */}
+          <pattern id="grid-cyan" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+            <line x1="0" y1="0" x2="0" y2="80" stroke="#06b6d4" strokeWidth="1" strokeOpacity="0.10" />
+          </pattern>
+          {/* Radial masks so grids fade toward the center */}
+          <radialGradient id="fade-tr" cx="100%" cy="0%" r="80%">
+            <stop offset="0%"   stopColor="white" stopOpacity="1" />
+            <stop offset="100%" stopColor="white" stopOpacity="0" />
+          </radialGradient>
+          <radialGradient id="fade-bl" cx="0%" cy="100%" r="80%">
+            <stop offset="0%"   stopColor="white" stopOpacity="1" />
+            <stop offset="100%" stopColor="white" stopOpacity="0" />
+          </radialGradient>
+          <mask id="mask-tr"><rect width="1200" height="800" fill="url(#fade-tr)" /></mask>
+          <mask id="mask-bl"><rect width="1200" height="800" fill="url(#fade-bl)" /></mask>
+        </defs>
+
+        {/* Orange grid fading in from top-right */}
+        <rect width="1200" height="800" fill="url(#grid-orange)" mask="url(#mask-tr)" />
+        {/* Cyan grid fading in from bottom-left */}
+        <rect width="1200" height="800" fill="url(#grid-cyan)" mask="url(#mask-bl)" />
+
+        {/* Anchor dots at each origin */}
+        <circle cx="1200" cy="0"   r="5" fill="#f97316" fillOpacity="0.25" />
+        <circle cx="1200" cy="0"   r="2" fill="#f97316" fillOpacity="0.50" />
+        <circle cx="0"    cy="800" r="5" fill="#06b6d4" fillOpacity="0.25" />
+        <circle cx="0"    cy="800" r="2" fill="#06b6d4" fillOpacity="0.50" />
       </svg>
 
       <section className="relative px-6 py-16 text-center">
