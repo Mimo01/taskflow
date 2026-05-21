@@ -28,14 +28,21 @@ let mockAddFilter = vi.fn();
 let mockRemoveFilter = vi.fn();
 let mockRenameFilter = vi.fn();
 let mockMoveFilter = vi.fn();
+let mockJiraUsername: string | null = 'mmozolak';
+let mockJiraUserDisplayName: string | null = 'Milan Mozolak';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
 vi.mock('@/stores/auth.store', () => ({
-  useAuthStore: () => ({
-    jiraBaseUrl: 'https://jira.example.com',
-    activeJiraProject: 'TEST',
-  }),
+  useAuthStore: (selector?: (s: Record<string, unknown>) => unknown) => {
+    const state = {
+      jiraBaseUrl: 'https://jira.example.com',
+      activeJiraProject: 'TEST',
+      jiraUsername: mockJiraUsername,
+      jiraUserDisplayName: mockJiraUserDisplayName,
+    };
+    return selector ? selector(state) : state;
+  },
 }));
 
 vi.mock('@/services/jira/users', () => ({
@@ -122,6 +129,8 @@ describe('WorklogsPage', () => {
     mockRemoveFilter = vi.fn();
     mockRenameFilter = vi.fn();
     mockMoveFilter = vi.fn();
+    mockJiraUsername = 'mmozolak';
+    mockJiraUserDisplayName = 'Milan Mozolak';
   });
 
   // ── TEMPO-01: day-column table ─────────────────────────────────────────────
@@ -317,7 +326,7 @@ describe('WorklogsPage', () => {
       });
     });
 
-    it('shows a dismissible chip when a person is selected and clears on X click', async () => {
+    it('shows the selected person inside the input and clears it on × click', async () => {
       mockAssignableUsersResult = [{ name: 'alice', displayName: 'Alice Smith' }];
 
       const { getByRole, container, queryByLabelText, getByLabelText } = await renderPage();
@@ -338,18 +347,96 @@ describe('WorklogsPage', () => {
       expect(aliceButton).toBeTruthy();
       fireEvent.mouseDown(aliceButton!);
 
+      // After selecting Alice: input value should be 'Alice Smith' (when not focused)
+      // and the clear button should be present with the new aria-label
       await waitFor(() => {
-        expect(getByLabelText('Remove Alice Smith filter')).toBeTruthy();
+        expect(getByLabelText('Clear person filter')).toBeTruthy();
+      });
+      expect((input as HTMLInputElement).value).toBe('Alice Smith');
+
+      // No Badge chip should be in the DOM (Badge uses bg-secondary)
+      expect(container.querySelectorAll('[class*="bg-secondary"]').length).toBe(0);
+
+      // Click the clear button — use mouseDown to match the component's onMouseDown handler
+      fireEvent.mouseDown(getByLabelText('Clear person filter'));
+
+      await waitFor(() => {
+        expect(queryByLabelText('Clear person filter')).toBeNull();
       });
 
-      fireEvent.click(getByLabelText('Remove Alice Smith filter'));
-
-      await waitFor(() => {
-        expect(queryByLabelText('Remove Alice Smith filter')).toBeNull();
-      });
+      // Input should be empty after clear
+      expect((input as HTMLInputElement).value).toBe('');
 
       const calls = (fetchWorklogs as ReturnType<typeof vi.fn>).mock.calls;
       expect(calls[calls.length - 1][2]).toEqual([]); // empty usernames = all
+    });
+
+    it('defaults the person filter to the authenticated user on first load', async () => {
+      // mockJiraUsername and mockJiraUserDisplayName are set to defaults in beforeEach
+      const { getByRole } = await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+
+      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
+
+      // fetchWorklogs should have been called with the authenticated user's username
+      const calls = (fetchWorklogs as ReturnType<typeof vi.fn>).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      expect(lastCall[2]).toEqual(['mmozolak']); // usernames arg
+
+      // Input should display the user's display name when not focused
+      const input = getByRole('combobox') as HTMLInputElement;
+      expect(input.value).toBe('Milan Mozolak');
+    });
+
+    it('does NOT seed a default when jiraUsername is null', async () => {
+      mockJiraUsername = null;
+      mockJiraUserDisplayName = null;
+
+      const { getByRole } = await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+
+      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
+
+      // fetchWorklogs should have been called with empty usernames (all people)
+      const calls = (fetchWorklogs as ReturnType<typeof vi.fn>).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      expect(lastCall[2]).toEqual([]);
+
+      // Input should be empty with placeholder
+      const input = getByRole('combobox') as HTMLInputElement;
+      expect(input.value).toBe('');
+      expect(input.placeholder).toBe('Filter by person');
+    });
+
+    it('focusing the input clears the displayed selection text and shows the dropdown', async () => {
+      mockAssignableUsersResult = [{ name: 'alice', displayName: 'Alice Smith' }];
+
+      const { getByRole, container } = await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
+
+      const input = getByRole('combobox') as HTMLInputElement;
+
+      // Initially shows the authenticated user's display name
+      expect(input.value).toBe('Milan Mozolak');
+
+      // Focus clears the visible text so the user can type a new query
+      fireEvent.focus(input);
+      expect(input.value).toBe('');
+
+      // Dropdown should open with the full list
+      await waitFor(() => {
+        const dropdown = container.querySelector('ul');
+        expect(dropdown).toBeTruthy();
+        const buttons = Array.from(dropdown!.querySelectorAll('button')).map((b) => b.textContent?.trim());
+        expect(buttons).toContain('Alice Smith');
+      });
+
+      // Blur without selecting — selection should be restored
+      fireEvent.blur(input);
+      await waitFor(() => {
+        expect(input.value).toBe('Milan Mozolak');
+      }, { timeout: 500 });
     });
 
     it('typing in input filters dropdown options', async () => {
@@ -531,14 +618,18 @@ describe('WorklogsPage', () => {
   describe('TEMPO-04: save saved filter', () => {
     it('clicking Save filter calls addFilter immediately with current preset/user', async () => {
       const { getByText } = await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+      // Wait for initial fetch so the default-me selection has been seeded
+      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
 
       fireEvent.click(getByText('Save filter'));
 
       expect(mockAddFilter).toHaveBeenCalledTimes(1);
       const callArg = mockAddFilter.mock.calls[0][0] as TempoFilter;
       expect(callArg.preset).toBe('this-week');
-      expect(callArg.username).toBeNull();
-      expect(callArg.displayName).toBeNull();
+      // With default-me, the filter captures the authenticated user
+      expect(callArg.username).toBe('mmozolak');
+      expect(callArg.displayName).toBe('Milan Mozolak');
     });
 
     it('Save filter button is always visible in the filter bar', async () => {
