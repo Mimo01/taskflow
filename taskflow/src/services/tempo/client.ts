@@ -20,7 +20,7 @@ export const TEMPO_API_PATH = '/rest/tempo-timesheets/3';
  * Constructs the full URL as: baseUrl (trailing slash stripped) + apiPath + path
  * Sends Authorization: Bearer and Content-Type: application/json headers.
  *
- * Uses apiFetch source 'aio' (not 'jira') so a Tempo 401 does NOT trigger
+ * Uses apiFetch source 'tempo' (not 'jira' or 'aio') so a Tempo 401 does NOT trigger
  * setJiraConnected(false) — Tempo auth is independent of Jira auth.
  *
  * @param baseUrl   - Jira base URL (Tempo lives on the same host)
@@ -40,7 +40,7 @@ export async function tempoFetch(
 ): Promise<Response> {
   const url = `${baseUrl.replace(/\/$/, '')}${apiPath}${path}`;
   return apiFetch(
-    'aio',
+    'tempo',
     url,
     {
       method: init?.method ?? 'GET',

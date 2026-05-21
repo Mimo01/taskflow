@@ -26,6 +26,21 @@ function statusColor(status: number | null): string {
   return 'text-red-600 dark:text-red-400';
 }
 
+function sourceBadgeClass(source: ApiLogEntry['source']): string {
+  switch (source) {
+    case 'jira':
+      return 'bg-orange-500/15 text-orange-600 dark:text-orange-400';
+    case 'gitlab':
+      return 'bg-violet-500/15 text-violet-600 dark:text-violet-400';
+    case 'tempo':
+      return 'bg-green-500/15 text-green-600 dark:text-green-400';
+    case 'updater':
+      return 'bg-sky-500/15 text-sky-600 dark:text-sky-400';
+    default:
+      return 'bg-purple-500/15 text-purple-600 dark:text-purple-400';
+  }
+}
+
 function LogCard({ entry }: { entry: ApiLogEntry }) {
   const [open, setOpen] = useState(false);
 
@@ -38,13 +53,7 @@ function LogCard({ entry }: { entry: ApiLogEntry }) {
       >
         {/* Source badge */}
         <span
-          className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold uppercase ${
-            entry.source === 'jira'
-              ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400'
-              : entry.source === 'updater'
-                ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400'
-                : 'bg-purple-500/15 text-purple-600 dark:text-purple-400'
-          }`}
+          className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold uppercase ${sourceBadgeClass(entry.source)}`}
         >
           {entry.source}
         </span>
@@ -120,7 +129,7 @@ export default function DebugLogs() {
         <div>
           <h1 className="text-2xl font-bold">Debug Logs</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Captured Jira and GitLab API calls. Logs are in-memory — cleared on restart.
+            Captured Jira, GitLab, and Tempo API calls. Logs are in-memory — cleared on restart.
           </p>
         </div>
         <button
