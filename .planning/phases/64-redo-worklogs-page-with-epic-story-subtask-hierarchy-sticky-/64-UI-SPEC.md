@@ -1,7 +1,8 @@
 ---
 phase: 64
 slug: redo-worklogs-page-with-epic-story-subtask-hierarchy-sticky
-status: draft
+status: approved
+reviewed_at: 2026-05-22
 shadcn_initialized: true
 preset: base-nova
 created: 2026-05-22
