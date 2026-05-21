@@ -36,8 +36,9 @@ export default function Dashboard() {
     year: 'numeric',
   });
 
-  // Jira displayName is "Surname FirstName" for this locale — last token is the first name
-  const firstName = jiraUserDisplayName?.trim().split(/\s+/).at(-1) ?? null;
+  // Jira displayName is "Surname Firstname [Status]" — index 1 is first name, fallback to index 0
+  const tokens = jiraUserDisplayName?.trim().split(/\s+/) ?? [];
+  const firstName = tokens[1] ?? tokens[0] ?? null;
   const timeGreeting = getTimeGreeting();
 
   return (
@@ -90,14 +91,14 @@ export default function Dashboard() {
         <rect width="1200" height="800" fill="url(#dots-cyan)"   mask="url(#m-bl)" />
       </svg>
 
-      <section className="relative px-6 py-16 text-center">
-        <h1 className="text-4xl sm:text-5xl font-light tracking-tight leading-tight">
-          <span className="text-foreground/60">{timeGreeting} </span>
-          <span className="font-extrabold bg-gradient-to-r from-orange-500 to-cyan-500 bg-clip-text text-transparent">
-            {firstName ?? '—'}
-          </span>
+      <section className="relative px-8 py-14">
+        <span className="inline-flex items-center rounded-full bg-orange-500/10 border border-orange-500/20 px-3 py-1 text-xs font-semibold text-orange-600 tracking-widest uppercase mb-4">
+          {timeGreeting.replace(',', '')}
+        </span>
+        <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-foreground leading-none">
+          {firstName ?? '—'}
         </h1>
-        <p className="text-sm text-muted-foreground mt-3 tracking-wide">{today}</p>
+        <p className="text-sm text-muted-foreground mt-4">{today}</p>
       </section>
 
       <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
