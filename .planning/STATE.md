@@ -81,9 +81,10 @@ Key decisions affecting current work:
 |---|-------------|------|--------|-----------|
 | 260521-t6m | Redesign worklog person filter: single-select, default me, input-as-selection, no chip | 2026-05-21 | 26a24552 | [260521-t6m-on-worklog-page-there-is-a-filter-by-per](./quick/260521-t6m-on-worklog-page-there-is-a-filter-by-per/) |
 | 260521-vyk | Redesign My Tasks widget on dashboard to show subtasks with parent story context using grouped indented layout | 2026-05-21 | aa95c644 | [260521-vyk-redesign-my-tasks-widget-on-dashboard-to](./quick/260521-vyk-redesign-my-tasks-widget-on-dashboard-to/) |
+| 260521-wbm | Update dashboard background curves to match new AMBIENT_CURVES values | 2026-05-21 | 03daabd5 | [260521-wbm-update-dashboard-background-curves-to-ma](./quick/260521-wbm-update-dashboard-background-curves-to-ma/) |
 
 ## Session Continuity
 
-Last activity: 2026-05-21 - Completed quick task 260521-vyk + icon consistency refactor (IssueTypeIcon shared component)
+Last activity: 2026-05-21 - Completed quick task 260521-wbm: Update dashboard background curves to match new AMBIENT_CURVES values
 Stopped at: Phase 63 complete — v1.9 milestone 100% done, all UAT passed
 Next: `/gsd:complete-milestone v1.9`
