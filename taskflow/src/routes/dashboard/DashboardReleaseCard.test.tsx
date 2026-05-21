@@ -24,6 +24,7 @@ vi.mock('@tanstack/react-query', async () => {
 // Mock jira service
 vi.mock('@/services/jira', () => ({
   fetchFixVersions: vi.fn().mockResolvedValue([]),
+  fetchReleaseIssues: vi.fn().mockResolvedValue([]),
 }));
 
 // Mock stronghold
@@ -75,11 +76,17 @@ describe('DashboardReleaseCard', () => {
       makeFixVersion('release-v4', '2025-01-01', true),
     ];
 
-    vi.mocked(useQuery).mockReturnValue({
-      data: versions,
-      isLoading: false,
-      isError: false,
-    } as ReturnType<typeof useQuery>);
+    vi.mocked(useQuery)
+      .mockReturnValueOnce({
+        data: versions,
+        isLoading: false,
+        isError: false,
+      } as ReturnType<typeof useQuery>)
+      .mockReturnValueOnce({
+        data: [],
+        isLoading: false,
+        isError: false,
+      } as ReturnType<typeof useQuery>);
 
     const { default: DashboardReleaseCard } = await import('./DashboardReleaseCard');
     renderWithQuery(
@@ -102,11 +109,17 @@ describe('DashboardReleaseCard', () => {
     // System time is 2026-05-21, releaseDate is 2026-05-16 → 5 days overdue
     const versions = [makeFixVersion('release-overdue', '2026-05-16', false)];
 
-    vi.mocked(useQuery).mockReturnValue({
-      data: versions,
-      isLoading: false,
-      isError: false,
-    } as ReturnType<typeof useQuery>);
+    vi.mocked(useQuery)
+      .mockReturnValueOnce({
+        data: versions,
+        isLoading: false,
+        isError: false,
+      } as ReturnType<typeof useQuery>)
+      .mockReturnValueOnce({
+        data: [],
+        isLoading: false,
+        isError: false,
+      } as ReturnType<typeof useQuery>);
 
     const { default: DashboardReleaseCard } = await import('./DashboardReleaseCard');
     renderWithQuery(
@@ -132,11 +145,17 @@ describe('DashboardReleaseCard', () => {
     // System time is 2026-05-21, releaseDate is 2026-05-21 → due today
     const versions = [makeFixVersion('release-today', '2026-05-21', false)];
 
-    vi.mocked(useQuery).mockReturnValue({
-      data: versions,
-      isLoading: false,
-      isError: false,
-    } as ReturnType<typeof useQuery>);
+    vi.mocked(useQuery)
+      .mockReturnValueOnce({
+        data: versions,
+        isLoading: false,
+        isError: false,
+      } as ReturnType<typeof useQuery>)
+      .mockReturnValueOnce({
+        data: [],
+        isLoading: false,
+        isError: false,
+      } as ReturnType<typeof useQuery>);
 
     const { default: DashboardReleaseCard } = await import('./DashboardReleaseCard');
     renderWithQuery(
@@ -166,11 +185,17 @@ describe('DashboardReleaseCard', () => {
     // System time is 2026-05-21, releaseDate is 2026-05-28 → 7 days away
     const versions = [makeFixVersion('release-future', '2026-05-28', false)];
 
-    vi.mocked(useQuery).mockReturnValue({
-      data: versions,
-      isLoading: false,
-      isError: false,
-    } as ReturnType<typeof useQuery>);
+    vi.mocked(useQuery)
+      .mockReturnValueOnce({
+        data: versions,
+        isLoading: false,
+        isError: false,
+      } as ReturnType<typeof useQuery>)
+      .mockReturnValueOnce({
+        data: [],
+        isLoading: false,
+        isError: false,
+      } as ReturnType<typeof useQuery>);
 
     const { default: DashboardReleaseCard } = await import('./DashboardReleaseCard');
     renderWithQuery(
@@ -188,11 +213,17 @@ describe('DashboardReleaseCard', () => {
     const { useQuery } = await import('@tanstack/react-query');
 
     // Empty array — no fix versions at all
-    vi.mocked(useQuery).mockReturnValue({
-      data: [],
-      isLoading: false,
-      isError: false,
-    } as ReturnType<typeof useQuery>);
+    vi.mocked(useQuery)
+      .mockReturnValueOnce({
+        data: [],
+        isLoading: false,
+        isError: false,
+      } as ReturnType<typeof useQuery>)
+      .mockReturnValueOnce({
+        data: undefined,
+        isLoading: false,
+        isError: false,
+      } as ReturnType<typeof useQuery>);
 
     const { default: DashboardReleaseCard } = await import('./DashboardReleaseCard');
     renderWithQuery(
@@ -204,5 +235,105 @@ describe('DashboardReleaseCard', () => {
     );
 
     expect(screen.getByText('No upcoming releases')).toBeDefined();
+  });
+
+  it('Test 6 (progress bar): renders Progress bar and "42% complete · 5 / 12 issues" caption when 5 of 12 release issues are done', async () => {
+    const { useQuery } = await import('@tanstack/react-query');
+
+    function makeReleaseIssue(key: string, statusCategoryKey: string) {
+      return {
+        id: key,
+        key,
+        fields: { status: { statusCategory: { key: statusCategoryKey } } },
+      };
+    }
+
+    const versions = [makeFixVersion('release-v1', '2026-05-28', false)];
+    const issues = [
+      ...Array.from({ length: 5 }, (_, i) => makeReleaseIssue(`PROJ-${i + 1}`, 'done')),
+      ...Array.from({ length: 7 }, (_, i) => makeReleaseIssue(`PROJ-${i + 6}`, 'indeterminate')),
+    ];
+
+    vi.mocked(useQuery)
+      .mockReturnValueOnce({
+        data: versions,
+        isLoading: false,
+        isError: false,
+      } as ReturnType<typeof useQuery>)
+      .mockReturnValueOnce({
+        data: issues,
+        isLoading: false,
+        isError: false,
+      } as ReturnType<typeof useQuery>);
+
+    const { default: DashboardReleaseCard } = await import('./DashboardReleaseCard');
+    renderWithQuery(
+      <DashboardReleaseCard
+        jiraBaseUrl="https://jira.example.com"
+        jiraToken="token"
+        activeJiraProject="PROJ"
+      />,
+    );
+
+    expect(screen.getByText('42% complete · 5 / 12 issues')).toBeDefined();
+    // Progress bar is present (role="progressbar")
+    expect(screen.getByRole('progressbar')).toBeDefined();
+  });
+
+  it('Test 7 (progress bar zero-issue): renders "0% complete · 0 / 0 issues" and Progress value 0 when no issues are tagged to the release', async () => {
+    const { useQuery } = await import('@tanstack/react-query');
+
+    const versions = [makeFixVersion('release-empty', '2026-06-01', false)];
+
+    vi.mocked(useQuery)
+      .mockReturnValueOnce({
+        data: versions,
+        isLoading: false,
+        isError: false,
+      } as ReturnType<typeof useQuery>)
+      .mockReturnValueOnce({
+        data: [],
+        isLoading: false,
+        isError: false,
+      } as ReturnType<typeof useQuery>);
+
+    const { default: DashboardReleaseCard } = await import('./DashboardReleaseCard');
+    renderWithQuery(
+      <DashboardReleaseCard
+        jiraBaseUrl="https://jira.example.com"
+        jiraToken="token"
+        activeJiraProject="PROJ"
+      />,
+    );
+
+    expect(screen.getByText('0% complete · 0 / 0 issues')).toBeDefined();
+  });
+
+  it('Test 8 (no soonest version): renders "No upcoming releases" empty state and no progress bar when fixVersions returns no unreleased versions', async () => {
+    const { useQuery } = await import('@tanstack/react-query');
+
+    vi.mocked(useQuery)
+      .mockReturnValueOnce({
+        data: [],
+        isLoading: false,
+        isError: false,
+      } as ReturnType<typeof useQuery>)
+      .mockReturnValueOnce({
+        data: undefined,
+        isLoading: false,
+        isError: false,
+      } as ReturnType<typeof useQuery>);
+
+    const { default: DashboardReleaseCard } = await import('./DashboardReleaseCard');
+    renderWithQuery(
+      <DashboardReleaseCard
+        jiraBaseUrl="https://jira.example.com"
+        jiraToken="token"
+        activeJiraProject="PROJ"
+      />,
+    );
+
+    expect(screen.getByText('No upcoming releases')).toBeDefined();
+    expect(screen.queryByRole('progressbar')).toBeNull();
   });
 });

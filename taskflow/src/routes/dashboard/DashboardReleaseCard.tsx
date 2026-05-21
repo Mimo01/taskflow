@@ -11,9 +11,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import type { JiraFixVersion } from '@/services/jira';
-import { fetchFixVersions } from '@/services/jira';
+import { fetchFixVersions, fetchReleaseIssues } from '@/services/jira';
 
 export interface DashboardReleaseCardProps {
   jiraBaseUrl: string;
@@ -57,6 +58,20 @@ export default function DashboardReleaseCard({
 
   const timing = soonest ? getReleaseTimingLabel(soonest.releaseDate, soonest.released) : null;
 
+  const { data: releaseIssues } = useQuery({
+    queryKey: ['jira-release-issues', activeJiraProject, soonest?.name],
+    queryFn: () => fetchReleaseIssues(jiraBaseUrl, jiraToken, activeJiraProject, soonest!.name),
+    staleTime: 5 * 60_000,
+    enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject && !!soonest,
+  });
+
+  const issueList = releaseIssues ?? [];
+  const totalCount = issueList.length;
+  const doneCount = issueList.filter(
+    (i) => i.fields.status.statusCategory?.key === 'done',
+  ).length;
+  const donePct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+
   return (
     <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3 min-h-[160px]">
       {/* Header */}
@@ -97,6 +112,10 @@ export default function DashboardReleaseCard({
               <span className="text-xs text-muted-foreground">{soonest.releaseDate}</span>
             )}
           </div>
+          <Progress value={donePct} className="h-1.5" />
+          <p className="text-xs text-muted-foreground">
+            {donePct}% complete · {doneCount} / {totalCount} issues
+          </p>
         </div>
       )}
 

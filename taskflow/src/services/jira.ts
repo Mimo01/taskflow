@@ -994,6 +994,54 @@ export async function updateFixVersion(
 }
 
 /**
+ * Fetch all issues with a given Jira fix version using JQL.
+ *
+ * Returns status fields only (fields=status) — sufficient for done% computation and
+ * keeps the response payload minimal. Returns an empty array on any network error or
+ * non-ok response so it never blocks dashboard rendering.
+ *
+ * @param baseUrl     - Jira base URL
+ * @param token       - Personal Access Token
+ * @param projectKey  - Jira project key (e.g. "PROJ")
+ * @param versionName - Fix version name to query (e.g. "v1.0")
+ * @returns Array of issues tagged with the given fix version; empty array on error
+ */
+export async function fetchReleaseIssues(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  versionName: string,
+): Promise<JiraIssue[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const jql = `project=${projectKey} AND fixVersion="${versionName.replace(/"/g, '\\"')}"`;
+  const url = `${base}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=status&maxResults=500`;
+
+  let response: Response;
+  try {
+    response = await apiFetch(
+      'jira',
+      url,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      },
+      'Load Release Issues',
+    );
+  } catch {
+    return [];
+  }
+
+  if (!response.ok) {
+    return [];
+  }
+
+  const data = await response.json();
+  return (data.issues ?? []) as JiraIssue[];
+}
+
+/**
  * Search Jira issues by text query using JQL.
  *
  * @param baseUrl    - Jira base URL
