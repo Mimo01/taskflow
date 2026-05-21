@@ -1,7 +1,8 @@
 ---
 phase: 61
 slug: tempo-probe-service-layer
-status: draft
+status: approved
+reviewed_at: 2026-05-21T00:00:00Z
 shadcn_initialized: true
 preset: base-nova / neutral / cssVariables
 created: 2026-05-21
