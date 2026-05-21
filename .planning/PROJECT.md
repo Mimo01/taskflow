@@ -132,7 +132,7 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ## Current State
 
-**Planning v1.9 Tempo, Dashboard Redesign & Cleanup** — started 2026-05-20. Adding Tempo Timesheets worklog viewer, replacing widget dashboard with minimal static page, removing Workload view, and doing a full cleanup pass.
+**Executing v1.9 Tempo, Dashboard Redesign & Cleanup** — started 2026-05-20. Phase 60 complete: static dashboard with personalized greeting, sprint health card, in-progress subtasks card, and release countdown card — all backed by existing query cache, no widget system. Next: Phase 61 Tempo Probe + Service Layer.
 
 ## Context
 
@@ -259,4 +259,4 @@ This document evolves at phase transitions and milestone boundaries.
 | CachedAvatar with blob URL Map + LazyStore disk persistence | Avatars cached in memory and on disk; 30-day TTL eviction; inflight dedup | ✓ Good — no repeated avatar fetches |
 
 ---
-*Last updated: 2026-05-20 — v1.9 milestone started (Tempo, Dashboard Redesign & Cleanup)*
+*Last updated: 2026-05-21 — Phase 60 complete (static dashboard / welcome screen)*
