@@ -43,7 +43,7 @@ export default function Dashboard() {
 
   return (
     <div className="relative flex flex-col min-h-full bg-background">
-      {/* Concentric arcs spanning full page — orange top-right, cyan bottom-left */}
+      {/* Wave lines emanating from top-right (orange) and bottom-left (cyan) */}
       <svg
         aria-hidden="true"
         className="absolute inset-0 w-full h-full pointer-events-none"
@@ -51,19 +51,19 @@ export default function Dashboard() {
         preserveAspectRatio="xMidYMid slice"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <circle cx="1200" cy="0" r="100" fill="#f97316" fillOpacity="0.09" />
-        <circle cx="1200" cy="0" r="180" fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.22" />
-        <circle cx="1200" cy="0" r="280" fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.18" />
-        <circle cx="1200" cy="0" r="400" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.13" />
-        <circle cx="1200" cy="0" r="540" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.09" />
-        <circle cx="1200" cy="0" r="700" fill="none" stroke="#f97316" strokeWidth="0.75" strokeOpacity="0.06" />
-        <circle cx="1200" cy="0" r="880" fill="none" stroke="#06b6d4" strokeWidth="0.75" strokeOpacity="0.04" />
-        <circle cx="0" cy="800" r="80"  fill="#06b6d4" fillOpacity="0.09" />
-        <circle cx="0" cy="800" r="160" fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.20" />
-        <circle cx="0" cy="800" r="260" fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.15" />
-        <circle cx="0" cy="800" r="380" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.10" />
-        <circle cx="0" cy="800" r="520" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.07" />
-        <circle cx="0" cy="800" r="680" fill="none" stroke="#06b6d4" strokeWidth="0.75" strokeOpacity="0.04" />
+        {/* Orange waves from top-right */}
+        <path d="M1200,0 C950,-30 700,80 500,180 C300,280 100,260 -50,320" fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.30" strokeLinecap="round"/>
+        <path d="M1200,0 C980,60 780,140 580,260 C380,380 160,380 -50,460" fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.22" strokeLinecap="round"/>
+        <path d="M1200,0 C1020,120 860,200 660,340 C460,480 220,500 -50,600" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.15" strokeLinecap="round"/>
+        <path d="M1200,0 C1060,180 940,280 740,420 C540,560 280,600 -50,720" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.10" strokeLinecap="round"/>
+        <path d="M1200,0 C1100,260 1020,380 820,520 C620,660 340,700 -50,820" fill="none" stroke="#f97316" strokeWidth="0.75" strokeOpacity="0.06" strokeLinecap="round"/>
+
+        {/* Cyan waves from bottom-left */}
+        <path d="M0,800 C80,580 240,480 440,380 C640,280 860,280 1100,200" fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.28" strokeLinecap="round"/>
+        <path d="M0,800 C60,620 180,540 380,460 C580,380 820,400 1100,340" fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.20" strokeLinecap="round"/>
+        <path d="M0,800 C40,660 120,600 320,540 C520,480 780,520 1100,480" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.13" strokeLinecap="round"/>
+        <path d="M0,800 C20,700 60,660 260,620 C460,580 740,640 1100,620" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.08" strokeLinecap="round"/>
+        <path d="M0,800 C0,740 20,720 200,700 C400,680 700,740 1100,740" fill="none" stroke="#06b6d4" strokeWidth="0.75" strokeOpacity="0.05" strokeLinecap="round"/>
       </svg>
 
       <section className="relative px-8 py-12 text-center">
