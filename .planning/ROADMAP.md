@@ -206,7 +206,7 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
 - [x] 61-01-PLAN.md — Live curl probe + GO/NO-GO decision for Wave 1 (TEMPO-06)
 - [x] 61-02-PLAN.md — `src/services/tempo/` module: client + types + worklogs + barrel + tests (TEMPO-06)
 - [x] 61-03-PLAN.md — `settings.store.ts` v19→v20 bump with `tempoEnabled` + migration + tests (TEMPO-06)
-- [ ] 61-04-PLAN.md — Tempo Timesheets toggle in `IntegrationsSection.tsx` + tests + human verify (TEMPO-06)
+- [x] 61-04-PLAN.md — Tempo Timesheets toggle in `IntegrationsSection.tsx` + tests + human verify (TEMPO-06)
 
 ### Phase 62: Tempo Worklog Viewer UI
 **Goal**: Users can view a day-column worklog table filtered by people and date range, with correct totals, accessible from the sidebar when Tempo is enabled
@@ -255,6 +255,6 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
 | 58. Redesign data fetch of AIO cycle detail | v1.8 | 4/4 | Complete | 2026-05-15 |
 | 59. Dashboard Cleanup + Dependency Removal | v1.9 | 3/3 | Complete   | 2026-05-20 |
 | 60. Static Dashboard / Welcome Screen | v1.9 | 6/6 | Complete    | 2026-05-21 |
-| 61. Tempo Probe + Service Layer | v1.9 | 3/4 | In Progress|  |
+| 61. Tempo Probe + Service Layer | v1.9 | 4/4 | Complete   | 2026-05-21 |
 | 62. Tempo Worklog Viewer UI | v1.9 | 0/TBD | Not started | - |
 | 63. Tempo Saved Filters + Test Pass | v1.9 | 0/TBD | Not started | - |
