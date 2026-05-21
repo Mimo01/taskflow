@@ -16,7 +16,8 @@
  * D-08: uses displayName comparison (Option B) — no type cast.
  */
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle2, LayoutGrid } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
+import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import type { JiraIssue } from '@/services/jira';
 import { fetchSprintIssues } from '@/services/jira';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
@@ -71,7 +72,7 @@ export default function DashboardInProgressCard({
   }
 
   // Group displayed subtasks by parent story
-  type SubtaskGroup = { parentKey: string; parentSummary: string; parentIconUrl?: string; subtasks: JiraIssue[] };
+  type SubtaskGroup = { parentKey: string; parentSummary: string; parentTypeName: string; subtasks: JiraIssue[] };
   const groupMap = new Map<string, SubtaskGroup>();
   const orphans: JiraIssue[] = [];
   for (const subtask of displayed) {
@@ -82,7 +83,7 @@ export default function DashboardInProgressCard({
         groupMap.set(p.key, {
           parentKey: p.key,
           parentSummary: p.fields.summary,
-          parentIconUrl: parentIssue?.fields.issuetype.iconUrl,
+          parentTypeName: parentIssue?.fields.issuetype.name ?? 'Story',
           subtasks: [],
         });
       }
@@ -113,7 +114,7 @@ export default function DashboardInProgressCard({
       {/* Grouped subtask rows — parent story + indented subtasks */}
       {!showSkeleton && displayed.length > 0 && (
         <div className="flex flex-col gap-1">
-          {groups.map(({ parentKey, parentSummary, parentIconUrl, subtasks: groupSubtasks }) => (
+          {groups.map(({ parentKey, parentSummary, parentTypeName, subtasks: groupSubtasks }) => (
             <div key={parentKey}>
               {/* Parent story row */}
               <button
@@ -121,11 +122,7 @@ export default function DashboardInProgressCard({
                 className="w-full flex items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => onIssueClick(parentKey)}
               >
-                {parentIconUrl ? (
-                  <img src={parentIconUrl} alt="" aria-hidden className="size-4 shrink-0 rounded-sm" />
-                ) : (
-                  <LayoutGrid className="size-4 shrink-0 text-green-500" aria-hidden />
-                )}
+                <IssueTypeIcon typeName={parentTypeName} />
                 <span className="text-sm font-medium flex-1 truncate">{parentSummary}</span>
                 <span className="text-xs text-muted-foreground font-mono shrink-0">{parentKey}</span>
               </button>
