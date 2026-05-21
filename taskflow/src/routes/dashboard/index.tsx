@@ -43,7 +43,7 @@ export default function Dashboard() {
 
   return (
     <div className="relative flex flex-col min-h-full bg-white dark:bg-background">
-      {/* Radial spokes — alternating orange + cyan lines from top-right, rings from bottom-left */}
+      {/* Low-poly triangle mesh — orange + cyan facets */}
       <svg
         aria-hidden="true"
         className="absolute inset-0 w-full h-full pointer-events-none"
@@ -51,32 +51,25 @@ export default function Dashboard() {
         preserveAspectRatio="xMidYMid slice"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Orange spokes radiating from top-right */}
-        {([210,225,240,255,270,285,300,315,330,345,360,375,390,405,420] as number[]).map((angle, i) => {
-          const rad = (angle * Math.PI) / 180;
-          const len = 900;
-          return (
-            <line
-              key={angle}
-              x1={1200} y1={0}
-              x2={1200 + Math.cos(rad) * len}
-              y2={0 + Math.sin(rad) * len}
-              stroke={i % 2 === 0 ? '#f97316' : '#06b6d4'}
-              strokeWidth={i % 2 === 0 ? 1.5 : 1}
-              strokeOpacity={i % 2 === 0 ? 0.18 : 0.14}
-              strokeLinecap="round"
-            />
-          );
-        })}
+        {/* Top-right cluster — orange dominant */}
+        <polygon points="1200,0 900,0 1100,220"    fill="#f97316" fillOpacity="0.10" />
+        <polygon points="900,0 1100,220 800,180"   fill="#06b6d4" fillOpacity="0.07" />
+        <polygon points="1100,220 1200,0 1200,320"  fill="#f97316" fillOpacity="0.07" />
+        <polygon points="800,180 1100,220 950,400"  fill="#06b6d4" fillOpacity="0.06" />
+        <polygon points="1200,0 1200,320 1100,220"  fill="#06b6d4" fillOpacity="0.05" />
+        <polygon points="900,0 700,0 800,180"       fill="#f97316" fillOpacity="0.06" />
+        <polygon points="1200,320 1200,560 950,400" fill="#f97316" fillOpacity="0.05" />
+        <polygon points="950,400 1200,560 1100,620" fill="#06b6d4" fillOpacity="0.06" />
 
-        {/* Soft filled wedge behind spokes */}
-        <path d="M1200,0 L300,0 L0,400 L0,0 Z" fill="#f97316" fillOpacity="0.04" />
-        <path d="M1200,0 L1200,500 L600,800 L0,800 L0,400 Z" fill="#06b6d4" fillOpacity="0.04" />
-
-        {/* Ring accents at origin */}
-        <circle cx="1200" cy="0" r="100" fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.20" />
-        <circle cx="1200" cy="0" r="200" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.14" />
-        <circle cx="1200" cy="0" r="320" fill="none" stroke="#f97316" strokeWidth="0.75" strokeOpacity="0.09" />
+        {/* Bottom-left cluster — cyan dominant */}
+        <polygon points="0,800 300,800 100,560"    fill="#06b6d4" fillOpacity="0.10" />
+        <polygon points="300,800 100,560 400,620"  fill="#f97316" fillOpacity="0.07" />
+        <polygon points="0,800 0,480 100,560"      fill="#06b6d4" fillOpacity="0.07" />
+        <polygon points="400,620 100,560 280,420"  fill="#06b6d4" fillOpacity="0.06" />
+        <polygon points="0,480 100,560 0,800"      fill="#f97316" fillOpacity="0.04" />
+        <polygon points="300,800 500,800 400,620"  fill="#06b6d4" fillOpacity="0.05" />
+        <polygon points="0,480 0,260 180,360"      fill="#f97316" fillOpacity="0.05" />
+        <polygon points="180,360 280,420 0,480"    fill="#06b6d4" fillOpacity="0.04" />
       </svg>
 
       <section className="relative px-6 py-16 text-center">
