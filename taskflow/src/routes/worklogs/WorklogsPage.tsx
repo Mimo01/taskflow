@@ -12,7 +12,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Bookmark, Check, ChevronsLeft, ChevronsRight, Clock, Pencil, Trash2, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Bookmark, ChevronsLeft, ChevronsRight, Clock, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -160,8 +160,6 @@ export default function WorklogsPage() {
   const [selectedDisplayName, setSelectedDisplayName] = useState<string | null>(null);
 
   // Saved filters state (TEMPO-04, TEMPO-05)
-  const [savingOpen, setSavingOpen] = useState(false);
-  const [saveName, setSaveName] = useState('');
   const [activeFilterId, setActiveFilterId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameInput, setRenameInput] = useState('');
@@ -305,24 +303,14 @@ export default function WorklogsPage() {
 
   // ─ Saved filters handlers (TEMPO-04, TEMPO-05) ────────────────────────────
 
-  /** TEMPO-04: Confirm save — Pitfall 4: empty-name guard */
-  function handleConfirmSave() {
-    if (!saveName.trim()) return;
-    addFilter({
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
-      name: saveName.trim(),
-      preset,
-      username: selectedUsername,
-      displayName: selectedDisplayName,
-    });
-    setSaveName('');
-    setSavingOpen(false);
-  }
-
-  /** TEMPO-04: Cancel save */
-  function handleCancelSave() {
-    setSaveName('');
-    setSavingOpen(false);
+  /** TEMPO-04: Create filter immediately and enter rename mode inline on the pill */
+  function handleSaveFilter() {
+    const newId = Date.now().toString(36) + Math.random().toString(36).slice(2);
+    addFilter({ id: newId, name: '', preset, username: selectedUsername, displayName: selectedDisplayName });
+    setActiveFilterId(newId);
+    setRenamingId(newId);
+    setRenameInput('');
+    setTimeout(() => renameInputRef.current?.select(), 0);
   }
 
   /** TEMPO-05/D-06: Load a saved filter into component state */
@@ -346,9 +334,14 @@ export default function WorklogsPage() {
     setTimeout(() => renameInputRef.current?.select(), 0);
   }
 
-  /** TEMPO-05: Commit rename on Enter or blur */
+  /** TEMPO-05: Commit rename on Enter or blur; remove filter if name is empty (abandoned new save) */
   function handleCommitRename(id: string) {
-    if (renameInput.trim()) renameFilter(id, renameInput.trim());
+    if (renameInput.trim()) {
+      renameFilter(id, renameInput.trim());
+    } else {
+      removeFilter(id);
+      if (activeFilterId === id) setActiveFilterId(null);
+    }
     setRenamingId(null);
   }
 
@@ -387,7 +380,7 @@ export default function WorklogsPage() {
                     onChange={(e) => setRenameInput(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleCommitRename(filter.id);
-                      if (e.key === 'Escape') setRenamingId(null);
+                      if (e.key === 'Escape') { handleCommitRename(filter.id); }
                     }}
                     onBlur={() => handleCommitRename(filter.id)}
                     aria-label="Rename filter"
@@ -546,41 +539,15 @@ export default function WorklogsPage() {
           )}
         </div>
 
-        {/* Save filter button / inline input (TEMPO-04, D-04) */}
-        {savingOpen ? (
-          <>
-            <input
-              type="text"
-              value={saveName}
-              onChange={(e) => setSaveName(e.target.value)}
-              placeholder="Filter name"
-              aria-label="Filter name"
-              className="rounded border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-36"
-            />
-            <button
-              type="button"
-              aria-label="Confirm save"
-              onClick={handleConfirmSave}
-            >
-              <Check size={16} />
-            </button>
-            <button
-              type="button"
-              aria-label="Cancel"
-              onClick={handleCancelSave}
-            >
-              <X size={16} />
-            </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setSavingOpen(true)}
-            className="text-xs text-muted-foreground hover:text-foreground px-2 h-7 rounded-md hover:bg-accent transition-colors"
-          >
-            Save filter
-          </button>
-        )}
+        {/* Save filter button (TEMPO-04) — creates pill immediately, enters rename mode */}
+        <button
+          type="button"
+          onClick={handleSaveFilter}
+          className="inline-flex items-center gap-1 rounded-md text-xs leading-tight pl-2 pr-2.5 py-1 transition-colors cursor-pointer bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-dashed border-border"
+        >
+          <Bookmark className="size-3 shrink-0" />
+          Save filter
+        </button>
       </div>
 
       {/* Table area */}
