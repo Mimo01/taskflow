@@ -52,16 +52,16 @@ Exceptions:
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 14px | 400 (regular) | 1.5 |
-| Label | 12px | 500 (medium) | 1.4 |
+| Label / Table cell / data | 12px | 400 (regular) | 1.4 |
 | Heading (page title) | 20px | 600 (semibold) | 1.2 |
-| Table cell / data | 13px | 400 (regular) | 1.4 |
+| Totals label | 12px | 600 (semibold) | 1.4 |
 
 Notes:
 - Page title "Worklogs" uses 20px/600 — consistent with other page headings in the app (e.g. Sprint Board, Backlog)
-- Table cell data (hours, names) uses 13px/400 to maximise information density without crowding
-- Column headers use 12px/500 label size
-- "Total" label in totals row/column uses 12px/600 (semibold) to distinguish from data cells
+- Table cell data (hours, names) and column headers both use 12px/400 to maximise information density without crowding
+- "Total" label in the totals row/column uses 12px/600 (semibold) to distinguish from data cells
 - All type uses Geist Variable via `font-sans` (inherited from `<html>`)
+- Two weights only: 400 (regular) and 600 (semibold). No medium (500) weight used in this phase.
 
 Source: existing page patterns in `taskflow/src/routes/dashboard/` + shadcn base-nova defaults
 
@@ -148,7 +148,7 @@ Source: CONTEXT.md layout decisions + existing dashboard page layout patterns
 - Rendered as a horizontal row of pill buttons
 - Default active on mount: "This Week"
 - Only one preset active at a time; clicking a preset deactivates the previous
-- Active pill: `bg-accent text-accent-foreground font-medium` border `border-border`
+- Active pill: `bg-accent text-accent-foreground font-semibold` border `border-border`
 - Inactive pill: `ghost` button, `hover:bg-accent`
 - When "Custom" is active: two `<input type="date">` fields appear inline to the right of the pills
   - Format: `YYYY-MM-DD` (native HTML date input)
@@ -162,7 +162,7 @@ Source: CONTEXT.md layout decisions + existing dashboard page layout patterns
 - Dropdown appears on focus; shows all names if query is empty
 - Each dropdown item: displayName, 100% width, `hover:bg-accent` on hover, selects on click
 - On selection: input clears, selected name appears as a dismissible chip (Badge variant="secondary") to the left of the input
-- X button on chip clears the filter (resets to "all people shown")
+- X button on chip: `aria-label="Remove {displayName} filter"` — clears the filter (resets to "all people shown")
 - Only one person active at a time (single-select, CONTEXT.md D-01)
 - When no person is selected: all rows shown; no chip displayed
 - Dropdown closes on blur (150ms debounce, same as MultiFilterCombobox pattern)
@@ -172,9 +172,9 @@ Source: CONTEXT.md layout decisions + existing dashboard page layout patterns
 - Column headers: sticky `top-0` with `bg-muted` background
 - "Name" column: fixed min-width 160px, left-aligned
 - Day columns: min-width 56px, right-aligned, numeric content
-- "Total" column: rightmost, min-width 72px, right-aligned, `font-medium`
+- "Total" column: rightmost, min-width 72px, right-aligned, `font-semibold`
 - Data cells: right-aligned numbers in `Xh Ym` format; blank (empty string) for zero hours (CONTEXT.md D-07, D-08)
-- Totals row: last row, `bg-muted`, `font-medium` on all cells
+- Totals row: last row, `bg-muted`, `font-semibold` on all cells
 - Row hover: `hover:bg-accent/50` (subtle, same as existing table patterns)
 - Table is horizontally scrollable when date range produces more columns than viewport width (`overflow-x: auto` on wrapper)
 
@@ -213,6 +213,7 @@ Source: CONTEXT.md layout decisions + existing dashboard page layout patterns
 | Date preset: Custom | "Custom" |
 | People filter placeholder | "Filter by person" |
 | People filter label (sr-only) | "Filter by person" |
+| Person chip dismiss button | "Remove {displayName} filter" (aria-label) |
 | Totals column header | "Total" |
 | Totals row name cell | "Total" |
 | Empty state heading | "No worklogs found" |
