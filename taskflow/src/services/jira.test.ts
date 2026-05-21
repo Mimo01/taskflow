@@ -905,7 +905,7 @@ describe('jira service', () => {
       expect(result.storyPointsFieldKey).toBe('customfield_10028');
     });
 
-    it('returns all four defaults when API call throws', async () => {
+    it('returns all defaults when API call throws', async () => {
       vi.mocked(mockFetch).mockRejectedValue(new Error('Network error'));
       const { discoverCustomFields } = await import('./jira');
       const result = await discoverCustomFields('https://jira.example.com', 'token');
@@ -915,10 +915,11 @@ describe('jira service', () => {
         epicNameFieldKey: 'customfield_10015',
         sprintFieldKey: 'customfield_10020',
         epicColorFieldKey: 'customfield_10013',
+        flaggedFieldKey: 'customfield_10021',
       });
     });
 
-    it('returns all four defaults when response is not ok', async () => {
+    it('returns all defaults when response is not ok', async () => {
       vi.mocked(mockFetch).mockResolvedValue({
         ok: false,
         status: 403,
@@ -932,6 +933,7 @@ describe('jira service', () => {
         epicNameFieldKey: 'customfield_10015',
         sprintFieldKey: 'customfield_10020',
         epicColorFieldKey: 'customfield_10013',
+        flaggedFieldKey: 'customfield_10021',
       });
     });
   });
