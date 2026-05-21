@@ -6,3 +6,4 @@
 
 export * from './types';
 export * from './worklogs';
+export * from './schedule';

@@ -25,7 +25,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchAssignableUsers } from '@/services/jira/users';
-import { fetchWorklogs } from '@/services/tempo';
+import { fetchUserSchedule, fetchWorklogs, type ScheduleDayType } from '@/services/tempo';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -135,6 +135,13 @@ function getLastWorkingDay(): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Returns bg class for a day column based on its schedule type. */
+function dayColClass(type: ScheduleDayType | undefined): string {
+  if (type === 'HOLIDAY') return 'bg-red-50 dark:bg-red-950/30';
+  if (type === 'NON_WORKING_DAY') return 'bg-muted/80';
+  return '';
+}
+
 const DATE_PRESETS: { id: DatePreset; label: string }[] = [
   { id: 'this-week', label: 'This Week' },
   { id: 'last-week', label: 'Last Week' },
@@ -232,6 +239,15 @@ export default function WorklogsPage() {
       !!to &&
       (preset !== 'custom' || (!!customFrom && !!customTo && customTo >= customFrom)),
   });
+
+  // ─ Schedule (for weekend/holiday column coloring) ────────────────────────
+  const { data: scheduleData } = useQuery({
+    queryKey: ['tempo', 'schedule', jiraBaseUrl, from, to],
+    queryFn: () => fetchUserSchedule(jiraBaseUrl!, jiraToken!, from, to),
+    enabled: !!jiraBaseUrl && !!jiraToken && tempoEnabled && !!from && !!to,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+  const dayTypeMap = scheduleData ?? new Map<string, ScheduleDayType>();
 
   // ─ People list (assignable users from Jira, same source as assignee picker) ─
   const { data: userResults } = useQuery({
@@ -605,7 +621,7 @@ export default function WorklogsPage() {
                 {days.map((day) => (
                   <th
                     key={day}
-                    className="text-right px-4 py-3 border border-border min-w-14 font-semibold text-muted-foreground"
+                    className={`text-right px-4 py-3 border border-border min-w-14 font-semibold text-muted-foreground ${dayColClass(dayTypeMap.get(day))}`}
                   >
                     {formatDayHeader(day)}
                   </th>
@@ -620,7 +636,7 @@ export default function WorklogsPage() {
                 <tr key={username} className="hover:bg-accent/50">
                   <td className="px-4 py-3 border border-border">{displayName}</td>
                   {days.map((day) => (
-                    <td key={day} className="text-right px-4 py-3 border border-border">
+                    <td key={day} className={`text-right px-4 py-3 border border-border ${dayColClass(dayTypeMap.get(day))}`}>
                       {formatSeconds(dayMap.get(day) ?? 0)}
                     </td>
                   ))}
@@ -634,7 +650,7 @@ export default function WorklogsPage() {
               <tr className="bg-muted">
                 <td className="px-4 py-3 border border-border font-semibold">Total</td>
                 {days.map((day) => (
-                  <td key={day} className="text-right px-4 py-3 border border-border font-semibold">
+                  <td key={day} className={`text-right px-4 py-3 border border-border font-semibold ${dayColClass(dayTypeMap.get(day))}`}>
                     {formatSeconds(dayTotals.get(day) ?? 0)}
                   </td>
                 ))}
