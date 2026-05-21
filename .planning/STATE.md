@@ -75,8 +75,14 @@ Key decisions affecting current work:
 | uat_gap | phase 57: 57-UAT.md | unknown (13/13 PASS; format not recognized by scanner) |
 | uat_gap | phase 58: 58-UAT.md | unknown (15/15 PASS; format not recognized by scanner) |
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260521-t6m | Redesign worklog person filter: single-select, default me, input-as-selection, no chip | 2026-05-21 | 0a7c1821 | [260521-t6m-on-worklog-page-there-is-a-filter-by-per](./quick/260521-t6m-on-worklog-page-there-is-a-filter-by-per/) |
+
 ## Session Continuity
 
-Last session: 2026-05-21
+Last activity: 2026-05-21 - Completed quick task 260521-t6m: Redesign worklog person filter
 Stopped at: Phase 63 complete — v1.9 milestone 100% done, all UAT passed
 Next: `/gsd:complete-milestone v1.9`
