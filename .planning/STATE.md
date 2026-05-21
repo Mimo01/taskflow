@@ -4,8 +4,8 @@ milestone: v1.9
 milestone_name: Tempo, Dashboard Redesign & Cleanup
 status: executing
 stopped_at: Phase 61 UI-SPEC approved
-last_updated: "2026-05-21T09:14:30.694Z"
-last_activity: 2026-05-21 -- Phase 61 planning complete
+last_updated: "2026-05-21T09:20:49.439Z"
+last_activity: 2026-05-21 -- Phase 61 execution started
 progress:
   total_phases: 5
   completed_phases: 2
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-20)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Phase 60 — static-dashboard-welcome-screen
+**Current focus:** Phase 61 — tempo-probe-service-layer
 
 ## Current Position
 
-Phase: 61
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-05-21 -- Phase 61 planning complete
+Phase: 61 (tempo-probe-service-layer) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 61
+Last activity: 2026-05-21 -- Phase 61 execution started
 
 Progress: [░░░░░░░░░░] 0%
 

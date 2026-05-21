@@ -203,9 +203,9 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
   3. Settings → Integrations shows a Tempo toggle (default off); toggling it on persists `tempoEnabled: true` via the settings store and survives app restart
   4. The settings store version is bumped and the migration guard passes for both fresh installs and existing v18 stores
 **Plans**: 4 plans (Wave 0: 61-01 probe gate; Wave 1: 61-02 + 61-03 parallel; Wave 2: 61-04)
-- [ ] 61-01-PLAN.md — Live curl probe + GO/NO-GO decision for Wave 1 (TEMPO-06)
-- [ ] 61-02-PLAN.md — `src/services/tempo/` module: client + types + worklogs + barrel + tests (TEMPO-06)
-- [ ] 61-03-PLAN.md — `settings.store.ts` v19→v20 bump with `tempoEnabled` + migration + tests (TEMPO-06)
+- [x] 61-01-PLAN.md — Live curl probe + GO/NO-GO decision for Wave 1 (TEMPO-06)
+- [x] 61-02-PLAN.md — `src/services/tempo/` module: client + types + worklogs + barrel + tests (TEMPO-06)
+- [x] 61-03-PLAN.md — `settings.store.ts` v19→v20 bump with `tempoEnabled` + migration + tests (TEMPO-06)
 - [ ] 61-04-PLAN.md — Tempo Timesheets toggle in `IntegrationsSection.tsx` + tests + human verify (TEMPO-06)
 
 ### Phase 62: Tempo Worklog Viewer UI
@@ -219,9 +219,9 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
   4. The people filter allows multi-selecting team members; selecting a subset limits the table to those rows
   5. A totals column (sum per person) and a totals row (sum per day) are visible at all times
 **Plans**: 4 plans (Wave 0: 61-01 probe gate; Wave 1: 61-02 + 61-03 parallel; Wave 2: 61-04)
-- [ ] 61-01-PLAN.md — Live curl probe + GO/NO-GO decision for Wave 1 (TEMPO-06)
-- [ ] 61-02-PLAN.md — `src/services/tempo/` module: client + types + worklogs + barrel + tests (TEMPO-06)
-- [ ] 61-03-PLAN.md — `settings.store.ts` v19→v20 bump with `tempoEnabled` + migration + tests (TEMPO-06)
+- [x] 61-01-PLAN.md — Live curl probe + GO/NO-GO decision for Wave 1 (TEMPO-06)
+- [x] 61-02-PLAN.md — `src/services/tempo/` module: client + types + worklogs + barrel + tests (TEMPO-06)
+- [x] 61-03-PLAN.md — `settings.store.ts` v19→v20 bump with `tempoEnabled` + migration + tests (TEMPO-06)
 - [ ] 61-04-PLAN.md — Tempo Timesheets toggle in `IntegrationsSection.tsx` + tests + human verify (TEMPO-06)
 **UI hint**: yes
 
@@ -255,6 +255,6 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
 | 58. Redesign data fetch of AIO cycle detail | v1.8 | 4/4 | Complete | 2026-05-15 |
 | 59. Dashboard Cleanup + Dependency Removal | v1.9 | 3/3 | Complete   | 2026-05-20 |
 | 60. Static Dashboard / Welcome Screen | v1.9 | 6/6 | Complete    | 2026-05-21 |
-| 61. Tempo Probe + Service Layer | v1.9 | 0/TBD | Not started | - |
+| 61. Tempo Probe + Service Layer | v1.9 | 3/4 | In Progress|  |
 | 62. Tempo Worklog Viewer UI | v1.9 | 0/TBD | Not started | - |
 | 63. Tempo Saved Filters + Test Pass | v1.9 | 0/TBD | Not started | - |
