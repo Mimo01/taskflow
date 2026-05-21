@@ -146,6 +146,39 @@ describe('settings.store — aioEnabled toggle (Phase 51)', () => {
   });
 });
 
+describe('settings.store — tempoEnabled toggle (Phase 61)', () => {
+  beforeEach(() => {
+    act(() => {
+      useSettingsStore.setState({
+        tempoEnabled: false,
+      } as any);
+    });
+  });
+
+  it('tempoEnabled defaults to false', () => {
+    expect(useSettingsStore.getState().tempoEnabled).toBe(false);
+  });
+
+  it('setTempoEnabled(true) updates store', () => {
+    act(() => useSettingsStore.getState().setTempoEnabled(true));
+    expect(useSettingsStore.getState().tempoEnabled).toBe(true);
+  });
+
+  it('setTempoEnabled(false) updates store', () => {
+    act(() => useSettingsStore.getState().setTempoEnabled(true));
+    act(() => useSettingsStore.getState().setTempoEnabled(false));
+    expect(useSettingsStore.getState().tempoEnabled).toBe(false);
+  });
+
+  it('tempoEnabled is present on fresh store — v19→v20 migration smoke', () => {
+    // Migration guard: if (version < 20) { if (s.tempoEnabled === undefined) s.tempoEnabled = false; }
+    // Default-value check mirrors the migration outcome for absent persisted state.
+    const state = useSettingsStore.getState();
+    expect('tempoEnabled' in state).toBe(true);
+    expect(state.tempoEnabled).toBe(false);
+  });
+});
+
 describe('settings.store — selectedAioProjectKey (Phase 55)', () => {
   beforeEach(() => {
     act(() => {

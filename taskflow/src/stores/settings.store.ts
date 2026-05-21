@@ -102,6 +102,9 @@ interface SettingsState {
   /** Enable AIO Test Management integration. Default: false. Gates all AIO API calls. */
   aioEnabled: boolean;
   setAioEnabled: (v: boolean) => void;
+  /** Enable Tempo Timesheets integration. Default: false. Gates all Tempo API calls. */
+  tempoEnabled: boolean;
+  setTempoEnabled: (v: boolean) => void;
   /** Selected AIO project key. Null until user picks a project. */
   selectedAioProjectKey: string | null;
   setSelectedAioProjectKey: (key: string | null) => void;
@@ -218,6 +221,8 @@ export const useSettingsStore = create<SettingsState>()(
       setReleaseDetailPanelWidth: (w) => set({ releaseDetailPanelWidth: w }),
       aioEnabled: false,
       setAioEnabled: (v) => set({ aioEnabled: v }),
+      tempoEnabled: false,
+      setTempoEnabled: (v) => set({ tempoEnabled: v }),
       selectedAioProjectKey: null,
       setSelectedAioProjectKey: (key) => set({ selectedAioProjectKey: key }),
       quickFilters: [],
@@ -319,7 +324,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 19,
+      version: 20,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -403,6 +408,9 @@ export const useSettingsStore = create<SettingsState>()(
         if (version < 19) {
           // No new fields to initialize. Version bump drops dashboardLayout from
           // persisted shape implicitly — Zustand LazyStore ignores extra keys.
+        }
+        if (version < 20) {
+          if (s.tempoEnabled === undefined) s.tempoEnabled = false;
         }
         return persisted as SettingsState;
       },
