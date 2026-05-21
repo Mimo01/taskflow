@@ -7,12 +7,11 @@ import DashboardSprintCard from './DashboardSprintCard';
 import DashboardInProgressCard from './DashboardInProgressCard';
 import DashboardReleaseCard from './DashboardReleaseCard';
 
-function getGreeting(firstName: string | null): string {
+function getTimeGreeting(): string {
   const hour = new Date().getHours();
-  const name = firstName ?? 'there';
-  if (hour < 12) return `Good morning, ${name}`;
-  if (hour < 18) return `Good afternoon, ${name}`;
-  return `Good evening, ${name}`;
+  if (hour < 12) return 'Good morning,';
+  if (hour < 18) return 'Good afternoon,';
+  return 'Good evening,';
 }
 
 export default function Dashboard() {
@@ -37,9 +36,9 @@ export default function Dashboard() {
     year: 'numeric',
   });
 
-  // Extract first name: take the first whitespace-delimited token
-  const firstName = jiraUserDisplayName?.trim().split(/\s+/)[0] ?? null;
-  const greeting = getGreeting(firstName);
+  // Jira displayName is "Surname FirstName" for this locale — last token is the first name
+  const firstName = jiraUserDisplayName?.trim().split(/\s+/).at(-1) ?? null;
+  const timeGreeting = getTimeGreeting();
 
   return (
     <div className="relative flex flex-col min-h-full bg-white dark:bg-background">
@@ -92,8 +91,9 @@ export default function Dashboard() {
       </svg>
 
       <section className="relative px-6 py-16 text-center">
-        <h1 className="text-4xl font-bold tracking-tight">{greeting}</h1>
-        <p className="text-sm text-muted-foreground mt-2">{today}</p>
+        <p className="text-base font-medium text-muted-foreground tracking-widest uppercase mb-1">{timeGreeting}</p>
+        <h1 className="text-5xl font-extrabold tracking-tight text-orange-500">{firstName ?? 'there'}</h1>
+        <p className="text-sm text-muted-foreground mt-3">{today}</p>
       </section>
 
       <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
