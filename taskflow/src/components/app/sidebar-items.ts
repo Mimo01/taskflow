@@ -72,6 +72,7 @@ export const SIDEBAR_NAV_ITEMS: SidebarNavDef[] = [
     section: 'tracking',
   },
   { id: 'releases', label: 'Releases', path: '/releases', iconName: 'Tag', section: 'tracking' },
+  { id: 'worklogs', label: 'Worklogs', path: '/worklogs', iconName: 'Clock', section: 'tracking' },
   // Testing (AIO)
   {
     id: 'aio-projects',
@@ -97,6 +98,7 @@ export function getDefaultSidebarItems(preset: 'dev' | 'pm'): SidebarItem[] {
     'backlog',
     'epics',
     'merge-requests',
+    'worklogs',
     'aio-projects',
   ]);
   const pmVisible = new Set([
@@ -108,6 +110,7 @@ export function getDefaultSidebarItems(preset: 'dev' | 'pm'): SidebarItem[] {
     'merge-requests',
     'sprint-progress',
     'releases',
+    'worklogs',
     'aio-projects',
   ]);
 
