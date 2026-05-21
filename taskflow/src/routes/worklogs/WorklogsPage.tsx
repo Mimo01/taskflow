@@ -4,13 +4,15 @@
  * TEMPO-01: Day-column pivot table (one row per person, one column per day)
  * TEMPO-02: Date presets (This Week default) + custom date range
  * TEMPO-03: Single-select people autocomplete filter (D-01, D-02, D-11)
+ * TEMPO-04: Save named filter combining preset + person (D-04 inline input)
+ * TEMPO-05: Load, rename, delete saved Tempo filters (D-03 row, D-05, D-06)
  * TEMPO-07: Totals column (per person) + totals row (per day) + grand total
  * D-08: Zero-hour cells render as blank empty string
  * T-62-06: jiraToken excluded from queryKey
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { Clock } from 'lucide-react';
+import { Check, Clock, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -21,6 +23,7 @@ import { fetchWorklogs } from '@/services/tempo';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { useTempoFiltersStore, type TempoFilter } from '@/stores/tempo-filters.store';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -149,10 +152,19 @@ export default function WorklogsPage() {
   const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
   const [selectedDisplayName, setSelectedDisplayName] = useState<string | null>(null);
 
+  // Saved filters state (TEMPO-04, TEMPO-05)
+  const [savingOpen, setSavingOpen] = useState(false);
+  const [saveName, setSaveName] = useState('');
+  const [activeFilterId, setActiveFilterId] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+
   // Combobox state
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Tempo filters store (TEMPO-04, TEMPO-05)
+  const { savedFilters, addFilter, removeFilter, renameFilter } = useTempoFiltersStore();
 
   // ─ Auth token effect (SprintProgressTab pattern) ─────────────────────────
   useEffect(() => {
@@ -282,6 +294,50 @@ export default function WorklogsPage() {
     setQuery('');
   }
 
+  // ─ Saved filters handlers (TEMPO-04, TEMPO-05) ────────────────────────────
+
+  /** TEMPO-04: Confirm save — Pitfall 4: empty-name guard */
+  function handleConfirmSave() {
+    if (!saveName.trim()) return;
+    addFilter({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+      name: saveName.trim(),
+      preset,
+      username: selectedUsername,
+      displayName: selectedDisplayName,
+    });
+    setSaveName('');
+    setSavingOpen(false);
+  }
+
+  /** TEMPO-04: Cancel save */
+  function handleCancelSave() {
+    setSaveName('');
+    setSavingOpen(false);
+  }
+
+  /** TEMPO-05/D-06: Load a saved filter into component state */
+  function handleLoadFilter(filter: TempoFilter) {
+    setPreset(filter.preset);
+    setSelectedUsername(filter.username);
+    setSelectedDisplayName(filter.displayName);
+    setActiveFilterId(filter.id);
+  }
+
+  /** TEMPO-05/D-05: Delete a saved filter */
+  function handleDeleteFilter(id: string) {
+    removeFilter(id);
+    if (activeFilterId === id) setActiveFilterId(null);
+  }
+
+  /** TEMPO-05/D-05: Commit rename on Enter or blur */
+  function handleCommitRename(id: string, nextName: string) {
+    if (nextName.trim()) {
+      renameFilter(id, nextName.trim());
+    }
+    setRenamingId(null);
+  }
+
   const filteredPeople = people;
 
   // ─ JSX ────────────────────────────────────────────────────────────────────
@@ -292,6 +348,55 @@ export default function WorklogsPage() {
         <h1 className="text-xl font-semibold">Worklogs</h1>
       </header>
 
+      {/* Saved filters row — D-03: separate row above filter bar, hidden when empty */}
+      {savedFilters.length > 0 && (
+        <div
+          aria-label="Saved filters"
+          className="flex items-center gap-2 px-6 py-2 border-b border-border bg-background flex-wrap"
+        >
+          {savedFilters.map((filter) => (
+            // Pitfall 3: `group` class is required for group-hover on × button
+            <div key={filter.id} className="group relative flex items-center">
+              {renamingId === filter.id ? (
+                <input
+                  type="text"
+                  defaultValue={filter.name}
+                  aria-label="Rename filter"
+                  autoFocus
+                  className="h-5 text-xs border border-ring rounded px-1 focus:outline-none"
+                  onBlur={(e) => handleCommitRename(filter.id, e.currentTarget.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleCommitRename(filter.id, e.currentTarget.value);
+                    if (e.key === 'Escape') setRenamingId(null);
+                  }}
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleLoadFilter(filter)}
+                  onDoubleClick={() => setRenamingId(filter.id)}
+                  className={
+                    filter.id === activeFilterId
+                      ? 'bg-accent text-accent-foreground font-semibold border border-border rounded-md px-3 h-7 text-xs'
+                      : 'border border-border rounded-md px-3 h-7 text-xs hover:bg-accent cursor-pointer'
+                  }
+                >
+                  {filter.name}
+                </button>
+              )}
+              <button
+                type="button"
+                aria-label={`Delete ${filter.name} filter`}
+                onClick={() => handleDeleteFilter(filter.id)}
+                className="ml-1 w-6 h-6 p-1 opacity-0 group-hover:opacity-100 hover:text-destructive transition-colors"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Filter bar */}
       <div className="flex items-center gap-2 px-6 py-3 border-b border-border bg-background flex-wrap">
         {/* Date preset pills */}
@@ -299,7 +404,10 @@ export default function WorklogsPage() {
           <button
             key={p.id}
             type="button"
-            onClick={() => setPreset(p.id)}
+            onClick={() => {
+              setPreset(p.id);
+              setActiveFilterId(null);
+            }}
             className={
               preset === p.id
                 ? 'bg-accent text-accent-foreground font-semibold border border-border rounded-md px-3 h-7 text-xs'
@@ -381,6 +489,42 @@ export default function WorklogsPage() {
             </ul>
           )}
         </div>
+
+        {/* Save filter button / inline input (TEMPO-04, D-04) */}
+        {savingOpen ? (
+          <>
+            <input
+              type="text"
+              value={saveName}
+              onChange={(e) => setSaveName(e.target.value)}
+              placeholder="Filter name"
+              aria-label="Filter name"
+              className="rounded border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-36"
+            />
+            <button
+              type="button"
+              aria-label="Confirm save"
+              onClick={handleConfirmSave}
+            >
+              <Check size={16} />
+            </button>
+            <button
+              type="button"
+              aria-label="Cancel"
+              onClick={handleCancelSave}
+            >
+              <X size={16} />
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setSavingOpen(true)}
+            className="text-xs text-muted-foreground hover:text-foreground px-2 h-7 rounded-md hover:bg-accent transition-colors"
+          >
+            Save filter
+          </button>
+        )}
       </div>
 
       {/* Table area */}
