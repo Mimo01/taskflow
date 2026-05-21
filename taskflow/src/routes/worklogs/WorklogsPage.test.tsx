@@ -326,10 +326,10 @@ describe('WorklogsPage', () => {
       });
     });
 
-    it('shows the selected person inside the input and clears it on × click', async () => {
+    it('shows the selected person inside the input (no chip)', async () => {
       mockAssignableUsersResult = [{ name: 'alice', displayName: 'Alice Smith' }];
 
-      const { getByRole, container, queryByLabelText, getByLabelText } = await renderPage();
+      const { getByRole, container } = await renderPage();
       const { fetchWorklogs } = await import('@/services/tempo');
       await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
 
@@ -348,28 +348,18 @@ describe('WorklogsPage', () => {
       fireEvent.mouseDown(aliceButton!);
 
       // After selecting Alice: input value should be 'Alice Smith' (when not focused)
-      // and the clear button should be present with the new aria-label
       await waitFor(() => {
-        expect(getByLabelText('Clear person filter')).toBeTruthy();
+        expect((input as HTMLInputElement).value).toBe('Alice Smith');
       });
-      expect((input as HTMLInputElement).value).toBe('Alice Smith');
 
       // No Badge chip should be in the DOM (Badge uses bg-secondary)
       expect(container.querySelectorAll('[class*="bg-secondary"]').length).toBe(0);
 
-      // Click the clear button — use mouseDown to match the component's onMouseDown handler
-      fireEvent.mouseDown(getByLabelText('Clear person filter'));
-
-      // After clicking ×, filter resets to "me" (the default), not empty
-      await waitFor(() => {
-        expect((input as HTMLInputElement).value).toBe('Milan Mozolak');
-      });
-
-      // Clear button still visible since "me" is selected
-      expect(getByLabelText('Clear person filter')).toBeTruthy();
+      // No clear button
+      expect(container.querySelector('[aria-label="Clear person filter"]')).toBeNull();
 
       const calls = (fetchWorklogs as ReturnType<typeof vi.fn>).mock.calls;
-      expect(calls[calls.length - 1][2]).toEqual(['mmozolak']); // reset to me
+      expect(calls[calls.length - 1][2]).toEqual(['alice']);
     });
 
     it('defaults the person filter to the authenticated user on first load', async () => {
