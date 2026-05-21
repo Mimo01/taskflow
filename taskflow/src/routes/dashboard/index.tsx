@@ -42,35 +42,36 @@ export default function Dashboard() {
   const timeGreeting = getTimeGreeting();
 
   return (
-    <div className="flex flex-col min-h-full bg-background">
-      <section className="relative overflow-hidden px-8 py-12 text-center">
-        {/* Concentric arcs — orange top-right, cyan bottom-left */}
-        <svg
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full pointer-events-none"
-          viewBox="0 0 800 300"
-          preserveAspectRatio="xMidYMid slice"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <circle cx="800" cy="0" r="80"  fill="#f97316" fillOpacity="0.10" />
-          <circle cx="800" cy="0" r="140" fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.25" />
-          <circle cx="800" cy="0" r="210" fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.20" />
-          <circle cx="800" cy="0" r="290" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.14" />
-          <circle cx="800" cy="0" r="380" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.10" />
-          <circle cx="800" cy="0" r="480" fill="none" stroke="#f97316" strokeWidth="0.75" strokeOpacity="0.07" />
-          <circle cx="0"   cy="300" r="60"  fill="#06b6d4" fillOpacity="0.10" />
-          <circle cx="0"   cy="300" r="120" fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.20" />
-          <circle cx="0"   cy="300" r="200" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.12" />
-          <circle cx="0"   cy="300" r="300" fill="none" stroke="#06b6d4" strokeWidth="0.75" strokeOpacity="0.08" />
-        </svg>
+    <div className="relative flex flex-col min-h-full bg-background">
+      {/* Concentric arcs spanning full page — orange top-right, cyan bottom-left */}
+      <svg
+        aria-hidden="true"
+        className="absolute inset-0 w-full h-full pointer-events-none"
+        viewBox="0 0 1200 800"
+        preserveAspectRatio="xMidYMid slice"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <circle cx="1200" cy="0" r="100" fill="#f97316" fillOpacity="0.09" />
+        <circle cx="1200" cy="0" r="180" fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.22" />
+        <circle cx="1200" cy="0" r="280" fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.18" />
+        <circle cx="1200" cy="0" r="400" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.13" />
+        <circle cx="1200" cy="0" r="540" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.09" />
+        <circle cx="1200" cy="0" r="700" fill="none" stroke="#f97316" strokeWidth="0.75" strokeOpacity="0.06" />
+        <circle cx="1200" cy="0" r="880" fill="none" stroke="#06b6d4" strokeWidth="0.75" strokeOpacity="0.04" />
+        <circle cx="0" cy="800" r="80"  fill="#06b6d4" fillOpacity="0.09" />
+        <circle cx="0" cy="800" r="160" fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.20" />
+        <circle cx="0" cy="800" r="260" fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.15" />
+        <circle cx="0" cy="800" r="380" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.10" />
+        <circle cx="0" cy="800" r="520" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.07" />
+        <circle cx="0" cy="800" r="680" fill="none" stroke="#06b6d4" strokeWidth="0.75" strokeOpacity="0.04" />
+      </svg>
 
-        <div className="relative">
-          <h1 className="text-4xl font-semibold tracking-tight">{timeGreeting} {firstName ?? 'there'}</h1>
-          <p className="text-sm text-muted-foreground mt-2">{today}</p>
-        </div>
+      <section className="relative px-8 py-12 text-center">
+        <h1 className="text-4xl font-semibold tracking-tight">{timeGreeting} {firstName ?? 'there'}</h1>
+        <p className="text-sm text-muted-foreground mt-2">{today}</p>
       </section>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+      <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
         <DashboardSprintCard
           jiraBaseUrl={jiraBaseUrl ?? ''}
           jiraToken={jiraToken ?? ''}
