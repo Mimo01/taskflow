@@ -254,4 +254,15 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
 | 60. Static Dashboard / Welcome Screen | v1.9 | 6/6 | Complete    | 2026-05-21 |
 | 61. Tempo Probe + Service Layer | v1.9 | 4/4 | Complete   | 2026-05-21 |
 | 62. Tempo Worklog Viewer UI | v1.9 | 2/2 | Complete   | 2026-05-21 |
-| 63. Tempo Saved Filters + Test Pass | v1.9 | 3/3 | Complete   | 2026-05-21 |
+| 63. Tempo Saved Filters + Test Pass | v1.9 | 3/3 | Complete    | 2026-05-21 |
+
+### Phase 64: Redo worklogs page with epic/story/subtask hierarchy, sticky headers and columns, clickable tasks with breadcrumbs, and log entry editing
+
+**Goal:** Worklogs page renders a 3-level Jira issue hierarchy (Epic → Story → Subtask) with a sticky date header row, sticky first column, clickable rows that navigate to issue detail with breadcrumbs, and a non-zero-cell popover that edits/deletes/adds individual Jira worklog entries — replacing the flat person×day pivot table while keeping the filter bar and saved filters from Phases 62–63 unchanged.
+**Requirements**: TEMPO-08, TEMPO-EDIT-01
+**Depends on:** Phase 63
+**Plans:** 2 plans (Wave 1: 64-01 hierarchy + sticky + nav; Wave 2: 64-02 cell popover + edit/delete/add + human verify)
+
+Plans:
+- [ ] 64-01-PLAN.md — Hierarchy data layer, dependent Jira enrichment query, sticky CSS table, outlet-context navigation (TEMPO-08)
+- [ ] 64-02-PLAN.md — WorklogCellPopover + WorklogEntryRow + EditWorklogForm + cell wiring + human verify (TEMPO-EDIT-01)
