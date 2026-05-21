@@ -70,8 +70,8 @@ export default function Dashboard() {
         ))}
       </svg>
 
-      <section className="relative px-8 py-12 text-center">
-        <h1 className="text-4xl font-semibold tracking-tight">{timeGreeting} {firstName ?? 'there'}</h1>
+      <section className="relative px-8 py-20 text-center">
+        <h1 className="text-6xl font-semibold tracking-tight">{timeGreeting} {firstName ?? 'there'}</h1>
         <p className="text-sm text-muted-foreground mt-2">{today}</p>
       </section>
 
