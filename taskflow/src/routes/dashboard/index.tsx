@@ -43,7 +43,7 @@ export default function Dashboard() {
 
   return (
     <div className="relative flex flex-col min-h-full bg-white dark:bg-background">
-      {/* Scattered dot field — orange + cyan bubbles of varying sizes */}
+      {/* Flowing sine waves — stacked horizontal bands, orange + cyan */}
       <svg
         aria-hidden="true"
         className="absolute inset-0 w-full h-full pointer-events-none"
@@ -51,29 +51,18 @@ export default function Dashboard() {
         preserveAspectRatio="xMidYMid slice"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Large background wash circles */}
-        <circle cx="1050" cy="80"  r="320" fill="#f97316" fillOpacity="0.06" />
-        <circle cx="180"  cy="700" r="280" fill="#06b6d4" fillOpacity="0.07" />
-        <circle cx="900"  cy="600" r="180" fill="#06b6d4" fillOpacity="0.05" />
-        <circle cx="260"  cy="160" r="150" fill="#f97316" fillOpacity="0.05" />
+        {/* Filled wave bands */}
+        <path d="M0,180 C150,120 300,240 450,180 C600,120 750,240 900,180 C1050,120 1150,200 1200,170 L1200,800 L0,800 Z" fill="#f97316" fillOpacity="0.05" />
+        <path d="M0,280 C200,200 350,340 550,260 C700,200 850,320 1050,250 C1120,225 1170,245 1200,240 L1200,800 L0,800 Z" fill="#06b6d4" fillOpacity="0.06" />
+        <path d="M0,400 C180,330 320,460 500,390 C660,330 800,440 980,370 C1080,340 1150,360 1200,355 L1200,800 L0,800 Z" fill="#f97316" fillOpacity="0.04" />
 
-        {/* Medium dots */}
-        <circle cx="1100" cy="300" r="48" fill="#f97316" fillOpacity="0.12" />
-        <circle cx="80"   cy="420" r="42" fill="#06b6d4" fillOpacity="0.14" />
-        <circle cx="640"  cy="720" r="36" fill="#f97316" fillOpacity="0.10" />
-        <circle cx="440"  cy="60"  r="32" fill="#06b6d4" fillOpacity="0.12" />
-        <circle cx="820"  cy="180" r="28" fill="#06b6d4" fillOpacity="0.10" />
-        <circle cx="300"  cy="560" r="24" fill="#f97316" fillOpacity="0.13" />
-
-        {/* Small accent dots */}
-        <circle cx="700"  cy="40"  r="12" fill="#f97316" fillOpacity="0.20" />
-        <circle cx="1150" cy="500" r="10" fill="#06b6d4" fillOpacity="0.22" />
-        <circle cx="160"  cy="260" r="10" fill="#f97316" fillOpacity="0.18" />
-        <circle cx="560"  cy="660" r="8"  fill="#06b6d4" fillOpacity="0.20" />
-        <circle cx="960"  cy="740" r="8"  fill="#f97316" fillOpacity="0.18" />
-        <circle cx="380"  cy="360" r="6"  fill="#06b6d4" fillOpacity="0.16" />
-        <circle cx="1020" cy="440" r="6"  fill="#f97316" fillOpacity="0.16" />
-        <circle cx="740"  cy="520" r="5"  fill="#06b6d4" fillOpacity="0.18" />
+        {/* Stroke-only waves layered on top */}
+        <path d="M0,140 C150,80 300,200 450,140 C600,80 750,200 900,140 C1050,80 1150,160 1200,130" fill="none" stroke="#f97316" strokeWidth="2" strokeOpacity="0.22" strokeLinecap="round" />
+        <path d="M0,220 C200,155 380,285 560,215 C720,155 880,275 1060,205 C1130,180 1175,195 1200,190" fill="none" stroke="#06b6d4" strokeWidth="2" strokeOpacity="0.20" strokeLinecap="round" />
+        <path d="M0,320 C170,255 330,375 510,305 C670,245 840,355 1020,290 C1110,260 1165,275 1200,270" fill="none" stroke="#f97316" strokeWidth="1.5" strokeOpacity="0.15" strokeLinecap="round" />
+        <path d="M0,420 C190,360 360,470 540,400 C700,340 870,450 1050,385 C1130,355 1175,370 1200,365" fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.14" strokeLinecap="round" />
+        <path d="M0,520 C160,460 340,560 520,495 C690,435 860,545 1040,480 C1120,450 1170,465 1200,460" fill="none" stroke="#f97316" strokeWidth="1"   strokeOpacity="0.10" strokeLinecap="round" />
+        <path d="M0,620 C180,560 360,660 540,595 C710,535 880,640 1060,575 C1130,548 1175,560 1200,555" fill="none" stroke="#06b6d4" strokeWidth="1"   strokeOpacity="0.09" strokeLinecap="round" />
       </svg>
 
       <section className="relative px-6 py-16 text-center">
