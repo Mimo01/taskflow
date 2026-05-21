@@ -42,29 +42,40 @@ export default function Dashboard() {
   const greeting = getGreeting(firstName);
 
   return (
-    <div className="relative flex flex-col min-h-full bg-gradient-to-br from-orange-50 via-background to-cyan-50 dark:from-orange-950/40 dark:via-background dark:to-cyan-950/40">
-      {/* Abstract waves — span full page behind all content */}
+    <div className="relative flex flex-col min-h-full bg-white dark:bg-background">
+      {/* Abstract fluid blobs — brand orange + cyan, top-right corner anchor */}
       <svg
         aria-hidden="true"
         className="absolute inset-0 w-full h-full pointer-events-none"
-        viewBox="0 0 800 200"
+        viewBox="0 0 1200 800"
         preserveAspectRatio="xMidYMid slice"
         xmlns="http://www.w3.org/2000/svg"
       >
+        {/* Large orange blob, top-right */}
+        <ellipse cx="1100" cy="-60" rx="380" ry="280" fill="#f97316" fillOpacity="0.10" transform="rotate(-20 1100 -60)" />
+        {/* Cyan blob, overlapping */}
+        <ellipse cx="980" cy="120" rx="260" ry="200" fill="#06b6d4" fillOpacity="0.10" transform="rotate(15 980 120)" />
+        {/* Smaller orange accent, mid-right */}
+        <ellipse cx="1180" cy="340" rx="160" ry="120" fill="#f97316" fillOpacity="0.07" transform="rotate(-10 1180 340)" />
+        {/* Soft cyan tail, bottom-left */}
+        <ellipse cx="80" cy="700" rx="300" ry="180" fill="#06b6d4" fillOpacity="0.06" transform="rotate(25 80 700)" />
+        {/* Connecting flow line — orange */}
         <path
-          d="M0,120 C120,160 200,60 320,100 C440,140 520,60 640,90 C720,110 780,80 800,70 L800,200 L0,200 Z"
-          fill="#f97316"
-          fillOpacity="0.07"
+          d="M900,0 C860,80 960,160 880,260 C820,330 920,400 860,500"
+          stroke="#f97316"
+          strokeWidth="60"
+          strokeLinecap="round"
+          fill="none"
+          strokeOpacity="0.05"
         />
+        {/* Connecting flow line — cyan */}
         <path
-          d="M0,150 C100,110 220,170 360,130 C480,95 580,155 700,120 C750,105 780,115 800,110 L800,200 L0,200 Z"
-          fill="#06b6d4"
-          fillOpacity="0.08"
-        />
-        <path
-          d="M0,170 C150,140 280,185 420,160 C540,138 650,172 800,150 L800,200 L0,200 Z"
-          fill="#f97316"
-          fillOpacity="0.05"
+          d="M1050,0 C1000,100 1080,200 1020,320 C970,420 1060,500 990,620"
+          stroke="#06b6d4"
+          strokeWidth="40"
+          strokeLinecap="round"
+          fill="none"
+          strokeOpacity="0.06"
         />
       </svg>
 
@@ -73,7 +84,7 @@ export default function Dashboard() {
         <p className="text-sm text-muted-foreground mt-2">{today}</p>
       </section>
 
-      <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6 pt-32">
+      <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
         <DashboardSprintCard
           jiraBaseUrl={jiraBaseUrl ?? ''}
           jiraToken={jiraToken ?? ''}
