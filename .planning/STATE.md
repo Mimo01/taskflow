@@ -80,9 +80,10 @@ Key decisions affecting current work:
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260521-t6m | Redesign worklog person filter: single-select, default me, input-as-selection, no chip | 2026-05-21 | 26a24552 | [260521-t6m-on-worklog-page-there-is-a-filter-by-per](./quick/260521-t6m-on-worklog-page-there-is-a-filter-by-per/) |
+| 260521-vyk | Redesign My Tasks widget on dashboard to show subtasks with parent story context using grouped indented layout | 2026-05-21 | — | [260521-vyk-redesign-my-tasks-widget-on-dashboard-to](./quick/260521-vyk-redesign-my-tasks-widget-on-dashboard-to/) |
 
 ## Session Continuity
 
-Last activity: 2026-05-21 - Completed quick task 260521-t6m: Redesign worklog person filter
+Last activity: 2026-05-21 - Completed quick task 260521-vyk: Redesign My Tasks dashboard widget with grouped subtask layout
 Stopped at: Phase 63 complete — v1.9 milestone 100% done, all UAT passed
 Next: `/gsd:complete-milestone v1.9`

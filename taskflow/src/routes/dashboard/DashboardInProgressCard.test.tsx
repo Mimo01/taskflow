@@ -7,6 +7,7 @@
  * 3. Click navigation to /issue/:key
  * 4. Empty state copy when no matching subtasks
  * 5. No readSecret / no useAuthStore access
+ * 6. Grouped display — parent story row + indented subtask row
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -56,6 +57,8 @@ function makeSprintIssue(
   isSubtask = false,
   displayName: string | null = null,
   storyPoints: number | null = null,
+  parentKey?: string,
+  parentSummary?: string,
 ) {
   return {
     id: key,
@@ -76,6 +79,9 @@ function makeSprintIssue(
       issuetype: { name: isSubtask ? 'Sub-task' : 'Story', subtask: isSubtask },
       customfield_10016: storyPoints,
       timetracking: { timeSpentSeconds: 0 },
+      parent: parentKey
+        ? { id: parentKey, key: parentKey, fields: { summary: parentSummary ?? `Parent story ${parentKey}` } }
+        : undefined,
     },
   };
 }
@@ -212,6 +218,47 @@ describe('DashboardInProgressCard', () => {
     renderWithQuery(<DashboardInProgressCard {...defaultProps} />);
 
     expect(screen.getByText('No subtasks in progress — nice work!')).toBeDefined();
+  });
+
+  it('test 6: grouped display — parent row + indented subtask row when parent data present', async () => {
+    const { useQuery } = await import('@tanstack/react-query');
+
+    // One subtask with parent data — should render parent row first, then subtask row
+    const issues = [
+      makeSprintIssue('PROJ-201', 'indeterminate', true, 'Alice Doe', null, 'PROJ-200', 'Refactor checkout flow'),
+      // Parent story also in sprint data (for icon lookup)
+      makeSprintIssue('PROJ-200', 'indeterminate', false, 'Alice Doe'),
+    ];
+
+    vi.mocked(useQuery).mockReturnValue({
+      data: issues,
+      isLoading: false,
+      isError: false,
+    } as ReturnType<typeof useQuery>);
+
+    const { default: DashboardInProgressCard } = await import('./DashboardInProgressCard');
+    renderWithQuery(<DashboardInProgressCard {...defaultProps} />);
+
+    // Parent row shows parent summary and parent key
+    expect(screen.getByText('Refactor checkout flow')).toBeDefined();
+    expect(screen.getByText('PROJ-200')).toBeDefined();
+
+    // Subtask row shows subtask summary and subtask key
+    expect(screen.getByText('Sub-task summary 201')).toBeDefined();
+    expect(screen.getByText('PROJ-201')).toBeDefined();
+
+    // Tree connector present
+    expect(screen.getByText('└')).toBeDefined();
+
+    // Clicking parent row calls onIssueClick with parent key
+    const parentButton = screen.getByRole('button', { name: /Refactor checkout flow/ });
+    await userEvent.click(parentButton);
+    expect(defaultProps.onIssueClick).toHaveBeenCalledWith('PROJ-200');
+
+    // Clicking subtask row calls onIssueClick with subtask key
+    const subtaskButton = screen.getByRole('button', { name: /Sub-task summary 201/ });
+    await userEvent.click(subtaskButton);
+    expect(defaultProps.onIssueClick).toHaveBeenCalledWith('PROJ-201');
   });
 
   it('test 5: no readSecret / no useAuthStore — component does not call stronghold or auth store', async () => {

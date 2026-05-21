@@ -1,9 +1,11 @@
 /**
  * DashboardInProgressCard — DASH-03
  *
- * Shows the current user's in-progress sprint subtasks at a glance:
+ * Shows the current user's in-progress sprint subtasks at a glance, grouped
+ * under their parent story for context:
  * - Filters client-side for subtask + indeterminate status + assignee.displayName match
- * - Displays up to 3 rows with click-through to /issue/:key
+ * - Groups displayed subtasks by parent story (parent row + indented subtask rows)
+ * - Displays up to 3 subtask rows with click-through to /issue/:key
  * - Shows "and N more" overflow caption (plain text, not a link)
  * - Shows "No subtasks in progress — nice work!" when no matches
  *
@@ -14,7 +16,7 @@
  * D-08: uses displayName comparison (Option B) — no type cast.
  */
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, LayoutGrid } from 'lucide-react';
 import type { JiraIssue } from '@/services/jira';
 import { fetchSprintIssues } from '@/services/jira';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
@@ -58,9 +60,38 @@ export default function DashboardInProgressCard({
       issue.fields.assignee?.displayName === jiraUserDisplayName,
   );
 
-  // Cap at 3 displayed rows; track overflow count (D-12)
+  // Cap at 3 displayed subtasks; track overflow count (D-12)
   const displayed = myInProgressSubtasks.slice(0, 3);
   const overflow = myInProgressSubtasks.length - displayed.length;
+
+  // Build lookup map so parent rows can show issue-type icon when available
+  const issueByKey = new Map<string, JiraIssue>();
+  for (const issue of sprintIssues) {
+    issueByKey.set(issue.key, issue);
+  }
+
+  // Group displayed subtasks by parent story
+  type SubtaskGroup = { parentKey: string; parentSummary: string; parentIconUrl?: string; subtasks: JiraIssue[] };
+  const groupMap = new Map<string, SubtaskGroup>();
+  const orphans: JiraIssue[] = [];
+  for (const subtask of displayed) {
+    const p = subtask.fields.parent;
+    if (p?.key) {
+      if (!groupMap.has(p.key)) {
+        const parentIssue = issueByKey.get(p.key);
+        groupMap.set(p.key, {
+          parentKey: p.key,
+          parentSummary: p.fields.summary,
+          parentIconUrl: parentIssue?.fields.issuetype.iconUrl,
+          subtasks: [],
+        });
+      }
+      groupMap.get(p.key)!.subtasks.push(subtask);
+    } else {
+      orphans.push(subtask);
+    }
+  }
+  const groups = [...groupMap.values()];
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3 min-h-[160px]">
@@ -79,21 +110,52 @@ export default function DashboardInProgressCard({
         </div>
       )}
 
-      {/* Subtask rows */}
+      {/* Grouped subtask rows — parent story + indented subtasks */}
       {!showSkeleton && displayed.length > 0 && (
-        <div className="flex flex-col gap-0.5">
-          {displayed.map((issue) => (
+        <div className="flex flex-col gap-1">
+          {groups.map(({ parentKey, parentSummary, parentIconUrl, subtasks: groupSubtasks }) => (
+            <div key={parentKey}>
+              {/* Parent story row */}
+              <button
+                type="button"
+                className="w-full flex items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => onIssueClick(parentKey)}
+              >
+                {parentIconUrl ? (
+                  <img src={parentIconUrl} alt="" aria-hidden className="size-4 shrink-0 rounded-sm" />
+                ) : (
+                  <LayoutGrid className="size-4 shrink-0 text-green-500" aria-hidden />
+                )}
+                <span className="text-sm font-medium flex-1 truncate">{parentSummary}</span>
+                <span className="text-xs text-muted-foreground font-mono shrink-0">{parentKey}</span>
+              </button>
+
+              {/* Subtask rows — indented with tree connector */}
+              {groupSubtasks.map((subtask) => (
+                <button
+                  type="button"
+                  key={subtask.key}
+                  className="w-full flex items-center gap-1.5 rounded pl-5 pr-2 py-1 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={() => onIssueClick(subtask.key)}
+                >
+                  <span className="text-xs text-muted-foreground/60 shrink-0">└</span>
+                  <span className="text-sm text-muted-foreground truncate flex-1">{subtask.fields.summary}</span>
+                  <span className="text-xs text-muted-foreground font-mono shrink-0">{subtask.key}</span>
+                </button>
+              ))}
+            </div>
+          ))}
+
+          {/* Orphan subtasks — no parent data available */}
+          {orphans.map((subtask) => (
             <button
               type="button"
-              key={issue.key}
+              key={subtask.key}
               className="w-full flex items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
-              onClick={() => onIssueClick(issue.key)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') onIssueClick(issue.key);
-              }}
+              onClick={() => onIssueClick(subtask.key)}
             >
-              <span className="text-xs text-muted-foreground font-mono shrink-0">{issue.key}</span>
-              <span className="text-sm truncate">{issue.fields.summary}</span>
+              <span className="text-xs text-muted-foreground font-mono shrink-0">{subtask.key}</span>
+              <span className="text-sm truncate">{subtask.fields.summary}</span>
             </button>
           ))}
 
