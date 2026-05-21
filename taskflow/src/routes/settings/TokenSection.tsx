@@ -221,7 +221,7 @@ export default function TokenSection() {
     },
     onSuccess: ({ url, user }) => {
       setJiraConnected(true, url);
-      setJiraUser(user.displayName, user.name);
+      setJiraUser(user.displayName, user.name, user.key);
     },
   });
 
@@ -234,7 +234,7 @@ export default function TokenSection() {
     },
     onSuccess: ({ url, user }) => {
       setJiraConnected(true, url);
-      setJiraUser(user.displayName, user.name);
+      setJiraUser(user.displayName, user.name, user.key);
     },
   });
 

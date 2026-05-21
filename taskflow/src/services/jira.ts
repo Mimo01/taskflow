@@ -32,6 +32,7 @@ export interface JiraUser {
   displayName: string;
   emailAddress: string;
   name: string;
+  key?: string;
 }
 
 export interface JiraProject {

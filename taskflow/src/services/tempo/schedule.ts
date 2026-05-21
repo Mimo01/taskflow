@@ -16,6 +16,7 @@ export async function fetchUserSchedule(
   token: string,
   from: string,
   to: string,
+  userKey: string,
 ): Promise<Map<string, ScheduleDayType>> {
   const res = await tempoFetch(
     baseUrl,
@@ -23,7 +24,7 @@ export async function fetchUserSchedule(
     '/user/schedule/search',
     'Load Tempo Schedule',
     TEMPO_CORE_API_PATH,
-    { method: 'POST', body: JSON.stringify({ from, to }) },
+    { method: 'POST', body: JSON.stringify({ from, to, userKeys: [userKey] }) },
   );
 
   if (!res.ok) return new Map();
