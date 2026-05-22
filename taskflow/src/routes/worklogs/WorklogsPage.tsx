@@ -46,8 +46,7 @@ type EnrichedIssue = {
     summary: string;
     issuetype: { name: string; subtask: boolean };
     parent?: { key: string; fields: { summary: string } };
-    // Classic Jira projects use Epic Link custom field instead of parent for story→epic
-    customfield_10014?: string | null;
+    [key: string]: unknown; // dynamic fields: epicLinkFieldKey, etc.
   };
 };
 
@@ -190,6 +189,7 @@ export default function WorklogsPage() {
   const { jiraBaseUrl, activeJiraProject, jiraUsername, jiraUserDisplayName, jiraUserKey } = useAuthStore();
   // IN-01: fine-grained selector avoids re-rendering on unrelated store mutations
   const tempoEnabled = useSettingsStore((s) => s.tempoEnabled);
+  const epicLinkFieldKey = useSettingsStore((s) => s.epicLinkFieldKey);
 
   // D-08: outlet context for issue navigation (parallel to BacklogPage.tsx line 191)
   const { onIssueClick } = useOutletContext<{
@@ -288,7 +288,7 @@ export default function WorklogsPage() {
   // ─ Dependent Jira enrichment query (TEMPO-08 / D-05) ────────────────────
   // T-62-06: jiraToken MUST NOT appear in queryKey
   const enrichQuery = useQuery({
-    queryKey: ['jira', 'worklog-enrich', jiraBaseUrl, uniqueKeysStr],
+    queryKey: ['jira', 'worklog-enrich', jiraBaseUrl, uniqueKeysStr, epicLinkFieldKey],
     queryFn: async () => {
       // Pitfall 7: guard empty list — issuekey in () is invalid JQL
       if (uniqueKeys.length === 0) return [] as EnrichedIssue[];
@@ -296,8 +296,8 @@ export default function WorklogsPage() {
       if (!token) throw new Error('No token');
       const base = jiraBaseUrl!.replace(/\/$/, '');
       const jql = encodeURIComponent(`issuekey in (${uniqueKeys.join(',')})`);
-      // customfield_10014 = Epic Link (classic Jira); parent = epic link (next-gen Jira)
-      const url = `${base}/rest/api/2/search?jql=${jql}&fields=summary,issuetype,parent,customfield_10014&maxResults=${uniqueKeys.length}`;
+      // epicLinkFieldKey = discovered Epic Link field (classic: customfield_10014, varies by instance)
+      const url = `${base}/rest/api/2/search?jql=${jql}&fields=summary,issuetype,parent,${epicLinkFieldKey}&maxResults=${uniqueKeys.length}`;
       const response = await apiFetch(
         'jira',
         url,
@@ -320,23 +320,23 @@ export default function WorklogsPage() {
     const already = new Set(enrichQuery.data.map((i) => i.key));
     const parents = new Set<string>();
     for (const issue of enrichQuery.data) {
-      // next-gen: parent.key; classic: customfield_10014 (Epic Link string)
-      const pk = issue.fields.parent?.key ?? issue.fields.customfield_10014 ?? null;
+      // next-gen: parent.key; classic: epicLinkFieldKey (discovered per-instance, e.g. customfield_10014)
+      const pk = issue.fields.parent?.key ?? (issue.fields[epicLinkFieldKey] as string | null) ?? null;
       if (pk && !already.has(pk)) parents.add(pk);
     }
     return [...parents].sort();
-  }, [enrichQuery.data]);
+  }, [enrichQuery.data, epicLinkFieldKey]);
   const parentKeysStr = parentKeys.join(',');
 
   const parentEnrichQuery = useQuery({
-    queryKey: ['jira', 'worklog-enrich-parents', jiraBaseUrl, parentKeysStr],
+    queryKey: ['jira', 'worklog-enrich-parents', jiraBaseUrl, parentKeysStr, epicLinkFieldKey],
     queryFn: async () => {
       if (parentKeys.length === 0) return [] as EnrichedIssue[];
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token) throw new Error('No token');
       const base = jiraBaseUrl!.replace(/\/$/, '');
       const jql = encodeURIComponent(`issuekey in (${parentKeys.join(',')})`);
-      const url = `${base}/rest/api/2/search?jql=${jql}&fields=summary,issuetype,parent,customfield_10014&maxResults=${parentKeys.length}`;
+      const url = `${base}/rest/api/2/search?jql=${jql}&fields=summary,issuetype,parent,${epicLinkFieldKey}&maxResults=${parentKeys.length}`;
       const response = await apiFetch(
         'jira',
         url,
@@ -432,8 +432,8 @@ export default function WorklogsPage() {
 
       // Issue classification (Pitfall 3: never use issuetype.name === 'Epic')
       const isSubtask = enriched?.fields.issuetype.subtask === true;
-      // next-gen Jira: parent.key; classic Jira: customfield_10014 (Epic Link string)
-      const parentKeyRaw = enriched?.fields.parent?.key ?? enriched?.fields.customfield_10014 ?? null;
+      // next-gen Jira: parent.key; classic Jira: epicLinkFieldKey (discovered per-instance)
+      const parentKeyRaw = enriched?.fields.parent?.key ?? (enriched?.fields[epicLinkFieldKey] as string | null) ?? null;
       const hasParent = !!parentKeyRaw;
 
       // Accumulate into issueTotals and dayTotals (grand total)
@@ -447,7 +447,7 @@ export default function WorklogsPage() {
         const storyEnriched = enrichMap.get(storyKey);
         const epicKey =
           storyEnriched?.fields.parent?.key ??
-          storyEnriched?.fields.customfield_10014 ??
+          (storyEnriched?.fields[epicLinkFieldKey] as string | null) ??
           NO_EPIC;
         const epicSummary = epicKey === NO_EPIC ? NO_EPIC : (summaryMap.get(epicKey) ?? epicKey);
         const storySummary = summaryMap.get(storyKey) ?? storyKey;
@@ -504,7 +504,7 @@ export default function WorklogsPage() {
       resolvedKeys,
       enrichMap,
     };
-  }, [data, enrichQuery.data, parentEnrichQuery.data, from, to]);
+  }, [data, enrichQuery.data, parentEnrichQuery.data, from, to, epicLinkFieldKey]);
 
   // ─ Combobox handlers ──────────────────────────────────────────────────────
   function handleComboboxFocus() {
