@@ -499,17 +499,19 @@ const started = new Date(`${date}T12:00:00`).toISOString().replace('Z', '+0000')
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **LogWorkPopover nesting inside WorklogCellPopover**
    - What we know: `LogWorkPopover` has its own `<Popover>` wrapper and manages its own `open` state. Radix Popovers can be nested but focus/dismiss behavior may conflict.
    - What's unclear: Whether importing LogWorkPopover as-is inside another Popover works without modification.
    - Recommendation: Render the "add entry" form fields inline in WorklogCellPopover (duplicating LogWorkPopover's form), OR extract a `LogWorkForm` (form without Popover wrapper) and use it in both places. The inline approach is simpler for a single phase.
+   - **RESOLVED:** Plan 64-02 Task 2 uses LogWorkPopover as a nested popover (recommended path). If focus/dismiss conflicts manifest, the human-verify checkpoint at Task 3 provides the fallback path to extract inline form fields.
 
 2. **jiraWorklogId vs tempoWorklogId for edit/delete**
    - What we know: `TempoWorklog` has both `jiraWorklogId?: number` and `tempoWorklogId?: number`. The Jira worklog API requires the Jira-native worklog ID.
    - What's unclear: Whether the Tempo v3 API always populates `jiraWorklogId`.
    - Recommendation: Use `w.jiraWorklogId?.toString()` with a runtime guard. If null/undefined, show a warning and disable edit/delete for that entry.
+   - **RESOLVED:** Plan 64-02 Task 1 computes `worklogId = entry.jiraWorklogId?.toString() ?? entry.tempoWorklogId?.toString()`, throws `'No worklog ID'` if both are missing.
 
 ---
 

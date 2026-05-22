@@ -159,80 +159,103 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
 ## Phase Details
 
 ### Phase 59: Dashboard Cleanup + Dependency Removal
+
 **Goal**: The widget dashboard system, Workload page, and react-grid-layout package are fully removed from the codebase without breaking the build
 **Depends on**: Phase 58
 **Requirements**: REMOVE-01, REMOVE-02, QUAL-03
 **Success Criteria** (what must be TRUE):
+
   1. The `/workload` route no longer exists; navigating to it falls through to the not-found handler
   2. The sidebar contains no Workload entry and no widget-related controls
   3. `react-grid-layout` and `@types/react-grid-layout` are absent from `package.json` and `node_modules`
   4. `npm run build` completes without errors (no dangling CSS imports or broken TypeScript references)
   5. All widget files (`WidgetGrid`, `WidgetCard`, `WidgetPicker`, `widgets/` folder) and `WorkloadTab`/`WorkloadSkeleton` are deleted; `settings.store.ts` compiles without the registry import
+
 **Plans**: 3 plans (Wave 1: 59-01 + 59-02 parallel; Wave 2: 59-03)
+
 - [x] 59-01-PLAN.md — Atomic widget+store deletion and /dashboard stub (REMOVE-01, REMOVE-02)
 - [x] 59-02-PLAN.md — Scrub /workload references across routes, sidebar, header, staticLabels (REMOVE-01)
 - [x] 59-03-PLAN.md — Uninstall react-grid-layout + authoritative npm run build + test suite (QUAL-03)
+
 **UI hint**: yes
 
 ### Phase 60: Static Dashboard / Welcome Screen
+
 **Goal**: Users land on a minimal static dashboard with a personalized greeting, sprint health, in-progress subtasks, and next release countdown — no configuration required
 **Depends on**: Phase 59
 **Requirements**: DASH-01, DASH-02, DASH-03, DASH-04, DASH-05
 **Success Criteria** (what must be TRUE):
+
   1. The dashboard shows the user's display name in a greeting and today's date
   2. A sprint health card shows the current sprint name, days remaining, and a percent-complete progress bar
   3. A "My In Progress" card shows up to 3 of the current user's In Progress subtasks with clickable links to open each issue
   4. A "Next Release" card shows the soonest unreleased fix version name and days until its target date
   5. The layout is static — there is no widget picker, no drag handle, no resize grip, and no configuration panel anywhere on the page
+
 **Plans**: 6 plans (Wave 1: 60-01 + 60-02 + 60-03 parallel; Wave 2: 60-04; Gap: 60-05 + 60-06)
+
 - [x] 60-01-PLAN.md — Install shadcn Progress + create DashboardSprintCard (DASH-02)
 - [x] 60-02-PLAN.md — Create DashboardInProgressCard with sprint-board cache reuse (DASH-03)
 - [x] 60-03-PLAN.md — Create DashboardReleaseCard with soonest unreleased fix version (DASH-04)
 - [x] 60-04-PLAN.md — Overwrite dashboard/index.tsx with hero + 3-card grid orchestrator (DASH-01, DASH-05)
 - [x] 60-05-PLAN.md — Fix in-progress card navigation: thread onIssueClick from outlet context (DASH-03, gap)
 - [x] 60-06-PLAN.md — Fix release card: live progress bar from Jira data (DASH-04, gap)
+
 **UI hint**: yes
 
 ### Phase 61: Tempo Probe + Service Layer
+
 **Goal**: Tempo API auth is confirmed on the live instance, the service module is built with tested types and fetch functions, and the tempoEnabled settings toggle persists correctly
 **Depends on**: Phase 59
 **Requirements**: TEMPO-06
 **Success Criteria** (what must be TRUE):
+
   1. A live curl probe against the Tempo worklog endpoint returns 200 (or the auth mechanism is identified and documented if Bearer PAT does not work)
   2. `src/services/tempo/` exists with `client.ts`, `types.ts`, `worklogs.ts`, and an `index.ts` barrel; unit tests cover pagination exhaustion and timezone date bucketing
   3. Settings → Integrations shows a Tempo toggle (default off); toggling it on persists `tempoEnabled: true` via the settings store and survives app restart
   4. The settings store version is bumped and the migration guard passes for both fresh installs and existing v18 stores
+
 **Plans**: 4 plans (Wave 0: 61-01 probe gate; Wave 1: 61-02 + 61-03 parallel; Wave 2: 61-04)
+
 - [x] 61-01-PLAN.md — Live curl probe + GO/NO-GO decision for Wave 1 (TEMPO-06)
 - [x] 61-02-PLAN.md — `src/services/tempo/` module: client + types + worklogs + barrel + tests (TEMPO-06)
 - [x] 61-03-PLAN.md — `settings.store.ts` v19→v20 bump with `tempoEnabled` + migration + tests (TEMPO-06)
 - [x] 61-04-PLAN.md — Tempo Timesheets toggle in `IntegrationsSection.tsx` + tests + human verify (TEMPO-06)
 
 ### Phase 62: Tempo Worklog Viewer UI
+
 **Goal**: Users can view a day-column worklog table filtered by people and date range, with correct totals, accessible from the sidebar when Tempo is enabled
 **Depends on**: Phase 61
 **Requirements**: TEMPO-01, TEMPO-02, TEMPO-03, TEMPO-07
 **Success Criteria** (what must be TRUE):
+
   1. A "Tempo" sidebar link appears only when `tempoEnabled` is true and navigates to the worklog viewer
   2. The worklog table renders one row per person and one column per day in the selected date range, with hours logged in each cell
   3. The date range bar offers at minimum: This Week (default), Last Week, This Month, Last Month, Last Working Day, and custom date range
   4. The people filter allows multi-selecting team members; selecting a subset limits the table to those rows
   5. A totals column (sum per person) and a totals row (sum per day) are visible at all times
+
 **Plans**: 2 plans (Wave 1: 62-01 sidebar+route+stub; Wave 2: 62-02 page implementation + tests + human verify)
+
 - [x] 62-01-PLAN.md — Sidebar wiring (Clock icon + tempoEnabled gate) + /worklogs route + WorklogsPage stub + Sidebar.test.tsx extension (TEMPO-01)
 - [x] 62-02-PLAN.md — WorklogsPage full implementation: date presets, single-select people filter, pivot table, totals + tests + human verify (TEMPO-01, TEMPO-02, TEMPO-03, TEMPO-07)
+
 **UI hint**: yes
 
 ### Phase 63: Tempo Saved Filters + Test Pass
+
 **Goal**: Saved Tempo filters persist across sessions, dead code from removed features is swept, and the full test suite passes with zero failures
 **Depends on**: Phase 62
 **Requirements**: TEMPO-04, TEMPO-05, QUAL-01, QUAL-02
 **Success Criteria** (what must be TRUE):
+
   1. User can save a named filter combining a people selection and a date preset; the saved filter reappears after app restart
   2. User can load, rename, and delete saved Tempo filters from the filter bar
   3. All tests pass with zero failures and zero warnings after all v1.9 additions and removals
   4. No dead imports, unused components, or stale widget/workload references remain in the codebase
+
 **Plans**: 3 plans (Wave 1: 63-01 + 63-03 parallel; Wave 2: 63-02)
+
 - [x] 63-01-PLAN.md — Create `tempo-filters.store.ts` (Zustand persist + Tauri storage) + unit tests + export DatePreset from WorklogsPage (TEMPO-04)
 - [x] 63-02-PLAN.md — Extend WorklogsPage with saved-filters row, Save button, hover-delete, dblclick rename + WorklogsPage.test.tsx coverage + human verify (TEMPO-04, TEMPO-05)
 - [x] 63-03-PLAN.md — Fix 2 jira.test.ts discoverCustomFields expectations + dead-code sweep audit + full suite green (QUAL-01, QUAL-02)
@@ -264,5 +287,10 @@ See archive: `.planning/milestones/v1.8-ROADMAP.md`
 **Plans:** 2 plans (Wave 1: 64-01 hierarchy + sticky + nav; Wave 2: 64-02 cell popover + edit/delete/add + human verify)
 
 Plans:
+**Wave 1**
+
 - [ ] 64-01-PLAN.md — Hierarchy data layer, dependent Jira enrichment query, sticky CSS table, outlet-context navigation (TEMPO-08)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 64-02-PLAN.md — WorklogCellPopover + WorklogEntryRow + EditWorklogForm + cell wiring + human verify (TEMPO-EDIT-01)
