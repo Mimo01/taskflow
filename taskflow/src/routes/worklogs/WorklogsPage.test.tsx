@@ -744,9 +744,9 @@ describe('WorklogsPage', () => {
       // Wait for enrichment to settle
       await new Promise((r) => setTimeout(r, 100));
 
-      // Epic rows should have bg-muted/40 applied somewhere (on the sticky td or tr)
+      // Epic rows should have purple tint applied (bg-purple-50/60)
       const tableHtml = container.innerHTML;
-      expect(tableHtml).toContain('bg-muted/40');
+      expect(tableHtml).toContain('bg-purple-50/60');
     });
 
     it('renders story rows indented with pl-4 and subtask rows with pl-8', async () => {
@@ -788,8 +788,8 @@ describe('WorklogsPage', () => {
       await new Promise((r) => setTimeout(r, 100));
 
       const tableHtml = container.innerHTML;
-      expect(tableHtml).toContain('pl-4');
-      expect(tableHtml).toContain('pl-8');
+      expect(tableHtml).toContain('pl-3');
+      expect(tableHtml).toContain('pl-6');
     });
 
     it('TEMPO-08 unresolvable issue key renders with line-through and is included in totals', async () => {
@@ -839,8 +839,8 @@ describe('WorklogsPage', () => {
 
       await new Promise((r) => setTimeout(r, 100));
 
-      // "No Epic" group header should be present
-      expect(getByText('No Epic')).toBeTruthy();
+      // Parent epic title resolved from nested parent.fields.summary in enrichment response
+      expect(getByText('Missing Epic')).toBeTruthy();
     });
 
     it('clicking a subtask row calls onIssueClick with its key', async () => {
@@ -1094,8 +1094,10 @@ describe('WorklogsPage', () => {
       await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
       await new Promise((r) => setTimeout(r, 150));
 
-      // Find the non-zero cell trigger button
-      const cellBtn = container.querySelector('[aria-label*="View worklogs for"]');
+      // Find the specific non-zero cell trigger (STORY-1 on monday)
+      const cellBtn = container.querySelector(
+        `[aria-label="View worklogs for STORY-1 on ${monday}"]`,
+      );
       expect(cellBtn).toBeTruthy();
       await act(async () => { fireEvent.click(cellBtn!); });
 
@@ -1106,8 +1108,8 @@ describe('WorklogsPage', () => {
     });
   });
 
-  describe('zero-hour cells do NOT render WorklogCellPopover trigger', () => {
-    it('does not render view-worklogs trigger on zero cells', async () => {
+  describe('WorklogCellPopover renders on all cells (zero and non-zero)', () => {
+    it('renders triggers on all cells; non-zero cell shows formatted hours', async () => {
       const monday = '2026-05-19';
       // Only log on monday — other days are zero
       mockFetchWorklogsResult = [
@@ -1133,15 +1135,16 @@ describe('WorklogsPage', () => {
       await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
       await new Promise((r) => setTimeout(r, 150));
 
-      // Count view-worklogs trigger buttons — should be exactly 1 (only Monday cell)
+      // All cells render triggers (zero cells too — for the add-entry affordance)
       const triggers = container.querySelectorAll('[aria-label*="View worklogs for"]');
-      // There should be only 1 trigger (the non-zero cell), not one per zero day
-      expect(triggers.length).toBeGreaterThanOrEqual(1);
-      // All triggers should have non-empty aria-labels with both issueKey and date
-      Array.from(triggers).forEach((btn) => {
-        const label = btn.getAttribute('aria-label') ?? '';
-        expect(label).toContain('STORY-1');
-      });
+      expect(triggers.length).toBeGreaterThan(1);
+
+      // The non-zero cell trigger for STORY-1 on monday shows "2h"
+      const nonZeroTrigger = container.querySelector(
+        `[aria-label="View worklogs for STORY-1 on ${monday}"]`,
+      );
+      expect(nonZeroTrigger).toBeTruthy();
+      expect(nonZeroTrigger!.textContent?.trim()).toBe('2h');
     });
   });
 
@@ -1178,7 +1181,9 @@ describe('WorklogsPage', () => {
       await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
       await new Promise((r) => setTimeout(r, 150));
 
-      const cellBtn = container.querySelector('[aria-label*="View worklogs for STORY-1"]');
+      const cellBtn = container.querySelector(
+        `[aria-label="View worklogs for STORY-1 on ${monday}"]`,
+      );
       expect(cellBtn).toBeTruthy();
       await act(async () => { fireEvent.click(cellBtn!); });
 
@@ -1219,7 +1224,9 @@ describe('WorklogsPage', () => {
       await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
       await new Promise((r) => setTimeout(r, 150));
 
-      const cellBtn = container.querySelector('[aria-label*="View worklogs for STORY-1"]');
+      const cellBtn = container.querySelector(
+        `[aria-label="View worklogs for STORY-1 on ${monday}"]`,
+      );
       expect(cellBtn).toBeTruthy();
       await act(async () => { fireEvent.click(cellBtn!); });
 

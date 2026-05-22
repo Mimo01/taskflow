@@ -53,10 +53,15 @@ export function WorklogCellPopover({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        className={`w-full text-right cursor-pointer hover:bg-accent/60 ${dayColClassName ?? ''}`}
+        className={`group w-full h-full min-h-[2rem] flex items-center justify-center cursor-pointer hover:bg-accent/60 px-2 py-1.5 ${dayColClassName ?? ''}`}
         aria-label={`View worklogs for ${issueKey} on ${date}`}
       >
-        {formatSeconds(totalSeconds)}
+        {totalSeconds > 0 ? (
+          <span className="font-medium">{formatSeconds(totalSeconds)}</span>
+        ) : (
+          // CSS ::after keeps DOM textContent empty (D-08: zero cells render as blank)
+          <span className="after:content-['+'] opacity-0 group-hover:opacity-30 text-muted-foreground text-[10px] select-none transition-opacity" />
+        )}
       </PopoverTrigger>
       <PopoverContent className="w-72 p-4">
         {/* Header: issueKey · day label */}
