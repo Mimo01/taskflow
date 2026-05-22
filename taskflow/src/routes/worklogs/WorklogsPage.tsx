@@ -1,19 +1,20 @@
 /**
  * WorklogsPage — Tempo Worklog Viewer
  *
- * TEMPO-01: Day-column pivot table (one row per person, one column per day)
  * TEMPO-02: Date presets (This Week default) + custom date range
  * TEMPO-03: Single-select people autocomplete filter (D-01, D-02, D-11)
  * TEMPO-04: Save named filter combining preset + person (D-04 inline input)
  * TEMPO-05: Load, rename, delete saved Tempo filters (D-03 row, D-05, D-06)
- * TEMPO-07: Totals column (per person) + totals row (per day) + grand total
+ * TEMPO-07: Totals column (per issue) + totals row (per day) + grand total
+ * TEMPO-08: Epic/story/subtask hierarchy table with sticky header + column
  * D-08: Zero-hour cells render as blank empty string
  * T-62-06: jiraToken excluded from queryKey
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Bookmark, ChevronsLeft, ChevronsRight, Clock, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Bookmark, BookOpen, ChevronsLeft, ChevronsRight, Clock, GitBranch, Layers, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -21,9 +22,11 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { apiFetch } from '@/lib/apiFetch';
 import { fetchAssignableUsers } from '@/services/jira/users';
 import { fetchUserSchedule, fetchWorklogs, type ScheduleDayType } from '@/services/tempo';
 import { readSecret } from '@/services/stronghold';
@@ -34,6 +37,26 @@ import { useTempoFiltersStore, type TempoFilter } from '@/stores/tempo-filters.s
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type DatePreset = 'this-week' | 'last-week' | 'this-month' | 'last-month' | 'last-working-day' | 'custom';
+
+/** Enriched Jira issue shape returned by the worklog enrichment query */
+type EnrichedIssue = {
+  key: string;
+  fields: {
+    summary: string;
+    issuetype: { name: string; subtask: boolean };
+    parent?: { key: string; fields: { summary: string } };
+  };
+};
+
+// ─── Hierarchy node types (D-06) ─────────────────────────────────────────────
+
+type DayMap = Map<string, number>; // YYYY-MM-DD -> seconds
+type SubtaskNode = { summary: string; dayMap: DayMap; entries: import('@/services/tempo').TempoWorklog[] };
+type StoryNode = { summary: string; dayMap: DayMap; entries: import('@/services/tempo').TempoWorklog[]; subtasks: Map<string, SubtaskNode> };
+type EpicNode = { summary: string; dayMap: DayMap; entries: import('@/services/tempo').TempoWorklog[]; stories: Map<string, StoryNode> };
+type HierarchyMap = Map<string, EpicNode>; // key = epicKey or '__NO_EPIC__'
+
+const NO_EPIC = '__NO_EPIC__';
 
 // ─── Helpers (outside component for stable references) ────────────────────────
 
@@ -158,6 +181,11 @@ export default function WorklogsPage() {
   // IN-01: fine-grained selector avoids re-rendering on unrelated store mutations
   const tempoEnabled = useSettingsStore((s) => s.tempoEnabled);
 
+  // D-08: outlet context for issue navigation (parallel to BacklogPage.tsx line 191)
+  const { onIssueClick } = useOutletContext<{
+    onIssueClick: (key: string, resetTrail?: boolean) => void;
+  }>();
+
   const [jiraToken, setJiraToken] = useState<string | null>(null);
   const [preset, setPreset] = useState<DatePreset>('this-week');
   const [customFrom, setCustomFrom] = useState('');
@@ -238,6 +266,39 @@ export default function WorklogsPage() {
       !!from &&
       !!to &&
       (preset !== 'custom' || (!!customFrom && !!customTo && customTo >= customFrom)),
+  });
+
+  // ─ Unique issue keys (stable useMemo — Pitfall 2: must be stable for queryKey) ─
+  const uniqueKeys = useMemo(
+    () => [...new Set((data ?? []).map((w) => w.issue.key))].sort(),
+    [data],
+  );
+  const uniqueKeysStr = uniqueKeys.join(','); // stable string for queryKey
+
+  // ─ Dependent Jira enrichment query (TEMPO-08 / D-05) ────────────────────
+  // T-62-06: jiraToken MUST NOT appear in queryKey
+  const enrichQuery = useQuery({
+    queryKey: ['jira', 'worklog-enrich', jiraBaseUrl, uniqueKeysStr],
+    queryFn: async () => {
+      // Pitfall 7: guard empty list — issuekey in () is invalid JQL
+      if (uniqueKeys.length === 0) return [] as EnrichedIssue[];
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token) throw new Error('No token');
+      const base = jiraBaseUrl!.replace(/\/$/, '');
+      const jql = encodeURIComponent(`issuekey in (${uniqueKeys.join(',')})`);
+      const url = `${base}/rest/api/2/search?jql=${jql}&fields=summary,issuetype,parent&maxResults=${uniqueKeys.length}`;
+      const response = await apiFetch(
+        'jira',
+        url,
+        { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } },
+        'Enrich Worklog Issues',
+      );
+      if (!response.ok) throw new Error(`Enrichment failed: ${response.status}`);
+      const d = await response.json();
+      return d.issues as EnrichedIssue[];
+    },
+    enabled: !!jiraBaseUrl && !!jiraToken && !!data && uniqueKeys.length > 0,
+    staleTime: 5 * 60 * 1000,
   });
 
   // ─ Schedule (for weekend/holiday column coloring) ────────────────────────
