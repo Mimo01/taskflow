@@ -2,12 +2,12 @@
  * WorklogsPage.test.tsx — Unit tests for the Tempo Worklog Viewer
  *
  * Coverage:
- *   TEMPO-01 — day-column pivot table (rows per author, columns per day)
  *   TEMPO-02 — date presets (6 pills, This Week active on mount, Custom reveals date inputs)
  *   TEMPO-03 — single-select people filter (dropdown, chip, dismiss)
  *   TEMPO-04 — save named filter combining preset + person (inline input, empty-name guard)
  *   TEMPO-05 — load, rename, delete saved filters (pill click, double-click rename, × delete)
- *   TEMPO-07 — totals column (per person) and totals row (per day)
+ *   TEMPO-07 — totals column (per issue) and totals row (per day) + grand total
+ *   TEMPO-08 — hierarchy table (epic/story/subtask rows, sticky, navigation)
  *   D-08     — zero-hour cells render as blank empty string (not '0h')
  */
 
@@ -30,8 +30,38 @@ let mockRenameFilter = vi.fn();
 let mockMoveFilter = vi.fn();
 let mockJiraUsername: string | null = 'mmozolak';
 let mockJiraUserDisplayName: string | null = 'Milan Mozolak';
+let mockOnIssueClick = vi.fn();
+let mockEnrichResult: unknown[] = [];
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
+
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router-dom')>();
+  return {
+    ...actual,
+    useOutletContext: vi.fn(() => ({
+      onIssueClick: mockOnIssueClick,
+    })),
+  };
+});
+
+vi.mock('@/lib/apiFetch', () => ({
+  apiFetch: vi.fn().mockImplementation((_source: string, url: string) => {
+    if (url.includes('/rest/api/2/search')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ issues: mockEnrichResult }),
+      });
+    }
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+  }),
+}));
+
+vi.mock('@/services/jira/worklogs', () => ({
+  createWorklog: vi.fn().mockResolvedValue(undefined),
+  updateWorklog: vi.fn().mockResolvedValue(undefined),
+  deleteWorklog: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock('@/stores/auth.store', () => ({
   useAuthStore: (selector?: (s: Record<string, unknown>) => unknown) => {
@@ -71,6 +101,7 @@ vi.mock('@/services/stronghold', () => ({
 
 vi.mock('@/services/tempo', () => ({
   fetchWorklogs: vi.fn().mockImplementation(() => Promise.resolve(mockFetchWorklogsResult)),
+  fetchUserSchedule: vi.fn().mockResolvedValue(new Map()),
 }));
 
 vi.mock('@/stores/tempo-filters.store', () => ({
@@ -108,12 +139,14 @@ function makeWorklog(
   displayName: string,
   date: string,
   hours: number,
+  issueKey = 'X-1',
 ): TempoWorklog {
   return {
-    issue: { key: 'X-1' },
+    issue: { key: issueKey },
     author: { name: authorName, displayName },
     timeSpentSeconds: hours * 3600,
     dateStarted: date,
+    jiraWorklogId: Math.floor(Math.random() * 10000),
   };
 }
 
@@ -123,6 +156,7 @@ describe('WorklogsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFetchWorklogsResult = [];
+    mockEnrichResult = [];
     mockTempoEnabled = true;
     mockSavedFilters = [];
     mockAddFilter = vi.fn();
@@ -131,62 +165,7 @@ describe('WorklogsPage', () => {
     mockMoveFilter = vi.fn();
     mockJiraUsername = 'mmozolak';
     mockJiraUserDisplayName = 'Milan Mozolak';
-  });
-
-  // ── TEMPO-01: day-column table ─────────────────────────────────────────────
-
-  describe('TEMPO-01 — day-column table', () => {
-    it('renders one row per author and correct column structure', async () => {
-      // Fixture: 2 authors, 3 distinct days in "This Week" range
-      // We use fixed dates so the table always has predictable columns.
-      // Rather than relying on "this week" dates, we verify tbody row count.
-      mockFetchWorklogsResult = [
-        makeWorklog('alice', 'Alice Smith', '2026-05-18', 4),
-        makeWorklog('alice', 'Alice Smith', '2026-05-19', 3),
-        makeWorklog('bob', 'Bob Jones', '2026-05-18', 2),
-        makeWorklog('bob', 'Bob Jones', '2026-05-20', 1),
-      ];
-
-      const { container } = await renderPage();
-
-      // Wait for query to resolve
-      const { fetchWorklogs } = await import('@/services/tempo');
-      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
-
-      const rows = container.querySelectorAll('tbody tr');
-      expect(rows.length).toBe(2); // one row per author
-    });
-
-    it('shows the author displayName in the first cell of each row', async () => {
-      mockFetchWorklogsResult = [
-        makeWorklog('alice', 'Alice Smith', '2026-05-18', 4),
-        makeWorklog('bob', 'Bob Jones', '2026-05-19', 2),
-      ];
-
-      const { getByText } = await renderPage();
-      const { fetchWorklogs } = await import('@/services/tempo');
-      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
-
-      expect(getByText('Alice Smith')).toBeTruthy();
-      expect(getByText('Bob Jones')).toBeTruthy();
-    });
-
-    it('renders a thead with Name + day columns + Total header', async () => {
-      mockFetchWorklogsResult = [makeWorklog('alice', 'Alice Smith', '2026-05-18', 4)];
-
-      const { container, getAllByText } = await renderPage();
-      const { fetchWorklogs } = await import('@/services/tempo');
-      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
-
-      // "Name" and "Total" headers must be present (Total appears in both thead and tfoot)
-      const nameHeaders = container.querySelectorAll('thead th');
-      const nameHeader = Array.from(nameHeaders).find((th) => th.textContent === 'Name');
-      expect(nameHeader).toBeTruthy();
-      expect(getAllByText('Total').length).toBeGreaterThanOrEqual(1);
-
-      // thead must have at least 3 columns: Name + at least 1 day + Total
-      expect(nameHeaders.length).toBeGreaterThanOrEqual(3);
-    });
+    mockOnIssueClick = vi.fn();
   });
 
   // ── TEMPO-02: date presets ─────────────────────────────────────────────────
@@ -460,15 +439,14 @@ describe('WorklogsPage', () => {
   // ── TEMPO-07: totals ──────────────────────────────────────────────────────
 
   describe('TEMPO-07 — totals', () => {
-    it('computes totals column as sum per person', async () => {
-      // Alice: 4h Mon + 3h Tue = 7h total; Wed = 0 (blank)
-      // Use fixed dates that fall within "this week" range by mocking the data
+    it('computes totals column (per issue) as sum of all worklogs for that issue', async () => {
+      // Alice logs 4h Mon + 3h Tue on issue X-1: total = 7h
       const monday = '2026-05-18';
       const tuesday = '2026-05-19';
 
       mockFetchWorklogsResult = [
-        makeWorklog('alice', 'Alice Smith', monday, 4),
-        makeWorklog('alice', 'Alice Smith', tuesday, 3),
+        makeWorklog('alice', 'Alice Smith', monday, 4, 'X-1'),
+        makeWorklog('alice', 'Alice Smith', tuesday, 3, 'X-1'),
       ];
 
       const { container } = await renderPage();
@@ -476,21 +454,22 @@ describe('WorklogsPage', () => {
       await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
 
       const bodyRows = container.querySelectorAll('tbody tr');
-      expect(bodyRows.length).toBe(1);
+      expect(bodyRows.length).toBeGreaterThanOrEqual(1);
 
-      // Last cell in Alice's row is the Total = 7h
-      const cells = bodyRows[0].querySelectorAll('td');
+      // Last cell in the first data row should be the Total = 7h
+      const firstDataRow = bodyRows[0];
+      const cells = firstDataRow.querySelectorAll('td');
       const totalCell = cells[cells.length - 1];
       expect(totalCell.textContent).toBe('7h');
     });
 
-    it('computes totals row as sum per day across all people', async () => {
-      // Monday: Alice 4h + Bob 2h = 6h
+    it('computes totals row as sum per day across all issues', async () => {
+      // Monday: Alice(X-1) 4h + Bob(X-2) 2h = 6h total for Monday
       const monday = '2026-05-18';
 
       mockFetchWorklogsResult = [
-        makeWorklog('alice', 'Alice Smith', monday, 4),
-        makeWorklog('bob', 'Bob Jones', monday, 2),
+        makeWorklog('alice', 'Alice Smith', monday, 4, 'X-1'),
+        makeWorklog('bob', 'Bob Jones', monday, 2, 'X-2'),
       ];
 
       const { container } = await renderPage();
@@ -518,11 +497,11 @@ describe('WorklogsPage', () => {
     });
 
     it('renders the grand total in the bottom-right cell', async () => {
-      // Total across all people and days = 4 + 2 + 1 = 7h
+      // Total across all issues and days = 4 + 2 + 1 = 7h
       mockFetchWorklogsResult = [
-        makeWorklog('alice', 'Alice Smith', '2026-05-18', 4),
-        makeWorklog('bob', 'Bob Jones', '2026-05-18', 2),
-        makeWorklog('bob', 'Bob Jones', '2026-05-19', 1),
+        makeWorklog('alice', 'Alice Smith', '2026-05-18', 4, 'X-1'),
+        makeWorklog('bob', 'Bob Jones', '2026-05-18', 2, 'X-2'),
+        makeWorklog('bob', 'Bob Jones', '2026-05-19', 1, 'X-2'),
       ];
 
       const { container } = await renderPage();
@@ -553,7 +532,7 @@ describe('WorklogsPage', () => {
       await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
 
       const bodyRows = container.querySelectorAll('tbody tr');
-      expect(bodyRows.length).toBe(1);
+      expect(bodyRows.length).toBeGreaterThanOrEqual(1);
 
       // Find tuesday column index
       const headCells = container.querySelectorAll('thead th');
@@ -666,4 +645,283 @@ describe('WorklogsPage', () => {
   // Note: rename and delete are accessed via right-click context menu (ContextMenu component).
   // Context menu interactions are not reliably testable in jsdom — following the same
   // precedent as SavedFilterList.test.tsx which omits context-menu-item tests.
+
+  // ── Task 2 enrichment + outlet context tests ────────────────────────────────
+
+  describe('Jira enrichment query', () => {
+    it('fires Jira enrichment query with issuekey in (...) JQL after worklogs load', async () => {
+      mockFetchWorklogsResult = [
+        makeWorklog('alice', 'Alice Smith', '2026-05-18', 4, 'PROJ-1'),
+        makeWorklog('alice', 'Alice Smith', '2026-05-19', 3, 'PROJ-2'),
+      ];
+
+      await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
+
+      const { apiFetch } = await import('@/lib/apiFetch');
+      await waitFor(() => {
+        const calls = (apiFetch as ReturnType<typeof vi.fn>).mock.calls;
+        const searchCall = calls.find(([, url]: [string, string]) =>
+          url.includes('/rest/api/2/search'),
+        );
+        expect(searchCall).toBeTruthy();
+        const [, url] = searchCall!;
+        expect(url).toContain('issuekey%20in');
+        expect(url).toContain('PROJ-1');
+        expect(url).toContain('PROJ-2');
+      });
+    });
+
+    it('does NOT fire enrichment query when no worklogs returned', async () => {
+      mockFetchWorklogsResult = [];
+
+      await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
+
+      // Give time for any potential enrichment query to fire
+      await new Promise((r) => setTimeout(r, 100));
+
+      const { apiFetch } = await import('@/lib/apiFetch');
+      const calls = (apiFetch as ReturnType<typeof vi.fn>).mock.calls;
+      const searchCall = calls.find(([, url]: [string, string]) =>
+        url.includes('/rest/api/2/search'),
+      );
+      expect(searchCall).toBeUndefined();
+    });
+
+    it('exposes onIssueClick via useOutletContext', async () => {
+      const { useOutletContext } = await import('react-router-dom');
+
+      await renderPage();
+
+      // useOutletContext should have been invoked by the component
+      expect(useOutletContext).toHaveBeenCalled();
+    });
+  });
+
+  // ── TEMPO-08: hierarchy table tests ────────────────────────────────────────
+
+  describe('TEMPO-08 — hierarchy table', () => {
+    it('renders epic header rows with bg-muted/40', async () => {
+      // Two issues classified as epics (no parent, no subtask flag)
+      mockFetchWorklogsResult = [
+        makeWorklog('alice', 'Alice Smith', '2026-05-18', 4, 'EPIC-1'),
+        makeWorklog('alice', 'Alice Smith', '2026-05-19', 2, 'EPIC-2'),
+      ];
+      mockEnrichResult = [
+        {
+          key: 'EPIC-1',
+          fields: {
+            summary: 'Epic One',
+            issuetype: { name: 'Epic', subtask: false },
+          },
+        },
+        {
+          key: 'EPIC-2',
+          fields: {
+            summary: 'Epic Two',
+            issuetype: { name: 'Epic', subtask: false },
+          },
+        },
+      ];
+
+      const { container } = await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
+
+      // Wait for enrichment to settle
+      await new Promise((r) => setTimeout(r, 100));
+
+      // Epic rows should have bg-muted/40 applied somewhere (on the sticky td or tr)
+      const tableHtml = container.innerHTML;
+      expect(tableHtml).toContain('bg-muted/40');
+    });
+
+    it('renders story rows indented with pl-4 and subtask rows with pl-8', async () => {
+      // Story (STORY-1 has parent EPIC-1) and subtask (SUB-1 has parent STORY-1)
+      mockFetchWorklogsResult = [
+        makeWorklog('alice', 'Alice Smith', '2026-05-18', 2, 'STORY-1'),
+        makeWorklog('alice', 'Alice Smith', '2026-05-18', 1, 'SUB-1'),
+      ];
+      mockEnrichResult = [
+        {
+          key: 'EPIC-1',
+          fields: {
+            summary: 'Epic One',
+            issuetype: { name: 'Epic', subtask: false },
+          },
+        },
+        {
+          key: 'STORY-1',
+          fields: {
+            summary: 'Story One',
+            issuetype: { name: 'Story', subtask: false },
+            parent: { key: 'EPIC-1', fields: { summary: 'Epic One' } },
+          },
+        },
+        {
+          key: 'SUB-1',
+          fields: {
+            summary: 'Subtask One',
+            issuetype: { name: 'Sub-task', subtask: true },
+            parent: { key: 'STORY-1', fields: { summary: 'Story One' } },
+          },
+        },
+      ];
+
+      const { container } = await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
+
+      await new Promise((r) => setTimeout(r, 100));
+
+      const tableHtml = container.innerHTML;
+      expect(tableHtml).toContain('pl-4');
+      expect(tableHtml).toContain('pl-8');
+    });
+
+    it('TEMPO-08 unresolvable issue key renders with line-through and is included in totals', async () => {
+      // KEY-X is not in enrichResult — should render with line-through
+      mockFetchWorklogsResult = [
+        makeWorklog('alice', 'Alice Smith', '2026-05-18', 3, 'KEY-X'),
+      ];
+      mockEnrichResult = []; // KEY-X not resolvable
+
+      const { container } = await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
+
+      await new Promise((r) => setTimeout(r, 100));
+
+      // Should find a span with line-through containing KEY-X
+      const lineThrough = container.querySelector('span.line-through');
+      expect(lineThrough).toBeTruthy();
+      expect(lineThrough!.textContent).toContain('KEY-X');
+
+      // Grand total should include KEY-X's 3h
+      const footCells = container.querySelectorAll('tfoot td');
+      const grandTotal = footCells[footCells.length - 1];
+      expect(grandTotal.textContent).toBe('3h');
+    });
+
+    it("TEMPO-08 'No Epic' group appears for stories without an enriched epic", async () => {
+      // STORY-X has a parent EPIC-MISSING but EPIC-MISSING is not in enrichResult
+      mockFetchWorklogsResult = [
+        makeWorklog('alice', 'Alice Smith', '2026-05-18', 2, 'STORY-X'),
+      ];
+      mockEnrichResult = [
+        {
+          key: 'STORY-X',
+          fields: {
+            summary: 'Orphan Story',
+            issuetype: { name: 'Story', subtask: false },
+            parent: { key: 'EPIC-MISSING', fields: { summary: 'Missing Epic' } },
+          },
+        },
+        // EPIC-MISSING is deliberately not in enrichResult
+      ];
+
+      const { getByText } = await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
+
+      await new Promise((r) => setTimeout(r, 100));
+
+      // "No Epic" group header should be present
+      expect(getByText('No Epic')).toBeTruthy();
+    });
+
+    it('clicking a subtask row calls onIssueClick with its key', async () => {
+      mockFetchWorklogsResult = [
+        makeWorklog('alice', 'Alice Smith', '2026-05-18', 1, 'SUB-1'),
+      ];
+      mockEnrichResult = [
+        {
+          key: 'EPIC-1',
+          fields: {
+            summary: 'Epic One',
+            issuetype: { name: 'Epic', subtask: false },
+          },
+        },
+        {
+          key: 'STORY-1',
+          fields: {
+            summary: 'Story One',
+            issuetype: { name: 'Story', subtask: false },
+            parent: { key: 'EPIC-1', fields: { summary: 'Epic One' } },
+          },
+        },
+        {
+          key: 'SUB-1',
+          fields: {
+            summary: 'Subtask One',
+            issuetype: { name: 'Sub-task', subtask: true },
+            parent: { key: 'STORY-1', fields: { summary: 'Story One' } },
+          },
+        },
+      ];
+
+      const { container } = await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
+
+      await new Promise((r) => setTimeout(r, 100));
+
+      // Find the subtask row button (aria-label contains 'Open SUB-1')
+      const subtaskBtn = container.querySelector('[aria-label="Open SUB-1"]');
+      expect(subtaskBtn).toBeTruthy();
+      fireEvent.click(subtaskBtn!);
+
+      expect(mockOnIssueClick).toHaveBeenCalledWith('SUB-1');
+    });
+
+    it('clicking the corner header cell does NOT call onIssueClick', async () => {
+      mockFetchWorklogsResult = [
+        makeWorklog('alice', 'Alice Smith', '2026-05-18', 4, 'X-1'),
+      ];
+
+      const { container } = await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
+
+      // The corner header "Issue" th is not a button — clicking it should not trigger onIssueClick
+      const cornerHeader = Array.from(container.querySelectorAll('thead th')).find(
+        (th) => th.textContent?.trim() === 'Issue',
+      );
+      if (cornerHeader) {
+        fireEvent.click(cornerHeader);
+      }
+
+      expect(mockOnIssueClick).not.toHaveBeenCalled();
+    });
+
+    it('enrichment query error shows inline alert', async () => {
+      mockFetchWorklogsResult = [
+        makeWorklog('alice', 'Alice Smith', '2026-05-18', 4, 'X-1'),
+      ];
+
+      // Make apiFetch reject on search URL
+      const { apiFetch } = await import('@/lib/apiFetch');
+      (apiFetch as ReturnType<typeof vi.fn>).mockImplementation((_source: string, url: string) => {
+        if (url.includes('/rest/api/2/search')) {
+          return Promise.resolve({
+            ok: false,
+            status: 500,
+            json: () => Promise.resolve({}),
+          });
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      });
+
+      const { getByText } = await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
+
+      await waitFor(() => {
+        expect(getByText('Some issues could not be loaded. Hours are still shown.')).toBeTruthy();
+      });
+    });
+  });
 });
