@@ -661,12 +661,12 @@ describe('WorklogsPage', () => {
 
       const { apiFetch } = await import('@/lib/apiFetch');
       await waitFor(() => {
-        const calls = (apiFetch as ReturnType<typeof vi.fn>).mock.calls;
-        const searchCall = calls.find(([, url]: [string, string]) =>
-          url.includes('/rest/api/2/search'),
+        const calls = (apiFetch as ReturnType<typeof vi.fn>).mock.calls as unknown[][];
+        const searchCall = calls.find((args) =>
+          typeof args[1] === 'string' && args[1].includes('/rest/api/2/search'),
         );
         expect(searchCall).toBeTruthy();
-        const [, url] = searchCall!;
+        const url = searchCall![1] as string;
         expect(url).toContain('issuekey%20in');
         expect(url).toContain('PROJ-1');
         expect(url).toContain('PROJ-2');
@@ -684,9 +684,9 @@ describe('WorklogsPage', () => {
       await new Promise((r) => setTimeout(r, 100));
 
       const { apiFetch } = await import('@/lib/apiFetch');
-      const calls = (apiFetch as ReturnType<typeof vi.fn>).mock.calls;
-      const searchCall = calls.find(([, url]: [string, string]) =>
-        url.includes('/rest/api/2/search'),
+      const calls = (apiFetch as ReturnType<typeof vi.fn>).mock.calls as unknown[][];
+      const searchCall = calls.find((args) =>
+        typeof args[1] === 'string' && args[1].includes('/rest/api/2/search'),
       );
       expect(searchCall).toBeUndefined();
     });
