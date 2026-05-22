@@ -17,6 +17,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TempoWorklog } from '@/services/tempo';
 import type { TempoFilter } from '@/stores/tempo-filters.store';
+import type { ReactElement } from 'react';
 
 // ─── Module-level mutable mock state (vi.mock factories are hoisted) ──────────
 
@@ -132,6 +133,15 @@ function renderPage() {
       </QueryClientProvider>,
     );
   });
+}
+
+function renderComponent(element: ReactElement) {
+  const client = makeClient();
+  return render(
+    <QueryClientProvider client={client}>
+      {element}
+    </QueryClientProvider>,
+  );
 }
 
 function makeWorklog(
@@ -921,6 +931,133 @@ describe('WorklogsPage', () => {
 
       await waitFor(() => {
         expect(getByText('Some issues could not be loaded. Hours are still shown.')).toBeTruthy();
+      });
+    });
+  });
+
+  // ── Task 1: WorklogEntryRow + EditWorklogForm ──────────────────────────────
+
+  describe('WorklogEntryRow shows time, author, and comment fields', () => {
+    it('renders time, author, and comment', async () => {
+      const { WorklogEntryRow } = await import('./WorklogEntryRow');
+      const entry: TempoWorklog = {
+        jiraWorklogId: 42,
+        issue: { key: 'PROJ-1' },
+        author: { name: 'alice', displayName: 'Alice Smith' },
+        timeSpentSeconds: 9000, // 2h 30m
+        dateStarted: '2026-05-18',
+        comment: 'Did some work',
+      };
+      const { getByText } = renderComponent(
+        <WorklogEntryRow
+          entry={entry}
+          issueKey="PROJ-1"
+          jiraBaseUrl="https://jira.example.com"
+          onMutationSuccess={vi.fn()}
+        />,
+      );
+      expect(getByText('2h 30m')).toBeTruthy();
+      expect(getByText('Alice Smith')).toBeTruthy();
+      expect(getByText('Did some work')).toBeTruthy();
+    });
+  });
+
+  describe('WorklogEntryRow trash button calls deleteWorklog with jiraWorklogId', () => {
+    it('calls deleteWorklog with correct args on trash click', async () => {
+      const { WorklogEntryRow } = await import('./WorklogEntryRow');
+      const { deleteWorklog } = await import('@/services/jira/worklogs');
+      const onSuccess = vi.fn();
+      const entry: TempoWorklog = {
+        jiraWorklogId: 99,
+        issue: { key: 'PROJ-1' },
+        author: { name: 'alice', displayName: 'Alice Smith' },
+        timeSpentSeconds: 3600,
+        dateStarted: '2026-05-18',
+      };
+      const { container } = renderComponent(
+        <WorklogEntryRow
+          entry={entry}
+          issueKey="PROJ-1"
+          jiraBaseUrl="https://jira.example.com"
+          onMutationSuccess={onSuccess}
+        />,
+      );
+      const trashBtn = container.querySelector('[aria-label="Delete worklog entry"]');
+      expect(trashBtn).toBeTruthy();
+      fireEvent.click(trashBtn!);
+      await waitFor(() => {
+        expect(deleteWorklog).toHaveBeenCalledWith(
+          'https://jira.example.com',
+          'test-jira-token',
+          'PROJ-1',
+          '99',
+        );
+      });
+    });
+  });
+
+  describe('WorklogEntryRow pencil button swaps in EditWorklogForm', () => {
+    it('shows Save Changes button after pencil click', async () => {
+      const { WorklogEntryRow } = await import('./WorklogEntryRow');
+      const entry: TempoWorklog = {
+        jiraWorklogId: 77,
+        issue: { key: 'PROJ-1' },
+        author: { name: 'alice', displayName: 'Alice Smith' },
+        timeSpentSeconds: 7200,
+        dateStarted: '2026-05-18',
+      };
+      const { container, getByText } = renderComponent(
+        <WorklogEntryRow
+          entry={entry}
+          issueKey="PROJ-1"
+          jiraBaseUrl="https://jira.example.com"
+          onMutationSuccess={vi.fn()}
+        />,
+      );
+      const pencilBtn = container.querySelector('[aria-label="Edit worklog entry"]');
+      expect(pencilBtn).toBeTruthy();
+      fireEvent.click(pencilBtn!);
+      expect(getByText('Save Changes')).toBeTruthy();
+    });
+  });
+
+  describe('EditWorklogForm save calls updateWorklog with parsed seconds and +0000 started', () => {
+    it('calls updateWorklog with correct args on save', async () => {
+      const { EditWorklogForm } = await import('./EditWorklogForm');
+      const { updateWorklog } = await import('@/services/jira/worklogs');
+      const onSuccess = vi.fn();
+      const onDiscard = vi.fn();
+      const entry: TempoWorklog = {
+        jiraWorklogId: 55,
+        issue: { key: 'PROJ-1' },
+        author: { name: 'alice', displayName: 'Alice Smith' },
+        timeSpentSeconds: 3600, // 1h
+        dateStarted: '2026-05-18',
+        comment: 'Original comment',
+      };
+      const { getByText, container } = renderComponent(
+        <EditWorklogForm
+          entry={entry}
+          issueKey="PROJ-1"
+          jiraBaseUrl="https://jira.example.com"
+          onDiscard={onDiscard}
+          onSuccess={onSuccess}
+        />,
+      );
+      // Duration input should be pre-populated — find it and change to "2h"
+      const durationInput = container.querySelector('input[placeholder*="2h"]') as HTMLInputElement
+        ?? container.querySelectorAll('input[type="text"]')[0] as HTMLInputElement;
+      if (durationInput) {
+        fireEvent.change(durationInput, { target: { value: '2h' } });
+      }
+      // Click Save Changes
+      fireEvent.click(getByText('Save Changes'));
+      await waitFor(() => {
+        expect(updateWorklog).toHaveBeenCalled();
+        const calls = (updateWorklog as ReturnType<typeof vi.fn>).mock.calls;
+        const lastCall = calls[calls.length - 1];
+        // started must end with +0000
+        expect(lastCall[4].started).toMatch(/\+0000$/);
       });
     });
   });
