@@ -13,6 +13,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, Bookmark, BookOpen, ChevronsLeft, ChevronsRight, Clock, GitBranch, Layers, Pencil, Trash2 } from 'lucide-react';
+import { WorklogCellPopover } from './WorklogCellPopover';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
@@ -61,7 +62,7 @@ const NO_EPIC = '__NO_EPIC__';
 // ─── Helpers (outside component for stable references) ────────────────────────
 
 /** D-08: returns '' for zero; 'Xm', 'Xh', or 'Xh Ym' otherwise. */
-function formatSeconds(secs: number): string {
+export function formatSeconds(secs: number): string {
   if (secs === 0) return '';
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs % 3600) / 60);
@@ -75,7 +76,7 @@ function formatSeconds(secs: number): string {
  * Uses new Date(yyyymmdd + 'T00:00:00') to avoid timezone-shift bugs (RESEARCH A1).
  * toLocaleDateString is OK here — used for display label only, not as a data key.
  */
-function formatDayHeader(yyyymmdd: string): string {
+export function formatDayHeader(yyyymmdd: string): string {
   const d = new Date(`${yyyymmdd}T00:00:00`);
   const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
   return `${weekday} ${d.getDate()}`;
@@ -810,14 +811,35 @@ export default function WorklogsPage() {
                           </button>
                         )}
                       </td>
-                      {days.map((day) => (
-                        <td
-                          key={day}
-                          className={`text-right px-4 py-3 border border-border ${dayColClass(dayTypeMap.get(day))}`}
-                        >
-                          {formatSeconds(epicNode.dayMap.get(day) ?? 0)}
-                        </td>
-                      ))}
+                      {days.map((day) => {
+                        const secs = epicNode.dayMap.get(day) ?? 0;
+                        // Epic-direct cells: scope entries to w.issue.key === epicKey only.
+                        // Subtask entries are excluded intentionally — the epic row aggregates
+                        // both direct epic worklogs AND rolled-up subtask hours in its dayMap,
+                        // but the popover should only show entries directly logged against the
+                        // epic itself. Subtask entries are visible in their own subtask row
+                        // popovers. Showing subtask entries here would create confusing duplication.
+                        const cellEntries = (data ?? []).filter(
+                          (w) => w.issue.key === epicKey && w.dateStarted === day,
+                        );
+                        return (
+                          <td
+                            key={day}
+                            className={`text-right px-4 py-3 border border-border ${dayColClass(dayTypeMap.get(day))}`}
+                          >
+                            {secs > 0 ? (
+                              <WorklogCellPopover
+                                issueKey={epicKey}
+                                date={day}
+                                entries={cellEntries}
+                                jiraBaseUrl={jiraBaseUrl!}
+                                totalSeconds={secs}
+                                dayColClassName={dayColClass(dayTypeMap.get(day))}
+                              />
+                            ) : null}
+                          </td>
+                        );
+                      })}
                       <td className="text-right px-4 py-3 border border-border font-semibold">
                         {formatSeconds(issueTotals.get(epicKey) ?? 0)}
                       </td>
@@ -843,14 +865,29 @@ export default function WorklogsPage() {
                               )}
                             </button>
                           </td>
-                          {days.map((day) => (
-                            <td
-                              key={day}
-                              className={`text-right px-4 py-3 border border-border ${dayColClass(dayTypeMap.get(day))}`}
-                            >
-                              {formatSeconds(storyNode.dayMap.get(day) ?? 0)}
-                            </td>
-                          ))}
+                          {days.map((day) => {
+                            const secs = storyNode.dayMap.get(day) ?? 0;
+                            const cellEntries = (data ?? []).filter(
+                              (w) => w.issue.key === storyKey && w.dateStarted === day,
+                            );
+                            return (
+                              <td
+                                key={day}
+                                className={`text-right px-4 py-3 border border-border ${dayColClass(dayTypeMap.get(day))}`}
+                              >
+                                {secs > 0 ? (
+                                  <WorklogCellPopover
+                                    issueKey={storyKey}
+                                    date={day}
+                                    entries={cellEntries}
+                                    jiraBaseUrl={jiraBaseUrl!}
+                                    totalSeconds={secs}
+                                    dayColClassName={dayColClass(dayTypeMap.get(day))}
+                                  />
+                                ) : null}
+                              </td>
+                            );
+                          })}
                           <td className="text-right px-4 py-3 border border-border font-semibold">
                             {formatSeconds(issueTotals.get(storyKey) ?? 0)}
                           </td>
@@ -875,14 +912,29 @@ export default function WorklogsPage() {
                                 )}
                               </button>
                             </td>
-                            {days.map((day) => (
-                              <td
-                                key={day}
-                                className={`text-right px-4 py-3 border border-border ${dayColClass(dayTypeMap.get(day))}`}
-                              >
-                                {formatSeconds(subtaskNode.dayMap.get(day) ?? 0)}
-                              </td>
-                            ))}
+                            {days.map((day) => {
+                              const secs = subtaskNode.dayMap.get(day) ?? 0;
+                              const cellEntries = (data ?? []).filter(
+                                (w) => w.issue.key === subtaskKey && w.dateStarted === day,
+                              );
+                              return (
+                                <td
+                                  key={day}
+                                  className={`text-right px-4 py-3 border border-border ${dayColClass(dayTypeMap.get(day))}`}
+                                >
+                                  {secs > 0 ? (
+                                    <WorklogCellPopover
+                                      issueKey={subtaskKey}
+                                      date={day}
+                                      entries={cellEntries}
+                                      jiraBaseUrl={jiraBaseUrl!}
+                                      totalSeconds={secs}
+                                      dayColClassName={dayColClass(dayTypeMap.get(day))}
+                                    />
+                                  ) : null}
+                                </td>
+                              );
+                            })}
                             <td className="text-right px-4 py-3 border border-border font-semibold">
                               {formatSeconds(issueTotals.get(subtaskKey) ?? 0)}
                             </td>
