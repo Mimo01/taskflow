@@ -12,7 +12,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Bookmark, BookOpen, ChevronsLeft, ChevronsRight, Clock, GitBranch, Layers, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Bookmark, BookOpen, Bug, ChevronsLeft, ChevronsRight, Clock, CornerDownRight, Layers, Pencil, Trash2 } from 'lucide-react';
 import { WorklogCellPopover } from './WorklogCellPopover';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
@@ -166,6 +166,13 @@ function dayColClass(type: ScheduleDayType | undefined): string {
   return '';
 }
 
+/** Returns the icon component + color class for a story-level issue type. */
+function getIssueIcon(name: string | undefined): { IssueIcon: typeof BookOpen; color: string } {
+  const n = (name ?? '').toLowerCase();
+  if (n.includes('bug') || n.includes('defect')) return { IssueIcon: Bug, color: 'text-red-500' };
+  return { IssueIcon: BookOpen, color: 'text-blue-600' };
+}
+
 const DATE_PRESETS: { id: DatePreset; label: string }[] = [
   { id: 'this-week', label: 'This Week' },
   { id: 'last-week', label: 'Last Week' },
@@ -302,6 +309,44 @@ export default function WorklogsPage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // ─ Parent keys for second enrichment (titles of parent epics/stories) ──────
+  // Worklogs are logged against leaf issues; their parent epics/stories may not
+  // be in uniqueKeys, so we discover them from the first enrichment response.
+  const parentKeys = useMemo(() => {
+    if (!enrichQuery.data) return [];
+    const already = new Set(enrichQuery.data.map((i) => i.key));
+    const parents = new Set<string>();
+    for (const issue of enrichQuery.data) {
+      const pk = issue.fields.parent?.key;
+      if (pk && !already.has(pk)) parents.add(pk);
+    }
+    return [...parents].sort();
+  }, [enrichQuery.data]);
+  const parentKeysStr = parentKeys.join(',');
+
+  const parentEnrichQuery = useQuery({
+    queryKey: ['jira', 'worklog-enrich-parents', jiraBaseUrl, parentKeysStr],
+    queryFn: async () => {
+      if (parentKeys.length === 0) return [] as EnrichedIssue[];
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token) throw new Error('No token');
+      const base = jiraBaseUrl!.replace(/\/$/, '');
+      const jql = encodeURIComponent(`issuekey in (${parentKeys.join(',')})`);
+      const url = `${base}/rest/api/2/search?jql=${jql}&fields=summary,issuetype,parent&maxResults=${parentKeys.length}`;
+      const response = await apiFetch(
+        'jira',
+        url,
+        { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } },
+        'Enrich Parent Issues',
+      );
+      if (!response.ok) throw new Error(`Parent enrichment failed: ${response.status}`);
+      const d = await response.json();
+      return d.issues as EnrichedIssue[];
+    },
+    enabled: !!jiraBaseUrl && !!jiraToken && parentKeys.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+
   // ─ Schedule (for weekend/holiday column coloring) ────────────────────────
   const { data: scheduleData } = useQuery({
     queryKey: ['tempo', 'schedule', jiraBaseUrl, from, to, jiraUserKey ?? ''],
@@ -321,12 +366,26 @@ export default function WorklogsPage() {
   const people = userResults ?? [];
 
   // ─ Hierarchy table (TEMPO-08) ─────────────────────────────────────────────
-  const { hierarchy, days, dayTotals, grandTotal, issueTotals, resolvedKeys } = useMemo(() => {
+  const { hierarchy, days, dayTotals, grandTotal, issueTotals, resolvedKeys, enrichMap } = useMemo(() => {
     const daysArr = from && to ? enumerateDays(from, to) : [];
 
-    const enrichMap = new Map<string, EnrichedIssue>(
-      (enrichQuery.data ?? []).map((i) => [i.key, i]),
-    );
+    // Merge direct + parent enrichment; parent enrichment fixes titles of epic/story
+    // rows whose issues have no direct worklogs (e.g. a story logged under subtasks only).
+    const enrichMap = new Map<string, EnrichedIssue>([
+      ...(enrichQuery.data ?? []).map((i): [string, EnrichedIssue] => [i.key, i]),
+      ...(parentEnrichQuery.data ?? []).map((i): [string, EnrichedIssue] => [i.key, i]),
+    ]);
+
+    // summaryMap covers titles of issues not in enrichMap by reading nested parent.fields.summary
+    // (Jira embeds one level of parent summary in the response for free — covers epics of stories).
+    const summaryMap = new Map<string, string>();
+    for (const issue of enrichMap.values()) {
+      summaryMap.set(issue.key, issue.fields.summary);
+      if (issue.fields.parent?.key) {
+        const parentSummary = issue.fields.parent.fields?.summary;
+        if (parentSummary) summaryMap.set(issue.fields.parent.key, parentSummary);
+      }
+    }
 
     // Top-level hierarchy map: epicKey | '__NO_EPIC__' → EpicNode
     const hierarchyMap: HierarchyMap = new Map();
@@ -381,12 +440,9 @@ export default function WorklogsPage() {
         const storyKey = enriched!.fields.parent!.key;
         const storyEnriched = enrichMap.get(storyKey);
         const epicKey = storyEnriched?.fields.parent?.key ?? NO_EPIC;
-        const epicSummary =
-          epicKey === NO_EPIC
-            ? NO_EPIC
-            : (enrichMap.get(epicKey)?.fields.summary ?? epicKey);
-        const storySummary = storyEnriched?.fields.summary ?? storyKey;
-        const subtaskSummary = enriched!.fields.summary;
+        const epicSummary = epicKey === NO_EPIC ? NO_EPIC : (summaryMap.get(epicKey) ?? epicKey);
+        const storySummary = summaryMap.get(storyKey) ?? storyKey;
+        const subtaskSummary = summaryMap.get(issueKey) ?? issueKey;
 
         const epicNode = getOrCreateEpic(epicKey, epicSummary);
         const storyNode = getOrCreateStory(epicNode, storyKey, storySummary);
@@ -405,11 +461,11 @@ export default function WorklogsPage() {
       } else if (hasParent) {
         // Story: parent is epic; if epic not in enrichMap → synthetic NO_EPIC group
         const parentKey = enriched!.fields.parent!.key;
-        const epicEnriched = enrichMap.get(parentKey);
-        // If the epic key itself is not resolvable, route to NO_EPIC group
-        const epicKey = epicEnriched ? parentKey : NO_EPIC;
-        const epicSummary = epicEnriched?.fields.summary ?? NO_EPIC;
-        const storySummary = enriched?.fields.summary ?? issueKey;
+        // Always use the actual epic key; summaryMap provides its title even if not
+        // directly fetched (comes from story.fields.parent.fields.summary in enrichment).
+        const epicKey = parentKey;
+        const epicSummary = summaryMap.get(epicKey) ?? epicKey;
+        const storySummary = summaryMap.get(issueKey) ?? issueKey;
 
         const epicNode = getOrCreateEpic(epicKey, epicSummary);
         const storyNode = getOrCreateStory(epicNode, issueKey, storySummary);
@@ -421,12 +477,17 @@ export default function WorklogsPage() {
 
       } else {
         // Epic (or unresolvable): no parent, not a subtask
-        const epicSummary = enriched?.fields.summary ?? issueKey;
+        const epicSummary = summaryMap.get(issueKey) ?? issueKey;
         const epicNode = getOrCreateEpic(issueKey, epicSummary);
         epicNode.dayMap.set(date, (epicNode.dayMap.get(date) ?? 0) + secs);
         epicNode.entries.push(w);
       }
     }
+
+    // resolvedKeys: keys with a real title (not just the key string as fallback)
+    const resolvedKeys = new Set(
+      [...summaryMap.entries()].filter(([k, v]) => v !== k).map(([k]) => k),
+    );
 
     return {
       hierarchy: hierarchyMap,
@@ -434,9 +495,10 @@ export default function WorklogsPage() {
       dayTotals: dayTotalsMap,
       grandTotal: grandTotalVal,
       issueTotals: issueTotalsMap,
-      resolvedKeys: new Set(enrichMap.keys()),
+      resolvedKeys,
+      enrichMap,
     };
-  }, [data, enrichQuery.data, from, to]);
+  }, [data, enrichQuery.data, parentEnrichQuery.data, from, to]);
 
   // ─ Combobox handlers ──────────────────────────────────────────────────────
   function handleComboboxFocus() {
@@ -708,74 +770,62 @@ export default function WorklogsPage() {
         </Alert>
       )}
 
-      {/* Table area */}
-      <div className="flex-1 overflow-auto px-6 py-4">
+      {/* Table area — border-separate fixes sticky-cell bleed-through (#5 in feedback) */}
+      <div className="flex-1 overflow-auto min-h-0">
         {isError && !data ? (
           <ErrorState error={error} onRetry={refetch} viewName="worklogs" />
         ) : isLoading && !data ? (
-          /* Loading skeleton grid: 5 rows × days columns */
-          <table className="w-full text-xs border-collapse">
+          <table className="w-full text-xs border-separate [border-spacing:0]">
             <thead>
-              <tr>
-                <th className="sticky top-0 left-0 z-30 bg-background text-left px-4 py-3 border border-border min-w-48 font-semibold text-muted-foreground">
-                  Issue
-                </th>
+              <tr className="bg-muted/60">
+                <th className="sticky top-0 left-0 z-30 bg-muted/60 text-left px-3 py-2 border border-border min-w-56 font-semibold text-foreground/70 uppercase tracking-wide text-[10px]">Issue</th>
                 {Array.from({ length: days.length || 7 }, (_, i) => (
-                  <th key={i} className="sticky top-0 z-20 bg-background text-right px-4 py-3 border border-border min-w-14 font-semibold text-muted-foreground">
-                    <Skeleton className="h-4 w-10 ml-auto" />
-                  </th>
+                  <th key={i} className="sticky top-0 z-20 bg-muted/60 text-center px-2 py-2 border border-border min-w-14"><Skeleton className="h-3 w-8 mx-auto" /></th>
                 ))}
-                <th className="sticky top-0 z-20 bg-background text-right px-4 py-3 border border-border min-w-18 font-semibold">
-                  Total
-                </th>
+                <th className="sticky top-0 z-20 bg-muted/60 text-center px-2 py-2 border border-border min-w-16 font-semibold text-foreground/70 uppercase tracking-wide text-[10px]">Total</th>
               </tr>
             </thead>
             <tbody>
-              {Array.from({ length: 5 }, (_, rowIdx) => (
-                <tr key={rowIdx}>
-                  <td className="sticky left-0 z-10 bg-background px-4 py-3 border border-border">
-                    <Skeleton className="h-4 w-24" />
-                  </td>
-                  {Array.from({ length: days.length || 7 }, (_, colIdx) => (
-                    <td key={colIdx} className="text-right px-4 py-3 border border-border">
-                      <Skeleton className="h-4 w-10 ml-auto" />
-                    </td>
+              {Array.from({ length: 5 }, (_, r) => (
+                <tr key={r}>
+                  <td className="sticky left-0 z-10 bg-background px-3 py-2 border border-border"><Skeleton className="h-3 w-28" /></td>
+                  {Array.from({ length: days.length || 7 }, (_, c) => (
+                    <td key={c} className="text-center px-2 py-2 border border-border"><Skeleton className="h-3 w-8 mx-auto" /></td>
                   ))}
-                  <td className="text-right px-4 py-3 border border-border">
-                    <Skeleton className="h-4 w-10 ml-auto" />
-                  </td>
+                  <td className="text-center px-2 py-2 border border-border"><Skeleton className="h-3 w-8 mx-auto" /></td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : data?.length === 0 ? (
-          <EmptyState
-            icon={Clock}
-            title="No worklogs found"
-            subtitle={
-              selectedDisplayName
-                ? `No hours logged for ${selectedDisplayName} in the selected period.`
-                : 'No hours were logged in the selected date range.'
-            }
-          />
+          <div className="px-6 py-4">
+            <EmptyState
+              icon={Clock}
+              title="No worklogs found"
+              subtitle={
+                selectedDisplayName
+                  ? `No hours logged for ${selectedDisplayName} in the selected period.`
+                  : 'No hours were logged in the selected date range.'
+              }
+            />
+          </div>
         ) : (
-          /* TEMPO-08: Epic → Story → Subtask hierarchy table with sticky header + first column */
-          <table className="w-full text-xs border-collapse">
+          /* TEMPO-08: Epic → Story → Subtask hierarchy table */
+          <table className="w-full text-xs border-separate [border-spacing:0]">
             <thead>
-              <tr>
-                {/* Corner cell: sticky both top and left at z-30 */}
-                <th className="sticky top-0 left-0 z-30 bg-background text-left px-4 py-3 border border-border min-w-48 font-semibold text-muted-foreground">
+              <tr className="bg-muted/60">
+                <th className="sticky top-0 left-0 z-30 bg-muted/60 text-left px-3 py-2 border border-border min-w-56 font-semibold text-foreground/70 uppercase tracking-wide text-[10px]">
                   Issue
                 </th>
                 {days.map((day) => (
                   <th
                     key={day}
-                    className={`sticky top-0 z-20 bg-background text-right px-4 py-3 border border-border min-w-14 font-semibold text-muted-foreground ${dayColClass(dayTypeMap.get(day))}`}
+                    className={`sticky top-0 z-20 bg-muted/60 text-center px-2 py-2 border border-border min-w-14 font-semibold text-foreground/70 ${dayColClass(dayTypeMap.get(day))}`}
                   >
                     {formatDayHeader(day)}
                   </th>
                 ))}
-                <th className="sticky top-0 z-20 bg-background text-right px-4 py-3 border border-border min-w-18 font-semibold">
+                <th className="sticky top-0 z-20 bg-muted/60 text-center px-2 py-2 border border-border min-w-16 font-semibold text-foreground/70 uppercase tracking-wide text-[10px]">
                   Total
                 </th>
               </tr>
@@ -787,95 +837,96 @@ export default function WorklogsPage() {
 
                 return (
                   <>
-                    {/* Epic header row */}
+                    {/* Epic row — purple tint */}
                     <tr
                       key={`epic-${epicKey}`}
-                      className={isNoEpic ? '' : 'hover:bg-accent/50 cursor-pointer'}
+                      className={isNoEpic
+                        ? 'bg-muted/20'
+                        : 'bg-purple-50/60 dark:bg-purple-950/25 hover:bg-purple-100/70 dark:hover:bg-purple-900/35 cursor-pointer'}
                     >
-                      <td
-                        className={`sticky left-0 z-10 bg-background px-4 py-3 border border-border ${isNoEpic ? 'bg-muted/40 font-semibold text-muted-foreground italic' : 'bg-muted/40 font-semibold'}`}
-                      >
+                      <td className={`sticky left-0 z-10 ${isNoEpic ? 'bg-muted/20' : 'bg-purple-50/60 dark:bg-purple-950/25'} px-3 py-1.5 border border-border`}>
                         {isNoEpic ? (
-                          <span className="font-semibold text-muted-foreground italic">No Epic</span>
+                          <span className="flex items-center gap-1 text-muted-foreground italic text-[11px]">
+                            <Layers className="size-3 shrink-0 text-muted-foreground/40" />
+                            No Epic
+                          </span>
                         ) : (
                           <button
                             type="button"
                             aria-label={`Open ${epicKey}`}
                             onClick={() => onIssueClick(epicKey)}
-                            className="inline-flex items-center text-left"
+                            className="flex flex-col items-start text-left w-full"
                           >
-                            <Layers className="inline size-3 text-purple-500 mr-1 shrink-0" />
-                            {isResolved ? epicNode.summary : (
-                              <span className="text-xs text-muted-foreground line-through">{epicKey}</span>
-                            )}
+                            <span className="flex items-center gap-1">
+                              <Layers className="size-3 shrink-0 text-purple-600 dark:text-purple-400" />
+                              <span className="font-semibold leading-tight">
+                                {isResolved ? epicNode.summary : <span className="line-through text-muted-foreground">{epicKey}</span>}
+                              </span>
+                            </span>
+                            <span className="text-[10px] text-muted-foreground leading-tight ml-4">{epicKey}</span>
+                            <span className="text-[10px] text-purple-600/70 dark:text-purple-400/70 leading-tight ml-4 font-medium">
+                              {formatSeconds(issueTotals.get(epicKey) ?? 0) || '—'}
+                            </span>
                           </button>
                         )}
                       </td>
                       {days.map((day) => {
                         const secs = epicNode.dayMap.get(day) ?? 0;
-                        // Epic-direct cells: scope entries to w.issue.key === epicKey only.
-                        // Subtask entries are excluded intentionally — the epic row aggregates
-                        // both direct epic worklogs AND rolled-up subtask hours in its dayMap,
-                        // but the popover should only show entries directly logged against the
-                        // epic itself. Subtask entries are visible in their own subtask row
-                        // popovers. Showing subtask entries here would create confusing duplication.
+                        // Epic-direct entries only — rolled-up subtask hours visible in subtask rows
                         const cellEntries = (data ?? []).filter(
                           (w) => w.issue.key === epicKey && w.dateStarted === day,
                         );
                         return (
-                          <td
-                            key={day}
-                            className={`text-right px-4 py-3 border border-border ${dayColClass(dayTypeMap.get(day))}`}
-                          >
-                            {secs > 0 ? (
-                              <WorklogCellPopover
-                                issueKey={epicKey}
-                                date={day}
-                                entries={cellEntries}
-                                jiraBaseUrl={jiraBaseUrl!}
-                                totalSeconds={secs}
-                                dayColClassName={dayColClass(dayTypeMap.get(day))}
-                              />
-                            ) : null}
+                          <td key={day} className={`border border-border p-0 ${dayColClass(dayTypeMap.get(day))}`}>
+                            <WorklogCellPopover
+                              issueKey={epicKey}
+                              date={day}
+                              entries={cellEntries}
+                              jiraBaseUrl={jiraBaseUrl!}
+                              totalSeconds={secs}
+                              dayColClassName={dayColClass(dayTypeMap.get(day))}
+                            />
                           </td>
                         );
                       })}
-                      <td className="text-right px-4 py-3 border border-border font-semibold">
-                        {formatSeconds(issueTotals.get(epicKey) ?? 0)}
+                      <td className="text-center px-2 py-1.5 border border-border font-semibold text-purple-700 dark:text-purple-300">
+                        {formatSeconds(issueTotals.get(epicKey) ?? 0) || '—'}
                       </td>
                     </tr>
 
-                    {/* Story rows under this epic */}
-                    {Array.from(epicNode.stories.entries()).map(([storyKey, storyNode]) => (
-                      <>
-                        <tr
-                          key={`story-${storyKey}`}
-                          className="hover:bg-accent/50 cursor-pointer"
-                        >
-                          <td className="sticky left-0 z-10 bg-background px-4 py-3 border border-border">
-                            <button
-                              type="button"
-                              aria-label={`Open ${storyKey}`}
-                              onClick={() => onIssueClick(storyKey)}
-                              className="inline-flex items-center text-left pl-4"
-                            >
-                              <BookOpen className="inline size-3 text-blue-500 mr-1 shrink-0" />
-                              {resolvedKeys.has(storyKey) ? storyNode.summary : (
-                                <span className="text-xs text-muted-foreground line-through">{storyKey}</span>
-                              )}
-                            </button>
-                          </td>
-                          {days.map((day) => {
-                            const secs = storyNode.dayMap.get(day) ?? 0;
-                            const cellEntries = (data ?? []).filter(
-                              (w) => w.issue.key === storyKey && w.dateStarted === day,
-                            );
-                            return (
-                              <td
-                                key={day}
-                                className={`text-right px-4 py-3 border border-border ${dayColClass(dayTypeMap.get(day))}`}
+                    {/* Story rows */}
+                    {Array.from(epicNode.stories.entries()).map(([storyKey, storyNode]) => {
+                      const storyIssuetype = enrichMap.get(storyKey)?.fields.issuetype.name;
+                      const { IssueIcon: StoryIcon, color: storyColor } = getIssueIcon(storyIssuetype);
+                      return (
+                        <>
+                          <tr key={`story-${storyKey}`} className="hover:bg-accent/50 cursor-pointer">
+                            <td className="sticky left-0 z-10 bg-background px-3 py-1.5 border border-border">
+                              <button
+                                type="button"
+                                aria-label={`Open ${storyKey}`}
+                                onClick={() => onIssueClick(storyKey)}
+                                className="flex flex-col items-start text-left w-full pl-3"
                               >
-                                {secs > 0 ? (
+                                <span className="flex items-center gap-1">
+                                  <StoryIcon className={`size-3 shrink-0 ${storyColor}`} />
+                                  <span className="font-medium leading-tight">
+                                    {resolvedKeys.has(storyKey) ? storyNode.summary : <span className="line-through text-muted-foreground">{storyKey}</span>}
+                                  </span>
+                                </span>
+                                <span className="text-[10px] text-muted-foreground leading-tight ml-4">{storyKey}</span>
+                                <span className="text-[10px] text-muted-foreground/80 leading-tight ml-4">
+                                  {formatSeconds(issueTotals.get(storyKey) ?? 0) || '—'}
+                                </span>
+                              </button>
+                            </td>
+                            {days.map((day) => {
+                              const secs = storyNode.dayMap.get(day) ?? 0;
+                              const cellEntries = (data ?? []).filter(
+                                (w) => w.issue.key === storyKey && w.dateStarted === day,
+                              );
+                              return (
+                                <td key={day} className={`border border-border p-0 ${dayColClass(dayTypeMap.get(day))}`}>
                                   <WorklogCellPopover
                                     issueKey={storyKey}
                                     date={day}
@@ -884,45 +935,43 @@ export default function WorklogsPage() {
                                     totalSeconds={secs}
                                     dayColClassName={dayColClass(dayTypeMap.get(day))}
                                   />
-                                ) : null}
-                              </td>
-                            );
-                          })}
-                          <td className="text-right px-4 py-3 border border-border font-semibold">
-                            {formatSeconds(issueTotals.get(storyKey) ?? 0)}
-                          </td>
-                        </tr>
-
-                        {/* Subtask rows under this story */}
-                        {Array.from(storyNode.subtasks.entries()).map(([subtaskKey, subtaskNode]) => (
-                          <tr
-                            key={`subtask-${subtaskKey}`}
-                            className="hover:bg-accent/50 cursor-pointer"
-                          >
-                            <td className="sticky left-0 z-10 bg-background px-4 py-3 border border-border">
-                              <button
-                                type="button"
-                                aria-label={`Open ${subtaskKey}`}
-                                onClick={() => onIssueClick(subtaskKey)}
-                                className="inline-flex items-center text-left pl-8 text-muted-foreground"
-                              >
-                                <GitBranch className="inline size-3 text-muted-foreground mr-1 shrink-0" />
-                                {resolvedKeys.has(subtaskKey) ? subtaskNode.summary : (
-                                  <span className="text-xs text-muted-foreground line-through">{subtaskKey}</span>
-                                )}
-                              </button>
-                            </td>
-                            {days.map((day) => {
-                              const secs = subtaskNode.dayMap.get(day) ?? 0;
-                              const cellEntries = (data ?? []).filter(
-                                (w) => w.issue.key === subtaskKey && w.dateStarted === day,
+                                </td>
                               );
-                              return (
-                                <td
-                                  key={day}
-                                  className={`text-right px-4 py-3 border border-border ${dayColClass(dayTypeMap.get(day))}`}
+                            })}
+                            <td className="text-center px-2 py-1.5 border border-border font-semibold">
+                              {formatSeconds(issueTotals.get(storyKey) ?? 0) || '—'}
+                            </td>
+                          </tr>
+
+                          {/* Subtask rows */}
+                          {Array.from(storyNode.subtasks.entries()).map(([subtaskKey, subtaskNode]) => (
+                            <tr key={`subtask-${subtaskKey}`} className="hover:bg-accent/40 cursor-pointer">
+                              <td className="sticky left-0 z-10 bg-background px-3 py-1.5 border border-border">
+                                <button
+                                  type="button"
+                                  aria-label={`Open ${subtaskKey}`}
+                                  onClick={() => onIssueClick(subtaskKey)}
+                                  className="flex flex-col items-start text-left w-full pl-6"
                                 >
-                                  {secs > 0 ? (
+                                  <span className="flex items-center gap-1 text-muted-foreground">
+                                    <CornerDownRight className="size-3 shrink-0 text-teal-500" />
+                                    <span className="leading-tight">
+                                      {resolvedKeys.has(subtaskKey) ? subtaskNode.summary : <span className="line-through">{subtaskKey}</span>}
+                                    </span>
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground/60 leading-tight ml-4">{subtaskKey}</span>
+                                  <span className="text-[10px] text-muted-foreground/60 leading-tight ml-4">
+                                    {formatSeconds(issueTotals.get(subtaskKey) ?? 0) || '—'}
+                                  </span>
+                                </button>
+                              </td>
+                              {days.map((day) => {
+                                const secs = subtaskNode.dayMap.get(day) ?? 0;
+                                const cellEntries = (data ?? []).filter(
+                                  (w) => w.issue.key === subtaskKey && w.dateStarted === day,
+                                );
+                                return (
+                                  <td key={day} className={`border border-border p-0 ${dayColClass(dayTypeMap.get(day))}`}>
                                     <WorklogCellPopover
                                       issueKey={subtaskKey}
                                       date={day}
@@ -931,35 +980,35 @@ export default function WorklogsPage() {
                                       totalSeconds={secs}
                                       dayColClassName={dayColClass(dayTypeMap.get(day))}
                                     />
-                                  ) : null}
-                                </td>
-                              );
-                            })}
-                            <td className="text-right px-4 py-3 border border-border font-semibold">
-                              {formatSeconds(issueTotals.get(subtaskKey) ?? 0)}
-                            </td>
-                          </tr>
-                        ))}
-                      </>
-                    ))}
+                                  </td>
+                                );
+                              })}
+                              <td className="text-center px-2 py-1.5 border border-border font-semibold text-muted-foreground">
+                                {formatSeconds(issueTotals.get(subtaskKey) ?? 0) || '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </>
+                      );
+                    })}
                   </>
                 );
               })}
             </tbody>
             <tfoot>
-              <tr className="bg-muted">
-                <td className="sticky left-0 bottom-0 z-20 bg-background px-4 py-3 border border-border font-semibold">
+              <tr>
+                <td className="sticky left-0 bottom-0 z-20 bg-muted/80 px-3 py-1.5 border border-border font-semibold uppercase tracking-wide text-[10px] text-foreground/70">
                   Total
                 </td>
                 {days.map((day) => (
                   <td
                     key={day}
-                    className={`text-right px-4 py-3 border border-border font-semibold ${dayColClass(dayTypeMap.get(day))}`}
+                    className={`sticky bottom-0 z-10 bg-muted/80 text-center px-2 py-1.5 border border-border font-semibold ${dayColClass(dayTypeMap.get(day))}`}
                   >
                     {formatSeconds(dayTotals.get(day) ?? 0)}
                   </td>
                 ))}
-                <td className="text-right px-4 py-3 border border-border font-semibold">
+                <td className="sticky bottom-0 z-10 bg-muted/80 text-center px-2 py-1.5 border border-border font-semibold">
                   {formatSeconds(grandTotal)}
                 </td>
               </tr>
