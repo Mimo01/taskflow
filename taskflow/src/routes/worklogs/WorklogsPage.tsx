@@ -46,6 +46,8 @@ type EnrichedIssue = {
     summary: string;
     issuetype: { name: string; subtask: boolean };
     parent?: { key: string; fields: { summary: string } };
+    // Classic Jira projects use Epic Link custom field instead of parent for story→epic
+    customfield_10014?: string | null;
   };
 };
 
@@ -294,7 +296,8 @@ export default function WorklogsPage() {
       if (!token) throw new Error('No token');
       const base = jiraBaseUrl!.replace(/\/$/, '');
       const jql = encodeURIComponent(`issuekey in (${uniqueKeys.join(',')})`);
-      const url = `${base}/rest/api/2/search?jql=${jql}&fields=summary,issuetype,parent&maxResults=${uniqueKeys.length}`;
+      // customfield_10014 = Epic Link (classic Jira); parent = epic link (next-gen Jira)
+      const url = `${base}/rest/api/2/search?jql=${jql}&fields=summary,issuetype,parent,customfield_10014&maxResults=${uniqueKeys.length}`;
       const response = await apiFetch(
         'jira',
         url,
@@ -317,7 +320,8 @@ export default function WorklogsPage() {
     const already = new Set(enrichQuery.data.map((i) => i.key));
     const parents = new Set<string>();
     for (const issue of enrichQuery.data) {
-      const pk = issue.fields.parent?.key;
+      // next-gen: parent.key; classic: customfield_10014 (Epic Link string)
+      const pk = issue.fields.parent?.key ?? issue.fields.customfield_10014 ?? null;
       if (pk && !already.has(pk)) parents.add(pk);
     }
     return [...parents].sort();
@@ -332,7 +336,7 @@ export default function WorklogsPage() {
       if (!token) throw new Error('No token');
       const base = jiraBaseUrl!.replace(/\/$/, '');
       const jql = encodeURIComponent(`issuekey in (${parentKeys.join(',')})`);
-      const url = `${base}/rest/api/2/search?jql=${jql}&fields=summary,issuetype,parent&maxResults=${parentKeys.length}`;
+      const url = `${base}/rest/api/2/search?jql=${jql}&fields=summary,issuetype,parent,customfield_10014&maxResults=${parentKeys.length}`;
       const response = await apiFetch(
         'jira',
         url,
@@ -428,7 +432,9 @@ export default function WorklogsPage() {
 
       // Issue classification (Pitfall 3: never use issuetype.name === 'Epic')
       const isSubtask = enriched?.fields.issuetype.subtask === true;
-      const hasParent = !!enriched?.fields.parent?.key;
+      // next-gen Jira: parent.key; classic Jira: customfield_10014 (Epic Link string)
+      const parentKeyRaw = enriched?.fields.parent?.key ?? enriched?.fields.customfield_10014 ?? null;
+      const hasParent = !!parentKeyRaw;
 
       // Accumulate into issueTotals and dayTotals (grand total)
       issueTotalsMap.set(issueKey, (issueTotalsMap.get(issueKey) ?? 0) + secs);
@@ -436,10 +442,13 @@ export default function WorklogsPage() {
       grandTotalVal += secs;
 
       if (isSubtask) {
-        // Subtask: parent is story; story's parent is epic
+        // Subtask: parent is story; story's parent is epic (next-gen or classic)
         const storyKey = enriched!.fields.parent!.key;
         const storyEnriched = enrichMap.get(storyKey);
-        const epicKey = storyEnriched?.fields.parent?.key ?? NO_EPIC;
+        const epicKey =
+          storyEnriched?.fields.parent?.key ??
+          storyEnriched?.fields.customfield_10014 ??
+          NO_EPIC;
         const epicSummary = epicKey === NO_EPIC ? NO_EPIC : (summaryMap.get(epicKey) ?? epicKey);
         const storySummary = summaryMap.get(storyKey) ?? storyKey;
         const subtaskSummary = summaryMap.get(issueKey) ?? issueKey;
@@ -459,11 +468,8 @@ export default function WorklogsPage() {
         epicNode.dayMap.set(date, (epicNode.dayMap.get(date) ?? 0) + secs);
 
       } else if (hasParent) {
-        // Story: parent is epic; if epic not in enrichMap → synthetic NO_EPIC group
-        const parentKey = enriched!.fields.parent!.key;
-        // Always use the actual epic key; summaryMap provides its title even if not
-        // directly fetched (comes from story.fields.parent.fields.summary in enrichment).
-        const epicKey = parentKey;
+        // Story: parent is epic via parent.key (next-gen) or customfield_10014 (classic)
+        const epicKey = parentKeyRaw!;
         const epicSummary = summaryMap.get(epicKey) ?? epicKey;
         const storySummary = summaryMap.get(issueKey) ?? issueKey;
 
