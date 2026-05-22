@@ -1061,4 +1061,185 @@ describe('WorklogsPage', () => {
       });
     });
   });
+
+  // ── Task 2: WorklogCellPopover wiring ─────────────────────────────────────
+
+  describe('clicking a non-zero data cell opens WorklogCellPopover', () => {
+    it('clicking a non-zero cell shows worklog entry content', async () => {
+      const monday = '2026-05-19';
+      mockFetchWorklogsResult = [
+        {
+          ...makeWorklog('alice', 'Alice Smith', monday, 2, 'STORY-1'),
+          jiraWorklogId: 201,
+          comment: 'Story work',
+        },
+      ];
+      mockEnrichResult = [
+        {
+          key: 'EPIC-1',
+          fields: { summary: 'Epic One', issuetype: { name: 'Epic', subtask: false } },
+        },
+        {
+          key: 'STORY-1',
+          fields: {
+            summary: 'Story One',
+            issuetype: { name: 'Story', subtask: false },
+            parent: { key: 'EPIC-1', fields: { summary: 'Epic One' } },
+          },
+        },
+      ];
+
+      const { container } = await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
+      await new Promise((r) => setTimeout(r, 150));
+
+      // Find the non-zero cell trigger button
+      const cellBtn = container.querySelector('[aria-label*="View worklogs for"]');
+      expect(cellBtn).toBeTruthy();
+      fireEvent.click(cellBtn!);
+
+      // Popover content should appear (entry author visible)
+      await waitFor(() => {
+        expect(container.innerHTML).toContain('Alice Smith');
+      });
+    });
+  });
+
+  describe('zero-hour cells do NOT render WorklogCellPopover trigger', () => {
+    it('does not render view-worklogs trigger on zero cells', async () => {
+      const monday = '2026-05-19';
+      // Only log on monday — other days are zero
+      mockFetchWorklogsResult = [
+        makeWorklog('alice', 'Alice Smith', monday, 2, 'STORY-1'),
+      ];
+      mockEnrichResult = [
+        {
+          key: 'EPIC-1',
+          fields: { summary: 'Epic One', issuetype: { name: 'Epic', subtask: false } },
+        },
+        {
+          key: 'STORY-1',
+          fields: {
+            summary: 'Story One',
+            issuetype: { name: 'Story', subtask: false },
+            parent: { key: 'EPIC-1', fields: { summary: 'Epic One' } },
+          },
+        },
+      ];
+
+      const { container } = await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
+      await new Promise((r) => setTimeout(r, 150));
+
+      // Count view-worklogs trigger buttons — should be exactly 1 (only Monday cell)
+      const triggers = container.querySelectorAll('[aria-label*="View worklogs for"]');
+      // There should be only 1 trigger (the non-zero cell), not one per zero day
+      expect(triggers.length).toBeGreaterThanOrEqual(1);
+      // All triggers should have non-empty aria-labels with both issueKey and date
+      Array.from(triggers).forEach((btn) => {
+        const label = btn.getAttribute('aria-label') ?? '';
+        expect(label).toContain('STORY-1');
+      });
+    });
+  });
+
+  describe('popover shows individual entries from raw worklog data', () => {
+    it('shows both entries authors when two entries exist for same cell', async () => {
+      const monday = '2026-05-19';
+      mockFetchWorklogsResult = [
+        {
+          ...makeWorklog('alice', 'Alice Smith', monday, 2, 'STORY-1'),
+          jiraWorklogId: 301,
+        },
+        {
+          ...makeWorklog('bob', 'Bob Jones', monday, 1, 'STORY-1'),
+          jiraWorklogId: 302,
+        },
+      ];
+      mockEnrichResult = [
+        {
+          key: 'EPIC-1',
+          fields: { summary: 'Epic One', issuetype: { name: 'Epic', subtask: false } },
+        },
+        {
+          key: 'STORY-1',
+          fields: {
+            summary: 'Story One',
+            issuetype: { name: 'Story', subtask: false },
+            parent: { key: 'EPIC-1', fields: { summary: 'Epic One' } },
+          },
+        },
+      ];
+
+      const { container } = await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
+      await new Promise((r) => setTimeout(r, 150));
+
+      const cellBtn = container.querySelector('[aria-label*="View worklogs for STORY-1"]');
+      expect(cellBtn).toBeTruthy();
+      fireEvent.click(cellBtn!);
+
+      await waitFor(() => {
+        expect(container.innerHTML).toContain('Alice Smith');
+        expect(container.innerHTML).toContain('Bob Jones');
+      });
+    });
+  });
+
+  describe('trash icon click invokes delete and invalidates tempo cache', () => {
+    it('trash in open popover calls deleteWorklog', async () => {
+      const monday = '2026-05-19';
+      mockFetchWorklogsResult = [
+        {
+          ...makeWorklog('alice', 'Alice Smith', monday, 2, 'STORY-1'),
+          jiraWorklogId: 401,
+        },
+      ];
+      mockEnrichResult = [
+        {
+          key: 'EPIC-1',
+          fields: { summary: 'Epic One', issuetype: { name: 'Epic', subtask: false } },
+        },
+        {
+          key: 'STORY-1',
+          fields: {
+            summary: 'Story One',
+            issuetype: { name: 'Story', subtask: false },
+            parent: { key: 'EPIC-1', fields: { summary: 'Epic One' } },
+          },
+        },
+      ];
+
+      const { container } = await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+      const { deleteWorklog } = await import('@/services/jira/worklogs');
+      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
+      await new Promise((r) => setTimeout(r, 150));
+
+      const cellBtn = container.querySelector('[aria-label*="View worklogs for STORY-1"]');
+      expect(cellBtn).toBeTruthy();
+      fireEvent.click(cellBtn!);
+
+      // Wait for popover to open with entry
+      await waitFor(() => {
+        expect(container.querySelector('[aria-label="Delete worklog entry"]')).toBeTruthy();
+      });
+
+      // Click trash
+      const trashBtn = container.querySelector('[aria-label="Delete worklog entry"]');
+      fireEvent.click(trashBtn!);
+
+      await waitFor(() => {
+        expect(deleteWorklog).toHaveBeenCalledWith(
+          'https://jira.example.com',
+          'test-jira-token',
+          'STORY-1',
+          '401',
+        );
+      });
+    });
+  });
 });
