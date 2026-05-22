@@ -466,10 +466,10 @@ describe('WorklogsPage', () => {
       const bodyRows = container.querySelectorAll('tbody tr');
       expect(bodyRows.length).toBeGreaterThanOrEqual(1);
 
-      // Last cell in the first data row should be the Total = 7h
+      // Time column (index 2) in the first data row should be the rolled-up total = 7h
       const firstDataRow = bodyRows[0];
       const cells = firstDataRow.querySelectorAll('td');
-      const totalCell = cells[cells.length - 1];
+      const totalCell = cells[2]; // Title(0), Key(1), Time(2)
       expect(totalCell.textContent).toBe('7h');
     });
 
@@ -520,7 +520,7 @@ describe('WorklogsPage', () => {
 
       const footRows = container.querySelectorAll('tfoot tr');
       const footCells = footRows[0].querySelectorAll('td');
-      const grandTotalCell = footCells[footCells.length - 1];
+      const grandTotalCell = footCells[2]; // Title(0), Key(1), Time/grandTotal(2)
       expect(grandTotalCell.textContent).toBe('7h');
     });
   });
@@ -810,9 +810,9 @@ describe('WorklogsPage', () => {
       expect(lineThrough).toBeTruthy();
       expect(lineThrough!.textContent).toContain('KEY-X');
 
-      // Grand total should include KEY-X's 3h
+      // Grand total (Time column footer, index 2) should include KEY-X's 3h
       const footCells = container.querySelectorAll('tfoot td');
-      const grandTotal = footCells[footCells.length - 1];
+      const grandTotal = footCells[2]; // Title(0), Key(1), Time/grandTotal(2)
       expect(grandTotal.textContent).toBe('3h');
     });
 
