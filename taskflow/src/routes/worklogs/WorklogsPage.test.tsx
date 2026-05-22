@@ -12,7 +12,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TempoWorklog } from '@/services/tempo';
@@ -1097,11 +1097,11 @@ describe('WorklogsPage', () => {
       // Find the non-zero cell trigger button
       const cellBtn = container.querySelector('[aria-label*="View worklogs for"]');
       expect(cellBtn).toBeTruthy();
-      fireEvent.click(cellBtn!);
+      await act(async () => { fireEvent.click(cellBtn!); });
 
-      // Popover content should appear (entry author visible)
+      // Popover content renders in a portal — check document.body via screen
       await waitFor(() => {
-        expect(container.innerHTML).toContain('Alice Smith');
+        expect(document.body.innerHTML).toContain('Alice Smith');
       });
     });
   });
@@ -1180,11 +1180,11 @@ describe('WorklogsPage', () => {
 
       const cellBtn = container.querySelector('[aria-label*="View worklogs for STORY-1"]');
       expect(cellBtn).toBeTruthy();
-      fireEvent.click(cellBtn!);
+      await act(async () => { fireEvent.click(cellBtn!); });
 
       await waitFor(() => {
-        expect(container.innerHTML).toContain('Alice Smith');
-        expect(container.innerHTML).toContain('Bob Jones');
+        expect(document.body.innerHTML).toContain('Alice Smith');
+        expect(document.body.innerHTML).toContain('Bob Jones');
       });
     });
   });
@@ -1221,16 +1221,16 @@ describe('WorklogsPage', () => {
 
       const cellBtn = container.querySelector('[aria-label*="View worklogs for STORY-1"]');
       expect(cellBtn).toBeTruthy();
-      fireEvent.click(cellBtn!);
+      await act(async () => { fireEvent.click(cellBtn!); });
 
-      // Wait for popover to open with entry
+      // Wait for popover to open with entry (portal renders in document.body)
       await waitFor(() => {
-        expect(container.querySelector('[aria-label="Delete worklog entry"]')).toBeTruthy();
+        expect(document.body.querySelector('[aria-label="Delete worklog entry"]')).toBeTruthy();
       });
 
       // Click trash
-      const trashBtn = container.querySelector('[aria-label="Delete worklog entry"]');
-      fireEvent.click(trashBtn!);
+      const trashBtn = document.body.querySelector('[aria-label="Delete worklog entry"]');
+      await act(async () => { fireEvent.click(trashBtn!); });
 
       await waitFor(() => {
         expect(deleteWorklog).toHaveBeenCalledWith(
