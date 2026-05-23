@@ -122,7 +122,14 @@ export default function SidebarItemsList() {
       <SortableContext items={allItemIds} strategy={verticalListSortingStrategy}>
         <div className="flex flex-col gap-4">
           {SIDEBAR_SECTIONS.map((section) => {
-            const sectionItems = SIDEBAR_NAV_ITEMS.filter((nav) => nav.section === section.id);
+            // Render items in sidebarItems store order (not static SIDEBAR_NAV_ITEMS order)
+            // so the DOM order always mirrors the SortableContext items array.
+            const sectionItems = sidebarItems
+              .map((si) => SIDEBAR_NAV_ITEMS.find((nav) => nav.id === si.id))
+              .filter(
+                (nav): nav is (typeof SIDEBAR_NAV_ITEMS)[number] =>
+                  nav !== undefined && nav.section === section.id,
+              );
             if (sectionItems.length === 0) return null;
 
             return (
