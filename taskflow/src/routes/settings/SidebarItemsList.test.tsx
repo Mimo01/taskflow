@@ -23,7 +23,7 @@ vi.mock('@tauri-apps/plugin-store', () => {
 });
 
 import { act } from '@testing-library/react';
-import { DEV_SIDEBAR_PRESET, SIDEBAR_NAV_ITEMS } from '@/components/app/sidebar-items';
+import { SIDEBAR_NAV_ITEMS, getDefaultSidebarItems } from '@/components/app/sidebar-items';
 import { useSettingsStore } from '@/stores/settings.store';
 import SidebarItemsList from './SidebarItemsList';
 
@@ -37,7 +37,7 @@ describe('SidebarItemsList', () => {
 
     act(() => {
       useSettingsStore.setState({
-        sidebarItems: DEV_SIDEBAR_PRESET.map((item) => ({ ...item })),
+        sidebarItems: getDefaultSidebarItems().map((item) => ({ ...item })),
         setSidebarItemVisible,
         reorderSidebarItem,
       } as any);
@@ -58,7 +58,7 @@ describe('SidebarItemsList', () => {
     const checkboxes = screen.getAllByRole('checkbox');
     expect(checkboxes.length).toBeGreaterThanOrEqual(SIDEBAR_NAV_ITEMS.length);
 
-    // The first item in DEV_SIDEBAR_PRESET is 'dashboard' and is visible
+    // The first item in getDefaultSidebarItems() is 'dashboard' and is visible
     // Clicking it should toggle it off
     await user.click(checkboxes[0]);
     expect(setSidebarItemVisible).toHaveBeenCalledWith('dashboard', false);
