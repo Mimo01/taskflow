@@ -1,7 +1,8 @@
 ---
 phase: 54-aio-on-issue-detail
 source: "54-05 Wave 4 human UAT (2026-05-13)"
-status: open
+status: resolved
+resolved_in: "v1.8 (WikiRenderer ships in 54-06+; Finding 2 perf optimization accepted as tech debt per v1.8 milestone close)"
 plan_target: "54-06"
 ---
 
