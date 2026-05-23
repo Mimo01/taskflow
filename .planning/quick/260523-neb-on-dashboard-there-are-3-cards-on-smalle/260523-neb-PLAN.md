@@ -34,8 +34,8 @@ Output: One updated className string on the cards container in `taskflow/src/rou
 </objective>
 
 <execution_context>
-@/Users/mimo/Documents/Projects/taskflow/.claude/get-shit-done/workflows/execute-plan.md
-@/Users/mimo/Documents/Projects/taskflow/.claude/get-shit-done/templates/summary.md
+@/Users/user/Documents/Projects/taskflow/.claude/get-shit-done/workflows/execute-plan.md
+@/Users/user/Documents/Projects/taskflow/.claude/get-shit-done/templates/summary.md
 </execution_context>
 
 <context>
@@ -69,7 +69,7 @@ Tailwind breakpoints: sm=640px, lg=1024px. Removing `sm:grid-cols-2` makes the l
     Do NOT change the cards themselves, the gap, the padding, the wrapping `<div className="relative flex flex-col min-h-full bg-background">`, the welcome `<section>`, or the SVG. Only the grid-cols utilities on the cards container change.
   </action>
   <verify>
-    <automated>cd /Users/mimo/Documents/Projects/taskflow/taskflow &amp;&amp; grep -E 'grid-cols-1 lg:grid-cols-3 gap-6 p-6' src/routes/dashboard/index.tsx &amp;&amp; ! grep -E 'sm:grid-cols-2' src/routes/dashboard/index.tsx &amp;&amp; npx biome check src/routes/dashboard/index.tsx</automated>
+    <automated>cd /Users/user/Documents/Projects/taskflow/taskflow &amp;&amp; grep -E 'grid-cols-1 lg:grid-cols-3 gap-6 p-6' src/routes/dashboard/index.tsx &amp;&amp; ! grep -E 'sm:grid-cols-2' src/routes/dashboard/index.tsx &amp;&amp; npx biome check src/routes/dashboard/index.tsx</automated>
   </verify>
   <done>
     The container div className on line 89 of `taskflow/src/routes/dashboard/index.tsx` reads exactly `"relative grid grid-cols-1 lg:grid-cols-3 gap-6 p-6"`, the string `sm:grid-cols-2` no longer appears in the file, and Biome reports no errors for that file. At runtime, narrow viewports (<1024px) stack the three cards vertically and wider viewports place them on a single row.

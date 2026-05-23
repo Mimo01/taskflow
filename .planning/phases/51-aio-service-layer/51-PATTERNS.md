@@ -221,7 +221,7 @@ export * from './issue-runs';
 
 ### `taskflow/src/stores/settings.store.ts` (modify — add aioEnabled)
 
-**Analog:** Self — extend the existing file at `/Users/mimo/Documents/Projects/taskflow/taskflow/src/stores/settings.store.ts`
+**Analog:** Self — extend the existing file at `/Users/user/Documents/Projects/taskflow/taskflow/src/stores/settings.store.ts`
 
 **Three insertion points:**
 
@@ -267,7 +267,7 @@ migrate: (persisted, version) => {
 
 ### `taskflow/src/routes/settings/Settings.tsx` (modify — add integrations)
 
-**Analog:** Self — extend the existing file at `/Users/mimo/Documents/Projects/taskflow/taskflow/src/routes/settings/Settings.tsx`
+**Analog:** Self — extend the existing file at `/Users/user/Documents/Projects/taskflow/taskflow/src/routes/settings/Settings.tsx`
 
 **Four insertion points:**
 

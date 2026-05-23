@@ -34,8 +34,8 @@ Output: Updated `taskflow/src/routes/dashboard/index.tsx` rendering the new curv
 </objective>
 
 <execution_context>
-@/Users/mimo/Documents/Projects/taskflow/.claude/get-shit-done/workflows/execute-plan.md
-@/Users/mimo/Documents/Projects/taskflow/.claude/get-shit-done/templates/summary.md
+@/Users/user/Documents/Projects/taskflow/.claude/get-shit-done/workflows/execute-plan.md
+@/Users/user/Documents/Projects/taskflow/.claude/get-shit-done/templates/summary.md
 </execution_context>
 
 <context>
@@ -97,7 +97,7 @@ In `taskflow/src/routes/dashboard/index.tsx`, replace the existing background `<
 6. Leave the `<section>` greeting block and the `<div className="relative grid ...">` card grid untouched. The outer `<div className="relative flex flex-col min-h-full bg-background">` wrapper stays identical.
   </action>
   <verify>
-    <automated>cd /Users/mimo/Documents/Projects/taskflow/taskflow &amp;&amp; grep -c "AMBIENT_CURVES" src/routes/dashboard/index.tsx | awk '$1 &gt;= 2 { exit 0 } { exit 1 }' &amp;&amp; grep -q 'M -50 220 Q 400 90 1250 -20' src/routes/dashboard/index.tsx &amp;&amp; grep -q 'M -50 660 Q 600 460 1250 320' src/routes/dashboard/index.tsx &amp;&amp; grep -q 'viewBox="0 0 1200 900"' src/routes/dashboard/index.tsx &amp;&amp; grep -q 'preserveAspectRatio="none"' src/routes/dashboard/index.tsx &amp;&amp; ! grep -q 'strokeOpacity=' src/routes/dashboard/index.tsx &amp;&amp; npx tsc --noEmit -p tsconfig.json</automated>
+    <automated>cd /Users/user/Documents/Projects/taskflow/taskflow &amp;&amp; grep -c "AMBIENT_CURVES" src/routes/dashboard/index.tsx | awk '$1 &gt;= 2 { exit 0 } { exit 1 }' &amp;&amp; grep -q 'M -50 220 Q 400 90 1250 -20' src/routes/dashboard/index.tsx &amp;&amp; grep -q 'M -50 660 Q 600 460 1250 320' src/routes/dashboard/index.tsx &amp;&amp; grep -q 'viewBox="0 0 1200 900"' src/routes/dashboard/index.tsx &amp;&amp; grep -q 'preserveAspectRatio="none"' src/routes/dashboard/index.tsx &amp;&amp; ! grep -q 'strokeOpacity=' src/routes/dashboard/index.tsx &amp;&amp; npx tsc --noEmit -p tsconfig.json</automated>
   </verify>
   <done>
 - `AMBIENT_CURVES` constant declared with exactly 8 entries matching the spec coordinates, widths, opacities, and colors.

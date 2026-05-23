@@ -78,7 +78,7 @@ Six unit tests covering all three CRUD actions:
 ## Deviations from Plan
 
 ### Infrastructure Note (not a deviation)
-The worktree at `.claude/worktrees/agent-a00b3c86142bb33b8/taskflow` had no `node_modules`. Created a symlink `taskflow/node_modules -> /Users/mimo/Documents/Projects/taskflow/taskflow/node_modules` to enable `npm test` execution from the worktree directory. This symlink is not tracked in git (gitignored by default).
+The worktree at `.claude/worktrees/agent-a00b3c86142bb33b8/taskflow` had no `node_modules`. Created a symlink `taskflow/node_modules -> /Users/user/Documents/Projects/taskflow/taskflow/node_modules` to enable `npm test` execution from the worktree directory. This symlink is not tracked in git (gitignored by default).
 
 No plan deviations — executed exactly as written.
 

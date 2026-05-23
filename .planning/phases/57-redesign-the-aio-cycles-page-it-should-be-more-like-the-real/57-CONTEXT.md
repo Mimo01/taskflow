@@ -6,7 +6,7 @@
 <domain>
 ## Phase Boundary
 
-Redesign `AioProjectOverviewPage.tsx` (the AIO cycles list) to match the real AIO application's layout and data model, using 4 example API responses provided in `/Users/mimo/Downloads` as the schema source.
+Redesign `AioProjectOverviewPage.tsx` (the AIO cycles list) to match the real AIO application's layout and data model, using 4 example API responses provided in `/Users/user/Downloads` as the schema source.
 
 Three concrete changes:
 
@@ -56,10 +56,10 @@ No changes to `AioCycleDetailPage`, `AioTestRunDetailPage`, or the AIO service l
 **Downstream agents MUST read these before planning or implementing.**
 
 ### API schema examples (PRIMARY — read before any service code)
-- `/Users/mimo/Downloads/folder` — Real AIO folder tree response: `[ { ID, name, parentID, children[] } ]`. This is the shape to type and fetch. New endpoint — URL unknown, researcher must probe.
-- `/Users/mimo/Downloads/count` — Real AIO folder cycle count map: `{ "folderID": cycleCount }`. Note: `-1` = ungrouped. New endpoint — URL unknown, researcher must probe.
-- `/Users/mimo/Downloads/paged` — Real AIO cycle list with detail: `{ items: [{ ID, jiraProjectID, detail: { key, title, ownedByID, folder, isClosed, ... }, summary: null }], allIDs, startAt, maxResults, isLast }`. Note: `detail.folder` is `null` for all sampled cycles — folder association comes from the folder endpoint, not embedded in cycle detail.
-- `/Users/mimo/Downloads/paged2` — Real AIO cycle summary response: `[ { ID, detail: null, summary: { totalTests, testRunDistribution: { "statusID": count } } } ]`. Status IDs in the sample: `51, 53, 54, 55, 901`. Researcher must resolve these to PASS/FAIL/NOT_EXECUTED/BLOCKED.
+- `/Users/user/Downloads/folder` — Real AIO folder tree response: `[ { ID, name, parentID, children[] } ]`. This is the shape to type and fetch. New endpoint — URL unknown, researcher must probe.
+- `/Users/user/Downloads/count` — Real AIO folder cycle count map: `{ "folderID": cycleCount }`. Note: `-1` = ungrouped. New endpoint — URL unknown, researcher must probe.
+- `/Users/user/Downloads/paged` — Real AIO cycle list with detail: `{ items: [{ ID, jiraProjectID, detail: { key, title, ownedByID, folder, isClosed, ... }, summary: null }], allIDs, startAt, maxResults, isLast }`. Note: `detail.folder` is `null` for all sampled cycles — folder association comes from the folder endpoint, not embedded in cycle detail.
+- `/Users/user/Downloads/paged2` — Real AIO cycle summary response: `[ { ID, detail: null, summary: { totalTests, testRunDistribution: { "statusID": count } } } ]`. Status IDs in the sample: `51, 53, 54, 55, 901`. Researcher must resolve these to PASS/FAIL/NOT_EXECUTED/BLOCKED.
 
 ### Prior AIO phase contexts
 - `.planning/phases/51-aio-service-layer/51-CONTEXT.md` — `aioFetch()` base paths (`AIO_API_PATH = /rest/aio-tcms-api/1.0`), `['aio', jiraBaseUrl, ...]` query key prefix, credential loading.
@@ -118,7 +118,7 @@ No changes to `AioCycleDetailPage`, `AioTestRunDetailPage`, or the AIO service l
 <specifics>
 ## Specific Ideas
 
-- The 4 files in `/Users/mimo/Downloads/` are real API response snapshots from the live AIO instance. The researcher should use them to determine exact endpoint URLs by cross-referencing with browser network logs or AIO API docs. File names (`folder`, `count`, `paged`, `paged2`) are suggestive of the endpoint purpose but not the URL.
+- The 4 files in `/Users/user/Downloads/` are real API response snapshots from the live AIO instance. The researcher should use them to determine exact endpoint URLs by cross-referencing with browser network logs or AIO API docs. File names (`folder`, `count`, `paged`, `paged2`) are suggestive of the endpoint purpose but not the URL.
 - The `allIDs` field in `paged` (array of all numeric cycle IDs) enables a one-shot batch summary fetch — rather than paginating through summaries, pass all IDs at once. The researcher should check if the summary endpoint accepts `?ids=12478,12505,...` or a POST body.
 - `detail.folder` is `null` for all 7 cycles in the `paged` sample. This is a significant divergence from the current `AioCycle.folder` string (derived from `raw.testSet`). The researcher must investigate: does folder association only come from the folder endpoint (not embedded in cycle detail), or is there another field in the raw response?
 - Owner IDs in the sample: `"JIRAUSER23429"`, `"ext94772"`. These look like Jira DC internal usernames. The `/rest/api/2/user?username=JIRAUSER23429` endpoint likely resolves to `displayName`. Batch-fetch all unique owner IDs once per cycle list load.

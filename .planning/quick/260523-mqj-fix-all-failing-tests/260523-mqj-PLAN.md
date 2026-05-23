@@ -29,14 +29,14 @@ Output: Triage file (FAILURES.md), source/test edits that resolve each failure c
 </objective>
 
 <execution_context>
-@/Users/mimo/Documents/Projects/taskflow/.claude/get-shit-done/workflows/execute-plan.md
-@/Users/mimo/Documents/Projects/taskflow/.claude/get-shit-done/templates/summary.md
+@/Users/user/Documents/Projects/taskflow/.claude/get-shit-done/workflows/execute-plan.md
+@/Users/user/Documents/Projects/taskflow/.claude/get-shit-done/templates/summary.md
 </execution_context>
 
 <context>
-@/Users/mimo/Documents/Projects/taskflow/.planning/STATE.md
-@/Users/mimo/Documents/Projects/taskflow/taskflow/package.json
-@/Users/mimo/Documents/Projects/taskflow/taskflow/vitest.config.ts
+@/Users/user/Documents/Projects/taskflow/.planning/STATE.md
+@/Users/user/Documents/Projects/taskflow/taskflow/package.json
+@/Users/user/Documents/Projects/taskflow/taskflow/vitest.config.ts
 
 # Test runner
 # - Command: `npm test` (resolves to `vitest run`) — MUST be run from `taskflow/` (the inner workspace), NOT the repo root

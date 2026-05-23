@@ -98,7 +98,7 @@ Each task was committed atomically:
 
 ## Issues Encountered
 
-**Worktree missing node_modules:** The worktree's `taskflow/` directory had no `node_modules` (the main project's `taskflow/node_modules` contains the dependencies). Created a symlink `taskflow/node_modules -> /Users/mimo/Documents/Projects/taskflow/taskflow/node_modules` to run vitest from the worktree. Tests then ran correctly against the worktree's source files.
+**Worktree missing node_modules:** The worktree's `taskflow/` directory had no `node_modules` (the main project's `taskflow/node_modules` contains the dependencies). Created a symlink `taskflow/node_modules -> /Users/user/Documents/Projects/taskflow/taskflow/node_modules` to run vitest from the worktree. Tests then ran correctly against the worktree's source files.
 
 ## Verification
 
