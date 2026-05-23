@@ -277,3 +277,15 @@ describe('settings.store — selectedAioProjectKey (Phase 55)', () => {
     expect(state.selectedAioProjectKey).toBeNull();
   });
 });
+
+describe('settings.store — roles removal (Phase 66)', () => {
+  it('role field is absent from store state', () => {
+    expect('role' in useSettingsStore.getState()).toBe(false);
+  });
+  it('setRole action is absent from store state', () => {
+    expect('setRole' in useSettingsStore.getState()).toBe(false);
+  });
+  it('applyPreset action is absent from store state', () => {
+    expect('applyPreset' in useSettingsStore.getState()).toBe(false);
+  });
+});
