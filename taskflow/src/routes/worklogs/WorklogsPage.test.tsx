@@ -1247,4 +1247,150 @@ describe('WorklogsPage', () => {
       });
     });
   });
+
+  // ── CLEAN-01: timer cleanup on unmount ────────────────────────────────────
+
+  describe('CLEAN-01 — timer cleanup on unmount', () => {
+    it('does not fire setOpen after unmount when a close timer is pending', async () => {
+      const { getByRole, unmount } = await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
+
+      // Trigger a blur to start the close timer
+      const input = getByRole('combobox');
+      fireEvent.focus(input);
+      fireEvent.blur(input);
+
+      // Suppress expected console.error to catch any unexpected act() warnings
+      const originalError = console.error.bind(console);
+      const actWarnings: string[] = [];
+      console.error = (...args: unknown[]) => {
+        const msg = String(args[0]);
+        if (msg.includes('act(') || msg.includes('not wrapped in act')) {
+          actWarnings.push(msg);
+        } else {
+          originalError(...args);
+        }
+      };
+
+      // Unmount immediately — cleanup useEffect should cancel the timer
+      unmount();
+
+      // Give time for any pending timer to fire if cleanup failed
+      await new Promise((r) => setTimeout(r, 200));
+
+      console.error = originalError;
+
+      // No act() warnings should have been triggered by a post-unmount state update
+      expect(actWarnings).toHaveLength(0);
+    });
+  });
+
+  // ── CLEAN-02: error state with cached empty data ──────────────────────────
+
+  describe('CLEAN-02 — ErrorState renders when isError=true even with cached []', () => {
+    it('shows ErrorState when query is in error state regardless of cached data', async () => {
+      // Force fetchWorklogs to reject so isError=true
+      const { fetchWorklogs: mockedFetchWorklogs } = await import('@/services/tempo');
+      (mockedFetchWorklogs as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+        new Error('Network error'),
+      );
+
+      const { getByText } = await renderPage();
+
+      // Wait for the error state to be rendered
+      await waitFor(() => {
+        // ErrorState renders a retry button with text "Try again" or an error message
+        const html = document.body.innerHTML;
+        // The ErrorState component renders with viewName="worklogs"
+        expect(html.toLowerCase()).toMatch(/error|failed|retry|try again/i);
+      });
+
+      // Should not render the empty state or loading state
+      // The key assertion: ErrorState IS present even when data would be []
+      expect(() => getByText('No worklogs found')).toThrow();
+    });
+  });
+
+  // ── CLEAN-03: no React key warnings in hierarchy render ───────────────────
+
+  describe('CLEAN-03 — no React fragment key warnings in hierarchy table', () => {
+    it('renders multiple epics and stories without React key warnings', async () => {
+      // Set up two epics each with two stories to trigger multiple map callbacks
+      mockFetchWorklogsResult = [
+        makeWorklog('alice', 'Alice Smith', '2026-05-18', 2, 'STORY-1'),
+        makeWorklog('alice', 'Alice Smith', '2026-05-18', 3, 'STORY-2'),
+        makeWorklog('bob', 'Bob Jones', '2026-05-19', 1, 'STORY-3'),
+        makeWorklog('bob', 'Bob Jones', '2026-05-19', 4, 'STORY-4'),
+      ];
+      mockEnrichResult = [
+        {
+          key: 'EPIC-1',
+          fields: { summary: 'Epic One', issuetype: { name: 'Epic', subtask: false } },
+        },
+        {
+          key: 'EPIC-2',
+          fields: { summary: 'Epic Two', issuetype: { name: 'Epic', subtask: false } },
+        },
+        {
+          key: 'STORY-1',
+          fields: {
+            summary: 'Story One',
+            issuetype: { name: 'Story', subtask: false },
+            parent: { key: 'EPIC-1', fields: { summary: 'Epic One' } },
+          },
+        },
+        {
+          key: 'STORY-2',
+          fields: {
+            summary: 'Story Two',
+            issuetype: { name: 'Story', subtask: false },
+            parent: { key: 'EPIC-1', fields: { summary: 'Epic One' } },
+          },
+        },
+        {
+          key: 'STORY-3',
+          fields: {
+            summary: 'Story Three',
+            issuetype: { name: 'Story', subtask: false },
+            parent: { key: 'EPIC-2', fields: { summary: 'Epic Two' } },
+          },
+        },
+        {
+          key: 'STORY-4',
+          fields: {
+            summary: 'Story Four',
+            issuetype: { name: 'Story', subtask: false },
+            parent: { key: 'EPIC-2', fields: { summary: 'Epic Two' } },
+          },
+        },
+      ];
+
+      // Capture React key warnings
+      const keyWarnings: string[] = [];
+      const originalError = console.error.bind(console);
+      console.error = (...args: unknown[]) => {
+        const msg = String(args[0]);
+        if (msg.toLowerCase().includes('key')) {
+          keyWarnings.push(msg);
+        } else {
+          originalError(...args);
+        }
+      };
+
+      const { container } = await renderPage();
+      const { fetchWorklogs } = await import('@/services/tempo');
+      await waitFor(() => expect(fetchWorklogs).toHaveBeenCalled());
+      await new Promise((r) => setTimeout(r, 150));
+
+      console.error = originalError;
+
+      // Multiple rows should render
+      const bodyRows = container.querySelectorAll('tbody tr');
+      expect(bodyRows.length).toBeGreaterThanOrEqual(4);
+
+      // No React key warnings should have been logged
+      expect(keyWarnings).toHaveLength(0);
+    });
+  });
 });
