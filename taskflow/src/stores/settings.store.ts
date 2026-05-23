@@ -22,7 +22,6 @@ export interface SidebarItem {
 }
 
 interface SettingsState {
-  role: 'developer' | 'pm' | 'tech-lead' | null;
   theme: Theme;
   onboardingComplete: boolean;
   /** Number of days without update before an MR is considered stale. Default: 3. */
@@ -143,7 +142,6 @@ interface SettingsState {
   setDensity: (d: Density) => void;
   setSprintCollapseByDefault: (v: boolean) => void;
   setShowSubtasksInMyTasks: (v: boolean) => void;
-  setRole: (role: 'developer' | 'pm' | 'tech-lead') => void;
   setTheme: (theme: Theme) => void;
   setOnboardingComplete: (complete: boolean) => void;
   setStaleMrThresholdDays: (days: number) => void;
@@ -158,12 +156,11 @@ interface SettingsState {
   setEpicColorFieldKey: (key: string) => void;
   setFlaggedFieldKey: (key: string) => void;
   setAccountFieldKey: (key: string | null) => void;
-  /** Sidebar item visibility and order. Default: DEV_SIDEBAR_PRESET. */
+  /** Sidebar item visibility and order. Default: all items visible. */
   sidebarItems: SidebarItem[];
   setSidebarItems: (items: SidebarItem[]) => void;
   setSidebarItemVisible: (id: string, visible: boolean) => void;
   reorderSidebarItem: (fromIndex: number, toIndex: number) => void;
-  applyPreset: (preset: 'dev' | 'pm') => void;
 }
 
 function appendAioItemIfMissing(items: SidebarItem[]): SidebarItem[] {
@@ -179,7 +176,6 @@ function appendWorklogsItemIfMissing(items: SidebarItem[]): SidebarItem[] {
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
-      role: null,
       theme: 'system',
       onboardingComplete: false,
       staleMrThresholdDays: 3,
@@ -291,7 +287,6 @@ export const useSettingsStore = create<SettingsState>()(
       setDensity: (d) => set({ density: d }),
       setSprintCollapseByDefault: (v) => set({ sprintCollapseByDefault: v }),
       setShowSubtasksInMyTasks: (v) => set({ showSubtasksInMyTasks: v }),
-      setRole: (role) => set({ role }),
       setTheme: (theme) => set({ theme }),
       setOnboardingComplete: (complete) => set({ onboardingComplete: complete }),
       setStaleMrThresholdDays: (days) => set({ staleMrThresholdDays: days }),
@@ -306,7 +301,7 @@ export const useSettingsStore = create<SettingsState>()(
       setEpicColorFieldKey: (key) => set({ epicColorFieldKey: key }),
       setFlaggedFieldKey: (key) => set({ flaggedFieldKey: key }),
       setAccountFieldKey: (key) => set({ accountFieldKey: key }),
-      sidebarItems: getDefaultSidebarItems('dev'),
+      sidebarItems: getDefaultSidebarItems(),
       setSidebarItems: (items) => set({ sidebarItems: items }),
       setSidebarItemVisible: (id, visible) =>
         set((s) => ({
@@ -321,15 +316,11 @@ export const useSettingsStore = create<SettingsState>()(
           arr.splice(toIndex, 0, item);
           return { sidebarItems: arr };
         }),
-      applyPreset: (preset) =>
-        set({
-          sidebarItems: getDefaultSidebarItems(preset),
-        }),
     }),
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 21,
+      version: 22,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -373,9 +364,7 @@ export const useSettingsStore = create<SettingsState>()(
           delete (s as Record<string, unknown>).debugMode;
         }
         if (version < 9) {
-          const role = s.role as string | null;
-          const preset = role === 'pm' ? 'pm' : 'dev';
-          s.sidebarItems = getDefaultSidebarItems(preset);
+          s.sidebarItems = getDefaultSidebarItems();
         }
         if (version < 10) {
           if (s.updateCheckInterval === undefined) s.updateCheckInterval = 6;
@@ -421,6 +410,10 @@ export const useSettingsStore = create<SettingsState>()(
           if (Array.isArray(s.sidebarItems)) {
             s.sidebarItems = appendWorklogsItemIfMissing(s.sidebarItems as SidebarItem[]);
           }
+        }
+        if (version < 22) {
+          delete (s as Record<string, unknown>).role;
+          s.sidebarItems = getDefaultSidebarItems();
         }
         return persisted as SettingsState;
       },
