@@ -15,7 +15,6 @@ describe('onboarding.store', () => {
         gitlabToken: '',
         gitlabProject: null,
         gitlabProjects: [],
-        role: null,
         jiraValidated: false,
         gitlabValidated: false,
       });
@@ -55,11 +54,9 @@ describe('onboarding.store', () => {
     act(() => {
       useOnboardingStore.getState().set({
         jiraUrl: 'https://jira.example.com',
-        role: 'developer',
       });
     });
     const state = useOnboardingStore.getState();
     expect(state.jiraUrl).toBe('https://jira.example.com');
-    expect(state.role).toBe('developer');
   });
 });

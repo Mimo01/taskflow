@@ -34,7 +34,7 @@ describe('persistChangelogBeforeRestart', () => {
 
   it('reads the store key, patches lastSeenChangelog, and writes back a JSON string', async () => {
     const existing = {
-      state: { role: 'developer', theme: 'system', lastSeenChangelog: null, lastSeenVersion: null },
+      state: { theme: 'system', lastSeenChangelog: null, lastSeenVersion: null },
       version: 21,
     };
     store.get.mockResolvedValue(JSON.stringify(existing));
@@ -49,7 +49,6 @@ describe('persistChangelogBeforeRestart', () => {
     const parsed = JSON.parse(value) as { state: Record<string, unknown>; version: number };
     expect(parsed.state.lastSeenChangelog).toBe('## v2.0\n- New stuff');
     // All other state fields must survive the patch.
-    expect(parsed.state.role).toBe('developer');
     expect(parsed.state.theme).toBe('system');
     // Schema version must be preserved, not reset to a hardcoded value.
     expect(parsed.version).toBe(21);
