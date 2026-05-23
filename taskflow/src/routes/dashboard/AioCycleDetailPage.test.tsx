@@ -21,6 +21,17 @@ vi.mock('@/services/aio', () => ({
   fetchAioCycleSummaries: vi.fn(),
   fetchAioCyclesWithDetail: vi.fn(),
 }));
+// Mock the cycles module so initializeAioStatusMap can populate the runtime map in tests
+vi.mock('@/services/aio/cycles', () => ({
+  fetchAioProjectConfig: vi.fn().mockResolvedValue([
+    { ID: 51, statusType: 'NOT_RUN', name: 'Not Run', color: '#CCCCCC' },
+    { ID: 52, statusType: 'IN_PROGRESS', name: 'In Progress', color: '#0000FF' },
+    { ID: 53, statusType: 'PASSED', name: 'Pass', color: '#00FF00' },
+    { ID: 54, statusType: 'FAILED', name: 'Fail', color: '#FF0000' },
+    { ID: 55, statusType: 'BLOCKED', name: 'Blocked', color: '#FFA500' },
+    { ID: 901, statusType: 'PASSED', name: 'N/A', color: '#00FF00' },
+  ]),
+}));
 vi.mock('@/services/stronghold', () => ({
   readSecret: vi.fn().mockResolvedValue('fake-token'),
 }));
@@ -107,10 +118,14 @@ async function setupDefaultMocks() {
   const { fetchAioCycleDetail, fetchAioCycleTestCasesWithRuns, fetchAioCycleSummaries } =
     await import('@/services/aio');
   const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
+  const { initializeAioStatusMap } = await import('@/lib/aioUtils');
   (fetchAioCycleDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockCycle);
   (fetchAioCycleTestCasesWithRuns as ReturnType<typeof vi.fn>).mockResolvedValue(mockRuns);
   (fetchAioCycleSummaries as ReturnType<typeof vi.fn>).mockResolvedValue(mockSummary);
   (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
+  // Populate the module-level runtime AIO status map so normalizeStatusById resolves
+  // testRunDistribution IDs correctly (CLEAN-07: map is no longer static).
+  await initializeAioStatusMap('https://jira.example.com', 'fake-token', 10134);
 }
 
 function renderPage() {
@@ -130,9 +145,23 @@ function renderPage() {
 import AioCycleDetailPage from './AioCycleDetailPage';
 
 describe('AioCycleDetailPage', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     mockPinnedKeys = [];
+    // Re-initialize the runtime AIO status map after vi.clearAllMocks() resets call counts.
+    // The fetchAioProjectConfig mock is re-applied by the module-level vi.mock above, so
+    // initializeAioStatusMap will still resolve correctly here.
+    const { initializeAioStatusMap } = await import('@/lib/aioUtils');
+    const { fetchAioProjectConfig } = await import('@/services/aio/cycles');
+    vi.mocked(fetchAioProjectConfig).mockResolvedValue([
+      { ID: 51, statusType: 'NOT_RUN', name: 'Not Run', color: '#CCCCCC' },
+      { ID: 52, statusType: 'IN_PROGRESS', name: 'In Progress', color: '#0000FF' },
+      { ID: 53, statusType: 'PASSED', name: 'Pass', color: '#00FF00' },
+      { ID: 54, statusType: 'FAILED', name: 'Fail', color: '#FF0000' },
+      { ID: 55, statusType: 'BLOCKED', name: 'Blocked', color: '#FFA500' },
+      { ID: 901, statusType: 'PASSED', name: 'N/A', color: '#00FF00' },
+    ]);
+    await initializeAioStatusMap('https://jira.example.com', 'fake-token', 10134);
   });
 
   it('renders AioCycleDetailPage without crashing', async () => {
