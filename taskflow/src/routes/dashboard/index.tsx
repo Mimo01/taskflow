@@ -48,12 +48,17 @@ export default function Dashboard() {
     year: 'numeric',
   });
 
-  // Jira displayName is "Firstname Surname" (e.g. "Milan Mozolak"); first token is the first name.
-  // Defensive: strip a trailing bracketed status token (e.g. "[Disabled]") if Jira ever appends one.
+  // Jira displayName varies by instance format, e.g.:
+  //   "Milan Mozolak"            — Firstname Surname (standard)
+  //   "MOZOLAK Milan OSK (ext.)" — SURNAME Firstname OrgCode (status) (some on-prem configs)
+  // Strategy: strip bracketed [X] and parenthesized (X) tokens, then prefer the first
+  // mixed-case token (not all-uppercase) as the given name. If all tokens are uppercase,
+  // fall back to the first token.
   const tokens = (jiraUserDisplayName?.trim().split(/\s+/) ?? []).filter(
-    (t) => !/^\[.*\]$/.test(t),
+    (t) => !/^\[.*\]$/.test(t) && !/^\(.*\)$/.test(t),
   );
-  const firstName = tokens[0] ?? null;
+  const firstName =
+    tokens.find((t) => t !== t.toUpperCase()) ?? tokens[0] ?? null;
   const timeGreeting = getTimeGreeting();
 
   return (

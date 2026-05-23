@@ -155,4 +155,29 @@ describe('Dashboard', () => {
     expect(screen.getByTestId('in-progress-card-stub')).toBeTruthy();
     expect(screen.getByTestId('release-card-stub')).toBeTruthy();
   });
+
+  it('Test 9 (SURNAME Firstname OrgCode (status) format): extracts mixed-case first name from all-caps surname format', () => {
+    // Reproduces the actual auth.json value: "MOZOLAK Milan OSK (ext.)"
+    vi.mocked(useAuthStore).mockReturnValue({
+      jiraBaseUrl: 'https://jira.orange.sk',
+      activeJiraProject: 'ESHOP',
+      jiraUsername: 'ext99328',
+      jiraUserDisplayName: 'MOZOLAK Milan OSK (ext.)',
+    } as ReturnType<typeof useAuthStore>);
+    renderDashboard();
+    expect(screen.getByText(/Milan/)).toBeTruthy();
+    expect(screen.queryByText(/MOZOLAK/)).toBeNull();
+  });
+
+  it('Test 10 ([Disabled] bracketed token stripped): first name extracted after stripping [Disabled]', () => {
+    vi.mocked(useAuthStore).mockReturnValue({
+      jiraBaseUrl: 'https://jira.example.com',
+      activeJiraProject: 'PROJ',
+      jiraUsername: 'bob',
+      jiraUserDisplayName: 'Bob Smith [Disabled]',
+    } as ReturnType<typeof useAuthStore>);
+    renderDashboard();
+    expect(screen.getByText(/Bob/)).toBeTruthy();
+    expect(screen.queryByText(/\[Disabled\]/)).toBeNull();
+  });
 });
