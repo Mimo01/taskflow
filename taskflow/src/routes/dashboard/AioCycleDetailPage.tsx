@@ -23,7 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
-import { AIO_STATUS_MAP, normalizeStatus, normalizeStatusLabel } from '@/lib/aioUtils';
+import { normalizeStatus, normalizeStatusById, normalizeStatusLabel } from '@/lib/aioUtils';
 import {
   aioCycleStatusPillClass,
   aioRunStatusPillClass,
@@ -451,7 +451,7 @@ export default function AioCycleDetailPage() {
   const summaryCounts = summaryDistribution
     ? Object.entries(summaryDistribution).reduce(
         (acc, [idStr, count]) => {
-          const statusKey = AIO_STATUS_MAP[Number(idStr)] ?? 'notRun';
+          const statusKey = normalizeStatusById(Number(idStr));
           acc[statusKey] = (acc[statusKey] ?? 0) + count;
           return acc;
         },

@@ -188,7 +188,7 @@ export interface AioCycleDetailItem {
  * Returned by GET /rest/aio-tcms/1.0/project/{jiraProjectID}/testcycle/summary/paged
  * (Phase 57 probe finding A3). Matches API-EXAMPLES.md `paged2` section.
  * NOTE: testRunDistribution keys are JSON numeric strings (e.g. '53', '901') — always
- * convert via Number() before AIO_STATUS_MAP lookup (Pitfall 3, 57-RESEARCH.md).
+ * convert via Number() before normalizeStatusById lookup (Pitfall 3, 57-RESEARCH.md).
  */
 export interface AioCycleSummaryItem {
   ID: number;

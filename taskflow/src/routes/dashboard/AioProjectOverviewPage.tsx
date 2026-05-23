@@ -23,6 +23,7 @@ import type {
 } from '@/services/aio/types';
 import { fetchJiraProjectNumericId } from '@/services/jira/projects';
 import { fetchJiraUserByUsername } from '@/services/jira/users';
+import { initializeAioStatusMap } from '@/lib/aioUtils';
 import { useAioCyclesSelectionStore } from '@/stores/aio-cycles-selection.store';
 import { useAuthStore } from '@/stores/auth.store';
 
@@ -299,6 +300,15 @@ export default function AioProjectOverviewPage() {
   });
 
   const statusMap = useMemo(() => buildStatusMap(configQuery.data ?? []), [configQuery.data]);
+
+  // Populate the module-level runtime AIO status map used by AioCycleDetailPage
+  // (CLEAN-07). React Query caches the /config response so initializeAioStatusMap
+  // re-uses the cached result — no duplicate HTTP call.
+  useEffect(() => {
+    if (configQuery.data && jiraBaseUrl && token && jiraProjectId) {
+      void initializeAioStatusMap(jiraBaseUrl, token, jiraProjectId);
+    }
+  }, [configQuery.data, jiraBaseUrl, token, jiraProjectId]);
 
   // Folder tree + count map (parallel)
   const foldersQuery = useQuery({

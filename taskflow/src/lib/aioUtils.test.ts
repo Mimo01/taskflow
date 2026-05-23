@@ -67,11 +67,11 @@ describe('normalizeStatusLabel', () => {
 describe('initializeAioStatusMap + normalizeStatusById', () => {
   it('populates the runtime map from config response', async () => {
     vi.mocked(fetchAioProjectConfig).mockResolvedValue([
-      { ID: 53, statusType: 'PASSED', name: 'Pass' },
-      { ID: 54, statusType: 'FAILED', name: 'Fail' },
-      { ID: 55, statusType: 'BLOCKED', name: 'Blocked' },
-      { ID: 51, statusType: 'NOT_RUN', name: 'Not Run' },
-      { ID: 52, statusType: 'IN_PROGRESS', name: 'In Progress' },
+      { ID: 53, statusType: 'PASSED', name: 'Pass', color: '#00FF00' },
+      { ID: 54, statusType: 'FAILED', name: 'Fail', color: '#FF0000' },
+      { ID: 55, statusType: 'BLOCKED', name: 'Blocked', color: '#FFA500' },
+      { ID: 51, statusType: 'NOT_RUN', name: 'Not Run', color: '#CCCCCC' },
+      { ID: 52, statusType: 'IN_PROGRESS', name: 'In Progress', color: '#0000FF' },
     ]);
     await initializeAioStatusMap('https://jira.example.com', 'token', 10000);
     expect(normalizeStatusById(53)).toBe('pass');
@@ -83,7 +83,7 @@ describe('initializeAioStatusMap + normalizeStatusById', () => {
 
   it('falls back to "notRun" for unknown ID after init', async () => {
     vi.mocked(fetchAioProjectConfig).mockResolvedValue([
-      { ID: 53, statusType: 'PASSED', name: 'Pass' },
+      { ID: 53, statusType: 'PASSED', name: 'Pass', color: '#00FF00' },
     ]);
     await initializeAioStatusMap('https://jira.example.com', 'token', 10000);
     expect(normalizeStatusById(999)).toBe('notRun');
