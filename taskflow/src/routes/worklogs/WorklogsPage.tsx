@@ -47,16 +47,9 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { type TempoFilter, useTempoFiltersStore } from '@/stores/tempo-filters.store';
 import { WorklogCellPopover } from './WorklogCellPopover';
+import type { DatePreset } from '@/services/tempo/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-export type DatePreset =
-  | 'this-week'
-  | 'last-week'
-  | 'this-month'
-  | 'last-month'
-  | 'last-working-day'
-  | 'custom';
 
 /** Enriched Jira issue shape returned by the worklog enrichment query */
 type EnrichedIssue = {
