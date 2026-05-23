@@ -42,3 +42,16 @@ export interface TempoWorklog {
     value?: string;
   }>;
 }
+
+/**
+ * Date preset options for the Worklogs page date range picker.
+ * Moved from WorklogsPage.tsx (CLEAN-04) — stores must import from service types,
+ * not from route components.
+ */
+export type DatePreset =
+  | 'this-week'
+  | 'last-week'
+  | 'this-month'
+  | 'last-month'
+  | 'last-working-day'
+  | 'custom';
