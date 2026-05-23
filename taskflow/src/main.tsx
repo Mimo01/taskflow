@@ -290,6 +290,7 @@ function AppLayout() {
     if (pathname.startsWith('/dashboard')) return 'Dashboard';
     if (pathname.startsWith('/sprint-progress')) return 'Sprint Progress';
     if (pathname.startsWith('/releases')) return 'Releases';
+    if (pathname.startsWith('/worklogs')) return 'Worklogs';
     if (pathname.startsWith('/issue/')) return 'Issue';
     if (pathname.startsWith('/merge-requests')) return 'Merge Requests';
     if (pathname.startsWith('/mr/')) return 'MR Detail';
