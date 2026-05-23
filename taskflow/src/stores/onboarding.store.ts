@@ -39,6 +39,6 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   jiraValidated: false,
   gitlabValidated: false,
   set: (partial) => set(partial),
-  goNext: () => set({ step: get().step + 1 }),
+  goNext: () => set({ step: Math.min(3, get().step + 1) }),
   goBack: () => set({ step: Math.max(0, get().step - 1) }),
 }));
