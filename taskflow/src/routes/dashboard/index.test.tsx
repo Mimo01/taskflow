@@ -5,8 +5,8 @@
  * absence of widget controls (DASH-05), and presence of all three card stubs.
  */
 
-import { MemoryRouter } from 'react-router-dom';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock child card components for isolation
@@ -53,8 +53,8 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-import Dashboard from './index';
 import { useAuthStore } from '@/stores/auth.store';
+import Dashboard from './index';
 
 function renderDashboard() {
   return render(

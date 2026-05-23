@@ -10,7 +10,10 @@ import type { FetchRecord, Operation } from '../../stores/operation-profiler.sto
 import { formatBytes, statusColor } from './utils';
 
 // Stronger colors for fetch bars
-function fetchBarColor(source: 'jira' | 'gitlab' | 'updater' | 'aio' | 'tempo', hasError: boolean): string {
+function fetchBarColor(
+  source: 'jira' | 'gitlab' | 'updater' | 'aio' | 'tempo',
+  hasError: boolean,
+): string {
   if (hasError) return 'bg-red-400 dark:bg-red-600';
   if (source === 'jira') return 'bg-orange-400 dark:bg-orange-600';
   if (source === 'updater') return 'bg-sky-400 dark:bg-sky-600';

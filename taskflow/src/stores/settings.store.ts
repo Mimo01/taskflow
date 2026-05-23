@@ -7,11 +7,11 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { createTauriStorage } from '../lib/tauri-storage';
+import { getDefaultSidebarItems } from '@/components/app/sidebar-items';
 import { setJiraConcurrencyLimit as setConcurrencyRuntime } from '../lib/concurrency';
+import { createTauriStorage } from '../lib/tauri-storage';
 import type { Theme } from '../services/theme';
 import type { QuickFilter } from './filter.store';
-import { getDefaultSidebarItems } from '@/components/app/sidebar-items';
 
 export type Density = 'compact' | 'default' | 'comfortable';
 export type CommentSortOrder = 'newest' | 'oldest';

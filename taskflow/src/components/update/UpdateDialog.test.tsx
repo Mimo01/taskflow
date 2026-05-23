@@ -35,8 +35,8 @@ vi.mock('react-markdown', () => ({
 
 vi.mock('remark-gfm', () => ({ default: vi.fn() }));
 
-import { updaterService } from '@/services/updater';
 import { persistChangelogBeforeRestart } from '@/lib/tauri-storage';
+import { updaterService } from '@/services/updater';
 
 describe('UpdateDialog', () => {
   beforeEach(() => {

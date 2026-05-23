@@ -23,7 +23,7 @@ import { WorklogEntryRow } from './WorklogEntryRow';
 
 // formatSeconds and formatDayHeader are re-exported from WorklogsPage (see below).
 // We import them here so WorklogCellPopover is decoupled from WorklogsPage internals.
-import { formatSeconds, formatDayHeader } from './WorklogsPage';
+import { formatDayHeader, formatSeconds } from './WorklogsPage';
 
 interface WorklogCellPopoverProps {
   issueKey: string;

@@ -198,8 +198,13 @@ export default function BacklogPage() {
 
   // ── Auth / settings ─────────────────────────────────────────────────────────
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
-  const { storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey, epicColorFieldKey, flaggedFieldKey } =
-    useSettingsStore();
+  const {
+    storyPointsFieldKey,
+    epicLinkFieldKey,
+    epicNameFieldKey,
+    epicColorFieldKey,
+    flaggedFieldKey,
+  } = useSettingsStore();
 
   const [jiraToken, setJiraToken] = useState<string | null>(null);
 

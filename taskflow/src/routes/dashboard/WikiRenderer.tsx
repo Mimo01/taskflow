@@ -3,8 +3,8 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import j2m from 'jira2md';
 import {
   type ComponentPropsWithoutRef,
-  type MouseEvent,
   createContext,
+  type MouseEvent,
   useContext,
   useState,
 } from 'react';
@@ -664,9 +664,8 @@ export function preprocessJiraMarkup(
   // Roman pattern covers values up to ~39 (xxxix) via the standard sub-tractive
   // form `x{0,3}(ix|iv|v?i{0,3})`.  The empty-string guard (`num` truthy check)
   // prevents matching a bare `.` if the alternation collapses to zero chars.
-  result = result.replace(
-    /^[ \t]*(x{0,3}(?:ix|iv|v?i{0,3}))\.\s+/gm,
-    (_m: string, num: string) => (num ? '### ' : _m),
+  result = result.replace(/^[ \t]*(x{0,3}(?:ix|iv|v?i{0,3}))\.\s+/gm, (_m: string, num: string) =>
+    num ? '### ' : _m,
   );
   result = result.replace(/^[ \t]*[a-z]\.\s+/gm, '## ');
   result = result.replace(/^[ \t]*\d+\.\s+/gm, '# ');
@@ -884,6 +883,18 @@ const calloutStyles: Record<string, string> = {
 const OlDepthContext = createContext(0);
 const OL_LIST_STYLES = ['decimal', 'lower-alpha', 'lower-roman'] as const;
 
+const OlRenderer = ({ children, ...rest }: ComponentPropsWithoutRef<'ol'>) => {
+  const depth = useContext(OlDepthContext);
+  const listStyle = OL_LIST_STYLES[depth % OL_LIST_STYLES.length];
+  return (
+    <OlDepthContext.Provider value={depth + 1}>
+      <ol {...rest} style={{ listStyleType: listStyle }}>
+        {children}
+      </ol>
+    </OlDepthContext.Provider>
+  );
+};
+
 export function WikiRenderer({ wikiText, className, attachments, users }: WikiRendererProps) {
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -921,17 +932,7 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
         <table {...rest}>{children}</table>
       </div>
     ),
-    ol: ({ children, ...rest }: ComponentPropsWithoutRef<'ol'>) => {
-      const depth = useContext(OlDepthContext);
-      const listStyle = OL_LIST_STYLES[depth % OL_LIST_STYLES.length];
-      return (
-        <OlDepthContext.Provider value={depth + 1}>
-          <ol {...rest} style={{ listStyleType: listStyle }}>
-            {children}
-          </ol>
-        </OlDepthContext.Provider>
-      );
-    },
+    ol: OlRenderer,
     div: ({ node, children, ...rest }: ComponentPropsWithoutRef<'div'> & { node?: unknown }) => {
       const props = rest as Record<string, unknown>;
       const calloutType = props['data-callout'] as string | undefined;

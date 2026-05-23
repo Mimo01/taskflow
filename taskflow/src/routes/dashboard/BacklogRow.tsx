@@ -10,8 +10,9 @@
  * Whole row is clickable -- clicking anywhere navigates to story detail.
  * Right-click opens a context menu with "Move to sprint" options (when onMoveToSprint provided).
  */
-import React from 'react';
+
 import { Flag } from 'lucide-react';
+import React from 'react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import {
   ContextMenu,
@@ -81,9 +82,7 @@ function RowCells({
       {/* Summary cell -- takes remaining space, truncates on overflow */}
       <td className="max-w-0 w-full px-2 py-2 density-compact:py-1 density-comfortable:py-3 overflow-hidden whitespace-nowrap text-ellipsis">
         <span className="inline-flex items-center gap-2 text-sm text-left">
-          {isFlagged && (
-            <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300 shrink-0" />
-          )}
+          {isFlagged && <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300 shrink-0" />}
           <span className="truncate">{issue.fields.summary}</span>
           <OverdueBadge
             duedate={(issue.fields.duedate as string | null) ?? null}

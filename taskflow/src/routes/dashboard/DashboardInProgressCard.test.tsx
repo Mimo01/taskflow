@@ -80,7 +80,11 @@ function makeSprintIssue(
       customfield_10016: storyPoints,
       timetracking: { timeSpentSeconds: 0 },
       parent: parentKey
-        ? { id: parentKey, key: parentKey, fields: { summary: parentSummary ?? `Parent story ${parentKey}` } }
+        ? {
+            id: parentKey,
+            key: parentKey,
+            fields: { summary: parentSummary ?? `Parent story ${parentKey}` },
+          }
         : undefined,
     },
   };
@@ -119,11 +123,11 @@ describe('DashboardInProgressCard', () => {
     // (d) subtask + done + Alice Doe → NO MATCH
     // (e) subtask + indeterminate + Bob Smith → NO MATCH
     const issues = [
-      makeSprintIssue('PROJ-1', 'indeterminate', true, 'Alice Doe'),   // a: match
-      makeSprintIssue('PROJ-2', 'indeterminate', true, 'Alice Doe'),   // b: match
-      makeSprintIssue('PROJ-3', 'indeterminate', false, 'Alice Doe'),  // c: not subtask
-      makeSprintIssue('PROJ-4', 'done', true, 'Alice Doe'),            // d: done status
-      makeSprintIssue('PROJ-5', 'indeterminate', true, 'Bob Smith'),   // e: wrong assignee
+      makeSprintIssue('PROJ-1', 'indeterminate', true, 'Alice Doe'), // a: match
+      makeSprintIssue('PROJ-2', 'indeterminate', true, 'Alice Doe'), // b: match
+      makeSprintIssue('PROJ-3', 'indeterminate', false, 'Alice Doe'), // c: not subtask
+      makeSprintIssue('PROJ-4', 'done', true, 'Alice Doe'), // d: done status
+      makeSprintIssue('PROJ-5', 'indeterminate', true, 'Bob Smith'), // e: wrong assignee
     ];
 
     vi.mocked(useQuery).mockReturnValue({
@@ -185,9 +189,7 @@ describe('DashboardInProgressCard', () => {
   it('test 3: click navigation — clicking a row calls onIssueClick with issue key', async () => {
     const { useQuery } = await import('@tanstack/react-query');
 
-    const issues = [
-      makeSprintIssue('PROJ-101', 'indeterminate', true, 'Alice Doe'),
-    ];
+    const issues = [makeSprintIssue('PROJ-101', 'indeterminate', true, 'Alice Doe')];
 
     vi.mocked(useQuery).mockReturnValue({
       data: issues,
@@ -225,7 +227,15 @@ describe('DashboardInProgressCard', () => {
 
     // One subtask with parent data — should render parent row first, then subtask row
     const issues = [
-      makeSprintIssue('PROJ-201', 'indeterminate', true, 'Alice Doe', null, 'PROJ-200', 'Refactor checkout flow'),
+      makeSprintIssue(
+        'PROJ-201',
+        'indeterminate',
+        true,
+        'Alice Doe',
+        null,
+        'PROJ-200',
+        'Refactor checkout flow',
+      ),
       // Parent story also in sprint data (for icon lookup)
       makeSprintIssue('PROJ-200', 'indeterminate', false, 'Alice Doe'),
     ];

@@ -18,9 +18,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { CheckCircle2 } from 'lucide-react';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
+import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import type { JiraIssue } from '@/services/jira';
 import { fetchSprintIssues } from '@/services/jira';
-import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 
 export interface DashboardInProgressCardProps {
   jiraBaseUrl: string;
@@ -72,7 +72,12 @@ export default function DashboardInProgressCard({
   }
 
   // Group displayed subtasks by parent story
-  type SubtaskGroup = { parentKey: string; parentSummary: string; parentTypeName: string; subtasks: JiraIssue[] };
+  type SubtaskGroup = {
+    parentKey: string;
+    parentSummary: string;
+    parentTypeName: string;
+    subtasks: JiraIssue[];
+  };
   const groupMap = new Map<string, SubtaskGroup>();
   const orphans: JiraIssue[] = [];
   for (const subtask of displayed) {
@@ -99,7 +104,9 @@ export default function DashboardInProgressCard({
       {/* Header */}
       <div className="flex items-center gap-2">
         <CheckCircle2 className="size-4 text-green-500" aria-hidden />
-        <span className="text-xs text-muted-foreground uppercase tracking-wide">My In Progress</span>
+        <span className="text-xs text-muted-foreground uppercase tracking-wide">
+          My In Progress
+        </span>
       </div>
 
       {/* Loading skeleton — 3-block pattern matching DashboardSprintCard */}
@@ -124,7 +131,9 @@ export default function DashboardInProgressCard({
               >
                 <IssueTypeIcon typeName={parentTypeName} />
                 <span className="text-sm font-medium flex-1 truncate">{parentSummary}</span>
-                <span className="text-xs text-muted-foreground font-mono shrink-0">{parentKey}</span>
+                <span className="text-xs text-muted-foreground font-mono shrink-0">
+                  {parentKey}
+                </span>
               </button>
 
               {/* Subtask rows — indented with tree connector */}
@@ -136,8 +145,12 @@ export default function DashboardInProgressCard({
                   onClick={() => onIssueClick(subtask.key)}
                 >
                   <span className="text-xs text-muted-foreground/60 shrink-0">└</span>
-                  <span className="text-sm text-muted-foreground truncate flex-1">{subtask.fields.summary}</span>
-                  <span className="text-xs text-muted-foreground font-mono shrink-0">{subtask.key}</span>
+                  <span className="text-sm text-muted-foreground truncate flex-1">
+                    {subtask.fields.summary}
+                  </span>
+                  <span className="text-xs text-muted-foreground font-mono shrink-0">
+                    {subtask.key}
+                  </span>
                 </button>
               ))}
             </div>
@@ -151,7 +164,9 @@ export default function DashboardInProgressCard({
               className="w-full flex items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
               onClick={() => onIssueClick(subtask.key)}
             >
-              <span className="text-xs text-muted-foreground font-mono shrink-0">{subtask.key}</span>
+              <span className="text-xs text-muted-foreground font-mono shrink-0">
+                {subtask.key}
+              </span>
               <span className="text-sm truncate">{subtask.fields.summary}</span>
             </button>
           ))}
