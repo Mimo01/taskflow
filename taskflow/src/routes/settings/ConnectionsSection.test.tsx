@@ -40,7 +40,6 @@ vi.mock('@/services/gitlab', () => ({
 
 // Mock settings store — return jiraUrl, gitlabUrl, and relevant setters
 const mockSettingsStore = {
-  role: 'developer' as 'developer' | 'pm' | 'tech-lead' | null,
   theme: 'system' as 'dark' | 'light' | 'system',
   density: 'default' as 'compact' | 'default' | 'comfortable',
   sprintCollapseByDefault: false,
@@ -55,7 +54,6 @@ const mockSettingsStore = {
   epicNameFieldKey: 'customfield_10015',
   sprintFieldKey: 'customfield_10020',
   accountFieldKey: null,
-  setRole: vi.fn(),
   setTheme: vi.fn(),
   setDensity: vi.fn(),
   setSprintCollapseByDefault: vi.fn(),

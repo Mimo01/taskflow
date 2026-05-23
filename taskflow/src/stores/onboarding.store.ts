@@ -19,7 +19,6 @@ interface OnboardingState {
   gitlabToken: string;
   gitlabProject: number | null;
   gitlabProjects: GitLabProject[];
-  role: 'developer' | 'pm' | 'tech-lead' | null;
   jiraValidated: boolean;
   gitlabValidated: boolean;
   set: (partial: Partial<Omit<OnboardingState, 'set' | 'goNext' | 'goBack'>>) => void;
@@ -37,7 +36,6 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   gitlabToken: '',
   gitlabProject: null,
   gitlabProjects: [],
-  role: null,
   jiraValidated: false,
   gitlabValidated: false,
   set: (partial) => set(partial),
