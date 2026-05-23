@@ -3,9 +3,9 @@ import { useOutletContext } from 'react-router-dom';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import DashboardSprintCard from './DashboardSprintCard';
 import DashboardInProgressCard from './DashboardInProgressCard';
 import DashboardReleaseCard from './DashboardReleaseCard';
+import DashboardSprintCard from './DashboardSprintCard';
 
 function getTimeGreeting(): string {
   const hour = new Date().getHours();
@@ -14,16 +14,17 @@ function getTimeGreeting(): string {
   return 'Good evening,';
 }
 
-const AMBIENT_CURVES: ReadonlyArray<{ d: string; color: 'orange' | 'blue'; w: number; o: number }> = [
-  { d: 'M -50 220 Q 400 90 1250 -20', color: 'orange', w: 1,   o: 0.35 },
-  { d: 'M -50 320 Q 500 160 1250 80',  color: 'orange', w: 0.8, o: 0.25 },
-  { d: 'M -50 420 Q 600 240 1250 180', color: 'orange', w: 0.6, o: 0.18 },
-  { d: 'M -50 760 Q 500 540 1250 380', color: 'blue',   w: 1,   o: 0.32 },
-  { d: 'M -50 860 Q 600 640 1250 480', color: 'blue',   w: 0.8, o: 0.24 },
-  { d: 'M -50 960 Q 700 740 1250 580', color: 'blue',   w: 0.6, o: 0.18 },
-  { d: 'M -50 540 Q 550 380 1250 240', color: 'orange', w: 0.5, o: 0.14 },
-  { d: 'M -50 660 Q 600 460 1250 320', color: 'blue',   w: 0.5, o: 0.14 },
-];
+const AMBIENT_CURVES: ReadonlyArray<{ d: string; color: 'orange' | 'blue'; w: number; o: number }> =
+  [
+    { d: 'M -50 220 Q 400 90 1250 -20', color: 'orange', w: 1, o: 0.35 },
+    { d: 'M -50 320 Q 500 160 1250 80', color: 'orange', w: 0.8, o: 0.25 },
+    { d: 'M -50 420 Q 600 240 1250 180', color: 'orange', w: 0.6, o: 0.18 },
+    { d: 'M -50 760 Q 500 540 1250 380', color: 'blue', w: 1, o: 0.32 },
+    { d: 'M -50 860 Q 600 640 1250 480', color: 'blue', w: 0.8, o: 0.24 },
+    { d: 'M -50 960 Q 700 740 1250 580', color: 'blue', w: 0.6, o: 0.18 },
+    { d: 'M -50 540 Q 550 380 1250 240', color: 'orange', w: 0.5, o: 0.14 },
+    { d: 'M -50 660 Q 600 460 1250 320', color: 'blue', w: 0.5, o: 0.14 },
+  ];
 
 export default function Dashboard() {
   const { jiraBaseUrl, activeJiraProject, jiraUserDisplayName } = useAuthStore();
@@ -67,14 +68,21 @@ export default function Dashboard() {
           xmlns="http://www.w3.org/2000/svg"
         >
           {AMBIENT_CURVES.map((c, i) => (
-            <path key={i} d={c.d} fill="none"
+            <path
+              key={i}
+              d={c.d}
+              fill="none"
               stroke={c.color === 'orange' ? '#f97316' : '#06b6d4'}
-              strokeWidth={c.w} strokeLinecap="round"
-              opacity={c.o} />
+              strokeWidth={c.w}
+              strokeLinecap="round"
+              opacity={c.o}
+            />
           ))}
         </svg>
 
-        <h1 className="relative text-6xl font-semibold tracking-tight">{timeGreeting} {firstName ?? 'there'}</h1>
+        <h1 className="relative text-6xl font-semibold tracking-tight">
+          {timeGreeting} {firstName ?? 'there'}
+        </h1>
         <p className="relative text-sm text-muted-foreground mt-2">{today}</p>
       </section>
 

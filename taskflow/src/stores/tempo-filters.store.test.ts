@@ -12,8 +12,8 @@ vi.mock('@tauri-apps/plugin-store', () => {
   return { LazyStore };
 });
 
-import { useTempoFiltersStore } from './tempo-filters.store';
 import type { TempoFilter } from './tempo-filters.store';
+import { useTempoFiltersStore } from './tempo-filters.store';
 
 const FILTER_A: TempoFilter = {
   id: 'f1',

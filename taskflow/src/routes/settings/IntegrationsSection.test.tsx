@@ -337,24 +337,18 @@ describe('Tempo Timesheets toggle (Phase 61)', () => {
 
   it('renders Tempo Timesheets checkbox', () => {
     renderWithClient(<IntegrationsSection />);
-    expect(
-      screen.getByRole('checkbox', { name: /enable tempo timesheets/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /enable tempo timesheets/i })).toBeInTheDocument();
   });
 
   it('checkbox is unchecked when tempoEnabled=false', () => {
     renderWithClient(<IntegrationsSection />);
-    expect(
-      screen.getByRole('checkbox', { name: /enable tempo timesheets/i }),
-    ).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /enable tempo timesheets/i })).not.toBeChecked();
   });
 
   it('checkbox is checked when tempoEnabled=true', () => {
     mockStore.tempoEnabled = true;
     renderWithClient(<IntegrationsSection />);
-    expect(
-      screen.getByRole('checkbox', { name: /enable tempo timesheets/i }),
-    ).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /enable tempo timesheets/i })).toBeChecked();
   });
 
   it('toggling checkbox calls setTempoEnabled(true)', () => {

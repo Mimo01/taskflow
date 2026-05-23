@@ -4,6 +4,6 @@
  * client.ts is intentionally NOT exported — it is internal to tempo/.
  */
 
+export * from './schedule';
 export * from './types';
 export * from './worklogs';
-export * from './schedule';

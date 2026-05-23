@@ -103,9 +103,7 @@ export function StoryHeaderRow({
         className="group flex items-center gap-2 flex-1 min-w-0 text-left cursor-pointer"
         onClick={() => onOpenDetail(storyKey)}
       >
-        {isFlagged && (
-          <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300 shrink-0" />
-        )}
+        {isFlagged && <Flag className="size-3.5 text-yellow-700 dark:text-yellow-300 shrink-0" />}
         <span
           className={cn(
             'font-mono text-xs text-muted-foreground shrink-0',

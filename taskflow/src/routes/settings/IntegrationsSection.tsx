@@ -153,7 +153,8 @@ export default function IntegrationsSection() {
           <div>
             <p className="text-sm font-semibold">Enable Tempo Timesheets</p>
             <p className="text-xs text-muted-foreground">
-              Show worklog data from Jira Tempo Timesheets. Requires Tempo plugin on your Jira instance.
+              Show worklog data from Jira Tempo Timesheets. Requires Tempo plugin on your Jira
+              instance.
             </p>
           </div>
           <input

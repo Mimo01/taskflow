@@ -5,7 +5,10 @@ interface IssueTypeIconProps {
   className?: string;
 }
 
-export function IssueTypeIcon({ typeName, className = 'w-3.5 h-3.5 shrink-0' }: IssueTypeIconProps) {
+export function IssueTypeIcon({
+  typeName,
+  className = 'w-3.5 h-3.5 shrink-0',
+}: IssueTypeIconProps) {
   switch (typeName) {
     case 'Bug':
       return <Bug className={`${className} text-red-500`} />;

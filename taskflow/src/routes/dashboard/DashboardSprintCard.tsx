@@ -12,10 +12,10 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { Zap } from 'lucide-react';
-import type { JiraIssue } from '@/services/jira';
-import { fetchActiveSprint, fetchSprintIssues } from '@/services/jira';
 import { Progress } from '@/components/ui/progress';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import type { JiraIssue } from '@/services/jira';
+import { fetchActiveSprint, fetchSprintIssues } from '@/services/jira';
 
 export interface DashboardSprintCardProps {
   jiraBaseUrl: string;

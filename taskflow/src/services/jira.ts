@@ -213,7 +213,13 @@ export async function setIssueFlagged(
   flagged: boolean,
   fieldKey = 'customfield_10021',
 ): Promise<void> {
-  return updateIssueField(baseUrl, token, issueKey, fieldKey, flagged ? [{ value: 'Impediment' }] : null);
+  return updateIssueField(
+    baseUrl,
+    token,
+    issueKey,
+    fieldKey,
+    flagged ? [{ value: 'Impediment' }] : null,
+  );
 }
 
 const SUBTASK_CHUNK_SIZE = 50;

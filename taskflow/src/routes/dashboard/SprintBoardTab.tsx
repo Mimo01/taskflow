@@ -508,8 +508,13 @@ function VirtualizedSwimlanes({
 
 export default function SprintBoardTab() {
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
-  const { storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey, epicColorFieldKey, flaggedFieldKey } =
-    useSettingsStore();
+  const {
+    storyPointsFieldKey,
+    epicLinkFieldKey,
+    epicNameFieldKey,
+    epicColorFieldKey,
+    flaggedFieldKey,
+  } = useSettingsStore();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
 
   const { boardId } = useBoardId(jiraBaseUrl, jiraToken, activeJiraProject);
@@ -822,7 +827,10 @@ export default function SprintBoardTab() {
       setLocalIssues((prev) =>
         prev.map((i) =>
           i.key === issueKey
-            ? { ...i, fields: { ...i.fields, [flaggedFieldKey]: originalIssue.fields[flaggedFieldKey] } }
+            ? {
+                ...i,
+                fields: { ...i.fields, [flaggedFieldKey]: originalIssue.fields[flaggedFieldKey] },
+              }
             : i,
         ),
       );

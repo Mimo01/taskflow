@@ -33,11 +33,7 @@ vi.mock('@/services/stronghold', () => ({
 }));
 
 // Helper: build a fix version fixture
-function makeFixVersion(
-  name: string,
-  releaseDate: string | undefined,
-  released = false,
-) {
+function makeFixVersion(name: string, releaseDate: string | undefined, released = false) {
   return {
     id: name,
     name,
@@ -174,8 +170,7 @@ describe('DashboardReleaseCard', () => {
     // Badge uses data-slot via useRender — check parent chain or self for badge slot
     const el = todayEl;
     const hasSlot =
-      el.getAttribute('data-slot') === 'badge' ||
-      el.closest('[data-slot="badge"]') !== null;
+      el.getAttribute('data-slot') === 'badge' || el.closest('[data-slot="badge"]') !== null;
     expect(hasSlot).toBe(true);
   });
 

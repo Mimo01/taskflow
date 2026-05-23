@@ -23,8 +23,7 @@ export const useTempoFiltersStore = create<TempoFiltersState>()(
   persist(
     (set) => ({
       savedFilters: [],
-      addFilter: (filter) =>
-        set((s) => ({ savedFilters: [...s.savedFilters, filter] })),
+      addFilter: (filter) => set((s) => ({ savedFilters: [...s.savedFilters, filter] })),
       removeFilter: (id) =>
         set((s) => ({ savedFilters: s.savedFilters.filter((f) => f.id !== id) })),
       renameFilter: (id, name) =>

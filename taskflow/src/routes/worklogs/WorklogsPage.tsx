@@ -12,10 +12,23 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Bookmark, BookOpen, Bug, ChevronsLeft, ChevronsRight, Clock, CornerDownRight, Layers, Pencil, Trash2 } from 'lucide-react';
-import { WorklogCellPopover } from './WorklogCellPopover';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Bookmark,
+  BookOpen,
+  Bug,
+  ChevronsLeft,
+  ChevronsRight,
+  Clock,
+  CornerDownRight,
+  Layers,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -23,21 +36,27 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiFetch } from '@/lib/apiFetch';
 import { fetchAssignableUsers } from '@/services/jira/users';
-import { fetchUserSchedule, fetchWorklogs, type ScheduleDayType } from '@/services/tempo';
 import { readSecret } from '@/services/stronghold';
+import { fetchUserSchedule, fetchWorklogs, type ScheduleDayType } from '@/services/tempo';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import { useTempoFiltersStore, type TempoFilter } from '@/stores/tempo-filters.store';
+import { type TempoFilter, useTempoFiltersStore } from '@/stores/tempo-filters.store';
+import { WorklogCellPopover } from './WorklogCellPopover';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type DatePreset = 'this-week' | 'last-week' | 'this-month' | 'last-month' | 'last-working-day' | 'custom';
+export type DatePreset =
+  | 'this-week'
+  | 'last-week'
+  | 'this-month'
+  | 'last-month'
+  | 'last-working-day'
+  | 'custom';
 
 /** Enriched Jira issue shape returned by the worklog enrichment query */
 type EnrichedIssue = {
@@ -53,9 +72,23 @@ type EnrichedIssue = {
 // ─── Hierarchy node types (D-06) ─────────────────────────────────────────────
 
 type DayMap = Map<string, number>; // YYYY-MM-DD -> seconds
-type SubtaskNode = { summary: string; dayMap: DayMap; entries: import('@/services/tempo').TempoWorklog[] };
-type StoryNode = { summary: string; dayMap: DayMap; entries: import('@/services/tempo').TempoWorklog[]; subtasks: Map<string, SubtaskNode> };
-type EpicNode = { summary: string; dayMap: DayMap; entries: import('@/services/tempo').TempoWorklog[]; stories: Map<string, StoryNode> };
+type SubtaskNode = {
+  summary: string;
+  dayMap: DayMap;
+  entries: import('@/services/tempo').TempoWorklog[];
+};
+type StoryNode = {
+  summary: string;
+  dayMap: DayMap;
+  entries: import('@/services/tempo').TempoWorklog[];
+  subtasks: Map<string, SubtaskNode>;
+};
+type EpicNode = {
+  summary: string;
+  dayMap: DayMap;
+  entries: import('@/services/tempo').TempoWorklog[];
+  stories: Map<string, StoryNode>;
+};
 type HierarchyMap = Map<string, EpicNode>; // key = epicKey or '__NO_EPIC__'
 
 const NO_EPIC = '__NO_EPIC__';
@@ -92,7 +125,9 @@ function enumerateDays(from: string, to: string): string[] {
   const d = new Date(`${from}T00:00:00`);
   const end = new Date(`${to}T00:00:00`);
   while (d <= end) {
-    days.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+    days.push(
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+    );
     d.setDate(d.getDate() + 1);
   }
   return days;
@@ -197,7 +232,8 @@ const COLUMN_HOVER_CSS = (() => {
 /** Returns the full bg (+text) class for a sticky HEADER or FOOTER day cell, replacing bg-muted. */
 function dayHeaderBg(type: ScheduleDayType | undefined): string {
   if (type === 'HOLIDAY') return 'bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-300';
-  if (type === 'NON_WORKING_DAY') return 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400';
+  if (type === 'NON_WORKING_DAY')
+    return 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400';
   return 'bg-muted';
 }
 
@@ -220,7 +256,8 @@ const DATE_PRESETS: { id: DatePreset; label: string }[] = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function WorklogsPage() {
-  const { jiraBaseUrl, activeJiraProject, jiraUsername, jiraUserDisplayName, jiraUserKey } = useAuthStore();
+  const { jiraBaseUrl, activeJiraProject, jiraUsername, jiraUserDisplayName, jiraUserKey } =
+    useAuthStore();
   // IN-01: fine-grained selector avoids re-rendering on unrelated store mutations
   const tempoEnabled = useSettingsStore((s) => s.tempoEnabled);
   const epicLinkFieldKey = useSettingsStore((s) => s.epicLinkFieldKey);
@@ -248,7 +285,7 @@ export default function WorklogsPage() {
 
   // Column-hover: imperative DOM mutation via ref — avoids React re-render on every hover.
   const tableRef = useRef<HTMLTableElement>(null);
-  const handleTableMouseOver = (e: React.MouseEvent<HTMLTableElement>) => {
+  const handleTableMouseOver = (e: React.SyntheticEvent<HTMLTableElement>) => {
     const cell = (e.target as HTMLElement).closest('td, th') as HTMLTableCellElement | null;
     if (!cell || !tableRef.current) return;
     const n = cell.cellIndex + 1; // 1-based nth-child
@@ -269,7 +306,8 @@ export default function WorklogsPage() {
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Tempo filters store (TEMPO-04, TEMPO-05)
-  const { savedFilters, addFilter, removeFilter, renameFilter, moveFilter } = useTempoFiltersStore();
+  const { savedFilters, addFilter, removeFilter, renameFilter, moveFilter } =
+    useTempoFiltersStore();
 
   // ─ Auth token effect (SprintProgressTab pattern) ─────────────────────────
   useEffect(() => {
@@ -313,13 +351,7 @@ export default function WorklogsPage() {
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['tempo', 'worklogs', jiraBaseUrl, from, to, selectedUsername ?? ''],
     queryFn: () =>
-      fetchWorklogs(
-        jiraBaseUrl!,
-        jiraToken!,
-        selectedUsername ? [selectedUsername] : [],
-        from,
-        to,
-      ),
+      fetchWorklogs(jiraBaseUrl!, jiraToken!, selectedUsername ? [selectedUsername] : [], from, to),
     enabled:
       !!jiraBaseUrl &&
       !!jiraToken &&
@@ -372,7 +404,8 @@ export default function WorklogsPage() {
     const parents = new Set<string>();
     for (const issue of enrichQuery.data) {
       // next-gen: parent.key; classic: epicLinkFieldKey (discovered per-instance, e.g. customfield_10014)
-      const pk = issue.fields.parent?.key ?? (issue.fields[epicLinkFieldKey] as string | null) ?? null;
+      const pk =
+        issue.fields.parent?.key ?? (issue.fields[epicLinkFieldKey] as string | null) ?? null;
       if (pk && !already.has(pk)) parents.add(pk);
     }
     return [...parents].sort();
@@ -414,7 +447,8 @@ export default function WorklogsPage() {
     ]);
     const grandparents = new Set<string>();
     for (const issue of parentEnrichQuery.data) {
-      const pk = issue.fields.parent?.key ?? (issue.fields[epicLinkFieldKey] as string | null) ?? null;
+      const pk =
+        issue.fields.parent?.key ?? (issue.fields[epicLinkFieldKey] as string | null) ?? null;
       if (pk && !already.has(pk)) grandparents.add(pk);
     }
     return [...grandparents].sort();
@@ -422,7 +456,13 @@ export default function WorklogsPage() {
   const grandparentKeysStr = grandparentKeys.join(',');
 
   const grandparentEnrichQuery = useQuery({
-    queryKey: ['jira', 'worklog-enrich-grandparents', jiraBaseUrl, grandparentKeysStr, epicLinkFieldKey],
+    queryKey: [
+      'jira',
+      'worklog-enrich-grandparents',
+      jiraBaseUrl,
+      grandparentKeysStr,
+      epicLinkFieldKey,
+    ],
     queryFn: async () => {
       if (grandparentKeys.length === 0) return [] as EnrichedIssue[];
       const token = await readSecret('jira-pat').catch(() => null);
@@ -527,7 +567,10 @@ export default function WorklogsPage() {
       // Issue classification (Pitfall 3: never use issuetype.name === 'Epic')
       const isSubtask = enriched?.fields.issuetype.subtask === true;
       // next-gen Jira: parent.key; classic Jira: epicLinkFieldKey (discovered per-instance)
-      const parentKeyRaw = enriched?.fields.parent?.key ?? (enriched?.fields[epicLinkFieldKey] as string | null) ?? null;
+      const parentKeyRaw =
+        enriched?.fields.parent?.key ??
+        (enriched?.fields[epicLinkFieldKey] as string | null) ??
+        null;
       const hasParent = !!parentKeyRaw;
 
       // Accumulate into issueTotals and dayTotals (grand total)
@@ -551,7 +594,11 @@ export default function WorklogsPage() {
         const storyNode = getOrCreateStory(epicNode, storyKey, storySummary);
 
         if (!storyNode.subtasks.has(issueKey)) {
-          storyNode.subtasks.set(issueKey, { summary: subtaskSummary, dayMap: new Map(), entries: [] });
+          storyNode.subtasks.set(issueKey, {
+            summary: subtaskSummary,
+            dayMap: new Map(),
+            entries: [],
+          });
         }
         const subtaskNode = storyNode.subtasks.get(issueKey)!;
         subtaskNode.dayMap.set(date, (subtaskNode.dayMap.get(date) ?? 0) + secs);
@@ -560,7 +607,6 @@ export default function WorklogsPage() {
         // Propagate up to story and epic day maps
         storyNode.dayMap.set(date, (storyNode.dayMap.get(date) ?? 0) + secs);
         epicNode.dayMap.set(date, (epicNode.dayMap.get(date) ?? 0) + secs);
-
       } else if (hasParent) {
         // Story: parent is epic via parent.key (next-gen) or customfield_10014 (classic)
         const epicKey = parentKeyRaw!;
@@ -574,7 +620,6 @@ export default function WorklogsPage() {
 
         // Propagate to epic
         epicNode.dayMap.set(date, (epicNode.dayMap.get(date) ?? 0) + secs);
-
       } else {
         // Epic (or unresolvable): no parent, not a subtask
         const epicSummary = summaryMap.get(issueKey) ?? issueKey;
@@ -598,7 +643,15 @@ export default function WorklogsPage() {
       resolvedKeys,
       enrichMap,
     };
-  }, [data, enrichQuery.data, parentEnrichQuery.data, grandparentEnrichQuery.data, from, to, epicLinkFieldKey]);
+  }, [
+    data,
+    enrichQuery.data,
+    parentEnrichQuery.data,
+    grandparentEnrichQuery.data,
+    from,
+    to,
+    epicLinkFieldKey,
+  ]);
 
   // ─ Combobox handlers ──────────────────────────────────────────────────────
   function handleComboboxFocus() {
@@ -632,7 +685,13 @@ export default function WorklogsPage() {
   /** TEMPO-04: Create filter immediately and enter rename mode inline on the pill */
   function handleSaveFilter() {
     const newId = Date.now().toString(36) + Math.random().toString(36).slice(2);
-    addFilter({ id: newId, name: '', preset, username: selectedUsername, displayName: selectedDisplayName });
+    addFilter({
+      id: newId,
+      name: '',
+      preset,
+      username: selectedUsername,
+      displayName: selectedDisplayName,
+    });
     setActiveFilterId(newId);
     setRenamingId(newId);
     setRenameInput('');
@@ -706,7 +765,9 @@ export default function WorklogsPage() {
                     onChange={(e) => setRenameInput(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleCommitRename(filter.id);
-                      if (e.key === 'Escape') { handleCommitRename(filter.id); }
+                      if (e.key === 'Escape') {
+                        handleCommitRename(filter.id);
+                      }
                     }}
                     onBlur={() => handleCommitRename(filter.id)}
                     aria-label="Rename filter"
@@ -742,26 +803,41 @@ export default function WorklogsPage() {
                   {savedFilters.length > 1 && (
                     <>
                       <ContextMenuSeparator />
-                      <ContextMenuItem disabled={isFirst} onClick={() => moveFilter(filter.id, 'left')}>
+                      <ContextMenuItem
+                        disabled={isFirst}
+                        onClick={() => moveFilter(filter.id, 'left')}
+                      >
                         <ArrowLeft className="size-3.5" />
                         Move left
                       </ContextMenuItem>
-                      <ContextMenuItem disabled={isLast} onClick={() => moveFilter(filter.id, 'right')}>
+                      <ContextMenuItem
+                        disabled={isLast}
+                        onClick={() => moveFilter(filter.id, 'right')}
+                      >
                         <ArrowRight className="size-3.5" />
                         Move right
                       </ContextMenuItem>
-                      <ContextMenuItem disabled={isFirst} onClick={() => moveFilter(filter.id, 'front')}>
+                      <ContextMenuItem
+                        disabled={isFirst}
+                        onClick={() => moveFilter(filter.id, 'front')}
+                      >
                         <ChevronsLeft className="size-3.5" />
                         Move to front
                       </ContextMenuItem>
-                      <ContextMenuItem disabled={isLast} onClick={() => moveFilter(filter.id, 'back')}>
+                      <ContextMenuItem
+                        disabled={isLast}
+                        onClick={() => moveFilter(filter.id, 'back')}
+                      >
                         <ChevronsRight className="size-3.5" />
                         Move to back
                       </ContextMenuItem>
                     </>
                   )}
                   <ContextMenuSeparator />
-                  <ContextMenuItem variant="destructive" onClick={() => handleDeleteFilter(filter.id)}>
+                  <ContextMenuItem
+                    variant="destructive"
+                    onClick={() => handleDeleteFilter(filter.id)}
+                  >
                     <Trash2 className="size-3.5" />
                     Delete
                   </ContextMenuItem>
@@ -878,22 +954,41 @@ export default function WorklogsPage() {
           <table className="w-full text-xs border-separate [border-spacing:0]">
             <thead>
               <tr>
-                <th className="sticky top-0 left-0 z-30 bg-background text-left px-3 py-2.5 border border-border border-r-0 min-w-52 max-w-52 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">Title</th>
-                <th className="sticky top-0 left-52 z-30 bg-background text-left px-2 py-2.5 border border-border border-l-0 border-r-0 min-w-20 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">Key</th>
-                <th className="sticky top-0 left-72 z-30 bg-background text-center px-2 py-2.5 border border-border border-l-0 border-r-2 min-w-14 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">Time</th>
+                <th className="sticky top-0 left-0 z-30 bg-background text-left px-3 py-2.5 border border-border border-r-0 min-w-52 max-w-52 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">
+                  Title
+                </th>
+                <th className="sticky top-0 left-52 z-30 bg-background text-left px-2 py-2.5 border border-border border-l-0 border-r-0 min-w-20 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">
+                  Key
+                </th>
+                <th className="sticky top-0 left-72 z-30 bg-background text-center px-2 py-2.5 border border-border border-l-0 border-r-2 min-w-14 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">
+                  Time
+                </th>
                 {Array.from({ length: days.length || 7 }, (_, i) => (
-                  <th key={i} className="sticky top-0 z-20 bg-muted text-center px-2 py-2.5 border border-border min-w-14 font-bold uppercase tracking-widest text-[10px]"><Skeleton className="h-3 w-8 mx-auto" /></th>
+                  <th
+                    key={i}
+                    className="sticky top-0 z-20 bg-muted text-center px-2 py-2.5 border border-border min-w-14 font-bold uppercase tracking-widest text-[10px]"
+                  >
+                    <Skeleton className="h-3 w-8 mx-auto" />
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {Array.from({ length: 5 }, (_, r) => (
                 <tr key={r}>
-                  <td className="sticky left-0 z-10 bg-background px-3 py-2 border border-border border-r-0 min-w-52 max-w-52"><Skeleton className="h-3 w-28" /></td>
-                  <td className="sticky left-52 z-10 bg-background px-2 py-2 border border-border border-l-0 border-r-0 min-w-20"><Skeleton className="h-3 w-14" /></td>
-                  <td className="sticky left-72 z-10 bg-background text-center px-2 py-2 border border-border border-l-0 border-r-2 min-w-14"><Skeleton className="h-3 w-8 mx-auto" /></td>
+                  <td className="sticky left-0 z-10 bg-background px-3 py-2 border border-border border-r-0 min-w-52 max-w-52">
+                    <Skeleton className="h-3 w-28" />
+                  </td>
+                  <td className="sticky left-52 z-10 bg-background px-2 py-2 border border-border border-l-0 border-r-0 min-w-20">
+                    <Skeleton className="h-3 w-14" />
+                  </td>
+                  <td className="sticky left-72 z-10 bg-background text-center px-2 py-2 border border-border border-l-0 border-r-2 min-w-14">
+                    <Skeleton className="h-3 w-8 mx-auto" />
+                  </td>
                   {Array.from({ length: days.length || 7 }, (_, c) => (
-                    <td key={c} className="text-center px-2 py-2 border border-border"><Skeleton className="h-3 w-8 mx-auto" /></td>
+                    <td key={c} className="text-center px-2 py-2 border border-border">
+                      <Skeleton className="h-3 w-8 mx-auto" />
+                    </td>
                   ))}
                 </tr>
               ))}
@@ -916,14 +1011,22 @@ export default function WorklogsPage() {
           <table
             ref={tableRef}
             onMouseOver={handleTableMouseOver}
+            onFocus={handleTableMouseOver}
             onMouseLeave={handleTableMouseLeave}
+            onBlur={handleTableMouseLeave}
             className="worklog-table w-full text-xs border-separate [border-spacing:0]"
           >
             <thead>
               <tr>
-                <th className="sticky top-0 left-0 z-30 bg-background text-left px-3 py-2.5 border border-border border-r-0 min-w-52 max-w-52 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">Title</th>
-                <th className="sticky top-0 left-52 z-30 bg-background text-left px-2 py-2.5 border border-border border-l-0 border-r-0 min-w-20 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">Key</th>
-                <th className="sticky top-0 left-72 z-30 bg-background text-center px-2 py-2.5 border border-border border-l-0 border-r-2 min-w-14 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">Time</th>
+                <th className="sticky top-0 left-0 z-30 bg-background text-left px-3 py-2.5 border border-border border-r-0 min-w-52 max-w-52 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">
+                  Title
+                </th>
+                <th className="sticky top-0 left-52 z-30 bg-background text-left px-2 py-2.5 border border-border border-l-0 border-r-0 min-w-20 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">
+                  Key
+                </th>
+                <th className="sticky top-0 left-72 z-30 bg-background text-center px-2 py-2.5 border border-border border-l-0 border-r-2 min-w-14 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">
+                  Time
+                </th>
                 {days.map((day) => (
                   <th
                     key={day}
@@ -939,45 +1042,75 @@ export default function WorklogsPage() {
                 const isNoEpic = epicKey === NO_EPIC;
                 const isResolved = resolvedKeys.has(epicKey);
                 const epicTotal = Array.from(epicNode.dayMap.values()).reduce((a, b) => a + b, 0);
-                const epicRowBg = isNoEpic ? 'bg-purple-50 dark:bg-purple-950' : 'bg-purple-100 dark:bg-purple-900';
+                const epicRowBg = isNoEpic
+                  ? 'bg-purple-50 dark:bg-purple-950'
+                  : 'bg-purple-100 dark:bg-purple-900';
 
                 return (
                   <>
                     {/* Epic row */}
                     <tr
                       key={`epic-${epicKey}`}
-                      className={isNoEpic
-                        ? 'bg-purple-50 dark:bg-purple-950 group/row'
-                        : 'bg-purple-100 dark:bg-purple-900 cursor-pointer group/row'}
+                      className={
+                        isNoEpic
+                          ? 'bg-purple-50 dark:bg-purple-950 group/row'
+                          : 'bg-purple-100 dark:bg-purple-900 cursor-pointer group/row'
+                      }
                     >
-                      <td className={`sticky left-0 z-10 ${epicRowBg} px-3 py-1.5 border border-border border-r-0 min-w-52 max-w-52 overflow-hidden`}>
+                      <td
+                        className={`sticky left-0 z-10 ${epicRowBg} px-3 py-1.5 border border-border border-r-0 min-w-52 max-w-52 overflow-hidden`}
+                      >
                         {isNoEpic ? (
                           <span className="flex items-center gap-1 text-purple-400 dark:text-purple-600 italic text-[11px]">
                             <Layers className="size-3 shrink-0 text-purple-400 dark:text-purple-600" />
                             No Epic
                           </span>
                         ) : (
-                          <button type="button" aria-label={`Open ${epicKey}`} onClick={() => onIssueClick(epicKey)} className="flex items-center gap-1 w-full text-left min-w-0 cursor-pointer">
+                          <button
+                            type="button"
+                            aria-label={`Open ${epicKey}`}
+                            onClick={() => onIssueClick(epicKey)}
+                            className="flex items-center gap-1 w-full text-left min-w-0 cursor-pointer"
+                          >
                             <Layers className="size-3 shrink-0 text-purple-700 dark:text-purple-300" />
                             <span className="font-semibold leading-tight truncate text-purple-900 dark:text-purple-100">
-                              {isResolved ? epicNode.summary : <span className="line-through text-muted-foreground">{epicKey}</span>}
+                              {isResolved ? (
+                                epicNode.summary
+                              ) : (
+                                <span className="line-through text-muted-foreground">
+                                  {epicKey}
+                                </span>
+                              )}
                             </span>
                           </button>
                         )}
                       </td>
-                      <td className={`sticky left-52 z-10 ${epicRowBg} px-2 py-1.5 border border-border border-l-0 border-r-0 text-purple-500 dark:text-purple-400 whitespace-nowrap min-w-20`}>
+                      <td
+                        className={`sticky left-52 z-10 ${epicRowBg} px-2 py-1.5 border border-border border-l-0 border-r-0 text-purple-500 dark:text-purple-400 whitespace-nowrap min-w-20`}
+                      >
                         {isNoEpic ? '' : epicKey}
                       </td>
-                      <td className={`sticky left-72 z-10 ${epicRowBg} text-center px-2 py-1.5 border border-border border-l-0 border-r-2 font-semibold text-purple-800 dark:text-purple-200 min-w-14`}>
-                        {isNoEpic ? '' : (formatSeconds(epicTotal) || '—')}
+                      <td
+                        className={`sticky left-72 z-10 ${epicRowBg} text-center px-2 py-1.5 border border-border border-l-0 border-r-2 font-semibold text-purple-800 dark:text-purple-200 min-w-14`}
+                      >
+                        {isNoEpic ? '' : formatSeconds(epicTotal) || '—'}
                       </td>
                       {days.map((day) => {
                         const secs = epicNode.dayMap.get(day) ?? 0;
-                        const cellEntries = (data ?? []).filter((w) => w.issue.key === epicKey && w.dateStarted === day);
+                        const cellEntries = (data ?? []).filter(
+                          (w) => w.issue.key === epicKey && w.dateStarted === day,
+                        );
                         const cellBg = dayColClass(dayTypeMap.get(day), epicRowBg);
                         return (
                           <td key={day} className={`border border-border p-0 ${cellBg}`}>
-                            <WorklogCellPopover issueKey={epicKey} date={day} entries={cellEntries} jiraBaseUrl={jiraBaseUrl!} totalSeconds={secs} dayColClassName={cellBg} />
+                            <WorklogCellPopover
+                              issueKey={epicKey}
+                              date={day}
+                              entries={cellEntries}
+                              jiraBaseUrl={jiraBaseUrl!}
+                              totalSeconds={secs}
+                              dayColClassName={cellBg}
+                            />
                           </td>
                         );
                       })}
@@ -986,61 +1119,122 @@ export default function WorklogsPage() {
                     {/* Story rows */}
                     {Array.from(epicNode.stories.entries()).map(([storyKey, storyNode]) => {
                       const storyIssuetype = enrichMap.get(storyKey)?.fields.issuetype.name;
-                      const { IssueIcon: StoryIcon, color: storyColor } = getIssueIcon(storyIssuetype);
-                      const storyTotal = Array.from(storyNode.dayMap.values()).reduce((a, b) => a + b, 0);
+                      const { IssueIcon: StoryIcon, color: storyColor } =
+                        getIssueIcon(storyIssuetype);
+                      const storyTotal = Array.from(storyNode.dayMap.values()).reduce(
+                        (a, b) => a + b,
+                        0,
+                      );
                       return (
                         <>
                           <tr key={`story-${storyKey}`} className="cursor-pointer group/row">
                             <td className="sticky left-0 z-10 bg-background px-3 py-1.5 border border-border border-r-0 min-w-52 max-w-52 overflow-hidden">
-                              <button type="button" aria-label={`Open ${storyKey}`} onClick={() => onIssueClick(storyKey)} className="flex items-center gap-1 w-full text-left pl-3 min-w-0 cursor-pointer">
+                              <button
+                                type="button"
+                                aria-label={`Open ${storyKey}`}
+                                onClick={() => onIssueClick(storyKey)}
+                                className="flex items-center gap-1 w-full text-left pl-3 min-w-0 cursor-pointer"
+                              >
                                 <StoryIcon className={`size-3 shrink-0 ${storyColor}`} />
                                 <span className="font-medium leading-tight truncate">
-                                  {resolvedKeys.has(storyKey) ? storyNode.summary : <span className="line-through text-muted-foreground">{storyKey}</span>}
+                                  {resolvedKeys.has(storyKey) ? (
+                                    storyNode.summary
+                                  ) : (
+                                    <span className="line-through text-muted-foreground">
+                                      {storyKey}
+                                    </span>
+                                  )}
                                 </span>
                               </button>
                             </td>
-                            <td className="sticky left-52 z-10 bg-background px-2 py-1.5 border border-border border-l-0 border-r-0 text-muted-foreground whitespace-nowrap min-w-20">{storyKey}</td>
-                            <td className="sticky left-72 z-10 bg-background text-center px-2 py-1.5 border border-border border-l-0 border-r-2 font-semibold min-w-14">{formatSeconds(storyTotal) || '—'}</td>
+                            <td className="sticky left-52 z-10 bg-background px-2 py-1.5 border border-border border-l-0 border-r-0 text-muted-foreground whitespace-nowrap min-w-20">
+                              {storyKey}
+                            </td>
+                            <td className="sticky left-72 z-10 bg-background text-center px-2 py-1.5 border border-border border-l-0 border-r-2 font-semibold min-w-14">
+                              {formatSeconds(storyTotal) || '—'}
+                            </td>
                             {days.map((day) => {
                               const secs = storyNode.dayMap.get(day) ?? 0;
-                              const cellEntries = (data ?? []).filter((w) => w.issue.key === storyKey && w.dateStarted === day);
+                              const cellEntries = (data ?? []).filter(
+                                (w) => w.issue.key === storyKey && w.dateStarted === day,
+                              );
                               const cellBg = dayColClass(dayTypeMap.get(day));
                               return (
                                 <td key={day} className={`border border-border p-0 ${cellBg}`}>
-                                  <WorklogCellPopover issueKey={storyKey} date={day} entries={cellEntries} jiraBaseUrl={jiraBaseUrl!} totalSeconds={secs} dayColClassName={cellBg} />
+                                  <WorklogCellPopover
+                                    issueKey={storyKey}
+                                    date={day}
+                                    entries={cellEntries}
+                                    jiraBaseUrl={jiraBaseUrl!}
+                                    totalSeconds={secs}
+                                    dayColClassName={cellBg}
+                                  />
                                 </td>
                               );
                             })}
                           </tr>
 
                           {/* Subtask rows */}
-                          {Array.from(storyNode.subtasks.entries()).map(([subtaskKey, subtaskNode]) => {
-                            const subtaskTotal = Array.from(subtaskNode.dayMap.values()).reduce((a, b) => a + b, 0);
-                            return (
-                              <tr key={`subtask-${subtaskKey}`} className="cursor-pointer group/row">
-                                <td className="sticky left-0 z-10 bg-background px-3 py-1.5 border border-border border-r-0 min-w-52 max-w-52 overflow-hidden">
-                                  <button type="button" aria-label={`Open ${subtaskKey}`} onClick={() => onIssueClick(subtaskKey)} className="flex items-center gap-1 w-full text-left pl-6 min-w-0 cursor-pointer">
-                                    <CornerDownRight className="size-3 shrink-0 text-teal-500" />
-                                    <span className="leading-tight text-muted-foreground truncate">
-                                      {resolvedKeys.has(subtaskKey) ? subtaskNode.summary : <span className="line-through">{subtaskKey}</span>}
-                                    </span>
-                                  </button>
-                                </td>
-                                <td className="sticky left-52 z-10 bg-background px-2 py-1.5 border border-border border-l-0 border-r-0 text-muted-foreground/60 whitespace-nowrap min-w-20">{subtaskKey}</td>
-                                <td className="sticky left-72 z-10 bg-background text-center px-2 py-1.5 border border-border border-l-0 border-r-2 font-semibold text-muted-foreground min-w-14">{formatSeconds(subtaskTotal) || '—'}</td>
-                                {days.map((day) => {
-                                  const secs = subtaskNode.dayMap.get(day) ?? 0;
-                                  const cellEntries = (data ?? []).filter((w) => w.issue.key === subtaskKey && w.dateStarted === day);
-                                  const cellBg = dayColClass(dayTypeMap.get(day));
-                                  return (
-                                    <td key={day} className={`border border-border p-0 ${cellBg}`}>
-                                      <WorklogCellPopover issueKey={subtaskKey} date={day} entries={cellEntries} jiraBaseUrl={jiraBaseUrl!} totalSeconds={secs} dayColClassName={cellBg} />
-                                    </td>
-                                  );
-                                })}
-                              </tr>
-                            );
-                          })}
+                          {Array.from(storyNode.subtasks.entries()).map(
+                            ([subtaskKey, subtaskNode]) => {
+                              const subtaskTotal = Array.from(subtaskNode.dayMap.values()).reduce(
+                                (a, b) => a + b,
+                                0,
+                              );
+                              return (
+                                <tr
+                                  key={`subtask-${subtaskKey}`}
+                                  className="cursor-pointer group/row"
+                                >
+                                  <td className="sticky left-0 z-10 bg-background px-3 py-1.5 border border-border border-r-0 min-w-52 max-w-52 overflow-hidden">
+                                    <button
+                                      type="button"
+                                      aria-label={`Open ${subtaskKey}`}
+                                      onClick={() => onIssueClick(subtaskKey)}
+                                      className="flex items-center gap-1 w-full text-left pl-6 min-w-0 cursor-pointer"
+                                    >
+                                      <CornerDownRight className="size-3 shrink-0 text-teal-500" />
+                                      <span className="leading-tight text-muted-foreground truncate">
+                                        {resolvedKeys.has(subtaskKey) ? (
+                                          subtaskNode.summary
+                                        ) : (
+                                          <span className="line-through">{subtaskKey}</span>
+                                        )}
+                                      </span>
+                                    </button>
+                                  </td>
+                                  <td className="sticky left-52 z-10 bg-background px-2 py-1.5 border border-border border-l-0 border-r-0 text-muted-foreground/60 whitespace-nowrap min-w-20">
+                                    {subtaskKey}
+                                  </td>
+                                  <td className="sticky left-72 z-10 bg-background text-center px-2 py-1.5 border border-border border-l-0 border-r-2 font-semibold text-muted-foreground min-w-14">
+                                    {formatSeconds(subtaskTotal) || '—'}
+                                  </td>
+                                  {days.map((day) => {
+                                    const secs = subtaskNode.dayMap.get(day) ?? 0;
+                                    const cellEntries = (data ?? []).filter(
+                                      (w) => w.issue.key === subtaskKey && w.dateStarted === day,
+                                    );
+                                    const cellBg = dayColClass(dayTypeMap.get(day));
+                                    return (
+                                      <td
+                                        key={day}
+                                        className={`border border-border p-0 ${cellBg}`}
+                                      >
+                                        <WorklogCellPopover
+                                          issueKey={subtaskKey}
+                                          date={day}
+                                          entries={cellEntries}
+                                          jiraBaseUrl={jiraBaseUrl!}
+                                          totalSeconds={secs}
+                                          dayColClassName={cellBg}
+                                        />
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              );
+                            },
+                          )}
                         </>
                       );
                     })}
@@ -1050,11 +1244,18 @@ export default function WorklogsPage() {
             </tbody>
             <tfoot>
               <tr>
-                <td className="sticky left-0 bottom-0 z-20 bg-muted px-3 py-1.5 border border-border border-r-0 font-bold uppercase tracking-widest text-[10px] text-foreground/60">Total</td>
+                <td className="sticky left-0 bottom-0 z-20 bg-muted px-3 py-1.5 border border-border border-r-0 font-bold uppercase tracking-widest text-[10px] text-foreground/60">
+                  Total
+                </td>
                 <td className="sticky left-52 bottom-0 z-20 bg-muted border border-border border-l-0 border-r-0 min-w-20"></td>
-                <td className="sticky left-72 bottom-0 z-20 bg-muted text-center px-2 py-1.5 border border-border border-l-0 border-r-2 font-semibold min-w-14">{formatSeconds(grandTotal)}</td>
+                <td className="sticky left-72 bottom-0 z-20 bg-muted text-center px-2 py-1.5 border border-border border-l-0 border-r-2 font-semibold min-w-14">
+                  {formatSeconds(grandTotal)}
+                </td>
                 {days.map((day) => (
-                  <td key={day} className={`sticky bottom-0 z-10 text-center px-2 py-1.5 border border-border font-semibold ${dayHeaderBg(dayTypeMap.get(day))}`}>
+                  <td
+                    key={day}
+                    className={`sticky bottom-0 z-10 text-center px-2 py-1.5 border border-border font-semibold ${dayHeaderBg(dayTypeMap.get(day))}`}
+                  >
                     {formatSeconds(dayTotals.get(day) ?? 0)}
                   </td>
                 ))}
@@ -1065,7 +1266,7 @@ export default function WorklogsPage() {
       </div>
       {/* Pure-CSS column hover (issue #3) — :has() + :nth-child() avoids React re-renders.
           Static rules generated once at module load; only active day columns trigger them. */}
-      <style dangerouslySetInnerHTML={{ __html: COLUMN_HOVER_CSS }} />
+      <style>{COLUMN_HOVER_CSS}</style>
     </div>
   );
 }

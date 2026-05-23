@@ -13,11 +13,11 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, waitFor } from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TempoWorklog } from '@/services/tempo';
 import type { TempoFilter } from '@/stores/tempo-filters.store';
-import type { ReactElement } from 'react';
 
 // ─── Module-level mutable mock state (vi.mock factories are hoisted) ──────────
 
@@ -77,8 +77,9 @@ vi.mock('@/stores/auth.store', () => ({
 }));
 
 vi.mock('@/services/jira/users', () => ({
-  fetchAssignableUsers: vi.fn().mockImplementation(
-    (_baseUrl: string, _token: string, _project: string, query: string) =>
+  fetchAssignableUsers: vi
+    .fn()
+    .mockImplementation((_baseUrl: string, _token: string, _project: string, query: string) =>
       Promise.resolve(
         query
           ? mockAssignableUsersResult.filter((u) =>
@@ -86,7 +87,7 @@ vi.mock('@/services/jira/users', () => ({
             )
           : mockAssignableUsersResult,
       ),
-  ),
+    ),
 }));
 
 vi.mock('@/stores/settings.store', () => ({
@@ -137,11 +138,7 @@ function renderPage() {
 
 function renderComponent(element: ReactElement) {
   const client = makeClient();
-  return render(
-    <QueryClientProvider client={client}>
-      {element}
-    </QueryClientProvider>,
-  );
+  return render(<QueryClientProvider client={client}>{element}</QueryClientProvider>);
 }
 
 function makeWorklog(
@@ -408,15 +405,20 @@ describe('WorklogsPage', () => {
       await waitFor(() => {
         const dropdown = container.querySelector('ul');
         expect(dropdown).toBeTruthy();
-        const buttons = Array.from(dropdown!.querySelectorAll('button')).map((b) => b.textContent?.trim());
+        const buttons = Array.from(dropdown!.querySelectorAll('button')).map((b) =>
+          b.textContent?.trim(),
+        );
         expect(buttons).toContain('Alice Smith');
       });
 
       // Blur without selecting — selection should be restored
       fireEvent.blur(input);
-      await waitFor(() => {
-        expect(input.value).toBe('Milan Mozolak');
-      }, { timeout: 500 });
+      await waitFor(
+        () => {
+          expect(input.value).toBe('Milan Mozolak');
+        },
+        { timeout: 500 },
+      );
     });
 
     it('typing in input filters dropdown options', async () => {
@@ -436,8 +438,8 @@ describe('WorklogsPage', () => {
       await waitFor(() => {
         const dropdown = container.querySelector('ul');
         expect(dropdown).toBeTruthy();
-        const buttons = Array.from(dropdown!.querySelectorAll('button')).map(
-          (b) => b.textContent?.trim(),
+        const buttons = Array.from(dropdown!.querySelectorAll('button')).map((b) =>
+          b.textContent?.trim(),
         );
         expect(buttons).toContain('Alice Smith');
         expect(buttons).not.toContain('Bob Jones');
@@ -564,8 +566,8 @@ describe('WorklogsPage', () => {
       }
 
       // Also verify the text '0h' does not appear anywhere in the data rows
-      const allCellText = Array.from(bodyRows[0].querySelectorAll('td')).map(
-        (td) => td.textContent?.trim(),
+      const allCellText = Array.from(bodyRows[0].querySelectorAll('td')).map((td) =>
+        td.textContent?.trim(),
       );
       expect(allCellText).not.toContain('0h');
     });
@@ -650,7 +652,6 @@ describe('WorklogsPage', () => {
       const lastMonthBtn = getByText('Last Month');
       expect(lastMonthBtn.className).toContain('bg-accent');
     });
-
   });
   // Note: rename and delete are accessed via right-click context menu (ContextMenu component).
   // Context menu interactions are not reliably testable in jsdom — following the same
@@ -672,8 +673,8 @@ describe('WorklogsPage', () => {
       const { apiFetch } = await import('@/lib/apiFetch');
       await waitFor(() => {
         const calls = (apiFetch as ReturnType<typeof vi.fn>).mock.calls as unknown[][];
-        const searchCall = calls.find((args) =>
-          typeof args[1] === 'string' && args[1].includes('/rest/api/2/search'),
+        const searchCall = calls.find(
+          (args) => typeof args[1] === 'string' && args[1].includes('/rest/api/2/search'),
         );
         expect(searchCall).toBeTruthy();
         const url = searchCall![1] as string;
@@ -695,8 +696,8 @@ describe('WorklogsPage', () => {
 
       const { apiFetch } = await import('@/lib/apiFetch');
       const calls = (apiFetch as ReturnType<typeof vi.fn>).mock.calls as unknown[][];
-      const searchCall = calls.find((args) =>
-        typeof args[1] === 'string' && args[1].includes('/rest/api/2/search'),
+      const searchCall = calls.find(
+        (args) => typeof args[1] === 'string' && args[1].includes('/rest/api/2/search'),
       );
       expect(searchCall).toBeUndefined();
     });
@@ -794,9 +795,7 @@ describe('WorklogsPage', () => {
 
     it('TEMPO-08 unresolvable issue key renders with line-through and is included in totals', async () => {
       // KEY-X is not in enrichResult — should render with line-through
-      mockFetchWorklogsResult = [
-        makeWorklog('alice', 'Alice Smith', '2026-05-18', 3, 'KEY-X'),
-      ];
+      mockFetchWorklogsResult = [makeWorklog('alice', 'Alice Smith', '2026-05-18', 3, 'KEY-X')];
       mockEnrichResult = []; // KEY-X not resolvable
 
       const { container } = await renderPage();
@@ -818,9 +817,7 @@ describe('WorklogsPage', () => {
 
     it("TEMPO-08 'No Epic' group appears for stories without an enriched epic", async () => {
       // STORY-X has a parent EPIC-MISSING but EPIC-MISSING is not in enrichResult
-      mockFetchWorklogsResult = [
-        makeWorklog('alice', 'Alice Smith', '2026-05-18', 2, 'STORY-X'),
-      ];
+      mockFetchWorklogsResult = [makeWorklog('alice', 'Alice Smith', '2026-05-18', 2, 'STORY-X')];
       mockEnrichResult = [
         {
           key: 'STORY-X',
@@ -844,9 +841,7 @@ describe('WorklogsPage', () => {
     });
 
     it('clicking a subtask row calls onIssueClick with its key', async () => {
-      mockFetchWorklogsResult = [
-        makeWorklog('alice', 'Alice Smith', '2026-05-18', 1, 'SUB-1'),
-      ];
+      mockFetchWorklogsResult = [makeWorklog('alice', 'Alice Smith', '2026-05-18', 1, 'SUB-1')];
       mockEnrichResult = [
         {
           key: 'EPIC-1',
@@ -888,9 +883,7 @@ describe('WorklogsPage', () => {
     });
 
     it('clicking the corner header cell does NOT call onIssueClick', async () => {
-      mockFetchWorklogsResult = [
-        makeWorklog('alice', 'Alice Smith', '2026-05-18', 4, 'X-1'),
-      ];
+      mockFetchWorklogsResult = [makeWorklog('alice', 'Alice Smith', '2026-05-18', 4, 'X-1')];
 
       const { container } = await renderPage();
       const { fetchWorklogs } = await import('@/services/tempo');
@@ -908,9 +901,7 @@ describe('WorklogsPage', () => {
     });
 
     it('enrichment query error shows inline alert', async () => {
-      mockFetchWorklogsResult = [
-        makeWorklog('alice', 'Alice Smith', '2026-05-18', 4, 'X-1'),
-      ];
+      mockFetchWorklogsResult = [makeWorklog('alice', 'Alice Smith', '2026-05-18', 4, 'X-1')];
 
       // Make apiFetch reject on search URL
       const { apiFetch } = await import('@/lib/apiFetch');
@@ -1045,8 +1036,9 @@ describe('WorklogsPage', () => {
         />,
       );
       // Duration input should be pre-populated — find it and change to "2h"
-      const durationInput = container.querySelector('input[placeholder*="2h"]') as HTMLInputElement
-        ?? container.querySelectorAll('input[type="text"]')[0] as HTMLInputElement;
+      const durationInput =
+        (container.querySelector('input[placeholder*="2h"]') as HTMLInputElement) ??
+        (container.querySelectorAll('input[type="text"]')[0] as HTMLInputElement);
       if (durationInput) {
         fireEvent.change(durationInput, { target: { value: '2h' } });
       }
@@ -1099,7 +1091,9 @@ describe('WorklogsPage', () => {
         `[aria-label="View worklogs for STORY-1 on ${monday}"]`,
       );
       expect(cellBtn).toBeTruthy();
-      await act(async () => { fireEvent.click(cellBtn!); });
+      await act(async () => {
+        fireEvent.click(cellBtn!);
+      });
 
       // Popover content renders in a portal — check document.body via screen
       await waitFor(() => {
@@ -1112,9 +1106,7 @@ describe('WorklogsPage', () => {
     it('renders triggers on all cells; non-zero cell shows formatted hours', async () => {
       const monday = '2026-05-19';
       // Only log on monday — other days are zero
-      mockFetchWorklogsResult = [
-        makeWorklog('alice', 'Alice Smith', monday, 2, 'STORY-1'),
-      ];
+      mockFetchWorklogsResult = [makeWorklog('alice', 'Alice Smith', monday, 2, 'STORY-1')];
       mockEnrichResult = [
         {
           key: 'EPIC-1',
@@ -1185,7 +1177,9 @@ describe('WorklogsPage', () => {
         `[aria-label="View worklogs for STORY-1 on ${monday}"]`,
       );
       expect(cellBtn).toBeTruthy();
-      await act(async () => { fireEvent.click(cellBtn!); });
+      await act(async () => {
+        fireEvent.click(cellBtn!);
+      });
 
       await waitFor(() => {
         expect(document.body.innerHTML).toContain('Alice Smith');
@@ -1228,7 +1222,9 @@ describe('WorklogsPage', () => {
         `[aria-label="View worklogs for STORY-1 on ${monday}"]`,
       );
       expect(cellBtn).toBeTruthy();
-      await act(async () => { fireEvent.click(cellBtn!); });
+      await act(async () => {
+        fireEvent.click(cellBtn!);
+      });
 
       // Wait for popover to open with entry (portal renders in document.body)
       await waitFor(() => {
@@ -1237,7 +1233,9 @@ describe('WorklogsPage', () => {
 
       // Click trash
       const trashBtn = document.body.querySelector('[aria-label="Delete worklog entry"]');
-      await act(async () => { fireEvent.click(trashBtn!); });
+      await act(async () => {
+        fireEvent.click(trashBtn!);
+      });
 
       await waitFor(() => {
         expect(deleteWorklog).toHaveBeenCalledWith(

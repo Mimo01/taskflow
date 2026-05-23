@@ -67,9 +67,7 @@ export default function DashboardReleaseCard({
 
   const issueList = releaseIssues ?? [];
   const totalCount = issueList.length;
-  const doneCount = issueList.filter(
-    (i) => i.fields.status.statusCategory?.key === 'done',
-  ).length;
+  const doneCount = issueList.filter((i) => i.fields.status.statusCategory?.key === 'done').length;
   const donePct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
   return (

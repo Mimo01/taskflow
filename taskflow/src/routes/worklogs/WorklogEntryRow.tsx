@@ -34,7 +34,12 @@ function formatSecs(secs: number): string {
   return `${h}h ${m}m`;
 }
 
-export function WorklogEntryRow({ entry, issueKey, jiraBaseUrl, onMutationSuccess }: WorklogEntryRowProps) {
+export function WorklogEntryRow({
+  entry,
+  issueKey,
+  jiraBaseUrl,
+  onMutationSuccess,
+}: WorklogEntryRowProps) {
   const [editing, setEditing] = useState(false);
 
   const deleteMutation = useMutation({
@@ -67,9 +72,7 @@ export function WorklogEntryRow({ entry, issueKey, jiraBaseUrl, onMutationSucces
 
   return (
     <div className="flex items-center gap-2 py-0.5">
-      <span className="text-xs font-semibold shrink-0">
-        {formatSecs(entry.timeSpentSeconds)}
-      </span>
+      <span className="text-xs font-semibold shrink-0">{formatSecs(entry.timeSpentSeconds)}</span>
       <span className="text-xs text-muted-foreground shrink-0">
         {entry.author.displayName ?? entry.author.name}
       </span>

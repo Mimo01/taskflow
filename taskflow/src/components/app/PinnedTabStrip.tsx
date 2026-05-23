@@ -10,13 +10,7 @@
  * pinned tab has its display data available at paint time.
  */
 
-import {
-  ArrowLeftToLine,
-  ArrowRightToLine,
-  FlaskConical,
-  Loader2,
-  PinOff,
-} from 'lucide-react';
+import { ArrowLeftToLine, ArrowRightToLine, FlaskConical, Loader2, PinOff } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {

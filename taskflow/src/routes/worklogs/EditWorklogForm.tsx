@@ -42,7 +42,13 @@ function formatSecondsForInput(secs: number): string {
   return `${h}h ${m}m`;
 }
 
-export function EditWorklogForm({ entry, issueKey, jiraBaseUrl, onDiscard, onSuccess }: EditWorklogFormProps) {
+export function EditWorklogForm({
+  entry,
+  issueKey,
+  jiraBaseUrl,
+  onDiscard,
+  onSuccess,
+}: EditWorklogFormProps) {
   const worklogId = entry.jiraWorklogId?.toString() ?? entry.tempoWorklogId?.toString();
 
   const [duration, setDuration] = useState(() => formatSecondsForInput(entry.timeSpentSeconds));
@@ -100,9 +106,7 @@ export function EditWorklogForm({ entry, issueKey, jiraBaseUrl, onDiscard, onSuc
           placeholder="e.g. 2h 30m"
           className="h-8 text-xs"
         />
-        {durationError && (
-          <p className="text-xs text-destructive mt-0.5">{durationError}</p>
-        )}
+        {durationError && <p className="text-xs text-destructive mt-0.5">{durationError}</p>}
       </div>
       <div>
         <Label className="text-xs mb-1">Date</Label>
@@ -142,9 +146,7 @@ export function EditWorklogForm({ entry, issueKey, jiraBaseUrl, onDiscard, onSuc
           Discard Changes
         </Button>
       </div>
-      {mutationError && (
-        <p className="text-xs text-destructive">{mutationError}</p>
-      )}
+      {mutationError && <p className="text-xs text-destructive">{mutationError}</p>}
     </div>
   );
 }
