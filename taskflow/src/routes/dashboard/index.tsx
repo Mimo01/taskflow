@@ -57,25 +57,25 @@ export default function Dashboard() {
 
   return (
     <div className="relative flex flex-col min-h-full bg-background">
-      {/* Ambient background curves — orange top-right, blue bottom-left */}
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 1200 900"
-        preserveAspectRatio="none"
-        className="absolute inset-0 w-full h-full pointer-events-none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        {AMBIENT_CURVES.map((c, i) => (
-          <path key={i} d={c.d} fill="none"
-            stroke={c.color === 'orange' ? '#f97316' : '#06b6d4'}
-            strokeWidth={c.w} strokeLinecap="round"
-            opacity={c.o} />
-        ))}
-      </svg>
+      <section className="relative px-8 py-20 text-center overflow-hidden">
+        {/* Ambient background curves — orange top-right, blue bottom-left */}
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 1200 900"
+          preserveAspectRatio="none"
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {AMBIENT_CURVES.map((c, i) => (
+            <path key={i} d={c.d} fill="none"
+              stroke={c.color === 'orange' ? '#f97316' : '#06b6d4'}
+              strokeWidth={c.w} strokeLinecap="round"
+              opacity={c.o} />
+          ))}
+        </svg>
 
-      <section className="relative px-8 py-20 text-center">
-        <h1 className="text-6xl font-semibold tracking-tight">{timeGreeting} {firstName ?? 'there'}</h1>
-        <p className="text-sm text-muted-foreground mt-2">{today}</p>
+        <h1 className="relative text-6xl font-semibold tracking-tight">{timeGreeting} {firstName ?? 'there'}</h1>
+        <p className="relative text-sm text-muted-foreground mt-2">{today}</p>
       </section>
 
       <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
