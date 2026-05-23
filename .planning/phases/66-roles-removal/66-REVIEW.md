@@ -1,6 +1,6 @@
 ---
 phase: 66-roles-removal
-reviewed: 2026-05-23T22:57:15Z
+reviewed: 2026-05-23T23:11:39Z
 depth: standard
 files_reviewed: 13
 files_reviewed_list:
@@ -18,146 +18,188 @@ files_reviewed_list:
   - taskflow/src/routes/settings/Settings.test.tsx
   - taskflow/src/routes/settings/ConnectionsSection.test.tsx
 findings:
-  critical: 0
+  critical: 2
   warning: 4
-  info: 4
-  total: 8
+  info: 3
+  total: 9
 status: issues_found
 ---
 
 # Phase 66: Code Review Report
 
-**Reviewed:** 2026-05-23T22:57:15Z
+**Reviewed:** 2026-05-23T23:11:39Z
 **Depth:** standard
 **Files Reviewed:** 13
 **Status:** issues_found
 
 ## Summary
 
-This phase removes the `role` field from the settings store and related UI, adds a dedicated Sidebar settings section, and cleans up tech debt. The core deletions are correct: `role` is gone from the state interface, the v22 migration deletes it from persisted data, and sidebar-items.ts has no workload entry (tests confirm absence). The new `SidebarSection` renders and navigates correctly.
+Phase 66 successfully removes `role`, `setRole`, `applyPreset`, `RoleStep`, `PresetButtons`, and `RoleSection` from the codebase, collapses the onboarding wizard from 5 to 4 steps, and bumps the settings store to version 22. The mechanical deletions are clean — `role` is absent from the state interface and all deleted source files are gone.
 
-Three concerns are worth fixing before shipping: (1) `goNext()` in the onboarding store has no upper-bound clamp, which lets `step` increment past the last step index into out-of-bounds territory at runtime; (2) `SidebarItemsList` renders items in static `SIDEBAR_NAV_ITEMS` order regardless of what the user drags, so the drag-reorder action updates the store but the settings UI never reflects the new order; (3) `persistChangelogBeforeRestart` hard-codes `version: 21` as the empty-store fallback even though the store is now at version 22, so a fresh install that triggers this path before the first write will write a stale schema version into the store. The remaining items are code-quality issues.
+Two blockers were found. The v22 migration unconditionally replaces `sidebarItems` with the all-visible default, destroying any order or visibility customizations the user made before upgrading — the phase only needed to delete the `role` key, not reset the sidebar. Additionally, `SidebarItemsList` renders items in the static `SIDEBAR_NAV_ITEMS` definition order while passing the user-ordered `sidebarItems` store array as the SortableContext ID list; after any prior reorder the two sequences diverge, causing dnd-kit to compute drop targets against the wrong item positions and produce incorrect store mutations.
+
+Four warnings and three info items cover a stale module doc comment, the missing upper-bound clamp on `goNext`, `SidebarItemsList` appearing in both `AppearanceSection` and the dedicated `SidebarSection`, a duplicate `SidebarItem` interface, and gaps in test coverage.
+
+---
+
+## Critical Issues
+
+### CR-01: v22 migration unconditionally resets sidebarItems — destroys all user customizations on upgrade
+
+**File:** `taskflow/src/stores/settings.store.ts:414-417`
+
+**Issue:** The v22 migration block calls `getDefaultSidebarItems()` and overwrites `s.sidebarItems` for every user upgrading from version 21 or earlier. The only state that phase 66 needed to clean up was the `role` key. All previous migrations that modified `sidebarItems` (v9, v16, v21) used `appendXxxItemIfMissing` to add new entries without disturbing existing order or visibility. The v22 block abandons this pattern: a user who hid "Worklogs", reordered their nav, or toggled any sidebar item will silently lose those preferences after the first launch following the upgrade.
+
+```ts
+// Current — destructive:
+if (version < 22) {
+  delete (s as Record<string, unknown>).role;
+  s.sidebarItems = getDefaultSidebarItems(); // ← wipes all user customizations
+}
+
+// Fix — only delete the role key; sidebarItems is already valid from v21:
+if (version < 22) {
+  delete (s as Record<string, unknown>).role;
+}
+```
+
+---
+
+### CR-02: SidebarItemsList SortableContext order diverges from rendered DOM order after any reorder — drag produces wrong indices
+
+**File:** `taskflow/src/routes/settings/SidebarItemsList.tsx:97,125,133`
+
+**Issue:** `SortableContext` receives `allItemIds` built from `sidebarItems` (the store-ordered array, line 97). The rendered `<SortableItem>` elements are produced by filtering `SIDEBAR_NAV_ITEMS` per section (line 125) — a static iteration that ignores the store order. On first load the two sequences are identical. After a user drags one item, the store order changes but the rendered DOM order remains static. dnd-kit resolves collision detection from physical DOM layout, not from the SortableContext `items` prop order. `handleDragEnd` then calls `sidebarItems.findIndex()` (lines 107–108) to map the dnd-kit active/over IDs back to integer indices, but because the DOM and the store now describe different orderings, those indices correspond to different items — the store mutation is wrong. The reorder persists to disk in the incorrect order.
+
+```tsx
+// Fix: render items in sidebarItems store order, not static SIDEBAR_NAV_ITEMS order.
+// Replace the current SIDEBAR_SECTIONS.map block with:
+
+const sectionedGroups = SIDEBAR_SECTIONS.map((section) => ({
+  section,
+  items: sidebarItems
+    .map((si) => SIDEBAR_NAV_ITEMS.find((nav) => nav.id === si.id))
+    .filter((nav): nav is SidebarNavDef => nav !== undefined && nav.section === section.id),
+}));
+
+// Then render sectionedGroups instead of the current static filter.
+// This ensures the DOM order always mirrors sidebarItems, keeping dnd-kit consistent.
+```
 
 ---
 
 ## Warnings
 
-### WR-01: `goNext()` has no upper-bound clamp — step can exceed last valid index
+### WR-01: goNext() has no upper-bound clamp — step can exceed last valid index
 
 **File:** `taskflow/src/stores/onboarding.store.ts:42`
-**Issue:** `goBack` is clamped at 0 via `Math.max`, but `goNext` is unclamped:
-```ts
-goNext: () => set({ step: get().step + 1 }),
-```
-`STEP_COMPONENTS` has 4 entries (indices 0–3). If any child step component calls `goNext()` on the final step, `step` becomes 4. `OnboardingWizard` guards this with `STEP_COMPONENTS[step] ?? DoneStep`, so the UI does not crash — but `step === 4` is an invalid persistent value. If the store is not cleared between sessions and the wizard is re-opened, `step` begins at 4 and `DoneStep` renders immediately rather than at `step === 3`. The onboarding test suite does not cover calling `goNext()` past the last step.
 
-**Fix:**
+**Issue:** `goBack` is symmetrically clamped via `Math.max(0, ...)`, but `goNext` is unclamped: `set({ step: get().step + 1 })`. The wizard has 4 steps (indices 0–3); `DoneStep` has no "Next" button so normal navigation cannot exceed step 3. However any external caller (e.g. a test, a keyboard shortcut) can push `step` past 3. `OnboardingWizard` handles the out-of-range step with `STEP_COMPONENTS[step] ?? DoneStep`, but `StepIndicator` receives the invalid `currentStep` value: none of the 4 circles match `index === 4`, so all render in the muted "future" style — a silent visual regression.
+
 ```ts
-// onboarding.store.ts — mirror the goBack clamp
-const MAX_STEP = 3; // STEP_COMPONENTS.length - 1
-goNext: () => set({ step: Math.min(MAX_STEP, get().step + 1) }),
+// Fix: mirror the goBack clamp
+const STEP_MAX = 3; // STEP_COMPONENTS.length - 1; keep in sync with OnboardingWizard
+goNext: () => set({ step: Math.min(STEP_MAX, get().step + 1) }),
 ```
-Add a corresponding test: `goNext clamps at MAX_STEP`.
 
 ---
 
-### WR-02: Drag-reorder in `SidebarItemsList` updates the store but the settings UI renders in static order
+### WR-02: SidebarItemsList appears in both AppearanceSection and the dedicated SidebarSection
 
-**File:** `taskflow/src/routes/settings/SidebarItemsList.tsx:124-147`
-**Issue:** The drag handler correctly writes the new order into the store via `reorderSidebarItem(oldIndex, newIndex)`. However, the list renders by iterating `SIDEBAR_SECTIONS` then filtering `SIDEBAR_NAV_ITEMS` — both static arrays. After a drag, `SortableContext` receives the updated `allItemIds` (store order), but the rendered `<SortableItem>` elements are produced from the static filter, so their DOM order never changes. The drag ghost snaps back to the original position visually. The reorder persists to the store (and Sidebar.tsx also ignores it, as it also iterates `SIDEBAR_NAV_ITEMS` statically), making the feature fully inert end-to-end.
+**File:** `taskflow/src/routes/settings/AppearanceSection.tsx:14,61-64`
 
-**Fix:** Render items in store order, not static order. Replace the section-grouped iteration with a flat map over `sidebarItems` that looks up each nav definition:
+**Issue:** `AppearanceSection` still imports and renders `<SidebarItemsList />` under a "Sidebar Items" label (lines 61–64). `Settings.tsx` now also exposes a dedicated "Sidebar" tab that renders `SidebarSection → SidebarItemsList`. Both are live in the same `Settings` shell. Phase 66 removed `PresetButtons` from `AppearanceSection` but left `SidebarItemsList` in place. A user visiting "Appearance" sees the full sidebar toggle list; so does a user visiting "Sidebar". There is one authoritative control rendered in two places, and changes made in one section are immediately visible in the other — but this is confusing UX and indicates an incomplete migration.
+
 ```tsx
-// Replace SIDEBAR_SECTIONS.map(...) in the JSX with:
-const orderedNavItems = sidebarItems
-  .map((item) => SIDEBAR_NAV_ITEMS.find((nav) => nav.id === item.id))
-  .filter((nav): nav is SidebarNavDef => nav !== undefined);
-
-// Then render orderedNavItems directly (section headers become optional separators)
+// Fix: remove from AppearanceSection.tsx:
+// - line 14: import SidebarItemsList from './SidebarItemsList';
+// - lines 60-65: the entire "Sidebar Items" div block
 ```
-`Sidebar.tsx` will also need the same change if cross-section reordering is intended; otherwise constrain dragging to within-section only.
 
 ---
 
-### WR-03: `persistChangelogBeforeRestart` hard-codes `version: 21` as the empty-store fallback
+### WR-03: persistChangelogBeforeRestart hard-codes version: 21 as the empty-store fallback
 
-**File:** `taskflow/src/lib/tauri-storage.ts:55`
-**Issue:** When `get()` returns `null` (empty store on first launch) or returns an unparseable value, the fallback object is:
-```ts
-let parsed: { state: Record<string, unknown>; version: number } = { state: {}, version: 21 };
-```
-The store is now at schema version 22 (bumped by this phase). A fresh install that calls `persistChangelogBeforeRestart` before Zustand has written its first snapshot will write `version: 21` into the file. On next launch Zustand reads `version: 21`, runs the `version < 22` migration branch, and calls `getDefaultSidebarItems()` — which is harmless but is an unnecessary migration run that overwrites any state that `persistChangelogBeforeRestart` may have written alongside `lastSeenChangelog`. The tauri-storage tests use `version: 21` in their fixtures and assertions, so they will continue to pass while the production mismatch exists.
+**File:** `taskflow/src/lib/tauri-storage.ts` (line with `version: 21` in the fallback object)
 
-**Fix:**
+**Issue:** When `store.get()` returns `null` (first launch, empty store) or an unparseable value, `persistChangelogBeforeRestart` initialises a fallback object with `version: 21`. The settings store was bumped to version 22 by this phase. A fresh install that calls `persistChangelogBeforeRestart` before Zustand has written its first snapshot writes a `version: 21` document to disk. On next launch Zustand reads `version: 21`, runs the `version < 22` migration, and calls `getDefaultSidebarItems()` (the CR-01 reset) unnecessarily. The `tauri-storage.test.ts` fixtures also use `version: 21` and `toBe(21)` assertions so the tests will keep passing while the mismatch exists in production.
+
+**Fix:** Keep the fallback version in sync with the persist schema version. Define a shared constant or use an import:
 ```ts
-// Keep version in sync with settings.store.ts persist version
-const SETTINGS_STORE_VERSION = 22;
-let parsed: { state: Record<string, unknown>; version: number } = {
-  state: {},
-  version: SETTINGS_STORE_VERSION,
-};
+// In tauri-storage.ts:
+const SETTINGS_SCHEMA_VERSION = 22; // keep in sync with settings.store.ts
+let parsed = { state: {} as Record<string, unknown>, version: SETTINGS_SCHEMA_VERSION };
 ```
-Update `tauri-storage.test.ts` fixtures accordingly to use version 22, and update the `expect(parsed.version).toBe(21)` assertion on line 54 to `toBe(22)`.
+Update `tauri-storage.test.ts` fixture objects and `toBe(21)` assertions to use 22.
 
 ---
 
-### WR-04: Duplicate `SidebarItem` interface — `settings.store.ts` redeclares what `sidebar-items.ts` already exports
+### WR-04: Duplicate SidebarItem interface — settings.store.ts redeclares the type instead of importing it
 
 **File:** `taskflow/src/stores/settings.store.ts:19-22`
-**Issue:** `sidebar-items.ts` exports `SidebarItem` (lines 19-22). `settings.store.ts` also declares and exports an identically shaped `SidebarItem` interface (lines 19-22) instead of importing the canonical one. The two definitions are currently identical, but they are structurally separate types. Any future divergence (e.g. adding an `order` field to one but not the other) will introduce silent type mismatches at the cast on migration line 393: `s.sidebarItems as SidebarItem[]` would cast to the store's local type while `getDefaultSidebarItems()` returns the `sidebar-items.ts` type.
 
-**Fix:**
+**Issue:** `sidebar-items.ts` exports `interface SidebarItem { id: string; visible: boolean }`. `settings.store.ts` declares and exports an identically shaped `interface SidebarItem` locally (lines 19–22) rather than importing the canonical definition. The two types are structurally identical today. Any future divergence will cause a silent mismatch: the cast on line 393 (`s.sidebarItems as SidebarItem[]`) would cast to the store-local type, while `getDefaultSidebarItems()` returns the `sidebar-items.ts` type, and TypeScript's structural typing would hide the inconsistency until runtime.
+
 ```ts
-// settings.store.ts — remove local redeclaration and import the canonical type
+// Fix: remove the local redeclaration and import the canonical export:
 import { getDefaultSidebarItems, type SidebarItem } from '@/components/app/sidebar-items';
 ```
-Remove the local `export interface SidebarItem { ... }` block.
 
 ---
 
 ## Info
 
-### IN-01: Stale module-level doc comment in `settings.store.ts`
+### IN-01: Stale module-level doc comment in settings.store.ts
 
 **File:** `taskflow/src/stores/settings.store.ts:2`
-**Issue:** The file-level JSDoc still says "Settings store — role and theme". The `role` field is removed in this phase; the comment is stale.
-**Fix:** Update to "Settings store — theme, density, sidebar layout, and notification preferences" (or any accurate summary).
 
----
+**Issue:** The file-level JSDoc reads `"Settings store — role and theme, persisted via Tauri Store plugin."` The `role` field was the subject of this phase's removal; the comment is now factually wrong.
 
-### IN-02: `AppearanceSection` renders `SidebarItemsList` in addition to `SidebarSection` — duplicate UI
-
-**File:** `taskflow/src/routes/settings/AppearanceSection.tsx:63`
-**Issue:** `AppearanceSection` renders `<SidebarItemsList />` inline (lines 61-64) under a "Sidebar Items" label. `Settings.tsx` now has a dedicated "Sidebar" nav section that renders `SidebarSection` → `SidebarItemsList`. A user navigating to Appearance therefore sees the full sidebar item toggle list twice — once in AppearanceSection and once when they click "Sidebar". This is redundant and may confuse users about which copy is authoritative.
-**Fix:** Remove the `SidebarItemsList` block (lines 60-65) and the `import SidebarItemsList` from `AppearanceSection.tsx`. The Sidebar section is the canonical home for that control.
-
----
-
-### IN-03: `SidebarItemsList.test.tsx` section-header test is missing "Testing"
-
-**File:** `taskflow/src/routes/settings/SidebarItemsList.test.tsx:67-73`
-**Issue:** The test `'renders section headers: Main, Planning, Code, Tracking'` asserts all four sections but omits "Testing" — which is present in `SIDEBAR_SECTIONS` and will appear in the rendered list whenever `aio-projects` is in `sidebarItems`. The test name explicitly lists the sections it checks, so the omission is not obviously intentional and the assertion is incomplete.
 **Fix:**
 ```ts
-expect(screen.getByText('Testing')).toBeInTheDocument();
+/**
+ * Settings store — theme, sidebar, and app preferences, persisted via Tauri Store plugin.
+ */
 ```
-Add this line to the test, and update the test description to include "Testing".
 
 ---
 
-### IN-04: `Settings.test.tsx` `sidebarItems` mock is stale — missing `worklogs` and `aio-projects`
+### IN-02: No absence-guard tests for removed role fields in settings.store.test.ts
 
-**File:** `taskflow/src/routes/settings/Settings.test.tsx:121-133`
-**Issue:** The `mockSettingsStore.sidebarItems` array has 8 items and is missing `worklogs` and `aio-projects` (and `epics` is present but `sprint-progress` and `releases` are both included). The current canonical default has 9 items (all of `SIDEBAR_NAV_ITEMS`). While the Settings component tests pass because `SidebarItemsList` is rendered via the real component against the mocked store, the incomplete mock means the `SidebarItemsList` will not render rows for the missing items, reducing the fidelity of any visual/integration assertion made in these tests.
-**Fix:** Sync the mock with `getDefaultSidebarItems()` or import and use it directly:
+**File:** `taskflow/src/stores/settings.store.test.ts`
+
+**Issue:** Phase 59 established the pattern of adding a `describe('settings.store — widget removal')` block that asserts removed fields are absent from the live store state. Phase 66 removes `role`, `setRole`, and `applyPreset` but adds no equivalent block. Without these tests, re-introduction of the field (e.g. via a bad merge) will not be caught by the test suite.
+
 ```ts
-import { getDefaultSidebarItems } from '@/components/app/sidebar-items';
-// ...
-sidebarItems: getDefaultSidebarItems(),
+describe('settings.store — roles removal (Phase 66)', () => {
+  it('role field is absent from store state', () => {
+    expect('role' in useSettingsStore.getState()).toBe(false);
+  });
+  it('setRole action is absent from store state', () => {
+    expect('setRole' in useSettingsStore.getState()).toBe(false);
+  });
+  it('applyPreset action is absent from store state', () => {
+    expect('applyPreset' in useSettingsStore.getState()).toBe(false);
+  });
+});
 ```
 
 ---
 
-_Reviewed: 2026-05-23T22:57:15Z_
+### IN-03: SidebarItemsList.test.tsx section-header assertion omits "Testing"
+
+**File:** `taskflow/src/routes/settings/SidebarItemsList.test.tsx:67-73`
+
+**Issue:** The test `'renders section headers: Main, Planning, Code, Tracking'` asserts all four human-visible section labels but omits "Testing" — which is present in `SIDEBAR_SECTIONS` and rendered whenever `aio-projects` is in `sidebarItems` (it always is by default). The omission is inconsistent with the test description implying complete coverage.
+
+```ts
+// Add:
+expect(screen.getByText('Testing')).toBeInTheDocument();
+// Update test name to include 'Testing'.
+```
+
+---
+
+_Reviewed: 2026-05-23T23:11:39Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
