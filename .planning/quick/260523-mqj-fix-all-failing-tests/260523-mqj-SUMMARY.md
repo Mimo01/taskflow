@@ -45,7 +45,7 @@ Restored a green Vitest suite by fixing two distinct root causes in the Dashboar
 
 Both clusters fall under "test was right, source was wrong":
 
-- **C1:** Commit `8adc3169` (2026-05-21) hypothesised that Jira returns `"Surname Firstname [Status]"`, but the same day's quick-plan `260521-t6m` documented the real shape as the 2-token form `"Milan Mozolak"`. The test mocks (`'Alice Doe'`, `'Milan Mozolak'`) encode the Firstname-Surname convention; tokens[0] is the correct first-name selector.
+- **C1:** Commit `8adc3169` (2026-05-21) hypothesised that Jira returns `"Surname Firstname [Status]"`, but the same day's quick-plan `260521-t6m` documented the real shape as the 2-token form `"Jane Doe"`. The test mocks (`'Alice Doe'`, `'Jane Doe'`) encode the Firstname-Surname convention; tokens[0] is the correct first-name selector.
 - **C2:** Test 6 was added in commit `46db80bf` as TDD-RED for a hero-section decoration. When the ambient SVG was later added at the outer-wrapper level it was never wired up to satisfy the test contract.
 
 ## Follow-up Work Surfaced

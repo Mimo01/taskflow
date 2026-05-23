@@ -17,10 +17,10 @@
    - Rendered DOM shows `Good afternoon, Doe` instead of `Good afternoon, Alice`.
    - Mock sets `jiraUserDisplayName: 'Alice Doe'`.
 
-2. **Test 2 (Milan Mozolak): heading contains "Milan" but not "Mozolak"**
-   - Error: `Unable to find an element with the text: /Milan/`
-   - Rendered DOM shows `Good afternoon, Mozolak` instead of `Good afternoon, Milan`.
-   - Mock sets `jiraUserDisplayName: 'Milan Mozolak'`.
+2. **Test 2 (Jane Doe): heading contains "Jane" but not "Doe"**
+   - Error: `Unable to find an element with the text: /Jane/`
+   - Rendered DOM shows `Good afternoon, Doe` instead of `Good afternoon, Jane`.
+   - Mock sets `jiraUserDisplayName: 'Jane Doe'`.
 
 3. **Test 6 (decorative SVG present): hero section contains an aria-hidden SVG**
    - Error: `AssertionError: expected null not to be null` at `document.querySelector('section svg')`.
@@ -37,7 +37,7 @@
 const tokens = jiraUserDisplayName?.trim().split(/\s+/) ?? [];
 const firstName = tokens[1] ?? tokens[0] ?? null;
 ```
-This was changed in commit `8adc3169` ("fix first name from Surname Firstname Status format") under the assumption that Jira returns `"Surname Firstname [Status]"`. That is incorrect for this codebase: real Jira `displayName` for the live user is the 2-token form `"Milan Mozolak"` (Firstname Surname), as documented in `.planning/quick/260521-t6m-.../260521-t6m-PLAN.md` line 80. With the current logic, `'Milan Mozolak'` → `tokens[1]='Mozolak'`, which is the surname, not the first name. Both tests assert the standard convention (token[0] = first name).
+This was changed in commit `8adc3169` ("fix first name from Surname Firstname Status format") under the assumption that Jira returns `"Surname Firstname [Status]"`. That is incorrect for this codebase: real Jira `displayName` for the live user is the 2-token form `"Jane Doe"` (Firstname Surname), as documented in `.planning/quick/260521-t6m-.../260521-t6m-PLAN.md` line 80. With the current logic, `'Jane Doe'` → `tokens[1]='Doe'`, which is the surname, not the first name. Both tests assert the standard convention (token[0] = first name).
 
 **Fix strategy:** Source code. In `src/routes/dashboard/index.tsx`, change the first-name selector to use `tokens[0]` (with a defensive trailing-bracket strip in case a future `[Status]` suffix appears). Tests are correct; tests are the contract.
 

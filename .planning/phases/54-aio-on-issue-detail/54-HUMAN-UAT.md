@@ -222,7 +222,7 @@ new_gap_round_3: |
   uat_round_4: pending_uat
   uat_round_4_at: "2026-05-14T13:45:00Z"
   reason: |
-    Round-3 UAT (mimopn): "The impacted executions are not clickable to their detail. Their status is always 'not run' even though some have other states." User shared verbatim diagnostic URL: /project/VTE/testcycle/ESHOP-CY-759/testrun/209620?assignSteps=true → 'For the selected project, No Cycle found with Key: ESHOP-CY-759'. Root cause: the detail fetch used the parent issue's projectKey ('VTE') for ALL impacted executions, but cross-project cycles (ESHOP-CY-759) require their OWN project key.
+    Round-3 UAT (user): "The impacted executions are not clickable to their detail. Their status is always 'not run' even though some have other states." User shared verbatim diagnostic URL: /project/VTE/testcycle/ESHOP-CY-759/testrun/209620?assignSteps=true → 'For the selected project, No Cycle found with Key: ESHOP-CY-759'. Root cause: the detail fetch used the parent issue's projectKey ('VTE') for ALL impacted executions, but cross-project cycles (ESHOP-CY-759) require their OWN project key.
   severity: major
   test: 4
   fix_commit: "21a4b4d"
@@ -235,7 +235,7 @@ new_gap_round_3: |
   uat_round_4: pending_uat
   uat_round_4_at: "2026-05-14T13:45:00Z"
   reason: |
-    Round-3 UAT (mimopn): rows were previously read-only by design ("No click handlers — cycle/run navigation is a phase-53 concern"). User requested two link targets per row. Accepted as scope expansion.
+    Round-3 UAT (user): rows were previously read-only by design ("No click handlers — cycle/run navigation is a phase-53 concern"). User requested two link targets per row. Accepted as scope expansion.
   severity: minor
   test: 4
   fix_commit: "ca06965"

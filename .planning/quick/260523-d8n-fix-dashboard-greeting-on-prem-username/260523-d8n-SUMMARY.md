@@ -20,7 +20,7 @@ key-files:
     - taskflow/src/routes/dashboard/index.tsx
     - taskflow/src/routes/dashboard/index.test.tsx
 decisions:
-  - "Mixed-case heuristic — Jira on-prem instances sometimes format displayName as 'SURNAME Firstname OrgCode (status)' (e.g. 'MOZOLAK Milan OSK (ext.)'). Strategy: filter out [..] and (..) tokens, then prefer the first token that is NOT all-uppercase as the given name. Falls back to tokens[0] if all are uppercase, preserving existing behavior for standard 'Firstname Surname' format."
+  - "Mixed-case heuristic — Jira on-prem instances sometimes format displayName as 'SURNAME Firstname OrgCode (status)' (e.g. 'DOE Jane ACME (ext.)'). Strategy: filter out [..] and (..) tokens, then prefer the first token that is NOT all-uppercase as the given name. Falls back to tokens[0] if all are uppercase, preserving existing behavior for standard 'Firstname Surname' format."
 metrics:
   duration: "~5 minutes"
   completed: "2026-05-23"
@@ -30,7 +30,7 @@ requirements:
 
 # Quick Task 260523-d8n: Dashboard Greeting — On-Prem Username Format
 
-Fixed the dashboard hero greeting so it shows the user's given name when Jira on-prem returns displayName in `SURNAME Firstname OrgCode (status)` format (e.g. `MOZOLAK Milan OSK (ext.)` → `Milan`), instead of shouting `MOZOLAK`.
+Fixed the dashboard hero greeting so it shows the user's given name when Jira on-prem returns displayName in `SURNAME Firstname OrgCode (status)` format (e.g. `DOE Jane ACME (ext.)` → `Jane`), instead of shouting `DOE`.
 
 ## What Changed
 
@@ -45,12 +45,12 @@ Token-filter chain extended:
 
 **`taskflow/src/routes/dashboard/index.test.tsx`** (+25 lines, 2 new tests)
 
-- `Test 9`: reproduces the live auth.json value `MOZOLAK Milan OSK (ext.)` — asserts greeting renders `Milan`, never `MOZOLAK`
+- `Test 9`: reproduces the live auth.json value `DOE Jane ACME (ext.)` — asserts greeting renders `Jane`, never `DOE`
 - `Test 10`: `Bob Smith [Disabled]` — asserts `Bob` rendered, `[Disabled]` not visible (regression guard for prior bracket-strip behavior)
 
 ## Why
 
-User reported that the dashboard greeting was reading `Welcome back, MOZOLAK` on their on-prem instance. The on-prem Jira displayName format includes ALL-CAPS surname first, then mixed-case given name, then an org code, then a parenthesized status. The previous extraction logic (`tokens[0]`) picked up the surname.
+User reported that the dashboard greeting was reading `Welcome back, DOE` on their on-prem instance. The on-prem Jira displayName format includes ALL-CAPS surname first, then mixed-case given name, then an org code, then a parenthesized status. The previous extraction logic (`tokens[0]`) picked up the surname.
 
 ## Verification
 

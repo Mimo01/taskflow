@@ -49,8 +49,8 @@ export default function Dashboard() {
   });
 
   // Jira displayName varies by instance format, e.g.:
-  //   "Milan Mozolak"            — Firstname Surname (standard)
-  //   "MOZOLAK Milan OSK (ext.)" — SURNAME Firstname OrgCode (status) (some on-prem configs)
+  //   "Jane Doe"            — Firstname Surname (standard)
+  //   "DOE Jane ACME (ext.)" — SURNAME Firstname OrgCode (status) (some on-prem configs)
   // Strategy: strip bracketed [X] and parenthesized (X) tokens, then prefer the first
   // mixed-case token (not all-uppercase) as the given name. If all tokens are uppercase,
   // fall back to the first token.

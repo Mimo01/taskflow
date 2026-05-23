@@ -29,8 +29,8 @@ let mockAddFilter = vi.fn();
 let mockRemoveFilter = vi.fn();
 let mockRenameFilter = vi.fn();
 let mockMoveFilter = vi.fn();
-let mockJiraUsername: string | null = 'mmozolak';
-let mockJiraUserDisplayName: string | null = 'Milan Mozolak';
+let mockJiraUsername: string | null = 'jdoe';
+let mockJiraUserDisplayName: string | null = 'Jane Doe';
 let mockOnIssueClick = vi.fn();
 let mockEnrichResult: unknown[] = [];
 
@@ -170,8 +170,8 @@ describe('WorklogsPage', () => {
     mockRemoveFilter = vi.fn();
     mockRenameFilter = vi.fn();
     mockMoveFilter = vi.fn();
-    mockJiraUsername = 'mmozolak';
-    mockJiraUserDisplayName = 'Milan Mozolak';
+    mockJiraUsername = 'jdoe';
+    mockJiraUserDisplayName = 'Jane Doe';
     mockOnIssueClick = vi.fn();
   });
 
@@ -358,11 +358,11 @@ describe('WorklogsPage', () => {
       // fetchWorklogs should have been called with the authenticated user's username
       const calls = (fetchWorklogs as ReturnType<typeof vi.fn>).mock.calls;
       const lastCall = calls[calls.length - 1];
-      expect(lastCall[2]).toEqual(['mmozolak']); // usernames arg
+      expect(lastCall[2]).toEqual(['jdoe']); // usernames arg
 
       // Input should display the user's display name when not focused
       const input = getByRole('combobox') as HTMLInputElement;
-      expect(input.value).toBe('Milan Mozolak');
+      expect(input.value).toBe('Jane Doe');
     });
 
     it('does NOT seed a default when jiraUsername is null', async () => {
@@ -395,7 +395,7 @@ describe('WorklogsPage', () => {
       const input = getByRole('combobox') as HTMLInputElement;
 
       // Initially shows the authenticated user's display name
-      expect(input.value).toBe('Milan Mozolak');
+      expect(input.value).toBe('Jane Doe');
 
       // Focus clears the visible text so the user can type a new query
       fireEvent.focus(input);
@@ -415,7 +415,7 @@ describe('WorklogsPage', () => {
       fireEvent.blur(input);
       await waitFor(
         () => {
-          expect(input.value).toBe('Milan Mozolak');
+          expect(input.value).toBe('Jane Doe');
         },
         { timeout: 500 },
       );
@@ -610,8 +610,8 @@ describe('WorklogsPage', () => {
       const callArg = mockAddFilter.mock.calls[0][0] as TempoFilter;
       expect(callArg.preset).toBe('this-week');
       // With default-me, the filter captures the authenticated user
-      expect(callArg.username).toBe('mmozolak');
-      expect(callArg.displayName).toBe('Milan Mozolak');
+      expect(callArg.username).toBe('jdoe');
+      expect(callArg.displayName).toBe('Jane Doe');
     });
 
     it('Save filter button is always visible in the filter bar', async () => {

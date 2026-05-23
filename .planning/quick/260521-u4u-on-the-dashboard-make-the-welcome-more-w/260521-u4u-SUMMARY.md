@@ -24,7 +24,7 @@ Redesigned the dashboard welcome section to be more visually engaging while matc
 ## Final state
 
 ```
-Good morning, Milan
+Good morning, Jane
 Thursday, 21 May 2026
 ```
 

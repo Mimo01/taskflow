@@ -52,7 +52,7 @@ completed: 2026-05-14
 
 # Phase 54 Plan 54-11: Cross-project impacted-execution fix + clickable rows + new run detail page
 
-**Round-3 UAT (mimopn) surfaced two bugs in the Impacted Executions list: status chips always showed 'Not Run' even on PASS/FAIL runs (cross-project detail-fetch failure), and rows weren't clickable to their detail.**
+**Round-3 UAT (user) surfaced two bugs in the Impacted Executions list: status chips always showed 'Not Run' even on PASS/FAIL runs (cross-project detail-fetch failure), and rows weren't clickable to their detail.**
 
 ## Performance
 

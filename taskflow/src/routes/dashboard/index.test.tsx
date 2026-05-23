@@ -88,16 +88,16 @@ describe('Dashboard', () => {
     expect(screen.queryByText(/Alice Doe/)).toBeNull();
   });
 
-  it('Test 2 (Milan Mozolak): heading contains "Milan" but not "Mozolak"', () => {
+  it('Test 2 (Jane Doe): heading contains "Jane" but not "Doe"', () => {
     vi.mocked(useAuthStore).mockReturnValue({
       jiraBaseUrl: 'https://jira.example.com',
       activeJiraProject: 'PROJ',
-      jiraUsername: 'milan',
-      jiraUserDisplayName: 'Milan Mozolak',
+      jiraUsername: 'jane',
+      jiraUserDisplayName: 'Jane Doe',
     } as ReturnType<typeof useAuthStore>);
     renderDashboard();
-    expect(screen.getByText(/Milan/)).toBeTruthy();
-    expect(screen.queryByText(/Mozolak/)).toBeNull();
+    expect(screen.getByText(/Jane/)).toBeTruthy();
+    expect(screen.queryByText(/Doe/)).toBeNull();
   });
 
   it("Test 3 (today's date in en-GB format): renders the computed locale date string", () => {
@@ -157,16 +157,16 @@ describe('Dashboard', () => {
   });
 
   it('Test 9 (SURNAME Firstname OrgCode (status) format): extracts mixed-case first name from all-caps surname format', () => {
-    // Reproduces the actual auth.json value: "MOZOLAK Milan OSK (ext.)"
+    // Reproduces the actual auth.json value: "DOE Jane ACME (ext.)"
     vi.mocked(useAuthStore).mockReturnValue({
       jiraBaseUrl: 'https://jira.orange.sk',
       activeJiraProject: 'ESHOP',
       jiraUsername: 'ext99328',
-      jiraUserDisplayName: 'MOZOLAK Milan OSK (ext.)',
+      jiraUserDisplayName: 'DOE Jane ACME (ext.)',
     } as ReturnType<typeof useAuthStore>);
     renderDashboard();
-    expect(screen.getByText(/Milan/)).toBeTruthy();
-    expect(screen.queryByText(/MOZOLAK/)).toBeNull();
+    expect(screen.getByText(/Jane/)).toBeTruthy();
+    expect(screen.queryByText(/DOE/)).toBeNull();
   });
 
   it('Test 10 ([Disabled] bracketed token stripped): first name extracted after stripping [Disabled]', () => {

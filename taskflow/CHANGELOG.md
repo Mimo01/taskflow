@@ -27,7 +27,7 @@ Entries are written by hand for each release.
 
 ### Fixed
 
-- **Dashboard greeting** now handles on-prem Jira display names of the form `SURNAME Firstname OrgCode (status)` (e.g. `MOZOLAK Milan OSK (ext.)` → `Milan`); previously the all-caps surname leaked into the greeting
+- **Dashboard greeting** now handles on-prem Jira display names of the form `SURNAME Firstname OrgCode (status)` (e.g. `DOE Jane ACME (ext.)` → `Jane`); previously the all-caps surname leaked into the greeting
 - **In-Progress card breadcrumb** — clicking a subtask now adds Dashboard to the breadcrumb trail so back-navigation works
 - **Release card** now shows a progress bar and "X% complete · N / M issues" caption beneath the timing label
 
