@@ -11,7 +11,6 @@ import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { applyDensity } from '@/services/theme';
 import { type Density, useSettingsStore } from '@/stores/settings.store';
-import PresetButtons from './PresetButtons';
 import SidebarItemsList from './SidebarItemsList';
 import ThemeSection from './ThemeSection';
 
@@ -62,7 +61,6 @@ export default function AppearanceSection() {
       <div className="flex flex-col gap-3">
         <label className="text-sm font-medium">Sidebar Items</label>
         <SidebarItemsList />
-        <PresetButtons />
       </div>
     </div>
   );

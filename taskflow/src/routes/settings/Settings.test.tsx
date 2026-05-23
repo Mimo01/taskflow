@@ -89,7 +89,6 @@ vi.mock('@/services/theme', () => ({
 
 // Mock settings store — covers all fields the component reads
 const mockSettingsStore = {
-  role: 'developer' as 'developer' | 'pm' | 'tech-lead' | null,
   theme: 'system' as 'dark' | 'light' | 'system',
   density: 'default' as 'compact' | 'default' | 'comfortable',
   sprintCollapseByDefault: false,
@@ -110,7 +109,6 @@ const mockSettingsStore = {
   setUpdateCheckInterval: vi.fn(),
   lastChecked: null,
   setLastChecked: vi.fn(),
-  setRole: vi.fn(),
   setTheme: vi.fn(),
   setDensity: vi.fn(),
   setSprintCollapseByDefault: vi.fn(),
@@ -133,7 +131,6 @@ const mockSettingsStore = {
   setSidebarItems: vi.fn(),
   setSidebarItemVisible: vi.fn(),
   reorderSidebarItem: vi.fn(),
-  applyPreset: vi.fn(),
 };
 
 vi.mock('@/stores/settings.store', () => ({
