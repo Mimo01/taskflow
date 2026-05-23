@@ -123,7 +123,6 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 <!-- v1.10 — Cleanup, Roles Removal & Standup Notes (REQ-IDs assigned in REQUIREMENTS.md) -->
 
-- [ ] Remove Developer/PM role concept across settings, wizard, sidebar, and dashboard (Validated in Phase 66)
 - [ ] Settings cleanup: remove sidebar-items panel from Appearance
 - [ ] Sidebar settings = visibility toggles only (no reorder, all shown by default)
 - [ ] Startup wizard: new Integrations step (AIO + Tempo)
@@ -290,4 +289,4 @@ This document evolves at phase transitions and milestone boundaries.
 | 145 pre-v1.9 quick-task dirs archived to milestones/historical-quick-tasks/ at milestone close | Scanner couldn't read status from older SUMMARY frontmatter convention; rather than retrofit 145 files, archive bucket clears the audit and preserves history | ✓ Good — audit-open went 161→17, all 17 benign |
 
 ---
-*Last updated: 2026-05-24 after Phase 65 (Tech Debt Cleanup)*
+*Last updated: 2026-05-24 after Phase 66 (Roles Removal)*
