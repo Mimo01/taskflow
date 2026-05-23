@@ -47,9 +47,12 @@ export default function Dashboard() {
     year: 'numeric',
   });
 
-  // Jira displayName is "Surname Firstname [Status]" — index 1 is first name, fallback to index 0
-  const tokens = jiraUserDisplayName?.trim().split(/\s+/) ?? [];
-  const firstName = tokens[1] ?? tokens[0] ?? null;
+  // Jira displayName is "Firstname Surname" (e.g. "Milan Mozolak"); first token is the first name.
+  // Defensive: strip a trailing bracketed status token (e.g. "[Disabled]") if Jira ever appends one.
+  const tokens = (jiraUserDisplayName?.trim().split(/\s+/) ?? []).filter(
+    (t) => !/^\[.*\]$/.test(t),
+  );
+  const firstName = tokens[0] ?? null;
   const timeGreeting = getTimeGreeting();
 
   return (
