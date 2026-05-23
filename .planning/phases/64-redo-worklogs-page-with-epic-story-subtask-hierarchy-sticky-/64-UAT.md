@@ -96,6 +96,7 @@ blocked: 0
   missing:
     - "Add `cursor-pointer` to the className of each of the three row-title buttons (epic, story, subtask) in WorklogsPage.tsx"
   debug_session: .planning/debug/worklogs-cursor-pointer-on-text.md
+  resolved_in: cadfaefc
 
 - truth: "Issue detail breadcrumb back-link shows 'Worklogs' when navigated from the Worklogs page (not 'Home')"
   status: failed
@@ -109,3 +110,4 @@ blocked: 0
   missing:
     - "Add `if (pathname.startsWith('/worklogs')) return 'Worklogs';` to routeLabel() in taskflow/src/main.tsx"
   debug_session: .planning/debug/worklogs-issue-detail-breadcrumb-home.md
+  resolved_in: bfd0f6d5
