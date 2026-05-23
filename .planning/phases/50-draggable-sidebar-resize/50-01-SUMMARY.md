@@ -72,14 +72,14 @@ Store version bumped from 13 → 14. Migration guard at `version < 14` initialis
 
 **2. [Rule 3 - Blocker] Worktree lacked node_modules symlink**
 - **Found during:** Task 1 verification
-- **Issue:** The worktree at `/Users/mimo/Documents/Projects/taskflow/.claude/worktrees/agent-a9d1504a831bf3596/taskflow/` had no `node_modules` directory, so `npx tsc` and `npx vitest` were unavailable from within the worktree path.
-- **Fix:** Created a symlink `taskflow/node_modules → /Users/mimo/Documents/Projects/taskflow/taskflow/node_modules` inside the worktree. All tooling then worked via `node_modules/.bin/tsc` and `node_modules/.bin/vitest`.
+- **Issue:** The worktree at `/Users/user/Documents/Projects/taskflow/.claude/worktrees/agent-a9d1504a831bf3596/taskflow/` had no `node_modules` directory, so `npx tsc` and `npx vitest` were unavailable from within the worktree path.
+- **Fix:** Created a symlink `taskflow/node_modules → /Users/user/Documents/Projects/taskflow/taskflow/node_modules` inside the worktree. All tooling then worked via `node_modules/.bin/tsc` and `node_modules/.bin/vitest`.
 - **Files modified:** None (filesystem symlink only)
 - **Commit:** N/A (not committed — symlink is a filesystem artifact, not tracked)
 
 **3. [Rule 1 - Bug] Accidental commit to main branch**
 - **Found during:** Task 1 commit
-- **Issue:** First commit attempt ran `git commit` from `/Users/mimo/Documents/Projects/taskflow` (main repo) rather than the worktree root, causing the commit to land on `main`.
+- **Issue:** First commit attempt ran `git commit` from `/Users/user/Documents/Projects/taskflow` (main repo) rather than the worktree root, causing the commit to land on `main`.
 - **Fix:** Immediately reverted with `git revert HEAD` on main (commit f6b4448). Then re-wrote the file to the correct worktree path and committed from the worktree branch.
 - **Files modified:** None (revert restored main to prior state)
 - **Commit on main:** f6b4448 (revert)

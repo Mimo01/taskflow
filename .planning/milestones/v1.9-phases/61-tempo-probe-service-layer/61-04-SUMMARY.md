@@ -90,6 +90,6 @@ User confirmed all six steps in the running Tauri app:
 
 ## Self-Check: PASSED
 
-- `/Users/mimo/Documents/Projects/taskflow/taskflow/src/routes/settings/IntegrationsSection.tsx` — exists, modified
-- `/Users/mimo/Documents/Projects/taskflow/taskflow/src/routes/settings/IntegrationsSection.test.tsx` — exists, modified
+- `/Users/user/Documents/Projects/taskflow/taskflow/src/routes/settings/IntegrationsSection.tsx` — exists, modified
+- `/Users/user/Documents/Projects/taskflow/taskflow/src/routes/settings/IntegrationsSection.test.tsx` — exists, modified
 - Commit `54715fdd` — verified present in git log

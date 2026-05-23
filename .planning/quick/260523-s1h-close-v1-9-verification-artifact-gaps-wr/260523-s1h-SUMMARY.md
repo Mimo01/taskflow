@@ -112,7 +112,7 @@ None — plan executed exactly as written. All four tasks applied surgical edits
 
 ### Process note (not a deviation)
 
-The first Write call for 61-VERIFICATION.md initially landed in the main repo (untracked) instead of the worktree, because the absolute path I used pointed to `/Users/mimo/Documents/Projects/taskflow/.planning/...` rather than the worktree path `/Users/mimo/Documents/Projects/taskflow/.claude/worktrees/agent-ab14b4d101e193fd0/.planning/...`. Caught immediately by checking `git -C "$WT" status --short`. The file was removed from the main repo (it had not been staged or committed) and re-written at the correct worktree path. All four commits land cleanly on `worktree-agent-ab14b4d101e193fd0` with no contamination of the main repo. This matches the `<absolute-path safety>` invariant called out in the GSD execute-phase workflow.
+The first Write call for 61-VERIFICATION.md initially landed in the main repo (untracked) instead of the worktree, because the absolute path I used pointed to `/Users/user/Documents/Projects/taskflow/.planning/...` rather than the worktree path `/Users/user/Documents/Projects/taskflow/.claude/worktrees/agent-ab14b4d101e193fd0/.planning/...`. Caught immediately by checking `git -C "$WT" status --short`. The file was removed from the main repo (it had not been staged or committed) and re-written at the correct worktree path. All four commits land cleanly on `worktree-agent-ab14b4d101e193fd0` with no contamination of the main repo. This matches the `<absolute-path safety>` invariant called out in the GSD execute-phase workflow.
 
 ## Verification
 
