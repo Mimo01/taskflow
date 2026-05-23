@@ -1,8 +1,9 @@
 ---
 phase: 64-redo-worklogs-page-with-epic-story-subtask-hierarchy-sticky-
 verified: 2026-05-23T20:30:00Z
-status: human_needed
-score: 11/11 must-haves verified (mechanical verification passes; human checkpoint covers popover edit/delete/add flows)
+human_verified: 2026-05-23T21:30:00Z
+status: passed
+score: 11/11 must-haves verified + 4/4 live popover CRUD tests passed
 overrides_applied: 1
 overrides:
   - must_have: "Zero-hour cells are not clickable (Plan-02 spec: 'only non-zero cells clickable')"
@@ -12,16 +13,20 @@ overrides:
 human_verification:
   - test: "Edit a worklog entry inline (64-UAT Test 9)"
     expected: "In the popover, click pencil → row swaps in place to an edit form with duration pre-populated → change duration → click Save Changes → form closes, entry shows new duration, cell total updates without a full page refresh"
-    why_human: "Requires live Tempo CRUD via running Tauri app; popover edit flow not exercised in current UAT pass"
+    status: passed
+    verified_at: 2026-05-23T21:30:00Z
   - test: "Edit form validates bad duration (64-UAT Test 10)"
     expected: "Enter 'abc' or empty → inline error appears, Save Changes does not submit; Discard Changes closes form without modifying the entry"
-    why_human: "Depends on Test 9 flow which was not exercised"
+    status: passed
+    verified_at: 2026-05-23T21:30:00Z
   - test: "Delete a worklog entry (64-UAT Test 11)"
     expected: "Click trash icon → entry deleted immediately (no confirmation), cell total decreases; if last entry the cell goes to zero and popover closes or shows empty state"
-    why_human: "Requires live Tempo delete via running Tauri app"
+    status: passed
+    verified_at: 2026-05-23T21:30:00Z
   - test: "Add a new worklog entry from the popover (64-UAT Test 12)"
     expected: "In the open popover, use 'Add entry' section (LogWorkPopover) to add a new worklog (date, duration, comment) → on save, new entry appears in list, cell total increases, row/column totals stay consistent"
-    why_human: "Requires live Tempo create via running Tauri app"
+    status: passed
+    verified_at: 2026-05-23T21:30:00Z
 re_verification: false
 ---
 

@@ -51,23 +51,23 @@ result: pass
 
 ### 9. Edit a worklog entry inline
 expected: In the popover, click the pencil on an entry. The row swaps in place to an edit form with duration pre-populated (e.g. "1h 30m"). Change duration, click "Save Changes". The form closes, the entry shows the new duration, and the cell total updates without a full page refresh.
-result: skipped
-reason: N/A — popover edit flow not exercised in this pass
+result: pass
+verified_at: 2026-05-23T21:30:00Z
 
 ### 10. Edit form validates bad duration
 expected: In the edit form, enter an invalid duration (e.g. "abc" or empty). An inline error appears and "Save Changes" does not submit. Clicking "Discard Changes" closes the form without modifying the entry.
-result: skipped
-reason: N/A — depends on edit flow (test 9) which was not exercised
+result: pass
+verified_at: 2026-05-23T21:30:00Z
 
 ### 11. Delete a worklog entry
 expected: Click the trash icon on an entry. The entry is deleted immediately (no confirmation dialog) and the cell total decreases accordingly. If it was the last entry for that cell, the cell goes to zero and the popover closes (or shows empty state).
-result: skipped
-reason: N/A — popover delete flow not exercised in this pass
+result: pass
+verified_at: 2026-05-23T21:30:00Z
 
 ### 12. Add a new worklog entry from the popover
 expected: In the open popover, use the "Add entry" section (LogWorkPopover) to add a new worklog (date, duration, comment). On save, the new entry appears in the entry list, the cell total increases, and the surrounding row/column totals stay consistent.
-result: skipped
-reason: N/A — popover add flow not exercised in this pass
+result: pass
+verified_at: 2026-05-23T21:30:00Z
 
 ### 13. Zero cells are not clickable
 expected: Cells showing 0 (or empty) hours do not open a popover when clicked. Only non-zero cells on story/subtask/epic-direct rows are interactive.
@@ -77,11 +77,12 @@ note: "User confirmed zero cells DO open a popup and that is wanted behavior (us
 ## Summary
 
 total: 13
-passed: 7
+passed: 11
 issues: 0
 pending: 0
-skipped: 6
+skipped: 2
 blocked: 0
+note: "Tests 9-12 (popover CRUD) confirmed passing in live UAT 2026-05-23T21:30Z during v1.9 milestone close. Tests 4, 6 remain skipped (require dataset conditions not present in test environment)."
 
 ## Gaps
 
