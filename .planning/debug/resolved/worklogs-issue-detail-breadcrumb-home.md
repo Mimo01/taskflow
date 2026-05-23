@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "Issue detail breadcrumb back-link shows 'Home' when navigated from the Worklogs page (should show 'Worklogs')"
 created: 2026-05-23T00:00:00Z
 updated: 2026-05-23T00:00:00Z
