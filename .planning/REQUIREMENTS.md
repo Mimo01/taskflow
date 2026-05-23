@@ -8,13 +8,13 @@
 
 ### Cleanup (tech debt carried from v1.8 + v1.9)
 
-- [ ] **CLEAN-01**: Add `useEffect` cleanup for `closeTimer.current` setTimeout in `WorklogsPage.tsx` (WR-01) — fires on unmounted component possible
-- [ ] **CLEAN-02**: Distinguish `isError` from "cached empty" in `WorklogsPage.tsx` so `ErrorState` renders on network errors after a successful empty result (WR-02)
-- [ ] **CLEAN-03**: Replace unkeyed `<></>` fragments at `WorklogsPage.tsx:1050/1129/~1240` (Epic/Story/Subtask map callbacks) with `<React.Fragment key={epicKey|storyKey}>` (INT-W1)
-- [ ] **CLEAN-04**: Move `DatePreset` type from `WorklogsPage.tsx:53` to `src/services/tempo/types.ts` and update all imports (resolves architectural inversion in `tempo-filters.store.ts`)
-- [ ] **CLEAN-05**: Remove stale `{ id: 'workload', visible: true }` mock entry at `Sidebar.test.tsx:79`
-- [ ] **CLEAN-06**: Add IDs `51` (NOT_EXECUTED) + `52` (IN_PROGRESS) to `TESTCASE_STATUS_MAP` in `src/services/aio/cycles.ts:335` — in-progress runs currently bucket as `NOT_EXECUTED`
-- [ ] **CLEAN-07**: Make `AIO_STATUS_MAP` resilient to non-standard AIO instances — fetch from AIO `/config` endpoint when available, or document a per-instance override mechanism
+- [x] **CLEAN-01**: Add `useEffect` cleanup for `closeTimer.current` setTimeout in `WorklogsPage.tsx` (WR-01) — fires on unmounted component possible
+- [x] **CLEAN-02**: Distinguish `isError` from "cached empty" in `WorklogsPage.tsx` so `ErrorState` renders on network errors after a successful empty result (WR-02)
+- [x] **CLEAN-03**: Replace unkeyed `<></>` fragments at `WorklogsPage.tsx:1050/1129/~1240` (Epic/Story/Subtask map callbacks) with `<React.Fragment key={epicKey|storyKey}>` (INT-W1)
+- [x] **CLEAN-04**: Move `DatePreset` type from `WorklogsPage.tsx:53` to `src/services/tempo/types.ts` and update all imports (resolves architectural inversion in `tempo-filters.store.ts`)
+- [x] **CLEAN-05**: Remove stale `{ id: 'workload', visible: true }` mock entry at `Sidebar.test.tsx:79`
+- [x] **CLEAN-06**: Add IDs `51` (NOT_EXECUTED) + `52` (IN_PROGRESS) to `TESTCASE_STATUS_MAP` in `src/services/aio/cycles.ts:335` — in-progress runs currently bucket as `NOT_EXECUTED`
+- [x] **CLEAN-07**: Make `AIO_STATUS_MAP` resilient to non-standard AIO instances — fetch from AIO `/config` endpoint when available, or document a per-instance override mechanism
 
 ### Roles Removal
 
@@ -70,13 +70,13 @@ Which phases cover which requirements.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CLEAN-01 | Phase 65 | Pending |
-| CLEAN-02 | Phase 65 | Pending |
-| CLEAN-03 | Phase 65 | Pending |
-| CLEAN-04 | Phase 65 | Pending |
-| CLEAN-05 | Phase 65 | Pending |
-| CLEAN-06 | Phase 65 | Pending |
-| CLEAN-07 | Phase 65 | Pending |
+| CLEAN-01 | Phase 65 | Complete |
+| CLEAN-02 | Phase 65 | Complete |
+| CLEAN-03 | Phase 65 | Complete |
+| CLEAN-04 | Phase 65 | Complete |
+| CLEAN-05 | Phase 65 | Complete |
+| CLEAN-06 | Phase 65 | Complete |
+| CLEAN-07 | Phase 65 | Complete |
 | ROLES-01 | Phase 66 | Pending |
 | ROLES-02 | Phase 66 | Pending |
 | ROLES-03 | Phase 66 | Pending |
