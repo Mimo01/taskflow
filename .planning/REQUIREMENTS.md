@@ -18,12 +18,12 @@
 
 ### Roles Removal
 
-- [ ] **ROLES-01**: Remove role selection step from startup wizard
-- [ ] **ROLES-02**: Remove role toggle from Settings (currently in Workflow/Appearance section)
-- [ ] **ROLES-03**: Remove Dev/PM preset buttons from Sidebar settings
-- [ ] **ROLES-04**: Remove `role` field from `useSettingsStore` with version bump migration (default everyone → universal access)
-- [ ] **ROLES-05**: Strip role-gated rendering across all components — audit call sites and remove role conditionals
-- [ ] **ROLES-06**: Make every sidebar nav item + dashboard surface accessible to all users by default
+- [x] **ROLES-01**: Remove role selection step from startup wizard
+- [x] **ROLES-02**: Remove role toggle from Settings (currently in Workflow/Appearance section)
+- [x] **ROLES-03**: Remove Dev/PM preset buttons from Sidebar settings
+- [x] **ROLES-04**: Remove `role` field from `useSettingsStore` with version bump migration (default everyone → universal access)
+- [x] **ROLES-05**: Strip role-gated rendering across all components — audit call sites and remove role conditionals
+- [x] **ROLES-06**: Make every sidebar nav item + dashboard surface accessible to all users by default
 
 ### Settings UI Cleanup
 
@@ -77,12 +77,12 @@ Which phases cover which requirements.
 | CLEAN-05 | Phase 65 | Complete |
 | CLEAN-06 | Phase 65 | Complete |
 | CLEAN-07 | Phase 65 | Complete |
-| ROLES-01 | Phase 66 | Pending |
-| ROLES-02 | Phase 66 | Pending |
-| ROLES-03 | Phase 66 | Pending |
-| ROLES-04 | Phase 66 | Pending |
-| ROLES-05 | Phase 66 | Pending |
-| ROLES-06 | Phase 66 | Pending |
+| ROLES-01 | Phase 66 | Complete |
+| ROLES-02 | Phase 66 | Complete |
+| ROLES-03 | Phase 66 | Complete |
+| ROLES-04 | Phase 66 | Complete |
+| ROLES-05 | Phase 66 | Complete |
+| ROLES-06 | Phase 66 | Complete |
 | SETUI-01 | Phase 67 | Pending |
 | SETUI-02 | Phase 67 | Pending |
 | SETUI-03 | Phase 67 | Pending |
