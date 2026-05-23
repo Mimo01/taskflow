@@ -66,16 +66,44 @@
 
 ## Traceability
 
-Which phases cover which requirements. Populated during roadmap creation.
+Which phases cover which requirements.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (Empty — populated during roadmap creation) | | |
+| CLEAN-01 | Phase 65 | Pending |
+| CLEAN-02 | Phase 65 | Pending |
+| CLEAN-03 | Phase 65 | Pending |
+| CLEAN-04 | Phase 65 | Pending |
+| CLEAN-05 | Phase 65 | Pending |
+| CLEAN-06 | Phase 65 | Pending |
+| CLEAN-07 | Phase 65 | Pending |
+| ROLES-01 | Phase 66 | Pending |
+| ROLES-02 | Phase 66 | Pending |
+| ROLES-03 | Phase 66 | Pending |
+| ROLES-04 | Phase 66 | Pending |
+| ROLES-05 | Phase 66 | Pending |
+| ROLES-06 | Phase 66 | Pending |
+| SETUI-01 | Phase 67 | Pending |
+| SETUI-02 | Phase 67 | Pending |
+| SETUI-03 | Phase 67 | Pending |
+| WIZ-01 | Phase 68 | Pending |
+| WIZ-02 | Phase 68 | Pending |
+| WIZ-03 | Phase 68 | Pending |
+| WIZ-04 | Phase 68 | Pending |
+| STAND-01 | Phase 69 | Pending |
+| STAND-02 | Phase 69 | Pending |
+| STAND-03 | Phase 69 | Pending |
+| STAND-04 | Phase 69 | Pending |
+| STAND-05 | Phase 69 | Pending |
+| STAND-06 | Phase 69 | Pending |
+| STAND-07 | Phase 70 | Pending |
+| STAND-08 | Phase 70 | Pending |
+| STAND-09 | Phase 70 | Pending |
 
 **Coverage:**
-- v1.10 requirements: 28 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 28 ⚠️ (pending roadmap)
+- v1.10 requirements: 29 total
+- Mapped to phases: 29
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-05-23*
