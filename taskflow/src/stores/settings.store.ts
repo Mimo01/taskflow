@@ -1,5 +1,5 @@
 /**
- * Settings store — role and theme, persisted via Tauri Store plugin.
+ * Settings store — theme, sidebar, and app preferences, persisted via Tauri Store plugin.
  *
  * Uses Zustand persist middleware with a custom storage adapter that
  * reads/writes via LazyStore from @tauri-apps/plugin-store.
