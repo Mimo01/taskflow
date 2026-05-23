@@ -26,7 +26,7 @@ import {
   Pencil,
   Trash2,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
@@ -47,16 +47,9 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { type TempoFilter, useTempoFiltersStore } from '@/stores/tempo-filters.store';
 import { WorklogCellPopover } from './WorklogCellPopover';
+import type { DatePreset } from '@/services/tempo/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-export type DatePreset =
-  | 'this-week'
-  | 'last-week'
-  | 'this-month'
-  | 'last-month'
-  | 'last-working-day'
-  | 'custom';
 
 /** Enriched Jira issue shape returned by the worklog enrichment query */
 type EnrichedIssue = {
@@ -325,6 +318,15 @@ export default function WorklogsPage() {
       setSelectedDisplayName(jiraUserDisplayName);
     }
   }, [jiraUsername, jiraUserDisplayName]);
+
+  // ─ CLEAN-01: Clear combobox close timer on unmount ───────────────────────
+  useEffect(() => {
+    return () => {
+      if (closeTimer.current) {
+        clearTimeout(closeTimer.current);
+      }
+    };
+  }, []);
 
   // ─ Compute from/to from preset ───────────────────────────────────────────
   const { from, to } = useMemo(() => {
@@ -948,7 +950,7 @@ export default function WorklogsPage() {
 
       {/* Table area — border-separate fixes sticky-cell bleed-through (#5 in feedback) */}
       <div className="flex-1 overflow-auto min-h-0">
-        {isError && !data ? (
+        {isError ? (
           <ErrorState error={error} onRetry={refetch} viewName="worklogs" />
         ) : isLoading && !data ? (
           <table className="w-full text-xs border-separate [border-spacing:0]">
@@ -1047,10 +1049,9 @@ export default function WorklogsPage() {
                   : 'bg-purple-100 dark:bg-purple-900';
 
                 return (
-                  <>
+                  <React.Fragment key={epicKey}>
                     {/* Epic row */}
                     <tr
-                      key={`epic-${epicKey}`}
                       className={
                         isNoEpic
                           ? 'bg-purple-50 dark:bg-purple-950 group/row'
@@ -1126,8 +1127,8 @@ export default function WorklogsPage() {
                         0,
                       );
                       return (
-                        <>
-                          <tr key={`story-${storyKey}`} className="cursor-pointer group/row">
+                        <React.Fragment key={storyKey}>
+                          <tr className="cursor-pointer group/row">
                             <td className="sticky left-0 z-10 bg-background px-3 py-1.5 border border-border border-r-0 min-w-52 max-w-52 overflow-hidden">
                               <button
                                 type="button"
@@ -1235,10 +1236,10 @@ export default function WorklogsPage() {
                               );
                             },
                           )}
-                        </>
+                        </React.Fragment>
                       );
                     })}
-                  </>
+                  </React.Fragment>
                 );
               })}
             </tbody>

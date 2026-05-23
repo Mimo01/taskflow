@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { createTauriStorage } from '../lib/tauri-storage';
-import type { DatePreset } from '../routes/worklogs/WorklogsPage';
+import type { DatePreset } from '../services/tempo/types';
 
 export interface TempoFilter {
   id: string;
