@@ -1,34 +1,33 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.9
-milestone_name: Tempo, Dashboard Redesign & Cleanup
-status: Awaiting next milestone
-stopped_at: Phase 64 UI-SPEC approved
-last_updated: "2026-05-23T19:20:57.876Z"
-last_activity: 2026-05-23 — Milestone v1.9 completed and archived
+milestone: v1.10
+milestone_name: Cleanup, Roles Removal & Standup Notes
+status: planning
+last_updated: "2026-05-23T20:25:58.889Z"
+last_activity: 2026-05-23
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 20
-  completed_plans: 20
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-21)
+See: .planning/PROJECT.md (updated 2026-05-23)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** v1.9 shipped 2026-05-23. Awaiting next milestone — run `/gsd:new-milestone` to scope v2.0.
+**Current focus:** v1.10 opened 2026-05-23 — Cleanup, Roles Removal & Standup Notes. Defining requirements.
 
 ## Current Position
 
-Phase: Milestone v1.9 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-05-23 — Milestone v1.9 completed and archived
+Status: Defining requirements
+Last activity: 2026-05-23 — Milestone v1.10 started
 
 ## Performance Metrics
 
@@ -92,10 +91,10 @@ Key decisions affecting current work:
 
 ## Session Continuity
 
-Last activity: 2026-05-23 — v1.9 milestone shipped and archived
-Stopped at: v1.9 milestone close complete
-Next: `/gsd:new-milestone` to begin v2.0 scoping
+Last activity: 2026-05-23 — v1.10 milestone opened (Cleanup, Roles Removal & Standup Notes)
+Stopped at: Defining requirements
+Next: Confirm research decision, then scope requirements per category
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- After REQUIREMENTS.md + ROADMAP.md approval: `/gsd:discuss-phase [N]` to start the first phase
