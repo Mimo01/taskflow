@@ -26,16 +26,11 @@ describe('sidebar-items — workload entry absence guard (Phase 59)', () => {
     expect(hit).toBeUndefined();
   });
 
-  it('pmVisible preset (getDefaultSidebarItems("pm")) contains no workload entry', () => {
-    const pmItems = getDefaultSidebarItems('pm');
-    const hit = pmItems.find((item) => item.id === 'workload');
-    expect(hit).toBeUndefined();
-  });
-
-  it('devVisible preset (getDefaultSidebarItems("dev")) contains no workload entry', () => {
-    const devItems = getDefaultSidebarItems('dev');
-    const hit = devItems.find((item) => item.id === 'workload');
-    expect(hit).toBeUndefined();
+  it('getDefaultSidebarItems returns all SIDEBAR_NAV_ITEMS with visible: true', () => {
+    const items = getDefaultSidebarItems();
+    expect(items).toHaveLength(SIDEBAR_NAV_ITEMS.length);
+    expect(items.every((item) => item.visible)).toBe(true);
+    expect(items.map((i) => i.id)).toEqual(SIDEBAR_NAV_ITEMS.map((i) => i.id));
   });
 
   it('sidebar-items.ts source contains no "workload" string', () => {
