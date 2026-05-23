@@ -160,11 +160,45 @@ function getLastWorkingDay(): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** Returns bg class for a day column based on its schedule type. */
-function dayColClass(type: ScheduleDayType | undefined): string {
-  if (type === 'HOLIDAY') return 'bg-red-50 dark:bg-red-950/30';
-  if (type === 'NON_WORKING_DAY') return 'bg-muted/80';
-  return '';
+/** Returns bg class for a day DATA cell — always solid so brightness filter is visible. */
+function dayColClass(type: ScheduleDayType | undefined, fallbackBg = 'bg-background'): string {
+  if (type === 'HOLIDAY') return 'bg-red-100 dark:bg-red-900';
+  if (type === 'NON_WORKING_DAY') return 'bg-slate-100 dark:bg-slate-800';
+  return fallbackBg;
+}
+
+/**
+ * Static CSS for row + column hover highlights.
+ *
+ * Row hover uses pure CSS `tr:hover`. Column hover uses a `data-col-hover` attribute on the
+ * table (set imperatively via DOM ref on mouseover — no React re-render). Attribute selectors
+ * are O(1) per cell, much cheaper than 45 separate `:has()` rules scanning the DOM.
+ *
+ * Neutral overlay: black (light) / white (dark) — matches the app's grayscale design system.
+ * Pseudo-elements stack at row/column intersections (::after for row, ::before for column).
+ */
+const MAX_DAY_COLS = 45;
+const COLUMN_HOVER_CSS = (() => {
+  const base = `
+    .worklog-table tbody td:not(.sticky){position:relative}
+    .worklog-table tbody tr:hover :is(td,th)::after{content:'';position:absolute;inset:0;pointer-events:none;background:rgb(0 0 0 / 0.12)}
+    .dark .worklog-table tbody tr:hover :is(td,th)::after{background:rgb(255 255 255 / 0.14)}
+  `;
+  const rules: string[] = [base];
+  for (let n = 4; n <= 3 + MAX_DAY_COLS; n++) {
+    rules.push(
+      `.worklog-table[data-col-hover="${n}"] :is(td,th):nth-child(${n})::before{content:'';position:absolute;inset:0;pointer-events:none;background:rgb(0 0 0 / 0.12)}`,
+      `.dark .worklog-table[data-col-hover="${n}"] :is(td,th):nth-child(${n})::before{background:rgb(255 255 255 / 0.14)}`,
+    );
+  }
+  return rules.join('');
+})();
+
+/** Returns the full bg (+text) class for a sticky HEADER or FOOTER day cell, replacing bg-muted. */
+function dayHeaderBg(type: ScheduleDayType | undefined): string {
+  if (type === 'HOLIDAY') return 'bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-300';
+  if (type === 'NON_WORKING_DAY') return 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400';
+  return 'bg-muted';
 }
 
 /** Returns the icon component + color class for a story-level issue type. */
@@ -211,6 +245,23 @@ export default function WorklogsPage() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameInput, setRenameInput] = useState('');
   const renameInputRef = useRef<HTMLInputElement>(null);
+
+  // Column-hover: imperative DOM mutation via ref — avoids React re-render on every hover.
+  const tableRef = useRef<HTMLTableElement>(null);
+  const handleTableMouseOver = (e: React.MouseEvent<HTMLTableElement>) => {
+    const cell = (e.target as HTMLElement).closest('td, th') as HTMLTableCellElement | null;
+    if (!cell || !tableRef.current) return;
+    const n = cell.cellIndex + 1; // 1-based nth-child
+    const current = tableRef.current.dataset.colHover;
+    if (n < 4) {
+      if (current) delete tableRef.current.dataset.colHover;
+    } else if (current !== String(n)) {
+      tableRef.current.dataset.colHover = String(n);
+    }
+  };
+  const handleTableMouseLeave = () => {
+    if (tableRef.current?.dataset.colHover) delete tableRef.current.dataset.colHover;
+  };
 
   // Combobox state
   const [query, setQuery] = useState('');
@@ -351,6 +402,48 @@ export default function WorklogsPage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // ─ Grandparent keys: epics discovered from parentEnrichQuery results ────────
+  // Case B: subtask → story (parentEnrichQuery) → epic (not yet fetched).
+  // The story's epicLinkFieldKey points to an epic that wasn't in uniqueKeys or
+  // parentKeys, so we need a third-level fetch.
+  const grandparentKeys = useMemo(() => {
+    if (!parentEnrichQuery.data) return [];
+    const already = new Set([
+      ...(enrichQuery.data ?? []).map((i) => i.key),
+      ...(parentEnrichQuery.data ?? []).map((i) => i.key),
+    ]);
+    const grandparents = new Set<string>();
+    for (const issue of parentEnrichQuery.data) {
+      const pk = issue.fields.parent?.key ?? (issue.fields[epicLinkFieldKey] as string | null) ?? null;
+      if (pk && !already.has(pk)) grandparents.add(pk);
+    }
+    return [...grandparents].sort();
+  }, [parentEnrichQuery.data, enrichQuery.data, epicLinkFieldKey]);
+  const grandparentKeysStr = grandparentKeys.join(',');
+
+  const grandparentEnrichQuery = useQuery({
+    queryKey: ['jira', 'worklog-enrich-grandparents', jiraBaseUrl, grandparentKeysStr, epicLinkFieldKey],
+    queryFn: async () => {
+      if (grandparentKeys.length === 0) return [] as EnrichedIssue[];
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token) throw new Error('No token');
+      const base = jiraBaseUrl!.replace(/\/$/, '');
+      const jql = encodeURIComponent(`issuekey in (${grandparentKeys.join(',')})`);
+      const url = `${base}/rest/api/2/search?jql=${jql}&fields=summary,issuetype,parent,${epicLinkFieldKey}&maxResults=${grandparentKeys.length}`;
+      const response = await apiFetch(
+        'jira',
+        url,
+        { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } },
+        'Enrich Grandparent Issues',
+      );
+      if (!response.ok) throw new Error(`Grandparent enrichment failed: ${response.status}`);
+      const d = await response.json();
+      return d.issues as EnrichedIssue[];
+    },
+    enabled: !!jiraBaseUrl && !!jiraToken && grandparentKeys.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+
   // ─ Schedule (for weekend/holiday column coloring) ────────────────────────
   const { data: scheduleData } = useQuery({
     queryKey: ['tempo', 'schedule', jiraBaseUrl, from, to, jiraUserKey ?? ''],
@@ -378,6 +471,7 @@ export default function WorklogsPage() {
     const enrichMap = new Map<string, EnrichedIssue>([
       ...(enrichQuery.data ?? []).map((i): [string, EnrichedIssue] => [i.key, i]),
       ...(parentEnrichQuery.data ?? []).map((i): [string, EnrichedIssue] => [i.key, i]),
+      ...(grandparentEnrichQuery.data ?? []).map((i): [string, EnrichedIssue] => [i.key, i]),
     ]);
 
     // summaryMap covers titles of issues not in enrichMap by reading nested parent.fields.summary
@@ -504,7 +598,7 @@ export default function WorklogsPage() {
       resolvedKeys,
       enrichMap,
     };
-  }, [data, enrichQuery.data, parentEnrichQuery.data, from, to, epicLinkFieldKey]);
+  }, [data, enrichQuery.data, parentEnrichQuery.data, grandparentEnrichQuery.data, from, to, epicLinkFieldKey]);
 
   // ─ Combobox handlers ──────────────────────────────────────────────────────
   function handleComboboxFocus() {
@@ -783,21 +877,21 @@ export default function WorklogsPage() {
         ) : isLoading && !data ? (
           <table className="w-full text-xs border-separate [border-spacing:0]">
             <thead>
-              <tr className="bg-muted/60">
-                <th className="sticky top-0 left-0 z-30 bg-muted/60 text-left px-3 py-2 border border-border min-w-48 font-semibold text-foreground/70 uppercase tracking-wide text-[10px]">Title</th>
-                <th className="sticky top-0 z-20 bg-muted/60 text-left px-2 py-2 border border-border min-w-20 font-semibold text-foreground/70 uppercase tracking-wide text-[10px]">Key</th>
-                <th className="sticky top-0 z-20 bg-muted/60 text-center px-2 py-2 border border-border min-w-14 font-semibold text-foreground/70 uppercase tracking-wide text-[10px]">Time</th>
+              <tr>
+                <th className="sticky top-0 left-0 z-30 bg-background text-left px-3 py-2.5 border border-border border-r-0 min-w-52 max-w-52 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">Title</th>
+                <th className="sticky top-0 left-52 z-30 bg-background text-left px-2 py-2.5 border border-border border-l-0 border-r-0 min-w-20 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">Key</th>
+                <th className="sticky top-0 left-72 z-30 bg-background text-center px-2 py-2.5 border border-border border-l-0 border-r-2 min-w-14 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">Time</th>
                 {Array.from({ length: days.length || 7 }, (_, i) => (
-                  <th key={i} className="sticky top-0 z-20 bg-muted/60 text-center px-2 py-2 border border-border min-w-14"><Skeleton className="h-3 w-8 mx-auto" /></th>
+                  <th key={i} className="sticky top-0 z-20 bg-muted text-center px-2 py-2.5 border border-border min-w-14 font-bold uppercase tracking-widest text-[10px]"><Skeleton className="h-3 w-8 mx-auto" /></th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {Array.from({ length: 5 }, (_, r) => (
                 <tr key={r}>
-                  <td className="sticky left-0 z-10 bg-background px-3 py-2 border border-border"><Skeleton className="h-3 w-28" /></td>
-                  <td className="bg-background px-2 py-2 border border-border"><Skeleton className="h-3 w-14" /></td>
-                  <td className="text-center px-2 py-2 border border-border"><Skeleton className="h-3 w-8 mx-auto" /></td>
+                  <td className="sticky left-0 z-10 bg-background px-3 py-2 border border-border border-r-0 min-w-52 max-w-52"><Skeleton className="h-3 w-28" /></td>
+                  <td className="sticky left-52 z-10 bg-background px-2 py-2 border border-border border-l-0 border-r-0 min-w-20"><Skeleton className="h-3 w-14" /></td>
+                  <td className="sticky left-72 z-10 bg-background text-center px-2 py-2 border border-border border-l-0 border-r-2 min-w-14"><Skeleton className="h-3 w-8 mx-auto" /></td>
                   {Array.from({ length: days.length || 7 }, (_, c) => (
                     <td key={c} className="text-center px-2 py-2 border border-border"><Skeleton className="h-3 w-8 mx-auto" /></td>
                   ))}
@@ -819,14 +913,22 @@ export default function WorklogsPage() {
           </div>
         ) : (
           /* TEMPO-08: Epic → Story → Subtask hierarchy table */
-          <table className="w-full text-xs border-separate [border-spacing:0]">
+          <table
+            ref={tableRef}
+            onMouseOver={handleTableMouseOver}
+            onMouseLeave={handleTableMouseLeave}
+            className="worklog-table w-full text-xs border-separate [border-spacing:0]"
+          >
             <thead>
-              <tr className="bg-muted/60">
-                <th className="sticky top-0 left-0 z-30 bg-muted/60 text-left px-3 py-2 border border-border min-w-48 font-semibold text-foreground/70 uppercase tracking-wide text-[10px]">Title</th>
-                <th className="sticky top-0 z-20 bg-muted/60 text-left px-2 py-2 border border-border min-w-20 font-semibold text-foreground/70 uppercase tracking-wide text-[10px]">Key</th>
-                <th className="sticky top-0 z-20 bg-muted/60 text-center px-2 py-2 border border-border min-w-14 font-semibold text-foreground/70 uppercase tracking-wide text-[10px]">Time</th>
+              <tr>
+                <th className="sticky top-0 left-0 z-30 bg-background text-left px-3 py-2.5 border border-border border-r-0 min-w-52 max-w-52 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">Title</th>
+                <th className="sticky top-0 left-52 z-30 bg-background text-left px-2 py-2.5 border border-border border-l-0 border-r-0 min-w-20 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">Key</th>
+                <th className="sticky top-0 left-72 z-30 bg-background text-center px-2 py-2.5 border border-border border-l-0 border-r-2 min-w-14 font-bold text-foreground/50 uppercase tracking-widest text-[10px]">Time</th>
                 {days.map((day) => (
-                  <th key={day} className={`sticky top-0 z-20 bg-muted/60 text-center px-2 py-2 border border-border min-w-14 font-semibold text-foreground/70 ${dayColClass(dayTypeMap.get(day))}`}>
+                  <th
+                    key={day}
+                    className={`sticky top-0 z-20 text-center px-2 py-2.5 border border-border min-w-14 font-bold uppercase tracking-widest text-[10px] ${dayHeaderBg(dayTypeMap.get(day))}`}
+                  >
                     {formatDayHeader(day)}
                   </th>
                 ))}
@@ -837,6 +939,7 @@ export default function WorklogsPage() {
                 const isNoEpic = epicKey === NO_EPIC;
                 const isResolved = resolvedKeys.has(epicKey);
                 const epicTotal = Array.from(epicNode.dayMap.values()).reduce((a, b) => a + b, 0);
+                const epicRowBg = isNoEpic ? 'bg-purple-50 dark:bg-purple-950' : 'bg-purple-100 dark:bg-purple-900';
 
                 return (
                   <>
@@ -844,36 +947,37 @@ export default function WorklogsPage() {
                     <tr
                       key={`epic-${epicKey}`}
                       className={isNoEpic
-                        ? 'bg-muted/20'
-                        : 'bg-purple-50/60 dark:bg-purple-950/25 hover:bg-purple-100/70 dark:hover:bg-purple-900/35 cursor-pointer'}
+                        ? 'bg-purple-50 dark:bg-purple-950 group/row'
+                        : 'bg-purple-100 dark:bg-purple-900 cursor-pointer group/row'}
                     >
-                      <td className={`sticky left-0 z-10 ${isNoEpic ? 'bg-muted/20' : 'bg-purple-50/60 dark:bg-purple-950/25'} px-3 py-1.5 border border-border`}>
+                      <td className={`sticky left-0 z-10 ${epicRowBg} px-3 py-1.5 border border-border border-r-0 min-w-52 max-w-52 overflow-hidden`}>
                         {isNoEpic ? (
-                          <span className="flex items-center gap-1 text-muted-foreground italic text-[11px]">
-                            <Layers className="size-3 shrink-0 text-muted-foreground/40" />
+                          <span className="flex items-center gap-1 text-purple-400 dark:text-purple-600 italic text-[11px]">
+                            <Layers className="size-3 shrink-0 text-purple-400 dark:text-purple-600" />
                             No Epic
                           </span>
                         ) : (
-                          <button type="button" aria-label={`Open ${epicKey}`} onClick={() => onIssueClick(epicKey)} className="flex items-center gap-1 w-full text-left">
-                            <Layers className="size-3 shrink-0 text-purple-600 dark:text-purple-400" />
-                            <span className="font-semibold leading-tight truncate">
+                          <button type="button" aria-label={`Open ${epicKey}`} onClick={() => onIssueClick(epicKey)} className="flex items-center gap-1 w-full text-left min-w-0">
+                            <Layers className="size-3 shrink-0 text-purple-700 dark:text-purple-300" />
+                            <span className="font-semibold leading-tight truncate text-purple-900 dark:text-purple-100">
                               {isResolved ? epicNode.summary : <span className="line-through text-muted-foreground">{epicKey}</span>}
                             </span>
                           </button>
                         )}
                       </td>
-                      <td className={`${isNoEpic ? 'bg-muted/20' : 'bg-purple-50/60 dark:bg-purple-950/25'} px-2 py-1.5 border border-border text-muted-foreground whitespace-nowrap`}>
+                      <td className={`sticky left-52 z-10 ${epicRowBg} px-2 py-1.5 border border-border border-l-0 border-r-0 text-purple-500 dark:text-purple-400 whitespace-nowrap min-w-20`}>
                         {isNoEpic ? '' : epicKey}
                       </td>
-                      <td className={`${isNoEpic ? 'bg-muted/20' : 'bg-purple-50/60 dark:bg-purple-950/25'} text-center px-2 py-1.5 border border-border font-semibold text-purple-700 dark:text-purple-300`}>
+                      <td className={`sticky left-72 z-10 ${epicRowBg} text-center px-2 py-1.5 border border-border border-l-0 border-r-2 font-semibold text-purple-800 dark:text-purple-200 min-w-14`}>
                         {isNoEpic ? '' : (formatSeconds(epicTotal) || '—')}
                       </td>
                       {days.map((day) => {
                         const secs = epicNode.dayMap.get(day) ?? 0;
                         const cellEntries = (data ?? []).filter((w) => w.issue.key === epicKey && w.dateStarted === day);
+                        const cellBg = dayColClass(dayTypeMap.get(day), epicRowBg);
                         return (
-                          <td key={day} className={`border border-border p-0 ${dayColClass(dayTypeMap.get(day))}`}>
-                            <WorklogCellPopover issueKey={epicKey} date={day} entries={cellEntries} jiraBaseUrl={jiraBaseUrl!} totalSeconds={secs} dayColClassName={dayColClass(dayTypeMap.get(day))} />
+                          <td key={day} className={`border border-border p-0 ${cellBg}`}>
+                            <WorklogCellPopover issueKey={epicKey} date={day} entries={cellEntries} jiraBaseUrl={jiraBaseUrl!} totalSeconds={secs} dayColClassName={cellBg} />
                           </td>
                         );
                       })}
@@ -886,23 +990,24 @@ export default function WorklogsPage() {
                       const storyTotal = Array.from(storyNode.dayMap.values()).reduce((a, b) => a + b, 0);
                       return (
                         <>
-                          <tr key={`story-${storyKey}`} className="hover:bg-accent/50 cursor-pointer">
-                            <td className="sticky left-0 z-10 bg-background px-3 py-1.5 border border-border">
-                              <button type="button" aria-label={`Open ${storyKey}`} onClick={() => onIssueClick(storyKey)} className="flex items-center gap-1 w-full text-left pl-3">
+                          <tr key={`story-${storyKey}`} className="cursor-pointer group/row">
+                            <td className="sticky left-0 z-10 bg-background px-3 py-1.5 border border-border border-r-0 min-w-52 max-w-52 overflow-hidden">
+                              <button type="button" aria-label={`Open ${storyKey}`} onClick={() => onIssueClick(storyKey)} className="flex items-center gap-1 w-full text-left pl-3 min-w-0">
                                 <StoryIcon className={`size-3 shrink-0 ${storyColor}`} />
                                 <span className="font-medium leading-tight truncate">
                                   {resolvedKeys.has(storyKey) ? storyNode.summary : <span className="line-through text-muted-foreground">{storyKey}</span>}
                                 </span>
                               </button>
                             </td>
-                            <td className="bg-background px-2 py-1.5 border border-border text-muted-foreground whitespace-nowrap">{storyKey}</td>
-                            <td className="bg-background text-center px-2 py-1.5 border border-border font-semibold">{formatSeconds(storyTotal) || '—'}</td>
+                            <td className="sticky left-52 z-10 bg-background px-2 py-1.5 border border-border border-l-0 border-r-0 text-muted-foreground whitespace-nowrap min-w-20">{storyKey}</td>
+                            <td className="sticky left-72 z-10 bg-background text-center px-2 py-1.5 border border-border border-l-0 border-r-2 font-semibold min-w-14">{formatSeconds(storyTotal) || '—'}</td>
                             {days.map((day) => {
                               const secs = storyNode.dayMap.get(day) ?? 0;
                               const cellEntries = (data ?? []).filter((w) => w.issue.key === storyKey && w.dateStarted === day);
+                              const cellBg = dayColClass(dayTypeMap.get(day));
                               return (
-                                <td key={day} className={`border border-border p-0 ${dayColClass(dayTypeMap.get(day))}`}>
-                                  <WorklogCellPopover issueKey={storyKey} date={day} entries={cellEntries} jiraBaseUrl={jiraBaseUrl!} totalSeconds={secs} dayColClassName={dayColClass(dayTypeMap.get(day))} />
+                                <td key={day} className={`border border-border p-0 ${cellBg}`}>
+                                  <WorklogCellPopover issueKey={storyKey} date={day} entries={cellEntries} jiraBaseUrl={jiraBaseUrl!} totalSeconds={secs} dayColClassName={cellBg} />
                                 </td>
                               );
                             })}
@@ -912,23 +1017,24 @@ export default function WorklogsPage() {
                           {Array.from(storyNode.subtasks.entries()).map(([subtaskKey, subtaskNode]) => {
                             const subtaskTotal = Array.from(subtaskNode.dayMap.values()).reduce((a, b) => a + b, 0);
                             return (
-                              <tr key={`subtask-${subtaskKey}`} className="hover:bg-accent/40 cursor-pointer">
-                                <td className="sticky left-0 z-10 bg-background px-3 py-1.5 border border-border">
-                                  <button type="button" aria-label={`Open ${subtaskKey}`} onClick={() => onIssueClick(subtaskKey)} className="flex items-center gap-1 w-full text-left pl-6">
+                              <tr key={`subtask-${subtaskKey}`} className="cursor-pointer group/row">
+                                <td className="sticky left-0 z-10 bg-background px-3 py-1.5 border border-border border-r-0 min-w-52 max-w-52 overflow-hidden">
+                                  <button type="button" aria-label={`Open ${subtaskKey}`} onClick={() => onIssueClick(subtaskKey)} className="flex items-center gap-1 w-full text-left pl-6 min-w-0">
                                     <CornerDownRight className="size-3 shrink-0 text-teal-500" />
                                     <span className="leading-tight text-muted-foreground truncate">
                                       {resolvedKeys.has(subtaskKey) ? subtaskNode.summary : <span className="line-through">{subtaskKey}</span>}
                                     </span>
                                   </button>
                                 </td>
-                                <td className="bg-background px-2 py-1.5 border border-border text-muted-foreground/60 whitespace-nowrap">{subtaskKey}</td>
-                                <td className="bg-background text-center px-2 py-1.5 border border-border font-semibold text-muted-foreground">{formatSeconds(subtaskTotal) || '—'}</td>
+                                <td className="sticky left-52 z-10 bg-background px-2 py-1.5 border border-border border-l-0 border-r-0 text-muted-foreground/60 whitespace-nowrap min-w-20">{subtaskKey}</td>
+                                <td className="sticky left-72 z-10 bg-background text-center px-2 py-1.5 border border-border border-l-0 border-r-2 font-semibold text-muted-foreground min-w-14">{formatSeconds(subtaskTotal) || '—'}</td>
                                 {days.map((day) => {
                                   const secs = subtaskNode.dayMap.get(day) ?? 0;
                                   const cellEntries = (data ?? []).filter((w) => w.issue.key === subtaskKey && w.dateStarted === day);
+                                  const cellBg = dayColClass(dayTypeMap.get(day));
                                   return (
-                                    <td key={day} className={`border border-border p-0 ${dayColClass(dayTypeMap.get(day))}`}>
-                                      <WorklogCellPopover issueKey={subtaskKey} date={day} entries={cellEntries} jiraBaseUrl={jiraBaseUrl!} totalSeconds={secs} dayColClassName={dayColClass(dayTypeMap.get(day))} />
+                                    <td key={day} className={`border border-border p-0 ${cellBg}`}>
+                                      <WorklogCellPopover issueKey={subtaskKey} date={day} entries={cellEntries} jiraBaseUrl={jiraBaseUrl!} totalSeconds={secs} dayColClassName={cellBg} />
                                     </td>
                                   );
                                 })}
@@ -944,11 +1050,11 @@ export default function WorklogsPage() {
             </tbody>
             <tfoot>
               <tr>
-                <td className="sticky left-0 bottom-0 z-20 bg-muted/80 px-3 py-1.5 border border-border font-semibold uppercase tracking-wide text-[10px] text-foreground/70">Total</td>
-                <td className="sticky bottom-0 z-10 bg-muted/80 border border-border"></td>
-                <td className="sticky bottom-0 z-10 bg-muted/80 text-center px-2 py-1.5 border border-border font-semibold">{formatSeconds(grandTotal)}</td>
+                <td className="sticky left-0 bottom-0 z-20 bg-muted px-3 py-1.5 border border-border border-r-0 font-bold uppercase tracking-widest text-[10px] text-foreground/60">Total</td>
+                <td className="sticky left-52 bottom-0 z-20 bg-muted border border-border border-l-0 border-r-0 min-w-20"></td>
+                <td className="sticky left-72 bottom-0 z-20 bg-muted text-center px-2 py-1.5 border border-border border-l-0 border-r-2 font-semibold min-w-14">{formatSeconds(grandTotal)}</td>
                 {days.map((day) => (
-                  <td key={day} className={`sticky bottom-0 z-10 bg-muted/80 text-center px-2 py-1.5 border border-border font-semibold ${dayColClass(dayTypeMap.get(day))}`}>
+                  <td key={day} className={`sticky bottom-0 z-10 text-center px-2 py-1.5 border border-border font-semibold ${dayHeaderBg(dayTypeMap.get(day))}`}>
                     {formatSeconds(dayTotals.get(day) ?? 0)}
                   </td>
                 ))}
@@ -957,6 +1063,9 @@ export default function WorklogsPage() {
           </table>
         )}
       </div>
+      {/* Pure-CSS column hover (issue #3) — :has() + :nth-child() avoids React re-renders.
+          Static rules generated once at module load; only active day columns trigger them. */}
+      <style dangerouslySetInnerHTML={{ __html: COLUMN_HOVER_CSS }} />
     </div>
   );
 }

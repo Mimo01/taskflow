@@ -20,6 +20,14 @@ vi.mock('@/services/updater', () => ({
   },
 }));
 
+// Mock tauri-storage so persistChangelogBeforeRestart doesn't hit Tauri IPC.
+// Use vi.fn() inline (hoisting-safe); access via vi.mocked() below.
+vi.mock('@/lib/tauri-storage', () => ({
+  persistChangelogBeforeRestart: vi.fn().mockResolvedValue(undefined),
+  settingsLazyStore: {},
+  createTauriStorage: vi.fn(),
+}));
+
 // Mock react-markdown to render children as plain text
 vi.mock('react-markdown', () => ({
   default: ({ children }: { children: string }) => <span>{children}</span>,
@@ -28,6 +36,7 @@ vi.mock('react-markdown', () => ({
 vi.mock('remark-gfm', () => ({ default: vi.fn() }));
 
 import { updaterService } from '@/services/updater';
+import { persistChangelogBeforeRestart } from '@/lib/tauri-storage';
 
 describe('UpdateDialog', () => {
   beforeEach(() => {
@@ -41,6 +50,7 @@ describe('UpdateDialog', () => {
       errorMessage: null,
     });
     vi.clearAllMocks();
+    vi.mocked(persistChangelogBeforeRestart).mockResolvedValue(undefined);
   });
 
   it('does not render when status is idle', () => {
@@ -146,5 +156,48 @@ describe('UpdateDialog', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Update Now' }));
     });
     expect(invoke).toHaveBeenCalledWith('plugin:process|restart');
+  });
+
+  it("'Update Now' calls persistChangelogBeforeRestart with the changelog before restarting", async () => {
+    const { invoke } = await import('@tauri-apps/api/core');
+    useUpdateStore.setState({
+      status: 'available',
+      availableVersion: '2.0.0',
+      changelog: '## v2.0.0\n- New stuff',
+      releaseDate: null,
+      downloadProgress: null,
+      errorMessage: null,
+    });
+    render(<UpdateDialog />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Update Now' }));
+    });
+    // persistChangelogBeforeRestart must be called with the changelog string
+    expect(persistChangelogBeforeRestart).toHaveBeenCalledWith('## v2.0.0\n- New stuff');
+    // and it must be called BEFORE restart
+    const persistFn = vi.mocked(persistChangelogBeforeRestart);
+    const invokeFn = vi.mocked(invoke);
+    const persistOrder = persistFn.mock.invocationCallOrder[0];
+    const restartCallIndex = invokeFn.mock.calls.findIndex(
+      (call) => call[0] === 'plugin:process|restart',
+    );
+    const restartOrder = invokeFn.mock.invocationCallOrder[restartCallIndex];
+    expect(persistOrder).toBeLessThan(restartOrder);
+  });
+
+  it("'Update Now' calls persistChangelogBeforeRestart with null when changelog is null", async () => {
+    useUpdateStore.setState({
+      status: 'available',
+      availableVersion: '2.0.0',
+      changelog: null,
+      releaseDate: null,
+      downloadProgress: null,
+      errorMessage: null,
+    });
+    render(<UpdateDialog />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Update Now' }));
+    });
+    expect(persistChangelogBeforeRestart).toHaveBeenCalledWith(null);
   });
 });

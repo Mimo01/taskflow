@@ -744,9 +744,9 @@ describe('WorklogsPage', () => {
       // Wait for enrichment to settle
       await new Promise((r) => setTimeout(r, 100));
 
-      // Epic rows should have purple tint applied (bg-purple-50/60)
+      // Epic rows should have purple tint applied
       const tableHtml = container.innerHTML;
-      expect(tableHtml).toContain('bg-purple-50/60');
+      expect(tableHtml).toContain('bg-purple-100');
     });
 
     it('renders story rows indented with pl-4 and subtask rows with pl-8', async () => {

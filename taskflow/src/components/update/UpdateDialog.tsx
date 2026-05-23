@@ -23,8 +23,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { buildInfo } from '@/lib/build-info';
+import { persistChangelogBeforeRestart } from '@/lib/tauri-storage';
 import { updaterService } from '@/services/updater';
-import { useSettingsStore } from '@/stores/settings.store';
 import { useUpdateStore } from '@/stores/update.store';
 
 // ─── Main UpdateDialog ──────────────────────────────────────────────────────
@@ -42,7 +42,6 @@ export function UpdateDialog() {
     setError,
     resetToIdle,
   } = useUpdateStore();
-  const { setLastSeenChangelog } = useSettingsStore();
 
   const open = status === 'available' || status === 'downloading' || status === 'error';
 
@@ -67,8 +66,13 @@ export function UpdateDialog() {
           setProgress(100);
         }
       });
-      // Persist changelog before restart, then relaunch immediately
-      setLastSeenChangelog(changelog);
+      // Persist changelog directly to Tauri store (fully awaited) before restart.
+      // Zustand's persist middleware fires storage.setItem() without awaiting the
+      // returned Promise, so calling setLastSeenChangelog() and then immediately
+      // invoke('plugin:process|restart') kills the process before the async
+      // store.save() completes. persistChangelogBeforeRestart() bypasses Zustand
+      // and awaits the write+save explicitly so the value survives the restart.
+      await persistChangelogBeforeRestart(changelog);
       await invoke('plugin:process|restart');
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
