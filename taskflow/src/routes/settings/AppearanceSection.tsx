@@ -11,7 +11,6 @@ import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { applyDensity } from '@/services/theme';
 import { type Density, useSettingsStore } from '@/stores/settings.store';
-import SidebarItemsList from './SidebarItemsList';
 import ThemeSection from './ThemeSection';
 
 const DENSITY_OPTIONS: { value: Density; label: string; description: string }[] = [
@@ -57,11 +56,6 @@ export default function AppearanceSection() {
         </div>
       </div>
 
-      {/* Sidebar Items section */}
-      <div className="flex flex-col gap-3">
-        <label className="text-sm font-medium">Sidebar Items</label>
-        <SidebarItemsList />
-      </div>
     </div>
   );
 }
