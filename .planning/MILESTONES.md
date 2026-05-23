@@ -1,5 +1,32 @@
 # Milestones
 
+## v1.9 Tempo, Dashboard Redesign & Cleanup (Shipped: 2026-05-23)
+
+**Phases completed:** 6 phases (59-64), 20 plans, 10 quick tasks
+**Timeline:** 4 days (2026-05-20 → 2026-05-23)
+**Codebase:** ~73,264 lines TypeScript, 230 files changed (+26,283/−3,085 lines), 258 commits
+**Git range:** 59d836d (feat(59-02): remove WorkloadTab lazy import) → v1.9 tag
+
+**Key accomplishments:**
+
+1. **Widget dashboard system removed atomically** — deleted 11 widget components, registry, `WorkloadTab`, `WorkloadSkeleton`, `WidgetGrid`/`WidgetCard`/`WidgetPicker`, settings store v19 layout state, and the `react-grid-layout` + `@types/react-grid-layout` packages in a single coordinated phase; `/workload` route and all sidebar/header references scrubbed; npm build green
+2. **Static dashboard / welcome screen** — gradient hero with personalised greeting + en-GB date and a responsive 3-card grid (Sprint health with shadcn Progress, My In-Progress subtasks with outlet-context navigation + breadcrumb chain, Next Release with live `fetchReleaseIssues` progress bar showing N% complete · X/Y issues)
+3. **Tempo service layer + Settings toggle** — live Bearer PAT probe confirmed on `jira.orange.sk` (`/rest/tempo-timesheets/3`), `src/services/tempo/` module with client/types/worklogs/schedule + 15 unit tests covering pagination/date-bucketing/error paths; `tempoEnabled` setting in v20 store with migration guard; Settings → Integrations toggle (default off, gates all Tempo fetches)
+4. **Tempo Worklog Viewer UI** — `/worklogs` route gated by `tempoEnabled`, day-column pivot table with 6 date presets (This Week default, Last Week, This/Last Month, Last Working Day, Custom range with from≥to gate), single-select people filter (combobox + chip + clear), totals column per person + totals row per day + grand total, zero-hour cells blank, weekend/holiday columns colored via Tempo schedule API
+5. **Saved Tempo filters + 3-level hierarchy redesign** — `tempo-filters.store.ts` (Zustand + Tauri Store persist) with save/load/rename/reorder/delete via right-click `ContextMenu` pills (matching `UnifiedFilterBar` pattern); WorklogsPage redone with Epic→Story→Subtask hierarchy (Layers/BookOpen/GitBranch icons, indented rows), sticky date header + sticky first column, dependent Jira enrichment query, "No Epic" group for orphaned stories, unresolvable keys rendered with strikethrough
+6. **Per-cell worklog CRUD via popover** — `WorklogCellPopover` opens on any cell click (zero-cells included per user override), `WorklogEntryRow` shows entry list with author/comment, inline `EditWorklogForm` with duration validation (rejects `abc`/empty), trash delete with no confirmation, `LogWorkPopover` reused for Add entry; broad-prefix `['tempo','worklogs']` invalidation keeps totals + row/column sums consistent
+7. **Quality + cleanup pass** — dead code sweep (zero stale `Workload`/`WidgetGrid`/`WidgetCard`/`WidgetPicker` references in `src/`), full test suite 1298 passing / 0 failing / 0 warnings, Biome lint clean, 145 historical pre-v1.9 quick-task directories archived to `.planning/milestones/historical-quick-tasks/`
+
+**Known Tech Debt (acknowledged at close):**
+- Phase 62 WR-01 timer cleanup + WR-02 cached-empty error swallow (WorklogsPage.tsx)
+- Phase 62 / 64 INT-W1 unkeyed `<></>` fragments inside hierarchy row maps (`WorklogsPage.tsx:1050/1129/~1240`) — may misreconcile on saved-filter switch
+- Phase 63 architectural inversion: `DatePreset` type imported by store from route component (should move to `src/services/tempo/types.ts`)
+- TEMPO-03 + ROADMAP Phase 62 SC #1 spec drift (REQUIREMENTS still says "multi-select" / SC says "Tempo" label — implementation is single-select / "Worklogs" per documented user override D-01)
+- Stale `{ id: 'workload' }` mock at `Sidebar.test.tsx:79` (cosmetic, test still passes from live store)
+- `requirements_completed` SUMMARY frontmatter discipline still 1 of 17 plan summaries — verifications and traceability remain authoritative
+
+---
+
 ## v1.8 AIO Test Management (Shipped: 2026-05-19)
 
 **Phases completed:** 8 phases (51–58), 45 plans
@@ -17,6 +44,7 @@
 6. Cycle detail data-fetch redesign — progress bar driven by `fetchAioCycleSummaries` (one POST) independent of `fetchAioTestRunsForCycle`; per-defect-key `useQuery` in `DefectRow` eliminates N+1 Jira fetches and deduplicates duplicate defect IDs via TanStack Query cache; credential gate (`!!jiraBaseUrl && !!token && !tokenLoading`) on all queries prevents first-load 401 flash
 
 **Known Gaps (acknowledged at close):**
+
 - 3 phases missing VERIFICATION.md (Phases 53, 57, 58) — all UAT-verified (13/13, 15/15, 6/6 scenarios PASS); retroactive VERIFICATION.md deferred
 - W-1: AioCycleDetailPage uses hardcoded AIO_STATUS_MAP; non-standard AIO instances may mis-bucket progress bar segments
 - W-2: TESTCASE_STATUS_MAP missing IDs 51/52 — in-progress runs display as NOT_EXECUTED in Executions tab

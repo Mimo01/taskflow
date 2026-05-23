@@ -420,17 +420,76 @@
 
 ---
 
+## Milestone: v1.9 — Tempo, Dashboard Redesign & Cleanup
+
+**Shipped:** 2026-05-23
+**Phases:** 6 (59-64) | **Plans:** 20 | **Quick tasks:** 10
+
+### What Was Built
+
+- Widget dashboard system + Workload page + react-grid-layout dependency fully removed in one coordinated atomic phase; settings store migrated v18→v19 without breakage
+- Static dashboard / welcome screen with personalized greeting + en-GB date hero and a responsive 3-card grid (Sprint health with shadcn Progress, My In-Progress subtasks with outlet-context navigation + breadcrumb chain, Next Release countdown with live `fetchReleaseIssues` progress bar)
+- Tempo service layer: live Bearer PAT probe on Jira DC confirmed `/rest/tempo-timesheets/3` path; `src/services/tempo/` module (client/types/worklogs/schedule) with 15 unit tests; `tempoEnabled` v20 settings store field with migration guard; Settings → Integrations toggle (default off)
+- Tempo Worklog Viewer: `/worklogs` route gated by `tempoEnabled`, 6 date presets (This Week default, Last Week, This/Last Month, Last Working Day, Custom range with from≥to gate), single-select people filter, totals column + totals row + grand total, zero-hour cells blank, weekend/holiday columns colored via Tempo schedule API
+- Saved Tempo filters with Zustand + Tauri Store persistence + right-click ContextMenu pill UX (save/load/rename/reorder/delete) matching established UnifiedFilterBar pattern
+- Worklogs page redesign: Epic→Story→Subtask hierarchy with Layers/BookOpen/GitBranch icons + indented rows, sticky date header + sticky first column via pure CSS `position: sticky`, dependent Jira enrichment query, "No Epic" group for orphaned stories, unresolvable keys with strikethrough
+- Per-cell WorklogCellPopover with EditWorklogForm (duration validation rejecting `abc`/empty), trash delete (no confirmation), and LogWorkPopover reused for Add entry; broad-prefix `['tempo', 'worklogs']` cache invalidation keeps totals reconciled
+
+### What Worked
+
+- **Probe-first phase architecture** — Phase 61 included a live curl probe as Wave 0 gate before any service-layer work; confirmed Bearer PAT + `aio-tcms-api/1.0` base path on the live instance before committing to any specific endpoint shape
+- **Atomic deletion in single coordinated phase** — `settings.store.ts` hard-imports widget registry, so deleting widgets without removing the import would have broken compile; coordinating the deletion + import strip + stub creation in one phase kept the tree green throughout
+- **Mid-milestone hierarchy redesign (Phase 64)** — when person×day pivot proved less useful than Epic→Story→Subtask hierarchy after first use, pulling forward TEMPO-08 from v2 backlog and replacing the table mid-milestone was the right call (vs. shipping the worse design and rewriting in v2)
+- **3-source verification cross-reference** — VERIFICATION.md + plan SUMMARY frontmatter + REQUIREMENTS.md all triangulated for the milestone audit; missing one source falls back to others, surfacing drift early
+- **User-confirmed UX overrides documented inline** — single-select people filter (TEMPO-03, D-01) and zero-cell popover behavior (Phase 64 Test 13) overrode plan specs based on user discussion; documenting these inline in DISCUSSION-LOG.md kept verifier from rejecting them
+- **Live UAT batched at milestone close** — running Phase 60 / 62 / 64 UAT in a single Tauri session was efficient; the deferred items were grouped, not spread across phase closes
+
+### What Was Inefficient
+
+- **3-pass milestone audit cycle** — first audit found verification gaps (61/63/64 missing VERIFICATION.md), required write/re-audit cycle; would have been cleaner to enforce VERIFICATION.md creation as a phase-close gate, not a milestone-close audit finding
+- **Spec drift between REQUIREMENTS/ROADMAP wording vs. implementation** — TEMPO-03 "multi-select" wording survived the user override that flipped it to single-select; same with SC #1 "Tempo" label vs. shipped "Worklogs" label; verifiers had to apply documented overrides instead of the specs reflecting reality
+- **Two human_needed VERIFICATIONs deferred for live UAT** — Phase 62 13-step smoke test and Phase 64 popover CRUD (Tests 9-12) were marked human_needed because mechanical verification couldn't exercise live Tempo CRUD; live UAT at milestone close closed them, but ideally these would be exercised at phase close
+- **154 historical quick-task dirs flagged by audit-open** — pre-v1.6 SUMMARY frontmatter convention drift meant scanner couldn't read status; rather than retrofit 145 files, archived to `milestones/historical-quick-tasks/` at this close; convention drift remains for future closes
+- **`requirements_completed` SUMMARY frontmatter discipline still 1/17** — only 60-01 SUMMARY listed DASH-02; verifier had to fall back to plan-level claims, weakening the 3-source cross-reference
+
+### Patterns Established
+
+- **`'aio'` / Tempo source PAT sharing** — Tempo lives on the same Jira DC host, so the `'jira'` source PAT works without introducing a third credential type; same pattern as AIO
+- **TZ-safe date bucketing** — never use `toLocaleDateString()` for date keys; use local-date components or ISO-string `.slice(0, 10)` for stable, sortable, comparable keys
+- **Sticky-table without virtualization** — `position: sticky; top: 0` on `<thead>` and `position: sticky; left: 0` on first-column cells; works for bounded hierarchy datasets without intersection-observer plumbing
+- **Cell popover with broad-prefix invalidation** — single mutation can affect multiple cells/totals; `queryClient.invalidateQueries({ queryKey: ['tempo', 'worklogs'] })` covers all derived states
+- **Right-click ContextMenu for saved-filter management** — established by UnifiedFilterBar / SavedFilterList in v1.5; Tempo saved filters reused the same pattern for consistency (replaced the hover-× delete + dblclick rename Plan-02 spec at user-approved checkpoint)
+- **Outlet-context navigation for breadcrumb chains** — Dashboard subtask click threads `onIssueClick` from `useOutletContext` to preserve breadcrumb push behavior; replaces direct `useNavigate()` which bypasses the breadcrumb store
+- **Historical quick-task archival at milestone close** — `.planning/milestones/historical-quick-tasks/` bucket clears scanner noise and preserves slug → commit traceability via `git log`
+
+### Key Lessons
+
+1. **Enforce VERIFICATION.md as a phase-close gate, not a milestone-close discovery** — missing VERIFICATION.md was the largest single source of milestone audit churn; phase-execute workflows should refuse to mark a phase complete without VERIFICATION.md
+2. **Update REQUIREMENTS.md wording when user overrides are accepted** — single-select TEMPO-03 lived as a verifier-applied override for the whole milestone; should have been a REQUIREMENTS edit at the override moment
+3. **Live UAT for human_needed verifications should happen at phase close** — batching them at milestone close worked, but waiting risks shipping a phase the operator never live-tested
+4. **Probe-first phases pay off** — Phase 61's Wave 0 curl probe gate caught the Tempo base path discovery before any service-layer code was committed; same pattern saved v1.8 Phase 51 from hardcoding wrong AIO paths
+5. **Pulling forward future-milestone requirements when scope reveals a better design is correct** — TEMPO-08 hierarchy was v2; using it in v1.9 (Phase 64) after person×day pivot proved limiting was the right call vs. shipping the worse design
+
+### Cost Observations
+
+- Sessions: 20 plans + 10 quick tasks across 6 phases over 4 days
+- Notable: 3-pass milestone audit cycle added ~1 day of doc-debt closure (write 3 VERIFICATION.md + reconcile REQUIREMENTS); enforcing VERIFICATION.md at phase close would save this
+- Phase 64 was pulled forward from v2 backlog mid-milestone; this added ~1 day but produced a meaningfully better worklog UX than the original Phase 62 person×day pivot
+
+---
+
 ## Cross-Milestone Trends
 
-| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 | v1.5 | v1.6.3 | v1.7 |
-|--------|------|------|------|------|------|------|--------|------|
-| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) | 7 (31-37) | 4 (38-41) | 9 (42-49) |
-| Plans | 20 | 24 | 29 | 27 | 21 | 25 | 10 | 23 |
-| Quick tasks | 0 | 20 | 0 | 40+ | 2 | 6 | 13 | 20+ |
-| Timeline (days) | 2 | 2 | 2 | 5 | 2 | 4 | 6 | 8 |
-| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 | ~45k* | ~51,536 | ~57,000+ |
-| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) | 7 (28%) | 0 (0%) | 5 (22%) |
-| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) | 30/34 (88%)** | 15/15 (100%) | 17/17 (100%) |
+| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 | v1.5 | v1.6.3 | v1.7 | v1.8 | v1.9 |
+|--------|------|------|------|------|------|------|--------|------|------|------|
+| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) | 7 (31-37) | 4 (38-41) | 9 (42-49) | 9 (50-58) | 6 (59-64) |
+| Plans | 20 | 24 | 29 | 27 | 21 | 25 | 10 | 23 | 45 | 20 |
+| Quick tasks | 0 | 20 | 0 | 40+ | 2 | 6 | 13 | 20+ | n/a | 10 |
+| Timeline (days) | 2 | 2 | 2 | 5 | 2 | 4 | 6 | 8 | 7 | 4 |
+| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 | ~45k* | ~51,536 | ~57,000+ | ~68,000+ | ~73,264 |
+| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) | 7 (28%) | 0 (0%) | 5 (22%) | n/a | 3 (15%) |
+| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) | 30/34 (88%)** | 15/15 (100%) | 17/17 (100%) | n/a | 19/19 (100%)*** |
 
 \* v1.5 LOC corrected from previous ~633k count
 \*\* 4 requirements user-deferred (bulk operations BOARD-04–07)
+\*\*\* 17 base v1.9 + 2 TEMPO-08/TEMPO-EDIT-01 pulled forward from v2 (Phase 64)

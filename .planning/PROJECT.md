@@ -4,17 +4,11 @@
 
 Taskflow is a cross-platform Tauri 2 desktop app for Orange's eshop development team. It unifies Jira (on-premise), Jira Tempo Timesheets, GitLab, and AIO Test Management into a single fast, focused interface — replacing the need to juggle multiple slow tools. It ships as a portable executable (no installer, no admin rights), stores credentials in the OS keychain, and serves both developers and project managers with a minimal static dashboard, sprint board, backlog, global search, notifications, AIO test execution visibility, and Tempo worklog tracking.
 
-## Current Milestone: v1.9 Tempo, Dashboard Redesign & Cleanup
+## Current Milestone: (none — v1.9 shipped 2026-05-23, awaiting v2.0 scoping)
 
-**Goal:** Add Tempo Timesheets worklog viewer, replace the complex widget dashboard with a minimal static dashboard, remove the Workload view, and harden the codebase with a full cleanup pass.
+**Last shipped:** v1.9 Tempo, Dashboard Redesign & Cleanup — 6 phases (59-64), 20 plans, ~73K LOC TS
 
-**Target features:**
-- Tempo worklog viewer: configurable day-column table, epic/story/subtask row hierarchy, saved filters (people + date presets)
-- Remove Workload page and all its references/widgets
-- Remove entire customizable widget dashboard system
-- New minimal static dashboard: sprint health bar + my in-progress subtasks + next release countdown
-- Full test suite passing (zero regressions)
-- Thorough code cleanup: dead code, unused components, type safety, consistency
+Run `/gsd:new-milestone` to begin scoping the next milestone.
 
 ## Core Value
 
@@ -106,19 +100,21 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ AIO test runs section on Jira issue detail: impacted executions with per-run status chips, step table with Step/Expected/Actual columns and failure markers via WikiRenderer, AIO attachments grid with authenticated lightbox, cross-project run navigation — v1.8 Phase 54
 - ✓ Cycle detail data-fetch redesign: progress bar from `fetchAioCycleSummaries` (one POST) independent of paginated runs; per-defect-key `useQuery` dedup eliminating N+1 Jira fetches; credential gate preventing first-load 401 flash on all AIO pages — v1.8 Phase 58
 
+- ✓ Tempo worklog viewer: configurable day-column table (Phase 62) evolved into Epic→Story→Subtask hierarchy with sticky headers + sticky first column + clickable rows + cell popover CRUD (Phase 64) — v1.9 Phases 62, 64
+- ✓ Tempo service layer: Bearer PAT probe-confirmed on Jira DC + `src/services/tempo/` module (client/types/worklogs/schedule) + `tempoEnabled` v20 settings toggle — v1.9 Phase 61
+- ✓ Tempo saved filters: persist across sessions via Zustand + Tauri Store; right-click ContextMenu pill UX (save, load, rename, reorder, delete) — v1.9 Phase 63
+- ✓ Remove Workload page and all related dashboard widgets — v1.9 Phase 59
+- ✓ Remove widget-based customizable dashboard system (react-grid-layout, 11 widget types) — v1.9 Phase 59
+- ✓ New minimal static dashboard: gradient hero with personalised greeting + en-GB date + responsive 3-card grid (sprint health, my in-progress subtasks with breadcrumb-chain navigation, next release countdown with live progress bar) — v1.9 Phase 60
+- ✓ Per-cell worklog CRUD via popover: WorklogCellPopover + EditWorklogForm + duration validation + trash delete + LogWorkPopover reuse for Add — v1.9 Phase 64
+- ✓ Full test suite passing, zero regressions (1298 passing, 0 failing, 0 warnings) — v1.9 Phase 63
+- ✓ Dead code sweep: zero stale widget/workload imports after v1.9 removals — v1.9 Phase 63
+
 ### Active
 
 <!-- v2.0 TBD -->
 
-### v1.9 — Validated
-
-- ✓ Tempo worklog viewer: configurable day-column table, epic/story/subtask row hierarchy, accessible from sidebar when Tempo is enabled — v1.9 Phases 61, 62
-- ✓ Tempo saved filters: persist across sessions via Zustand + Tauri Store; ContextMenu pill UX (save, load, rename, reorder, delete) — v1.9 Phase 63
-- ✓ Remove Workload page and all related dashboard widgets — v1.9 Phase 59
-- ✓ Remove widget-based customizable dashboard system (react-grid-layout, 11 widget types) — v1.9 Phase 59
-- ✓ New minimal static dashboard: sprint health + my in-progress subtasks + next release countdown — v1.9 Phase 60
-- ✓ Full test suite passing, zero regressions (1298 passing, 0 failing) — v1.9 Phase 63
-- ✓ Dead code sweep: zero stale widget/workload imports after v1.9 removals — v1.9 Phase 63
+### v1.9 — Validated (see Validated section above for shipped items)
 
 ### Out of Scope
 
@@ -135,7 +131,9 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ## Current State
 
-**v1.9 Tempo, Dashboard Redesign & Cleanup complete** — all 5 phases, 18 plans finished 2026-05-21. Deliverables: widget dashboard removed, static dashboard shipped, Tempo worklog viewer with saved filters live, full test suite green (1298/0). Ready for `/gsd:complete-milestone v1.9`.
+**v1.9 shipped 2026-05-23** — 6 phases (59-64), 20 plans, 10 quick tasks, 258 commits, 230 files changed (+26,283/−3,085 lines) over 4 days. Codebase: ~73,264 lines TypeScript / 123 test files / 1298 tests passing.
+
+Tempo Worklog Viewer launched with Epic→Story→Subtask hierarchy, sticky headers, saved filters, and per-cell CRUD popover. Widget dashboard system + Workload page + react-grid-layout fully removed; replaced by static welcome screen with sprint health + in-progress subtasks + release countdown. Full test suite green, dead code swept, Biome clean. v2.0 scope TBD.
 
 ## Context
 
@@ -148,14 +146,15 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - **Shipped v1.6.3:** 2026-03-29 — 4 phases, 10 plans, 13 quick tasks, 334 files changed (+25,443/−2,497 lines)
 - **Shipped v1.7:** 2026-04-05 — 9 phases, 23 plans, 254 commits, 339 files changed (+38,812/−4,890 lines)
 - **Shipped v1.8:** 2026-05-19 — 8 phases (51–58), 45 plans, 464 commits, 367 files changed (+62,924/−2,759 lines)
-- **Tech stack:** Tauri 2, React 18, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, Biome, @dnd-kit/core, @dnd-kit/sortable, @tanstack/react-virtual, react-grid-layout, jira2md, react-markdown, react-hotkeys-hook, cmdk, babel-plugin-react-compiler
+- **Shipped v1.9:** 2026-05-23 — 6 phases (59-64), 20 plans, 258 commits, 230 files changed (+26,283/−3,085 lines)
+- **Tech stack:** Tauri 2, React 18, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, Biome, @dnd-kit/core, @dnd-kit/sortable, @tanstack/react-virtual, jira2md, react-markdown, react-hotkeys-hook, cmdk, babel-plugin-react-compiler (react-grid-layout removed v1.9)
 - **Jira instance:** On-premise (Jira Data Center v10.3.15) — REST API v2 with Bearer PAT auth; createmeta/workflow/transitions APIs used for issue management
 - **GitLab:** Self-hosted or gitlab.com — personal access token
 - **Team:** Orange eshop project — developers + project managers using the same app with role-based views
 - **Scale:** One Jira project + one GitLab project at a time
 - **Build:** Portable executable — no installer, no admin rights; `createHashRouter` for SPA routing in production
-- **Test suite:** 983+ tests, zero failures, zero warnings; Vitest with LazyStore mock
-- **Codebase:** ~68,000+ lines TypeScript
+- **Test suite:** 1298 tests passing, zero failures, zero warnings; Vitest with LazyStore mock
+- **Codebase:** ~73,264 lines TypeScript / 123 test files
 - **Known caveats (v1.8):** 3 phases (53, 57, 58) missing VERIFICATION.md — all UAT-verified, retroactive production deferred; hardcoded AIO_STATUS_MAP (non-standard instances may mis-bucket); TESTCASE_STATUS_MAP missing IDs 51/52 (in-progress runs show as NOT_EXECUTED); Bulk operations (BOARD-04–07) components on disk, not wired; Cmd+Shift nav shortcut deviation needs product owner sign-off; Apple/Windows code signing deferred to future release
 
 ## Constraints
@@ -263,6 +262,17 @@ This document evolves at phase transitions and milestone boundaries.
 | useDelayedLoading with 200ms threshold | Prevents skeleton flash on fast cache hits while showing feedback on slow loads | ✓ Good — smooth UX on all 8 views |
 | Per-section backlog queries (not monolithic) | Independent queries for sprint stories, sprint list, backlog issues enable parallel fetch and progressive rendering | ✓ Good — backlog loads progressively |
 | CachedAvatar with blob URL Map + LazyStore disk persistence | Avatars cached in memory and on disk; 30-day TTL eviction; inflight dedup | ✓ Good — no repeated avatar fetches |
+| Atomic widget+store deletion in one commit (v1.9 Phase 59) | `settings.store.ts` hard-imports `registry.ts`; deleting widgets without removing the import would break compile — must be coordinated in one atomic step | ✓ Good — single commit kept tree green throughout |
+| Verify cleanup with `npm run build`, not `tsc` (v1.9 Phase 59) | `react-grid-layout` CSS imports fail silently in TypeScript checks; only the full build catches them | ✓ Good — caught dangling CSS imports immediately |
+| Tempo Bearer PAT shares Jira credentials (v1.9 Phase 61) | Same on-prem host as Jira; introducing a third credential type would create UX friction without security benefit | ✓ Good — single PAT, sidebar gate handles auth boundary |
+| Worklog date bucketing uses `.slice(0, 10)` on local-date components, never `toLocaleDateString()` (v1.9 Phase 62) | `toLocaleDateString()` returns locale-formatted strings that don't sort or compare; ISO date-key slicing is timezone-stable | ✓ Good — TZ-independent grouping verified in tests |
+| Tempo single-select people filter, not multi-select (v1.9 Phase 62, D-01 override) | User documented preference during phase discussion (62-DISCUSSION-LOG.md); REQUIREMENTS wording predates the override | ✓ Good — simpler UX; verifier accepted override |
+| Tempo `jiraToken` excluded from TanStack Query keys (v1.9 Phase 62, T-62-06) | Tokens in queryKey would bust cache on every rotation and expose creds in dev tools cache inspector; token lives only in `queryFn` closure | ✓ Good — cache stable across token refreshes |
+| WorklogsPage replaced person×day pivot with Epic→Story→Subtask hierarchy (v1.9 Phase 64) | User feedback: pivot table lost issue context; hierarchy reflects how worklogs map to actual work breakdown | ✓ Good — clearer mental model; cell popover preserves entry-level CRUD |
+| Sticky-table via CSS `position: sticky` (top + left), not virtualized scrolling (v1.9 Phase 64) | Hierarchy datasets are bounded by sprint scope; sticky CSS works without intersection-observer plumbing | ✓ Good — sticky header + first column both pin correctly |
+| Zero-hour cells DO open the WorklogCellPopover (v1.9 Phase 64, override of Plan 02 spec) | User confirmed "useful for adding new entries" — clicking an empty day to log work is faster than navigating elsewhere | ✓ Good — user-confirmed UX win |
+| Broad-prefix `['tempo', 'worklogs']` invalidation on popover CRUD (v1.9 Phase 64) | Single mutation can affect multiple cells (cell totals, row totals, column totals, grand total); broad invalidation guarantees consistency | ✓ Good — totals always reconcile post-mutation |
+| 145 pre-v1.9 quick-task dirs archived to milestones/historical-quick-tasks/ at milestone close | Scanner couldn't read status from older SUMMARY frontmatter convention; rather than retrofit 145 files, archive bucket clears the audit and preserves history | ✓ Good — audit-open went 161→17, all 17 benign |
 
 ---
-*Last updated: 2026-05-21 — Phase 63 complete (v1.9 milestone complete)*
+*Last updated: 2026-05-23 after v1.9 milestone shipped*
