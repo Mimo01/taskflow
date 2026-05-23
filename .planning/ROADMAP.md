@@ -178,6 +178,12 @@ See archive: `.planning/milestones/v1.9-ROADMAP.md`
 4. AIO in-progress runs (testRunStatusID `52`) render as `IN_PROGRESS` in the Executions tab, not `NOT_EXECUTED` (CLEAN-06)
 5. `AIO_STATUS_MAP` either fetches status definitions from the AIO `/config` endpoint at load-time or exposes a documented per-instance override mechanism (CLEAN-07)
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 65-01-PLAN.md — WorklogsPage timer/error/fragment fixes, DatePreset type move, stale sidebar test mock (CLEAN-01..05)
+- [ ] 65-02-PLAN.md — AIO TESTCASE_STATUS_MAP 51/52 + dynamic runtime status map from /config (CLEAN-06, CLEAN-07)
+
 ### Phase 66: Roles Removal
 
 **Goal:** Eliminate the Developer/PM role concept across the app — settings, store, sidebar presets, role-gated rendering — and make everything accessible to everyone.
