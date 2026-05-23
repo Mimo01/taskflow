@@ -1,43 +1,27 @@
 {
   "version": "1.0",
-  "timestamp": "2026-05-13T19:30:00Z",
-  "phase": "54",
-  "phase_name": "AIO on Issue Detail",
-  "phase_dir": ".planning/phases/54-aio-on-issue-detail",
-  "plan": 5,
-  "task": 0,
-  "total_tasks": 1,
-  "status": "paused",
+  "timestamp": "2026-05-23T13:02:05.985Z",
+  "phase": "64",
+  "phase_name": "redo-worklogs-page-with-epic-story-subtask-hierarchy-sticky-",
+  "phase_dir": ".planning/phases/64-redo-worklogs-page-with-epic-story-subtask-hierarchy-sticky-",
+  "plan": 2,
+  "status": "paused — post-execution UAT polish uncommitted",
   "completed_tasks": [
-    {"id": "54-00", "name": "Probe + API discovery", "status": "done", "commit": "multiple"},
-    {"id": "54-01", "name": "AIO settings store + toggle", "status": "done"},
-    {"id": "54-02", "name": "Service layer (test cases, cycles, runs, steps)", "status": "done"},
-    {"id": "54-03", "name": "AioTestRunsSection component", "status": "done"},
-    {"id": "54-04", "name": "Wire component into IssueDetailPage", "status": "done"},
-    {"id": "54-05-task-impl", "name": "Fix traceability endpoint (replaces 13K scan)", "status": "done", "commit": "ac9e2d9"}
+    {"id": 1, "name": "Plan 01 — hierarchy table + sticky CSS + Jira enrichment", "status": "done"},
+    {"id": 2, "name": "Plan 02 — WorklogCellPopover + WorklogEntryRow", "status": "done"},
+    {"id": 3, "name": "UAT polish — epic names, sticky columns, colors, hover, grandparent enrichment", "status": "done", "commit": "uncommitted"}
   ],
   "remaining_tasks": [
-    {"id": "54-05-task-0", "name": "Human verification — live app UAT (8 scenarios)", "status": "not_started"},
-    {"id": "54-05-summary", "name": "Create 54-05-SUMMARY.md after approval", "status": "not_started"},
-    {"id": "phase-close", "name": "Update STATE.md + ROADMAP.md, run verifier, mark phase complete", "status": "not_started"}
+    {"id": 4, "name": "Commit all uncommitted UAT polish changes", "status": "not_started"},
+    {"id": 5, "name": "Phase verification — /gsd:verify-work 64", "status": "not_started"}
   ],
-  "blockers": [
-    {"description": "Human verification pending — developer must test live app and type approved", "type": "human_action", "workaround": "none"}
+  "uncommitted_files": [
+    "taskflow/src/routes/worklogs/WorklogsPage.tsx",
+    "taskflow/src/routes/worklogs/WorklogsPage.test.tsx",
+    "taskflow/src/components/update/UpdateDialog.tsx",
+    "taskflow/src/components/update/UpdateDialog.test.tsx",
+    "taskflow/src/lib/tauri-storage.ts"
   ],
-  "human_actions_pending": [
-    {
-      "action": "Run `npm run tauri dev`, open an issue with AIO Impacted Executions linked (jiraIssueId 393120 confirmed to have 2 — ESHOP-TC-8477 in ESHOP-CY-1011), and verify the 8 scenarios from 54-05-PLAN.md Task 0",
-      "context": "Core fix: replaced 13K test case pagination scan with AIO traceability API (3 API calls total). Traceability endpoints: GET /rest/aio-tcms/1.0/project/{aioProjectId}/traceability/{defect|requirement}/{jiraIssueNumericId}. AIO numeric project ID resolved via fetchAioProjects. If section still empty, check pickLatestActiveCycle — ESHOP-CY-1011 may have status 'Closed' not 'Active'; may need to extend cycle selection to include most-recent regardless of status.",
-      "blocking": true
-    }
-  ],
-  "decisions": [
-    {"decision": "Use AIO traceability endpoint instead of jiraRequirementIDs/jiraDefectIDs filter", "rationale": "jiraRequirementIDs only covers 'Cases' relationship; jiraDefectIDs is empty in cycle listing (populated only on run detail endpoint). Traceability API covers both 'Impacted Executions' (defect) and 'Cases' (requirement) relationships in 2 calls.", "phase": "54"},
-    {"decision": "aioEnabled defaults to false", "rationale": "No AIO calls fired for users without AIO installed", "phase": "54"},
-    {"decision": "settings.store.ts version bumped to 15 with migration guard", "rationale": "Persistent store must migrate existing users to new aioEnabled field", "phase": "54"},
-    {"decision": "AIO query keys use ['aio', jiraBaseUrl, ...] prefix", "rationale": "Avoid broad Jira invalidation sweeps", "phase": "54"}
-  ],
-  "uncommitted_files": [".planning/STATE.md"],
-  "next_action": "Present user with Phase 54 UAT checkpoint (54-05-PLAN.md Task 0). Start app: `npm run tauri dev`. Open issue 393120 (ESHOP project). Verify AIO Test Runs section appears below ActivityTimeline. After approved: create 54-05-SUMMARY.md, update STATE.md + ROADMAP.md, run verifier.",
-  "context_notes": "All 5 waves executed. 982 tests pass, 2 skipped (tests 3/3b need rewrite once live behavior confirmed — they call jiraIssueId path but don't mock fetchAioTraceabilityTestCases). Core bug was that 'Impacted Executions' in AIO uses defect traceability, not requirements-linked test cases. Probe confirmed: /traceability/defect/393120 returns ESHOP-TC-8477; /traceability/requirement/393120 returns null (0 cases). Implementation uses both calls in parallel and deduplicates."
+  "next_action": "Commit WorklogsPage UAT polish, then run /gsd:verify-work 64",
+  "context_notes": "41/41 tests passing, TypeScript clean. All UAT feedback addressed. Named group/row Tailwind pattern used on tr to avoid conflict with CellPopover's unnamed group."
 }
