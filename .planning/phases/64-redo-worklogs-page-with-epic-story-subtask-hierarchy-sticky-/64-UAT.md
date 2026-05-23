@@ -1,0 +1,97 @@
+---
+status: partial
+phase: 64-redo-worklogs-page-with-epic-story-subtask-hierarchy-sticky-
+source:
+  - 64-01-SUMMARY.md
+  - 64-02-SUMMARY.md
+started: 2026-05-23T00:00:00Z
+updated: 2026-05-23T00:13:00Z
+---
+
+## Current Test
+
+[testing complete — 6 tests skipped without reason]
+
+## Tests
+
+### 1. Worklogs page renders 3-level hierarchy
+expected: Open the Worklogs page with worklogs in range. Rows are grouped Epic → Story → Subtask (not person×day). Epic rows show Layers icon (purple), story rows BookOpen icon (blue, indented), subtask rows GitBranch icon (muted, indented further). Hours appear per day.
+result: pass
+
+### 2. Sticky header row and first column
+expected: With many worklogs, scroll the table vertically — the date header row stays pinned at the top. Scroll horizontally — the first column (issue title) stays pinned on the left. The top-left corner cell stays in place when both axes scroll.
+result: pass
+
+### 3. Epic / Story / Subtask row click navigates to issue detail
+expected: Click an epic row, then a story row, then a subtask row. Each click navigates to the issue detail page for that key, with breadcrumbs reflecting the navigation path back to Worklogs.
+result: issue
+reported: "the cursor is not pointer on the epic/issue text, only the cell / the breadcrumb says 'home' instead of worklogs"
+severity: major
+
+### 4. Unresolvable issue key renders with strikethrough
+expected: If any worklog references a Jira key the enrichment query could not resolve (e.g. deleted/inaccessible issue), that key renders with a line-through style in place of a summary — it is not shown as a normal clickable epic row.
+result: skipped
+
+### 5. "No Epic" group for orphaned stories
+expected: Stories whose parent epic key cannot be resolved appear under a "No Epic" group header — an italic, muted, non-clickable header row — not nested under a fabricated epic.
+result: pass
+
+### 6. Enrichment error is non-blocking
+expected: If the Jira enrichment request fails (e.g. force a network error or invalid token), an Alert appears above the table explaining enrichment failed, but the table still renders with hours per day — only the issue names/icons may be missing or degraded.
+result: skipped
+
+### 7. Filter bar and saved filters still work (Phase 62–63 regression)
+expected: The filter bar above the Worklogs page still applies date range, project, and other filters, and saved filters from Phase 63 still load and apply correctly — the hierarchy table updates accordingly.
+result: pass
+
+### 8. Click non-zero cell opens entry popover
+expected: Click a cell with a non-zero number of hours (on a story, subtask, or epic-direct row). A popover opens showing the list of individual worklog entries that day for that issue — each row shows duration, author, and comment, with a pencil and trash icon.
+result: pass
+
+### 9. Edit a worklog entry inline
+expected: In the popover, click the pencil on an entry. The row swaps in place to an edit form with duration pre-populated (e.g. "1h 30m"). Change duration, click "Save Changes". The form closes, the entry shows the new duration, and the cell total updates without a full page refresh.
+result: skipped
+
+### 10. Edit form validates bad duration
+expected: In the edit form, enter an invalid duration (e.g. "abc" or empty). An inline error appears and "Save Changes" does not submit. Clicking "Discard Changes" closes the form without modifying the entry.
+result: skipped
+
+### 11. Delete a worklog entry
+expected: Click the trash icon on an entry. The entry is deleted immediately (no confirmation dialog) and the cell total decreases accordingly. If it was the last entry for that cell, the cell goes to zero and the popover closes (or shows empty state).
+result: skipped
+
+### 12. Add a new worklog entry from the popover
+expected: In the open popover, use the "Add entry" section (LogWorkPopover) to add a new worklog (date, duration, comment). On save, the new entry appears in the entry list, the cell total increases, and the surrounding row/column totals stay consistent.
+result: skipped
+
+### 13. Zero cells are not clickable
+expected: Cells showing 0 (or empty) hours do not open a popover when clicked. Only non-zero cells on story/subtask/epic-direct rows are interactive.
+result: pass
+note: "User confirmed zero cells DO open a popup and that is wanted behavior (useful for adding new entries). Test expectation from Plan 02 spec ('only non-zero cells clickable') is intentionally relaxed in implementation per user preference."
+
+## Summary
+
+total: 13
+passed: 6
+issues: 1
+pending: 0
+skipped: 6
+blocked: 0
+
+## Gaps
+
+- truth: "Issue rows (epic/story/subtask) show cursor:pointer over the full clickable area including the title text"
+  status: failed
+  reason: "User reported: cursor is not pointer on the epic/issue text, only the cell"
+  severity: minor
+  test: 3
+  artifacts: []
+  missing: []
+
+- truth: "Issue detail breadcrumb back-link shows 'Worklogs' when navigated from the Worklogs page (not 'Home')"
+  status: failed
+  reason: "User reported: the breadcrumb says 'home' instead of worklogs"
+  severity: major
+  test: 3
+  artifacts: []
+  missing: []
