@@ -87,41 +87,11 @@ export const SIDEBAR_NAV_ITEMS: SidebarNavDef[] = [
 ];
 
 /**
- * Returns the default sidebar items for a given preset.
- * 'dev' preset shows dev-oriented items, 'pm' shows PM-oriented items.
+ * Returns all sidebar nav items with visible: true (all items shown by default).
  */
-export function getDefaultSidebarItems(preset: 'dev' | 'pm'): SidebarItem[] {
-  const devVisible = new Set([
-    'dashboard',
-    'my-tasks',
-    'sprint-board',
-    'backlog',
-    'epics',
-    'merge-requests',
-    'worklogs',
-    'aio-projects',
-  ]);
-  const pmVisible = new Set([
-    'dashboard',
-    'my-tasks',
-    'sprint-board',
-    'backlog',
-    'epics',
-    'merge-requests',
-    'sprint-progress',
-    'releases',
-    'worklogs',
-    'aio-projects',
-  ]);
-
-  const visibleSet = preset === 'pm' ? pmVisible : devVisible;
-
+export function getDefaultSidebarItems(): SidebarItem[] {
   return SIDEBAR_NAV_ITEMS.map((item) => ({
     id: item.id,
-    visible: visibleSet.has(item.id),
+    visible: true,
   }));
 }
-
-/** Pre-computed preset constants for tests and comparisons. */
-export const DEV_SIDEBAR_PRESET = getDefaultSidebarItems('dev');
-export const PM_SIDEBAR_PRESET = getDefaultSidebarItems('pm');
