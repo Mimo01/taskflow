@@ -114,14 +114,14 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ Remove widget-based customizable dashboard system (react-grid-layout, 11 widget types) — v1.9 Phase 59
 - ✓ New minimal static dashboard: gradient hero with personalised greeting + en-GB date + responsive 3-card grid (sprint health, my in-progress subtasks with breadcrumb-chain navigation, next release countdown with live progress bar) — v1.9 Phase 60
 - ✓ Per-cell worklog CRUD via popover: WorklogCellPopover + EditWorklogForm + duration validation + trash delete + LogWorkPopover reuse for Add — v1.9 Phase 64
-- ✓ Full test suite passing, zero regressions (1298 passing, 0 failing, 0 warnings) — v1.9 Phase 63
+- ✓ Full test suite passing, zero regressions (1356 passing, 0 failing, 0 warnings) — v1.10 Phase 65
+- ✓ Tech-debt cleanup of carried v1.9 + v1.8 items (CLEAN-01..07): WorklogsPage timer/error/fragment fixes, DatePreset type move, stale sidebar test mock, AIO TESTCASE_STATUS_MAP 51/52, runtime AIO status map from /config — v1.10 Phase 65
 - ✓ Dead code sweep: zero stale widget/workload imports after v1.9 removals — v1.9 Phase 63
 
 ### Active
 
 <!-- v1.10 — Cleanup, Roles Removal & Standup Notes (REQ-IDs assigned in REQUIREMENTS.md) -->
 
-- [ ] Tech-debt cleanup of carried v1.9 + v1.8 items
 - [ ] Remove Developer/PM role concept across settings, wizard, sidebar, and dashboard
 - [ ] Settings cleanup: remove sidebar-items panel from Appearance
 - [ ] Sidebar settings = visibility toggles only (no reorder, all shown by default)
@@ -167,9 +167,9 @@ Tempo Worklog Viewer launched with Epic→Story→Subtask hierarchy, sticky head
 - **Team:** Orange eshop project — developers + project managers using the same app with role-based views
 - **Scale:** One Jira project + one GitLab project at a time
 - **Build:** Portable executable — no installer, no admin rights; `createHashRouter` for SPA routing in production
-- **Test suite:** 1298 tests passing, zero failures, zero warnings; Vitest with LazyStore mock
+- **Test suite:** 1356 tests passing, zero failures, zero warnings; Vitest with LazyStore mock
 - **Codebase:** ~73,264 lines TypeScript / 123 test files
-- **Known caveats (v1.8):** 3 phases (53, 57, 58) missing VERIFICATION.md — all UAT-verified, retroactive production deferred; hardcoded AIO_STATUS_MAP (non-standard instances may mis-bucket); TESTCASE_STATUS_MAP missing IDs 51/52 (in-progress runs show as NOT_EXECUTED); Bulk operations (BOARD-04–07) components on disk, not wired; Cmd+Shift nav shortcut deviation needs product owner sign-off; Apple/Windows code signing deferred to future release
+- **Known caveats:** 3 phases (53, 57, 58) missing VERIFICATION.md — all UAT-verified, retroactive production deferred; Bulk operations (BOARD-04–07) components on disk, not wired; Cmd+Shift nav shortcut deviation needs product owner sign-off; Apple/Windows code signing deferred to future release
 
 ## Constraints
 
@@ -289,4 +289,4 @@ This document evolves at phase transitions and milestone boundaries.
 | 145 pre-v1.9 quick-task dirs archived to milestones/historical-quick-tasks/ at milestone close | Scanner couldn't read status from older SUMMARY frontmatter convention; rather than retrofit 145 files, archive bucket clears the audit and preserves history | ✓ Good — audit-open went 161→17, all 17 benign |
 
 ---
-*Last updated: 2026-05-23 after v1.10 milestone opened*
+*Last updated: 2026-05-24 after Phase 65 (Tech Debt Cleanup)*
