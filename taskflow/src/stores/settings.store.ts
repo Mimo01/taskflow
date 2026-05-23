@@ -413,7 +413,6 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 22) {
           delete (s as Record<string, unknown>).role;
-          s.sidebarItems = getDefaultSidebarItems();
         }
         return persisted as SettingsState;
       },
