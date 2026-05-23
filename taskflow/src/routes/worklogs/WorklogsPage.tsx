@@ -957,7 +957,7 @@ export default function WorklogsPage() {
                             No Epic
                           </span>
                         ) : (
-                          <button type="button" aria-label={`Open ${epicKey}`} onClick={() => onIssueClick(epicKey)} className="flex items-center gap-1 w-full text-left min-w-0">
+                          <button type="button" aria-label={`Open ${epicKey}`} onClick={() => onIssueClick(epicKey)} className="flex items-center gap-1 w-full text-left min-w-0 cursor-pointer">
                             <Layers className="size-3 shrink-0 text-purple-700 dark:text-purple-300" />
                             <span className="font-semibold leading-tight truncate text-purple-900 dark:text-purple-100">
                               {isResolved ? epicNode.summary : <span className="line-through text-muted-foreground">{epicKey}</span>}
@@ -992,7 +992,7 @@ export default function WorklogsPage() {
                         <>
                           <tr key={`story-${storyKey}`} className="cursor-pointer group/row">
                             <td className="sticky left-0 z-10 bg-background px-3 py-1.5 border border-border border-r-0 min-w-52 max-w-52 overflow-hidden">
-                              <button type="button" aria-label={`Open ${storyKey}`} onClick={() => onIssueClick(storyKey)} className="flex items-center gap-1 w-full text-left pl-3 min-w-0">
+                              <button type="button" aria-label={`Open ${storyKey}`} onClick={() => onIssueClick(storyKey)} className="flex items-center gap-1 w-full text-left pl-3 min-w-0 cursor-pointer">
                                 <StoryIcon className={`size-3 shrink-0 ${storyColor}`} />
                                 <span className="font-medium leading-tight truncate">
                                   {resolvedKeys.has(storyKey) ? storyNode.summary : <span className="line-through text-muted-foreground">{storyKey}</span>}
@@ -1019,7 +1019,7 @@ export default function WorklogsPage() {
                             return (
                               <tr key={`subtask-${subtaskKey}`} className="cursor-pointer group/row">
                                 <td className="sticky left-0 z-10 bg-background px-3 py-1.5 border border-border border-r-0 min-w-52 max-w-52 overflow-hidden">
-                                  <button type="button" aria-label={`Open ${subtaskKey}`} onClick={() => onIssueClick(subtaskKey)} className="flex items-center gap-1 w-full text-left pl-6 min-w-0">
+                                  <button type="button" aria-label={`Open ${subtaskKey}`} onClick={() => onIssueClick(subtaskKey)} className="flex items-center gap-1 w-full text-left pl-6 min-w-0 cursor-pointer">
                                     <CornerDownRight className="size-3 shrink-0 text-teal-500" />
                                     <span className="leading-tight text-muted-foreground truncate">
                                       {resolvedKeys.has(subtaskKey) ? subtaskNode.summary : <span className="line-through">{subtaskKey}</span>}
