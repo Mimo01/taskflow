@@ -6,6 +6,8 @@
  * import from here rather than re-defining locally.
  */
 
+import { fetchAioProjectConfig } from '@/services/aio/cycles';
+
 /**
  * Maps a raw AIO test run status string to the canonical four-value union
  * used for progress-bar counting and filter chips.
@@ -47,28 +49,55 @@ export function normalizeStatusLabel(raw: string | undefined): string {
   }
 }
 
+// ─── Runtime AIO status map (CLEAN-07) ──────────────────────────────────────
+//
+// Replaces the removed static AIO_STATUS_MAP constant.
+// Populated by initializeAioStatusMap() when AIO integration activates.
+// normalizeStatusById reads this cache — returns 'notRun' for any unknown ID.
+
+const STATUS_TYPE_MAP: Record<string, 'pass' | 'fail' | 'blocked' | 'notRun' | 'inProgress'> = {
+  PASSED: 'pass',
+  FAILED: 'fail',
+  BLOCKED: 'blocked',
+  NOT_RUN: 'notRun',
+  IN_PROGRESS: 'inProgress',
+};
+
+let runtimeAioStatusMap: Record<number, 'pass' | 'fail' | 'blocked' | 'notRun' | 'inProgress'> =
+  {};
+
 /**
- * Maps numeric AIO status IDs to canonical status strings.
- * Source: UI-SPEC.md Status Color Palette + CONTEXT.md D-05. Five entries only.
- * Used by progress-bar rendering in AioProjectOverviewPage (Plan 57-04).
+ * Initialize AIO status map from the live /config endpoint.
+ * Call once when AIO integration activates (credentials confirmed, project selected).
+ * Silently no-ops on failure — normalizeStatusById falls back to 'notRun' for all IDs.
+ *
+ * Reuses fetchAioProjectConfig from cycles.ts — does not duplicate the HTTP call.
+ * React Query caches the /config response, so subsequent calls serve from cache.
  */
-export const AIO_STATUS_MAP: Record<number, 'pass' | 'fail' | 'blocked' | 'notRun' | 'inProgress'> =
-  {
-    51: 'notRun',
-    52: 'inProgress',
-    53: 'pass',
-    54: 'fail',
-    55: 'blocked',
-    901: 'pass', // N/A — statusType PASSED per /config
-  };
+export async function initializeAioStatusMap(
+  baseUrl: string,
+  token: string,
+  jiraProjectId: number,
+): Promise<void> {
+  try {
+    const statuses = await fetchAioProjectConfig(baseUrl, token, jiraProjectId);
+    runtimeAioStatusMap = Object.fromEntries(
+      statuses.map((s) => [s.ID, STATUS_TYPE_MAP[s.statusType] ?? 'notRun']),
+    );
+  } catch {
+    // Fail silently — normalizeStatusById falls back to 'notRun' for all IDs
+    runtimeAioStatusMap = {};
+  }
+}
 
 /**
  * Resolve a numeric AIO status ID to its canonical status string.
+ * Reads the runtime map populated by initializeAioStatusMap().
  * Falls back to 'notRun' for any unknown ID — never throws.
  * NOTE: testRunDistribution keys are JSON strings — always call Number(key) before this (Pitfall 3).
  */
 export function normalizeStatusById(
   id: number,
 ): 'pass' | 'fail' | 'blocked' | 'notRun' | 'inProgress' {
-  return AIO_STATUS_MAP[id] ?? 'notRun';
+  return runtimeAioStatusMap[id] ?? 'notRun';
 }
