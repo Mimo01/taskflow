@@ -86,21 +86,23 @@ export default function Dashboard() {
         <p className="relative text-sm text-muted-foreground mt-2">{today}</p>
       </section>
 
-      <div className="relative grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+      <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
         <DashboardSprintCard
           jiraBaseUrl={jiraBaseUrl ?? ''}
           jiraToken={jiraToken ?? ''}
           activeJiraProject={activeJiraProject ?? ''}
           storyPointsFieldKey={storyPointsFieldKey}
         />
-        <DashboardInProgressCard
-          jiraBaseUrl={jiraBaseUrl ?? ''}
-          jiraToken={jiraToken ?? ''}
-          activeJiraProject={activeJiraProject ?? ''}
-          jiraUserDisplayName={jiraUserDisplayName ?? ''}
-          storyPointsFieldKey={storyPointsFieldKey}
-          onIssueClick={onIssueClick}
-        />
+        <div className="order-last sm:col-span-2 lg:col-span-1 lg:order-none">
+          <DashboardInProgressCard
+            jiraBaseUrl={jiraBaseUrl ?? ''}
+            jiraToken={jiraToken ?? ''}
+            activeJiraProject={activeJiraProject ?? ''}
+            jiraUserDisplayName={jiraUserDisplayName ?? ''}
+            storyPointsFieldKey={storyPointsFieldKey}
+            onIssueClick={onIssueClick}
+          />
+        </div>
         <DashboardReleaseCard
           jiraBaseUrl={jiraBaseUrl ?? ''}
           jiraToken={jiraToken ?? ''}
