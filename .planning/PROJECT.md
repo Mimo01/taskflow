@@ -4,11 +4,18 @@
 
 Taskflow is a cross-platform Tauri 2 desktop app for Orange's eshop development team. It unifies Jira (on-premise), Jira Tempo Timesheets, GitLab, and AIO Test Management into a single fast, focused interface — replacing the need to juggle multiple slow tools. It ships as a portable executable (no installer, no admin rights), stores credentials in the OS keychain, and serves both developers and project managers with a minimal static dashboard, sprint board, backlog, global search, notifications, AIO test execution visibility, and Tempo worklog tracking.
 
-## Current Milestone: (none — v1.9 shipped 2026-05-23, awaiting v2.0 scoping)
+## Current Milestone: v1.10 Cleanup, Roles Removal & Standup Notes
 
-**Last shipped:** v1.9 Tempo, Dashboard Redesign & Cleanup — 6 phases (59-64), 20 plans, ~73K LOC TS
+**Goal:** Pay down v1.9 tech debt, eliminate the role concept across the app, tighten settings and the startup wizard, and ship a Standup Notes page that surfaces a ready-to-read agenda for daily standups.
 
-Run `/gsd:new-milestone` to begin scoping the next milestone.
+**Target features:**
+- Tech-debt cleanup pass (carried v1.9 items: WorklogsPage fragments, DatePreset location, sidebar test mock, WR-01/WR-02; plus v1.8 caveats: AIO_STATUS_MAP, TESTCASE_STATUS_MAP IDs 51/52)
+- Remove Developer/PM roles entirely — universal access, no presets, no gating
+- Settings reorganization — remove sidebar-items panel from Appearance; sidebar settings = visibility toggles only (no reorder, all shown by default)
+- Startup wizard: new Integrations step (AIO toggle + project, Tempo toggle)
+- Standup Notes page (`/standup-notes`) — Yesterday recap (Tempo worklogs, Jira changelog, Git commits, MR activity) + Today (sprint subtasks, pinned issues read-only, planned worklog targets); "yesterday" = last working day
+
+**Previous milestone shipped:** v1.9 Tempo, Dashboard Redesign & Cleanup — 6 phases (59-64), 20 plans, ~73K LOC TS, shipped 2026-05-23
 
 ## Core Value
 
@@ -112,7 +119,14 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ### Active
 
-<!-- v2.0 TBD -->
+<!-- v1.10 — Cleanup, Roles Removal & Standup Notes (REQ-IDs assigned in REQUIREMENTS.md) -->
+
+- [ ] Tech-debt cleanup of carried v1.9 + v1.8 items
+- [ ] Remove Developer/PM role concept across settings, wizard, sidebar, and dashboard
+- [ ] Settings cleanup: remove sidebar-items panel from Appearance
+- [ ] Sidebar settings = visibility toggles only (no reorder, all shown by default)
+- [ ] Startup wizard: new Integrations step (AIO + Tempo)
+- [ ] Standup Notes page with Yesterday recap and Today sections
 
 ### v1.9 — Validated (see Validated section above for shipped items)
 
@@ -275,4 +289,4 @@ This document evolves at phase transitions and milestone boundaries.
 | 145 pre-v1.9 quick-task dirs archived to milestones/historical-quick-tasks/ at milestone close | Scanner couldn't read status from older SUMMARY frontmatter convention; rather than retrofit 145 files, archive bucket clears the audit and preserves history | ✓ Good — audit-open went 161→17, all 17 benign |
 
 ---
-*Last updated: 2026-05-23 after v1.9 milestone shipped*
+*Last updated: 2026-05-23 after v1.10 milestone opened*
