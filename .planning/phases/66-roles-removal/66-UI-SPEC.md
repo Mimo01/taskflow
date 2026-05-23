@@ -61,12 +61,13 @@ Source: Measured from settings section headers and wizard step content (establis
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 14px (text-sm) | 400 (regular) | 1.5 |
-| Label | 14px (text-sm) | 500 (medium) | 1.4 |
+| Label | 14px (text-sm) | 600 (semibold) | 1.4 |
 | Section Heading | 18px (text-lg) | 600 (semibold) | 1.2 |
 | Step Heading | 20px (text-xl) | 600 (semibold) | 1.2 |
 
 Notes:
-- All body copy and helper text uses `text-sm text-muted-foreground` (14px, muted).
+- All body copy and helper text uses `text-sm text-muted-foreground` (14px, muted, weight 400).
+- Labels use `text-sm font-semibold` (14px, semibold) — weight 500 (`font-medium`) is consolidated into 600 (`font-semibold`) per the 2-weight constraint.
 - Section headings in settings use `text-lg font-semibold` (18px, semibold) — applied to the remaining SidebarSection heading after PresetButtons removal.
 - Wizard step headings use `text-xl font-semibold` (20px) — the 4-step wizard that remains after RoleStep deletion continues this pattern.
 - Font family: `'Geist Variable', sans-serif` (declared in `--font-sans`).
