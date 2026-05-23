@@ -35,7 +35,7 @@ metrics:
 
 The "Filter by person" combobox on the Worklogs page was redesigned from a free-text search input paired with a separate Badge chip to a unified input-as-selection control:
 
-- **Default me on mount:** `useAuthStore` destructuring extended to include `jiraUsername` + `jiraUserDisplayName`. A guarded `useEffect` seeds `selectedUsername`/`selectedDisplayName` once when both become non-null, provided the user has not yet touched the filter (tracked via `userTouchedFilter` ref). First `fetchWorklogs` call goes out with `['mmozolak']`.
+- **Default me on mount:** `useAuthStore` destructuring extended to include `jiraUsername` + `jiraUserDisplayName`. A guarded `useEffect` seeds `selectedUsername`/`selectedDisplayName` once when both become non-null, provided the user has not yet touched the filter (tracked via `userTouchedFilter` ref). First `fetchWorklogs` call goes out with `['jdoe']`.
 - **No Badge chip:** The `{selectedDisplayName && <Badge>}` block and the `Badge` import were removed. The combobox input itself displays the selected person's display name when not focused.
 - **Input value rule:** `value={open ? query : (selectedDisplayName ?? query)}` — while focused (`open`), shows the free-text query (cleared on focus); while blurred, shows the selected person's name or the search query if nothing selected.
 - **× clear button:** Absolutely-positioned `<button>` with lucide `X` icon (size-3) inside the existing `relative` wrapper div. Uses `onMouseDown` + `e.preventDefault()` to avoid the 150ms blur-close timer race. Sets `userTouchedFilter.current = true` to prevent re-seeding.

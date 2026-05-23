@@ -743,7 +743,7 @@ describe('AioTestRunsSection', () => {
 
     it('Plan 54-11: in-cycle CollapsibleRunBlock header shows cycle key + run ID buttons that push the issue to the breadcrumb trail', async () => {
       // In-cycle path: linked test case with detail.steps populated → renders
-      // via CollapsibleRunBlock. Round-4 UAT (mimopn): "I see the test runs
+      // via CollapsibleRunBlock. Round-4 UAT (user): "I see the test runs
       // but there are no links or info to test cycle." Header mirrors the
       // ImpactedExecutionsList cycle + run button pattern.
       mockFetchTraceability.mockResolvedValueOnce([
