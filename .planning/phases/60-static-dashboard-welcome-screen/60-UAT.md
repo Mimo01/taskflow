@@ -27,9 +27,9 @@ reason: requires project with no active sprint; not available in current test en
 
 ### 4. In-Progress Card — Your Subtasks
 expected: A card titled something like "In Progress" lists only your own in-progress subtasks (filtered by your Jira display name). Each row is a clickable button. Clicking one navigates to the issue detail page (/issue/:key).
-result: issue
-reported: "yes, but clicking on it doesn't put it into breadcrumb so I can go easily back to dashboard"
-severity: minor
+result: pass
+verified_at: 2026-05-23T21:30:00Z
+note: "Breadcrumb back-to-Dashboard issue resolved in Plan 60-05 (onIssueClick threaded via outlet context). Re-verified in live UAT during v1.9 milestone close."
 
 ### 5. In-Progress Card — Cap & Overflow
 expected: If more than 3 subtasks are in progress, only 3 rows appear and a plain-text caption like "and N more" is shown beneath them (not a link or button). If zero subtasks match, the card shows "No subtasks in progress — nice work!" (exact text).
@@ -38,9 +38,9 @@ reason: requires >3 in-progress subtasks or zero in-progress subtasks; not avail
 
 ### 6. Release Card — Next Release
 expected: A "Next Release" (or similar) card shows the name of the soonest upcoming unreleased Jira fix version and a timing label: "Today" (blue badge) if due today, "N days overdue" (amber text) if past due, or "N days away" (muted text) if future.
-result: issue
-reported: "yes but there is no progress bar of how many tasks are done"
-severity: minor
+result: pass
+verified_at: 2026-05-23T21:30:00Z
+note: "Progress bar (% complete · X / Y issues) added in Plan 60-06 via fetchReleaseIssues + Progress component. Re-verified in live UAT during v1.9 milestone close."
 
 ### 7. Release Card — Empty State
 expected: When no unreleased fix version with a release date exists in the project, the card shows "No upcoming releases" (exact text) without crashing.
@@ -54,11 +54,12 @@ result: pass
 ## Summary
 
 total: 8
-passed: 3
-issues: 2
+passed: 5
+issues: 0
 pending: 0
 skipped: 3
 blocked: 0
+note: "Tests 4 + 6 flipped from issue→pass after 60-05/60-06 fixes verified in live UAT 2026-05-23T21:30Z during v1.9 milestone close. Tests 3, 5, 7 remain skipped — they require dataset conditions (no active sprint, >3 in-progress subtasks, no unreleased fix versions) not present in test environment."
 
 ## Gaps
 
