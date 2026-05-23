@@ -64,12 +64,13 @@ describe('SidebarItemsList', () => {
     expect(setSidebarItemVisible).toHaveBeenCalledWith('dashboard', false);
   });
 
-  it('renders section headers: Main, Planning, Code, Tracking', () => {
+  it('renders section headers: Main, Planning, Code, Tracking, Testing', () => {
     render(<SidebarItemsList />);
     expect(screen.getByText('Main')).toBeInTheDocument();
     expect(screen.getByText('Planning')).toBeInTheDocument();
     expect(screen.getByText('Code')).toBeInTheDocument();
     expect(screen.getByText('Tracking')).toBeInTheDocument();
+    expect(screen.getByText('Testing')).toBeInTheDocument();
   });
 
   it('each item row contains drag handle, checkbox, and label text', () => {
