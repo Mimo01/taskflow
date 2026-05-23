@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Cleanup, Roles Removal & Standup Notes
 status: ready_to_plan
-stopped_at: Phase 66 UI-SPEC approved
-last_updated: "2026-05-23T22:37:33.785Z"
-last_activity: 2026-05-23 -- Phase 66 execution started
+stopped_at: Phase 66 complete, UAT passed
+last_updated: "2026-05-24T16:00:00.000Z"
+last_activity: 2026-05-24 -- Phase 66 UAT complete
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 4
   percent: 33
 ---
 
@@ -18,10 +18,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-23)
+See: .planning/PROJECT.md (updated 2026-05-24)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Phase 66 — roles-removal
+**Current focus:** Phase 67 — settings-ui-cleanup
 
 ## Current Position
 
@@ -48,6 +48,8 @@ Last activity: 2026-05-23
 | 62 | 2 | Tempo Worklog Viewer UI |
 | 63 | 3 | Tempo Saved Filters + Test Pass |
 | 64 | 2 | Worklogs Hierarchy + Popover CRUD |
+| 65 | 2 | Tech Debt Cleanup (CLEAN-01..07) |
+| 66 | 2 | Roles Removal (store v22, no presets, 4-step wizard) |
 
 ## Accumulated Context
 
@@ -92,9 +94,9 @@ Key decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-05-23T22:19:20.325Z
-Stopped at: Phase 66 UI-SPEC approved
-Resume file: .planning/phases/66-roles-removal/66-UI-SPEC.md
+Last session: 2026-05-24
+Stopped at: Phase 66 complete, ready to plan Phase 67
+Resume file: None
 
 ## Operator Next Steps
 

@@ -213,6 +213,8 @@ Plans:
 
 - [x] 66-02-PLAN.md — remove preset buttons + role step/section, delete dead files, update tests, verify ROLES-05 grep (ROLES-01, ROLES-02, ROLES-03, ROLES-05)
 
+**Completed:** 2026-05-24
+
 ### Phase 67: Settings UI Cleanup
 
 **Goal:** Tighten Settings → Appearance + Sidebar pages so sidebar configuration lives in one place with visibility-only controls.
