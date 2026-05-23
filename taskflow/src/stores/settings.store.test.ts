@@ -179,6 +179,60 @@ describe('settings.store — tempoEnabled toggle (Phase 61)', () => {
   });
 });
 
+describe('settings.store — widget removal (Phase 59)', () => {
+  it('dashboardLayout field is absent from store state', () => {
+    const state = useSettingsStore.getState();
+    expect('dashboardLayout' in state).toBe(false);
+  });
+
+  it('setDashboardLayout action is absent from store state', () => {
+    const state = useSettingsStore.getState();
+    expect('setDashboardLayout' in state).toBe(false);
+  });
+
+  it('addDashboardWidget action is absent from store state', () => {
+    const state = useSettingsStore.getState();
+    expect('addDashboardWidget' in state).toBe(false);
+  });
+
+  it('removeDashboardWidget action is absent from store state', () => {
+    const state = useSettingsStore.getState();
+    expect('removeDashboardWidget' in state).toBe(false);
+  });
+
+  it('updateWidgetConfig action is absent from store state', () => {
+    const state = useSettingsStore.getState();
+    expect('updateWidgetConfig' in state).toBe(false);
+  });
+
+  it('persist version is >= 19 (v19 migration smoke — dashboardLayout implicitly dropped)', () => {
+    // Source-string assertion: read settings.store.ts and assert the persist version
+    // field is at least 19. Phase 59 bumped from 18 to 19; later phases may increment
+    // further (v20, v21 already exist), so the guard is >= 19, not === 19.
+    const fs = require('node:fs') as typeof import('node:fs');
+    const path = require('node:path') as typeof import('node:path');
+    const src = fs.readFileSync(
+      path.resolve(__dirname, 'settings.store.ts'),
+      'utf8',
+    );
+    // Extract the numeric version value from `version: <N>,` inside the persist options.
+    const match = src.match(/version:\s*(\d+),/);
+    expect(match).not.toBeNull();
+    const version = Number(match![1]);
+    expect(version).toBeGreaterThanOrEqual(19);
+  });
+
+  it('v19 migration guard is present in source (if (version < 19))', () => {
+    const fs = require('node:fs') as typeof import('node:fs');
+    const path = require('node:path') as typeof import('node:path');
+    const src = fs.readFileSync(
+      path.resolve(__dirname, 'settings.store.ts'),
+      'utf8',
+    );
+    expect(src).toMatch(/if\s*\(version\s*<\s*19\)/);
+  });
+});
+
 describe('settings.store — selectedAioProjectKey (Phase 55)', () => {
   beforeEach(() => {
     act(() => {
