@@ -3,6 +3,39 @@
 All notable changes to Taskflow are documented here.
 Entries are written by hand for each release.
 
+## [1.9.0] — 2026-05-23
+
+### Added
+
+- **Tempo Timesheets integration** — Worklogs page in the sidebar (when Tempo is enabled in Settings → Integrations) shows a 3-level Epic → Story → Subtask hierarchy table with sticky date header and sticky first column
+- **6 date presets** — This Week (default), Last Week, This Month, Last Month, Last Working Day, and Custom range with from ≥ to validation
+- **Single-select people filter** with combobox + chip + clear button
+- **Per-day totals row, per-person totals column, and grand total cell** computed client-side from the fetched worklog data
+- **Per-cell worklog CRUD via popover** — click any cell to view the worklog entries for that issue/day; inline edit with duration validation (rejects "abc"/empty), one-click trash delete (no confirmation), and "Add entry" reusing the LogWorkPopover for new worklogs; broad-prefix cache invalidation keeps cell + row + column + grand totals consistent
+- **Saved Tempo filters** — save any combo of date preset + person + custom range; load/rename/reorder/delete via right-click context menu on each filter pill; persists across app restarts via Zustand + Tauri Store
+- **Weekend and holiday columns** coloured grey/red via the Tempo schedule API
+- **Static dashboard welcome screen** — gradient hero with personalised greeting and en-GB long-form date
+- **Sprint health card** — current sprint name, days remaining, percent-complete progress bar from real story-point data
+- **My In-Progress card** — up to 3 of the user's own in-progress subtasks; clicking one pushes Dashboard onto the breadcrumb trail before navigating to the issue
+- **Next Release card** — soonest unreleased fix version with days-countdown timing label and a live progress bar showing percent of release issues done
+
+### Removed
+
+- **Widget-based customizable dashboard system** — drag/resize grid, widget picker, and all 11 widget types (replaced by the static welcome screen above)
+- **Workload page** and the `/workload` route + sidebar entry
+- **react-grid-layout** and **@types/react-grid-layout** dependencies
+
+### Fixed
+
+- **Dashboard greeting** now handles on-prem Jira display names of the form `SURNAME Firstname OrgCode (status)` (e.g. `MOZOLAK Milan OSK (ext.)` → `Milan`); previously the all-caps surname leaked into the greeting
+- **In-Progress card breadcrumb** — clicking a subtask now adds Dashboard to the breadcrumb trail so back-navigation works
+- **Release card** now shows a progress bar and "X% complete · N / M issues" caption beneath the timing label
+
+### Changed
+
+- **Test suite** — 1298 passing, 0 failing, 0 warnings after all v1.9 additions/removals
+- **Dead code sweep** — zero stale widget / workload references remain in the codebase
+
 ## [1.8.1] — 2026-05-19
 
 ### Added
