@@ -39,11 +39,14 @@ blocked: 0
 ## Gaps
 
 - truth: "Error state UI appears on WorklogsPage when query fails (even with cached data)"
-  status: failed
+  status: fixed
   reason: "User reported: yes but the error ui doesnt have any margin"
   severity: cosmetic
   test: 1
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "ErrorState rendered directly inside flex-1 overflow-auto div with no padding wrapper; other pages (EpicsPage) use div.p-4"
+  artifacts:
+    - path: "src/routes/worklogs/WorklogsPage.tsx"
+      issue: "Missing p-4 wrapper div around ErrorState at line 953"
+  missing:
+    - "Wrap ErrorState in <div className=\"p-4\"> at call site"
+  fix_commit: "44cbb0a4"
