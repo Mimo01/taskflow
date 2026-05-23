@@ -1,11 +1,9 @@
 /**
  * SidebarSection -- Dedicated settings section for sidebar customization.
  *
- * Shows sidebar item visibility toggles grouped by section, plus preset buttons
- * for quick layout resets.
+ * Shows sidebar item visibility toggles grouped by section.
  */
 
-import PresetButtons from './PresetButtons';
 import SidebarItemsList from './SidebarItemsList';
 
 export default function SidebarSection() {
@@ -18,7 +16,6 @@ export default function SidebarSection() {
         </p>
       </div>
       <SidebarItemsList />
-      <PresetButtons />
     </div>
   );
 }

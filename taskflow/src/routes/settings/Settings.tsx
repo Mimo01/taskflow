@@ -9,7 +9,6 @@
  *   - AppearanceSection: stub → Plan 18-04
  *   - NotificationsSection: stub → Plan 18-05
  *   - WorkflowSection: stub → Plan 18-05
- *   - RoleSection: existing, unchanged
  */
 
 import {
