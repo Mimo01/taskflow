@@ -5,7 +5,7 @@ milestone_name: milestone
 status: v1.6.3 milestone complete
 stopped_at: context exhaustion at 79% (2026-05-22)
 last_updated: "2026-05-22T10:53:12.638Z"
-last_activity: "2026-05-23 - Completed quick task 260523-neb: Rebalance dashboard cards grid — stack to 1 col below `lg`, 3 col at `lg+`, no more 2+1 orphan"
+last_activity: "2026-05-23 - Completed quick task 260523-neb: Rebalance dashboard cards grid — sm: Sprint Health + Next Release side-by-side, My Tasks full-width below; lg+: 3-col row"
 progress:
   total_phases: 5
   completed_phases: 2
@@ -69,7 +69,7 @@ None.
 
 ## Session Continuity
 
-Last activity: 2026-05-23 - Completed quick task 260523-neb: Rebalance dashboard cards grid — stack to 1 col below `lg`, 3 col at `lg+`, no more 2+1 orphan
+Last activity: 2026-05-23 - Completed quick task 260523-neb: Rebalance dashboard cards grid — sm: Sprint Health + Next Release side-by-side, My Tasks full-width below; lg+: 3-col row
 Stopped at: context exhaustion at 79% (2026-05-22)
 Resume: Phase 47 v17-debt-cleanup plan 01 complete — continue with plan 02 if exists
 
@@ -95,4 +95,4 @@ Resume: Phase 47 v17-debt-cleanup plan 01 complete — continue with plan 02 if 
 | 260518-ik2 | Redesign cycle detail executions list to use fast paged endpoint | 2026-05-18 | 060cbe0 | | [260518-ik2-redesign-cycle-detail-executions-list-to](./quick/260518-ik2-redesign-cycle-detail-executions-list-to/) |
 | 260518-ist | Show test case key badge, defect count, run count, and assignedToID in executions table | 2026-05-18 | e63c5b5 | | [260518-ist-show-test-case-key-badge-defect-count-ru](./quick/260518-ist-show-test-case-key-badge-defect-count-ru/) |
 | 260521-u4u | Dashboard welcome redesign — first name greeting, flowing wave SVG background, text-4xl heading | 2026-05-21 | 62e932ab | | [260521-u4u-on-the-dashboard-make-the-welcome-more-w](./quick/260521-u4u-on-the-dashboard-make-the-welcome-more-w/) |
-| 260523-neb | Rebalance dashboard cards grid — stack to 1 col below `lg`, 3 col at `lg+`, no more 2+1 orphan | 2026-05-23 | dc7ce077 | | [260523-neb-on-dashboard-there-are-3-cards-on-smalle](./quick/260523-neb-on-dashboard-there-are-3-cards-on-smalle/) |
+| 260523-neb | Rebalance dashboard cards grid — sm: Sprint Health + Next Release side-by-side with My Tasks full-width below; lg+: 3-col row | 2026-05-23 | dc7ce077 | | [260523-neb-on-dashboard-there-are-3-cards-on-smalle](./quick/260523-neb-on-dashboard-there-are-3-cards-on-smalle/) |
