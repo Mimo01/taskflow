@@ -951,7 +951,9 @@ export default function WorklogsPage() {
       {/* Table area — border-separate fixes sticky-cell bleed-through (#5 in feedback) */}
       <div className="flex-1 overflow-auto min-h-0">
         {isError ? (
-          <ErrorState error={error} onRetry={refetch} viewName="worklogs" />
+          <div className="p-4">
+            <ErrorState error={error} onRetry={refetch} viewName="worklogs" />
+          </div>
         ) : isLoading && !data ? (
           <table className="w-full text-xs border-separate [border-spacing:0]">
             <thead>
