@@ -1,5 +1,5 @@
 ---
-status: partial
+status: diagnosed
 phase: 64-redo-worklogs-page-with-epic-story-subtask-hierarchy-sticky-
 source:
   - 64-01-SUMMARY.md
@@ -85,13 +85,27 @@ blocked: 0
   reason: "User reported: cursor is not pointer on the epic/issue text, only the cell"
   severity: minor
   test: 3
-  artifacts: []
-  missing: []
+  root_cause: "Tailwind v4 Preflight sets `button { cursor: default }`, which overrides the `cursor-pointer` set on the parent `<tr>` whenever the user hovers the inner `<button>` wrapping the icon + title text. The three row-title buttons in WorklogsPage.tsx are the only clickable buttons in that file missing an explicit `cursor-pointer` class (other buttons at lines 726, 857 already have it)."
+  artifacts:
+    - path: "taskflow/src/routes/worklogs/WorklogsPage.tsx:960"
+      issue: "epic-row title button missing cursor-pointer"
+    - path: "taskflow/src/routes/worklogs/WorklogsPage.tsx:995"
+      issue: "story-row title button missing cursor-pointer"
+    - path: "taskflow/src/routes/worklogs/WorklogsPage.tsx:1022"
+      issue: "subtask-row title button missing cursor-pointer"
+  missing:
+    - "Add `cursor-pointer` to the className of each of the three row-title buttons (epic, story, subtask) in WorklogsPage.tsx"
+  debug_session: .planning/debug/worklogs-cursor-pointer-on-text.md
 
 - truth: "Issue detail breadcrumb back-link shows 'Worklogs' when navigated from the Worklogs page (not 'Home')"
   status: failed
   reason: "User reported: the breadcrumb says 'home' instead of worklogs"
   severity: major
   test: 3
-  artifacts: []
-  missing: []
+  root_cause: "`routeLabel(pathname)` in taskflow/src/main.tsx (lines 285-298) has no `/worklogs` case. The shared `handleIssueClick` in `AppLayout` (main.tsx:322-325) correctly pushes `{ path: '/worklogs', label: routeLabel('/worklogs') }` into the breadcrumb store, but `routeLabel('/worklogs')` falls through all eleven prefix checks and returns the default `'Home'`. WorklogsPage's outlet wiring and onIssueClick are identical to BacklogPage — the gap is purely a missing entry in the route→label table."
+  artifacts:
+    - path: "taskflow/src/main.tsx:285-298"
+      issue: "routeLabel() missing /worklogs prefix mapping"
+  missing:
+    - "Add `if (pathname.startsWith('/worklogs')) return 'Worklogs';` to routeLabel() in taskflow/src/main.tsx"
+  debug_session: .planning/debug/worklogs-issue-detail-breadcrumb-home.md
