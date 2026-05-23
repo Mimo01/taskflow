@@ -7,7 +7,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { getDefaultSidebarItems } from '@/components/app/sidebar-items';
+import { getDefaultSidebarItems, type SidebarItem } from '@/components/app/sidebar-items';
 import { setJiraConcurrencyLimit as setConcurrencyRuntime } from '../lib/concurrency';
 import { createTauriStorage } from '../lib/tauri-storage';
 import type { Theme } from '../services/theme';
@@ -15,11 +15,6 @@ import type { QuickFilter } from './filter.store';
 
 export type Density = 'compact' | 'default' | 'comfortable';
 export type CommentSortOrder = 'newest' | 'oldest';
-
-export interface SidebarItem {
-  id: string;
-  visible: boolean;
-}
 
 interface SettingsState {
   theme: Theme;
