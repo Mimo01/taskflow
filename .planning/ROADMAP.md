@@ -199,6 +199,12 @@ Plans:
 4. `grep -r` for role-gated conditionals across `taskflow/src/components/` and `taskflow/src/routes/` returns no results (ROLES-05)
 5. Every sidebar nav item and every dashboard surface is accessible to all users by default — no role-conditional visibility remains anywhere in the app (ROLES-06)
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 66-01-PLAN.md — sidebar-items no-arg all-visible default + settings store role/preset removal + v22 migration (ROLES-04, ROLES-06)
+- [ ] 66-02-PLAN.md — remove preset buttons + role step/section, delete dead files, update tests, verify ROLES-05 grep (ROLES-01, ROLES-02, ROLES-03, ROLES-05)
+
 ### Phase 67: Settings UI Cleanup
 
 **Goal:** Tighten Settings → Appearance + Sidebar pages so sidebar configuration lives in one place with visibility-only controls.
