@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "the cursor is not pointer on the epic/issue text, only the cell"
 created: 2026-05-23T00:30:00Z
 updated: 2026-05-23T00:35:00Z
