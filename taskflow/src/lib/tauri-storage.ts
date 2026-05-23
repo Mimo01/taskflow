@@ -52,7 +52,7 @@ export async function persistChangelogBeforeRestart(markdown: string | null): Pr
   const STORE_KEY = 'settings-store';
   // The value stored by Zustand's createJSONStorage is a JSON-encoded string.
   const raw = await settingsLazyStore.get<string>(STORE_KEY);
-  let parsed: { state: Record<string, unknown>; version: number } = { state: {}, version: 21 };
+  let parsed: { state: Record<string, unknown>; version: number } = { state: {}, version: 22 };
   if (typeof raw === 'string') {
     try {
       parsed = JSON.parse(raw) as { state: Record<string, unknown>; version: number };
