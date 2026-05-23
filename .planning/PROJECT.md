@@ -117,12 +117,13 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ Full test suite passing, zero regressions (1356 passing, 0 failing, 0 warnings) — v1.10 Phase 65
 - ✓ Tech-debt cleanup of carried v1.9 + v1.8 items (CLEAN-01..07): WorklogsPage timer/error/fragment fixes, DatePreset type move, stale sidebar test mock, AIO TESTCASE_STATUS_MAP 51/52, runtime AIO status map from /config — v1.10 Phase 65
 - ✓ Dead code sweep: zero stale widget/workload imports after v1.9 removals — v1.9 Phase 63
+- ✓ Remove Developer/PM role concept across settings, wizard, sidebar, and store: `getDefaultSidebarItems` no-arg all-visible, settings store at v22, onboarding wizard 4 steps, PresetButtons/RoleSection/RoleStep deleted — v1.10 Phase 66
 
 ### Active
 
 <!-- v1.10 — Cleanup, Roles Removal & Standup Notes (REQ-IDs assigned in REQUIREMENTS.md) -->
 
-- [ ] Remove Developer/PM role concept across settings, wizard, sidebar, and dashboard
+- [ ] Remove Developer/PM role concept across settings, wizard, sidebar, and dashboard (Validated in Phase 66)
 - [ ] Settings cleanup: remove sidebar-items panel from Appearance
 - [ ] Sidebar settings = visibility toggles only (no reorder, all shown by default)
 - [ ] Startup wizard: new Integrations step (AIO + Tempo)
