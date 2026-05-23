@@ -51,7 +51,6 @@ export function normalizeStatusLabel(raw: string | undefined): string {
 
 // ─── Runtime AIO status map (CLEAN-07) ──────────────────────────────────────
 //
-// Replaces the removed static AIO_STATUS_MAP constant.
 // Populated by initializeAioStatusMap() when AIO integration activates.
 // normalizeStatusById reads this cache — returns 'notRun' for any unknown ID.
 
