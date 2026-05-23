@@ -333,6 +333,8 @@ type RawTestCaseWithRun = {
 
 // Maps numeric AIO testRunStatusID to chip status string
 const TESTCASE_STATUS_MAP: Record<number, string> = {
+  51: 'NOT_EXECUTED',
+  52: 'IN_PROGRESS',
   53: 'PASS',
   901: 'PASS',
   54: 'FAIL',
