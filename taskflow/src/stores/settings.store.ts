@@ -155,7 +155,6 @@ interface SettingsState {
   sidebarItems: SidebarItem[];
   setSidebarItems: (items: SidebarItem[]) => void;
   setSidebarItemVisible: (id: string, visible: boolean) => void;
-  reorderSidebarItem: (fromIndex: number, toIndex: number) => void;
 }
 
 function appendAioItemIfMissing(items: SidebarItem[]): SidebarItem[] {
@@ -304,13 +303,6 @@ export const useSettingsStore = create<SettingsState>()(
             item.id === id ? { ...item, visible } : item,
           ),
         })),
-      reorderSidebarItem: (fromIndex, toIndex) =>
-        set((s) => {
-          const arr = [...s.sidebarItems];
-          const [item] = arr.splice(fromIndex, 1);
-          arr.splice(toIndex, 0, item);
-          return { sidebarItems: arr };
-        }),
     }),
     {
       name: 'settings-store',
