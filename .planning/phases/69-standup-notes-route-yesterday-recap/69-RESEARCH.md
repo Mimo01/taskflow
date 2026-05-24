@@ -769,22 +769,22 @@ function withLazy(Component: ComponentType) {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **GitLab `after` param behavior**
    - What we know: GitLab Events API documentation states `after` is a date filter
    - What's unclear: Whether it is inclusive or exclusive at the date boundary
-   - Recommendation: Implement with `after={dayBeforeYesterday}` + client-side filter on exact date. This is safe regardless of API behavior.
+   - RESOLVED: Implement with `after={dayBeforeYesterday}` + client-side filter on exact date. This is safe regardless of API behavior.
 
 2. **Commit author email vs. username matching**
    - What we know: GitLab commits store `author_email` and `author_name` from git config, not necessarily the GitLab login username
    - What's unclear: Whether `gitlabUsername` reliably appears in `author_email` or `author_name`
-   - Recommendation: Use GitLab API's `author=` param (accepts email or name) as primary filter, with case-insensitive username match as secondary client-side filter. This is the safest approach.
+   - RESOLVED: Use GitLab API's `author=` param (accepts email or name) as primary filter, with case-insensitive username match as secondary client-side filter. This is the safest approach.
 
 3. **Jira comments fetch volume**
    - What we know: D-02 requires a separate comments call per issue after JQL result (max 50 issues)
    - What's unclear: Whether 50 sequential comment fetches is acceptable latency
-   - Recommendation: Use `Promise.all()` with the existing `jiraConcurrencyLimit` pattern if available, or fire all 50 in parallel (Jira Server typically handles this). The Jira section will have its own loading state so latency is isolated.
+   - RESOLVED: Use `Promise.all()` with the existing `jiraConcurrencyLimit` pattern if available, or fire all 50 in parallel (Jira Server typically handles this). The Jira section will have its own loading state so latency is isolated.
 
 ---
 
