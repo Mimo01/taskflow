@@ -12,6 +12,22 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { createTauriStorage } from '../lib/tauri-storage';
 
+/** Default values for all persisted auth data fields (excludes _hasHydrated and actions). */
+const initialAuthState = {
+  jiraConnected: false,
+  gitlabConnected: false,
+  jiraBaseUrl: null as string | null,
+  gitlabBaseUrl: null as string | null,
+  activeJiraProject: null as string | null,
+  activeGitlabProject: null as number | null,
+  activeGitlabProjectPath: null as string | null,
+  jiraUserDisplayName: null as string | null,
+  jiraUsername: null as string | null,
+  jiraUserKey: null as string | null,
+  gitlabUserId: null as number | null,
+  gitlabUsername: null as string | null,
+};
+
 interface AuthState {
   jiraConnected: boolean;
   gitlabConnected: boolean;
@@ -46,23 +62,17 @@ interface AuthState {
   setGitlabUserId: (id: number) => void;
   /** Set GitLab username for @mention detection. */
   setGitlabUsername: (username: string | null) => void;
+  /**
+   * Reset all auth data fields to defaults (all null/false).
+   * Preserves _hasHydrated and action functions (merge-mode set).
+   */
+  resetAuth: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      jiraConnected: false,
-      gitlabConnected: false,
-      jiraBaseUrl: null,
-      gitlabBaseUrl: null,
-      activeJiraProject: null,
-      activeGitlabProject: null,
-      activeGitlabProjectPath: null,
-      jiraUserDisplayName: null,
-      jiraUsername: null,
-      jiraUserKey: null,
-      gitlabUserId: null,
-      gitlabUsername: null,
+      ...initialAuthState,
       _hasHydrated: false,
       setJiraConnected: (connected, baseUrl) =>
         set((state) => ({
@@ -81,6 +91,7 @@ export const useAuthStore = create<AuthState>()(
         set({ jiraUserDisplayName: displayName, jiraUsername: username, jiraUserKey: key ?? null }),
       setGitlabUserId: (id) => set({ gitlabUserId: id }),
       setGitlabUsername: (username) => set({ gitlabUsername: username }),
+      resetAuth: () => set({ ...initialAuthState }),
     }),
     {
       name: 'auth-store',
