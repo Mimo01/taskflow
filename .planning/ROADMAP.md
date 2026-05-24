@@ -287,7 +287,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 69-04-PLAN.md — four independent useQuery hooks + schedule-aware yesterdayDate + YesterdayColumn data-join, group components, per-section states, Copy markdown, Refresh, human-verify (STAND-02..06)
+- [x] 69-04-PLAN.md — four independent useQuery hooks + schedule-aware yesterdayDate + YesterdayColumn data-join, group components, per-section states, Copy markdown, Refresh, human-verify (STAND-02..06)
 
 ### Phase 70: Standup Notes — Today Section
 
