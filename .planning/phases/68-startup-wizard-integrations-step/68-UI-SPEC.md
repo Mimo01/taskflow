@@ -35,7 +35,7 @@ Declared values (multiples of 4). Drawn from patterns in existing wizard steps (
 | Token | Value | Usage |
 |-------|-------|-------|
 | xs | 4px | Icon-to-text gaps (Loader2 + label, XCircle + label) |
-| sm | 8px | Internal form field sub-gaps (gap-1.5 = 6px rounds to sm) |
+| sm | 8px | Internal form field sub-gaps (label-to-input stacking, use gap-2) |
 | md | 16px | Default element spacing within form groups |
 | lg | 24px | Step content section gaps (gap-6) |
 | xl | 32px | Step outer vertical padding (py-8 = 32px) |
@@ -43,7 +43,6 @@ Declared values (multiples of 4). Drawn from patterns in existing wizard steps (
 | 3xl | 64px | No usage in this phase |
 
 Exceptions:
-- `gap-1.5` (6px) used for label-to-input stacking — matches existing `IntegrationsSection.tsx` and `GitLabStep.tsx` patterns; do not change.
 - Checkbox touch target: native `<input type="checkbox" className="h-4 w-4">` — matches `IntegrationsSection.tsx` pattern exactly.
 
 ---
@@ -55,11 +54,12 @@ All sizes match existing wizard steps and IntegrationsSection. Source: direct co
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
 | Step heading | 20px (text-xl) | 600 (font-semibold) | 1.2 | "Set up Integrations" — matches GitLabStep h2 |
-| Body / description | 14px (text-sm) | 400 (font-normal) | 1.5 | Step subtitle, toggle description text |
-| Label | 14px (text-sm) | 500 (font-medium) | 1.5 | Toggle primary labels, AIO Project label |
+| Body / description | 14px (text-sm) | 400 (font-normal) | 1.5 | Step subtitle, toggle description text, toggle primary labels, AIO Project label |
 | Caption | 12px (text-xs) | 400 (font-normal) | 1.5 | Stale-key warning, picker hint, muted-foreground notes |
 
 Section subheadings (AIO / Tempo group headers): 14px (text-sm), weight 600 (font-semibold), `text-muted-foreground uppercase tracking-wide` — matches `IntegrationsSection.tsx` pattern.
+
+Toggle primary labels and form labels use 14px weight 400 (font-normal). Visual distinction from description text is achieved via color (`default foreground` vs `text-muted-foreground`), not weight.
 
 ---
 
@@ -122,7 +122,8 @@ Source: CONTEXT.md D-08, confirmed by GitLabStep.tsx:67 and JiraStep pattern.
 Extracted component renders:
 1. Section subheading: `<h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">AIO Test Management</h3>`
 2. Toggle row: `label.flex.items-center.justify-between.gap-4.cursor-pointer` with `<input type="checkbox" className="h-4 w-4 accent-primary">`
-3. Conditional picker block (only when `aioEnabled`): loading / error / empty / project-select states — all four states must be present (CONTEXT.md D-07)
+3. Label-to-input stacking within the toggle block uses `gap-2` (8px).
+4. Conditional picker block (only when `aioEnabled`): loading / error / empty / project-select states — all four states must be present (CONTEXT.md D-07)
 
 ### Tempo section (inline in IntegrationsStep — not extracted)
 Toggle row only: `label.flex.items-center.justify-between.gap-4.cursor-pointer` — matches IntegrationsSection Tempo block exactly.
