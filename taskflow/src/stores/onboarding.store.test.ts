@@ -17,6 +17,7 @@ describe('onboarding.store', () => {
         gitlabProjects: [],
         jiraValidated: false,
         gitlabValidated: false,
+        integrationsVisited: false,
       });
     });
   });
@@ -58,5 +59,23 @@ describe('onboarding.store', () => {
     });
     const state = useOnboardingStore.getState();
     expect(state.jiraUrl).toBe('https://jira.example.com');
+  });
+
+  it('goNext clamps at step 4', () => {
+    act(() => {
+      useOnboardingStore.getState().goNext(); // 0→1
+      useOnboardingStore.getState().goNext(); // 1→2
+      useOnboardingStore.getState().goNext(); // 2→3
+      useOnboardingStore.getState().goNext(); // 3→4
+      useOnboardingStore.getState().goNext(); // clamped at 4
+    });
+    expect(useOnboardingStore.getState().step).toBe(4);
+  });
+
+  it('set updates integrationsVisited', () => {
+    act(() => {
+      useOnboardingStore.getState().set({ integrationsVisited: true });
+    });
+    expect(useOnboardingStore.getState().integrationsVisited).toBe(true);
   });
 });
