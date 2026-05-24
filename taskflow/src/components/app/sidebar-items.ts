@@ -14,6 +14,8 @@ export interface SidebarNavDef {
   iconName: string;
   /** Visual grouping section */
   section: string;
+  /** When true, item cannot be hidden — checkbox is checked and disabled in settings */
+  alwaysVisible?: boolean;
 }
 
 export interface SidebarItem {
@@ -37,6 +39,7 @@ export const SIDEBAR_NAV_ITEMS: SidebarNavDef[] = [
     path: '/dashboard',
     iconName: 'LayoutDashboard',
     section: 'main',
+    alwaysVisible: true,
   },
   {
     id: 'my-tasks',

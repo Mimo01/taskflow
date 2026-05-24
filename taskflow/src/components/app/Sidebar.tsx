@@ -288,7 +288,7 @@ export default function Sidebar() {
     items: SIDEBAR_NAV_ITEMS.filter(
       (nav) =>
         nav.section === section.id &&
-        (nav.id === 'worklogs' ? tempoEnabled : visibleIds.has(nav.id)) &&
+        (nav.id === 'worklogs' ? tempoEnabled && visibleIds.has(nav.id) : visibleIds.has(nav.id)) &&
         !(nav.section === 'testing' && (!aioEnabled || !selectedAioProjectKey)),
     ),
   })).filter((section) => section.items.length > 0);

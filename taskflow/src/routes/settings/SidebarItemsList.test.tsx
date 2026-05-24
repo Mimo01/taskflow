@@ -44,14 +44,17 @@ describe('SidebarItemsList', () => {
     const user = userEvent.setup();
     render(<SidebarItemsList />);
 
-    // Find the checkbox for the first item (Dashboard)
     const checkboxes = screen.getAllByRole('checkbox');
     expect(checkboxes.length).toBeGreaterThanOrEqual(SIDEBAR_NAV_ITEMS.length);
 
-    // The first item in getDefaultSidebarItems() is 'dashboard' and is visible
-    // Clicking it should toggle it off
+    // Dashboard (index 0) is alwaysVisible — disabled, clicking it does nothing
+    expect(checkboxes[0]).toBeDisabled();
     await user.click(checkboxes[0]);
-    expect(setSidebarItemVisible).toHaveBeenCalledWith('dashboard', false);
+    expect(setSidebarItemVisible).not.toHaveBeenCalledWith('dashboard', expect.anything());
+
+    // My Tasks (index 1) is a normal toggleable item
+    await user.click(checkboxes[1]);
+    expect(setSidebarItemVisible).toHaveBeenCalledWith('my-tasks', false);
   });
 
   it('renders section headers: Main, Planning, Code, Tracking, Testing', () => {
