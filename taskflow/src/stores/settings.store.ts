@@ -226,6 +226,11 @@ function appendWorklogsItemIfMissing(items: SidebarItem[]): SidebarItem[] {
   return [...items, { id: 'worklogs', visible: true }];
 }
 
+function appendStandupNotesItemIfMissing(items: SidebarItem[]): SidebarItem[] {
+  if (items.some((i) => i.id === 'standup-notes')) return items;
+  return [...items, { id: 'standup-notes', visible: true }];
+}
+
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
@@ -337,7 +342,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 22,
+      version: 23,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
@@ -430,6 +435,11 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (version < 22) {
           delete (s as Record<string, unknown>).role;
+        }
+        if (version < 23) {
+          if (Array.isArray(s.sidebarItems)) {
+            s.sidebarItems = appendStandupNotesItemIfMissing(s.sidebarItems as SidebarItem[]);
+          }
         }
         return persisted as SettingsState;
       },
