@@ -29,6 +29,15 @@ const MONTH_NAMES = [
  * @param dateStr YYYY-MM-DD
  * @returns e.g. "Monday, 26 May 2026"
  */
+function getColumnHeading(dateStr: string): string {
+  const today = new Date();
+  const calYesterday = new Date(today);
+  calYesterday.setDate(today.getDate() - 1);
+  if (dateStr === calYesterday.toISOString().slice(0, 10)) return 'Yesterday';
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return DAY_NAMES[new Date(y, m - 1, d).getDay()];
+}
+
 function formatDateLabel(dateStr: string): string {
   // Parse the ISO date components directly to avoid TZ shifts.
   const [yearStr, monthStr, dayStr] = dateStr.split('-');
@@ -96,7 +105,7 @@ export default function StandupNotesPage() {
         {/* Left column — Yesterday recap (50%) */}
         <div className="w-1/2 overflow-auto border-r border-border px-6 py-4">
           <div className="mb-4">
-            <h2 className="text-xl font-semibold">Yesterday</h2>
+            <h2 className="text-xl font-semibold">{getColumnHeading(yesterdayDate)}</h2>
             <p className="text-xs text-muted-foreground">{dateLabel}</p>
           </div>
 
