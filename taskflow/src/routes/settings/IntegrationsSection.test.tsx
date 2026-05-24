@@ -168,10 +168,10 @@ describe('IntegrationsSection — AIO project picker', () => {
   it('hides the picker when aioEnabled is false', () => {
     mockStore.aioEnabled = false;
     renderWithClient(<IntegrationsSection />);
-    // Label "AIO Project" should NOT be in the DOM (D-02 gate).
+    // Label "AIO Project Key" should NOT be in the DOM (D-02 gate).
     // Note: "AIO Test Management" heading is still rendered — match exact label.
-    expect(screen.queryByLabelText('AIO Project')).toBeNull();
-    expect(screen.queryByText('Pick the AIO Test Management project this app shows.')).toBeNull();
+    expect(screen.queryByLabelText('AIO Project Key')).toBeNull();
+    expect(screen.queryByText('Pick the AIO Test Management project key this app shows.')).toBeNull();
   });
 
   it('renders the project list when aioEnabled is true and the query resolves', async () => {
@@ -185,7 +185,7 @@ describe('IntegrationsSection — AIO project picker', () => {
     ]);
     renderWithClient(<IntegrationsSection />);
     // Label is visible
-    expect(screen.getByText('AIO Project')).toBeInTheDocument();
+    expect(screen.getByText('AIO Project Key')).toBeInTheDocument();
     // After query resolves, all 3 projects render as <option>s inside the mocked
     // SelectContent (one <option> per project + the disabled placeholder).
     await waitFor(() => {
@@ -204,7 +204,7 @@ describe('IntegrationsSection — AIO project picker', () => {
     expect(matches.length).toBeGreaterThanOrEqual(2);
     // Helper text under picker is present
     expect(
-      screen.getByText('Pick the AIO Test Management project this app shows.'),
+      screen.getByText('Pick the AIO Test Management project key this app shows.'),
     ).toBeInTheDocument();
   });
 

@@ -30,6 +30,7 @@ export default function AioBlock() {
   useEffect(() => {
     // WR-03: skip the Stronghold IPC when Jira is unconfigured.
     if (!jiraBaseUrl) return;
+    setToken(null); // reset before the async read so the query is disabled during IPC
     readSecret('jira-pat')
       .then(setToken)
       .catch(() => setToken(null));
@@ -86,7 +87,7 @@ export default function AioBlock() {
       {aioEnabled && (
         /* UI-SPEC: gap-2 NOT gap-1.5 */
         <div className="flex flex-col gap-2">
-          <Label htmlFor="aio-project">AIO Project</Label>
+          <Label htmlFor="aio-project">AIO Project Key</Label>
           {isLoading ? (
             /* UI-SPEC: gap-2 NOT gap-1.5 */
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -118,7 +119,7 @@ export default function AioBlock() {
               <SelectContent />
             </Select>
           ) : (
-            <Select value={selectedAioProjectKey ?? ''} onValueChange={setSelectedAioProjectKey}>
+            <Select value={selectedAioProjectKey ?? ''} onValueChange={(v) => setSelectedAioProjectKey(v || null)}>
               <SelectTrigger id="aio-project" className="w-full">
                 <span className="flex flex-1 text-left text-sm">
                   {selectedProject ? (
@@ -145,7 +146,7 @@ export default function AioBlock() {
           )}
           {!isLoading && !isError && projects && projects.length > 0 && (
             <p className="text-xs text-muted-foreground">
-              Pick the AIO Test Management project this app shows.
+              Pick the AIO Test Management project key this app shows.
             </p>
           )}
         </div>

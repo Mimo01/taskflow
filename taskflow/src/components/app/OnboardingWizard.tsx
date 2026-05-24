@@ -28,6 +28,7 @@ export default function OnboardingWizard() {
   const { step, jiraValidated, gitlabValidated, integrationsVisited } = useOnboardingStore();
 
   const completedSteps: number[] = [];
+  if (step > 0) completedSteps.push(0);
   if (jiraValidated) completedSteps.push(1);
   if (gitlabValidated) completedSteps.push(2);
   if (integrationsVisited) completedSteps.push(3);

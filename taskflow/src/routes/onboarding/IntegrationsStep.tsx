@@ -39,6 +39,7 @@ export default function IntegrationsStep() {
 
   useEffect(() => {
     if (!jiraBaseUrl) return;
+    setToken(null); // reset before the async read so the query is disabled during IPC
     readSecret('jira-pat')
       .then(setToken)
       .catch(() => setToken(null));
@@ -57,9 +58,19 @@ export default function IntegrationsStep() {
   // D-02: disabled while loading
   // D-03: disabled on error
   // D-04: disabled when list loads empty
+  // WR-01: disabled when the persisted key is no longer in the fetched list
+  const selectedKeyIsStale =
+    !!selectedAioProjectKey &&
+    Array.isArray(projects) &&
+    !projects.find((p) => p.projectKey === selectedAioProjectKey);
+
   const continueDisabled =
     aioEnabled &&
-    (!selectedAioProjectKey || isLoading || isError || (Array.isArray(projects) && projects.length === 0));
+    (!selectedAioProjectKey ||
+      selectedKeyIsStale ||
+      isLoading ||
+      isError ||
+      (Array.isArray(projects) && projects.length === 0));
 
   // ── Navigation ─────────────────────────────────────────────────────────────
   const handleContinue = () => {
