@@ -34,9 +34,12 @@ export default function SidebarItemsList() {
                 >
                   <input
                     type="checkbox"
-                    checked={isVisible}
-                    onChange={(e) => setSidebarItemVisible(nav.id, e.target.checked)}
-                    className="h-4 w-4 rounded border-border accent-primary"
+                    checked={nav.alwaysVisible ? true : isVisible}
+                    disabled={nav.alwaysVisible}
+                    onChange={(e) =>
+                      nav.alwaysVisible ? undefined : setSidebarItemVisible(nav.id, e.target.checked)
+                    }
+                    className="h-4 w-4 rounded border-border accent-primary disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <span className="text-sm">{nav.label}</span>
                 </div>
