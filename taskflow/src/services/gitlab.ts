@@ -1073,3 +1073,160 @@ export async function searchGitLabMRs(
 
   return data;
 }
+
+/**
+ * Shape of a Git commit returned by GitLab's repository commits endpoint.
+ * Used for the Standup Notes Yesterday recap (STAND-05).
+ */
+export interface GitLabCommit {
+  id: string;
+  short_id: string;
+  title: string;
+  message: string;
+  author_name: string;
+  author_email: string;
+  authored_date: string; // ISO 8601
+  web_url: string;
+}
+
+/**
+ * Fetch commits authored by a specific user on the given project for a date.
+ *
+ * STAND-05: Used by the Standup Notes page to show Git commits in the Yesterday recap.
+ *
+ * Strategy (D-14 resolution: activeGitlabProject only):
+ * - GET /api/v4/projects/:projectId/repository/commits with since/until for full UTC day
+ * - Client-side author filter (case-insensitive): author_name match or author_email contains username
+ *
+ * @param baseUrl         - GitLab base URL (e.g. "https://gitlab.example.com")
+ * @param token           - Personal Access Token (PRIVATE-TOKEN header)
+ * @param projectId       - GitLab project ID (activeGitlabProject from auth store)
+ * @param date            - Target date as YYYY-MM-DD
+ * @param authorUsername  - GitLab username to filter by (gitlabUsername from auth store)
+ * @returns Array of commits authored by the user on the given date
+ */
+export async function fetchUserCommits(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+  date: string,
+  authorUsername: string,
+): Promise<GitLabCommit[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const since = `${date}T00:00:00.000Z`;
+  const until = `${date}T23:59:59.999Z`;
+  const url = `${base}/api/v4/projects/${projectId}/repository/commits?since=${encodeURIComponent(since)}&until=${encodeURIComponent(until)}&per_page=100&with_stats=false`;
+
+  let response: Response;
+  try {
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
+      },
+      'Load Standup Commits',
+    );
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to fetch commits', response.status, 'gitlab');
+    }
+    throw new Error(`Failed to fetch commits: status ${response.status}`);
+  }
+
+  const data = (await response.json()) as GitLabCommit[];
+
+  // Pitfall 5: GitLab author_name is from git config, not necessarily the login username.
+  // Filter case-insensitively: match by name equality or email contains username.
+  return data.filter(
+    (c) =>
+      c.author_name.toLowerCase() === authorUsername.toLowerCase() ||
+      c.author_email.toLowerCase().includes(authorUsername.toLowerCase()),
+  );
+}
+
+/**
+ * Shape of a GitLab User Event for MR activity.
+ * Used for the Standup Notes Yesterday recap (STAND-06).
+ */
+export interface GitLabUserMREvent {
+  id: number;
+  action_name: 'commented' | 'approved';
+  target_type: 'MergeRequest';
+  target_id: number;
+  target_iid: number;
+  target_title: string;
+  created_at: string; // ISO 8601
+  project_id: number;
+}
+
+/**
+ * Fetch MR activity events (commented + approved) for a user on a given date.
+ *
+ * STAND-06: Used by the Standup Notes page to show MR activity in the Yesterday recap.
+ *
+ * Strategy (D-04, D-05):
+ * - Fires two requests in parallel via Promise.allSettled:
+ *   action=commented and action=approved, both for MergeRequest target_type
+ * - Pitfall 4: GitLab `after` param is exclusive — pass dayBefore to include yesterday's events
+ * - Client-side filter: keep only events where created_at.slice(0,10) === date AND target_type === 'MergeRequest'
+ * - If one request fails, the other's events are still returned (allSettled isolation)
+ *
+ * @param baseUrl  - GitLab base URL (e.g. "https://gitlab.example.com")
+ * @param token    - Personal Access Token (PRIVATE-TOKEN header)
+ * @param userId   - GitLab user ID (gitlabUserId from auth store)
+ * @param date     - Target date as YYYY-MM-DD
+ * @returns Array of MR events (commented + approved) for the user on the given date
+ */
+export async function fetchUserMREvents(
+  baseUrl: string,
+  token: string,
+  userId: number,
+  date: string,
+): Promise<GitLabUserMREvent[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' };
+
+  // Pitfall 4: GitLab `after` param is exclusive — compute day before to include yesterday's events
+  const dayBeforeDate = new Date(date);
+  dayBeforeDate.setDate(dayBeforeDate.getDate() - 1);
+  const dayBefore = dayBeforeDate.toISOString().slice(0, 10);
+
+  const [commentedResult, approvedResult] = await Promise.allSettled([
+    apiFetch(
+      'gitlab',
+      `${base}/api/v4/users/${userId}/events?action=commented&target_type=merge_request&after=${dayBefore}&per_page=100`,
+      { headers },
+      'Load Standup MR Events',
+    ),
+    apiFetch(
+      'gitlab',
+      `${base}/api/v4/users/${userId}/events?action=approved&target_type=merge_request&after=${dayBefore}&per_page=100`,
+      { headers },
+      'Load Standup MR Events',
+    ),
+  ]);
+
+  const events: GitLabUserMREvent[] = [];
+
+  for (const result of [commentedResult, approvedResult]) {
+    if (result.status === 'fulfilled' && result.value.ok) {
+      const data = (await result.value.json()) as GitLabUserMREvent[];
+      // Client-side filter: exact date match and MergeRequest target only
+      events.push(
+        ...data.filter(
+          (e) => e.created_at.slice(0, 10) === date && e.target_type === 'MergeRequest',
+        ),
+      );
+    }
+  }
+
+  return events;
+}
