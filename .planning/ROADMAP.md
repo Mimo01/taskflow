@@ -276,6 +276,19 @@ Plans:
 3. Yesterday recap displays four discrete sections — Tempo worklogs (issue/duration/comment), Jira changelog (status transitions + comments I authored), Git commits I authored on the configured GitLab project, and MR activity I performed (comments + approvals) (STAND-03, STAND-04, STAND-05, STAND-06)
 4. Each data source loads independently and degrades gracefully when the relevant integration is disabled, unreachable, or returns zero items — the page renders without errors and shows an empty-state per section
 
+**Plans:** 4 plans
+
+Plans:
+**Wave 1** *(parallel — no file overlap)*
+
+- [ ] 69-01-PLAN.md — standup-date utility (last-working-day + Jira key extraction) + fetchYesterdayJiraActivity service (STAND-02, STAND-04, STAND-05)
+- [ ] 69-02-PLAN.md — fetchUserCommits + fetchUserMREvents GitLab service functions (STAND-05, STAND-06)
+- [ ] 69-03-PLAN.md — /standup-notes route + sidebar entry + breadcrumb, page shell (header + Today placeholder) (STAND-01)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 69-04-PLAN.md — four independent useQuery hooks + schedule-aware yesterdayDate + YesterdayColumn data-join, group components, per-section states, Copy markdown, Refresh, human-verify (STAND-02..06)
+
 ### Phase 70: Standup Notes — Today Section
 
 **Goal:** Complete the Standup Notes page with the Today section so the page is fully usable for daily standups.
