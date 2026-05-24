@@ -1151,3 +1151,82 @@ export async function fetchUserCommits(
       c.author_email.toLowerCase().includes(authorUsername.toLowerCase()),
   );
 }
+
+/**
+ * Shape of a GitLab User Event for MR activity.
+ * Used for the Standup Notes Yesterday recap (STAND-06).
+ */
+export interface GitLabUserMREvent {
+  id: number;
+  action_name: 'commented' | 'approved';
+  target_type: 'MergeRequest';
+  target_id: number;
+  target_iid: number;
+  target_title: string;
+  created_at: string; // ISO 8601
+  project_id: number;
+}
+
+/**
+ * Fetch MR activity events (commented + approved) for a user on a given date.
+ *
+ * STAND-06: Used by the Standup Notes page to show MR activity in the Yesterday recap.
+ *
+ * Strategy (D-04, D-05):
+ * - Fires two requests in parallel via Promise.allSettled:
+ *   action=commented and action=approved, both for MergeRequest target_type
+ * - Pitfall 4: GitLab `after` param is exclusive — pass dayBefore to include yesterday's events
+ * - Client-side filter: keep only events where created_at.slice(0,10) === date AND target_type === 'MergeRequest'
+ * - If one request fails, the other's events are still returned (allSettled isolation)
+ *
+ * @param baseUrl  - GitLab base URL (e.g. "https://gitlab.example.com")
+ * @param token    - Personal Access Token (PRIVATE-TOKEN header)
+ * @param userId   - GitLab user ID (gitlabUserId from auth store)
+ * @param date     - Target date as YYYY-MM-DD
+ * @returns Array of MR events (commented + approved) for the user on the given date
+ */
+export async function fetchUserMREvents(
+  baseUrl: string,
+  token: string,
+  userId: number,
+  date: string,
+): Promise<GitLabUserMREvent[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' };
+
+  // Pitfall 4: GitLab `after` param is exclusive — compute day before to include yesterday's events
+  const dayBeforeDate = new Date(date);
+  dayBeforeDate.setDate(dayBeforeDate.getDate() - 1);
+  const dayBefore = dayBeforeDate.toISOString().slice(0, 10);
+
+  const [commentedResult, approvedResult] = await Promise.allSettled([
+    apiFetch(
+      'gitlab',
+      `${base}/api/v4/users/${userId}/events?action=commented&target_type=merge_request&after=${dayBefore}&per_page=100`,
+      { headers },
+      'Load Standup MR Events',
+    ),
+    apiFetch(
+      'gitlab',
+      `${base}/api/v4/users/${userId}/events?action=approved&target_type=merge_request&after=${dayBefore}&per_page=100`,
+      { headers },
+      'Load Standup MR Events',
+    ),
+  ]);
+
+  const events: GitLabUserMREvent[] = [];
+
+  for (const result of [commentedResult, approvedResult]) {
+    if (result.status === 'fulfilled' && result.value.ok) {
+      const data = (await result.value.json()) as GitLabUserMREvent[];
+      // Client-side filter: exact date match and MergeRequest target only
+      events.push(
+        ...data.filter(
+          (e) => e.created_at.slice(0, 10) === date && e.target_type === 'MergeRequest',
+        ),
+      );
+    }
+  }
+
+  return events;
+}
