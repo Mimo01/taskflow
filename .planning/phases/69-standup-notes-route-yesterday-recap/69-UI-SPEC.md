@@ -77,16 +77,17 @@ Source: existing `WorklogsPage` header (`px-6 py-4`), scouted from codebase.
 
 | Role | Size | Weight | Line Height | Tailwind class |
 |------|------|--------|-------------|----------------|
-| Page title | 24px (text-2xl) | 700 (bold) | 1.2 | `text-2xl font-bold` |
+| Page title | 24px (text-2xl) | 600 (semibold) | 1.2 | `text-2xl font-semibold` |
 | Column heading | 20px (text-xl) | 600 (semibold) | 1.2 | `text-xl font-semibold` |
 | Issue group header | 14px (text-sm) | 600 (semibold) | 1.4 | `text-sm font-semibold` |
-| Body / sub-items | 13px (text-[13px]) | 400 (normal) | 1.5 | `text-[13px] font-normal` |
-| Muted metadata | 12px (text-xs) | 400 (normal) | 1.5 | `text-xs text-muted-foreground` |
+| Body / sub-items + muted metadata | 12px (text-xs) | 400 (normal) | 1.5 | `text-xs font-normal` / `text-xs text-muted-foreground` |
 
-Declared font sizes: 24px, 20px, 14px, 12px (plus one body exception at 13px for sub-items — matches mockup density).
-Declared font weights: 400 (normal) + 600 (semibold). Bold (700) used only for the page title.
+Body sub-items and muted metadata share the 12px size. Distinguish them by color only: sub-item text uses `text-foreground`; metadata (date, stat line, sync status) uses `text-muted-foreground`.
 
-Source: mockup observation + scouted codebase patterns (`text-2xl font-bold` on DebugLogs, `text-xl font-semibold` on AIO/Epics pages).
+Declared font sizes: 24px, 20px, 14px, 12px (4 sizes).
+Declared font weights: 400 (normal) + 600 (semibold) (2 weights).
+
+Source: mockup observation + scouted codebase patterns (`text-2xl font-semibold` consistent with AIO/Epics pages, `text-xl font-semibold` on AIO/Epics pages).
 
 ---
 
@@ -99,7 +100,7 @@ All values reference existing CSS custom properties from `src/index.css`.
 | Dominant (60%) | `var(--background)` / `bg-background` | Page background, column backgrounds |
 | Secondary (30%) | `var(--muted)` / `bg-muted` | Issue group header rows, Today placeholder section background |
 | Accent (10%) | `var(--primary)` / `bg-primary` | "Copy markdown" button only |
-| Muted text | `var(--muted-foreground)` / `text-muted-foreground` | Date, "synced Xm ago", stat line, sub-item text |
+| Muted text | `var(--muted-foreground)` / `text-muted-foreground` | Date, "synced Xm ago", stat line, metadata text |
 | Border | `var(--border)` / `border-border` | Column divider, section separators, issue group bottom borders |
 | Destructive | `var(--destructive)` | Not used in this phase |
 
@@ -194,7 +195,7 @@ Computed client-side before any API call. Logic:
 ### Today column placeholder (D-06, Phase 69 scope)
 
 Render the column shell with:
-- Column heading: `Today` (`text-xl font-semibold`) + current date in muted text
+- Column heading: `Today` (`text-xl font-semibold`) + current date in `text-xs text-muted-foreground`
 - Body: `EmptyState` with `Clock` icon, title "Today section coming soon", subtitle "Planned tasks, pinned issues, and worklog targets will appear here."
 
 ---
@@ -208,7 +209,7 @@ Render the column shell with:
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-- Title: `<h1 className="text-2xl font-bold">Standup notes</h1>` — note lowercase 'n' in "notes" (matches mockup)
+- Title: `<h1 className="text-2xl font-semibold">Standup notes</h1>` — lowercase 'n' in "notes" (matches mockup)
 - Date line: `<p className="text-xs text-muted-foreground">Monday, 26 May 2026</p>` — full weekday + day + month + year format
 - Sync status: `<span className="text-xs text-muted-foreground">• synced Xm ago</span>` — bullet separator, minutes since last successful fetch
 - Refresh: ghost small button, no icon
