@@ -227,11 +227,11 @@ Plans:
 2. `SidebarItemsList.tsx` renders only visibility toggles — no drag handles, no `dnd-kit` sortable, no reorder handlers (SETUI-02)
 3. Fresh-install and post-migration users see all sidebar nav items visible by default (SETUI-03)
 
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 
-- [ ] 67-01-PLAN.md — strip dnd-kit from SidebarItemsList (visibility-only checkbox list), remove reorderSidebarItem store action, update both test files, uninstall 4 @dnd-kit packages (SETUI-01, SETUI-02, SETUI-03)
+- [x] 67-01-PLAN.md — strip dnd-kit from SidebarItemsList (visibility-only checkbox list), remove reorderSidebarItem store action, update both test files, uninstall 4 @dnd-kit packages (SETUI-01, SETUI-02, SETUI-03)
 
 ### Phase 68: Startup Wizard — Integrations Step
 
