@@ -1,7 +1,8 @@
 ---
 phase: 69
 slug: standup-notes-route-yesterday-recap
-status: draft
+status: approved
+reviewed_at: 2026-05-24T00:00:00Z
 shadcn_initialized: true
 preset: base-nova
 created: 2026-05-24
