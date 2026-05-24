@@ -62,6 +62,21 @@ interface StandaloneMrGroup {
   events: GitLabUserMREvent[];
 }
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+/** Returns "Yesterday" if dateStr is the calendar day before today, otherwise the day name. */
+function getColumnHeading(dateStr: string): string {
+  const today = new Date();
+  const calYesterday = new Date(today);
+  calYesterday.setDate(today.getDate() - 1);
+  const calYesterdayIso = calYesterday.toISOString().slice(0, 10);
+  if (dateStr === calYesterdayIso) return 'Yesterday';
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return DAY_NAMES[new Date(y, m - 1, d).getDay()];
+}
+
 // ─── Markdown export ──────────────────────────────────────────────────────────
 
 export interface MarkdownSources {
@@ -342,7 +357,7 @@ export default function YesterdayColumn({
     <div>
       {/* Column heading */}
       <div className="mb-2">
-        <h2 className="text-xl font-semibold">Yesterday</h2>
+        <h2 className="text-xl font-semibold">{getColumnHeading(yesterdayDate)}</h2>
         <p className="text-xs text-muted-foreground">{dateLabel}</p>
       </div>
 
