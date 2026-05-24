@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-05-24T20:07:37.285Z",
+  "phase": "69",
+  "phase_name": "standup-notes-route-yesterday-recap",
+  "phase_dir": ".planning/phases/69-standup-notes-route-yesterday-recap",
+  "plan": 4,
+  "task": 3,
+  "total_tasks": 3,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": 1, "name": "Wire five useQuery hooks + yesterdayDate memo into StandupNotesPage", "status": "done", "commit": "99810df9"},
+    {"id": 2, "name": "Build YesterdayColumn + IssueActivityGroup + OtherCommitsGroup + StandaloneMrGroup", "status": "done", "commit": "2266ba10"},
+    {"id": 3, "name": "Human verification — Yesterday recap four-section behavior + Copy markdown", "status": "in_progress", "progress": "UAT in progress — 5 bugs found and fixed, 1 remaining issue (one section stuck on skeleton — not yet diagnosed)"}
+  ],
+  "remaining_tasks": [
+    {"id": 3, "name": "Identify and fix stuck skeleton section, get user approval", "status": "in_progress"}
+  ],
+  "blockers": [
+    {"description": "One of the four Yesterday sections is stuck on a loading skeleton — user has not yet confirmed which section", "type": "human_action", "workaround": "Ask user which section (Tempo/Jira/commits/MR events) is stuck; most likely Tempo if enabled but query hanging"}
+  ],
+  "human_actions_pending": [
+    {"action": "Test the app after latest fixes — specifically MR comments should now appear (note.noteable_type filter fix)", "context": "MR comment filter bug was fixed in fb4e7495", "blocking": true},
+    {"action": "Identify which section is stuck on skeleton (Tempo, Jira, commits, or MR events)", "context": "Three sections loaded, one stuck — likely Tempo if enabled, or may be resolved by MR fix", "blocking": true},
+    {"action": "Type 'approved' at checkpoint once page renders correctly", "context": "Plan 04 Task 3 is a human-verify checkpoint gate blocking phase completion", "blocking": true}
+  ],
+  "decisions": [
+    {"decision": "settings.store.ts bumped to v23 with appendStandupNotesItemIfMissing migration", "rationale": "Sidebar items require a store migration to appear in persisted state — same pattern as aio (v16) and worklogs (v21)", "phase": "69"},
+    {"decision": "MR comment events filter changed from target_type=MergeRequest to note.noteable_type=MergeRequest", "rationale": "GitLab Events API returns commented events with target_type: null; only note.noteable_type reliably identifies MR comments", "phase": "69"},
+    {"decision": "Column heading uses getColumnHeading() — 'Yesterday' only when calendar yesterday, otherwise day name", "rationale": "User feedback: 'It shouldn't say Yesterday when last working day wasn't yesterday'", "phase": "69"}
+  ],
+  "uncommitted_files": [],
+  "next_action": "Ask user which section is stuck on skeleton. If MR events section was stuck, it may be resolved by the fb4e7495 fix. Otherwise diagnose the specific section's query enabled condition.",
+  "context_notes": "All 4 plans executed and merged. Plan 04 worktree merge had a StandupNotesPage conflict (Plan 03 shell heading vs Plan 04 YesterdayColumn) resolved by taking Plan 04 version. Five UAT bugs fixed inline during checkpoint. One issue outstanding: stuck skeleton section identity unknown."
+}
