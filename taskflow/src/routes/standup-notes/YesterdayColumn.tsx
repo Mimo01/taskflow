@@ -29,6 +29,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { extractJiraKeyFromMessage } from '@/lib/standup-date';
 import type { GitLabCommit, GitLabUserMREvent } from '@/services/gitlab';
 import type { JiraActivityItem, StandupIssueMeta } from '@/services/jira';
+import { formatDuration } from '@/services/jira/duration';
 import type { TempoWorklog } from '@/services/tempo';
 import IssueActivityGroup, { type SubItem } from './IssueActivityGroup';
 import OtherCommitsGroup from './OtherCommitsGroup';
@@ -252,7 +253,7 @@ function buildGroups(
     for (const [issueKey, { seconds, summary }] of perIssue) {
       group.subItems.push({
         kind: 'worklog',
-        label: `${(seconds / 3600).toFixed(1)}h · ${issueKey} ${summary}`,
+        label: `${formatDuration(seconds)} · ${issueKey} ${summary}`,
       });
     }
   }
@@ -423,7 +424,7 @@ export default function YesterdayColumn({
       {/* D-10 Summary stat line — only when at least one source has data */}
       {hasStatLine && (
         <p className="text-xs text-muted-foreground mb-4">
-          {(totalSeconds / 3600).toFixed(1)}h logged across{' '}
+          {formatDuration(totalSeconds)} logged across{' '}
           {issueGroups.filter((g) => g.totalSeconds > 0).length} stories &middot; {commitCount}{' '}
           commits &middot; {mrEventCount} MR events
         </p>
