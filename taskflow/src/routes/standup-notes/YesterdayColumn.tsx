@@ -410,7 +410,7 @@ export default function YesterdayColumn({
         <div className="mb-3">
           <EmptyState
             icon={Clock}
-            title="No worklogs yesterday"
+            title={`No worklogs on ${getColumnHeading(yesterdayDate)}`}
             subtitle={`No time was logged on ${yesterdayDate} in Tempo.`}
           />
         </div>
@@ -431,7 +431,7 @@ export default function YesterdayColumn({
         <div className="mb-3">
           <EmptyState
             icon={MessageSquare}
-            title="No Jira activity yesterday"
+            title={`No Jira activity on ${getColumnHeading(yesterdayDate)}`}
             subtitle={`No status transitions or comments were found for ${yesterdayDate}.`}
           />
         </div>
@@ -452,7 +452,7 @@ export default function YesterdayColumn({
         <div className="mb-3">
           <EmptyState
             icon={GitBranch}
-            title="No commits yesterday"
+            title={`No commits on ${getColumnHeading(yesterdayDate)}`}
             subtitle={`No commits were authored by you on ${yesterdayDate}.`}
           />
         </div>
@@ -473,7 +473,7 @@ export default function YesterdayColumn({
         <div className="mb-3">
           <EmptyState
             icon={MessageSquare}
-            title="No MR activity yesterday"
+            title={`No MR activity on ${getColumnHeading(yesterdayDate)}`}
             subtitle={`No comments or approvals were recorded for ${yesterdayDate}.`}
           />
         </div>

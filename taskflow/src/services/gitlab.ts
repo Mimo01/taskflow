@@ -1159,12 +1159,13 @@ export async function fetchUserCommits(
 export interface GitLabUserMREvent {
   id: number;
   action_name: 'commented' | 'approved';
-  target_type: 'MergeRequest';
+  target_type: string | null;
   target_id: number;
   target_iid: number;
   target_title: string;
   created_at: string; // ISO 8601
   project_id: number;
+  note?: { noteable_type: string };
 }
 
 /**
@@ -1200,9 +1201,10 @@ export async function fetchUserMREvents(
   const dayBefore = dayBeforeDate.toISOString().slice(0, 10);
 
   const [commentedResult, approvedResult] = await Promise.allSettled([
+    // Comments on MRs: target_type is null in GitLab's response — filter via note.noteable_type
     apiFetch(
       'gitlab',
-      `${base}/api/v4/users/${userId}/events?action=commented&target_type=merge_request&after=${dayBefore}&per_page=100`,
+      `${base}/api/v4/users/${userId}/events?action=commented&after=${dayBefore}&per_page=100`,
       { headers },
       'Load Standup MR Events',
     ),
@@ -1216,16 +1218,22 @@ export async function fetchUserMREvents(
 
   const events: GitLabUserMREvent[] = [];
 
-  for (const result of [commentedResult, approvedResult]) {
-    if (result.status === 'fulfilled' && result.value.ok) {
-      const data = (await result.value.json()) as GitLabUserMREvent[];
-      // Client-side filter: exact date match and MergeRequest target only
-      events.push(
-        ...data.filter(
-          (e) => e.created_at.slice(0, 10) === date && e.target_type === 'MergeRequest',
-        ),
-      );
-    }
+  if (commentedResult.status === 'fulfilled' && commentedResult.value.ok) {
+    const data = (await commentedResult.value.json()) as GitLabUserMREvent[];
+    events.push(
+      ...data.filter(
+        (e) => e.created_at.slice(0, 10) === date && e.note?.noteable_type === 'MergeRequest',
+      ),
+    );
+  }
+
+  if (approvedResult.status === 'fulfilled' && approvedResult.value.ok) {
+    const data = (await approvedResult.value.json()) as GitLabUserMREvent[];
+    events.push(
+      ...data.filter(
+        (e) => e.created_at.slice(0, 10) === date && e.target_type === 'MergeRequest',
+      ),
+    );
   }
 
   return events;
