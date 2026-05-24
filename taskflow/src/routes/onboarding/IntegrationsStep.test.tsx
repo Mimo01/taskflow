@@ -204,6 +204,20 @@ describe('IntegrationsStep', () => {
     expect(mockOnboardingStore.goNext).toHaveBeenCalledTimes(1);
   });
 
+  // ── WR-01: stale key → Continue disabled ──────────────────────────────────
+  it('WR-01: Continue is disabled when aioEnabled=true and selectedAioProjectKey is not in fetched projects', async () => {
+    mockStore.aioEnabled = true;
+    mockStore.selectedAioProjectKey = 'GHOST'; // persisted key not present in server response
+    vi.mocked(fetchAioProjects).mockResolvedValue([
+      { id: 1, projectKey: 'PROJ1', name: 'Project One' },
+      { id: 2, projectKey: 'PROJ2', name: 'Project Two' },
+    ]);
+    renderWithClient(<IntegrationsStep />);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /continue/i })).toBeDisabled();
+    });
+  });
+
   // ── Back button calls goBack ────────────────────────────────────────────────
   it('clicking Back calls goBack', () => {
     vi.mocked(fetchAioProjects).mockResolvedValue([]);

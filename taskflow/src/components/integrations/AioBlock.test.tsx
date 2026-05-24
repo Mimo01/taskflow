@@ -155,9 +155,9 @@ describe('AioBlock — AIO project picker', () => {
   it('hides the picker when aioEnabled is false', () => {
     mockStore.aioEnabled = false;
     renderWithClient(<AioBlock />);
-    // Label "AIO Project" should NOT be in the DOM when toggle is off.
-    expect(screen.queryByLabelText('AIO Project')).toBeNull();
-    expect(screen.queryByText('Pick the AIO Test Management project this app shows.')).toBeNull();
+    // Label "AIO Project Key" should NOT be in the DOM when toggle is off.
+    expect(screen.queryByLabelText('AIO Project Key')).toBeNull();
+    expect(screen.queryByText('Pick the AIO Test Management project key this app shows.')).toBeNull();
   });
 
   it('shows loading row while query is pending', async () => {
@@ -214,12 +214,20 @@ describe('AioBlock — AIO project picker', () => {
     // First option is the placeholder (—), then sorted alphabetically
     expect(names).toEqual(['—', 'Project One', 'Project Three', 'Project Two']);
 
-    // Mixed case sort check
+    // Mixed case sort check — re-render with a new client so the query refetches
     vi.mocked(fetchAioProjects).mockResolvedValue([
       { id: 3, projectKey: 'C', name: 'charlie' },
       { id: 1, projectKey: 'A', name: 'Alpha' },
       { id: 2, projectKey: 'B', name: 'bravo' },
     ]);
+    renderWithClient(<AioBlock />);
+    await waitFor(() => {
+      // Use the last rendered select to avoid picking up the previous render's options
+      const selects = screen.getAllByTestId('aio-project-select');
+      const lastSelect = selects[selects.length - 1];
+      const opts = Array.from(lastSelect.querySelectorAll('option'));
+      expect(opts.map((el) => el.textContent)).toEqual(['—', 'Alpha', 'bravo', 'charlie']);
+    });
   });
 
   it('calls setSelectedAioProjectKey with projectKey on option selection', async () => {
