@@ -149,6 +149,8 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 Tempo Worklog Viewer launched with Epic→Story→Subtask hierarchy, sticky headers, saved filters, and per-cell CRUD popover. Widget dashboard system + Workload page + react-grid-layout fully removed; replaced by static welcome screen with sprint health + in-progress subtasks + release countdown. Full test suite green, dead code swept, Biome clean. v2.0 scope TBD.
 
+**v1.10 in progress** — Phase 67 complete: Settings → Sidebar stripped of drag-and-drop reordering; `SidebarItemsList` rewritten as 50-LOC visibility-only checkbox list, `reorderSidebarItem` removed from store, all four `@dnd-kit/*` packages uninstalled. Build green. SETUI-01/02/03 satisfied.
+
 ## Context
 
 - **Shipped v1.0:** 2026-03-12 — 4 phases, 20 plans, ~11,017 lines TypeScript
@@ -289,4 +291,4 @@ This document evolves at phase transitions and milestone boundaries.
 | 145 pre-v1.9 quick-task dirs archived to milestones/historical-quick-tasks/ at milestone close | Scanner couldn't read status from older SUMMARY frontmatter convention; rather than retrofit 145 files, archive bucket clears the audit and preserves history | ✓ Good — audit-open went 161→17, all 17 benign |
 
 ---
-*Last updated: 2026-05-24 after Phase 66 (Roles Removal)*
+*Last updated: 2026-05-24 after Phase 67 (Settings UI Cleanup)*
