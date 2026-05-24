@@ -1,5 +1,6 @@
 // AUTH-02: GitLab PAT validation
 // DEV-05: Phase 2 GitLab MR functions
+// STAND-05: fetchUserCommits - Git commits by author for standup recap
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   fetchAssignedMRs,
@@ -8,6 +9,7 @@ import {
   fetchMRDiscussions,
   fetchProjectMilestones,
   fetchReviewerMRs,
+  fetchUserCommits,
   listGitLabGroups,
   listGitLabProjects,
   searchGitLabMRs,
@@ -257,6 +259,123 @@ describe('gitlab service', () => {
       await searchGitLabMRs('https://gitlab.example.com', 'my-token', 'feat login');
       const calledUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
       expect(calledUrl).toMatch(/state=opened/);
+    });
+  });
+
+  describe('fetchUserCommits (STAND-05)', () => {
+    const BASE = 'https://gitlab.example.com';
+    const TOKEN = 'glpat-test';
+    const PROJECT_ID = 99;
+    const DATE = '2026-05-23';
+
+    const makeCommit = (overrides: {
+      author_name?: string;
+      author_email?: string;
+    }) => ({
+      id: 'abc123def456abc123def456abc123def456abc1',
+      short_id: 'abc123de',
+      title: 'feat: add something',
+      message: 'feat: add something\n',
+      author_name: overrides.author_name ?? 'Other Person',
+      author_email: overrides.author_email ?? 'other@example.com',
+      authored_date: `${DATE}T10:00:00.000Z`,
+      web_url: `${BASE}/project/-/commit/abc123`,
+    });
+
+    it('STAND-05: includes commit matching author_name (case-insensitive)', async () => {
+      const commits = [
+        makeCommit({ author_name: 'JohnDoe', author_email: 'john@example.com' }),
+        makeCommit({ author_name: 'Other Person', author_email: 'other@example.com' }),
+      ];
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => commits,
+      } as Response);
+
+      const result = await fetchUserCommits(BASE, TOKEN, PROJECT_ID, DATE, 'johndoe');
+      expect(result).toHaveLength(1);
+      expect(result[0].author_name).toBe('JohnDoe');
+    });
+
+    it('STAND-05: includes commit matching author_email (case-insensitive contains)', async () => {
+      const commits = [
+        makeCommit({ author_name: 'John Doe Display', author_email: 'johndoe@company.com' }),
+        makeCommit({ author_name: 'Other Person', author_email: 'other@example.com' }),
+      ];
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => commits,
+      } as Response);
+
+      const result = await fetchUserCommits(BASE, TOKEN, PROJECT_ID, DATE, 'johndoe');
+      expect(result).toHaveLength(1);
+      expect(result[0].author_email).toBe('johndoe@company.com');
+    });
+
+    it('STAND-05: excludes commits not matching author name or email', async () => {
+      const commits = [
+        makeCommit({ author_name: 'Alice', author_email: 'alice@example.com' }),
+        makeCommit({ author_name: 'Bob', author_email: 'bob@example.com' }),
+      ];
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => commits,
+      } as Response);
+
+      const result = await fetchUserCommits(BASE, TOKEN, PROJECT_ID, DATE, 'johndoe');
+      expect(result).toHaveLength(0);
+    });
+
+    it('STAND-05: URL contains repository/commits, since, until, and PRIVATE-TOKEN header', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [],
+      } as Response);
+
+      await fetchUserCommits(BASE, TOKEN, PROJECT_ID, DATE, 'johndoe');
+
+      const calledUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      const calledOptions = vi.mocked(mockFetch).mock.calls[0][1] as { headers: Record<string, string> };
+      expect(calledUrl).toContain(`/projects/${PROJECT_ID}/repository/commits`);
+      expect(calledUrl).toContain('since=');
+      expect(calledUrl).toContain('until=');
+      expect(calledOptions.headers['PRIVATE-TOKEN']).toBe(TOKEN);
+    });
+
+    it('STAND-05: throws ApiError with status 401 on unauthorized response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        fetchUserCommits(BASE, TOKEN, PROJECT_ID, DATE, 'johndoe'),
+      ).rejects.toMatchObject({ status: 401, source: 'gitlab' });
+    });
+
+    it('STAND-05: throws ApiError with status 403 on forbidden response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        fetchUserCommits(BASE, TOKEN, PROJECT_ID, DATE, 'johndoe'),
+      ).rejects.toMatchObject({ status: 403, source: 'gitlab' });
+    });
+
+    it('STAND-05: throws network error when apiFetch throws', async () => {
+      vi.mocked(mockFetch).mockRejectedValue(new Error('Network failure'));
+
+      await expect(
+        fetchUserCommits(BASE, TOKEN, PROJECT_ID, DATE, 'johndoe'),
+      ).rejects.toThrow(`Cannot reach ${BASE} — check the base URL`);
     });
   });
 });
