@@ -111,7 +111,8 @@ export function formatDayHeader(yyyymmdd: string): string {
 
 /**
  * Enumerate every YYYY-MM-DD from `from` to `to` inclusive.
- * Uses .toISOString().slice(0, 10) — NEVER toLocaleDateString() (Phase 61 pitfall).
+ * Uses local date components — NEVER toISOString() or toLocaleDateString() for data keys
+ * (Phase 61 pitfall: toISOString() converts to UTC and shifts dates in non-UTC timezones).
  */
 function enumerateDays(from: string, to: string): string[] {
   const days: string[] = [];
@@ -126,6 +127,15 @@ function enumerateDays(from: string, to: string): string[] {
   return days;
 }
 
+/**
+ * Format a Date as a local YYYY-MM-DD string.
+ * NEVER use .toISOString() for date arithmetic results: toISOString() converts to UTC
+ * and shifts dates by a day in any timezone offset from UTC (RESEARCH A1).
+ */
+function localISO(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 /** This Week: ISO Monday → Sunday of the current week. */
 function getThisWeekRange(): { from: string; to: string } {
   const today = new Date();
@@ -136,8 +146,8 @@ function getThisWeekRange(): { from: string; to: string } {
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
   return {
-    from: monday.toISOString().slice(0, 10),
-    to: sunday.toISOString().slice(0, 10),
+    from: localISO(monday),
+    to: localISO(sunday),
   };
 }
 
@@ -149,8 +159,8 @@ function getLastWeekRange(): { from: string; to: string } {
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
   return {
-    from: monday.toISOString().slice(0, 10),
-    to: sunday.toISOString().slice(0, 10),
+    from: localISO(monday),
+    to: localISO(sunday),
   };
 }
 
@@ -159,8 +169,8 @@ function getThisMonthRange(): { from: string; to: string } {
   const today = new Date();
   const first = new Date(today.getFullYear(), today.getMonth(), 1);
   return {
-    from: first.toISOString().slice(0, 10),
-    to: today.toISOString().slice(0, 10),
+    from: localISO(first),
+    to: localISO(today),
   };
 }
 
@@ -170,8 +180,8 @@ function getLastMonthRange(): { from: string; to: string } {
   const lastDay = new Date(today.getFullYear(), today.getMonth(), 0);
   const firstDay = new Date(today.getFullYear(), today.getMonth() - 1, 1);
   return {
-    from: firstDay.toISOString().slice(0, 10),
-    to: lastDay.toISOString().slice(0, 10),
+    from: localISO(firstDay),
+    to: localISO(lastDay),
   };
 }
 
@@ -185,7 +195,7 @@ function getLastWorkingDay(): string {
   const daysBack = dow === 1 ? 3 : dow === 0 ? 2 : 1;
   const d = new Date(today);
   d.setDate(today.getDate() - daysBack);
-  return d.toISOString().slice(0, 10);
+  return localISO(d);
 }
 
 /** Returns bg class for a day DATA cell — always solid so brightness filter is visible. */
