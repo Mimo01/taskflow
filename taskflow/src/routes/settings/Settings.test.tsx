@@ -130,7 +130,6 @@ const mockSettingsStore = {
   ],
   setSidebarItems: vi.fn(),
   setSidebarItemVisible: vi.fn(),
-  reorderSidebarItem: vi.fn(),
 };
 
 vi.mock('@/stores/settings.store', () => ({

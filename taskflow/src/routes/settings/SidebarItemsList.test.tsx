@@ -1,10 +1,9 @@
 /**
- * SidebarItemsList integration tests — Phase 36: drag-reorder restoration.
+ * SidebarItemsList integration tests — Phase 67: visibility-only list (no drag-reorder).
  *
- * Tests verify drag handle rendering, checkbox toggle, section headers,
- * and row layout. Actual drag interaction is not tested (jsdom limitation
- * with dnd-kit pointer events). Store reorder logic is covered in
- * settings.store.test.ts.
+ * Tests verify checkbox toggle, section headers, and row layout.
+ * Drag-handle tests removed — reorder functionality has been stripped.
+ * Store reorder logic is no longer tested here (action removed).
  */
 
 import { render, screen } from '@testing-library/react';
@@ -29,25 +28,16 @@ import SidebarItemsList from './SidebarItemsList';
 
 describe('SidebarItemsList', () => {
   const setSidebarItemVisible = vi.fn();
-  const reorderSidebarItem = vi.fn();
 
   beforeEach(() => {
     setSidebarItemVisible.mockClear();
-    reorderSidebarItem.mockClear();
 
     act(() => {
       useSettingsStore.setState({
         sidebarItems: getDefaultSidebarItems().map((item) => ({ ...item })),
         setSidebarItemVisible,
-        reorderSidebarItem,
       } as any);
     });
-  });
-
-  it('renders drag handles with aria-label "Drag to reorder" for each sidebar nav item', () => {
-    render(<SidebarItemsList />);
-    const handles = screen.getAllByLabelText('Drag to reorder');
-    expect(handles).toHaveLength(SIDEBAR_NAV_ITEMS.length);
   });
 
   it('checkbox toggles call setSidebarItemVisible with correct id and boolean', async () => {
@@ -73,27 +63,29 @@ describe('SidebarItemsList', () => {
     expect(screen.getByText('Testing')).toBeInTheDocument();
   });
 
-  it('each item row contains drag handle, checkbox, and label text', () => {
+  it('each item row contains a checkbox and label text with no drag handle', () => {
     render(<SidebarItemsList />);
 
     // Find the first item label text
     const dashboardLabel = screen.getByText('Dashboard');
-    const row = dashboardLabel.closest('[data-sortable-item]') ?? dashboardLabel.parentElement;
+    const row = dashboardLabel.parentElement;
     expect(row).not.toBeNull();
 
-    // Row should contain a button (drag handle) and a checkbox
-    const button = row!.querySelector('button[aria-label="Drag to reorder"]');
-    expect(button).not.toBeNull();
-
+    // Row must have a checkbox
     const checkbox = row!.querySelector('input[type="checkbox"]');
     expect(checkbox).not.toBeNull();
 
-    // Verify order: button before checkbox before label
+    // Row must NOT have a drag-handle button
+    const dragButton = row!.querySelector('button[aria-label="Drag to reorder"]');
+    expect(dragButton).toBeNull();
+
+    // Row must NOT have data-sortable-item attribute
+    expect(row!.hasAttribute('data-sortable-item')).toBe(false);
+
+    // Verify order: checkbox comes before label in DOM
     const children = Array.from(row!.children);
-    const buttonIdx = children.indexOf(button as Element);
     const checkboxIdx = children.indexOf(checkbox as Element);
     const labelIdx = children.indexOf(dashboardLabel);
-    expect(buttonIdx).toBeLessThan(checkboxIdx);
     expect(checkboxIdx).toBeLessThan(labelIdx);
   });
 });
