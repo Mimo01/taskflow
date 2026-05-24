@@ -48,6 +48,13 @@ export const SIDEBAR_NAV_ITEMS: SidebarNavDef[] = [
     iconName: 'CheckSquare',
     section: 'main',
   },
+  {
+    id: 'standup-notes',
+    label: 'Standup Notes',
+    path: '/standup-notes',
+    iconName: 'ClipboardList',
+    section: 'main',
+  },
   // Planning
   {
     id: 'sprint-board',

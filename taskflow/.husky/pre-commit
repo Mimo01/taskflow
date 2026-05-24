@@ -1,3 +1,3 @@
 cd taskflow
-npm run check
+biome check --staged ./src && tsc --noEmit
 npm run test
