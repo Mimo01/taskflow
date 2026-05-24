@@ -19,6 +19,7 @@
 
 import { ApiError } from '../lib/api-error';
 import { apiFetch } from '../lib/apiFetch';
+import { getJiraLimit } from '../lib/concurrency';
 import { isResponseLikeError } from './jira/client';
 
 export { addIssuesToSprint } from './jira/sprints';
@@ -843,6 +844,8 @@ export async function fetchComments(
 export interface JiraActivityItem {
   issueKey: string;
   summary: string;
+  /** Jira issue type name (e.g. "Story", "Bug", "Sub-task", "Epic") for icon display. */
+  issueType?: string;
   transitions: Array<{ fromStatus: string; toStatus: string; at: string }>;
   comments: Array<{ body: string; at: string }>;
 }
@@ -852,8 +855,14 @@ export interface JiraActivityItem {
  * filtered client-side to entries matching `jiraUsername` and the exact date.
  *
  * Strategy (D-01, D-02, D-03 from CONTEXT.md):
- * 1. JQL search: `project = {projectKey} AND updated >= "{date}"` with
- *    `expand=changelog` and `maxResults=50` so transitions are inline.
+ * 1. JQL search: `project = {projectKey} AND status CHANGED BY "{jiraUsername}"
+ *    DURING ("{date}", "{nextDay}")` with `expand=changelog` and `maxResults=50`
+ *    so the user's own status transitions are returned inline. Scoping the JQL
+ *    to the user (rather than the whole project's daily churn) keeps the result
+ *    set — and the expand=changelog payload — small enough to stay well under
+ *    the 15s fetch timeout. NOTE: issues the user only commented on (no status
+ *    transition) are therefore out of scope; comments are reported only for
+ *    issues that also have a transition by the user that day.
  * 2. For each issue, filter changelog.histories to entries where
  *    `author.name === jiraUsername` AND `created.slice(0,10) === date`
  *    AND at least one item has `field === 'status'`.
@@ -881,11 +890,23 @@ export async function fetchYesterdayJiraActivity(
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
-  // Step 1: JQL search with changelog expansion (D-01, D-03)
+  // Step 1: JQL search with changelog expansion (D-01, D-03), scoped to the
+  // issues THIS user transitioned during the target day. A broad
+  // `project = X AND updated >= date` filter matched the whole project's daily
+  // churn and expand=changelog then serialized each issue's entire lifetime
+  // history — a payload large enough to blow the 15s fetch timeout on a busy
+  // project. `status CHANGED BY <user> DURING (date, nextDay)` returns only the
+  // user's own transitions, so the result set stays tiny. nextDay is date + 1
+  // day, computed TZ-safe from local date components (never toLocaleDateString()
+  // — Phase 62 rule).
+  const [y, m, d] = date.split('-').map(Number);
+  const next = new Date(y, m - 1, d + 1);
+  const nextDay = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`;
+
   const jql = encodeURIComponent(
-    `project = ${projectKey} AND updated >= "${date}" ORDER BY updated DESC`,
+    `project = ${projectKey} AND status CHANGED BY "${jiraUsername}" DURING ("${date}", "${nextDay}") ORDER BY updated DESC`,
   );
-  const url = `${base}/rest/api/2/search?jql=${jql}&maxResults=50&expand=changelog&fields=summary,status,issuetype`;
+  const url = `${base}/rest/api/2/search?jql=${jql}&maxResults=50&expand=changelog&fields=summary,issuetype`;
 
   const response = await apiFetch('jira', url, { headers }, 'Load Standup Jira Activity');
   if (!response.ok) {
@@ -898,60 +919,135 @@ export async function fetchYesterdayJiraActivity(
   const data = (await response.json()) as {
     issues?: Array<{
       key: string;
-      fields: { summary: string };
+      fields: { summary: string; issuetype?: { name: string } };
       changelog?: { histories: ChangelogHistory[] };
     }>;
   };
 
   const issues = data.issues ?? [];
-  const results: JiraActivityItem[] = [];
 
-  for (const issue of issues) {
-    // Step 2: filter transitions by author + date (D-02)
-    const transitions = (issue.changelog?.histories ?? [])
-      .filter(
-        (h) =>
-          h.author.name === jiraUsername &&
-          h.created.slice(0, 10) === date &&
-          h.items.some((i) => i.field === 'status'),
-      )
-      .map((h) => {
-        const statusItem = h.items.find((i) => i.field === 'status')!;
+  // Steps 2+3 run per-issue. The comment fetch is one HTTP round-trip per issue,
+  // so we fan out through the global Jira limiter (bounded concurrency) rather
+  // than awaiting sequentially — a sequential loop over up to 50 issues stacked
+  // each round-trip's latency and left the section on a skeleton for far too long.
+  const limit = getJiraLimit();
+  const perIssue = await Promise.all(
+    issues.map((issue) =>
+      limit(async (): Promise<JiraActivityItem> => {
+        // Step 2: filter transitions by author + date (D-02)
+        const transitions = (issue.changelog?.histories ?? [])
+          .filter(
+            (h) =>
+              h.author.name === jiraUsername &&
+              h.created.slice(0, 10) === date &&
+              h.items.some((i) => i.field === 'status'),
+          )
+          .map((h) => {
+            const statusItem = h.items.find((i) => i.field === 'status')!;
+            return {
+              fromStatus: statusItem.fromString ?? '',
+              toStatus: statusItem.toString ?? '',
+              at: h.created,
+            };
+          });
+
+        // Step 3: fetch + filter comments (D-02) — graceful per-issue degradation
+        let comments: Array<{ body: string; at: string }> = [];
+        try {
+          const commentsUrl = `${base}/rest/api/2/issue/${issue.key}/comment`;
+          const commentsRes = await apiFetch(
+            'jira',
+            commentsUrl,
+            { headers },
+            'Load Standup Jira Comments',
+          );
+          if (commentsRes.ok) {
+            const commentsData = (await commentsRes.json()) as { comments: JiraComment[] };
+            comments = (commentsData.comments ?? [])
+              .filter((c) => c.author.name === jiraUsername && c.created.slice(0, 10) === date)
+              .map((c) => ({ body: c.body, at: c.created }));
+          }
+        } catch {
+          // Graceful degradation: a failing comment fetch for one issue
+          // must not abort the entire standup activity load.
+        }
+
         return {
-          fromStatus: statusItem.fromString ?? '',
-          toStatus: statusItem.toString ?? '',
-          at: h.created,
+          issueKey: issue.key,
+          summary: issue.fields.summary,
+          issueType: issue.fields.issuetype?.name,
+          transitions,
+          comments,
         };
-      });
+      }),
+    ),
+  );
 
-    // Step 3: fetch + filter comments (D-02) — graceful per-issue degradation
-    let comments: Array<{ body: string; at: string }> = [];
-    try {
-      const commentsUrl = `${base}/rest/api/2/issue/${issue.key}/comment`;
-      const commentsRes = await apiFetch(
-        'jira',
-        commentsUrl,
-        { headers },
-        'Load Standup Jira Comments',
-      );
-      if (commentsRes.ok) {
-        const commentsData = (await commentsRes.json()) as { comments: JiraComment[] };
-        comments = (commentsData.comments ?? [])
-          .filter((c) => c.author.name === jiraUsername && c.created.slice(0, 10) === date)
-          .map((c) => ({ body: c.body, at: c.created }));
-      }
-    } catch {
-      // Graceful degradation: a failing comment fetch for one issue
-      // must not abort the entire standup activity load.
-    }
+  // Step 4: only include issues with at least one matched activity entry
+  return perIssue.filter((r) => r.transitions.length > 0 || r.comments.length > 0);
+}
 
-    // Step 4: only include issues with at least one matched activity entry
-    if (transitions.length > 0 || comments.length > 0) {
-      results.push({ issueKey: issue.key, summary: issue.fields.summary, transitions, comments });
-    }
+/** Per-issue metadata the Standup recap needs for icons + parent-story grouping. */
+export interface StandupIssueMeta {
+  /** Issue type name (e.g. "Story", "Bug", "Sub-task"). */
+  type?: string;
+  /** True when this issue's type is a sub-task type (drives parent rollup). */
+  isSubtask?: boolean;
+  summary?: string;
+  /** Parent issue key (present for sub-tasks). */
+  parentKey?: string;
+  parentSummary?: string;
+  parentType?: string;
+}
+
+/**
+ * Resolve issue metadata (type, sub-task flag, summary, parent) for a set of
+ * issue keys in a single JQL batch.
+ *
+ * Used by the Standup Notes recap to (a) render the correct type icon for
+ * issues that surface only via commits or MR activity, and (b) roll a sub-task's
+ * activity up to its parent story so related work groups together. Failures
+ * degrade gracefully to an empty map (no icons, no rollup — per-issue grouping).
+ *
+ * @returns Map of issue key → metadata.
+ */
+export async function fetchIssueMeta(
+  baseUrl: string,
+  token: string,
+  keys: string[],
+): Promise<Record<string, StandupIssueMeta>> {
+  if (keys.length === 0) return {};
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const jql = encodeURIComponent(`key in (${keys.join(',')})`);
+  const url = `${base}/rest/api/2/search?jql=${jql}&maxResults=${keys.length}&fields=issuetype,summary,parent`;
+
+  const response = await apiFetch('jira', url, { headers }, 'Load Standup Issue Meta');
+  if (!response.ok) return {};
+
+  const data = (await response.json()) as {
+    issues?: Array<{
+      key: string;
+      fields: {
+        summary?: string;
+        issuetype?: { name: string; subtask?: boolean };
+        parent?: { key: string; fields?: { summary?: string; issuetype?: { name: string } } };
+      };
+    }>;
+  };
+
+  const map: Record<string, StandupIssueMeta> = {};
+  for (const issue of data.issues ?? []) {
+    map[issue.key] = {
+      type: issue.fields.issuetype?.name,
+      isSubtask: issue.fields.issuetype?.subtask,
+      summary: issue.fields.summary,
+      parentKey: issue.fields.parent?.key,
+      parentSummary: issue.fields.parent?.fields?.summary,
+      parentType: issue.fields.parent?.fields?.issuetype?.name,
+    };
   }
-
-  return results;
+  return map;
 }
 
 export async function updateComment(

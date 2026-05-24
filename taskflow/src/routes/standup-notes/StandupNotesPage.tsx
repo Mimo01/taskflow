@@ -14,12 +14,14 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import {
+  extractJiraKeyFromMessage,
   getScheduleLookbackRange,
   resolveYesterdayDate,
 } from '@/lib/standup-date';
-import { fetchYesterdayJiraActivity } from '@/services/jira';
 import { fetchUserCommits, fetchUserMREvents } from '@/services/gitlab';
+import { fetchIssueMeta, fetchYesterdayJiraActivity } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { fetchUserSchedule, fetchWorklogs } from '@/services/tempo';
 import { useAuthStore } from '@/stores/auth.store';
@@ -89,6 +91,9 @@ export default function StandupNotesPage() {
   // IN-01: fine-grained selector — never destructure the whole settings store
   const tempoEnabled = useSettingsStore((s) => s.tempoEnabled);
 
+  // Issue navigation (full-page detail + breadcrumb trail) from the app shell.
+  const { onIssueClick } = useOutletContext<{ onIssueClick: (key: string) => void }>();
+
   // ─ Token loading (Pattern 2) ─────────────────────────────────────────────
   const [jiraToken, setJiraToken] = useState<string | null>(null);
   const [gitlabToken, setGitlabToken] = useState<string | null>(null);
@@ -139,12 +144,7 @@ export default function StandupNotesPage() {
     queryKey: ['standup', 'tempo', jiraBaseUrl, yesterdayDate, jiraUsername ?? ''],
     queryFn: () =>
       fetchWorklogs(jiraBaseUrl!, jiraToken!, [jiraUsername!], yesterdayDate, yesterdayDate),
-    enabled:
-      !!jiraBaseUrl &&
-      !!jiraToken &&
-      tempoEnabled &&
-      !!jiraUsername &&
-      !!yesterdayDate,
+    enabled: !!jiraBaseUrl && !!jiraToken && tempoEnabled && !!jiraUsername && !!yesterdayDate,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -169,11 +169,7 @@ export default function StandupNotesPage() {
       );
     },
     enabled:
-      !!jiraBaseUrl &&
-      !!jiraToken &&
-      !!activeJiraProject &&
-      !!jiraUsername &&
-      !!yesterdayDate,
+      !!jiraBaseUrl && !!jiraToken && !!activeJiraProject && !!jiraUsername && !!yesterdayDate,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -217,6 +213,36 @@ export default function StandupNotesPage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // ─ Issue type resolution ─────────────────────────────────────────────────
+  // Issues that surface only via commits or MR activity carry a Jira key but no
+  // type metadata, so their icons would fall back to the default. Resolve the
+  // type for every referenced key in one batch so all groups render correctly.
+  const referencedKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const w of tempoQuery.data ?? []) keys.add(w.issue.key);
+    for (const a of jiraActivityQuery.data ?? []) keys.add(a.issueKey);
+    for (const c of commitsQuery.data ?? []) {
+      const k = extractJiraKeyFromMessage(c.message) ?? extractJiraKeyFromMessage(c.title);
+      if (k) keys.add(k);
+    }
+    for (const e of mrEventsQuery.data ?? []) {
+      const k = extractJiraKeyFromMessage(e.target_title);
+      if (k) keys.add(k);
+    }
+    return [...keys].sort();
+  }, [tempoQuery.data, jiraActivityQuery.data, commitsQuery.data, mrEventsQuery.data]);
+
+  const issueMetaQuery = useQuery({
+    queryKey: ['standup', 'issue-meta', jiraBaseUrl, referencedKeys],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token) throw new Error('No Jira token');
+      return fetchIssueMeta(jiraBaseUrl!, token, referencedKeys);
+    },
+    enabled: !!jiraBaseUrl && !!jiraToken && referencedKeys.length > 0,
+    staleTime: 60 * 60 * 1000,
+  });
+
   // ─ Refresh-all (stale data stays visible during refetch — no skeleton flash) ─
   function handleRefresh() {
     void tempoQuery.refetch();
@@ -252,6 +278,7 @@ export default function StandupNotesPage() {
         jiraData: jiraActivityQuery.data,
         commitsData: commitsQuery.data,
         mrEventsData: mrEventsQuery.data,
+        issueMeta: issueMetaQuery.data,
       },
       yesterdayDate,
     );
@@ -286,6 +313,8 @@ export default function StandupNotesPage() {
             jiraActivityQuery={jiraActivityQuery}
             commitsQuery={commitsQuery}
             mrEventsQuery={mrEventsQuery}
+            issueMeta={issueMetaQuery.data ?? {}}
+            onIssueClick={onIssueClick}
           />
         </div>
 

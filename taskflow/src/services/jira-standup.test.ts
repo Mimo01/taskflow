@@ -7,7 +7,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../lib/api-error';
-import { fetchYesterdayJiraActivity } from './jira';
+import { fetchIssueMeta, fetchYesterdayJiraActivity } from './jira';
 
 vi.mock('@tauri-apps/plugin-http', () => ({
   fetch: vi.fn(),
@@ -72,9 +72,7 @@ describe('fetchYesterdayJiraActivity', () => {
             key: 'PROJ-1',
             fields: { summary: 'My issue' },
             changelog: {
-              histories: [
-                makeHistory({ authorName: USERNAME, created: `${DATE}T09:00:00.000Z` }),
-              ],
+              histories: [makeHistory({ authorName: USERNAME, created: `${DATE}T09:00:00.000Z` })],
             },
           },
         ],
@@ -188,7 +186,11 @@ describe('fetchYesterdayJiraActivity', () => {
       status: 200,
       json: async () => ({
         comments: [
-          makeComment({ authorName: USERNAME, created: `${DATE}T11:00:00.000Z`, body: 'My comment' }),
+          makeComment({
+            authorName: USERNAME,
+            created: `${DATE}T11:00:00.000Z`,
+            body: 'My comment',
+          }),
         ],
       }),
     } as Response);
@@ -272,18 +274,14 @@ describe('fetchYesterdayJiraActivity', () => {
             key: 'PROJ-7',
             fields: { summary: 'Comments blow up' },
             changelog: {
-              histories: [
-                makeHistory({ authorName: USERNAME, created: `${DATE}T09:00:00.000Z` }),
-              ],
+              histories: [makeHistory({ authorName: USERNAME, created: `${DATE}T09:00:00.000Z` })],
             },
           },
           {
             key: 'PROJ-8',
             fields: { summary: 'Second issue' },
             changelog: {
-              histories: [
-                makeHistory({ authorName: USERNAME, created: `${DATE}T10:00:00.000Z` }),
-              ],
+              histories: [makeHistory({ authorName: USERNAME, created: `${DATE}T10:00:00.000Z` })],
             },
           },
         ],
@@ -346,8 +344,92 @@ describe('fetchYesterdayJiraActivity', () => {
 
     await fetchYesterdayJiraActivity(BASE, TOKEN, PROJECT, DATE, USERNAME);
 
-    const calledUrl = (mockFetchFn.mock.calls[0][0] as string);
+    const calledUrl = mockFetchFn.mock.calls[0][0] as string;
     expect(calledUrl).toContain('expand=changelog');
     expect(calledUrl).toContain('maxResults=50');
+  });
+
+  it('STAND-04: JQL filters by the current user and a single day', async () => {
+    const mockFetchFn = vi.mocked(mockFetch);
+
+    mockFetchFn.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ issues: [] }),
+    } as Response);
+
+    await fetchYesterdayJiraActivity(BASE, TOKEN, PROJECT, DATE, USERNAME);
+
+    const jql = decodeURIComponent(mockFetchFn.mock.calls[0][0] as string);
+    // Must filter to the user (not the whole project) and bound to one day,
+    // else expand=changelog over project-wide churn blows the 15s fetch timeout.
+    expect(jql).toContain(`status CHANGED BY "${USERNAME}"`);
+    expect(jql).toContain(`DURING ("${DATE}", "2026-05-23")`);
+  });
+});
+
+describe('fetchIssueMeta', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('returns an empty map without fetching when no keys are given', async () => {
+    const mockFetchFn = vi.mocked(mockFetch);
+    const result = await fetchIssueMeta(BASE, TOKEN, []);
+    expect(result).toEqual({});
+    expect(mockFetchFn).not.toHaveBeenCalled();
+  });
+
+  it('batches keys into one key-in JQL query requesting type, summary, and parent', async () => {
+    const mockFetchFn = vi.mocked(mockFetch);
+    mockFetchFn.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        issues: [
+          {
+            key: 'PROJ-1',
+            fields: { summary: 'A story', issuetype: { name: 'Story', subtask: false } },
+          },
+          {
+            key: 'PROJ-2',
+            fields: {
+              summary: 'A subtask',
+              issuetype: { name: 'Sub-task', subtask: true },
+              parent: {
+                key: 'PROJ-1',
+                fields: { summary: 'A story', issuetype: { name: 'Story' } },
+              },
+            },
+          },
+        ],
+      }),
+    } as Response);
+
+    const result = await fetchIssueMeta(BASE, TOKEN, ['PROJ-1', 'PROJ-2']);
+
+    expect(result['PROJ-1']).toMatchObject({ type: 'Story', isSubtask: false, summary: 'A story' });
+    expect(result['PROJ-2']).toMatchObject({
+      type: 'Sub-task',
+      isSubtask: true,
+      parentKey: 'PROJ-1',
+      parentSummary: 'A story',
+      parentType: 'Story',
+    });
+    const url = decodeURIComponent(mockFetchFn.mock.calls[0][0] as string);
+    expect(url).toContain('key in (PROJ-1,PROJ-2)');
+    expect(url).toContain('fields=issuetype,summary,parent');
+  });
+
+  it('degrades to an empty map on a non-ok response', async () => {
+    const mockFetchFn = vi.mocked(mockFetch);
+    mockFetchFn.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({}),
+    } as Response);
+
+    const result = await fetchIssueMeta(BASE, TOKEN, ['PROJ-9']);
+    expect(result).toEqual({});
   });
 });

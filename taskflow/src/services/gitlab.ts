@@ -1161,11 +1161,18 @@ export interface GitLabUserMREvent {
   action_name: 'commented' | 'approved';
   target_type: string | null;
   target_id: number;
+  /**
+   * For `approved` events this is the merge-request iid. For `commented` events
+   * this is the individual NOTE's iid (unique per comment) — the merge request
+   * is identified by `note.noteable_iid`, not this field.
+   */
   target_iid: number;
   target_title: string;
   created_at: string; // ISO 8601
   project_id: number;
-  note?: { noteable_type: string };
+  /** The user who performed the event (the comment/approval author). */
+  author?: { id: number };
+  note?: { noteable_type: string; noteable_iid?: number; author?: { id: number } };
 }
 
 /**
@@ -1222,7 +1229,15 @@ export async function fetchUserMREvents(
     const data = (await commentedResult.value.json()) as GitLabUserMREvent[];
     events.push(
       ...data.filter(
-        (e) => e.created_at.slice(0, 10) === date && e.note?.noteable_type === 'MergeRequest',
+        (e) =>
+          e.created_at.slice(0, 10) === date &&
+          e.note?.noteable_type === 'MergeRequest' &&
+          // Count ONLY the current user's own comments — exclude replies from
+          // other people on the same threads. Check both the event actor and
+          // the note author; drop the event when either is explicitly someone
+          // else (lenient defaults keep the event when a field is absent).
+          (e.author?.id ?? userId) === userId &&
+          (e.note?.author?.id ?? userId) === userId,
       ),
     );
   }

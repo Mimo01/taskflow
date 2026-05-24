@@ -20,15 +20,15 @@
  * Exports generateMarkdown() for StandupNotesPage's Copy markdown handler.
  */
 
-import { useMemo } from 'react';
 import type { UseQueryResult } from '@tanstack/react-query';
 import { Clock, GitBranch, MessageSquare } from 'lucide-react';
+import { useMemo } from 'react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { extractJiraKeyFromMessage } from '@/lib/standup-date';
-import type { JiraActivityItem } from '@/services/jira';
 import type { GitLabCommit, GitLabUserMREvent } from '@/services/gitlab';
+import type { JiraActivityItem, StandupIssueMeta } from '@/services/jira';
 import type { TempoWorklog } from '@/services/tempo';
 import IssueActivityGroup, { type SubItem } from './IssueActivityGroup';
 import OtherCommitsGroup from './OtherCommitsGroup';
@@ -44,6 +44,10 @@ export interface YesterdayColumnProps {
   jiraActivityQuery: UseQueryResult<JiraActivityItem[], Error>;
   commitsQuery: UseQueryResult<GitLabCommit[], Error>;
   mrEventsQuery: UseQueryResult<GitLabUserMREvent[], Error>;
+  /** Resolved issue key → metadata map for icons + parent-story rollup grouping. */
+  issueMeta: Record<string, StandupIssueMeta>;
+  /** Navigate to the issue detail page (threads the breadcrumb trail). */
+  onIssueClick: (key: string) => void;
 }
 
 /** Internal shape of a joined issue group (used for rendering + markdown). */
@@ -56,10 +60,13 @@ interface IssueGroup {
 }
 
 /** Internal shape of a standalone MR group (MR not linked to any issue). */
-interface StandaloneMrGroup {
+interface StandaloneMrGroupData {
   iid: number;
   title: string;
-  events: GitLabUserMREvent[];
+  /** Comment events collapsed to a count (D-05) — not listed individually. */
+  commentCount: number;
+  /** Approval events on this MR. */
+  approvals: number;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -84,6 +91,7 @@ export interface MarkdownSources {
   jiraData?: JiraActivityItem[];
   commitsData?: GitLabCommit[];
   mrEventsData?: GitLabUserMREvent[];
+  issueMeta?: Record<string, StandupIssueMeta>;
 }
 
 /**
@@ -105,6 +113,7 @@ export function generateMarkdown(sources: MarkdownSources, date: string): string
     sources.jiraData,
     sources.commitsData,
     sources.mrEventsData,
+    sources.issueMeta,
   );
 
   const lines: string[] = [`## Yesterday (${date})`, ''];
@@ -119,12 +128,11 @@ export function generateMarkdown(sources: MarkdownSources, date: string): string
 
   for (const mr of standaloneMrGroups) {
     lines.push(`### !${mr.iid}: ${mr.title}`);
-    for (const event of mr.events) {
-      const label =
-        event.action_name === 'approved'
-          ? `Approved !${event.target_iid}`
-          : `Commented on !${event.target_iid}`;
-      lines.push(`- ${label}`);
+    if (mr.commentCount > 0) {
+      lines.push(`- ${mr.commentCount} comment${mr.commentCount === 1 ? '' : 's'} on !${mr.iid}`);
+    }
+    if (mr.approvals > 0) {
+      lines.push(`- Approved !${mr.iid}`);
     }
     lines.push('');
   }
@@ -149,15 +157,16 @@ export function generateMarkdown(sources: MarkdownSources, date: string): string
 /**
  * Build the three rendering buckets from the four raw data sources.
  *
- * Join strategy:
- * 1. Seed issue groups from Tempo worklogs (key + summary + seconds).
- * 2. Add Jira transitions + comments under their issueKey.
- * 3. For each commit, extract Jira key from message (D-08 message-only).
- *    - Key found → add as 'commit' sub-item under that issue group.
- *    - No key → push to otherCommits bucket.
- * 4. For each MR event, attempt key extraction from target_title.
- *    - Key found → add as 'mr-comment' or 'approval' sub-item under issue group.
- *    - No key → group by target_iid in standaloneMrGroups.
+ * Join strategy — everything keys off a single rollup group per issue:
+ * 1. Seed groups from Tempo worklogs (seconds).
+ * 2. Add Jira transitions + comments.
+ * 3. Add commits (Jira key from message; D-08 message-only; else "Other commits").
+ * 4. Add MR events (approvals listed; comments collapsed to a per-MR count).
+ *
+ * Parent-story rollup (issueMeta): a sub-task's activity is grouped under its
+ * PARENT story so e.g. time logged on a sub-task and MR comments on its story
+ * appear together. Stories/epics stay under their own key. Without issueMeta
+ * (not yet loaded / failed) there is no rollup — grouping is per-issue.
  *
  * Never uses toLocaleDateString() — date comparisons use .slice(0, 10).
  */
@@ -166,54 +175,95 @@ function buildGroups(
   jiraData?: JiraActivityItem[],
   commitsData?: GitLabCommit[],
   mrEventsData?: GitLabUserMREvent[],
-): { issueGroups: IssueGroup[]; standaloneMrGroups: StandaloneMrGroup[]; otherCommits: GitLabCommit[] } {
+  issueMeta?: Record<string, StandupIssueMeta>,
+): {
+  issueGroups: IssueGroup[];
+  standaloneMrGroups: StandaloneMrGroupData[];
+  otherCommits: GitLabCommit[];
+} {
   const issueMap = new Map<string, IssueGroup>();
-  const standaloneMrMap = new Map<number, StandaloneMrGroup>();
+  const standaloneMrMap = new Map<number, StandaloneMrGroupData>();
   const otherCommits: GitLabCommit[] = [];
 
-  // 1. Seed from Tempo worklogs
-  for (const worklog of tempoData ?? []) {
-    const key = worklog.issue.key;
-    const existing = issueMap.get(key);
+  // Resolve the rollup target for an issue key: a sub-task rolls up to its
+  // parent story; everything else stays under its own key. Returns the group's
+  // display key/summary/type sourced from metadata when available.
+  function resolveRollup(key: string): { rollupKey: string; summary?: string; type?: string } {
+    const meta = issueMeta?.[key];
+    if (meta?.isSubtask && meta.parentKey) {
+      return { rollupKey: meta.parentKey, summary: meta.parentSummary, type: meta.parentType };
+    }
+    return { rollupKey: key, summary: meta?.summary, type: meta?.type };
+  }
+
+  // Get-or-create the rollup group for an issue key, upgrading its summary/type
+  // as better information becomes available. Metadata wins; the source-provided
+  // fallbacks fill in when metadata hasn't loaded (or for untyped sources).
+  function ensureGroup(key: string, fallbackSummary?: string, fallbackType?: string): IssueGroup {
+    const { rollupKey, summary, type } = resolveRollup(key);
+    const resolvedSummary = summary ?? fallbackSummary;
+    const resolvedType = type ?? fallbackType;
+
+    const existing = issueMap.get(rollupKey);
     if (existing) {
-      existing.totalSeconds += worklog.timeSpentSeconds;
-      if (!existing.summary && worklog.issue.summary) {
-        existing.summary = worklog.issue.summary;
+      if (resolvedSummary && (!existing.summary || existing.summary === existing.issueKey)) {
+        existing.summary = resolvedSummary;
       }
-    } else {
-      issueMap.set(key, {
-        issueKey: key,
-        summary: worklog.issue.summary ?? key,
-        totalSeconds: worklog.timeSpentSeconds,
-        subItems: [],
+      if (!existing.issueType && resolvedType) existing.issueType = resolvedType;
+      return existing;
+    }
+    const group: IssueGroup = {
+      issueKey: rollupKey,
+      summary: resolvedSummary ?? rollupKey,
+      issueType: resolvedType,
+      totalSeconds: 0,
+      subItems: [],
+    };
+    issueMap.set(rollupKey, group);
+    return group;
+  }
+
+  // 1. Seed from Tempo worklogs. Time rolls into the group total AND surfaces as
+  //    a per-logged-issue sub-item, so a sub-task you logged on stays visible
+  //    (with its own hours) under its parent story rather than vanishing into a
+  //    single aggregate. Multiple entries on the same issue are summed.
+  const worklogByGroup = new Map<string, Map<string, { seconds: number; summary: string }>>();
+  for (const worklog of tempoData ?? []) {
+    const group = ensureGroup(
+      worklog.issue.key,
+      worklog.issue.summary,
+      worklog.issue.issueType?.name,
+    );
+    group.totalSeconds += worklog.timeSpentSeconds;
+
+    const perIssue =
+      worklogByGroup.get(group.issueKey) ?? new Map<string, { seconds: number; summary: string }>();
+    const entry = perIssue.get(worklog.issue.key) ?? {
+      seconds: 0,
+      summary: worklog.issue.summary ?? worklog.issue.key,
+    };
+    entry.seconds += worklog.timeSpentSeconds;
+    perIssue.set(worklog.issue.key, entry);
+    worklogByGroup.set(group.issueKey, perIssue);
+  }
+  for (const [groupKey, perIssue] of worklogByGroup) {
+    const group = issueMap.get(groupKey);
+    if (!group) continue;
+    for (const [issueKey, { seconds, summary }] of perIssue) {
+      group.subItems.push({
+        kind: 'worklog',
+        label: `${(seconds / 3600).toFixed(1)}h · ${issueKey} ${summary}`,
       });
     }
   }
 
   // 2. Add Jira transitions + comments
   for (const activity of jiraData ?? []) {
-    const { issueKey, summary, transitions, comments } = activity;
-    const group = issueMap.get(issueKey) ?? {
-      issueKey,
-      summary,
-      totalSeconds: 0,
-      subItems: [],
-    };
-    if (!issueMap.has(issueKey)) {
-      issueMap.set(issueKey, group);
+    const group = ensureGroup(activity.issueKey, activity.summary, activity.issueType);
+    for (const t of activity.transitions) {
+      group.subItems.push({ kind: 'transition', label: `${t.fromStatus} → ${t.toStatus}` });
     }
-    // Update summary if it was set to the key as fallback
-    if (group.summary === issueKey && summary) {
-      group.summary = summary;
-    }
-
-    for (const t of transitions) {
-      group.subItems.push({
-        kind: 'transition',
-        label: `${t.fromStatus} → ${t.toStatus}`,
-      });
-    }
-    for (const c of comments) {
+    for (const c of activity.comments) {
       const snippet = c.body.length > 80 ? `${c.body.slice(0, 80)}…` : c.body;
       group.subItems.push({ kind: 'jira-comment', label: `Comment: "${snippet}"` });
     }
@@ -221,55 +271,67 @@ function buildGroups(
 
   // 3. Route commits by Jira key from message (D-08 message-only; branch deferred D-14)
   for (const commit of commitsData ?? []) {
-    const key = extractJiraKeyFromMessage(commit.message) ?? extractJiraKeyFromMessage(commit.title);
+    const key =
+      extractJiraKeyFromMessage(commit.message) ?? extractJiraKeyFromMessage(commit.title);
     if (key) {
-      const group = issueMap.get(key) ?? {
-        issueKey: key,
-        summary: key,
-        totalSeconds: 0,
-        subItems: [],
-      };
-      if (!issueMap.has(key)) {
-        issueMap.set(key, group);
-      }
+      const group = ensureGroup(key);
       group.subItems.push({ kind: 'commit', label: `${commit.title} (${commit.short_id})` });
     } else {
       otherCommits.push(commit);
     }
   }
 
-  // 4. Route MR events by key extracted from target_title
+  // 4. Route MR events by key extracted from target_title.
+  //    Approvals are listed individually; comment events are collapsed into a
+  //    per-MR count (D-05) so a chatty review thread reads "N comments on <MR
+  //    name>" instead of one line per comment. Comments must group on the MR iid
+  //    (note.noteable_iid) — target_iid is the per-comment note id and would
+  //    make every comment look like a separate MR. Labels use the MR title (its
+  //    name), not the bare iid, so the recap reads naturally.
+  const keyedCommentCounts = new Map<string, Map<number, { count: number; title: string }>>(); // rollupKey -> (mrIid -> {count, title})
   for (const event of mrEventsData ?? []) {
-    const key =
-      extractJiraKeyFromMessage(event.target_title);
+    const key = extractJiraKeyFromMessage(event.target_title);
+    const isApproval = event.action_name === 'approved';
+    const mrIid = event.note?.noteable_iid ?? event.target_iid;
     if (key) {
-      const group = issueMap.get(key) ?? {
-        issueKey: key,
-        summary: event.target_title,
-        totalSeconds: 0,
-        subItems: [],
-      };
-      if (!issueMap.has(key)) {
-        issueMap.set(key, group);
-      }
-      const kind = event.action_name === 'approved' ? 'approval' : 'mr-comment';
-      const label =
-        event.action_name === 'approved'
-          ? `Approved !${event.target_iid}`
-          : `Commented on !${event.target_iid}`;
-      group.subItems.push({ kind, label });
-    } else {
-      // Standalone MR group keyed by target_iid
-      const existing = standaloneMrMap.get(event.target_iid);
-      if (existing) {
-        existing.events.push(event);
+      const group = ensureGroup(key, event.target_title);
+      if (isApproval) {
+        group.subItems.push({ kind: 'approval', label: `Approved ${event.target_title}` });
       } else {
-        standaloneMrMap.set(event.target_iid, {
-          iid: event.target_iid,
+        const perIid =
+          keyedCommentCounts.get(group.issueKey) ??
+          new Map<number, { count: number; title: string }>();
+        const entry = perIid.get(mrIid) ?? { count: 0, title: event.target_title };
+        entry.count += 1;
+        perIid.set(mrIid, entry);
+        keyedCommentCounts.set(group.issueKey, perIid);
+      }
+    } else {
+      // Standalone MR group keyed by MR iid — counts only (D-05)
+      const existing = standaloneMrMap.get(mrIid);
+      if (existing) {
+        if (isApproval) existing.approvals += 1;
+        else existing.commentCount += 1;
+      } else {
+        standaloneMrMap.set(mrIid, {
+          iid: mrIid,
           title: event.target_title,
-          events: [event],
+          commentCount: isApproval ? 0 : 1,
+          approvals: isApproval ? 1 : 0,
         });
       }
+    }
+  }
+
+  // Emit one aggregated MR-comment sub-item per (group, MR): "N comments on <name>"
+  for (const [rollupKey, perIid] of keyedCommentCounts) {
+    const group = issueMap.get(rollupKey);
+    if (!group) continue;
+    for (const [, { count, title }] of perIid) {
+      group.subItems.push({
+        kind: 'mr-comment',
+        label: `${count} comment${count === 1 ? '' : 's'} on ${title}`,
+      });
     }
   }
 
@@ -302,6 +364,8 @@ export default function YesterdayColumn({
   jiraActivityQuery,
   commitsQuery,
   mrEventsQuery,
+  issueMeta,
+  onIssueClick,
 }: YesterdayColumnProps) {
   // Build joined groups in a stable useMemo
   const { issueGroups, standaloneMrGroups, otherCommits } = useMemo(
@@ -311,8 +375,9 @@ export default function YesterdayColumn({
         jiraActivityQuery.data,
         commitsQuery.data,
         mrEventsQuery.data,
+        issueMeta,
       ),
-    [tempoQuery.data, jiraActivityQuery.data, commitsQuery.data, mrEventsQuery.data],
+    [tempoQuery.data, jiraActivityQuery.data, commitsQuery.data, mrEventsQuery.data, issueMeta],
   );
 
   // Stat line figures (D-10)
@@ -328,15 +393,9 @@ export default function YesterdayColumn({
       ) + otherCommits.length,
     [issueGroups, otherCommits],
   );
-  const mrEventCount = useMemo(
-    () =>
-      issueGroups.reduce(
-        (sum, g) =>
-          sum + g.subItems.filter((s) => s.kind === 'mr-comment' || s.kind === 'approval').length,
-        0,
-      ) + standaloneMrGroups.reduce((sum, mr) => sum + mr.events.length, 0),
-    [issueGroups, standaloneMrGroups],
-  );
+  // Count raw MR events (comments + approvals) — independent of the per-MR
+  // comment collapsing so the stat line still reflects true activity volume.
+  const mrEventCount = mrEventsQuery.data?.length ?? 0;
 
   const hasAnyData =
     issueGroups.length > 0 || standaloneMrGroups.length > 0 || otherCommits.length > 0;
@@ -390,6 +449,40 @@ export default function YesterdayColumn({
             }
           />
         )}
+
+      {/* ── Joined group list: issue → standalone MR → other commits ─── */}
+      {/* Populated content renders first; per-source empty/loading/error
+          notices fall to the bottom so "nothing here" never sits above data. */}
+      {hasAnyData && (
+        <div className="divide-y divide-border">
+          {issueGroups.map((group) => (
+            <IssueActivityGroup
+              key={group.issueKey}
+              issueKey={group.issueKey}
+              summary={group.summary}
+              issueType={group.issueType}
+              totalSeconds={group.totalSeconds}
+              subItems={group.subItems}
+              onClick={() => onIssueClick(group.issueKey)}
+            />
+          ))}
+
+          {standaloneMrGroups.map((mr) => (
+            <StandaloneMrGroup
+              key={mr.iid}
+              iid={mr.iid}
+              title={mr.title}
+              commentCount={mr.commentCount}
+              approvals={mr.approvals}
+            />
+          ))}
+
+          {otherCommits.length > 0 && <OtherCommitsGroup commits={otherCommits} />}
+        </div>
+      )}
+
+      {/* ── Per-source status (empty / loading / error) — below the data ─ */}
+      {hasAnyData && <div className="mt-4" />}
 
       {/* ── Tempo section ──────────────────────────────────────────────── */}
       {!tempoEnabled ? (
@@ -478,33 +571,6 @@ export default function YesterdayColumn({
           />
         </div>
       ) : null}
-
-      {/* ── Joined group list: issue → standalone MR → other commits ─── */}
-      {hasAnyData && (
-        <div className="divide-y divide-border">
-          {issueGroups.map((group) => (
-            <IssueActivityGroup
-              key={group.issueKey}
-              issueKey={group.issueKey}
-              summary={group.summary}
-              issueType={group.issueType}
-              totalSeconds={group.totalSeconds}
-              subItems={group.subItems}
-            />
-          ))}
-
-          {standaloneMrGroups.map((mr) => (
-            <StandaloneMrGroup
-              key={mr.iid}
-              iid={mr.iid}
-              title={mr.title}
-              events={mr.events}
-            />
-          ))}
-
-          {otherCommits.length > 0 && <OtherCommitsGroup commits={otherCommits} />}
-        </div>
-      )}
     </div>
   );
 }

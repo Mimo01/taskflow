@@ -4,11 +4,29 @@
  * Provides "last working day" resolution (with weekend + Tempo holiday skip)
  * and Jira key extraction from commit messages and branch names.
  *
- * NEVER use toLocaleDateString() for date computation — always use
- * toISOString().slice(0, 10) for timezone-stable ISO date strings. (Phase 62 rule)
+ * Date handling: NEVER use toLocaleDateString() (locale-formatted, unstable).
+ * For API string timestamps, slice(0, 10). For dates derived from `new Date()`
+ * or local components, format with toLocalDateString() below — NOT toISOString(),
+ * which converts to UTC and shifts the calendar day off-by-one for users east of
+ * UTC or at day boundaries.
  */
 
 import type { ScheduleDayType } from '@/services/tempo';
+
+/**
+ * Format a Date as a YYYY-MM-DD string using its LOCAL calendar components.
+ *
+ * Never use toISOString() here: that converts to UTC, so for a Date evaluated
+ * by local getDay()/getDate() the returned string can land on the wrong day
+ * (off-by-one) for users east of UTC or at the edges of the day. Local
+ * components keep the string aligned with the day the rest of the logic sees.
+ */
+function toLocalDateString(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 /**
  * Resolve the "yesterday" date for standup purposes — the most recent working day
@@ -26,16 +44,14 @@ import type { ScheduleDayType } from '@/services/tempo';
  *                       disabled — weekend-skip-only mode is used.
  * @returns YYYY-MM-DD string for the last working day.
  */
-export function resolveYesterdayDate(
-  tempoSchedule?: Map<string, ScheduleDayType>,
-): string {
+export function resolveYesterdayDate(tempoSchedule?: Map<string, ScheduleDayType>): string {
   const today = new Date();
   const candidate = new Date(today);
   candidate.setDate(today.getDate() - 1);
 
   for (let i = 0; i < 14; i++) {
     const dow = candidate.getDay();
-    const dateStr = candidate.toISOString().slice(0, 10);
+    const dateStr = toLocalDateString(candidate);
 
     // Skip weekends
     if (dow === 0 || dow === 6) {
@@ -53,7 +69,7 @@ export function resolveYesterdayDate(
   }
 
   // Fallback: safety cap reached — return whatever candidate we have
-  return candidate.toISOString().slice(0, 10);
+  return toLocalDateString(candidate);
 }
 
 /**
@@ -69,8 +85,8 @@ export function getScheduleLookbackRange(): { from: string; to: string } {
   const from = new Date(today);
   from.setDate(today.getDate() - 14);
   return {
-    from: from.toISOString().slice(0, 10),
-    to: today.toISOString().slice(0, 10),
+    from: toLocalDateString(from),
+    to: toLocalDateString(today),
   };
 }
 
