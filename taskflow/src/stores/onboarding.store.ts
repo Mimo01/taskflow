@@ -21,6 +21,7 @@ interface OnboardingState {
   gitlabProjects: GitLabProject[];
   jiraValidated: boolean;
   gitlabValidated: boolean;
+  integrationsVisited: boolean;
   set: (partial: Partial<Omit<OnboardingState, 'set' | 'goNext' | 'goBack'>>) => void;
   goNext: () => void;
   goBack: () => void;
@@ -38,7 +39,8 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   gitlabProjects: [],
   jiraValidated: false,
   gitlabValidated: false,
+  integrationsVisited: false,
   set: (partial) => set(partial),
-  goNext: () => set({ step: Math.min(3, get().step + 1) }),
+  goNext: () => set({ step: Math.min(4, get().step + 1) }),
   goBack: () => set({ step: Math.max(0, get().step - 1) }),
 }));
