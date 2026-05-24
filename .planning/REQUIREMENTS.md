@@ -27,9 +27,9 @@
 
 ### Settings UI Cleanup
 
-- [ ] **SETUI-01**: Remove "sidebar items" panel from Settings → Appearance section (duplicates the Sidebar settings page)
-- [ ] **SETUI-02**: Sidebar settings — visibility toggles only; remove drag-reorder UI + handlers from `SidebarItemsList.tsx`
-- [ ] **SETUI-03**: Default visibility = all sidebar items shown (migration: reset persisted visibility map on store version bump)
+- [x] **SETUI-01**: Remove "sidebar items" panel from Settings → Appearance section (duplicates the Sidebar settings page)
+- [x] **SETUI-02**: Sidebar settings — visibility toggles only; remove drag-reorder UI + handlers from `SidebarItemsList.tsx`
+- [x] **SETUI-03**: Default visibility = all sidebar items shown (migration: reset persisted visibility map on store version bump)
 
 ### Startup Wizard
 
@@ -83,9 +83,9 @@ Which phases cover which requirements.
 | ROLES-04 | Phase 66 | Complete |
 | ROLES-05 | Phase 66 | Complete |
 | ROLES-06 | Phase 66 | Complete |
-| SETUI-01 | Phase 67 | Pending |
-| SETUI-02 | Phase 67 | Pending |
-| SETUI-03 | Phase 67 | Pending |
+| SETUI-01 | Phase 67 | Complete |
+| SETUI-02 | Phase 67 | Complete |
+| SETUI-03 | Phase 67 | Complete |
 | WIZ-01 | Phase 68 | Pending |
 | WIZ-02 | Phase 68 | Pending |
 | WIZ-03 | Phase 68 | Pending |
