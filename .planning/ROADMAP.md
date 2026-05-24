@@ -281,9 +281,9 @@ Plans:
 Plans:
 **Wave 1** *(parallel — no file overlap)*
 
-- [ ] 69-01-PLAN.md — standup-date utility (last-working-day + Jira key extraction) + fetchYesterdayJiraActivity service (STAND-02, STAND-04, STAND-05)
-- [ ] 69-02-PLAN.md — fetchUserCommits + fetchUserMREvents GitLab service functions (STAND-05, STAND-06)
-- [ ] 69-03-PLAN.md — /standup-notes route + sidebar entry + breadcrumb, page shell (header + Today placeholder) (STAND-01)
+- [x] 69-01-PLAN.md — standup-date utility (last-working-day + Jira key extraction) + fetchYesterdayJiraActivity service (STAND-02, STAND-04, STAND-05)
+- [x] 69-02-PLAN.md — fetchUserCommits + fetchUserMREvents GitLab service functions (STAND-05, STAND-06)
+- [x] 69-03-PLAN.md — /standup-notes route + sidebar entry + breadcrumb, page shell (header + Today placeholder) (STAND-01)
 
 **Wave 2** *(blocked on Wave 1)*
 
