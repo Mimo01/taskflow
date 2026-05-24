@@ -1,10 +1,11 @@
 ---
 phase: 70
 slug: standup-notes-today-section
-status: draft
+status: approved
 shadcn_initialized: true
 preset: base-nova / neutral / cssVariables
 created: 2026-05-25
+reviewed_at: 2026-05-25
 ---
 
 # Phase 70 — UI Design Contract
@@ -76,7 +77,10 @@ Inherits the page's established scale exactly. No new sizes or weights are intro
 | Row primary text | `text-sm` | 14px | 400 | 1.4 | Issue summary, MR title |
 | Row secondary text | `text-xs text-muted-foreground font-mono` | 12px | 400 | 1.4 | Issue key (e.g. "PROJ-123"), MR IID (e.g. "!2094") |
 | Badge/chip text | `text-xs` | 12px | 400 | 1.0 | SP badge value, logged-time chip value |
-| Review state label | `text-xs` | 12px | 400 | 1.0 | "awaiting review" / "changes requested" |
+| Review state label — awaiting review | `text-xs` | 12px | 400 | 1.0 | "awaiting review" |
+| Review state label — changes requested | `text-xs font-semibold` | 12px | 600 | 1.0 | "changes requested" — uses declared semibold weight |
+
+Declared weights: 400 (regular) and 600 (semibold). No third weight is used.
 
 Source: matches `IssueActivityGroup.tsx`, `YesterdayColumn.tsx`, `MrHealthPanel.tsx`
 (`text-sm font-semibold uppercase tracking-wide`) and the mockup visual hierarchy.
@@ -175,12 +179,12 @@ navigating on click.
   <span class="text-xs text-muted-foreground font-mono shrink-0">KEY</span>-- e.g. "PROJ-123"
   <span class="flex-1 min-w-0 truncate text-sm">Summary text</span>       -- truncates
   {storyPoints && (
-    <span class="shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+    <span class="shrink-0 rounded bg-muted px-2 py-1 text-xs text-muted-foreground">
       {storyPoints} pts
     </span>
   )}
   {loggedTime && (                                                         -- In Progress only
-    <span class="shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground ml-1">
+    <span class="shrink-0 rounded bg-muted px-2 py-1 text-xs text-muted-foreground ml-1">
       {loggedTime}
     </span>
   )}
@@ -222,7 +226,7 @@ the row is non-interactive (no `<button>` wrapper, no cursor-pointer).
 
 Review state label classes:
 - "awaiting review" → `text-xs text-muted-foreground shrink-0`
-- "changes requested" → `text-xs text-amber-600 dark:text-amber-400 font-medium shrink-0`
+- "changes requested" → `text-xs text-amber-600 dark:text-amber-400 font-semibold shrink-0`
 
 Review state derivation: use `review_state` from the MR object returned by `fetchReviewerMRs`.
 When `review_state === 'approved'`, the MR is not "awaiting you" — filter it out entirely.
