@@ -28,9 +28,9 @@ export default function SidebarItemsList() {
             {sectionItems.map((nav) => {
               const isVisible = visibilityMap.get(nav.id) ?? true;
               return (
-                <div
+                <label
                   key={nav.id}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent"
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer"
                 >
                   <input
                     type="checkbox"
@@ -42,7 +42,7 @@ export default function SidebarItemsList() {
                     className="h-4 w-4 rounded border-border accent-primary disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <span className="text-sm">{nav.label}</span>
-                </div>
+                </label>
               );
             })}
           </div>
