@@ -84,10 +84,12 @@ export function WorklogCellPopover({
 
         {/* Separator */}
         <div className="border-t border-border mt-2 pt-2">
-          {/* Add-entry section using existing LogWorkPopover */}
+          {/* Add-entry section using existing LogWorkPopover — pass the cell date so the
+              date input pre-fills to the clicked day rather than defaulting to today. */}
           <LogWorkPopover
             issueKey={issueKey}
             jiraBaseUrl={jiraBaseUrl}
+            initialDate={date}
             onSuccess={() => queryClient.invalidateQueries({ queryKey: ['tempo', 'worklogs'] })}
           />
         </div>
