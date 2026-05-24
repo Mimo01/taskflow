@@ -7,6 +7,7 @@
 
 import { Check, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -28,12 +29,14 @@ import {
 import { useNotificationsStore } from '../../stores/notifications.store';
 import { useAuthStore } from '../../stores/auth.store';
 import { useSettingsStore } from '../../stores/settings.store';
-import { removeSecret } from '../../services/stronghold';
+import { readSecret, removeSecret } from '../../services/stronghold';
+import { useOnboardingStore } from '../../stores/onboarding.store';
 
 const RETENTION_OPTIONS = ['50', '100', '200', '500', '1000'] as const;
 const CONCURRENCY_OPTIONS = [1, 2, 3, 4, 6, 8, 10, 12] as const;
 
 export default function DebugModeSection() {
+  const navigate = useNavigate();
   const devToolsEnabled = useSettingsStore((s) => s.devToolsEnabled);
   const setDevToolsEnabled = useSettingsStore((s) => s.setDevToolsEnabled);
   const requestLogging = useSettingsStore((s) => s.requestLogging);
@@ -52,8 +55,13 @@ export default function DebugModeSection() {
   const itemCount = useNotificationsStore((s) => s.items.length);
   const resetSettings = useSettingsStore((s) => s.resetSettings);
   const setOnboardingComplete = useSettingsStore((s) => s.setOnboardingComplete);
+  const jiraBaseUrl = useAuthStore((s) => s.jiraBaseUrl);
+  const gitlabBaseUrl = useAuthStore((s) => s.gitlabBaseUrl);
+  const activeJiraProject = useAuthStore((s) => s.activeJiraProject);
+  const activeGitlabProject = useAuthStore((s) => s.activeGitlabProject);
+  const setWizardState = useOnboardingStore((s) => s.set);
   const [cleared, setCleared] = useState(false);
-  const [resetDone, setResetDone] = useState<null | 'wizard' | 'preferences' | 'all'>(null);
+  const [resetDone, setResetDone] = useState<null | 'preferences' | 'all'>(null);
 
   function handleClear() {
     clearAll();
@@ -61,10 +69,27 @@ export default function DebugModeSection() {
     setTimeout(() => setCleared(false), 3000);
   }
 
-  function handleResetWizard() {
+  async function handleResetWizard() {
+    const [jiraToken, gitlabToken] = await Promise.all([
+      readSecret('jira-pat').catch(() => ''),
+      readSecret('gitlab-pat').catch(() => ''),
+    ]);
+    setWizardState({
+      step: 0,
+      jiraUrl: jiraBaseUrl ?? '',
+      jiraToken,
+      jiraProject: activeJiraProject,
+      jiraProjects: [],
+      jiraValidated: false,
+      gitlabUrl: gitlabBaseUrl ?? '',
+      gitlabToken,
+      gitlabProject: activeGitlabProject,
+      gitlabProjects: [],
+      gitlabValidated: false,
+      integrationsVisited: false,
+    });
     setOnboardingComplete(false);
-    setResetDone('wizard');
-    setTimeout(() => setResetDone(null), 3000);
+    navigate('/');
   }
 
   function handleResetPreferences() {
@@ -266,40 +291,31 @@ export default function DebugModeSection() {
           <div>
             <p className="text-sm font-medium">Reset onboarding wizard</p>
             <p className="text-xs text-muted-foreground">
-              {resetDone === 'wizard'
-                ? 'Done — the setup wizard will re-run on next load'
-                : 'Re-run the setup wizard without restarting the app.'}
+              Re-run the setup wizard. Your existing credentials will be pre-filled.
             </p>
           </div>
-          {resetDone === 'wizard' ? (
-            <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 shrink-0">
-              <Check className="h-3.5 w-3.5" />
-              Done
-            </div>
-          ) : (
-            <Dialog>
-              <DialogTrigger
-                render={<Button variant="outline" size="sm" className="shrink-0" />}
-              >
-                Reset
-              </DialogTrigger>
-              <DialogContent showCloseButton={false}>
-                <DialogHeader>
-                  <DialogTitle>Reset onboarding wizard?</DialogTitle>
-                  <DialogDescription>
-                    The setup wizard will re-run the next time you open the app. Your existing
-                    settings and connections are not affected.
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
-                  <DialogClose render={<Button variant="destructive" onClick={handleResetWizard} />}>
-                    Reset
-                  </DialogClose>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
+          <Dialog>
+            <DialogTrigger
+              render={<Button variant="outline" size="sm" className="shrink-0" />}
+            >
+              Reset
+            </DialogTrigger>
+            <DialogContent showCloseButton={false}>
+              <DialogHeader>
+                <DialogTitle>Re-run the setup wizard?</DialogTitle>
+                <DialogDescription>
+                  The wizard will open now with your existing Jira and GitLab credentials
+                  pre-filled. Your connections and preferences are not affected.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+                <DialogClose render={<Button variant="destructive" onClick={handleResetWizard} />}>
+                  Open Wizard
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Row 2: Reset preferences */}
