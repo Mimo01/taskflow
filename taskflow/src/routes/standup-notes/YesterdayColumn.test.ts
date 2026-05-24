@@ -131,7 +131,7 @@ describe('generateMarkdown — parent-story rollup', () => {
     // worklog all together — and no separate SHOP-2 group heading.
     expect(md).toContain('### SHOP-1: Checkout revamp');
     expect(md).toContain('1 comment on SHOP-1 Checkout revamp');
-    expect(md).toContain('1.0h · SHOP-2 Wire up form');
+    expect(md).toContain('1h · SHOP-2 Wire up form');
     expect(md).not.toContain('### SHOP-2');
   });
 
@@ -145,6 +145,6 @@ describe('generateMarkdown — parent-story rollup', () => {
     // subtask group both appear.
     expect(md).toContain('### SHOP-1: SHOP-1 Checkout revamp');
     expect(md).toContain('### SHOP-2: Wire up form');
-    expect(md).toContain('1.0h · SHOP-2 Wire up form');
+    expect(md).toContain('1h · SHOP-2 Wire up form');
   });
 });

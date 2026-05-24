@@ -16,6 +16,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
+import { formatDuration } from '@/services/jira/duration';
 
 export type SubItemKind =
   | 'worklog'
@@ -63,10 +64,6 @@ function subItemIcon(kind: SubItemKind) {
   }
 }
 
-function formatHours(seconds: number): string {
-  return `${(seconds / 3600).toFixed(1)}h`;
-}
-
 export default function IssueActivityGroup({
   issueKey,
   summary,
@@ -88,7 +85,7 @@ export default function IssueActivityGroup({
         <span className="flex-1 min-w-0 truncate">{summary}</span>
         {totalSeconds > 0 && (
           <span className="shrink-0 text-xs text-muted-foreground ml-auto">
-            {formatHours(totalSeconds)}
+            {formatDuration(totalSeconds)}
           </span>
         )}
       </button>
