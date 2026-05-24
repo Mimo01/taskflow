@@ -31,3 +31,15 @@ describe('routes.tsx — workload route absence guard (Phase 59)', () => {
     expect(src).toMatch(/path:\s*['"]\/dashboard['"]/);
   });
 });
+
+describe('routes.tsx — standup-notes route presence guard (Phase 69)', () => {
+  it('routes.tsx contains a StandupNotesPage lazy import', () => {
+    const src = fs.readFileSync(ROUTES_FILE, 'utf8');
+    expect(src).toMatch(/StandupNotesPage/);
+  });
+
+  it('routes.tsx contains a /standup-notes route entry', () => {
+    const src = fs.readFileSync(ROUTES_FILE, 'utf8');
+    expect(src).toMatch(/path:\s*['"]\/standup-notes['"]/);
+  });
+});
