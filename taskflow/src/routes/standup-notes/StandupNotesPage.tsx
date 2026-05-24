@@ -1,7 +1,32 @@
-import { useMemo, useState } from 'react';
-import { resolveYesterdayDate } from '@/lib/standup-date';
+/**
+ * StandupNotesPage — /standup-notes route (STAND-01 through STAND-06)
+ *
+ * Owns the 2-column shell (Yesterday left | Today right), four independent
+ * data queries, the schedule-aware yesterdayDate derivation, Refresh-all,
+ * and the real Copy-markdown handler.
+ *
+ * T-62-06: jiraToken / gitlabToken MUST NOT appear in any queryKey.
+ * Tokens live only inside the queryFn closure via readSecret().
+ *
+ * Pitfall 2: yesterdayDate is derived from scheduleData via useMemo so
+ * Tempo-enabled users get the correct holiday-skip date.
+ */
+
+import { useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  getScheduleLookbackRange,
+  resolveYesterdayDate,
+} from '@/lib/standup-date';
+import { fetchYesterdayJiraActivity } from '@/services/jira';
+import { fetchUserCommits, fetchUserMREvents } from '@/services/gitlab';
+import { readSecret } from '@/services/stronghold';
+import { fetchUserSchedule, fetchWorklogs } from '@/services/tempo';
+import { useAuthStore } from '@/stores/auth.store';
+import { useSettingsStore } from '@/stores/settings.store';
 import StandupPageHeader from './StandupPageHeader';
 import TodayColumnPlaceholder from './TodayColumnPlaceholder';
+import YesterdayColumn, { generateMarkdown } from './YesterdayColumn';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -25,9 +50,6 @@ const MONTH_NAMES = [
  *
  * Uses explicit array lookups — never toLocaleDateString() — per Phase 62
  * standing rule (TZ-independent date formatting).
- *
- * @param dateStr YYYY-MM-DD
- * @returns e.g. "Monday, 26 May 2026"
  */
 function getColumnHeading(dateStr: string): string {
   const today = new Date();
@@ -39,48 +61,211 @@ function getColumnHeading(dateStr: string): string {
 }
 
 function formatDateLabel(dateStr: string): string {
-  // Parse the ISO date components directly to avoid TZ shifts.
   const [yearStr, monthStr, dayStr] = dateStr.split('-');
   const year = parseInt(yearStr, 10);
   const month = parseInt(monthStr, 10) - 1; // 0-indexed
   const day = parseInt(dayStr, 10);
-
-  // Build a local date at midnight to get the day-of-week.
   const d = new Date(year, month, day);
   const dayName = DAY_NAMES[d.getDay()];
   const monthName = MONTH_NAMES[month];
-
   return `${dayName}, ${day} ${monthName} ${year}`;
 }
 
 /**
- * StandupNotesPage
- *
- * Top-level page for the /standup-notes route (STAND-01).
- *
- * Layout: full-height flex-col shell with a full-width page header above a
- * 50/50 two-column body. Left column = Yesterday recap region (Plan 04 mounts
- * YesterdayColumn here). Right column = Today placeholder (Phase 70).
- *
- * This plan (03) builds the shell only:
- * - StandupPageHeader with resolved yesterday date label
- * - Left region: labelled container with Plan-04 mount-point comment
- * - Right region: TodayColumnPlaceholder
- *
- * Plan 04 adds the four useQuery hooks + YesterdayColumn data sections.
+ * Compute the "synced X minutes ago" label from the earliest lastUpdated timestamp
+ * across the four queries. Returns null when no query has loaded yet.
  */
-export default function StandupNotesPage() {
-  const [copied, setCopied] = useState(false);
+function computeSyncedMinutesAgo(timestamps: (Date | undefined)[]): number | null {
+  const valid = timestamps.filter((t): t is Date => t != null);
+  if (valid.length === 0) return null;
+  const earliest = new Date(Math.min(...valid.map((t) => t.getTime())));
+  const diffMs = Date.now() - earliest.getTime();
+  return Math.floor(diffMs / 60_000);
+}
 
-  // Resolve yesterday date once per mount.
-  // Plan 04 replaces this with a schedule-aware memo that accepts the Tempo schedule map.
-  const yesterdayDate = useMemo(() => resolveYesterdayDate(), []);
+export default function StandupNotesPage() {
+  const {
+    jiraBaseUrl,
+    gitlabBaseUrl,
+    activeJiraProject,
+    activeGitlabProject,
+    jiraUsername,
+    jiraUserKey,
+    gitlabUserId,
+    gitlabUsername,
+  } = useAuthStore();
+
+  // IN-01: fine-grained selector — never destructure the whole settings store
+  const tempoEnabled = useSettingsStore((s) => s.tempoEnabled);
+
+  // ─ Token loading (Pattern 2) ─────────────────────────────────────────────
+  const [jiraToken, setJiraToken] = useState<string | null>(null);
+  const [gitlabToken, setGitlabToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (jiraBaseUrl) {
+      readSecret('jira-pat')
+        .then((t) => setJiraToken(t))
+        .catch(() => setJiraToken(null));
+    }
+  }, [jiraBaseUrl]);
+
+  useEffect(() => {
+    if (gitlabBaseUrl) {
+      readSecret('gitlab-pat')
+        .then((t) => setGitlabToken(t))
+        .catch(() => setGitlabToken(null));
+    }
+  }, [gitlabBaseUrl]);
+
+  // ─ Tempo schedule query (runs first; drives yesterdayDate) ───────────────
+  // T-62-06: jiraToken NOT in queryKey
+  const { data: scheduleData } = useQuery({
+    queryKey: ['standup', 'schedule', jiraBaseUrl, jiraUserKey ?? ''],
+    queryFn: () =>
+      fetchUserSchedule(
+        jiraBaseUrl!,
+        jiraToken!,
+        getScheduleLookbackRange().from,
+        getScheduleLookbackRange().to,
+        jiraUserKey!,
+      ),
+    enabled: !!jiraBaseUrl && !!jiraToken && !!jiraUserKey && tempoEnabled,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+
+  // ─ Yesterday date (Pitfall 2: memo on scheduleData) ─────────────────────
+  const yesterdayDate = useMemo(
+    () => resolveYesterdayDate(scheduleData ?? undefined),
+    [scheduleData],
+  );
   const dateLabel = useMemo(() => formatDateLabel(yesterdayDate), [yesterdayDate]);
 
+  // ─ Four independent data queries (Pattern 3) ────────────────────────────
+  // T-62-06: tokens NEVER in queryKey — they are read inside queryFn only.
+
+  const tempoQuery = useQuery({
+    queryKey: ['standup', 'tempo', jiraBaseUrl, yesterdayDate, jiraUsername ?? ''],
+    queryFn: () =>
+      fetchWorklogs(jiraBaseUrl!, jiraToken!, [jiraUsername!], yesterdayDate, yesterdayDate),
+    enabled:
+      !!jiraBaseUrl &&
+      !!jiraToken &&
+      tempoEnabled &&
+      !!jiraUsername &&
+      !!yesterdayDate,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const jiraActivityQuery = useQuery({
+    queryKey: [
+      'standup',
+      'jira',
+      jiraBaseUrl,
+      activeJiraProject,
+      yesterdayDate,
+      jiraUsername ?? '',
+    ],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token) throw new Error('No Jira token');
+      return fetchYesterdayJiraActivity(
+        jiraBaseUrl!,
+        token,
+        activeJiraProject!,
+        yesterdayDate,
+        jiraUsername!,
+      );
+    },
+    enabled:
+      !!jiraBaseUrl &&
+      !!jiraToken &&
+      !!activeJiraProject &&
+      !!jiraUsername &&
+      !!yesterdayDate,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const commitsQuery = useQuery({
+    queryKey: [
+      'standup',
+      'commits',
+      gitlabBaseUrl,
+      activeGitlabProject,
+      yesterdayDate,
+      gitlabUsername ?? '',
+    ],
+    queryFn: async () => {
+      const token = await readSecret('gitlab-pat').catch(() => null);
+      if (!token) throw new Error('No GitLab token');
+      return fetchUserCommits(
+        gitlabBaseUrl!,
+        token,
+        activeGitlabProject!,
+        yesterdayDate,
+        gitlabUsername!,
+      );
+    },
+    enabled:
+      !!gitlabBaseUrl &&
+      !!gitlabToken &&
+      !!activeGitlabProject &&
+      !!gitlabUsername &&
+      !!yesterdayDate,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const mrEventsQuery = useQuery({
+    queryKey: ['standup', 'mr-events', gitlabBaseUrl, gitlabUserId, yesterdayDate],
+    queryFn: async () => {
+      const token = await readSecret('gitlab-pat').catch(() => null);
+      if (!token) throw new Error('No GitLab token');
+      return fetchUserMREvents(gitlabBaseUrl!, token, gitlabUserId!, yesterdayDate);
+    },
+    enabled: !!gitlabBaseUrl && !!gitlabToken && !!gitlabUserId && !!yesterdayDate,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // ─ Refresh-all (stale data stays visible during refetch — no skeleton flash) ─
+  function handleRefresh() {
+    void tempoQuery.refetch();
+    void jiraActivityQuery.refetch();
+    void commitsQuery.refetch();
+    void mrEventsQuery.refetch();
+  }
+
+  // ─ "synced Xm ago" — earliest dataUpdatedAt across all four loaded queries ─
+  const syncedMinutesAgo = useMemo(() => {
+    return computeSyncedMinutesAgo([
+      tempoQuery.dataUpdatedAt ? new Date(tempoQuery.dataUpdatedAt) : undefined,
+      jiraActivityQuery.dataUpdatedAt ? new Date(jiraActivityQuery.dataUpdatedAt) : undefined,
+      commitsQuery.dataUpdatedAt ? new Date(commitsQuery.dataUpdatedAt) : undefined,
+      mrEventsQuery.dataUpdatedAt ? new Date(mrEventsQuery.dataUpdatedAt) : undefined,
+    ]);
+  }, [
+    tempoQuery.dataUpdatedAt,
+    jiraActivityQuery.dataUpdatedAt,
+    commitsQuery.dataUpdatedAt,
+    mrEventsQuery.dataUpdatedAt,
+  ]);
+
+  // ─ Copy markdown ──────────────────────────────────────────────────────────
+  const [copied, setCopied] = useState(false);
+
   function handleCopyMarkdown() {
-    // Plan 04 wires the real markdown string once Yesterday data is available.
-    navigator.clipboard.writeText('').catch(() => {
-      // Clipboard write failed silently — no PII exposed (placeholder content).
+    // Build the markdown from the YesterdayColumn's current group state.
+    // generateMarkdown is exported from YesterdayColumn and used here.
+    const text = generateMarkdown(
+      {
+        tempoData: tempoQuery.data,
+        jiraData: jiraActivityQuery.data,
+        commitsData: commitsQuery.data,
+        mrEventsData: mrEventsQuery.data,
+      },
+      yesterdayDate,
+    );
+    navigator.clipboard.writeText(text).catch(() => {
+      // Silent fallback — clipboard unavailable (unlikely in Tauri webview).
     });
     setCopied(true);
     setTimeout(() => {
@@ -92,10 +277,8 @@ export default function StandupNotesPage() {
     <div className="flex flex-col h-full">
       <StandupPageHeader
         dateLabel={dateLabel}
-        syncedMinutesAgo={null}
-        onRefresh={() => {
-          // Plan 04 wires refetch() calls for all four useQuery hooks here.
-        }}
+        syncedMinutesAgo={syncedMinutesAgo}
+        onRefresh={handleRefresh}
         onCopyMarkdown={handleCopyMarkdown}
         copied={copied}
       />
@@ -104,12 +287,15 @@ export default function StandupNotesPage() {
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Left column — Yesterday recap (50%) */}
         <div className="w-1/2 overflow-auto border-r border-border px-6 py-4">
-          <div className="mb-4">
-            <h2 className="text-xl font-semibold">{getColumnHeading(yesterdayDate)}</h2>
-            <p className="text-xs text-muted-foreground">{dateLabel}</p>
-          </div>
-
-          {/* Plan 04 mounts YesterdayColumn + four useQuery sections here */}
+          <YesterdayColumn
+            tempoEnabled={tempoEnabled}
+            yesterdayDate={yesterdayDate}
+            dateLabel={dateLabel}
+            tempoQuery={tempoQuery}
+            jiraActivityQuery={jiraActivityQuery}
+            commitsQuery={commitsQuery}
+            mrEventsQuery={mrEventsQuery}
+          />
         </div>
 
         {/* Right column — Today placeholder (50%) */}
