@@ -832,6 +832,128 @@ export async function fetchComments(
   return data.comments ?? [];
 }
 
+// ─── Standup Activity ──────────────────────────────────────────────────────────
+
+/**
+ * A single Jira issue's activity summary for the yesterday standup recap.
+ *
+ * Contains status transitions and comments authored by the current user on
+ * the target date, grouped per issue.
+ */
+export interface JiraActivityItem {
+  issueKey: string;
+  summary: string;
+  transitions: Array<{ fromStatus: string; toStatus: string; at: string }>;
+  comments: Array<{ body: string; at: string }>;
+}
+
+/**
+ * Fetch Jira activity I authored on `date`: status transitions + comments,
+ * filtered client-side to entries matching `jiraUsername` and the exact date.
+ *
+ * Strategy (D-01, D-02, D-03 from CONTEXT.md):
+ * 1. JQL search: `project = {projectKey} AND updated >= "{date}"` with
+ *    `expand=changelog` and `maxResults=50` so transitions are inline.
+ * 2. For each issue, filter changelog.histories to entries where
+ *    `author.name === jiraUsername` AND `created.slice(0,10) === date`
+ *    AND at least one item has `field === 'status'`.
+ * 3. For each issue, fetch `/rest/api/2/issue/{key}/comment` inside a
+ *    try/catch (graceful per-issue degradation), filtering to comments
+ *    matching `author.name === jiraUsername` AND `created.slice(0,10) === date`.
+ * 4. Only push to the result when transitions.length > 0 || comments.length > 0.
+ *
+ * Date comparisons always use `.slice(0, 10)` on ISO strings — never toLocaleDateString().
+ *
+ * @param baseUrl       Jira base URL
+ * @param token         Personal Access Token (Bearer)
+ * @param projectKey    Jira project key (e.g. "PROJ")
+ * @param date          Target date YYYY-MM-DD (last working day)
+ * @param jiraUsername  Username to filter by (matches changelog/comment author.name)
+ * @returns Array of issues with at least one matching transition or comment
+ */
+export async function fetchYesterdayJiraActivity(
+  baseUrl: string,
+  token: string,
+  projectKey: string,
+  date: string,
+  jiraUsername: string,
+): Promise<JiraActivityItem[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+  // Step 1: JQL search with changelog expansion (D-01, D-03)
+  const jql = encodeURIComponent(
+    `project = ${projectKey} AND updated >= "${date}" ORDER BY updated DESC`,
+  );
+  const url = `${base}/rest/api/2/search?jql=${jql}&maxResults=50&expand=changelog&fields=summary,status,issuetype`;
+
+  const response = await apiFetch('jira', url, { headers }, 'Load Standup Jira Activity');
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to fetch Jira activity', response.status, 'jira');
+    }
+    throw new Error(`Jira activity fetch failed: ${response.status}`);
+  }
+
+  const data = (await response.json()) as {
+    issues?: Array<{
+      key: string;
+      fields: { summary: string };
+      changelog?: { histories: ChangelogHistory[] };
+    }>;
+  };
+
+  const issues = data.issues ?? [];
+  const results: JiraActivityItem[] = [];
+
+  for (const issue of issues) {
+    // Step 2: filter transitions by author + date (D-02)
+    const transitions = (issue.changelog?.histories ?? [])
+      .filter(
+        (h) =>
+          h.author.name === jiraUsername &&
+          h.created.slice(0, 10) === date &&
+          h.items.some((i) => i.field === 'status'),
+      )
+      .map((h) => {
+        const statusItem = h.items.find((i) => i.field === 'status')!;
+        return {
+          fromStatus: statusItem.fromString ?? '',
+          toStatus: statusItem.toString ?? '',
+          at: h.created,
+        };
+      });
+
+    // Step 3: fetch + filter comments (D-02) — graceful per-issue degradation
+    let comments: Array<{ body: string; at: string }> = [];
+    try {
+      const commentsUrl = `${base}/rest/api/2/issue/${issue.key}/comment`;
+      const commentsRes = await apiFetch(
+        'jira',
+        commentsUrl,
+        { headers },
+        'Load Standup Jira Comments',
+      );
+      if (commentsRes.ok) {
+        const commentsData = (await commentsRes.json()) as { comments: JiraComment[] };
+        comments = (commentsData.comments ?? [])
+          .filter((c) => c.author.name === jiraUsername && c.created.slice(0, 10) === date)
+          .map((c) => ({ body: c.body, at: c.created }));
+      }
+    } catch {
+      // Graceful degradation: a failing comment fetch for one issue
+      // must not abort the entire standup activity load.
+    }
+
+    // Step 4: only include issues with at least one matched activity entry
+    if (transitions.length > 0 || comments.length > 0) {
+      results.push({ issueKey: issue.key, summary: issue.fields.summary, transitions, comments });
+    }
+  }
+
+  return results;
+}
+
 export async function updateComment(
   baseUrl: string,
   token: string,
