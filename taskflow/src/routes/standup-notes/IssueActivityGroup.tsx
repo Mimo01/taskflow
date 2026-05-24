@@ -8,19 +8,17 @@
 
 import {
   ArrowRight,
-  Bug,
-  ChevronRight,
   CheckCircle,
-  CircleDot,
+  Clock,
   GitBranch,
   GitMerge,
-  Layers,
   MessageCircle,
   MessageSquare,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 
 export type SubItemKind =
+  | 'worklog'
   | 'commit'
   | 'transition'
   | 'mr-comment'
@@ -36,30 +34,20 @@ export interface SubItem {
 export interface IssueActivityGroupProps {
   issueKey: string;
   summary: string;
-  /** Jira issue type: Story, Bug, Subtask, Epic, or anything else defaults to CircleDot */
+  /** Jira issue type name — drives the type icon (Story, Bug, Sub-task, Epic, …). */
   issueType?: string;
   /** Total seconds logged via Tempo — displayed right-aligned when > 0 */
   totalSeconds: number;
   subItems: SubItem[];
-}
-
-/** Map issue type string to the appropriate Lucide icon component. */
-function issueTypeIcon(issueType: string | undefined) {
-  switch (issueType?.toLowerCase()) {
-    case 'bug':
-      return Bug;
-    case 'subtask':
-      return ChevronRight;
-    case 'epic':
-      return Layers;
-    default:
-      return CircleDot;
-  }
+  /** Click handler for the header — navigates to the issue detail page. */
+  onClick?: () => void;
 }
 
 /** Map sub-item kind to Lucide icon component per UI-SPEC icon table. */
 function subItemIcon(kind: SubItemKind) {
   switch (kind) {
+    case 'worklog':
+      return Clock;
     case 'commit':
       return GitBranch;
     case 'transition':
@@ -85,14 +73,17 @@ export default function IssueActivityGroup({
   issueType,
   totalSeconds,
   subItems,
+  onClick,
 }: IssueActivityGroupProps) {
-  const IssueIcon = issueTypeIcon(issueType);
-
   return (
     <div className="py-2">
-      {/* Group header: [icon] [key] [summary]          [Xh] */}
-      <div className="flex items-center gap-2 text-sm font-semibold">
-        <IssueIcon className="size-4 shrink-0 text-muted-foreground" />
+      {/* Group header: [icon] [key] [summary]          [Xh] — opens issue detail */}
+      <button
+        type="button"
+        onClick={onClick}
+        className="-mx-1 flex w-full cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-left text-sm font-semibold hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <IssueTypeIcon typeName={issueType ?? ''} className="size-4 shrink-0" />
         <span className="shrink-0 text-xs font-medium text-muted-foreground">{issueKey}</span>
         <span className="flex-1 min-w-0 truncate">{summary}</span>
         {totalSeconds > 0 && (
@@ -100,12 +91,7 @@ export default function IssueActivityGroup({
             {formatHours(totalSeconds)}
           </span>
         )}
-        {issueType && (
-          <Badge variant="outline" className="shrink-0 text-xs">
-            {issueType}
-          </Badge>
-        )}
-      </div>
+      </button>
 
       {/* Sub-items */}
       {subItems.length > 0 && (

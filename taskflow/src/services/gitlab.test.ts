@@ -270,10 +270,7 @@ describe('gitlab service', () => {
     const PROJECT_ID = 99;
     const DATE = '2026-05-23';
 
-    const makeCommit = (overrides: {
-      author_name?: string;
-      author_email?: string;
-    }) => ({
+    const makeCommit = (overrides: { author_name?: string; author_email?: string }) => ({
       id: 'abc123def456abc123def456abc123def456abc1',
       short_id: 'abc123de',
       title: 'feat: add something',
@@ -341,7 +338,9 @@ describe('gitlab service', () => {
       await fetchUserCommits(BASE, TOKEN, PROJECT_ID, DATE, 'johndoe');
 
       const calledUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
-      const calledOptions = vi.mocked(mockFetch).mock.calls[0][1] as { headers: Record<string, string> };
+      const calledOptions = vi.mocked(mockFetch).mock.calls[0][1] as {
+        headers: Record<string, string>;
+      };
       expect(calledUrl).toContain(`/projects/${PROJECT_ID}/repository/commits`);
       expect(calledUrl).toContain('since=');
       expect(calledUrl).toContain('until=');
@@ -375,9 +374,9 @@ describe('gitlab service', () => {
     it('STAND-05: throws network error when apiFetch throws', async () => {
       vi.mocked(mockFetch).mockRejectedValue(new Error('Network failure'));
 
-      await expect(
-        fetchUserCommits(BASE, TOKEN, PROJECT_ID, DATE, 'johndoe'),
-      ).rejects.toThrow(`Cannot reach ${BASE} — check the base URL`);
+      await expect(fetchUserCommits(BASE, TOKEN, PROJECT_ID, DATE, 'johndoe')).rejects.toThrow(
+        `Cannot reach ${BASE} — check the base URL`,
+      );
     });
   });
 
@@ -392,16 +391,34 @@ describe('gitlab service', () => {
       action_name?: 'commented' | 'approved';
       created_at?: string;
       target_type?: string;
-    }) => ({
-      id: 1001,
-      action_name: overrides.action_name ?? 'commented',
-      target_type: overrides.target_type ?? 'MergeRequest',
-      target_id: 5001,
-      target_iid: 42,
-      target_title: 'feat: add login flow',
-      created_at: overrides.created_at ?? `${DATE}T10:00:00.000Z`,
-      project_id: 99,
-    });
+      noteableType?: string;
+      noteAuthorId?: number;
+      eventAuthorId?: number;
+    }) => {
+      const action = overrides.action_name ?? 'commented';
+      return {
+        id: 1001,
+        action_name: action,
+        target_type: overrides.target_type ?? 'MergeRequest',
+        target_id: 5001,
+        target_iid: 42,
+        target_title: 'feat: add login flow',
+        created_at: overrides.created_at ?? `${DATE}T10:00:00.000Z`,
+        project_id: 99,
+        author: { id: overrides.eventAuthorId ?? USER_ID },
+        // Comment events carry a `note`; the MR is identified by noteable_iid
+        // and the comment count must reflect only the current user's notes.
+        ...(action === 'commented'
+          ? {
+              note: {
+                noteable_type: overrides.noteableType ?? 'MergeRequest',
+                noteable_iid: 42,
+                author: { id: overrides.noteAuthorId ?? USER_ID },
+              },
+            }
+          : {}),
+      };
+    };
 
     it('STAND-06: merges commented and approved events from both requests', async () => {
       const commentedEvent = makeMREvent({ action_name: 'commented' });
@@ -447,9 +464,9 @@ describe('gitlab service', () => {
       expect(result[0].created_at.slice(0, 10)).toBe(DATE);
     });
 
-    it('STAND-06: filters out events with non-MergeRequest target_type', async () => {
-      const mrEvent = makeMREvent({ target_type: 'MergeRequest' });
-      const issueEvent = makeMREvent({ target_type: 'Issue' });
+    it('STAND-06: keeps only comments whose note.noteable_type is MergeRequest', async () => {
+      const mrEvent = makeMREvent({ noteableType: 'MergeRequest' });
+      const issueEvent = makeMREvent({ noteableType: 'Issue' });
 
       vi.mocked(mockFetch)
         .mockResolvedValueOnce({
@@ -465,7 +482,49 @@ describe('gitlab service', () => {
 
       const result = await fetchUserMREvents(BASE, TOKEN, USER_ID, DATE);
       expect(result).toHaveLength(1);
-      expect(result[0].target_type).toBe('MergeRequest');
+      expect(result[0].note?.noteable_type).toBe('MergeRequest');
+    });
+
+    it("STAND-06: counts only the current user's comments, not other authors", async () => {
+      const mine = makeMREvent({ noteAuthorId: USER_ID });
+      const someoneElse = makeMREvent({ noteAuthorId: 999 });
+
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => [mine, someoneElse],
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => [],
+        } as Response);
+
+      const result = await fetchUserMREvents(BASE, TOKEN, USER_ID, DATE);
+      expect(result).toHaveLength(1);
+      expect(result[0].note?.author?.id).toBe(USER_ID);
+    });
+
+    it('STAND-06: excludes replies whose event actor is someone else', async () => {
+      const mine = makeMREvent({ eventAuthorId: USER_ID });
+      const reply = makeMREvent({ eventAuthorId: 999 });
+
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => [mine, reply],
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => [],
+        } as Response);
+
+      const result = await fetchUserMREvents(BASE, TOKEN, USER_ID, DATE);
+      expect(result).toHaveLength(1);
+      expect(result[0].author?.id).toBe(USER_ID);
     });
 
     it('STAND-06: one request failure still returns results from the other (allSettled isolation)', async () => {
@@ -502,12 +561,11 @@ describe('gitlab service', () => {
     });
 
     it('STAND-06: URLs contain action=commented, action=approved, and /events path', async () => {
-      vi.mocked(mockFetch)
-        .mockResolvedValue({
-          ok: true,
-          status: 200,
-          json: async () => [],
-        } as Response);
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [],
+      } as Response);
 
       await fetchUserMREvents(BASE, TOKEN, USER_ID, DATE);
 
