@@ -14,6 +14,7 @@ import {
   CheckSquare,
   ChevronLeft,
   ChevronRight,
+  ClipboardList,
   Clock,
   FlaskConical,
   GitMerge,
@@ -51,6 +52,7 @@ import { SIDEBAR_NAV_ITEMS, SIDEBAR_SECTIONS } from './sidebar-items';
 const ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {
   LayoutDashboard,
   CheckSquare,
+  ClipboardList,
   KanbanSquare,
   List,
   BookOpen,
