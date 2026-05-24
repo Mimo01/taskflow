@@ -26,7 +26,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useNotificationsStore } from '../../stores/notifications.store';
+import { useAuthStore } from '../../stores/auth.store';
 import { useSettingsStore } from '../../stores/settings.store';
+import { removeSecret } from '../../services/stronghold';
 
 const RETENTION_OPTIONS = ['50', '100', '200', '500', '1000'] as const;
 const CONCURRENCY_OPTIONS = [1, 2, 3, 4, 6, 8, 10, 12] as const;
@@ -48,12 +50,36 @@ export default function DebugModeSection() {
   const setJiraConcurrencyLimit = useSettingsStore((s) => s.setJiraConcurrencyLimit);
   const clearAll = useNotificationsStore((s) => s.clearAll);
   const itemCount = useNotificationsStore((s) => s.items.length);
+  const resetSettings = useSettingsStore((s) => s.resetSettings);
+  const setOnboardingComplete = useSettingsStore((s) => s.setOnboardingComplete);
   const [cleared, setCleared] = useState(false);
+  const [resetDone, setResetDone] = useState<null | 'wizard' | 'preferences' | 'all'>(null);
 
   function handleClear() {
     clearAll();
     setCleared(true);
     setTimeout(() => setCleared(false), 3000);
+  }
+
+  function handleResetWizard() {
+    setOnboardingComplete(false);
+    setResetDone('wizard');
+    setTimeout(() => setResetDone(null), 3000);
+  }
+
+  function handleResetPreferences() {
+    resetSettings('preferences');
+    setResetDone('preferences');
+    setTimeout(() => setResetDone(null), 3000);
+  }
+
+  async function handleResetAll() {
+    useSettingsStore.getState().resetSettings('all');
+    useAuthStore.getState().resetAuth();
+    await removeSecret('jira-pat').catch(() => {});
+    await removeSecret('gitlab-pat').catch(() => {});
+    setResetDone('all');
+    setTimeout(() => setResetDone(null), 3000);
   }
 
   return (
@@ -221,6 +247,140 @@ export default function DebugModeSection() {
                   <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
                   <DialogClose render={<Button variant="destructive" onClick={handleClear} />}>
                     Clear all
+                  </DialogClose>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
+      </div>
+
+      {/* Reset section */}
+      <div className="flex flex-col gap-4">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          Reset
+        </h3>
+
+        {/* Row 1: Reset onboarding wizard */}
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium">Reset onboarding wizard</p>
+            <p className="text-xs text-muted-foreground">
+              {resetDone === 'wizard'
+                ? 'Done — the setup wizard will re-run on next load'
+                : 'Re-run the setup wizard without restarting the app.'}
+            </p>
+          </div>
+          {resetDone === 'wizard' ? (
+            <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 shrink-0">
+              <Check className="h-3.5 w-3.5" />
+              Done
+            </div>
+          ) : (
+            <Dialog>
+              <DialogTrigger
+                render={<Button variant="outline" size="sm" className="shrink-0" />}
+              >
+                Reset
+              </DialogTrigger>
+              <DialogContent showCloseButton={false}>
+                <DialogHeader>
+                  <DialogTitle>Reset onboarding wizard?</DialogTitle>
+                  <DialogDescription>
+                    The setup wizard will re-run the next time you open the app. Your existing
+                    settings and connections are not affected.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+                  <DialogClose render={<Button variant="destructive" onClick={handleResetWizard} />}>
+                    Reset
+                  </DialogClose>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
+
+        {/* Row 2: Reset preferences */}
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium">Reset preferences</p>
+            <p className="text-xs text-muted-foreground">
+              {resetDone === 'preferences'
+                ? 'Done — preferences restored to defaults'
+                : 'Restore appearance, sidebar, notifications, workflow, integrations, and update settings to defaults.'}
+            </p>
+          </div>
+          {resetDone === 'preferences' ? (
+            <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 shrink-0">
+              <Check className="h-3.5 w-3.5" />
+              Done
+            </div>
+          ) : (
+            <Dialog>
+              <DialogTrigger
+                render={<Button variant="outline" size="sm" className="shrink-0" />}
+              >
+                Reset
+              </DialogTrigger>
+              <DialogContent showCloseButton={false}>
+                <DialogHeader>
+                  <DialogTitle>Reset preferences?</DialogTitle>
+                  <DialogDescription>
+                    Restores defaults for: Appearance, Sidebar, Notifications, Workflow,
+                    Integrations, and Updates. Jira/GitLab connection settings and custom field
+                    keys are kept.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+                  <DialogClose
+                    render={<Button variant="destructive" onClick={handleResetPreferences} />}
+                  >
+                    Reset
+                  </DialogClose>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
+
+        {/* Row 3: Reset all */}
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium">Reset all</p>
+            <p className="text-xs text-muted-foreground">
+              {resetDone === 'all'
+                ? 'Done — all settings and connections cleared'
+                : 'Wipe all preferences AND remove Jira/GitLab connection details and stored access tokens.'}
+            </p>
+          </div>
+          {resetDone === 'all' ? (
+            <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 shrink-0">
+              <Check className="h-3.5 w-3.5" />
+              Done
+            </div>
+          ) : (
+            <Dialog>
+              <DialogTrigger
+                render={<Button variant="outline" size="sm" className="shrink-0" />}
+              >
+                Reset all
+              </DialogTrigger>
+              <DialogContent showCloseButton={false}>
+                <DialogHeader>
+                  <DialogTitle>Reset everything?</DialogTitle>
+                  <DialogDescription>
+                    This will restore all preferences to defaults, disconnect Jira and GitLab,
+                    and permanently remove your stored access tokens from the secure vault. You
+                    will need to reconnect your integrations.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+                  <DialogClose render={<Button variant="destructive" onClick={handleResetAll} />}>
+                    Reset all
                   </DialogClose>
                 </DialogFooter>
               </DialogContent>
