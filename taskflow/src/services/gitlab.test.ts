@@ -1,6 +1,7 @@
 // AUTH-02: GitLab PAT validation
 // DEV-05: Phase 2 GitLab MR functions
 // STAND-05: fetchUserCommits - Git commits by author for standup recap
+// STAND-06: fetchUserMREvents - MR comments + approvals via GitLab User Events API
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   fetchAssignedMRs,
@@ -10,6 +11,7 @@ import {
   fetchProjectMilestones,
   fetchReviewerMRs,
   fetchUserCommits,
+  fetchUserMREvents,
   listGitLabGroups,
   listGitLabProjects,
   searchGitLabMRs,
@@ -376,6 +378,145 @@ describe('gitlab service', () => {
       await expect(
         fetchUserCommits(BASE, TOKEN, PROJECT_ID, DATE, 'johndoe'),
       ).rejects.toThrow(`Cannot reach ${BASE} — check the base URL`);
+    });
+  });
+
+  describe('fetchUserMREvents (STAND-06)', () => {
+    const BASE = 'https://gitlab.example.com';
+    const TOKEN = 'glpat-test';
+    const USER_ID = 42;
+    const DATE = '2026-05-23';
+    const DAY_BEFORE = '2026-05-22';
+
+    const makeMREvent = (overrides: {
+      action_name?: 'commented' | 'approved';
+      created_at?: string;
+      target_type?: string;
+    }) => ({
+      id: 1001,
+      action_name: overrides.action_name ?? 'commented',
+      target_type: overrides.target_type ?? 'MergeRequest',
+      target_id: 5001,
+      target_iid: 42,
+      target_title: 'feat: add login flow',
+      created_at: overrides.created_at ?? `${DATE}T10:00:00.000Z`,
+      project_id: 99,
+    });
+
+    it('STAND-06: merges commented and approved events from both requests', async () => {
+      const commentedEvent = makeMREvent({ action_name: 'commented' });
+      const approvedEvent = makeMREvent({ action_name: 'approved' });
+
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => [commentedEvent],
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => [approvedEvent],
+        } as Response);
+
+      const result = await fetchUserMREvents(BASE, TOKEN, USER_ID, DATE);
+      expect(result).toHaveLength(2);
+      const actionNames = result.map((e) => e.action_name);
+      expect(actionNames).toContain('commented');
+      expect(actionNames).toContain('approved');
+    });
+
+    it('STAND-06: filters out events from a neighboring day (client-side date filter)', async () => {
+      const todayEvent = makeMREvent({ created_at: `${DATE}T09:00:00.000Z` });
+      const neighborEvent = makeMREvent({ created_at: `${DAY_BEFORE}T23:00:00.000Z` });
+
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => [todayEvent, neighborEvent],
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => [],
+        } as Response);
+
+      const result = await fetchUserMREvents(BASE, TOKEN, USER_ID, DATE);
+      expect(result).toHaveLength(1);
+      expect(result[0].created_at.slice(0, 10)).toBe(DATE);
+    });
+
+    it('STAND-06: filters out events with non-MergeRequest target_type', async () => {
+      const mrEvent = makeMREvent({ target_type: 'MergeRequest' });
+      const issueEvent = makeMREvent({ target_type: 'Issue' });
+
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => [mrEvent, issueEvent],
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => [],
+        } as Response);
+
+      const result = await fetchUserMREvents(BASE, TOKEN, USER_ID, DATE);
+      expect(result).toHaveLength(1);
+      expect(result[0].target_type).toBe('MergeRequest');
+    });
+
+    it('STAND-06: one request failure still returns results from the other (allSettled isolation)', async () => {
+      const approvedEvent = makeMREvent({ action_name: 'approved' });
+
+      vi.mocked(mockFetch)
+        .mockRejectedValueOnce(new Error('Network error on commented'))
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => [approvedEvent],
+        } as Response);
+
+      const result = await fetchUserMREvents(BASE, TOKEN, USER_ID, DATE);
+      expect(result).toHaveLength(1);
+      expect(result[0].action_name).toBe('approved');
+    });
+
+    it('STAND-06: returns empty array when both requests return no same-day events', async () => {
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => [],
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => [],
+        } as Response);
+
+      const result = await fetchUserMREvents(BASE, TOKEN, USER_ID, DATE);
+      expect(result).toHaveLength(0);
+    });
+
+    it('STAND-06: URLs contain action=commented, action=approved, and /events path', async () => {
+      vi.mocked(mockFetch)
+        .mockResolvedValue({
+          ok: true,
+          status: 200,
+          json: async () => [],
+        } as Response);
+
+      await fetchUserMREvents(BASE, TOKEN, USER_ID, DATE);
+
+      const calls = vi.mocked(mockFetch).mock.calls;
+      expect(calls).toHaveLength(2);
+      const urls = calls.map((c) => c[0] as string);
+      expect(urls.some((u) => u.includes('action=commented'))).toBe(true);
+      expect(urls.some((u) => u.includes('action=approved'))).toBe(true);
+      expect(urls.every((u) => u.includes(`/users/${USER_ID}/events`))).toBe(true);
     });
   });
 });
