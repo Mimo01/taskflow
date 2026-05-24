@@ -51,15 +51,6 @@ const MONTH_NAMES = [
  * Uses explicit array lookups — never toLocaleDateString() — per Phase 62
  * standing rule (TZ-independent date formatting).
  */
-function getColumnHeading(dateStr: string): string {
-  const today = new Date();
-  const calYesterday = new Date(today);
-  calYesterday.setDate(today.getDate() - 1);
-  if (dateStr === calYesterday.toISOString().slice(0, 10)) return 'Yesterday';
-  const [y, m, d] = dateStr.split('-').map(Number);
-  return DAY_NAMES[new Date(y, m - 1, d).getDay()];
-}
-
 function formatDateLabel(dateStr: string): string {
   const [yearStr, monthStr, dayStr] = dateStr.split('-');
   const year = parseInt(yearStr, 10);
