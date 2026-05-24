@@ -17,6 +17,8 @@ vi.mock('@tauri-apps/plugin-store', () => {
 
 // biome-ignore assist/source/organizeImports: import order must match module init order to avoid TDZ circular dependency
 import { useSettingsStore } from './settings.store';
+// biome-ignore assist/source/organizeImports: import order must match module init order to avoid TDZ circular dependency
+import { useAuthStore } from './auth.store';
 
 describe('settings.store — keyboardOverrides (Phase 19)', () => {
   beforeEach(() => {
@@ -287,5 +289,191 @@ describe('settings.store — roles removal (Phase 66)', () => {
   });
   it('applyPreset action is absent from store state', () => {
     expect('applyPreset' in useSettingsStore.getState()).toBe(false);
+  });
+});
+
+describe('settings.store — reset actions (quick 260524-pqo)', () => {
+  beforeEach(() => {
+    // Arrange: set non-default values to verify reset actually restores defaults
+    act(() => {
+      useSettingsStore.setState({
+        theme: 'dark',
+        density: 'compact',
+        onboardingComplete: true,
+        devToolsEnabled: true,
+        requestLogging: true,
+        retentionLimit: 500,
+        jiraConcurrencyLimit: 12,
+        notifCommentMentionEnabled: false,
+        notifIssueUpdateEnabled: false,
+        sidebarCollapsed: true,
+        sidebarWidth: 300,
+        quickFilters: [{ id: 'qf1', name: 'My Filter', filter: {} as any }],
+        storyPointsFieldKey: 'customfield_99999',
+        epicLinkFieldKey: 'customfield_88888',
+        epicNameFieldKey: 'customfield_77777',
+        sprintFieldKey: 'customfield_66666',
+        epicColorFieldKey: 'customfield_55555',
+        flaggedFieldKey: 'customfield_44444',
+        accountFieldKey: 'customfield_33333',
+      } as any);
+    });
+  });
+
+  it('resetSettings("all") restores theme to system', () => {
+    act(() => useSettingsStore.getState().resetSettings('all'));
+    expect(useSettingsStore.getState().theme).toBe('system');
+  });
+
+  it('resetSettings("all") restores density to default', () => {
+    act(() => useSettingsStore.getState().resetSettings('all'));
+    expect(useSettingsStore.getState().density).toBe('default');
+  });
+
+  it('resetSettings("all") restores devToolsEnabled to false', () => {
+    act(() => useSettingsStore.getState().resetSettings('all'));
+    expect(useSettingsStore.getState().devToolsEnabled).toBe(false);
+  });
+
+  it('resetSettings("all") restores retentionLimit to 200', () => {
+    act(() => useSettingsStore.getState().resetSettings('all'));
+    expect(useSettingsStore.getState().retentionLimit).toBe(200);
+  });
+
+  it('resetSettings("all") restores jiraConcurrencyLimit to 6', () => {
+    act(() => useSettingsStore.getState().resetSettings('all'));
+    expect(useSettingsStore.getState().jiraConcurrencyLimit).toBe(6);
+  });
+
+  it('resetSettings("all") restores quickFilters to empty array', () => {
+    act(() => useSettingsStore.getState().resetSettings('all'));
+    expect(useSettingsStore.getState().quickFilters).toEqual([]);
+  });
+
+  it('resetSettings("all") restores all notif* booleans to true', () => {
+    act(() => useSettingsStore.getState().resetSettings('all'));
+    const s = useSettingsStore.getState();
+    expect(s.notifCommentMentionEnabled).toBe(true);
+    expect(s.notifIssueUpdateEnabled).toBe(true);
+  });
+
+  it('resetSettings("all") restores storyPointsFieldKey to customfield_10016', () => {
+    act(() => useSettingsStore.getState().resetSettings('all'));
+    expect(useSettingsStore.getState().storyPointsFieldKey).toBe('customfield_10016');
+  });
+
+  it('resetSettings("all") restores onboardingComplete to false', () => {
+    act(() => useSettingsStore.getState().resetSettings('all'));
+    expect(useSettingsStore.getState().onboardingComplete).toBe(false);
+  });
+
+  it('resetSettings("all") preserves action functions (merge mode)', () => {
+    act(() => useSettingsStore.getState().resetSettings('all'));
+    expect(typeof useSettingsStore.getState().setTheme).toBe('function');
+    expect(typeof useSettingsStore.getState().setDensity).toBe('function');
+    expect(typeof useSettingsStore.getState().resetSettings).toBe('function');
+  });
+
+  it('resetSettings("preferences") restores theme to system', () => {
+    act(() => useSettingsStore.getState().resetSettings('preferences'));
+    expect(useSettingsStore.getState().theme).toBe('system');
+  });
+
+  it('resetSettings("preferences") restores density to default', () => {
+    act(() => useSettingsStore.getState().resetSettings('preferences'));
+    expect(useSettingsStore.getState().density).toBe('default');
+  });
+
+  it('resetSettings("preferences") preserves onboardingComplete', () => {
+    act(() => useSettingsStore.getState().resetSettings('preferences'));
+    // onboardingComplete was set to true in beforeEach — it must still be true
+    expect(useSettingsStore.getState().onboardingComplete).toBe(true);
+  });
+
+  it('resetSettings("preferences") preserves all seven custom field keys', () => {
+    act(() => useSettingsStore.getState().resetSettings('preferences'));
+    const s = useSettingsStore.getState();
+    expect(s.storyPointsFieldKey).toBe('customfield_99999');
+    expect(s.epicLinkFieldKey).toBe('customfield_88888');
+    expect(s.epicNameFieldKey).toBe('customfield_77777');
+    expect(s.sprintFieldKey).toBe('customfield_66666');
+    expect(s.epicColorFieldKey).toBe('customfield_55555');
+    expect(s.flaggedFieldKey).toBe('customfield_44444');
+    expect(s.accountFieldKey).toBe('customfield_33333');
+  });
+
+  it('resetSettings("preferences") preserves action functions (merge mode)', () => {
+    act(() => useSettingsStore.getState().resetSettings('preferences'));
+    expect(typeof useSettingsStore.getState().setTheme).toBe('function');
+  });
+});
+
+describe('auth.store — resetAuth() (quick 260524-pqo)', () => {
+  beforeEach(() => {
+    // Arrange: set non-default values
+    act(() => {
+      useAuthStore.setState({
+        jiraConnected: true,
+        gitlabConnected: true,
+        jiraBaseUrl: 'https://jira.example.com',
+        gitlabBaseUrl: 'https://gitlab.example.com',
+        activeJiraProject: 'PROJ',
+        activeGitlabProject: 42,
+        activeGitlabProjectPath: 'org/repo',
+        jiraUserDisplayName: 'Jane Doe',
+        jiraUsername: 'jdoe',
+        jiraUserKey: 'jdoe-key',
+        gitlabUserId: 99,
+        gitlabUsername: 'jdoe-gl',
+        _hasHydrated: true,
+      } as any);
+    });
+  });
+
+  it('resetAuth() sets jiraConnected to false', () => {
+    act(() => useAuthStore.getState().resetAuth());
+    expect(useAuthStore.getState().jiraConnected).toBe(false);
+  });
+
+  it('resetAuth() sets gitlabConnected to false', () => {
+    act(() => useAuthStore.getState().resetAuth());
+    expect(useAuthStore.getState().gitlabConnected).toBe(false);
+  });
+
+  it('resetAuth() clears jiraBaseUrl to null', () => {
+    act(() => useAuthStore.getState().resetAuth());
+    expect(useAuthStore.getState().jiraBaseUrl).toBeNull();
+  });
+
+  it('resetAuth() clears gitlabBaseUrl to null', () => {
+    act(() => useAuthStore.getState().resetAuth());
+    expect(useAuthStore.getState().gitlabBaseUrl).toBeNull();
+  });
+
+  it('resetAuth() clears activeJiraProject to null', () => {
+    act(() => useAuthStore.getState().resetAuth());
+    expect(useAuthStore.getState().activeJiraProject).toBeNull();
+  });
+
+  it('resetAuth() clears all identity fields to null', () => {
+    act(() => useAuthStore.getState().resetAuth());
+    const s = useAuthStore.getState();
+    expect(s.jiraUserDisplayName).toBeNull();
+    expect(s.jiraUsername).toBeNull();
+    expect(s.jiraUserKey).toBeNull();
+    expect(s.gitlabUserId).toBeNull();
+    expect(s.gitlabUsername).toBeNull();
+  });
+
+  it('resetAuth() preserves _hasHydrated (does not reset to false)', () => {
+    act(() => useAuthStore.getState().resetAuth());
+    // _hasHydrated was true in beforeEach and must remain true
+    expect(useAuthStore.getState()._hasHydrated).toBe(true);
+  });
+
+  it('resetAuth() preserves action functions (merge mode)', () => {
+    act(() => useAuthStore.getState().resetAuth());
+    expect(typeof useAuthStore.getState().setJiraConnected).toBe('function');
+    expect(typeof useAuthStore.getState().resetAuth).toBe('function');
   });
 });
