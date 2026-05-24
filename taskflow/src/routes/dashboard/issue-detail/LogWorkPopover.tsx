@@ -21,6 +21,8 @@ interface LogWorkPopoverProps {
   issueKey: string;
   jiraBaseUrl: string;
   onSuccess?: () => void;
+  /** Pre-fill the date input with this YYYY-MM-DD value. Defaults to today. */
+  initialDate?: string;
 }
 
 function todayString(): string {
@@ -28,12 +30,12 @@ function todayString(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export function LogWorkPopover({ issueKey, jiraBaseUrl, onSuccess }: LogWorkPopoverProps) {
+export function LogWorkPopover({ issueKey, jiraBaseUrl, onSuccess, initialDate }: LogWorkPopoverProps) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [duration, setDuration] = useState('');
   const [durationError, setDurationError] = useState<string | null>(null);
-  const [date, setDate] = useState(todayString);
+  const [date, setDate] = useState(() => initialDate ?? todayString());
   const [comment, setComment] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -58,7 +60,7 @@ export function LogWorkPopover({ issueKey, jiraBaseUrl, onSuccess }: LogWorkPopo
   function resetForm() {
     setDuration('');
     setDurationError(null);
-    setDate(todayString());
+    setDate(initialDate ?? todayString());
     setComment('');
     setSubmitError(null);
   }
