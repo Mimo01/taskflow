@@ -246,6 +246,21 @@ Plans:
 3. Tempo toggle on the Integrations step persists across wizard navigation (WIZ-03)
 4. Wizard completion writes both toggles + the selected AIO project key directly into the existing Settings store — no separate wizard-only state survives (WIZ-04)
 
+**Plans:** 3 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 68-01-PLAN.md — bump onboarding store step limit + integrationsVisited flag, extract AioBlock (UI-SPEC gap-2/font-normal corrections), update IntegrationsSection to import it (WIZ-01, WIZ-02)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 68-02-PLAN.md — IntegrationsStep component: AioBlock + inline Tempo toggle + gated Back/Continue, direct settings-store binding (WIZ-02, WIZ-03, WIZ-04)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 68-03-PLAN.md — wire IntegrationsStep into OnboardingWizard at index 3, full build + suite verification, human-verify checkpoint (WIZ-01)
+
 ### Phase 69: Standup Notes — Route + Yesterday Recap
 
 **Goal:** Ship the `/standup-notes` route with a fully populated Yesterday recap that pulls from Tempo, Jira, Git, and GitLab MR activity.
