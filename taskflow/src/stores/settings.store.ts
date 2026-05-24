@@ -16,6 +16,57 @@ import type { QuickFilter } from './filter.store';
 export type Density = 'compact' | 'default' | 'comfortable';
 export type CommentSortOrder = 'newest' | 'oldest';
 
+/** Default values for all persisted data fields (no actions, no sidebarItems). */
+const initialSettings = {
+  theme: 'system' as Theme,
+  onboardingComplete: false,
+  staleMrThresholdDays: 3,
+  notificationPollIntervalSecs: 60,
+  osNotifJiraEnabled: true,
+  osNotifGitlabEnabled: true,
+  storyPointsFieldKey: 'customfield_10016',
+  epicLinkFieldKey: 'customfield_10014',
+  epicNameFieldKey: 'customfield_10015',
+  sprintFieldKey: 'customfield_10020',
+  epicColorFieldKey: 'customfield_10013',
+  flaggedFieldKey: 'customfield_10021',
+  accountFieldKey: null as string | null,
+  devToolsEnabled: false,
+  requestLogging: false,
+  responseBodyCapture: false,
+  operationProfiling: false,
+  performanceWaterfall: false,
+  retentionLimit: 200,
+  jiraConcurrencyLimit: 6,
+  density: 'default' as Density,
+  sprintCollapseByDefault: false,
+  showSubtasksInMyTasks: true,
+  keyboardOverrides: {} as Record<string, string>,
+  commentSortOrder: 'newest' as CommentSortOrder,
+  updateCheckInterval: 6 as 1 | 6 | 12 | 24 | 'manual',
+  lastSeenVersion: null as string | null,
+  lastSeenChangelog: null as string | null,
+  lastChecked: null as string | null,
+  sidebarCollapsed: false,
+  sidebarWidth: 224,
+  issueDetailPanelWidth: null as number | null,
+  mrDetailPanelWidth: 288,
+  releaseDetailPanelWidth: 288,
+  aioEnabled: false,
+  tempoEnabled: false,
+  selectedAioProjectKey: null as string | null,
+  quickFilters: [] as QuickFilter[],
+  notifCommentMentionEnabled: true,
+  notifIssueUpdateEnabled: true,
+  notifMrNoteEnabled: true,
+  notifGitlabMentionEnabled: true,
+  notifJiraCommentEnabled: true,
+  notifMrApprovalEnabled: true,
+  notifPipelineFailureEnabled: true,
+  notifIssueAssignmentEnabled: true,
+  notifDueDateReminderEnabled: true,
+};
+
 interface SettingsState {
   theme: Theme;
   onboardingComplete: boolean;
@@ -155,6 +206,14 @@ interface SettingsState {
   sidebarItems: SidebarItem[];
   setSidebarItems: (items: SidebarItem[]) => void;
   setSidebarItemVisible: (id: string, visible: boolean) => void;
+  /**
+   * Reset settings to defaults.
+   * - 'preferences': restores appearance/notifications/workflow/sidebar/integrations/updates
+   *   defaults while keeping onboardingComplete and the seven custom field keys.
+   * - 'all': restores every data field to its default value.
+   * Uses merge-mode set() so action functions are always preserved.
+   */
+  resetSettings: (scope: 'preferences' | 'all') => void;
 }
 
 function appendAioItemIfMissing(items: SidebarItem[]): SidebarItem[] {
@@ -170,57 +229,21 @@ function appendWorklogsItemIfMissing(items: SidebarItem[]): SidebarItem[] {
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
-      theme: 'system',
-      onboardingComplete: false,
-      staleMrThresholdDays: 3,
-      notificationPollIntervalSecs: 60,
-      osNotifJiraEnabled: true,
-      osNotifGitlabEnabled: true,
-      storyPointsFieldKey: 'customfield_10016',
-      epicLinkFieldKey: 'customfield_10014',
-      epicNameFieldKey: 'customfield_10015',
-      sprintFieldKey: 'customfield_10020',
-      epicColorFieldKey: 'customfield_10013',
-      flaggedFieldKey: 'customfield_10021',
-      accountFieldKey: null,
-      devToolsEnabled: false,
-      requestLogging: false,
-      responseBodyCapture: false,
-      operationProfiling: false,
-      performanceWaterfall: false,
-      retentionLimit: 200,
-      jiraConcurrencyLimit: 6,
-      density: 'default' as Density,
-      sprintCollapseByDefault: false,
-      showSubtasksInMyTasks: true,
-      keyboardOverrides: {},
-      commentSortOrder: 'newest' as CommentSortOrder,
+      ...initialSettings,
+      sidebarItems: getDefaultSidebarItems(),
       setCommentSortOrder: (order) => set({ commentSortOrder: order }),
-      updateCheckInterval: 6 as 1 | 6 | 12 | 24 | 'manual',
       setUpdateCheckInterval: (v) => set({ updateCheckInterval: v }),
-      lastSeenVersion: null,
-      lastSeenChangelog: null,
       setLastSeenVersion: (v) => set({ lastSeenVersion: v }),
       setLastSeenChangelog: (v) => set({ lastSeenChangelog: v }),
-      lastChecked: null,
       setLastChecked: (iso) => set({ lastChecked: iso }),
-      sidebarCollapsed: false,
       toggleSidebarCollapsed: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
-      sidebarWidth: 224,
       setSidebarWidth: (w) => set({ sidebarWidth: w }),
-      issueDetailPanelWidth: null,
       setIssueDetailPanelWidth: (w) => set({ issueDetailPanelWidth: w }),
-      mrDetailPanelWidth: 288,
       setMrDetailPanelWidth: (w) => set({ mrDetailPanelWidth: w }),
-      releaseDetailPanelWidth: 288,
       setReleaseDetailPanelWidth: (w) => set({ releaseDetailPanelWidth: w }),
-      aioEnabled: false,
       setAioEnabled: (v) => set({ aioEnabled: v }),
-      tempoEnabled: false,
       setTempoEnabled: (v) => set({ tempoEnabled: v }),
-      selectedAioProjectKey: null,
       setSelectedAioProjectKey: (key) => set({ selectedAioProjectKey: key }),
-      quickFilters: [],
       addQuickFilter: (qf) => set((state) => ({ quickFilters: [...state.quickFilters, qf] })),
       removeQuickFilter: (id) =>
         set((state) => ({ quickFilters: state.quickFilters.filter((q) => q.id !== id) })),
@@ -250,15 +273,6 @@ export const useSettingsStore = create<SettingsState>()(
           }
           return { quickFilters: arr };
         }),
-      notifCommentMentionEnabled: true,
-      notifIssueUpdateEnabled: true,
-      notifMrNoteEnabled: true,
-      notifGitlabMentionEnabled: true,
-      notifJiraCommentEnabled: true,
-      notifMrApprovalEnabled: true,
-      notifPipelineFailureEnabled: true,
-      notifIssueAssignmentEnabled: true,
-      notifDueDateReminderEnabled: true,
       setNotifCommentMentionEnabled: (v) => set({ notifCommentMentionEnabled: v }),
       setNotifIssueUpdateEnabled: (v) => set({ notifIssueUpdateEnabled: v }),
       setNotifMrNoteEnabled: (v) => set({ notifMrNoteEnabled: v }),
@@ -295,7 +309,6 @@ export const useSettingsStore = create<SettingsState>()(
       setEpicColorFieldKey: (key) => set({ epicColorFieldKey: key }),
       setFlaggedFieldKey: (key) => set({ flaggedFieldKey: key }),
       setAccountFieldKey: (key) => set({ accountFieldKey: key }),
-      sidebarItems: getDefaultSidebarItems(),
       setSidebarItems: (items) => set({ sidebarItems: items }),
       setSidebarItemVisible: (id, visible) =>
         set((s) => ({
@@ -303,6 +316,23 @@ export const useSettingsStore = create<SettingsState>()(
             item.id === id ? { ...item, visible } : item,
           ),
         })),
+      resetSettings: (scope) =>
+        set((s) => {
+          const base = { ...initialSettings, sidebarItems: getDefaultSidebarItems() };
+          if (scope === 'all') return base;
+          // 'preferences': restore defaults but keep onboardingComplete and all 7 custom field keys
+          return {
+            ...base,
+            onboardingComplete: s.onboardingComplete,
+            storyPointsFieldKey: s.storyPointsFieldKey,
+            epicLinkFieldKey: s.epicLinkFieldKey,
+            epicNameFieldKey: s.epicNameFieldKey,
+            sprintFieldKey: s.sprintFieldKey,
+            epicColorFieldKey: s.epicColorFieldKey,
+            flaggedFieldKey: s.flaggedFieldKey,
+            accountFieldKey: s.accountFieldKey,
+          };
+        }),
     }),
     {
       name: 'settings-store',
