@@ -457,7 +457,7 @@ export default function YesterdayColumn({
         <p className="text-xs text-muted-foreground mb-4">
           {formatDuration(totalSeconds)} logged across{' '}
           {issueGroups.filter((g) => g.totalSeconds > 0).length} stories &middot; {commitCount}{' '}
-          commits &middot; {mrEventCount} MR events
+          commit{commitCount === 1 ? '' : 's'} &middot; {mrEventCount} MR events
         </p>
       )}
 
