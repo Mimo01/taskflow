@@ -30,6 +30,9 @@ export type SubItemKind =
 export interface SubItem {
   kind: SubItemKind;
   label: string;
+  /** Present on mr-comment and approval sub-items — enables click-to-MR-detail. */
+  mrProjectId?: number;
+  mrIid?: number;
 }
 
 export interface IssueActivityGroupProps {
@@ -42,6 +45,8 @@ export interface IssueActivityGroupProps {
   subItems: SubItem[];
   /** Click handler for the header — navigates to the issue detail page. */
   onClick?: () => void;
+  /** Click handler for MR sub-items — navigates to MR detail page. */
+  onMRClick?: (projectIdAndIid: string) => void;
 }
 
 /** Map sub-item kind to Lucide icon component per UI-SPEC icon table. */
@@ -73,6 +78,7 @@ export default function IssueActivityGroup({
   totalSeconds,
   subItems,
   onClick,
+  onMRClick,
 }: IssueActivityGroupProps) {
   return (
     <div className="py-2">
@@ -97,7 +103,27 @@ export default function IssueActivityGroup({
         <div className="pl-6 border-l border-border ml-2 divide-y divide-border">
           {subItems.map((item, i) => {
             const SubIcon = subItemIcon(item.kind);
-            return (
+            const isClickableMr =
+              onMRClick != null && item.mrProjectId != null && item.mrIid != null;
+            return isClickableMr ? (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
+              <div
+                key={i}
+                role="button"
+                tabIndex={0}
+                className="flex items-center gap-2 py-2 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                onClick={() => onMRClick(`${item.mrProjectId}/${item.mrIid}`)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ')
+                    onMRClick(`${item.mrProjectId}/${item.mrIid}`);
+                }}
+              >
+                <SubIcon className="size-4 shrink-0 text-muted-foreground" />
+                <span className="flex-1 min-w-0 truncate text-sm text-foreground">
+                  {item.label}
+                </span>
+              </div>
+            ) : (
               // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
               <div key={i} className="flex items-center gap-2 py-2 px-2">
                 <SubIcon className="size-4 shrink-0 text-muted-foreground" />

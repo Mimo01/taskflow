@@ -292,7 +292,7 @@ function buildGroups(
   //    (note.noteable_iid) — target_iid is the per-comment note id and would
   //    make every comment look like a separate MR. Labels use the MR title (its
   //    name), not the bare iid, so the recap reads naturally.
-  const keyedCommentCounts = new Map<string, Map<number, { count: number; title: string }>>(); // rollupKey -> (mrIid -> {count, title})
+  const keyedCommentCounts = new Map<string, Map<number, { count: number; title: string; projectId: number }>>(); // rollupKey -> (mrIid -> {count, title, projectId})
   for (const event of mrEventsData ?? []) {
     const key = extractJiraKeyFromMessage(event.target_title);
     const isApproval = event.action_name === 'approved';
@@ -300,12 +300,12 @@ function buildGroups(
     if (key) {
       const group = ensureGroup(key, event.target_title);
       if (isApproval) {
-        group.subItems.push({ kind: 'approval', label: `Approved ${event.target_title}` });
+        group.subItems.push({ kind: 'approval', label: `Approved ${event.target_title}`, mrProjectId: event.project_id, mrIid });
       } else {
         const perIid =
           keyedCommentCounts.get(group.issueKey) ??
-          new Map<number, { count: number; title: string }>();
-        const entry = perIid.get(mrIid) ?? { count: 0, title: event.target_title };
+          new Map<number, { count: number; title: string; projectId: number }>();
+        const entry = perIid.get(mrIid) ?? { count: 0, title: event.target_title, projectId: event.project_id };
         entry.count += 1;
         perIid.set(mrIid, entry);
         keyedCommentCounts.set(group.issueKey, perIid);
@@ -332,10 +332,12 @@ function buildGroups(
   for (const [rollupKey, perIid] of keyedCommentCounts) {
     const group = issueMap.get(rollupKey);
     if (!group) continue;
-    for (const [, { count, title }] of perIid) {
+    for (const [mrIid, { count, title, projectId }] of perIid) {
       group.subItems.push({
         kind: 'mr-comment',
         label: `${count} comment${count === 1 ? '' : 's'} on ${title}`,
+        mrProjectId: projectId,
+        mrIid,
       });
     }
   }
@@ -481,6 +483,7 @@ export default function YesterdayColumn({
               totalSeconds={group.totalSeconds}
               subItems={group.subItems}
               onClick={() => onIssueClick(group.issueKey)}
+              onMRClick={onMRClick}
             />
           ))}
 
