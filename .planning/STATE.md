@@ -5,7 +5,7 @@ milestone_name: Cleanup, Roles Removal & Standup Notes
 status: milestone_complete
 stopped_at: Phase 70 UI-SPEC approved
 last_updated: "2026-05-25T06:44:28.539Z"
-last_activity: 2026-05-25 - Completed quick task 260525-jrz: standup empty-state compact layout
+last_activity: 2026-05-25 - Completed quick task 260525-kfi: unify Yesterday/Today standup views
 progress:
   total_phases: 6
   completed_phases: 6
@@ -95,6 +95,7 @@ Key decisions affecting current work:
 | 260525-g5z | On standup notes copy markdown, in today view the participating merge requests are not written very well as a sentence, redo it | 2026-05-25 | 1764c0d4 | | [260525-g5z-on-standup-notes-copy-markdown-in-today-](./quick/260525-g5z-on-standup-notes-copy-markdown-in-today-/) |
 | 260525-jd5 | In the search in the app, when I enter a number automatically also search for tasks in selected projects | 2026-05-25 | 95cd6358 | | [260525-jd5-in-the-search-in-the-app-when-i-enter-a-](./quick/260525-jd5-in-the-search-in-the-app-when-i-enter-a-/) |
 | 260525-jrz | Standup notes: compact per-source empty-state notices, side-by-side with flex-wrap | 2026-05-25 | 339ea687 | Needs Review | [260525-jrz-on-standup-notes-page-in-the-last-workin](./quick/260525-jrz-on-standup-notes-page-in-the-last-workin/) |
+| 260525-kfi | Unify Yesterday/Today views in Standup notes page — restyle Yesterday to match Today's row treatment | 2026-05-25 | b0c6c3a6 | Verified | [260525-kfi-in-standup-notes-page-the-yesterday-and-](./quick/260525-kfi-in-standup-notes-page-the-yesterday-and-/) |
 
 ## Session Continuity
 
