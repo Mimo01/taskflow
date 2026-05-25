@@ -39,7 +39,6 @@ import StatusPopover from '../StatusPopover';
 import { MetaRow } from './MetaRow';
 import { OverdueBadge } from './OverdueBadge';
 import { TimeTrackingSummary } from './TimeTrackingSummary';
-import { useDebounce } from './useFieldMutation';
 import { extractSprintId, extractSprintName } from './utils';
 import { WatcherToggle } from './WatcherToggle';
 
@@ -113,8 +112,6 @@ export function FieldsSection({
   // Assignee edit state
   const [assigneeOpen, setAssigneeOpen] = useState(false);
   const [assigneeQuery, setAssigneeQuery] = useState('');
-  const [assigneeResults, setAssigneeResults] = useState<AssignableUser[]>([]);
-  const [assigneeLoading, setAssigneeLoading] = useState(false);
 
   // Labels add state
   const [labelInput, setLabelInput] = useState('');
@@ -156,6 +153,30 @@ export function FieldsSection({
     queryFn: () => fetchSprintList(jiraBaseUrl, jiraToken!, boardId!),
     enabled: sprintPickerOpen && !!boardId && !!jiraToken,
   });
+
+  // Assignee typeahead: load all assignable users when the popup opens, filter locally
+  const assigneeUsersQuery = useQuery({
+    queryKey: ['jira-assignable-users', issueKey, jiraBaseUrl],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token) return [];
+      const url = `${jiraBaseUrl.replace(/\/$/, '')}/rest/api/2/user/assignable/search?issueKey=${issueKey}&maxResults=50`;
+      const resp = await apiFetch('jira', url, { headers: { Authorization: `Bearer ${token}` } }, 'Load Assignees');
+      if (!resp.ok) return [];
+      return (await resp.json()) as AssignableUser[];
+    },
+    enabled: assigneeOpen,
+    staleTime: 60_000,
+  });
+
+  const filteredAssignees = (() => {
+    const all = assigneeUsersQuery.data ?? [];
+    const q = assigneeQuery.trim().toLowerCase();
+    if (!q) return all;
+    return all.filter(
+      (u) => u.displayName.toLowerCase().includes(q) || u.name.toLowerCase().includes(q),
+    );
+  })();
 
   const filteredVersions = (() => {
     const all = versionsQuery.data;
@@ -266,38 +287,6 @@ export function FieldsSection({
     setPendingSprintMove(null);
   }
 
-  // Assignee search with debounce
-  async function doSearch(query: string) {
-    if (!query.trim()) {
-      setAssigneeResults([]);
-      return;
-    }
-    setAssigneeLoading(true);
-    try {
-      const token = await readSecret('jira-pat').catch(() => null);
-      if (!token) return;
-      const url = `${jiraBaseUrl.replace(/\/$/, '')}/rest/api/2/user/assignable/search?issueKey=${issueKey}&query=${encodeURIComponent(query)}`;
-      const resp = await apiFetch(
-        'jira',
-        url,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-        'Load Fields',
-      );
-      if (resp.ok) {
-        const data = (await resp.json()) as AssignableUser[];
-        setAssigneeResults(data);
-      }
-    } catch {
-      // ignore
-    } finally {
-      setAssigneeLoading(false);
-    }
-  }
-
-  const debouncedSearch = useDebounce(doSearch, 300);
-
   function handlePriorityChange(value: string | null) {
     if (!value) return;
     setPriorityEditing(false);
@@ -332,7 +321,6 @@ export function FieldsSection({
   function handleAssigneeSelect(user: AssignableUser) {
     setAssigneeOpen(false);
     setAssigneeQuery('');
-    setAssigneeResults([]);
     // DC format: { name: username } -- NOT { accountId }
     mutation.mutate({ fieldName: 'assignee', value: { name: user.name } });
   }
@@ -341,7 +329,6 @@ export function FieldsSection({
     if (!jiraUsername) return;
     setAssigneeOpen(false);
     setAssigneeQuery('');
-    setAssigneeResults([]);
     mutation.mutate({ fieldName: 'assignee', value: { name: jiraUsername } });
   }
 
@@ -472,7 +459,7 @@ export function FieldsSection({
               </>
             )}
           </PopoverTrigger>
-          <PopoverContent className="w-60 p-2">
+          <PopoverContent className="w-80 p-2">
             {jiraUsername && f.assignee?.name !== jiraUsername && (
               <>
                 <button
@@ -490,26 +477,28 @@ export function FieldsSection({
               </>
             )}
             <Input
-              placeholder="Search users..."
+              placeholder="Filter users..."
               value={assigneeQuery}
-              onChange={(e) => {
-                setAssigneeQuery(e.target.value);
-                debouncedSearch(e.target.value);
-              }}
+              onChange={(e) => setAssigneeQuery(e.target.value)}
               autoFocus
               className="h-7 text-xs mb-2"
             />
-            {assigneeLoading && <p className="text-xs text-muted-foreground px-1">Searching...</p>}
-            {!assigneeLoading && assigneeResults.length === 0 && assigneeQuery.trim() && (
-              <p className="text-xs text-muted-foreground px-1">No users found</p>
+            {assigneeUsersQuery.isLoading && (
+              <p className="text-xs text-muted-foreground px-1">Loading users...</p>
             )}
-            {assigneeResults.map((user) => (
+            {!assigneeUsersQuery.isLoading && filteredAssignees.length === 0 && (
+              <p className="text-xs text-muted-foreground px-1">
+                {assigneeQuery.trim() ? 'No users match' : 'No assignable users found'}
+              </p>
+            )}
+            {filteredAssignees.map((user) => (
               <button
                 key={user.name}
                 type="button"
                 onClick={() => handleAssigneeSelect(user)}
-                className="w-full text-left px-2 py-1 text-xs hover:bg-accent rounded"
+                className="w-full text-left px-2 py-1 text-xs hover:bg-accent rounded flex items-center gap-2"
               >
+                <CachedAvatar url={user.avatarUrls?.['48x48']} name={user.displayName} size={20} />
                 {user.displayName}
               </button>
             ))}
