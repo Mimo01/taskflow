@@ -35,7 +35,7 @@ function MrRow({
     <div
       role="button"
       tabIndex={0}
-      className="flex items-center gap-2 py-2 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+      className="flex items-center gap-2 py-3 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
       onClick={() => onMRClick(`${projectId}/${iid}`)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') onMRClick(`${projectId}/${iid}`);
@@ -58,7 +58,7 @@ export default function StandaloneMrGroup({
   onMRClick,
 }: StandaloneMrGroupProps) {
   return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden">
+    <div>
       {/* Group header: !{iid} {title} — clickable to MR detail */}
       <MrRow
         icon={GitMerge}

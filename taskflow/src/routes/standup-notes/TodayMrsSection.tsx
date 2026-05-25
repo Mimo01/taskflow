@@ -94,7 +94,7 @@ export default function TodayMrsSection({
                 key={`${mr.project_id}/${mr.iid}`}
                 role="button"
                 tabIndex={0}
-                className="flex items-center gap-2 py-2 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                className="flex items-center gap-2 py-3 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
                 onClick={() => onMRClick(`${mr.project_id}/${mr.iid}`)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') onMRClick(`${mr.project_id}/${mr.iid}`);
