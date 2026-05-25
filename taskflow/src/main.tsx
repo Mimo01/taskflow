@@ -547,6 +547,7 @@ function AppLayout() {
             context={{
               onIssueClick: handleIssueClick,
               onEpicClick: handleIssueClick,
+              onMRClick: handleMRClick,
               openEdit: handleOpenEdit,
               openClone: handleOpenClone,
               openAddSubtask: handleOpenAddSubtask,
