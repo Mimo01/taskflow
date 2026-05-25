@@ -345,62 +345,66 @@ export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProp
         <p className="text-xs text-muted-foreground">{formatTodayDate()}</p>
       </div>
 
-      {/* Section 1: In Progress (D-01: fixed order) */}
-      <TodayInProgressSection
-        rows={inProgress}
-        mrsByStory={mrsByStory}
-        todayLoggedByIssue={todayLoggedByIssue}
-        storyPointsFieldKey={storyPointsFieldKey}
-        jiraBaseUrl={jiraBaseUrl ?? ''}
-        todayStr={todayStr}
-        isLoading={sprintQuery.isLoading}
-        isError={sprintQuery.isError}
-        error={sprintQuery.error}
-        onRetry={() => void sprintQuery.refetch()}
-        onIssueClick={onIssueClick}
-        onMRClick={onMRClick}
-        onLogWorkSuccess={handleLogWorkSuccess}
-      />
-
-      {/* Section 2: Up Next (D-01: fixed order) */}
-      <TodayUpNextSection
-        rows={upNext}
-        mrsByStory={mrsByStory}
-        storyPointsFieldKey={storyPointsFieldKey}
-        jiraBaseUrl={jiraBaseUrl ?? ''}
-        todayStr={todayStr}
-        isLoading={sprintQuery.isLoading}
-        isError={sprintQuery.isError}
-        error={sprintQuery.error}
-        onRetry={() => void sprintQuery.refetch()}
-        onIssueClick={onIssueClick}
-        onMRClick={onMRClick}
-        onLogWorkSuccess={handleLogWorkSuccess}
-      />
-
-      {/* Section 3: MRs Awaiting You — unmatched only; hidden when GitLab not connected (D-02, D-10) */}
-      {!!gitlabBaseUrl && (
-        <TodayMrsSection
-          items={unmatchedReviewerMrs}
-          isLoading={reviewerMrsQuery.isLoading}
-          isError={reviewerMrsQuery.isError}
-          error={reviewerMrsQuery.error}
-          onRetry={() => void reviewerMrsQuery.refetch()}
+      {/* Sections 1-4: divide-y so borders only appear between visible sections.
+          Sections return null when empty, so divide-y skips null children correctly. */}
+      <div className="flex flex-col divide-y divide-border">
+        {/* Section 1: In Progress (D-01: fixed order) */}
+        <TodayInProgressSection
+          rows={inProgress}
+          mrsByStory={mrsByStory}
+          todayLoggedByIssue={todayLoggedByIssue}
+          storyPointsFieldKey={storyPointsFieldKey}
+          jiraBaseUrl={jiraBaseUrl ?? ''}
+          todayStr={todayStr}
+          isLoading={sprintQuery.isLoading}
+          isError={sprintQuery.isError}
+          error={sprintQuery.error}
+          onRetry={() => void sprintQuery.refetch()}
+          onIssueClick={onIssueClick}
           onMRClick={onMRClick}
+          onLogWorkSuccess={handleLogWorkSuccess}
         />
-      )}
 
-      {/* Section 4: Participating MRs (unmatched only) — role-independent, hidden when GitLab not connected */}
-      {!!gitlabBaseUrl && (
-        <TodayParticipatingSection
-          items={unmatchedParticipatingMrs}
-          isLoading={participatingMrsQuery.isLoading}
-          isError={participatingMrsQuery.isError}
-          error={participatingMrsQuery.error}
-          onRetry={() => void participatingMrsQuery.refetch()}
+        {/* Section 2: Up Next (D-01: fixed order) */}
+        <TodayUpNextSection
+          rows={upNext}
+          mrsByStory={mrsByStory}
+          storyPointsFieldKey={storyPointsFieldKey}
+          jiraBaseUrl={jiraBaseUrl ?? ''}
+          todayStr={todayStr}
+          isLoading={sprintQuery.isLoading}
+          isError={sprintQuery.isError}
+          error={sprintQuery.error}
+          onRetry={() => void sprintQuery.refetch()}
+          onIssueClick={onIssueClick}
           onMRClick={onMRClick}
+          onLogWorkSuccess={handleLogWorkSuccess}
         />
-      )}
+
+        {/* Section 3: MRs Awaiting You — unmatched only; hidden when GitLab not connected (D-02, D-10) */}
+        {!!gitlabBaseUrl && (
+          <TodayMrsSection
+            items={unmatchedReviewerMrs}
+            isLoading={reviewerMrsQuery.isLoading}
+            isError={reviewerMrsQuery.isError}
+            error={reviewerMrsQuery.error}
+            onRetry={() => void reviewerMrsQuery.refetch()}
+            onMRClick={onMRClick}
+          />
+        )}
+
+        {/* Section 4: Participating MRs (unmatched only) — role-independent, hidden when GitLab not connected */}
+        {!!gitlabBaseUrl && (
+          <TodayParticipatingSection
+            items={unmatchedParticipatingMrs}
+            isLoading={participatingMrsQuery.isLoading}
+            isError={participatingMrsQuery.isError}
+            error={participatingMrsQuery.error}
+            onRetry={() => void participatingMrsQuery.refetch()}
+            onMRClick={onMRClick}
+          />
+        )}
+      </div>
 
       {/* Full-column empty state — only when all sections resolved empty */}
       {allSettledEmpty && (

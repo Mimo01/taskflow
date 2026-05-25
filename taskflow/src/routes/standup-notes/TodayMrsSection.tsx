@@ -62,7 +62,7 @@ export default function TodayMrsSection({
   }
 
   return (
-    <div className="mb-4 border-t border-border pt-4">
+    <div className="mb-4 pt-4">
       <div className="flex items-center gap-2 mb-2">
         <h3 className="text-xs text-muted-foreground uppercase tracking-wide">MRS AWAITING YOU</h3>
         {items.length > 0 && (
@@ -91,7 +91,7 @@ export default function TodayMrsSection({
 
             return (
               <div
-                key={mr.iid}
+                key={`${mr.project_id}/${mr.iid}`}
                 role="button"
                 tabIndex={0}
                 className="flex items-center gap-2 py-2 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
