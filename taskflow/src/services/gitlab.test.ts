@@ -610,12 +610,78 @@ describe('gitlab service', () => {
       },
     });
 
+    /**
+     * Build a stub discussion thread with a single note authored by the given
+     * user, with configurable resolvable/resolved state.
+     */
+    const makeDiscussion = (authorId: number, resolvable: boolean, resolved: boolean) => ({
+      id: `d-${Math.random()}`,
+      individual_note: false,
+      notes: [
+        {
+          id: Math.random(),
+          type: null,
+          body: 'comment',
+          author: { id: authorId, name: 'User', username: 'user', avatar_url: '' },
+          created_at: '2026-05-01T10:00:00Z',
+          updated_at: '2026-05-01T10:00:00Z',
+          system: false,
+          resolvable,
+          resolved,
+          resolved_by: null,
+          resolved_at: null,
+          position: null,
+          confidential: false,
+          internal: false,
+        },
+      ],
+    });
+
+    /** Approval payload where the given user ID has approved. */
+    const makeApprovals = (approverIds: number[]) => ({
+      approved_by: approverIds.map((id) => ({ user: { id, name: 'approver' } })),
+      approved: approverIds.length > 0,
+    });
+
+    /**
+     * Set up mockFetch to route by URL substring:
+     *  - /events  → returns events array
+     *  - /discussions → returns discussionsMap[mrIid] or []
+     *  - /approvals   → returns approvalsMap[mrIid] or default empty
+     */
+    const setupMocks = (
+      events: object[],
+      discussionsMap: Record<number, object[]> = {},
+      approvalsMap: Record<number, object> = {},
+    ) => {
+      vi.mocked(mockFetch).mockImplementation(async (url: string | URL | Request) => {
+        const u = url.toString();
+        if (u.includes('/events')) {
+          return { ok: true, status: 200, json: async () => events } as Response;
+        }
+        // Extract mrIid from URL: .../merge_requests/<mrIid>/discussions or /approvals
+        const mrIidMatch = u.match(/merge_requests\/(\d+)\/(discussions|approvals)/);
+        const mrIid = mrIidMatch ? Number(mrIidMatch[1]) : 0;
+        if (u.includes('/discussions')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => discussionsMap[mrIid] ?? [],
+          } as Response;
+        }
+        if (u.includes('/approvals')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => approvalsMap[mrIid] ?? makeApprovals([]),
+          } as Response;
+        }
+        return { ok: true, status: 200, json: async () => [] } as Response;
+      });
+    };
+
     it('URL contains action=commented and /users/<id>/events', async () => {
-      vi.mocked(mockFetch).mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => [],
-      } as Response);
+      setupMocks([]);
 
       await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
 
@@ -628,11 +694,12 @@ describe('gitlab service', () => {
       const event1 = makeCommentEvent({ mrIid: 55, created_at: '2026-05-01T08:00:00Z' });
       const event2 = makeCommentEvent({ mrIid: 55, created_at: '2026-05-02T09:00:00Z' });
 
-      vi.mocked(mockFetch).mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => [event1, event2],
-      } as Response);
+      // MR 55: not approved, one open thread → included
+      setupMocks(
+        [event1, event2],
+        { 55: [makeDiscussion(USER_ID, true, false)] },
+        { 55: makeApprovals([]) },
+      );
 
       const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
 
@@ -647,11 +714,12 @@ describe('gitlab service', () => {
       const mrComment = makeCommentEvent({ mrIid: 10, noteableType: 'MergeRequest' });
       const issueComment = makeCommentEvent({ mrIid: 20, noteableType: 'Issue' });
 
-      vi.mocked(mockFetch).mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => [mrComment, issueComment],
-      } as Response);
+      // MR 10: not approved, one open thread → included; issue comment filtered before enrichment
+      setupMocks(
+        [mrComment, issueComment],
+        { 10: [makeDiscussion(USER_ID, true, false)] },
+        { 10: makeApprovals([]) },
+      );
 
       const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
 
@@ -663,11 +731,12 @@ describe('gitlab service', () => {
       const mine = makeCommentEvent({ mrIid: 100, noteAuthorId: USER_ID });
       const theirs = makeCommentEvent({ mrIid: 200, noteAuthorId: 999 });
 
-      vi.mocked(mockFetch).mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => [mine, theirs],
-      } as Response);
+      // MR 100: not approved, open thread → included; MR 200 filtered before enrichment
+      setupMocks(
+        [mine, theirs],
+        { 100: [makeDiscussion(USER_ID, true, false)] },
+        { 100: makeApprovals([]) },
+      );
 
       const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
 
@@ -679,11 +748,12 @@ describe('gitlab service', () => {
       const mine = makeCommentEvent({ mrIid: 300, eventAuthorId: USER_ID });
       const theirs = makeCommentEvent({ mrIid: 400, eventAuthorId: 777 });
 
-      vi.mocked(mockFetch).mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => [mine, theirs],
-      } as Response);
+      // MR 300: not approved, open thread → included; MR 400 filtered before enrichment
+      setupMocks(
+        [mine, theirs],
+        { 300: [makeDiscussion(USER_ID, true, false)] },
+        { 300: makeApprovals([]) },
+      );
 
       const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
 
@@ -695,11 +765,18 @@ describe('gitlab service', () => {
       const older = makeCommentEvent({ mrIid: 1, created_at: '2026-04-01T00:00:00Z' });
       const newer = makeCommentEvent({ mrIid: 2, created_at: '2026-05-15T00:00:00Z' });
 
-      vi.mocked(mockFetch).mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => [older, newer],
-      } as Response);
+      // Both: not approved, open thread → both included
+      setupMocks(
+        [older, newer],
+        {
+          1: [makeDiscussion(USER_ID, true, false)],
+          2: [makeDiscussion(USER_ID, true, false)],
+        },
+        {
+          1: makeApprovals([]),
+          2: makeApprovals([]),
+        },
+      );
 
       const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
 
@@ -708,14 +785,92 @@ describe('gitlab service', () => {
     });
 
     it('returns empty array when no events match', async () => {
-      vi.mocked(mockFetch).mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => [],
-      } as Response);
+      setupMocks([]);
 
       const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
       expect(result).toHaveLength(0);
+    });
+
+    // ── Actionable filter cases ───────────────────────────────────────────────
+
+    it('filter: approved by me with all threads resolved → EXCLUDED', async () => {
+      const event = makeCommentEvent({ mrIid: 10, projectId: 99 });
+
+      setupMocks(
+        [event],
+        // My thread exists but is resolved
+        { 10: [makeDiscussion(USER_ID, true, true)] },
+        // I approved it
+        { 10: makeApprovals([USER_ID]) },
+      );
+
+      const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
+      expect(result).toHaveLength(0);
+    });
+
+    it('filter: approved by me but with an unresolved thread → INCLUDED, openThreadCount=1', async () => {
+      const event = makeCommentEvent({ mrIid: 20, projectId: 99 });
+
+      setupMocks(
+        [event],
+        // One unresolved thread I'm in
+        { 20: [makeDiscussion(USER_ID, true, false)] },
+        // I approved it
+        { 20: makeApprovals([USER_ID]) },
+      );
+
+      const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
+      expect(result).toHaveLength(1);
+      expect(result[0].mrIid).toBe(20);
+      expect(result[0].approvedByMe).toBe(true);
+      expect(result[0].openThreadCount).toBe(1);
+    });
+
+    it('filter: NOT approved by me with only resolved threads → INCLUDED, openThreadCount=0', async () => {
+      const event = makeCommentEvent({ mrIid: 30, projectId: 99 });
+
+      setupMocks(
+        [event],
+        // Thread exists but fully resolved
+        { 30: [makeDiscussion(USER_ID, true, true)] },
+        // Not approved by me
+        { 30: makeApprovals([]) },
+      );
+
+      const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
+      expect(result).toHaveLength(1);
+      expect(result[0].mrIid).toBe(30);
+      expect(result[0].approvedByMe).toBe(false);
+      expect(result[0].openThreadCount).toBe(0);
+    });
+
+    it('filter: approvals request fails → treated as not-approved → INCLUDED', async () => {
+      const event = makeCommentEvent({ mrIid: 40, projectId: 99 });
+
+      // Discussions OK (resolved thread), approvals endpoint errors
+      vi.mocked(mockFetch).mockImplementation(async (url: string | URL | Request) => {
+        const u = url.toString();
+        if (u.includes('/events')) {
+          return { ok: true, status: 200, json: async () => [event] } as Response;
+        }
+        if (u.includes('/discussions')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => [makeDiscussion(USER_ID, true, true)],
+          } as Response;
+        }
+        if (u.includes('/approvals')) {
+          return { ok: false, status: 500, json: async () => ({}) } as Response;
+        }
+        return { ok: true, status: 200, json: async () => [] } as Response;
+      });
+
+      const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
+      // approvals failed → approvedByMe=false → included despite resolved thread
+      expect(result).toHaveLength(1);
+      expect(result[0].mrIid).toBe(40);
+      expect(result[0].approvedByMe).toBe(false);
     });
   });
 });
