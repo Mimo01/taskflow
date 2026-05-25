@@ -24,6 +24,7 @@ import type { SprintRow } from './filterSprintItems';
 /** A single nested MR entry rendered under a sprint story row. */
 export interface NestedMr {
   iid: number;
+  projectId: number;
   title: string;
   kind: 'review' | 'participating';
   /** Unresolved thread count — present for participating MRs, undefined for reviewer MRs. */
@@ -99,7 +100,7 @@ export function matchMrsToStories(
       unmatchedReviewerMrs.push(mr);
       continue;
     }
-    const nested: NestedMr = { iid: mr.iid, title: mr.title, kind: 'review' };
+    const nested: NestedMr = { iid: mr.iid, projectId: mr.project_id, title: mr.title, kind: 'review' };
     const existing = mrsByStory.get(storyKey);
     if (existing) {
       existing.push(nested);
@@ -137,6 +138,7 @@ export function matchMrsToStories(
     }
     const nested: NestedMr = {
       iid: mr.mrIid,
+      projectId: mr.projectId,
       title: mr.title,
       kind: 'participating',
       openThreadCount: mr.openThreadCount,
