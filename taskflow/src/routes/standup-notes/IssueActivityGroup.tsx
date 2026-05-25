@@ -33,6 +33,8 @@ export interface SubItem {
   /** Present on mr-comment and approval sub-items — enables click-to-MR-detail. */
   mrProjectId?: number;
   mrIid?: number;
+  /** Present on worklog sub-items for subtasks — enables click-to-issue-detail. */
+  issueKey?: string;
 }
 
 export interface IssueActivityGroupProps {
@@ -47,6 +49,8 @@ export interface IssueActivityGroupProps {
   onClick?: () => void;
   /** Click handler for MR sub-items — navigates to MR detail page. */
   onMRClick?: (projectIdAndIid: string) => void;
+  /** Click handler for issue sub-items (e.g. subtask worklogs) — navigates to that issue. */
+  onIssueClick?: (key: string) => void;
 }
 
 /** Map sub-item kind to Lucide icon component per UI-SPEC icon table. */
@@ -79,6 +83,7 @@ export default function IssueActivityGroup({
   subItems,
   onClick,
   onMRClick,
+  onIssueClick,
 }: IssueActivityGroupProps) {
   return (
     <div className="py-2">
@@ -105,6 +110,8 @@ export default function IssueActivityGroup({
             const SubIcon = subItemIcon(item.kind);
             const isClickableMr =
               onMRClick != null && item.mrProjectId != null && item.mrIid != null;
+            const isClickableIssue =
+              onIssueClick != null && item.issueKey != null;
             return isClickableMr ? (
               // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
               <div
@@ -116,6 +123,23 @@ export default function IssueActivityGroup({
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ')
                     onMRClick(`${item.mrProjectId}/${item.mrIid}`);
+                }}
+              >
+                <SubIcon className="size-4 shrink-0 text-muted-foreground" />
+                <span className="flex-1 min-w-0 truncate text-sm text-foreground">
+                  {item.label}
+                </span>
+              </div>
+            ) : isClickableIssue ? (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
+              <div
+                key={i}
+                role="button"
+                tabIndex={0}
+                className="flex items-center gap-2 py-2 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                onClick={() => onIssueClick!(item.issueKey!)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') onIssueClick!(item.issueKey!);
                 }}
               >
                 <SubIcon className="size-4 shrink-0 text-muted-foreground" />
