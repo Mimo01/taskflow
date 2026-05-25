@@ -200,11 +200,18 @@ export default function IssueDetailPage() {
   const editTextRef = useRef(editText);
   editTextRef.current = editText;
 
-  // Drag-to-resize for right panel
+  // Drag-to-resize for right panel.
+  // initialPanelWidth is memoized on issueDetailPanelWidth only — containerRef.current
+  // is intentionally excluded because it changes between renders (null pre-mount, then the
+  // actual DOM width) and must not re-trigger the sync effect inside useResizable on
+  // unrelated re-renders such as pin/unpin clicks.
   const containerRef = useRef<HTMLDivElement>(null);
+  const initialPanelWidth = useMemo(
+    () => issueDetailPanelWidth ?? Math.round((containerRef.current?.offsetWidth ?? 952) * 0.42),
+    [issueDetailPanelWidth],
+  );
   const { width, isDragging, handleMouseDown } = useResizable({
-    initialWidth:
-      issueDetailPanelWidth ?? Math.round((containerRef.current?.offsetWidth ?? 952) * 0.42),
+    initialWidth: initialPanelWidth,
     min: 240,
     max: () => (containerRef.current?.offsetWidth ?? 800) * 0.5,
     onCommit: setIssueDetailPanelWidth,
