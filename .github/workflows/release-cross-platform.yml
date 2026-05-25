@@ -386,8 +386,11 @@ jobs:
           API_BASE="https://api.github.com/repos/Mimo01/taskflow-releases/releases"
           PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-          # Extract release notes from git tag
-          git fetch --tags 2>/dev/null || true
+          # Extract release notes from git tag.
+          # --force overwrites the lightweight tag created in the "Resolve version"
+          # step with the annotated tag from origin, so %(contents:body) reads the
+          # release notes (the annotation) instead of the commit message.
+          git fetch --tags --force 2>/dev/null || true
           TAG_BODY=$(git tag -l --format='%(contents:body)' "$TAG" 2>/dev/null || echo "")
 
           cat > /tmp/build-latest.py << 'PYEOF'
