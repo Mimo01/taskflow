@@ -298,7 +298,7 @@ Plans:
 **Success criteria:**
 
 1. Today section shows my open subtasks/tasks in the current sprint (assignee = me) (STAND-07)
-2. Today section shows pinned issues with no pin/unpin controls — clicking an issue opens the standard issue detail surface (STAND-08)
+2. ~~Today section shows pinned issues with no pin/unpin controls — clicking an issue opens the standard issue detail surface (STAND-08)~~ — DESCOPED: Pinned section removed by user during Phase 70
 3. Today section shows a planned-worklog-targets list; clicking a target opens the existing `LogWorkPopover` pre-filled with today's date and the target issue (STAND-09)
 
 **Plans:** 3/3 plans complete

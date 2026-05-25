@@ -46,9 +46,9 @@
 - [ ] **STAND-04**: Yesterday recap shows Jira changelog activity I authored — status transitions + comments
 - [ ] **STAND-05**: Yesterday recap shows Git commits I authored on the configured GitLab project (commit message + SHA + linked Jira key when parseable from message)
 - [ ] **STAND-06**: Yesterday recap shows MR activity I performed — comments I posted + approvals I gave
-- [ ] **STAND-07**: Today section shows my open subtasks/tasks in the current sprint (assignee = me)
-- [ ] **STAND-08**: Today section shows pinned issues (read-only — no pin/unpin actions on this page)
-- [ ] **STAND-09**: Today section shows planned worklog targets — issues I plan to log time against today (pre-fills Tempo entries)
+- [x] **STAND-07**: Today section shows my open subtasks/tasks in the current sprint (assignee = me) — delivered in Phase 70 (grouped stories + nested subtasks)
+- [-] **STAND-08**: ~~Today section shows pinned issues (read-only — no pin/unpin actions on this page)~~ — DESCOPED (won't-do): Pinned section removed by user during Phase 70
+- [x] **STAND-09**: Today section shows planned worklog targets — issues I plan to log time against today (pre-fills Tempo entries) — delivered in Phase 70 (LogWorkPopover on every sprint row)
 
 ## Out of Scope
 
@@ -96,9 +96,9 @@ Which phases cover which requirements.
 | STAND-04 | Phase 69 | Pending |
 | STAND-05 | Phase 69 | Pending |
 | STAND-06 | Phase 69 | Pending |
-| STAND-07 | Phase 70 | Pending |
-| STAND-08 | Phase 70 | Pending |
-| STAND-09 | Phase 70 | Pending |
+| STAND-07 | Phase 70 | Complete |
+| STAND-08 | Phase 70 | Descoped (pinned removed by user) |
+| STAND-09 | Phase 70 | Complete |
 
 **Coverage:**
 - v1.10 requirements: 29 total
