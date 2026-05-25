@@ -31,6 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useResizable } from '@/hooks/useResizable';
@@ -517,14 +518,10 @@ export default function ReleaseDetailPage() {
 
                 {/* Progress bar (Jira-driven) */}
                 {issueCounts && issueCounts.issuesTotal > 0 && (
-                  <div className="h-2 w-full max-w-xs rounded-full bg-muted overflow-hidden mb-4">
-                    <div
-                      className="h-full rounded-full bg-green-500 transition-all"
-                      style={{
-                        width: `${Math.round((issueCounts.issuesFixed / issueCounts.issuesTotal) * 100)}%`,
-                      }}
-                    />
-                  </div>
+                  <Progress
+                    value={Math.round((issueCounts.issuesFixed / issueCounts.issuesTotal) * 100)}
+                    className="max-w-xs mb-4"
+                  />
                 )}
 
                 {/* Milestone warning */}

@@ -8,6 +8,7 @@
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 
 interface BulkProgressIndicatorProps {
   total: number;
@@ -57,18 +58,7 @@ export function BulkProgressIndicator({
 
   return (
     <div className="flex flex-col gap-2 w-full">
-      <div
-        role="progressbar"
-        aria-valuenow={completed}
-        aria-valuemin={0}
-        aria-valuemax={total}
-        className="w-full bg-muted rounded-full h-1.5 overflow-hidden"
-      >
-        <div
-          className="h-1.5 bg-primary rounded-full transition-all duration-300"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
+      <Progress value={pct} />
       <div className="flex items-center justify-between">
         <p aria-live="polite" className={`text-sm font-medium ${statusClass}`}>
           {statusText}

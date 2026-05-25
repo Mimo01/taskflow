@@ -118,6 +118,23 @@ vi.mock('@/stores/tempo-filters.store', () => ({
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+/**
+ * Returns a date string (YYYY-MM-DD) for a day in the CURRENT week so tests
+ * remain valid regardless of when they run. The WorklogsPage defaults to
+ * "This Week" which shows Mon–Sun of the current week only.
+ *
+ * @param dayOffset - 0 = this Monday, 1 = this Tuesday, … 4 = this Friday
+ */
+function thisWeekDate(dayOffset: 0 | 1 | 2 | 3 | 4 = 0): string {
+  const now = new Date();
+  // getDay() returns 0=Sun,1=Mon,…,6=Sat; map to Mon-based offset
+  const dayOfWeek = now.getDay(); // 0=Sun
+  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - daysFromMonday + dayOffset);
+  return monday.toISOString().slice(0, 10);
+}
+
 function makeClient() {
   return new QueryClient({ defaultOptions: { queries: { retry: false } } });
 }
@@ -453,8 +470,8 @@ describe('WorklogsPage', () => {
   describe('TEMPO-07 — totals', () => {
     it('computes totals column (per issue) as sum of all worklogs for that issue', async () => {
       // Alice logs 4h Mon + 3h Tue on issue X-1: total = 7h
-      const monday = '2026-05-18';
-      const tuesday = '2026-05-19';
+      const monday = thisWeekDate(0);
+      const tuesday = thisWeekDate(1);
 
       mockFetchWorklogsResult = [
         makeWorklog('alice', 'Alice Smith', monday, 4, 'X-1'),
@@ -477,7 +494,8 @@ describe('WorklogsPage', () => {
 
     it('computes totals row as sum per day across all issues', async () => {
       // Monday: Alice(X-1) 4h + Bob(X-2) 2h = 6h total for Monday
-      const monday = '2026-05-18';
+      const monday = thisWeekDate(0);
+      const mondayDay = monday.slice(8); // "DD" portion, e.g. "25"
 
       mockFetchWorklogsResult = [
         makeWorklog('alice', 'Alice Smith', monday, 4, 'X-1'),
@@ -495,8 +513,8 @@ describe('WorklogsPage', () => {
       const headCells = container.querySelectorAll('thead th');
       let mondayColIdx = -1;
       headCells.forEach((th, i) => {
-        // formatDayHeader('2026-05-18') → "Mon 18"
-        if (th.textContent?.includes('18')) {
+        // formatDayHeader(monday) → "Mon DD"
+        if (th.textContent?.includes(mondayDay)) {
           mondayColIdx = i;
         }
       });
@@ -511,9 +529,9 @@ describe('WorklogsPage', () => {
     it('renders the grand total in the bottom-right cell', async () => {
       // Total across all issues and days = 4 + 2 + 1 = 7h
       mockFetchWorklogsResult = [
-        makeWorklog('alice', 'Alice Smith', '2026-05-18', 4, 'X-1'),
-        makeWorklog('bob', 'Bob Jones', '2026-05-18', 2, 'X-2'),
-        makeWorklog('bob', 'Bob Jones', '2026-05-19', 1, 'X-2'),
+        makeWorklog('alice', 'Alice Smith', thisWeekDate(0), 4, 'X-1'),
+        makeWorklog('bob', 'Bob Jones', thisWeekDate(0), 2, 'X-2'),
+        makeWorklog('bob', 'Bob Jones', thisWeekDate(1), 1, 'X-2'),
       ];
 
       const { container } = await renderPage();
@@ -532,7 +550,8 @@ describe('WorklogsPage', () => {
   describe('D-08 — zero-hour cells blank', () => {
     it('renders empty string for zero-hour cells (no "0h" text)', async () => {
       // Alice only logs on Monday — Tuesday and beyond should be blank
-      const monday = '2026-05-18';
+      const monday = thisWeekDate(0);
+      const tuesdayDay = thisWeekDate(1).slice(8); // "DD" portion
 
       mockFetchWorklogsResult = [
         makeWorklog('alice', 'Alice Smith', monday, 4),
@@ -550,8 +569,8 @@ describe('WorklogsPage', () => {
       const headCells = container.querySelectorAll('thead th');
       let tuesdayColIdx = -1;
       headCells.forEach((th, i) => {
-        // formatDayHeader('2026-05-19') → "Tue 19"
-        if (th.textContent?.includes('19')) {
+        // formatDayHeader(thisWeekDate(1)) → "Tue DD"
+        if (th.textContent?.includes(tuesdayDay)) {
           tuesdayColIdx = i;
         }
       });
@@ -1058,7 +1077,7 @@ describe('WorklogsPage', () => {
 
   describe('clicking a non-zero data cell opens WorklogCellPopover', () => {
     it('clicking a non-zero cell shows worklog entry content', async () => {
-      const monday = '2026-05-19';
+      const monday = thisWeekDate(1);
       mockFetchWorklogsResult = [
         {
           ...makeWorklog('alice', 'Alice Smith', monday, 2, 'STORY-1'),
@@ -1104,7 +1123,7 @@ describe('WorklogsPage', () => {
 
   describe('WorklogCellPopover renders on all cells (zero and non-zero)', () => {
     it('renders triggers on all cells; non-zero cell shows formatted hours', async () => {
-      const monday = '2026-05-19';
+      const monday = thisWeekDate(1);
       // Only log on monday — other days are zero
       mockFetchWorklogsResult = [makeWorklog('alice', 'Alice Smith', monday, 2, 'STORY-1')];
       mockEnrichResult = [
@@ -1142,7 +1161,7 @@ describe('WorklogsPage', () => {
 
   describe('popover shows individual entries from raw worklog data', () => {
     it('shows both entries authors when two entries exist for same cell', async () => {
-      const monday = '2026-05-19';
+      const monday = thisWeekDate(1);
       mockFetchWorklogsResult = [
         {
           ...makeWorklog('alice', 'Alice Smith', monday, 2, 'STORY-1'),
@@ -1190,7 +1209,7 @@ describe('WorklogsPage', () => {
 
   describe('trash icon click invokes delete and invalidates tempo cache', () => {
     it('trash in open popover calls deleteWorklog', async () => {
-      const monday = '2026-05-19';
+      const monday = thisWeekDate(1);
       mockFetchWorklogsResult = [
         {
           ...makeWorklog('alice', 'Alice Smith', monday, 2, 'STORY-1'),
