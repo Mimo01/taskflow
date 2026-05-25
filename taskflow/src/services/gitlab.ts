@@ -1260,6 +1260,9 @@ export async function fetchUserMREvents(
  * A merge request the current user has commented on within a rolling window.
  * Role-independent: derived from the user's own `commented` events, not from
  * MR assignment, reviewer, or author roles.
+ *
+ * Only actionable MRs are returned: those where the user has NOT yet approved,
+ * OR where the user has at least one unresolved thread (open thread).
  */
 export interface ParticipatedMR {
   projectId: number;
@@ -1269,6 +1272,10 @@ export interface ParticipatedMR {
   commentCount: number;
   /** ISO timestamp of the user's most recent comment on this MR. */
   lastCommentedAt: string;
+  /** Whether the current user has approved this MR. */
+  approvedByMe: boolean;
+  /** Number of threads the user participated in that are still unresolved. */
+  openThreadCount: number;
 }
 
 /**
@@ -1316,7 +1323,10 @@ export async function fetchParticipatedMRs(
   const data = (await response.json()) as GitLabUserMREvent[];
 
   // Deduplicate by project_id:noteable_iid into a map
-  const deduped = new Map<string, ParticipatedMR>();
+  const deduped = new Map<
+    string,
+    { projectId: number; mrIid: number; title: string; commentCount: number; lastCommentedAt: string }
+  >();
 
   for (const e of data) {
     // Filter: must be an MR comment authored by the current user
@@ -1345,8 +1355,58 @@ export async function fetchParticipatedMRs(
     }
   }
 
-  // Sort by most recent comment descending
-  return Array.from(deduped.values()).sort((a, b) =>
+  const candidates = Array.from(deduped.values());
+
+  // Enrich each candidate with discussions + approvals in parallel.
+  // Promise.allSettled ensures a single failed sub-request doesn't drop the
+  // whole candidate; failures lean toward inclusion (showing actionable items).
+  const enriched = await Promise.all(
+    candidates.map(async (candidate) => {
+      const [discussionsResult, approvalsResult] = await Promise.allSettled([
+        fetchMRDiscussions(base, token, candidate.projectId, candidate.mrIid),
+        fetchMRApprovals(base, token, candidate.projectId, candidate.mrIid),
+      ]);
+
+      // Approvals failure → treat as not-approved (lean toward showing)
+      const approvedByMe =
+        approvalsResult.status === 'fulfilled'
+          ? approvalsResult.value.approved_by.some((a) => a.user.id === userId)
+          : false;
+
+      // Discussions failure → treat as empty (MR still shown if not approved)
+      const discussions =
+        discussionsResult.status === 'fulfilled' ? discussionsResult.value : [];
+
+      // Threads where the user participated (has at least one non-system note by me)
+      const myThreads = discussions.filter((d) =>
+        d.notes.some((n) => !n.system && n.author.id === userId),
+      );
+
+      // Unresolved threads: any note in the thread is resolvable and not resolved
+      const myOpenThreads = myThreads.filter((d) =>
+        d.notes.some((n) => n.resolvable && !n.resolved),
+      );
+
+      const openThreadCount = myOpenThreads.length;
+
+      // Inclusion rule:
+      //   - keep if there is at least one open (unresolved) thread, OR
+      //   - keep if the MR is not yet approved by me
+      // Drop only when: approved-by-me AND no open threads remain.
+      const include = openThreadCount > 0 || !approvedByMe;
+
+      return include
+        ? ({
+            ...candidate,
+            approvedByMe,
+            openThreadCount,
+          } satisfies ParticipatedMR)
+        : null;
+    }),
+  );
+
+  // Filter out dropped MRs and sort by most recent comment descending
+  return (enriched.filter(Boolean) as ParticipatedMR[]).sort((a, b) =>
     b.lastCommentedAt.localeCompare(a.lastCommentedAt),
   );
 }
