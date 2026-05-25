@@ -301,12 +301,12 @@ Plans:
 2. Today section shows pinned issues with no pin/unpin controls — clicking an issue opens the standard issue detail surface (STAND-08)
 3. Today section shows a planned-worklog-targets list; clicking a target opens the existing `LogWorkPopover` pre-filled with today's date and the target issue (STAND-09)
 
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 70-01-PLAN.md — filterSprintItems pure helper (leaf detection D-04 + status-category split D-05) + unit tests (STAND-07)
+- [x] 70-01-PLAN.md — filterSprintItems pure helper (leaf detection D-04 + status-category split D-05) + unit tests (STAND-07)
 
 **Wave 2** *(blocked on Wave 1)*
 
