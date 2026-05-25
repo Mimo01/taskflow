@@ -1357,11 +1357,23 @@ export async function fetchParticipatedMRs(
 
   const candidates = Array.from(deduped.values());
 
-  // Enrich each candidate with discussions + approvals in parallel.
+  // PHASE 1 — state filter: keep only OPEN MRs.
+  // Fetch MR detail for each candidate in parallel; exclude any MR whose state
+  // is not 'opened' or whose detail fetch fails (hard filter — we only want to
+  // show confirmed-open MRs in the Participating section).
+  const detailResults = await Promise.allSettled(
+    candidates.map((c) => fetchMRDetail(base, token, c.projectId, c.mrIid)),
+  );
+  const openCandidates = candidates.filter((_, i) => {
+    const result = detailResults[i];
+    return result.status === 'fulfilled' && result.value.state === 'opened';
+  });
+
+  // PHASE 2 — Enrich each open candidate with discussions + approvals in parallel.
   // Promise.allSettled ensures a single failed sub-request doesn't drop the
   // whole candidate; failures lean toward inclusion (showing actionable items).
   const enriched = await Promise.all(
-    candidates.map(async (candidate) => {
+    openCandidates.map(async (candidate) => {
       const [discussionsResult, approvalsResult] = await Promise.allSettled([
         fetchMRDiscussions(base, token, candidate.projectId, candidate.mrIid),
         fetchMRApprovals(base, token, candidate.projectId, candidate.mrIid),
