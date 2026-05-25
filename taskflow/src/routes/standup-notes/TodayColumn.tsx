@@ -263,7 +263,7 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
 
       {/* Section 1: In Progress (D-01: fixed order) */}
       <TodayInProgressSection
-        items={inProgress}
+        rows={inProgress}
         todayLoggedByIssue={todayLoggedByIssue}
         storyPointsFieldKey={storyPointsFieldKey}
         jiraBaseUrl={jiraBaseUrl ?? ''}
@@ -278,7 +278,7 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
 
       {/* Section 2: Up Next (D-01: fixed order) */}
       <TodayUpNextSection
-        items={upNext}
+        rows={upNext}
         storyPointsFieldKey={storyPointsFieldKey}
         jiraBaseUrl={jiraBaseUrl ?? ''}
         todayStr={todayStr}
