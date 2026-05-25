@@ -129,6 +129,34 @@ describe('filterSprintItems — grouped output', () => {
     expect(allKeys).not.toContain('SHOP-5');
   });
 
+  it('does NOT nest a done subtask under an active parent', () => {
+    const parent = makeIssue({ key: 'SHOP-40', statusKey: 'indeterminate', isSubtask: false, displayName: ME });
+    const doneSub = makeIssue({ key: 'SHOP-40-S1', statusKey: 'done', isSubtask: true, displayName: ME, parentKey: 'SHOP-40' });
+    const activeSub = makeIssue({ key: 'SHOP-40-S2', statusKey: 'new', isSubtask: true, displayName: ME, parentKey: 'SHOP-40' });
+
+    const { inProgress } = filterSprintItems([parent, doneSub, activeSub], ME);
+
+    const row = inProgress.find((r) => r.issue.key === 'SHOP-40');
+    expect(row).toBeDefined();
+    expect(row!.subtasks.map((s) => s.key)).toContain('SHOP-40-S2');
+    expect(row!.subtasks.map((s) => s.key)).not.toContain('SHOP-40-S1');
+  });
+
+  it('resurfaces an active subtask of a DONE parent as a standalone row', () => {
+    // Parent is done (excluded), but I still have an in-progress subtask under it.
+    const doneParent = makeIssue({ key: 'SHOP-41', statusKey: 'done', isSubtask: false, subtasksLen: 1, displayName: ME });
+    const activeSub = makeIssue({ key: 'SHOP-41-S1', statusKey: 'indeterminate', isSubtask: true, displayName: ME, parentKey: 'SHOP-41' });
+
+    const { inProgress, upNext } = filterSprintItems([doneParent, activeSub], ME);
+
+    // Done parent never shows.
+    expect([...inProgress, ...upNext].map((r) => r.issue.key)).not.toContain('SHOP-41');
+    // My active subtask resurfaces standalone, placed by its own status.
+    const row = inProgress.find((r) => r.issue.key === 'SHOP-41-S1');
+    expect(row).toBeDefined();
+    expect(row!.subtasks).toHaveLength(0);
+  });
+
   it('excludes items not assigned to me', () => {
     const issue = makeIssue({ key: 'SHOP-6', statusKey: 'indeterminate', isSubtask: true, displayName: OTHER });
     const { inProgress, upNext } = filterSprintItems([issue], ME);
