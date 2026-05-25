@@ -499,34 +499,46 @@ export async function fetchMRDiscussions(
   projectId: number,
   mrIid: number,
 ): Promise<Discussion[]> {
-  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/merge_requests/${mrIid}/discussions`;
+  const base = baseUrl.replace(/\/$/, '');
+  const perPage = 100;
+  let page = 1;
+  const allDiscussions: Discussion[] = [];
 
-  let response: Response;
-  try {
-    response = await apiFetch(
-      'gitlab',
-      url,
-      {
-        headers: {
-          'PRIVATE-TOKEN': token,
-          'Content-Type': 'application/json',
+  while (true) {
+    const url = `${base}/api/v4/projects/${projectId}/merge_requests/${mrIid}/discussions?per_page=${perPage}&page=${page}`;
+
+    let response: Response;
+    try {
+      response = await apiFetch(
+        'gitlab',
+        url,
+        {
+          headers: {
+            'PRIVATE-TOKEN': token,
+            'Content-Type': 'application/json',
+          },
         },
-      },
-      'Load MR Detail',
-    );
-  } catch {
-    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
-  }
-
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new ApiError('Failed to fetch MR discussions', response.status, 'gitlab');
+        'Load MR Detail',
+      );
+    } catch {
+      throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
     }
-    throw new Error(`Failed to fetch MR discussions: status ${response.status}`);
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new ApiError('Failed to fetch MR discussions', response.status, 'gitlab');
+      }
+      throw new Error(`Failed to fetch MR discussions: status ${response.status}`);
+    }
+
+    const data = (await response.json()) as Discussion[];
+    allDiscussions.push(...data);
+
+    if (data.length < perPage) break;
+    page++;
   }
 
-  const data = await response.json();
-  return data as Discussion[];
+  return allDiscussions;
 }
 
 export interface MRDiffFile {
