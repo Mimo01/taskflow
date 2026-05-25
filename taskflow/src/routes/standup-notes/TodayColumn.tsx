@@ -22,7 +22,7 @@ import { Clock } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
-import { fetchReviewerMRs } from '@/services/gitlab';
+import { fetchParticipatedMRs, fetchReviewerMRs } from '@/services/gitlab';
 import { fetchSprintIssues } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { fetchWorklogs } from '@/services/tempo';
@@ -31,6 +31,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { filterSprintItems } from './filterSprintItems';
 import TodayInProgressSection from './TodayInProgressSection';
 import TodayMrsSection from './TodayMrsSection';
+import TodayParticipatingSection from './TodayParticipatingSection';
 import TodayUpNextSection from './TodayUpNextSection';
 
 // ─── Day/month name tables (no toLocaleDateString — Phase 62 rule) ────────────
@@ -156,6 +157,19 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
     staleTime: 5 * 60 * 1000,
   });
 
+  // ─── Query 4: MRs I've participated in (commented on) — role-independent ──────
+  // T-62-06: token is read inside queryFn, NOT placed in queryKey.
+  const participatingMrsQuery = useQuery({
+    queryKey: ['standup', 'participating-mrs', gitlabBaseUrl, gitlabUserId],
+    queryFn: async () => {
+      const token = await readSecret('gitlab-pat').catch(() => null);
+      if (!token) throw new Error('No GitLab token');
+      return fetchParticipatedMRs(gitlabBaseUrl!, token, gitlabUserId!, 30);
+    },
+    enabled: !!gitlabBaseUrl && !!gitlabToken && !!gitlabUserId,
+    staleTime: 5 * 60 * 1000,
+  });
+
   // ─── Derived data ─────────────────────────────────────────────────────────────
 
   // Split sprint issues into In Progress / Up Next using the verified helper
@@ -195,15 +209,18 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
   const hasAnyData =
     inProgress.length > 0 ||
     upNext.length > 0 ||
-    (reviewerMrsQuery.data?.length ?? 0) > 0;
+    (reviewerMrsQuery.data?.length ?? 0) > 0 ||
+    (participatingMrsQuery.data?.length ?? 0) > 0;
 
   const allSettledEmpty =
     !hasAnyData &&
     !sprintQuery.isLoading &&
     !sprintLoading &&
     !reviewerMrsQuery.isLoading &&
+    !participatingMrsQuery.isLoading &&
     !sprintQuery.isError &&
-    !reviewerMrsQuery.isError;
+    !reviewerMrsQuery.isError &&
+    !participatingMrsQuery.isError;
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
@@ -252,6 +269,17 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
           isError={reviewerMrsQuery.isError}
           error={reviewerMrsQuery.error}
           onRetry={() => void reviewerMrsQuery.refetch()}
+        />
+      )}
+
+      {/* Section 4: Participating MRs (commented on) — role-independent, hidden when GitLab not connected */}
+      {!!gitlabBaseUrl && (
+        <TodayParticipatingSection
+          items={participatingMrsQuery.data ?? []}
+          isLoading={participatingMrsQuery.isLoading}
+          isError={participatingMrsQuery.isError}
+          error={participatingMrsQuery.error}
+          onRetry={() => void participatingMrsQuery.refetch()}
         />
       )}
 
