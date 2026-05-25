@@ -861,7 +861,7 @@ export default function WorklogsPage() {
       )}
 
       {/* Filter bar */}
-      <div className="flex items-center gap-2 px-6 py-3 border-b border-border bg-background flex-wrap">
+      <div className="relative z-10 flex items-center gap-2 px-6 py-3 border-b border-border bg-background flex-wrap">
         {/* Date preset pills */}
         {DATE_PRESETS.map((p) => (
           <button
@@ -959,7 +959,7 @@ export default function WorklogsPage() {
       )}
 
       {/* Table area — border-separate fixes sticky-cell bleed-through (#5 in feedback) */}
-      <div className="flex-1 overflow-auto min-h-0">
+      <div className="flex-1 overflow-auto min-h-0 isolate">
         {isError ? (
           <div className="p-4">
             <ErrorState error={error} onRetry={refetch} viewName="worklogs" />
