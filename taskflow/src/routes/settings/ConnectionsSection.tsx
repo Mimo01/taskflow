@@ -359,8 +359,7 @@ function GitLabConnectionCard({
       {/* Current selection indicator when not in test-success state */}
       {testStatus !== 'success' && activeProjectPath && (
         <p className="text-xs text-muted-foreground">
-          Active project:{' '}
-          <span className="font-medium text-foreground">{activeProjectPath}</span>
+          Active project: <span className="font-medium text-foreground">{activeProjectPath}</span>
         </p>
       )}
 
