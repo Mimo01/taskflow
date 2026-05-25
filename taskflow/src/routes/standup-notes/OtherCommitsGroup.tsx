@@ -21,7 +21,7 @@ export default function OtherCommitsGroup({ commits }: OtherCommitsGroupProps) {
       <div className="flex items-center gap-2 py-2 px-2">
         <GitBranch className="size-4 shrink-0 text-muted-foreground" />
         <div className="flex-1 min-w-0">
-          <span>Other commits</span>
+          <span className="text-sm">Other commits</span>
           <p className="text-xs text-muted-foreground">Commits without a linked Jira issue</p>
         </div>
       </div>
