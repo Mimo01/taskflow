@@ -22,9 +22,13 @@ import { Clock } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import type { GitLabMR, ParticipatedMR } from '@/services/gitlab';
 import { fetchParticipatedMRs, fetchReviewerMRs } from '@/services/gitlab';
+import type { JiraIssue } from '@/services/jira';
 import { fetchSprintIssues } from '@/services/jira';
+import { formatDuration } from '@/services/jira/duration';
 import { readSecret } from '@/services/stronghold';
+import type { TempoWorklog } from '@/services/tempo';
 import { fetchWorklogs } from '@/services/tempo';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -73,6 +77,101 @@ function formatTodayDate(): string {
   const month = MONTHS[today.getMonth()];
   const year = today.getFullYear();
   return `${dayName}, ${day} ${month} ${year}`;
+}
+
+// ─── Markdown export ──────────────────────────────────────────────────────────
+
+/** Query key factories — exported so StandupNotesPage can read cached data for Copy Markdown. */
+export const todayQueryKeys = {
+  sprint: (project: string | null | undefined, spFieldKey: string | null | undefined) =>
+    ['jira-issues', 'sprint-board-today-full', project, spFieldKey] as const,
+  tempo: (base: string | null | undefined, date: string, username: string | null | undefined) =>
+    ['standup', 'today-tempo', base, date, username ?? ''] as const,
+  reviewerMrs: (base: string | null | undefined, userId: number | null | undefined) =>
+    ['standup', 'reviewer-mrs', base, userId] as const,
+  participatingMrs: (base: string | null | undefined, userId: number | null | undefined) =>
+    ['standup', 'participating-mrs', base, userId] as const,
+};
+
+export interface TodayMarkdownSources {
+  sprintData?: JiraIssue[];
+  todayTempoData?: TempoWorklog[];
+  reviewerMrsData?: GitLabMR[];
+  participatingMrsData?: ParticipatedMR[];
+  jiraUserDisplayName?: string | null;
+}
+
+export function generateTodayMarkdown(sources: TodayMarkdownSources, todayDate: string): string {
+  const { inProgress, upNext } = filterSprintItems(
+    sources.sprintData ?? [],
+    sources.jiraUserDisplayName ?? '',
+  );
+
+  const todayLoggedByIssue = new Map<string, number>();
+  for (const w of sources.todayTempoData ?? []) {
+    todayLoggedByIssue.set(w.issue.key, (todayLoggedByIssue.get(w.issue.key) ?? 0) + w.timeSpentSeconds);
+  }
+
+  const { mrsByStory, unmatchedReviewerMrs, unmatchedParticipatingMrs } = matchMrsToStories(
+    [...inProgress, ...upNext],
+    sources.reviewerMrsData ?? [],
+    sources.participatingMrsData ?? [],
+  );
+
+  const lines: string[] = [`## Today (${todayDate})`, ''];
+
+  for (const row of inProgress) {
+    lines.push(`### ${row.issue.key}: ${row.issue.fields.summary ?? row.issue.key}`);
+    const secs = todayLoggedByIssue.get(row.issue.key) ?? 0;
+    if (secs > 0) lines.push(`- ${formatDuration(secs)} logged today`);
+    for (const subtask of row.subtasks) {
+      lines.push(`- ${subtask.key}: ${subtask.fields.summary ?? subtask.key}`);
+    }
+    for (const mr of mrsByStory.get(row.issue.key) ?? []) {
+      lines.push(
+        mr.kind === 'review'
+          ? `- Reviewed MR !${mr.iid} (${mr.title})`
+          : `- Participated in MR !${mr.iid} (${mr.title})`,
+      );
+    }
+    lines.push('');
+  }
+
+  if (upNext.length > 0) {
+    lines.push('### Up Next');
+    for (const row of upNext) {
+      lines.push(`- ${row.issue.key}: ${row.issue.fields.summary ?? row.issue.key}`);
+    }
+    lines.push('');
+  }
+
+  if (unmatchedReviewerMrs.length > 0) {
+    lines.push('### MRs Awaiting Review');
+    for (const mr of unmatchedReviewerMrs) {
+      lines.push(`- !${mr.iid}: ${mr.title}`);
+    }
+    lines.push('');
+  }
+
+  if (unmatchedParticipatingMrs.length > 0) {
+    lines.push('### Participating MRs');
+    for (const mr of unmatchedParticipatingMrs) {
+      lines.push(`- Participated in MR !${mr.mrIid} (${mr.title})`);
+    }
+    lines.push('');
+  }
+
+  if (
+    inProgress.length === 0 &&
+    upNext.length === 0 &&
+    unmatchedReviewerMrs.length === 0 &&
+    unmatchedParticipatingMrs.length === 0
+  ) {
+    lines.push('Nothing planned yet.');
+    lines.push('');
+  }
+
+  return lines.join('\n');
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
