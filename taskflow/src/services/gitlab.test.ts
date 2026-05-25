@@ -744,6 +744,26 @@ describe('gitlab service', () => {
       expect(result[0].lastCommentedAt).toBe('2026-05-02T09:00:00Z');
     });
 
+    it('CR-01: approvals payload missing approved_by does not reject the query', async () => {
+      // GitLab CE/Free returns an approvals object without `approved_by`.
+      // The enrichment must guard this and treat the MR as not-approved (included),
+      // NOT throw and reject the whole Promise.all.
+      const event = makeCommentEvent({ mrIid: 77, created_at: '2026-05-03T08:00:00Z' });
+      setupMocks(
+        [event],
+        { 77: [makeDiscussion(USER_ID, true, true)] }, // resolved thread → no open thread
+        { 77: { approved: false } as object }, // NO approved_by field
+      );
+
+      const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
+
+      // No open thread + not approved (missing field → false) → included via !approvedByMe
+      expect(result).toHaveLength(1);
+      expect(result[0].mrIid).toBe(77);
+      expect(result[0].approvedByMe).toBe(false);
+      expect(result[0].openThreadCount).toBe(0);
+    });
+
     it('excludes events where note.noteable_type is not MergeRequest', async () => {
       const mrComment = makeCommentEvent({ mrIid: 10, noteableType: 'MergeRequest' });
       const issueComment = makeCommentEvent({ mrIid: 20, noteableType: 'Issue' });
