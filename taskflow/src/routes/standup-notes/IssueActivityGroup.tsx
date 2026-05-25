@@ -78,13 +78,13 @@ export default function IssueActivityGroup({
       <button
         type="button"
         onClick={onClick}
-        className="-mx-1 flex w-full cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-left text-sm font-semibold hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-2 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
       >
         <IssueTypeIcon typeName={issueType ?? ''} className="size-4 shrink-0" />
-        <span className="shrink-0 text-xs font-medium text-muted-foreground">{issueKey}</span>
-        <span className="flex-1 min-w-0 truncate">{summary}</span>
+        <span className="shrink-0 text-xs text-muted-foreground font-mono">{issueKey}</span>
+        <span className="flex-1 min-w-0 truncate text-sm">{summary}</span>
         {totalSeconds > 0 && (
-          <span className="shrink-0 text-xs text-muted-foreground ml-auto">
+          <span className="shrink-0 rounded bg-muted px-2 py-1 text-xs text-muted-foreground">
             {formatDuration(totalSeconds)}
           </span>
         )}
@@ -92,18 +92,20 @@ export default function IssueActivityGroup({
 
       {/* Sub-items */}
       {subItems.length > 0 && (
-        <ul className="mt-1 flex flex-col gap-1 pl-8">
+        <div className="pl-6 border-l border-border ml-2 divide-y divide-border">
           {subItems.map((item, i) => {
             const SubIcon = subItemIcon(item.kind);
             return (
               // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
-              <li key={i} className="flex items-start gap-1.5 text-xs text-foreground">
-                <SubIcon className="size-3 shrink-0 mt-0.5 text-muted-foreground" />
-                <span className="min-w-0">{item.label}</span>
-              </li>
+              <div key={i} className="flex items-center gap-2 py-2 px-2">
+                <SubIcon className="size-4 shrink-0 text-muted-foreground" />
+                <span className="flex-1 min-w-0 truncate text-sm text-foreground">
+                  {item.label}
+                </span>
+              </div>
             );
           })}
-        </ul>
+        </div>
       )}
     </div>
   );
