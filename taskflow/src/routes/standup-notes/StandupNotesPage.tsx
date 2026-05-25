@@ -12,7 +12,7 @@
  * Tempo-enabled users get the correct holiday-skip date.
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
@@ -20,14 +20,17 @@ import {
   getScheduleLookbackRange,
   resolveYesterdayDate,
 } from '@/lib/standup-date';
+import type { GitLabMR, ParticipatedMR } from '@/services/gitlab';
 import { fetchUserCommits, fetchUserMREvents } from '@/services/gitlab';
+import type { JiraIssue } from '@/services/jira';
 import { fetchIssueMeta, fetchYesterdayJiraActivity } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
+import type { TempoWorklog } from '@/services/tempo';
 import { fetchUserSchedule, fetchWorklogs } from '@/services/tempo';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import StandupPageHeader from './StandupPageHeader';
-import TodayColumn from './TodayColumn';
+import TodayColumn, { generateTodayMarkdown, todayQueryKeys } from './TodayColumn';
 import YesterdayColumn, { generateMarkdown } from './YesterdayColumn';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -88,8 +91,20 @@ export default function StandupNotesPage() {
     gitlabUsername,
   } = useAuthStore();
 
-  // IN-01: fine-grained selector — never destructure the whole settings store
+  // IN-01: fine-grained selectors — never destructure the whole settings store
   const tempoEnabled = useSettingsStore((s) => s.tempoEnabled);
+  const storyPointsFieldKey = useSettingsStore((s) => s.storyPointsFieldKey);
+
+  // Phase 68 rule: fine-grained selector for display name
+  const jiraUserDisplayName = useAuthStore((s) => s.jiraUserDisplayName);
+
+  const queryClient = useQueryClient();
+
+  // TZ-safe today date (same logic as TodayColumn — Phase 62 standing rule)
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }, []);
 
   // Issue navigation (full-page detail + breadcrumb trail) from the app shell.
   const { onIssueClick } = useOutletContext<{ onIssueClick: (key: string) => void }>();
@@ -243,12 +258,14 @@ export default function StandupNotesPage() {
     staleTime: 60 * 60 * 1000,
   });
 
-  // ─ Refresh-all (stale data stays visible during refetch — no skeleton flash) ─
+  // ─ Refresh-all ────────────────────────────────────────────────────────────
+  // Invalidates all active standup queries (both yesterday and today columns) plus
+  // the sprint query owned by TodayColumn which uses the 'jira-issues' prefix.
+  // Using invalidateQueries rather than individual .refetch() calls ensures
+  // TodayColumn's internally-owned queries are also triggered.
   function handleRefresh() {
-    void tempoQuery.refetch();
-    void jiraActivityQuery.refetch();
-    void commitsQuery.refetch();
-    void mrEventsQuery.refetch();
+    void queryClient.refetchQueries({ queryKey: ['standup'], type: 'active' });
+    void queryClient.refetchQueries({ queryKey: ['jira-issues', 'sprint-board-today-full'], type: 'active' });
   }
 
   // ─ "synced Xm ago" — earliest dataUpdatedAt across all four loaded queries ─
@@ -270,9 +287,7 @@ export default function StandupNotesPage() {
   const [copied, setCopied] = useState(false);
 
   function handleCopyMarkdown() {
-    // Build the markdown from the YesterdayColumn's current group state.
-    // generateMarkdown is exported from YesterdayColumn and used here.
-    const text = generateMarkdown(
+    const yesterdayText = generateMarkdown(
       {
         tempoData: tempoQuery.data,
         jiraData: jiraActivityQuery.data,
@@ -282,7 +297,28 @@ export default function StandupNotesPage() {
       },
       yesterdayDate,
     );
-    navigator.clipboard.writeText(text).catch(() => {
+
+    // Read today's data from TanStack Query cache (populated by TodayColumn's queries).
+    const todayText = generateTodayMarkdown(
+      {
+        sprintData: queryClient.getQueryData<JiraIssue[]>(
+          todayQueryKeys.sprint(activeJiraProject, storyPointsFieldKey),
+        ),
+        todayTempoData: queryClient.getQueryData<TempoWorklog[]>(
+          todayQueryKeys.tempo(jiraBaseUrl, todayStr, jiraUsername),
+        ),
+        reviewerMrsData: queryClient.getQueryData<GitLabMR[]>(
+          todayQueryKeys.reviewerMrs(gitlabBaseUrl, gitlabUserId),
+        ),
+        participatingMrsData: queryClient.getQueryData<ParticipatedMR[]>(
+          todayQueryKeys.participatingMrs(gitlabBaseUrl, gitlabUserId),
+        ),
+        jiraUserDisplayName,
+      },
+      todayStr,
+    );
+
+    navigator.clipboard.writeText(`${yesterdayText}\n\n${todayText}`).catch(() => {
       // Silent fallback — clipboard unavailable (unlikely in Tauri webview).
     });
     setCopied(true);
