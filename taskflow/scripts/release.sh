@@ -75,9 +75,11 @@ if [[ "$SKIP_BUMP" == "true" ]]; then
   cd "$TASKFLOW_DIR"
   if ! git -C "$REPO_ROOT" rev-parse "v$VERSION" &>/dev/null; then
     echo "    Creating tag v$VERSION on HEAD..."
-    NOTES="$(awk "/^## \\[$VERSION\\]/{found=1; next} /^## \\[/{if(found) exit} found" "$TASKFLOW_DIR/CHANGELOG.md" | sed '/^$/d')"
+    # Keep blank lines so the Markdown sections (### Added / ### Fixed) stay
+    # readable; --cleanup=verbatim below preserves the message (and '#' headers) as-is.
+    NOTES="$(awk "/^## \\[$VERSION\\]/{found=1; next} /^## \\[/{if(found) exit} found" "$TASKFLOW_DIR/CHANGELOG.md")"
     TAG_MSG="$(printf 'v%s\n\n%s\n' "$VERSION" "$NOTES")"
-    printf '%s' "$TAG_MSG" | git -C "$REPO_ROOT" tag -a "v$VERSION" -F -
+    printf '%s' "$TAG_MSG" | git -C "$REPO_ROOT" tag -a "v$VERSION" --cleanup=verbatim -F -
     echo "    Tagged v$VERSION."
   fi
 else

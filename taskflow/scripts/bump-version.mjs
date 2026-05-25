@@ -154,25 +154,26 @@ try {
 // --- Git tag with annotation ---
 console.log(`\nCreating annotated tag v${newVersion}...`);
 const tagMessage = `v${newVersion}\n\n${releaseNotes}\n`;
-// Use core.commentChar=; so git doesn't strip Markdown ATX headers (### ...) from the annotation.
-// By default git treats '#' as a comment character and silently removes those lines from tag messages.
+// --cleanup=verbatim keeps the message exactly as-is, including Markdown ATX
+// headers (### ...). Default cleanup treats '#' as a comment char and silently
+// strips those lines from the annotation (which becomes the GitHub release body).
+let tagExists = false;
 try {
-  execSync(`git -c core.commentChar=\; tag -a v${newVersion} -F -`, {
-    cwd: REPO_ROOT,
-    input: tagMessage,
-    stdio: ['pipe', 'inherit', 'inherit'],
-  });
-  console.log(`  Tagged v${newVersion}.`);
+  execSync(`git rev-parse v${newVersion}`, { cwd: REPO_ROOT, stdio: 'ignore' });
+  tagExists = true;
 } catch {
+  // Tag does not exist yet — nothing to replace.
+}
+if (tagExists) {
   console.log(`  Tag v${newVersion} already exists. Replacing...`);
   execSync(`git tag -d v${newVersion}`, { cwd: REPO_ROOT, stdio: 'inherit' });
-  execSync(`git -c core.commentChar=\; tag -a v${newVersion} -F -`, {
-    cwd: REPO_ROOT,
-    input: tagMessage,
-    stdio: ['pipe', 'inherit', 'inherit'],
-  });
-  console.log(`  Re-tagged v${newVersion}.`);
 }
+execSync(`git tag -a v${newVersion} --cleanup=verbatim -F -`, {
+  cwd: REPO_ROOT,
+  input: tagMessage,
+  stdio: ['pipe', 'inherit', 'inherit'],
+});
+console.log(`  Tagged v${newVersion}.`);
 
 // --- Git push ---
 console.log('\nPushing to origin...');
