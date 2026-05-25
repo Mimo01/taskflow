@@ -1253,3 +1253,100 @@ export async function fetchUserMREvents(
 
   return events;
 }
+
+// ─── Participating MRs (commented on — role-independent) ──────────────────────
+
+/**
+ * A merge request the current user has commented on within a rolling window.
+ * Role-independent: derived from the user's own `commented` events, not from
+ * MR assignment, reviewer, or author roles.
+ */
+export interface ParticipatedMR {
+  projectId: number;
+  mrIid: number;
+  title: string;
+  /** How many of the user's own comment events hit this MR in the window. */
+  commentCount: number;
+  /** ISO timestamp of the user's most recent comment on this MR. */
+  lastCommentedAt: string;
+}
+
+/**
+ * Fetch MRs the current user has participated in (commented on) within the
+ * last `sinceDays` days.
+ *
+ * Role-independent: uses the GitLab User Events API filtered to
+ * `action=commented`, then deduplicates by project+MR iid. An MR appears in
+ * the result even when the user is not an assignee, reviewer, or author.
+ *
+ * Pitfall 4 (same as fetchUserMREvents): GitLab `after` is exclusive and
+ * date-granular — subtract one extra day so the boundary day is included.
+ *
+ * @param baseUrl   - GitLab base URL (e.g. "https://gitlab.example.com")
+ * @param token     - Personal Access Token (PRIVATE-TOKEN header)
+ * @param userId    - GitLab user ID
+ * @param sinceDays - Rolling window in days (default 30)
+ */
+export async function fetchParticipatedMRs(
+  baseUrl: string,
+  token: string,
+  userId: number,
+  sinceDays = 30,
+): Promise<ParticipatedMR[]> {
+  const base = baseUrl.replace(/\/$/, '');
+  const headers = { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' };
+
+  // Pitfall 4: GitLab `after` is exclusive — subtract one extra day so the
+  // boundary day's events are included.
+  const afterDate = new Date();
+  afterDate.setDate(afterDate.getDate() - sinceDays - 1);
+  const after = afterDate.toISOString().slice(0, 10);
+
+  const response = await apiFetch(
+    'gitlab',
+    `${base}/api/v4/users/${userId}/events?action=commented&after=${after}&per_page=100`,
+    { headers },
+    'Load Participated MRs',
+  );
+
+  if (!response.ok) {
+    throw new ApiError('Failed to fetch participated MRs', response.status, 'gitlab');
+  }
+
+  const data = (await response.json()) as GitLabUserMREvent[];
+
+  // Deduplicate by project_id:noteable_iid into a map
+  const deduped = new Map<string, ParticipatedMR>();
+
+  for (const e of data) {
+    // Filter: must be an MR comment authored by the current user
+    if (e.note?.noteable_type !== 'MergeRequest') continue;
+    if (!e.note.noteable_iid) continue;
+    // Lenient own-author check (mirrors fetchUserMREvents pattern)
+    if ((e.author?.id ?? userId) !== userId) continue;
+    if ((e.note?.author?.id ?? userId) !== userId) continue;
+
+    const key = `${e.project_id}:${e.note.noteable_iid}`;
+    const existing = deduped.get(key);
+
+    if (existing) {
+      existing.commentCount += 1;
+      if (e.created_at > existing.lastCommentedAt) {
+        existing.lastCommentedAt = e.created_at;
+      }
+    } else {
+      deduped.set(key, {
+        projectId: e.project_id,
+        mrIid: e.note.noteable_iid,
+        title: e.target_title,
+        commentCount: 1,
+        lastCommentedAt: e.created_at,
+      });
+    }
+  }
+
+  // Sort by most recent comment descending
+  return Array.from(deduped.values()).sort((a, b) =>
+    b.lastCommentedAt.localeCompare(a.lastCommentedAt),
+  );
+}
