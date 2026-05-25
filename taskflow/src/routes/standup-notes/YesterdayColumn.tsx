@@ -78,6 +78,15 @@ interface StandaloneMrGroupData {
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+/**
+ * True for auto-generated merge commits (e.g. "Merge branch 'x' into 'y'",
+ * "Merge request !123…", "Merge remote-tracking branch…"). GitLab doesn't
+ * return parent_ids here, so detection keys off the conventional title prefix.
+ */
+function isMergeCommit(commit: GitLabCommit): boolean {
+  return /^Merge\b/.test(commit.title);
+}
+
 /** Returns "Yesterday" if dateStr is the calendar day before today, otherwise the day name. */
 function getColumnHeading(dateStr: string): string {
   const today = new Date();
@@ -281,6 +290,8 @@ function buildGroups(
 
   // 3. Route commits by Jira key from message (D-08 message-only; branch deferred D-14)
   for (const commit of commitsData ?? []) {
+    // Skip merge commits — they're noise in a standup recap, not real work.
+    if (isMergeCommit(commit)) continue;
     const key =
       extractJiraKeyFromMessage(commit.message) ?? extractJiraKeyFromMessage(commit.title);
     if (key) {
