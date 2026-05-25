@@ -49,6 +49,8 @@ export interface YesterdayColumnProps {
   issueMeta: Record<string, StandupIssueMeta>;
   /** Navigate to the issue detail page (threads the breadcrumb trail). */
   onIssueClick: (key: string) => void;
+  /** Navigate to the MR detail page. Receives "${projectId}/${iid}" string. */
+  onMRClick: (projectIdAndIid: string) => void;
 }
 
 /** Internal shape of a joined issue group (used for rendering + markdown). */
@@ -63,6 +65,7 @@ interface IssueGroup {
 /** Internal shape of a standalone MR group (MR not linked to any issue). */
 interface StandaloneMrGroupData {
   iid: number;
+  projectId: number;
   title: string;
   /** Comment events collapsed to a count (D-05) — not listed individually. */
   commentCount: number;
@@ -316,6 +319,7 @@ function buildGroups(
       } else {
         standaloneMrMap.set(mrIid, {
           iid: mrIid,
+          projectId: event.project_id,
           title: event.target_title,
           commentCount: isApproval ? 0 : 1,
           approvals: isApproval ? 1 : 0,
@@ -378,6 +382,7 @@ export default function YesterdayColumn({
   mrEventsQuery,
   issueMeta,
   onIssueClick,
+  onMRClick,
 }: YesterdayColumnProps) {
   // Build joined groups in a stable useMemo
   const { issueGroups, standaloneMrGroups, otherCommits } = useMemo(
@@ -483,9 +488,11 @@ export default function YesterdayColumn({
             <StandaloneMrGroup
               key={mr.iid}
               iid={mr.iid}
+              projectId={mr.projectId}
               title={mr.title}
               commentCount={mr.commentCount}
               approvals={mr.approvals}
+              onMRClick={onMRClick}
             />
           ))}
 
