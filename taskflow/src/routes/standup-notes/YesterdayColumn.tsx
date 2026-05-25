@@ -476,7 +476,7 @@ export default function YesterdayColumn({
       {/* Populated content renders first; per-source empty/loading/error
           notices fall to the bottom so "nothing here" never sits above data. */}
       {hasAnyData && (
-        <div className="divide-y divide-border">
+        <div className="flex flex-col gap-2">
           {issueGroups.map((group) => (
             <IssueActivityGroup
               key={group.issueKey}
