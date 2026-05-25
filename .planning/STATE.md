@@ -5,7 +5,7 @@ milestone_name: Cleanup, Roles Removal & Standup Notes
 status: milestone_complete
 stopped_at: Phase 70 UI-SPEC approved
 last_updated: "2026-05-25T06:44:28.539Z"
-last_activity: 2026-05-25 -- Phase 70 execution started
+last_activity: 2026-05-25 - Completed quick task 260525-g5z: standup notes participating MR copy formatting
 progress:
   total_phases: 6
   completed_phases: 6
@@ -92,6 +92,7 @@ Key decisions affecting current work:
 | 260523-n5r | Check linters and fix any errors | 2026-05-23 | 2f8ff136 | | [260523-n5r-check-linters-and-fix-any-errors](./quick/260523-n5r-check-linters-and-fix-any-errors/) |
 | 260523-s1h | Close v1.9 verification artifact gaps: write 61/63/64 VERIFICATION.md + reconcile REQUIREMENTS.md checkboxes | 2026-05-23 | 320c9665 | | [260523-s1h-close-v1-9-verification-artifact-gaps-wr](./quick/260523-s1h-close-v1-9-verification-artifact-gaps-wr/) |
 | 260524-pqo | I want to add a 'reset all' button to settings | 2026-05-24 | de3f21c5 | Needs Review | [260524-pqo-i-want-to-add-a-reset-all-button-to-sett](./quick/260524-pqo-i-want-to-add-a-reset-all-button-to-sett/) |
+| 260525-g5z | On standup notes copy markdown, in today view the participating merge requests are not written very well as a sentence, redo it | 2026-05-25 | 1764c0d4 | | [260525-g5z-on-standup-notes-copy-markdown-in-today-](./quick/260525-g5z-on-standup-notes-copy-markdown-in-today-/) |
 
 ## Session Continuity
 
