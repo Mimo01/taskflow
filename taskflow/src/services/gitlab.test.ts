@@ -644,25 +644,30 @@ describe('gitlab service', () => {
     });
 
     /**
-     * Set up mockFetch to route by URL substring:
-     *  - /events  → returns events array
+     * Set up mockFetch to route by URL substring.
+     *
+     * IMPORTANT ordering: the detail URL `.../merge_requests/<iid>` is a PREFIX
+     * of `.../merge_requests/<iid>/discussions` and `.../merge_requests/<iid>/approvals`.
+     * Check the more-specific substrings (/discussions, /approvals) FIRST; then
+     * check /events; finally treat a bare merge_requests/<iid> path as the detail call.
+     *
      *  - /discussions → returns discussionsMap[mrIid] or []
      *  - /approvals   → returns approvalsMap[mrIid] or default empty
+     *  - /events      → returns events array
+     *  - merge_requests/<iid> (no trailing sub-path) → detail stub: state='opened'
      */
     const setupMocks = (
       events: object[],
       discussionsMap: Record<number, object[]> = {},
       approvalsMap: Record<number, object> = {},
+      detailStateMap: Record<number, 'opened' | 'closed' | 'merged' | 'locked'> = {},
     ) => {
       vi.mocked(mockFetch).mockImplementation(async (url: string | URL | Request) => {
         const u = url.toString();
-        if (u.includes('/events')) {
-          return { ok: true, status: 200, json: async () => events } as Response;
-        }
-        // Extract mrIid from URL: .../merge_requests/<mrIid>/discussions or /approvals
-        const mrIidMatch = u.match(/merge_requests\/(\d+)\/(discussions|approvals)/);
-        const mrIid = mrIidMatch ? Number(mrIidMatch[1]) : 0;
+        // Most-specific substrings first to avoid prefix collision
         if (u.includes('/discussions')) {
+          const mrIidMatch = u.match(/merge_requests\/(\d+)\/discussions/);
+          const mrIid = mrIidMatch ? Number(mrIidMatch[1]) : 0;
           return {
             ok: true,
             status: 200,
@@ -670,10 +675,26 @@ describe('gitlab service', () => {
           } as Response;
         }
         if (u.includes('/approvals')) {
+          const mrIidMatch = u.match(/merge_requests\/(\d+)\/approvals/);
+          const mrIid = mrIidMatch ? Number(mrIidMatch[1]) : 0;
           return {
             ok: true,
             status: 200,
             json: async () => approvalsMap[mrIid] ?? makeApprovals([]),
+          } as Response;
+        }
+        if (u.includes('/events')) {
+          return { ok: true, status: 200, json: async () => events } as Response;
+        }
+        // Bare merge_requests/<iid> — detail call
+        const detailMatch = u.match(/merge_requests\/(\d+)$/);
+        if (detailMatch) {
+          const mrIid = Number(detailMatch[1]);
+          const state = detailStateMap[mrIid] ?? 'opened';
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ iid: mrIid, state }),
           } as Response;
         }
         return { ok: true, status: 200, json: async () => [] } as Response;
@@ -850,9 +871,7 @@ describe('gitlab service', () => {
       // Discussions OK (resolved thread), approvals endpoint errors
       vi.mocked(mockFetch).mockImplementation(async (url: string | URL | Request) => {
         const u = url.toString();
-        if (u.includes('/events')) {
-          return { ok: true, status: 200, json: async () => [event] } as Response;
-        }
+        // Most-specific first to avoid prefix collision with detail URL
         if (u.includes('/discussions')) {
           return {
             ok: true,
@@ -863,6 +882,18 @@ describe('gitlab service', () => {
         if (u.includes('/approvals')) {
           return { ok: false, status: 500, json: async () => ({}) } as Response;
         }
+        if (u.includes('/events')) {
+          return { ok: true, status: 200, json: async () => [event] } as Response;
+        }
+        // Detail call — MR 40 is open
+        const detailMatch = u.match(/merge_requests\/(\d+)$/);
+        if (detailMatch) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ iid: 40, state: 'opened' }),
+          } as Response;
+        }
         return { ok: true, status: 200, json: async () => [] } as Response;
       });
 
@@ -871,6 +902,83 @@ describe('gitlab service', () => {
       expect(result).toHaveLength(1);
       expect(result[0].mrIid).toBe(40);
       expect(result[0].approvedByMe).toBe(false);
+    });
+
+    // ── State filter cases ────────────────────────────────────────────────────
+
+    it('state filter: merged MR → EXCLUDED even with an open thread', async () => {
+      const event = makeCommentEvent({ mrIid: 50, projectId: 99 });
+
+      setupMocks(
+        [event],
+        { 50: [makeDiscussion(USER_ID, true, false)] },
+        { 50: makeApprovals([]) },
+        { 50: 'merged' },
+      );
+
+      const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
+      expect(result).toHaveLength(0);
+    });
+
+    it('state filter: closed MR → EXCLUDED even when not approved', async () => {
+      const event = makeCommentEvent({ mrIid: 51, projectId: 99 });
+
+      setupMocks(
+        [event],
+        { 51: [makeDiscussion(USER_ID, true, true)] },
+        { 51: makeApprovals([]) },
+        { 51: 'closed' },
+      );
+
+      const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
+      expect(result).toHaveLength(0);
+    });
+
+    it('state filter: opened MR with open thread → INCLUDED', async () => {
+      const event = makeCommentEvent({ mrIid: 52, projectId: 99 });
+
+      setupMocks(
+        [event],
+        { 52: [makeDiscussion(USER_ID, true, false)] },
+        { 52: makeApprovals([]) },
+        { 52: 'opened' },
+      );
+
+      const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
+      expect(result).toHaveLength(1);
+      expect(result[0].mrIid).toBe(52);
+      expect(result[0].openThreadCount).toBe(1);
+    });
+
+    it('state filter: detail fetch fails → EXCLUDED', async () => {
+      const event = makeCommentEvent({ mrIid: 53, projectId: 99 });
+
+      // Override mock so detail endpoint returns an error for MR 53
+      vi.mocked(mockFetch).mockImplementation(async (url: string | URL | Request) => {
+        const u = url.toString();
+        if (u.includes('/discussions')) {
+          return { ok: true, status: 200, json: async () => [] } as Response;
+        }
+        if (u.includes('/approvals')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => makeApprovals([]),
+          } as Response;
+        }
+        if (u.includes('/events')) {
+          return { ok: true, status: 200, json: async () => [event] } as Response;
+        }
+        // Detail call fails
+        const detailMatch = u.match(/merge_requests\/(\d+)$/);
+        if (detailMatch) {
+          return { ok: false, status: 404, json: async () => ({}) } as Response;
+        }
+        return { ok: true, status: 200, json: async () => [] } as Response;
+      });
+
+      const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
+      expect(result).toHaveLength(0);
     });
   });
 });
