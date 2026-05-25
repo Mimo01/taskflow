@@ -1,7 +1,9 @@
+import { invoke } from '@tauri-apps/api/core';
+import { openPath } from '@tauri-apps/plugin-opener';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetch } from '@tauri-apps/plugin-http';
 import { ChevronDown, ChevronRight, Paperclip } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { JiraAttachment } from '@/services/jira';
 import { uploadAttachment } from '@/services/jira/attachments';
 import { readSecret } from '@/services/stronghold';
@@ -29,6 +31,8 @@ export function AttachmentsSection({
   const [isDragging, setIsDragging] = useState(false);
   const [dropUploadName, setDropUploadName] = useState<string | null>(null);
   const [dropUploadError, setDropUploadError] = useState<string | null>(null);
+  const [downloadFeedback, setDownloadFeedback] = useState<{ message: string; isError: boolean } | null>(null);
+  const downloadFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
 
   const images = attachments.filter((a) => a.mimeType.startsWith('image/'));
@@ -53,22 +57,33 @@ export function AttachmentsSection({
     },
   });
 
+  function showDownloadFeedback(message: string, isError: boolean) {
+    if (downloadFeedbackTimer.current) clearTimeout(downloadFeedbackTimer.current);
+    setDownloadFeedback({ message, isError });
+    downloadFeedbackTimer.current = setTimeout(() => setDownloadFeedback(null), 3000);
+  }
+
   async function handleDownload(att: JiraAttachment) {
     try {
       const token = await readSecret('jira-pat').catch(() => null);
-      if (!token) return;
+      if (!token) {
+        showDownloadFeedback('No Jira credentials found.', true);
+        return;
+      }
       const resp = await fetch(att.content, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const blob = await resp.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = att.filename;
-      a.click();
-      URL.revokeObjectURL(url);
+      const arrayBuffer = await blob.arrayBuffer();
+      const bytes = Array.from(new Uint8Array(arrayBuffer));
+      const savedPath = await invoke<string>('save_attachment', {
+        bytes,
+        filename: att.filename,
+      });
+      showDownloadFeedback(`${att.filename} saved to Downloads.`, false);
+      openPath(savedPath).catch(() => undefined);
     } catch {
-      // Download failed silently
+      showDownloadFeedback(`Failed to download ${att.filename}.`, true);
     }
   }
 
@@ -185,6 +200,11 @@ export function AttachmentsSection({
                       onDelete={onDelete}
                     />
                   ))}
+                  {downloadFeedback && (
+                    <p className={`text-xs mt-1 ${downloadFeedback.isError ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      {downloadFeedback.message}
+                    </p>
+                  )}
                 </div>
               )}
             </>

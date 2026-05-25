@@ -29,6 +29,59 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
+/// Save raw bytes to ~/Downloads/{filename} and return the final path.
+/// Falls back to the OS temp directory if the Downloads directory is unavailable.
+#[tauri::command]
+fn save_attachment(bytes: Vec<u8>, filename: String) -> Result<String, String> {
+    let dir = dirs::download_dir()
+        .or_else(|| std::env::temp_dir().into())
+        .unwrap_or_else(std::env::temp_dir);
+
+    // Sanitise filename: strip any path separators supplied by the caller.
+    let safe_name = std::path::Path::new(&filename)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("attachment")
+        .to_string();
+
+    let dest = dir.join(&safe_name);
+
+    // If a file with that name already exists, append a numeric suffix.
+    let dest = unique_path(dest);
+
+    std::fs::write(&dest, &bytes).map_err(|e| format!("Failed to save file: {e}"))?;
+
+    dest.to_str()
+        .map(|s| s.to_string())
+        .ok_or_else(|| "Path contains invalid UTF-8".to_string())
+}
+
+/// Return `path` unchanged if it does not exist, otherwise append ` (1)`, ` (2)`, … to the stem.
+fn unique_path(path: PathBuf) -> PathBuf {
+    if !path.exists() {
+        return path;
+    }
+    let stem = path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("attachment")
+        .to_string();
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| format!(".{e}"))
+        .unwrap_or_default();
+    let dir = path.parent().unwrap_or(std::path::Path::new("."));
+    let mut counter = 1u32;
+    loop {
+        let candidate = dir.join(format!("{stem} ({counter}){ext}"));
+        if !candidate.exists() {
+            return candidate;
+        }
+        counter += 1;
+    }
+}
+
 fn get_salt_path(app: &tauri::App) -> PathBuf {
     app.path()
         .app_data_dir()
@@ -182,7 +235,7 @@ pub fn run() {
                 _ => {}
             }
         })
-        .invoke_handler(tauri::generate_handler![greet, toggle_debug_menu])
+        .invoke_handler(tauri::generate_handler![greet, toggle_debug_menu, save_attachment])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
