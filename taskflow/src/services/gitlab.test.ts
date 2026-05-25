@@ -701,7 +701,13 @@ describe('gitlab service', () => {
           return {
             ok: true,
             status: 200,
-            json: async () => ({ iid: mrIid, state, author: { id: authorId } }),
+            json: async () => ({
+              iid: mrIid,
+              state,
+              author: { id: authorId },
+              source_branch: `feature/mr-${mrIid}`,
+              web_url: `https://gitlab.example.com/mr/${mrIid}`,
+            }),
           } as Response;
         }
         return { ok: true, status: 200, json: async () => [] } as Response;
@@ -1013,6 +1019,21 @@ describe('gitlab service', () => {
       expect(result[0].mrIid).toBe(62);
       expect(result[0].authoredByMe).toBe(false);
       expect(result[0].openThreadCount).toBe(0);
+    });
+
+    it('returned ParticipatedMR carries sourceBranch and webUrl from MR detail', async () => {
+      const event = makeCommentEvent({ mrIid: 70, projectId: 99 });
+
+      setupMocks(
+        [event],
+        { 70: [makeDiscussion(USER_ID, true, false)] },
+        { 70: makeApprovals([]) },
+      );
+
+      const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
+      expect(result).toHaveLength(1);
+      expect(result[0].sourceBranch).toBe('feature/mr-70');
+      expect(result[0].webUrl).toBe('https://gitlab.example.com/mr/70');
     });
 
     it('state filter: detail fetch fails → EXCLUDED', async () => {
