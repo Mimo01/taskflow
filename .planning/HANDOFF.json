@@ -1,0 +1,45 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-05-25T18:30:00Z",
+  "phase": null,
+  "phase_name": "quick-260525-rtu",
+  "phase_dir": ".planning/quick/260525-rtu-polish-the-visual-design-of-standup-note",
+  "plan": 1,
+  "task": 3,
+  "total_tasks": 3,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": 1, "name": "Today tint + Yesterday card treatment", "status": "done", "commit": "61ed7076"},
+    {"id": 2, "name": "Today section headers — count badges + separators", "status": "done", "commit": "8ba0e3ab"},
+    {"id": "2b", "name": "Code review fixes WR-01/WR-02", "status": "done", "commit": "24f69ba4"},
+    {"id": "2c", "name": "Feedback round 2 — match columns, py-3 rows", "status": "done", "commit": "1db01b21"}
+  ],
+  "remaining_tasks": [
+    {"id": 3, "name": "Visual verification by user", "status": "in_progress"}
+  ],
+  "blockers": [],
+  "human_actions_pending": [
+    {
+      "action": "Open standup notes page, visually verify design (both columns match, flat rows, roomy feel, count badges, dividers correct)",
+      "context": "Verifier returned human_needed; second feedback round also just committed",
+      "blocking": true
+    }
+  ],
+  "decisions": [
+    {"decision": "Flat divide-y rows for Yesterday (not cards)", "rationale": "User preferred Today's list style", "phase": "260525-rtu"},
+    {"decision": "Remove bg-muted/30 column tint", "rationale": "User wants both columns same design", "phase": "260525-rtu"},
+    {"decision": "py-3 on all interactive rows", "rationale": "User wants roomy but still compact", "phase": "260525-rtu"},
+    {"decision": "Parent divide-y in TodayColumn (not per-section border-t)", "rationale": "Avoids orphaned border when InProgress is empty (WR-02 fix)", "phase": "260525-rtu"}
+  ],
+  "uncommitted_files": [
+    "taskflow/src-tauri/Cargo.lock",
+    "taskflow/src-tauri/Cargo.toml",
+    "taskflow/src-tauri/src/lib.rs",
+    "taskflow/src/routes/dashboard/IssueDetailContent.tsx",
+    "taskflow/src/routes/dashboard/issue-detail/AttachmentsSection.tsx",
+    "taskflow/src/routes/dashboard/issue-detail/LogWorkPopover.tsx",
+    "taskflow/src/services/gitlab.ts",
+    "taskflow/src/services/jira/worklogs.ts"
+  ],
+  "next_action": "Ask user to visually verify standup notes page; update STATE.md to Verified if approved or apply further tweaks if needed"
+}
