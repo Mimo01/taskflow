@@ -5,7 +5,7 @@ milestone_name: Cleanup, Roles Removal & Standup Notes
 status: milestone_complete
 stopped_at: Phase 70 UI-SPEC approved
 last_updated: "2026-05-25T06:44:28.539Z"
-last_activity: 2026-05-25 - Completed quick task 260525-kfi: unify Yesterday/Today standup views
+last_activity: 2026-05-25 - Completed quick task 260525-kza: Unify progress bar styles across the app to match releases detail style
 progress:
   total_phases: 6
   completed_phases: 6
@@ -96,6 +96,7 @@ Key decisions affecting current work:
 | 260525-jd5 | In the search in the app, when I enter a number automatically also search for tasks in selected projects | 2026-05-25 | 95cd6358 | | [260525-jd5-in-the-search-in-the-app-when-i-enter-a-](./quick/260525-jd5-in-the-search-in-the-app-when-i-enter-a-/) |
 | 260525-jrz | Standup notes: compact per-source empty-state notices, side-by-side with flex-wrap | 2026-05-25 | 339ea687 | Needs Review | [260525-jrz-on-standup-notes-page-in-the-last-workin](./quick/260525-jrz-on-standup-notes-page-in-the-last-workin/) |
 | 260525-kfi | Unify Yesterday/Today views in Standup notes page — restyle Yesterday to match Today's row treatment | 2026-05-25 | b0c6c3a6 | Verified | [260525-kfi-in-standup-notes-page-the-yesterday-and-](./quick/260525-kfi-in-standup-notes-page-the-yesterday-and-/) |
+| 260525-kza | Unify progress bar styles across the app to match releases detail style | 2026-05-25 | 604913b4 | | [260525-kza-unify-progress-bar-styles-across-the-app](./quick/260525-kza-unify-progress-bar-styles-across-the-app/) |
 
 ## Session Continuity
 
@@ -107,3 +108,4 @@ Resume file: .planning/phases/70-standup-notes-today-section/70-UI-SPEC.md
 
 - Phase 70 (Standup Notes — Today Section): `/gsd:discuss-phase 70` or `/gsd:plan-phase 70`
 - Tech debt: `WorklogsPage.test.tsx` has 5 date-dependent failures (hardcoded week dates) — fix to be date-relative
+| 2026-05-25 | fast | Constrain progress bar width in standup Today column | ✅ |
