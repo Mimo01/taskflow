@@ -86,7 +86,7 @@ export default function IssueActivityGroup({
   onIssueClick,
 }: IssueActivityGroupProps) {
   return (
-    <div className="py-2">
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
       {/* Group header: [icon] [key] [summary]          [Xh] — opens issue detail */}
       <button
         type="button"

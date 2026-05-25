@@ -359,7 +359,7 @@ export default function StandupNotesPage() {
         </div>
 
         {/* Right column — Today (50%) */}
-        <div className="w-1/2 overflow-auto">
+        <div className="w-1/2 overflow-auto bg-muted/30">
           <TodayColumn onIssueClick={onIssueClick} onMRClick={onMRClick} />
         </div>
       </div>
