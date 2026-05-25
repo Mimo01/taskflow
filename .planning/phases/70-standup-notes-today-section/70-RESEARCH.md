@@ -550,17 +550,19 @@ Step 2.6: SKIPPED — this phase installs no new tools, packages, or external se
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **MR review_state field existence at runtime**
    - What we know: `GitLabMR` interface has no `review_state` field. GitLab list endpoint does not guarantee this field.
    - What's unclear: Some GitLab EE instances may include `reviewer[].state` in list responses.
    - Recommendation: Proceed with Option A (all opened reviewer MRs = "awaiting review"). Add a note in code comments that `review_state` could be added as optional enrichment in a future phase.
+   - **RESOLVED:** Use Option A — all opened reviewer MRs render a static "awaiting review" label, no `review_state` dependency. Encoded in Plan 02 Task 2 action; the amber "changes requested" path is a future enrichment.
 
 2. **`gitlabUserId` type in auth store**
    - What we know: `fetchReviewerMRs` takes `userId: number`. Auth store has `gitlabUserId`.
    - What's unclear: The exact TypeScript type of `gitlabUserId` in `useAuthStore` was not read directly.
    - Recommendation: Verify `gitlabUserId: number | null` (consistent with `MrHealthPanel.tsx` and `useNotificationPolling.ts` usages that pass it directly to `fetchReviewerMRs`). Use `!!gitlabUserId` as the enabled guard.
+   - **RESOLVED:** `gitlabUserId: number | null` confirmed via `MrHealthPanel.tsx` + `useNotificationPolling.ts` usage; `!!gitlabUserId` is the MRs-query `enabled` guard. Encoded in Plan 02 Task 1 acceptance criteria.
 
 ---
 
