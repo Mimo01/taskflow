@@ -1,10 +1,10 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-milestone_name: milestone
+milestone_name: Performance & Perceived Speed
 status: v1.6.3 milestone complete
 stopped_at: context exhaustion at 79% (2026-05-22)
-last_updated: "2026-05-22T10:53:12.638Z"
+last_updated: "2026-05-24T14:07:24.235Z"
 last_activity: "2026-05-23 - Completed quick task 260523-neb: Rebalance dashboard cards grid — sm: Sprint Health + Next Release side-by-side, My Tasks full-width below; lg+: 3-col row"
 progress:
   total_phases: 5
@@ -96,3 +96,5 @@ Resume: Phase 47 v17-debt-cleanup plan 01 complete — continue with plan 02 if 
 | 260518-ist | Show test case key badge, defect count, run count, and assignedToID in executions table | 2026-05-18 | e63c5b5 | | [260518-ist-show-test-case-key-badge-defect-count-ru](./quick/260518-ist-show-test-case-key-badge-defect-count-ru/) |
 | 260521-u4u | Dashboard welcome redesign — first name greeting, flowing wave SVG background, text-4xl heading | 2026-05-21 | 62e932ab | | [260521-u4u-on-the-dashboard-make-the-welcome-more-w](./quick/260521-u4u-on-the-dashboard-make-the-welcome-more-w/) |
 | 260523-neb | Rebalance dashboard cards grid — sm: Sprint Health + Next Release side-by-side with My Tasks full-width below; lg+: 3-col row | 2026-05-23 | dc7ce077 | | [260523-neb-on-dashboard-there-are-3-cards-on-smalle](./quick/260523-neb-on-dashboard-there-are-3-cards-on-smalle/) |
+| 260525-thm | Standup notes: display Tempo logs in Jira h&m format instead of fractional hours | 2026-05-25 | 7e65f4ec | fast | — |
+| 2026-05-25 | fast | Limit assignee popup results to 10 | ✅ |
