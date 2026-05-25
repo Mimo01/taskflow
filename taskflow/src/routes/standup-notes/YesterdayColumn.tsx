@@ -359,9 +359,9 @@ function LoadingSkeletons() {
 
 function CompactEmptyNotice({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
   return (
-    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-      <Icon className="size-3.5 shrink-0" />
-      <span>{label}</span>
+    <div className="flex flex-col items-center gap-2 rounded-lg bg-muted/40 px-4 py-3 text-center text-muted-foreground">
+      <Icon className="size-7 shrink-0" />
+      <span className="text-xs leading-tight">{label}</span>
     </div>
   );
 }
@@ -557,7 +557,7 @@ export default function YesterdayColumn({
         jiraActivityQuery.data?.length === 0 ||
         commitsQuery.data?.length === 0 ||
         mrEventsQuery.data?.length === 0) && (
-        <div className="flex flex-wrap gap-x-5 gap-y-1.5 mt-2 mb-3">
+        <div className="grid grid-cols-2 gap-2 mt-2 mb-3">
           {tempoQuery.data?.length === 0 && (
             <CompactEmptyNotice
               icon={Clock}
