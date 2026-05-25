@@ -289,6 +289,9 @@ function buildGroups(
   }
 
   // 3. Route commits by Jira key from message (D-08 message-only; branch deferred D-14)
+  //    Commits on a tracked issue are collapsed to a single "N commits" sub-item
+  //    per group rather than listed individually — one line per task section.
+  const commitCountByGroup = new Map<string, number>();
   for (const commit of commitsData ?? []) {
     // Skip merge commits — they're noise in a standup recap, not real work.
     if (isMergeCommit(commit)) continue;
@@ -296,10 +299,15 @@ function buildGroups(
       extractJiraKeyFromMessage(commit.message) ?? extractJiraKeyFromMessage(commit.title);
     if (key) {
       const group = ensureGroup(key);
-      group.subItems.push({ kind: 'commit', label: `${commit.title} (${commit.short_id})` });
+      commitCountByGroup.set(group.issueKey, (commitCountByGroup.get(group.issueKey) ?? 0) + 1);
     } else {
       otherCommits.push(commit);
     }
+  }
+  for (const [groupKey, count] of commitCountByGroup) {
+    const group = issueMap.get(groupKey);
+    if (!group) continue;
+    group.subItems.push({ kind: 'commit', label: `${count} commit${count === 1 ? '' : 's'}` });
   }
 
   // 4. Route MR events by key extracted from target_title.
@@ -410,13 +418,12 @@ export default function YesterdayColumn({
     () => issueGroups.reduce((sum, g) => sum + g.totalSeconds, 0),
     [issueGroups],
   );
+  // Count true non-merge commits from the raw source — sub-items now collapse
+  // keyed commits into one "N commits" line per group, so they can't be tallied
+  // from the rendered groups.
   const commitCount = useMemo(
-    () =>
-      issueGroups.reduce(
-        (sum, g) => sum + g.subItems.filter((s) => s.kind === 'commit').length,
-        0,
-      ) + otherCommits.length,
-    [issueGroups, otherCommits],
+    () => (commitsQuery.data ?? []).filter((c) => !isMergeCommit(c)).length,
+    [commitsQuery.data],
   );
   // Count raw MR events (comments + approvals) — independent of the per-MR
   // comment collapsing so the stat line still reflects true activity volume.
