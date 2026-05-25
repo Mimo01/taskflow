@@ -257,6 +257,9 @@ function buildGroups(
       group.subItems.push({
         kind: 'worklog',
         label: `${formatDuration(seconds)} · ${issueKey} ${summary}`,
+        // When the worklog issue differs from the group key (subtask rolled up
+        // to parent), carry the original key so the row is clickable to the subtask.
+        issueKey: issueKey !== groupKey ? issueKey : undefined,
       });
     }
   }
@@ -483,6 +486,7 @@ export default function YesterdayColumn({
               totalSeconds={group.totalSeconds}
               subItems={group.subItems}
               onClick={() => onIssueClick(group.issueKey)}
+              onIssueClick={onIssueClick}
               onMRClick={onMRClick}
             />
           ))}
