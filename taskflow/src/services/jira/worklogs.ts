@@ -51,7 +51,8 @@ export async function fetchFullWorklogs(
       if (startAt >= total || worklogs.length === 0) break;
     }
 
-    return allWorklogs;
+    const seen = new Set<string>();
+    return allWorklogs.filter((w) => !seen.has(w.id) && !!seen.add(w.id));
   } catch {
     return [];
   }

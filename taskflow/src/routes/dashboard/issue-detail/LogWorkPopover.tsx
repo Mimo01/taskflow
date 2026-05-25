@@ -3,6 +3,12 @@
  *
  * Uses DurationInput for natural language time entry, a date picker,
  * and an optional comment. Calls createWorklog on submit.
+ *
+ * On success, two query keys are invalidated:
+ * - ['jira-worklogs', issueKey, jiraBaseUrl] — the issue-detail worklog list
+ * - ['tempo', 'worklogs'] — the WorklogsPage Tempo grid (broad prefix match)
+ * Callers that need additional cache invalidation (e.g. refreshing jira-issue-detail
+ * to update TimeTrackingSummary) should do so via the onSuccess prop.
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Clock } from 'lucide-react';
@@ -48,8 +54,16 @@ export function LogWorkPopover({ issueKey, jiraBaseUrl, onSuccess, initialDate }
     onSuccess: () => {
       setOpen(false);
       resetForm();
-      queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
+      // Invalidate the issue-detail worklog list (ActivityTimeline on issue detail page).
       queryClient.invalidateQueries({ queryKey: ['jira-worklogs', issueKey, jiraBaseUrl] });
+      // Also invalidate the Tempo worklogs grid (WorklogsPage) so the table reflects the
+      // new entry immediately without requiring a full app restart.
+      // Do NOT also invalidate jira-issue-detail here: doing so triggers a parallel Jira
+      // issue refetch that races with the worklogs refetch and causes the new entry to
+      // appear twice in the ActivityTimeline before both fetches settle.
+      // Callers that need jira-issue-detail refreshed (e.g. to update TimeTrackingSummary)
+      // should do so via the onSuccess prop.
+      queryClient.invalidateQueries({ queryKey: ['tempo', 'worklogs'] });
       onSuccess?.();
     },
     onError: (err: Error) => {

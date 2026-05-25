@@ -11,6 +11,7 @@ import type { JiraAttachment, JiraIssue, JiraIssueDetail, JiraIssueLink } from '
 import { deleteAttachment } from '@/services/jira/attachments';
 import { readSecret } from '@/services/stronghold';
 import { useSettingsStore } from '@/stores/settings.store';
+import { useAuthStore } from '@/stores/auth.store';
 import type { EditInitialValues } from './CreateEditIssueModal';
 import { AttachmentsSection } from './issue-detail/AttachmentsSection';
 import { LogWorkPopover } from './issue-detail/LogWorkPopover';
@@ -59,12 +60,24 @@ export function IssueDetailContent({
   const comments = issue.fields.comment?.comments ?? [];
   const { storyPointsFieldKey, epicLinkFieldKey } = useSettingsStore();
   const queryClient = useQueryClient();
+  const jiraBaseUrlFromStore = useAuthStore((s) => s.jiraBaseUrl);
 
   async function handleDeleteAttachment(attachment: JiraAttachment) {
     const token = await readSecret('jira-pat');
     await deleteAttachment(jiraBaseUrl, token, attachment.id);
     queryClient.invalidateQueries({ queryKey: ['issue-detail', issueKey] });
   }
+
+  // After logging work, invalidate the issue detail so TimeTrackingSummary updates.
+  // The worklogs list itself is invalidated inside LogWorkPopover (jira-worklogs key).
+  // These two invalidations are kept separate so that only one refetch fires at a time,
+  // preventing a race condition that caused the new entry to appear twice in the timeline.
+  function handleLogWorkSuccess() {
+    queryClient.invalidateQueries({
+      queryKey: ['jira-issue-detail', issueKey, jiraBaseUrlFromStore],
+    });
+  }
+
   const isEpic = issue.fields.issuetype.name === 'Epic';
   const isSubtask = issue.fields.issuetype.subtask;
 
@@ -238,7 +251,11 @@ export function IssueDetailContent({
           <Pin className={cn('size-3.5', isPinned && 'fill-current text-primary')} />
           {isPinned ? 'Unpin' : 'Pin'}
         </Button>
-        <LogWorkPopover issueKey={issueKey} jiraBaseUrl={jiraBaseUrl} />
+        <LogWorkPopover
+          issueKey={issueKey}
+          jiraBaseUrl={jiraBaseUrl}
+          onSuccess={handleLogWorkSuccess}
+        />
         <Button
           variant="outline"
           size="sm"
