@@ -178,11 +178,12 @@ export function generateTodayMarkdown(sources: TodayMarkdownSources, todayDate: 
 
 interface TodayColumnProps {
   onIssueClick: (key: string) => void;
+  onMRClick: (projectIdAndIid: string) => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
+export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProps) {
   // ─── Auth store ─────────────────────────────────────────────────────────────
   const {
     jiraBaseUrl,
@@ -357,6 +358,7 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
         error={sprintQuery.error}
         onRetry={() => void sprintQuery.refetch()}
         onIssueClick={onIssueClick}
+        onMRClick={onMRClick}
         onLogWorkSuccess={handleLogWorkSuccess}
       />
 
@@ -372,6 +374,7 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
         error={sprintQuery.error}
         onRetry={() => void sprintQuery.refetch()}
         onIssueClick={onIssueClick}
+        onMRClick={onMRClick}
         onLogWorkSuccess={handleLogWorkSuccess}
       />
 
@@ -383,6 +386,7 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
           isError={reviewerMrsQuery.isError}
           error={reviewerMrsQuery.error}
           onRetry={() => void reviewerMrsQuery.refetch()}
+          onMRClick={onMRClick}
         />
       )}
 
@@ -394,6 +398,7 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
           isError={participatingMrsQuery.isError}
           error={participatingMrsQuery.error}
           onRetry={() => void participatingMrsQuery.refetch()}
+          onMRClick={onMRClick}
         />
       )}
 

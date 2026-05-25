@@ -29,6 +29,7 @@ interface TodayMrsSectionProps {
   isError: boolean;
   error: Error | null;
   onRetry: () => void;
+  onMRClick: (projectIdAndIid: string) => void;
 }
 
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
@@ -51,6 +52,7 @@ export default function TodayMrsSection({
   isError,
   error,
   onRetry,
+  onMRClick,
 }: TodayMrsSectionProps) {
   const showSkeleton = useDelayedLoading(isLoading);
 
@@ -85,7 +87,16 @@ export default function TodayMrsSection({
             // }
 
             return (
-              <div key={mr.iid} className="flex items-center gap-2 py-2 px-2">
+              <div
+                key={mr.iid}
+                role="button"
+                tabIndex={0}
+                className="flex items-center gap-2 py-2 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                onClick={() => onMRClick(`${mr.project_id}/${mr.iid}`)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') onMRClick(`${mr.project_id}/${mr.iid}`);
+                }}
+              >
                 <GitBranch className="size-4 shrink-0 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground font-mono shrink-0">
                   !{mr.iid}
