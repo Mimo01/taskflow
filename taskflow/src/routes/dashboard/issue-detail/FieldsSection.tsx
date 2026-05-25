@@ -172,10 +172,12 @@ export function FieldsSection({
   const filteredAssignees = (() => {
     const all = assigneeUsersQuery.data ?? [];
     const q = assigneeQuery.trim().toLowerCase();
-    if (!q) return all;
-    return all.filter(
-      (u) => u.displayName.toLowerCase().includes(q) || u.name.toLowerCase().includes(q),
-    );
+    const filtered = q
+      ? all.filter(
+          (u) => u.displayName.toLowerCase().includes(q) || u.name.toLowerCase().includes(q),
+        )
+      : all;
+    return filtered.slice(0, 10);
   })();
 
   const filteredVersions = (() => {
