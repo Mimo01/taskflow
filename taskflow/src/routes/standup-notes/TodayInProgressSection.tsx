@@ -71,7 +71,7 @@ function ProgressBar({ issue }: ProgressBarProps) {
 
   return (
     <div className="px-2 pb-2">
-      <Progress value={fillPct} />
+      <Progress value={fillPct} className="max-w-[180px]" />
       <p className="mt-1 text-xs text-muted-foreground tabular-nums">
         {formatDuration(spentSec)} / {formatDuration(originalSec)} logged
       </p>
