@@ -9,9 +9,9 @@
  * Each row is a grouped SprintRow: the parent story is the top-level button,
  * with my assigned subtasks nested/indented beneath it (Decision 1).
  *
- * Each row (parent + subtask) shows a progress bar when an original estimate
- * exists: fill = timeSpentSeconds / originalEstimateSeconds (clamped 100%).
- * Format: [██████░░░░] 6h / 10h  (Decision 2).
+ * Each row (parent + subtask) shows a progress bar (shared ui/Progress) when an
+ * original estimate exists: value = timeSpentSeconds / originalEstimateSeconds
+ * (clamped 100%), with a "spent / estimate" caption (Decision 2).
  *
  * Section degrades per D-03: skeleton while loading, ErrorState on error,
  * returns null (hidden) when 0 rows + not loading + not erroring.
@@ -20,6 +20,7 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/error-state';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
+import { Progress } from '@/components/ui/progress';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { formatDuration } from '@/services/jira/duration';
 import type { JiraIssue } from '@/services/jira';
@@ -66,15 +67,13 @@ function ProgressBar({ issue }: ProgressBarProps) {
 
   const spentSec = tt?.timeSpentSeconds ?? 0;
   const fillPct = Math.min(100, Math.round((spentSec / originalSec) * 100));
-  const BLOCKS = 10;
-  const filledBlocks = Math.round((fillPct / 100) * BLOCKS);
-  const bar = '█'.repeat(filledBlocks) + '░'.repeat(BLOCKS - filledBlocks);
 
   return (
-    <div className="flex items-center gap-1.5 mt-1 px-2">
-      <span className="text-xs font-mono text-muted-foreground select-none whitespace-nowrap">
-        [{bar}] {formatDuration(spentSec)} / {formatDuration(originalSec)}
-      </span>
+    <div className="px-2 pb-2">
+      <Progress value={fillPct} />
+      <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+        {formatDuration(spentSec)} / {formatDuration(originalSec)} logged
+      </p>
     </div>
   );
 }
