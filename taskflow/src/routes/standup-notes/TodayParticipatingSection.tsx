@@ -24,6 +24,7 @@ interface TodayParticipatingSectionProps {
   isError: boolean;
   error: Error | null;
   onRetry: () => void;
+  onMRClick: (projectIdAndIid: string) => void;
 }
 
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
@@ -46,6 +47,7 @@ export default function TodayParticipatingSection({
   isError,
   error,
   onRetry,
+  onMRClick,
 }: TodayParticipatingSectionProps) {
   const showSkeleton = useDelayedLoading(isLoading);
 
@@ -72,7 +74,13 @@ export default function TodayParticipatingSection({
           {items.map((mr) => (
             <div
               key={`${mr.projectId}:${mr.mrIid}`}
-              className="flex items-center gap-2 py-2 px-2"
+              role="button"
+              tabIndex={0}
+              className="flex items-center gap-2 py-2 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+              onClick={() => onMRClick(`${mr.projectId}/${mr.mrIid}`)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') onMRClick(`${mr.projectId}/${mr.mrIid}`);
+              }}
             >
               <MessageSquare className="size-4 shrink-0 text-muted-foreground" />
               <span className="text-xs text-muted-foreground font-mono shrink-0">

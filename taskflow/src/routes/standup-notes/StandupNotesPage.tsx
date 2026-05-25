@@ -106,8 +106,11 @@ export default function StandupNotesPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }, []);
 
-  // Issue navigation (full-page detail + breadcrumb trail) from the app shell.
-  const { onIssueClick } = useOutletContext<{ onIssueClick: (key: string) => void }>();
+  // Issue + MR navigation from the app shell.
+  const { onIssueClick, onMRClick } = useOutletContext<{
+    onIssueClick: (key: string) => void;
+    onMRClick: (projectIdAndIid: string) => void;
+  }>();
 
   // ─ Token loading (Pattern 2) ─────────────────────────────────────────────
   const [jiraToken, setJiraToken] = useState<string | null>(null);
@@ -351,12 +354,13 @@ export default function StandupNotesPage() {
             mrEventsQuery={mrEventsQuery}
             issueMeta={issueMetaQuery.data ?? {}}
             onIssueClick={onIssueClick}
+            onMRClick={onMRClick}
           />
         </div>
 
         {/* Right column — Today (50%) */}
         <div className="w-1/2 overflow-auto">
-          <TodayColumn onIssueClick={onIssueClick} />
+          <TodayColumn onIssueClick={onIssueClick} onMRClick={onMRClick} />
         </div>
       </div>
     </div>
