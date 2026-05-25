@@ -64,7 +64,7 @@ Key decisions affecting current/next work:
 
 ### Roadmap Evolution
 
-- v1.10 closed with tech debt (status `tech_debt`): Phase 69 missing VERIFICATION.md — run `/gsd:verify-work 69` to mint it (UAT already 12/12)
+- v1.10 closed with tech debt (status `tech_debt`): Phase 69 VERIFICATION.md was missing → minted retroactively 2026-05-26 (status passed, 4/4). Remaining low-risk debt: Phases 68/70 verification at `human_needed`.
 
 ### Blockers/Concerns
 
@@ -77,7 +77,7 @@ Items acknowledged and deferred at the v1.10 milestone close on 2026-05-25 (20 o
 
 | Category | Item | Status |
 |----------|------|--------|
-| verification_gap | phase 69: 69-VERIFICATION.md | missing — compensated by 69-UAT 12/12 + nyquist-green VALIDATION; run `/gsd:verify-work 69` |
+| verification_gap | phase 69: 69-VERIFICATION.md | RESOLVED 2026-05-26 — minted retroactively via gsd-verifier, status passed (4/4) |
 | verification_gap | phase 68: 68-VERIFICATION.md | human_needed — code 11/11; live wizard walkthrough not independently re-confirmed (low risk) |
 | verification_gap | phase 70: 70-VERIFICATION.md | human_needed — 7/7; 2 of 3 human checks moot after Log Work removal |
 | code_review | WR-05 (70-REVIEW) | non-blocking — unguarded `as number\|null` SP cast in Today*Section.tsx |
