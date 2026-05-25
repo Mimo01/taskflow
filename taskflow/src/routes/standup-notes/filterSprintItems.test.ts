@@ -142,4 +142,39 @@ describe('filterSprintItems — grouped output', () => {
     const allKeys = [...inProgress, ...upNext].map((r) => r.issue.key);
     expect(allKeys).not.toContain('SHOP-7');
   });
+
+  it('includes parent NOT assigned to me when I own a subtask of it, nested under parent', () => {
+    // Parent is assigned to OTHER (not me) — without this fix it would be excluded.
+    const parent = makeIssue({ key: 'SHOP-30', statusKey: 'indeterminate', isSubtask: false, displayName: OTHER });
+    // My subtask under that parent.
+    const mySub = makeIssue({ key: 'SHOP-30-S1', statusKey: 'new', isSubtask: true, displayName: ME, parentKey: 'SHOP-30' });
+    // Another subtask under same parent — NOT mine.
+    const otherSub = makeIssue({ key: 'SHOP-30-S2', statusKey: 'new', isSubtask: true, displayName: OTHER, parentKey: 'SHOP-30' });
+
+    const { inProgress, upNext } = filterSprintItems([parent, mySub, otherSub], ME);
+
+    // Parent must appear — placed in inProgress because parent status is indeterminate.
+    const row = inProgress.find((r) => r.issue.key === 'SHOP-30');
+    expect(row).toBeDefined();
+    expect(upNext.map((r) => r.issue.key)).not.toContain('SHOP-30');
+
+    // Only MY subtask is nested — the other subtask must NOT appear.
+    expect(row!.subtasks.map((s) => s.key)).toContain('SHOP-30-S1');
+    expect(row!.subtasks.map((s) => s.key)).not.toContain('SHOP-30-S2');
+  });
+
+  it('section placement uses parent status even when parent is not assigned to me', () => {
+    // Parent is 'new' (upNext), assigned to OTHER.
+    const parent = makeIssue({ key: 'SHOP-31', statusKey: 'new', isSubtask: false, displayName: OTHER });
+    // My subtask has indeterminate status — but parent governs placement.
+    const mySub = makeIssue({ key: 'SHOP-31-S1', statusKey: 'indeterminate', isSubtask: true, displayName: ME, parentKey: 'SHOP-31' });
+
+    const { inProgress, upNext } = filterSprintItems([parent, mySub], ME);
+
+    // Must be in upNext (parent's status), not inProgress.
+    const row = upNext.find((r) => r.issue.key === 'SHOP-31');
+    expect(row).toBeDefined();
+    expect(inProgress.map((r) => r.issue.key)).not.toContain('SHOP-31');
+    expect(row!.subtasks.map((s) => s.key)).toContain('SHOP-31-S1');
+  });
 });

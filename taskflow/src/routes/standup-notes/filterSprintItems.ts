@@ -1,6 +1,13 @@
 /**
  * filterSprintItems — Grouped sprint issue filter for the Today column.
  *
+ * INCLUSION RULE:
+ *   A parent story becomes a row when EITHER:
+ *     (a) the parent is assigned to me (existing rule), OR
+ *     (b) the parent has at least one subtask assigned to me.
+ *   This lets stories appear even when I'm only assigned to a subtask of them,
+ *   not to the story itself — with my subtask(s) nested underneath.
+ *
  * STATUS PLACEMENT RULE (D-05 — revised for grouped display):
  *   The row's bucket (inProgress / upNext) is determined by the PARENT story's status
  *   category, NOT the subtask's own status. Subtasks nest under their parent regardless
@@ -9,16 +16,17 @@
  *
  * GROUPING RULE (Decision 1 — replaces old D-04 "leaf-only" rule):
  *   - Parent stories assigned to me → shown as top-level SprintRow rows.
+ *   - Parent stories NOT assigned to me but with MY subtasks → also shown as top-level rows.
  *   - MY subtasks are nested inside their parent's SprintRow.subtasks[].
- *   - Subtasks assigned to me whose parent is NOT in my parent list → rendered as
- *     standalone SprintRow (subtasks=[]), placed by the subtask's own status category.
+ *   - Subtasks assigned to me whose parent is NOT in the flat parent list at all →
+ *     rendered as standalone SprintRow (subtasks=[]), placed by the subtask's own status.
+ *   - Childless parents assigned to me with no nested subtasks → standalone rows.
  *   - The old rule that EXCLUDED parent stories with subtasks (isLeaf filter) is
  *     REMOVED — that was the bug causing "only one in-progress story shows."
  *
- * SERVER-SIDE PRE-FILTER:
- *   fetchSprintIssues(assignedToMe=true) already returns only issues assigned to me
- *   (parents + my subtasks of those parents). The displayName guard below is a
- *   defence-in-depth fallback in case the server returns extra rows.
+ * SERVER-SIDE FETCH:
+ *   fetchSprintIssues(assignedToMe=false) returns all sprint parents PLUS all their
+ *   subtasks as a flat array. The displayName guard below is the sole assignee filter.
  */
 
 import type { JiraIssue } from '@/services/jira';
@@ -42,24 +50,36 @@ export function filterSprintItems(
   const isAssignedToMe = (issue: JiraIssue): boolean =>
     issue.fields.assignee?.displayName === jiraUserDisplayName;
 
-  // Split flat list into parents (non-subtasks) and subtasks assigned to me.
-  const parents = issues.filter((i) => !i.fields.issuetype.subtask && isAssignedToMe(i));
-  const subtasks = issues.filter((i) => i.fields.issuetype.subtask && isAssignedToMe(i));
+  // All subtasks assigned to me in the flat list.
+  const mySubtasks = issues.filter((i) => i.fields.issuetype.subtask && isAssignedToMe(i));
 
-  // Index parents by key for O(1) lookup.
-  const parentsByKey = new Map<string, JiraIssue>(parents.map((p) => [p.key, p]));
+  // Set of parent keys that have at least one subtask assigned to me.
+  const parentKeysWithMySubtask = new Set<string>(
+    mySubtasks.map((s) => s.fields.parent?.key).filter((k): k is string => !!k),
+  );
 
-  // For each parent, collect my subtasks whose parent.key matches.
-  const parentRows: SprintRow[] = parents.map((parent) => ({
+  // All non-subtask issues in the flat list.
+  const allParents = issues.filter((i) => !i.fields.issuetype.subtask);
+
+  // Index all parents by key for O(1) lookup and orphan detection.
+  const allParentsByKey = new Map<string, JiraIssue>(allParents.map((p) => [p.key, p]));
+
+  // A parent becomes a row when assigned to me OR I own one of its subtasks.
+  const includedParents = allParents.filter(
+    (p) => isAssignedToMe(p) || parentKeysWithMySubtask.has(p.key),
+  );
+
+  // Build parent rows: nest only MY subtasks under each parent.
+  const parentRows: SprintRow[] = includedParents.map((parent) => ({
     issue: parent,
-    subtasks: subtasks.filter((s) => s.fields.parent?.key === parent.key),
+    subtasks: mySubtasks.filter((s) => s.fields.parent?.key === parent.key),
   }));
 
-  // Orphan subtasks: assigned to me, but parent not in my parent list.
-  const orphanSubtasks: SprintRow[] = subtasks
+  // Orphan mySubtasks: assigned to me, but their parent is not present in allParentsByKey at all.
+  const orphanSubtasks: SprintRow[] = mySubtasks
     .filter((s) => {
       const pk = s.fields.parent?.key;
-      return !pk || !parentsByKey.has(pk);
+      return !pk || !allParentsByKey.has(pk);
     })
     .map((s) => ({ issue: s, subtasks: [] }));
 
