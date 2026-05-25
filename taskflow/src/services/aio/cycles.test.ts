@@ -5,6 +5,7 @@ vi.mock('../../lib/apiFetch', () => ({ apiFetch: vi.fn() }));
 import { apiFetch } from '../../lib/apiFetch';
 import {
   fetchAioCycleSummaries,
+  fetchAioCycleTestCasesWithRuns,
   fetchAioCycles,
   fetchAioCyclesWithDetail,
   fetchAioFolderCycleCounts,
@@ -344,5 +345,40 @@ describe('fetchAioProjectConfig', () => {
     await expect(fetchAioProjectConfig(BASE, TOKEN, PROJECT_ID)).rejects.toThrow(
       'Cannot reach AIO at',
     );
+  });
+});
+
+describe('fetchAioCycleTestCasesWithRuns — TESTCASE_STATUS_MAP (CLEAN-06)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const runWithStatusId = async (testRunStatusID: number | undefined) => {
+    mockedApiFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: [
+          {
+            latestTestRun: { ID: 1, testRunStatusID },
+            test: { detail: { key: 'PROJ-TC-1', title: 'Login flow' } },
+          },
+        ],
+      }),
+    } as unknown as Response);
+    const result = await fetchAioCycleTestCasesWithRuns(BASE, TOKEN, 10001, 42, 'PROJ-CY-1');
+    return result[0]?.status;
+  };
+
+  it('maps testRunStatusID 52 to IN_PROGRESS (not bucketed as NOT_EXECUTED)', async () => {
+    expect(await runWithStatusId(52)).toBe('IN_PROGRESS');
+  });
+
+  it('maps testRunStatusID 51 to NOT_EXECUTED', async () => {
+    expect(await runWithStatusId(51)).toBe('NOT_EXECUTED');
+  });
+
+  it('falls back to NOT_EXECUTED for an unmapped/absent status id', async () => {
+    expect(await runWithStatusId(undefined)).toBe('NOT_EXECUTED');
   });
 });
