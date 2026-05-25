@@ -276,7 +276,7 @@ Plans:
 3. Yesterday recap displays four discrete sections — Tempo worklogs (issue/duration/comment), Jira changelog (status transitions + comments I authored), Git commits I authored on the configured GitLab project, and MR activity I performed (comments + approvals) (STAND-03, STAND-04, STAND-05, STAND-06)
 4. Each data source loads independently and degrades gracefully when the relevant integration is disabled, unreachable, or returns zero items — the page renders without errors and shows an empty-state per section
 
-**Plans:** 4 plans
+**Plans:** 4/4 plans complete
 
 Plans:
 **Wave 1** *(parallel — no file overlap)*
@@ -288,6 +288,8 @@ Plans:
 **Wave 2** *(blocked on Wave 1)*
 
 - [x] 69-04-PLAN.md — four independent useQuery hooks + schedule-aware yesterdayDate + YesterdayColumn data-join, group components, per-section states, Copy markdown, Refresh, human-verify (STAND-02..06)
+
+**Completed:** 2026-05-25
 
 ### Phase 70: Standup Notes — Today Section
 
