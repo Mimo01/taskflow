@@ -140,7 +140,7 @@ describe('TodayColumn', () => {
 
       vi.mocked(useQuery).mockImplementation((opts) => {
         const key = Array.isArray(opts.queryKey) ? opts.queryKey[1] : '';
-        if (key === 'sprint-board-mine') {
+        if (key === 'sprint-board-today-full') {
           return { data: [inProgressIssue], isLoading: false, isError: false } as ReturnType<typeof useQuery>;
         }
         return { data: undefined, isLoading: false, isError: false } as ReturnType<typeof useQuery>;
@@ -169,7 +169,7 @@ describe('TodayColumn', () => {
 
       vi.mocked(useQuery).mockImplementation((opts) => {
         const key = Array.isArray(opts.queryKey) ? opts.queryKey[1] : '';
-        if (key === 'sprint-board-mine') {
+        if (key === 'sprint-board-today-full') {
           return { data: [upNextIssue], isLoading: false, isError: false } as ReturnType<typeof useQuery>;
         }
         return { data: undefined, isLoading: false, isError: false } as ReturnType<typeof useQuery>;
@@ -197,7 +197,7 @@ describe('TodayColumn', () => {
 
       vi.mocked(useQuery).mockImplementation((opts) => {
         const key = Array.isArray(opts.queryKey) ? opts.queryKey[1] : '';
-        if (key === 'sprint-board-mine') {
+        if (key === 'sprint-board-today-full') {
           return { data: [inProgressIssue], isLoading: false, isError: false } as ReturnType<typeof useQuery>;
         }
         return { data: undefined, isLoading: false, isError: false } as ReturnType<typeof useQuery>;
@@ -232,7 +232,7 @@ describe('TodayColumn', () => {
 
       vi.mocked(useQuery).mockImplementation((opts) => {
         const key = Array.isArray(opts.queryKey) ? opts.queryKey[1] : '';
-        if (key === 'sprint-board-mine') {
+        if (key === 'sprint-board-today-full') {
           return { data: [parentStory], isLoading: false, isError: false } as ReturnType<typeof useQuery>;
         }
         return { data: undefined, isLoading: false, isError: false } as ReturnType<typeof useQuery>;
@@ -268,7 +268,7 @@ describe('TodayColumn', () => {
 
       vi.mocked(useQuery).mockImplementation((opts) => {
         const key = Array.isArray(opts.queryKey) ? opts.queryKey[1] : '';
-        if (key === 'sprint-board-mine') {
+        if (key === 'sprint-board-today-full') {
           return { data: [issueWithEstimate], isLoading: false, isError: false } as ReturnType<typeof useQuery>;
         }
         return { data: undefined, isLoading: false, isError: false } as ReturnType<typeof useQuery>;
@@ -297,7 +297,7 @@ describe('TodayColumn', () => {
 
       vi.mocked(useQuery).mockImplementation((opts) => {
         const key = Array.isArray(opts.queryKey) ? opts.queryKey[1] : '';
-        if (key === 'sprint-board-mine') {
+        if (key === 'sprint-board-today-full') {
           return { data: [issueNoEstimate], isLoading: false, isError: false } as ReturnType<typeof useQuery>;
         }
         return { data: undefined, isLoading: false, isError: false } as ReturnType<typeof useQuery>;
