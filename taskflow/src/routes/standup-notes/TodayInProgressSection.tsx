@@ -206,7 +206,7 @@ export default function TodayInProgressSection({
       ) : (
         <div className="divide-y divide-border">
           {rows.map((row) => (
-            <div key={row.issue.key} className="mb-3">
+            <div key={row.issue.key}>
               <IssueRow
                 issue={row.issue}
                 todayLoggedByIssue={todayLoggedByIssue}
