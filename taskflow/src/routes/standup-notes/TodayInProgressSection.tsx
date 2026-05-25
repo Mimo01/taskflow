@@ -1,13 +1,16 @@
 /**
  * TodayInProgressSection — In Progress rows in the Today column.
  *
- * Renders the user's leaf sprint issues with statusCategory.key === 'indeterminate'.
- * Each row is an interactive button (whole-row click → onIssueClick).
- * A Log Work trigger sits at the right edge wrapped in stopPropagation (D-07).
- * Shows SP badge (when populated) and a logged-time chip (when today > 0s).
+ * Renders the user's sprint items with statusCategory.key === 'indeterminate'.
+ * Each row is a grouped SprintRow: the parent story is the top-level button,
+ * with my assigned subtasks nested/indented beneath it (Decision 1).
+ *
+ * Each row (parent + subtask) shows a progress bar when an original estimate
+ * exists: fill = timeSpentSeconds / originalEstimateSeconds (clamped 100%).
+ * Format: [██████░░░░] 6h / 10h  (Decision 2).
  *
  * Section degrades per D-03: skeleton while loading, ErrorState on error,
- * returns null (hidden) when 0 items + not loading + not erroring.
+ * returns null (hidden) when 0 rows + not loading + not erroring.
  */
 
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,11 +20,12 @@ import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { formatDuration } from '@/services/jira/duration';
 import type { JiraIssue } from '@/services/jira';
 import { LogWorkPopover } from '@/routes/dashboard/issue-detail/LogWorkPopover';
+import type { SprintRow } from './filterSprintItems';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface TodayInProgressSectionProps {
-  items: JiraIssue[];
+  rows: SprintRow[];
   todayLoggedByIssue: Map<string, number>;
   storyPointsFieldKey: string;
   jiraBaseUrl: string;
@@ -46,10 +50,104 @@ function LoadingSkeletons() {
   );
 }
 
+// ─── Progress bar ─────────────────────────────────────────────────────────────
+
+interface ProgressBarProps {
+  issue: JiraIssue;
+}
+
+function ProgressBar({ issue }: ProgressBarProps) {
+  const tt = issue.fields.timetracking;
+  const originalSec = tt?.originalEstimateSeconds;
+  if (!originalSec || originalSec <= 0) return null;
+
+  const spentSec = tt?.timeSpentSeconds ?? 0;
+  const fillPct = Math.min(100, Math.round((spentSec / originalSec) * 100));
+  const BLOCKS = 10;
+  const filledBlocks = Math.round((fillPct / 100) * BLOCKS);
+  const bar = '█'.repeat(filledBlocks) + '░'.repeat(BLOCKS - filledBlocks);
+
+  return (
+    <div className="flex items-center gap-1.5 mt-1 px-2">
+      <span className="text-xs font-mono text-muted-foreground select-none whitespace-nowrap">
+        [{bar}] {formatDuration(spentSec)} / {formatDuration(originalSec)}
+      </span>
+    </div>
+  );
+}
+
+// ─── Issue row (reused for parent and subtask) ────────────────────────────────
+
+interface IssueRowProps {
+  issue: JiraIssue;
+  todayLoggedByIssue: Map<string, number>;
+  storyPointsFieldKey: string;
+  jiraBaseUrl: string;
+  todayStr: string;
+  onIssueClick: (key: string) => void;
+  onLogWorkSuccess: () => void;
+  indented?: boolean;
+}
+
+function IssueRow({
+  issue,
+  todayLoggedByIssue,
+  storyPointsFieldKey,
+  jiraBaseUrl,
+  todayStr,
+  onIssueClick,
+  onLogWorkSuccess,
+  indented = false,
+}: IssueRowProps) {
+  const issueType = issue.fields.issuetype.name;
+  const key = issue.key;
+  const summary = issue.fields.summary;
+  const sp = issue.fields[storyPointsFieldKey] as number | null;
+  const loggedSeconds = todayLoggedByIssue.get(key) ?? 0;
+
+  return (
+    <div className={indented ? 'pl-6 border-l border-border ml-2' : undefined}>
+      <button
+        key={key}
+        type="button"
+        className="w-full flex items-center gap-2 rounded px-2 py-2 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+        onClick={() => onIssueClick(key)}
+      >
+        {indented && (
+          <span className="text-muted-foreground text-xs shrink-0">└</span>
+        )}
+        <IssueTypeIcon typeName={issueType} className="size-4 shrink-0" />
+        <span className="text-xs text-muted-foreground font-mono shrink-0">{key}</span>
+        <span className="flex-1 min-w-0 truncate text-sm">{summary}</span>
+        {sp != null && (
+          <span className="shrink-0 rounded bg-muted px-2 py-1 text-xs text-muted-foreground">
+            {sp} pts
+          </span>
+        )}
+        {loggedSeconds > 0 && (
+          <span className="shrink-0 rounded bg-muted px-2 py-1 text-xs text-muted-foreground ml-1">
+            {formatDuration(loggedSeconds)}
+          </span>
+        )}
+        {/* stopPropagation: Log Work must NOT trigger row navigation (D-07, Pitfall 4) */}
+        <span onClick={(e) => e.stopPropagation()}>
+          <LogWorkPopover
+            issueKey={key}
+            jiraBaseUrl={jiraBaseUrl}
+            initialDate={todayStr}
+            onSuccess={onLogWorkSuccess}
+          />
+        </span>
+      </button>
+      <ProgressBar issue={issue} />
+    </div>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function TodayInProgressSection({
-  items,
+  rows,
   todayLoggedByIssue,
   storyPointsFieldKey,
   jiraBaseUrl,
@@ -64,7 +162,7 @@ export default function TodayInProgressSection({
   const showSkeleton = useDelayedLoading(isLoading);
 
   // D-03: hidden when empty + settled
-  if (!isLoading && !showSkeleton && !isError && items.length === 0) {
+  if (!isLoading && !showSkeleton && !isError && rows.length === 0) {
     return null;
   }
 
@@ -78,45 +176,32 @@ export default function TodayInProgressSection({
         <ErrorState error={error} onRetry={onRetry} viewName="In Progress items" />
       ) : (
         <div className="divide-y divide-border">
-          {items.map((issue) => {
-            const issueType = issue.fields.issuetype.name;
-            const key = issue.key;
-            const summary = issue.fields.summary;
-            const sp = issue.fields[storyPointsFieldKey] as number | null;
-            const loggedSeconds = todayLoggedByIssue.get(key) ?? 0;
-
-            return (
-              <button
-                key={key}
-                type="button"
-                className="w-full flex items-center gap-2 rounded px-2 py-2 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
-                onClick={() => onIssueClick(key)}
-              >
-                <IssueTypeIcon typeName={issueType} className="size-4 shrink-0" />
-                <span className="text-xs text-muted-foreground font-mono shrink-0">{key}</span>
-                <span className="flex-1 min-w-0 truncate text-sm">{summary}</span>
-                {sp != null && (
-                  <span className="shrink-0 rounded bg-muted px-2 py-1 text-xs text-muted-foreground">
-                    {sp} pts
-                  </span>
-                )}
-                {loggedSeconds > 0 && (
-                  <span className="shrink-0 rounded bg-muted px-2 py-1 text-xs text-muted-foreground ml-1">
-                    {formatDuration(loggedSeconds)}
-                  </span>
-                )}
-                {/* stopPropagation: Log Work must NOT trigger row navigation (D-07, Pitfall 4) */}
-                <span onClick={(e) => e.stopPropagation()}>
-                  <LogWorkPopover
-                    issueKey={key}
-                    jiraBaseUrl={jiraBaseUrl}
-                    initialDate={todayStr}
-                    onSuccess={onLogWorkSuccess}
-                  />
-                </span>
-              </button>
-            );
-          })}
+          {rows.map((row) => (
+            <div key={row.issue.key}>
+              <IssueRow
+                issue={row.issue}
+                todayLoggedByIssue={todayLoggedByIssue}
+                storyPointsFieldKey={storyPointsFieldKey}
+                jiraBaseUrl={jiraBaseUrl}
+                todayStr={todayStr}
+                onIssueClick={onIssueClick}
+                onLogWorkSuccess={onLogWorkSuccess}
+              />
+              {row.subtasks.map((subtask) => (
+                <IssueRow
+                  key={subtask.key}
+                  issue={subtask}
+                  todayLoggedByIssue={todayLoggedByIssue}
+                  storyPointsFieldKey={storyPointsFieldKey}
+                  jiraBaseUrl={jiraBaseUrl}
+                  todayStr={todayStr}
+                  onIssueClick={onIssueClick}
+                  onLogWorkSuccess={onLogWorkSuccess}
+                  indented
+                />
+              ))}
+            </div>
+          ))}
         </div>
       )}
     </div>
