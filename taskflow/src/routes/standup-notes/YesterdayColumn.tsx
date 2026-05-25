@@ -83,8 +83,10 @@ function getColumnHeading(dateStr: string): string {
   const today = new Date();
   const calYesterday = new Date(today);
   calYesterday.setDate(today.getDate() - 1);
-  const calYesterdayIso = calYesterday.toISOString().slice(0, 10);
-  if (dateStr === calYesterdayIso) return 'Yesterday';
+  // Use local calendar components — never toISOString() which converts to UTC
+  // and shifts the date for users east of UTC (same rule as standup-date.ts).
+  const calYesterdayLocal = `${calYesterday.getFullYear()}-${String(calYesterday.getMonth() + 1).padStart(2, '0')}-${String(calYesterday.getDate()).padStart(2, '0')}`;
+  if (dateStr === calYesterdayLocal) return 'Yesterday';
   const [y, m, d] = dateStr.split('-').map(Number);
   return DAY_NAMES[new Date(y, m - 1, d).getDay()];
 }
