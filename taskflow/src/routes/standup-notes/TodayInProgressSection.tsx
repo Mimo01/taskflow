@@ -96,7 +96,8 @@ function IssueRow({
   const issueType = issue.fields.issuetype.name;
   const key = issue.key;
   const summary = issue.fields.summary;
-  const sp = issue.fields[storyPointsFieldKey] as number | null;
+  const rawSp = issue.fields[storyPointsFieldKey];
+  const sp = typeof rawSp === 'number' ? rawSp : null;
 
   return (
     <div className={indented ? 'pl-6 ml-2' : undefined}>
