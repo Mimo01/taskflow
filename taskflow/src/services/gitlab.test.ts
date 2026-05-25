@@ -8,6 +8,7 @@ import {
   fetchMRApprovals,
   fetchMRCommits,
   fetchMRDiscussions,
+  fetchParticipatedMRs,
   fetchProjectMilestones,
   fetchReviewerMRs,
   fetchUserCommits,
@@ -575,6 +576,146 @@ describe('gitlab service', () => {
       expect(urls.some((u) => u.includes('action=commented'))).toBe(true);
       expect(urls.some((u) => u.includes('action=approved'))).toBe(true);
       expect(urls.every((u) => u.includes(`/users/${USER_ID}/events`))).toBe(true);
+    });
+  });
+
+  describe('fetchParticipatedMRs', () => {
+    const BASE = 'https://gitlab.example.com';
+    const TOKEN = 'glpat-test';
+    const USER_ID = 42;
+
+    /** Build a minimal commented event for the given MR iid. */
+    const makeCommentEvent = (overrides: {
+      mrIid?: number;
+      projectId?: number;
+      title?: string;
+      created_at?: string;
+      eventAuthorId?: number;
+      noteAuthorId?: number;
+      noteableType?: string;
+    } = {}) => ({
+      id: Math.random(),
+      action_name: 'commented' as const,
+      target_type: null,
+      target_id: 9000,
+      target_iid: 9000, // note iid — NOT the MR iid
+      target_title: overrides.title ?? 'feat: add login flow',
+      created_at: overrides.created_at ?? '2026-05-01T10:00:00Z',
+      project_id: overrides.projectId ?? 99,
+      author: { id: overrides.eventAuthorId ?? USER_ID },
+      note: {
+        noteable_type: overrides.noteableType ?? 'MergeRequest',
+        noteable_iid: overrides.mrIid ?? 42,
+        author: { id: overrides.noteAuthorId ?? USER_ID },
+      },
+    });
+
+    it('URL contains action=commented and /users/<id>/events', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [],
+      } as Response);
+
+      await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
+
+      const calledUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      expect(calledUrl).toContain(`/users/${USER_ID}/events`);
+      expect(calledUrl).toContain('action=commented');
+    });
+
+    it('deduplicates multiple comment events on the same MR into one entry with commentCount=2', async () => {
+      const event1 = makeCommentEvent({ mrIid: 55, created_at: '2026-05-01T08:00:00Z' });
+      const event2 = makeCommentEvent({ mrIid: 55, created_at: '2026-05-02T09:00:00Z' });
+
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [event1, event2],
+      } as Response);
+
+      const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].mrIid).toBe(55);
+      expect(result[0].commentCount).toBe(2);
+      // lastCommentedAt should be the later timestamp
+      expect(result[0].lastCommentedAt).toBe('2026-05-02T09:00:00Z');
+    });
+
+    it('excludes events where note.noteable_type is not MergeRequest', async () => {
+      const mrComment = makeCommentEvent({ mrIid: 10, noteableType: 'MergeRequest' });
+      const issueComment = makeCommentEvent({ mrIid: 20, noteableType: 'Issue' });
+
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [mrComment, issueComment],
+      } as Response);
+
+      const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].mrIid).toBe(10);
+    });
+
+    it('excludes comments authored by someone else (note.author.id !== userId)', async () => {
+      const mine = makeCommentEvent({ mrIid: 100, noteAuthorId: USER_ID });
+      const theirs = makeCommentEvent({ mrIid: 200, noteAuthorId: 999 });
+
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [mine, theirs],
+      } as Response);
+
+      const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].mrIid).toBe(100);
+    });
+
+    it('excludes events where the event actor (author.id) is someone else', async () => {
+      const mine = makeCommentEvent({ mrIid: 300, eventAuthorId: USER_ID });
+      const theirs = makeCommentEvent({ mrIid: 400, eventAuthorId: 777 });
+
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [mine, theirs],
+      } as Response);
+
+      const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].mrIid).toBe(300);
+    });
+
+    it('returns results sorted by lastCommentedAt descending', async () => {
+      const older = makeCommentEvent({ mrIid: 1, created_at: '2026-04-01T00:00:00Z' });
+      const newer = makeCommentEvent({ mrIid: 2, created_at: '2026-05-15T00:00:00Z' });
+
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [older, newer],
+      } as Response);
+
+      const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
+
+      expect(result[0].mrIid).toBe(2);
+      expect(result[1].mrIid).toBe(1);
+    });
+
+    it('returns empty array when no events match', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [],
+      } as Response);
+
+      const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
+      expect(result).toHaveLength(0);
     });
   });
 });
