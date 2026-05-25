@@ -132,7 +132,13 @@ function thisWeekDate(dayOffset: 0 | 1 | 2 | 3 | 4 = 0): string {
   const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
   const monday = new Date(now);
   monday.setDate(now.getDate() - daysFromMonday + dayOffset);
-  return monday.toISOString().slice(0, 10);
+  // Format from LOCAL components — toISOString() converts to UTC and shifts the
+  // calendar day off-by-one for users east of UTC near midnight (the page and
+  // makeWorklog work in local dates).
+  const year = monday.getFullYear();
+  const month = String(monday.getMonth() + 1).padStart(2, '0');
+  const day = String(monday.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function makeClient() {
