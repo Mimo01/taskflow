@@ -1,15 +1,16 @@
 ---
 phase: 66
 slug: roles-removal
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: validated
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-05-24
+validated: 2026-05-25
 ---
 
 # Phase 66 — Validation Strategy
 
-> Per-phase validation contract for feedback sampling during execution.
+> Per-phase validation contract. Audited retroactively by /gsd:validate-phase on 2026-05-25.
 
 ---
 
@@ -36,14 +37,16 @@ created: 2026-05-24
 
 ## Per-Task Verification Map
 
+> **Map reconciled 2026-05-25:** Phase executed as 2 plans (not the 5 anticipated at
+> planning time). Task IDs below reflect the actual `66-01-*` / `66-02-*` commits.
+
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 66-01-01 | 01 | 1 | ROLES-01 | — | N/A | unit | `cd taskflow && npx vitest run src/stores/onboarding.store.test.ts` | ✅ | ⬜ pending |
-| 66-01-02 | 01 | 1 | ROLES-01 | — | N/A | unit | Delete `src/routes/onboarding/RoleStep.test.tsx` | ✅ delete | ⬜ pending |
-| 66-02-01 | 02 | 1 | ROLES-02, ROLES-03 | — | N/A | unit | `cd taskflow && npx vitest run src/routes/settings/SidebarItemsList.test.tsx` | ✅ | ⬜ pending |
-| 66-03-01 | 03 | 1 | ROLES-04 | — | N/A | unit | `cd taskflow && npx vitest run src/lib/tauri-storage.test.ts` | ✅ | ⬜ pending |
-| 66-04-01 | 04 | 2 | ROLES-06 | — | N/A | unit | `cd taskflow && npx vitest run src/components/app/sidebar-items.test.ts` | ✅ | ⬜ pending |
-| 66-05-01 | 05 | 2 | ROLES-05 | — | N/A | grep | `grep -r "\.role" taskflow/src/components taskflow/src/routes` → 0 results | manual | ⬜ pending |
+| 66-01-01 | 01 | 1 | ROLES-06 | — | `getDefaultSidebarItems()` no-arg returns all items visible | unit | `npx vitest run src/components/app/sidebar-items.test.ts` | ✅ | ✅ green |
+| 66-01-03 | 01 | 1 | ROLES-04 | — | settings store role-free at v22; persisted `role` dropped on migration | unit | `npx vitest run src/stores/settings.store.test.ts src/lib/tauri-storage.test.ts` | ✅ | ✅ green |
+| 66-02-01 | 02 | 2 | ROLES-02, ROLES-03 | — | No preset buttons / role section in Settings | unit | `npx vitest run src/routes/settings/SidebarItemsList.test.tsx src/routes/settings/Settings.test.tsx` | ✅ | ✅ green |
+| 66-02-02 | 02 | 2 | ROLES-01 | — | Wizard is 4 steps, no RoleStep; onboarding store role-free | unit | `npx vitest run src/stores/onboarding.store.test.ts src/components/app/OnboardingWizard.test.tsx` | ✅ | ✅ green |
+| 66-02-03 | 02 | 2 | ROLES-05 | — | No role-gated conditionals remain in components/routes | grep | `grep -rn "\.role\b" taskflow/src/components taskflow/src/routes` (excluding payload/user/author/aria-role) → 0 | manual | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -67,11 +70,26 @@ Existing infrastructure covers all phase requirements. All test files exist; fou
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 15s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All requirements have automated verify or a documented manual-only justification
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references (none — all covered at execution)
+- [x] No watch-mode flags
+- [x] Feedback latency < 15s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-05-25
+
+---
+
+## Validation Audit 2026-05-25
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 |
+| Resolved | 0 |
+| Escalated | 0 |
+
+All ROLES-01..06 requirements already had automated coverage at execution (1358-test
+suite green). No gaps. The per-task map was reconciled to the actual 2-plan structure
+and statuses set to green. ROLES-05 remains a documented manual-only grep (absence of
+role-gated conditionals).
