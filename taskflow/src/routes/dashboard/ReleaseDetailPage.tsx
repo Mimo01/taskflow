@@ -521,6 +521,7 @@ export default function ReleaseDetailPage() {
                   <Progress
                     value={Math.round((issueCounts.issuesFixed / issueCounts.issuesTotal) * 100)}
                     className="max-w-xs mb-4"
+                    indicatorClassName="bg-green-500"
                   />
                 )}
 

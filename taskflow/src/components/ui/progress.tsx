@@ -2,7 +2,9 @@ import { Progress as ProgressPrimitive } from '@base-ui/react/progress';
 
 import { cn } from '@/lib/utils';
 
-function Progress({ className, children, value, ...props }: ProgressPrimitive.Root.Props) {
+type ProgressProps = ProgressPrimitive.Root.Props & { indicatorClassName?: string };
+
+function Progress({ className, children, value, indicatorClassName, ...props }: ProgressProps) {
   return (
     <ProgressPrimitive.Root
       value={value}
@@ -12,7 +14,7 @@ function Progress({ className, children, value, ...props }: ProgressPrimitive.Ro
     >
       {children}
       <ProgressTrack>
-        <ProgressIndicator />
+        <ProgressIndicator className={indicatorClassName} />
       </ProgressTrack>
     </ProgressPrimitive.Root>
   );
@@ -36,7 +38,7 @@ function ProgressIndicator({ className, ...props }: ProgressPrimitive.Indicator.
     <ProgressPrimitive.Indicator
       data-slot="progress-indicator"
       className={cn(
-        'h-full rounded-full bg-green-500 transition-all w-[calc(var(--progress-value)*1%)]',
+        'h-full rounded-full bg-primary transition-all w-[calc(var(--progress-value)*1%)]',
         className,
       )}
       {...props}
