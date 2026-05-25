@@ -61,6 +61,8 @@ function subItemIcon(kind: SubItemKind) {
       return MessageCircle;
     case 'mr-open':
       return GitMerge;
+    default:
+      return GitBranch;
   }
 }
 
