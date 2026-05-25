@@ -1,16 +1,15 @@
 /**
  * TodayColumn — Today section of the Standup Notes page.
  *
- * Owns four independent TanStack queries:
- *   1. sprint-board-mine: current sprint issues assigned to me (D-04/D-05)
+ * Owns three independent TanStack queries:
+ *   1. sprint-board-today-full: full current sprint issues (D-04/D-05; filtered client-side)
  *   2. today-tempo: Tempo worklogs for today (logged-time chips)
  *   3. reviewer-mrs: GitLab MRs awaiting my review
- *   4. pinned-meta: issue metadata for pinned Jira keys
  *
  * T-62-06: jiraToken / gitlabToken MUST NOT appear in any queryKey.
  * Tokens live inside queryFn closures only.
  *
- * Pitfall 1: Uses distinct key 'sprint-board-mine' (NOT 'sprint-board') to
+ * Pitfall 1: Uses distinct key 'sprint-board-today-full' (NOT 'sprint-board') to
  * avoid contaminating the shared sprint board cache used by SprintBoardTab
  * and DashboardInProgressCard.
  *
@@ -20,21 +19,18 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useState, useEffect } from 'react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { fetchReviewerMRs } from '@/services/gitlab';
-import { fetchIssueMeta, fetchSprintIssues } from '@/services/jira';
+import { fetchSprintIssues } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { fetchWorklogs } from '@/services/tempo';
 import { useAuthStore } from '@/stores/auth.store';
-import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { filterSprintItems } from './filterSprintItems';
 import TodayInProgressSection from './TodayInProgressSection';
 import TodayMrsSection from './TodayMrsSection';
-import TodayPinnedSection from './TodayPinnedSection';
 import TodayUpNextSection from './TodayUpNextSection';
 
 // ─── Day/month name tables (no toLocaleDateString — Phase 62 rule) ────────────
@@ -102,25 +98,6 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
   const tempoEnabled = useSettingsStore((s) => s.tempoEnabled);
   const storyPointsFieldKey = useSettingsStore((s) => s.storyPointsFieldKey);
 
-  // ─── Pinned tabs store ───────────────────────────────────────────────────────
-  const { pinnedKeys, pinnedCycleMeta } = usePinnedTabsStore();
-
-  // Split pinned keys: AIO cycles (in pinnedCycleMeta) vs Jira issues (not in)
-  const pinnedCycleKeys = useMemo(
-    () => pinnedKeys.filter((k) => k in pinnedCycleMeta),
-    [pinnedKeys, pinnedCycleMeta],
-  );
-  const pinnedJiraKeys = useMemo(
-    () => pinnedKeys.filter((k) => !(k in pinnedCycleMeta)),
-    [pinnedKeys, pinnedCycleMeta],
-  );
-  // Sorted for stable queryKey (order-independent caching)
-  const sortedJiraKeys = useMemo(() => [...pinnedJiraKeys].sort(), [pinnedJiraKeys]);
-
-  // ─── Navigation ──────────────────────────────────────────────────────────────
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-
   // ─── Token loading (Pattern 2 / T-62-06) ─────────────────────────────────────
   // Tokens held in local state for `enabled` guards; never placed in any queryKey.
   const [jiraToken, setJiraToken] = useState<string | null>(null);
@@ -145,13 +122,15 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
   // ─── TZ-safe today date (memoized — stable for this mount) ───────────────────
   const todayStr = useMemo(() => todayString(), []);
 
-  // ─── Query 1: Sprint issues assigned to me ───────────────────────────────────
-  // Key: 'sprint-board-mine' — distinct from 'sprint-board' to avoid contaminating
-  // the shared full-team cache used by SprintBoardTab/DashboardInProgressCard.
+  // ─── Query 1: Full sprint issues (filtered client-side in filterSprintItems) ──
+  // Key: 'sprint-board-today-full' — distinct from 'sprint-board' to avoid
+  // contaminating the shared full-team cache used by SprintBoardTab/DashboardInProgressCard.
+  // assignedToMe=false fetches the whole sprint so client-side filtering can include
+  // parents where I own a subtask even if I'm not assigned to the parent itself.
   const sprintQuery = useQuery({
-    queryKey: ['jira-issues', 'sprint-board-mine', activeJiraProject, storyPointsFieldKey],
+    queryKey: ['jira-issues', 'sprint-board-today-full', activeJiraProject, storyPointsFieldKey],
     queryFn: () =>
-      fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, true, storyPointsFieldKey),
+      fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false, storyPointsFieldKey),
     enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject,
     staleTime: 30_000,
   });
@@ -177,18 +156,6 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
     staleTime: 5 * 60 * 1000,
   });
 
-  // ─── Query 4: Pinned Jira issue metadata ─────────────────────────────────────
-  const pinnedMetaQuery = useQuery({
-    queryKey: ['standup', 'pinned-meta', jiraBaseUrl, sortedJiraKeys],
-    queryFn: async () => {
-      const token = await readSecret('jira-pat').catch(() => null);
-      if (!token) throw new Error('No Jira token');
-      return fetchIssueMeta(jiraBaseUrl!, token, sortedJiraKeys);
-    },
-    enabled: !!jiraBaseUrl && !!jiraToken && sortedJiraKeys.length > 0,
-    staleTime: 60 * 60 * 1000,
-  });
-
   // ─── Derived data ─────────────────────────────────────────────────────────────
 
   // Split sprint issues into In Progress / Up Next using the verified helper
@@ -208,6 +175,8 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
 
   // ─── Handlers ────────────────────────────────────────────────────────────────
 
+  const queryClient = useQueryClient();
+
   /**
    * Invalidate today's Tempo query after a successful Log Work submission so
    * the logged-time chips refresh immediately.
@@ -218,17 +187,6 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
     });
   }
 
-  /**
-   * Navigate to an AIO cycle detail page.
-   * Pattern from main.tsx lines 524-526.
-   */
-  function handleCycleClick(key: string) {
-    const meta = pinnedCycleMeta[key];
-    if (meta) {
-      void navigate(`/aio-cycle/${meta.projectKey}/${key}`);
-    }
-  }
-
   // ─── Loading state helpers (for empty-state gate) ─────────────────────────────
   const sprintLoading = useDelayedLoading(sprintQuery.isLoading);
 
@@ -237,19 +195,15 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
   const hasAnyData =
     inProgress.length > 0 ||
     upNext.length > 0 ||
-    (reviewerMrsQuery.data?.length ?? 0) > 0 ||
-    pinnedJiraKeys.length > 0 ||
-    pinnedCycleKeys.length > 0;
+    (reviewerMrsQuery.data?.length ?? 0) > 0;
 
   const allSettledEmpty =
     !hasAnyData &&
     !sprintQuery.isLoading &&
     !sprintLoading &&
     !reviewerMrsQuery.isLoading &&
-    !pinnedMetaQuery.isLoading &&
     !sprintQuery.isError &&
-    !reviewerMrsQuery.isError &&
-    !pinnedMetaQuery.isError;
+    !reviewerMrsQuery.isError;
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
@@ -301,26 +255,12 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
         />
       )}
 
-      {/* Section 4: Pinned — Jira issues + AIO cycles, read-only (D-08) */}
-      <TodayPinnedSection
-        pinnedJiraKeys={pinnedJiraKeys}
-        pinnedCycleKeys={pinnedCycleKeys}
-        pinnedCycleMeta={pinnedCycleMeta}
-        pinnedMeta={pinnedMetaQuery.data ?? {}}
-        isLoading={pinnedMetaQuery.isLoading}
-        isError={pinnedMetaQuery.isError}
-        error={pinnedMetaQuery.error}
-        onRetry={() => void pinnedMetaQuery.refetch()}
-        onIssueClick={onIssueClick}
-        onCycleClick={handleCycleClick}
-      />
-
       {/* Full-column empty state — only when all sections resolved empty */}
       {allSettledEmpty && (
         <EmptyState
           icon={Clock}
           title="Nothing planned for today"
-          subtitle="No items in progress, nothing up next, no MRs awaiting review, and no pinned items."
+          subtitle="No items in progress, nothing up next, and no MRs awaiting review."
         />
       )}
 
