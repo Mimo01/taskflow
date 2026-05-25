@@ -116,3 +116,5 @@ Resume file: .planning/phases/70-standup-notes-today-section/70-UI-SPEC.md
 ## Operator Next Steps
 
 - Start the next milestone with /gsd-new-milestone
+| 2026-05-26 | fast | Aggregate Yesterday commits into one line per task | ✅ |
+| 2026-05-26 | fast | Singularize 'commit' in Yesterday stat line | ✅ |

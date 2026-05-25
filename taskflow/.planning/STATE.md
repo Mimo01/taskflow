@@ -98,3 +98,6 @@ Resume: Phase 47 v17-debt-cleanup plan 01 complete — continue with plan 02 if 
 | 260523-neb | Rebalance dashboard cards grid — sm: Sprint Health + Next Release side-by-side with My Tasks full-width below; lg+: 3-col row | 2026-05-23 | dc7ce077 | | [260523-neb-on-dashboard-there-are-3-cards-on-smalle](./quick/260523-neb-on-dashboard-there-are-3-cards-on-smalle/) |
 | 260525-thm | Standup notes: display Tempo logs in Jira h&m format instead of fractional hours | 2026-05-25 | 7e65f4ec | fast | — |
 | 2026-05-25 | fast | Limit assignee popup results to 10 | ✅ |
+| 2026-05-26 | fast | Remove section bottom border in standup Yesterday column | done |
+| 260526-obc | Standup Yesterday: remove dividing border between rows in Other Commits | 2026-05-26 | e766463e | fast | — |
+| 2026-05-26 | fast | Ignore merge commits in standup Yesterday recap | ✅ |
