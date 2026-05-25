@@ -209,8 +209,13 @@ export default function TodayInProgressSection({
   }
 
   return (
-    <div className="mb-6">
-      <h3 className="text-xs text-muted-foreground uppercase tracking-wide mb-2">IN PROGRESS</h3>
+    <div className="mb-4">
+      <div className="flex items-center gap-2 mb-2">
+        <h3 className="text-xs text-muted-foreground uppercase tracking-wide">IN PROGRESS</h3>
+        {rows.length > 0 && (
+          <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{rows.length}</span>
+        )}
+      </div>
 
       {showSkeleton ? (
         <LoadingSkeletons />
