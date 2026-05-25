@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-24)
 Phase: 70
 Plan: Not started
 Status: Milestone complete
-Last activity: 2026-05-25
+Last activity: 2026-05-25 - Completed quick task 260525-rtu: polish the visual design of standup notes page
 
 ## Performance Metrics
 
@@ -95,6 +95,7 @@ Key decisions affecting current work:
 | 260525-g5z | On standup notes copy markdown, in today view the participating merge requests are not written very well as a sentence, redo it | 2026-05-25 | 1764c0d4 | | [260525-g5z-on-standup-notes-copy-markdown-in-today-](./quick/260525-g5z-on-standup-notes-copy-markdown-in-today-/) |
 | 260525-jd5 | In the search in the app, when I enter a number automatically also search for tasks in selected projects | 2026-05-25 | 95cd6358 | | [260525-jd5-in-the-search-in-the-app-when-i-enter-a-](./quick/260525-jd5-in-the-search-in-the-app-when-i-enter-a-/) |
 | 260525-jrz | Standup notes: compact per-source empty-state notices, side-by-side with flex-wrap | 2026-05-25 | 339ea687 | Needs Review | [260525-jrz-on-standup-notes-page-in-the-last-workin](./quick/260525-jrz-on-standup-notes-page-in-the-last-workin/) |
+| 260525-rtu | Polish the visual design of standup notes page — cleaner, sleek, match the rest of the app | 2026-05-25 | 24f69ba4 | Needs Review | [260525-rtu-polish-the-visual-design-of-standup-note](./quick/260525-rtu-polish-the-visual-design-of-standup-note/) |
 | 260525-kfi | Unify Yesterday/Today views in Standup notes page — restyle Yesterday to match Today's row treatment | 2026-05-25 | b0c6c3a6 | Verified | [260525-kfi-in-standup-notes-page-the-yesterday-and-](./quick/260525-kfi-in-standup-notes-page-the-yesterday-and-/) |
 | 260525-kza | Unify progress bar styles across the app to match releases detail style | 2026-05-25 | defaba80 | | [260525-kza-unify-progress-bar-styles-across-the-app](./quick/260525-kza-unify-progress-bar-styles-across-the-app/) |
 | 260525-ltf | On Standup notes page, make all tasks (including subtasks) clickable. Also make merge requests clickable to mr detail | 2026-05-25 | 11fa5375 | | [260525-ltf-on-standup-notes-page-make-all-tasks-inc](./quick/260525-ltf-on-standup-notes-page-make-all-tasks-inc/) |
