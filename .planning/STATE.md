@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.10
 milestone_name: Cleanup, Roles Removal & Standup Notes
-status: milestone_complete
-stopped_at: Phase 70 UI-SPEC approved
-last_updated: "2026-05-25T06:44:28.539Z"
-last_activity: 2026-05-25 - Completed quick task 260525-ltf: On Standup notes page, make all tasks (including subtasks) clickable. Also make merge requests clickable to mr detail
+status: Awaiting next milestone
+stopped_at: v1.10 shipped and archived
+last_updated: "2026-05-25T21:25:45.658Z"
+last_activity: 2026-05-25 — Milestone v1.10 completed and archived
 progress:
   total_phases: 6
   completed_phases: 6
   total_plans: 15
-  completed_plans: 12
+  completed_plans: 15
   percent: 100
 ---
 
@@ -18,55 +18,53 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-24)
+See: .planning/PROJECT.md (updated 2026-05-25)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Phase 70 — standup-notes-today-section
+**Current focus:** Planning next milestone — v1.10 shipped 2026-05-25 (`/gsd:new-milestone`)
 
 ## Current Position
 
-Phase: 70
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-05-25 - Completed quick task 260525-rtu: polish the visual design of standup notes page
+Phase: Milestone v1.10 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-05-25 — Milestone v1.10 completed and archived
 
 ## Performance Metrics
 
 **Velocity:**
 
-- v1.9 plans completed: 20 (6 phases, 4 days, 258 commits)
-- Average phase size: 3.3 plans
-- LOC delta: +26,283 / −3,085 (~73,264 total)
+- v1.10 plans completed: 15 (6 phases, 3 days, 271 commits)
+- Average phase size: 2.5 plans
+- LOC delta: +30,286 / −1,489 (~80,895 total TS)
 
-**By Phase:**
+**By Phase (v1.10):**
 
 | Phase | Plans | Description |
 |-------|-------|-------------|
-| 59 | 3 | Dashboard Cleanup + Dependency Removal |
-| 60 | 6 | Static Dashboard / Welcome Screen |
-| 61 | 4 | Tempo Probe + Service Layer |
-| 62 | 2 | Tempo Worklog Viewer UI |
-| 63 | 3 | Tempo Saved Filters + Test Pass |
-| 64 | 2 | Worklogs Hierarchy + Popover CRUD |
 | 65 | 2 | Tech Debt Cleanup (CLEAN-01..07) |
 | 66 | 2 | Roles Removal (store v22, no presets, 4-step wizard) |
+| 67 | 1 | Settings UI Cleanup (visibility-only sidebar, no dnd-kit) |
+| 68 | 3 | Startup Wizard — Integrations Step (AioBlock + Tempo) |
+| 69 | 4 | Standup Notes — Route + Yesterday Recap |
+| 70 | 3 | Standup Notes — Today Section |
 
 ## Accumulated Context
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
-Key decisions affecting current work:
+Key decisions affecting current/next work:
 
-- Phase 59: `settings.store.ts` hard-imports `registry.ts` — deletion must be atomic (registry files + store update + widget test block in one commit)
-- Phase 59: Verify cleanup with `npm run build` not just `tsc` (react-grid-layout CSS imports fail silently in TypeScript)
-- Phase 61: Tempo auth confirmed — Bearer PAT works; Tempo API base path is `aio-tcms-api/1.0` (probe result in 61-PROBE-RESULT.md)
-- Phase 62: Worklog timezone bucketing — use `.slice(0, 10)` on string timestamps; never `toLocaleDateString()`
-- Phase 62: Tempo pagination defaults to 50 records — must paginate to exhaustion
+- Phase 66: roles removed entirely → universal access; settings store at v22 (drops `role`), then v23 (appends standup-notes sidebar item for upgrading users)
+- Phase 65: AIO status map fetched from live `/config` endpoint via `initializeAioStatusMap`/`normalizeStatusById` — no static `AIO_STATUS_MAP`
+- Phase 69: "yesterday" = last working day (weekends + Tempo-schedule holidays skipped); standup sources each load/degrade independently
+- Phase 70: pinned issues + Log Work targets dropped from Standup Today (STAND-08/09 descoped) — standup page is read/plan-oriented
+- Carried: verify cleanup with `npm run build` not just `tsc` (CSS imports fail silently in TypeScript checks)
 
 ### Roadmap Evolution
 
-- Phase 64 added mid-v1.9: pulled forward TEMPO-08 + TEMPO-EDIT-01 from v2 backlog after person×day pivot proved less useful than Epic→Story→Subtask hierarchy
+- v1.10 closed with tech debt (status `tech_debt`): Phase 69 missing VERIFICATION.md — run `/gsd:verify-work 69` to mint it (UAT already 12/12)
 
 ### Blockers/Concerns
 
@@ -75,8 +73,17 @@ Key decisions affecting current work:
 
 ## Deferred Items
 
+Items acknowledged and deferred at the v1.10 milestone close on 2026-05-25 (20 open from `audit-open` + audit tech-debt). All benign — see `.planning/milestones/v1.10-MILESTONE-AUDIT.md`.
+
 | Category | Item | Status |
 |----------|------|--------|
+| verification_gap | phase 69: 69-VERIFICATION.md | missing — compensated by 69-UAT 12/12 + nyquist-green VALIDATION; run `/gsd:verify-work 69` |
+| verification_gap | phase 68: 68-VERIFICATION.md | human_needed — code 11/11; live wizard walkthrough not independently re-confirmed (low risk) |
+| verification_gap | phase 70: 70-VERIFICATION.md | human_needed — 7/7; 2 of 3 human checks moot after Log Work removal |
+| code_review | WR-05 (70-REVIEW) | non-blocking — unguarded `as number\|null` SP cast in Today*Section.tsx |
+| code_review | IN-01 (70-REVIEW) | benign — setCopied setTimeout not cleared on unmount in StandupNotesPage.tsx |
+| debug_session | knowledge-base | archived (benign) |
+| quick_task | 17 v1.10 quick tasks (scanner status "missing") | done — every one has a real commit; SUMMARY frontmatter unreadable by scanner (see Quick Tasks Completed table) |
 | uat_gap | phase 57: 57-UAT.md | unknown (13/13 PASS; format not recognized by scanner) |
 | uat_gap | phase 58: 58-UAT.md | unknown (15/15 PASS; format not recognized by scanner) |
 
@@ -108,6 +115,4 @@ Resume file: .planning/phases/70-standup-notes-today-section/70-UI-SPEC.md
 
 ## Operator Next Steps
 
-- Phase 70 (Standup Notes — Today Section): `/gsd:discuss-phase 70` or `/gsd:plan-phase 70`
-- Tech debt: `WorklogsPage.test.tsx` has 5 date-dependent failures (hardcoded week dates) — fix to be date-relative
-| 2026-05-25 | fast | Constrain progress bar width in standup Today column | ✅ |
+- Start the next milestone with /gsd-new-milestone

@@ -4,18 +4,11 @@
 
 Taskflow is a cross-platform Tauri 2 desktop app for Orange's eshop development team. It unifies Jira (on-premise), Jira Tempo Timesheets, GitLab, and AIO Test Management into a single fast, focused interface — replacing the need to juggle multiple slow tools. It ships as a portable executable (no installer, no admin rights), stores credentials in the OS keychain, and serves both developers and project managers with a minimal static dashboard, sprint board, backlog, global search, notifications, AIO test execution visibility, and Tempo worklog tracking.
 
-## Current Milestone: v1.10 Cleanup, Roles Removal & Standup Notes
+## Current Milestone: None — v1.10 shipped, next milestone TBD
 
-**Goal:** Pay down v1.9 tech debt, eliminate the role concept across the app, tighten settings and the startup wizard, and ship a Standup Notes page that surfaces a ready-to-read agenda for daily standups.
+**Latest milestone shipped:** v1.10 Cleanup, Roles Removal & Standup Notes — 6 phases (65-70), 15 plans, 17 quick tasks, 271 commits, shipped 2026-05-25. Paid down v1.8/v1.9 tech debt, removed the Developer/PM role concept app-wide, tightened Settings → Sidebar to visibility-only, added an Integrations step to the onboarding wizard, and shipped the Standup Notes page (Yesterday recap + Today section).
 
-**Target features:**
-- Tech-debt cleanup pass (carried v1.9 items: WorklogsPage fragments, DatePreset location, sidebar test mock, WR-01/WR-02; plus v1.8 caveats: AIO_STATUS_MAP, TESTCASE_STATUS_MAP IDs 51/52)
-- Remove Developer/PM roles entirely — universal access, no presets, no gating
-- Settings reorganization — remove sidebar-items panel from Appearance; sidebar settings = visibility toggles only (no reorder, all shown by default)
-- Startup wizard: new Integrations step (AIO toggle + project, Tempo toggle)
-- Standup Notes page (`/standup-notes`) — Yesterday recap (Tempo worklogs, Jira changelog, Git commits, MR activity) + Today (sprint subtasks, pinned issues read-only, planned worklog targets); "yesterday" = last working day
-
-**Previous milestone shipped:** v1.9 Tempo, Dashboard Redesign & Cleanup — 6 phases (59-64), 20 plans, ~73K LOC TS, shipped 2026-05-23
+**Next milestone:** define with `/gsd:new-milestone`.
 
 ## Core Value
 
@@ -118,17 +111,14 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ Tech-debt cleanup of carried v1.9 + v1.8 items (CLEAN-01..07): WorklogsPage timer/error/fragment fixes, DatePreset type move, stale sidebar test mock, AIO TESTCASE_STATUS_MAP 51/52, runtime AIO status map from /config — v1.10 Phase 65
 - ✓ Dead code sweep: zero stale widget/workload imports after v1.9 removals — v1.9 Phase 63
 - ✓ Remove Developer/PM role concept across settings, wizard, sidebar, and store: `getDefaultSidebarItems` no-arg all-visible, settings store at v22, onboarding wizard 4 steps, PresetButtons/RoleSection/RoleStep deleted — v1.10 Phase 66
+- ✓ Settings → Sidebar tightened to visibility-only: `SidebarItemsList` rewritten 180→50 LOC checkbox list, `reorderSidebarItem` removed, sidebar-items panel gone from Appearance, all four `@dnd-kit/*` packages uninstalled — v1.10 Phase 67
+- ✓ Onboarding wizard Integrations step: shared `AioBlock` (AIO toggle + project picker, reused by Settings) + Tempo toggle, both written directly to the settings store as single source of truth — v1.10 Phase 68
+- ✓ Standup Notes Yesterday recap: `/standup-notes` route + all-visible sidebar entry, last-working-day resolution (weekends + Tempo-schedule holidays skipped), four independently-degrading sections (Tempo worklogs, Jira changelog, Git commits, MR activity) — v1.10 Phase 69
+- ✓ Standup Notes Today section: open sprint subtasks/tasks (assignee = me) grouped by parent story with nested participating MRs — v1.10 Phase 70
 
 ### Active
 
-<!-- v1.10 — Cleanup, Roles Removal & Standup Notes (REQ-IDs assigned in REQUIREMENTS.md) -->
-
-- [ ] Settings cleanup: remove sidebar-items panel from Appearance
-- [ ] Sidebar settings = visibility toggles only (no reorder, all shown by default)
-- [ ] Startup wizard: new Integrations step (AIO + Tempo)
-- [ ] Standup Notes page with Yesterday recap and Today sections
-
-### v1.9 — Validated (see Validated section above for shipped items)
+_No active milestone. Define the next milestone's requirements with `/gsd:new-milestone`._
 
 ### Out of Scope
 
@@ -142,14 +132,16 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - Bulk operations on sprint board issues — components built but user-deferred during v1.5 review; files on disk, not wired
 - GitLab write actions (approve, comment, request changes) — deferred to v2.0
 - Full JQL editor with syntax highlighting — months of work; plain text JQL input sufficient
+- Pinned-issues section on Standup Notes Today (STAND-08) — descoped by user during v1.10 Phase 70; pinning surface stays on the issue itself
+- Planned-worklog-targets / Log Work action on Standup Notes Today (STAND-09) — built in Phase 70 then removed in the standup redesign (commit c5b19544); Log Work stays on the Worklogs page and issue detail
 
 ## Current State
 
-**v1.9 shipped 2026-05-23** — 6 phases (59-64), 20 plans, 10 quick tasks, 258 commits, 230 files changed (+26,283/−3,085 lines) over 4 days. Codebase: ~73,264 lines TypeScript / 123 test files / 1298 tests passing.
+**v1.10 shipped 2026-05-25** — 6 phases (65-70), 15 plans, 17 quick tasks, 271 commits, 432 files changed (+30,286/−1,489 lines) over 3 days. Codebase: ~80,895 lines TypeScript / 136 test files.
 
-Tempo Worklog Viewer launched with Epic→Story→Subtask hierarchy, sticky headers, saved filters, and per-cell CRUD popover. Widget dashboard system + Workload page + react-grid-layout fully removed; replaced by static welcome screen with sprint health + in-progress subtasks + release countdown. Full test suite green, dead code swept, Biome clean. v2.0 scope TBD.
+v1.8/v1.9 tech debt paid down (WorklogsPage timer/error/fragment fixes, `DatePreset` relocation, AIO status map from live `/config`). The Developer/PM role concept was removed app-wide — universal access, no presets, no gating, settings store at v22 then v23. Settings → Sidebar reduced to visibility-only toggles (all four `@dnd-kit/*` packages uninstalled). The onboarding wizard gained an Integrations step (shared `AioBlock` + Tempo toggle writing to the settings store). The Standup Notes page (`/standup-notes`) shipped with a last-working-day Yesterday recap (Tempo worklogs, Jira changelog, Git commits, MR activity) and a Today section (open sprint subtasks grouped by story with nested participating MRs). Pinned-issues (STAND-08) and Log Work targets (STAND-09) on the standup page were descoped during the Phase 70 redesign.
 
-**v1.10 in progress** — Phase 67 complete: Settings → Sidebar stripped of drag-and-drop reordering; `SidebarItemsList` rewritten as 50-LOC visibility-only checkbox list, `reorderSidebarItem` removed from store, all four `@dnd-kit/*` packages uninstalled. Build green. SETUI-01/02/03 satisfied.
+**Milestone closed with tech debt:** Phase 69 has no `VERIFICATION.md` (compensated by 12/12 UAT + nyquist-green VALIDATION); Phases 68/70 verification at `human_needed`; minor code-review items WR-05 (unguarded SP cast) and IN-01 (uncleared setTimeout). See `.planning/milestones/v1.10-MILESTONE-AUDIT.md`. v2.0 scope TBD.
 
 ## Context
 
@@ -163,15 +155,17 @@ Tempo Worklog Viewer launched with Epic→Story→Subtask hierarchy, sticky head
 - **Shipped v1.7:** 2026-04-05 — 9 phases, 23 plans, 254 commits, 339 files changed (+38,812/−4,890 lines)
 - **Shipped v1.8:** 2026-05-19 — 8 phases (51–58), 45 plans, 464 commits, 367 files changed (+62,924/−2,759 lines)
 - **Shipped v1.9:** 2026-05-23 — 6 phases (59-64), 20 plans, 258 commits, 230 files changed (+26,283/−3,085 lines)
+- **Shipped v1.10:** 2026-05-25 — 6 phases (65-70), 15 plans, 17 quick tasks, 271 commits, 432 files changed (+30,286/−1,489 lines)
 - **Tech stack:** Tauri 2, React 18, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, Biome, @dnd-kit/core, @dnd-kit/sortable, @tanstack/react-virtual, jira2md, react-markdown, react-hotkeys-hook, cmdk, babel-plugin-react-compiler (react-grid-layout removed v1.9)
 - **Jira instance:** On-premise (Jira Data Center v10.3.15) — REST API v2 with Bearer PAT auth; createmeta/workflow/transitions APIs used for issue management
 - **GitLab:** Self-hosted or gitlab.com — personal access token
 - **Team:** Orange eshop project — developers + project managers using the same app with role-based views
 - **Scale:** One Jira project + one GitLab project at a time
 - **Build:** Portable executable — no installer, no admin rights; `createHashRouter` for SPA routing in production
-- **Test suite:** 1356 tests passing, zero failures, zero warnings; Vitest with LazyStore mock
-- **Codebase:** ~73,264 lines TypeScript / 123 test files
-- **Known caveats:** 3 phases (53, 57, 58) missing VERIFICATION.md — all UAT-verified, retroactive production deferred; Bulk operations (BOARD-04–07) components on disk, not wired; Cmd+Shift nav shortcut deviation needs product owner sign-off; Apple/Windows code signing deferred to future release
+- **Test suite:** ~1358 tests passing, zero failures, zero warnings; Vitest with LazyStore mock
+- **Codebase:** ~80,895 lines TypeScript / 136 test files
+- **Settings store:** persist version 23 (v22 dropped `role`; v23 appended the standup-notes sidebar item for upgrading users)
+- **Known caveats:** Phase 69 missing VERIFICATION.md (UAT 12/12 — run `/gsd:verify-work 69`); phases 53, 57, 58 missing VERIFICATION.md (all UAT-verified); Bulk operations (BOARD-04–07) components on disk, not wired; Cmd+Shift nav shortcut deviation needs product owner sign-off; Apple/Windows code signing deferred to future release
 
 ## Constraints
 
@@ -289,6 +283,13 @@ This document evolves at phase transitions and milestone boundaries.
 | Zero-hour cells DO open the WorklogCellPopover (v1.9 Phase 64, override of Plan 02 spec) | User confirmed "useful for adding new entries" — clicking an empty day to log work is faster than navigating elsewhere | ✓ Good — user-confirmed UX win |
 | Broad-prefix `['tempo', 'worklogs']` invalidation on popover CRUD (v1.9 Phase 64) | Single mutation can affect multiple cells (cell totals, row totals, column totals, grand total); broad invalidation guarantees consistency | ✓ Good — totals always reconcile post-mutation |
 | 145 pre-v1.9 quick-task dirs archived to milestones/historical-quick-tasks/ at milestone close | Scanner couldn't read status from older SUMMARY frontmatter convention; rather than retrofit 145 files, archive bucket clears the audit and preserves history | ✓ Good — audit-open went 161→17, all 17 benign |
+| AIO status map fetched from live `/config` endpoint, not hardcoded (v1.10 Phase 65) | Hardcoded `AIO_STATUS_MAP` broke on non-standard AIO instances; runtime fetch + `normalizeStatusById` adapts per-instance | ✓ Good — resilient to instance variation (CLEAN-07) |
+| Roles removed entirely → universal access (v1.10 Phase 66) | The Dev/PM split added gating complexity for no real benefit; same team uses the same app | ✓ Good — zero role-gated conditionals remain; v22 migration resets all users to all-visible |
+| Settings → Sidebar reduced to visibility-only, drag-reorder dropped (v1.10 Phase 67) | Reorder added `@dnd-kit` weight + UI complexity rarely used; visibility toggles cover the real need | ✓ Good — 180→50 LOC, four `@dnd-kit/*` packages uninstalled |
+| Wizard Integrations step binds directly to settings store, no wizard-local state (v1.10 Phase 68) | A separate wizard state would need reconciliation on completion; single source of truth avoids drift | ✓ Good — shared `AioBlock` reused by Settings; selections persist across nav |
+| "Yesterday" = last working day, not calendar day (v1.10 Phase 69) | Monday standups need Friday's work; weekends + Tempo-schedule holidays must be skipped | ✓ Good — schedule-aware resolution; degrades gracefully when Tempo off |
+| Standup sources each load independently with per-section states (v1.10 Phase 69) | One slow/failed integration shouldn't blank the whole recap | ✓ Good — four sections degrade to empty-state in isolation |
+| Pinned issues + Log Work dropped from Standup Today during redesign (v1.10 Phase 70) | User decided the standup page is read/plan-oriented; pinning + logging belong on their own surfaces | ✓ Good — user-confirmed; STAND-08/09 descoped, Today shows sprint subtasks + nested MRs |
 
 ---
-*Last updated: 2026-05-24 after Phase 67 (Settings UI Cleanup)*
+*Last updated: 2026-05-25 after v1.10 milestone*

@@ -478,18 +478,71 @@
 
 ---
 
+## Milestone: v1.10 — Cleanup, Roles Removal & Standup Notes
+
+**Shipped:** 2026-05-25
+**Phases:** 6 (65-70) | **Plans:** 15 | **Quick tasks:** 17
+
+### What Was Built
+
+- Tech-debt cleanup pass (CLEAN-01..07): WorklogsPage `closeTimer` useEffect cleanup, cached-empty vs network-error distinction, keyed `<React.Fragment>` in hierarchy maps, `DatePreset` relocated to `services/tempo/types.ts`, stale sidebar test mock removed, AIO `TESTCASE_STATUS_MAP` 51/52 IDs, and `AIO_STATUS_MAP` replaced by a runtime map fetched from the live `/config` endpoint via `initializeAioStatusMap`/`normalizeStatusById`
+- Developer/PM role concept removed app-wide (ROLES-01..06): `getDefaultSidebarItems` no-arg all-visible, settings store drops `role`/`setRole`/`applyPreset` with a v22 migration, onboarding wizard collapsed 5→4 steps, PresetButtons/RoleSection/RoleStep deleted, zero role-gated conditionals remaining
+- Settings → Sidebar tightened to visibility-only (SETUI-01..03): `SidebarItemsList` rewritten 180→50 LOC checkbox list, `reorderSidebarItem` removed, all four `@dnd-kit/*` packages uninstalled
+- Onboarding wizard Integrations step (WIZ-01..04): shared `AioBlock` (AIO toggle + project picker, reused by Settings → Integrations) + inline Tempo toggle, gated Back/Continue, writing both toggles + selected AIO project key directly to the settings store as the single source of truth
+- Standup Notes Yesterday recap (STAND-01..06): `/standup-notes` route + all-visible sidebar entry + breadcrumb; last-working-day resolution (weekends + Tempo-schedule holidays skipped); four independently-loading sections (Tempo worklogs, Jira changelog, Git commits, MR activity) each degrading to per-section empty/error states; Copy-markdown + Refresh
+- Standup Notes Today section (STAND-07): open sprint subtasks/tasks (assignee = me) grouped by parent story with nested participating MRs; pinned issues (STAND-08) and Log Work targets (STAND-09) descoped during the in-milestone redesign
+
+### What Worked
+
+- **Cleanup-first sequencing** — opening the milestone with a dedicated tech-debt phase (65) before adding the Standup Notes surface area kept later phases from building on shaky foundations (WorklogsPage timer/error bugs, AIO status map)
+- **Removal phases are cheap and high-value** — roles removal (66) + settings cleanup (67) deleted four files, uninstalled four packages, and cut a wizard step while shrinking the store; verified clean via `grep -r` for role conditionals returning zero
+- **Shared component extraction at the right moment** — `AioBlock` was extracted from `IntegrationsSection` (171→37 LOC) precisely when the wizard needed the same picker, so Settings and the wizard share one implementation with no duplicate logic
+- **Independent-source standup architecture** — each Yesterday/Today source is its own `useQuery` with its own loading/error/empty state, so a disabled or unreachable integration never blanks the page; this degrade-gracefully design held up across the redesign
+- **In-milestone redesign honored over spec** — when the Today column's Log Work + pinned sections proved to be noise during live use, dropping them (descoping STAND-08/09) was the right call vs. shipping clutter to satisfy the original requirement wording
+
+### What Was Inefficient
+
+- **Heavy quick-task churn on one surface** — 17 quick tasks, most of them iterative restyling/polish of the Standup Notes page (kfi, rtu, jrz, ltf, kza, g5z); a tighter UI-SPEC before Phase 69/70 might have folded several of these into the planned work
+- **VERIFICATION.md gap recurred** — Phase 69 shipped without a VERIFICATION.md (the exact lesson flagged in the v1.9 retro); compensated by 12/12 UAT but still surfaced at milestone-audit time rather than phase close
+- **Doc drift on store version** — Phase 66/67 VERIFICATION docs say store `version: 22` while the actual persisted version reached `23` (additive standup-notes migration); the audit caught it as doc-only drift
+- **Late descope left dangling artifact** — `TodayColumnPlaceholder.tsx` deletion sat uncommitted in the working tree after the redesign; descopes should be committed atomically with the code that supersedes them
+
+### Patterns Established
+
+- **Runtime config-driven enums over hardcoded maps** — AIO status definitions fetched from `/config` at load with a normalized lookup, resilient to per-instance variation; the pattern generalizes to any vendor-defined ID set
+- **Universal-access default** — dropping role gating means every nav item + surface is visible by default; migrations reset visibility maps to all-shown rather than preserving role-derived state
+- **"Yesterday" = last working day** — schedule-aware date resolution (skip weekends + Tempo holidays) is the reusable primitive for any standup/recap surface
+- **Wizard steps bind directly to the persistent store** — no wizard-local state to reconcile on completion; the wizard is just an alternate entry point to the same settings
+
+### Key Lessons
+
+1. **The VERIFICATION.md-at-phase-close gate is still not enforced** — this is the second consecutive milestone where a missing VERIFICATION.md surfaced at audit time (v1.9: 61/63/64; v1.10: 69). The fix remains the same: refuse to mark a phase complete without the artifact.
+2. **Front-load a UI-SPEC for polish-heavy surfaces** — the Standup Notes page absorbed 17 quick tasks of iterative styling; a sharper visual contract before Phase 69 would have converted reactive polish into planned work
+3. **Commit descopes atomically with their replacement** — removing Log Work/pinned from Today left a deleted placeholder uncommitted; the supersede and the deletion belong in one commit
+4. **Removal phases are some of the highest-ROI work** — roles + dnd-kit removal reduced LOC, dependencies, and store surface with near-zero risk; worth scheduling proactively, not only as cleanup
+5. **Keep version-referencing docs in sync with migrations** — additive store migrations (v22→v23) silently outran the verification docs; reference the live `settings.store.ts` version, not a snapshot
+
+### Cost Observations
+
+- Sessions: 15 plans + 17 quick tasks across 6 phases over 3 days, 271 commits
+- Notable: the quick-task count (17) exceeded the plan count (15) — this milestone was as much iterative UI refinement as planned feature work, concentrated almost entirely on the Standup Notes page
+- Milestone closed at status `tech_debt` (not `passed`): one missing VERIFICATION.md + two `human_needed` verifications, all low-risk and acknowledged
+
+---
+
 ## Cross-Milestone Trends
 
-| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 | v1.5 | v1.6.3 | v1.7 | v1.8 | v1.9 |
-|--------|------|------|------|------|------|------|--------|------|------|------|
-| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) | 7 (31-37) | 4 (38-41) | 9 (42-49) | 9 (50-58) | 6 (59-64) |
-| Plans | 20 | 24 | 29 | 27 | 21 | 25 | 10 | 23 | 45 | 20 |
-| Quick tasks | 0 | 20 | 0 | 40+ | 2 | 6 | 13 | 20+ | n/a | 10 |
-| Timeline (days) | 2 | 2 | 2 | 5 | 2 | 4 | 6 | 8 | 7 | 4 |
-| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 | ~45k* | ~51,536 | ~57,000+ | ~68,000+ | ~73,264 |
-| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) | 7 (28%) | 0 (0%) | 5 (22%) | n/a | 3 (15%) |
-| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) | 30/34 (88%)** | 15/15 (100%) | 17/17 (100%) | n/a | 19/19 (100%)*** |
+| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 | v1.5 | v1.6.3 | v1.7 | v1.8 | v1.9 | v1.10 |
+|--------|------|------|------|------|------|------|--------|------|------|------|-------|
+| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) | 7 (31-37) | 4 (38-41) | 9 (42-49) | 9 (50-58) | 6 (59-64) | 6 (65-70) |
+| Plans | 20 | 24 | 29 | 27 | 21 | 25 | 10 | 23 | 45 | 20 | 15 |
+| Quick tasks | 0 | 20 | 0 | 40+ | 2 | 6 | 13 | 20+ | n/a | 10 | 17 |
+| Timeline (days) | 2 | 2 | 2 | 5 | 2 | 4 | 6 | 8 | 7 | 4 | 3 |
+| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 | ~45k* | ~51,536 | ~57,000+ | ~68,000+ | ~73,264 | ~80,895 |
+| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) | 7 (28%) | 0 (0%) | 5 (22%) | n/a | 3 (15%) | 0 (0%) |
+| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) | 30/34 (88%)** | 15/15 (100%) | 17/17 (100%) | n/a | 19/19 (100%)*** | 27/29 (93%)**** |
 
 \* v1.5 LOC corrected from previous ~633k count
 \*\* 4 requirements user-deferred (bulk operations BOARD-04–07)
 \*\*\* 17 base v1.9 + 2 TEMPO-08/TEMPO-EDIT-01 pulled forward from v2 (Phase 64)
+\*\*\*\* 27/27 in-scope satisfied; STAND-08 + STAND-09 descoped by user during Phase 70 redesign

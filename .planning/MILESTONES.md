@@ -1,5 +1,32 @@
 # Milestones
 
+## v1.10 Cleanup, Roles Removal & Standup Notes (Shipped: 2026-05-25)
+
+**Phases completed:** 6 phases (65-70), 15 plans, 17 quick tasks
+**Timeline:** 3 days (2026-05-23 → 2026-05-25)
+**Codebase:** ~80,895 lines TypeScript / 136 test files, 432 files changed (+30,286/−1,489 lines), 271 commits
+**Git range:** 1cf34652 (feat(65-02): runtime AIO status map) → v1.10 tag
+
+**Key accomplishments:**
+
+1. **Tech-debt cleanup (CLEAN-01..07)** — WorklogsPage timer cleanup + cached-empty error distinction + keyed fragments, `DatePreset` moved to `services/tempo/types.ts`, stale sidebar test mock removed, AIO `TESTCASE_STATUS_MAP` gains 51/52 IDs, and `AIO_STATUS_MAP` replaced by a runtime map fetched from the live `/config` endpoint
+2. **Developer/PM roles removed app-wide (ROLES-01..06)** — `getDefaultSidebarItems` becomes no-arg all-visible, settings store drops `role`/`setRole`/`applyPreset` with a v22 migration, onboarding wizard collapsed 5→4 steps, and PresetButtons/RoleSection/RoleStep deleted with zero role-gated conditionals remaining
+3. **Settings → Sidebar tightened to visibility-only (SETUI-01..03)** — `SidebarItemsList` rewritten from a 180-LOC dnd-kit sortable to a 50-LOC checkbox list, `reorderSidebarItem` removed, all four `@dnd-kit/*` packages uninstalled
+4. **Onboarding wizard Integrations step (WIZ-01..04)** — new step with a shared `AioBlock` (AIO toggle + project picker, reused by Settings) and Tempo toggle, writing both toggles + selected AIO project key directly into the settings store as the single source of truth
+5. **Standup Notes — Yesterday recap (STAND-01..06)** — `/standup-notes` route + all-visible sidebar entry; "yesterday" resolves to the last working day (weekends + Tempo-schedule holidays skipped); four independently-loading sections (Tempo worklogs, Jira changelog, Git commits, MR activity) each degrading gracefully when its integration is off
+6. **Standup Notes — Today section (STAND-07)** — open sprint subtasks/tasks (assignee = me) grouped by parent story with nested participating MRs; pinned issues (STAND-08) and Log Work targets (STAND-09) descoped by user during the Phase 70 redesign
+
+**Known deferred items at close:** 20 (see STATE.md Deferred Items) — all benign: 17 quick-task SUMMARYs unreadable by the scanner (every one has a real commit), 1 archived debug session, and Phases 68/70 `VERIFICATION.md` at `human_needed`.
+
+**Known Tech Debt (acknowledged at close):**
+
+- Phase 69 has no `VERIFICATION.md` — the only milestone phase missing the artifact; compensated by 69-UAT 12/12 + nyquist-green VALIDATION + SECURITY present, all wiring re-confirmed in the milestone audit. Run `/gsd:verify-work 69` to mint it (expected to pass immediately).
+- WR-05: unguarded `as number \| null` story-points cast in `TodayInProgressSection.tsx` / `TodayUpNextSection.tsx` — could render `[object Object]` if `storyPointsFieldKey` is misconfigured.
+- IN-01: `setCopied` setTimeout not cleared on unmount in `StandupNotesPage.tsx` (benign under React 18).
+- Doc drift: Phase 66/67 VERIFICATION docs reference settings store `version: 22`; actual current persist version is `23` (additive standup-notes sidebar migration).
+
+---
+
 ## v1.9 Tempo, Dashboard Redesign & Cleanup (Shipped: 2026-05-23)
 
 **Phases completed:** 6 phases (59-64), 20 plans, 10 quick tasks
@@ -18,6 +45,7 @@
 7. **Quality + cleanup pass** — dead code sweep (zero stale `Workload`/`WidgetGrid`/`WidgetCard`/`WidgetPicker` references in `src/`), full test suite 1298 passing / 0 failing / 0 warnings, Biome lint clean, 145 historical pre-v1.9 quick-task directories archived to `.planning/milestones/historical-quick-tasks/`
 
 **Known Tech Debt (acknowledged at close):**
+
 - Phase 62 WR-01 timer cleanup + WR-02 cached-empty error swallow (WorklogsPage.tsx)
 - Phase 62 / 64 INT-W1 unkeyed `<></>` fragments inside hierarchy row maps (`WorklogsPage.tsx:1050/1129/~1240`) — may misreconcile on saved-filter switch
 - Phase 63 architectural inversion: `DatePreset` type imported by store from route component (should move to `src/services/tempo/types.ts`)
