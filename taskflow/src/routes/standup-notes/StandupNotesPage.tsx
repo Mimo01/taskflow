@@ -13,7 +13,7 @@
  */
 
 import { useIsFetching, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
   extractJiraKeyFromMessage,
@@ -293,6 +293,10 @@ export default function StandupNotesPage() {
 
   // ─ Copy markdown ──────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (copiedTimer.current) clearTimeout(copiedTimer.current);
+  }, []);
 
   function handleCopyMarkdown() {
     const yesterdayText = generateMarkdown(
@@ -327,8 +331,10 @@ export default function StandupNotesPage() {
       // Silent fallback — clipboard unavailable (unlikely in Tauri webview).
     });
     setCopied(true);
-    setTimeout(() => {
+    if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    copiedTimer.current = setTimeout(() => {
       setCopied(false);
+      copiedTimer.current = null;
     }, 2000);
   }
 
