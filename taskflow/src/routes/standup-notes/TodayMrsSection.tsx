@@ -62,10 +62,13 @@ export default function TodayMrsSection({
   }
 
   return (
-    <div className="mb-6">
-      <h3 className="text-xs text-muted-foreground uppercase tracking-wide mb-2">
-        MRS AWAITING YOU
-      </h3>
+    <div className="mb-4 border-t border-border pt-4">
+      <div className="flex items-center gap-2 mb-2">
+        <h3 className="text-xs text-muted-foreground uppercase tracking-wide">MRS AWAITING YOU</h3>
+        {items.length > 0 && (
+          <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{items.length}</span>
+        )}
+      </div>
 
       {showSkeleton ? (
         <LoadingSkeletons />
