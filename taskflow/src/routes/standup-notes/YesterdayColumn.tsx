@@ -468,7 +468,7 @@ export default function YesterdayColumn({
       {/* Populated content renders first; per-source empty/loading/error
           notices fall to the bottom so "nothing here" never sits above data. */}
       {hasAnyData && (
-        <div className="flex flex-col divide-y divide-border">
+        <div className="flex flex-col">
           {/* Task groups (priority): activity grouped under the issue it belongs to */}
           {issueGroups.length > 0 && (
             <div className="mb-4">
