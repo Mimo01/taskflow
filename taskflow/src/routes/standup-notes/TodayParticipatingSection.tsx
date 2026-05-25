@@ -57,7 +57,7 @@ export default function TodayParticipatingSection({
   }
 
   return (
-    <div className="mb-4 border-t border-border pt-4">
+    <div className="mb-4 pt-4">
       <div className="flex items-center gap-2 mb-2">
         <h3 className="text-xs text-muted-foreground uppercase tracking-wide">PARTICIPATING</h3>
         {items.length > 0 && (

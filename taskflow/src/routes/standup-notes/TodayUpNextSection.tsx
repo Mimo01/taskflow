@@ -203,7 +203,7 @@ export default function TodayUpNextSection({
   }
 
   return (
-    <div className="mb-4 border-t border-border pt-4">
+    <div className="mb-4 pt-4">
       <div className="flex items-center gap-2 mb-2">
         <h3 className="text-xs text-muted-foreground uppercase tracking-wide">UP NEXT</h3>
         {rows.length > 0 && (
