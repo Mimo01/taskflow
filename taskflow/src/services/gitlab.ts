@@ -1272,6 +1272,8 @@ export interface ParticipatedMR {
   commentCount: number;
   /** ISO timestamp of the user's most recent comment on this MR. */
   lastCommentedAt: string;
+  /** Whether the current user authored (created) this MR. */
+  authoredByMe: boolean;
   /** Whether the current user has approved this MR. */
   approvedByMe: boolean;
   /** Number of threads the user participated in that are still unresolved. */
@@ -1361,13 +1363,17 @@ export async function fetchParticipatedMRs(
   // Fetch MR detail for each candidate in parallel; exclude any MR whose state
   // is not 'opened' or whose detail fetch fails (hard filter — we only want to
   // show confirmed-open MRs in the Participating section).
+  // Also capture authoredByMe from detail.author.id for use in Phase 2.
   const detailResults = await Promise.allSettled(
     candidates.map((c) => fetchMRDetail(base, token, c.projectId, c.mrIid)),
   );
-  const openCandidates = candidates.filter((_, i) => {
-    const result = detailResults[i];
-    return result.status === 'fulfilled' && result.value.state === 'opened';
-  });
+  const openCandidates = candidates
+    .map((c, i) => {
+      const result = detailResults[i];
+      if (result.status !== 'fulfilled' || result.value.state !== 'opened') return null;
+      return { ...c, authoredByMe: result.value.author.id === userId };
+    })
+    .filter(Boolean) as Array<(typeof candidates)[number] & { authoredByMe: boolean }>;
 
   // PHASE 2 — Enrich each open candidate with discussions + approvals in parallel.
   // Promise.allSettled ensures a single failed sub-request doesn't drop the
@@ -1400,16 +1406,19 @@ export async function fetchParticipatedMRs(
       );
 
       const openThreadCount = myOpenThreads.length;
+      const { authoredByMe } = candidate;
 
       // Inclusion rule:
       //   - keep if there is at least one open (unresolved) thread, OR
-      //   - keep if the MR is not yet approved by me
-      // Drop only when: approved-by-me AND no open threads remain.
-      const include = openThreadCount > 0 || !approvedByMe;
+      //   - keep if the MR was NOT authored by me AND I haven't approved it yet
+      // Rationale: for MRs I authored, approving is someone else's job — only
+      // open threads should keep my own MRs alive here.
+      const include = openThreadCount > 0 || (!authoredByMe && !approvedByMe);
 
       return include
         ? ({
             ...candidate,
+            authoredByMe,
             approvedByMe,
             openThreadCount,
           } satisfies ParticipatedMR)

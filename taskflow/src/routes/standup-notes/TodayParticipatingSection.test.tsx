@@ -27,6 +27,7 @@ function makeParticipatedMR(
     title,
     commentCount: 1,
     lastCommentedAt: '2026-05-25T08:00:00Z',
+    authoredByMe: false,
     approvedByMe: false,
     openThreadCount: 1,
     ...overrides,

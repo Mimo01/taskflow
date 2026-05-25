@@ -651,16 +651,20 @@ describe('gitlab service', () => {
      * Check the more-specific substrings (/discussions, /approvals) FIRST; then
      * check /events; finally treat a bare merge_requests/<iid> path as the detail call.
      *
-     *  - /discussions → returns discussionsMap[mrIid] or []
-     *  - /approvals   → returns approvalsMap[mrIid] or default empty
-     *  - /events      → returns events array
-     *  - merge_requests/<iid> (no trailing sub-path) → detail stub: state='opened'
+     *  - /discussions  → returns discussionsMap[mrIid] or []
+     *  - /approvals    → returns approvalsMap[mrIid] or default empty
+     *  - /events       → returns events array
+     *  - merge_requests/<iid> (no trailing sub-path) → detail stub: state='opened',
+     *                    author.id defaults to 999 (NOT the test user) so existing
+     *                    "not approved → included" cases stay valid; pass detailAuthorMap
+     *                    to override per MR iid.
      */
     const setupMocks = (
       events: object[],
       discussionsMap: Record<number, object[]> = {},
       approvalsMap: Record<number, object> = {},
       detailStateMap: Record<number, 'opened' | 'closed' | 'merged' | 'locked'> = {},
+      detailAuthorMap: Record<number, number> = {},
     ) => {
       vi.mocked(mockFetch).mockImplementation(async (url: string | URL | Request) => {
         const u = url.toString();
@@ -691,10 +695,13 @@ describe('gitlab service', () => {
         if (detailMatch) {
           const mrIid = Number(detailMatch[1]);
           const state = detailStateMap[mrIid] ?? 'opened';
+          // Default author to 999 (someone else) so existing "not approved → included"
+          // cases are not affected by the new authoredByMe rule.
+          const authorId = detailAuthorMap[mrIid] ?? 999;
           return {
             ok: true,
             status: 200,
-            json: async () => ({ iid: mrIid, state }),
+            json: async () => ({ iid: mrIid, state, author: { id: authorId } }),
           } as Response;
         }
         return { ok: true, status: 200, json: async () => [] } as Response;
@@ -885,13 +892,13 @@ describe('gitlab service', () => {
         if (u.includes('/events')) {
           return { ok: true, status: 200, json: async () => [event] } as Response;
         }
-        // Detail call — MR 40 is open
+        // Detail call — MR 40 is open, authored by someone else (999)
         const detailMatch = u.match(/merge_requests\/(\d+)$/);
         if (detailMatch) {
           return {
             ok: true,
             status: 200,
-            json: async () => ({ iid: 40, state: 'opened' }),
+            json: async () => ({ iid: 40, state: 'opened', author: { id: 999 } }),
           } as Response;
         }
         return { ok: true, status: 200, json: async () => [] } as Response;
@@ -948,6 +955,64 @@ describe('gitlab service', () => {
       expect(result).toHaveLength(1);
       expect(result[0].mrIid).toBe(52);
       expect(result[0].openThreadCount).toBe(1);
+    });
+
+    // ── authoredByMe filter cases ─────────────────────────────────────────────
+
+    it('authoredByMe: my own MR, not approved, no open thread → EXCLUDED', async () => {
+      const event = makeCommentEvent({ mrIid: 60, projectId: 99 });
+
+      // Detail author = USER_ID (I authored this MR), no open threads, not approved
+      setupMocks(
+        [event],
+        { 60: [makeDiscussion(USER_ID, true, true)] }, // resolved thread
+        { 60: makeApprovals([]) },
+        {},
+        { 60: USER_ID }, // authored by me
+      );
+
+      const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
+      // My own MR + no open thread → excluded even though not approved
+      expect(result).toHaveLength(0);
+    });
+
+    it('authoredByMe: my own MR with an open thread → INCLUDED', async () => {
+      const event = makeCommentEvent({ mrIid: 61, projectId: 99 });
+
+      // Detail author = USER_ID, open thread present
+      setupMocks(
+        [event],
+        { 61: [makeDiscussion(USER_ID, true, false)] }, // unresolved thread
+        { 61: makeApprovals([]) },
+        {},
+        { 61: USER_ID }, // authored by me
+      );
+
+      const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
+      expect(result).toHaveLength(1);
+      expect(result[0].mrIid).toBe(61);
+      expect(result[0].authoredByMe).toBe(true);
+      expect(result[0].openThreadCount).toBe(1);
+    });
+
+    it('authoredByMe: someone else MR, not approved, no open thread → INCLUDED (regression guard)', async () => {
+      const event = makeCommentEvent({ mrIid: 62, projectId: 99 });
+
+      // Detail author = 999 (someone else), resolved thread, not approved
+      setupMocks(
+        [event],
+        { 62: [makeDiscussion(USER_ID, true, true)] }, // resolved thread
+        { 62: makeApprovals([]) },
+        {},
+        { 62: 999 }, // authored by someone else
+      );
+
+      const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
+      // Not my MR, not approved → included (unchanged behaviour)
+      expect(result).toHaveLength(1);
+      expect(result[0].mrIid).toBe(62);
+      expect(result[0].authoredByMe).toBe(false);
+      expect(result[0].openThreadCount).toBe(0);
     });
 
     it('state filter: detail fetch fails → EXCLUDED', async () => {
