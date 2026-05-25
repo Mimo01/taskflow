@@ -116,9 +116,6 @@ function IssueRow({
         className="w-full flex items-center gap-2 rounded px-2 py-2 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
         onClick={() => onIssueClick(key)}
       >
-        {indented && (
-          <span className="text-muted-foreground text-xs shrink-0">└</span>
-        )}
         <IssueTypeIcon typeName={issueType} className="size-4 shrink-0" />
         <span className="text-xs text-muted-foreground font-mono shrink-0">{key}</span>
         <span className="flex-1 min-w-0 truncate text-sm">{summary}</span>
@@ -209,7 +206,7 @@ export default function TodayInProgressSection({
       ) : (
         <div className="divide-y divide-border">
           {rows.map((row) => (
-            <div key={row.issue.key}>
+            <div key={row.issue.key} className="mb-3">
               <IssueRow
                 issue={row.issue}
                 todayLoggedByIssue={todayLoggedByIssue}
