@@ -27,7 +27,7 @@ import { fetchUserSchedule, fetchWorklogs } from '@/services/tempo';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import StandupPageHeader from './StandupPageHeader';
-import TodayColumnPlaceholder from './TodayColumnPlaceholder';
+import TodayColumn from './TodayColumn';
 import YesterdayColumn, { generateMarkdown } from './YesterdayColumn';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -318,9 +318,9 @@ export default function StandupNotesPage() {
           />
         </div>
 
-        {/* Right column — Today placeholder (50%) */}
+        {/* Right column — Today (50%) */}
         <div className="w-1/2 overflow-auto">
-          <TodayColumnPlaceholder />
+          <TodayColumn onIssueClick={onIssueClick} />
         </div>
       </div>
     </div>
