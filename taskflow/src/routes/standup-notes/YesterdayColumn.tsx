@@ -99,7 +99,7 @@ export interface MarkdownSources {
  * Generate a markdown standup summary for the clipboard (D-12, Pattern 7).
  *
  * Format:
- * ## Yesterday (YYYY-MM-DD)
+ * ## {DayLabel} (YYYY-MM-DD)  — "Yesterday" if date is calendar-yesterday, else day name
  *
  * ### PROJ-123: Issue summary
  * - Sub-item label
@@ -117,7 +117,7 @@ export function generateMarkdown(sources: MarkdownSources, date: string): string
     sources.issueMeta,
   );
 
-  const lines: string[] = [`## Yesterday (${date})`, ''];
+  const lines: string[] = [`## ${getColumnHeading(date)} (${date})`, ''];
 
   for (const group of issueGroups) {
     lines.push(`### ${group.issueKey}: ${group.summary}`);
