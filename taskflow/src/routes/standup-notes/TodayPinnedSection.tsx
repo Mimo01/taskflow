@@ -13,7 +13,7 @@
  * returns null (hidden) when no pinned items + not loading + not erroring.
  */
 
-import { ListChecks } from 'lucide-react';
+import { FlaskConical } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/error-state';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
@@ -87,7 +87,7 @@ export default function TodayPinnedSection({
               <button
                 key={key}
                 type="button"
-                className="w-full flex items-center gap-2 rounded px-2 py-2 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+                className="w-full flex items-center gap-2 rounded px-2 py-2 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
                 onClick={() => onIssueClick(key)}
               >
                 <IssueTypeIcon typeName={meta?.type ?? 'Task'} className="size-4 shrink-0" />
@@ -105,10 +105,10 @@ export default function TodayPinnedSection({
               <button
                 key={key}
                 type="button"
-                className="w-full flex items-center gap-2 rounded px-2 py-2 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+                className="w-full flex items-center gap-2 rounded px-2 py-2 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
                 onClick={() => onCycleClick(key)}
               >
-                <ListChecks className="size-4 shrink-0 text-muted-foreground" />
+                <FlaskConical className="size-4 shrink-0 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground font-mono shrink-0">
                   {cycleMeta.projectKey}
                 </span>
