@@ -1756,4 +1756,71 @@ describe('WikiRenderer', () => {
       expect(allText).toContain('Pro Biznis M');
     });
   });
+
+  // --- Consecutive exclamation marks (wiki-render-exclamation-split) ---
+  //
+  // jira2md's image regex /!(.+)!/g is greedy and matches any content between
+  // two `!` characters, including a bare `!` inside `!!!`. For the text
+  // `ponuka!!! - iba`, it matches `!!!` (ref = `!`) and emits `![](!)`
+  // which react-markdown renders as a broken image. The ` - ` that follows
+  // is then parsed as a GFM list item marker in some contexts.
+  //
+  // Fix (preprocessJiraMarkup): after the valid-image substitution step, any
+  // remaining runs of 2+ consecutive `!` characters are prose punctuation.
+  // Replace extra `!` with `&#33;` HTML entities so jira2md never sees two
+  // raw `!` characters that could form a false image pair.
+  describe('consecutive exclamation marks (wiki-render-exclamation-split)', () => {
+    it('verbatim bug fixture — triple exclamation mark renders as plain text, no broken image', () => {
+      const fixture =
+        'pre XL extra a XXL nebude sa uplplatňovať geozónová ponuka!!! - iba zvýhodnená cena na 3 mesiace';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+
+      // No <img> element — the !!! must not be treated as a Jira image macro.
+      expect(container.querySelector('img')).toBeNull();
+
+      // No <li> element — the " - " after !!! must not start a list item.
+      expect(container.querySelector('li')).toBeNull();
+
+      // All text must be present (the exclamation marks render as "!" characters).
+      const text = container.textContent ?? '';
+      expect(text).toContain('ponuka');
+      expect(text).toContain('iba zvýhodnená cena na 3 mesiace');
+      // The exclamation marks must appear as plain text characters in the output.
+      expect(text).toContain('!');
+    });
+
+    it('double exclamation mark renders as plain text, no broken image', () => {
+      const { container } = render(<WikiRenderer wikiText="Attention!! Please read." />);
+      expect(container.querySelector('img')).toBeNull();
+      const text = container.textContent ?? '';
+      expect(text).toContain('Attention');
+      expect(text).toContain('Please read');
+      expect(text).toContain('!');
+    });
+
+    it('single exclamation mark that is not a valid image macro passes through unchanged', () => {
+      // A lone ! with no closing ! is not a Jira image — must render as plain text.
+      const { container } = render(<WikiRenderer wikiText="Just one! exclamation." />);
+      expect(container.querySelector('img')).toBeNull();
+      expect(container.textContent).toContain('Just one');
+      expect(container.textContent).toContain('exclamation');
+    });
+
+    it('valid Jira image macro !filename.png! is still rendered as an image (no regression)', () => {
+      const { container } = render(<WikiRenderer wikiText="See !screenshot.png! above." />);
+      const img = container.querySelector('img');
+      expect(img).not.toBeNull();
+      expect(img?.getAttribute('src')).toContain('screenshot.png');
+    });
+
+    it('!!! in a table cell renders as plain text, not a broken image', () => {
+      const fixture = ['||Status||Note||', '|Done!!!|All good|'].join('\n');
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      expect(container.querySelector('img')).toBeNull();
+      const table = container.querySelector('table');
+      expect(table).not.toBeNull();
+      expect(table?.textContent).toContain('Done');
+      expect(table?.textContent).toContain('All good');
+    });
+  });
 });

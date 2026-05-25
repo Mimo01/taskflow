@@ -737,6 +737,16 @@ export function preprocessJiraMarkup(
     return `!${ref}!`;
   });
 
+  // Consecutive exclamation marks: jira2md's image regex /!(.+)!/g is greedy and
+  // matches ANY content between two ! characters, including a lone ! in !!!.
+  // Example: 'ponuka!!!' -> jira2md matches '!!' (ref='!') -> '![](!)', which
+  // react-markdown renders as a broken image element. Since the preprocessor's own
+  // image regex (!([^!\\n]+?)...!) has already consumed all valid Jira !filename!
+  // references above, any ! characters that remain are prose punctuation. Replace
+  // runs of 2 or more consecutive ! with the first ! plus &#33; entities for the
+  // remainder -- &#33; renders as '!' in the browser and jira2md ignores it.
+  result = result.replace(/!{2,}/g, (match) => '!' + '&#33;'.repeat(match.length - 1));
+
   // Mentions: [~accountId:XXX] -> <mention data-id="XXX">DisplayName</mention>
   result = result.replace(/\[~accountId:([^\]]+)\]/g, (_match, id: string) => {
     const name = users?.[id] ?? id;
