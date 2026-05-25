@@ -110,11 +110,14 @@ function IssueRow({
 
   return (
     <div className={indented ? 'pl-6 border-l border-border ml-2' : undefined}>
-      <button
-        key={key}
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         className="w-full flex items-center gap-2 rounded px-2 py-2 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
         onClick={() => onIssueClick(key)}
+        onKeyDown={(e) => {
+          if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) onIssueClick(key);
+        }}
       >
         <IssueTypeIcon typeName={issueType} className="size-4 shrink-0" />
         <span className="text-xs text-muted-foreground font-mono shrink-0">{key}</span>
@@ -139,7 +142,7 @@ function IssueRow({
             onSuccess={onLogWorkSuccess}
           />
         </span>
-      </button>
+      </div>
       <ProgressBar issue={issue} />
     </div>
   );
