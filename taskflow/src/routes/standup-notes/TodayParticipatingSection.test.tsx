@@ -4,8 +4,9 @@
  * Tests:
  *   1. Renders both titles + the count header when 2 items provided
  *   2. Returns null (section hidden) when items list is empty and not loading
- *   3. Count label shows "1 comment" (singular) vs "2 comments" (plural)
- *   4. Section header shows count when items are present
+ *   3. Shows "N open thread(s)" caption when openThreadCount > 0
+ *   4. Shows "not approved" caption when openThreadCount === 0 and !approvedByMe
+ *   5. Section header shows count when items are present
  */
 
 import { render, screen } from '@testing-library/react';
@@ -18,14 +19,17 @@ import TodayParticipatingSection from './TodayParticipatingSection';
 function makeParticipatedMR(
   mrIid: number,
   title: string,
-  commentCount = 1,
+  overrides: Partial<ParticipatedMR> = {},
 ): ParticipatedMR {
   return {
     projectId: 99,
     mrIid,
     title,
-    commentCount,
+    commentCount: 1,
     lastCommentedAt: '2026-05-25T08:00:00Z',
+    approvedByMe: false,
+    openThreadCount: 1,
+    ...overrides,
   };
 }
 
@@ -80,26 +84,37 @@ describe('TodayParticipatingSection', () => {
     expect(screen.getByText('!555')).toBeInTheDocument();
   });
 
-  it('shows singular "1 comment" for commentCount=1', () => {
+  it('shows "1 open thread" (singular) when openThreadCount=1', () => {
     render(
       <TodayParticipatingSection
         {...BASE_PROPS}
-        items={[makeParticipatedMR(10, 'Some MR', 1)]}
+        items={[makeParticipatedMR(10, 'Some MR', { openThreadCount: 1, approvedByMe: false })]}
       />,
     );
 
-    expect(screen.getByText('1 comment')).toBeInTheDocument();
+    expect(screen.getByText('1 open thread')).toBeInTheDocument();
   });
 
-  it('shows plural "3 comments" for commentCount=3', () => {
+  it('shows "3 open threads" (plural) when openThreadCount=3', () => {
     render(
       <TodayParticipatingSection
         {...BASE_PROPS}
-        items={[makeParticipatedMR(10, 'Some MR', 3)]}
+        items={[makeParticipatedMR(10, 'Some MR', { openThreadCount: 3, approvedByMe: true })]}
       />,
     );
 
-    expect(screen.getByText('3 comments')).toBeInTheDocument();
+    expect(screen.getByText('3 open threads')).toBeInTheDocument();
+  });
+
+  it('shows "not approved" label when openThreadCount=0 and approvedByMe=false', () => {
+    render(
+      <TodayParticipatingSection
+        {...BASE_PROPS}
+        items={[makeParticipatedMR(20, 'Pending MR', { openThreadCount: 0, approvedByMe: false })]}
+      />,
+    );
+
+    expect(screen.getByText('not approved')).toBeInTheDocument();
   });
 
   it('renders the header without count when items.length is 0 but isLoading=true', () => {
