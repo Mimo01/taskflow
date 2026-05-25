@@ -17,7 +17,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import type React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { JiraIssue } from '@/services/jira';
 
@@ -127,23 +126,6 @@ function makeIssue(
   } as unknown as JiraIssue;
 }
 
-// ─── Render helper ────────────────────────────────────────────────────────────
-
-function renderTodayColumn(onIssueClick = vi.fn()) {
-  // Lazy import to pick up mocks
-  const { default: TodayColumn } = vi.importActual<{ default: React.ComponentType<{ onIssueClick: (key: string) => void }> }>(
-    './TodayColumn',
-  );
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
-    <QueryClientProvider client={qc}>
-      <MemoryRouter>
-        <TodayColumn onIssueClick={onIssueClick} />
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
-}
-
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('TodayColumn', () => {
@@ -247,10 +229,10 @@ describe('TodayColumn', () => {
       const { useAuthStore } = await import('@/stores/auth.store');
 
       // Override auth to have no GitLab connection
-      vi.mocked(useAuthStore).mockImplementation((selector?: (s: typeof authStoreMock) => unknown) => {
+      vi.mocked(useAuthStore).mockImplementation(((selector?: (s: typeof authStoreMock) => unknown) => {
         const noGitlab = { ...authStoreMock, gitlabBaseUrl: null, gitlabUserId: null };
         return selector ? selector(noGitlab as unknown as typeof authStoreMock) : noGitlab;
-      });
+      }) as unknown as typeof useAuthStore);
 
       const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
       const { default: TodayColumn } = await import('./TodayColumn');
