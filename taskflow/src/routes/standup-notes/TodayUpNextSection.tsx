@@ -167,7 +167,7 @@ export default function TodayUpNextSection({
   }
 
   return (
-    <div className="mb-4">
+    <div className="mb-6">
       <h3 className="text-xs text-muted-foreground uppercase tracking-wide mb-2">UP NEXT</h3>
 
       {showSkeleton ? (
