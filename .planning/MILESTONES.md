@@ -20,7 +20,7 @@
 
 **Known Tech Debt (acknowledged at close):**
 
-- Phase 69 has no `VERIFICATION.md` — the only milestone phase missing the artifact; compensated by 69-UAT 12/12 + nyquist-green VALIDATION + SECURITY present, all wiring re-confirmed in the milestone audit. Run `/gsd:verify-work 69` to mint it (expected to pass immediately).
+- Phase 69 had no `VERIFICATION.md` at close — the only milestone phase missing the artifact; compensated by 69-UAT 12/12 + nyquist-green VALIDATION + SECURITY present, all wiring re-confirmed in the milestone audit. **Resolved 2026-05-26: minted retroactively via gsd-verifier, status passed (4/4).**
 - WR-05: unguarded `as number \| null` story-points cast in `TodayInProgressSection.tsx` / `TodayUpNextSection.tsx` — could render `[object Object]` if `storyPointsFieldKey` is misconfigured.
 - IN-01: `setCopied` setTimeout not cleared on unmount in `StandupNotesPage.tsx` (benign under React 18).
 - Doc drift: Phase 66/67 VERIFICATION docs reference settings store `version: 22`; actual current persist version is `23` (additive standup-notes sidebar migration).
