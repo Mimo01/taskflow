@@ -13,6 +13,7 @@
  * returns null (hidden) when 0 rows + not loading + not erroring.
  */
 
+import { GitBranch } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/error-state';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
@@ -23,11 +24,13 @@ import { formatDuration } from '@/services/jira/duration';
 import type { JiraIssue } from '@/services/jira';
 import { LogWorkPopover } from '@/routes/dashboard/issue-detail/LogWorkPopover';
 import type { SprintRow } from './filterSprintItems';
+import type { NestedMr } from './mrMatching';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface TodayInProgressSectionProps {
   rows: SprintRow[];
+  mrsByStory: Map<string, NestedMr[]>;
   todayLoggedByIssue: Map<string, number>;
   storyPointsFieldKey: string;
   jiraBaseUrl: string;
@@ -150,10 +153,33 @@ function IssueRow({
   );
 }
 
+// ─── Nested MR row ────────────────────────────────────────────────────────────
+
+function NestedMrRow({ mr }: { mr: NestedMr }) {
+  const tag =
+    mr.kind === 'review'
+      ? 'review'
+      : mr.openThreadCount != null && mr.openThreadCount > 0
+        ? `${mr.openThreadCount} open thread${mr.openThreadCount !== 1 ? 's' : ''}`
+        : 'participating';
+
+  return (
+    <div className="pl-6 border-l border-border ml-2">
+      <div className="flex items-center gap-2 py-2 px-2">
+        <GitBranch className="size-4 shrink-0 text-muted-foreground" />
+        <span className="text-xs text-muted-foreground font-mono shrink-0">!{mr.iid}</span>
+        <span className="flex-1 min-w-0 truncate text-sm">{mr.title}</span>
+        <span className="text-xs text-muted-foreground shrink-0">{tag}</span>
+      </div>
+    </div>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function TodayInProgressSection({
   rows,
+  mrsByStory,
   todayLoggedByIssue,
   storyPointsFieldKey,
   jiraBaseUrl,
@@ -205,6 +231,9 @@ export default function TodayInProgressSection({
                   onLogWorkSuccess={onLogWorkSuccess}
                   indented
                 />
+              ))}
+              {(mrsByStory.get(row.issue.key) ?? []).map((mr) => (
+                <NestedMrRow key={`${mr.kind}-${mr.iid}`} mr={mr} />
               ))}
             </div>
           ))}

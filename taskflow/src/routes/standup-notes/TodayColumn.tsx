@@ -29,6 +29,7 @@ import { fetchWorklogs } from '@/services/tempo';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { filterSprintItems } from './filterSprintItems';
+import { matchMrsToStories } from './mrMatching';
 import TodayInProgressSection from './TodayInProgressSection';
 import TodayMrsSection from './TodayMrsSection';
 import TodayParticipatingSection from './TodayParticipatingSection';
@@ -187,6 +188,17 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
     return map;
   }, [todayTempoQuery.data]);
 
+  // Match MRs to displayed sprint stories (both reviewer + participating)
+  const { mrsByStory, unmatchedReviewerMrs, unmatchedParticipatingMrs } = useMemo(
+    () =>
+      matchMrsToStories(
+        [...inProgress, ...upNext],
+        reviewerMrsQuery.data ?? [],
+        participatingMrsQuery.data ?? [],
+      ),
+    [inProgress, upNext, reviewerMrsQuery.data, participatingMrsQuery.data],
+  );
+
   // ─── Handlers ────────────────────────────────────────────────────────────────
 
   const queryClient = useQueryClient();
@@ -206,11 +218,12 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
 
   // ─── Full-column empty state gate ────────────────────────────────────────────
   // Fire only when ALL sections have resolved with 0 items and none are loading/erroring.
+  // Nested MRs live under stories, so inProgress/upNext length already covers them.
   const hasAnyData =
     inProgress.length > 0 ||
     upNext.length > 0 ||
-    (reviewerMrsQuery.data?.length ?? 0) > 0 ||
-    (participatingMrsQuery.data?.length ?? 0) > 0;
+    unmatchedReviewerMrs.length > 0 ||
+    unmatchedParticipatingMrs.length > 0;
 
   const allSettledEmpty =
     !hasAnyData &&
@@ -235,6 +248,7 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
       {/* Section 1: In Progress (D-01: fixed order) */}
       <TodayInProgressSection
         rows={inProgress}
+        mrsByStory={mrsByStory}
         todayLoggedByIssue={todayLoggedByIssue}
         storyPointsFieldKey={storyPointsFieldKey}
         jiraBaseUrl={jiraBaseUrl ?? ''}
@@ -250,6 +264,7 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
       {/* Section 2: Up Next (D-01: fixed order) */}
       <TodayUpNextSection
         rows={upNext}
+        mrsByStory={mrsByStory}
         storyPointsFieldKey={storyPointsFieldKey}
         jiraBaseUrl={jiraBaseUrl ?? ''}
         todayStr={todayStr}
@@ -261,10 +276,10 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
         onLogWorkSuccess={handleLogWorkSuccess}
       />
 
-      {/* Section 3: MRs Awaiting You — hidden when GitLab not connected (D-02, D-10) */}
+      {/* Section 3: MRs Awaiting You — unmatched only; hidden when GitLab not connected (D-02, D-10) */}
       {!!gitlabBaseUrl && (
         <TodayMrsSection
-          items={reviewerMrsQuery.data ?? []}
+          items={unmatchedReviewerMrs}
           isLoading={reviewerMrsQuery.isLoading}
           isError={reviewerMrsQuery.isError}
           error={reviewerMrsQuery.error}
@@ -272,10 +287,10 @@ export default function TodayColumn({ onIssueClick }: TodayColumnProps) {
         />
       )}
 
-      {/* Section 4: Participating MRs (commented on) — role-independent, hidden when GitLab not connected */}
+      {/* Section 4: Participating MRs (unmatched only) — role-independent, hidden when GitLab not connected */}
       {!!gitlabBaseUrl && (
         <TodayParticipatingSection
-          items={participatingMrsQuery.data ?? []}
+          items={unmatchedParticipatingMrs}
           isLoading={participatingMrsQuery.isLoading}
           isError={participatingMrsQuery.isError}
           error={participatingMrsQuery.error}

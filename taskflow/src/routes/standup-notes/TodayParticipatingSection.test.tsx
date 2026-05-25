@@ -30,6 +30,8 @@ function makeParticipatedMR(
     authoredByMe: false,
     approvedByMe: false,
     openThreadCount: 1,
+    sourceBranch: `feature/mr-${mrIid}`,
+    webUrl: `https://gitlab.example.com/mr/${mrIid}`,
     ...overrides,
   };
 }

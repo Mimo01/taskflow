@@ -77,6 +77,7 @@ vi.mock('@/services/jira', () => ({
 
 vi.mock('@/services/gitlab', () => ({
   fetchReviewerMRs: vi.fn().mockResolvedValue([]),
+  fetchParticipatedMRs: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('@/services/tempo', () => ({
@@ -316,6 +317,64 @@ describe('TodayColumn', () => {
 
       // No progress caption in DOM when there is no estimate
       expect(screen.queryByText(/logged/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Nested MR under story — phase 70 MR matching', () => {
+    it('renders a reviewer MR nested under its matched In Progress story', async () => {
+      const { useQuery } = await import('@tanstack/react-query');
+
+      // Parent story assigned to Test User, In Progress
+      const parentStory = makeIssue('PROJ-50', 'indeterminate', { isSubtask: false, subtasksLen: 0 });
+
+      // Reviewer MR whose title references PROJ-50
+      const reviewerMR = {
+        id: 5000,
+        iid: 999,
+        project_id: 1,
+        title: '[PROJ-50] Implement feature',
+        source_branch: 'feature/PROJ-50',
+        state: 'opened' as const,
+        author: { id: 99, name: 'Author', username: 'author', avatar_url: '' },
+        reviewers: [],
+        updated_at: '2026-05-25T00:00:00Z',
+        web_url: 'https://gitlab.example.com/mr/999',
+        labels: [],
+        milestone: null,
+      };
+
+      vi.mocked(useQuery).mockImplementation((opts) => {
+        const key = Array.isArray(opts.queryKey) ? opts.queryKey[1] : '';
+        if (key === 'sprint-board-today-full') {
+          return { data: [parentStory], isLoading: false, isError: false } as ReturnType<typeof useQuery>;
+        }
+        if (key === 'reviewer-mrs') {
+          return { data: [reviewerMR], isLoading: false, isError: false } as ReturnType<typeof useQuery>;
+        }
+        if (key === 'participating-mrs') {
+          return { data: [], isLoading: false, isError: false } as ReturnType<typeof useQuery>;
+        }
+        return { data: undefined, isLoading: false, isError: false } as ReturnType<typeof useQuery>;
+      });
+
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const { default: TodayColumn } = await import('./TodayColumn');
+
+      render(
+        <QueryClientProvider client={qc}>
+          <MemoryRouter>
+            <TodayColumn onIssueClick={vi.fn()} />
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+
+      // The nested MR iid and title should appear in the document
+      expect(screen.getByText('!999')).toBeInTheDocument();
+      expect(screen.getByText('[PROJ-50] Implement feature')).toBeInTheDocument();
+      // The "review" tag should appear
+      expect(screen.getByText('review')).toBeInTheDocument();
+      // The MRS AWAITING YOU section should be absent (all MRs matched)
+      expect(screen.queryByText('MRS AWAITING YOU')).not.toBeInTheDocument();
     });
   });
 

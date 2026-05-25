@@ -1278,6 +1278,10 @@ export interface ParticipatedMR {
   approvedByMe: boolean;
   /** Number of threads the user participated in that are still unresolved. */
   openThreadCount: number;
+  /** Source branch name (from MR detail). Used for Jira key matching. */
+  sourceBranch: string;
+  /** GitLab web URL for the MR (from MR detail). */
+  webUrl: string;
 }
 
 /**
@@ -1371,9 +1375,16 @@ export async function fetchParticipatedMRs(
     .map((c, i) => {
       const result = detailResults[i];
       if (result.status !== 'fulfilled' || result.value.state !== 'opened') return null;
-      return { ...c, authoredByMe: result.value.author.id === userId };
+      return {
+        ...c,
+        authoredByMe: result.value.author.id === userId,
+        sourceBranch: result.value.source_branch,
+        webUrl: result.value.web_url,
+      };
     })
-    .filter(Boolean) as Array<(typeof candidates)[number] & { authoredByMe: boolean }>;
+    .filter(Boolean) as Array<
+    (typeof candidates)[number] & { authoredByMe: boolean; sourceBranch: string; webUrl: string }
+  >;
 
   // PHASE 2 — Enrich each open candidate with discussions + approvals in parallel.
   // Promise.allSettled ensures a single failed sub-request doesn't drop the
@@ -1421,6 +1432,8 @@ export async function fetchParticipatedMRs(
             authoredByMe,
             approvedByMe,
             openThreadCount,
+            sourceBranch: candidate.sourceBranch,
+            webUrl: candidate.webUrl,
           } satisfies ParticipatedMR)
         : null;
     }),
