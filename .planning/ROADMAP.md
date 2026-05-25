@@ -301,7 +301,7 @@ Plans:
 2. Today section shows pinned issues with no pin/unpin controls — clicking an issue opens the standard issue detail surface (STAND-08)
 3. Today section shows a planned-worklog-targets list; clicking a target opens the existing `LogWorkPopover` pre-filled with today's date and the target issue (STAND-09)
 
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 **Wave 1**
@@ -314,7 +314,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 70-03-PLAN.md — wire TodayColumn into StandupNotesPage, full suite + build gate, human-verify checkpoint (STAND-07, STAND-08, STAND-09)
+- [x] 70-03-PLAN.md — wire TodayColumn into StandupNotesPage, full suite + build gate, human-verify checkpoint (STAND-07, STAND-08, STAND-09)
 
 ## Progress
 
