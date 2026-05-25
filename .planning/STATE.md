@@ -64,7 +64,7 @@ Key decisions affecting current/next work:
 
 ### Roadmap Evolution
 
-- v1.10 closed with tech debt (status `tech_debt`): Phase 69 VERIFICATION.md was missing → minted retroactively 2026-05-26 (status passed, 4/4). Remaining low-risk debt: Phases 68/70 verification at `human_needed`.
+- v1.10 closed with tech debt (status `tech_debt`); all verification debt cleared 2026-05-26: Phase 69 VERIFICATION.md minted (passed 4/4), Phases 68 (passed 11/11) and 70 (passed 4/4) re-verified out of `human_needed`. Only remaining v1.10 items are non-blocking code-review notes WR-05 (unguarded SP cast) + IN-01 (uncleared setTimeout).
 
 ### Blockers/Concerns
 
@@ -78,8 +78,8 @@ Items acknowledged and deferred at the v1.10 milestone close on 2026-05-25 (20 o
 | Category | Item | Status |
 |----------|------|--------|
 | verification_gap | phase 69: 69-VERIFICATION.md | RESOLVED 2026-05-26 — minted retroactively via gsd-verifier, status passed (4/4) |
-| verification_gap | phase 68: 68-VERIFICATION.md | human_needed — code 11/11; live wizard walkthrough not independently re-confirmed (low risk) |
-| verification_gap | phase 70: 70-VERIFICATION.md | human_needed — 7/7; 2 of 3 human checks moot after Log Work removal |
+| verification_gap | phase 68: 68-VERIFICATION.md | RESOLVED 2026-05-26 — re-verified passed (11/11); wizard paths confirmed in code |
+| verification_gap | phase 70: 70-VERIFICATION.md | RESOLVED 2026-05-26 — re-verified passed (4/4); STAND-07 confirmed, #2/#3 moot (Log Work removed) |
 | code_review | WR-05 (70-REVIEW) | non-blocking — unguarded `as number\|null` SP cast in Today*Section.tsx |
 | code_review | IN-01 (70-REVIEW) | benign — setCopied setTimeout not cleared on unmount in StandupNotesPage.tsx |
 | debug_session | knowledge-base | archived (benign) |
