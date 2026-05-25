@@ -107,11 +107,13 @@ export function AttachmentLightbox({
 
       {/* Image + caption */}
       <div className="flex flex-col items-center gap-3" onClick={(e) => e.stopPropagation()}>
-        <AuthImage
-          src={current.content}
-          alt={current.filename}
-          className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg"
-        />
+        <div className="bg-white rounded-lg">
+          <AuthImage
+            src={current.content}
+            alt={current.filename}
+            className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg"
+          />
+        </div>
         <p className="text-white/80 text-sm">
           {current.filename}
           {current.size != null && ` - ${formatFileSize(current.size)}`}
