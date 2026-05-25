@@ -79,9 +79,13 @@ export default function TodayParticipatingSection({
                 !{mr.mrIid}
               </span>
               <span className="flex-1 min-w-0 truncate text-sm">{mr.title}</span>
-              <span className="text-xs text-muted-foreground shrink-0">
-                {mr.commentCount} comment{mr.commentCount !== 1 ? 's' : ''}
-              </span>
+              {mr.openThreadCount > 0 ? (
+                <span className="text-xs text-muted-foreground shrink-0">
+                  {mr.openThreadCount} open thread{mr.openThreadCount !== 1 ? 's' : ''}
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground/60 shrink-0">not approved</span>
+              )}
             </div>
           ))}
         </div>
