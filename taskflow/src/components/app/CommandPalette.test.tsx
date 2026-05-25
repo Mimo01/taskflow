@@ -346,5 +346,59 @@ describe('CommandPalette', () => {
 
       expect(vi.mocked(fetchJiraIssueByKey)).not.toHaveBeenCalled();
     });
+
+    it('shows Direct Match for bare number with active project set', async () => {
+      vi.mocked(fetchJiraIssueByKey).mockResolvedValue({
+        id: '12345',
+        key: 'TEST-12345',
+        fields: {
+          summary: 'Bare number match issue',
+          status: { id: '1', name: 'Open', statusCategory: { key: 'new' } },
+          assignee: null,
+          customfield_10016: null,
+          issuetype: { name: 'Bug', subtask: false },
+        },
+      });
+
+      renderPalette();
+      const input = screen.getByPlaceholderText('Search issues, MRs, and actions...');
+      fireEvent.change(input, { target: { value: '12345' } });
+
+      const heading = await screen.findByText('Direct Match');
+      expect(heading).toBeInTheDocument();
+      expect(vi.mocked(fetchJiraIssueByKey)).toHaveBeenCalledWith(
+        'https://jira.test',
+        'test-token',
+        'TEST-12345',
+      );
+      expect(screen.getByText('TEST-12345')).toBeInTheDocument();
+      expect(screen.getByText('Bare number match issue')).toBeInTheDocument();
+    });
+
+    it('full key query still resolves correctly', async () => {
+      vi.mocked(fetchJiraIssueByKey).mockResolvedValue({
+        id: '42',
+        key: 'PROJ-42',
+        fields: {
+          summary: 'Full key match',
+          status: { id: '1', name: 'Done', statusCategory: { key: 'done' } },
+          assignee: null,
+          customfield_10016: null,
+          issuetype: { name: 'Task', subtask: false },
+        },
+      });
+
+      renderPalette();
+      const input = screen.getByPlaceholderText('Search issues, MRs, and actions...');
+      fireEvent.change(input, { target: { value: 'PROJ-42' } });
+
+      const heading = await screen.findByText('Direct Match');
+      expect(heading).toBeInTheDocument();
+      expect(vi.mocked(fetchJiraIssueByKey)).toHaveBeenCalledWith(
+        'https://jira.test',
+        'test-token',
+        'PROJ-42',
+      );
+    });
   });
 });

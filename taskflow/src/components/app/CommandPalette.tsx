@@ -60,11 +60,16 @@ export default function CommandPalette({
   const [liveSearchTriggered, setLiveSearchTriggered] = useState(false);
   const [closedSearchTriggered, setClosedSearchTriggered] = useState(false);
 
-  const isJiraKeyQuery = /^[A-Za-z]+-\d+$/i.test(query.trim());
-
   const queryClient = useQueryClient();
   const { storyPointsFieldKey, theme, setTheme } = useSettingsStore();
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
+
+  const trimmed = query.trim();
+  const resolvedKeyLookup = /^[A-Za-z]+-\d+$/i.test(trimmed)
+    ? trimmed
+    : /^\d+$/.test(trimmed) && activeJiraProject
+      ? `${activeJiraProject}-${trimmed}`
+      : '';
   const pushRecentItem = useRecentItemsStore((s) => s.pushItem);
   const recentItems = useRecentItemsStore((s) => s.items);
   const savedFilters = useSavedFilterStore((s) => s.savedFilters);
@@ -155,12 +160,12 @@ export default function CommandPalette({
   // ─── Direct key lookup ─────────────────────────────────────────────────────
 
   const { data: keyMatchResult } = useQuery({
-    queryKey: ['search', 'key', query],
+    queryKey: ['search', 'key', resolvedKeyLookup],
     queryFn: async () => {
       const token = await readSecret('jira-pat');
-      return fetchJiraIssueByKey(jiraBaseUrl!, token, query.trim());
+      return fetchJiraIssueByKey(jiraBaseUrl!, token, resolvedKeyLookup);
     },
-    enabled: isJiraKeyQuery && query.length >= 2 && !!jiraBaseUrl && !!activeJiraProject,
+    enabled: resolvedKeyLookup.length > 0 && query.length >= 2 && !!jiraBaseUrl && !!activeJiraProject,
     staleTime: 30_000,
     placeholderData: keepPreviousData,
   });
