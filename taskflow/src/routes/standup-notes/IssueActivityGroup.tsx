@@ -1,7 +1,7 @@
 /**
  * IssueActivityGroup — single issue group in the Yesterday column.
  *
- * Renders the D-07 group header (issue type icon + key + summary + hours)
+ * Renders the D-07 group header (issue type icon + key + summary)
  * and a sub-item list (commit, transition, MR comment, approval, Jira comment,
  * MR open) each with a Lucide icon per the UI-SPEC icon table.
  */
@@ -16,7 +16,6 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
-import { formatDuration } from '@/services/jira/duration';
 
 export type SubItemKind =
   | 'worklog'
@@ -42,8 +41,6 @@ export interface IssueActivityGroupProps {
   summary: string;
   /** Jira issue type name — drives the type icon (Story, Bug, Sub-task, Epic, …). */
   issueType?: string;
-  /** Total seconds logged via Tempo — displayed right-aligned when > 0 */
-  totalSeconds: number;
   subItems: SubItem[];
   /** Click handler for the header — navigates to the issue detail page. */
   onClick?: () => void;
@@ -79,7 +76,6 @@ export default function IssueActivityGroup({
   issueKey,
   summary,
   issueType,
-  totalSeconds,
   subItems,
   onClick,
   onMRClick,
@@ -87,25 +83,20 @@ export default function IssueActivityGroup({
 }: IssueActivityGroupProps) {
   return (
     <div>
-      {/* Group header: [icon] [key] [summary]          [Xh] — opens issue detail */}
+      {/* Group header: [icon] [key] [summary] — opens issue detail */}
       <button
         type="button"
         onClick={onClick}
-        className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-3 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
       >
         <IssueTypeIcon typeName={issueType ?? ''} className="size-4 shrink-0" />
         <span className="shrink-0 text-xs text-muted-foreground font-mono">{issueKey}</span>
         <span className="flex-1 min-w-0 truncate text-sm">{summary}</span>
-        {totalSeconds > 0 && (
-          <span className="shrink-0 rounded bg-muted px-2 py-1 text-xs text-muted-foreground">
-            {formatDuration(totalSeconds)}
-          </span>
-        )}
       </button>
 
       {/* Sub-items */}
       {subItems.length > 0 && (
-        <div className="pl-6 border-l border-border ml-2 divide-y divide-border">
+        <div className="pl-6 ml-2">
           {subItems.map((item, i) => {
             const SubIcon = subItemIcon(item.kind);
             const isClickableMr =
@@ -114,42 +105,33 @@ export default function IssueActivityGroup({
               onIssueClick != null && item.issueKey != null;
             return isClickableMr ? (
               // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
-              <div
+              <button
                 key={i}
-                role="button"
-                tabIndex={0}
-                className="flex items-center gap-2 py-3 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                type="button"
+                className="w-full text-left flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
                 onClick={() => onMRClick(`${item.mrProjectId}/${item.mrIid}`)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ')
-                    onMRClick(`${item.mrProjectId}/${item.mrIid}`);
-                }}
               >
                 <SubIcon className="size-4 shrink-0 text-muted-foreground" />
                 <span className="flex-1 min-w-0 truncate text-sm text-foreground">
                   {item.label}
                 </span>
-              </div>
+              </button>
             ) : isClickableIssue ? (
               // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
-              <div
+              <button
                 key={i}
-                role="button"
-                tabIndex={0}
-                className="flex items-center gap-2 py-3 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                type="button"
+                className="w-full text-left flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
                 onClick={() => onIssueClick!(item.issueKey!)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') onIssueClick!(item.issueKey!);
-                }}
               >
                 <SubIcon className="size-4 shrink-0 text-muted-foreground" />
                 <span className="flex-1 min-w-0 truncate text-sm text-foreground">
                   {item.label}
                 </span>
-              </div>
+              </button>
             ) : (
               // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
-              <div key={i} className="flex items-center gap-2 py-3 px-2">
+              <div key={i} className="flex items-center gap-2 py-1.5 px-2">
                 <SubIcon className="size-4 shrink-0 text-muted-foreground" />
                 <span className="flex-1 min-w-0 truncate text-sm text-foreground">
                   {item.label}

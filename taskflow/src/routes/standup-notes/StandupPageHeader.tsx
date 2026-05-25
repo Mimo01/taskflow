@@ -1,8 +1,9 @@
-import { Copy } from 'lucide-react';
+import { Calendar, Copy, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface StandupPageHeaderProps {
-  /** Formatted date string for the yesterday date, e.g. "Monday, 26 May 2026" */
+  /** Formatted date the standup is given on (today), e.g. "Monday, 26 May 2026" */
   dateLabel: string;
   /** Minutes since last successful data sync; null means never synced or unknown */
   syncedMinutesAgo: number | null;
@@ -12,6 +13,8 @@ interface StandupPageHeaderProps {
   onCopyMarkdown: () => void;
   /** True for 2 seconds after a successful clipboard write */
   copied: boolean;
+  /** True while a data refresh is in flight — spins the icon and disables the button */
+  isRefreshing: boolean;
 }
 
 /**
@@ -33,13 +36,17 @@ export default function StandupPageHeader({
   onRefresh,
   onCopyMarkdown,
   copied,
+  isRefreshing,
 }: StandupPageHeaderProps) {
   return (
     <header className="px-6 py-4 border-b border-border flex items-center justify-between">
       {/* Left: title + date */}
       <div>
-        <h1 className="text-2xl font-semibold">Standup notes</h1>
-        <p className="text-xs text-muted-foreground">{dateLabel}</p>
+        <h1 className="text-3xl font-semibold">Standup notes</h1>
+        <p className="mt-1 flex items-center gap-1.5 text-xs leading-none text-muted-foreground">
+          <Calendar className="size-3.5 shrink-0" />
+          {dateLabel}
+        </p>
       </div>
 
       {/* Right: sync status + Refresh + Copy markdown */}
@@ -47,7 +54,8 @@ export default function StandupPageHeader({
         {syncedMinutesAgo !== null && (
           <span className="text-xs text-muted-foreground">• synced {syncedMinutesAgo}m ago</span>
         )}
-        <Button variant="ghost" size="sm" onClick={onRefresh}>
+        <Button variant="ghost" size="sm" onClick={onRefresh} disabled={isRefreshing}>
+          <RefreshCw className={cn(isRefreshing && 'animate-spin')} />
           Refresh
         </Button>
         <Button variant="default" size="sm" onClick={onCopyMarkdown}>

@@ -24,26 +24,24 @@ function MrRow({
   projectId,
   iid,
   onMRClick,
+  dense = false,
 }: {
   icon: typeof GitMerge;
   label: React.ReactNode;
   projectId: number;
   iid: number;
   onMRClick: (s: string) => void;
+  dense?: boolean;
 }) {
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      className="flex items-center gap-2 py-3 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+    <button
+      type="button"
+      className={`w-full text-left flex items-center gap-2 ${dense ? 'py-1.5' : 'py-3'} px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer`}
       onClick={() => onMRClick(`${projectId}/${iid}`)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') onMRClick(`${projectId}/${iid}`);
-      }}
     >
       <Icon className="size-4 shrink-0 text-muted-foreground" />
       {label}
-    </div>
+    </button>
   );
 }
 
@@ -75,7 +73,7 @@ export default function StandaloneMrGroup({
 
       {/* Sub-items: collapsed comment count + approval (D-05) — also navigate to MR */}
       {(commentCount > 0 || approvals > 0) && (
-        <div className="pl-6 border-l border-border ml-2 divide-y divide-border">
+        <div className="pl-6 ml-2">
           {commentCount > 0 && (
             <MrRow
               icon={MessageSquare}
@@ -87,6 +85,7 @@ export default function StandaloneMrGroup({
               projectId={projectId}
               iid={iid}
               onMRClick={onMRClick}
+              dense
             />
           )}
           {approvals > 0 && (
@@ -100,6 +99,7 @@ export default function StandaloneMrGroup({
               projectId={projectId}
               iid={iid}
               onMRClick={onMRClick}
+              dense
             />
           )}
         </div>

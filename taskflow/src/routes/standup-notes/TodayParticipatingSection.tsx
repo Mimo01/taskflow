@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/error-state';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import type { ParticipatedMR } from '@/services/gitlab';
+import StandupSectionHeader from './StandupSectionHeader';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -58,12 +59,7 @@ export default function TodayParticipatingSection({
 
   return (
     <div className="mb-4 pt-4">
-      <div className="flex items-center gap-2 mb-2">
-        <h3 className="text-xs text-muted-foreground uppercase tracking-wide">PARTICIPATING</h3>
-        {items.length > 0 && (
-          <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{items.length}</span>
-        )}
-      </div>
+      <StandupSectionHeader label="Participating" count={items.length} />
 
       {showSkeleton ? (
         <LoadingSkeletons />
@@ -72,15 +68,11 @@ export default function TodayParticipatingSection({
       ) : (
         <div className="divide-y divide-border">
           {items.map((mr) => (
-            <div
+            <button
               key={`${mr.projectId}:${mr.mrIid}`}
-              role="button"
-              tabIndex={0}
-              className="flex items-center gap-2 py-3 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+              type="button"
+              className="w-full text-left flex items-center gap-2 py-3 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
               onClick={() => onMRClick(`${mr.projectId}/${mr.mrIid}`)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') onMRClick(`${mr.projectId}/${mr.mrIid}`);
-              }}
             >
               <MessageSquare className="size-4 shrink-0 text-muted-foreground" />
               <span className="text-xs text-muted-foreground font-mono shrink-0">
@@ -94,7 +86,7 @@ export default function TodayParticipatingSection({
               ) : (
                 <span className="text-xs text-muted-foreground/60 shrink-0">not approved</span>
               )}
-            </div>
+            </button>
           ))}
         </div>
       )}

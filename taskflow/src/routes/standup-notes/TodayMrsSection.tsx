@@ -20,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/error-state';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import type { GitLabMR } from '@/services/gitlab';
+import StandupSectionHeader from './StandupSectionHeader';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -63,12 +64,7 @@ export default function TodayMrsSection({
 
   return (
     <div className="mb-4 pt-4">
-      <div className="flex items-center gap-2 mb-2">
-        <h3 className="text-xs text-muted-foreground uppercase tracking-wide">MRS AWAITING YOU</h3>
-        {items.length > 0 && (
-          <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{items.length}</span>
-        )}
-      </div>
+      <StandupSectionHeader label="MRs Awaiting You" count={items.length} />
 
       {showSkeleton ? (
         <LoadingSkeletons />
@@ -90,15 +86,11 @@ export default function TodayMrsSection({
             // }
 
             return (
-              <div
+              <button
                 key={`${mr.project_id}/${mr.iid}`}
-                role="button"
-                tabIndex={0}
-                className="flex items-center gap-2 py-3 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                type="button"
+                className="w-full text-left flex items-center gap-2 py-3 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
                 onClick={() => onMRClick(`${mr.project_id}/${mr.iid}`)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') onMRClick(`${mr.project_id}/${mr.iid}`);
-                }}
               >
                 <GitBranch className="size-4 shrink-0 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground font-mono shrink-0">
@@ -106,7 +98,7 @@ export default function TodayMrsSection({
                 </span>
                 <span className="flex-1 min-w-0 truncate text-sm">{mr.title}</span>
                 <span className={reviewStateLabelClass}>{reviewStateLabel}</span>
-              </div>
+              </button>
             );
           })}
         </div>

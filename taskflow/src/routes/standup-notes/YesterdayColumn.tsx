@@ -21,7 +21,7 @@
  */
 
 import type { UseQueryResult } from '@tanstack/react-query';
-import { Clock, GitBranch, MessageSquare, type LucideIcon } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { useMemo } from 'react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
@@ -34,6 +34,7 @@ import type { TempoWorklog } from '@/services/tempo';
 import IssueActivityGroup, { type SubItem } from './IssueActivityGroup';
 import OtherCommitsGroup from './OtherCommitsGroup';
 import StandaloneMrGroup from './StandaloneMrGroup';
+import StandupSectionHeader from './StandupSectionHeader';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -364,17 +365,6 @@ function LoadingSkeletons() {
   );
 }
 
-// ─── Compact per-source empty notice ─────────────────────────────────────────
-
-function CompactEmptyNotice({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
-  return (
-    <div className="flex flex-col items-center gap-2 rounded-lg bg-muted/40 px-4 py-3 text-center text-muted-foreground">
-      <Icon className="size-7 shrink-0" />
-      <span className="text-xs leading-tight">{label}</span>
-    </div>
-  );
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function YesterdayColumn({
@@ -437,8 +427,8 @@ export default function YesterdayColumn({
   return (
     <div>
       {/* Column heading */}
-      <div className="mb-2">
-        <h2 className="text-xl font-semibold">{getColumnHeading(yesterdayDate)}</h2>
+      <div className="mb-2 flex items-baseline gap-2">
+        <h2 className="text-2xl font-semibold">{getColumnHeading(yesterdayDate)}</h2>
         <p className="text-xs text-muted-foreground">{dateLabel}</p>
       </div>
 
@@ -476,34 +466,55 @@ export default function YesterdayColumn({
       {/* Populated content renders first; per-source empty/loading/error
           notices fall to the bottom so "nothing here" never sits above data. */}
       {hasAnyData && (
-        <div className="divide-y divide-border">
-          {issueGroups.map((group) => (
-            <IssueActivityGroup
-              key={group.issueKey}
-              issueKey={group.issueKey}
-              summary={group.summary}
-              issueType={group.issueType}
-              totalSeconds={group.totalSeconds}
-              subItems={group.subItems}
-              onClick={() => onIssueClick(group.issueKey)}
-              onIssueClick={onIssueClick}
-              onMRClick={onMRClick}
-            />
-          ))}
+        <div className="flex flex-col divide-y divide-border">
+          {/* Task groups (priority): activity grouped under the issue it belongs to */}
+          {issueGroups.length > 0 && (
+            <div className="mb-4">
+              <StandupSectionHeader label="Worked On" count={issueGroups.length} />
+              <div className="[&>*]:py-2">
+                {issueGroups.map((group) => (
+                  <IssueActivityGroup
+                    key={group.issueKey}
+                    issueKey={group.issueKey}
+                    summary={group.summary}
+                    issueType={group.issueType}
+                    subItems={group.subItems}
+                    onClick={() => onIssueClick(group.issueKey)}
+                    onIssueClick={onIssueClick}
+                    onMRClick={onMRClick}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
-          {standaloneMrGroups.map((mr) => (
-            <StandaloneMrGroup
-              key={mr.iid}
-              iid={mr.iid}
-              projectId={mr.projectId}
-              title={mr.title}
-              commentCount={mr.commentCount}
-              approvals={mr.approvals}
-              onMRClick={onMRClick}
-            />
-          ))}
+          {/* Fallback: MR activity that couldn't be matched to a tracked issue */}
+          {standaloneMrGroups.length > 0 && (
+            <div className="mb-4 pt-4">
+              <StandupSectionHeader label="Other Merge Requests" count={standaloneMrGroups.length} />
+              <div className="divide-y divide-border [&>*]:py-2">
+                {standaloneMrGroups.map((mr) => (
+                  <StandaloneMrGroup
+                    key={mr.iid}
+                    iid={mr.iid}
+                    projectId={mr.projectId}
+                    title={mr.title}
+                    commentCount={mr.commentCount}
+                    approvals={mr.approvals}
+                    onMRClick={onMRClick}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
-          {otherCommits.length > 0 && <OtherCommitsGroup commits={otherCommits} />}
+          {/* Fallback: commits without a linked Jira issue */}
+          {otherCommits.length > 0 && (
+            <div className="mb-4 pt-4">
+              <StandupSectionHeader label="Other Commits" count={otherCommits.length} />
+              <OtherCommitsGroup commits={otherCommits} />
+            </div>
+          )}
         </div>
       )}
 
@@ -565,39 +576,6 @@ export default function YesterdayColumn({
       ) : mrEventsQuery.isLoading && !mrEventsQuery.data ? (
         <LoadingSkeletons />
       ) : null}
-
-      {/* ── Compact per-source empty notices — flex-wrap row ───────────── */}
-      {(tempoQuery.data?.length === 0 ||
-        jiraActivityQuery.data?.length === 0 ||
-        commitsQuery.data?.length === 0 ||
-        mrEventsQuery.data?.length === 0) && (
-        <div className="grid grid-cols-2 gap-2 mt-2 mb-3">
-          {tempoQuery.data?.length === 0 && (
-            <CompactEmptyNotice
-              icon={Clock}
-              label={`No worklogs on ${getColumnHeading(yesterdayDate)}`}
-            />
-          )}
-          {jiraActivityQuery.data?.length === 0 && (
-            <CompactEmptyNotice
-              icon={MessageSquare}
-              label={`No Jira activity on ${getColumnHeading(yesterdayDate)}`}
-            />
-          )}
-          {commitsQuery.data?.length === 0 && (
-            <CompactEmptyNotice
-              icon={GitBranch}
-              label={`No commits on ${getColumnHeading(yesterdayDate)}`}
-            />
-          )}
-          {mrEventsQuery.data?.length === 0 && (
-            <CompactEmptyNotice
-              icon={MessageSquare}
-              label={`No MR activity on ${getColumnHeading(yesterdayDate)}`}
-            />
-          )}
-        </div>
-      )}
     </div>
   );
 }

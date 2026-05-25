@@ -12,7 +12,7 @@
  * Tempo-enabled users get the correct holiday-skip date.
  */
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useIsFetching, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
@@ -25,7 +25,6 @@ import { fetchUserCommits, fetchUserMREvents } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
 import { fetchIssueMeta, fetchYesterdayJiraActivity } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
-import type { TempoWorklog } from '@/services/tempo';
 import { fetchUserSchedule, fetchWorklogs } from '@/services/tempo';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -154,6 +153,7 @@ export default function StandupNotesPage() {
     [scheduleData],
   );
   const dateLabel = useMemo(() => formatDateLabel(yesterdayDate), [yesterdayDate]);
+  const todayLabel = useMemo(() => formatDateLabel(todayStr), [todayStr]);
 
   // ─ Four independent data queries (Pattern 3) ────────────────────────────
   // T-62-06: tokens NEVER in queryKey — they are read inside queryFn only.
@@ -271,6 +271,11 @@ export default function StandupNotesPage() {
     void queryClient.refetchQueries({ queryKey: ['jira-issues', 'sprint-board-today-full'], type: 'active' });
   }
 
+  // Spinner/disable feedback while a refresh is in flight (both standup + today sprint queries)
+  const standupFetching = useIsFetching({ queryKey: ['standup'] });
+  const sprintFetching = useIsFetching({ queryKey: ['jira-issues', 'sprint-board-today-full'] });
+  const isRefreshing = standupFetching + sprintFetching > 0;
+
   // ─ "synced Xm ago" — earliest dataUpdatedAt across all four loaded queries ─
   const syncedMinutesAgo = useMemo(() => {
     return computeSyncedMinutesAgo([
@@ -307,9 +312,6 @@ export default function StandupNotesPage() {
         sprintData: queryClient.getQueryData<JiraIssue[]>(
           todayQueryKeys.sprint(activeJiraProject, storyPointsFieldKey),
         ),
-        todayTempoData: queryClient.getQueryData<TempoWorklog[]>(
-          todayQueryKeys.tempo(jiraBaseUrl, todayStr, jiraUsername),
-        ),
         reviewerMrsData: queryClient.getQueryData<GitLabMR[]>(
           todayQueryKeys.reviewerMrs(gitlabBaseUrl, gitlabUserId),
         ),
@@ -333,11 +335,12 @@ export default function StandupNotesPage() {
   return (
     <div className="flex flex-col h-full">
       <StandupPageHeader
-        dateLabel={dateLabel}
+        dateLabel={todayLabel}
         syncedMinutesAgo={syncedMinutesAgo}
         onRefresh={handleRefresh}
         onCopyMarkdown={handleCopyMarkdown}
         copied={copied}
+        isRefreshing={isRefreshing}
       />
 
       {/* Two-column body: Yesterday (left) | Today (right) */}

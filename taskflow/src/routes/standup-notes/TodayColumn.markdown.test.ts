@@ -11,7 +11,6 @@
 import { describe, expect, it } from 'vitest';
 import type { GitLabMR, ParticipatedMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
-import type { TempoWorklog } from '@/services/tempo';
 import { generateTodayMarkdown } from './TodayColumn';
 import type { TodayMarkdownSources } from './TodayColumn';
 
@@ -93,7 +92,6 @@ describe('generateTodayMarkdown — MR sentence formatting', () => {
 
     const sources: TodayMarkdownSources = {
       sprintData: [story],
-      todayTempoData: [] as TempoWorklog[],
       reviewerMrsData: [] as GitLabMR[],
       participatingMrsData: [participatingMR],
       jiraUserDisplayName: 'Test User',
@@ -117,7 +115,6 @@ describe('generateTodayMarkdown — MR sentence formatting', () => {
 
     const sources: TodayMarkdownSources = {
       sprintData: [story],
-      todayTempoData: [] as TempoWorklog[],
       reviewerMrsData: [reviewerMR],
       participatingMrsData: [] as ParticipatedMR[],
       jiraUserDisplayName: 'Test User',
@@ -138,7 +135,6 @@ describe('generateTodayMarkdown — MR sentence formatting', () => {
 
     const sources: TodayMarkdownSources = {
       sprintData: [] as JiraIssue[],
-      todayTempoData: [] as TempoWorklog[],
       reviewerMrsData: [] as GitLabMR[],
       participatingMrsData: [unmatchedMR],
       jiraUserDisplayName: 'Test User',
@@ -163,7 +159,6 @@ describe('generateTodayMarkdown — MR sentence formatting', () => {
 
     const sources: TodayMarkdownSources = {
       sprintData: [story],
-      todayTempoData: [] as TempoWorklog[],
       reviewerMrsData: [] as GitLabMR[],
       participatingMrsData: [participatingMR, unmatchedMR],
       jiraUserDisplayName: 'Test User',
