@@ -27,6 +27,7 @@ const BASE_PROPS = {
   mrEventsQuery: emptyQuery<GitLabUserMREvent[]>(),
   issueMeta: {},
   onIssueClick: vi.fn(),
+  onMRClick: vi.fn(),
 };
 
 // ─── Tests ────────────────────────────────────────────────────────────────────

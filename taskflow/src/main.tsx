@@ -420,6 +420,7 @@ function AppLayout() {
 
   const handleMRClick = (projectIdAndIid: string) => {
     breadcrumbReset();
+    breadcrumbPush({ path: location.pathname, label: routeLabel(location.pathname) });
     navigate(`/mr/${projectIdAndIid}`);
   };
 

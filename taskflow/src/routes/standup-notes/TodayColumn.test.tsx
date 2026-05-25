@@ -154,7 +154,7 @@ describe('TodayColumn', () => {
       render(
         <QueryClientProvider client={qc}>
           <MemoryRouter>
-            <TodayColumn onIssueClick={onIssueClick} />
+            <TodayColumn onIssueClick={onIssueClick} onMRClick={vi.fn()} />
           </MemoryRouter>
         </QueryClientProvider>,
       );
@@ -183,7 +183,7 @@ describe('TodayColumn', () => {
       render(
         <QueryClientProvider client={qc}>
           <MemoryRouter>
-            <TodayColumn onIssueClick={onIssueClick} />
+            <TodayColumn onIssueClick={onIssueClick} onMRClick={vi.fn()} />
           </MemoryRouter>
         </QueryClientProvider>,
       );
@@ -211,7 +211,7 @@ describe('TodayColumn', () => {
       render(
         <QueryClientProvider client={qc}>
           <MemoryRouter>
-            <TodayColumn onIssueClick={onIssueClick} />
+            <TodayColumn onIssueClick={onIssueClick} onMRClick={vi.fn()} />
           </MemoryRouter>
         </QueryClientProvider>,
       );
@@ -245,7 +245,7 @@ describe('TodayColumn', () => {
       render(
         <QueryClientProvider client={qc}>
           <MemoryRouter>
-            <TodayColumn onIssueClick={vi.fn()} />
+            <TodayColumn onIssueClick={vi.fn()} onMRClick={vi.fn()} />
           </MemoryRouter>
         </QueryClientProvider>,
       );
@@ -281,7 +281,7 @@ describe('TodayColumn', () => {
       render(
         <QueryClientProvider client={qc}>
           <MemoryRouter>
-            <TodayColumn onIssueClick={vi.fn()} />
+            <TodayColumn onIssueClick={vi.fn()} onMRClick={vi.fn()} />
           </MemoryRouter>
         </QueryClientProvider>,
       );
@@ -310,7 +310,7 @@ describe('TodayColumn', () => {
       render(
         <QueryClientProvider client={qc}>
           <MemoryRouter>
-            <TodayColumn onIssueClick={vi.fn()} />
+            <TodayColumn onIssueClick={vi.fn()} onMRClick={vi.fn()} />
           </MemoryRouter>
         </QueryClientProvider>,
       );
@@ -363,7 +363,7 @@ describe('TodayColumn', () => {
       render(
         <QueryClientProvider client={qc}>
           <MemoryRouter>
-            <TodayColumn onIssueClick={vi.fn()} />
+            <TodayColumn onIssueClick={vi.fn()} onMRClick={vi.fn()} />
           </MemoryRouter>
         </QueryClientProvider>,
       );
@@ -394,7 +394,7 @@ describe('TodayColumn', () => {
       render(
         <QueryClientProvider client={qc}>
           <MemoryRouter>
-            <TodayColumn onIssueClick={vi.fn()} />
+            <TodayColumn onIssueClick={vi.fn()} onMRClick={vi.fn()} />
           </MemoryRouter>
         </QueryClientProvider>,
       );

@@ -43,6 +43,7 @@ const BASE_PROPS = {
   isError: false,
   error: null,
   onRetry: vi.fn(),
+  onMRClick: vi.fn(),
 };
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
