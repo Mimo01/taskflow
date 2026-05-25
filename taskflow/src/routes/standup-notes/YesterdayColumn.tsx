@@ -432,6 +432,8 @@ export default function YesterdayColumn({
   const hasAnyData =
     issueGroups.length > 0 || standaloneMrGroups.length > 0 || otherCommits.length > 0;
 
+  const storyCount = issueGroups.filter((g) => g.totalSeconds > 0).length;
+
   const hasStatLine = totalSeconds > 0 || commitCount > 0 || mrEventCount > 0;
 
   // Determine whether all integrations are effectively disabled / empty
@@ -456,8 +458,9 @@ export default function YesterdayColumn({
       {hasStatLine && (
         <p className="text-xs text-muted-foreground mb-4">
           {formatDuration(totalSeconds)} logged across{' '}
-          {issueGroups.filter((g) => g.totalSeconds > 0).length} stories &middot; {commitCount}{' '}
-          commit{commitCount === 1 ? '' : 's'} &middot; {mrEventCount} MR events
+          {storyCount} stor{storyCount === 1 ? 'y' : 'ies'} &middot; {commitCount}{' '}
+          commit{commitCount === 1 ? '' : 's'} &middot; {mrEventCount} MR event
+          {mrEventCount === 1 ? '' : 's'}
         </p>
       )}
 
