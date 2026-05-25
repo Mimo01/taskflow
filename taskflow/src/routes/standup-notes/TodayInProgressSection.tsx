@@ -40,6 +40,7 @@ interface TodayInProgressSectionProps {
   error: Error | null;
   onRetry: () => void;
   onIssueClick: (key: string) => void;
+  onMRClick: (projectIdAndIid: string) => void;
   onLogWorkSuccess: () => void;
 }
 
@@ -155,7 +156,7 @@ function IssueRow({
 
 // ─── Nested MR row ────────────────────────────────────────────────────────────
 
-function NestedMrRow({ mr }: { mr: NestedMr }) {
+function NestedMrRow({ mr, onMRClick }: { mr: NestedMr; onMRClick: (projectIdAndIid: string) => void }) {
   const tag =
     mr.kind === 'review'
       ? 'review'
@@ -165,7 +166,15 @@ function NestedMrRow({ mr }: { mr: NestedMr }) {
 
   return (
     <div className="pl-6 border-l border-border ml-2">
-      <div className="flex items-center gap-2 py-2 px-2">
+      <div
+        role="button"
+        tabIndex={0}
+        className="flex items-center gap-2 py-2 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+        onClick={() => onMRClick(`${mr.projectId}/${mr.iid}`)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') onMRClick(`${mr.projectId}/${mr.iid}`);
+        }}
+      >
         <GitBranch className="size-4 shrink-0 text-muted-foreground" />
         <span className="text-xs text-muted-foreground font-mono shrink-0">!{mr.iid}</span>
         <span className="flex-1 min-w-0 truncate text-sm">{mr.title}</span>
@@ -189,6 +198,7 @@ export default function TodayInProgressSection({
   error,
   onRetry,
   onIssueClick,
+  onMRClick,
   onLogWorkSuccess,
 }: TodayInProgressSectionProps) {
   const showSkeleton = useDelayedLoading(isLoading);
@@ -233,7 +243,7 @@ export default function TodayInProgressSection({
                 />
               ))}
               {(mrsByStory.get(row.issue.key) ?? []).map((mr) => (
-                <NestedMrRow key={`${mr.kind}-${mr.iid}`} mr={mr} />
+                <NestedMrRow key={`${mr.kind}-${mr.iid}`} mr={mr} onMRClick={onMRClick} />
               ))}
             </div>
           ))}
