@@ -3,6 +3,27 @@
 All notable changes to Taskflow are documented here.
 Entries are written by hand for each release.
 
+## [1.10.0] — 2026-05-25
+
+### Added
+
+- **Standup Notes page** — a new sidebar page that assembles your daily standup at a glance. *Yesterday* covers your last working day (Monday rolls back to Friday; weekends and Tempo holidays are skipped) with your Tempo worklogs, Jira status changes and comments, Git commits, and merge-request activity. *Today* shows your open sprint subtasks grouped under their parent stories, with participating merge requests. Includes one-click "Copy as markdown" and refresh.
+- **Integrations step in the onboarding wizard** — enable AIO Test Management (with project picker) and Tempo Timesheets during first-time setup instead of going to Settings afterwards.
+
+### Changed
+
+- **Removed Developer / Project Manager roles** — everyone now sees every nav item and dashboard surface. The role step is gone from onboarding, and role toggles/presets are gone from Settings.
+- **Settings → Sidebar** is now a simple show/hide list; drag-to-reorder was removed.
+
+### Fixed
+
+- AIO test runs that are in progress now show as *In Progress* instead of *Not Executed*; AIO status mapping is more resilient to non-standard AIO instances.
+- Worklogs refresh immediately after you log time.
+- Merge-request discussions load past the previous 20-item cap.
+- Non-image attachments download correctly.
+- Searching a number also searches tasks in your selected projects.
+- Progress bars across the app share one consistent style.
+
 ## [1.9.0] — 2026-05-23
 
 ### Added
