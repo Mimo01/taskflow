@@ -8,11 +8,15 @@
  *   This lets stories appear even when I'm only assigned to a subtask of them,
  *   not to the story itself — with my subtask(s) nested underneath.
  *
+ * DONE EXCLUSION:
+ *   Items whose statusCategory.key === 'done' are dropped up front — done parents and
+ *   done subtasks never appear. A still-active subtask of a now-excluded done parent
+ *   resurfaces as a standalone row (its parent is no longer in the list → orphan).
+ *
  * STATUS PLACEMENT RULE (D-05 — revised for grouped display):
  *   The row's bucket (inProgress / upNext) is determined by the PARENT story's status
- *   category, NOT the subtask's own status. Subtasks nest under their parent regardless
- *   of the subtask's own statusCategory. This means a subtask in "done" state still
- *   appears under its in-progress parent — it shows MY work on that story.
+ *   category. My (non-done) subtasks nest under their parent regardless of the subtask's
+ *   own statusCategory.
  *
  * GROUPING RULE (Decision 1 — replaces old D-04 "leaf-only" rule):
  *   - Parent stories assigned to me → shown as top-level SprintRow rows.
@@ -50,16 +54,19 @@ export function filterSprintItems(
   const isAssignedToMe = (issue: JiraIssue): boolean =>
     issue.fields.assignee?.displayName === jiraUserDisplayName;
 
-  // All subtasks assigned to me in the flat list.
-  const mySubtasks = issues.filter((i) => i.fields.issuetype.subtask && isAssignedToMe(i));
+  // Drop done items up front — done tasks (parents and subtasks) never show.
+  const active = issues.filter((i) => i.fields.status.statusCategory?.key !== 'done');
+
+  // All subtasks assigned to me in the active list.
+  const mySubtasks = active.filter((i) => i.fields.issuetype.subtask && isAssignedToMe(i));
 
   // Set of parent keys that have at least one subtask assigned to me.
   const parentKeysWithMySubtask = new Set<string>(
     mySubtasks.map((s) => s.fields.parent?.key).filter((k): k is string => !!k),
   );
 
-  // All non-subtask issues in the flat list.
-  const allParents = issues.filter((i) => !i.fields.issuetype.subtask);
+  // All non-subtask issues in the active list.
+  const allParents = active.filter((i) => !i.fields.issuetype.subtask);
 
   // Index all parents by key for O(1) lookup and orphan detection.
   const allParentsByKey = new Map<string, JiraIssue>(allParents.map((p) => [p.key, p]));

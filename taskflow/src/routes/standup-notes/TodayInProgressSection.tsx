@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/error-state';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { Progress } from '@/components/ui/progress';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { formatDuration } from '@/services/jira/duration';
 import type { JiraIssue } from '@/services/jira';
@@ -118,6 +119,12 @@ function IssueRow({
         <IssueTypeIcon typeName={issueType} className="size-4 shrink-0" />
         <span className="text-xs text-muted-foreground font-mono shrink-0">{key}</span>
         <span className="flex-1 min-w-0 truncate text-sm">{summary}</span>
+        <CachedAvatar
+          url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
+          name={issue.fields.assignee?.displayName ?? 'Unassigned'}
+          size={20}
+          className="shrink-0"
+        />
         {sp != null && (
           <span className="shrink-0 rounded bg-muted px-2 py-1 text-xs text-muted-foreground">
             {sp} pts
