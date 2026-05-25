@@ -62,7 +62,8 @@ describe('TodayParticipatingSection', () => {
 
     expect(screen.getByText('Add login page')).toBeInTheDocument();
     expect(screen.getByText('Fix auth bug')).toBeInTheDocument();
-    expect(screen.getByText('PARTICIPATING (2)')).toBeInTheDocument();
+    expect(screen.getByText('Participating')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
   });
 
   it('returns null (no DOM output) when items list is empty and not loading', () => {
@@ -73,7 +74,7 @@ describe('TodayParticipatingSection', () => {
       />,
     );
 
-    expect(screen.queryByText(/PARTICIPATING/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Participating/)).not.toBeInTheDocument();
     expect(container.firstChild).toBeNull();
   });
 
@@ -131,7 +132,7 @@ describe('TodayParticipatingSection', () => {
     );
 
     // Section should still render (loading state), header without count
-    expect(screen.getByText('PARTICIPATING')).toBeInTheDocument();
+    expect(screen.getByText('Participating')).toBeInTheDocument();
   });
 
   it('renders section header with count=1 for single item', () => {
@@ -142,6 +143,7 @@ describe('TodayParticipatingSection', () => {
       />,
     );
 
-    expect(screen.getByText('PARTICIPATING (1)')).toBeInTheDocument();
+    expect(screen.getByText('Participating')).toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
   });
 });

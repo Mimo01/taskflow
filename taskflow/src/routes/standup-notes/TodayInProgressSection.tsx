@@ -22,26 +22,22 @@ import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { formatDuration } from '@/services/jira/duration';
 import type { JiraIssue } from '@/services/jira';
-import { LogWorkPopover } from '@/routes/dashboard/issue-detail/LogWorkPopover';
 import type { SprintRow } from './filterSprintItems';
 import type { NestedMr } from './mrMatching';
+import StandupSectionHeader from './StandupSectionHeader';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface TodayInProgressSectionProps {
   rows: SprintRow[];
   mrsByStory: Map<string, NestedMr[]>;
-  todayLoggedByIssue: Map<string, number>;
   storyPointsFieldKey: string;
-  jiraBaseUrl: string;
-  todayStr: string;
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
   onRetry: () => void;
   onIssueClick: (key: string) => void;
   onMRClick: (projectIdAndIid: string) => void;
-  onLogWorkSuccess: () => void;
 }
 
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
@@ -69,13 +65,15 @@ function ProgressBar({ issue }: ProgressBarProps) {
 
   const spentSec = tt?.timeSpentSeconds ?? 0;
   const fillPct = Math.min(100, Math.round((spentSec / originalSec) * 100));
+  const indicatorColor =
+    spentSec >= originalSec ? 'bg-red-500' : fillPct >= 75 ? 'bg-amber-500' : 'bg-green-500';
 
   return (
-    <div className="px-2 pb-2">
-      <Progress value={fillPct} className="max-w-[180px]" />
-      <p className="mt-1 text-xs text-muted-foreground tabular-nums">
-        {formatDuration(spentSec)} / {formatDuration(originalSec)} logged
-      </p>
+    <div className="shrink-0 flex items-center gap-2">
+      <Progress value={fillPct} className="w-20" indicatorClassName={indicatorColor} />
+      <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+        {formatDuration(spentSec)} / {formatDuration(originalSec)}
+      </span>
     </div>
   );
 }
@@ -84,41 +82,28 @@ function ProgressBar({ issue }: ProgressBarProps) {
 
 interface IssueRowProps {
   issue: JiraIssue;
-  todayLoggedByIssue: Map<string, number>;
   storyPointsFieldKey: string;
-  jiraBaseUrl: string;
-  todayStr: string;
   onIssueClick: (key: string) => void;
-  onLogWorkSuccess: () => void;
   indented?: boolean;
 }
 
 function IssueRow({
   issue,
-  todayLoggedByIssue,
   storyPointsFieldKey,
-  jiraBaseUrl,
-  todayStr,
   onIssueClick,
-  onLogWorkSuccess,
   indented = false,
 }: IssueRowProps) {
   const issueType = issue.fields.issuetype.name;
   const key = issue.key;
   const summary = issue.fields.summary;
   const sp = issue.fields[storyPointsFieldKey] as number | null;
-  const loggedSeconds = todayLoggedByIssue.get(key) ?? 0;
 
   return (
-    <div className={indented ? 'pl-6 border-l border-border ml-2' : undefined}>
-      <div
-        role="button"
-        tabIndex={0}
-        className="w-full flex items-center gap-2 rounded px-2 py-3 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+    <div className={indented ? 'pl-6 ml-2' : undefined}>
+      <button
+        type="button"
+        className="w-full flex items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
         onClick={() => onIssueClick(key)}
-        onKeyDown={(e) => {
-          if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) onIssueClick(key);
-        }}
       >
         <IssueTypeIcon typeName={issueType} className="size-4 shrink-0" />
         <span className="text-xs text-muted-foreground font-mono shrink-0">{key}</span>
@@ -128,28 +113,14 @@ function IssueRow({
             {sp} pts
           </span>
         )}
+        <ProgressBar issue={issue} />
         <CachedAvatar
           url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
           name={issue.fields.assignee?.displayName ?? 'Unassigned'}
           size={20}
           className="shrink-0"
         />
-        {loggedSeconds > 0 && (
-          <span className="shrink-0 rounded bg-muted px-2 py-1 text-xs text-muted-foreground ml-1">
-            {formatDuration(loggedSeconds)}
-          </span>
-        )}
-        {/* stopPropagation: Log Work must NOT trigger row navigation (D-07, Pitfall 4) */}
-        <span onClick={(e) => e.stopPropagation()}>
-          <LogWorkPopover
-            issueKey={key}
-            jiraBaseUrl={jiraBaseUrl}
-            initialDate={todayStr}
-            onSuccess={onLogWorkSuccess}
-          />
-        </span>
-      </div>
-      <ProgressBar issue={issue} />
+      </button>
     </div>
   );
 }
@@ -165,21 +136,17 @@ function NestedMrRow({ mr, onMRClick }: { mr: NestedMr; onMRClick: (projectIdAnd
         : 'participating';
 
   return (
-    <div className="pl-6 border-l border-border ml-2">
-      <div
-        role="button"
-        tabIndex={0}
-        className="flex items-center gap-2 py-3 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+    <div className="pl-6 ml-2">
+      <button
+        type="button"
+        className="w-full text-left flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
         onClick={() => onMRClick(`${mr.projectId}/${mr.iid}`)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') onMRClick(`${mr.projectId}/${mr.iid}`);
-        }}
       >
         <GitBranch className="size-4 shrink-0 text-muted-foreground" />
         <span className="text-xs text-muted-foreground font-mono shrink-0">!{mr.iid}</span>
         <span className="flex-1 min-w-0 truncate text-sm">{mr.title}</span>
         <span className="text-xs text-muted-foreground shrink-0">{tag}</span>
-      </div>
+      </button>
     </div>
   );
 }
@@ -189,17 +156,13 @@ function NestedMrRow({ mr, onMRClick }: { mr: NestedMr; onMRClick: (projectIdAnd
 export default function TodayInProgressSection({
   rows,
   mrsByStory,
-  todayLoggedByIssue,
   storyPointsFieldKey,
-  jiraBaseUrl,
-  todayStr,
   isLoading,
   isError,
   error,
   onRetry,
   onIssueClick,
   onMRClick,
-  onLogWorkSuccess,
 }: TodayInProgressSectionProps) {
   const showSkeleton = useDelayedLoading(isLoading);
 
@@ -210,40 +173,27 @@ export default function TodayInProgressSection({
 
   return (
     <div className="mb-4">
-      <div className="flex items-center gap-2 mb-2">
-        <h3 className="text-xs text-muted-foreground uppercase tracking-wide">IN PROGRESS</h3>
-        {rows.length > 0 && (
-          <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{rows.length}</span>
-        )}
-      </div>
+      <StandupSectionHeader label="In Progress" count={rows.length} />
 
       {showSkeleton ? (
         <LoadingSkeletons />
       ) : isError ? (
         <ErrorState error={error} onRetry={onRetry} viewName="In Progress items" />
       ) : (
-        <div className="divide-y divide-border">
+        <div className="[&>*]:py-2">
           {rows.map((row) => (
             <div key={row.issue.key}>
               <IssueRow
                 issue={row.issue}
-                todayLoggedByIssue={todayLoggedByIssue}
                 storyPointsFieldKey={storyPointsFieldKey}
-                jiraBaseUrl={jiraBaseUrl}
-                todayStr={todayStr}
                 onIssueClick={onIssueClick}
-                onLogWorkSuccess={onLogWorkSuccess}
               />
               {row.subtasks.map((subtask) => (
                 <IssueRow
                   key={subtask.key}
                   issue={subtask}
-                  todayLoggedByIssue={todayLoggedByIssue}
                   storyPointsFieldKey={storyPointsFieldKey}
-                  jiraBaseUrl={jiraBaseUrl}
-                  todayStr={todayStr}
                   onIssueClick={onIssueClick}
-                  onLogWorkSuccess={onLogWorkSuccess}
                   indented
                 />
               ))}

@@ -71,7 +71,7 @@ describe('TodayMrsSection — MRs scope', () => {
     expect(screen.getByText('Refactor checkout flow')).toBeInTheDocument();
   });
 
-  it('renders the MRS AWAITING YOU section header when items are present', () => {
+  it('renders the MRs Awaiting You section header when items are present', () => {
     render(
       <TodayMrsSection
         {...BASE_PROPS}
@@ -79,7 +79,7 @@ describe('TodayMrsSection — MRs scope', () => {
       />,
     );
 
-    expect(screen.getByText('MRS AWAITING YOU')).toBeInTheDocument();
+    expect(screen.getByText('MRs Awaiting You')).toBeInTheDocument();
   });
 
   it('returns null (no header) when items list is empty and not loading', () => {
@@ -90,7 +90,7 @@ describe('TodayMrsSection — MRs scope', () => {
       />,
     );
 
-    expect(screen.queryByText('MRS AWAITING YOU')).not.toBeInTheDocument();
+    expect(screen.queryByText('MRs Awaiting You')).not.toBeInTheDocument();
     expect(container.firstChild).toBeNull();
   });
 

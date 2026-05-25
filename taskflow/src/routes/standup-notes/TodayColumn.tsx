@@ -3,8 +3,8 @@
  *
  * Owns three independent TanStack queries:
  *   1. sprint-board-today-full: full current sprint issues (D-04/D-05; filtered client-side)
- *   2. today-tempo: Tempo worklogs for today (logged-time chips)
- *   3. reviewer-mrs: GitLab MRs awaiting my review
+ *   2. reviewer-mrs: GitLab MRs awaiting my review
+ *   3. participating-mrs: GitLab MRs I've commented on
  *
  * T-62-06: jiraToken / gitlabToken MUST NOT appear in any queryKey.
  * Tokens live inside queryFn closures only.
@@ -12,12 +12,9 @@
  * Pitfall 1: Uses distinct key 'sprint-board-today-full' (NOT 'sprint-board') to
  * avoid contaminating the shared sprint board cache used by SprintBoardTab
  * and DashboardInProgressCard.
- *
- * Phase 62 rule: todayString() uses explicit Y-M-D formatting — never
- * toLocaleDateString() which varies by OS locale.
  */
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Clock } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -26,10 +23,7 @@ import type { GitLabMR, ParticipatedMR } from '@/services/gitlab';
 import { fetchParticipatedMRs, fetchReviewerMRs } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
 import { fetchSprintIssues } from '@/services/jira';
-import { formatDuration } from '@/services/jira/duration';
 import { readSecret } from '@/services/stronghold';
-import type { TempoWorklog } from '@/services/tempo';
-import { fetchWorklogs } from '@/services/tempo';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { filterSprintItems } from './filterSprintItems';
@@ -58,15 +52,6 @@ const MONTHS = [
 ];
 
 /**
- * Returns today as a YYYY-MM-DD string, TZ-safe (Phase 62 standing rule).
- * Mirrors LogWorkPopover.todayString() — not exported from there.
- */
-function todayString(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-/**
  * Formats today's date as "Weekday, D Month YYYY".
  * No toLocaleDateString — explicit array lookups per Phase 62 rule.
  */
@@ -85,8 +70,6 @@ function formatTodayDate(): string {
 export const todayQueryKeys = {
   sprint: (project: string | null | undefined, spFieldKey: string | null | undefined) =>
     ['jira-issues', 'sprint-board-today-full', project, spFieldKey] as const,
-  tempo: (base: string | null | undefined, date: string, username: string | null | undefined) =>
-    ['standup', 'today-tempo', base, date, username ?? ''] as const,
   reviewerMrs: (base: string | null | undefined, userId: number | null | undefined) =>
     ['standup', 'reviewer-mrs', base, userId] as const,
   participatingMrs: (base: string | null | undefined, userId: number | null | undefined) =>
@@ -95,7 +78,6 @@ export const todayQueryKeys = {
 
 export interface TodayMarkdownSources {
   sprintData?: JiraIssue[];
-  todayTempoData?: TempoWorklog[];
   reviewerMrsData?: GitLabMR[];
   participatingMrsData?: ParticipatedMR[];
   jiraUserDisplayName?: string | null;
@@ -107,11 +89,6 @@ export function generateTodayMarkdown(sources: TodayMarkdownSources, todayDate: 
     sources.jiraUserDisplayName ?? '',
   );
 
-  const todayLoggedByIssue = new Map<string, number>();
-  for (const w of sources.todayTempoData ?? []) {
-    todayLoggedByIssue.set(w.issue.key, (todayLoggedByIssue.get(w.issue.key) ?? 0) + w.timeSpentSeconds);
-  }
-
   const { mrsByStory, unmatchedReviewerMrs, unmatchedParticipatingMrs } = matchMrsToStories(
     [...inProgress, ...upNext],
     sources.reviewerMrsData ?? [],
@@ -122,8 +99,6 @@ export function generateTodayMarkdown(sources: TodayMarkdownSources, todayDate: 
 
   for (const row of inProgress) {
     lines.push(`### ${row.issue.key}: ${row.issue.fields.summary ?? row.issue.key}`);
-    const secs = todayLoggedByIssue.get(row.issue.key) ?? 0;
-    if (secs > 0) lines.push(`- ${formatDuration(secs)} logged today`);
     for (const subtask of row.subtasks) {
       lines.push(`- ${subtask.key}: ${subtask.fields.summary ?? subtask.key}`);
     }
@@ -189,7 +164,6 @@ export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProp
     jiraBaseUrl,
     gitlabBaseUrl,
     activeJiraProject,
-    jiraUsername,
     gitlabUserId,
   } = useAuthStore();
 
@@ -197,7 +171,6 @@ export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProp
   const jiraUserDisplayName = useAuthStore((s) => s.jiraUserDisplayName);
 
   // ─── Settings store — one selector per field (IN-01: Phase 68 rule) ─────────
-  const tempoEnabled = useSettingsStore((s) => s.tempoEnabled);
   const storyPointsFieldKey = useSettingsStore((s) => s.storyPointsFieldKey);
 
   // ─── Token loading (Pattern 2 / T-62-06) ─────────────────────────────────────
@@ -221,9 +194,6 @@ export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProp
     }
   }, [gitlabBaseUrl]);
 
-  // ─── TZ-safe today date (memoized — stable for this mount) ───────────────────
-  const todayStr = useMemo(() => todayString(), []);
-
   // ─── Query 1: Full sprint issues (filtered client-side in filterSprintItems) ──
   // Key: 'sprint-board-today-full' — distinct from 'sprint-board' to avoid
   // contaminating the shared full-team cache used by SprintBoardTab/DashboardInProgressCard.
@@ -237,16 +207,7 @@ export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProp
     staleTime: 30_000,
   });
 
-  // ─── Query 2: Today Tempo worklogs (for logged-time chips) ───────────────────
-  const todayTempoQuery = useQuery({
-    queryKey: ['standup', 'today-tempo', jiraBaseUrl, todayStr, jiraUsername ?? ''],
-    queryFn: () =>
-      fetchWorklogs(jiraBaseUrl!, jiraToken!, [jiraUsername!], todayStr, todayStr),
-    enabled: !!jiraBaseUrl && !!jiraToken && tempoEnabled && !!jiraUsername,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // ─── Query 3: Reviewer MRs awaiting my review ────────────────────────────────
+  // ─── Query 2: Reviewer MRs awaiting my review ────────────────────────────────
   const reviewerMrsQuery = useQuery({
     queryKey: ['standup', 'reviewer-mrs', gitlabBaseUrl, gitlabUserId],
     queryFn: async () => {
@@ -258,7 +219,7 @@ export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProp
     staleTime: 5 * 60 * 1000,
   });
 
-  // ─── Query 4: MRs I've participated in (commented on) — role-independent ──────
+  // ─── Query 3: MRs I've participated in (commented on) — role-independent ──────
   // T-62-06: token is read inside queryFn, NOT placed in queryKey.
   const participatingMrsQuery = useQuery({
     queryKey: ['standup', 'participating-mrs', gitlabBaseUrl, gitlabUserId],
@@ -279,15 +240,6 @@ export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProp
     [sprintQuery.data, jiraUserDisplayName],
   );
 
-  // Build a per-issue seconds map from today's Tempo worklogs
-  const todayLoggedByIssue = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const w of todayTempoQuery.data ?? []) {
-      map.set(w.issue.key, (map.get(w.issue.key) ?? 0) + w.timeSpentSeconds);
-    }
-    return map;
-  }, [todayTempoQuery.data]);
-
   // Match MRs to displayed sprint stories (both reviewer + participating)
   const { mrsByStory, unmatchedReviewerMrs, unmatchedParticipatingMrs } = useMemo(
     () =>
@@ -298,20 +250,6 @@ export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProp
       ),
     [inProgress, upNext, reviewerMrsQuery.data, participatingMrsQuery.data],
   );
-
-  // ─── Handlers ────────────────────────────────────────────────────────────────
-
-  const queryClient = useQueryClient();
-
-  /**
-   * Invalidate today's Tempo query after a successful Log Work submission so
-   * the logged-time chips refresh immediately.
-   */
-  function handleLogWorkSuccess() {
-    void queryClient.invalidateQueries({
-      queryKey: ['standup', 'today-tempo', jiraBaseUrl, todayStr, jiraUsername ?? ''],
-    });
-  }
 
   // ─── Loading state helpers (for empty-state gate) ─────────────────────────────
   const sprintLoading = useDelayedLoading(sprintQuery.isLoading);
@@ -335,34 +273,43 @@ export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProp
     !reviewerMrsQuery.isError &&
     !participatingMrsQuery.isError;
 
+  // Every MR shown in the column: those nested under a story + the unmatched fallbacks.
+  const nestedMrCount = [...mrsByStory.values()].reduce((sum, mrs) => sum + mrs.length, 0);
+  const mrCount = nestedMrCount + unmatchedReviewerMrs.length + unmatchedParticipatingMrs.length;
+
   // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col h-full px-6 py-4">
       {/* Column heading */}
-      <div className="mb-2">
-        <h2 className="text-xl font-semibold">Today</h2>
+      <div className="mb-2 flex items-baseline gap-2">
+        <h2 className="text-2xl font-semibold">Today</h2>
         <p className="text-xs text-muted-foreground">{formatTodayDate()}</p>
       </div>
 
-      {/* Sections 1-4: divide-y so borders only appear between visible sections.
-          Sections return null when empty, so divide-y skips null children correctly. */}
-      <div className="flex flex-col divide-y divide-border">
+      {/* Summary stat line — mirrors the Yesterday column so both stay vertically aligned */}
+      {hasAnyData && (
+        <p className="text-xs text-muted-foreground mb-4">
+          {inProgress.length} in progress &middot; {upNext.length} up next &middot; {mrCount} MRs
+        </p>
+      )}
+
+      {/* Sections separated by spacing only (no dividers). Hidden entirely when the
+          whole column resolved empty — the full-column empty state takes over so
+          Up Next's "nothing up next" doesn't compete with it. */}
+      {!allSettledEmpty && (
+      <div className="flex flex-col">
         {/* Section 1: In Progress (D-01: fixed order) */}
         <TodayInProgressSection
           rows={inProgress}
           mrsByStory={mrsByStory}
-          todayLoggedByIssue={todayLoggedByIssue}
           storyPointsFieldKey={storyPointsFieldKey}
-          jiraBaseUrl={jiraBaseUrl ?? ''}
-          todayStr={todayStr}
           isLoading={sprintQuery.isLoading}
           isError={sprintQuery.isError}
           error={sprintQuery.error}
           onRetry={() => void sprintQuery.refetch()}
           onIssueClick={onIssueClick}
           onMRClick={onMRClick}
-          onLogWorkSuccess={handleLogWorkSuccess}
         />
 
         {/* Section 2: Up Next (D-01: fixed order) */}
@@ -370,15 +317,12 @@ export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProp
           rows={upNext}
           mrsByStory={mrsByStory}
           storyPointsFieldKey={storyPointsFieldKey}
-          jiraBaseUrl={jiraBaseUrl ?? ''}
-          todayStr={todayStr}
           isLoading={sprintQuery.isLoading}
           isError={sprintQuery.isError}
           error={sprintQuery.error}
           onRetry={() => void sprintQuery.refetch()}
           onIssueClick={onIssueClick}
           onMRClick={onMRClick}
-          onLogWorkSuccess={handleLogWorkSuccess}
         />
 
         {/* Section 3: MRs Awaiting You — unmatched only; hidden when GitLab not connected (D-02, D-10) */}
@@ -405,6 +349,7 @@ export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProp
           />
         )}
       </div>
+      )}
 
       {/* Full-column empty state — only when all sections resolved empty */}
       {allSettledEmpty && (

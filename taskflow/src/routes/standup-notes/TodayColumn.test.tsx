@@ -1,13 +1,13 @@
 /**
- * TodayColumn render/interaction tests — STAND-09, STAND-08, MRs scope
+ * TodayColumn render/interaction tests — STAND-08, MRs scope
  *
  * Tests:
- *   1. Log Work trigger present on In Progress rows (STAND-09)
- *   2. Log Work trigger present on Up Next rows (STAND-09 / D-06)
- *   3. Log Work click does NOT invoke row's onIssueClick spy (STAND-09 / D-07)
+ *   1. Parent story with subtasks renders in In Progress section
+ *   2. Progress bar rendering (Decision 2)
+ *   3. Nested MR under matched story (phase 70 MR matching)
  *   4. MRS AWAITING YOU section absent when GitLab not connected (MRs scope)
  *
- * Strategy: mock all four useQuery calls to return fixture data synchronously,
+ * Strategy: mock all useQuery calls to return fixture data synchronously,
  * mock the stores, and mount TodayColumn inside the required providers.
  *
  * Pattern source: SprintHealthPanel.test.tsx + YesterdayColumn.tempo-disabled.test.tsx
@@ -15,7 +15,6 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { JiraIssue } from '@/services/jira';
@@ -134,97 +133,6 @@ describe('TodayColumn', () => {
     vi.clearAllMocks();
   });
 
-  describe('Log Work trigger — STAND-09', () => {
-    it('shows a Log Work trigger on In Progress rows', async () => {
-      const { useQuery } = await import('@tanstack/react-query');
-      const inProgressIssue = makeIssue('PROJ-1', 'indeterminate');
-
-      vi.mocked(useQuery).mockImplementation((opts) => {
-        const key = Array.isArray(opts.queryKey) ? opts.queryKey[1] : '';
-        if (key === 'sprint-board-today-full') {
-          return { data: [inProgressIssue], isLoading: false, isError: false } as ReturnType<typeof useQuery>;
-        }
-        return { data: undefined, isLoading: false, isError: false } as ReturnType<typeof useQuery>;
-      });
-
-      const onIssueClick = vi.fn();
-      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-      const { default: TodayColumn } = await import('./TodayColumn');
-
-      render(
-        <QueryClientProvider client={qc}>
-          <MemoryRouter>
-            <TodayColumn onIssueClick={onIssueClick} onMRClick={vi.fn()} />
-          </MemoryRouter>
-        </QueryClientProvider>,
-      );
-
-      // The LogWorkPopover renders a built-in "Log Work" trigger button
-      const logWorkButtons = screen.getAllByText('Log Work');
-      expect(logWorkButtons.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('shows a Log Work trigger on Up Next rows (D-06: both sections loggable)', async () => {
-      const { useQuery } = await import('@tanstack/react-query');
-      const upNextIssue = makeIssue('PROJ-2', 'new');
-
-      vi.mocked(useQuery).mockImplementation((opts) => {
-        const key = Array.isArray(opts.queryKey) ? opts.queryKey[1] : '';
-        if (key === 'sprint-board-today-full') {
-          return { data: [upNextIssue], isLoading: false, isError: false } as ReturnType<typeof useQuery>;
-        }
-        return { data: undefined, isLoading: false, isError: false } as ReturnType<typeof useQuery>;
-      });
-
-      const onIssueClick = vi.fn();
-      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-      const { default: TodayColumn } = await import('./TodayColumn');
-
-      render(
-        <QueryClientProvider client={qc}>
-          <MemoryRouter>
-            <TodayColumn onIssueClick={onIssueClick} onMRClick={vi.fn()} />
-          </MemoryRouter>
-        </QueryClientProvider>,
-      );
-
-      const logWorkButtons = screen.getAllByText('Log Work');
-      expect(logWorkButtons.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('clicking Log Work does NOT invoke onIssueClick (stopPropagation — D-07)', async () => {
-      const { useQuery } = await import('@tanstack/react-query');
-      const inProgressIssue = makeIssue('PROJ-3', 'indeterminate');
-
-      vi.mocked(useQuery).mockImplementation((opts) => {
-        const key = Array.isArray(opts.queryKey) ? opts.queryKey[1] : '';
-        if (key === 'sprint-board-today-full') {
-          return { data: [inProgressIssue], isLoading: false, isError: false } as ReturnType<typeof useQuery>;
-        }
-        return { data: undefined, isLoading: false, isError: false } as ReturnType<typeof useQuery>;
-      });
-
-      const onIssueClick = vi.fn();
-      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-      const { default: TodayColumn } = await import('./TodayColumn');
-
-      render(
-        <QueryClientProvider client={qc}>
-          <MemoryRouter>
-            <TodayColumn onIssueClick={onIssueClick} onMRClick={vi.fn()} />
-          </MemoryRouter>
-        </QueryClientProvider>,
-      );
-
-      // Click the Log Work trigger
-      const logWorkButton = screen.getByText('Log Work');
-      await userEvent.click(logWorkButton);
-
-      // onIssueClick must NOT have been called — stopPropagation blocks row navigation
-      expect(onIssueClick).not.toHaveBeenCalled();
-    });
-  });
-
   describe('Parent story with subtasks — gap #5 regression guard', () => {
     it('shows a parent story (non-subtask with subtasksLen>0) in In Progress section', async () => {
       const { useQuery } = await import('@tanstack/react-query');
@@ -250,8 +158,8 @@ describe('TodayColumn', () => {
         </QueryClientProvider>,
       );
 
-      // The parent story summary must appear in IN PROGRESS
-      expect(screen.getByText('IN PROGRESS')).toBeInTheDocument();
+      // The parent story summary must appear in In Progress
+      expect(screen.getByText('In Progress')).toBeInTheDocument();
       expect(screen.getByText('Summary of PROJ-10')).toBeInTheDocument();
     });
   });
@@ -286,9 +194,9 @@ describe('TodayColumn', () => {
         </QueryClientProvider>,
       );
 
-      // Progress caption (shared ui/Progress): "<spent> / <estimate> logged"
+      // Inline progress caption: "<spent> / <estimate>"
       // 18000s = 5h, 36000s = 10h
-      expect(screen.getByText(/5h \/ 10h logged/)).toBeInTheDocument();
+      expect(screen.getByText(/5h \/ 10h/)).toBeInTheDocument();
     });
 
     it('does NOT render a progress bar when no originalEstimateSeconds', async () => {
@@ -373,8 +281,8 @@ describe('TodayColumn', () => {
       expect(screen.getByText('[PROJ-50] Implement feature')).toBeInTheDocument();
       // The "review" tag should appear
       expect(screen.getByText('review')).toBeInTheDocument();
-      // The MRS AWAITING YOU section should be absent (all MRs matched)
-      expect(screen.queryByText('MRS AWAITING YOU')).not.toBeInTheDocument();
+      // The MRs Awaiting You section should be absent (all MRs matched)
+      expect(screen.queryByText('MRs Awaiting You')).not.toBeInTheDocument();
     });
   });
 
@@ -399,8 +307,8 @@ describe('TodayColumn', () => {
         </QueryClientProvider>,
       );
 
-      // The "MRS AWAITING YOU" section header must not be in the DOM
-      expect(screen.queryByText('MRS AWAITING YOU')).not.toBeInTheDocument();
+      // The "MRs Awaiting You" section header must not be in the DOM
+      expect(screen.queryByText('MRs Awaiting You')).not.toBeInTheDocument();
     });
   });
 });

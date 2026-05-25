@@ -17,7 +17,7 @@
  * returns null (hidden) when 0 rows + not loading + not erroring.
  */
 
-import { GitBranch } from 'lucide-react';
+import { Coffee, GitBranch } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/error-state';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
@@ -26,9 +26,9 @@ import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { formatDuration } from '@/services/jira/duration';
 import type { JiraIssue } from '@/services/jira';
-import { LogWorkPopover } from '@/routes/dashboard/issue-detail/LogWorkPopover';
 import type { SprintRow } from './filterSprintItems';
 import type { NestedMr } from './mrMatching';
+import StandupSectionHeader from './StandupSectionHeader';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -36,15 +36,12 @@ interface TodayUpNextSectionProps {
   rows: SprintRow[];
   mrsByStory: Map<string, NestedMr[]>;
   storyPointsFieldKey: string;
-  jiraBaseUrl: string;
-  todayStr: string;
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
   onRetry: () => void;
   onIssueClick: (key: string) => void;
   onMRClick: (projectIdAndIid: string) => void;
-  onLogWorkSuccess: () => void;
 }
 
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
@@ -72,13 +69,15 @@ function ProgressBar({ issue }: ProgressBarProps) {
 
   const spentSec = tt?.timeSpentSeconds ?? 0;
   const fillPct = Math.min(100, Math.round((spentSec / originalSec) * 100));
+  const indicatorColor =
+    spentSec >= originalSec ? 'bg-red-500' : fillPct >= 75 ? 'bg-amber-500' : 'bg-green-500';
 
   return (
-    <div className="px-2 pb-2">
-      <Progress value={fillPct} />
-      <p className="mt-1 text-xs text-muted-foreground tabular-nums">
-        {formatDuration(spentSec)} / {formatDuration(originalSec)} logged
-      </p>
+    <div className="shrink-0 flex items-center gap-2">
+      <Progress value={fillPct} className="w-20" indicatorClassName={indicatorColor} />
+      <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+        {formatDuration(spentSec)} / {formatDuration(originalSec)}
+      </span>
     </div>
   );
 }
@@ -88,20 +87,14 @@ function ProgressBar({ issue }: ProgressBarProps) {
 interface IssueRowProps {
   issue: JiraIssue;
   storyPointsFieldKey: string;
-  jiraBaseUrl: string;
-  todayStr: string;
   onIssueClick: (key: string) => void;
-  onLogWorkSuccess: () => void;
   indented?: boolean;
 }
 
 function IssueRow({
   issue,
   storyPointsFieldKey,
-  jiraBaseUrl,
-  todayStr,
   onIssueClick,
-  onLogWorkSuccess,
   indented = false,
 }: IssueRowProps) {
   const issueType = issue.fields.issuetype.name;
@@ -110,15 +103,11 @@ function IssueRow({
   const sp = issue.fields[storyPointsFieldKey] as number | null;
 
   return (
-    <div className={indented ? 'pl-6 border-l border-border ml-2' : undefined}>
-      <div
-        role="button"
-        tabIndex={0}
-        className="w-full flex items-center gap-2 rounded px-2 py-3 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+    <div className={indented ? 'pl-6 ml-2' : undefined}>
+      <button
+        type="button"
+        className="w-full flex items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
         onClick={() => onIssueClick(key)}
-        onKeyDown={(e) => {
-          if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) onIssueClick(key);
-        }}
       >
         <IssueTypeIcon typeName={issueType} className="size-4 shrink-0" />
         <span className="text-xs text-muted-foreground font-mono shrink-0">{key}</span>
@@ -128,23 +117,14 @@ function IssueRow({
             {sp} pts
           </span>
         )}
+        <ProgressBar issue={issue} />
         <CachedAvatar
           url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
           name={issue.fields.assignee?.displayName ?? 'Unassigned'}
           size={20}
           className="shrink-0"
         />
-        {/* stopPropagation: Log Work must NOT trigger row navigation (D-07, Pitfall 4) */}
-        <span onClick={(e) => e.stopPropagation()}>
-          <LogWorkPopover
-            issueKey={key}
-            jiraBaseUrl={jiraBaseUrl}
-            initialDate={todayStr}
-            onSuccess={onLogWorkSuccess}
-          />
-        </span>
-      </div>
-      <ProgressBar issue={issue} />
+      </button>
     </div>
   );
 }
@@ -160,21 +140,17 @@ function NestedMrRow({ mr, onMRClick }: { mr: NestedMr; onMRClick: (projectIdAnd
         : 'participating';
 
   return (
-    <div className="pl-6 border-l border-border ml-2">
-      <div
-        role="button"
-        tabIndex={0}
-        className="flex items-center gap-2 py-3 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+    <div className="pl-6 ml-2">
+      <button
+        type="button"
+        className="w-full text-left flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
         onClick={() => onMRClick(`${mr.projectId}/${mr.iid}`)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') onMRClick(`${mr.projectId}/${mr.iid}`);
-        }}
       >
         <GitBranch className="size-4 shrink-0 text-muted-foreground" />
         <span className="text-xs text-muted-foreground font-mono shrink-0">!{mr.iid}</span>
         <span className="flex-1 min-w-0 truncate text-sm">{mr.title}</span>
         <span className="text-xs text-muted-foreground shrink-0">{tag}</span>
-      </div>
+      </button>
     </div>
   );
 }
@@ -185,57 +161,45 @@ export default function TodayUpNextSection({
   rows,
   mrsByStory,
   storyPointsFieldKey,
-  jiraBaseUrl,
-  todayStr,
   isLoading,
   isError,
   error,
   onRetry,
   onIssueClick,
   onMRClick,
-  onLogWorkSuccess,
 }: TodayUpNextSectionProps) {
   const showSkeleton = useDelayedLoading(isLoading);
 
-  // D-03: hidden when empty + settled
-  if (!isLoading && !showSkeleton && !isError && rows.length === 0) {
-    return null;
-  }
-
+  // Unlike the other sections, Up Next always renders — an empty "nothing up
+  // next" state is meaningful for standup (it confirms there's no queued work).
   return (
     <div className="mb-4 pt-4">
-      <div className="flex items-center gap-2 mb-2">
-        <h3 className="text-xs text-muted-foreground uppercase tracking-wide">UP NEXT</h3>
-        {rows.length > 0 && (
-          <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{rows.length}</span>
-        )}
-      </div>
+      <StandupSectionHeader label="Up Next" count={rows.length} showZero={!showSkeleton && !isError} />
 
       {showSkeleton ? (
         <LoadingSkeletons />
       ) : isError ? (
         <ErrorState error={error} onRetry={onRetry} viewName="Up Next items" />
+      ) : rows.length === 0 ? (
+        <div className="flex items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground">
+          <Coffee className="size-4 shrink-0" />
+          <span>Nothing up next — enjoy the breather</span>
+        </div>
       ) : (
-        <div className="divide-y divide-border">
+        <div className="[&>*]:py-2">
           {rows.map((row) => (
             <div key={row.issue.key}>
               <IssueRow
                 issue={row.issue}
                 storyPointsFieldKey={storyPointsFieldKey}
-                jiraBaseUrl={jiraBaseUrl}
-                todayStr={todayStr}
                 onIssueClick={onIssueClick}
-                onLogWorkSuccess={onLogWorkSuccess}
               />
               {row.subtasks.map((subtask) => (
                 <IssueRow
                   key={subtask.key}
                   issue={subtask}
                   storyPointsFieldKey={storyPointsFieldKey}
-                  jiraBaseUrl={jiraBaseUrl}
-                  todayStr={todayStr}
                   onIssueClick={onIssueClick}
-                  onLogWorkSuccess={onLogWorkSuccess}
                   indented
                 />
               ))}
