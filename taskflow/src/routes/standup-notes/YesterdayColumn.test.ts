@@ -7,7 +7,7 @@
  * (note.noteable_iid), NOT target_iid (which is the per-comment note id).
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { GitLabUserMREvent } from '@/services/gitlab';
 import type { StandupIssueMeta } from '@/services/jira';
 import type { TempoWorklog } from '@/services/tempo';
@@ -148,3 +148,25 @@ describe('generateMarkdown — parent-story rollup', () => {
     expect(md).toContain('1h · ESHOP-2 Wire up form');
   });
 });
+
+describe('generateMarkdown — section header label', () => {
+  it('uses "Yesterday" when the date is the calendar day before today', () => {
+    // Pin today to a Tuesday so yesterday is Monday 2026-05-25
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-26T09:00:00Z'));
+    const md = generateMarkdown({}, '2026-05-25');
+    expect(md).toMatch(/^## Yesterday \(2026-05-25\)/m);
+    vi.useRealTimers();
+  });
+
+  it('uses the day name when the last working day was not calendar-yesterday (after weekend)', () => {
+    // Pin today to a Tuesday (2026-05-26); last working day is Friday (2026-05-22)
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-26T09:00:00Z')); // Tuesday
+    const md = generateMarkdown({}, '2026-05-22'); // Friday two days ago
+    expect(md).toMatch(/^## Friday \(2026-05-22\)/m);
+    expect(md).not.toContain('## Yesterday');
+    vi.useRealTimers();
+  });
+});
+
