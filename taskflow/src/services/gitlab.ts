@@ -20,6 +20,8 @@ export interface GitLabUser {
   id: number;
   name: string;
   username: string;
+  /** Account primary email from GET /api/v4/user; null when scope/visibility hides it. */
+  email: string | null;
 }
 
 export interface GitLabGroup {
@@ -65,7 +67,7 @@ export async function validateGitLab(baseUrl: string, token: string): Promise<Gi
 
   if (response.ok) {
     const data = await response.json();
-    return { id: data.id, name: data.name, username: data.username };
+    return { id: data.id, name: data.name, username: data.username, email: data.email ?? null };
   }
 
   if (response.status === 401) {
@@ -1107,14 +1109,33 @@ export interface GitLabCommit {
  * STAND-05: Used by the Standup Notes page to show Git commits in the Yesterday recap.
  *
  * Strategy (D-14 resolution: activeGitlabProject only):
- * - GET /api/v4/projects/:projectId/repository/commits with since/until for full UTC day
- * - Client-side author filter (case-insensitive): author_name match or author_email contains username
+ * - GET /api/v4/projects/:projectId/repository/commits with since/until covering
+ *   the user's LOCAL calendar day (converted to UTC), so the window matches the
+ *   local `date` that resolveYesterdayDate() produces.
+ * - all=true: includes commits on EVERY branch/tag (not just the default branch), so
+ *   unmerged feature-branch work shows up. Commits reachable from multiple refs are
+ *   deduped by id.
+ * - Pages through the whole window (per_page=100): the endpoint has no author filter,
+ *   so filtering is client-side and the user's commits may sit beyond page 1.
+ * - Client-side author filter (case-insensitive), a commit is kept when ANY match:
+ *   - git author_name equals the GitLab display name or login username
+ *   - git author_email contains the display name or login username
+ *   - git author_email's "name" equals the user's GitLab email "name" — the local
+ *     part before @, domain-ignored and with trailing digits stripped, so numbered
+ *     aliases across domains match (e.g. john.doe@example.com ↔ john.doe@company.com
+ *     ↔ john.doe1@example.com all normalize to "john.doe"). See {@link emailLocalName}.
+ *   The login username alone is unreliable — git author_name is usually the display
+ *   name (e.g. "Milan Mozolak"), not the login handle.
  *
  * @param baseUrl         - GitLab base URL (e.g. "https://gitlab.example.com")
  * @param token           - Personal Access Token (PRIVATE-TOKEN header)
  * @param projectId       - GitLab project ID (activeGitlabProject from auth store)
- * @param date            - Target date as YYYY-MM-DD
- * @param authorUsername  - GitLab username to filter by (gitlabUsername from auth store)
+ * @param date            - Target LOCAL date as YYYY-MM-DD
+ * @param authorUsername  - GitLab login username to filter by (gitlabUsername from auth store)
+ * @param authorName      - GitLab display name to filter by (gitlabName from auth store);
+ *                          matches git author_name where the login does not
+ * @param authorEmail     - GitLab account email to filter by (gitlabEmail from auth store);
+ *                          matched by local-part name, domain-ignored, trailing digits stripped
  * @returns Array of commits authored by the user on the given date
  */
 export async function fetchUserCommits(
@@ -1123,45 +1144,89 @@ export async function fetchUserCommits(
   projectId: number,
   date: string,
   authorUsername: string,
+  authorName?: string | null,
+  authorEmail?: string | null,
 ): Promise<GitLabCommit[]> {
   const base = baseUrl.replace(/\/$/, '');
-  const since = `${date}T00:00:00.000Z`;
-  const until = `${date}T23:59:59.999Z`;
-  const url = `${base}/api/v4/projects/${projectId}/repository/commits?since=${encodeURIComponent(since)}&until=${encodeURIComponent(until)}&per_page=100&with_stats=false`;
+  // Cover the user's LOCAL day: parse local midnight boundaries, then convert to
+  // UTC for the API (GitLab since/until are UTC). Without this, a UTC+N user loses
+  // commits made in the first N hours of their local day.
+  const since = new Date(`${date}T00:00:00.000`).toISOString();
+  const until = new Date(`${date}T23:59:59.999`).toISOString();
+  const headers = { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' };
 
-  let response: Response;
-  try {
-    response = await apiFetch(
-      'gitlab',
-      url,
-      {
-        headers: {
-          'PRIVATE-TOKEN': token,
-          'Content-Type': 'application/json',
-        },
-      },
-      'Load Standup Commits',
-    );
-  } catch {
-    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
-  }
+  // all=true: traverse EVERY branch/tag, not just the default branch — standup work
+  // often lives on unmerged feature branches. The endpoint also has no author filter,
+  // so it returns commits by ALL authors in the window and we filter client-side below.
+  // Both reasons force a full paged walk of the window — the user's commits can sit
+  // past page 1 and would otherwise be dropped. Stop on a short page; the page cap is
+  // a runaway guard (50 * 100 = 5000 commits/day is far beyond any real standup day).
+  const perPage = 100;
+  const data: GitLabCommit[] = [];
 
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new ApiError('Failed to fetch commits', response.status, 'gitlab');
+  for (let page = 1; page <= 50; page++) {
+    const url = `${base}/api/v4/projects/${projectId}/repository/commits?since=${encodeURIComponent(since)}&until=${encodeURIComponent(until)}&all=true&per_page=${perPage}&page=${page}&with_stats=false`;
+
+    let response: Response;
+    try {
+      response = await apiFetch('gitlab', url, { headers }, 'Load Standup Commits');
+    } catch {
+      throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
     }
-    throw new Error(`Failed to fetch commits: status ${response.status}`);
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new ApiError('Failed to fetch commits', response.status, 'gitlab');
+      }
+      throw new Error(`Failed to fetch commits: status ${response.status}`);
+    }
+
+    const pageData = (await response.json()) as GitLabCommit[];
+    data.push(...pageData);
+    if (pageData.length < perPage) break;
   }
 
-  const data = (await response.json()) as GitLabCommit[];
+  // all=true can surface the same commit from multiple branch tips — dedupe by id.
+  const seen = new Set<string>();
+  const unique = data.filter((c) => {
+    if (seen.has(c.id)) return false;
+    seen.add(c.id);
+    return true;
+  });
 
-  // Pitfall 5: GitLab author_name is from git config, not necessarily the login username.
-  // Filter case-insensitively: match by name equality or email contains username.
-  return data.filter(
-    (c) =>
-      c.author_name.toLowerCase() === authorUsername.toLowerCase() ||
-      c.author_email.toLowerCase().includes(authorUsername.toLowerCase()),
-  );
+  // Pitfall 5: GitLab author_name is from git config (usually the display name),
+  // not the login username. Match against BOTH the display name and the login,
+  // case-insensitively: author_name equals either identity, or author_email
+  // contains either. Empty/absent identities are skipped so they never match all.
+  const identities = [authorName, authorUsername]
+    .filter((v): v is string => !!v && v.trim().length > 0)
+    .map((v) => v.toLowerCase());
+
+  // Email-name match: compare the user's GitLab email "name" against each commit's.
+  const userEmailName = authorEmail ? emailLocalName(authorEmail) : '';
+
+  return unique.filter((c) => {
+    const name = c.author_name.toLowerCase();
+    const email = c.author_email.toLowerCase();
+    if (identities.some((id) => name === id || email.includes(id))) return true;
+    if (userEmailName) {
+      const commitEmailName = emailLocalName(email);
+      if (commitEmailName && commitEmailName === userEmailName) return true;
+    }
+    return false;
+  });
+}
+
+/**
+ * Normalize an email to a comparable "name" for commit-author matching: the local
+ * part before "@", lowercased, with any trailing digits stripped. Domain is ignored
+ * and numbered aliases collapse, so "john.doe@example.com", "john.doe@company.com",
+ * and "john.doe1@example.com" all yield "john.doe". Returns '' when no usable local
+ * part remains (e.g. all-digit locals), so empty names never match each other.
+ */
+function emailLocalName(email: string): string {
+  const local = email.toLowerCase().split('@')[0] ?? '';
+  return local.replace(/\d+$/, '');
 }
 
 /**

@@ -21,7 +21,7 @@ import {
   resolveYesterdayDate,
 } from '@/lib/standup-date';
 import type { GitLabMR, ParticipatedMR } from '@/services/gitlab';
-import { fetchUserCommits, fetchUserMREvents } from '@/services/gitlab';
+import { fetchUserCommits, fetchUserMREvents, validateGitLab } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
 import { fetchIssueMeta, fetchYesterdayJiraActivity } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
@@ -88,6 +88,10 @@ export default function StandupNotesPage() {
     jiraUserKey,
     gitlabUserId,
     gitlabUsername,
+    gitlabName,
+    gitlabEmail,
+    setGitlabName,
+    setGitlabEmail,
   } = useAuthStore();
 
   // IN-01: fine-grained selectors — never destructure the whole settings store
@@ -130,6 +134,28 @@ export default function StandupNotesPage() {
         .catch(() => setGitlabToken(null));
     }
   }, [gitlabBaseUrl]);
+
+  // Backfill gitlabName/gitlabEmail for users who connected before these were
+  // persisted. Commit author matching needs the display name and email (git
+  // author_name/author_email), which the login username does not provide. Self-heal
+  // once per mount instead of forcing a settings re-save. Ref-guarded because
+  // gitlabEmail can legitimately be null (scope/visibility) — without the guard the
+  // missing-email condition would re-trigger validation on every render.
+  const gitlabBackfilledRef = useRef(false);
+  useEffect(() => {
+    if (gitlabBackfilledRef.current) return;
+    if (gitlabBaseUrl && gitlabToken && (!gitlabName || !gitlabEmail)) {
+      gitlabBackfilledRef.current = true;
+      validateGitLab(gitlabBaseUrl, gitlabToken)
+        .then((user) => {
+          if (user.name) setGitlabName(user.name);
+          if (user.email) setGitlabEmail(user.email);
+        })
+        .catch(() => {
+          gitlabBackfilledRef.current = false; // allow retry on a later mount
+        });
+    }
+  }, [gitlabBaseUrl, gitlabToken, gitlabName, gitlabEmail, setGitlabName, setGitlabEmail]);
 
   // ─ Tempo schedule query (runs first; drives yesterdayDate) ───────────────
   // T-62-06: jiraToken NOT in queryKey
@@ -199,6 +225,8 @@ export default function StandupNotesPage() {
       activeGitlabProject,
       yesterdayDate,
       gitlabUsername ?? '',
+      gitlabName ?? '',
+      gitlabEmail ?? '',
     ],
     queryFn: async () => {
       const token = await readSecret('gitlab-pat').catch(() => null);
@@ -209,6 +237,8 @@ export default function StandupNotesPage() {
         activeGitlabProject!,
         yesterdayDate,
         gitlabUsername!,
+        gitlabName,
+        gitlabEmail,
       );
     },
     enabled:

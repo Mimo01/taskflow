@@ -32,7 +32,12 @@ describe('gitlab service', () => {
 
   describe('validateGitLab', () => {
     it('AUTH-02: validateGitLab returns user data on 200 response', async () => {
-      const mockUser = { id: 42, name: 'Jane Smith', username: 'jsmith' };
+      const mockUser = {
+        id: 42,
+        name: 'Jane Smith',
+        username: 'jsmith',
+        email: 'jane.smith@example.com',
+      };
       vi.mocked(mockFetch).mockResolvedValue({
         ok: true,
         status: 200,
@@ -40,7 +45,23 @@ describe('gitlab service', () => {
       } as Response);
 
       const result = await validateGitLab('https://gitlab.example.com', 'my-token');
-      expect(result).toEqual({ id: 42, name: 'Jane Smith', username: 'jsmith' });
+      expect(result).toEqual({
+        id: 42,
+        name: 'Jane Smith',
+        username: 'jsmith',
+        email: 'jane.smith@example.com',
+      });
+    });
+
+    it('AUTH-02: validateGitLab defaults email to null when absent', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ id: 7, name: 'No Email', username: 'noemail' }),
+      } as Response);
+
+      const result = await validateGitLab('https://gitlab.example.com', 'my-token');
+      expect(result.email).toBeNull();
     });
 
     it('AUTH-02: validateGitLab throws "Invalid token or token has expired" on 401', async () => {
@@ -271,16 +292,22 @@ describe('gitlab service', () => {
     const PROJECT_ID = 99;
     const DATE = '2026-05-23';
 
-    const makeCommit = (overrides: { author_name?: string; author_email?: string }) => ({
-      id: 'abc123def456abc123def456abc123def456abc1',
-      short_id: 'abc123de',
-      title: 'feat: add something',
-      message: 'feat: add something\n',
-      author_name: overrides.author_name ?? 'Other Person',
-      author_email: overrides.author_email ?? 'other@example.com',
-      authored_date: `${DATE}T10:00:00.000Z`,
-      web_url: `${BASE}/project/-/commit/abc123`,
-    });
+    // Unique id per commit by default so dedupe-by-id doesn't collapse distinct
+    // commits; pass an explicit `id` to simulate the same commit on multiple branches.
+    let commitIdCounter = 0;
+    const makeCommit = (overrides: { author_name?: string; author_email?: string; id?: string }) => {
+      const id = overrides.id ?? `commit${commitIdCounter++}`.padEnd(40, '0');
+      return {
+        id,
+        short_id: id.slice(0, 8),
+        title: 'feat: add something',
+        message: 'feat: add something\n',
+        author_name: overrides.author_name ?? 'Other Person',
+        author_email: overrides.author_email ?? 'other@example.com',
+        authored_date: `${DATE}T10:00:00.000Z`,
+        web_url: `${BASE}/project/-/commit/abc123`,
+      };
+    };
 
     it('STAND-05: includes commit matching author_name (case-insensitive)', async () => {
       const commits = [
@@ -312,6 +339,184 @@ describe('gitlab service', () => {
       const result = await fetchUserCommits(BASE, TOKEN, PROJECT_ID, DATE, 'johndoe');
       expect(result).toHaveLength(1);
       expect(result[0].author_email).toBe('johndoe@company.com');
+    });
+
+    it('STAND-05: matches git author_name via the GitLab display name when the login differs', async () => {
+      // Real-world bug: login "mmozolak" matches neither author_name "Milan Mozolak"
+      // nor email "milan.mozolak@isdd.sk", but the display name does.
+      const commits = [
+        makeCommit({ author_name: 'Milan Mozolak', author_email: 'milan.mozolak@isdd.sk' }),
+        makeCommit({ author_name: 'Other Person', author_email: 'other@example.com' }),
+      ];
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => commits,
+      } as Response);
+
+      const result = await fetchUserCommits(BASE, TOKEN, PROJECT_ID, DATE, 'mmozolak', 'Milan Mozolak');
+      expect(result).toHaveLength(1);
+      expect(result[0].author_name).toBe('Milan Mozolak');
+    });
+
+    it('STAND-05: matches by email name across different domains', async () => {
+      // john.doe@example.com (user) should match john.doe@company.com (commit).
+      const commits = [
+        makeCommit({ author_name: 'JD', author_email: 'john.doe@company.com' }),
+        makeCommit({ author_name: 'Other', author_email: 'someone@company.com' }),
+      ];
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => commits,
+      } as Response);
+
+      const result = await fetchUserCommits(
+        BASE,
+        TOKEN,
+        PROJECT_ID,
+        DATE,
+        'jdoe',
+        'John Doe',
+        'john.doe@example.com',
+      );
+      expect(result).toHaveLength(1);
+      expect(result[0].author_email).toBe('john.doe@company.com');
+    });
+
+    it('STAND-05: matches by email name ignoring trailing digits (both directions)', async () => {
+      const commits = [
+        // user john.doe@example.com vs commit john.doe1@example.com
+        makeCommit({ author_name: 'A', author_email: 'john.doe1@example.com' }),
+      ];
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => commits,
+      } as Response);
+
+      const forward = await fetchUserCommits(
+        BASE,
+        TOKEN,
+        PROJECT_ID,
+        DATE,
+        'jdoe',
+        'John Doe',
+        'john.doe@example.com',
+      );
+      expect(forward).toHaveLength(1);
+
+      // vice versa: user john.doe1@... vs commit john.doe@...
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [makeCommit({ author_name: 'A', author_email: 'john.doe@example.com' })],
+      } as Response);
+      const reverse = await fetchUserCommits(
+        BASE,
+        TOKEN,
+        PROJECT_ID,
+        DATE,
+        'jdoe',
+        'John Doe',
+        'john.doe1@example.com',
+      );
+      expect(reverse).toHaveLength(1);
+    });
+
+    it('STAND-05: email-name match does not pull in a different person', async () => {
+      const commits = [makeCommit({ author_name: 'Jane', author_email: 'jane.doe@example.com' })];
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => commits,
+      } as Response);
+
+      const result = await fetchUserCommits(
+        BASE,
+        TOKEN,
+        PROJECT_ID,
+        DATE,
+        'jdoe',
+        'John Doe',
+        'john.doe@example.com',
+      );
+      expect(result).toHaveLength(0);
+    });
+
+    it('STAND-05: pages through the window so commits past page 1 are not dropped', async () => {
+      // The endpoint has no author filter; a busy day can push the user's commit onto
+      // page 2. A full page (100) must trigger a follow-up fetch.
+      const page1 = Array.from({ length: 100 }, () =>
+        makeCommit({ author_name: 'Other Person', author_email: 'other@example.com' }),
+      );
+      const page2 = [makeCommit({ author_name: 'JohnDoe', author_email: 'john@example.com' })];
+
+      vi.mocked(mockFetch)
+        .mockResolvedValueOnce({ ok: true, status: 200, json: async () => page1 } as Response)
+        .mockResolvedValueOnce({ ok: true, status: 200, json: async () => page2 } as Response);
+
+      const result = await fetchUserCommits(BASE, TOKEN, PROJECT_ID, DATE, 'johndoe');
+
+      expect(vi.mocked(mockFetch).mock.calls.length).toBe(2);
+      expect(vi.mocked(mockFetch).mock.calls[0][0]).toContain('page=1');
+      expect(vi.mocked(mockFetch).mock.calls[1][0]).toContain('page=2');
+      expect(result).toHaveLength(1);
+      expect(result[0].author_name).toBe('JohnDoe');
+    });
+
+    it('STAND-05: stops paging on a short (non-full) page', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [makeCommit({ author_name: 'johndoe' })],
+      } as Response);
+
+      await fetchUserCommits(BASE, TOKEN, PROJECT_ID, DATE, 'johndoe');
+      expect(vi.mocked(mockFetch).mock.calls.length).toBe(1);
+    });
+
+    it('STAND-05: requests all branches (all=true), not just the default branch', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [],
+      } as Response);
+
+      await fetchUserCommits(BASE, TOKEN, PROJECT_ID, DATE, 'johndoe');
+      expect(vi.mocked(mockFetch).mock.calls[0][0]).toContain('all=true');
+    });
+
+    it('STAND-05: dedupes the same commit returned from multiple branch tips', async () => {
+      const commits = [
+        makeCommit({ id: 'dup', author_name: 'JohnDoe' }),
+        makeCommit({ id: 'dup', author_name: 'JohnDoe' }),
+      ];
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => commits,
+      } as Response);
+
+      const result = await fetchUserCommits(BASE, TOKEN, PROJECT_ID, DATE, 'johndoe');
+      expect(result).toHaveLength(1);
+    });
+
+    it('STAND-05: builds since/until window from the local day, not a fixed UTC string', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [],
+      } as Response);
+
+      await fetchUserCommits(BASE, TOKEN, PROJECT_ID, DATE, 'johndoe');
+
+      const calledUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
+      const sinceParam = decodeURIComponent(calledUrl.match(/since=([^&]+)/)![1]);
+      const untilParam = decodeURIComponent(calledUrl.match(/until=([^&]+)/)![1]);
+      // The window endpoints are the UTC instants of the LOCAL day boundaries.
+      expect(sinceParam).toBe(new Date(`${DATE}T00:00:00.000`).toISOString());
+      expect(untilParam).toBe(new Date(`${DATE}T23:59:59.999`).toISOString());
     });
 
     it('STAND-05: excludes commits not matching author name or email', async () => {

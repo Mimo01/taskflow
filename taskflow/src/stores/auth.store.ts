@@ -26,6 +26,8 @@ const initialAuthState = {
   jiraUserKey: null as string | null,
   gitlabUserId: null as number | null,
   gitlabUsername: null as string | null,
+  gitlabName: null as string | null,
+  gitlabEmail: null as string | null,
 };
 
 interface AuthState {
@@ -47,6 +49,18 @@ interface AuthState {
   /** GitLab username from validation response .username — for @mention detection. */
   gitlabUsername: string | null;
   /**
+   * GitLab display name from validation response .name — matches git author_name
+   * on commits (the login username usually does not), so standup commit filtering
+   * can identify the user's commits reliably.
+   */
+  gitlabName: string | null;
+  /**
+   * GitLab account email from validation response .email — matched against git
+   * author_email by local-part name (domain-ignored, trailing digits stripped) so
+   * standup commit filtering catches numbered aliases and cross-domain emails.
+   */
+  gitlabEmail: string | null;
+  /**
    * True once the Tauri async storage rehydration has completed.
    * Transient — not persisted. Used by components to avoid collapsing
    * loading states prematurely before real store values are available.
@@ -62,6 +76,10 @@ interface AuthState {
   setGitlabUserId: (id: number) => void;
   /** Set GitLab username for @mention detection. */
   setGitlabUsername: (username: string | null) => void;
+  /** Set GitLab display name for standup commit author matching. */
+  setGitlabName: (name: string | null) => void;
+  /** Set GitLab account email for standup commit author matching. */
+  setGitlabEmail: (email: string | null) => void;
   /**
    * Reset all auth data fields to defaults (all null/false).
    * Preserves _hasHydrated and action functions (merge-mode set).
@@ -91,6 +109,8 @@ export const useAuthStore = create<AuthState>()(
         set({ jiraUserDisplayName: displayName, jiraUsername: username, jiraUserKey: key ?? null }),
       setGitlabUserId: (id) => set({ gitlabUserId: id }),
       setGitlabUsername: (username) => set({ gitlabUsername: username }),
+      setGitlabName: (name) => set({ gitlabName: name }),
+      setGitlabEmail: (email) => set({ gitlabEmail: email }),
       resetAuth: () => set({ ...initialAuthState }),
     }),
     {

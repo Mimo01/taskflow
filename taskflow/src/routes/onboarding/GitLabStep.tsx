@@ -21,8 +21,14 @@ import { useOnboardingStore } from '@/stores/onboarding.store';
 export default function GitLabStep() {
   const { gitlabUrl, gitlabToken, gitlabProject, gitlabProjects, set, goBack, goNext } =
     useOnboardingStore();
-  const { setGitlabConnected, setActiveGitlabProject, setGitlabUserId, setGitlabUsername } =
-    useAuthStore();
+  const {
+    setGitlabConnected,
+    setActiveGitlabProject,
+    setGitlabUserId,
+    setGitlabUsername,
+    setGitlabName,
+    setGitlabEmail,
+  } = useAuthStore();
 
   const projects = gitlabProjects;
   const selectedProjectId = gitlabProject;
@@ -40,6 +46,8 @@ export default function GitLabStep() {
       // Persist user ID and username for MR filtering and @mention detection
       setGitlabUserId(user.id);
       setGitlabUsername(user.username);
+      setGitlabName(user.name);
+      setGitlabEmail(user.email);
       set({ gitlabProjects: projectList });
     },
   });
