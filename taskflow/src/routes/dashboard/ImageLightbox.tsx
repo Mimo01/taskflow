@@ -36,12 +36,13 @@ export function ImageLightbox({ src, alt, open, onClose }: ImageLightboxProps) {
       >
         &times;
       </button>
-      <AuthImage
-        src={src}
-        alt={alt ?? ''}
-        className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
-        onClick={(e: React.MouseEvent) => e.stopPropagation()}
-      />
+      <div className="bg-white rounded-lg" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+        <AuthImage
+          src={src}
+          alt={alt ?? ''}
+          className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
+        />
+      </div>
     </div>
   );
 }
