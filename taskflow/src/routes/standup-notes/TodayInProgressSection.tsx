@@ -114,7 +114,7 @@ function IssueRow({
       <div
         role="button"
         tabIndex={0}
-        className="w-full flex items-center gap-2 rounded px-2 py-2 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+        className="w-full flex items-center gap-2 rounded px-2 py-3 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
         onClick={() => onIssueClick(key)}
         onKeyDown={(e) => {
           if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) onIssueClick(key);
@@ -169,7 +169,7 @@ function NestedMrRow({ mr, onMRClick }: { mr: NestedMr; onMRClick: (projectIdAnd
       <div
         role="button"
         tabIndex={0}
-        className="flex items-center gap-2 py-2 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+        className="flex items-center gap-2 py-3 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
         onClick={() => onMRClick(`${mr.projectId}/${mr.iid}`)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') onMRClick(`${mr.projectId}/${mr.iid}`);

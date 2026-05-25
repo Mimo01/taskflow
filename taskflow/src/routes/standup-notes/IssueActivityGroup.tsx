@@ -86,12 +86,12 @@ export default function IssueActivityGroup({
   onIssueClick,
 }: IssueActivityGroupProps) {
   return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden">
+    <div>
       {/* Group header: [icon] [key] [summary]          [Xh] — opens issue detail */}
       <button
         type="button"
         onClick={onClick}
-        className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-2 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-3 text-left hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
       >
         <IssueTypeIcon typeName={issueType ?? ''} className="size-4 shrink-0" />
         <span className="shrink-0 text-xs text-muted-foreground font-mono">{issueKey}</span>
@@ -118,7 +118,7 @@ export default function IssueActivityGroup({
                 key={i}
                 role="button"
                 tabIndex={0}
-                className="flex items-center gap-2 py-2 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                className="flex items-center gap-2 py-3 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
                 onClick={() => onMRClick(`${item.mrProjectId}/${item.mrIid}`)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ')
@@ -136,7 +136,7 @@ export default function IssueActivityGroup({
                 key={i}
                 role="button"
                 tabIndex={0}
-                className="flex items-center gap-2 py-2 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                className="flex items-center gap-2 py-3 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
                 onClick={() => onIssueClick!(item.issueKey!)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') onIssueClick!(item.issueKey!);
@@ -149,7 +149,7 @@ export default function IssueActivityGroup({
               </div>
             ) : (
               // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
-              <div key={i} className="flex items-center gap-2 py-2 px-2">
+              <div key={i} className="flex items-center gap-2 py-3 px-2">
                 <SubIcon className="size-4 shrink-0 text-muted-foreground" />
                 <span className="flex-1 min-w-0 truncate text-sm text-foreground">
                   {item.label}
