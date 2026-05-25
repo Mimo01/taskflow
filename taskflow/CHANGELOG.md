@@ -3,6 +3,20 @@
 All notable changes to Taskflow are documented here.
 Entries are written by hand for each release.
 
+## [1.10.1] — 2026-05-25
+
+### Changed
+
+- The Standup Notes **Yesterday** column now groups all commits for the same task onto a single line and skips merge commits, and its section dividers were tidied up for a cleaner read.
+
+### Fixed
+
+- The **Yesterday** recap now lists every commit from your last working day instead of dropping some.
+- The **Yesterday** column heading now reflects your local date rather than UTC.
+- Summary stat lines now read correctly for a single item (e.g. "1 commit", "1 story", "1 merge-request event").
+- Jira and GitLab project pickers now show up under Settings → Connections.
+- The Standup page no longer breaks when a story is missing story points.
+
 ## [1.10.0] — 2026-05-25
 
 ### Added
