@@ -58,7 +58,7 @@ export default function StandaloneMrGroup({
   onMRClick,
 }: StandaloneMrGroupProps) {
   return (
-    <div className="py-2">
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
       {/* Group header: !{iid} {title} — clickable to MR detail */}
       <MrRow
         icon={GitMerge}
