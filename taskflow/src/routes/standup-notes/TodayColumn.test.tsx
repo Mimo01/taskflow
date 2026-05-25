@@ -224,6 +224,101 @@ describe('TodayColumn', () => {
     });
   });
 
+  describe('Parent story with subtasks — gap #5 regression guard', () => {
+    it('shows a parent story (non-subtask with subtasksLen>0) in In Progress section', async () => {
+      const { useQuery } = await import('@tanstack/react-query');
+      // A parent story: isSubtask=false, subtasksLen=2, indeterminate status
+      const parentStory = makeIssue('PROJ-10', 'indeterminate', { isSubtask: false, subtasksLen: 2 });
+
+      vi.mocked(useQuery).mockImplementation((opts) => {
+        const key = Array.isArray(opts.queryKey) ? opts.queryKey[1] : '';
+        if (key === 'sprint-board-mine') {
+          return { data: [parentStory], isLoading: false, isError: false } as ReturnType<typeof useQuery>;
+        }
+        return { data: undefined, isLoading: false, isError: false } as ReturnType<typeof useQuery>;
+      });
+
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const { default: TodayColumn } = await import('./TodayColumn');
+
+      render(
+        <QueryClientProvider client={qc}>
+          <MemoryRouter>
+            <TodayColumn onIssueClick={vi.fn()} />
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+
+      // The parent story summary must appear in IN PROGRESS
+      expect(screen.getByText('IN PROGRESS')).toBeInTheDocument();
+      expect(screen.getByText('Summary of PROJ-10')).toBeInTheDocument();
+    });
+  });
+
+  describe('Progress bar — Decision 2', () => {
+    it('renders a progress bar when originalEstimateSeconds is set', async () => {
+      const { useQuery } = await import('@tanstack/react-query');
+      const issueWithEstimate = {
+        ...makeIssue('PROJ-20', 'indeterminate'),
+        fields: {
+          ...makeIssue('PROJ-20', 'indeterminate').fields,
+          timetracking: { originalEstimateSeconds: 36000, timeSpentSeconds: 18000 },
+        },
+      } as unknown as JiraIssue;
+
+      vi.mocked(useQuery).mockImplementation((opts) => {
+        const key = Array.isArray(opts.queryKey) ? opts.queryKey[1] : '';
+        if (key === 'sprint-board-mine') {
+          return { data: [issueWithEstimate], isLoading: false, isError: false } as ReturnType<typeof useQuery>;
+        }
+        return { data: undefined, isLoading: false, isError: false } as ReturnType<typeof useQuery>;
+      });
+
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const { default: TodayColumn } = await import('./TodayColumn');
+
+      render(
+        <QueryClientProvider client={qc}>
+          <MemoryRouter>
+            <TodayColumn onIssueClick={vi.fn()} />
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+
+      // Progress bar format: [█████░░░░░] Xh / Yh
+      // 18000s = 5h, 36000s = 10h
+      expect(screen.getByText(/\[.*\].*\/.*h/)).toBeInTheDocument();
+    });
+
+    it('does NOT render a progress bar when no originalEstimateSeconds', async () => {
+      const { useQuery } = await import('@tanstack/react-query');
+      const issueNoEstimate = makeIssue('PROJ-21', 'indeterminate');
+      // timetracking is {} — no originalEstimateSeconds
+
+      vi.mocked(useQuery).mockImplementation((opts) => {
+        const key = Array.isArray(opts.queryKey) ? opts.queryKey[1] : '';
+        if (key === 'sprint-board-mine') {
+          return { data: [issueNoEstimate], isLoading: false, isError: false } as ReturnType<typeof useQuery>;
+        }
+        return { data: undefined, isLoading: false, isError: false } as ReturnType<typeof useQuery>;
+      });
+
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const { default: TodayColumn } = await import('./TodayColumn');
+
+      render(
+        <QueryClientProvider client={qc}>
+          <MemoryRouter>
+            <TodayColumn onIssueClick={vi.fn()} />
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+
+      // No bracket-bar pattern in DOM
+      expect(screen.queryByText(/\[.*\].*\/.*h/)).not.toBeInTheDocument();
+    });
+  });
+
   describe('MRs Awaiting You section — MRs scope', () => {
     it('hides MRS AWAITING YOU section when GitLab not connected', async () => {
       const { useAuthStore } = await import('@/stores/auth.store');
