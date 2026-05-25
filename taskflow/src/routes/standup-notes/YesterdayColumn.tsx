@@ -21,7 +21,7 @@
  */
 
 import type { UseQueryResult } from '@tanstack/react-query';
-import { Clock, GitBranch, MessageSquare } from 'lucide-react';
+import { Clock, GitBranch, MessageSquare, type LucideIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
@@ -355,6 +355,17 @@ function LoadingSkeletons() {
   );
 }
 
+// ─── Compact per-source empty notice ─────────────────────────────────────────
+
+function CompactEmptyNotice({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
+  return (
+    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <Icon className="size-3.5 shrink-0" />
+      <span>{label}</span>
+    </div>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function YesterdayColumn({
@@ -500,14 +511,6 @@ export default function YesterdayColumn({
         </div>
       ) : tempoQuery.isLoading && !tempoQuery.data ? (
         <LoadingSkeletons />
-      ) : tempoQuery.data?.length === 0 ? (
-        <div className="mb-3">
-          <EmptyState
-            icon={Clock}
-            title={`No worklogs on ${getColumnHeading(yesterdayDate)}`}
-            subtitle={`No time was logged on ${yesterdayDate} in Tempo.`}
-          />
-        </div>
       ) : null}
 
       {/* ── Jira activity section ──────────────────────────────────────── */}
@@ -521,14 +524,6 @@ export default function YesterdayColumn({
         </div>
       ) : jiraActivityQuery.isLoading && !jiraActivityQuery.data ? (
         <LoadingSkeletons />
-      ) : jiraActivityQuery.data?.length === 0 ? (
-        <div className="mb-3">
-          <EmptyState
-            icon={MessageSquare}
-            title={`No Jira activity on ${getColumnHeading(yesterdayDate)}`}
-            subtitle={`No status transitions or comments were found for ${yesterdayDate}.`}
-          />
-        </div>
       ) : null}
 
       {/* ── Commits section ────────────────────────────────────────────── */}
@@ -542,14 +537,6 @@ export default function YesterdayColumn({
         </div>
       ) : commitsQuery.isLoading && !commitsQuery.data ? (
         <LoadingSkeletons />
-      ) : commitsQuery.data?.length === 0 ? (
-        <div className="mb-3">
-          <EmptyState
-            icon={GitBranch}
-            title={`No commits on ${getColumnHeading(yesterdayDate)}`}
-            subtitle={`No commits were authored by you on ${yesterdayDate}.`}
-          />
-        </div>
       ) : null}
 
       {/* ── MR events section ──────────────────────────────────────────── */}
@@ -563,15 +550,40 @@ export default function YesterdayColumn({
         </div>
       ) : mrEventsQuery.isLoading && !mrEventsQuery.data ? (
         <LoadingSkeletons />
-      ) : mrEventsQuery.data?.length === 0 ? (
-        <div className="mb-3">
-          <EmptyState
-            icon={MessageSquare}
-            title={`No MR activity on ${getColumnHeading(yesterdayDate)}`}
-            subtitle={`No comments or approvals were recorded for ${yesterdayDate}.`}
-          />
-        </div>
       ) : null}
+
+      {/* ── Compact per-source empty notices — flex-wrap row ───────────── */}
+      {(tempoQuery.data?.length === 0 ||
+        jiraActivityQuery.data?.length === 0 ||
+        commitsQuery.data?.length === 0 ||
+        mrEventsQuery.data?.length === 0) && (
+        <div className="flex flex-wrap gap-x-5 gap-y-1.5 mt-2 mb-3">
+          {tempoQuery.data?.length === 0 && (
+            <CompactEmptyNotice
+              icon={Clock}
+              label={`No worklogs on ${getColumnHeading(yesterdayDate)}`}
+            />
+          )}
+          {jiraActivityQuery.data?.length === 0 && (
+            <CompactEmptyNotice
+              icon={MessageSquare}
+              label={`No Jira activity on ${getColumnHeading(yesterdayDate)}`}
+            />
+          )}
+          {commitsQuery.data?.length === 0 && (
+            <CompactEmptyNotice
+              icon={GitBranch}
+              label={`No commits on ${getColumnHeading(yesterdayDate)}`}
+            />
+          )}
+          {mrEventsQuery.data?.length === 0 && (
+            <CompactEmptyNotice
+              icon={MessageSquare}
+              label={`No MR activity on ${getColumnHeading(yesterdayDate)}`}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
