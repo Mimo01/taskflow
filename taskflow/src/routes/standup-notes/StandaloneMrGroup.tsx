@@ -10,21 +10,33 @@ import { CheckCircle, GitMerge, MessageSquare } from 'lucide-react';
 
 interface StandaloneMrGroupProps {
   iid: number;
+  projectId: number;
   title: string;
   commentCount: number;
   approvals: number;
+  onMRClick: (projectIdAndIid: string) => void;
 }
 
 export default function StandaloneMrGroup({
   iid,
+  projectId,
   title,
   commentCount,
   approvals,
+  onMRClick,
 }: StandaloneMrGroupProps) {
   return (
     <div className="py-2">
-      {/* Group header: !{iid} {title} */}
-      <div className="flex items-center gap-2 py-2 px-2">
+      {/* Group header: !{iid} {title} — clickable to MR detail */}
+      <div
+        role="button"
+        tabIndex={0}
+        className="flex items-center gap-2 py-2 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+        onClick={() => onMRClick(`${projectId}/${iid}`)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') onMRClick(`${projectId}/${iid}`);
+        }}
+      >
         <GitMerge className="size-4 shrink-0 text-muted-foreground" />
         <span className="text-xs text-muted-foreground font-mono shrink-0">!{iid}</span>
         <span className="flex-1 min-w-0 truncate text-sm">{title}</span>
