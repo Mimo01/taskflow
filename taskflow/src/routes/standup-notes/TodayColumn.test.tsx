@@ -285,9 +285,9 @@ describe('TodayColumn', () => {
         </QueryClientProvider>,
       );
 
-      // Progress bar format: [█████░░░░░] Xh / Yh
+      // Progress caption (shared ui/Progress): "<spent> / <estimate> logged"
       // 18000s = 5h, 36000s = 10h
-      expect(screen.getByText(/\[.*\].*\/.*h/)).toBeInTheDocument();
+      expect(screen.getByText(/5h \/ 10h logged/)).toBeInTheDocument();
     });
 
     it('does NOT render a progress bar when no originalEstimateSeconds', async () => {
@@ -314,8 +314,8 @@ describe('TodayColumn', () => {
         </QueryClientProvider>,
       );
 
-      // No bracket-bar pattern in DOM
-      expect(screen.queryByText(/\[.*\].*\/.*h/)).not.toBeInTheDocument();
+      // No progress caption in DOM when there is no estimate
+      expect(screen.queryByText(/logged/)).not.toBeInTheDocument();
     });
   });
 
