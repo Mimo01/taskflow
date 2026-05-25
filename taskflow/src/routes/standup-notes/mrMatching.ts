@@ -79,13 +79,16 @@ export function matchMrsToStories(
 
   const mrsByStory = new Map<string, NestedMr[]>();
 
-  // Track which reviewer iids have been matched (for dedup against participating)
-  const matchedReviewerIids = new Set<number>();
+  // Track every reviewer MR (project-qualified key) so the same MR appearing in
+  // the participating set is deduped — whether or not it matched a story. A bare
+  // iid would collide across projects (!42 in project A vs project B).
+  const reviewerKeys = new Set<string>();
 
   // ── Reviewer MRs ────────────────────────────────────────────────────────────
   const unmatchedReviewerMrs: GitLabMR[] = [];
 
   for (const mr of reviewerMrs) {
+    reviewerKeys.add(`${mr.project_id}:${mr.iid}`);
     const matchedKey = linkMRToTask(mr, displayedKeys);
     if (matchedKey === null) {
       unmatchedReviewerMrs.push(mr);
@@ -96,7 +99,6 @@ export function matchMrsToStories(
       unmatchedReviewerMrs.push(mr);
       continue;
     }
-    matchedReviewerIids.add(mr.iid);
     const nested: NestedMr = { iid: mr.iid, title: mr.title, kind: 'review' };
     const existing = mrsByStory.get(storyKey);
     if (existing) {
@@ -110,8 +112,10 @@ export function matchMrsToStories(
   const unmatchedParticipatingMrs: ParticipatedMR[] = [];
 
   for (const mr of participatingMrs) {
-    // Dedup: if already nested as a reviewer MR, skip entirely
-    if (matchedReviewerIids.has(mr.mrIid)) {
+    // Dedup: if the same MR (project-qualified) is already in the reviewer set,
+    // skip entirely — it's represented there (nested under a story, or in MRs
+    // Awaiting You). Prevents the same MR showing in two sections.
+    if (reviewerKeys.has(`${mr.projectId}:${mr.mrIid}`)) {
       continue;
     }
 

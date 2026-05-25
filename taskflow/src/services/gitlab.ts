@@ -1396,24 +1396,28 @@ export async function fetchParticipatedMRs(
         fetchMRApprovals(base, token, candidate.projectId, candidate.mrIid),
       ]);
 
-      // Approvals failure → treat as not-approved (lean toward showing)
+      // Approvals failure → treat as not-approved (lean toward showing).
+      // `approved_by` may be absent on GitLab CE/Free (no approvals feature) —
+      // guard with ?? [] so the synchronous .some() never throws and rejects
+      // the enclosing Promise.all (which would error the whole section).
       const approvedByMe =
         approvalsResult.status === 'fulfilled'
-          ? approvalsResult.value.approved_by.some((a) => a.user.id === userId)
+          ? (approvalsResult.value.approved_by ?? []).some((a) => a.user.id === userId)
           : false;
 
       // Discussions failure → treat as empty (MR still shown if not approved)
       const discussions =
         discussionsResult.status === 'fulfilled' ? discussionsResult.value : [];
 
-      // Threads where the user participated (has at least one non-system note by me)
+      // Threads where the user participated (has at least one non-system note by me).
+      // Guard `notes` (?? []) against malformed/partial discussion payloads.
       const myThreads = discussions.filter((d) =>
-        d.notes.some((n) => !n.system && n.author.id === userId),
+        (d.notes ?? []).some((n) => !n.system && n.author.id === userId),
       );
 
       // Unresolved threads: any note in the thread is resolvable and not resolved
       const myOpenThreads = myThreads.filter((d) =>
-        d.notes.some((n) => n.resolvable && !n.resolved),
+        (d.notes ?? []).some((n) => n.resolvable && !n.resolved),
       );
 
       const openThreadCount = myOpenThreads.length;

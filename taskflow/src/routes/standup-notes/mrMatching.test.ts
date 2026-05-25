@@ -235,4 +235,42 @@ describe('matchMrsToStories', () => {
     expect(unmatchedReviewerMrs).toHaveLength(0);
     expect(unmatchedParticipatingMrs).toHaveLength(0);
   });
+
+  it('11. CR-02a: UNMATCHED reviewer MR also in participating set → shown once (not in both)', () => {
+    // No story matches MR 90. It must appear only in unmatchedReviewerMrs,
+    // NOT also in unmatchedParticipatingMrs.
+    const rows = [makeRow('PROJ-99')];
+    const reviewerMrs = [makeReviewerMR(90, 'No story key here', 'feature/none')];
+    const participatingMrs = [makeParticipatingMR(90, 'No story key here', 'feature/none')];
+
+    const { unmatchedReviewerMrs, unmatchedParticipatingMrs } = matchMrsToStories(
+      rows,
+      reviewerMrs,
+      participatingMrs,
+    );
+
+    expect(unmatchedReviewerMrs.map((m) => m.iid)).toEqual([90]);
+    expect(unmatchedParticipatingMrs).toHaveLength(0);
+  });
+
+  it('12. CR-02b: same iid in different projects is NOT deduped', () => {
+    // Reviewer MR !42 in project 1, participating MR !42 in project 2 — distinct MRs.
+    const rows = [makeRow('PROJ-1')];
+    const reviewerMrs = [makeReviewerMR(42, 'No key', 'feature/none')]; // project_id 1, unmatched
+    const participatingMrs = [
+      makeParticipatingMR(42, '[PROJ-1] Real match', 'feature/none', { projectId: 2 }),
+    ];
+
+    const { mrsByStory, unmatchedReviewerMrs } = matchMrsToStories(
+      rows,
+      reviewerMrs,
+      participatingMrs,
+    );
+
+    // The project-2 participating MR is NOT collapsed by the project-1 reviewer MR;
+    // it matches PROJ-1 and nests there.
+    expect(mrsByStory.get('PROJ-1')).toHaveLength(1);
+    expect(mrsByStory.get('PROJ-1')![0]).toMatchObject({ iid: 42, kind: 'participating' });
+    expect(unmatchedReviewerMrs.map((m) => m.iid)).toEqual([42]);
+  });
 });
