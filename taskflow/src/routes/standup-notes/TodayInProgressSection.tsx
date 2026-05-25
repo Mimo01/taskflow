@@ -122,17 +122,17 @@ function IssueRow({
         <IssueTypeIcon typeName={issueType} className="size-4 shrink-0" />
         <span className="text-xs text-muted-foreground font-mono shrink-0">{key}</span>
         <span className="flex-1 min-w-0 truncate text-sm">{summary}</span>
+        {sp != null && (
+          <span className="shrink-0 rounded bg-muted px-2 py-1 text-xs text-muted-foreground">
+            {sp} pts
+          </span>
+        )}
         <CachedAvatar
           url={issue.fields.assignee?.avatarUrls?.['48x48'] ?? null}
           name={issue.fields.assignee?.displayName ?? 'Unassigned'}
           size={20}
           className="shrink-0"
         />
-        {sp != null && (
-          <span className="shrink-0 rounded bg-muted px-2 py-1 text-xs text-muted-foreground">
-            {sp} pts
-          </span>
-        )}
         {loggedSeconds > 0 && (
           <span className="shrink-0 rounded bg-muted px-2 py-1 text-xs text-muted-foreground ml-1">
             {formatDuration(loggedSeconds)}
