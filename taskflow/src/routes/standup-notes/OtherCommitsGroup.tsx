@@ -18,26 +18,26 @@ export default function OtherCommitsGroup({ commits }: OtherCommitsGroupProps) {
   return (
     <div className="py-2">
       {/* Group header */}
-      <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground italic">
-        <GitBranch className="size-4 shrink-0" />
+      <div className="flex items-center gap-2 py-2 px-2">
+        <GitBranch className="size-4 shrink-0 text-muted-foreground" />
         <div className="flex-1 min-w-0">
           <span>Other commits</span>
-          <p className="text-xs font-normal not-italic">Commits without a linked Jira issue</p>
+          <p className="text-xs text-muted-foreground">Commits without a linked Jira issue</p>
         </div>
       </div>
 
       {/* Commit sub-items */}
-      <ul className="mt-1 flex flex-col gap-1 pl-8">
+      <div className="pl-6 border-l border-border ml-2 divide-y divide-border">
         {commits.map((commit) => (
-          <li key={commit.id} className="flex items-start gap-1.5 text-xs text-foreground">
-            <GitBranch className="size-3 shrink-0 mt-0.5 text-muted-foreground" />
-            <span className="min-w-0">
+          <div key={commit.id} className="flex items-center gap-2 py-2 px-2">
+            <GitBranch className="size-4 shrink-0 text-muted-foreground" />
+            <span className="flex-1 min-w-0 truncate text-sm text-foreground">
               {commit.title}{' '}
               <span className="text-muted-foreground font-mono">{commit.short_id}</span>
             </span>
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }
