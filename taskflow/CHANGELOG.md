@@ -3,6 +3,16 @@
 All notable changes to Taskflow are documented here.
 Entries are written by hand for each release.
 
+## [1.10.3] — 2026-05-26
+
+### Fixed
+
+- Wiki: `{{[URL]}}` and `{{[display|URL]}}` monospace-wrapped links now render as clickable hyperlinks instead of raw angle-bracket text
+- Wiki: Jira `----` horizontal dividers now render as a styled separator line
+- Wiki: Lists following a `{quote}` block no longer appear inside the blockquote when the closing tag is on its own line
+- Worklogs: epic, story, and subtask key cells are now clickable and open the issue directly
+- Settings → Updates: update check results are now visible in the debug log panel
+
 ## [1.10.2] — 2026-05-26
 
 ### Added
