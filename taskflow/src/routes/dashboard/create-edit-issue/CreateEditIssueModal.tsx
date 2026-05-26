@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useRef } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -60,6 +61,8 @@ export function CreateEditIssueModal({
     creatmetaFields,
     creatmetaLoading,
     customRequiredFields,
+    selectedIssueTypeId,
+    parentFields,
     epics,
     linkTypes,
     linkTypesLoading,
@@ -72,10 +75,52 @@ export function CreateEditIssueModal({
     selectedIssueType: state.selectedIssueType,
     epicLinkFieldKey,
     storyPointsFieldKey,
+    parentKey: defaultParentKey,
   });
 
+  // Raw parent values for required custom fields — sent directly to Jira, bypassing
+  // wrapCustomFieldValue so the original types (e.g. integer account IDs) are preserved.
+  const parentInheritMap = useMemo(() => {
+    if (!parentFields || customRequiredFields.length === 0) return {} as Record<string, unknown>;
+    const map: Record<string, unknown> = {};
+    for (const f of customRequiredFields) {
+      if (parentFields[f.fieldId] != null) map[f.fieldId] = parentFields[f.fieldId];
+    }
+    return map;
+  }, [parentFields, customRequiredFields]);
+
+  // Show inherited field labels in the autocomplete inputs so users can see what's
+  // being inherited, without touching customFieldValues (which would go through
+  // wrapCustomFieldValue and lose type information).
+  const prePopulatedRef = useRef(false);
+  useEffect(() => {
+    if (!open) { prePopulatedRef.current = false; return; }
+    if (prePopulatedRef.current) return;
+    if (Object.keys(parentInheritMap).length === 0) return;
+    prePopulatedRef.current = true;
+    for (const field of customRequiredFields) {
+      if (!parentInheritMap[field.fieldId]) continue;
+      const raw = parentInheritMap[field.fieldId];
+      const item = Array.isArray(raw) ? (raw as unknown[])[0] : raw;
+      if (item == null) continue;
+      const label =
+        typeof item === 'object'
+          ? String(
+              (item as Record<string, unknown>).name ??
+                (item as Record<string, unknown>).displayName ??
+                (item as Record<string, unknown>).value ??
+                (item as Record<string, unknown>).key ??
+                '',
+            )
+          : String(item);
+      if (label) dispatch({ type: 'SET_CUSTOM_FIELD_INPUT', fieldId: field.fieldId, value: label });
+    }
+  }, [open, parentInheritMap, customRequiredFields]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const requiredCustomFieldsFilled = customRequiredFields.every(
-    (f) => (state.customFieldValues[f.fieldId] ?? '').trim() !== '',
+    (f) =>
+      (state.customFieldValues[f.fieldId] ?? '').trim() !== '' ||
+      parentInheritMap[f.fieldId] != null,
   );
 
   const { handleSubmit, isPending } = useIssueMutations({
@@ -85,6 +130,8 @@ export function CreateEditIssueModal({
     initialValues,
     state,
     creatmetaFields,
+    issueTypeId: selectedIssueTypeId || undefined,
+    parentInheritMap,
     epicLinkFieldKey,
     storyPointsFieldKey,
     onSuccess: () => {

@@ -26,6 +26,7 @@ interface UseCreateEditQueriesOptions {
   selectedIssueType: IssueType;
   epicLinkFieldKey: string | null;
   storyPointsFieldKey: string | null;
+  parentKey?: string;
 }
 
 // Core field IDs to exclude from custom field rendering
@@ -37,6 +38,8 @@ const CORE_FIELD_IDS = new Set([
   'issuetype',
   'project',
   'reporter',
+  'parent',
+  'timetracking',
 ]);
 
 // ── Hook ─────────────────────────────────────────────────────────────────────
@@ -48,6 +51,7 @@ export function useCreateEditQueries({
   selectedIssueType,
   epicLinkFieldKey,
   storyPointsFieldKey,
+  parentKey,
 }: UseCreateEditQueriesOptions) {
   const staleTime = 5 * 60 * 1000;
 
@@ -71,7 +75,10 @@ export function useCreateEditQueries({
     staleTime,
   });
 
-  const selectedIssueTypeId = issueTypes?.find((t) => t.name === selectedIssueType)?.id ?? '';
+  const selectedIssueTypeId =
+    issueTypes?.find((t) =>
+      selectedIssueType === 'Subtask' ? t.subtask : t.name === selectedIssueType,
+    )?.id ?? '';
 
   const { data: creatmetaFields, isLoading: creatmetaLoading } = useQuery<CreatemetaField[]>({
     queryKey: ['createmeta', projectKey, selectedIssueTypeId, selectedIssueType],
@@ -149,10 +156,32 @@ export function useCreateEditQueries({
     staleTime,
   });
 
+  const { data: parentFields } = useQuery<Record<string, unknown>>({
+    queryKey: ['parent-fields', parentKey],
+    queryFn: async () => {
+      const token = await readSecret('jira-pat').catch(() => null);
+      if (!token || !jiraBaseUrl || !parentKey) return {};
+      const base = jiraBaseUrl.replace(/\/$/, '');
+      const resp = await apiFetch(
+        'jira',
+        `${base}/rest/api/2/issue/${parentKey}?fields=*navigable`,
+        { headers: { Authorization: `Bearer ${token}` } },
+        'Load Parent Fields',
+      );
+      if (!resp.ok) return {};
+      const data = (await resp.json()) as { fields?: Record<string, unknown> };
+      return data.fields ?? {};
+    },
+    enabled: open && !!jiraBaseUrl && !!parentKey && selectedIssueType === 'Subtask',
+    staleTime,
+  });
+
   return {
     creatmetaFields,
     creatmetaLoading,
     customRequiredFields,
+    selectedIssueTypeId,
+    parentFields,
     epics,
     linkTypes,
     linkTypesLoading,
