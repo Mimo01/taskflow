@@ -13,7 +13,6 @@ const SprintBoardTab = lazy(() => import('./dashboard/SprintBoardTab'));
 const BacklogPage = lazy(() => import('./dashboard/BacklogPage'));
 const IssueDetailPage = lazy(() => import('./dashboard/IssueDetailPage'));
 const EpicsPage = lazy(() => import('./dashboard/EpicsPage'));
-const SprintProgressTab = lazy(() => import('./dashboard/SprintProgressTab'));
 const ReleaseDetailPage = lazy(() => import('./dashboard/ReleaseDetailPage'));
 const MergeRequestListPage = lazy(() => import('./dashboard/MergeRequestListPage'));
 const MergeRequestDetailPage = lazy(() => import('./dashboard/MergeRequestDetailPage'));
@@ -41,7 +40,6 @@ export const routes: RouteObject[] = [
   { path: '/sprint-board', element: withLazy(SprintBoardTab) },
   { path: '/backlog', element: withLazy(BacklogPage) },
   { path: '/epics', element: withLazy(EpicsPage) },
-  { path: '/sprint-progress', element: withLazy(SprintProgressTab) },
   { path: '/releases', element: <ReleasesTab /> },
   { path: '/worklogs', element: withLazy(WorklogsPage) },
   { path: '/standup-notes', element: withLazy(StandupNotesPage) },

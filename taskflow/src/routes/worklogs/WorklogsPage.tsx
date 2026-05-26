@@ -312,7 +312,7 @@ export default function WorklogsPage() {
   const { savedFilters, addFilter, removeFilter, renameFilter, moveFilter } =
     useTempoFiltersStore();
 
-  // ─ Auth token effect (SprintProgressTab pattern) ─────────────────────────
+  // ─ Auth token effect ─────────────────────────────────────────────────────
   useEffect(() => {
     if (jiraBaseUrl) {
       readSecret('jira-pat')

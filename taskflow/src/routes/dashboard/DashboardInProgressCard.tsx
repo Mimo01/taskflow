@@ -10,7 +10,7 @@
  * - Shows "No subtasks in progress — nice work!" when no matches
  *
  * Shares the sprint-board TanStack Query cache key with SprintBoardTab,
- * DashboardSprintCard, and SprintHealthPanel — no extra API call when warm.
+ * DashboardSprintCard — no extra API call when warm.
  *
  * D-16: receives all auth values as props; never calls readSecret or useAuthStore.
  * D-08: uses displayName comparison (Option B) — no type cast.
@@ -39,7 +39,7 @@ export default function DashboardInProgressCard({
   storyPointsFieldKey,
   onIssueClick,
 }: DashboardInProgressCardProps) {
-  // CACHE KEY MUST MATCH DashboardSprintCard / SprintHealthPanel / SprintBoardTab exactly
+  // CACHE KEY MUST MATCH DashboardSprintCard / SprintBoardTab exactly
   const { data: sprintIssuesRaw, isLoading } = useQuery({
     queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey],
     queryFn: () =>

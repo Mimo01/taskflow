@@ -75,7 +75,6 @@ vi.mock('@/stores/settings.store', () => ({
         { id: 'backlog', visible: true },
         { id: 'epics', visible: true },
         { id: 'merge-requests', visible: true },
-        { id: 'sprint-progress', visible: true },
         { id: 'releases', visible: true },
         { id: 'worklogs', visible: true },
         { id: 'aio-projects', visible: true },
