@@ -17,7 +17,7 @@ Entries are written by hand for each release.
 
 - Subtask creation no longer fails on Jira instances where the subtask issue type has a non-standard name; the type is now matched by the `subtask` flag rather than by name.
 - Parent issue detail refreshes automatically after a new subtask is created.
-- The Standup **Today** column now uses each story's own Jira status when deciding placement, rather than a fixed mapping.
+- Standup **Today** story placement now uses the status of the issue actually assigned to you — the parent story if you're assigned to it, or your subtask's status if you're only assigned to the subtask. Previously it always used the parent story's status.
 
 ## [1.10.1] — 2026-05-25
 

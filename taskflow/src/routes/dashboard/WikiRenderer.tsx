@@ -612,6 +612,16 @@ export function preprocessJiraMarkup(
   result = result.replace(/\{\*\}(.*?)\{\*\}/gs, '<strong>$1</strong>');
   result = result.replace(/\{_\}(.*?)\{_\}/gs, '<em>$1</em>');
 
+  // Monospace-wrapped links: Jira allows {{[URL]}} and {{[display|URL]}} — the outer
+  // {{...}} is Jira monospace syntax (equivalent to backtick code). jira2md converts
+  // {{...}} to a backtick-delimited inline code span; inside code spans, markdown link
+  // syntax is NOT processed, so [URL] becomes the literal text <URL> rendered as raw
+  // angle-bracket text instead of a clickable hyperlink. Strip the {{...}} wrapper
+  // specifically when the content is a wiki bracket-link [...], so jira2md sees a plain
+  // [URL] or [display|URL] and emits a proper link. Non-link monospace ({{code}}) is
+  // unaffected because it does not match the \{\{\[...\]\}\} pattern.
+  result = result.replace(/\{\{(\[[^\]]*\])\}\}/g, '$1');
+
   // Jira backslash-escaped plus: \\+ is a Jira escape sequence meaning a literal `+`.
   // jira2md does not understand Jira escape sequences — it applies its `+text+` →
   // `<ins>text</ins>` underline rule globally, so a bare `+` left after stripping
@@ -682,6 +692,17 @@ export function preprocessJiraMarkup(
   // - `h1.foo` … `h6.foo` → `h1. foo` (so jira2md emits valid `#…# foo`)
   // - `\\` at end-of-line or surrounded by spaces → markdown hard break (`  \n`)
   result = result.replace(/^(h[1-6]\.)(\S)/gm, '$1 $2');
+
+  // Horizontal divider: Jira `----` on its own line must render as a full-width <hr>.
+  // jira2md's strikethrough regex /(\s+)-(\S+.*?\S)-(\s+)/g matches `----` when it
+  // is surrounded by newlines — the outer two dashes become strikethrough delimiters
+  // and the inner `--` becomes the struck content, producing `~~--~~` which renders
+  // as literal struck-through dashes. Fix: convert any line that consists entirely of
+  // 4 or more dashes to the markdown thematic break form `---` BEFORE jira2md runs.
+  // `---` is safe: jira2md's strikethrough inner-content pattern requires at least 2
+  // chars (\S+.*?\S), so a 1-char inner portion (`-`) is never matched and `---`
+  // passes through jira2md unchanged. react-markdown renders standalone `---` as <hr>.
+  result = result.replace(/^-{4,}$/gm, '\n---\n');
 
   // Table data rows (starting with `|` but not `||`) may contain `\\` hard-break
   // markers that were not processed by mergeOpenTableRows (which only handles merged
@@ -783,11 +804,18 @@ export function preprocessJiraMarkup(
   // Must run BEFORE jira2md so jira2md can process Jira inline markup (bold, italic, etc.)
   // inside the quote. Using markdown > prefix (not <blockquote> HTML) ensures jira2md
   // converts inline syntax like *bold* → **bold** before react-markdown renders it.
+  // Strip trailing newlines from the captured content before prefixing: when the closing
+  // {quote} tag is on its own line, the captured content ends with '\n', which produces a
+  // trailing empty '> ' blockquote continuation line. That trailing '> ' line immediately
+  // before a following '* list item' (or other block) causes the content to appear inside
+  // the blockquote visually (wiki-renderer-list-in-quote). A trailing '\n' is appended to
+  // the replacement so that the following line is separated by a blank line from the blockquote.
   result = result.replace(/\{quote\}([\s\S]*?)\{quote\}/g, (_match, content: string) =>
     content
+      .replace(/\n+$/, '')
       .split('\n')
       .map((line: string) => `> ${line}`)
-      .join('\n'),
+      .join('\n') + '\n',
   );
 
   // Color macros: {color:#hex}...{color} -> <span data-color="#hex">...</span>
@@ -953,6 +981,7 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
         <table {...rest}>{children}</table>
       </div>
     ),
+    hr: () => <hr className="!my-3 border-muted-foreground/40" />,
     ol: OlRenderer,
     blockquote: ({ children, ...rest }: ComponentPropsWithoutRef<'blockquote'>) => (
       <blockquote

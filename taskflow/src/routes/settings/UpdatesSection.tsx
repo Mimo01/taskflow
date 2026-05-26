@@ -27,6 +27,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { buildInfo } from '@/lib/build-info';
 import { updaterService } from '@/services/updater';
+import { useDebugLogStore } from '@/stores/debug-log.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useUpdateStore } from '@/stores/update.store';
 
@@ -166,6 +167,7 @@ export default function UpdatesSection() {
   const lastChecked = useSettingsStore((s) => s.lastChecked);
   const availableVersion = useUpdateStore((s) => s.availableVersion);
 
+  const appendLog = useDebugLogStore((s) => s.append);
   const [checkState, setCheckState] = useState<'idle' | 'checking' | 'done'>('idle');
   const [checkResult, setCheckResult] = useState<'up-to-date' | 'available' | null>(null);
 
@@ -180,13 +182,48 @@ export default function UpdatesSection() {
       if (info) {
         setAvailable(info.version, info.body, info.date);
         setCheckResult('available');
+        appendLog({
+          id: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          source: 'updater',
+          method: 'GET',
+          url: 'tauri://updater/check',
+          requestHeaders: {},
+          status: 200,
+          durationMs: 0,
+          responseBody: `Update check: available — ${info.version}`,
+        });
       } else {
         resetToIdle();
         setCheckResult('up-to-date');
+        appendLog({
+          id: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          source: 'updater',
+          method: 'GET',
+          url: 'tauri://updater/check',
+          requestHeaders: {},
+          status: 200,
+          durationMs: 0,
+          responseBody: 'Update check: up to date',
+        });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
       setCheckResult('up-to-date');
+      appendLog({
+        id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        source: 'updater',
+        method: 'GET',
+        url: 'tauri://updater/check',
+        requestHeaders: {},
+        status: null,
+        durationMs: 0,
+        responseBody: `Update check failed: ${msg}`,
+        error: msg,
+      });
     }
     setCheckState('done');
     setTimeout(() => {
