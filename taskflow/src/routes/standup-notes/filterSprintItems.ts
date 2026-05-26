@@ -13,10 +13,12 @@
  *   done subtasks never appear. A still-active subtask of a now-excluded done parent
  *   resurfaces as a standalone row (its parent is no longer in the list → orphan).
  *
- * STATUS PLACEMENT RULE (D-05 — revised for grouped display):
- *   The row's bucket (inProgress / upNext) is determined by the PARENT story's status
- *   category. My (non-done) subtasks nest under their parent regardless of the subtask's
- *   own statusCategory.
+ * STATUS PLACEMENT RULE (D-05 — revised):
+ *   The row's bucket (inProgress / upNext) is determined by the status of the
+ *   highest-priority issue assigned to me:
+ *     - If the parent story is assigned to me → use the parent's status.
+ *     - If only a subtask is assigned to me (not the parent) → use that subtask's status.
+ *   Orphan subtask rows always use the subtask's own status (unchanged).
  *
  * GROUPING RULE (Decision 1 — replaces old D-04 "leaf-only" rule):
  *   - Parent stories assigned to me → shown as top-level SprintRow rows.
@@ -77,10 +79,21 @@ export function filterSprintItems(
   );
 
   // Build parent rows: nest only MY subtasks under each parent.
-  const parentRows: SprintRow[] = includedParents.map((parent) => ({
-    issue: parent,
-    subtasks: mySubtasks.filter((s) => s.fields.parent?.key === parent.key),
-  }));
+  // Resolve placementStatusKey per row:
+  //   - parent assigned to me → use parent's own statusCategory key
+  //   - parent NOT assigned to me (included only via my subtask) → use my subtask's statusCategory key
+  const parentRows: SprintRow[] = includedParents.map((parent) => {
+    const mySubtasksForParent = mySubtasks.filter((s) => s.fields.parent?.key === parent.key);
+    return {
+      issue: parent,
+      subtasks: mySubtasksForParent,
+      // Attach resolved placement key as a non-enumerated symbol so the
+      // filter below can read it without widening SprintRow's public shape.
+      _placementStatusKey: isAssignedToMe(parent)
+        ? parent.fields.status.statusCategory?.key
+        : mySubtasksForParent[0]?.fields.status.statusCategory?.key,
+    };
+  }) as unknown as SprintRow[];
 
   // Orphan mySubtasks: assigned to me, but their parent is not present in allParentsByKey at all.
   const orphanSubtasks: SprintRow[] = mySubtasks
@@ -92,12 +105,17 @@ export function filterSprintItems(
 
   const allRows = [...parentRows, ...orphanSubtasks];
 
+  // Helper: resolve placement status key for a row.
+  // ParentRows carry _placementStatusKey; orphan rows use issue.fields.status.statusCategory.key.
+  const placementKey = (r: SprintRow): string | undefined => {
+    const extended = r as SprintRow & { _placementStatusKey?: string };
+    return extended._placementStatusKey !== undefined
+      ? extended._placementStatusKey
+      : r.issue.fields.status.statusCategory?.key;
+  };
+
   return {
-    inProgress: allRows.filter(
-      (r) => r.issue.fields.status.statusCategory?.key === 'indeterminate',
-    ),
-    upNext: allRows.filter(
-      (r) => r.issue.fields.status.statusCategory?.key === 'new',
-    ),
+    inProgress: allRows.filter((r) => placementKey(r) === 'indeterminate'),
+    upNext: allRows.filter((r) => placementKey(r) === 'new'),
   };
 }

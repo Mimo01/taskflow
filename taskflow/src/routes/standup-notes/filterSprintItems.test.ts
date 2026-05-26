@@ -4,7 +4,8 @@
  * Tests verify:
  *   - Grouped output: parent stories show as top-level SprintRows with nested subtasks
  *   - Old "leaf-only" exclusion is GONE: parent with subtasks now appears (regression guard)
- *   - Status-category split (D-05): parent's status → row bucket; subtasks nest regardless
+ *   - Status-category split (D-05): placement uses parent status when parent is assigned
+ *     to me; uses subtask status when parent is NOT assigned to me
  *   - Orphan subtasks (my subtask, parent not in my list) → standalone SprintRow
  *   - Assignee guard: only issues assigned to jiraUserDisplayName appear
  *   - Done items excluded from both buckets
@@ -95,9 +96,9 @@ describe('filterSprintItems — grouped output', () => {
     expect(row!.subtasks.map((s) => s.key)).toContain('ESHOP-10-S2');
   });
 
-  it('subtasks nest under parent regardless of subtask own status (placed by parent status)', () => {
+  it('subtasks nest under parent regardless of subtask own status when parent is assigned to me (placed by parent status)', () => {
     const parent = makeIssue({ key: 'ESHOP-11', statusKey: 'new', isSubtask: false, displayName: ME });
-    // subtask has indeterminate status but parent is 'new' → should be upNext row
+    // subtask has indeterminate status but parent is 'new' and assigned to me → should be upNext row
     const sub = makeIssue({ key: 'ESHOP-11-S1', statusKey: 'indeterminate', isSubtask: true, displayName: ME, parentKey: 'ESHOP-11' });
 
     const { inProgress, upNext } = filterSprintItems([parent, sub], ME);
@@ -181,28 +182,44 @@ describe('filterSprintItems — grouped output', () => {
 
     const { inProgress, upNext } = filterSprintItems([parent, mySub, otherSub], ME);
 
-    // Parent must appear — placed in inProgress because parent status is indeterminate.
-    const row = inProgress.find((r) => r.issue.key === 'ESHOP-30');
+    // Parent must appear — placed by MY subtask's status ('new' → upNext),
+    // not the parent's own status ('indeterminate' → inProgress).
+    const row = upNext.find((r) => r.issue.key === 'ESHOP-30');
     expect(row).toBeDefined();
-    expect(upNext.map((r) => r.issue.key)).not.toContain('ESHOP-30');
+    expect(inProgress.map((r) => r.issue.key)).not.toContain('ESHOP-30');
 
     // Only MY subtask is nested — the other subtask must NOT appear.
     expect(row!.subtasks.map((s) => s.key)).toContain('ESHOP-30-S1');
     expect(row!.subtasks.map((s) => s.key)).not.toContain('ESHOP-30-S2');
   });
 
-  it('section placement uses parent status even when parent is not assigned to me', () => {
-    // Parent is 'new' (upNext), assigned to OTHER.
+  it('section placement uses subtask status when parent is NOT assigned to me', () => {
+    // Parent is 'new' (would be upNext), assigned to OTHER — but placement must use MY subtask's status.
     const parent = makeIssue({ key: 'ESHOP-31', statusKey: 'new', isSubtask: false, displayName: OTHER });
-    // My subtask has indeterminate status — but parent governs placement.
+    // My subtask has indeterminate status — governs placement because parent is not mine.
     const mySub = makeIssue({ key: 'ESHOP-31-S1', statusKey: 'indeterminate', isSubtask: true, displayName: ME, parentKey: 'ESHOP-31' });
 
     const { inProgress, upNext } = filterSprintItems([parent, mySub], ME);
 
-    // Must be in upNext (parent's status), not inProgress.
-    const row = upNext.find((r) => r.issue.key === 'ESHOP-31');
+    // Must be in inProgress (my subtask's status), not upNext (parent's status).
+    const row = inProgress.find((r) => r.issue.key === 'ESHOP-31');
     expect(row).toBeDefined();
-    expect(inProgress.map((r) => r.issue.key)).not.toContain('ESHOP-31');
+    expect(upNext.map((r) => r.issue.key)).not.toContain('ESHOP-31');
     expect(row!.subtasks.map((s) => s.key)).toContain('ESHOP-31-S1');
+  });
+
+  it('section placement uses parent status when parent IS assigned to me (even with subtasks)', () => {
+    // Parent is 'new' (upNext), assigned to ME — placement must use parent's status.
+    const parent = makeIssue({ key: 'ESHOP-32', statusKey: 'new', isSubtask: false, displayName: ME });
+    // My subtask has indeterminate status — but parent is mine, so parent's status wins.
+    const mySub = makeIssue({ key: 'ESHOP-32-S1', statusKey: 'indeterminate', isSubtask: true, displayName: ME, parentKey: 'ESHOP-32' });
+
+    const { inProgress, upNext } = filterSprintItems([parent, mySub], ME);
+
+    // Must be in upNext (parent's status 'new'), not inProgress (subtask's status).
+    const row = upNext.find((r) => r.issue.key === 'ESHOP-32');
+    expect(row).toBeDefined();
+    expect(inProgress.map((r) => r.issue.key)).not.toContain('ESHOP-32');
+    expect(row!.subtasks.map((s) => s.key)).toContain('ESHOP-32-S1');
   });
 });
