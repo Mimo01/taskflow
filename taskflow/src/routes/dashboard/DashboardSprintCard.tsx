@@ -8,7 +8,7 @@
  * - Empty state when no active sprint
  *
  * Receives all auth values as props — no direct Stronghold or store reads (D-16).
- * Shares TanStack Query cache keys with SprintBoardTab/SprintProgressTab/SprintHealthPanel.
+ * Shares TanStack Query cache keys with SprintBoardTab.
  */
 import { useQuery } from '@tanstack/react-query';
 import { Zap } from 'lucide-react';
