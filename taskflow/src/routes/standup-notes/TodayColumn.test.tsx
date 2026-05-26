@@ -10,7 +10,7 @@
  * Strategy: mock all useQuery calls to return fixture data synchronously,
  * mock the stores, and mount TodayColumn inside the required providers.
  *
- * Pattern source: SprintHealthPanel.test.tsx + YesterdayColumn.tempo-disabled.test.tsx
+ * Pattern source: YesterdayColumn.tempo-disabled.test.tsx
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
