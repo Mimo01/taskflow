@@ -288,7 +288,6 @@ function AppLayout() {
     if (pathname.startsWith('/my-tasks')) return 'My Tasks';
     if (pathname.startsWith('/epics')) return 'Epics';
     if (pathname.startsWith('/dashboard')) return 'Dashboard';
-    if (pathname.startsWith('/sprint-progress')) return 'Sprint Progress';
     if (pathname.startsWith('/releases')) return 'Releases';
     if (pathname.startsWith('/worklogs')) return 'Worklogs';
     if (pathname.startsWith('/standup-notes')) return 'Standup Notes';
