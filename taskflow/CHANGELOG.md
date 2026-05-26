@@ -3,6 +3,22 @@
 All notable changes to Taskflow are documented here.
 Entries are written by hand for each release.
 
+## [1.10.2] — 2026-05-26
+
+### Added
+
+- **Subtask parent-field inheritance** — required custom fields on the create-subtask form are now auto-populated from the parent issue's values, so you no longer need to re-enter fields like Tempo Account. The inherited values are visible in the inputs before submit and are sent to Jira with their original types preserved.
+
+### Removed
+
+- **Sprint Progress page** — the tab, skeleton, health panel, sidebar entry, and route have been removed.
+
+### Fixed
+
+- Subtask creation no longer fails on Jira instances where the subtask issue type has a non-standard name; the type is now matched by the `subtask` flag rather than by name.
+- Parent issue detail refreshes automatically after a new subtask is created.
+- The Standup **Today** column now uses each story's own Jira status when deciding placement, rather than a fixed mapping.
+
 ## [1.10.1] — 2026-05-25
 
 ### Changed
