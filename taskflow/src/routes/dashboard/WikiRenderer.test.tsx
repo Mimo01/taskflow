@@ -339,6 +339,23 @@ After quote`;
       expect(bq?.querySelector('em')).not.toBeNull();
       expect(bq?.textContent).toContain('italic text');
     });
+
+    it('list item after {quote} block (closing tag on own line) renders outside the blockquote (wiki-renderer-list-in-quote)', () => {
+      // Repro: {quote}text\n{quote}\n* item — closing {quote} on its own line produced
+      // a trailing "> " empty blockquote line that absorbed the following list item.
+      const wiki = `{quote}Finálnu definíciu eventov je potrebné odkonzultovať s analytickým tímom pred implementáciou.
+{quote}
+* DA lead form: item`;
+      const { container } = render(<WikiRenderer wikiText={wiki} />);
+      const bq = container.querySelector('blockquote');
+      const li = container.querySelector('li');
+      // The list item must exist somewhere in the rendered output
+      expect(li).not.toBeNull();
+      expect(li?.textContent).toContain('DA lead form');
+      // The list item must NOT be inside the blockquote
+      const liInsideBlockquote = bq?.querySelector('li') ?? null;
+      expect(liInsideBlockquote).toBeNull();
+    });
   });
 
   describe('image rendering', () => {
@@ -1054,6 +1071,58 @@ After quote`;
       expect(link).not.toBeNull();
       expect(link?.getAttribute('href')).toBe('https://example.com/a_b_c');
       expect(link?.getAttribute('href')).not.toContain('*');
+    });
+  });
+
+  // --- Monospace-wrapped links (wiki-url-not-clickable) ---
+  //
+  // Jira allows {{[URL]}} and {{[display|URL]}} where the outer {{...}} is
+  // monospace syntax. jira2md converts {{...}} to a backtick code span; inside
+  // code spans markdown link syntax is not processed, so the URL appears as
+  // raw angle-bracket text `<URL>` rather than a clickable link.
+  //
+  // preprocessJiraMarkup strips the {{...}} wrapper when the content is a
+  // bracket-link [...], so jira2md sees a plain [URL] or [display|URL] and
+  // emits a proper hyperlink.
+  describe('monospace-wrapped links (wiki-url-not-clickable)', () => {
+    it('{{[URL]}} renders as a clickable <a> link (verbatim bug fixture)', () => {
+      const fixture =
+        '{{[https://www.orange.sk/e-shop/orange-mobilny-internet?click=int-mbb]}}';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const link = container.querySelector('a');
+      expect(link).not.toBeNull();
+      expect(link?.getAttribute('href')).toBe(
+        'https://www.orange.sk/e-shop/orange-mobilny-internet?click=int-mbb',
+      );
+      // Must NOT appear as raw angle-bracket text
+      expect(container.textContent).not.toContain('<https://');
+    });
+
+    it('{{[URL]}} — rendered link calls openUrl on click (not raw text)', () => {
+      vi.mocked(openUrl).mockClear();
+      const fixture = '{{[https://example.com/path]}}';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const link = container.querySelector('a');
+      expect(link).not.toBeNull();
+      fireEvent.click(link as HTMLAnchorElement);
+      expect(openUrl).toHaveBeenCalledWith('https://example.com/path');
+    });
+
+    it('{{[display|URL]}} renders as a named <a> link (monospace wrapping a named link)', () => {
+      const fixture = '{{[Click here|https://example.com/shop]}}';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const link = container.querySelector('a');
+      expect(link).not.toBeNull();
+      expect(link?.getAttribute('href')).toBe('https://example.com/shop');
+      expect(link?.textContent).toContain('Click here');
+    });
+
+    it('{{non-link monospace}} is NOT affected — still renders as inline code', () => {
+      // {{someCode}} has no bracket-link inside — must remain as <code> element.
+      const { container } = render(<WikiRenderer wikiText="{{someCode}}" />);
+      const code = container.querySelector('code');
+      expect(code).not.toBeNull();
+      expect(code?.textContent).toBe('someCode');
     });
   });
 
@@ -1882,6 +1951,65 @@ After quote`;
       expect(table).not.toBeNull();
       expect(table?.textContent).toContain('Done');
       expect(table?.textContent).toContain('All good');
+    });
+  });
+
+  // --- Horizontal divider (wiki-renderer-horizontal-divider) ---
+  //
+  // Jira wiki uses `----` on its own line as a full-width horizontal divider (<hr>).
+  // jira2md's strikethrough regex /(\s+)-(\S+.*?\S)-(\s+)/g matches `----` when
+  // surrounded by newlines, converting it to `~~--~~` (strikethrough of '--').
+  // react-markdown renders that as struck-through dashes, not an <hr>.
+  //
+  // Fix: preprocessJiraMarkup replaces /^-{4,}$/gm with `---` (markdown thematic
+  // break) BEFORE jira2md runs. jira2md leaves `---` untouched (inner content
+  // would be 1 char, below the 2-char minimum of the strikethrough regex) and
+  // react-markdown renders `---` on its own line as <hr>.
+  describe('horizontal divider rendering (wiki-renderer-horizontal-divider)', () => {
+    it('renders ---- on its own line as an <hr> element', () => {
+      const { container } = render(<WikiRenderer wikiText="----" />);
+      const hr = container.querySelector('hr');
+      expect(hr).not.toBeNull();
+    });
+
+    it('does NOT render ---- as literal dashes or strikethrough text', () => {
+      const { container } = render(<WikiRenderer wikiText="----" />);
+      // Must not contain struck-through dashes (old bug: rendered as '--' via ~~--~~)
+      const del = container.querySelector('del');
+      expect(del).toBeNull();
+      // The <hr> has no text content
+      expect(container.textContent?.trim()).toBe('');
+    });
+
+    it('renders ---- surrounded by prose content as an <hr> between paragraphs', () => {
+      const fixture = 'Text before divider\n----\nText after divider';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const hr = container.querySelector('hr');
+      expect(hr).not.toBeNull();
+      expect(container.textContent).toContain('Text before divider');
+      expect(container.textContent).toContain('Text after divider');
+    });
+
+    it('renders ---- with blank lines around it as an <hr>', () => {
+      const fixture = 'Before\n\n----\n\nAfter';
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const hr = container.querySelector('hr');
+      expect(hr).not.toBeNull();
+      expect(container.textContent).toContain('Before');
+      expect(container.textContent).toContain('After');
+    });
+
+    it('renders 5 or more dashes as an <hr> (Jira allows -----)', () => {
+      const { container } = render(<WikiRenderer wikiText="-----" />);
+      const hr = container.querySelector('hr');
+      expect(hr).not.toBeNull();
+    });
+
+    it('---- inside a sentence (not on its own line) is NOT converted to <hr>', () => {
+      // Only standalone ---- lines (with nothing else on the line) become <hr>
+      const { container } = render(<WikiRenderer wikiText="range: 1----10" />);
+      expect(container.querySelector('hr')).toBeNull();
+      expect(container.textContent).toContain('range');
     });
   });
 });

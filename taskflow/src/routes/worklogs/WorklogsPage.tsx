@@ -1067,7 +1067,7 @@ export default function WorklogsPage() {
                       className={
                         isNoEpic
                           ? 'bg-purple-50 dark:bg-purple-950 group/row'
-                          : 'bg-purple-100 dark:bg-purple-900 cursor-pointer group/row'
+                          : 'bg-purple-100 dark:bg-purple-900 group/row'
                       }
                     >
                       <td
@@ -1099,9 +1099,18 @@ export default function WorklogsPage() {
                         )}
                       </td>
                       <td
-                        className={`sticky left-52 z-10 ${epicRowBg} px-2 py-1.5 border border-border border-l-0 border-r-0 text-purple-500 dark:text-purple-400 whitespace-nowrap min-w-20`}
+                        className={`sticky left-52 z-10 ${epicRowBg} p-0 border border-border border-l-0 border-r-0 text-purple-500 dark:text-purple-400 whitespace-nowrap min-w-20`}
                       >
-                        {isNoEpic ? '' : epicKey}
+                        {isNoEpic ? '' : (
+                          <button
+                            type="button"
+                            aria-label={`Open ${epicKey}`}
+                            onClick={() => onIssueClick(epicKey)}
+                            className="block w-full text-left px-2 py-1.5 cursor-pointer"
+                          >
+                            {epicKey}
+                          </button>
+                        )}
                       </td>
                       <td
                         className={`sticky left-72 z-10 ${epicRowBg} text-center px-2 py-1.5 border border-border border-l-0 border-r-2 font-semibold text-purple-800 dark:text-purple-200 min-w-14`}
@@ -1140,7 +1149,7 @@ export default function WorklogsPage() {
                       );
                       return (
                         <React.Fragment key={storyKey}>
-                          <tr className="cursor-pointer group/row">
+                          <tr className="group/row">
                             <td className="sticky left-0 z-10 bg-background px-3 py-1.5 border border-border border-r-0 min-w-52 max-w-52 overflow-hidden">
                               <button
                                 type="button"
@@ -1160,8 +1169,15 @@ export default function WorklogsPage() {
                                 </span>
                               </button>
                             </td>
-                            <td className="sticky left-52 z-10 bg-background px-2 py-1.5 border border-border border-l-0 border-r-0 text-muted-foreground whitespace-nowrap min-w-20">
-                              {storyKey}
+                            <td className="sticky left-52 z-10 bg-background p-0 border border-border border-l-0 border-r-0 text-muted-foreground whitespace-nowrap min-w-20">
+                              <button
+                                type="button"
+                                aria-label={`Open ${storyKey}`}
+                                onClick={() => onIssueClick(storyKey)}
+                                className="block w-full text-left px-2 py-1.5 cursor-pointer"
+                              >
+                                {storyKey}
+                              </button>
                             </td>
                             <td className="sticky left-72 z-10 bg-background text-center px-2 py-1.5 border border-border border-l-0 border-r-2 font-semibold min-w-14">
                               {formatSeconds(storyTotal) || '—'}
@@ -1197,7 +1213,7 @@ export default function WorklogsPage() {
                               return (
                                 <tr
                                   key={`subtask-${subtaskKey}`}
-                                  className="cursor-pointer group/row"
+                                  className="group/row"
                                 >
                                   <td className="sticky left-0 z-10 bg-background px-3 py-1.5 border border-border border-r-0 min-w-52 max-w-52 overflow-hidden">
                                     <button
@@ -1216,8 +1232,15 @@ export default function WorklogsPage() {
                                       </span>
                                     </button>
                                   </td>
-                                  <td className="sticky left-52 z-10 bg-background px-2 py-1.5 border border-border border-l-0 border-r-0 text-muted-foreground/60 whitespace-nowrap min-w-20">
-                                    {subtaskKey}
+                                  <td className="sticky left-52 z-10 bg-background p-0 border border-border border-l-0 border-r-0 text-muted-foreground/60 whitespace-nowrap min-w-20">
+                                    <button
+                                      type="button"
+                                      aria-label={`Open ${subtaskKey}`}
+                                      onClick={() => onIssueClick(subtaskKey)}
+                                      className="block w-full text-left px-2 py-1.5 cursor-pointer"
+                                    >
+                                      {subtaskKey}
+                                    </button>
                                   </td>
                                   <td className="sticky left-72 z-10 bg-background text-center px-2 py-1.5 border border-border border-l-0 border-r-2 font-semibold text-muted-foreground min-w-14">
                                     {formatSeconds(subtaskTotal) || '—'}
