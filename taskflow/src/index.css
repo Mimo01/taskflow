@@ -75,6 +75,11 @@
   }
 }
 
+.prose blockquote p:first-of-type::before,
+.prose blockquote p:last-of-type::after {
+  content: none;
+}
+
 @layer base {
   :root {
     --background: oklch(1 0 0);

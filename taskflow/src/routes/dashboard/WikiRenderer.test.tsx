@@ -280,6 +280,67 @@ describe('WikiRenderer', () => {
     });
   });
 
+  describe('quote block rendering (wiki-quote-block-renders-raw)', () => {
+    it('renders {quote}text{quote} as a <blockquote> element', () => {
+      const { container } = render(<WikiRenderer wikiText="{quote}this is quoted text{quote}" />);
+      const bq = container.querySelector('blockquote');
+      expect(bq).not.toBeNull();
+      expect(bq?.textContent).toContain('this is quoted text');
+    });
+
+    it('does NOT render literal {quote} tags as text in the output', () => {
+      const { container } = render(<WikiRenderer wikiText="{quote}quoted content{quote}" />);
+      expect(container.textContent).not.toContain('{quote}');
+    });
+
+    it('renders multi-line {quote} block as a blockquote preserving content', () => {
+      const fixture = `{quote}
+First line
+Second line
+{quote}`;
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const bq = container.querySelector('blockquote');
+      expect(bq).not.toBeNull();
+      expect(bq?.textContent).toContain('First line');
+      expect(bq?.textContent).toContain('Second line');
+    });
+
+    it('renders {quote} block with styled left border and italic text class', () => {
+      const { container } = render(<WikiRenderer wikiText="{quote}styled quote{quote}" />);
+      const bq = container.querySelector('blockquote');
+      expect(bq).not.toBeNull();
+      expect(bq?.className).toContain('border-l-4');
+    });
+
+    it('renders {quote} block inside prose alongside other content', () => {
+      const fixture = `Before quote
+{quote}quoted text{quote}
+After quote`;
+      const { container } = render(<WikiRenderer wikiText={fixture} />);
+      const bq = container.querySelector('blockquote');
+      expect(bq).not.toBeNull();
+      expect(bq?.textContent).toContain('quoted text');
+      expect(container.textContent).toContain('Before quote');
+      expect(container.textContent).toContain('After quote');
+    });
+
+    it('renders bold text inside {quote} block as <strong>', () => {
+      const { container } = render(<WikiRenderer wikiText="{quote}*bold text*{quote}" />);
+      const bq = container.querySelector('blockquote');
+      expect(bq).not.toBeNull();
+      expect(bq?.querySelector('strong')).not.toBeNull();
+      expect(bq?.textContent).toContain('bold text');
+    });
+
+    it('renders italic text inside {quote} block as <em>', () => {
+      const { container } = render(<WikiRenderer wikiText="{quote}_italic text_{quote}" />);
+      const bq = container.querySelector('blockquote');
+      expect(bq).not.toBeNull();
+      expect(bq?.querySelector('em')).not.toBeNull();
+      expect(bq?.textContent).toContain('italic text');
+    });
+  });
+
   describe('image rendering', () => {
     it('renders img with max-width constraint and cursor-pointer', () => {
       // jira2md converts !screenshot.png! to ![](screenshot.png)
