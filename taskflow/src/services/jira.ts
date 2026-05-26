@@ -1884,6 +1884,7 @@ export async function createIssue(
   summary: string,
   options?: {
     issuetype?: string; // 'Story' | 'Subtask' | 'Bug' — defaults to 'Story' if omitted
+    issueTypeId?: string; // numeric id string; when set, sent as { id } instead of { name }
     description?: string; // wiki markup string (DC always; never ADF)
     assignee?: { name: string }; // DC format — NOT { accountId }
     priority?: { name: string };
@@ -1897,13 +1898,16 @@ export async function createIssue(
   const baseFields: Record<string, unknown> = {
     project: { key: projectKey },
     summary,
-    issuetype: { name: options?.issuetype ?? 'Story' },
+    issuetype: options?.issueTypeId
+      ? { id: options.issueTypeId }
+      : { name: options?.issuetype ?? 'Story' },
   };
 
   // Merge in optional fields, filtering out undefined values
   if (options) {
-    const { issuetype, ...rest } = options;
+    const { issuetype, issueTypeId, ...rest } = options;
     void issuetype; // consumed above via options?.issuetype
+    void issueTypeId; // consumed above — sent as { id } when present
     for (const [k, v] of Object.entries(rest)) {
       if (v !== undefined) {
         baseFields[k] = v;

@@ -14,6 +14,8 @@ interface UseIssueMutationsOptions {
   initialValues?: EditInitialValues;
   state: FormState;
   creatmetaFields?: CreatemetaField[];
+  issueTypeId?: string;
+  parentInheritMap?: Record<string, unknown>;
   epicLinkFieldKey: string | null;
   storyPointsFieldKey: string | null;
   onSuccess: () => void;
@@ -29,6 +31,8 @@ export function useIssueMutations({
   initialValues,
   state,
   creatmetaFields,
+  issueTypeId,
+  parentInheritMap,
   epicLinkFieldKey,
   storyPointsFieldKey,
   onSuccess,
@@ -67,8 +71,29 @@ export function useIssueMutations({
         options[k] = fieldMeta ? wrapCustomFieldValue(fieldMeta, v) : v;
       }
 
+      // Inherit required fields from parent using the raw Jira value (preserves
+      // original types such as integer account IDs that wrapCustomFieldValue would
+      // stringify). Only applies when the user hasn't manually entered a value.
+      if (parentInheritMap) {
+        for (const [k, raw] of Object.entries(parentInheritMap)) {
+          if (raw == null || (state.customFieldValues[k] ?? '').trim()) continue;
+          const item = Array.isArray(raw) ? (raw as unknown[])[0] : raw;
+          if (item == null) continue;
+          // Object values: extract the primary scalar — Tempo Accounts and similar
+          // plugins expect just the id string, not the full object.
+          if (typeof item === 'object') {
+            const obj = item as Record<string, unknown>;
+            const scalar = obj.id ?? obj.key ?? obj.name;
+            if (scalar != null) options[k] = String(scalar);
+          } else {
+            options[k] = item;
+          }
+        }
+      }
+
       const newIssue = await createIssue(jiraBaseUrl, token, projectKey, state.summary.trim(), {
         issuetype: state.selectedIssueType,
+        issueTypeId,
         ...options,
       });
 
@@ -88,6 +113,11 @@ export function useIssueMutations({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
       queryClient.invalidateQueries({ queryKey: ['jira-issues', 'my-tasks'] });
+      if (isSubtask && state.parentKey && jiraBaseUrl) {
+        queryClient.invalidateQueries({
+          queryKey: ['jira-issue-detail', state.parentKey, jiraBaseUrl],
+        });
+      }
       onSuccess();
     },
     onError: (err: Error) => {
