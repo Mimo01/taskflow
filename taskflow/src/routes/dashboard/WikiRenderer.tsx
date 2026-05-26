@@ -778,6 +778,18 @@ export function preprocessJiraMarkup(
   // Note panels
   result = result.replace(/\{note\}([\s\S]*?)\{note\}/g, '<div data-callout="note">$1</div>');
 
+  // Quote blocks: {quote}...{quote} -> markdown blockquote (> prefix per line).
+  // jira2md only handles the single-paragraph bq. prefix form, not the block {quote} macro.
+  // Must run BEFORE jira2md so jira2md can process Jira inline markup (bold, italic, etc.)
+  // inside the quote. Using markdown > prefix (not <blockquote> HTML) ensures jira2md
+  // converts inline syntax like *bold* → **bold** before react-markdown renders it.
+  result = result.replace(/\{quote\}([\s\S]*?)\{quote\}/g, (_match, content: string) =>
+    content
+      .split('\n')
+      .map((line: string) => `> ${line}`)
+      .join('\n'),
+  );
+
   // Color macros: {color:#hex}...{color} -> <span data-color="#hex">...</span>
   // Must run BEFORE jira2md, which strips {color} entirely (jira2md index.js line 82).
   // We use data-color rather than inline style so rehype-sanitize can allowlist it
@@ -942,6 +954,14 @@ export function WikiRenderer({ wikiText, className, attachments, users }: WikiRe
       </div>
     ),
     ol: OlRenderer,
+    blockquote: ({ children, ...rest }: ComponentPropsWithoutRef<'blockquote'>) => (
+      <blockquote
+        className="border-l-4 border-muted-foreground/30 pl-3 text-muted-foreground my-2"
+        {...rest}
+      >
+        {children}
+      </blockquote>
+    ),
     div: ({ node, children, ...rest }: ComponentPropsWithoutRef<'div'> & { node?: unknown }) => {
       const props = rest as Record<string, unknown>;
       const calloutType = props['data-callout'] as string | undefined;
