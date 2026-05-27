@@ -112,7 +112,6 @@ export function useIssueMutations({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-issues', 'my-tasks'] });
       if (isSubtask && state.parentKey && jiraBaseUrl) {
         queryClient.invalidateQueries({
           queryKey: ['jira-issue-detail', state.parentKey, jiraBaseUrl],

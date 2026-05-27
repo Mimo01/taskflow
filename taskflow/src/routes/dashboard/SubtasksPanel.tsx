@@ -4,13 +4,9 @@
  * Shows up to 5 subtasks assigned to the current user in the current sprint.
  * Orphan subtasks (whose parent is not in the sprint board) are hidden.
  * Clicking a row opens the Jira issue in the system browser.
- *
- * Shares the 'jira-issues' cache with MyTasksTab (same query keys) so the
- * panel benefits from background polling without issuing redundant requests.
  */
 import { useQuery } from '@tanstack/react-query';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { fetchMyTasksHierarchy, fetchSprintIssues } from '@/services/jira';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -43,7 +39,6 @@ export default function SubtasksPanel({
 
   const enabled = !!jiraBaseUrl && !!activeJiraProject && !!jiraToken;
 
-  // Shared cache with MyTasksTab — same query key, same queryFn
   const { data: taskData, isLoading: isLoadingTasks } = useQuery({
     queryKey: ['jira-issues', 'my-tasks', activeJiraProject, storyPointsFieldKey],
     queryFn: () =>
@@ -77,7 +72,6 @@ export default function SubtasksPanel({
   );
 
   const displayed = mySubtasks.slice(0, 5);
-  const hasMore = mySubtasks.length > 5;
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3 min-h-[160px]">
@@ -126,12 +120,6 @@ export default function SubtasksPanel({
         </div>
       )}
 
-      {/* View all link */}
-      {!isLoading && (
-        <Link to="/my-tasks" className="text-xs text-muted-foreground hover:underline mt-auto">
-          {hasMore ? `View all ${mySubtasks.length} in My Tasks` : 'View My Tasks'}
-        </Link>
-      )}
     </div>
   );
 }

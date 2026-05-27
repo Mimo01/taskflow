@@ -285,7 +285,6 @@ function AppLayout() {
   function routeLabel(pathname: string): string {
     if (pathname.startsWith('/sprint-board')) return 'Sprint Board';
     if (pathname.startsWith('/backlog')) return 'Backlog';
-    if (pathname.startsWith('/my-tasks')) return 'My Tasks';
     if (pathname.startsWith('/epics')) return 'Epics';
     if (pathname.startsWith('/dashboard')) return 'Dashboard';
     if (pathname.startsWith('/releases')) return 'Releases';
@@ -339,7 +338,7 @@ function AppLayout() {
     const findTitle = (issues: CachedIssue[] | undefined) =>
       issues?.find((i) => i.key === issueKey)?.fields.summary;
 
-    // 1. Search all jira-issues caches (sprint-board = flat array, my-tasks = { issues: [] })
+    // 1. Search all jira-issues caches (sprint-board = flat array, subtasks panel = { issues: [] })
     const issueEntries = queryClient.getQueriesData<CachedIssue[] | { issues?: CachedIssue[] }>({
       queryKey: ['jira-issues'],
     });

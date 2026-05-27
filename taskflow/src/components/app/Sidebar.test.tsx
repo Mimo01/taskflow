@@ -70,7 +70,6 @@ vi.mock('@/stores/settings.store', () => ({
       tempoEnabled: mockTempoEnabled,
       sidebarItems: [
         { id: 'dashboard', visible: true },
-        { id: 'my-tasks', visible: true },
         { id: 'sprint-board', visible: true },
         { id: 'backlog', visible: true },
         { id: 'epics', visible: true },

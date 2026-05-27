@@ -3,7 +3,6 @@ import type { RouteObject } from 'react-router-dom';
 import { ChunkErrorBoundary } from '../components/ChunkErrorBoundary';
 import { RouteSpinner } from '../components/ui/route-spinner';
 import Dashboard from './dashboard/index';
-import MyTasksTab from './dashboard/MyTasksTab';
 import ReleasesTab from './dashboard/ReleasesTab';
 import DevTools from './dev-tools/index';
 import Onboarding from './onboarding/index';
@@ -36,7 +35,6 @@ export const routes: RouteObject[] = [
   { path: '/', element: <Onboarding /> },
   { path: '/dashboard', element: <Dashboard /> },
   { path: '/settings', element: <Settings /> },
-  { path: '/my-tasks', element: <MyTasksTab /> },
   { path: '/sprint-board', element: withLazy(SprintBoardTab) },
   { path: '/backlog', element: withLazy(BacklogPage) },
   { path: '/epics', element: withLazy(EpicsPage) },

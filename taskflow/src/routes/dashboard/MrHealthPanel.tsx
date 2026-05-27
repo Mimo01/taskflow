@@ -4,9 +4,9 @@
  * Shows the current user's open MR health summary:
  * Needs Review / Approved / Changes Requested counts.
  *
- * Reads from the 3-element cache key ['gitlab-mrs', gitlabBaseUrl, userId] shared
- * with MyTasksTab. Per-MR health is read from ['mr-health', project_id, iid] entries
- * populated by MyTasksTab. Undefined health entries → Needs Review.
+ * Reads from the 3-element cache key ['gitlab-mrs', gitlabBaseUrl, userId].
+ * Per-MR health is read from ['mr-health', project_id, iid] entries.
+ * Undefined health entries → Needs Review.
  */
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { GitLabMR } from '@/services/gitlab';
