@@ -92,7 +92,6 @@ const mockSettingsStore = {
   theme: 'system' as 'dark' | 'light' | 'system',
   density: 'default' as 'compact' | 'default' | 'comfortable',
   sprintCollapseByDefault: false,
-  showSubtasksInMyTasks: true,
   staleMrThresholdDays: 3,
   notificationPollIntervalSecs: 60,
   osNotifJiraEnabled: true,
@@ -112,7 +111,6 @@ const mockSettingsStore = {
   setTheme: vi.fn(),
   setDensity: vi.fn(),
   setSprintCollapseByDefault: vi.fn(),
-  setShowSubtasksInMyTasks: vi.fn(),
   setStaleMrThresholdDays: vi.fn(),
   setNotificationPollIntervalSecs: vi.fn(),
   setOsNotifJiraEnabled: vi.fn(),
@@ -120,7 +118,6 @@ const mockSettingsStore = {
   setDevToolsEnabled: vi.fn(),
   sidebarItems: [
     { id: 'dashboard', visible: true },
-    { id: 'my-tasks', visible: true },
     { id: 'sprint-board', visible: true },
     { id: 'backlog', visible: true },
     { id: 'epics', visible: true },
@@ -249,11 +246,6 @@ describe('WorkflowSection content', () => {
     expect(screen.getByText(/collapse parent stories by default/i)).toBeInTheDocument();
   });
 
-  it('renders show subtasks toggle', () => {
-    render(<WorkflowSection />);
-    expect(screen.getByText(/show subtasks in my tasks/i)).toBeInTheDocument();
-  });
-
   it('does not render DebugModeSection (moved to top-level Advanced section)', () => {
     render(<WorkflowSection />);
     // Debug controls live in Settings > Advanced, not inside WorkflowSection
@@ -266,12 +258,6 @@ describe('WorkflowSection content', () => {
     expect(collapseCheckbox).not.toBeChecked();
   });
 
-  it('subtasks toggle reflects showSubtasksInMyTasks from store (true by default)', () => {
-    render(<WorkflowSection />);
-    const subtasksCheckbox = screen.getByRole('checkbox', { name: /show subtasks in my tasks/i });
-    expect(subtasksCheckbox).toBeChecked();
-  });
-
   it('toggling collapse calls setSprintCollapseByDefault', () => {
     render(<WorkflowSection />);
     const collapseCheckbox = screen.getByRole('checkbox', { name: /collapse parent stories/i });
@@ -279,10 +265,4 @@ describe('WorkflowSection content', () => {
     expect(mockSettingsStore.setSprintCollapseByDefault).toHaveBeenCalledWith(true);
   });
 
-  it('toggling subtasks calls setShowSubtasksInMyTasks', () => {
-    render(<WorkflowSection />);
-    const subtasksCheckbox = screen.getByRole('checkbox', { name: /show subtasks in my tasks/i });
-    fireEvent.click(subtasksCheckbox);
-    expect(mockSettingsStore.setShowSubtasksInMyTasks).toHaveBeenCalledWith(false);
-  });
 });

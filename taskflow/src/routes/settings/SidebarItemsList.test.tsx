@@ -52,9 +52,9 @@ describe('SidebarItemsList', () => {
     await user.click(checkboxes[0]);
     expect(setSidebarItemVisible).not.toHaveBeenCalledWith('dashboard', expect.anything());
 
-    // My Tasks (index 1) is a normal toggleable item
+    // Standup Notes (index 1) is a normal toggleable item
     await user.click(checkboxes[1]);
-    expect(setSidebarItemVisible).toHaveBeenCalledWith('my-tasks', false);
+    expect(setSidebarItemVisible).toHaveBeenCalledWith('standup-notes', false);
   });
 
   it('renders section headers: Main, Planning, Code, Tracking, Testing', () => {
