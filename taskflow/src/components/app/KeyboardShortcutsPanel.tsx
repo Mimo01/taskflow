@@ -120,6 +120,7 @@ export function KeyboardShortcutsPanel({ open, onClose }: KeyboardShortcutsPanel
                           <span className="text-sm">{entry.description}</span>
                           <span className="flex items-center gap-1 shrink-0 ml-4">
                             {keys.map((k, i) => (
+                              // biome-ignore lint/suspicious/noArrayIndexKey: static key list, no reorder
                               <Keycap key={i}>{k}</Keycap>
                             ))}
                           </span>

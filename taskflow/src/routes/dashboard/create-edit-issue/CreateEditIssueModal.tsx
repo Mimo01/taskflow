@@ -118,7 +118,7 @@ export function CreateEditIssueModal({
           : String(item);
       if (label) dispatch({ type: 'SET_CUSTOM_FIELD_INPUT', fieldId: field.fieldId, value: label });
     }
-  }, [open, parentInheritMap, customRequiredFields]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, parentInheritMap, customRequiredFields, dispatch]);
 
   const requiredCustomFieldsFilled = customRequiredFields.every(
     (f) =>

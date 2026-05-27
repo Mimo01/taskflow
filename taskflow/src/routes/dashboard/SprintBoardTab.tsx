@@ -189,6 +189,7 @@ function VirtualizedSwimlanes({
   const lastStickyKeyRef = useRef<string | null>(null);
   const lastStickyExpandedRef = useRef<boolean>(true);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ref.current values are intentionally not deps (refs don't trigger re-renders)
   useEffect(() => {
     // Clear any stale sticky header from previous render/reload
     if (lastStickyKeyRef.current !== null) {
@@ -300,7 +301,6 @@ function VirtualizedSwimlanes({
     return () => scrollElement.removeEventListener('scroll', onScroll);
     // filteredSwimlanes intentionally excluded — accessed via ref to avoid infinite loop.
     // swimlaneVirtualizer is included to re-register the listener when virtual items change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollElement, swimlaneVirtualizer]);
 
   function renderSwimlane(
@@ -725,6 +725,7 @@ export default function SprintBoardTab() {
   const localIssuesRef = useRef(localIssues);
   localIssuesRef.current = localIssues;
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: localIssues.length triggers refetch when issue count changes; full array excluded intentionally (read via ref to avoid stale closure)
   useEffect(() => {
     if (!jiraBaseUrl || !jiraToken || !localIssuesRef.current.length) return;
     const issues = localIssuesRef.current;
@@ -737,7 +738,6 @@ export default function SprintBoardTab() {
         }),
       ),
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jiraBaseUrl, jiraToken, localIssues.length, queryClient]);
 
   function getTransitions(issueKey: string): JiraTransition[] | undefined {

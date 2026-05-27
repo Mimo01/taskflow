@@ -361,6 +361,7 @@ export default function AioProjectOverviewPage() {
   const autoExpandedRef = useRef(false);
 
   // Reset one-shot guard whenever projectKey changes so navigation to a new project re-runs the effect
+  // biome-ignore lint/correctness/useExhaustiveDependencies: projectKey is the intentional trigger dep; the effect body only mutates a ref (correct pattern)
   useEffect(() => {
     autoExpandedRef.current = false;
   }, [projectKey]);
@@ -464,7 +465,12 @@ export default function AioProjectOverviewPage() {
           {showFolderSkeleton ? (
             <div className="p-2 space-y-1">
               {[40, 36, 32, 28, 40, 36].map((w, i) => (
-                <Skeleton key={i} className="h-6" style={{ width: w * 4 }} />
+                <Skeleton
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list, no reorder
+                  key={i}
+                  className="h-6"
+                  style={{ width: w * 4 }}
+                />
               ))}
             </div>
           ) : foldersQuery.isError ? (
