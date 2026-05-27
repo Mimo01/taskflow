@@ -327,7 +327,7 @@ function AppLayout() {
     navigate(`/issue/${issueKey}`);
 
     // Resolve title from react-query cache for recent-items store.
-    // Cache shapes vary: sprint-board is flat JiraIssue[], my-tasks is { issues: JiraIssue[] },
+    // Cache shapes vary: sprint-board is flat JiraIssue[], subtasks panel is { issues: JiraIssue[] },
     // backlog is { sprints: [{ issues }], backlog: JiraIssue[] }, epics is EpicEnriched[],
     // issue-detail is a single JiraIssueDetail object.
     let resolvedTitle: string | undefined;
@@ -344,7 +344,7 @@ function AppLayout() {
     });
     for (const [, data] of issueEntries) {
       if (!data) continue;
-      // my-tasks shape: { issues: [...] }
+      // subtasks panel shape: { issues: [...] }
       if ('issues' in data && Array.isArray(data.issues)) {
         resolvedTitle = findTitle(data.issues);
       } else if (Array.isArray(data)) {
