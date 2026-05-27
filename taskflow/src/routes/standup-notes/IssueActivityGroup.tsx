@@ -101,11 +101,10 @@ export default function IssueActivityGroup({
             const SubIcon = subItemIcon(item.kind);
             const isClickableMr =
               onMRClick != null && item.mrProjectId != null && item.mrIid != null;
-            const isClickableIssue =
-              onIssueClick != null && item.issueKey != null;
+            const isClickableIssue = onIssueClick != null && item.issueKey != null;
             return isClickableMr ? (
-              // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
               <button
+                // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
                 key={i}
                 type="button"
                 className="w-full text-left flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
@@ -117,8 +116,8 @@ export default function IssueActivityGroup({
                 </span>
               </button>
             ) : isClickableIssue ? (
-              // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
               <button
+                // biome-ignore lint/suspicious/noArrayIndexKey: static render, no reorder
                 key={i}
                 type="button"
                 className="w-full text-left flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"

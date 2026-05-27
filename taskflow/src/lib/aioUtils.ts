@@ -62,8 +62,7 @@ const STATUS_TYPE_MAP: Record<string, 'pass' | 'fail' | 'blocked' | 'notRun' | '
   IN_PROGRESS: 'inProgress',
 };
 
-let runtimeAioStatusMap: Record<number, 'pass' | 'fail' | 'blocked' | 'notRun' | 'inProgress'> =
-  {};
+let runtimeAioStatusMap: Record<number, 'pass' | 'fail' | 'blocked' | 'notRun' | 'inProgress'> = {};
 
 /**
  * Initialize AIO status map from the live /config endpoint.

@@ -53,10 +53,7 @@ describe('TodayParticipatingSection', () => {
     render(
       <TodayParticipatingSection
         {...BASE_PROPS}
-        items={[
-          makeParticipatedMR(101, 'Add login page'),
-          makeParticipatedMR(202, 'Fix auth bug'),
-        ]}
+        items={[makeParticipatedMR(101, 'Add login page'), makeParticipatedMR(202, 'Fix auth bug')]}
       />,
     );
 
@@ -67,12 +64,7 @@ describe('TodayParticipatingSection', () => {
   });
 
   it('returns null (no DOM output) when items list is empty and not loading', () => {
-    const { container } = render(
-      <TodayParticipatingSection
-        {...BASE_PROPS}
-        items={[]}
-      />,
-    );
+    const { container } = render(<TodayParticipatingSection {...BASE_PROPS} items={[]} />);
 
     expect(screen.queryByText(/Participating/)).not.toBeInTheDocument();
     expect(container.firstChild).toBeNull();
@@ -123,13 +115,7 @@ describe('TodayParticipatingSection', () => {
   });
 
   it('renders the header without count when items.length is 0 but isLoading=true', () => {
-    render(
-      <TodayParticipatingSection
-        {...BASE_PROPS}
-        isLoading={true}
-        items={[]}
-      />,
-    );
+    render(<TodayParticipatingSection {...BASE_PROPS} isLoading={true} items={[]} />);
 
     // Section should still render (loading state), header without count
     expect(screen.getByText('Participating')).toBeInTheDocument();
@@ -137,10 +123,7 @@ describe('TodayParticipatingSection', () => {
 
   it('renders section header with count=1 for single item', () => {
     render(
-      <TodayParticipatingSection
-        {...BASE_PROPS}
-        items={[makeParticipatedMR(77, 'Single MR')]}
-      />,
+      <TodayParticipatingSection {...BASE_PROPS} items={[makeParticipatedMR(77, 'Single MR')]} />,
     );
 
     expect(screen.getByText('Participating')).toBeInTheDocument();

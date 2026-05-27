@@ -148,7 +148,7 @@ export async function fetchAndCacheAvatar(originalUrl: string): Promise<string |
       if (avatarHost && jiraBaseUrl && avatarHost === hostnameOf(jiraBaseUrl)) {
         const token = await readSecret('jira-pat').catch(() => null);
         if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
+          headers.Authorization = `Bearer ${token}`;
         }
       } else if (avatarHost && gitlabBaseUrl && avatarHost === hostnameOf(gitlabBaseUrl)) {
         const token = await readSecret('gitlab-pat').catch(() => null);

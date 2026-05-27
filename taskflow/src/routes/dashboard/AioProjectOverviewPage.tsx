@@ -8,6 +8,7 @@ import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { initializeAioStatusMap } from '@/lib/aioUtils';
 import {
   fetchAioCycleSummaries,
   fetchAioCyclesWithDetail,
@@ -23,7 +24,6 @@ import type {
 } from '@/services/aio/types';
 import { fetchJiraProjectNumericId } from '@/services/jira/projects';
 import { fetchJiraUserByUsername } from '@/services/jira/users';
-import { initializeAioStatusMap } from '@/lib/aioUtils';
 import { useAioCyclesSelectionStore } from '@/stores/aio-cycles-selection.store';
 import { useAuthStore } from '@/stores/auth.store';
 

@@ -156,7 +156,8 @@ export default function CommandPalette({
       const token = await readSecret('jira-pat');
       return fetchJiraIssueByKey(jiraBaseUrl!, token, resolvedKeyLookup);
     },
-    enabled: resolvedKeyLookup.length > 0 && query.length >= 2 && !!jiraBaseUrl && !!activeJiraProject,
+    enabled:
+      resolvedKeyLookup.length > 0 && query.length >= 2 && !!jiraBaseUrl && !!activeJiraProject,
     staleTime: 30_000,
     placeholderData: keepPreviousData,
   });

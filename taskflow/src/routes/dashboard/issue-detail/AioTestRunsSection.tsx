@@ -652,9 +652,11 @@ export function AioTestRunsSection({
     }));
     const runImages = collectAioImageAttachments([...data.runs, ...impactedAsRunData]);
     const seen = new Set<string>();
-    return [...descriptionImages, ...runImages].filter((a) =>
-      seen.has(a.url) ? false : (seen.add(a.url), true),
-    );
+    return [...descriptionImages, ...runImages].filter((a) => {
+      if (seen.has(a.url)) return false;
+      seen.add(a.url);
+      return true;
+    });
   }, [stepsQuery.data, description]);
 
   // Render state waterfall

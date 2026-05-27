@@ -8,5 +8,5 @@ import { useLocation } from 'react-router-dom';
  */
 export function useIsActiveRoute(routePath: string): boolean {
   const { pathname } = useLocation();
-  return pathname === routePath || pathname.startsWith(routePath + '/');
+  return pathname === routePath || pathname.startsWith(`${routePath}/`);
 }

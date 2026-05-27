@@ -57,8 +57,7 @@ export default function Dashboard() {
   const tokens = (jiraUserDisplayName?.trim().split(/\s+/) ?? []).filter(
     (t) => !/^\[.*\]$/.test(t) && !/^\(.*\)$/.test(t),
   );
-  const firstName =
-    tokens.find((t) => t !== t.toUpperCase()) ?? tokens[0] ?? null;
+  const firstName = tokens.find((t) => t !== t.toUpperCase()) ?? tokens[0] ?? null;
   const timeGreeting = getTimeGreeting();
 
   return (

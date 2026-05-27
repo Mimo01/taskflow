@@ -1322,9 +1322,7 @@ export async function fetchUserMREvents(
   if (approvedResult.status === 'fulfilled' && approvedResult.value.ok) {
     const data = (await approvedResult.value.json()) as GitLabUserMREvent[];
     events.push(
-      ...data.filter(
-        (e) => e.created_at.slice(0, 10) === date && e.target_type === 'MergeRequest',
-      ),
+      ...data.filter((e) => e.created_at.slice(0, 10) === date && e.target_type === 'MergeRequest'),
     );
   }
 
@@ -1408,7 +1406,13 @@ export async function fetchParticipatedMRs(
   // Deduplicate by project_id:noteable_iid into a map
   const deduped = new Map<
     string,
-    { projectId: number; mrIid: number; title: string; commentCount: number; lastCommentedAt: string }
+    {
+      projectId: number;
+      mrIid: number;
+      title: string;
+      commentCount: number;
+      lastCommentedAt: string;
+    }
   >();
 
   for (const e of data) {
@@ -1483,8 +1487,7 @@ export async function fetchParticipatedMRs(
           : false;
 
       // Discussions failure → treat as empty (MR still shown if not approved)
-      const discussions =
-        discussionsResult.status === 'fulfilled' ? discussionsResult.value : [];
+      const discussions = discussionsResult.status === 'fulfilled' ? discussionsResult.value : [];
 
       // Threads where the user participated (has at least one non-system note by me).
       // Guard `notes` (?? []) against malformed/partial discussion payloads.

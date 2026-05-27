@@ -11,8 +11,8 @@
  */
 
 import { MessageSquare } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/error-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import type { ParticipatedMR } from '@/services/gitlab';
 import StandupSectionHeader from './StandupSectionHeader';
@@ -75,9 +75,7 @@ export default function TodayParticipatingSection({
               onClick={() => onMRClick(`${mr.projectId}/${mr.mrIid}`)}
             >
               <MessageSquare className="size-4 shrink-0 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground font-mono shrink-0">
-                !{mr.mrIid}
-              </span>
+              <span className="text-xs text-muted-foreground font-mono shrink-0">!{mr.mrIid}</span>
               <span className="flex-1 min-w-0 truncate text-sm">{mr.title}</span>
               {mr.openThreadCount > 0 ? (
                 <span className="text-xs text-muted-foreground shrink-0">

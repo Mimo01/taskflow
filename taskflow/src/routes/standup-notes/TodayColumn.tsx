@@ -16,7 +16,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { Clock } from 'lucide-react';
-import { useMemo, useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import type { GitLabMR, ParticipatedMR } from '@/services/gitlab';
@@ -160,12 +160,7 @@ interface TodayColumnProps {
 
 export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProps) {
   // ─── Auth store ─────────────────────────────────────────────────────────────
-  const {
-    jiraBaseUrl,
-    gitlabBaseUrl,
-    activeJiraProject,
-    gitlabUserId,
-  } = useAuthStore();
+  const { jiraBaseUrl, gitlabBaseUrl, activeJiraProject, gitlabUserId } = useAuthStore();
 
   // jiraUserDisplayName is separate — fine-grained selector (Phase 68 rule)
   const jiraUserDisplayName = useAuthStore((s) => s.jiraUserDisplayName);
@@ -298,57 +293,57 @@ export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProp
           whole column resolved empty — the full-column empty state takes over so
           Up Next's "nothing up next" doesn't compete with it. */}
       {!allSettledEmpty && (
-      <div className="flex flex-col">
-        {/* Section 1: In Progress (D-01: fixed order) */}
-        <TodayInProgressSection
-          rows={inProgress}
-          mrsByStory={mrsByStory}
-          storyPointsFieldKey={storyPointsFieldKey}
-          isLoading={sprintQuery.isLoading}
-          isError={sprintQuery.isError}
-          error={sprintQuery.error}
-          onRetry={() => void sprintQuery.refetch()}
-          onIssueClick={onIssueClick}
-          onMRClick={onMRClick}
-        />
-
-        {/* Section 2: Up Next (D-01: fixed order) */}
-        <TodayUpNextSection
-          rows={upNext}
-          mrsByStory={mrsByStory}
-          storyPointsFieldKey={storyPointsFieldKey}
-          isLoading={sprintQuery.isLoading}
-          isError={sprintQuery.isError}
-          error={sprintQuery.error}
-          onRetry={() => void sprintQuery.refetch()}
-          onIssueClick={onIssueClick}
-          onMRClick={onMRClick}
-        />
-
-        {/* Section 3: MRs Awaiting You — unmatched only; hidden when GitLab not connected (D-02, D-10) */}
-        {!!gitlabBaseUrl && (
-          <TodayMrsSection
-            items={unmatchedReviewerMrs}
-            isLoading={reviewerMrsQuery.isLoading}
-            isError={reviewerMrsQuery.isError}
-            error={reviewerMrsQuery.error}
-            onRetry={() => void reviewerMrsQuery.refetch()}
+        <div className="flex flex-col">
+          {/* Section 1: In Progress (D-01: fixed order) */}
+          <TodayInProgressSection
+            rows={inProgress}
+            mrsByStory={mrsByStory}
+            storyPointsFieldKey={storyPointsFieldKey}
+            isLoading={sprintQuery.isLoading}
+            isError={sprintQuery.isError}
+            error={sprintQuery.error}
+            onRetry={() => void sprintQuery.refetch()}
+            onIssueClick={onIssueClick}
             onMRClick={onMRClick}
           />
-        )}
 
-        {/* Section 4: Participating MRs (unmatched only) — role-independent, hidden when GitLab not connected */}
-        {!!gitlabBaseUrl && (
-          <TodayParticipatingSection
-            items={unmatchedParticipatingMrs}
-            isLoading={participatingMrsQuery.isLoading}
-            isError={participatingMrsQuery.isError}
-            error={participatingMrsQuery.error}
-            onRetry={() => void participatingMrsQuery.refetch()}
+          {/* Section 2: Up Next (D-01: fixed order) */}
+          <TodayUpNextSection
+            rows={upNext}
+            mrsByStory={mrsByStory}
+            storyPointsFieldKey={storyPointsFieldKey}
+            isLoading={sprintQuery.isLoading}
+            isError={sprintQuery.isError}
+            error={sprintQuery.error}
+            onRetry={() => void sprintQuery.refetch()}
+            onIssueClick={onIssueClick}
             onMRClick={onMRClick}
           />
-        )}
-      </div>
+
+          {/* Section 3: MRs Awaiting You — unmatched only; hidden when GitLab not connected (D-02, D-10) */}
+          {!!gitlabBaseUrl && (
+            <TodayMrsSection
+              items={unmatchedReviewerMrs}
+              isLoading={reviewerMrsQuery.isLoading}
+              isError={reviewerMrsQuery.isError}
+              error={reviewerMrsQuery.error}
+              onRetry={() => void reviewerMrsQuery.refetch()}
+              onMRClick={onMRClick}
+            />
+          )}
+
+          {/* Section 4: Participating MRs (unmatched only) — role-independent, hidden when GitLab not connected */}
+          {!!gitlabBaseUrl && (
+            <TodayParticipatingSection
+              items={unmatchedParticipatingMrs}
+              isLoading={participatingMrsQuery.isLoading}
+              isError={participatingMrsQuery.isError}
+              error={participatingMrsQuery.error}
+              onRetry={() => void participatingMrsQuery.refetch()}
+              onMRClick={onMRClick}
+            />
+          )}
+        </div>
       )}
 
       {/* Full-column empty state — only when all sections resolved empty */}
@@ -359,7 +354,6 @@ export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProp
           subtitle="No items in progress, nothing up next, and no MRs awaiting review."
         />
       )}
-
     </div>
   );
 }

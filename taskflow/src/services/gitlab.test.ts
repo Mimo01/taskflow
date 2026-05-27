@@ -295,7 +295,11 @@ describe('gitlab service', () => {
     // Unique id per commit by default so dedupe-by-id doesn't collapse distinct
     // commits; pass an explicit `id` to simulate the same commit on multiple branches.
     let commitIdCounter = 0;
-    const makeCommit = (overrides: { author_name?: string; author_email?: string; id?: string }) => {
+    const makeCommit = (overrides: {
+      author_name?: string;
+      author_email?: string;
+      id?: string;
+    }) => {
       const id = overrides.id ?? `commit${commitIdCounter++}`.padEnd(40, '0');
       return {
         id,
@@ -354,7 +358,14 @@ describe('gitlab service', () => {
         json: async () => commits,
       } as Response);
 
-      const result = await fetchUserCommits(BASE, TOKEN, PROJECT_ID, DATE, 'mmozolak', 'Milan Mozolak');
+      const result = await fetchUserCommits(
+        BASE,
+        TOKEN,
+        PROJECT_ID,
+        DATE,
+        'mmozolak',
+        'Milan Mozolak',
+      );
       expect(result).toHaveLength(1);
       expect(result[0].author_name).toBe('Milan Mozolak');
     });
@@ -790,15 +801,17 @@ describe('gitlab service', () => {
     const USER_ID = 42;
 
     /** Build a minimal commented event for the given MR iid. */
-    const makeCommentEvent = (overrides: {
-      mrIid?: number;
-      projectId?: number;
-      title?: string;
-      created_at?: string;
-      eventAuthorId?: number;
-      noteAuthorId?: number;
-      noteableType?: string;
-    } = {}) => ({
+    const makeCommentEvent = (
+      overrides: {
+        mrIid?: number;
+        projectId?: number;
+        title?: string;
+        created_at?: string;
+        eventAuthorId?: number;
+        noteAuthorId?: number;
+        noteableType?: string;
+      } = {},
+    ) => ({
       id: Math.random(),
       action_name: 'commented' as const,
       target_type: null,

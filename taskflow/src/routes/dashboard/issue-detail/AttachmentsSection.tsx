@@ -1,7 +1,7 @@
-import { invoke } from '@tauri-apps/api/core';
-import { openPath } from '@tauri-apps/plugin-opener';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { invoke } from '@tauri-apps/api/core';
 import { fetch } from '@tauri-apps/plugin-http';
+import { openPath } from '@tauri-apps/plugin-opener';
 import { ChevronDown, ChevronRight, Paperclip } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { JiraAttachment } from '@/services/jira';
@@ -31,7 +31,10 @@ export function AttachmentsSection({
   const [isDragging, setIsDragging] = useState(false);
   const [dropUploadName, setDropUploadName] = useState<string | null>(null);
   const [dropUploadError, setDropUploadError] = useState<string | null>(null);
-  const [downloadFeedback, setDownloadFeedback] = useState<{ message: string; isError: boolean } | null>(null);
+  const [downloadFeedback, setDownloadFeedback] = useState<{
+    message: string;
+    isError: boolean;
+  } | null>(null);
   const downloadFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
 
@@ -201,7 +204,9 @@ export function AttachmentsSection({
                     />
                   ))}
                   {downloadFeedback && (
-                    <p className={`text-xs mt-1 ${downloadFeedback.isError ? 'text-destructive' : 'text-muted-foreground'}`}>
+                    <p
+                      className={`text-xs mt-1 ${downloadFeedback.isError ? 'text-destructive' : 'text-muted-foreground'}`}
+                    >
                       {downloadFeedback.message}
                     </p>
                   )}

@@ -11,8 +11,8 @@
 import { describe, expect, it } from 'vitest';
 import type { GitLabMR, ParticipatedMR } from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
-import { generateTodayMarkdown } from './TodayColumn';
 import type { TodayMarkdownSources } from './TodayColumn';
+import { generateTodayMarkdown } from './TodayColumn';
 
 // ─── Fixture builders ─────────────────────────────────────────────────────────
 

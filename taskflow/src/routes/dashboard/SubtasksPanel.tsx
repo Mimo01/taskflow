@@ -119,7 +119,6 @@ export default function SubtasksPanel({
           ))}
         </div>
       )}
-
     </div>
   );
 }
