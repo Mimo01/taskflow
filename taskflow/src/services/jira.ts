@@ -347,8 +347,8 @@ async function fetchAllWorklogPages(
  * @param baseUrl      - Jira base URL
  * @param token        - Personal Access Token
  * @param projectKey   - Jira project key (e.g. "PROJ")
- * @param assignedToMe - If true, adds `AND assignee = currentUser()` (my-tasks variant).
- *                       If false/omitted, returns all sprint issues (sprint-board variant).
+ * @param assignedToMe - If true, adds `AND assignee = currentUser()`.
+ *                       If false/omitted, returns all sprint issues.
  * @throws Error('Sprint filtering unavailable — ensure Jira Software is installed') on 400 with sprint errors
  */
 export async function fetchSprintIssues(

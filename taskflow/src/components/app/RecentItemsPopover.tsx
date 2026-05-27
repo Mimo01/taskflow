@@ -20,13 +20,13 @@ interface RecentItemsPopoverProps {
 /**
  * Search all react-query cache entries for a Jira issue by key.
  * Handles different cache shapes: sprint-board (flat JiraIssue[]),
- * my-tasks ({ issues: JiraIssue[] }), and backlog ({ sprints, backlog }).
+ * subtasks panel ({ issues: JiraIssue[] }), and backlog ({ sprints, backlog }).
  */
 function findJiraIssueInCache(
   queryClient: ReturnType<typeof useQueryClient>,
   issueKey: string,
 ): JiraIssue | undefined {
-  // 1. jira-issues caches (sprint-board = flat array, my-tasks = { issues: [] })
+  // 1. jira-issues caches (sprint-board = flat array, subtasks panel = { issues: [] })
   const queries = queryClient.getQueriesData<JiraIssue[] | { issues?: JiraIssue[] }>({
     queryKey: ['jira-issues'],
   });
