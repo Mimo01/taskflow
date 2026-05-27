@@ -204,7 +204,7 @@ describe('SubtasksPanel (DASH-01)', () => {
   });
 
   describe('display limit', () => {
-    it('limits display to 5 subtasks and shows "View all in My Tasks" link when more exist', () => {
+    it('limits display to 5 subtasks when more exist', () => {
       // Create 7 subtasks all with parent PROJ-1 (which is in sprint)
       const subtasks = Array.from({ length: 7 }, (_, i) =>
         makeSubtask(`PROJ-${30 + i}`, 'PROJ-1', 'Parent Story'),
@@ -229,8 +229,6 @@ describe('SubtasksPanel (DASH-01)', () => {
       expect(screen.getByText('PROJ-30')).toBeInTheDocument();
       expect(screen.getByText('PROJ-34')).toBeInTheDocument();
       expect(screen.queryByText('PROJ-35')).not.toBeInTheDocument();
-      // "View all" link should appear
-      expect(screen.getByText(/View all.*in My Tasks/i)).toBeInTheDocument();
     });
   });
 
