@@ -40,7 +40,6 @@ const initialSettings = {
   jiraConcurrencyLimit: 6,
   density: 'default' as Density,
   sprintCollapseByDefault: false,
-  showSubtasksInMyTasks: true,
   keyboardOverrides: {} as Record<string, string>,
   commentSortOrder: 'newest' as CommentSortOrder,
   updateCheckInterval: 6 as 1 | 6 | 12 | 24 | 'manual',
@@ -110,8 +109,6 @@ interface SettingsState {
   density: Density;
   /** Collapse sprints by default in the board view. Default: false. */
   sprintCollapseByDefault: boolean;
-  /** Show subtasks inside My Tasks view. Default: true. */
-  showSubtasksInMyTasks: boolean;
   /** User-customized key overrides. Map of shortcut id → key string. Default: {}. Future: editable via Settings > Keyboard. */
   keyboardOverrides: Record<string, string>;
   /** Comment sort order. Default: 'newest'. */
@@ -187,7 +184,6 @@ interface SettingsState {
   setJiraConcurrencyLimit: (v: number) => void;
   setDensity: (d: Density) => void;
   setSprintCollapseByDefault: (v: boolean) => void;
-  setShowSubtasksInMyTasks: (v: boolean) => void;
   setTheme: (theme: Theme) => void;
   setOnboardingComplete: (complete: boolean) => void;
   setStaleMrThresholdDays: (days: number) => void;
@@ -299,7 +295,6 @@ export const useSettingsStore = create<SettingsState>()(
       },
       setDensity: (d) => set({ density: d }),
       setSprintCollapseByDefault: (v) => set({ sprintCollapseByDefault: v }),
-      setShowSubtasksInMyTasks: (v) => set({ showSubtasksInMyTasks: v }),
       setTheme: (theme) => set({ theme }),
       setOnboardingComplete: (complete) => set({ onboardingComplete: complete }),
       setStaleMrThresholdDays: (days) => set({ staleMrThresholdDays: days }),
@@ -342,13 +337,12 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-store',
       storage: createTauriStorage('settings.json'),
-      version: 23,
+      version: 24,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 1) {
           if (s.density === undefined) s.density = 'default';
           if (s.sprintCollapseByDefault === undefined) s.sprintCollapseByDefault = false;
-          if (s.showSubtasksInMyTasks === undefined) s.showSubtasksInMyTasks = true;
         }
         if (version < 2) {
           if (s.keyboardOverrides === undefined) s.keyboardOverrides = {};
@@ -440,6 +434,9 @@ export const useSettingsStore = create<SettingsState>()(
           if (Array.isArray(s.sidebarItems)) {
             s.sidebarItems = appendStandupNotesItemIfMissing(s.sidebarItems as SidebarItem[]);
           }
+        }
+        if (version < 24) {
+          delete (s as Record<string, unknown>).showSubtasksInMyTasks;
         }
         return persisted as SettingsState;
       },
