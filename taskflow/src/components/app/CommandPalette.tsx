@@ -90,12 +90,6 @@ export default function CommandPalette({
 
   // ─── Cached data access (NO API calls for cached results) ──────────────────
 
-  const cachedMyTasks = queryClient.getQueryData<{ issues: JiraIssue[] }>([
-    'jira-issues',
-    'my-tasks',
-    activeJiraProject,
-    storyPointsFieldKey,
-  ]);
   const cachedSprintBoard = queryClient.getQueryData<{ issues: JiraIssue[] }>([
     'jira-issues',
     'sprint-board',
@@ -103,11 +97,8 @@ export default function CommandPalette({
     storyPointsFieldKey,
   ]);
 
-  // Deduplicate issues by key using a Map: merge my-tasks + sprint-board, keep first occurrence
+  // Build issues list from sprint-board cache
   const issuesMap = new Map<string, JiraIssue>();
-  for (const issue of cachedMyTasks?.issues ?? []) {
-    if (!issuesMap.has(issue.key)) issuesMap.set(issue.key, issue);
-  }
   for (const issue of cachedSprintBoard?.issues ?? []) {
     if (!issuesMap.has(issue.key)) issuesMap.set(issue.key, issue);
   }

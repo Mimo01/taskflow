@@ -911,7 +911,6 @@ function deriveSourceCrumb(pathname: string): { path: string; label: string } {
   const staticLabels: Record<string, string> = {
     '/sprint-board': 'Sprint Board',
     '/backlog': 'Backlog',
-    '/my-tasks': 'My Tasks',
     '/epics': 'Epics',
     '/dashboard': 'Overview',
     '/releases': 'Releases',
