@@ -237,7 +237,7 @@ describe('CommandPalette', () => {
     const qc = makeQueryClient();
 
     // Seed query client with cached issues
-    qc.setQueryData(['jira-issues', 'my-tasks', 'TEST', 'customfield_10016'], {
+    qc.setQueryData(['jira-issues', 'sprint-board', 'TEST', 'customfield_10016'], {
       issues: [
         {
           id: '1',

@@ -11,7 +11,6 @@ import {
   BarChart2,
   BookOpen,
   Bug,
-  CheckSquare,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
@@ -51,7 +50,6 @@ import { SIDEBAR_NAV_ITEMS, SIDEBAR_SECTIONS } from './sidebar-items';
 /** Map icon names to actual Lucide components */
 const ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {
   LayoutDashboard,
-  CheckSquare,
   ClipboardList,
   KanbanSquare,
   List,
@@ -72,7 +70,7 @@ function navLinkClassFn(collapsed: boolean) {
     isActive ? `${base} bg-accent text-accent-foreground font-semibold` : `${base} hover:bg-accent`;
 }
 
-const PREFETCH_ROUTES = new Set(['/dashboard', '/my-tasks', '/sprint-board', '/backlog', '/epics']);
+const PREFETCH_ROUTES = new Set(['/dashboard', '/sprint-board', '/backlog', '/epics']);
 
 export default function Sidebar() {
   // IN-01: fine-grained selectors avoid re-rendering Sidebar on every unrelated
@@ -252,8 +250,6 @@ export default function Sidebar() {
           });
       }
     }
-    // /my-tasks uses fetchMyTasksHierarchy which has complex internal logic — skip prefetch.
-    // The sprint-stories prefetch covers the dashboard's primary query.
   }
 
   function handleNavMouseEnter(path: string) {

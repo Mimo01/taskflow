@@ -1,10 +1,8 @@
 /**
- * TaskRow — A single Jira issue row in the My Tasks list.
+ * TaskRow — A single Jira issue row.
  *
  * Displays: issue key, summary, status popover, assignee, story points,
  * MR chips with health dots (or "no MR" placeholder), and a comment button.
- *
- * linkedMrResults comes from MyTasksTab after link engine computation (Plan 03).
  */
 
 import { useQuery } from '@tanstack/react-query';
