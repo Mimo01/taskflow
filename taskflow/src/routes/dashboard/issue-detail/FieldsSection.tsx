@@ -250,7 +250,6 @@ export function FieldsSection({
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
       queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-issues', 'my-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
       queryClient.invalidateQueries({ queryKey: ['jira-backlog-sprint-stories'] });
       queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] });
