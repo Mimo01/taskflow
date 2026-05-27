@@ -13,8 +13,6 @@ export default function WorkflowSection() {
   const {
     sprintCollapseByDefault,
     setSprintCollapseByDefault,
-    showSubtasksInMyTasks,
-    setShowSubtasksInMyTasks,
     commentSortOrder,
     setCommentSortOrder,
   } = useSettingsStore();
@@ -41,21 +39,6 @@ export default function WorkflowSection() {
             aria-label="Collapse parent stories by default"
             checked={sprintCollapseByDefault}
             onChange={(e) => setSprintCollapseByDefault(e.target.checked)}
-            className="h-4 w-4 accent-primary"
-          />
-        </label>
-        <label className="flex items-center justify-between gap-4 cursor-pointer">
-          <div>
-            <p className="text-sm font-medium">Show subtasks in My Tasks</p>
-            <p className="text-xs text-muted-foreground">
-              Include subtasks alongside their parent stories in the My Tasks list
-            </p>
-          </div>
-          <input
-            type="checkbox"
-            aria-label="Show subtasks in My Tasks"
-            checked={showSubtasksInMyTasks}
-            onChange={(e) => setShowSubtasksInMyTasks(e.target.checked)}
             className="h-4 w-4 accent-primary"
           />
         </label>
