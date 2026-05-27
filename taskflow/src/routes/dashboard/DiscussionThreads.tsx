@@ -73,6 +73,7 @@ function useGitLabLinkComponents(gitlabBaseUrl?: string) {
     activeGitlabProjectPath,
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: linkCtx is reconstructed each render; deps list its stable constituent primitives (jiraBaseUrl, activeGitlabProject, activeGitlabProjectPath)
   return useCallback(
     () => ({
       a: ({ href, children, ...props }: ComponentPropsWithoutRef<'a'>) => {
@@ -105,15 +106,14 @@ function useGitLabLinkComponents(gitlabBaseUrl?: string) {
         );
       },
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       gitlabBaseUrl,
       navigate,
       breadcrumbPush,
       location.pathname,
-      linkCtx.jiraBaseUrl,
-      linkCtx.activeGitlabProject,
-      linkCtx.activeGitlabProjectPath,
+      jiraBaseUrl,
+      activeGitlabProject,
+      activeGitlabProjectPath,
     ],
   );
 }
@@ -250,9 +250,9 @@ function DiffCodePreview({ note, diffFiles }: { note: DiscussionNote; diffFiles?
       {codeLines && codeLines.length > 0 ? (
         <div className="font-mono text-[11px] leading-[1.6] overflow-x-auto">
           <div className="min-w-fit">
-            {codeLines.map((line, i) => (
+            {codeLines.map((line) => (
               <div
-                key={`${line.lineNum}-${i}`}
+                key={line.lineNum}
                 className={`flex ${
                   line.type === 'add'
                     ? 'bg-green-500/10 text-green-700 dark:text-green-400'

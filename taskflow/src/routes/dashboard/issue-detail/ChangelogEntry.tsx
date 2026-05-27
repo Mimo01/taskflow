@@ -37,8 +37,8 @@ export function ChangelogEntry({ history }: ChangelogEntryProps) {
     <div className="flex items-start gap-2 py-1.5">
       <GitCommit className="size-4 text-muted-foreground shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
-        {items.map((item, i) => (
-          <p key={`${history.id}-${i}`} className="text-sm text-muted-foreground">
+        {items.map((item) => (
+          <p key={`${history.id}-${item.field}`} className="text-sm text-muted-foreground">
             <span className="font-medium">{author.displayName}</span>{' '}
             {describeChange(item.field, item.fromString, item.toString)}
           </p>

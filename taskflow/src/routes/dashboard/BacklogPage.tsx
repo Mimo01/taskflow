@@ -549,6 +549,7 @@ export default function BacklogPage() {
       }
     }
     return keys;
+    // biome-ignore lint/correctness/useExhaustiveDependencies: applyFilters is a non-memoized local function; its deps are already captured via closures in this useMemo
   }, [sprintStories, backlogIssues, collapsedSections, applyFilters, mergedSprints]);
 
   const { focusIndex } = useListNavigation({

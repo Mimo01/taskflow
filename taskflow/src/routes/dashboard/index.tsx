@@ -73,6 +73,7 @@ export default function Dashboard() {
         >
           {AMBIENT_CURVES.map((c, i) => (
             <path
+              // biome-ignore lint/suspicious/noArrayIndexKey: static constant array, no reorder
               key={i}
               d={c.d}
               fill="none"

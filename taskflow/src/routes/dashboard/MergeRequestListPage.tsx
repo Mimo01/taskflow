@@ -276,7 +276,11 @@ function MRListSkeleton() {
   return (
     <div className="divide-y">
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="px-6 py-3 space-y-2">
+        <div
+          // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list, no reorder
+          key={i}
+          className="px-6 py-3 space-y-2"
+        >
           <div className="flex items-center gap-2">
             <Skeleton className="h-4 w-10" />
             <Skeleton className="h-4 w-16" />

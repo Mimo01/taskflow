@@ -296,7 +296,12 @@ function StepTable({ steps }: { steps: AioTestRunStep[] }) {
                       }
                     ).attachments ?? []
                   ).map((att, idx) => (
-                    <StepThumbnail key={idx} url={att.url ?? ''} fileName={att.fileName ?? ''} />
+                    <StepThumbnail
+                      // biome-ignore lint/suspicious/noArrayIndexKey: attachment list has no stable id
+                      key={idx}
+                      url={att.url ?? ''}
+                      fileName={att.fileName ?? ''}
+                    />
                   ))}
                 </div>
               )}
