@@ -21,10 +21,7 @@ import { matchMrsToStories } from './mrMatching';
 
 // ─── Fixture builders ─────────────────────────────────────────────────────────
 
-function makeRow(
-  storyKey: string,
-  subtaskKeys: string[] = [],
-): SprintRow {
+function makeRow(storyKey: string, subtaskKeys: string[] = []): SprintRow {
   return {
     issue: {
       key: storyKey,
@@ -39,19 +36,22 @@ function makeRow(
         timetracking: {},
       },
     } as unknown as SprintRow['issue'],
-    subtasks: subtaskKeys.map((k) => ({
-      key: k,
-      id: k,
-      fields: {
-        summary: `Summary of ${k}`,
-        status: { id: '2', name: 'In Progress', statusCategory: { key: 'indeterminate' } },
-        assignee: { displayName: 'Test User' },
-        issuetype: { name: 'Sub-task', subtask: true },
-        subtasks: [],
-        parent: { key: storyKey },
-        timetracking: {},
-      },
-    } as unknown as SprintRow['issue'])),
+    subtasks: subtaskKeys.map(
+      (k) =>
+        ({
+          key: k,
+          id: k,
+          fields: {
+            summary: `Summary of ${k}`,
+            status: { id: '2', name: 'In Progress', statusCategory: { key: 'indeterminate' } },
+            assignee: { displayName: 'Test User' },
+            issuetype: { name: 'Sub-task', subtask: true },
+            subtasks: [],
+            parent: { key: storyKey },
+            timetracking: {},
+          },
+        }) as unknown as SprintRow['issue'],
+    ),
   };
 }
 

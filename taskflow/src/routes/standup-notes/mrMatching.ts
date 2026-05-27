@@ -100,7 +100,12 @@ export function matchMrsToStories(
       unmatchedReviewerMrs.push(mr);
       continue;
     }
-    const nested: NestedMr = { iid: mr.iid, projectId: mr.project_id, title: mr.title, kind: 'review' };
+    const nested: NestedMr = {
+      iid: mr.iid,
+      projectId: mr.project_id,
+      title: mr.title,
+      kind: 'review',
+    };
     const existing = mrsByStory.get(storyKey);
     if (existing) {
       existing.push(nested);
@@ -125,7 +130,8 @@ export function matchMrsToStories(
     const titleMatch = titleKeys.find((k) => displayedKeys.has(k));
     const matchedKey =
       titleMatch ??
-      (extractTicketKeys(mr.sourceBranch ?? '').find((k) => displayedKeys.has(k)) ?? null);
+      extractTicketKeys(mr.sourceBranch ?? '').find((k) => displayedKeys.has(k)) ??
+      null;
 
     if (matchedKey === null) {
       unmatchedParticipatingMrs.push(mr);

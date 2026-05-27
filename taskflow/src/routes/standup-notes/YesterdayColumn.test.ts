@@ -169,4 +169,3 @@ describe('generateMarkdown — section header label', () => {
     vi.useRealTimers();
   });
 });
-

@@ -5,9 +5,9 @@ vi.mock('../../lib/apiFetch', () => ({ apiFetch: vi.fn() }));
 import { apiFetch } from '../../lib/apiFetch';
 import {
   fetchAioCycleSummaries,
-  fetchAioCycleTestCasesWithRuns,
   fetchAioCycles,
   fetchAioCyclesWithDetail,
+  fetchAioCycleTestCasesWithRuns,
   fetchAioFolderCycleCounts,
   fetchAioFolderTree,
   fetchAioProjectConfig,

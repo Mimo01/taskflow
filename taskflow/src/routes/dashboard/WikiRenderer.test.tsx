@@ -1086,8 +1086,7 @@ After quote`;
   // emits a proper hyperlink.
   describe('monospace-wrapped links (wiki-url-not-clickable)', () => {
     it('{{[URL]}} renders as a clickable <a> link (verbatim bug fixture)', () => {
-      const fixture =
-        '{{[https://www.orange.sk/e-shop/orange-mobilny-internet?click=int-mbb]}}';
+      const fixture = '{{[https://www.orange.sk/e-shop/orange-mobilny-internet?click=int-mbb]}}';
       const { container } = render(<WikiRenderer wikiText={fixture} />);
       const link = container.querySelector('a');
       expect(link).not.toBeNull();

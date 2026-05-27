@@ -128,7 +128,7 @@ export function splitInlineSingleLineTables(wiki: string): string {
     }
 
     const sepRowStr = sepMatch[1]; // e.g. "|---|---|---|"
-    const sepStartInLine = trimmed.indexOf(' ' + sepRowStr);
+    const sepStartInLine = trimmed.indexOf(` ${sepRowStr}`);
     if (sepStartInLine < 0) {
       out.push(line);
       continue;
@@ -766,7 +766,7 @@ export function preprocessJiraMarkup(
   // references above, any ! characters that remain are prose punctuation. Replace
   // runs of 2 or more consecutive ! with the first ! plus &#33; entities for the
   // remainder -- &#33; renders as '!' in the browser and jira2md ignores it.
-  result = result.replace(/!{2,}/g, (match) => '!' + '&#33;'.repeat(match.length - 1));
+  result = result.replace(/!{2,}/g, (match) => `!${'&#33;'.repeat(match.length - 1)}`);
 
   // Mentions: [~accountId:XXX] -> <mention data-id="XXX">DisplayName</mention>
   result = result.replace(/\[~accountId:([^\]]+)\]/g, (_match, id: string) => {
@@ -810,12 +810,14 @@ export function preprocessJiraMarkup(
   // before a following '* list item' (or other block) causes the content to appear inside
   // the blockquote visually (wiki-renderer-list-in-quote). A trailing '\n' is appended to
   // the replacement so that the following line is separated by a blank line from the blockquote.
-  result = result.replace(/\{quote\}([\s\S]*?)\{quote\}/g, (_match, content: string) =>
-    content
-      .replace(/\n+$/, '')
-      .split('\n')
-      .map((line: string) => `> ${line}`)
-      .join('\n') + '\n',
+  result = result.replace(
+    /\{quote\}([\s\S]*?)\{quote\}/g,
+    (_match, content: string) =>
+      `${content
+        .replace(/\n+$/, '')
+        .split('\n')
+        .map((line: string) => `> ${line}`)
+        .join('\n')}\n`,
   );
 
   // Color macros: {color:#hex}...{color} -> <span data-color="#hex">...</span>

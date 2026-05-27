@@ -36,7 +36,12 @@ function todayString(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export function LogWorkPopover({ issueKey, jiraBaseUrl, onSuccess, initialDate }: LogWorkPopoverProps) {
+export function LogWorkPopover({
+  issueKey,
+  jiraBaseUrl,
+  onSuccess,
+  initialDate,
+}: LogWorkPopoverProps) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [duration, setDuration] = useState('');

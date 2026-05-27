@@ -298,7 +298,10 @@ export default function StandupNotesPage() {
   // TodayColumn's internally-owned queries are also triggered.
   function handleRefresh() {
     void queryClient.refetchQueries({ queryKey: ['standup'], type: 'active' });
-    void queryClient.refetchQueries({ queryKey: ['jira-issues', 'sprint-board-today-full'], type: 'active' });
+    void queryClient.refetchQueries({
+      queryKey: ['jira-issues', 'sprint-board-today-full'],
+      type: 'active',
+    });
   }
 
   // Spinner/disable feedback while a refresh is in flight (both standup + today sprint queries)
@@ -324,9 +327,12 @@ export default function StandupNotesPage() {
   // ─ Copy markdown ──────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => {
-    if (copiedTimer.current) clearTimeout(copiedTimer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    },
+    [],
+  );
 
   function handleCopyMarkdown() {
     const yesterdayText = generateMarkdown(

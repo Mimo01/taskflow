@@ -15,9 +15,7 @@ vi.mock('@tauri-apps/plugin-store', () => {
   return { LazyStore };
 });
 
-// biome-ignore assist/source/organizeImports: import order must match module init order to avoid TDZ circular dependency
 import { useSettingsStore } from './settings.store';
-// biome-ignore assist/source/organizeImports: import order must match module init order to avoid TDZ circular dependency
 import { useAuthStore } from './auth.store';
 
 describe('settings.store — keyboardOverrides (Phase 19)', () => {
@@ -213,10 +211,7 @@ describe('settings.store — widget removal (Phase 59)', () => {
     // further (v20, v21 already exist), so the guard is >= 19, not === 19.
     const fs = require('node:fs') as typeof import('node:fs');
     const path = require('node:path') as typeof import('node:path');
-    const src = fs.readFileSync(
-      path.resolve(__dirname, 'settings.store.ts'),
-      'utf8',
-    );
+    const src = fs.readFileSync(path.resolve(__dirname, 'settings.store.ts'), 'utf8');
     // Extract the numeric version value from `version: <N>,` inside the persist options.
     const match = src.match(/version:\s*(\d+),/);
     expect(match).not.toBeNull();
@@ -227,10 +222,7 @@ describe('settings.store — widget removal (Phase 59)', () => {
   it('v19 migration guard is present in source (if (version < 19))', () => {
     const fs = require('node:fs') as typeof import('node:fs');
     const path = require('node:path') as typeof import('node:path');
-    const src = fs.readFileSync(
-      path.resolve(__dirname, 'settings.store.ts'),
-      'utf8',
-    );
+    const src = fs.readFileSync(path.resolve(__dirname, 'settings.store.ts'), 'utf8');
     expect(src).toMatch(/if\s*\(version\s*<\s*19\)/);
   });
 });

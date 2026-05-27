@@ -22,7 +22,7 @@ vi.mock('@tauri-apps/plugin-store', () => {
 });
 
 import { act } from '@testing-library/react';
-import { SIDEBAR_NAV_ITEMS, getDefaultSidebarItems } from '@/components/app/sidebar-items';
+import { getDefaultSidebarItems, SIDEBAR_NAV_ITEMS } from '@/components/app/sidebar-items';
 import { useSettingsStore } from '@/stores/settings.store';
 import SidebarItemsList from './SidebarItemsList';
 

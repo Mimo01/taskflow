@@ -26,11 +26,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useNotificationsStore } from '../../stores/notifications.store';
-import { useAuthStore } from '../../stores/auth.store';
-import { useSettingsStore } from '../../stores/settings.store';
 import { readSecret, removeSecret } from '../../services/stronghold';
+import { useAuthStore } from '../../stores/auth.store';
+import { useNotificationsStore } from '../../stores/notifications.store';
 import { useOnboardingStore } from '../../stores/onboarding.store';
+import { useSettingsStore } from '../../stores/settings.store';
 
 const RETENTION_OPTIONS = ['50', '100', '200', '500', '1000'] as const;
 const CONCURRENCY_OPTIONS = [1, 2, 3, 4, 6, 8, 10, 12] as const;
@@ -295,9 +295,7 @@ export default function DebugModeSection() {
             </p>
           </div>
           <Dialog>
-            <DialogTrigger
-              render={<Button variant="outline" size="sm" className="shrink-0" />}
-            >
+            <DialogTrigger render={<Button variant="outline" size="sm" className="shrink-0" />}>
               Reset
             </DialogTrigger>
             <DialogContent showCloseButton={false}>
@@ -335,9 +333,7 @@ export default function DebugModeSection() {
             </div>
           ) : (
             <Dialog>
-              <DialogTrigger
-                render={<Button variant="outline" size="sm" className="shrink-0" />}
-              >
+              <DialogTrigger render={<Button variant="outline" size="sm" className="shrink-0" />}>
                 Reset
               </DialogTrigger>
               <DialogContent showCloseButton={false}>
@@ -345,8 +341,8 @@ export default function DebugModeSection() {
                   <DialogTitle>Reset preferences?</DialogTitle>
                   <DialogDescription>
                     Restores defaults for: Appearance, Sidebar, Notifications, Workflow,
-                    Integrations, and Updates. Jira/GitLab connection settings and custom field
-                    keys are kept.
+                    Integrations, and Updates. Jira/GitLab connection settings and custom field keys
+                    are kept.
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
@@ -379,18 +375,16 @@ export default function DebugModeSection() {
             </div>
           ) : (
             <Dialog>
-              <DialogTrigger
-                render={<Button variant="outline" size="sm" className="shrink-0" />}
-              >
+              <DialogTrigger render={<Button variant="outline" size="sm" className="shrink-0" />}>
                 Reset all
               </DialogTrigger>
               <DialogContent showCloseButton={false}>
                 <DialogHeader>
                   <DialogTitle>Reset everything?</DialogTitle>
                   <DialogDescription>
-                    This will restore all preferences to defaults, disconnect Jira and GitLab,
-                    and permanently remove your stored access tokens from the secure vault. You
-                    will need to reconnect your integrations.
+                    This will restore all preferences to defaults, disconnect Jira and GitLab, and
+                    permanently remove your stored access tokens from the secure vault. You will
+                    need to reconnect your integrations.
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>

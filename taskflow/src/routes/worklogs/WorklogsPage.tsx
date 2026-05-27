@@ -43,11 +43,11 @@ import { apiFetch } from '@/lib/apiFetch';
 import { fetchAssignableUsers } from '@/services/jira/users';
 import { readSecret } from '@/services/stronghold';
 import { fetchUserSchedule, fetchWorklogs, type ScheduleDayType } from '@/services/tempo';
+import type { DatePreset } from '@/services/tempo/types';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { type TempoFilter, useTempoFiltersStore } from '@/stores/tempo-filters.store';
 import { WorklogCellPopover } from './WorklogCellPopover';
-import type { DatePreset } from '@/services/tempo/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1101,7 +1101,9 @@ export default function WorklogsPage() {
                       <td
                         className={`sticky left-52 z-10 ${epicRowBg} p-0 border border-border border-l-0 border-r-0 text-purple-500 dark:text-purple-400 whitespace-nowrap min-w-20`}
                       >
-                        {isNoEpic ? '' : (
+                        {isNoEpic ? (
+                          ''
+                        ) : (
                           <button
                             type="button"
                             aria-label={`Open ${epicKey}`}
@@ -1211,10 +1213,7 @@ export default function WorklogsPage() {
                                 0,
                               );
                               return (
-                                <tr
-                                  key={`subtask-${subtaskKey}`}
-                                  className="group/row"
-                                >
+                                <tr key={`subtask-${subtaskKey}`} className="group/row">
                                   <td className="sticky left-0 z-10 bg-background px-3 py-1.5 border border-border border-r-0 min-w-52 max-w-52 overflow-hidden">
                                     <button
                                       type="button"

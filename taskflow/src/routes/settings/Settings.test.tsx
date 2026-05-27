@@ -264,5 +264,4 @@ describe('WorkflowSection content', () => {
     fireEvent.click(collapseCheckbox);
     expect(mockSettingsStore.setSprintCollapseByDefault).toHaveBeenCalledWith(true);
   });
-
 });

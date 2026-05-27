@@ -93,12 +93,11 @@ function FetchTooltip({
   if (!visible || !anchorRect) return null;
 
   const startDate = new Date(fetch.startTime);
-  const timeStr =
-    startDate.toLocaleTimeString(undefined, {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    } as Intl.DateTimeFormatOptions) + `.${String(startDate.getMilliseconds()).padStart(3, '0')}`;
+  const timeStr = `${startDate.toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  } as Intl.DateTimeFormatOptions)}.${String(startDate.getMilliseconds()).padStart(3, '0')}`;
 
   return (
     <div

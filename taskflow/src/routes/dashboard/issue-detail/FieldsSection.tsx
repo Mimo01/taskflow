@@ -161,7 +161,12 @@ export function FieldsSection({
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token) return [];
       const url = `${jiraBaseUrl.replace(/\/$/, '')}/rest/api/2/user/assignable/search?issueKey=${issueKey}&maxResults=50`;
-      const resp = await apiFetch('jira', url, { headers: { Authorization: `Bearer ${token}` } }, 'Load Assignees');
+      const resp = await apiFetch(
+        'jira',
+        url,
+        { headers: { Authorization: `Bearer ${token}` } },
+        'Load Assignees',
+      );
       if (!resp.ok) return [];
       return (await resp.json()) as AssignableUser[];
     },
