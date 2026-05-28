@@ -2726,3 +2726,33 @@ export async function fetchEpicStories(
     headers,
   ).catch(() => [] as JiraIssue[]);
 }
+
+export type {
+  EntityMaps,
+  GhAllDataResponse,
+  GhBacklogResponse,
+  GhBoardIssue,
+  GhDetailsResponse,
+  GhEpicEntity,
+  GhIssue,
+  GhPriorityEntity,
+  GhStatusEntity,
+  GhTransition,
+  GhTransitionsResponse,
+  GhTypeEntity,
+} from './jira/greenhopper';
+// GreenHopper (Phase 71) — re-exported here per D-05 (legacy dual-file convention; consumers import from 'services/jira').
+export {
+  adaptIssue,
+  buildEntityMaps,
+  createAdapter,
+  fetchAllData,
+  fetchBacklogData,
+  fetchGhTransitions,
+  fetchIssueDetails,
+  resolveEpic,
+  resolveParent,
+  resolvePriority,
+  resolveStatus,
+  resolveType,
+} from './jira/greenhopper';
