@@ -13,7 +13,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Bookmark, Columns3, RefreshCw } from 'lucide-react';
+import { Bookmark, Columns3, RefreshCw, Workflow } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
@@ -33,10 +33,11 @@ import {
   fetchProjectStatuses,
   fetchSprintStories,
   fetchSprintSubtasks,
-  fetchTransitions,
+  invalidateGhTransitions,
   isIssueFlagged,
   postTransition,
   setIssueFlagged,
+  useGhTransitions,
 } from '@/services/jira';
 import { fetchBoardQuickFilters } from '@/services/jira/board-config';
 import { fetchAllSearchPages } from '@/services/jira/client';
@@ -112,7 +113,7 @@ function VirtualizedSwimlanes({
   stickyHeaderInnerRef: React.RefObject<HTMLDivElement | null>;
   /** Ref to the sticky header overlay wrapper — hidden during swaps to prevent flicker */
   stickyOverlayRef: React.RefObject<HTMLDivElement | null>;
-  getTransitions: (issueKey: string) => JiraTransition[] | undefined;
+  getTransitions: (issue: JiraIssue) => JiraTransition[] | undefined;
   onTransition: (
     issueKey: string,
     transitionId: string,
@@ -336,7 +337,7 @@ function VirtualizedSwimlanes({
             isExpanded={isExpanded}
             onToggle={() => toggleStory(story.key)}
             onOpenDetail={setSelectedIssueKey}
-            transitions={getTransitions(story.key)}
+            transitions={getTransitions(story)}
             onTransition={(tid, name, toId, catKey) =>
               onTransition(story.key, tid, name, toId, catKey)
             }
@@ -374,7 +375,7 @@ function VirtualizedSwimlanes({
                           isSubtask={card.fields.issuetype.subtask}
                           showStatus
                           onClick={() => setSelectedIssueKey(card.key)}
-                          transitions={getTransitions(card.key)}
+                          transitions={getTransitions(card)}
                           onTransition={(tid, name, toId, catKey) =>
                             onTransition(card.key, tid, name, toId, catKey)
                           }
@@ -445,7 +446,7 @@ function VirtualizedSwimlanes({
                 isExpanded={isExpanded}
                 onToggle={() => toggleStory(story.key)}
                 onOpenDetail={setSelectedIssueKey}
-                transitions={getTransitions(story.key)}
+                transitions={getTransitions(story)}
                 onTransition={(tid, name, toId, catKey) =>
                   onTransition(story.key, tid, name, toId, catKey)
                 }
@@ -483,7 +484,7 @@ function VirtualizedSwimlanes({
                               isSubtask={card.fields.issuetype.subtask}
                               showStatus
                               onClick={() => setSelectedIssueKey(card.key)}
-                              transitions={getTransitions(card.key)}
+                              transitions={getTransitions(card)}
                               onTransition={(tid, name, toId, catKey) =>
                                 onTransition(card.key, tid, name, toId, catKey)
                               }
@@ -719,30 +720,47 @@ export default function SprintBoardTab() {
     setLocalIssues(data ?? []);
   }, [data]);
 
-  // Pre-fetch transitions for all board cards (used by right-click context menu).
-  // Depend only on stable primitives: jiraBaseUrl, jiraToken, and the count of local issues.
-  // localIssues itself is read inside the effect via a ref to avoid stale closures without
-  // adding the array reference (which changes on every data update) to the dep array.
-  const localIssuesRef = useRef(localIssues);
-  localIssuesRef.current = localIssues;
+  // Phase 72 (Plan 02): warm the GreenHopper transitions envelope once per
+  // project mount. The two-layer cache (envelope + per-type adapt) means every
+  // (projectId, issueTypeId) lookup downstream is a synchronous cache read
+  // once this hook resolves. Project id and a sentinel issuetype id are
+  // derived from the first local issue's `fields.project.id` /
+  // `fields.issuetype.id` (added to the search fields= list in services/jira.ts).
+  const sentinelProjectId = Number(localIssues[0]?.fields.project?.id ?? 0);
+  const sentinelIssueTypeId = localIssues[0]?.fields.issuetype?.id ?? '';
+  useGhTransitions(sentinelProjectId, sentinelIssueTypeId);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: localIssues.length triggers refetch when issue count changes; full array excluded intentionally (read via ref to avoid stale closure)
+  function getTransitions(issue: JiraIssue): JiraTransition[] | undefined {
+    return queryClient.getQueryData<JiraTransition[]>([
+      'gh-transitions',
+      Number(issue.fields.project?.id ?? 0),
+      issue.fields.issuetype?.id ?? '',
+    ]);
+  }
+
+  // Phase 72 (Plan 02): toolbar "Reload workflow transitions" inline feedback.
+  // 3-second timeout mirrors the existing "Refresh" affordance; the aria-live
+  // span at line ~1103 surfaces it for AT users.
+  const [reloadTransitionsStatus, setReloadTransitionsStatus] = useState<string | null>(null);
   useEffect(() => {
-    if (!jiraBaseUrl || !jiraToken || !localIssuesRef.current.length) return;
-    const issues = localIssuesRef.current;
-    void Promise.allSettled(
-      issues.map((issue) =>
-        queryClient.fetchQuery({
-          queryKey: ['transitions', issue.key],
-          queryFn: () => fetchTransitions(jiraBaseUrl, jiraToken ?? '', issue.key),
-          staleTime: 5 * 60 * 1000,
-        }),
-      ),
-    );
-  }, [jiraBaseUrl, jiraToken, localIssues.length, queryClient]);
+    if (!reloadTransitionsStatus) return;
+    const t = setTimeout(() => setReloadTransitionsStatus(null), 3000);
+    return () => clearTimeout(t);
+  }, [reloadTransitionsStatus]);
 
-  function getTransitions(issueKey: string): JiraTransition[] | undefined {
-    return queryClient.getQueryData<JiraTransition[]>(['transitions', issueKey]);
+  async function handleReloadWorkflowTransitions() {
+    const pid = Number(localIssues[0]?.fields.project?.id ?? 0);
+    if (!Number.isFinite(pid) || pid === 0) {
+      setReloadTransitionsStatus('Failed to reload workflow');
+      return;
+    }
+    try {
+      invalidateGhTransitions(queryClient, pid);
+      await queryClient.invalidateQueries({ queryKey: ['jira-statuses'] });
+      setReloadTransitionsStatus('Workflow transitions reloaded');
+    } catch {
+      setReloadTransitionsStatus('Failed to reload workflow');
+    }
   }
 
   async function handleTransition(
@@ -1101,6 +1119,14 @@ export default function SprintBoardTab() {
           {/* Refresh positioned absolutely so it doesn't affect column width distribution */}
           <div className="absolute right-0 top-0 h-full px-3 flex items-center gap-2 bg-background border-l border-border/20">
             <span className="text-xs text-muted-foreground hidden sm:inline">{lastRefreshed}</span>
+            {/* Phase 72 (Plan 02) — D-07 inline aria-live feedback span. */}
+            <span
+              role="status"
+              aria-live="polite"
+              className="text-xs text-muted-foreground hidden sm:inline"
+            >
+              {reloadTransitionsStatus ?? ''}
+            </span>
             <button
               type="button"
               onClick={() => {
@@ -1113,6 +1139,15 @@ export default function SprintBoardTab() {
               aria-label="Refresh"
             >
               <RefreshCw className="size-3" />
+            </button>
+            <button
+              type="button"
+              onClick={handleReloadWorkflowTransitions}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Reload workflow transitions"
+              title="Reload workflow transitions"
+            >
+              <Workflow className="size-3" />
             </button>
           </div>
         </div>
@@ -1142,7 +1177,7 @@ export default function SprintBoardTab() {
                   isExpanded={stickyHeader.isExpanded}
                   onToggle={() => toggleStory(stickyHeader.story.key)}
                   onOpenDetail={setSelectedIssueKey}
-                  transitions={getTransitions(stickyHeader.story.key)}
+                  transitions={getTransitions(stickyHeader.story)}
                   onTransition={(tid, name, toId, catKey) =>
                     handleTransition(stickyHeader.story.key, tid, name, toId, catKey)
                   }
