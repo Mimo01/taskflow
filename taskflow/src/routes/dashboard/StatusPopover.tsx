@@ -47,6 +47,11 @@ export default function StatusPopover({
 }: StatusPopoverProps) {
   const [open, setOpen] = useState(false);
 
+  // WR-03: projectId=0 / empty issueTypeId means the issue search payload
+  // was missing the `project` or `issuetype.id` fields. The hook is gated
+  // off in that case, so explicitly surface a "missing project context"
+  // affordance instead of an indefinite loading spinner.
+  const hasContext = projectId > 0 && !!issueTypeId;
   const { data: allTransitions, isLoading, isError } = useGhTransitions(projectId, issueTypeId);
   const transitions = allTransitions
     ? filterTransitionsForStatus(allTransitions, currentStatusId)
@@ -75,8 +80,15 @@ export default function StatusPopover({
         {currentStatus}
       </PopoverTrigger>
       <PopoverContent className="p-1 min-w-[160px]">
-        {isLoading && <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>}
-        {isError && (
+        {!hasContext && (
+          <div className="px-3 py-2 text-sm text-muted-foreground">
+            Missing project context — reload the board.
+          </div>
+        )}
+        {hasContext && isLoading && (
+          <div className="px-3 py-2 text-sm text-muted-foreground">Loading...</div>
+        )}
+        {hasContext && isError && (
           <div className="px-3 py-2 text-sm text-destructive">Unable to load transitions</div>
         )}
         {!isLoading &&
