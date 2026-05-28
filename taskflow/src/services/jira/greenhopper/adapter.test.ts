@@ -214,26 +214,11 @@ describe('adaptIssue — Group G: timeInColumn passthrough', () => {
   });
 
   it('leaves timeInColumn undefined when input is a GhIssue (no timeInColumn key)', () => {
-    // Build a plain GhIssue (no timeInColumn) by stripping it from the clone.
-    const base = edge({});
-    const ghIssue: GhIssue = {
-      id: base.id,
-      key: base.key,
-      hidden: base.hidden,
-      typeId: base.typeId,
-      summary: base.summary,
-      priorityId: base.priorityId,
-      done: base.done,
-      hasCustomUserAvatar: base.hasCustomUserAvatar,
-      color: base.color,
-      estimateStatisticRequired: base.estimateStatisticRequired,
-      estimateStatistic: base.estimateStatistic,
-      trackingStatistic: base.trackingStatistic,
-      statusId: base.statusId,
-      fixVersions: base.fixVersions,
-      projectId: base.projectId,
-    };
-    const out = adaptIssue(ghIssue, maps, 'customfield_10016');
+    // WR-03: build a plain GhIssue by object-rest-stripping timeInColumn from
+    // the GhBoardIssue clone. Stays exhaustive when GhIssue gains fields — the
+    // previous hand-rolled enumeration silently dropped any new field.
+    const { timeInColumn: _drop, ...ghIssue } = edge({});
+    const out = adaptIssue(ghIssue as GhIssue, maps, 'customfield_10016');
     expect(out.timeInColumn).toBeUndefined();
   });
 });
