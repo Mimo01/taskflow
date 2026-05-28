@@ -215,6 +215,20 @@ export async function getGhTransitions(
   projectId: number,
   issueTypeId: string,
 ): Promise<JiraTransition[]> {
+  // WR-03: refuse to fetch with a missing/zero project id. Caller fed us a
+  // default placeholder (typically `Number(undefined ?? 0)` from an issue
+  // whose `fields.project` was not in the search payload). Throw a typed
+  // error so callers can surface "missing project context" instead of
+  // silently rendering an empty popover.
+  if (!Number.isFinite(projectId) || projectId <= 0) {
+    throw new Error(
+      `Missing project context for GH transitions (projectId=${projectId}). ` +
+        `Ensure 'project' is in the issue search fields list.`,
+    );
+  }
+  if (!issueTypeId) {
+    throw new Error('Missing issuetype context for GH transitions (empty issueTypeId).');
+  }
   const envelope = await queryClient.ensureQueryData<GhTransitionsResponse>({
     queryKey: ['gh-transitions-envelope', projectId],
     queryFn: () => fetchGhTransitions(baseUrl, token, projectId),
@@ -247,6 +261,11 @@ export function peekGhTransitions(
   projectId: number,
   issueTypeId: string,
 ): JiraTransition[] | undefined {
+  // WR-03: missing project context — treat as "not loaded yet" so the
+  // render path falls back to its loading affordance instead of an empty
+  // popover. (Mirrors the throw in getGhTransitions but non-fatal because
+  // peek is called during render.)
+  if (!Number.isFinite(projectId) || projectId <= 0 || !issueTypeId) return undefined;
   const envelope = queryClient.getQueryData<GhTransitionsResponse>([
     'gh-transitions-envelope',
     projectId,
@@ -328,7 +347,11 @@ export function useGhTransitions(
         __adaptToJiraTransition(t, statusMap),
       );
     },
-    enabled: !!jiraBaseUrl && !!token && Number.isFinite(projectId) && !!issueTypeId,
+    // WR-03: require a real (>0) projectId. Passing 0 (the
+    // `Number(undefined ?? 0)` placeholder for issues missing
+    // `fields.project`) would otherwise issue a request for project 0 and
+    // warn-once on workflow miss while silently returning [].
+    enabled: !!jiraBaseUrl && !!token && projectId > 0 && !!issueTypeId,
     staleTime: Infinity,
     gcTime: Infinity,
   });
