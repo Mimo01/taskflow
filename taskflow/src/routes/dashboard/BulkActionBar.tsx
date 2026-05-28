@@ -5,6 +5,7 @@
  * Executes parallel API calls with concurrency limit of 5 and shows progress.
  * Escape key clears selection and hides the bar.
  */
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { Badge } from '@/components/ui/badge';
@@ -17,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { JiraIssue } from '@/services/jira';
-import { fetchTransitions, postTransition, updateIssueField } from '@/services/jira';
+import { getGhTransitions, postTransition, updateIssueField } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { BulkProgressIndicator } from './BulkProgressIndicator';
@@ -73,6 +74,7 @@ export function BulkActionBar({
 }: BulkActionBarProps) {
   const { jiraBaseUrl } = useAuthStore();
   const [jiraToken, setJiraToken] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const [targetStatus, setTargetStatus] = useState<string | null>(null);
   const [targetAssignee, setTargetAssignee] = useState<string | null>(null);
@@ -158,7 +160,21 @@ export function BulkActionBar({
       await parallelBatch(
         keys,
         async (key) => {
-          const transitions = await fetchTransitions(jiraBaseUrl, jiraToken, key);
+          // Phase 72 (Plan 02): resolve transitions through the GH cache.
+          // Deriving (projectId, issueTypeId) from the selected issue lets us
+          // hit the project-scoped envelope (one fetch per project per
+          // session) instead of one /transitions REST call per key.
+          const issue = issues.find((i) => i.key === key);
+          if (!issue) throw new Error(`Issue ${key} not in selection`);
+          const projectId = Number(issue.fields.project?.id ?? 0);
+          const issueTypeId = issue.fields.issuetype?.id ?? '';
+          const transitions = await getGhTransitions(
+            queryClient,
+            jiraBaseUrl,
+            jiraToken,
+            projectId,
+            issueTypeId,
+          );
           const transition = transitions.find(
             (t) => t.to.name.toLowerCase() === targetStatus.toLowerCase(),
           );
