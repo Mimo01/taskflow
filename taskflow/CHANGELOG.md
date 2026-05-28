@@ -6,6 +6,14 @@ Entries are written by hand for each release.
 ## [1.10.4] — 2026-05-28
 
 ### Fixed
+- Worklogs: worklog entry actions (edit pencil, delete) now appear on hover so the row stays clean at a glance
+- Worklogs: the edit form's **Delete** button (previously labelled "Discard Changes") now deletes the entry directly instead of discarding edits
+- Worklogs: the cell popover removes its scroll cap while an entry is being edited so the edit form is never clipped
+- Worklogs: the "Log Work" button in the cell popover is now labelled **Add New Entry** to distinguish it clearly from editing an existing entry
+
+## [1.10.4] — 2026-05-28
+
+### Fixed
 
 - Worklogs: worklog entry actions (edit pencil, delete) now appear on hover so the row stays clean at a glance
 - Worklogs: the edit form's **Delete** button (previously labelled "Discard Changes") now deletes the entry directly instead of discarding edits
