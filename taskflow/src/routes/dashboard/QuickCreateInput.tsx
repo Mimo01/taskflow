@@ -53,11 +53,22 @@ export default function QuickCreateInput({
     setIsSubmitting(true);
     setError(null);
 
+    let newKey: string;
     try {
-      const { key: newKey } = await createIssue(jiraBaseUrl, jiraToken, projectKey, value.trim());
+      ({ key: newKey } = await createIssue(jiraBaseUrl, jiraToken, projectKey, value.trim()));
+    } catch (err) {
+      // Creation itself failed — show the error and leave the input open so
+      // the user can retry without producing duplicates.
+      setIsSubmitting(false);
+      setError(err instanceof Error ? err.message : 'Failed to create issue');
+      return;
+    }
 
-      // Attempt to move the new issue to the target column via the shared
-      // GreenHopper transitions cache (Phase 72 Plan 02).
+    // WR-04: post-create transition is BEST-EFFORT. The issue is already in
+    // Jira at this point; if we fail to move it, we must still call
+    // onCreated() and reset the input so the user can see the new issue and
+    // not retry, which would create duplicates.
+    try {
       const transitions = await getGhTransitions(
         queryClient,
         jiraBaseUrl,
@@ -69,15 +80,18 @@ export default function QuickCreateInput({
       if (t) {
         await postTransition(jiraBaseUrl, jiraToken, newKey, t.id);
       }
-
-      setValue('');
-      setIsOpen(false);
-      setIsSubmitting(false);
-      onCreated();
     } catch (err) {
-      setIsSubmitting(false);
-      setError(err instanceof Error ? err.message : 'Failed to create issue');
+      setError(
+        `Created ${newKey} but couldn't move it to ${statusName}: ${
+          err instanceof Error ? err.message : 'unknown error'
+        }`,
+      );
     }
+
+    setValue('');
+    setIsOpen(false);
+    setIsSubmitting(false);
+    onCreated();
   }
 
   if (!isOpen) {
