@@ -30,19 +30,20 @@
 **Requirements:** GH-ADAPT-01, GH-ADAPT-02, GH-ADAPT-03
 
 **Success criteria:**
+
 1. `services/jira/greenhopper/` module exists with typed fetchers for `allData`, `data`, `details`, `transitions` returning the documented response shapes
 2. Entity-map resolvers translate `statusId` / `priorityId` / `typeId` / `epicId` into the existing UI `Status` / `Priority` / `Type` / `Epic` types
 3. `adaptIssue(greenhopperIssue, entityMaps)` produces an object that the existing sprint-board / backlog `Issue` consumers accept without code changes
 4. Unit tests cover the adapter with fixtures captured from a real GreenHopper response
 
 **Plans:** 6 plans (W0: 71-01 → W1: 71-02 → W2: 71-03, 71-04 → W3: 71-05 → W4: 71-06)
-- [ ] 71-01-PLAN.md — Wave 0: capture script + redacted real fixtures (blocks all)
+
+- [x] 71-01-PLAN.md — Wave 0: capture script + redacted real fixtures (blocks all)
 - [ ] 71-02-PLAN.md — Wave 1: greenhopperFetch client + types.ts
 - [ ] 71-03-PLAN.md — Wave 2: four typed fetchers (allData/data/details/transitions) + tests
 - [ ] 71-04-PLAN.md — Wave 2: buildEntityMaps + resolvers + warnOnce + tests
 - [ ] 71-05-PLAN.md — Wave 3: adaptIssue + createAdapter + fixture-driven tests
 - [ ] 71-06-PLAN.md — Wave 4: public barrel + jira.ts re-export (D-05) + full suite verify
-
 
 #### Phase 72: Workflow Transitions via GreenHopper
 
@@ -51,6 +52,7 @@
 **Requirements:** GH-TRANS-01, GH-TRANS-02, GH-TRANS-03
 
 **Success criteria:**
+
 1. `transitions.json` is fetched once per project per session and cached, keyed by `projectId × issueTypeId → workflow → transitions[]`
 2. Sprint-board drag-to-transition reads available transitions from the cache (no per-issue REST `/transitions` call in the network log)
 3. Issue-detail status change reads from the same cache
@@ -63,6 +65,7 @@
 **Requirements:** GH-BOARD-01, GH-BOARD-02, GH-BOARD-03, GH-BOARD-04
 
 **Success criteria:**
+
 1. Opening the sprint board issues exactly one `allData.json` request to load issues + columns + swimlanes + entity maps (verified in the network log)
 2. Columns render from GreenHopper `columnsData`; subtasks are grouped under their parent story via `parentId`
 3. `timeInColumn.enteredStatus` is available on each card / consumed by the existing "time in status" UI
@@ -75,6 +78,7 @@
 **Requirements:** GH-BACKLOG-01, GH-BACKLOG-02
 
 **Success criteria:**
+
 1. Opening the backlog issues exactly one `data.json` request (verified in the network log)
 2. Move-to-sprint, create story, filter by epic / label / assignee, and virtualized rendering all work on the new data source
 3. Old REST backlog-fetch path is deleted
@@ -86,12 +90,11 @@
 **Requirements:** GH-DETAIL-01, GH-DETAIL-02, GH-DETAIL-03, GH-DETAIL-04, GH-CUT-01, GH-CUT-02
 
 **Success criteria:**
+
 1. Opening an issue detail panel issues exactly one `details.json` request for operations + sprint + tabs (verified in the network log)
 2. HEADER / DETAILS tabs render from `defaultTabs` fields and `inlineEditableFields`; COMMENT / ATTACHMENT / SUB_TASKS / ISSUES_IN_EPIC tabs render from `Section.html` with documented REST v2 fallbacks for interactive surfaces (comment composer, attachment upload)
 3. Existing detail-panel features (edit fields, post comment, open-in-Jira deep link, pin, clone, watcher toggle) work unchanged
 4. Verification artifact records before/after request counts and end-to-end time for sprint-board open, backlog open, and issue-detail open; confirms the old REST paths for board / backlog / detail / transitions no longer exist in the codebase
-
-
 
 <details>
 <summary>✅ v1.0 MVP (Phases 1-4) — SHIPPED 2026-03-12</summary>
