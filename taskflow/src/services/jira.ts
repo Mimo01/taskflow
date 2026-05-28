@@ -685,47 +685,14 @@ export async function fetchMyTasksHierarchy(
 }
 
 /**
- * Transition a Jira issue to a new status.
- *
- * @param baseUrl      - Jira base URL
- * @param token        - Personal Access Token
- * @param issueKey     - Issue key (e.g. "PROJ-1")
- * @param transitionId - Transition ID (from useGhTransitions / getGhTransitions)
+ * Phase 72 (WR-01): postTransition was duplicated between this file and
+ * `services/jira/transitions.ts`. The modular implementation is canonical
+ * (per Phase 72 GH-CUT-01); this re-export preserves the legacy
+ * `@/services/jira` import path while ensuring there is only one source of
+ * truth for the transition POST logic. New code should import from
+ * `@/services/jira/transitions` directly.
  */
-export async function postTransition(
-  baseUrl: string,
-  token: string,
-  issueKey: string,
-  transitionId: string,
-): Promise<void> {
-  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/transitions`;
-
-  let response: Response;
-  try {
-    response = await apiFetch(
-      'jira',
-      url,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ transition: { id: transitionId } }),
-      },
-      'Issue Transition',
-    );
-  } catch {
-    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
-  }
-
-  if (!response.ok && response.status !== 204) {
-    if (response.status === 401 || response.status === 403) {
-      throw new ApiError(`Failed to transition ${issueKey}`, response.status, 'jira');
-    }
-    throw new Error(`Failed to transition ${issueKey}: status ${response.status}`);
-  }
-}
+export { postTransition } from './jira/transitions';
 
 /**
  * Post a comment on a Jira issue.
