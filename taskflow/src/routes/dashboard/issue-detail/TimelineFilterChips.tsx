@@ -29,6 +29,7 @@ export function TimelineFilterChips({ counts, active, onFilterChange }: Timeline
       {FILTERS.map(({ key, label, countKey }) => {
         const isActive = active === key;
         return (
+          // biome-ignore lint/a11y/useSemanticElements: badge toggle pattern; <input type="radio"> would break the visual chip design
           <button
             key={key}
             type="button"

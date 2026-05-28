@@ -54,6 +54,9 @@ export function AttachmentLightbox({
       ref={overlayRef}
       className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
       onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
       role="dialog"
       aria-modal="true"
       aria-label={current.filename ?? 'Image preview'}
@@ -106,7 +109,12 @@ export function AttachmentLightbox({
       )}
 
       {/* Image + caption */}
-      <div className="flex flex-col items-center gap-3" onClick={(e) => e.stopPropagation()}>
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: propagation-stopper to prevent backdrop close when clicking image/caption */}
+      <div
+        className="flex flex-col items-center gap-3"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+      >
         <div className="bg-white rounded-lg">
           <AuthImage
             src={current.content}

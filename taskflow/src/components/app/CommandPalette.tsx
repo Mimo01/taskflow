@@ -227,6 +227,7 @@ export default function CommandPalette({
   const isDefaultState = query.length < 2;
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: full-screen backdrop overlay; role=button is intentional for Escape/Enter dismiss
     <div
       className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm"
       role="button"
@@ -239,11 +240,12 @@ export default function CommandPalette({
         }
       }}
     >
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: propagation-stopper for palette content panel */}
       <div
         className="max-w-xl mt-16 mx-auto"
         role="presentation"
         onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => { e.stopPropagation(); }}
+        onKeyDown={() => {}}
       >
         <Command className="rounded-lg border shadow-lg bg-popover">
           <CommandInput

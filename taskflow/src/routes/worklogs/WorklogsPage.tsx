@@ -764,7 +764,7 @@ export default function WorklogsPage() {
 
       {/* Saved filters row — D-03: separate row above filter bar, hidden when empty */}
       {savedFilters.length > 0 && (
-        <div
+        <section
           aria-label="Saved filters"
           className="flex items-center gap-2 px-6 py-2 border-b border-border bg-background flex-wrap"
         >
@@ -867,7 +867,7 @@ export default function WorklogsPage() {
               </ContextMenu>
             );
           })}
-        </div>
+        </section>
       )}
 
       {/* Filter bar */}

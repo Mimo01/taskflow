@@ -32,6 +32,7 @@ export default function AppearanceSection() {
       <h2 className="text-lg font-semibold">Appearance</h2>
       <ThemeSection />
       <div className="flex flex-col gap-3">
+        {/* biome-ignore lint/a11y/noLabelWithoutControl: labels a group of toggle buttons, not a single form control */}
         <label className="text-sm font-medium">Display Density</label>
         <div className="flex gap-2">
           {DENSITY_OPTIONS.map(({ value, label, description }) => (

@@ -108,7 +108,7 @@ export function CustomFieldsSection({
 
         return (
           <div key={fid} className="flex flex-col gap-1">
-            <label className="text-sm font-medium">
+            <label htmlFor={fid} className="text-sm font-medium">
               {field.name} <span className="text-destructive">*</span>
             </label>
             {field.schema.allowedValues && field.schema.allowedValues.length > 0 ? (
@@ -118,7 +118,7 @@ export function CustomFieldsSection({
                   dispatch({ type: 'SET_CUSTOM_FIELD_VALUE', fieldId: fid, value: v ?? '' })
                 }
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger id={fid} className="w-full">
                   <SelectValue placeholder={`Select ${field.name}`} />
                 </SelectTrigger>
                 <SelectContent>
@@ -132,6 +132,7 @@ export function CustomFieldsSection({
             ) : hasAutocomplete ? (
               <div className="relative">
                 <Input
+                  id={fid}
                   value={state.customFieldInputValues[fid] ?? ''}
                   onChange={(e) => {
                     const q = e.target.value;
@@ -193,6 +194,7 @@ export function CustomFieldsSection({
               </div>
             ) : (
               <Input
+                id={fid}
                 value={state.customFieldValues[fid] ?? ''}
                 onChange={(e) =>
                   dispatch({ type: 'SET_CUSTOM_FIELD_VALUE', fieldId: fid, value: e.target.value })

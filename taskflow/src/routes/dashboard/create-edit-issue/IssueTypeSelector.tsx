@@ -23,6 +23,7 @@ export function IssueTypeSelector({
   if (defaultIssueType) {
     return (
       <div className="flex flex-col gap-1">
+        {/* biome-ignore lint/a11y/noLabelWithoutControl: read-only display div, not a form control */}
         <label className="text-sm font-medium">Issue Type</label>
         <div className="flex h-9 w-full items-center rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground">
           {selectedIssueType}
@@ -33,12 +34,14 @@ export function IssueTypeSelector({
 
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium">Issue Type</label>
+      <label htmlFor="issue-type-select" className="text-sm font-medium">
+        Issue Type
+      </label>
       <Select
         value={selectedIssueType}
         onValueChange={(v) => dispatch({ type: 'SET_ISSUE_TYPE', issueType: v as IssueType })}
       >
-        <SelectTrigger className="w-full">
+        <SelectTrigger id="issue-type-select" className="w-full">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

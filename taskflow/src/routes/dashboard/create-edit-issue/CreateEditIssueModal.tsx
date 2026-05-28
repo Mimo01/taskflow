@@ -235,10 +235,13 @@ export function CreateEditIssueModal({
 
             {!isSubtask && (
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium">Epic Link</label>
+                <label htmlFor="modal-epic-link" className="text-sm font-medium">
+                  Epic Link
+                </label>
                 {state.epicOpen ? (
                   <div className="rounded-md border shadow-sm">
                     <input
+                      id="modal-epic-link"
                       role="combobox"
                       aria-expanded={state.epicOpen}
                       aria-controls="epic-listbox"
@@ -327,8 +330,11 @@ export function CreateEditIssueModal({
             )}
 
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Assignee</label>
+              <label htmlFor="modal-assignee" className="text-sm font-medium">
+                Assignee
+              </label>
               <Input
+                id="modal-assignee"
                 role="combobox"
                 aria-expanded={state.showAssigneeResults}
                 aria-controls="assignee-listbox"
@@ -416,14 +422,16 @@ export function CreateEditIssueModal({
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Priority</label>
+              <label htmlFor="modal-priority" className="text-sm font-medium">
+                Priority
+              </label>
               <Select
                 value={state.priority ?? ''}
                 onValueChange={(v) =>
                   dispatch({ type: 'SET_FIELD', field: 'priority', value: v || null })
                 }
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger id="modal-priority" className="w-full">
                   <SelectValue placeholder="Select priority (optional)" />
                 </SelectTrigger>
                 <SelectContent>

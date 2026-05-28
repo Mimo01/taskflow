@@ -182,12 +182,11 @@ function AioAttachmentsGrid({
         ) : (
           <div className="flex flex-wrap gap-2">
             {attachments.map((att, idx) => (
-              <div
+              <button
                 key={att.url}
-                role="button"
-                tabIndex={0}
+                type="button"
                 aria-label={`${att.filename} - click to view full size`}
-                className="w-20 h-20 rounded-md overflow-hidden bg-muted relative cursor-pointer border border-border"
+                className="w-20 h-20 rounded-md overflow-hidden bg-muted relative cursor-pointer border border-border p-0"
                 onClick={() => setLightboxIndex(idx)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -201,7 +200,7 @@ function AioAttachmentsGrid({
                   alt={att.filename}
                   className="w-full h-full object-cover"
                 />
-              </div>
+              </button>
             ))}
           </div>
         ))}
@@ -222,11 +221,10 @@ function StepThumbnail({ url, fileName }: { url: string; fileName: string }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <div
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         aria-label={`${fileName} - click to view full size`}
-        className="h-12 w-auto rounded-md overflow-hidden bg-muted relative cursor-pointer"
+        className="h-12 w-auto rounded-md overflow-hidden bg-muted relative cursor-pointer p-0"
         onClick={() => setOpen(true)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -236,7 +234,7 @@ function StepThumbnail({ url, fileName }: { url: string; fileName: string }) {
         }}
       >
         <AuthImage src={url} alt={fileName} className="h-full w-auto object-contain" />
-      </div>
+      </button>
       <ImageLightbox src={url} alt={fileName} open={open} onClose={() => setOpen(false)} />
     </>
   );

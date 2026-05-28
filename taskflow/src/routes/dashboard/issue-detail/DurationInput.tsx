@@ -51,8 +51,11 @@ export function DurationInput({ value, onChange, error, autoFocus }: DurationInp
           <PopoverContent className="w-48 p-3">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <label className="text-xs text-muted-foreground w-12">Hours</label>
+                <label htmlFor="duration-hours" className="text-xs text-muted-foreground w-12">
+                  Hours
+                </label>
                 <Input
+                  id="duration-hours"
                   type="number"
                   min={0}
                   max={99}
@@ -64,8 +67,11 @@ export function DurationInput({ value, onChange, error, autoFocus }: DurationInp
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-xs text-muted-foreground w-12">Minutes</label>
+                <label htmlFor="duration-minutes" className="text-xs text-muted-foreground w-12">
+                  Minutes
+                </label>
                 <Input
+                  id="duration-minutes"
                   type="number"
                   min={0}
                   max={59}

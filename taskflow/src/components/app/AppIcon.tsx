@@ -1,7 +1,12 @@
 /** Inline SVG app icon — renders crisp at any size unlike <img> which rasterizes filters. */
 export default function AppIcon({ className }: { className?: string }) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" className={className} aria-hidden="true">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 1024 1024"
+      className={className}
+      aria-hidden="true"
+    >
       <defs>
         <clipPath id="app-sq">
           <rect x="100" y="100" width="824" height="824" rx="185" ry="185" />
