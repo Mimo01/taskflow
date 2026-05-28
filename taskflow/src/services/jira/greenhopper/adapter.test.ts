@@ -23,7 +23,8 @@ const typed = allData as unknown as GhAllDataResponse;
 const maps = buildEntityMaps(typed);
 
 // Pick a real, well-behaved fixture issue we can clone to build edge variants.
-const realIssue = typed.issuesData.issues[0]!;
+const realIssue = typed.issuesData.issues[0];
+if (!realIssue) throw new Error('fixture allData.real.json has no issues[0]');
 
 /** Build a complete GhBoardIssue-shaped edge fixture by cloning + overriding the
  *  real fixture issue. Keeps every required field typed and avoids re-writing
