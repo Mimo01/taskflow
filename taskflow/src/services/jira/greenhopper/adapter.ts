@@ -28,6 +28,9 @@
  * §"Adapter Mapping Table".
  */
 
+// JiraIssue lives in the legacy dual-file services/jira.ts:139 (memory:
+// project_jira_ts_dual_file.md + Phase 71 D-05). DO NOT import from '../../jira/index'.
+import type { JiraIssue } from '../../jira';
 import {
   resolveEpic,
   resolveParent,
@@ -36,9 +39,6 @@ import {
   resolveType,
 } from './entityMaps';
 import type { EntityMaps, GhBoardIssue, GhIssue } from './types';
-// JiraIssue lives in the legacy dual-file services/jira.ts:139 (memory:
-// project_jira_ts_dual_file.md + Phase 71 D-05). DO NOT import from '../../jira/index'.
-import type { JiraIssue } from '../../jira';
 
 /**
  * Return shape: the legacy JiraIssue plus the four GH-only top-level props (D-01).
@@ -82,9 +82,7 @@ export function adaptIssue(
   // absent — type declares it required but the API can omit it (Rule 1 — bug-fix).
   const estimate = gh.estimateStatistic as GhIssue['estimateStatistic'] | undefined;
   const storyPoints: number | null =
-    estimate?.statFieldId === storyPointsFieldKey
-      ? (estimate.statFieldValue.value ?? null)
-      : null;
+    estimate?.statFieldId === storyPointsFieldKey ? (estimate.statFieldValue.value ?? null) : null;
 
   // Resolve issuetype display name; subtask flag is derived from parentId presence
   // per Phase 71 D-11 + RESEARCH ambiguity #1. NOTE: legacy `JiraIssue.fields.issuetype`

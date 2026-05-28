@@ -41,12 +41,17 @@ export async function greenhopperFetch(
 ): Promise<Response> {
   const url = `${baseUrl.replace(/\/$/, '')}${apiPath}${path}`;
   // Source is literal 'jira' per D-04 + RESEARCH Pitfall 8 — NEVER 'greenhopper'.
-  return apiFetch('jira', url, {
-    method: init?.method ?? 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
+  return apiFetch(
+    'jira',
+    url,
+    {
+      method: init?.method ?? 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      ...(init?.body !== undefined ? { body: init.body } : {}),
     },
-    ...(init?.body !== undefined ? { body: init.body } : {}),
-  }, operation);
+    operation,
+  );
 }

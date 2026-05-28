@@ -387,33 +387,17 @@
       {
         "id": 187,
         "name": "To Do",
-        "statusIds": [
-          "10102",
-          "10200",
-          "12002"
-        ]
+        "statusIds": ["10102", "10200", "12002"]
       },
       {
         "id": 188,
         "name": "In Progress",
-        "statusIds": [
-          "10601",
-          "3",
-          "12106",
-          "11503",
-          "10612",
-          "10704",
-          "4",
-          "10608"
-        ]
+        "statusIds": ["10601", "3", "12106", "11503", "10612", "10704", "4", "10608"]
       },
       {
         "id": 189,
         "name": "Done",
-        "statusIds": [
-          "10103",
-          "12107"
-        ]
+        "statusIds": ["10103", "12107"]
       }
     ]
   },
@@ -422,66 +406,14 @@
     "swimlaneStrategy": "parentChild",
     "parentSwimlanesData": {
       "parentIssueIds": [
-        370567,
-        390401,
-        394511,
-        395532,
-        397706,
-        389898,
-        397715,
-        397725,
-        390298,
-        368290,
-        391852,
-        303286,
-        396593,
-        397758,
-        372028,
-        387641,
-        397241,
-        397760,
-        375746,
-        396879,
-        393674,
-        393546,
-        392148,
-        397651,
-        364639,
-        364638,
-        393700,
-        391394,
-        388333,
-        378605,
-        392558,
-        393578,
-        281208,
-        375544,
-        353016,
-        397433
+        370567, 390401, 394511, 395532, 397706, 389898, 397715, 397725, 390298, 368290, 391852,
+        303286, 396593, 397758, 372028, 387641, 397241, 397760, 375746, 396879, 393674, 393546,
+        392148, 397651, 364639, 364638, 393700, 391394, 388333, 378605, 392558, 393578, 281208,
+        375544, 353016, 397433
       ],
       "inprogressCandidates": [
-        390401,
-        368290,
-        375746,
-        391394,
-        388333,
-        394511,
-        396879,
-        395532,
-        393674,
-        393546,
-        393578,
-        389898,
-        392148,
-        303286,
-        396593,
-        372028,
-        364639,
-        364638,
-        387641,
-        281208,
-        375544,
-        353016,
+        390401, 368290, 375746, 391394, 388333, 394511, 396879, 395532, 393674, 393546, 393578,
+        389898, 392148, 303286, 396593, 372028, 364639, 364638, 387641, 281208, 375544, 353016,
         390298
       ],
       "doneCandidates": []
@@ -523,9 +455,7 @@
           "enteredStatus": 1779889245885,
           "durationPreviously": 1392675906
         },
-        "fixVersions": [
-          17904
-        ],
+        "fixVersions": [17904],
         "projectId": 10134
       },
       {
@@ -653,9 +583,7 @@
           "enteredStatus": 1779285110193,
           "durationPreviously": 0
         },
-        "fixVersions": [
-          17904
-        ],
+        "fixVersions": [17904],
         "projectId": 10134
       },
       {
@@ -867,9 +795,7 @@
           "enteredStatus": 1779891423928,
           "durationPreviously": 0
         },
-        "fixVersions": [
-          17904
-        ],
+        "fixVersions": [17904],
         "projectId": 10134
       },
       {
@@ -988,9 +914,7 @@
           "enteredStatus": 1779186451623,
           "durationPreviously": 0
         },
-        "fixVersions": [
-          17904
-        ],
+        "fixVersions": [17904],
         "projectId": 10134
       },
       {
@@ -1118,9 +1042,7 @@
           "enteredStatus": 1779882140921,
           "durationPreviously": 445652068
         },
-        "fixVersions": [
-          17904
-        ],
+        "fixVersions": [17904],
         "projectId": 10134
       },
       {
@@ -1248,9 +1170,7 @@
           "enteredStatus": 1779727462578,
           "durationPreviously": 264449466
         },
-        "fixVersions": [
-          17904
-        ],
+        "fixVersions": [17904],
         "projectId": 10134
       },
       {
@@ -1378,9 +1298,7 @@
           "enteredStatus": 1779884217159,
           "durationPreviously": 4282438
         },
-        "fixVersions": [
-          17904
-        ],
+        "fixVersions": [17904],
         "projectId": 10134
       },
       {
@@ -1505,9 +1423,7 @@
           "enteredStatus": 1779957454212,
           "durationPreviously": 5536010573
         },
-        "fixVersions": [
-          17904
-        ],
+        "fixVersions": [17904],
         "projectId": 10134
       },
       {
@@ -1567,9 +1483,7 @@
           "enteredStatus": 1779950288332,
           "durationPreviously": 0
         },
-        "fixVersions": [
-          17917
-        ],
+        "fixVersions": [17917],
         "projectId": 10134
       },
       {
@@ -1688,9 +1602,7 @@
           "enteredStatus": 1779957483439,
           "durationPreviously": 265550659
         },
-        "fixVersions": [
-          17917
-        ],
+        "fixVersions": [17917],
         "projectId": 10134
       },
       {
@@ -1725,9 +1637,7 @@
           "enteredStatus": 1779786356280,
           "durationPreviously": 0
         },
-        "fixVersions": [
-          17917
-        ],
+        "fixVersions": [17917],
         "projectId": 10134
       },
       {
@@ -1849,9 +1759,7 @@
           "enteredStatus": 1779870564439,
           "durationPreviously": 669355174
         },
-        "fixVersions": [
-          17917
-        ],
+        "fixVersions": [17917],
         "projectId": 10134
       },
       {
@@ -1979,9 +1887,7 @@
           "enteredStatus": 1779969855508,
           "durationPreviously": 0
         },
-        "fixVersions": [
-          17917
-        ],
+        "fixVersions": [17917],
         "projectId": 10134
       },
       {
@@ -2106,9 +2012,7 @@
           "enteredStatus": 1779377849904,
           "durationPreviously": 11061898
         },
-        "fixVersions": [
-          17917
-        ],
+        "fixVersions": [17917],
         "projectId": 10134
       },
       {
@@ -2233,9 +2137,7 @@
           "enteredStatus": 1774445641501,
           "durationPreviously": 0
         },
-        "fixVersions": [
-          17903
-        ],
+        "fixVersions": [17903],
         "projectId": 10134
       },
       {
@@ -2298,9 +2200,7 @@
           "enteredStatus": 1778850307195,
           "durationPreviously": 0
         },
-        "fixVersions": [
-          17903
-        ],
+        "fixVersions": [17903],
         "projectId": 10134
       },
       {
@@ -2447,9 +2347,7 @@
           "enteredStatus": 1778073987156,
           "durationPreviously": 0
         },
-        "fixVersions": [
-          17903
-        ],
+        "fixVersions": [17903],
         "projectId": 10134
       },
       {
@@ -2571,9 +2469,7 @@
           "enteredStatus": 1777883548119,
           "durationPreviously": 0
         },
-        "fixVersions": [
-          17903
-        ],
+        "fixVersions": [17903],
         "projectId": 10134
       },
       {
@@ -2698,9 +2594,7 @@
           "enteredStatus": 1779285532332,
           "durationPreviously": 0
         },
-        "fixVersions": [
-          17903
-        ],
+        "fixVersions": [17903],
         "projectId": 10134
       },
       {
@@ -5305,9 +5199,7 @@
           "enteredStatus": 1779959985792,
           "durationPreviously": 0
         },
-        "fixVersions": [
-          17904
-        ],
+        "fixVersions": [17904],
         "projectId": 10134
       },
       {

@@ -13,17 +13,17 @@
  *   9. resolveParent(undefined,undefined) → undefined; (id,key) → shape
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import allData from './__fixtures__/allData.real.json';
 import {
+  __resetWarnOnce,
   buildEntityMaps,
-  resolveStatus,
-  resolvePriority,
-  resolveType,
   resolveEpic,
   resolveParent,
-  __resetWarnOnce,
+  resolvePriority,
+  resolveStatus,
+  resolveType,
 } from './entityMaps';
 import type { GhAllDataResponse } from './types';
 
