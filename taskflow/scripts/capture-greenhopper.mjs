@@ -187,6 +187,53 @@ function redactBacklogData(obj) {
   return obj;
 }
 
+// WR-05: deny-by-default string-leaf redaction for unknown surfaces in the
+// details payload (notably defaultTabs which is typed [key: string]: unknown).
+// Numbers, booleans, and a small allowlist of known structural string fields
+// (ids, urls already redacted upstream) pass through; every other string leaf
+// is replaced with REDACTED_PLAIN. This errs on the side of over-redaction
+// for fields where the shape is unknowable rather than letting customer names,
+// PR titles, or comment bodies leak through.
+const REDACTED_PLAIN = '<<redacted by capture script>>';
+const PLAINTEXT_REDACT_ALLOWLIST = new Set([
+  'tabId',
+  'id',
+  'type',
+  'iconUrl',
+  'iconClass',
+  'iconType',
+  'href',
+  'url',
+  'key', // already remapped upstream via redactIssueKey/keyMap when applicable
+  'projectKey',
+  'styleClass',
+  'cssClass',
+  'fieldType',
+  'fieldName',
+  'name', // workflow/transition/field-name carve-out per RESEARCH trust boundary
+  'label',
+  'mimeType',
+]);
+
+function redactStringLeavesDenyByDefault(node) {
+  if (Array.isArray(node)) {
+    for (const item of node) redactStringLeavesDenyByDefault(item);
+    return;
+  }
+  if (node && typeof node === 'object') {
+    for (const k of Object.keys(node)) {
+      const v = node[k];
+      if (typeof v === 'string') {
+        if (!PLAINTEXT_REDACT_ALLOWLIST.has(k)) {
+          node[k] = REDACTED_PLAIN;
+        }
+        continue;
+      }
+      redactStringLeavesDenyByDefault(v);
+    }
+  }
+}
+
 function redactDetails(obj) {
   if (!obj || typeof obj !== 'object') return obj;
 
@@ -196,6 +243,18 @@ function redactDetails(obj) {
   if (typeof obj.projectName === 'string') obj.projectName = 'Sample Project';
   if (typeof obj.projectAvatarUrl === 'string') {
     obj.projectAvatarUrl = 'https://example.invalid/project.png';
+  }
+
+  // WR-05: redact plain-text description and comment bodies (Pitfall 7 surface
+  // gap — these can carry customer names, ticket titles, PR titles).
+  if (typeof obj.description === 'string') obj.description = REDACTED_PLAIN;
+  const comments = obj?.comments;
+  if (Array.isArray(comments)) {
+    for (const c of comments) {
+      if (c && typeof c.body === 'string') c.body = REDACTED_PLAIN;
+      if (c && typeof c.author === 'string') c.author = REDACTED_PLAIN;
+      if (c && typeof c.authorFullName === 'string') c.authorFullName = REDACTED_PLAIN;
+    }
   }
 
   // operations.sections[*].operations[*].url — strip query strings
@@ -232,6 +291,14 @@ function redactDetails(obj) {
     }
   };
   walk(obj);
+
+  // WR-05: apply deny-by-default redaction to the unknown-shape `defaultTabs`
+  // subtree. Anything with a known structural key passes through; arbitrary
+  // string leaves are replaced. Human reviewer should still eyeball the
+  // committed details.real.json — this is defence-in-depth, not a substitute.
+  if (obj.defaultTabs && typeof obj.defaultTabs === 'object') {
+    redactStringLeavesDenyByDefault(obj.defaultTabs);
+  }
 
   return obj;
 }
