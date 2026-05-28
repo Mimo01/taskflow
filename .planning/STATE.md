@@ -1,11 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.10
-milestone_name: milestone
-status: Awaiting next milestone
-stopped_at: context exhaustion at 75% (2026-05-28)
-last_updated: "2026-05-28T07:49:25.146Z"
-last_activity: 2026-05-25 — Milestone v1.10 completed and archived
+milestone: v1.11
+milestone_name: GreenHopper API Migration
+status: planning
+last_updated: "2026-05-28T17:55:07.305Z"
+last_activity: 2026-05-28
+progress:
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -19,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-05-25)
 
 ## Current Position
 
-Phase: Milestone v1.10 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-05-28 - Completed quick task 260528-jwr: On jira issue detail, when selecting fix version, the values in the popup should be sorted by release dates, not alphabetically
+Status: Defining requirements
+Last activity: 2026-05-28 — Milestone v1.11 started
 
 ## Performance Metrics
 

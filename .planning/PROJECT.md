@@ -4,11 +4,20 @@
 
 Taskflow is a cross-platform Tauri 2 desktop app for Orange's eshop development team. It unifies Jira (on-premise), Jira Tempo Timesheets, GitLab, and AIO Test Management into a single fast, focused interface — replacing the need to juggle multiple slow tools. It ships as a portable executable (no installer, no admin rights), stores credentials in the OS keychain, and serves both developers and project managers with a minimal static dashboard, sprint board, backlog, global search, notifications, AIO test execution visibility, and Tempo worklog tracking.
 
-## Current Milestone: None — v1.10 shipped, next milestone TBD
+## Current Milestone: v1.11 GreenHopper API Migration (Jira Performance)
 
-**Latest milestone shipped:** v1.10 Cleanup, Roles Removal & Standup Notes — 6 phases (65-70), 15 plans, 17 quick tasks, 271 commits, shipped 2026-05-25. Paid down v1.8/v1.9 tech debt, removed the Developer/PM role concept app-wide, tightened Settings → Sidebar to visibility-only, added an Integrations step to the onboarding wizard, and shipped the Standup Notes page (Yesterday recap + Today section).
+**Goal:** Eliminate Jira API n+1 bottlenecks by migrating the app's Jira backbone to the on-prem GreenHopper API (`/rest/greenhopper/1.0/xboard/*`), which returns board/backlog/issue data as a single fat payload with embedded entity lookup maps.
 
-**Next milestone:** define with `/gsd:new-milestone`.
+**Target features:**
+- Sprint Board fetched via a single `allData.json` call (replaces multi-call sprint-board fetch + per-issue enrichments; includes per-issue `timeInColumn`)
+- Backlog fetched via a single `data.json` call (replaces paginated REST + per-issue lookups)
+- Issue detail panel fetched via a single `details.json` call (operations menu, sprint, all tabs with server-rendered HTML and inline-edit forms)
+- Workflow transitions cached per-project via `transitions.json` (replaces per-issue `/transitions` REST calls)
+- Adapter layer mapping GreenHopper entity shapes (numeric IDs, embedded lookup maps) onto existing UI types so cutover is incremental
+
+**Out of scope for v1.11:** REST endpoints not replaced by GreenHopper (write actions, search, createmeta, attachments upload, worklogs, etc.) stay on the existing REST v2 services in `services/jira/*` and `jira.ts`.
+
+**Latest milestone shipped:** v1.10 Cleanup, Roles Removal & Standup Notes — 6 phases (65-70), 15 plans, 17 quick tasks, 271 commits, shipped 2026-05-25.
 
 ## Core Value
 
@@ -118,7 +127,13 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 
 ### Active
 
-_No active milestone. Define the next milestone's requirements with `/gsd:new-milestone`._
+<!-- v1.11 GreenHopper API Migration — see REQUIREMENTS.md for full REQ-IDs -->
+
+- [ ] Sprint board reads from GreenHopper `allData.json` (single call) with per-issue `timeInColumn`
+- [ ] Backlog reads from GreenHopper `data.json` (single call)
+- [ ] Issue detail panel reads from GreenHopper `details.json` (single call) including operations, sprint, and all tabs
+- [ ] Workflow transitions read from GreenHopper `transitions.json` (per-project, cached) and drive status transitions
+- [ ] Adapter layer maps GreenHopper entity shapes onto existing UI types so cutover is incremental
 
 ### Out of Scope
 
@@ -292,4 +307,4 @@ This document evolves at phase transitions and milestone boundaries.
 | Pinned issues + Log Work dropped from Standup Today during redesign (v1.10 Phase 70) | User decided the standup page is read/plan-oriented; pinning + logging belong on their own surfaces | ✓ Good — user-confirmed; STAND-08/09 descoped, Today shows sprint subtasks + nested MRs |
 
 ---
-*Last updated: 2026-05-25 after v1.10 milestone*
+*Last updated: 2026-05-28 after starting v1.11 GreenHopper API Migration*
