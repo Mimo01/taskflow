@@ -52,7 +52,8 @@ async function getStore(): Promise<ReturnType<Client['getStore']>> {
     const client = await _stronghold
       .loadClient('taskflow')
       .catch(() => _stronghold?.createClient('taskflow'));
-    Store = client!.getStore();
+    if (!client) throw new Error('Failed to load or create stronghold client');
+    Store = client.getStore();
     return Store;
   })();
 

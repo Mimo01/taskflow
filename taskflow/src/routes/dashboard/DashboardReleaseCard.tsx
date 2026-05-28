@@ -60,7 +60,8 @@ export default function DashboardReleaseCard({
 
   const { data: releaseIssues } = useQuery({
     queryKey: ['jira-release-issues', activeJiraProject, soonest?.name],
-    queryFn: () => fetchReleaseIssues(jiraBaseUrl, jiraToken, activeJiraProject, soonest!.name),
+    queryFn: () =>
+      fetchReleaseIssues(jiraBaseUrl, jiraToken, activeJiraProject, soonest?.name ?? ''),
     staleTime: 5 * 60_000,
     enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject && !!soonest,
   });
@@ -97,7 +98,7 @@ export default function DashboardReleaseCard({
               <span className="text-sm font-medium text-amber-600 dark:text-amber-400">
                 {Math.round(
                   (new Date(new Date().toISOString().slice(0, 10)).getTime() -
-                    new Date(soonest.releaseDate!).getTime()) /
+                    new Date(soonest.releaseDate ?? '').getTime()) /
                     86_400_000,
                 )}{' '}
                 days overdue

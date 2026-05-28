@@ -92,7 +92,7 @@ export function useResizable({
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
     };
-  }, [isDragging, min, max, onCommit]);
+  }, [isDragging, direction, min, max, onCommit]);
 
   return { width, isDragging, handleMouseDown };
 }

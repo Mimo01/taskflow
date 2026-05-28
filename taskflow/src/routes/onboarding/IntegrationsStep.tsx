@@ -45,10 +45,14 @@ export default function IntegrationsStep() {
       .catch(() => setToken(null));
   }, [jiraBaseUrl]);
 
-  const { data: projects, isLoading, isError } = useQuery({
+  const {
+    data: projects,
+    isLoading,
+    isError,
+  } = useQuery({
     // Same queryKey as AioBlock — intentional deduplication (Option A, RESEARCH Pattern 3)
     queryKey: ['aio', jiraBaseUrl, 'projects'],
-    queryFn: () => fetchAioProjects(jiraBaseUrl!, token!),
+    queryFn: () => fetchAioProjects(jiraBaseUrl ?? '', token ?? ''),
     enabled: !!jiraBaseUrl && !!token,
   });
 

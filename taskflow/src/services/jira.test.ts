@@ -1411,13 +1411,13 @@ describe('jira service', () => {
       );
 
       expect(result).toHaveLength(2);
-      const alpha = result.find((e) => e.key === 'PROJ-10')!;
+      const alpha = result.find((e) => e.key === 'PROJ-10') as NonNullable<(typeof result)[number]>;
       expect(alpha.epicName).toBe('Epic Alpha');
       expect(alpha.totalStories).toBe(3);
       expect(alpha.doneStories).toBe(1);
       expect(alpha.totalPoints).toBe(8);
 
-      const beta = result.find((e) => e.key === 'PROJ-11')!;
+      const beta = result.find((e) => e.key === 'PROJ-11') as NonNullable<(typeof result)[number]>;
       expect(beta.totalStories).toBe(2);
       expect(beta.doneStories).toBe(1);
       expect(beta.totalPoints).toBe(2);
@@ -1672,8 +1672,8 @@ describe('jira service', () => {
 
       const result = await fetchJiraIssueByKey(BASE, TOKEN, 'PROJ-123');
       expect(result).not.toBeNull();
-      expect(result!.key).toBe('PROJ-123');
-      expect(result!.fields.summary).toBe('Direct fetch issue');
+      expect(result?.key).toBe('PROJ-123');
+      expect(result?.fields.summary).toBe('Direct fetch issue');
     });
 
     it('calls the correct URL with required fields including reporter, priority, customfield_13415', async () => {

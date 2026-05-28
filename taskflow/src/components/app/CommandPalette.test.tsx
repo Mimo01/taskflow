@@ -173,9 +173,9 @@ describe('CommandPalette', () => {
     renderPalette({ onClose });
 
     // The backdrop is the outermost fixed div
-    const backdrop = document.querySelector('.fixed.inset-0');
+    const backdrop = document.querySelector('.fixed.inset-0') as Element;
     expect(backdrop).not.toBeNull();
-    fireEvent.click(backdrop!);
+    fireEvent.click(backdrop);
     expect(onClose).toHaveBeenCalled();
   });
 

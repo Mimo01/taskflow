@@ -171,7 +171,9 @@ describe('IntegrationsSection — AIO project picker', () => {
     // Label "AIO Project Key" should NOT be in the DOM (D-02 gate).
     // Note: "AIO Test Management" heading is still rendered — match exact label.
     expect(screen.queryByLabelText('AIO Project Key')).toBeNull();
-    expect(screen.queryByText('Pick the AIO Test Management project key this app shows.')).toBeNull();
+    expect(
+      screen.queryByText('Pick the AIO Test Management project key this app shows.'),
+    ).toBeNull();
   });
 
   it('renders the project list when aioEnabled is true and the query resolves', async () => {

@@ -17,9 +17,11 @@ export function useMentionUserMap(
   const [fetchedUsers, setFetchedUsers] = useState<UserMap>({});
   const fetchingRef = useRef<Set<string>>(new Set());
 
-  const textsFingerprint = wikiTexts.map((t) => t ?? '').join('\x00');
-
   useEffect(() => {
+    // Derive fingerprint inside the effect so wikiTexts/initialMap can be direct deps
+    const textsFingerprint = wikiTexts.map((t) => t ?? '').join('\x00');
+    void textsFingerprint; // used to trigger effect re-run when content changes
+
     const toFetch: string[] = [];
     for (const text of wikiTexts) {
       if (!text) continue;
@@ -53,9 +55,7 @@ export function useMentionUserMap(
       cancelled = true;
       for (const u of toFetch) fetchingRef.current.delete(u);
     };
-    // textsFingerprint is the stable proxy for wikiTexts content changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [textsFingerprint, jiraBaseUrl]);
+  }, [wikiTexts, initialMap, jiraBaseUrl]);
 
   return useMemo(() => ({ ...initialMap, ...fetchedUsers }), [initialMap, fetchedUsers]);
 }

@@ -11,7 +11,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { SIDEBAR_NAV_ITEMS, getDefaultSidebarItems } from './sidebar-items';
+import { getDefaultSidebarItems, SIDEBAR_NAV_ITEMS } from './sidebar-items';
 
 const SIDEBAR_FILE = path.resolve(__dirname, 'sidebar-items.ts');
 

@@ -157,7 +157,9 @@ describe('AioBlock — AIO project picker', () => {
     renderWithClient(<AioBlock />);
     // Label "AIO Project Key" should NOT be in the DOM when toggle is off.
     expect(screen.queryByLabelText('AIO Project Key')).toBeNull();
-    expect(screen.queryByText('Pick the AIO Test Management project key this app shows.')).toBeNull();
+    expect(
+      screen.queryByText('Pick the AIO Test Management project key this app shows.'),
+    ).toBeNull();
   });
 
   it('shows loading row while query is pending', async () => {

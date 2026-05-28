@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
 import { X } from 'lucide-react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -94,7 +94,10 @@ export function CreateEditIssueModal({
   // wrapCustomFieldValue and lose type information).
   const prePopulatedRef = useRef(false);
   useEffect(() => {
-    if (!open) { prePopulatedRef.current = false; return; }
+    if (!open) {
+      prePopulatedRef.current = false;
+      return;
+    }
     if (prePopulatedRef.current) return;
     if (Object.keys(parentInheritMap).length === 0) return;
     prePopulatedRef.current = true;
@@ -115,7 +118,7 @@ export function CreateEditIssueModal({
           : String(item);
       if (label) dispatch({ type: 'SET_CUSTOM_FIELD_INPUT', fieldId: field.fieldId, value: label });
     }
-  }, [open, parentInheritMap, customRequiredFields]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, parentInheritMap, customRequiredFields, dispatch]);
 
   const requiredCustomFieldsFilled = customRequiredFields.every(
     (f) =>

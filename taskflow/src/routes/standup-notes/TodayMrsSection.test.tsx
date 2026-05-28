@@ -45,12 +45,7 @@ const BASE_PROPS = {
 
 describe('TodayMrsSection — MRs scope', () => {
   it('renders "awaiting review" label with muted class for returned MRs (Option A)', () => {
-    render(
-      <TodayMrsSection
-        {...BASE_PROPS}
-        items={[makeMR(2094, 'Refactor checkout flow')]}
-      />,
-    );
+    render(<TodayMrsSection {...BASE_PROPS} items={[makeMR(2094, 'Refactor checkout flow')]} />);
 
     const label = screen.getByText('awaiting review');
     expect(label).toBeInTheDocument();
@@ -60,35 +55,20 @@ describe('TodayMrsSection — MRs scope', () => {
   });
 
   it('renders the MR IID and title', () => {
-    render(
-      <TodayMrsSection
-        {...BASE_PROPS}
-        items={[makeMR(2094, 'Refactor checkout flow')]}
-      />,
-    );
+    render(<TodayMrsSection {...BASE_PROPS} items={[makeMR(2094, 'Refactor checkout flow')]} />);
 
     expect(screen.getByText('!2094')).toBeInTheDocument();
     expect(screen.getByText('Refactor checkout flow')).toBeInTheDocument();
   });
 
   it('renders the MRs Awaiting You section header when items are present', () => {
-    render(
-      <TodayMrsSection
-        {...BASE_PROPS}
-        items={[makeMR(1, 'Some MR')]}
-      />,
-    );
+    render(<TodayMrsSection {...BASE_PROPS} items={[makeMR(1, 'Some MR')]} />);
 
     expect(screen.getByText('MRs Awaiting You')).toBeInTheDocument();
   });
 
   it('returns null (no header) when items list is empty and not loading', () => {
-    const { container } = render(
-      <TodayMrsSection
-        {...BASE_PROPS}
-        items={[]}
-      />,
-    );
+    const { container } = render(<TodayMrsSection {...BASE_PROPS} items={[]} />);
 
     expect(screen.queryByText('MRs Awaiting You')).not.toBeInTheDocument();
     expect(container.firstChild).toBeNull();

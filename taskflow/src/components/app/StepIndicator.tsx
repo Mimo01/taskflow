@@ -23,7 +23,11 @@ export default function StepIndicator({ steps, currentStep, completedSteps }: St
         const isFuture = index > currentStep && !isCompleted;
 
         return (
-          <div key={index} className="flex items-center">
+          <div
+            // biome-ignore lint/suspicious/noArrayIndexKey: static wizard step list, no reorder
+            key={index}
+            className="flex items-center"
+          >
             {/* Step circle */}
             <div className="flex flex-col items-center gap-1">
               <div

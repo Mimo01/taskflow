@@ -8,6 +8,7 @@ import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAioCredentials } from '@/hooks/useAioCredentials';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
+import { initializeAioStatusMap } from '@/lib/aioUtils';
 import {
   fetchAioCycleSummaries,
   fetchAioCyclesWithDetail,
@@ -23,7 +24,6 @@ import type {
 } from '@/services/aio/types';
 import { fetchJiraProjectNumericId } from '@/services/jira/projects';
 import { fetchJiraUserByUsername } from '@/services/jira/users';
-import { initializeAioStatusMap } from '@/lib/aioUtils';
 import { useAioCyclesSelectionStore } from '@/stores/aio-cycles-selection.store';
 import { useAuthStore } from '@/stores/auth.store';
 
@@ -182,7 +182,7 @@ function OwnerCell({
 }) {
   const { data: user, isLoading } = useQuery({
     queryKey: ['jira', jiraBaseUrl, 'user-by-username', ownedByID],
-    queryFn: () => fetchJiraUserByUsername(jiraBaseUrl!, token!, ownedByID),
+    queryFn: () => fetchJiraUserByUsername(jiraBaseUrl ?? '', token ?? '', ownedByID),
     enabled: !!jiraBaseUrl && !!token && !!ownedByID,
     staleTime: 5 * 60 * 1000,
   });
@@ -282,7 +282,7 @@ export default function AioProjectOverviewPage() {
   // Uses GET /rest/api/2/project/{key} — the Jira numeric id, not the AIO-internal ID.
   const jiraProjectIdQuery = useQuery({
     queryKey: ['jira', jiraBaseUrl, 'project-numeric-id', projectKey],
-    queryFn: () => fetchJiraProjectNumericId(jiraBaseUrl!, token!, projectKey!),
+    queryFn: () => fetchJiraProjectNumericId(jiraBaseUrl ?? '', token ?? '', projectKey ?? ''),
     enabled: credGate,
     staleTime: 60 * 60 * 1000,
   });
@@ -294,7 +294,7 @@ export default function AioProjectOverviewPage() {
   // Project config — testRunStatus entries for dynamic status ID → canonical key mapping.
   const configQuery = useQuery({
     queryKey: ['aio', jiraBaseUrl, 'project-config', projectKey],
-    queryFn: () => fetchAioProjectConfig(jiraBaseUrl!, token!, jiraProjectId!),
+    queryFn: () => fetchAioProjectConfig(jiraBaseUrl ?? '', token ?? '', jiraProjectId ?? 0),
     enabled: aioGate,
     staleTime: 60 * 60 * 1000,
   });
@@ -313,13 +313,13 @@ export default function AioProjectOverviewPage() {
   // Folder tree + count map (parallel)
   const foldersQuery = useQuery({
     queryKey: ['aio', jiraBaseUrl, 'folders', projectKey],
-    queryFn: () => fetchAioFolderTree(jiraBaseUrl!, token!, jiraProjectId!),
+    queryFn: () => fetchAioFolderTree(jiraBaseUrl ?? '', token ?? '', jiraProjectId ?? 0),
     enabled: aioGate,
   });
 
   const countMapQuery = useQuery({
     queryKey: ['aio', jiraBaseUrl, 'cycle-count', projectKey],
-    queryFn: () => fetchAioFolderCycleCounts(jiraBaseUrl!, token!, jiraProjectId!),
+    queryFn: () => fetchAioFolderCycleCounts(jiraBaseUrl ?? '', token ?? '', jiraProjectId ?? 0),
     enabled: aioGate,
   });
 
@@ -333,7 +333,8 @@ export default function AioProjectOverviewPage() {
   // Cycle list — re-fetches whenever the selected folder changes.
   const cyclesWithDetailQuery = useQuery({
     queryKey: ['aio', jiraBaseUrl, 'cycles-detail', projectKey, selectedFolderID],
-    queryFn: () => fetchAioCyclesWithDetail(jiraBaseUrl!, token!, jiraProjectId!, activeFolderIds),
+    queryFn: () =>
+      fetchAioCyclesWithDetail(jiraBaseUrl ?? '', token ?? '', jiraProjectId ?? 0, activeFolderIds),
     enabled: aioGate && selectedFolderID !== null,
   });
 
@@ -341,7 +342,8 @@ export default function AioProjectOverviewPage() {
   const allIDs = cyclesWithDetailQuery.data?.allIDs ?? [];
   const cycleSummariesQuery = useQuery({
     queryKey: ['aio', jiraBaseUrl, 'cycle-summaries', projectKey, allIDs.join(',')],
-    queryFn: () => fetchAioCycleSummaries(jiraBaseUrl!, token!, jiraProjectId!, allIDs),
+    queryFn: () =>
+      fetchAioCycleSummaries(jiraBaseUrl ?? '', token ?? '', jiraProjectId ?? 0, allIDs),
     enabled: aioGate && allIDs.length > 0,
   });
 
@@ -361,6 +363,7 @@ export default function AioProjectOverviewPage() {
   const autoExpandedRef = useRef(false);
 
   // Reset one-shot guard whenever projectKey changes so navigation to a new project re-runs the effect
+  // biome-ignore lint/correctness/useExhaustiveDependencies: projectKey is the intentional trigger dep; the effect body only mutates a ref (correct pattern)
   useEffect(() => {
     autoExpandedRef.current = false;
   }, [projectKey]);
@@ -464,7 +467,12 @@ export default function AioProjectOverviewPage() {
           {showFolderSkeleton ? (
             <div className="p-2 space-y-1">
               {[40, 36, 32, 28, 40, 36].map((w, i) => (
-                <Skeleton key={i} className="h-6" style={{ width: w * 4 }} />
+                <Skeleton
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list, no reorder
+                  key={i}
+                  className="h-6"
+                  style={{ width: w * 4 }}
+                />
               ))}
             </div>
           ) : foldersQuery.isError ? (

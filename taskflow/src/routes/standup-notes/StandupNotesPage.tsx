@@ -163,11 +163,11 @@ export default function StandupNotesPage() {
     queryKey: ['standup', 'schedule', jiraBaseUrl, jiraUserKey ?? ''],
     queryFn: () =>
       fetchUserSchedule(
-        jiraBaseUrl!,
-        jiraToken!,
+        jiraBaseUrl ?? '',
+        jiraToken ?? '',
         getScheduleLookbackRange().from,
         getScheduleLookbackRange().to,
-        jiraUserKey!,
+        jiraUserKey ?? '',
       ),
     enabled: !!jiraBaseUrl && !!jiraToken && !!jiraUserKey && tempoEnabled,
     staleTime: 24 * 60 * 60 * 1000,
@@ -187,7 +187,13 @@ export default function StandupNotesPage() {
   const tempoQuery = useQuery({
     queryKey: ['standup', 'tempo', jiraBaseUrl, yesterdayDate, jiraUsername ?? ''],
     queryFn: () =>
-      fetchWorklogs(jiraBaseUrl!, jiraToken!, [jiraUsername!], yesterdayDate, yesterdayDate),
+      fetchWorklogs(
+        jiraBaseUrl ?? '',
+        jiraToken ?? '',
+        [jiraUsername ?? ''],
+        yesterdayDate,
+        yesterdayDate,
+      ),
     enabled: !!jiraBaseUrl && !!jiraToken && tempoEnabled && !!jiraUsername && !!yesterdayDate,
     staleTime: 5 * 60 * 1000,
   });
@@ -205,11 +211,11 @@ export default function StandupNotesPage() {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token) throw new Error('No Jira token');
       return fetchYesterdayJiraActivity(
-        jiraBaseUrl!,
+        jiraBaseUrl ?? '',
         token,
-        activeJiraProject!,
+        activeJiraProject ?? '',
         yesterdayDate,
-        jiraUsername!,
+        jiraUsername ?? '',
       );
     },
     enabled:
@@ -232,11 +238,11 @@ export default function StandupNotesPage() {
       const token = await readSecret('gitlab-pat').catch(() => null);
       if (!token) throw new Error('No GitLab token');
       return fetchUserCommits(
-        gitlabBaseUrl!,
+        gitlabBaseUrl ?? '',
         token,
-        activeGitlabProject!,
+        activeGitlabProject ?? '',
         yesterdayDate,
-        gitlabUsername!,
+        gitlabUsername ?? '',
         gitlabName,
         gitlabEmail,
       );
@@ -255,7 +261,7 @@ export default function StandupNotesPage() {
     queryFn: async () => {
       const token = await readSecret('gitlab-pat').catch(() => null);
       if (!token) throw new Error('No GitLab token');
-      return fetchUserMREvents(gitlabBaseUrl!, token, gitlabUserId!, yesterdayDate);
+      return fetchUserMREvents(gitlabBaseUrl ?? '', token, gitlabUserId ?? '', yesterdayDate);
     },
     enabled: !!gitlabBaseUrl && !!gitlabToken && !!gitlabUserId && !!yesterdayDate,
     staleTime: 5 * 60 * 1000,
@@ -285,7 +291,7 @@ export default function StandupNotesPage() {
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token) throw new Error('No Jira token');
-      return fetchIssueMeta(jiraBaseUrl!, token, referencedKeys);
+      return fetchIssueMeta(jiraBaseUrl ?? '', token, referencedKeys);
     },
     enabled: !!jiraBaseUrl && !!jiraToken && referencedKeys.length > 0,
     staleTime: 60 * 60 * 1000,
@@ -298,7 +304,10 @@ export default function StandupNotesPage() {
   // TodayColumn's internally-owned queries are also triggered.
   function handleRefresh() {
     void queryClient.refetchQueries({ queryKey: ['standup'], type: 'active' });
-    void queryClient.refetchQueries({ queryKey: ['jira-issues', 'sprint-board-today-full'], type: 'active' });
+    void queryClient.refetchQueries({
+      queryKey: ['jira-issues', 'sprint-board-today-full'],
+      type: 'active',
+    });
   }
 
   // Spinner/disable feedback while a refresh is in flight (both standup + today sprint queries)
@@ -324,9 +333,12 @@ export default function StandupNotesPage() {
   // ─ Copy markdown ──────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => {
-    if (copiedTimer.current) clearTimeout(copiedTimer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    },
+    [],
+  );
 
   function handleCopyMarkdown() {
     const yesterdayText = generateMarkdown(

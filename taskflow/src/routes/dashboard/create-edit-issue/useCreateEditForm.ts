@@ -194,17 +194,7 @@ export function useCreateEditForm({
       defaultParentKey: defaultParentKey ?? null,
       initialValues,
     });
-  }, [
-    open,
-    defaultIssueType,
-    defaultParentKey,
-    initialValues?.storyPoints,
-    initialValues?.assigneeName,
-    initialValues?.description,
-    initialValues?.epicLinkKey,
-    initialValues?.priority,
-    initialValues?.summary,
-  ]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, defaultIssueType, defaultParentKey, initialValues]);
 
   const isSubtask = state.selectedIssueType === 'Subtask';
 

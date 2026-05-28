@@ -51,6 +51,7 @@ export function CachedAvatar({ url, name, size = 32, className }: CachedAvatarPr
   const [imgFailed, setImgFailed] = useState(false);
 
   // Reset failure state when the source URL changes (different avatar)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: url is the intentional trigger dep; setImgFailed is stable
   useEffect(() => setImgFailed(false), [url]);
 
   const handleError = useCallback(() => {

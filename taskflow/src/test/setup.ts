@@ -21,7 +21,7 @@ vi.mock('@tauri-apps/plugin-store', () => {
       if (!stores.has(filename)) {
         stores.set(filename, new Map<string, unknown>());
       }
-      this.data = stores.get(filename)!;
+      this.data = stores.get(filename) as Map<string, unknown>;
     }
     async get<T>(key: string): Promise<T | undefined> {
       return this.data.get(key) as T | undefined;
