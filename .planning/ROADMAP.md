@@ -39,7 +39,7 @@
 **Plans:** 6 plans (W0: 71-01 → W1: 71-02 → W2: 71-03, 71-04 → W3: 71-05 → W4: 71-06)
 
 - [x] 71-01-PLAN.md — Wave 0: capture script + redacted real fixtures (blocks all)
-- [ ] 71-02-PLAN.md — Wave 1: greenhopperFetch client + types.ts
+- [x] 71-02-PLAN.md — Wave 1: greenhopperFetch client + types.ts
 - [ ] 71-03-PLAN.md — Wave 2: four typed fetchers (allData/data/details/transitions) + tests
 - [ ] 71-04-PLAN.md — Wave 2: buildEntityMaps + resolvers + warnOnce + tests
 - [ ] 71-05-PLAN.md — Wave 3: adaptIssue + createAdapter + fixture-driven tests
