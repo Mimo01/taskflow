@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.11
 milestone_name: GreenHopper API Migration
-status: executing
-stopped_at: Phase 71 complete, ready to plan Phase 72
-last_updated: "2026-05-28T20:50:22.528Z"
+status: planning
+stopped_at: Phase 72 context gathered
+last_updated: "2026-05-28T21:12:29.129Z"
 last_activity: 2026-05-28
 progress:
   total_phases: 5
@@ -114,9 +114,9 @@ Items acknowledged and deferred at the v1.10 milestone close on 2026-05-25 (20 o
 
 ## Session Continuity
 
-Last session: 2026-05-28T20:50:00Z
-Stopped at: Phase 71 complete, ready to plan Phase 72
-Resume file: None
+Last session: 2026-05-28T21:12:29.123Z
+Stopped at: Phase 72 context gathered
+Resume file: .planning/phases/72-workflow-transitions-via-greenhopper/72-CONTEXT.md
 
 ## Operator Next Steps
 
