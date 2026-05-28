@@ -32,10 +32,7 @@ export interface JiraStatus {
  * @param baseUrl - Jira base URL (trailing slash tolerated)
  * @param token   - Bearer PAT
  */
-export async function fetchAllJiraStatuses(
-  baseUrl: string,
-  token: string,
-): Promise<JiraStatus[]> {
+export async function fetchAllJiraStatuses(baseUrl: string, token: string): Promise<JiraStatus[]> {
   const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/status`;
   const response = await apiFetch(
     'jira',
