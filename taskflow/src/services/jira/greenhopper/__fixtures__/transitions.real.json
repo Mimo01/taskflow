@@ -1,0 +1,271 @@
+{
+  "projectAndIssueTypeToWorkflow": {
+    "10134": {
+      "10000": "SCRUMBAN: Workflow v1",
+      "10001": "SCRUMBAN: Workflow v1",
+      "10100": "SCRUMBAN: Workflow v1",
+      "10101": "SCRUMBAN: Workflow v1",
+      "10102": "KPT: Bug v1"
+    }
+  },
+  "workflowToTransitions": {
+    "SCRUMBAN: Workflow v1": [
+      {
+        "transitionId": 1,
+        "toStatusId": 10200,
+        "name": "Create",
+        "hasScreen": false,
+        "hasConditions": false,
+        "hasValidators": true,
+        "isInitial": true,
+        "isGlobal": false
+      },
+      {
+        "transitionId": 81,
+        "toStatusId": 10200,
+        "name": "Backlog",
+        "hasScreen": false,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": true
+      },
+      {
+        "transitionId": 11,
+        "toStatusId": 10102,
+        "name": "To Do",
+        "hasScreen": false,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": true
+      },
+      {
+        "transitionId": 21,
+        "toStatusId": 3,
+        "name": "In Progress",
+        "hasScreen": false,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": true
+      },
+      {
+        "transitionId": 31,
+        "toStatusId": 10612,
+        "name": "Code Review",
+        "hasScreen": false,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": true
+      },
+      {
+        "transitionId": 41,
+        "toStatusId": 11503,
+        "name": "Ready to test",
+        "hasScreen": false,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": true
+      },
+      {
+        "transitionId": 51,
+        "toStatusId": 10704,
+        "name": "Testing",
+        "hasScreen": false,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": true
+      },
+      {
+        "transitionId": 61,
+        "toStatusId": 10103,
+        "name": "Done",
+        "hasScreen": true,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": true
+      },
+      {
+        "transitionId": 71,
+        "toStatusId": 12002,
+        "name": "Blocked",
+        "hasScreen": false,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": true
+      }
+    ],
+    "KPT: Bug v1": [
+      {
+        "transitionId": 101,
+        "fromStatusId": 10102,
+        "toStatusId": 10200,
+        "name": "Backlog",
+        "hasScreen": false,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": false
+      },
+      {
+        "transitionId": 11,
+        "fromStatusId": 10102,
+        "toStatusId": 3,
+        "name": "In Progress",
+        "hasScreen": false,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": false
+      },
+      {
+        "transitionId": 21,
+        "fromStatusId": 3,
+        "toStatusId": 12106,
+        "name": "Fixed",
+        "hasScreen": false,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": false
+      },
+      {
+        "transitionId": 81,
+        "fromStatusId": 3,
+        "toStatusId": 10102,
+        "name": "To Do",
+        "hasScreen": false,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": false
+      },
+      {
+        "transitionId": 51,
+        "fromStatusId": 3,
+        "toStatusId": 12107,
+        "name": "Rejected",
+        "hasScreen": true,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": false
+      },
+      {
+        "transitionId": 41,
+        "fromStatusId": 11503,
+        "toStatusId": 10103,
+        "name": "Done",
+        "hasScreen": false,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": false
+      },
+      {
+        "transitionId": 71,
+        "fromStatusId": 11503,
+        "toStatusId": 4,
+        "name": "Reopen",
+        "hasScreen": false,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": false
+      },
+      {
+        "transitionId": 31,
+        "fromStatusId": 12106,
+        "toStatusId": 11503,
+        "name": "Ready to test",
+        "hasScreen": false,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": false
+      },
+      {
+        "transitionId": 11,
+        "fromStatusId": 12106,
+        "toStatusId": 3,
+        "name": "In Progress",
+        "hasScreen": false,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": false
+      },
+      {
+        "transitionId": 61,
+        "fromStatusId": 12107,
+        "toStatusId": 10103,
+        "name": "Mark se Done",
+        "hasScreen": false,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": false
+      },
+      {
+        "transitionId": 71,
+        "fromStatusId": 12107,
+        "toStatusId": 4,
+        "name": "Reopen",
+        "hasScreen": false,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": false
+      },
+      {
+        "transitionId": 11,
+        "fromStatusId": 4,
+        "toStatusId": 3,
+        "name": "In Progress",
+        "hasScreen": false,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": false
+      },
+      {
+        "transitionId": 51,
+        "fromStatusId": 4,
+        "toStatusId": 12107,
+        "name": "Rejected",
+        "hasScreen": true,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": false
+      },
+      {
+        "transitionId": 1,
+        "toStatusId": 10200,
+        "name": "Create",
+        "hasScreen": false,
+        "hasConditions": false,
+        "hasValidators": true,
+        "isInitial": true,
+        "isGlobal": false
+      },
+      {
+        "transitionId": 91,
+        "fromStatusId": 10200,
+        "toStatusId": 10102,
+        "name": "To Do",
+        "hasScreen": false,
+        "hasConditions": false,
+        "hasValidators": false,
+        "isInitial": false,
+        "isGlobal": false
+      }
+    ]
+  }
+}

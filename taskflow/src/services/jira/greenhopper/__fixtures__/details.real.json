@@ -1,0 +1,638 @@
+{
+  "key": "PROJ-362",
+  "id": 158222,
+  "editable": true,
+  "canCreateComment": false,
+  "isSubtask": false,
+  "totalComments": 0,
+  "operations": {
+    "issueKey": "ESHOP-7043",
+    "sections": [
+      {
+        "groupId": "issueaction-edit-issue",
+        "operations": [
+          {
+            "id": "editIssue",
+            "label": "Edit",
+            "title": "Edit this issue",
+            "styleClass": "issueaction-edit-issue",
+            "url": "/secure/EditIssue!default.jspa"
+          }
+        ]
+      },
+      {
+        "groupId": "opsbar-operations",
+        "operations": [
+          {
+            "id": "schedule-web-item-link",
+            "label": "QR Code Generator",
+            "title": "",
+            "styleClass": "",
+            "url": ""
+          }
+        ]
+      },
+      {
+        "groupId": "opsbar-operations",
+        "operations": [
+          {
+            "id": "assign-issue",
+            "label": "Assign",
+            "title": "Assign this issue to someone",
+            "styleClass": "issueaction-assign-issue",
+            "url": "/secure/AssignIssue!default.jspa"
+          },
+          {
+            "id": "add-hours-on-issue",
+            "label": "Log Time",
+            "title": "Log Time on this Issue with Tempo",
+            "styleClass": "tempo-open-log-work-dialog",
+            "url": ""
+          }
+        ]
+      },
+      {
+        "groupId": "opsbar-operations",
+        "operations": [
+          {
+            "id": "log-work",
+            "label": "Log work",
+            "title": "Log work against this issue",
+            "styleClass": "issueaction-log-work",
+            "url": "/secure/CreateWorklog!default.jspa"
+          },
+          {
+            "id": "add-issue-expense",
+            "label": "Add Expense",
+            "title": "Add Expense on this Issue with Tempo",
+            "styleClass": "tempo-open-expense-dialog",
+            "url": ""
+          },
+          {
+            "id": "plan-time-on-issue",
+            "label": "Plan Time",
+            "title": "Plan Time on this Issue with Tempo",
+            "styleClass": "tempo-open-plan-time-dialog",
+            "url": ""
+          },
+          {
+            "id": "tempo-issue-tracker-start-mlink",
+            "label": "Start Tracker",
+            "title": "Start tracking time on this issue",
+            "styleClass": "tempo-bar-start",
+            "url": ""
+          },
+          {
+            "id": "view-time-on-issue",
+            "label": "View Worklogs",
+            "title": "View Worklogs on this Issue in Tempo",
+            "styleClass": "",
+            "url": "/secure/Tempo.jspa#/reports/logged-time"
+          }
+        ]
+      },
+      {
+        "groupId": "opsbar-operations",
+        "operations": [
+          {
+            "id": "greenhopper-rapidboard-operation",
+            "label": "Find on a board",
+            "title": "Find Agile boards that display this issue",
+            "styleClass": "issueaction-greenhopper-rapidboard-operation js-find-on-board-issue",
+            "url": "/secure/FindOnBoard.jspa"
+          },
+          {
+            "id": "greenhopper-rank-top-operation",
+            "label": "Rank to Top",
+            "title": "",
+            "styleClass": "issueaction-greenhopper-rank-top-operation",
+            "url": "/secure/RankTop.jspa"
+          },
+          {
+            "id": "greenhopper-rank-bottom-operation",
+            "label": "Rank to Bottom",
+            "title": "",
+            "styleClass": "issueaction-greenhopper-rank-bottom-operation",
+            "url": "/secure/RankBottom.jspa"
+          }
+        ]
+      },
+      {
+        "groupId": "opsbar-operations",
+        "operations": [
+          {
+            "id": "attach-file",
+            "label": "Attach files",
+            "title": "Attach one or more files to this issue",
+            "styleClass": "unified-attach-file",
+            "url": "/secure/AttachFile!default.jspa"
+          },
+          {
+            "id": "attach-screenshot-html5",
+            "label": "Attach Screenshot",
+            "title": "",
+            "styleClass": "issueaction-attach-screenshot-html5",
+            "url": "/secure/ShowAttachScreenshotFormAction!default.jspa"
+          }
+        ]
+      },
+      {
+        "groupId": "opsbar-operations",
+        "operations": [
+          {
+            "id": "view-voters",
+            "label": "Voters",
+            "title": "View voters for this issue",
+            "styleClass": "issueaction-view-voters",
+            "url": "/secure/ViewVoters!default.jspa"
+          },
+          {
+            "id": "toggle-watch-issue",
+            "label": "Stop watching",
+            "title": "Stop watching this issue",
+            "styleClass": "issueaction-unwatch-issue",
+            "url": "/secure/VoteOrWatchIssue.jspa"
+          },
+          {
+            "id": "manage-watchers",
+            "label": "Watchers",
+            "title": "Manage the watchers of this issue",
+            "styleClass": "issueaction-manage-watchers",
+            "url": "/secure/ManageWatchers!default.jspa"
+          }
+        ]
+      },
+      {
+        "groupId": "opsbar-operations",
+        "operations": [
+          {
+            "id": "create-subtask",
+            "label": "Create sub-task",
+            "title": "Create sub-task for this issue",
+            "styleClass": "issueaction-create-subtask",
+            "url": "/secure/CreateSubTaskIssue!default.jspa"
+          },
+          {
+            "id": "issue-to-subtask",
+            "label": "Convert to sub-task",
+            "title": "Convert this issue to sub-task",
+            "styleClass": "issueaction-issue-to-subtask",
+            "url": "/secure/ConvertIssue.jspa"
+          },
+          {
+            "id": "multiple-subtasks-open-dialog",
+            "label": "Create multiple subtasks",
+            "title": "",
+            "styleClass": "trigger-dialog",
+            "url": "/secure/MultipleSubtasksDialog!default.jspa"
+          }
+        ]
+      },
+      {
+        "groupId": "opsbar-operations",
+        "operations": [
+          {
+            "id": "create-linked-issue",
+            "label": "Create linked issue",
+            "title": "",
+            "styleClass": "issueaction-create-linked-issue",
+            "url": "#"
+          },
+          {
+            "id": "move-issue",
+            "label": "Move",
+            "title": "Move this issue to another project or issue type.",
+            "styleClass": "issueaction-move-issue",
+            "url": "/secure/MoveIssue!default.jspa"
+          },
+          {
+            "id": "link-issue",
+            "label": "Link",
+            "title": "Link this issue to another issue or item",
+            "styleClass": "issueaction-link-issue",
+            "url": "/secure/LinkJiraIssue!default.jspa"
+          },
+          {
+            "id": "clone-issue",
+            "label": "Clone",
+            "title": "Clone this issue",
+            "styleClass": "issueaction-clone-issue",
+            "url": "/secure/CloneIssueDetails!default.jspa"
+          },
+          {
+            "id": "edit-labels",
+            "label": "Labels",
+            "title": "Edit this issue's labels",
+            "styleClass": "issueaction-edit-labels",
+            "url": "/secure/EditLabels!default.jspa"
+          }
+        ]
+      }
+    ]
+  },
+  "projectName": "Sample Project",
+  "projectAvatarUrl": "https://example.invalid/project.png",
+  "isAssigned": false,
+  "primaryStatisticFieldId": "customfield_10106",
+  "trackingStatisticFieldId": "timeestimate",
+  "sprint": {
+    "id": 7126,
+    "sequence": 12762,
+    "rapidViewId": 2827,
+    "name": "Typo Backlog",
+    "state": "FUTURE",
+    "autoStartStop": false,
+    "synced": false
+  },
+  "tabs": {
+    "defaultTabs": [
+      {
+        "tabId": "HEADER",
+        "fields": [
+          {
+            "id": "summary",
+            "label": "Summary",
+            "editable": true,
+            "type": "textarea",
+            "renderer": "text",
+            "text": "Ost init aktivacia - spravne vybuildenie offra"
+          },
+          {
+            "id": "issuekey",
+            "label": "issue.key",
+            "editable": false,
+            "renderer": "text",
+            "text": "ESHOP-7043"
+          },
+          {
+            "id": "customfield_10106",
+            "label": "Story Points",
+            "editable": true,
+            "type": "number",
+            "renderer": "text",
+            "text": "5",
+            "value": 5
+          },
+          {
+            "id": "timeestimate",
+            "label": "Remaining Estimate",
+            "editable": true,
+            "type": "number",
+            "renderer": "duration"
+          }
+        ]
+      },
+      {
+        "tabId": "DETAILS",
+        "sections": [
+          {
+            "toolTip": "Details",
+            "label": "Details",
+            "providerKey": "com.pyxis.greenhopper.jira:details-module",
+            "html": "<!-- redacted by capture script -->",
+            "iconFont": "info",
+            "weight": 100,
+            "renderHeader": true,
+            "headerLinks": {
+              "links": [],
+              "groups": []
+            }
+          },
+          {
+            "toolTip": "People",
+            "label": "People",
+            "providerKey": "com.pyxis.greenhopper.jira:details-module-people",
+            "html": "<!-- redacted by capture script -->",
+            "tabIconId": "details-module",
+            "weight": 101,
+            "renderHeader": true,
+            "headerLinks": {
+              "links": [],
+              "groups": []
+            }
+          },
+          {
+            "toolTip": "Dates",
+            "label": "Dates",
+            "providerKey": "com.pyxis.greenhopper.jira:details-module-dates",
+            "html": "<!-- redacted by capture script -->",
+            "tabIconId": "details-module",
+            "weight": 102,
+            "renderHeader": true,
+            "headerLinks": {
+              "links": [],
+              "groups": []
+            }
+          }
+        ],
+        "inlineEditableFields": [
+          {
+            "id": "labels",
+            "label": "Labels",
+            "required": true,
+            "editHtml": "<!-- redacted by capture script -->"
+          },
+          {
+            "id": "issuelinks",
+            "label": "Linked Issues",
+            "required": true,
+            "editHtml": "<!-- redacted by capture script -->"
+          },
+          {
+            "id": "reporter",
+            "label": "Reporter",
+            "required": true,
+            "editHtml": "<!-- redacted by capture script -->"
+          },
+          {
+            "id": "assignee",
+            "label": "Assignee",
+            "required": true,
+            "editHtml": "<!-- redacted by capture script -->"
+          },
+          {
+            "id": "customfield_10101",
+            "label": "Epic Link",
+            "required": true,
+            "editHtml": "<!-- redacted by capture script -->"
+          },
+          {
+            "id": "description",
+            "label": "Description",
+            "required": true,
+            "editHtml": "<!-- redacted by capture script -->"
+          },
+          {
+            "id": "summary",
+            "label": "Summary",
+            "required": true,
+            "editHtml": "<!-- redacted by capture script -->"
+          },
+          {
+            "id": "customfield_10106",
+            "label": "Story Points",
+            "required": true,
+            "editHtml": "<!-- redacted by capture script -->"
+          },
+          {
+            "id": "timeestimate",
+            "label": "Time Tracking",
+            "required": true,
+            "editHtml": "<!-- redacted by capture script -->"
+          }
+        ]
+      },
+      {
+        "tabId": "DESCRIPTION",
+        "sections": [
+          {
+            "toolTip": "Description",
+            "label": "Description",
+            "providerKey": "com.atlassian.jira.jira-view-issue-plugin:descriptionmodule",
+            "html": "<!-- redacted by capture script -->",
+            "iconFont": "overview",
+            "weight": 200,
+            "renderHeader": true,
+            "headerLinks": {
+              "links": [],
+              "groups": []
+            }
+          }
+        ]
+      },
+      {
+        "tabId": "COMMENT",
+        "sections": [
+          {
+            "toolTip": "Comments",
+            "label": "Comments",
+            "providerKey": "com.pyxis.greenhopper.jira:commentmodule",
+            "html": "<!-- redacted by capture script -->",
+            "iconFont": "comment",
+            "weight": 300,
+            "renderHeader": true,
+            "headerLinks": {
+              "links": [],
+              "groups": []
+            }
+          },
+          {
+            "label": "addcommentmodule",
+            "providerKey": "com.atlassian.jira.plugin.system.comment-panel:addcommentmodule",
+            "html": "<!-- redacted by capture script -->",
+            "tabIconId": "commentmodule",
+            "weight": 301,
+            "renderHeader": false,
+            "headerLinks": {
+              "links": [],
+              "groups": []
+            }
+          }
+        ],
+        "totalComments": 0,
+        "canCreateComment": true
+      },
+      {
+        "tabId": "ATTACHMENT",
+        "sections": [
+          {
+            "toolTip": "Attachments",
+            "label": "Attachments",
+            "providerKey": "com.atlassian.jira.jira-view-issue-plugin:attachmentmodule",
+            "html": "<!-- redacted by capture script -->",
+            "iconFont": "attachment",
+            "weight": 400,
+            "renderHeader": true,
+            "headerLinks": {
+              "links": [
+                {
+                  "id": "add-attachments-link",
+                  "styleClass": "issueaction-attach-file aui-icon aui-icon-small aui-iconfont-add issueaction-aui-icon",
+                  "label": "Attach one or more files to this issue",
+                  "title": "Attach one or more files to this issue",
+                  "href": "/secure/AttachFile!default.jspa?id=158222",
+                  "weight": 1,
+                  "params": {}
+                }
+              ],
+              "groups": [
+                {
+                  "header": {
+                    "id": "attachment-sorting-options",
+                    "weight": 10
+                  },
+                  "links": [
+                    {
+                      "id": "attachment-sort-key-name",
+                      "styleClass": "aui-list-checked aui-checked",
+                      "label": "Sort By Name",
+                      "title": "Sort By Name",
+                      "href": "/browse/ESHOP-7043?attachmentSortBy=fileName#attachmentmodule",
+                      "weight": 10,
+                      "params": {
+                        "ariaChecked": "true"
+                      }
+                    },
+                    {
+                      "id": "attachment-sort-key-date",
+                      "styleClass": "aui-list-checked",
+                      "label": "Sort By Date",
+                      "title": "Sort By Date",
+                      "href": "/browse/ESHOP-7043?attachmentSortBy=dateTime#attachmentmodule",
+                      "weight": 20,
+                      "params": {
+                        "ariaChecked": "false"
+                      }
+                    }
+                  ],
+                  "groups": []
+                },
+                {
+                  "header": {
+                    "id": "attachment-sorting-order-options",
+                    "weight": 20
+                  },
+                  "links": [
+                    {
+                      "id": "attachment-sort-direction-asc",
+                      "styleClass": "aui-list-checked aui-checked",
+                      "label": "Ascending",
+                      "title": "Ascending",
+                      "href": "/browse/ESHOP-7043?attachmentOrder=asc#attachmentmodule",
+                      "weight": 10,
+                      "params": {
+                        "ariaChecked": "true"
+                      }
+                    },
+                    {
+                      "id": "attachment-sort-direction-desc",
+                      "styleClass": "aui-list-checked",
+                      "label": "Descending",
+                      "title": "Descending",
+                      "href": "/browse/ESHOP-7043?attachmentOrder=desc#attachmentmodule",
+                      "weight": 20,
+                      "params": {
+                        "ariaChecked": "false"
+                      }
+                    }
+                  ],
+                  "groups": []
+                },
+                {
+                  "header": {
+                    "id": "attachment-view-mode-options",
+                    "weight": 20
+                  },
+                  "links": [
+                    {
+                      "id": "attachment-view-mode-gallery",
+                      "styleClass": "aui-list-checked aui-checked",
+                      "label": "Thumbnails",
+                      "title": "Thumbnails",
+                      "href": "/browse/ESHOP-7043?attachmentViewMode=gallery#attachmentmodule",
+                      "weight": 10,
+                      "params": {
+                        "ariaChecked": "true"
+                      }
+                    },
+                    {
+                      "id": "attachment-view-mode-list",
+                      "styleClass": "aui-list-checked",
+                      "label": "List",
+                      "title": "List",
+                      "href": "/browse/ESHOP-7043?attachmentViewMode=list#attachmentmodule",
+                      "weight": 20,
+                      "params": {
+                        "ariaChecked": "false"
+                      }
+                    }
+                  ],
+                  "groups": []
+                },
+                {
+                  "header": {
+                    "id": "attachment-manage-options",
+                    "weight": 90
+                  },
+                  "links": [
+                    {
+                      "id": "aszip",
+                      "styleClass": "aui-list-checked",
+                      "label": "Download All",
+                      "title": "Download all attachments as a ZIP file",
+                      "href": "/secure/attachmentzip/158222.zip",
+                      "weight": 1,
+                      "params": {}
+                    },
+                    {
+                      "id": "manage-attachment-link",
+                      "styleClass": "aui-list-checked",
+                      "label": "Manage Attachments",
+                      "title": "Manage and delete attachments",
+                      "href": "/secure/ManageAttachments.jspa?id=158222",
+                      "weight": 9,
+                      "params": {}
+                    }
+                  ],
+                  "groups": []
+                }
+              ]
+            }
+          },
+          {
+            "label": "Attachments",
+            "providerKey": "com.atlassian.jira.plugins.jira-dnd-attachment-plugin:dnd-metadata",
+            "html": "<!-- redacted by capture script -->",
+            "weight": 401,
+            "renderHeader": true,
+            "headerLinks": {
+              "links": [],
+              "groups": []
+            }
+          }
+        ]
+      },
+      {
+        "tabId": "SUB_TASKS",
+        "subtaskEntries": [],
+        "totalSubtaskCount": 0
+      },
+      {
+        "tabId": "ISSUES_IN_EPIC"
+      },
+      {
+        "tabId": "THIRD_PARTY_TAB",
+        "sections": [
+          {
+            "iconURL": "https://jira.example.invalid/s/-yu4ay0/10030019/x998be/19.2.3/_/download/resources/is.origo.jira.tempo-plugin:greenhopper-reference-third-party-tab-tempo/icon.png",
+            "toolTip": "Worklogs",
+            "label": "Worklogs",
+            "providerKey": "is.origo.jira.tempo-plugin:greenhopper-reference-third-party-tab-tempo",
+            "titleCount": 0,
+            "html": "<!-- redacted by capture script -->",
+            "weight": 98,
+            "renderHeader": true,
+            "headerLinks": {
+              "links": [],
+              "groups": []
+            }
+          },
+          {
+            "iconURL": "https://jira.example.invalid/s/-yu4ay0/10030019/x998be/20.3.19-QR-0004/_/download/resources/com.riadalabs.jira.plugins.insight:rlabs-agile-panel/icon.png",
+            "toolTip": "Assets Objects Tab Panel",
+            "label": "Assets Objects Tab Panel",
+            "providerKey": "com.riadalabs.jira.plugins.insight:rlabs-agile-panel",
+            "html": "<!-- redacted by capture script -->",
+            "weight": 1010,
+            "renderHeader": true,
+            "headerLinks": {
+              "links": [],
+              "groups": []
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "flagged": false
+}

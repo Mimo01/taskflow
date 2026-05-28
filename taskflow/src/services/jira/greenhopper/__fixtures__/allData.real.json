@@ -1,0 +1,5436 @@
+{
+  "rapidViewId": 163,
+  "statistics": {
+    "fieldConfigured": false,
+    "typeId": "none",
+    "id": "",
+    "name": "None"
+  },
+  "entityData": {
+    "statuses": {
+      "3": {
+        "statusUrl": "https://jira.example.invalid/images/icons/statuses/inprogress.png",
+        "statusName": "In Progress",
+        "status": {
+          "id": "3",
+          "name": "In Progress",
+          "description": "",
+          "iconUrl": "https://jira.example.invalid/images/icons/statuses/inprogress.png",
+          "statusCategory": {
+            "id": "4",
+            "key": "indeterminate",
+            "colorName": "inprogress"
+          }
+        }
+      },
+      "10102": {
+        "statusUrl": "https://jira.example.invalid/images/icons/status_generic.gif",
+        "statusName": "To Do",
+        "status": {
+          "id": "10102",
+          "name": "To Do",
+          "description": "",
+          "iconUrl": "https://jira.example.invalid/images/icons/status_generic.gif",
+          "statusCategory": {
+            "id": "2",
+            "key": "new",
+            "colorName": "default"
+          }
+        }
+      },
+      "10103": {
+        "statusUrl": "https://jira.example.invalid/images/icons/status_generic.gif",
+        "statusName": "Done",
+        "status": {
+          "id": "10103",
+          "name": "Done",
+          "description": "",
+          "iconUrl": "https://jira.example.invalid/images/icons/status_generic.gif",
+          "statusCategory": {
+            "id": "3",
+            "key": "done",
+            "colorName": "success"
+          }
+        }
+      },
+      "10200": {
+        "statusUrl": "https://jira.example.invalid/",
+        "statusName": "Backlog",
+        "status": {
+          "id": "10200",
+          "name": "Backlog",
+          "description": "",
+          "iconUrl": "https://jira.example.invalid/",
+          "statusCategory": {
+            "id": "2",
+            "key": "new",
+            "colorName": "default"
+          }
+        }
+      },
+      "10612": {
+        "statusUrl": "https://jira.example.invalid/images/icons/statuses/generic.png",
+        "statusName": "Code Review",
+        "status": {
+          "id": "10612",
+          "name": "Code Review",
+          "description": "",
+          "iconUrl": "https://jira.example.invalid/images/icons/statuses/generic.png",
+          "statusCategory": {
+            "id": "4",
+            "key": "indeterminate",
+            "colorName": "inprogress"
+          }
+        }
+      },
+      "11503": {
+        "statusUrl": "https://jira.example.invalid/images/icons/statuses/generic.png",
+        "statusName": "Ready to test",
+        "status": {
+          "id": "11503",
+          "name": "Ready to test",
+          "description": "",
+          "iconUrl": "https://jira.example.invalid/images/icons/statuses/generic.png",
+          "statusCategory": {
+            "id": "4",
+            "key": "indeterminate",
+            "colorName": "inprogress"
+          }
+        }
+      },
+      "12106": {
+        "statusUrl": "https://jira.example.invalid/images/icons/statuses/generic.png",
+        "statusName": "Fixed",
+        "status": {
+          "id": "12106",
+          "name": "Fixed",
+          "description": "",
+          "iconUrl": "https://jira.example.invalid/images/icons/statuses/generic.png",
+          "statusCategory": {
+            "id": "4",
+            "key": "indeterminate",
+            "colorName": "inprogress"
+          }
+        }
+      }
+    },
+    "priorities": {
+      "2": {
+        "priorityName": "High",
+        "priorityUrl": "https://jira.example.invalid/images/icons/priorities/high.svg"
+      },
+      "3": {
+        "priorityName": "Medium",
+        "priorityUrl": "https://jira.example.invalid/images/icons/priorities/medium.svg"
+      },
+      "4": {
+        "priorityName": "Low",
+        "priorityUrl": "https://jira.example.invalid/images/icons/priorities/low.svg"
+      },
+      "10000": {
+        "priorityName": "Critical",
+        "priorityUrl": "https://jira.example.invalid/images/icons/priorities/highest.svg"
+      },
+      "10100": {
+        "priorityName": "Must",
+        "priorityUrl": "https://jira.example.invalid/images/icons/priorities/major.svg"
+      },
+      "10101": {
+        "priorityName": "Should",
+        "priorityUrl": "https://jira.example.invalid/images/icons/priorities/highest.svg"
+      },
+      "10301": {
+        "priorityName": "Needed",
+        "priorityUrl": "https://jira.example.invalid/images/icons/priorities/medium.svg"
+      }
+    },
+    "types": {
+      "10001": {
+        "typeUrl": "https://jira.example.invalid/images/icons/issuetypes/story.svg",
+        "typeName": "Story"
+      },
+      "10101": {
+        "typeUrl": "https://jira.example.invalid/secure/viewavatar?size=xsmall&avatarId=10316&avatarType=issuetype",
+        "typeName": "Sub-task"
+      },
+      "10102": {
+        "typeUrl": "https://jira.example.invalid/secure/viewavatar?size=xsmall&avatarId=10303&avatarType=issuetype",
+        "typeName": "Bug"
+      }
+    },
+    "epics": {
+      "346064": {
+        "epicField": {
+          "id": "customfield_10103",
+          "label": "Epic",
+          "editable": false,
+          "renderer": "epiclink",
+          "epicKey": "PROJ-1",
+          "epicColor": "ghx-label-7",
+          "text": "Epic 1"
+        }
+      },
+      "346928": {
+        "epicField": {
+          "id": "customfield_10103",
+          "label": "Epic",
+          "editable": false,
+          "renderer": "epiclink",
+          "epicKey": "PROJ-2",
+          "epicColor": "ghx-label-3",
+          "text": "Epic 2"
+        }
+      },
+      "348645": {
+        "epicField": {
+          "id": "customfield_10103",
+          "label": "Epic",
+          "editable": false,
+          "renderer": "epiclink",
+          "epicKey": "PROJ-3",
+          "epicColor": "ghx-label-2",
+          "text": "Epic 3"
+        }
+      },
+      "354335": {
+        "epicField": {
+          "id": "customfield_10103",
+          "label": "Epic",
+          "editable": false,
+          "renderer": "epiclink",
+          "epicKey": "PROJ-4",
+          "epicColor": "ghx-label-10",
+          "text": "Epic 4"
+        }
+      },
+      "354351": {
+        "epicField": {
+          "id": "customfield_10103",
+          "label": "Epic",
+          "editable": false,
+          "renderer": "epiclink",
+          "epicKey": "PROJ-5",
+          "epicColor": "ghx-label-4",
+          "text": "Epic 5"
+        }
+      },
+      "354359": {
+        "epicField": {
+          "id": "customfield_10103",
+          "label": "Epic",
+          "editable": false,
+          "renderer": "epiclink",
+          "epicKey": "PROJ-6",
+          "epicColor": "ghx-label-14",
+          "text": "Epic 6"
+        }
+      },
+      "354381": {
+        "epicField": {
+          "id": "customfield_10103",
+          "label": "Epic",
+          "editable": false,
+          "renderer": "epiclink",
+          "epicKey": "PROJ-7",
+          "epicColor": "ghx-label-11",
+          "text": "Epic 7"
+        }
+      },
+      "354389": {
+        "epicField": {
+          "id": "customfield_10103",
+          "label": "Epic",
+          "editable": false,
+          "renderer": "epiclink",
+          "epicKey": "PROJ-8",
+          "epicColor": "ghx-label-13",
+          "text": "Epic 8"
+        }
+      },
+      "357258": {
+        "epicField": {
+          "id": "customfield_10103",
+          "label": "Epic",
+          "editable": false,
+          "renderer": "epiclink",
+          "epicKey": "PROJ-9",
+          "epicColor": "ghx-label-10",
+          "text": "Epic 9"
+        }
+      },
+      "357270": {
+        "epicField": {
+          "id": "customfield_10103",
+          "label": "Epic",
+          "editable": false,
+          "renderer": "epiclink",
+          "epicKey": "PROJ-10",
+          "epicColor": "ghx-label-9",
+          "text": "Epic 10"
+        }
+      },
+      "357279": {
+        "epicField": {
+          "id": "customfield_10103",
+          "label": "Epic",
+          "editable": false,
+          "renderer": "epiclink",
+          "epicKey": "PROJ-11",
+          "epicColor": "ghx-label-7",
+          "text": "Epic 11"
+        }
+      },
+      "357404": {
+        "epicField": {
+          "id": "customfield_10103",
+          "label": "Epic",
+          "editable": false,
+          "renderer": "epiclink",
+          "epicKey": "PROJ-12",
+          "epicColor": "ghx-label-9",
+          "text": "Epic 12"
+        }
+      },
+      "358559": {
+        "epicField": {
+          "id": "customfield_10103",
+          "label": "Epic",
+          "editable": false,
+          "renderer": "epiclink",
+          "epicKey": "PROJ-13",
+          "epicColor": "ghx-label-5",
+          "text": "Epic 13"
+        }
+      },
+      "358635": {
+        "epicField": {
+          "id": "customfield_10103",
+          "label": "Epic",
+          "editable": false,
+          "renderer": "epiclink",
+          "epicKey": "PROJ-14",
+          "epicColor": "ghx-label-8",
+          "text": "Epic 14"
+        }
+      },
+      "372605": {
+        "epicField": {
+          "id": "customfield_10103",
+          "label": "Epic",
+          "editable": false,
+          "renderer": "epiclink",
+          "epicKey": "PROJ-15",
+          "epicColor": "ghx-label-8",
+          "text": "Epic 15"
+        }
+      },
+      "378485": {
+        "epicField": {
+          "id": "customfield_10103",
+          "label": "Epic",
+          "editable": false,
+          "renderer": "epiclink",
+          "epicKey": "PROJ-16",
+          "epicColor": "ghx-label-7",
+          "text": "Epic 16"
+        }
+      },
+      "378496": {
+        "epicField": {
+          "id": "customfield_10103",
+          "label": "Epic",
+          "editable": false,
+          "renderer": "epiclink",
+          "epicKey": "PROJ-17",
+          "epicColor": "ghx-label-10",
+          "text": "Epic 17"
+        }
+      },
+      "390346": {
+        "epicField": {
+          "id": "customfield_10103",
+          "label": "Epic",
+          "editable": false,
+          "renderer": "epiclink",
+          "epicKey": "PROJ-18",
+          "epicColor": "ghx-label-14",
+          "text": "Epic 18"
+        }
+      },
+      "390936": {
+        "epicField": {
+          "id": "customfield_10103",
+          "label": "Epic",
+          "editable": false,
+          "renderer": "epiclink",
+          "epicKey": "PROJ-19",
+          "epicColor": "ghx-label-3",
+          "text": "Epic 19"
+        }
+      },
+      "396594": {
+        "epicField": {
+          "id": "customfield_10103",
+          "label": "Epic",
+          "editable": false,
+          "renderer": "epiclink",
+          "epicKey": "PROJ-20",
+          "epicColor": "ghx-label-3",
+          "text": "Epic 20"
+        }
+      }
+    }
+  },
+  "columnsData": {
+    "rapidViewId": 163,
+    "columns": [
+      {
+        "id": 187,
+        "name": "To Do",
+        "statusIds": [
+          "10102",
+          "10200",
+          "12002"
+        ]
+      },
+      {
+        "id": 188,
+        "name": "In Progress",
+        "statusIds": [
+          "10601",
+          "3",
+          "12106",
+          "11503",
+          "10612",
+          "10704",
+          "4",
+          "10608"
+        ]
+      },
+      {
+        "id": 189,
+        "name": "Done",
+        "statusIds": [
+          "10103",
+          "12107"
+        ]
+      }
+    ]
+  },
+  "swimlanesData": {
+    "rapidViewId": 163,
+    "swimlaneStrategy": "parentChild",
+    "parentSwimlanesData": {
+      "parentIssueIds": [
+        370567,
+        390401,
+        394511,
+        395532,
+        397706,
+        389898,
+        397715,
+        397725,
+        390298,
+        368290,
+        391852,
+        303286,
+        396593,
+        397758,
+        372028,
+        387641,
+        397241,
+        397760,
+        375746,
+        396879,
+        393674,
+        393546,
+        392148,
+        397651,
+        364639,
+        364638,
+        393700,
+        391394,
+        388333,
+        378605,
+        392558,
+        393578,
+        281208,
+        375544,
+        353016,
+        397433
+      ],
+      "inprogressCandidates": [
+        390401,
+        368290,
+        375746,
+        391394,
+        388333,
+        394511,
+        396879,
+        395532,
+        393674,
+        393546,
+        393578,
+        389898,
+        392148,
+        303286,
+        396593,
+        372028,
+        364639,
+        364638,
+        387641,
+        281208,
+        375544,
+        353016,
+        390298
+      ],
+      "doneCandidates": []
+    }
+  },
+  "issuesData": {
+    "rapidViewId": 163,
+    "activeFilters": [],
+    "issues": [
+      {
+        "id": 364638,
+        "key": "PROJ-21",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 1",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user1",
+        "assigneeName": "User 1",
+        "avatarUrl": "https://example.invalid/avatar/1.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "354389",
+        "epic": "PROJ-8",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 5,
+            "text": "5"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "11503",
+        "timeInColumn": {
+          "enteredStatus": 1779889245885,
+          "durationPreviously": 1392675906
+        },
+        "fixVersions": [
+          17904
+        ],
+        "projectId": 10134
+      },
+      {
+        "id": 364779,
+        "key": "PROJ-22",
+        "hidden": false,
+        "parentId": 364638,
+        "parentKey": "PROJ-21",
+        "typeId": "10101",
+        "summary": "Sample summary 2",
+        "priorityId": "3",
+        "done": true,
+        "assignee": "user2",
+        "assigneeName": "User 2",
+        "avatarUrl": "https://example.invalid/avatar/2.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0h"
+          }
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779027852791,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 364780,
+        "key": "PROJ-23",
+        "hidden": false,
+        "parentId": 364638,
+        "parentKey": "PROJ-21",
+        "typeId": "10101",
+        "summary": "Sample summary 3",
+        "priorityId": "3",
+        "done": true,
+        "assignee": "user3",
+        "assigneeName": "User 3",
+        "avatarUrl": "https://example.invalid/avatar/3.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0h"
+          }
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779353927909,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 364781,
+        "key": "PROJ-24",
+        "hidden": false,
+        "parentId": 364638,
+        "parentKey": "PROJ-21",
+        "typeId": "10101",
+        "summary": "Sample summary 4",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user4",
+        "assigneeName": "User 4",
+        "avatarUrl": "https://example.invalid/avatar/4.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 10800,
+            "text": "3h"
+          }
+        },
+        "statusId": "10102",
+        "timeInColumn": {
+          "enteredStatus": 1769605837293,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 393674,
+        "key": "PROJ-25",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 5",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user5",
+        "assigneeName": "User 5",
+        "avatarUrl": "https://example.invalid/avatar/5.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "346928",
+        "epic": "PROJ-2",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 13,
+            "text": "13"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779285110193,
+          "durationPreviously": 0
+        },
+        "fixVersions": [
+          17904
+        ],
+        "projectId": 10134
+      },
+      {
+        "id": 381683,
+        "key": "PROJ-26",
+        "hidden": false,
+        "parentId": 393674,
+        "parentKey": "PROJ-25",
+        "typeId": "10101",
+        "summary": "Sample summary 6",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user6",
+        "assigneeName": "User 6",
+        "avatarUrl": "https://example.invalid/avatar/6.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 2700,
+            "text": "0.75h"
+          }
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779782110531,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 381684,
+        "key": "PROJ-27",
+        "hidden": false,
+        "parentId": 393674,
+        "parentKey": "PROJ-25",
+        "typeId": "10101",
+        "summary": "Sample summary 7",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user7",
+        "assigneeName": "User 7",
+        "avatarUrl": "https://example.invalid/avatar/7.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 82800,
+            "text": "23h"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779886236812,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 381686,
+        "key": "PROJ-28",
+        "hidden": false,
+        "parentId": 393674,
+        "parentKey": "PROJ-25",
+        "typeId": "10101",
+        "summary": "Sample summary 8",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 6000,
+            "text": "1h 40m"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779884394914,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 394168,
+        "key": "PROJ-29",
+        "hidden": false,
+        "parentId": 393674,
+        "parentKey": "PROJ-25",
+        "typeId": "10101",
+        "summary": "Sample summary 9",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user9",
+        "assigneeName": "User 9",
+        "avatarUrl": "https://example.invalid/avatar/9.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 82800,
+            "text": "23h"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779883974357,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 394300,
+        "key": "PROJ-30",
+        "hidden": false,
+        "parentId": 393674,
+        "parentKey": "PROJ-25",
+        "typeId": "10101",
+        "summary": "Sample summary 10",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user10",
+        "assigneeName": "User 10",
+        "avatarUrl": "https://example.invalid/avatar/10.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0h"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1778780839659,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 395604,
+        "key": "PROJ-31",
+        "hidden": false,
+        "parentId": 393674,
+        "parentKey": "PROJ-25",
+        "typeId": "10101",
+        "summary": "Sample summary 11",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779285185875,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 396593,
+        "key": "PROJ-32",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 12",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user12",
+        "assigneeName": "User 12",
+        "avatarUrl": "https://example.invalid/avatar/12.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "396594",
+        "epic": "PROJ-20",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 3,
+            "text": "3"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "11503",
+        "timeInColumn": {
+          "enteredStatus": 1779891423928,
+          "durationPreviously": 0
+        },
+        "fixVersions": [
+          17904
+        ],
+        "projectId": 10134
+      },
+      {
+        "id": 396595,
+        "key": "PROJ-33",
+        "hidden": false,
+        "parentId": 396593,
+        "parentKey": "PROJ-32",
+        "typeId": "10101",
+        "summary": "Sample summary 13",
+        "priorityId": "3",
+        "done": true,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 28800,
+            "text": "8h"
+          }
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779891394134,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 396596,
+        "key": "PROJ-34",
+        "hidden": false,
+        "parentId": 396593,
+        "parentKey": "PROJ-32",
+        "typeId": "10101",
+        "summary": "Sample summary 14",
+        "priorityId": "3",
+        "done": true,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 10800,
+            "text": "3h"
+          }
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779891417775,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 396597,
+        "key": "PROJ-35",
+        "hidden": false,
+        "parentId": 396593,
+        "parentKey": "PROJ-32",
+        "typeId": "10101",
+        "summary": "Sample summary 15",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 14400,
+            "text": "4h"
+          }
+        },
+        "statusId": "10102",
+        "timeInColumn": {
+          "enteredStatus": 1779891457952,
+          "durationPreviously": 188731921
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 364639,
+        "key": "PROJ-36",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 16",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user16",
+        "assigneeName": "User 16",
+        "avatarUrl": "https://example.invalid/avatar/16.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "354389",
+        "epic": "PROJ-8",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 5,
+            "text": "5"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779186451623,
+          "durationPreviously": 0
+        },
+        "fixVersions": [
+          17904
+        ],
+        "projectId": 10134
+      },
+      {
+        "id": 364784,
+        "key": "PROJ-37",
+        "hidden": false,
+        "parentId": 364639,
+        "parentKey": "PROJ-36",
+        "typeId": "10101",
+        "summary": "Sample summary 17",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user17",
+        "assigneeName": "User 17",
+        "avatarUrl": "https://example.invalid/avatar/17.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 21960,
+            "text": "6.1h"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779186459572,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 364785,
+        "key": "PROJ-38",
+        "hidden": false,
+        "parentId": 364639,
+        "parentKey": "PROJ-36",
+        "typeId": "10101",
+        "summary": "Sample summary 18",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user18",
+        "assigneeName": "User 18",
+        "avatarUrl": "https://example.invalid/avatar/18.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 7200,
+            "text": "2h"
+          }
+        },
+        "statusId": "10102",
+        "timeInColumn": {
+          "enteredStatus": 1769606146880,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397763,
+        "key": "PROJ-39",
+        "hidden": false,
+        "parentId": 364639,
+        "parentKey": "PROJ-36",
+        "typeId": "10101",
+        "summary": "Sample summary 19",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user19",
+        "assigneeName": "User 19",
+        "avatarUrl": "https://example.invalid/avatar/19.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 28800,
+            "text": "8h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779958034397,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 303286,
+        "key": "PROJ-40",
+        "hidden": false,
+        "typeId": "10102",
+        "summary": "Sample summary 20",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user20",
+        "assigneeName": "User 20",
+        "avatarUrl": "https://example.invalid/avatar/20.png",
+        "hasCustomUserAvatar": true,
+        "color": "#ff0000",
+        "epicId": "358635",
+        "epic": "PROJ-14",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 2,
+            "text": "2"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "11503",
+        "timeInColumn": {
+          "enteredStatus": 1779882140921,
+          "durationPreviously": 445652068
+        },
+        "fixVersions": [
+          17904
+        ],
+        "projectId": 10134
+      },
+      {
+        "id": 304226,
+        "key": "PROJ-41",
+        "hidden": false,
+        "parentId": 303286,
+        "parentKey": "PROJ-40",
+        "typeId": "10101",
+        "summary": "Sample summary 21",
+        "priorityId": "3",
+        "done": true,
+        "assignee": "user21",
+        "assigneeName": "User 21",
+        "avatarUrl": "https://example.invalid/avatar/21.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 10800,
+            "text": "3h"
+          }
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779731773999,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 304227,
+        "key": "PROJ-42",
+        "hidden": false,
+        "parentId": 303286,
+        "parentKey": "PROJ-40",
+        "typeId": "10101",
+        "summary": "Sample summary 22",
+        "priorityId": "3",
+        "done": true,
+        "assignee": "user22",
+        "assigneeName": "User 22",
+        "avatarUrl": "https://example.invalid/avatar/22.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0h"
+          }
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779802757947,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 304228,
+        "key": "PROJ-43",
+        "hidden": false,
+        "parentId": 303286,
+        "parentKey": "PROJ-40",
+        "typeId": "10101",
+        "summary": "Sample summary 23",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 7200,
+            "text": "2h"
+          }
+        },
+        "statusId": "10102",
+        "timeInColumn": {
+          "enteredStatus": 1748433797557,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 387641,
+        "key": "PROJ-44",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 24",
+        "priorityId": "2",
+        "done": false,
+        "assignee": "user24",
+        "assigneeName": "User 24",
+        "avatarUrl": "https://example.invalid/avatar/24.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "354389",
+        "epic": "PROJ-8",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 5,
+            "text": "5"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0h"
+          }
+        },
+        "statusId": "10612",
+        "timeInColumn": {
+          "enteredStatus": 1779727462578,
+          "durationPreviously": 264449466
+        },
+        "fixVersions": [
+          17904
+        ],
+        "projectId": 10134
+      },
+      {
+        "id": 395057,
+        "key": "PROJ-45",
+        "hidden": false,
+        "parentId": 387641,
+        "parentKey": "PROJ-44",
+        "typeId": "10101",
+        "summary": "Sample summary 25",
+        "priorityId": "2",
+        "done": true,
+        "assignee": "user25",
+        "assigneeName": "User 25",
+        "avatarUrl": "https://example.invalid/avatar/25.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0h"
+          }
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779727481304,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 395058,
+        "key": "PROJ-46",
+        "hidden": false,
+        "parentId": 387641,
+        "parentKey": "PROJ-44",
+        "typeId": "10101",
+        "summary": "Sample summary 26",
+        "priorityId": "2",
+        "done": false,
+        "assignee": "user26",
+        "assigneeName": "User 26",
+        "avatarUrl": "https://example.invalid/avatar/26.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 1800,
+            "text": "0.5h"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779808178083,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 395059,
+        "key": "PROJ-47",
+        "hidden": false,
+        "parentId": 387641,
+        "parentKey": "PROJ-44",
+        "typeId": "10101",
+        "summary": "Sample summary 27",
+        "priorityId": "2",
+        "done": false,
+        "assignee": "user27",
+        "assigneeName": "User 27",
+        "avatarUrl": "https://example.invalid/avatar/27.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 7200,
+            "text": "2h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779192858568,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 393578,
+        "key": "PROJ-48",
+        "hidden": false,
+        "typeId": "10102",
+        "summary": "Sample summary 28",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user28",
+        "assigneeName": "User 28",
+        "avatarUrl": "https://example.invalid/avatar/28.png",
+        "hasCustomUserAvatar": true,
+        "color": "#ff0000",
+        "epicId": "357279",
+        "epic": "PROJ-11",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 1,
+            "text": "1"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "11503",
+        "timeInColumn": {
+          "enteredStatus": 1779884217159,
+          "durationPreviously": 4282438
+        },
+        "fixVersions": [
+          17904
+        ],
+        "projectId": 10134
+      },
+      {
+        "id": 393691,
+        "key": "PROJ-49",
+        "hidden": false,
+        "parentId": 393578,
+        "parentKey": "PROJ-48",
+        "typeId": "10101",
+        "summary": "Sample summary 29",
+        "priorityId": "3",
+        "done": true,
+        "assignee": "user29",
+        "assigneeName": "User 29",
+        "avatarUrl": "https://example.invalid/avatar/29.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 3600,
+            "text": "1h"
+          }
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779884110877,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 393692,
+        "key": "PROJ-50",
+        "hidden": false,
+        "parentId": 393578,
+        "parentKey": "PROJ-48",
+        "typeId": "10101",
+        "summary": "Sample summary 30",
+        "priorityId": "3",
+        "done": true,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 3600,
+            "text": "1h"
+          }
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779881501116,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 393693,
+        "key": "PROJ-51",
+        "hidden": false,
+        "parentId": 393578,
+        "parentKey": "PROJ-48",
+        "typeId": "10101",
+        "summary": "Sample summary 31",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user31",
+        "assigneeName": "User 31",
+        "avatarUrl": "https://example.invalid/avatar/31.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 3600,
+            "text": "1h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1778672989406,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 375544,
+        "key": "PROJ-52",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 32",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user32",
+        "assigneeName": "User 32",
+        "avatarUrl": "https://example.invalid/avatar/32.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "378485",
+        "epic": "PROJ-16",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 1,
+            "text": "1"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779957454212,
+          "durationPreviously": 5536010573
+        },
+        "fixVersions": [
+          17904
+        ],
+        "projectId": 10134
+      },
+      {
+        "id": 397282,
+        "key": "PROJ-53",
+        "hidden": false,
+        "parentId": 375544,
+        "parentKey": "PROJ-52",
+        "typeId": "10101",
+        "summary": "Sample summary 33",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779896990836,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397433,
+        "key": "PROJ-54",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 34",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user34",
+        "assigneeName": "User 34",
+        "avatarUrl": "https://example.invalid/avatar/34.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "372605",
+        "epic": "PROJ-15",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 2,
+            "text": "2"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779950288332,
+          "durationPreviously": 0
+        },
+        "fixVersions": [
+          17917
+        ],
+        "projectId": 10134
+      },
+      {
+        "id": 397460,
+        "key": "PROJ-55",
+        "hidden": false,
+        "parentId": 397433,
+        "parentKey": "PROJ-54",
+        "typeId": "10101",
+        "summary": "Sample summary 35",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user35",
+        "assigneeName": "User 35",
+        "avatarUrl": "https://example.invalid/avatar/35.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 21600,
+            "text": "6h"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779951949824,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397461,
+        "key": "PROJ-56",
+        "hidden": false,
+        "parentId": 397433,
+        "parentKey": "PROJ-54",
+        "typeId": "10101",
+        "summary": "Sample summary 36",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 7200,
+            "text": "2h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779951937897,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397462,
+        "key": "PROJ-57",
+        "hidden": false,
+        "parentId": 397433,
+        "parentKey": "PROJ-54",
+        "typeId": "10101",
+        "summary": "Sample summary 37",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 7200,
+            "text": "2h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779951939086,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 396381,
+        "key": "PROJ-58",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 38",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#33db23",
+        "epicId": "354381",
+        "epic": "PROJ-7",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 1,
+            "text": "1"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10102",
+        "timeInColumn": {
+          "enteredStatus": 1779957483439,
+          "durationPreviously": 265550659
+        },
+        "fixVersions": [
+          17917
+        ],
+        "projectId": 10134
+      },
+      {
+        "id": 396879,
+        "key": "PROJ-59",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 39",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user39",
+        "assigneeName": "User 39",
+        "avatarUrl": "https://example.invalid/avatar/39.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "358559",
+        "epic": "PROJ-13",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 13,
+            "text": "13"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779786356280,
+          "durationPreviously": 0
+        },
+        "fixVersions": [
+          17917
+        ],
+        "projectId": 10134
+      },
+      {
+        "id": 397154,
+        "key": "PROJ-60",
+        "hidden": false,
+        "parentId": 396879,
+        "parentKey": "PROJ-59",
+        "typeId": "10101",
+        "summary": "Sample summary 40",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user40",
+        "assigneeName": "User 40",
+        "avatarUrl": "https://example.invalid/avatar/40.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 115200,
+            "text": "32h"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779865811220,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397155,
+        "key": "PROJ-61",
+        "hidden": false,
+        "parentId": 396879,
+        "parentKey": "PROJ-59",
+        "typeId": "10101",
+        "summary": "Sample summary 41",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 14400,
+            "text": "4h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779865770688,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397156,
+        "key": "PROJ-62",
+        "hidden": false,
+        "parentId": 396879,
+        "parentKey": "PROJ-59",
+        "typeId": "10101",
+        "summary": "Sample summary 42",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 75600,
+            "text": "21h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779865772365,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 372028,
+        "key": "PROJ-63",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 43",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user43",
+        "assigneeName": "User 43",
+        "avatarUrl": "https://example.invalid/avatar/43.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "346064",
+        "epic": "PROJ-1",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 2,
+            "text": "2"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "11503",
+        "timeInColumn": {
+          "enteredStatus": 1779870564439,
+          "durationPreviously": 669355174
+        },
+        "fixVersions": [
+          17917
+        ],
+        "projectId": 10134
+      },
+      {
+        "id": 395253,
+        "key": "PROJ-64",
+        "hidden": false,
+        "parentId": 372028,
+        "parentKey": "PROJ-63",
+        "typeId": "10101",
+        "summary": "Sample summary 44",
+        "priorityId": "3",
+        "done": true,
+        "assignee": "user44",
+        "assigneeName": "User 44",
+        "avatarUrl": "https://example.invalid/avatar/44.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 5112,
+            "text": "1.42h"
+          }
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779870580955,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 395254,
+        "key": "PROJ-65",
+        "hidden": false,
+        "parentId": 372028,
+        "parentKey": "PROJ-63",
+        "typeId": "10101",
+        "summary": "Sample summary 45",
+        "priorityId": "3",
+        "done": true,
+        "assignee": "user45",
+        "assigneeName": "User 45",
+        "avatarUrl": "https://example.invalid/avatar/45.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 7200,
+            "text": "2h"
+          }
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779866869201,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 395255,
+        "key": "PROJ-66",
+        "hidden": false,
+        "parentId": 372028,
+        "parentKey": "PROJ-63",
+        "typeId": "10101",
+        "summary": "Sample summary 46",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user46",
+        "assigneeName": "User 46",
+        "avatarUrl": "https://example.invalid/avatar/46.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 7200,
+            "text": "2h"
+          }
+        },
+        "statusId": "10102",
+        "timeInColumn": {
+          "enteredStatus": 1779883965175,
+          "durationPreviously": 613089594
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 281208,
+        "key": "PROJ-67",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 47",
+        "priorityId": "10301",
+        "done": true,
+        "assignee": "user47",
+        "assigneeName": "User 47",
+        "avatarUrl": "https://example.invalid/avatar/47.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "358559",
+        "epic": "PROJ-13",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 1,
+            "text": "1"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779969855508,
+          "durationPreviously": 0
+        },
+        "fixVersions": [
+          17917
+        ],
+        "projectId": 10134
+      },
+      {
+        "id": 281811,
+        "key": "PROJ-68",
+        "hidden": false,
+        "parentId": 281208,
+        "parentKey": "PROJ-67",
+        "typeId": "10101",
+        "summary": "Sample summary 48",
+        "priorityId": "10301",
+        "done": true,
+        "assignee": "user48",
+        "assigneeName": "User 48",
+        "avatarUrl": "https://example.invalid/avatar/48.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0h"
+          }
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779462250952,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 281812,
+        "key": "PROJ-69",
+        "hidden": false,
+        "parentId": 281208,
+        "parentKey": "PROJ-67",
+        "typeId": "10101",
+        "summary": "Sample summary 49",
+        "priorityId": "10301",
+        "done": true,
+        "assignee": "user49",
+        "assigneeName": "User 49",
+        "avatarUrl": "https://example.invalid/avatar/49.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0h"
+          }
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779725483083,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 281813,
+        "key": "PROJ-70",
+        "hidden": false,
+        "parentId": 281208,
+        "parentKey": "PROJ-67",
+        "typeId": "10101",
+        "summary": "Sample summary 50",
+        "priorityId": "10301",
+        "done": true,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 7200,
+            "text": "2h"
+          }
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779969837699,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 388333,
+        "key": "PROJ-71",
+        "hidden": false,
+        "typeId": "10102",
+        "summary": "Sample summary 51",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user51",
+        "assigneeName": "User 51",
+        "avatarUrl": "https://example.invalid/avatar/51.png",
+        "hasCustomUserAvatar": true,
+        "color": "#ff0000",
+        "epicId": "357279",
+        "epic": "PROJ-11",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 3,
+            "text": "3"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "12106",
+        "timeInColumn": {
+          "enteredStatus": 1779377849904,
+          "durationPreviously": 11061898
+        },
+        "fixVersions": [
+          17917
+        ],
+        "projectId": 10134
+      },
+      {
+        "id": 395580,
+        "key": "PROJ-72",
+        "hidden": false,
+        "parentId": 388333,
+        "parentKey": "PROJ-71",
+        "typeId": "10101",
+        "summary": "Sample summary 52",
+        "priorityId": "3",
+        "done": true,
+        "assignee": "user52",
+        "assigneeName": "User 52",
+        "avatarUrl": "https://example.invalid/avatar/52.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 8100,
+            "text": "2.25h"
+          }
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779377871881,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 395581,
+        "key": "PROJ-73",
+        "hidden": false,
+        "parentId": 388333,
+        "parentKey": "PROJ-71",
+        "typeId": "10101",
+        "summary": "Sample summary 53",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user53",
+        "assigneeName": "User 53",
+        "avatarUrl": "https://example.invalid/avatar/53.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 10800,
+            "text": "3h"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779972685203,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 395582,
+        "key": "PROJ-74",
+        "hidden": false,
+        "parentId": 388333,
+        "parentKey": "PROJ-71",
+        "typeId": "10101",
+        "summary": "Sample summary 54",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 14400,
+            "text": "4h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779281212052,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 378605,
+        "key": "PROJ-75",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 55",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user55",
+        "assigneeName": "User 55",
+        "avatarUrl": "https://example.invalid/avatar/55.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "378496",
+        "epic": "PROJ-17",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 13,
+            "text": "13"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1774445641501,
+          "durationPreviously": 0
+        },
+        "fixVersions": [
+          17903
+        ],
+        "projectId": 10134
+      },
+      {
+        "id": 378503,
+        "key": "PROJ-76",
+        "hidden": false,
+        "parentId": 378605,
+        "parentKey": "PROJ-75",
+        "typeId": "10101",
+        "summary": "Sample summary 56",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 144000,
+            "text": "40h"
+          }
+        },
+        "statusId": "10102",
+        "timeInColumn": {
+          "enteredStatus": 1774446204391,
+          "durationPreviously": 997068
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 375746,
+        "key": "PROJ-77",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 57",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user57",
+        "assigneeName": "User 57",
+        "avatarUrl": "https://example.invalid/avatar/57.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "378496",
+        "epic": "PROJ-17",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 13,
+            "text": "13"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1778850307195,
+          "durationPreviously": 0
+        },
+        "fixVersions": [
+          17903
+        ],
+        "projectId": 10134
+      },
+      {
+        "id": 376439,
+        "key": "PROJ-78",
+        "hidden": false,
+        "parentId": 375746,
+        "parentKey": "PROJ-77",
+        "typeId": "10101",
+        "summary": "Sample summary 58",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 8100,
+            "text": "2.25h"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779347286805,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 376441,
+        "key": "PROJ-79",
+        "hidden": false,
+        "parentId": 375746,
+        "parentKey": "PROJ-77",
+        "typeId": "10101",
+        "summary": "Sample summary 59",
+        "priorityId": "3",
+        "done": true,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1773738845450,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 376458,
+        "key": "PROJ-80",
+        "hidden": false,
+        "parentId": 375746,
+        "parentKey": "PROJ-77",
+        "typeId": "10101",
+        "summary": "Sample summary 60",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user60",
+        "assigneeName": "User 60",
+        "avatarUrl": "https://example.invalid/avatar/60.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 31500,
+            "text": "8.75h"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1778850326248,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 378509,
+        "key": "PROJ-81",
+        "hidden": false,
+        "parentId": 375746,
+        "parentKey": "PROJ-77",
+        "typeId": "10101",
+        "summary": "Sample summary 61",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 18000,
+            "text": "5h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1774445534249,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 390298,
+        "key": "PROJ-82",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 62",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user62",
+        "assigneeName": "User 62",
+        "avatarUrl": "https://example.invalid/avatar/62.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "390346",
+        "epic": "PROJ-18",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 5,
+            "text": "5"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1778073987156,
+          "durationPreviously": 0
+        },
+        "fixVersions": [
+          17903
+        ],
+        "projectId": 10134
+      },
+      {
+        "id": 390794,
+        "key": "PROJ-83",
+        "hidden": false,
+        "parentId": 390298,
+        "parentKey": "PROJ-82",
+        "typeId": "10101",
+        "summary": "Sample summary 63",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user63",
+        "assigneeName": "User 63",
+        "avatarUrl": "https://example.invalid/avatar/63.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 48000,
+            "text": "13h 20m"
+          }
+        },
+        "statusId": "11503",
+        "timeInColumn": {
+          "enteredStatus": 1777989454088,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 390795,
+        "key": "PROJ-84",
+        "hidden": false,
+        "parentId": 390298,
+        "parentKey": "PROJ-82",
+        "typeId": "10101",
+        "summary": "Sample summary 64",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 7200,
+            "text": "2h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1777553106260,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 390796,
+        "key": "PROJ-85",
+        "hidden": false,
+        "parentId": 390298,
+        "parentKey": "PROJ-82",
+        "typeId": "10101",
+        "summary": "Sample summary 65",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 28800,
+            "text": "8h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1777553107706,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 390401,
+        "key": "PROJ-86",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 66",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user66",
+        "assigneeName": "User 66",
+        "avatarUrl": "https://example.invalid/avatar/66.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "390346",
+        "epic": "PROJ-18",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 13,
+            "text": "13"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1777883548119,
+          "durationPreviously": 0
+        },
+        "fixVersions": [
+          17903
+        ],
+        "projectId": 10134
+      },
+      {
+        "id": 391434,
+        "key": "PROJ-87",
+        "hidden": false,
+        "parentId": 390401,
+        "parentKey": "PROJ-86",
+        "typeId": "10101",
+        "summary": "Sample summary 67",
+        "priorityId": "3",
+        "done": true,
+        "assignee": "user67",
+        "assigneeName": "User 67",
+        "avatarUrl": "https://example.invalid/avatar/67.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 52200,
+            "text": "14.5h"
+          }
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1778568639074,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 391435,
+        "key": "PROJ-88",
+        "hidden": false,
+        "parentId": 390401,
+        "parentKey": "PROJ-86",
+        "typeId": "10101",
+        "summary": "Sample summary 68",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user68",
+        "assigneeName": "User 68",
+        "avatarUrl": "https://example.invalid/avatar/68.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 8100,
+            "text": "2.25h"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1778686453271,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 391437,
+        "key": "PROJ-89",
+        "hidden": false,
+        "parentId": 390401,
+        "parentKey": "PROJ-86",
+        "typeId": "10101",
+        "summary": "Sample summary 69",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 57600,
+            "text": "16h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1777883563198,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 368290,
+        "key": "PROJ-90",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 70",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user70",
+        "assigneeName": "User 70",
+        "avatarUrl": "https://example.invalid/avatar/70.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "354389",
+        "epic": "PROJ-8",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 8,
+            "text": "8"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779285532332,
+          "durationPreviously": 0
+        },
+        "fixVersions": [
+          17903
+        ],
+        "projectId": 10134
+      },
+      {
+        "id": 368538,
+        "key": "PROJ-91",
+        "hidden": false,
+        "parentId": 368290,
+        "parentKey": "PROJ-90",
+        "typeId": "10101",
+        "summary": "Sample summary 71",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user71",
+        "assigneeName": "User 71",
+        "avatarUrl": "https://example.invalid/avatar/71.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 54000,
+            "text": "15h"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779285523801,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 368539,
+        "key": "PROJ-92",
+        "hidden": false,
+        "parentId": 368290,
+        "parentKey": "PROJ-90",
+        "typeId": "10101",
+        "summary": "Sample summary 72",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 14400,
+            "text": "4h"
+          }
+        },
+        "statusId": "10102",
+        "timeInColumn": {
+          "enteredStatus": 1770817643414,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 393660,
+        "key": "PROJ-93",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 73",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user73",
+        "assigneeName": "User 73",
+        "avatarUrl": "https://example.invalid/avatar/73.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "346928",
+        "epic": "PROJ-2",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 8,
+            "text": "8"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1778668944327,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 392558,
+        "key": "PROJ-94",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 74",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user74",
+        "assigneeName": "User 74",
+        "avatarUrl": "https://example.invalid/avatar/74.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "346928",
+        "epic": "PROJ-2",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 5,
+            "text": "5"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10102",
+        "timeInColumn": {
+          "enteredStatus": 1779438653165,
+          "durationPreviously": 1276030576
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 396209,
+        "key": "PROJ-95",
+        "hidden": false,
+        "parentId": 392558,
+        "parentKey": "PROJ-94",
+        "typeId": "10101",
+        "summary": "Sample summary 75",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 54000,
+            "text": "15h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779438643081,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 396210,
+        "key": "PROJ-96",
+        "hidden": false,
+        "parentId": 392558,
+        "parentKey": "PROJ-94",
+        "typeId": "10101",
+        "summary": "Sample summary 76",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 7200,
+            "text": "2h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779438644718,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 396211,
+        "key": "PROJ-97",
+        "hidden": false,
+        "parentId": 392558,
+        "parentKey": "PROJ-94",
+        "typeId": "10101",
+        "summary": "Sample summary 77",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 28800,
+            "text": "8h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779438646315,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 390783,
+        "key": "PROJ-98",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 78",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user78",
+        "assigneeName": "User 78",
+        "avatarUrl": "https://example.invalid/avatar/78.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "357404",
+        "epic": "PROJ-12",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 5,
+            "text": "5"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 19500,
+            "text": "5h 25m"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1778858522271,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 391394,
+        "key": "PROJ-99",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 79",
+        "priorityId": "2",
+        "done": false,
+        "assignee": "user79",
+        "assigneeName": "User 79",
+        "avatarUrl": "https://example.invalid/avatar/79.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "357279",
+        "epic": "PROJ-11",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 2,
+            "text": "2"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10612",
+        "timeInColumn": {
+          "enteredStatus": 1779863871893,
+          "durationPreviously": 79135995
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 395570,
+        "key": "PROJ-100",
+        "hidden": false,
+        "parentId": 391394,
+        "parentKey": "PROJ-99",
+        "typeId": "10101",
+        "summary": "Sample summary 80",
+        "priorityId": "2",
+        "done": true,
+        "assignee": "user80",
+        "assigneeName": "User 80",
+        "avatarUrl": "https://example.invalid/avatar/80.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0h"
+          }
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779863863717,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 395571,
+        "key": "PROJ-101",
+        "hidden": false,
+        "parentId": 391394,
+        "parentKey": "PROJ-99",
+        "typeId": "10101",
+        "summary": "Sample summary 81",
+        "priorityId": "2",
+        "done": false,
+        "assignee": "user81",
+        "assigneeName": "User 81",
+        "avatarUrl": "https://example.invalid/avatar/81.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 7200,
+            "text": "2h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779280315957,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 395572,
+        "key": "PROJ-102",
+        "hidden": false,
+        "parentId": 391394,
+        "parentKey": "PROJ-99",
+        "typeId": "10101",
+        "summary": "Sample summary 82",
+        "priorityId": "2",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 18000,
+            "text": "5h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779280317593,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 394511,
+        "key": "PROJ-103",
+        "hidden": false,
+        "typeId": "10102",
+        "summary": "Sample summary 83",
+        "priorityId": "2",
+        "done": false,
+        "assignee": "user83",
+        "assigneeName": "User 83",
+        "avatarUrl": "https://example.invalid/avatar/83.png",
+        "hasCustomUserAvatar": true,
+        "color": "#ff0000",
+        "epicId": "357279",
+        "epic": "PROJ-11",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 2,
+            "text": "2"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "12106",
+        "timeInColumn": {
+          "enteredStatus": 1779887399060,
+          "durationPreviously": 443728462
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 395564,
+        "key": "PROJ-104",
+        "hidden": false,
+        "parentId": 394511,
+        "parentKey": "PROJ-103",
+        "typeId": "10101",
+        "summary": "Sample summary 84",
+        "priorityId": "2",
+        "done": false,
+        "assignee": "user84",
+        "assigneeName": "User 84",
+        "avatarUrl": "https://example.invalid/avatar/84.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 312,
+            "text": "5.2m"
+          }
+        },
+        "statusId": "10612",
+        "timeInColumn": {
+          "enteredStatus": 1779953659071,
+          "durationPreviously": 262281335
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 395565,
+        "key": "PROJ-105",
+        "hidden": false,
+        "parentId": 394511,
+        "parentKey": "PROJ-103",
+        "typeId": "10101",
+        "summary": "Sample summary 85",
+        "priorityId": "2",
+        "done": false,
+        "assignee": "user85",
+        "assigneeName": "User 85",
+        "avatarUrl": "https://example.invalid/avatar/85.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 7200,
+            "text": "2h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779279609874,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 395566,
+        "key": "PROJ-106",
+        "hidden": false,
+        "parentId": 394511,
+        "parentKey": "PROJ-103",
+        "typeId": "10101",
+        "summary": "Sample summary 86",
+        "priorityId": "2",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 7200,
+            "text": "2h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779279611482,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 389898,
+        "key": "PROJ-107",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 87",
+        "priorityId": "10000",
+        "done": false,
+        "assignee": "user87",
+        "assigneeName": "User 87",
+        "avatarUrl": "https://example.invalid/avatar/87.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "357279",
+        "epic": "PROJ-11",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 2,
+            "text": "2"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10612",
+        "timeInColumn": {
+          "enteredStatus": 1779452881333,
+          "durationPreviously": 80490668
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 395560,
+        "key": "PROJ-108",
+        "hidden": false,
+        "parentId": 389898,
+        "parentKey": "PROJ-107",
+        "typeId": "10101",
+        "summary": "Sample summary 88",
+        "priorityId": "10000",
+        "done": true,
+        "assignee": "user88",
+        "assigneeName": "User 88",
+        "avatarUrl": "https://example.invalid/avatar/88.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 4392,
+            "text": "1.22h"
+          }
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779891856395,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 395561,
+        "key": "PROJ-109",
+        "hidden": false,
+        "parentId": 389898,
+        "parentKey": "PROJ-107",
+        "typeId": "10101",
+        "summary": "Sample summary 89",
+        "priorityId": "10000",
+        "done": false,
+        "assignee": "user89",
+        "assigneeName": "User 89",
+        "avatarUrl": "https://example.invalid/avatar/89.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 7200,
+            "text": "2h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779278937262,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 395562,
+        "key": "PROJ-110",
+        "hidden": false,
+        "parentId": 389898,
+        "parentKey": "PROJ-107",
+        "typeId": "10101",
+        "summary": "Sample summary 90",
+        "priorityId": "10000",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 7200,
+            "text": "2h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779278938839,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 393700,
+        "key": "PROJ-111",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 91",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user91",
+        "assigneeName": "User 91",
+        "avatarUrl": "https://example.invalid/avatar/91.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "358559",
+        "epic": "PROJ-13",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 2,
+            "text": "2"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1778670660964,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 393688,
+        "key": "PROJ-112",
+        "hidden": false,
+        "parentId": 393700,
+        "parentKey": "PROJ-111",
+        "typeId": "10101",
+        "summary": "Sample summary 92",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 21600,
+            "text": "6h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1778672673107,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 393689,
+        "key": "PROJ-113",
+        "hidden": false,
+        "parentId": 393700,
+        "parentKey": "PROJ-111",
+        "typeId": "10101",
+        "summary": "Sample summary 93",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 7200,
+            "text": "2h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1778672674837,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 393690,
+        "key": "PROJ-114",
+        "hidden": false,
+        "parentId": 393700,
+        "parentKey": "PROJ-111",
+        "typeId": "10101",
+        "summary": "Sample summary 94",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 7200,
+            "text": "2h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1778672676505,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397482,
+        "key": "PROJ-115",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 95",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user95",
+        "assigneeName": "User 95",
+        "avatarUrl": "https://example.invalid/avatar/95.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "372605",
+        "epic": "PROJ-15",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 8,
+            "text": "8"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779952656710,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 388251,
+        "key": "PROJ-116",
+        "hidden": false,
+        "typeId": "10102",
+        "summary": "Sample summary 96",
+        "priorityId": "10000",
+        "done": false,
+        "assignee": "user96",
+        "assigneeName": "User 96",
+        "avatarUrl": "https://example.invalid/avatar/96.png",
+        "hasCustomUserAvatar": true,
+        "color": "#ff0000",
+        "epicId": "348645",
+        "epic": "PROJ-3",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1777369873174,
+          "durationPreviously": 358765762
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 373841,
+        "key": "PROJ-117",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 97",
+        "priorityId": "2",
+        "done": false,
+        "assignee": "user97",
+        "assigneeName": "User 97",
+        "avatarUrl": "https://example.invalid/avatar/97.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "354359",
+        "epic": "PROJ-6",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 1,
+            "text": "1"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0h"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1773238524022,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 353016,
+        "key": "PROJ-118",
+        "hidden": false,
+        "typeId": "10102",
+        "summary": "Sample summary 98",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user98",
+        "assigneeName": "User 98",
+        "avatarUrl": "https://example.invalid/avatar/98.png",
+        "hasCustomUserAvatar": true,
+        "color": "#ff0000",
+        "epicId": "357279",
+        "epic": "PROJ-11",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1765182919636,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 353017,
+        "key": "PROJ-119",
+        "hidden": false,
+        "parentId": 353016,
+        "parentKey": "PROJ-118",
+        "typeId": "10101",
+        "summary": "Sample summary 99",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user99",
+        "assigneeName": "User 99",
+        "avatarUrl": "https://example.invalid/avatar/99.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0h"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1764333246899,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 370567,
+        "key": "PROJ-120",
+        "hidden": false,
+        "typeId": "10102",
+        "summary": "Sample summary 100",
+        "priorityId": "10101",
+        "done": false,
+        "assignee": "user100",
+        "assigneeName": "User 100",
+        "avatarUrl": "https://example.invalid/avatar/100.png",
+        "hasCustomUserAvatar": true,
+        "color": "#ff0000",
+        "epicId": "357279",
+        "epic": "PROJ-11",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10102",
+        "timeInColumn": {
+          "enteredStatus": 1771508699837,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 370568,
+        "key": "PROJ-121",
+        "hidden": false,
+        "parentId": 370567,
+        "parentKey": "PROJ-120",
+        "typeId": "10101",
+        "summary": "Sample summary 101",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10102",
+        "timeInColumn": {
+          "enteredStatus": 1771508709157,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 276040,
+        "key": "PROJ-122",
+        "hidden": false,
+        "typeId": "10102",
+        "summary": "Sample summary 102",
+        "priorityId": "10100",
+        "done": false,
+        "assignee": "user102",
+        "assigneeName": "User 102",
+        "avatarUrl": "https://example.invalid/avatar/102.png",
+        "hasCustomUserAvatar": true,
+        "color": "#ff0000",
+        "epicId": "357279",
+        "epic": "PROJ-11",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1777388606391,
+          "durationPreviously": 4948519491
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397204,
+        "key": "PROJ-123",
+        "hidden": false,
+        "typeId": "10102",
+        "summary": "Sample summary 103",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user103",
+        "assigneeName": "User 103",
+        "avatarUrl": "https://example.invalid/avatar/103.png",
+        "hasCustomUserAvatar": true,
+        "color": "#ff0000",
+        "epicId": "357279",
+        "epic": "PROJ-11",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779870905208,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 328045,
+        "key": "PROJ-124",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 104",
+        "priorityId": "2",
+        "done": false,
+        "assignee": "user104",
+        "assigneeName": "User 104",
+        "avatarUrl": "https://example.invalid/avatar/104.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "357279",
+        "epic": "PROJ-11",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1772018633022,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 354228,
+        "key": "PROJ-125",
+        "hidden": false,
+        "typeId": "10102",
+        "summary": "Sample summary 105",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user105",
+        "assigneeName": "User 105",
+        "avatarUrl": "https://example.invalid/avatar/105.png",
+        "hasCustomUserAvatar": true,
+        "color": "#ff0000",
+        "epicId": "357279",
+        "epic": "PROJ-11",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10102",
+        "timeInColumn": {
+          "enteredStatus": 1764684699617,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397241,
+        "key": "PROJ-126",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 106",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user106",
+        "assigneeName": "User 106",
+        "avatarUrl": "https://example.invalid/avatar/106.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "357270",
+        "epic": "PROJ-10",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779881899933,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397251,
+        "key": "PROJ-127",
+        "hidden": false,
+        "parentId": 397241,
+        "parentKey": "PROJ-126",
+        "typeId": "10101",
+        "summary": "Sample summary 107",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779883309973,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 347305,
+        "key": "PROJ-128",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 108",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user108",
+        "assigneeName": "User 108",
+        "avatarUrl": "https://example.invalid/avatar/108.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "358635",
+        "epic": "PROJ-14",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10102",
+        "timeInColumn": {
+          "enteredStatus": 1762348751130,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 390287,
+        "key": "PROJ-129",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 109",
+        "priorityId": "2",
+        "done": false,
+        "assignee": "user109",
+        "assigneeName": "User 109",
+        "avatarUrl": "https://example.invalid/avatar/109.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "357270",
+        "epic": "PROJ-10",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1777465987764,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 390989,
+        "key": "PROJ-130",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 110",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user110",
+        "assigneeName": "User 110",
+        "avatarUrl": "https://example.invalid/avatar/110.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "390936",
+        "epic": "PROJ-19",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1777550039211,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 391701,
+        "key": "PROJ-131",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 111",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user111",
+        "assigneeName": "User 111",
+        "avatarUrl": "https://example.invalid/avatar/111.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "354351",
+        "epic": "PROJ-5",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0h"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1778757518190,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 391798,
+        "key": "PROJ-132",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 112",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user112",
+        "assigneeName": "User 112",
+        "avatarUrl": "https://example.invalid/avatar/112.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "357270",
+        "epic": "PROJ-10",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10102",
+        "timeInColumn": {
+          "enteredStatus": 1778531974774,
+          "durationPreviously": 546663173
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 379767,
+        "key": "PROJ-133",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 113",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user113",
+        "assigneeName": "User 113",
+        "avatarUrl": "https://example.invalid/avatar/113.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "354381",
+        "epic": "PROJ-7",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1774942355267,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 383907,
+        "key": "PROJ-134",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 114",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user114",
+        "assigneeName": "User 114",
+        "avatarUrl": "https://example.invalid/avatar/114.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "346928",
+        "epic": "PROJ-2",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1776341612040,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 391852,
+        "key": "PROJ-135",
+        "hidden": false,
+        "typeId": "10102",
+        "summary": "Sample summary 115",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#ff0000",
+        "epicId": "357279",
+        "epic": "PROJ-11",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 1,
+            "text": "1"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1777992590651,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 393811,
+        "key": "PROJ-136",
+        "hidden": false,
+        "parentId": 391852,
+        "parentKey": "PROJ-135",
+        "typeId": "10101",
+        "summary": "Sample summary 116",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 10800,
+            "text": "3h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1778674244257,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 393812,
+        "key": "PROJ-137",
+        "hidden": false,
+        "parentId": 391852,
+        "parentKey": "PROJ-135",
+        "typeId": "10101",
+        "summary": "Sample summary 117",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 3600,
+            "text": "1h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1778674245898,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 393813,
+        "key": "PROJ-138",
+        "hidden": false,
+        "parentId": 391852,
+        "parentKey": "PROJ-135",
+        "typeId": "10101",
+        "summary": "Sample summary 118",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 3600,
+            "text": "1h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1778674247568,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397706,
+        "key": "PROJ-139",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 119",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#33db23",
+        "epicId": "354335",
+        "epic": "PROJ-4",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10102",
+        "timeInColumn": {
+          "enteredStatus": 1779956070332,
+          "durationPreviously": 226547
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397707,
+        "key": "PROJ-140",
+        "hidden": false,
+        "parentId": 397706,
+        "parentKey": "PROJ-139",
+        "typeId": "10101",
+        "summary": "Sample summary 120",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 39600,
+            "text": "11h"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779974225751,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397708,
+        "key": "PROJ-141",
+        "hidden": false,
+        "parentId": 397706,
+        "parentKey": "PROJ-139",
+        "typeId": "10101",
+        "summary": "Sample summary 121",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 28800,
+            "text": "8h"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779974231241,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397709,
+        "key": "PROJ-142",
+        "hidden": false,
+        "parentId": 397706,
+        "parentKey": "PROJ-139",
+        "typeId": "10101",
+        "summary": "Sample summary 122",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 90000,
+            "text": "25h"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779974228617,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397710,
+        "key": "PROJ-143",
+        "hidden": false,
+        "parentId": 397706,
+        "parentKey": "PROJ-139",
+        "typeId": "10101",
+        "summary": "Sample summary 123",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 108000,
+            "text": "30h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779956171849,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397711,
+        "key": "PROJ-144",
+        "hidden": false,
+        "parentId": 397706,
+        "parentKey": "PROJ-139",
+        "typeId": "10101",
+        "summary": "Sample summary 124",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 43200,
+            "text": "12h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779956172878,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397712,
+        "key": "PROJ-145",
+        "hidden": false,
+        "parentId": 397706,
+        "parentKey": "PROJ-139",
+        "typeId": "10101",
+        "summary": "Sample summary 125",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 144000,
+            "text": "40h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779956173967,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397713,
+        "key": "PROJ-146",
+        "hidden": false,
+        "parentId": 397706,
+        "parentKey": "PROJ-139",
+        "typeId": "10101",
+        "summary": "Sample summary 126",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 36000,
+            "text": "10h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779956174990,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397725,
+        "key": "PROJ-147",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 127",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#33db23",
+        "epicId": "357258",
+        "epic": "PROJ-9",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 21,
+            "text": "21"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779956737352,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397728,
+        "key": "PROJ-148",
+        "hidden": false,
+        "parentId": 397725,
+        "parentKey": "PROJ-147",
+        "typeId": "10101",
+        "summary": "Sample summary 128",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 108000,
+            "text": "30h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779957046537,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397729,
+        "key": "PROJ-149",
+        "hidden": false,
+        "parentId": 397725,
+        "parentKey": "PROJ-147",
+        "typeId": "10101",
+        "summary": "Sample summary 129",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 72000,
+            "text": "20h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779957047725,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397730,
+        "key": "PROJ-150",
+        "hidden": false,
+        "parentId": 397725,
+        "parentKey": "PROJ-147",
+        "typeId": "10101",
+        "summary": "Sample summary 130",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 108000,
+            "text": "30h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779957048906,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397731,
+        "key": "PROJ-151",
+        "hidden": false,
+        "parentId": 397725,
+        "parentKey": "PROJ-147",
+        "typeId": "10101",
+        "summary": "Sample summary 131",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 72000,
+            "text": "20h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779957050013,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397732,
+        "key": "PROJ-152",
+        "hidden": false,
+        "parentId": 397725,
+        "parentKey": "PROJ-147",
+        "typeId": "10101",
+        "summary": "Sample summary 132",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 36000,
+            "text": "10h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779957051161,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397733,
+        "key": "PROJ-153",
+        "hidden": false,
+        "parentId": 397725,
+        "parentKey": "PROJ-147",
+        "typeId": "10101",
+        "summary": "Sample summary 133",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 18000,
+            "text": "5h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779957052256,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397734,
+        "key": "PROJ-154",
+        "hidden": false,
+        "parentId": 397725,
+        "parentKey": "PROJ-147",
+        "typeId": "10101",
+        "summary": "Sample summary 134",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 36000,
+            "text": "10h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779957053376,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397735,
+        "key": "PROJ-155",
+        "hidden": false,
+        "parentId": 397725,
+        "parentKey": "PROJ-147",
+        "typeId": "10101",
+        "summary": "Sample summary 135",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 14400,
+            "text": "4h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779957054473,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397715,
+        "key": "PROJ-156",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 136",
+        "priorityId": "4",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#33db23",
+        "epicId": "354351",
+        "epic": "PROJ-5",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 0,
+            "text": "0"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779956429561,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397720,
+        "key": "PROJ-157",
+        "hidden": false,
+        "parentId": 397715,
+        "parentKey": "PROJ-156",
+        "typeId": "10101",
+        "summary": "Sample summary 137",
+        "priorityId": "4",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 21600,
+            "text": "6h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779956619109,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397721,
+        "key": "PROJ-158",
+        "hidden": false,
+        "parentId": 397715,
+        "parentKey": "PROJ-156",
+        "typeId": "10101",
+        "summary": "Sample summary 138",
+        "priorityId": "4",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 72000,
+            "text": "20h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779956620247,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397722,
+        "key": "PROJ-159",
+        "hidden": false,
+        "parentId": 397715,
+        "parentKey": "PROJ-156",
+        "typeId": "10101",
+        "summary": "Sample summary 139",
+        "priorityId": "4",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 54000,
+            "text": "15h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779956621316,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397723,
+        "key": "PROJ-160",
+        "hidden": false,
+        "parentId": 397715,
+        "parentKey": "PROJ-156",
+        "typeId": "10101",
+        "summary": "Sample summary 140",
+        "priorityId": "4",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 54000,
+            "text": "15h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779956622405,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397651,
+        "key": "PROJ-161",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 141",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#33db23",
+        "epicId": "354389",
+        "epic": "PROJ-8",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 8,
+            "text": "8"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10102",
+        "timeInColumn": {
+          "enteredStatus": 1779957800519,
+          "durationPreviously": 579270
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397767,
+        "key": "PROJ-162",
+        "hidden": false,
+        "parentId": 397651,
+        "parentKey": "PROJ-161",
+        "typeId": "10101",
+        "summary": "Sample summary 142",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 54000,
+            "text": "15h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779958723539,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397768,
+        "key": "PROJ-163",
+        "hidden": false,
+        "parentId": 397651,
+        "parentKey": "PROJ-161",
+        "typeId": "10101",
+        "summary": "Sample summary 143",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 90000,
+            "text": "25h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779958724760,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397758,
+        "key": "PROJ-164",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 144",
+        "priorityId": "10100",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#33db23",
+        "epicId": "357258",
+        "epic": "PROJ-9",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 5,
+            "text": "5"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779957769320,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397759,
+        "key": "PROJ-165",
+        "hidden": false,
+        "parentId": 397758,
+        "parentKey": "PROJ-164",
+        "typeId": "10101",
+        "summary": "Sample summary 145",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 90000,
+            "text": "25h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779957776926,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397760,
+        "key": "PROJ-166",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 146",
+        "priorityId": "10100",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#33db23",
+        "epicId": "357258",
+        "epic": "PROJ-9",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 5,
+            "text": "5"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779957870568,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 397761,
+        "key": "PROJ-167",
+        "hidden": false,
+        "parentId": 397760,
+        "parentKey": "PROJ-166",
+        "typeId": "10101",
+        "summary": "Sample summary 147",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 90000,
+            "text": "25h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1779957878317,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 395532,
+        "key": "PROJ-168",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 148",
+        "priorityId": "3",
+        "done": true,
+        "assignee": "user148",
+        "assigneeName": "User 148",
+        "avatarUrl": "https://example.invalid/avatar/148.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "357270",
+        "epic": "PROJ-10",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 2,
+            "text": "2"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779959668794,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 395538,
+        "key": "PROJ-169",
+        "hidden": false,
+        "parentId": 395532,
+        "parentKey": "PROJ-168",
+        "typeId": "10101",
+        "summary": "Sample summary 149",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user149",
+        "assigneeName": "User 149",
+        "avatarUrl": "https://example.invalid/avatar/149.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 31500,
+            "text": "8.75h"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779346914757,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 393546,
+        "key": "PROJ-170",
+        "hidden": false,
+        "typeId": "10102",
+        "summary": "Sample summary 150",
+        "priorityId": "3",
+        "done": true,
+        "assignee": "user150",
+        "assigneeName": "User 150",
+        "avatarUrl": "https://example.invalid/avatar/150.png",
+        "hasCustomUserAvatar": true,
+        "color": "#ff0000",
+        "epicId": "357279",
+        "epic": "PROJ-11",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 2,
+            "text": "2"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779957357452,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 393694,
+        "key": "PROJ-171",
+        "hidden": false,
+        "parentId": 393546,
+        "parentKey": "PROJ-170",
+        "typeId": "10101",
+        "summary": "Sample summary 151",
+        "priorityId": "3",
+        "done": true,
+        "assignee": "user151",
+        "assigneeName": "User 151",
+        "avatarUrl": "https://example.invalid/avatar/151.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 1800,
+            "text": "0.5h"
+          }
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779884201652,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 393695,
+        "key": "PROJ-172",
+        "hidden": false,
+        "parentId": 393546,
+        "parentKey": "PROJ-170",
+        "typeId": "10101",
+        "summary": "Sample summary 152",
+        "priorityId": "3",
+        "done": true,
+        "assignee": "user152",
+        "assigneeName": "User 152",
+        "avatarUrl": "https://example.invalid/avatar/152.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 900,
+            "text": "0.25h"
+          }
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779887372261,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 393696,
+        "key": "PROJ-173",
+        "hidden": false,
+        "parentId": 393546,
+        "parentKey": "PROJ-170",
+        "typeId": "10101",
+        "summary": "Sample summary 153",
+        "priorityId": "3",
+        "done": false,
+        "hasCustomUserAvatar": false,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 7200,
+            "text": "2h"
+          }
+        },
+        "statusId": "10200",
+        "timeInColumn": {
+          "enteredStatus": 1778673293431,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 392148,
+        "key": "PROJ-174",
+        "hidden": false,
+        "typeId": "10001",
+        "summary": "Sample summary 154",
+        "priorityId": "3",
+        "done": true,
+        "assignee": "user154",
+        "assigneeName": "User 154",
+        "avatarUrl": "https://example.invalid/avatar/154.png",
+        "hasCustomUserAvatar": true,
+        "color": "#33db23",
+        "epicId": "354389",
+        "epic": "PROJ-8",
+        "estimateStatisticRequired": false,
+        "estimateStatistic": {
+          "statFieldId": "customfield_10106",
+          "statFieldValue": {
+            "value": 5,
+            "text": "5"
+          }
+        },
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {}
+        },
+        "statusId": "10103",
+        "timeInColumn": {
+          "enteredStatus": 1779959985792,
+          "durationPreviously": 0
+        },
+        "fixVersions": [
+          17904
+        ],
+        "projectId": 10134
+      },
+      {
+        "id": 394301,
+        "key": "PROJ-175",
+        "hidden": false,
+        "parentId": 392148,
+        "parentKey": "PROJ-174",
+        "typeId": "10101",
+        "summary": "Sample summary 155",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user155",
+        "assigneeName": "User 155",
+        "avatarUrl": "https://example.invalid/avatar/155.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 9000,
+            "text": "2.5h"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1778770608363,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      },
+      {
+        "id": 394302,
+        "key": "PROJ-176",
+        "hidden": false,
+        "parentId": 392148,
+        "parentKey": "PROJ-174",
+        "typeId": "10101",
+        "summary": "Sample summary 156",
+        "priorityId": "3",
+        "done": false,
+        "assignee": "user156",
+        "assigneeName": "User 156",
+        "avatarUrl": "https://example.invalid/avatar/156.png",
+        "hasCustomUserAvatar": true,
+        "color": "#26a6eb",
+        "estimateStatisticRequired": false,
+        "trackingStatistic": {
+          "statFieldId": "timeestimate",
+          "statFieldValue": {
+            "value": 8700,
+            "text": "2h 25m"
+          }
+        },
+        "statusId": "3",
+        "timeInColumn": {
+          "enteredStatus": 1779082088544,
+          "durationPreviously": 0
+        },
+        "fixVersions": [],
+        "projectId": 10134
+      }
+    ],
+    "projects": [
+      {
+        "id": 10134
+      }
+    ],
+    "missingParents": [],
+    "canRelease": false,
+    "hasBulkChangePermission": true,
+    "issueArchivingEnabled": true
+  },
+  "orderData": {
+    "rapidViewId": 163,
+    "rankable": true,
+    "rankCustomFieldId": 10105,
+    "canRankPerProject": [
+      {
+        "projectId": 10134,
+        "projectKey": "ESHOP",
+        "canRank": true
+      }
+    ]
+  },
+  "sprintsData": {
+    "rapidViewId": 163,
+    "sprints": [
+      {
+        "id": 19561,
+        "sequence": 19557,
+        "rapidViewId": 163,
+        "name": "Eshop 183 PP21 28.5.-10.6.26",
+        "state": "ACTIVE",
+        "autoStartStop": false,
+        "synced": false,
+        "startDate": "28.05.2026 09:15",
+        "endDate": "11.06.2026 09:15",
+        "activatedDate": "28.05.2026 13:18",
+        "completeDate": "",
+        "canUpdateSprint": true,
+        "canStartStopSprint": true,
+        "canUpdateDates": true,
+        "remoteLinks": [],
+        "daysRemaining": 9
+      }
+    ],
+    "canManageSprints": true
+  },
+  "etagData": {
+    "rapidViewId": 163,
+    "issueCount": 156,
+    "lastUpdated": 1779986598603,
+    "quickFilters": "[]",
+    "sprints": "[]",
+    "etag": "163,1779986598603,[],[],false,156",
+    "emptyFilterBoard": false
+  },
+  "epicData": {
+    "epicsCount": 241
+  },
+  "emptyFilterBoard": false,
+  "cardColorStrategy": "issuetype"
+}
