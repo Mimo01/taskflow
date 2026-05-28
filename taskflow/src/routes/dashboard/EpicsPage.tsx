@@ -111,9 +111,9 @@ export default function EpicsPage() {
     queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
     queryFn: () =>
       fetchEpicsBasic(
-        jiraBaseUrl!,
-        token!,
-        activeJiraProject!,
+        jiraBaseUrl ?? '',
+        token ?? '',
+        activeJiraProject ?? '',
         epicNameFieldKey ?? undefined,
         epicColorFieldKey ?? undefined,
       ),

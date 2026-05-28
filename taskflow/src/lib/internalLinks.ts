@@ -167,7 +167,7 @@ function stripPathPrefix(pathname: string, basePath: string): string | null {
     // href is exactly the base URL with no additional path (e.g. "https://host/jira")
     return '/';
   }
-  if (pathname.startsWith(base + '/')) {
+  if (pathname.startsWith(`${base}/`)) {
     return pathname.slice(base.length);
   }
 

@@ -294,7 +294,11 @@ export default function NotificationRow({
           (body.isStructured ? (
             <div className="mt-1 flex flex-col gap-0.5">
               {body.changes.map((c, i) => (
-                <span key={i} className="inline-flex items-center gap-1 text-[11px] leading-snug">
+                <span
+                  // biome-ignore lint/suspicious/noArrayIndexKey: notification change items have no stable id
+                  key={i}
+                  className="inline-flex items-center gap-1 text-[11px] leading-snug"
+                >
                   {c.field && (
                     <span className="text-muted-foreground/60 font-medium">{c.field}</span>
                   )}

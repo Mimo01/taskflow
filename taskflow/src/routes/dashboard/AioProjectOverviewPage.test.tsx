@@ -275,7 +275,7 @@ describe('AioProjectOverviewPage — persisted folder selection', () => {
 
   it('auto-selects persisted folder on second load', async () => {
     // Pre-load stored selection for PROJ = folder 102
-    SelectionStore.byProjectKey['PROJ'] = 102;
+    SelectionStore.byProjectKey.PROJ = 102;
 
     const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
     (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);
@@ -318,7 +318,7 @@ describe('AioProjectOverviewPage — persisted folder selection', () => {
 
   it('falls back to first non-empty when persisted ID is stale', async () => {
     // Pre-load a stale folder ID that does not exist in the tree
-    SelectionStore.byProjectKey['PROJ'] = 999;
+    SelectionStore.byProjectKey.PROJ = 999;
 
     const { fetchJiraProjectNumericId } = await import('@/services/jira/projects');
     (fetchJiraProjectNumericId as ReturnType<typeof vi.fn>).mockResolvedValue(10134);

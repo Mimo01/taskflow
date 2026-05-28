@@ -768,15 +768,15 @@ describe('AioTestRunsSection', () => {
 
       const cycleButton = container.querySelector(
         '[data-testid="in-cycle-run-cycle-link"]',
-      ) as HTMLButtonElement | null;
+      ) as HTMLButtonElement;
       expect(cycleButton).not.toBeNull();
-      expect(cycleButton!.textContent).toBe('PROJ-CY-9');
+      expect(cycleButton.textContent).toBe('PROJ-CY-9');
 
       const runButton = container.querySelector(
         '[data-testid="in-cycle-run-run-link"]',
-      ) as HTMLButtonElement | null;
+      ) as HTMLButtonElement;
       expect(runButton).not.toBeNull();
-      expect(runButton!.textContent).toBe('5555');
+      expect(runButton.textContent).toBe('5555');
     });
 
     it('Plan 54-11: cycle key cell is a button labeled with the cycle key (navigation pushes the issue to the breadcrumb trail)', async () => {
@@ -890,7 +890,7 @@ describe('AioTestRunsSection', () => {
         (call) => call[3] === 'OTHER-CY-9',
       );
       expect(crossProjectCall).toBeDefined();
-      expect(crossProjectCall![2]).toBe('OTHER');
+      expect(crossProjectCall?.[2]).toBe('OTHER');
     });
 
     it('Plan 54-10: AIO grid surfaces image refs from the Jira issue description body (description-only path)', async () => {

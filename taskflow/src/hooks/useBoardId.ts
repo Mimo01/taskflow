@@ -15,7 +15,7 @@ export function useBoardId(
 ): { boardId: number | null; isLoading: boolean } {
   const { data: boardId, isLoading } = useQuery({
     queryKey: ['jira-board-id', projectKey, jiraBaseUrl],
-    queryFn: () => fetchBoardId(jiraBaseUrl!, jiraToken!, projectKey!),
+    queryFn: () => fetchBoardId(jiraBaseUrl ?? '', jiraToken ?? '', projectKey ?? ''),
     staleTime: Infinity,
     enabled: !!jiraBaseUrl && !!jiraToken && !!projectKey,
   });

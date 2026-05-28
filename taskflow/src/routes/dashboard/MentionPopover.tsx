@@ -31,6 +31,7 @@ export const MentionPopover = forwardRef<MentionPopoverHandle, MentionPopoverPro
     }, [query]);
 
     // Reset active index when query changes
+    // biome-ignore lint/correctness/useExhaustiveDependencies: debouncedQuery is the intentional trigger dep for this reset effect
     useEffect(() => {
       setActiveIndex(0);
     }, [debouncedQuery]);

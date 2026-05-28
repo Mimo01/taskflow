@@ -16,8 +16,8 @@
  */
 
 import { GitBranch } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ui/error-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import type { GitLabMR } from '@/services/gitlab';
 import StandupSectionHeader from './StandupSectionHeader';
@@ -93,9 +93,7 @@ export default function TodayMrsSection({
                 onClick={() => onMRClick(`${mr.project_id}/${mr.iid}`)}
               >
                 <GitBranch className="size-4 shrink-0 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground font-mono shrink-0">
-                  !{mr.iid}
-                </span>
+                <span className="text-xs text-muted-foreground font-mono shrink-0">!{mr.iid}</span>
                 <span className="flex-1 min-w-0 truncate text-sm">{mr.title}</span>
                 <span className={reviewStateLabelClass}>{reviewStateLabel}</span>
               </button>

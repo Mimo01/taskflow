@@ -943,7 +943,9 @@ export async function fetchYesterdayJiraActivity(
               h.items.some((i) => i.field === 'status'),
           )
           .map((h) => {
-            const statusItem = h.items.find((i) => i.field === 'status')!;
+            const statusItem = h.items.find((i) => i.field === 'status') as NonNullable<
+              (typeof h.items)[number]
+            >;
             return {
               fromStatus: statusItem.fromString ?? '',
               toStatus: statusItem.toString ?? '',

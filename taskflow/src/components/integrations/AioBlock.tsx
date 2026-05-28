@@ -43,7 +43,7 @@ export default function AioBlock() {
     refetch,
   } = useQuery({
     queryKey: ['aio', jiraBaseUrl, 'projects'],
-    queryFn: () => fetchAioProjects(jiraBaseUrl!, token!),
+    queryFn: () => fetchAioProjects(jiraBaseUrl ?? '', token ?? ''),
     enabled: !!jiraBaseUrl && !!token,
   });
 
@@ -119,7 +119,10 @@ export default function AioBlock() {
               <SelectContent />
             </Select>
           ) : (
-            <Select value={selectedAioProjectKey ?? ''} onValueChange={(v) => setSelectedAioProjectKey(v || null)}>
+            <Select
+              value={selectedAioProjectKey ?? ''}
+              onValueChange={(v) => setSelectedAioProjectKey(v || null)}
+            >
               <SelectTrigger id="aio-project" className="w-full">
                 <span className="flex flex-1 text-left text-sm">
                   {selectedProject ? (

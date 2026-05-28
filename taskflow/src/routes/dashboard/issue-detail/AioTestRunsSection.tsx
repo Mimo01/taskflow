@@ -296,7 +296,12 @@ function StepTable({ steps }: { steps: AioTestRunStep[] }) {
                       }
                     ).attachments ?? []
                   ).map((att, idx) => (
-                    <StepThumbnail key={idx} url={att.url ?? ''} fileName={att.fileName ?? ''} />
+                    <StepThumbnail
+                      // biome-ignore lint/suspicious/noArrayIndexKey: attachment list has no stable id
+                      key={idx}
+                      url={att.url ?? ''}
+                      fileName={att.fileName ?? ''}
+                    />
                   ))}
                 </div>
               )}
@@ -652,9 +657,11 @@ export function AioTestRunsSection({
     }));
     const runImages = collectAioImageAttachments([...data.runs, ...impactedAsRunData]);
     const seen = new Set<string>();
-    return [...descriptionImages, ...runImages].filter((a) =>
-      seen.has(a.url) ? false : (seen.add(a.url), true),
-    );
+    return [...descriptionImages, ...runImages].filter((a) => {
+      if (seen.has(a.url)) return false;
+      seen.add(a.url);
+      return true;
+    });
   }, [stepsQuery.data, description]);
 
   // Render state waterfall

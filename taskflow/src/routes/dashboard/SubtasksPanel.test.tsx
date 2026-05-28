@@ -251,9 +251,9 @@ describe('SubtasksPanel (DASH-01)', () => {
 
       renderWithQuery(<SubtasksPanel {...DEFAULT_PROPS} />);
 
-      const rowButton = screen.getByText('PROJ-40').closest('button');
+      const rowButton = screen.getByText('PROJ-40').closest('button') as HTMLButtonElement;
       expect(rowButton).not.toBeNull();
-      await userEvent.click(rowButton!);
+      await userEvent.click(rowButton);
 
       expect(openSpy).toHaveBeenCalledWith(
         'https://jira.example.com/browse/PROJ-40',

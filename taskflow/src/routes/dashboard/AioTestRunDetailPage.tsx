@@ -79,11 +79,11 @@ function DefectRow({
             role: 'button' as const,
             tabIndex: 0,
             'aria-label': `Open defect ${resolvedKey}`,
-            onClick: () => onOpen(resolvedKey!),
+            onClick: () => onOpen(resolvedKey ?? ''),
             onKeyDown: (e: React.KeyboardEvent) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                onOpen(resolvedKey!);
+                onOpen(resolvedKey ?? '');
               }
             },
           }
@@ -214,7 +214,14 @@ export default function AioTestRunDetailPage() {
 
   const detailQuery = useQuery<{ run: AioTestRun; steps: AioTestRunStep[] } | null>({
     queryKey: ['aio', jiraBaseUrl, 'run-detail', projectKey, cycleKey, runId],
-    queryFn: () => fetchAioTestRunDetail(jiraBaseUrl!, token!, projectKey!, cycleKey!, runId!),
+    queryFn: () =>
+      fetchAioTestRunDetail(
+        jiraBaseUrl ?? '',
+        token ?? '',
+        projectKey ?? '',
+        cycleKey ?? '',
+        runId ?? '',
+      ),
     enabled: !!jiraBaseUrl && !!token && !tokenLoading && !!projectKey && !!cycleKey && !!runId,
   });
 
@@ -227,7 +234,7 @@ export default function AioTestRunDetailPage() {
   const issueQueries = useQueries({
     queries: defectIds.map((defectId) => ({
       queryKey: ['jira', jiraBaseUrl, 'issue-lightweight', defectId],
-      queryFn: () => fetchJiraIssueByKey(jiraBaseUrl!, token!, defectId),
+      queryFn: () => fetchJiraIssueByKey(jiraBaseUrl ?? '', token ?? '', defectId),
       enabled: !!jiraBaseUrl && !!token && !tokenLoading,
     })),
   });

@@ -78,7 +78,8 @@ export default function MergeRequestListPage() {
     refetch: mrsRefetch,
   } = useQuery({
     queryKey: ['gitlab-project-mrs', projectId, stateFilter],
-    queryFn: () => fetchProjectMRs(gitlabBaseUrl!, gitlabToken!, projectId!, stateFilter),
+    queryFn: () =>
+      fetchProjectMRs(gitlabBaseUrl ?? '', gitlabToken ?? '', projectId ?? '', stateFilter),
     staleTime: 30_000,
     enabled: !!gitlabBaseUrl && !!gitlabToken && !!projectId && !isSearching,
   });
@@ -91,7 +92,7 @@ export default function MergeRequestListPage() {
     error: searchErr,
   } = useQuery({
     queryKey: ['gitlab-search-mrs', debouncedSearch],
-    queryFn: () => searchGitLabMRs(gitlabBaseUrl!, gitlabToken!, debouncedSearch),
+    queryFn: () => searchGitLabMRs(gitlabBaseUrl ?? '', gitlabToken ?? '', debouncedSearch),
     staleTime: 30_000,
     enabled: !!gitlabBaseUrl && !!gitlabToken && isSearching,
   });
@@ -276,7 +277,11 @@ function MRListSkeleton() {
   return (
     <div className="divide-y">
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="px-6 py-3 space-y-2">
+        <div
+          // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list, no reorder
+          key={i}
+          className="px-6 py-3 space-y-2"
+        >
           <div className="flex items-center gap-2">
             <Skeleton className="h-4 w-10" />
             <Skeleton className="h-4 w-16" />

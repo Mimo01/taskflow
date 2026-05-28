@@ -14,14 +14,14 @@
  */
 
 import { GitBranch } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { CachedAvatar } from '@/components/ui/cached-avatar';
 import { ErrorState } from '@/components/ui/error-state';
 import { IssueTypeIcon } from '@/components/ui/issue-type-icon';
 import { Progress } from '@/components/ui/progress';
-import { CachedAvatar } from '@/components/ui/cached-avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
-import { formatDuration } from '@/services/jira/duration';
 import type { JiraIssue } from '@/services/jira';
+import { formatDuration } from '@/services/jira/duration';
 import type { SprintRow } from './filterSprintItems';
 import type { NestedMr } from './mrMatching';
 import StandupSectionHeader from './StandupSectionHeader';
@@ -87,12 +87,7 @@ interface IssueRowProps {
   indented?: boolean;
 }
 
-function IssueRow({
-  issue,
-  storyPointsFieldKey,
-  onIssueClick,
-  indented = false,
-}: IssueRowProps) {
+function IssueRow({ issue, storyPointsFieldKey, onIssueClick, indented = false }: IssueRowProps) {
   const issueType = issue.fields.issuetype.name;
   const key = issue.key;
   const summary = issue.fields.summary;
@@ -128,7 +123,13 @@ function IssueRow({
 
 // ─── Nested MR row ────────────────────────────────────────────────────────────
 
-function NestedMrRow({ mr, onMRClick }: { mr: NestedMr; onMRClick: (projectIdAndIid: string) => void }) {
+function NestedMrRow({
+  mr,
+  onMRClick,
+}: {
+  mr: NestedMr;
+  onMRClick: (projectIdAndIid: string) => void;
+}) {
   const tag =
     mr.kind === 'review'
       ? 'review'

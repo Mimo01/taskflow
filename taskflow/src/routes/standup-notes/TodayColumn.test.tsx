@@ -50,8 +50,9 @@ vi.mock('@/stores/auth.store', () => ({
 }));
 
 vi.mock('@/stores/settings.store', () => ({
-  useSettingsStore: vi.fn((selector: (s: { tempoEnabled: boolean; storyPointsFieldKey: string }) => unknown) =>
-    selector({ tempoEnabled: true, storyPointsFieldKey: 'customfield_10016' }),
+  useSettingsStore: vi.fn(
+    (selector: (s: { tempoEnabled: boolean; storyPointsFieldKey: string }) => unknown) =>
+      selector({ tempoEnabled: true, storyPointsFieldKey: 'customfield_10016' }),
   ),
 }));
 
@@ -100,11 +101,7 @@ function makeIssue(
   statusCategoryKey: 'indeterminate' | 'new' | 'done',
   opts: { isSubtask?: boolean; subtasksLen?: number; displayName?: string } = {},
 ): JiraIssue {
-  const {
-    isSubtask = true,
-    subtasksLen = 0,
-    displayName = 'Test User',
-  } = opts;
+  const { isSubtask = true, subtasksLen = 0, displayName = 'Test User' } = opts;
 
   return {
     id: key,
@@ -113,7 +110,12 @@ function makeIssue(
       summary: `Summary of ${key}`,
       status: {
         id: '1',
-        name: statusCategoryKey === 'indeterminate' ? 'In Progress' : statusCategoryKey === 'new' ? 'To Do' : 'Done',
+        name:
+          statusCategoryKey === 'indeterminate'
+            ? 'In Progress'
+            : statusCategoryKey === 'new'
+              ? 'To Do'
+              : 'Done',
         statusCategory: { key: statusCategoryKey },
       },
       assignee: { displayName },
@@ -137,12 +139,17 @@ describe('TodayColumn', () => {
     it('shows a parent story (non-subtask with subtasksLen>0) in In Progress section', async () => {
       const { useQuery } = await import('@tanstack/react-query');
       // A parent story: isSubtask=false, subtasksLen=2, indeterminate status
-      const parentStory = makeIssue('PROJ-10', 'indeterminate', { isSubtask: false, subtasksLen: 2 });
+      const parentStory = makeIssue('PROJ-10', 'indeterminate', {
+        isSubtask: false,
+        subtasksLen: 2,
+      });
 
       vi.mocked(useQuery).mockImplementation((opts) => {
         const key = Array.isArray(opts.queryKey) ? opts.queryKey[1] : '';
         if (key === 'sprint-board-today-full') {
-          return { data: [parentStory], isLoading: false, isError: false } as ReturnType<typeof useQuery>;
+          return { data: [parentStory], isLoading: false, isError: false } as ReturnType<
+            typeof useQuery
+          >;
         }
         return { data: undefined, isLoading: false, isError: false } as ReturnType<typeof useQuery>;
       });
@@ -178,7 +185,9 @@ describe('TodayColumn', () => {
       vi.mocked(useQuery).mockImplementation((opts) => {
         const key = Array.isArray(opts.queryKey) ? opts.queryKey[1] : '';
         if (key === 'sprint-board-today-full') {
-          return { data: [issueWithEstimate], isLoading: false, isError: false } as ReturnType<typeof useQuery>;
+          return { data: [issueWithEstimate], isLoading: false, isError: false } as ReturnType<
+            typeof useQuery
+          >;
         }
         return { data: undefined, isLoading: false, isError: false } as ReturnType<typeof useQuery>;
       });
@@ -207,7 +216,9 @@ describe('TodayColumn', () => {
       vi.mocked(useQuery).mockImplementation((opts) => {
         const key = Array.isArray(opts.queryKey) ? opts.queryKey[1] : '';
         if (key === 'sprint-board-today-full') {
-          return { data: [issueNoEstimate], isLoading: false, isError: false } as ReturnType<typeof useQuery>;
+          return { data: [issueNoEstimate], isLoading: false, isError: false } as ReturnType<
+            typeof useQuery
+          >;
         }
         return { data: undefined, isLoading: false, isError: false } as ReturnType<typeof useQuery>;
       });
@@ -233,7 +244,10 @@ describe('TodayColumn', () => {
       const { useQuery } = await import('@tanstack/react-query');
 
       // Parent story assigned to Test User, In Progress
-      const parentStory = makeIssue('PROJ-50', 'indeterminate', { isSubtask: false, subtasksLen: 0 });
+      const parentStory = makeIssue('PROJ-50', 'indeterminate', {
+        isSubtask: false,
+        subtasksLen: 0,
+      });
 
       // Reviewer MR whose title references PROJ-50
       const reviewerMR = {
@@ -254,10 +268,14 @@ describe('TodayColumn', () => {
       vi.mocked(useQuery).mockImplementation((opts) => {
         const key = Array.isArray(opts.queryKey) ? opts.queryKey[1] : '';
         if (key === 'sprint-board-today-full') {
-          return { data: [parentStory], isLoading: false, isError: false } as ReturnType<typeof useQuery>;
+          return { data: [parentStory], isLoading: false, isError: false } as ReturnType<
+            typeof useQuery
+          >;
         }
         if (key === 'reviewer-mrs') {
-          return { data: [reviewerMR], isLoading: false, isError: false } as ReturnType<typeof useQuery>;
+          return { data: [reviewerMR], isLoading: false, isError: false } as ReturnType<
+            typeof useQuery
+          >;
         }
         if (key === 'participating-mrs') {
           return { data: [], isLoading: false, isError: false } as ReturnType<typeof useQuery>;
@@ -291,7 +309,9 @@ describe('TodayColumn', () => {
       const { useAuthStore } = await import('@/stores/auth.store');
 
       // Override auth to have no GitLab connection
-      vi.mocked(useAuthStore).mockImplementation(((selector?: (s: typeof authStoreMock) => unknown) => {
+      vi.mocked(useAuthStore).mockImplementation(((
+        selector?: (s: typeof authStoreMock) => unknown,
+      ) => {
         const noGitlab = { ...authStoreMock, gitlabBaseUrl: null, gitlabUserId: null };
         return selector ? selector(noGitlab as unknown as typeof authStoreMock) : noGitlab;
       }) as unknown as typeof useAuthStore);

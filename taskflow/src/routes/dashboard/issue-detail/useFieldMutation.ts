@@ -58,7 +58,7 @@ export function useDebounce<T extends unknown[]>(fn: (...args: T) => void, delay
   fnRef.current = fn;
   const delayRef = useRef(delay);
   delayRef.current = delay;
-  const stableRef = useRef<(...args: T) => void>(null!);
+  const stableRef = useRef<(...args: T) => void>(null as unknown as (...args: T) => void);
   if (!stableRef.current) {
     stableRef.current = (...args: T) => {
       if (timerRef.current) clearTimeout(timerRef.current);

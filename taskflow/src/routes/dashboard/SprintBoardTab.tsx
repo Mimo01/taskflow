@@ -189,6 +189,7 @@ function VirtualizedSwimlanes({
   const lastStickyKeyRef = useRef<string | null>(null);
   const lastStickyExpandedRef = useRef<boolean>(true);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ref.current values are intentionally not deps (refs don't trigger re-renders)
   useEffect(() => {
     // Clear any stale sticky header from previous render/reload
     if (lastStickyKeyRef.current !== null) {
@@ -202,7 +203,7 @@ function VirtualizedSwimlanes({
     }
 
     function onScroll() {
-      const scrollTop = scrollElement!.scrollTop;
+      const scrollTop = scrollElement?.scrollTop ?? 0;
       const listOffset = swimlaneListOffsetRef.current;
 
       // scrollTop relative to the start of the virtualizer list
@@ -300,7 +301,6 @@ function VirtualizedSwimlanes({
     return () => scrollElement.removeEventListener('scroll', onScroll);
     // filteredSwimlanes intentionally excluded — accessed via ref to avoid infinite loop.
     // swimlaneVirtualizer is included to re-register the listener when virtual items change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollElement, swimlaneVirtualizer]);
 
   function renderSwimlane(
@@ -611,9 +611,9 @@ export default function SprintBoardTab() {
     ],
     queryFn: () =>
       fetchSprintStories(
-        jiraBaseUrl!,
-        jiraToken!,
-        activeJiraProject!,
+        jiraBaseUrl ?? '',
+        jiraToken ?? '',
+        activeJiraProject ?? '',
         false,
         storyPointsFieldKey,
         epicLinkFieldKey,
@@ -632,7 +632,7 @@ export default function SprintBoardTab() {
 
   const { data: subtasksData, isLoading: subtasksLoading } = useQuery({
     queryKey: ['jira-sprint-subtasks', activeJiraProject, jiraBaseUrl, parentKeys],
-    queryFn: () => fetchSprintSubtasks(jiraBaseUrl!, jiraToken!, parentKeys),
+    queryFn: () => fetchSprintSubtasks(jiraBaseUrl ?? '', jiraToken ?? '', parentKeys),
     staleTime: STALE_TIME_MS,
     enabled: isActive && !!jiraBaseUrl && !!jiraToken && parentKeys.length > 0,
   });
@@ -669,9 +669,9 @@ export default function SprintBoardTab() {
     queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
     queryFn: () =>
       fetchEpicsBasic(
-        jiraBaseUrl!,
-        jiraToken!,
-        activeJiraProject!,
+        jiraBaseUrl ?? '',
+        jiraToken ?? '',
+        activeJiraProject ?? '',
         epicNameFieldKey,
         epicColorFieldKey,
       ),
@@ -688,7 +688,7 @@ export default function SprintBoardTab() {
   // Fetch active sprint (for goal text and board ID)
   const { data: activeSprint } = useQuery({
     queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl],
-    queryFn: () => fetchActiveSprint(jiraBaseUrl!, jiraToken!, activeJiraProject!),
+    queryFn: () => fetchActiveSprint(jiraBaseUrl ?? '', jiraToken ?? '', activeJiraProject ?? ''),
     staleTime: 5 * 60 * 1000,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
@@ -696,7 +696,7 @@ export default function SprintBoardTab() {
   // Fetch board quick filters using the board ID from useBoardId hook (not activeSprint)
   const { data: boardQuickFilters } = useQuery({
     queryKey: ['jira-board-quickfilters', boardId],
-    queryFn: () => fetchBoardQuickFilters(jiraBaseUrl!, jiraToken!, boardId!),
+    queryFn: () => fetchBoardQuickFilters(jiraBaseUrl ?? '', jiraToken ?? '', boardId ?? 0),
     staleTime: 5 * 60 * 1000,
     enabled: !!jiraBaseUrl && !!jiraToken && !!boardId,
   });
@@ -709,7 +709,8 @@ export default function SprintBoardTab() {
   /** Used for filter options — maps workflow status names */
   const { data: workflowStatuses } = useQuery({
     queryKey: ['project-statuses', activeJiraProject, jiraBaseUrl],
-    queryFn: () => fetchProjectStatuses(jiraBaseUrl!, jiraToken!, activeJiraProject!),
+    queryFn: () =>
+      fetchProjectStatuses(jiraBaseUrl ?? '', jiraToken ?? '', activeJiraProject ?? ''),
     staleTime: Infinity,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
@@ -725,6 +726,7 @@ export default function SprintBoardTab() {
   const localIssuesRef = useRef(localIssues);
   localIssuesRef.current = localIssues;
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: localIssues.length triggers refetch when issue count changes; full array excluded intentionally (read via ref to avoid stale closure)
   useEffect(() => {
     if (!jiraBaseUrl || !jiraToken || !localIssuesRef.current.length) return;
     const issues = localIssuesRef.current;
@@ -732,12 +734,11 @@ export default function SprintBoardTab() {
       issues.map((issue) =>
         queryClient.fetchQuery({
           queryKey: ['transitions', issue.key],
-          queryFn: () => fetchTransitions(jiraBaseUrl, jiraToken!, issue.key),
+          queryFn: () => fetchTransitions(jiraBaseUrl, jiraToken ?? '', issue.key),
           staleTime: 5 * 60 * 1000,
         }),
       ),
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jiraBaseUrl, jiraToken, localIssues.length, queryClient]);
 
   function getTransitions(issueKey: string): JiraTransition[] | undefined {
@@ -781,7 +782,7 @@ export default function SprintBoardTab() {
     });
 
     try {
-      await postTransition(jiraBaseUrl!, jiraToken!, issueKey, transitionId);
+      await postTransition(jiraBaseUrl ?? '', jiraToken ?? '', issueKey, transitionId);
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
     } catch {
@@ -819,7 +820,13 @@ export default function SprintBoardTab() {
     });
 
     try {
-      await setIssueFlagged(jiraBaseUrl!, jiraToken!, issueKey, !currentFlagged, flaggedFieldKey);
+      await setIssueFlagged(
+        jiraBaseUrl ?? '',
+        jiraToken ?? '',
+        issueKey,
+        !currentFlagged,
+        flaggedFieldKey,
+      );
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
     } catch {
@@ -903,9 +910,9 @@ export default function SprintBoardTab() {
   const { data: savedFilterIssueKeys, isLoading: isSavedFilterLoading } = useQuery({
     queryKey: ['saved-filter-results', activeFilter?.jql],
     queryFn: async () => {
-      const searchUrl = `${jiraBaseUrl!.replace(/\/$/, '')}/rest/api/2/search?jql=${encodeURIComponent(activeFilter!.jql)}&fields=key`;
+      const searchUrl = `${(jiraBaseUrl ?? '').replace(/\/$/, '')}/rest/api/2/search?jql=${encodeURIComponent(activeFilter?.jql ?? '')}&fields=key`;
       const results = await fetchAllSearchPages(searchUrl, {
-        Authorization: `Bearer ${jiraToken!}`,
+        Authorization: `Bearer ${jiraToken ?? ''}`,
       });
       return new Set(results.map((issue) => issue.key));
     },

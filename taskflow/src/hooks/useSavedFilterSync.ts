@@ -22,7 +22,7 @@ export function useSavedFilterSync() {
     queryKey: ['jira-favourite-filters', jiraBaseUrl],
     queryFn: async () => {
       const token = await readSecret('jira-pat');
-      return fetchFavouriteFilters(jiraBaseUrl!, token);
+      return fetchFavouriteFilters(jiraBaseUrl ?? '', token);
     },
     staleTime: 2 * 60 * 1000,
     enabled: !!jiraBaseUrl,

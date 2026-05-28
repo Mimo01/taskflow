@@ -125,7 +125,7 @@ function IssueDetailBody({
         <IssueDetailContent
           issue={issue}
           issueKey={issueKey}
-          jiraBaseUrl={jiraBaseUrl!}
+          jiraBaseUrl={jiraBaseUrl ?? ''}
           onOpenIssue={onOpenIssue}
           onEdit={onEdit}
           onAddSubtask={onAddSubtask}
@@ -142,7 +142,7 @@ function IssueDetailBody({
         <IssueDetailSidebar
           issue={issue}
           issueKey={issueKey}
-          jiraBaseUrl={jiraBaseUrl!}
+          jiraBaseUrl={jiraBaseUrl ?? ''}
           storyPointsFieldKey={storyPointsFieldKey}
           epicLinkFieldKey={epicLinkFieldKey}
           epicNameFieldKey={epicNameFieldKey}
