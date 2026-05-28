@@ -117,6 +117,7 @@ export const MentionPopover = forwardRef<MentionPopoverHandle, MentionPopoverPro
                 isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'
               }`}
               onClick={() => onSelect(user)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onSelect(user); } }}
               onMouseEnter={() => setActiveIndex(index)}
             >
               <CachedAvatar
