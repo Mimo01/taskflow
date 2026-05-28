@@ -25,6 +25,14 @@ vi.mock('@/services/jira', () => ({
   fetchIssueDetail: vi.fn().mockResolvedValue(null),
   postComment: vi.fn().mockResolvedValue(undefined),
   isIssueFlagged: vi.fn().mockReturnValue(false),
+  // Phase 72: StatusPopover (rendered inside FieldsSection) now consumes the
+  // GH transitions cache via useGhTransitions; provide a stub return.
+  useGhTransitions: vi.fn(() => ({
+    data: undefined,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  })),
 }));
 
 // Mock @tauri-apps/plugin-opener
