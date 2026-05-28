@@ -214,7 +214,7 @@ export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProp
     queryFn: async () => {
       const token = await readSecret('gitlab-pat').catch(() => null);
       if (!token) throw new Error('No GitLab token');
-      return fetchReviewerMRs(gitlabBaseUrl ?? '', token, gitlabUserId ?? '');
+      return fetchReviewerMRs(gitlabBaseUrl ?? '', token, gitlabUserId ?? 0);
     },
     enabled: !!gitlabBaseUrl && !!gitlabToken && !!gitlabUserId,
     staleTime: 5 * 60 * 1000,
@@ -227,7 +227,7 @@ export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProp
     queryFn: async () => {
       const token = await readSecret('gitlab-pat').catch(() => null);
       if (!token) throw new Error('No GitLab token');
-      return fetchParticipatedMRs(gitlabBaseUrl ?? '', token, gitlabUserId ?? '', 30);
+      return fetchParticipatedMRs(gitlabBaseUrl ?? '', token, gitlabUserId ?? 0, 30);
     },
     enabled: !!gitlabBaseUrl && !!gitlabToken && !!gitlabUserId,
     staleTime: 5 * 60 * 1000,

@@ -1042,7 +1042,6 @@ describe('WorklogsPage', () => {
       const { EditWorklogForm } = await import('./EditWorklogForm');
       const { updateWorklog } = await import('@/services/jira/worklogs');
       const onSuccess = vi.fn();
-      const onDiscard = vi.fn();
       const entry: TempoWorklog = {
         jiraWorklogId: 55,
         issue: { key: 'PROJ-1' },
@@ -1056,7 +1055,7 @@ describe('WorklogsPage', () => {
           entry={entry}
           issueKey="PROJ-1"
           jiraBaseUrl="https://jira.example.com"
-          onDiscard={onDiscard}
+          onDelete={vi.fn()}
           onSuccess={onSuccess}
         />,
       );
