@@ -22,6 +22,7 @@ interface WorklogEntryRowProps {
   issueKey: string;
   jiraBaseUrl: string;
   onMutationSuccess: () => void;
+  onEditingChange?: (editing: boolean) => void;
 }
 
 /** D-08: format seconds like formatSeconds in WorklogsPage (same logic, local copy for decoupling) */
@@ -39,8 +40,14 @@ export function WorklogEntryRow({
   issueKey,
   jiraBaseUrl,
   onMutationSuccess,
+  onEditingChange,
 }: WorklogEntryRowProps) {
   const [editing, setEditing] = useState(false);
+
+  function setEditingState(value: boolean) {
+    setEditing(value);
+    onEditingChange?.(value);
+  }
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -61,9 +68,10 @@ export function WorklogEntryRow({
         entry={entry}
         issueKey={issueKey}
         jiraBaseUrl={jiraBaseUrl}
-        onDiscard={() => setEditing(false)}
+        onDiscard={() => setEditingState(false)}
+        onDelete={() => deleteMutation.mutate()}
         onSuccess={() => {
-          setEditing(false);
+          setEditingState(false);
           onMutationSuccess();
         }}
       />
@@ -71,22 +79,19 @@ export function WorklogEntryRow({
   }
 
   return (
-    <div className="flex items-center gap-2 py-0.5">
+    <div className="group relative flex items-center gap-2 py-0.5 min-w-0">
       <span className="text-xs font-semibold shrink-0">{formatSecs(entry.timeSpentSeconds)}</span>
-      <span className="text-xs text-muted-foreground shrink-0">
-        {entry.author.displayName ?? entry.author.name}
-      </span>
       {entry.comment && (
-        <span className="text-xs text-muted-foreground truncate max-w-[100px]">
+        <span className="text-xs text-muted-foreground truncate min-w-0 flex-1">
           {entry.comment}
         </span>
       )}
-      <div className="flex items-center gap-1 ml-auto shrink-0">
+      <div className="absolute right-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-popover pl-2">
         <button
           type="button"
           aria-label="Edit worklog entry"
-          onClick={() => setEditing(true)}
-          className="text-muted-foreground hover:text-foreground"
+          onClick={() => setEditingState(true)}
+          className="p-0.5 text-muted-foreground hover:text-foreground"
         >
           <Pencil className="size-3.5" />
         </button>
@@ -95,7 +100,7 @@ export function WorklogEntryRow({
           aria-label="Delete worklog entry"
           onClick={() => deleteMutation.mutate()}
           disabled={deleteMutation.isPending}
-          className="text-muted-foreground hover:text-destructive disabled:opacity-50"
+          className="p-0.5 text-muted-foreground hover:text-destructive disabled:opacity-50"
         >
           <Trash2 className="size-3.5" />
         </button>
