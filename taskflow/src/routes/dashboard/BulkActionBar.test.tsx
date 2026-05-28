@@ -1,11 +1,11 @@
 /**
- * BulkActionBar tests — Phase 72 Plan 02 GH transitions migration.
+ * BulkActionBar tests — Phase 72 GH transitions migration.
  *
- * The legacy `fetchTransitions` REST fetcher is gone from this component; the
- * parallel batch handler now resolves transitions through
+ * The parallel batch handler resolves transitions through
  * `getGhTransitions(queryClient, baseUrl, token, projectId, issueTypeId)`.
  * These tests assert the new call shape and the fail-fast guard for issues
- * absent from the `issues` prop.
+ * absent from the `issues` prop. The legacy per-issue REST GET path was
+ * deleted in Phase 72-03 (D-08 / GH-CUT-01).
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -14,9 +14,9 @@ import type React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/services/jira', () => ({
-  getGhTransitions: vi.fn().mockResolvedValue([
-    { id: '11', name: 'Start', to: { id: '3', name: 'In Progress' } },
-  ]),
+  getGhTransitions: vi
+    .fn()
+    .mockResolvedValue([{ id: '11', name: 'Start', to: { id: '3', name: 'In Progress' } }]),
   postTransition: vi.fn().mockResolvedValue(undefined),
   updateIssueField: vi.fn().mockResolvedValue(undefined),
 }));
