@@ -80,15 +80,14 @@ export default function TaskCard({
 
   const cardContent = (
     <>
-      <div
+      <button
+        type="button"
         className={cn(
-          'group border rounded-lg px-2 py-2 density-compact:py-1 density-comfortable:py-3 bg-card w-full flex flex-col gap-1 cursor-pointer hover:bg-accent/50 transition-colors',
+          'group border rounded-lg px-2 py-2 density-compact:py-1 density-comfortable:py-3 bg-card w-full flex flex-col gap-1 cursor-pointer hover:bg-accent/50 transition-colors text-left',
           isSubtask && 'border-l-2 border-l-muted',
           isFlagged &&
             'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700 hover:bg-yellow-100/90 dark:hover:bg-yellow-900/40',
         )}
-        role="button"
-        tabIndex={0}
         onClick={onClick}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') onClick?.();
@@ -176,7 +175,7 @@ export default function TaskCard({
             {isExpanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
           </button>
         )}
-      </div>
+      </button>
 
       {/* Transition error — shown below card on failed transitions */}
       {transitionError && <p className="text-xs text-destructive px-1">{transitionError}</p>}

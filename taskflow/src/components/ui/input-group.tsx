@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 
 function InputGroup({ className, ...props }: React.ComponentProps<'div'>) {
   return (
-    {/* biome-ignore lint/a11y/useSemanticElements: InputGroup layout requires div, not fieldset */}
+    // biome-ignore lint/a11y/useSemanticElements: InputGroup layout requires div, not fieldset
     <div
       data-slot="input-group"
       role="group"

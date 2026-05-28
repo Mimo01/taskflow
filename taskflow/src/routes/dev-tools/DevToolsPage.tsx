@@ -33,6 +33,7 @@ export default function DevToolsPage() {
           </p>
         </div>
         <button
+          type="button"
           onClick={handleClear}
           disabled={entries.length === 0 && operations.length === 0 && ungrouped.length === 0}
           className="shrink-0 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"

@@ -326,16 +326,15 @@ export default function ReleasesTab() {
                 ...releasedVersions.slice(0, releasedVisible),
               ] as MatchedVersion[]
             ).map(({ version, match, issuesFixed, issuesTotal }) => (
-              <div
+              <button
                 key={version.id}
+                type="button"
                 data-testid="release-row"
-                role="button"
-                tabIndex={0}
                 onClick={() => handleReleaseClick(version.id)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleReleaseClick(version.id);
                 }}
-                className="flex items-center justify-between rounded px-3 py-2 hover:bg-muted/50 gap-3 cursor-pointer"
+                className="flex items-center justify-between rounded px-3 py-2 hover:bg-muted/50 gap-3 cursor-pointer w-full text-left"
               >
                 {/* Version name + badges */}
                 <div className="flex items-center gap-3 min-w-0">
@@ -459,7 +458,7 @@ export default function ReleasesTab() {
                     {issuesFixed} / {issuesTotal} done
                   </span>
                 </div>
-              </div>
+              </button>
             ))}
 
             {/* Load more released */}

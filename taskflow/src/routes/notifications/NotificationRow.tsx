@@ -141,9 +141,8 @@ function ActionIcon({
   variant?: 'default' | 'destructive';
 }) {
   return (
-    <span
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       onClick={(e) => {
         e.stopPropagation();
         onClick(e);
@@ -162,7 +161,7 @@ function ActionIcon({
       }`}
     >
       {children}
-    </span>
+    </button>
   );
 }
 

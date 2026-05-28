@@ -25,6 +25,7 @@ export function LinkRowsSection({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
+        {/* biome-ignore lint/a11y/noLabelWithoutControl: section header label, not associated with a single form control */}
         <label className="text-sm font-medium">Issue Links</label>
         <button
           type="button"

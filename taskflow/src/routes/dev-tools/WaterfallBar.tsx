@@ -255,6 +255,7 @@ export default function WaterfallBar({ operation }: { operation: Operation }) {
                     height: '40px',
                   }}
                 >
+                  {/* biome-ignore lint/a11y/noStaticElementInteractions: mouse-only tooltip in dev-tools waterfall; keyboard access not applicable */}
                   <div
                     ref={(el) => {
                       if (el) barRefs.current.set(fetch.id, el);

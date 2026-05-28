@@ -37,6 +37,7 @@ export default function DevToolsSettings() {
   return (
     <div className="border border-border rounded-lg overflow-hidden">
       <button
+        type="button"
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium hover:bg-accent transition-colors"
       >

@@ -8,11 +8,10 @@ interface AttachmentThumbnailProps {
 
 export function AttachmentThumbnail({ attachment, onClick }: AttachmentThumbnailProps) {
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       aria-label={`${attachment.filename} - click to view full size`}
-      className="w-20 h-20 rounded-md overflow-hidden bg-muted relative group cursor-pointer border border-border"
+      className="w-20 h-20 rounded-md overflow-hidden bg-muted relative group cursor-pointer border border-border p-0"
       onClick={onClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -26,6 +25,6 @@ export function AttachmentThumbnail({ attachment, onClick }: AttachmentThumbnail
         alt={attachment.filename}
         className="w-full h-full object-cover"
       />
-    </div>
+    </button>
   );
 }

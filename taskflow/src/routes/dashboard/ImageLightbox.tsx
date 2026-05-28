@@ -24,7 +24,9 @@ export function ImageLightbox({ src, alt, open, onClose }: ImageLightboxProps) {
     <div
       className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
       onClick={onClose}
-      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
       role="dialog"
       aria-modal="true"
       aria-label={alt ?? 'Image preview'}
@@ -37,11 +39,13 @@ export function ImageLightbox({ src, alt, open, onClose }: ImageLightboxProps) {
       >
         &times;
       </button>
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: propagation-stopper to prevent backdrop close when clicking image */}
       <div
         className="bg-white rounded-lg"
-        role="presentation"
         onClick={(e: React.MouseEvent) => e.stopPropagation()}
-        onKeyDown={(e) => { e.stopPropagation(); }}
+        onKeyDown={(e) => {
+          e.stopPropagation();
+        }}
       >
         <AuthImage
           src={src}

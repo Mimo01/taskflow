@@ -246,14 +246,16 @@ export default function UpdatesSection() {
           Check for updates
         </h3>
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-semibold">Check frequency</label>
+          <label htmlFor="update-check-frequency" className="text-sm font-semibold">
+            Check frequency
+          </label>
           <Select
             value={updateCheckInterval === 'manual' ? 'manual' : updateCheckInterval.toString()}
             onValueChange={(val) =>
               setUpdateCheckInterval(val === 'manual' ? 'manual' : (Number(val) as 1 | 6 | 12 | 24))
             }
           >
-            <SelectTrigger className="w-48">
+            <SelectTrigger id="update-check-frequency" className="w-48">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
