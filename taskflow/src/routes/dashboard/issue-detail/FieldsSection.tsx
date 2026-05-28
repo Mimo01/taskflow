@@ -798,6 +798,14 @@ export function FieldsSection({
                         released
                       </Badge>
                     )}
+                    {!version.released && !version.releaseDate && (
+                      <Badge
+                        variant="outline"
+                        className="text-muted-foreground border-muted-foreground/30 text-[9px] leading-none px-1 py-0 h-3.5"
+                      >
+                        no date
+                      </Badge>
+                    )}
                   </button>
                 );
               })}
