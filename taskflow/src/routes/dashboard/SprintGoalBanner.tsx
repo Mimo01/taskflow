@@ -15,14 +15,13 @@ export function SprintGoalBanner({ goal }: SprintGoalBannerProps) {
   if (!goal?.trim()) return null;
 
   return (
-    <div
-      role="banner"
+    <header
       aria-label="Sprint goal"
       className="flex items-center gap-2 border-b border-border/40 bg-muted/30 px-4 py-2"
     >
       <Target className="size-3.5 shrink-0 text-muted-foreground" />
       <span className="text-xs font-medium text-muted-foreground">Goal</span>
       <span className="text-xs text-foreground/80 truncate">{goal}</span>
-    </div>
+    </header>
   );
 }

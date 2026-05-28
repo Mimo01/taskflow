@@ -83,9 +83,10 @@ function MultiFilterCombobox({
       {open && filtered.length > 0 && (
         <ul className="absolute z-20 mt-1 w-max min-w-full max-h-48 overflow-y-auto rounded border border-border bg-background shadow-md">
           {filtered.map((option) => (
-            <li key={option} aria-selected={selected.has(option)}>
+            <li key={option}>
               <button
                 type="button"
+                aria-pressed={selected.has(option)}
                 className="w-full px-3 py-1.5 text-left text-xs hover:bg-accent flex items-center gap-2"
                 onMouseDown={() => handleSelect(option)}
               >
