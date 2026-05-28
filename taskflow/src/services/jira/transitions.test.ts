@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../lib/apiFetch', () => ({ apiFetch: vi.fn() }));
 
 import { apiFetch } from '../../lib/apiFetch';
-import { fetchTransitions, postTransition } from './transitions';
+import { postTransition } from './transitions';
 
 const mockedApiFetch = vi.mocked(apiFetch);
 const baseUrl = 'https://jira.example.com';
@@ -13,31 +13,6 @@ const issueKey = 'PROJ-1';
 describe('transitions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  describe('fetchTransitions', () => {
-    it('returns transitions on success', async () => {
-      const transitions = [{ id: '1', name: 'Done', to: { id: '3', name: 'Done' } }];
-      mockedApiFetch.mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({ transitions }),
-      } as unknown as Response);
-
-      const result = await fetchTransitions(baseUrl, token, issueKey);
-      expect(result).toEqual(transitions);
-    });
-
-    it('throws on 401', async () => {
-      mockedApiFetch.mockResolvedValue({
-        ok: false,
-        status: 401,
-      } as unknown as Response);
-
-      await expect(fetchTransitions(baseUrl, token, issueKey)).rejects.toThrow(
-        'Failed to fetch transitions',
-      );
-    });
   });
 
   describe('postTransition', () => {

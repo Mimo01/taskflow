@@ -1,48 +1,13 @@
 /**
- * Jira issue transition operations.
+ * Jira issue transition POST operation.
+ *
+ * The legacy per-issue REST GET path was removed in Phase 72 (D-08 / GH-CUT-01).
+ * Workflow transitions are now resolved via the GreenHopper cache
+ * (useGhTransitions / getGhTransitions in src/services/jira/greenhopper/transitions.ts).
  */
 
 import { ApiError } from '../../lib/api-error';
 import { apiFetch } from '../../lib/apiFetch';
-import type { JiraTransition } from './types';
-
-/**
- * Fetch available transitions for a Jira issue.
- */
-export async function fetchTransitions(
-  baseUrl: string,
-  token: string,
-  issueKey: string,
-): Promise<JiraTransition[]> {
-  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/transitions`;
-
-  let response: Response;
-  try {
-    response = await apiFetch(
-      'jira',
-      url,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      },
-      'Issue Transition',
-    );
-  } catch {
-    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
-  }
-
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new ApiError(`Failed to fetch transitions for ${issueKey}`, response.status, 'jira');
-    }
-    throw new Error(`Failed to fetch transitions for ${issueKey}: status ${response.status}`);
-  }
-
-  const data = await response.json();
-  return data.transitions as JiraTransition[];
-}
 
 /**
  * Transition a Jira issue to a new status.
