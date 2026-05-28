@@ -953,8 +953,8 @@ describe('WorklogsPage', () => {
 
   // ── Task 1: WorklogEntryRow + EditWorklogForm ──────────────────────────────
 
-  describe('WorklogEntryRow shows time, author, and comment fields', () => {
-    it('renders time, author, and comment', async () => {
+  describe('WorklogEntryRow shows time and comment fields', () => {
+    it('renders time and comment (author shown via row hover, not always-visible — UX change 3c2d9ac5)', async () => {
       const { WorklogEntryRow } = await import('./WorklogEntryRow');
       const entry: TempoWorklog = {
         jiraWorklogId: 42,
@@ -973,7 +973,6 @@ describe('WorklogsPage', () => {
         />,
       );
       expect(getByText('2h 30m')).toBeTruthy();
-      expect(getByText('Alice Smith')).toBeTruthy();
       expect(getByText('Did some work')).toBeTruthy();
     });
   });
@@ -1119,9 +1118,12 @@ describe('WorklogsPage', () => {
         fireEvent.click(cellBtn as Element);
       });
 
-      // Popover content renders in a portal — check document.body via screen
+      // Popover content renders in a portal — check document.body via screen.
+      // Author is no longer rendered in the row (UX change 3c2d9ac5); assert the
+      // entry's comment text and a delete affordance instead.
       await waitFor(() => {
-        expect(document.body.innerHTML).toContain('Alice Smith');
+        expect(document.body.innerHTML).toContain('Story work');
+        expect(document.body.querySelector('[aria-label="Delete worklog entry"]')).toBeTruthy();
       });
     });
   });
@@ -1165,7 +1167,7 @@ describe('WorklogsPage', () => {
   });
 
   describe('popover shows individual entries from raw worklog data', () => {
-    it('shows both entries authors when two entries exist for same cell', async () => {
+    it('shows one row per entry when two entries exist for same cell (author no longer rendered — UX 3c2d9ac5)', async () => {
       const monday = thisWeekDate(1);
       mockFetchWorklogsResult = [
         {
@@ -1205,9 +1207,14 @@ describe('WorklogsPage', () => {
         fireEvent.click(cellBtn as Element);
       });
 
+      // Author display name no longer rendered (UX 3c2d9ac5). Assert that two
+      // distinct entry rows exist instead — one per worklog, each with its own
+      // delete affordance and time-spent value.
       await waitFor(() => {
-        expect(document.body.innerHTML).toContain('Alice Smith');
-        expect(document.body.innerHTML).toContain('Bob Jones');
+        const deleteBtns = document.body.querySelectorAll('[aria-label="Delete worklog entry"]');
+        expect(deleteBtns.length).toBe(2);
+        expect(document.body.innerHTML).toContain('2h');
+        expect(document.body.innerHTML).toContain('1h');
       });
     });
   });
