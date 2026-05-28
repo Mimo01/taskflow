@@ -22,7 +22,7 @@ See: .planning/PROJECT.md (updated 2026-05-25)
 Phase: Milestone v1.10 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-05-25 — Milestone v1.10 completed and archived
+Last activity: 2026-05-28 - Completed quick task 260528-jwr: On jira issue detail, when selecting fix version, the values in the popup should be sorted by release dates, not alphabetically
 
 ## Performance Metrics
 
@@ -104,6 +104,7 @@ Items acknowledged and deferred at the v1.10 milestone close on 2026-05-25 (20 o
 | 260528-19k | I want to completely remove My tasks page | 2026-05-27 | 04bfacd6 | Verified | [260528-19k-i-want-to-completely-remove-my-tasks-pag](./quick/260528-19k-i-want-to-completely-remove-my-tasks-pag/) |
 | 260528-20i | I want to fix as much biome problems as possible | 2026-05-27 | 30ef80af | Verified | [260528-20i-i-want-to-fix-as-much-biome-problems-as-](./quick/260528-20i-i-want-to-fix-as-much-biome-problems-as-/) |
 | 260528-ct1 | I want to fix as much biome problems as possible | 2026-05-28 | f38084f9 | Verified | [260528-ct1-i-want-to-fix-as-much-biome-problems-as-](./quick/260528-ct1-i-want-to-fix-as-much-biome-problems-as-/) |
+| 260528-jwr | On jira issue detail, when selecting fix version, the values in the popup should be sorted by release dates, not alphabetically | 2026-05-28 | 97f183e2 |  | [260528-jwr-on-jira-issue-detail-when-selecting-fix-](./quick/260528-jwr-on-jira-issue-detail-when-selecting-fix-/) |
 
 ## Session Continuity
 
