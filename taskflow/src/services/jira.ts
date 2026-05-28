@@ -149,9 +149,19 @@ export interface JiraIssue {
     assignee: { displayName: string; avatarUrls: { '48x48': string } } | null;
     customfield_10016: number | null; // story points (most common field key)
     issuetype: {
+      /** Numeric id (Phase 72: needed for GH transitions cache lookup; optional
+       *  in the type so legacy test fixtures keep compiling — runtime always
+       *  returns it when `issuetype` is in the fields= list). */
+      id?: string;
       name: string;
       subtask: boolean; // Use this — NOT name comparison. Admins can rename issue types.
     };
+    /**
+     * Project context — Phase 72: required for GH transitions cache lookup.
+     * Optional in the type because legacy callers may not request the `project`
+     * field; sprint board / transitions consumers MUST include it in fields=.
+     */
+    project?: { id: string; key: string };
     description?: string | null;
     // v1.1 additions (all optional — non-breaking for all four existing callers):
     parent?: { id: string; key: string; fields: { summary: string } };
@@ -367,7 +377,7 @@ export async function fetchSprintIssues(
   const spFields = [
     ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
   ].join(',');
-  const fields = `summary,status,assignee,issuetype,labels,${spFields},${epicLinkFieldKey},parent,subtasks,timetracking,duedate`;
+  const fields = `summary,status,assignee,issuetype,project,labels,${spFields},${epicLinkFieldKey},parent,subtasks,timetracking,duedate`;
   const jql = encodeURIComponent(
     `project = ${projectKey} AND sprint in openSprints()${assigneeClause} AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`,
   );
@@ -401,7 +411,7 @@ export async function fetchSprintIssues(
   if (parentKeys.length === 0) return parentIssues;
 
   // Subtask fields: same as parent query EXCEPT description is omitted (fetched on-demand)
-  const subtaskFields = 'summary,status,assignee,issuetype,parent,timetracking';
+  const subtaskFields = 'summary,status,assignee,issuetype,project,parent,timetracking';
 
   try {
     // Chunk to stay within Jira DC URL length limits (~6000 chars JQL max)
@@ -462,7 +472,7 @@ export async function fetchSprintStories(
   const spFields = [
     ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
   ].join(',');
-  const fields = `summary,status,assignee,issuetype,labels,${spFields},${epicLinkFieldKey},parent,subtasks,timetracking,duedate,${flaggedFieldKey}`;
+  const fields = `summary,status,assignee,issuetype,project,labels,${spFields},${epicLinkFieldKey},parent,subtasks,timetracking,duedate,${flaggedFieldKey}`;
   const jql = encodeURIComponent(
     `project = ${projectKey} AND sprint in openSprints()${assigneeClause} AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`,
   );
@@ -510,7 +520,7 @@ export async function fetchSprintSubtasks(
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const assigneeClause = assignedToMe ? ' AND assignee = currentUser()' : '';
-  const subtaskFields = 'summary,status,assignee,issuetype,parent,timetracking';
+  const subtaskFields = 'summary,status,assignee,issuetype,project,parent,timetracking';
 
   const chunks: string[][] = [];
   for (let i = 0; i < parentKeys.length; i += SUBTASK_CHUNK_SIZE) {
@@ -558,8 +568,8 @@ export async function fetchMyTasksHierarchy(
   const spFields = [
     ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
   ].join(',');
-  const fields = `summary,status,assignee,issuetype,${spFields},parent,subtasks,timetracking,duedate`;
-  const subtaskFields = 'summary,status,assignee,issuetype,parent,timetracking';
+  const fields = `summary,status,assignee,issuetype,project,${spFields},parent,subtasks,timetracking,duedate`;
+  const subtaskFields = 'summary,status,assignee,issuetype,project,parent,timetracking';
 
   // Step 1: my stories + my subtasks in parallel — both fully paginated
   const myStoriesJql = encodeURIComponent(
@@ -1496,7 +1506,8 @@ export interface JiraIssueDetail {
     summary: string;
     description: string | null;
     status: { id: string; name: string; statusCategory?: { key: string } };
-    issuetype: { name: string; subtask: boolean };
+    issuetype: { id?: string; name: string; subtask: boolean };
+    project?: { id: string; key: string };
     priority: { name: string; iconUrl?: string } | null;
     assignee: { displayName: string; name: string; avatarUrls: { '48x48': string } } | null;
     reporter: { displayName: string; name?: string; avatarUrls: { '48x48': string } } | null;
@@ -1607,6 +1618,7 @@ export async function fetchIssueDetail(
     'priority',
     'customfield_13415',
     'issuetype',
+    'project',
     'description',
     'comment',
     'attachment',
