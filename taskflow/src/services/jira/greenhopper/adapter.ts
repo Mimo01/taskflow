@@ -31,13 +31,10 @@
 // JiraIssue lives in the legacy dual-file services/jira.ts:139 (memory:
 // project_jira_ts_dual_file.md + Phase 71 D-05). DO NOT import from '../../jira/index'.
 import type { JiraIssue } from '../../jira';
-import {
-  resolveEpic,
-  resolveParent,
-  resolvePriority,
-  resolveStatus,
-  resolveType,
-} from './entityMaps';
+// WR-01: resolveEpic / resolvePriority / resolveParent are intentionally NOT
+// imported here — they are surface-exercised by entityMaps tests and re-exported
+// from index.ts so Phase 73 wiring can import them directly from the barrel.
+import { resolveStatus, resolveType } from './entityMaps';
 import type { EntityMaps, GhBoardIssue, GhIssue } from './types';
 
 /**
@@ -84,16 +81,6 @@ export function adaptIssue(
   const storyPoints: number | null =
     estimate?.statFieldId === storyPointsFieldKey ? (estimate.statFieldValue.value ?? null) : null;
 
-  // Resolve issuetype display name; subtask flag is derived from parentId presence
-  // per Phase 71 D-11 + RESEARCH ambiguity #1. NOTE: legacy `JiraIssue.fields.issuetype`
-  // shape in src/services/jira.ts:151-154 is `{ name, subtask }` ONLY — adding `id`
-  // would fail tsc excess-property checks (PATTERNS §adapter.ts).
-  const issuetype = resolveType(gh.typeId, entityMaps);
-  const adaptedIssuetype: JiraIssue['fields']['issuetype'] = {
-    name: issuetype.name,
-    subtask: gh.parentId !== undefined,
-  };
-
   // Assignee — GH carries a single avatar URL; project legacy shape uses { '48x48' }.
   const assignee: JiraIssue['fields']['assignee'] = gh.assignee
     ? {
@@ -104,24 +91,41 @@ export function adaptIssue(
 
   // Parent — GH child rows omit the parent summary; consumers do not render it
   // for board/backlog cards. Phase 75 details adapter can hydrate via details.json.
+  // CR-01 fix: synthesize parent only when BOTH parentId AND parentKey are present,
+  // matching the contract enforced by resolveParent() in entityMaps.ts. Defaulting
+  // `key` to '' silently breaks downstream hierarchy lookups, breadcrumb construction,
+  // deep-linking, and Atlassian URL building for the ~60 JiraIssue consumers.
   const parent: JiraIssue['fields']['parent'] | undefined =
-    gh.parentId !== undefined
+    gh.parentId !== undefined && gh.parentKey !== undefined
       ? {
           id: String(gh.parentId),
-          key: gh.parentKey ?? '',
+          key: gh.parentKey,
           fields: { summary: '' },
         }
       : undefined;
 
-  // Side-effect-free use of the optional resolvers — they're called for parity
-  // with the resolver surface (no top-level `epic`/`priority` synthesis on
-  // fields per RESEARCH ambiguity #3 + D-01 superset list — these helpers are
-  // surface-exercised by entityMaps tests; we keep this single touch so static
-  // analysers and tree-shakers see the imports as live for the future Phase 73
-  // wiring).
-  void resolveEpic(gh.epicId, entityMaps);
-  void resolvePriority(gh.priorityId, entityMaps);
-  void resolveParent(gh.parentId, gh.parentKey);
+  // Resolve issuetype display name; subtask flag is derived from parent presence
+  // (the JiraIssue invariant per Phase 71 D-11 + RESEARCH ambiguity #1 is
+  // "subtask iff parent is set"). CR-01 fix: deriving from `parent !== undefined`
+  // rather than `gh.parentId !== undefined` keeps subtask consistent with the
+  // synthesized parent — an issue with parentId but no parentKey is NOT marked
+  // subtask (its parent could not be safely synthesised).
+  // NOTE: legacy `JiraIssue.fields.issuetype` shape in src/services/jira.ts:151-154
+  // is `{ name, subtask }` ONLY — adding `id` would fail tsc excess-property checks
+  // (PATTERNS §adapter.ts).
+  const issuetype = resolveType(gh.typeId, entityMaps);
+  const adaptedIssuetype: JiraIssue['fields']['issuetype'] = {
+    name: issuetype.name,
+    subtask: parent !== undefined,
+  };
+
+  // WR-01 fix: removed `void resolveEpic / resolvePriority / resolveParent` —
+  // those calls were dead computation that ran per-issue (~156× per fixture),
+  // and `resolvePriority` would even fire `warnOnce('priority', 'unknown')` for
+  // a result that was immediately discarded — contradicting D-08 "never warn"
+  // by proxy. The resolvers are re-exported from index.ts so static analysers
+  // see them as live for Phase 73 wiring (no top-level `epic`/`priority`
+  // synthesis on fields per RESEARCH ambiguity #3 + D-01 superset list).
 
   const fields: JiraIssue['fields'] = {
     summary: gh.summary,
