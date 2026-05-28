@@ -207,8 +207,13 @@ export function FieldsSection({
       (v) => !recentIds.has(v.id) && f.fixVersions.some((fv) => fv.id === v.id),
     );
 
-    // Display order: unreleased (by name), then released (most recent first)
-    const sortedUnreleased = [...unreleased].sort((a, b) => a.name.localeCompare(b.name));
+    // Display order: unreleased (by releaseDate ascending, undated last), then released (most recent first)
+    const sortedUnreleased = [...unreleased].sort((a, b) => {
+      if (a.releaseDate && b.releaseDate) return a.releaseDate.localeCompare(b.releaseDate);
+      if (a.releaseDate) return -1;
+      if (b.releaseDate) return 1;
+      return a.name.localeCompare(b.name);
+    });
     const sortedReleased = [...recentReleased, ...selectedOlder].sort((a, b) => {
       if (!a.releaseDate && !b.releaseDate) return a.name.localeCompare(b.name);
       if (!a.releaseDate) return 1;
