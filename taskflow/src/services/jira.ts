@@ -2741,7 +2741,7 @@ export type {
   GhTransitionsResponse,
   GhTypeEntity,
 } from './jira/greenhopper';
-// GreenHopper (Phase 71) — re-exported here per D-05 (legacy dual-file convention; consumers import from 'services/jira').
+// GreenHopper (Phase 71 + Phase 72) — re-exported here per D-05 (legacy dual-file convention; consumers import from 'services/jira').
 export {
   adaptIssue,
   buildEntityMaps,
@@ -2750,9 +2750,14 @@ export {
   fetchBacklogData,
   fetchGhTransitions,
   fetchIssueDetails,
+  getGhTransitions,
+  invalidateGhTransitions,
   resolveEpic,
   resolveParent,
   resolvePriority,
   resolveStatus,
   resolveType,
+  useGhTransitions,
 } from './jira/greenhopper';
+// Jira statuses (Phase 72) — re-exported per dual-file convention.
+export { fetchAllJiraStatuses, type JiraStatus } from './jira/statuses';
