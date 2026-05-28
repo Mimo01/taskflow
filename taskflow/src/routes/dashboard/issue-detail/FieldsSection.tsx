@@ -376,6 +376,7 @@ export function FieldsSection({
         <StatusPopover
           projectId={Number(f.project?.id ?? 0)}
           issueTypeId={f.issuetype?.id ?? ''}
+          currentStatusId={f.status.id}
           currentStatus={f.status.name}
           onSelect={handleTransition}
           disabled={transitionMutation.isPending}

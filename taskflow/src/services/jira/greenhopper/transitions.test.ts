@@ -27,6 +27,7 @@ import {
   fetchGhTransitions,
   getGhTransitions,
   invalidateGhTransitions,
+  peekGhTransitions,
   useGhTransitions,
 } from './transitions';
 import type { GhTransition, GhTransitionsResponse } from './types';
@@ -349,6 +350,57 @@ describe('getGhTransitions', () => {
         statusCategory: { id: 4, key: 'indeterminate', name: 'In Progress' },
       },
     });
+  });
+});
+
+describe('peekGhTransitions', () => {
+  beforeEach(() => {
+    __resetWarnOnce();
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  it('returns undefined when envelope is not cached yet', () => {
+    const qc = new QueryClient();
+    qc.setQueryData(['jira-statuses'], makeStatuses());
+    expect(peekGhTransitions(qc, 10001, '10000')).toBeUndefined();
+  });
+
+  it('returns undefined when status list is not cached yet', () => {
+    const qc = new QueryClient();
+    qc.setQueryData(['gh-transitions-envelope', 10001], makeEnvelope());
+    expect(peekGhTransitions(qc, 10001, '10000')).toBeUndefined();
+  });
+
+  it('resolves any (projectId, issueTypeId) sync once both layers are cached', () => {
+    const qc = new QueryClient();
+    qc.setQueryData(['gh-transitions-envelope', 10001], makeEnvelope());
+    qc.setQueryData(['jira-statuses'], makeStatuses());
+
+    // Story type — warmed via sentinel.
+    const storyResult = peekGhTransitions(qc, 10001, '10000');
+    // Subtask type — never registered as a per-type query, but envelope
+    // covers it: the bug fix that motivated this helper.
+    const subtaskResult = peekGhTransitions(qc, 10001, '10001');
+
+    expect(storyResult).toHaveLength(2);
+    expect(subtaskResult).toHaveLength(2);
+    expect(subtaskResult?.[0]).toEqual({
+      id: '11',
+      name: 'Start',
+      to: {
+        id: '3',
+        name: 'In Progress',
+        statusCategory: { id: 4, key: 'indeterminate', name: 'In Progress' },
+      },
+    });
+  });
+
+  it('returns [] on workflow miss (issuetype not in projectAndIssueTypeToWorkflow)', () => {
+    const qc = new QueryClient();
+    qc.setQueryData(['gh-transitions-envelope', 10001], makeEnvelope());
+    qc.setQueryData(['jira-statuses'], makeStatuses());
+
+    expect(peekGhTransitions(qc, 10001, 'no-such-type')).toEqual([]);
   });
 });
 

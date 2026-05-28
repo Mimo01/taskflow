@@ -37,6 +37,8 @@ import {
   isIssueFlagged,
   postTransition,
   setIssueFlagged,
+  filterTransitionsForStatus,
+  peekGhTransitions,
   useGhTransitions,
 } from '@/services/jira';
 import { fetchBoardQuickFilters } from '@/services/jira/board-config';
@@ -731,11 +733,19 @@ export default function SprintBoardTab() {
   useGhTransitions(sentinelProjectId, sentinelIssueTypeId);
 
   function getTransitions(issue: JiraIssue): JiraTransition[] | undefined {
-    return queryClient.getQueryData<JiraTransition[]>([
-      'gh-transitions',
+    // Sync peek: envelope + status map are warmed once per project by the
+    // sentinel useGhTransitions above, so any (projectId, issueTypeId) — including
+    // subtask types whose per-type query was never registered — resolves from cache.
+    const all = peekGhTransitions(
+      queryClient,
       Number(issue.fields.project?.id ?? 0),
       issue.fields.issuetype?.id ?? '',
-    ]);
+    );
+    if (!all) return undefined;
+    // The GH envelope returns every transition in the workflow regardless of
+    // source status; filter down to the ones available from this card's current
+    // status (plus global transitions). Mirrors the legacy per-issue REST behavior.
+    return filterTransitionsForStatus(all, issue.fields.status?.id);
   }
 
   // Phase 72 (Plan 02): toolbar "Reload workflow transitions" inline feedback.
