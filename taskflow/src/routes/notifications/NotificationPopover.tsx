@@ -284,7 +284,7 @@ export default function NotificationPopover({
   function getOpenInBrowser(item: NotificationItem): (() => void) | undefined {
     return item.url
       ? () => {
-          openUrl(item.url!).catch(() => {});
+          openUrl(item.url ?? '').catch(() => {});
           markAsRead(item.id);
         }
       : undefined;

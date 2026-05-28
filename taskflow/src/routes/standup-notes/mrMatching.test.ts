@@ -103,7 +103,7 @@ describe('matchMrsToStories', () => {
     const { mrsByStory, unmatchedReviewerMrs } = matchMrsToStories(rows, reviewerMrs, []);
 
     expect(mrsByStory.get('PROJ-1')).toHaveLength(1);
-    expect(mrsByStory.get('PROJ-1')![0]).toMatchObject({ iid: 10, kind: 'review' });
+    expect(mrsByStory.get('PROJ-1')?.[0]).toMatchObject({ iid: 10, kind: 'review' });
     expect(unmatchedReviewerMrs).toHaveLength(0);
   });
 
@@ -114,7 +114,7 @@ describe('matchMrsToStories', () => {
     const { mrsByStory, unmatchedReviewerMrs } = matchMrsToStories(rows, reviewerMrs, []);
 
     expect(mrsByStory.get('PROJ-2')).toHaveLength(1);
-    expect(mrsByStory.get('PROJ-2')![0].iid).toBe(11);
+    expect(mrsByStory.get('PROJ-2')?.[0].iid).toBe(11);
     expect(unmatchedReviewerMrs).toHaveLength(0);
   });
 
@@ -128,7 +128,7 @@ describe('matchMrsToStories', () => {
 
     // PROJ-11 is a subtask of PROJ-10, so the MR should be under PROJ-10
     expect(mrsByStory.get('PROJ-10')).toHaveLength(1);
-    expect(mrsByStory.get('PROJ-10')![0].iid).toBe(20);
+    expect(mrsByStory.get('PROJ-10')?.[0].iid).toBe(20);
     expect(mrsByStory.has('PROJ-11')).toBe(false);
     expect(unmatchedReviewerMrs).toHaveLength(0);
 
@@ -156,7 +156,7 @@ describe('matchMrsToStories', () => {
     const { mrsByStory, unmatchedParticipatingMrs } = matchMrsToStories(rows, [], participatingMrs);
 
     expect(mrsByStory.get('PROJ-6')).toHaveLength(1);
-    expect(mrsByStory.get('PROJ-6')![0]).toMatchObject({
+    expect(mrsByStory.get('PROJ-6')?.[0]).toMatchObject({
       iid: 40,
       kind: 'participating',
       openThreadCount: 2,
@@ -173,7 +173,7 @@ describe('matchMrsToStories', () => {
     const { mrsByStory, unmatchedParticipatingMrs } = matchMrsToStories(rows, [], participatingMrs);
 
     expect(mrsByStory.get('PROJ-7')).toHaveLength(1);
-    expect(mrsByStory.get('PROJ-7')![0].iid).toBe(50);
+    expect(mrsByStory.get('PROJ-7')?.[0].iid).toBe(50);
     expect(unmatchedParticipatingMrs).toHaveLength(0);
   });
 
@@ -204,7 +204,7 @@ describe('matchMrsToStories', () => {
 
     const nested = mrsByStory.get('PROJ-9');
     expect(nested).toHaveLength(1);
-    expect(nested![0]).toMatchObject({ iid: 70, kind: 'review' });
+    expect(nested?.[0]).toMatchObject({ iid: 70, kind: 'review' });
     expect(unmatchedReviewerMrs).toHaveLength(0);
     // The participating duplicate is silently dropped (not in unmatched either)
     expect(unmatchedParticipatingMrs).toHaveLength(0);
@@ -221,7 +221,7 @@ describe('matchMrsToStories', () => {
 
     const nested = mrsByStory.get('PROJ-12');
     expect(nested).toHaveLength(2);
-    expect(nested!.map((m) => m.iid).sort()).toEqual([80, 81]);
+    expect(nested?.map((m) => m.iid).sort()).toEqual([80, 81]);
   });
 
   it('10. empty inputs → empty result', () => {
@@ -270,7 +270,7 @@ describe('matchMrsToStories', () => {
     // The project-2 participating MR is NOT collapsed by the project-1 reviewer MR;
     // it matches PROJ-1 and nests there.
     expect(mrsByStory.get('PROJ-1')).toHaveLength(1);
-    expect(mrsByStory.get('PROJ-1')![0]).toMatchObject({ iid: 42, kind: 'participating' });
+    expect(mrsByStory.get('PROJ-1')?.[0]).toMatchObject({ iid: 42, kind: 'participating' });
     expect(unmatchedReviewerMrs.map((m) => m.iid)).toEqual([42]);
   });
 });

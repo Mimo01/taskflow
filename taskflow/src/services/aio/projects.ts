@@ -82,7 +82,7 @@ export async function fetchAioTraceabilityTestCases(
         runId !== undefined && cycleKey !== undefined ? [{ runId: String(runId), cycleKey }] : [];
       return {
         id: item.test?.ID ?? 0,
-        key: item.test!.detail!.key!,
+        key: item.test?.detail?.key ?? '',
         title: item.test?.detail?.title ?? item.test?.detail?.name ?? '',
         runs,
       };

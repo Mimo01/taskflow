@@ -92,7 +92,7 @@ export default function DashboardInProgressCard({
           subtasks: [],
         });
       }
-      groupMap.get(p.key)!.subtasks.push(subtask);
+      (groupMap.get(p.key) as SubtaskGroup).subtasks.push(subtask);
     } else {
       orphans.push(subtask);
     }

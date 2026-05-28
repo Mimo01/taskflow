@@ -363,7 +363,13 @@ export default function WorklogsPage() {
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['tempo', 'worklogs', jiraBaseUrl, from, to, selectedUsername ?? ''],
     queryFn: () =>
-      fetchWorklogs(jiraBaseUrl!, jiraToken!, selectedUsername ? [selectedUsername] : [], from, to),
+      fetchWorklogs(
+        jiraBaseUrl ?? '',
+        jiraToken ?? '',
+        selectedUsername ? [selectedUsername] : [],
+        from,
+        to,
+      ),
     enabled:
       !!jiraBaseUrl &&
       !!jiraToken &&
@@ -389,7 +395,7 @@ export default function WorklogsPage() {
       if (uniqueKeys.length === 0) return [] as EnrichedIssue[];
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token) throw new Error('No token');
-      const base = jiraBaseUrl!.replace(/\/$/, '');
+      const base = (jiraBaseUrl ?? '').replace(/\/$/, '');
       const jql = encodeURIComponent(`issuekey in (${uniqueKeys.join(',')})`);
       // epicLinkFieldKey = discovered Epic Link field (classic: customfield_10014, varies by instance)
       const url = `${base}/rest/api/2/search?jql=${jql}&fields=summary,issuetype,parent,${epicLinkFieldKey}&maxResults=${uniqueKeys.length}`;
@@ -430,7 +436,7 @@ export default function WorklogsPage() {
       if (parentKeys.length === 0) return [] as EnrichedIssue[];
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token) throw new Error('No token');
-      const base = jiraBaseUrl!.replace(/\/$/, '');
+      const base = (jiraBaseUrl ?? '').replace(/\/$/, '');
       const jql = encodeURIComponent(`issuekey in (${parentKeys.join(',')})`);
       const url = `${base}/rest/api/2/search?jql=${jql}&fields=summary,issuetype,parent,${epicLinkFieldKey}&maxResults=${parentKeys.length}`;
       const response = await apiFetch(
@@ -479,7 +485,7 @@ export default function WorklogsPage() {
       if (grandparentKeys.length === 0) return [] as EnrichedIssue[];
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token) throw new Error('No token');
-      const base = jiraBaseUrl!.replace(/\/$/, '');
+      const base = (jiraBaseUrl ?? '').replace(/\/$/, '');
       const jql = encodeURIComponent(`issuekey in (${grandparentKeys.join(',')})`);
       const url = `${base}/rest/api/2/search?jql=${jql}&fields=summary,issuetype,parent,${epicLinkFieldKey}&maxResults=${grandparentKeys.length}`;
       const response = await apiFetch(
@@ -499,7 +505,8 @@ export default function WorklogsPage() {
   // ─ Schedule (for weekend/holiday column coloring) ────────────────────────
   const { data: scheduleData } = useQuery({
     queryKey: ['tempo', 'schedule', jiraBaseUrl, from, to, jiraUserKey ?? ''],
-    queryFn: () => fetchUserSchedule(jiraBaseUrl!, jiraToken!, from, to, jiraUserKey!),
+    queryFn: () =>
+      fetchUserSchedule(jiraBaseUrl ?? '', jiraToken ?? '', from, to, jiraUserKey ?? ''),
     enabled: !!jiraBaseUrl && !!jiraToken && !!jiraUserKey && tempoEnabled && !!from && !!to,
     staleTime: 24 * 60 * 60 * 1000,
   });
@@ -508,7 +515,8 @@ export default function WorklogsPage() {
   // ─ People list (assignable users from Jira, same source as assignee picker) ─
   const { data: userResults } = useQuery({
     queryKey: ['jira', 'assignable-users', jiraBaseUrl, activeJiraProject, query],
-    queryFn: () => fetchAssignableUsers(jiraBaseUrl!, jiraToken!, activeJiraProject!, query),
+    queryFn: () =>
+      fetchAssignableUsers(jiraBaseUrl ?? '', jiraToken ?? '', activeJiraProject ?? '', query),
     enabled: open && !!jiraBaseUrl && !!jiraToken && !!activeJiraProject,
     staleTime: 30_000,
   });
@@ -550,7 +558,8 @@ export default function WorklogsPage() {
           stories: new Map(),
         });
       }
-      return hierarchyMap.get(epicKey)!;
+      // Map.get is guaranteed non-null: we just set the key above
+      return hierarchyMap.get(epicKey) as EpicNode;
     }
 
     // Helper: ensure story node under an epic
@@ -563,7 +572,8 @@ export default function WorklogsPage() {
           subtasks: new Map(),
         });
       }
-      return epicNode.stories.get(storyKey)!;
+      // Map.get is guaranteed non-null: we just set the key above
+      return epicNode.stories.get(storyKey) as StoryNode;
     }
 
     const issueTotalsMap = new Map<string, number>();
@@ -592,7 +602,7 @@ export default function WorklogsPage() {
 
       if (isSubtask) {
         // Subtask: parent is story; story's parent is epic (next-gen or classic)
-        const storyKey = enriched!.fields.parent!.key;
+        const storyKey = enriched?.fields.parent?.key ?? '';
         const storyEnriched = enrichMap.get(storyKey);
         const epicKey =
           storyEnriched?.fields.parent?.key ??
@@ -612,16 +622,16 @@ export default function WorklogsPage() {
             entries: [],
           });
         }
-        const subtaskNode = storyNode.subtasks.get(issueKey)!;
-        subtaskNode.dayMap.set(date, (subtaskNode.dayMap.get(date) ?? 0) + secs);
-        subtaskNode.entries.push(w);
+        const subtaskNode = storyNode.subtasks.get(issueKey);
+        subtaskNode?.dayMap.set(date, (subtaskNode.dayMap.get(date) ?? 0) + secs);
+        subtaskNode?.entries.push(w);
 
         // Propagate up to story and epic day maps
         storyNode.dayMap.set(date, (storyNode.dayMap.get(date) ?? 0) + secs);
         epicNode.dayMap.set(date, (epicNode.dayMap.get(date) ?? 0) + secs);
       } else if (hasParent) {
         // Story: parent is epic via parent.key (next-gen) or customfield_10014 (classic)
-        const epicKey = parentKeyRaw!;
+        const epicKey = parentKeyRaw ?? NO_EPIC;
         const epicSummary = summaryMap.get(epicKey) ?? epicKey;
         const storySummary = summaryMap.get(issueKey) ?? issueKey;
 
@@ -1134,7 +1144,7 @@ export default function WorklogsPage() {
                               issueKey={epicKey}
                               date={day}
                               entries={cellEntries}
-                              jiraBaseUrl={jiraBaseUrl!}
+                              jiraBaseUrl={jiraBaseUrl ?? ''}
                               totalSeconds={secs}
                               dayColClassName={cellBg}
                             />
@@ -1199,7 +1209,7 @@ export default function WorklogsPage() {
                                     issueKey={storyKey}
                                     date={day}
                                     entries={cellEntries}
-                                    jiraBaseUrl={jiraBaseUrl!}
+                                    jiraBaseUrl={jiraBaseUrl ?? ''}
                                     totalSeconds={secs}
                                     dayColClassName={cellBg}
                                   />
@@ -1262,7 +1272,7 @@ export default function WorklogsPage() {
                                           issueKey={subtaskKey}
                                           date={day}
                                           entries={cellEntries}
-                                          jiraBaseUrl={jiraBaseUrl!}
+                                          jiraBaseUrl={jiraBaseUrl ?? ''}
                                           totalSeconds={secs}
                                           dayColClassName={cellBg}
                                         />

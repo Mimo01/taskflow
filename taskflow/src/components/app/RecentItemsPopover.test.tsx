@@ -64,7 +64,7 @@ describe('RecentItemsPopover', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Recent Items' }));
 
     const row = await screen.findByText('PROJ-10');
-    fireEvent.click(row.closest('button')!);
+    fireEvent.click(row.closest('button') as HTMLButtonElement);
 
     expect(onIssueClick).toHaveBeenCalledWith('PROJ-10');
   });
@@ -79,7 +79,7 @@ describe('RecentItemsPopover', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Recent Items' }));
 
     const row = await screen.findByText('!77');
-    fireEvent.click(row.closest('button')!);
+    fireEvent.click(row.closest('button') as HTMLButtonElement);
 
     expect(onMRClick).toHaveBeenCalledWith('77');
   });

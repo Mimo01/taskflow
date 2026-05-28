@@ -523,8 +523,8 @@ describe('gitlab service', () => {
       await fetchUserCommits(BASE, TOKEN, PROJECT_ID, DATE, 'johndoe');
 
       const calledUrl = vi.mocked(mockFetch).mock.calls[0][0] as string;
-      const sinceParam = decodeURIComponent(calledUrl.match(/since=([^&]+)/)![1]);
-      const untilParam = decodeURIComponent(calledUrl.match(/until=([^&]+)/)![1]);
+      const sinceParam = decodeURIComponent(calledUrl.match(/since=([^&]+)/)?.[1] ?? '');
+      const untilParam = decodeURIComponent(calledUrl.match(/until=([^&]+)/)?.[1] ?? '');
       // The window endpoints are the UTC instants of the LOCAL day boundaries.
       expect(sinceParam).toBe(new Date(`${DATE}T00:00:00.000`).toISOString());
       expect(untilParam).toBe(new Date(`${DATE}T23:59:59.999`).toISOString());

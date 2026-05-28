@@ -128,7 +128,7 @@ export default function CommandPalette({
     queryKey: ['search', 'live', query],
     queryFn: async () => {
       const token = await readSecret('jira-pat');
-      return searchJira(jiraBaseUrl!, token, activeJiraProject!, query);
+      return searchJira(jiraBaseUrl ?? '', token, activeJiraProject ?? '', query);
     },
     enabled: query.length >= 2 && liveSearchTriggered && !!jiraBaseUrl && !!activeJiraProject,
     staleTime: 30_000,
@@ -141,7 +141,7 @@ export default function CommandPalette({
     queryKey: ['search', 'closed', query],
     queryFn: async () => {
       const token = await readSecret('jira-pat');
-      return searchJiraClosed(jiraBaseUrl!, token, activeJiraProject!, query);
+      return searchJiraClosed(jiraBaseUrl ?? '', token, activeJiraProject ?? '', query);
     },
     enabled: query.length >= 2 && closedSearchTriggered && !!jiraBaseUrl && !!activeJiraProject,
     staleTime: 30_000,
@@ -154,7 +154,7 @@ export default function CommandPalette({
     queryKey: ['search', 'key', resolvedKeyLookup],
     queryFn: async () => {
       const token = await readSecret('jira-pat');
-      return fetchJiraIssueByKey(jiraBaseUrl!, token, resolvedKeyLookup);
+      return fetchJiraIssueByKey(jiraBaseUrl ?? '', token, resolvedKeyLookup);
     },
     enabled:
       resolvedKeyLookup.length > 0 && query.length >= 2 && !!jiraBaseUrl && !!activeJiraProject,
@@ -440,11 +440,11 @@ export default function CommandPalette({
                   onSelect={
                     s.navMeta.route
                       ? () => {
-                          onNavigate(s.navMeta.route!);
+                          onNavigate(s.navMeta.route ?? '');
                           onClose();
                         }
                       : () => {
-                          navActionHandlers[s.navMeta.action!]?.();
+                          navActionHandlers[s.navMeta.action ?? '']?.();
                         }
                   }
                 >

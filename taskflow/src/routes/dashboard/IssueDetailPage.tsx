@@ -79,7 +79,7 @@ export default function IssueDetailPage() {
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token || !jiraBaseUrl) throw new Error('No credentials');
-      return fetchIssueDetail(jiraBaseUrl, token, issueKey!, {
+      return fetchIssueDetail(jiraBaseUrl, token, issueKey ?? '', {
         epicLinkFieldKey,
         epicNameFieldKey,
         sprintFieldKey,
@@ -98,7 +98,7 @@ export default function IssueDetailPage() {
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token || !jiraBaseUrl) return [];
-      return fetchEpicStories(jiraBaseUrl, token, issueKey!, '', storyPointsFieldKey);
+      return fetchEpicStories(jiraBaseUrl, token, issueKey ?? '', '', storyPointsFieldKey);
     },
     staleTime: 30_000,
     enabled: isEpic && !!jiraBaseUrl && !!jiraConnected,
@@ -165,7 +165,7 @@ export default function IssueDetailPage() {
     mutationFn: async ({ commentId, body }: { commentId: string; body: string }) => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token) throw new Error('No token');
-      return updateComment(jiraBaseUrl!, token, issueKey!, commentId, body);
+      return updateComment(jiraBaseUrl ?? '', token, issueKey ?? '', commentId, body);
     },
     onSuccess: () => {
       setEditingCommentId(null);
@@ -182,7 +182,7 @@ export default function IssueDetailPage() {
     mutationFn: async (commentId: string) => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token) throw new Error('No token');
-      return deleteComment(jiraBaseUrl!, token, issueKey!, commentId);
+      return deleteComment(jiraBaseUrl ?? '', token, issueKey ?? '', commentId);
     },
     onSuccess: () => {
       setDeleteError(null);
@@ -249,7 +249,7 @@ export default function IssueDetailPage() {
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token || !jiraBaseUrl) return [];
-      return fetchFullWorklogs(jiraBaseUrl, token, issueKey!);
+      return fetchFullWorklogs(jiraBaseUrl, token, issueKey ?? '');
     },
     staleTime: 30_000,
     enabled: !!issueKey && !!jiraBaseUrl && !!jiraConnected,
@@ -274,7 +274,7 @@ export default function IssueDetailPage() {
     }) => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token) throw new Error('No token');
-      return updateWorklog(jiraBaseUrl!, token, issueKey!, worklogId, {
+      return updateWorklog(jiraBaseUrl ?? '', token, issueKey ?? '', worklogId, {
         timeSpentSeconds,
         started,
         comment,
@@ -295,7 +295,7 @@ export default function IssueDetailPage() {
     mutationFn: async (worklogId: string) => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token) throw new Error('No token');
-      return deleteWorklog(jiraBaseUrl!, token, issueKey!, worklogId);
+      return deleteWorklog(jiraBaseUrl ?? '', token, issueKey ?? '', worklogId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
@@ -384,7 +384,7 @@ export default function IssueDetailPage() {
               <IssueDetailContent
                 issue={issue}
                 issueKey={issueKey}
-                jiraBaseUrl={jiraBaseUrl!}
+                jiraBaseUrl={jiraBaseUrl ?? ''}
                 onOpenIssue={onIssueClick}
                 onEdit={openEdit}
                 onClone={openClone}
@@ -403,7 +403,7 @@ export default function IssueDetailPage() {
               {/* AIO Test Runs — above comments per user preference; loads in parallel, gated by aioEnabled (D-15) */}
               <AioTestRunsSection
                 issueKey={issueKey}
-                jiraBaseUrl={jiraBaseUrl!}
+                jiraBaseUrl={jiraBaseUrl ?? ''}
                 jiraIssueId={issue.id}
                 description={issue.fields.description}
               />
@@ -413,7 +413,7 @@ export default function IssueDetailPage() {
                 changelog={issue.changelog?.histories ?? []}
                 worklogs={worklogs}
                 issueKey={issueKey}
-                jiraBaseUrl={jiraBaseUrl!}
+                jiraBaseUrl={jiraBaseUrl ?? ''}
                 jiraUserDisplayName={jiraUserDisplayName}
                 attachmentMap={attachmentMap}
                 userMap={userMap}
@@ -445,7 +445,7 @@ export default function IssueDetailPage() {
 
               {(timelineFilter === 'comment' || timelineFilter === 'all') && (
                 <div className="sticky bottom-0 border-t py-3 -mx-6 px-6 bg-background">
-                  <CommentComposer issueKey={issueKey} jiraBaseUrl={jiraBaseUrl!} />
+                  <CommentComposer issueKey={issueKey} jiraBaseUrl={jiraBaseUrl ?? ''} />
                 </div>
               )}
             </div>
@@ -467,7 +467,7 @@ export default function IssueDetailPage() {
             <IssueDetailSidebar
               issue={issue}
               issueKey={issueKey}
-              jiraBaseUrl={jiraBaseUrl!}
+              jiraBaseUrl={jiraBaseUrl ?? ''}
               storyPointsFieldKey={storyPointsFieldKey}
               epicLinkFieldKey={epicLinkFieldKey}
               epicNameFieldKey={epicNameFieldKey}

@@ -55,7 +55,7 @@ function AssigneeCell({
 }) {
   const { data: user, isLoading } = useQuery<JiraAssignableUser | null>({
     queryKey: ['jira', jiraBaseUrl, 'user-by-username', assignedToID],
-    queryFn: () => fetchJiraUserByUsername(jiraBaseUrl!, token!, assignedToID),
+    queryFn: () => fetchJiraUserByUsername(jiraBaseUrl ?? '', token ?? '', assignedToID),
     enabled: !!jiraBaseUrl && !!token && !!assignedToID,
     staleTime: 5 * 60 * 1000,
   });
@@ -245,11 +245,11 @@ function DefectRow({
             role: 'button' as const,
             tabIndex: 0,
             'aria-label': `Open defect ${resolvedKey}`,
-            onClick: () => onOpen(resolvedKey!),
+            onClick: () => onOpen(resolvedKey ?? ''),
             onKeyDown: (e: React.KeyboardEvent) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                onOpen(resolvedKey!);
+                onOpen(resolvedKey ?? '');
               }
             },
           }
@@ -375,7 +375,8 @@ export default function AioCycleDetailPage() {
 
   const cycleQuery = useQuery<AioCycle>({
     queryKey: ['aio', jiraBaseUrl, 'cycle-detail', projectKey, cycleKey],
-    queryFn: () => fetchAioCycleDetail(jiraBaseUrl!, token!, projectKey!, cycleKey!),
+    queryFn: () =>
+      fetchAioCycleDetail(jiraBaseUrl ?? '', token ?? '', projectKey ?? '', cycleKey ?? ''),
     enabled: credGate,
   });
 
@@ -383,7 +384,7 @@ export default function AioCycleDetailPage() {
   // Mirrors AioProjectOverviewPage.tsx lines 281-288.
   const jiraProjectIdQuery = useQuery({
     queryKey: ['jira', jiraBaseUrl, 'project-numeric-id', projectKey],
-    queryFn: () => fetchJiraProjectNumericId(jiraBaseUrl!, token!, projectKey!),
+    queryFn: () => fetchJiraProjectNumericId(jiraBaseUrl ?? '', token ?? '', projectKey ?? ''),
     enabled: credGate,
     staleTime: 60 * 60 * 1000,
   });
@@ -399,7 +400,10 @@ export default function AioCycleDetailPage() {
   // Key matches AioProjectOverviewPage convention for shared cache.
   const summaryQuery = useQuery<AioCycleSummaryItem[]>({
     queryKey: ['aio', jiraBaseUrl, 'cycle-summaries', projectKey, String(cycleNumericId)],
-    queryFn: () => fetchAioCycleSummaries(jiraBaseUrl!, token!, jiraProjectId!, [cycleNumericId!]),
+    queryFn: () =>
+      fetchAioCycleSummaries(jiraBaseUrl ?? '', token ?? '', jiraProjectId ?? 0, [
+        cycleNumericId ?? 0,
+      ]),
     enabled: aioGate && !!cycleNumericId && !tokenLoading,
   });
 
@@ -408,11 +412,11 @@ export default function AioCycleDetailPage() {
     queryKey: ['aio', jiraBaseUrl, 'runs', projectKey, cycleKey],
     queryFn: () =>
       fetchAioCycleTestCasesWithRuns(
-        jiraBaseUrl!,
-        token!,
-        jiraProjectId!,
-        cycleNumericId!,
-        cycleKey!,
+        jiraBaseUrl ?? '',
+        token ?? '',
+        jiraProjectId ?? 0,
+        cycleNumericId ?? 0,
+        cycleKey ?? '',
       ),
     enabled: aioGate && !!cycleNumericId,
   });
@@ -465,7 +469,7 @@ export default function AioCycleDetailPage() {
   // 3. Both loading or no data → use runsCounts (may be zeros initially)
   const counts =
     summaryQuery.data && summaryTotal > 0
-      ? summaryCounts!
+      ? (summaryCounts ?? runsCounts)
       : summaryQuery.isError && runs
         ? runsCounts
         : runsCounts;
@@ -499,7 +503,7 @@ export default function AioCycleDetailPage() {
   const issueQueries = useQueries({
     queries: defectsWithTriggers.map((d) => ({
       queryKey: ['jira', jiraBaseUrl, 'issue-lightweight', d.defectKey],
-      queryFn: () => fetchJiraIssueByKey(jiraBaseUrl!, token!, d.defectKey),
+      queryFn: () => fetchJiraIssueByKey(jiraBaseUrl ?? '', token ?? '', d.defectKey),
       enabled: !!jiraBaseUrl && !!token && !tokenLoading,
     })),
   });
@@ -529,7 +533,7 @@ export default function AioCycleDetailPage() {
   const statusOptions = useMemo(() => {
     const vals = resolvedDefects
       .filter((d) => !d.isLoading && d.issue)
-      .map((d) => d.issue!.fields.status?.name)
+      .map((d) => d.issue?.fields.status?.name)
       .filter(Boolean) as string[];
     return [...new Set(vals)].sort();
   }, [resolvedDefects]);
@@ -537,7 +541,7 @@ export default function AioCycleDetailPage() {
   const priorityOptions = useMemo(() => {
     const vals = resolvedDefects
       .filter((d) => !d.isLoading && d.issue)
-      .map((d) => d.issue!.fields.priority?.name)
+      .map((d) => d.issue?.fields.priority?.name)
       .filter(Boolean) as string[];
     return [...new Set(vals)].sort();
   }, [resolvedDefects]);
@@ -546,7 +550,7 @@ export default function AioCycleDetailPage() {
     const vals = resolvedDefects
       .filter((d) => !d.isLoading && d.issue)
       .map(
-        (d) => d.issue!.fields.customfield_13415?.value ?? d.issue!.fields.customfield_13415?.name,
+        (d) => d.issue?.fields.customfield_13415?.value ?? d.issue?.fields.customfield_13415?.name,
       )
       .filter(Boolean) as string[];
     return [...new Set(vals)].sort();
@@ -555,7 +559,7 @@ export default function AioCycleDetailPage() {
   const assigneeOptions = useMemo(() => {
     const vals = resolvedDefects
       .filter((d) => !d.isLoading && d.issue)
-      .map((d) => d.issue!.fields.assignee?.displayName)
+      .map((d) => d.issue?.fields.assignee?.displayName)
       .filter(Boolean) as string[];
     return [...new Set(vals)].sort();
   }, [resolvedDefects]);
@@ -800,11 +804,11 @@ export default function AioCycleDetailPage() {
           title={pinned ? 'Unpin from tabs' : 'Pin to tabs'}
           onClick={() => {
             if (pinned) {
-              removePin(cycleKey!);
-              clearCycleMeta(cycleKey!);
+              removePin(cycleKey ?? '');
+              clearCycleMeta(cycleKey ?? '');
             } else {
-              togglePin(cycleKey!);
-              setPinnedCycleMeta(cycleKey!, { name: cycleName, projectKey: projectKey! });
+              togglePin(cycleKey ?? '');
+              setPinnedCycleMeta(cycleKey ?? '', { name: cycleName, projectKey: projectKey ?? '' });
             }
           }}
         >
@@ -1040,7 +1044,7 @@ export default function AioCycleDetailPage() {
                       <td className="px-3 py-3">
                         {(run.jiraDefectIDs?.length ?? 0) > 0 ? (
                           <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                            {run.jiraDefectIDs!.length}
+                            {run.jiraDefectIDs?.length}
                           </span>
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>

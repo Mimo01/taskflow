@@ -88,7 +88,7 @@ describe('CachedAvatar component', () => {
     });
 
     // Simulate img decode failure
-    const img = container.querySelector('img')!;
+    const img = container.querySelector('img') as HTMLImageElement;
     fireEvent.error(img);
 
     // After error, img should be removed and initials should be visible again

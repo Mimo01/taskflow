@@ -78,7 +78,8 @@ export default function MergeRequestListPage() {
     refetch: mrsRefetch,
   } = useQuery({
     queryKey: ['gitlab-project-mrs', projectId, stateFilter],
-    queryFn: () => fetchProjectMRs(gitlabBaseUrl!, gitlabToken!, projectId!, stateFilter),
+    queryFn: () =>
+      fetchProjectMRs(gitlabBaseUrl ?? '', gitlabToken ?? '', projectId ?? '', stateFilter),
     staleTime: 30_000,
     enabled: !!gitlabBaseUrl && !!gitlabToken && !!projectId && !isSearching,
   });
@@ -91,7 +92,7 @@ export default function MergeRequestListPage() {
     error: searchErr,
   } = useQuery({
     queryKey: ['gitlab-search-mrs', debouncedSearch],
-    queryFn: () => searchGitLabMRs(gitlabBaseUrl!, gitlabToken!, debouncedSearch),
+    queryFn: () => searchGitLabMRs(gitlabBaseUrl ?? '', gitlabToken ?? '', debouncedSearch),
     staleTime: 30_000,
     enabled: !!gitlabBaseUrl && !!gitlabToken && isSearching,
   });

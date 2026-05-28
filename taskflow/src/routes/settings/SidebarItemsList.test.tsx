@@ -71,22 +71,22 @@ describe('SidebarItemsList', () => {
 
     // Find the first item label text
     const dashboardLabel = screen.getByText('Dashboard');
-    const row = dashboardLabel.parentElement;
+    const row = dashboardLabel.parentElement as Element;
     expect(row).not.toBeNull();
 
     // Row must have a checkbox
-    const checkbox = row!.querySelector('input[type="checkbox"]');
+    const checkbox = row.querySelector('input[type="checkbox"]');
     expect(checkbox).not.toBeNull();
 
     // Row must NOT have a drag-handle button
-    const dragButton = row!.querySelector('button[aria-label="Drag to reorder"]');
+    const dragButton = row.querySelector('button[aria-label="Drag to reorder"]');
     expect(dragButton).toBeNull();
 
     // Row must NOT have data-sortable-item attribute
-    expect(row!.hasAttribute('data-sortable-item')).toBe(false);
+    expect(row.hasAttribute('data-sortable-item')).toBe(false);
 
     // Verify order: checkbox comes before label in DOM
-    const children = Array.from(row!.children);
+    const children = Array.from(row.children);
     const checkboxIdx = children.indexOf(checkbox as Element);
     const labelIdx = children.indexOf(dashboardLabel);
     expect(checkboxIdx).toBeLessThan(labelIdx);

@@ -128,8 +128,8 @@ describe('filterSprintItems — grouped output', () => {
 
     const row = inProgress.find((r) => r.issue.key === 'SHOP-10');
     expect(row).toBeDefined();
-    expect(row!.subtasks.map((s) => s.key)).toContain('SHOP-10-S1');
-    expect(row!.subtasks.map((s) => s.key)).toContain('SHOP-10-S2');
+    expect(row?.subtasks.map((s) => s.key)).toContain('SHOP-10-S1');
+    expect(row?.subtasks.map((s) => s.key)).toContain('SHOP-10-S2');
   });
 
   it('subtasks nest under parent regardless of subtask own status when parent is assigned to me (placed by parent status)', () => {
@@ -152,7 +152,7 @@ describe('filterSprintItems — grouped output', () => {
 
     const upNextRow = upNext.find((r) => r.issue.key === 'SHOP-11');
     expect(upNextRow).toBeDefined();
-    expect(upNextRow!.subtasks.map((s) => s.key)).toContain('SHOP-11-S1');
+    expect(upNextRow?.subtasks.map((s) => s.key)).toContain('SHOP-11-S1');
     // Parent must NOT appear in inProgress
     expect(inProgress.map((r) => r.issue.key)).not.toContain('SHOP-11');
   });
@@ -171,7 +171,7 @@ describe('filterSprintItems — grouped output', () => {
 
     const row = inProgress.find((r) => r.issue.key === 'SHOP-20');
     expect(row).toBeDefined();
-    expect(row!.subtasks).toHaveLength(0);
+    expect(row?.subtasks).toHaveLength(0);
   });
 
   it('excludes done items from both lists', () => {
@@ -220,8 +220,8 @@ describe('filterSprintItems — grouped output', () => {
 
     const row = inProgress.find((r) => r.issue.key === 'SHOP-40');
     expect(row).toBeDefined();
-    expect(row!.subtasks.map((s) => s.key)).toContain('SHOP-40-S2');
-    expect(row!.subtasks.map((s) => s.key)).not.toContain('SHOP-40-S1');
+    expect(row?.subtasks.map((s) => s.key)).toContain('SHOP-40-S2');
+    expect(row?.subtasks.map((s) => s.key)).not.toContain('SHOP-40-S1');
   });
 
   it('resurfaces an active subtask of a DONE parent as a standalone row', () => {
@@ -248,7 +248,7 @@ describe('filterSprintItems — grouped output', () => {
     // My active subtask resurfaces standalone, placed by its own status.
     const row = inProgress.find((r) => r.issue.key === 'SHOP-41-S1');
     expect(row).toBeDefined();
-    expect(row!.subtasks).toHaveLength(0);
+    expect(row?.subtasks).toHaveLength(0);
   });
 
   it('excludes items not assigned to me', () => {
@@ -304,8 +304,8 @@ describe('filterSprintItems — grouped output', () => {
     expect(inProgress.map((r) => r.issue.key)).not.toContain('SHOP-30');
 
     // Only MY subtask is nested — the other subtask must NOT appear.
-    expect(row!.subtasks.map((s) => s.key)).toContain('SHOP-30-S1');
-    expect(row!.subtasks.map((s) => s.key)).not.toContain('SHOP-30-S2');
+    expect(row?.subtasks.map((s) => s.key)).toContain('SHOP-30-S1');
+    expect(row?.subtasks.map((s) => s.key)).not.toContain('SHOP-30-S2');
   });
 
   it('section placement uses subtask status when parent is NOT assigned to me', () => {
@@ -331,7 +331,7 @@ describe('filterSprintItems — grouped output', () => {
     const row = inProgress.find((r) => r.issue.key === 'SHOP-31');
     expect(row).toBeDefined();
     expect(upNext.map((r) => r.issue.key)).not.toContain('SHOP-31');
-    expect(row!.subtasks.map((s) => s.key)).toContain('SHOP-31-S1');
+    expect(row?.subtasks.map((s) => s.key)).toContain('SHOP-31-S1');
   });
 
   it('section placement uses parent status when parent IS assigned to me (even with subtasks)', () => {
@@ -357,6 +357,6 @@ describe('filterSprintItems — grouped output', () => {
     const row = upNext.find((r) => r.issue.key === 'SHOP-32');
     expect(row).toBeDefined();
     expect(inProgress.map((r) => r.issue.key)).not.toContain('SHOP-32');
-    expect(row!.subtasks.map((s) => s.key)).toContain('SHOP-32-S1');
+    expect(row?.subtasks.map((s) => s.key)).toContain('SHOP-32-S1');
   });
 });
