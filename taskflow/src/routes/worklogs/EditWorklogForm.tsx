@@ -26,6 +26,7 @@ interface EditWorklogFormProps {
   jiraBaseUrl: string;
   onDiscard: () => void;
   onSuccess: () => void;
+  onDelete: () => void;
 }
 
 /**
@@ -48,6 +49,7 @@ export function EditWorklogForm({
   jiraBaseUrl,
   onDiscard,
   onSuccess,
+  onDelete,
 }: EditWorklogFormProps) {
   const worklogId = entry.jiraWorklogId?.toString() ?? entry.tempoWorklogId?.toString();
 
@@ -139,11 +141,11 @@ export function EditWorklogForm({
         <Button
           type="button"
           size="sm"
-          variant="ghost"
-          onClick={onDiscard}
+          variant="destructive"
+          onClick={onDelete}
           disabled={editMutation.isPending}
         >
-          Discard Changes
+          Delete
         </Button>
       </div>
       {mutationError && <p className="text-xs text-destructive">{mutationError}</p>}

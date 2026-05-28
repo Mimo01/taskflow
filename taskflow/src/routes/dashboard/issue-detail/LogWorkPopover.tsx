@@ -29,6 +29,8 @@ interface LogWorkPopoverProps {
   onSuccess?: () => void;
   /** Pre-fill the date input with this YYYY-MM-DD value. Defaults to today. */
   initialDate?: string;
+  /** Override the trigger button label. Defaults to "Log Work". */
+  triggerLabel?: string;
 }
 
 function todayString(): string {
@@ -41,6 +43,7 @@ export function LogWorkPopover({
   jiraBaseUrl,
   onSuccess,
   initialDate,
+  triggerLabel = 'Log Work',
 }: LogWorkPopoverProps) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -111,7 +114,7 @@ export function LogWorkPopover({
     >
       <PopoverTrigger className={buttonVariants({ variant: 'outline', size: 'sm' })}>
         <Clock className="size-3.5" />
-        Log Work
+        {triggerLabel}
       </PopoverTrigger>
       <PopoverContent className="w-72 p-4">
         <div className="space-y-3">

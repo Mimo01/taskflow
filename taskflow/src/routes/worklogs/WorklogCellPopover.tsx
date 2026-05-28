@@ -45,13 +45,14 @@ export function WorklogCellPopover({
 }: WorklogCellPopoverProps) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [anyEditing, setAnyEditing] = useState(false);
 
   function handleMutationSuccess() {
     queryClient.invalidateQueries({ queryKey: ['tempo', 'worklogs'] });
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setAnyEditing(false); }}>
       <PopoverTrigger
         className={`group w-full h-full min-h-[2rem] flex items-center justify-center cursor-pointer hover:bg-accent/60 px-2 py-1.5 ${dayColClassName ?? ''}`}
         aria-label={`View worklogs for ${issueKey} on ${date}`}
@@ -70,7 +71,7 @@ export function WorklogCellPopover({
         </p>
 
         {/* Scrollable entry list */}
-        <div className="max-h-48 overflow-y-auto space-y-1">
+        <div className={`space-y-1 ${anyEditing ? '' : 'max-h-48 overflow-y-auto'}`}>
           {entries.map((entry, idx) => (
             <WorklogEntryRow
               key={entry.jiraWorklogId ?? entry.tempoWorklogId ?? idx}
@@ -78,21 +79,23 @@ export function WorklogCellPopover({
               issueKey={issueKey}
               jiraBaseUrl={jiraBaseUrl}
               onMutationSuccess={handleMutationSuccess}
+              onEditingChange={setAnyEditing}
             />
           ))}
         </div>
 
-        {/* Separator */}
-        <div className="border-t border-border mt-2 pt-2">
-          {/* Add-entry section using existing LogWorkPopover — pass the cell date so the
-              date input pre-fills to the clicked day rather than defaulting to today. */}
-          <LogWorkPopover
-            issueKey={issueKey}
-            jiraBaseUrl={jiraBaseUrl}
-            initialDate={date}
-            onSuccess={() => queryClient.invalidateQueries({ queryKey: ['tempo', 'worklogs'] })}
-          />
-        </div>
+        {/* Separator — hidden while an entry is in edit mode */}
+        {!anyEditing && (
+          <div className="border-t border-border mt-2 pt-2">
+            <LogWorkPopover
+              issueKey={issueKey}
+              jiraBaseUrl={jiraBaseUrl}
+              initialDate={date}
+              triggerLabel="Add New Entry"
+              onSuccess={() => queryClient.invalidateQueries({ queryKey: ['tempo', 'worklogs'] })}
+            />
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );
