@@ -58,7 +58,7 @@
 3. Issue-detail status change reads from the same cache
 4. Cache is refreshed on session start and via a manual refresh action; the old per-issue `/transitions` REST path is deleted
 
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
 

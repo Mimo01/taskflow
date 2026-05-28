@@ -4,14 +4,14 @@ milestone: v1.11
 milestone_name: GreenHopper API Migration
 status: executing
 stopped_at: Phase 72 planned (3 plans, 3 waves; plan-checker PASS after 1 revision)
-last_updated: "2026-05-28T21:49:52.516Z"
-last_activity: 2026-05-28 -- Phase 72 execution started
+last_updated: "2026-05-28T22:55:38.872Z"
+last_activity: 2026-05-28
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 9
-  completed_plans: 6
-  percent: 20
+  completed_plans: 9
+  percent: 40
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-25)
 
 ## Current Position
 
-Phase: 72 (workflow-transitions-via-greenhopper) — EXECUTING
-Plan: 1 of 3
+Phase: 73
+Plan: Not started
 Status: Executing Phase 72
-Last activity: 2026-05-28 -- Phase 72 execution started
+Last activity: 2026-05-28
 
 ## Performance Metrics
 

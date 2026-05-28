@@ -34,9 +34,9 @@
 
 ### Workflow Transitions (`transitions.json`)
 
-- [ ] **GH-TRANS-01**: `transitions.json` is fetched once per project and cached; lookup is keyed by `projectId × issueTypeId → workflow → transitions[]`
-- [ ] **GH-TRANS-02**: Sprint-board drag-to-transition and issue-detail status change read available transitions from the cached map (no per-issue REST `/transitions` call)
-- [ ] **GH-TRANS-03**: Cache is invalidated on project/workflow change (re-fetch on session start; manual refresh action available)
+- [x] **GH-TRANS-01**: `transitions.json` is fetched once per project and cached; lookup is keyed by `projectId × issueTypeId → workflow → transitions[]`
+- [x] **GH-TRANS-02**: Sprint-board drag-to-transition and issue-detail status change read available transitions from the cached map (no per-issue REST `/transitions` call)
+- [x] **GH-TRANS-03**: Cache is invalidated on project/workflow change (re-fetch on session start; manual refresh action available)
 
 ### Cutover & Verification
 
@@ -66,9 +66,9 @@ Filled by roadmap (Section 10 of new-milestone workflow).
 | GH-ADAPT-01 | Phase 71 | Complete |
 | GH-ADAPT-02 | Phase 71 | Complete |
 | GH-ADAPT-03 | Phase 71 | Complete |
-| GH-TRANS-01 | Phase 72 | Pending |
-| GH-TRANS-02 | Phase 72 | Pending |
-| GH-TRANS-03 | Phase 72 | Pending |
+| GH-TRANS-01 | Phase 72 | Complete |
+| GH-TRANS-02 | Phase 72 | Complete |
+| GH-TRANS-03 | Phase 72 | Complete |
 | GH-BOARD-01 | Phase 73 | Pending |
 | GH-BOARD-02 | Phase 73 | Pending |
 | GH-BOARD-03 | Phase 73 | Pending |
