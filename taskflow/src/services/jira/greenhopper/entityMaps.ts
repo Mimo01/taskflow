@@ -19,6 +19,11 @@
  */
 
 import type { EntityMaps, GhAllDataResponse } from './types';
+import { __resetWarnOnce, warnOnce } from './warnOnce';
+
+// Re-export __resetWarnOnce from this module to preserve the Phase 71 public
+// surface (entityMaps.test.ts imports __resetWarnOnce from './entityMaps').
+export { __resetWarnOnce };
 
 /**
  * Build the four-map aggregate from a freshly-fetched allData response.
@@ -33,26 +38,6 @@ export function buildEntityMaps(allData: GhAllDataResponse): EntityMaps {
     types: allData.entityData.types,
     epics: allData.entityData.epics,
   };
-}
-
-// Module-level guard for warnOnce semantics (D-07).
-const seenMissing = new Set<string>();
-
-function warnOnce(kind: string, id: string): void {
-  const key = `${kind}:${id}`;
-  if (seenMissing.has(key)) return;
-  seenMissing.add(key);
-  console.warn(`[greenhopper] missing ${kind} id="${id}" — using Unknown fallback`);
-}
-
-/**
- * Test-only: clear the warnOnce guard between cases so each `it()` can
- * independently assert "two misses, one warn" behavior.
- *
- * Internal — not part of the public adapter surface.
- */
-export function __resetWarnOnce(): void {
-  seenMissing.clear();
 }
 
 type StatusCategoryKey = 'new' | 'indeterminate' | 'done';
