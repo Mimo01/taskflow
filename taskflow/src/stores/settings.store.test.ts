@@ -215,7 +215,7 @@ describe('settings.store — widget removal (Phase 59)', () => {
     // Extract the numeric version value from `version: <N>,` inside the persist options.
     const match = src.match(/version:\s*(\d+),/);
     expect(match).not.toBeNull();
-    const version = Number(match![1]);
+    const version = Number(match?.[1]);
     expect(version).toBeGreaterThanOrEqual(19);
   });
 

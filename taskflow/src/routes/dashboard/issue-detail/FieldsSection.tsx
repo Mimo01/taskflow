@@ -150,7 +150,7 @@ export function FieldsSection({
 
   const sprintsQuery = useQuery({
     queryKey: ['jira-sprint-list', boardId, jiraBaseUrl],
-    queryFn: () => fetchSprintList(jiraBaseUrl, jiraToken!, boardId!),
+    queryFn: () => fetchSprintList(jiraBaseUrl, jiraToken ?? '', boardId ?? 0),
     enabled: sprintPickerOpen && !!boardId && !!jiraToken,
   });
 

@@ -197,7 +197,13 @@ export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProp
   const sprintQuery = useQuery({
     queryKey: ['jira-issues', 'sprint-board-today-full', activeJiraProject, storyPointsFieldKey],
     queryFn: () =>
-      fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false, storyPointsFieldKey),
+      fetchSprintIssues(
+        jiraBaseUrl ?? '',
+        jiraToken ?? '',
+        activeJiraProject ?? '',
+        false,
+        storyPointsFieldKey,
+      ),
     enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject,
     staleTime: 30_000,
   });
@@ -208,7 +214,7 @@ export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProp
     queryFn: async () => {
       const token = await readSecret('gitlab-pat').catch(() => null);
       if (!token) throw new Error('No GitLab token');
-      return fetchReviewerMRs(gitlabBaseUrl!, token, gitlabUserId!);
+      return fetchReviewerMRs(gitlabBaseUrl ?? '', token, gitlabUserId ?? '');
     },
     enabled: !!gitlabBaseUrl && !!gitlabToken && !!gitlabUserId,
     staleTime: 5 * 60 * 1000,
@@ -221,7 +227,7 @@ export default function TodayColumn({ onIssueClick, onMRClick }: TodayColumnProp
     queryFn: async () => {
       const token = await readSecret('gitlab-pat').catch(() => null);
       if (!token) throw new Error('No GitLab token');
-      return fetchParticipatedMRs(gitlabBaseUrl!, token, gitlabUserId!, 30);
+      return fetchParticipatedMRs(gitlabBaseUrl ?? '', token, gitlabUserId ?? '', 30);
     },
     enabled: !!gitlabBaseUrl && !!gitlabToken && !!gitlabUserId,
     staleTime: 5 * 60 * 1000,

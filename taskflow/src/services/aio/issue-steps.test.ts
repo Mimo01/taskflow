@@ -30,9 +30,8 @@ const TEST_CASE_FIXTURE = {
 
 // Probe-confirmed fixture — field names from Phase 54 probe finding B.
 // 'step' is the confirmed field name for action text (not 'stepAction').
-// Raw AIO API uses uppercase 'ID' fields — biome-ignore applied per-line.
+// Raw AIO API uses uppercase 'ID' fields.
 const STEP_FIXTURE = {
-  // biome-ignore lint/style/useNamingConvention: Raw AIO API field name is uppercase ID
   ID: 37989,
   stepID: 18016,
   stepOrder: 0,
@@ -41,7 +40,6 @@ const STEP_FIXTURE = {
   expectedResult: 'Login page appears', // probe-confirmed field name
   actualResult: 'Login page appeared', // probe-confirmed field name
   testRunStepStatus: {
-    // biome-ignore lint/style/useNamingConvention: Raw AIO API field name is uppercase ID
     ID: 53,
     name: 'Passed',
     description: 'The test step has passed',

@@ -36,8 +36,8 @@ export default function MrHealthPanel({
     queryFn: async () => {
       const token = gitlabToken ?? '';
       const [assigned, reviewer] = await Promise.all([
-        fetchAssignedMRs(gitlabBaseUrl!, token),
-        userId ? fetchReviewerMRs(gitlabBaseUrl!, token, userId) : Promise.resolve([]),
+        fetchAssignedMRs(gitlabBaseUrl ?? '', token),
+        userId ? fetchReviewerMRs(gitlabBaseUrl ?? '', token, userId) : Promise.resolve([]),
       ]);
       const seen = new Set<number>();
       const merged = [...assigned, ...reviewer].filter(

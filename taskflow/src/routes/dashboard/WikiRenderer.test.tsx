@@ -206,9 +206,9 @@ describe('WikiRenderer', () => {
       ];
       for (const { type, wikiText } of calloutCases) {
         const { container } = render(<WikiRenderer wikiText={wikiText} />);
-        const callout = container.querySelector(`[data-callout="${type}"]`);
+        const callout = container.querySelector(`[data-callout="${type}"]`) as Element;
         expect(callout, `${type}: callout element should exist`).not.toBeNull();
-        const cls = callout!.className;
+        const cls = callout.className;
         expect(cls, `${type}: should contain [&>*:first-child]:mt-0`).toContain(
           '[&>*:first-child]:mt-0',
         );
@@ -267,14 +267,14 @@ describe('WikiRenderer', () => {
         '{panel}|',
       ].join('\n');
       const { container } = render(<WikiRenderer wikiText={fixture} />);
-      const panelSpan = container.querySelector('[data-callout="panel"]');
+      const panelSpan = container.querySelector('[data-callout="panel"]') as Element;
       expect(panelSpan).not.toBeNull();
       // The panel actually wraps an <ol> (proves the case we're regressing on).
       expect(panelSpan?.querySelector('ol')).not.toBeNull();
       // And the universal selector classes are present (this is what enables
       // the prose-sm <ol> margin to be zeroed — the [&>p:…] selector would
       // not have matched).
-      const cls = panelSpan!.className;
+      const cls = panelSpan.className;
       expect(cls).toContain('[&>*:first-child]:mt-0');
       expect(cls).toContain('[&>*:last-child]:mb-0');
     });
@@ -631,10 +631,10 @@ After quote`;
       expect(table).not.toBeNull();
 
       // Gather text from elements that are NOT inside the table.
-      const article = container.querySelector('article');
+      const article = container.querySelector('article') as HTMLElement;
       expect(article).not.toBeNull();
       // Clone the article and remove the table; what remains is "sibling content".
-      const cloned = article!.cloneNode(true) as HTMLElement;
+      const cloned = article.cloneNode(true) as HTMLElement;
       for (const t of cloned.querySelectorAll('table')) t.remove();
       const outsideText = cloned.textContent ?? '';
 

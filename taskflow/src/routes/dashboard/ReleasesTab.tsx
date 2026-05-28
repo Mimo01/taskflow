@@ -137,7 +137,7 @@ export default function ReleasesTab() {
     dataUpdatedAt,
   } = useQuery({
     queryKey: ['jira-fix-versions', activeJiraProject],
-    queryFn: () => fetchFixVersions(jiraBaseUrl!, jiraToken!, activeJiraProject!),
+    queryFn: () => fetchFixVersions(jiraBaseUrl ?? '', jiraToken ?? '', activeJiraProject ?? ''),
     enabled: !!jiraBaseUrl && !!activeJiraProject && !!jiraToken,
     staleTime: 5 * 60_000,
   });
@@ -169,9 +169,9 @@ export default function ReleasesTab() {
     ],
     queryFn: () =>
       fetchProjectMilestonesInRange(
-        gitlabBaseUrl!,
-        gitlabToken!,
-        activeGitlabProject!,
+        gitlabBaseUrl ?? '',
+        gitlabToken ?? '',
+        activeGitlabProject ?? '',
         milestoneWindow?.from ?? '',
         milestoneWindow?.to ?? '',
       ),
@@ -183,7 +183,7 @@ export default function ReleasesTab() {
   const versionCountQueries = useQueries({
     queries: (fixVersions ?? []).map((v) => ({
       queryKey: ['jira-version-counts', v.id],
-      queryFn: () => fetchVersionIssueCounts(jiraBaseUrl!, jiraToken!, v.id),
+      queryFn: () => fetchVersionIssueCounts(jiraBaseUrl ?? '', jiraToken ?? '', v.id),
       enabled: !!jiraBaseUrl && !!jiraToken,
       staleTime: 5 * 60_000,
     })),

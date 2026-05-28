@@ -28,8 +28,8 @@ describe('fetchJiraUserByUsername', () => {
     } as unknown as Response);
     const result = await fetchJiraUserByUsername(BASE, TOKEN, 'JIRAUSER23429');
     expect(result).not.toBeNull();
-    expect(result!.name).toBe('JIRAUSER23429');
-    expect(result!.displayName).toBe('Alice Tester');
+    expect(result?.name).toBe('JIRAUSER23429');
+    expect(result?.displayName).toBe('Alice Tester');
   });
 
   it('returns null on 404 (user not found)', async () => {

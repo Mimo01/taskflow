@@ -43,7 +43,7 @@ export default function AioBlock() {
     refetch,
   } = useQuery({
     queryKey: ['aio', jiraBaseUrl, 'projects'],
-    queryFn: () => fetchAioProjects(jiraBaseUrl!, token!),
+    queryFn: () => fetchAioProjects(jiraBaseUrl ?? '', token ?? ''),
     enabled: !!jiraBaseUrl && !!token,
   });
 

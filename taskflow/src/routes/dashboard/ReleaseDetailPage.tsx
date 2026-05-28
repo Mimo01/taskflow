@@ -211,9 +211,9 @@ export default function ReleaseDetailPage() {
     ],
     queryFn: () =>
       fetchProjectMilestonesInRange(
-        gitlabBaseUrl!,
-        gitlabToken!,
-        activeGitlabProject!,
+        gitlabBaseUrl ?? '',
+        gitlabToken ?? '',
+        activeGitlabProject ?? '',
         milestoneWindow?.from ?? '',
         milestoneWindow?.to ?? '',
       ),
@@ -258,9 +258,9 @@ export default function ReleaseDetailPage() {
     queryKey: ['gitlab-milestone-mrs', activeGitlabProject, gitlabMatch.candidateName],
     queryFn: () =>
       fetchMilestoneMRs(
-        gitlabBaseUrl!,
-        gitlabToken!,
-        activeGitlabProject!,
+        gitlabBaseUrl ?? '',
+        gitlabToken ?? '',
+        activeGitlabProject ?? '',
         gitlabMatch.candidateName,
       ),
     staleTime: 5 * 60_000,
@@ -610,7 +610,7 @@ export default function ReleaseDetailPage() {
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    openUrl(row.mr!.web_url);
+                                    openUrl(row.mr.web_url);
                                   }}
                                   className={`inline-flex items-center gap-1 text-xs hover:underline ${
                                     row.mr.state === 'merged'

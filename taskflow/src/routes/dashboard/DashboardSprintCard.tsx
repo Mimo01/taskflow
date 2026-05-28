@@ -40,14 +40,20 @@ export default function DashboardSprintCard({
   const { data: sprintIssuesRaw, isLoading: issuesLoading } = useQuery({
     queryKey: ['jira-issues', 'sprint-board', activeJiraProject, storyPointsFieldKey],
     queryFn: () =>
-      fetchSprintIssues(jiraBaseUrl!, jiraToken!, activeJiraProject!, false, storyPointsFieldKey),
+      fetchSprintIssues(
+        jiraBaseUrl ?? '',
+        jiraToken ?? '',
+        activeJiraProject ?? '',
+        false,
+        storyPointsFieldKey,
+      ),
     staleTime: 30_000,
     enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject,
   });
 
   const { data: activeSprint, isLoading: sprintLoading } = useQuery({
     queryKey: ['jira-active-sprint', activeJiraProject],
-    queryFn: () => fetchActiveSprint(jiraBaseUrl!, jiraToken!, activeJiraProject!),
+    queryFn: () => fetchActiveSprint(jiraBaseUrl ?? '', jiraToken ?? '', activeJiraProject ?? ''),
     staleTime: 5 * 60_000,
     enabled: !!jiraBaseUrl && !!jiraToken && !!activeJiraProject,
   });

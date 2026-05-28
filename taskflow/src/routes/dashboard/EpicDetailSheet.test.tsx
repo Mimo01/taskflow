@@ -178,7 +178,7 @@ describe('EPIC-03: epic stories list in IssueDetailContent (isEpic branch)', () 
       { wrapper },
     );
 
-    const storyButton = screen.getByText('Story One').closest('button')!;
+    const storyButton = screen.getByText('Story One').closest('button') as HTMLButtonElement;
     fireEvent.click(storyButton);
     expect(onOpenIssue).toHaveBeenCalledWith('PROJ-5');
   });

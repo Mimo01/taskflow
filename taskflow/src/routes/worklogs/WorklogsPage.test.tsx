@@ -296,7 +296,7 @@ describe('WorklogsPage', () => {
       await waitFor(() => {
         const dropdown = container.querySelector('ul');
         expect(dropdown).toBeTruthy();
-        const buttons = dropdown!.querySelectorAll('button');
+        const buttons = (dropdown as Element).querySelectorAll('button');
         const labels = Array.from(buttons).map((b) => b.textContent?.trim());
         expect(labels).toContain('Alice Smith');
         expect(labels).toContain('Bob Jones');
@@ -320,12 +320,12 @@ describe('WorklogsPage', () => {
         expect(container.querySelector('ul')).toBeTruthy();
       });
 
-      const dropdown = container.querySelector('ul')!;
+      const dropdown = container.querySelector('ul') as Element;
       const aliceButton = Array.from(dropdown.querySelectorAll('button')).find(
         (b) => b.textContent?.trim() === 'Alice Smith',
       );
       expect(aliceButton).toBeTruthy();
-      fireEvent.mouseDown(aliceButton!);
+      fireEvent.mouseDown(aliceButton as Element);
 
       // fetchWorklogs should be called with ['alice'] as usernames
       await waitFor(() => {
@@ -349,12 +349,12 @@ describe('WorklogsPage', () => {
         expect(container.querySelector('ul')).toBeTruthy();
       });
 
-      const dropdown = container.querySelector('ul')!;
+      const dropdown = container.querySelector('ul') as Element;
       const aliceButton = Array.from(dropdown.querySelectorAll('button')).find(
         (b) => b.textContent?.trim() === 'Alice Smith',
       );
       expect(aliceButton).toBeTruthy();
-      fireEvent.mouseDown(aliceButton!);
+      fireEvent.mouseDown(aliceButton as Element);
 
       // After selecting Alice: input value should be 'Alice Smith' (when not focused)
       await waitFor(() => {
@@ -428,7 +428,7 @@ describe('WorklogsPage', () => {
       await waitFor(() => {
         const dropdown = container.querySelector('ul');
         expect(dropdown).toBeTruthy();
-        const buttons = Array.from(dropdown!.querySelectorAll('button')).map((b) =>
+        const buttons = Array.from((dropdown as Element).querySelectorAll('button')).map((b) =>
           b.textContent?.trim(),
         );
         expect(buttons).toContain('Alice Smith');
@@ -461,7 +461,7 @@ describe('WorklogsPage', () => {
       await waitFor(() => {
         const dropdown = container.querySelector('ul');
         expect(dropdown).toBeTruthy();
-        const buttons = Array.from(dropdown!.querySelectorAll('button')).map((b) =>
+        const buttons = Array.from((dropdown as Element).querySelectorAll('button')).map((b) =>
           b.textContent?.trim(),
         );
         expect(buttons).toContain('Alice Smith');
@@ -702,7 +702,7 @@ describe('WorklogsPage', () => {
           (args) => typeof args[1] === 'string' && args[1].includes('/rest/api/2/search'),
         );
         expect(searchCall).toBeTruthy();
-        const url = searchCall![1] as string;
+        const url = (searchCall as unknown[])[1] as string;
         expect(url).toContain('issuekey%20in');
         expect(url).toContain('PROJ-1');
         expect(url).toContain('PROJ-2');
@@ -832,7 +832,7 @@ describe('WorklogsPage', () => {
       // Should find a span with line-through containing KEY-X
       const lineThrough = container.querySelector('span.line-through');
       expect(lineThrough).toBeTruthy();
-      expect(lineThrough!.textContent).toContain('KEY-X');
+      expect((lineThrough as Element).textContent).toContain('KEY-X');
 
       // Grand total (Time column footer, index 2) should include KEY-X's 3h
       const footCells = container.querySelectorAll('tfoot td');
@@ -902,7 +902,7 @@ describe('WorklogsPage', () => {
       // Find the subtask row button (aria-label contains 'Open SUB-1')
       const subtaskBtn = container.querySelector('[aria-label="Open SUB-1"]');
       expect(subtaskBtn).toBeTruthy();
-      fireEvent.click(subtaskBtn!);
+      fireEvent.click(subtaskBtn as Element);
 
       expect(mockOnIssueClick).toHaveBeenCalledWith('SUB-1');
     });
@@ -1000,7 +1000,7 @@ describe('WorklogsPage', () => {
       );
       const trashBtn = container.querySelector('[aria-label="Delete worklog entry"]');
       expect(trashBtn).toBeTruthy();
-      fireEvent.click(trashBtn!);
+      fireEvent.click(trashBtn as Element);
       await waitFor(() => {
         expect(deleteWorklog).toHaveBeenCalledWith(
           'https://jira.example.com',
@@ -1032,7 +1032,7 @@ describe('WorklogsPage', () => {
       );
       const pencilBtn = container.querySelector('[aria-label="Edit worklog entry"]');
       expect(pencilBtn).toBeTruthy();
-      fireEvent.click(pencilBtn!);
+      fireEvent.click(pencilBtn as Element);
       expect(getByText('Save Changes')).toBeTruthy();
     });
   });
@@ -1117,7 +1117,7 @@ describe('WorklogsPage', () => {
       );
       expect(cellBtn).toBeTruthy();
       await act(async () => {
-        fireEvent.click(cellBtn!);
+        fireEvent.click(cellBtn as Element);
       });
 
       // Popover content renders in a portal — check document.body via screen
@@ -1161,7 +1161,7 @@ describe('WorklogsPage', () => {
         `[aria-label="View worklogs for STORY-1 on ${monday}"]`,
       );
       expect(nonZeroTrigger).toBeTruthy();
-      expect(nonZeroTrigger!.textContent?.trim()).toBe('2h');
+      expect((nonZeroTrigger as Element).textContent?.trim()).toBe('2h');
     });
   });
 
@@ -1203,7 +1203,7 @@ describe('WorklogsPage', () => {
       );
       expect(cellBtn).toBeTruthy();
       await act(async () => {
-        fireEvent.click(cellBtn!);
+        fireEvent.click(cellBtn as Element);
       });
 
       await waitFor(() => {
@@ -1248,7 +1248,7 @@ describe('WorklogsPage', () => {
       );
       expect(cellBtn).toBeTruthy();
       await act(async () => {
-        fireEvent.click(cellBtn!);
+        fireEvent.click(cellBtn as Element);
       });
 
       // Wait for popover to open with entry (portal renders in document.body)
@@ -1259,7 +1259,7 @@ describe('WorklogsPage', () => {
       // Click trash
       const trashBtn = document.body.querySelector('[aria-label="Delete worklog entry"]');
       await act(async () => {
-        fireEvent.click(trashBtn!);
+        fireEvent.click(trashBtn as Element);
       });
 
       await waitFor(() => {

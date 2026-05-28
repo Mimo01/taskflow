@@ -226,7 +226,7 @@ export default function BacklogPage() {
   // Query 1: Sprint list (canonical board ordering, includes empty sprints) — loads first for headers.
   const { data: sprintList } = useQuery({
     queryKey: ['jira-sprint-list', boardId, jiraBaseUrl],
-    queryFn: () => fetchSprintList(jiraBaseUrl!, jiraToken!, boardId!),
+    queryFn: () => fetchSprintList(jiraBaseUrl ?? '', jiraToken ?? '', boardId ?? 0),
     staleTime: STALE_TIME_MS,
     enabled: !!boardId && !!jiraBaseUrl && !!jiraToken,
   });
@@ -260,9 +260,9 @@ export default function BacklogPage() {
     ],
     queryFn: () =>
       fetchBacklogSprintStories(
-        jiraBaseUrl!,
-        jiraToken!,
-        activeJiraProject!,
+        jiraBaseUrl ?? '',
+        jiraToken ?? '',
+        activeJiraProject ?? '',
         sprintIds,
         storyPointsFieldKey,
         epicLinkFieldKey,
@@ -291,9 +291,9 @@ export default function BacklogPage() {
     ],
     queryFn: () =>
       fetchBacklogIssues(
-        jiraBaseUrl!,
-        jiraToken!,
-        activeJiraProject!,
+        jiraBaseUrl ?? '',
+        jiraToken ?? '',
+        activeJiraProject ?? '',
         storyPointsFieldKey,
         epicLinkFieldKey,
         epicNameFieldKey,
@@ -306,7 +306,8 @@ export default function BacklogPage() {
   // All project statuses (for filter dropdown — shows all that exist, not just visible)
   const { data: projectStatuses } = useQuery({
     queryKey: ['project-statuses', activeJiraProject, jiraBaseUrl],
-    queryFn: () => fetchProjectStatuses(jiraBaseUrl!, jiraToken!, activeJiraProject!),
+    queryFn: () =>
+      fetchProjectStatuses(jiraBaseUrl ?? '', jiraToken ?? '', activeJiraProject ?? ''),
     staleTime: Infinity,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
@@ -316,9 +317,9 @@ export default function BacklogPage() {
     queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
     queryFn: () =>
       fetchEpicsBasic(
-        jiraBaseUrl!,
-        jiraToken!,
-        activeJiraProject!,
+        jiraBaseUrl ?? '',
+        jiraToken ?? '',
+        activeJiraProject ?? '',
         epicNameFieldKey,
         epicColorFieldKey,
       ),
@@ -628,7 +629,7 @@ export default function BacklogPage() {
       (old) => old?.filter((i) => i.key !== issueKey),
     );
     try {
-      await addIssuesToSprint(jiraBaseUrl!, jiraToken!, sprintId, [issueKey]);
+      await addIssuesToSprint(jiraBaseUrl ?? '', jiraToken ?? '', sprintId, [issueKey]);
       // Invalidate all relevant caches so they refetch with correct sprint assignments
       queryClient.invalidateQueries({ queryKey: ['jira-backlog-sprint-stories'] });
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
@@ -678,7 +679,7 @@ export default function BacklogPage() {
       (old) => old?.filter((i) => i.key !== issueKey),
     );
     try {
-      await moveIssuesToBacklog(jiraBaseUrl!, jiraToken!, [issueKey]);
+      await moveIssuesToBacklog(jiraBaseUrl ?? '', jiraToken ?? '', [issueKey]);
       // Invalidate all relevant caches so they refetch with correct sprint assignments
       queryClient.invalidateQueries({ queryKey: ['jira-backlog-sprint-stories'] });
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
@@ -764,7 +765,13 @@ export default function BacklogPage() {
     );
 
     try {
-      await setIssueFlagged(jiraBaseUrl!, jiraToken!, issueKey, !currentFlagged, flaggedFieldKey);
+      await setIssueFlagged(
+        jiraBaseUrl ?? '',
+        jiraToken ?? '',
+        issueKey,
+        !currentFlagged,
+        flaggedFieldKey,
+      );
       queryClient.invalidateQueries({ queryKey: ['jira-backlog-sprint-stories'] });
       queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] });
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });

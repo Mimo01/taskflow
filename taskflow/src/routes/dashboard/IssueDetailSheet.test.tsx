@@ -401,7 +401,7 @@ describe('IssueDetailSheet', () => {
         { wrapper },
       );
 
-      fireEvent.click(screen.getByText('Subtask one').closest('button')!);
+      fireEvent.click(screen.getByText('Subtask one').closest('button') as HTMLButtonElement);
       expect(onOpenIssue).toHaveBeenCalledWith('PROJ-2');
     });
   });
