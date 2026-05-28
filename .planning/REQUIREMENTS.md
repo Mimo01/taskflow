@@ -63,29 +63,29 @@ Filled by roadmap (Section 10 of new-milestone workflow).
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| GH-ADAPT-01 | TBD | Pending |
-| GH-ADAPT-02 | TBD | Pending |
-| GH-ADAPT-03 | TBD | Pending |
-| GH-BOARD-01 | TBD | Pending |
-| GH-BOARD-02 | TBD | Pending |
-| GH-BOARD-03 | TBD | Pending |
-| GH-BOARD-04 | TBD | Pending |
-| GH-BACKLOG-01 | TBD | Pending |
-| GH-BACKLOG-02 | TBD | Pending |
-| GH-DETAIL-01 | TBD | Pending |
-| GH-DETAIL-02 | TBD | Pending |
-| GH-DETAIL-03 | TBD | Pending |
-| GH-DETAIL-04 | TBD | Pending |
-| GH-TRANS-01 | TBD | Pending |
-| GH-TRANS-02 | TBD | Pending |
-| GH-TRANS-03 | TBD | Pending |
-| GH-CUT-01 | TBD | Pending |
-| GH-CUT-02 | TBD | Pending |
+| GH-ADAPT-01 | Phase 71 | Pending |
+| GH-ADAPT-02 | Phase 71 | Pending |
+| GH-ADAPT-03 | Phase 71 | Pending |
+| GH-TRANS-01 | Phase 72 | Pending |
+| GH-TRANS-02 | Phase 72 | Pending |
+| GH-TRANS-03 | Phase 72 | Pending |
+| GH-BOARD-01 | Phase 73 | Pending |
+| GH-BOARD-02 | Phase 73 | Pending |
+| GH-BOARD-03 | Phase 73 | Pending |
+| GH-BOARD-04 | Phase 73 | Pending |
+| GH-BACKLOG-01 | Phase 74 | Pending |
+| GH-BACKLOG-02 | Phase 74 | Pending |
+| GH-DETAIL-01 | Phase 75 | Pending |
+| GH-DETAIL-02 | Phase 75 | Pending |
+| GH-DETAIL-03 | Phase 75 | Pending |
+| GH-DETAIL-04 | Phase 75 | Pending |
+| GH-CUT-01 | Phase 75 | Pending |
+| GH-CUT-02 | Phase 75 | Pending |
 
 **Coverage:**
 - v1.11 requirements: 18 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 18 ⚠️
+- Mapped to phases: 18
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-05-28*
