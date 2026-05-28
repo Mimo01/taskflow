@@ -36,7 +36,7 @@
 3. `adaptIssue(greenhopperIssue, entityMaps)` produces an object that the existing sprint-board / backlog `Issue` consumers accept without code changes
 4. Unit tests cover the adapter with fixtures captured from a real GreenHopper response
 
-**Plans:** 6 plans (W0: 71-01 → W1: 71-02 → W2: 71-03, 71-04 → W3: 71-05 → W4: 71-06)
+**Plans:** 6/6 plans complete
 
 - [x] 71-01-PLAN.md — Wave 0: capture script + redacted real fixtures (blocks all)
 - [x] 71-02-PLAN.md — Wave 1: greenhopperFetch client + types.ts
