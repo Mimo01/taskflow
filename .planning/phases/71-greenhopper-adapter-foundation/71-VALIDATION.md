@@ -1,9 +1,9 @@
 ---
 phase: 71
 slug: greenhopper-adapter-foundation
-status: planner-filled
+status: audited
 nyquist_compliant: true
-wave_0_complete: false
+wave_0_complete: true
 created: 2026-05-28
 updated: 2026-05-28
 ---
@@ -40,17 +40,17 @@ updated: 2026-05-28
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 71-01-T1 | 71-01 | 0 | GH-ADAPT-01/03 | T-71-01, T-71-03 | PAT never logged; HTML replaced with placeholder | static | `node -c taskflow/scripts/capture-greenhopper.mjs` + grep gates | ❌ W0 | ⬜ pending |
-| 71-01-T2 | 71-01 | 0 | GH-ADAPT-01/03 | T-71-02 | Redaction map applied; only example.invalid domains in fixtures | manual | human-checkpoint redaction grep + JSON parse | ❌ W0 | ⬜ pending |
-| 71-02-T1 | 71-02 | 1 | GH-ADAPT-01 | T-71-04 | source='jira' not 'greenhopper' (Pitfall 8) | unit | `cd taskflow && npx vitest run src/services/jira/greenhopper/client.test.ts` | ❌ W0 | ⬜ pending |
-| 71-02-T2 | 71-02 | 1 | GH-ADAPT-01 | T-71-06 | Strong typing across 12 GH interfaces | static | `cd taskflow && npx tsc --noEmit` (no errors in types.ts) | ❌ W0 | ⬜ pending |
-| 71-03-T1 | 71-03 | 2 | GH-ADAPT-01 | T-71-08, T-71-09 | 401/403 → ApiError; never throws raw Response | unit | `cd taskflow && npx vitest run src/services/jira/greenhopper/{allData,data}.test.ts` | ❌ W0 | ⬜ pending |
-| 71-03-T2 | 71-03 | 2 | GH-ADAPT-01 | T-71-07 | issueKey URL-encoded; transitions returns whole envelope | unit | `cd taskflow && npx vitest run src/services/jira/greenhopper/{details,transitions}.test.ts` | ❌ W0 | ⬜ pending |
-| 71-04-T1 | 71-04 | 2 | GH-ADAPT-02 | T-71-10, T-71-11 | Fallback shim + warnOnce per unique id | unit | `cd taskflow && npx vitest run src/services/jira/greenhopper/entityMaps.test.ts` | ❌ W0 | ⬜ pending |
-| 71-05-T1 | 71-05 | 3 | GH-ADAPT-03 | T-71-12 | D-02 gate prevents non-storypoints leak | static | `cd taskflow && npx tsc --noEmit` (no errors in adapter.ts) | ❌ W0 | ⬜ pending |
-| 71-05-T2 | 71-05 | 3 | GH-ADAPT-03 | T-71-13 | Full-iteration over real capture never throws | unit | `cd taskflow && npx vitest run src/services/jira/greenhopper/adapter.test.ts` | ❌ W0 | ⬜ pending |
-| 71-06-T1 | 71-06 | 4 | GH-ADAPT-01/02/03 | T-71-15 | client.ts NOT in barrel (D-06) | static | grep gate on './client' in index.ts | ❌ W0 | ⬜ pending |
-| 71-06-T2 | 71-06 | 4 | GH-ADAPT-01/02/03 | T-71-16, T-71-17, T-71-18 | Full suite green; biome 0/0; surface reachable via 'services/jira' | unit+lint | `cd taskflow && npx tsc --noEmit && npx vitest run && npx biome check src/services/jira.ts src/services/jira/greenhopper` | ❌ W0 | ⬜ pending |
+| 71-01-T1 | 71-01 | 0 | GH-ADAPT-01/03 | T-71-01, T-71-03 | PAT never logged; HTML replaced with placeholder | static | `node -c taskflow/scripts/capture-greenhopper.mjs` + grep gates | ✅ | ✅ green |
+| 71-01-T2 | 71-01 | 0 | GH-ADAPT-01/03 | T-71-02 | Redaction map applied; only example.invalid domains in fixtures | manual | human-checkpoint redaction grep + JSON parse | ✅ | ✅ green |
+| 71-02-T1 | 71-02 | 1 | GH-ADAPT-01 | T-71-04 | source='jira' not 'greenhopper' (Pitfall 8) | unit | `cd taskflow && npx vitest run src/services/jira/greenhopper/client.test.ts` | ✅ | ✅ green |
+| 71-02-T2 | 71-02 | 1 | GH-ADAPT-01 | T-71-06 | Strong typing across 12 GH interfaces | static | `cd taskflow && npx tsc --noEmit` (no errors in types.ts) | ✅ | ✅ green |
+| 71-03-T1 | 71-03 | 2 | GH-ADAPT-01 | T-71-08, T-71-09 | 401/403 → ApiError; never throws raw Response | unit | `cd taskflow && npx vitest run src/services/jira/greenhopper/{allData,data}.test.ts` | ✅ | ✅ green |
+| 71-03-T2 | 71-03 | 2 | GH-ADAPT-01 | T-71-07 | issueKey URL-encoded; transitions returns whole envelope | unit | `cd taskflow && npx vitest run src/services/jira/greenhopper/{details,transitions}.test.ts` | ✅ | ✅ green |
+| 71-04-T1 | 71-04 | 2 | GH-ADAPT-02 | T-71-10, T-71-11 | Fallback shim + warnOnce per unique id | unit | `cd taskflow && npx vitest run src/services/jira/greenhopper/entityMaps.test.ts` | ✅ | ✅ green |
+| 71-05-T1 | 71-05 | 3 | GH-ADAPT-03 | T-71-12 | D-02 gate prevents non-storypoints leak | static | `cd taskflow && npx tsc --noEmit` (no errors in adapter.ts) | ✅ | ✅ green |
+| 71-05-T2 | 71-05 | 3 | GH-ADAPT-03 | T-71-13 | Full-iteration over real capture never throws | unit | `cd taskflow && npx vitest run src/services/jira/greenhopper/adapter.test.ts` | ✅ | ✅ green |
+| 71-06-T1 | 71-06 | 4 | GH-ADAPT-01/02/03 | T-71-15 | client.ts NOT in barrel (D-06) | static | grep gate on './client' in index.ts | ✅ | ✅ green |
+| 71-06-T2 | 71-06 | 4 | GH-ADAPT-01/02/03 | T-71-16, T-71-17, T-71-18 | Full suite green; biome 0/0; surface reachable via 'services/jira' | unit+lint | `cd taskflow && npx tsc --noEmit && npx vitest run && npx biome check src/services/jira.ts src/services/jira/greenhopper` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -60,11 +60,11 @@ updated: 2026-05-28
 
 Wave 0 = Plan 71-01. All other plans depend on its output (fixtures + capture script).
 
-- [ ] `taskflow/scripts/capture-greenhopper.mjs` — committed (Task 71-01-T1)
-- [ ] `taskflow/src/services/jira/greenhopper/__fixtures__/allData.real.json` — anonymized real capture (D-10) — Task 71-01-T2
-- [ ] `taskflow/src/services/jira/greenhopper/__fixtures__/data.real.json` — Task 71-01-T2
-- [ ] `taskflow/src/services/jira/greenhopper/__fixtures__/details.real.json` — Task 71-01-T2
-- [ ] `taskflow/src/services/jira/greenhopper/__fixtures__/transitions.real.json` — Task 71-01-T2
+- [x] `taskflow/scripts/capture-greenhopper.mjs` — committed (Task 71-01-T1)
+- [x] `taskflow/src/services/jira/greenhopper/__fixtures__/allData.real.json` — anonymized real capture (D-10) — Task 71-01-T2
+- [x] `taskflow/src/services/jira/greenhopper/__fixtures__/data.real.json` — Task 71-01-T2
+- [x] `taskflow/src/services/jira/greenhopper/__fixtures__/details.real.json` — Task 71-01-T2
+- [x] `taskflow/src/services/jira/greenhopper/__fixtures__/transitions.real.json` — Task 71-01-T2
 
 Test files are created within plans 71-02..71-05 alongside their source files (vitest auto-discovers via existing `taskflow/vitest.config.ts` — no infrastructure scaffolding needed).
 
@@ -101,4 +101,23 @@ No 3-consecutive-task stretch without an automated verify:
 - [x] Feedback latency < 60s for greenhopper subset
 - [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** planner-approved 2026-05-28
+**Approval:** planner-approved 2026-05-28 · audited 2026-05-28
+
+---
+
+## Validation Audit 2026-05-28
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 0 |
+| Resolved | 0 |
+| Escalated | 0 |
+
+**Evidence:**
+- `npx vitest run src/services/jira/greenhopper` → 7 files, 65 tests passed
+- `npx tsc --noEmit` → clean
+- `npx biome check src/services/jira.ts src/services/jira/greenhopper` → 21 files, 0 errors / 0 warnings
+- D-06 barrel gate verified: `index.ts` does not export `./client`
+- Wave 0 artifacts (capture script + 4 anonymized fixtures) present on disk
+
+All 12 task rows automated-COVERED; sole manual-only item (live-host fixture capture) is intentional per GH-ADAPT-03.
