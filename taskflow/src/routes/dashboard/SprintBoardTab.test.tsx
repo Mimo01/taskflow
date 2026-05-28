@@ -47,6 +47,7 @@ vi.mock('@/services/jira', () => ({
     refetch: vi.fn(),
   })),
   invalidateGhTransitions: vi.fn(),
+  peekGhTransitions: vi.fn(() => undefined),
 }));
 
 // Mock useBoardId hook — returns null (no board discovery in tests)

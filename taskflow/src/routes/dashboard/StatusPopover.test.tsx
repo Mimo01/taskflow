@@ -10,8 +10,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/services/jira', () => ({
   useGhTransitions: vi.fn(),
-  // Mock surface intentionally narrow — the migrated component reads
-  // transitions exclusively via the GH cache hook above.
+  // Pass-through filter so existing test fixtures (without fromStatusId) keep
+  // returning all entries — per-status filtering is exercised in transitions.test.ts.
+  filterTransitionsForStatus: vi.fn((ts: unknown[]) => ts),
 }));
 
 import { useGhTransitions } from '@/services/jira';
@@ -21,6 +22,7 @@ const mockedUseGhTransitions = vi.mocked(useGhTransitions);
 const DEFAULT_PROPS = {
   projectId: 10042,
   issueTypeId: '3',
+  currentStatusId: '10000',
   currentStatus: 'To Do',
   onSelect: vi.fn(),
 };

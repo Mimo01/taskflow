@@ -17,13 +17,19 @@ import { useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
-import { useGhTransitions } from '@/services/jira';
+import { filterTransitionsForStatus, useGhTransitions } from '@/services/jira';
 
 interface StatusPopoverProps {
   /** Numeric Jira project id (Phase 72 — drives GH transitions cache key). */
   projectId: number;
   /** Jira issuetype id (Phase 72 — drives per-type transitions adaptation). */
   issueTypeId: string;
+  /**
+   * Current status id — used to filter the workflow's transition list down to
+   * only those available from this status. Required because the GH envelope
+   * returns all-status transitions; unlike the legacy per-issue REST endpoint.
+   */
+  currentStatusId: string;
   currentStatus: string;
   onSelect: (transitionId: string, toStatusName: string) => void;
   disabled?: boolean;
@@ -33,6 +39,7 @@ interface StatusPopoverProps {
 export default function StatusPopover({
   projectId,
   issueTypeId,
+  currentStatusId,
   currentStatus,
   onSelect,
   disabled = false,
@@ -40,7 +47,10 @@ export default function StatusPopover({
 }: StatusPopoverProps) {
   const [open, setOpen] = useState(false);
 
-  const { data: transitions, isLoading, isError } = useGhTransitions(projectId, issueTypeId);
+  const { data: allTransitions, isLoading, isError } = useGhTransitions(projectId, issueTypeId);
+  const transitions = allTransitions
+    ? filterTransitionsForStatus(allTransitions, currentStatusId)
+    : undefined;
 
   function handleOpenChange(newOpen: boolean) {
     if (disabled) return;

@@ -198,6 +198,13 @@ export interface JiraTransition {
     name: string;
     statusCategory?: { id: number; key: string; name: string };
   };
+  /**
+   * Source status id this transition applies from. Undefined means the
+   * transition is global (applies from any status). Use
+   * `filterTransitionsForStatus` to narrow a workflow's full transition list
+   * to those available from a specific issue's current status.
+   */
+  fromStatusId?: string;
 }
 
 /**
@@ -2719,8 +2726,10 @@ export {
   fetchBacklogData,
   fetchGhTransitions,
   fetchIssueDetails,
+  filterTransitionsForStatus,
   getGhTransitions,
   invalidateGhTransitions,
+  peekGhTransitions,
   resolveEpic,
   resolveParent,
   resolvePriority,

@@ -111,6 +111,7 @@ export default function TaskRow({
         <StatusPopover
           projectId={Number(issue.fields.project?.id ?? 0)}
           issueTypeId={issue.fields.issuetype?.id ?? ''}
+          currentStatusId={issue.fields.status.id}
           currentStatus={issue.fields.status.name}
           onSelect={(transitionId, toStatusName) =>
             onTransitionSelect(issue.key, transitionId, toStatusName)

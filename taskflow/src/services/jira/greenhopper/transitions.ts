@@ -127,6 +127,11 @@ export function __adaptToJiraTransition(
   statusMap: Map<string, StatusEntry>,
 ): JiraTransition {
   const toId = String(gh.toStatusId);
+  // `isGlobal` transitions apply from any status; non-global ones carry a
+  // fromStatusId that `filterTransitionsForStatus` matches against the issue's
+  // current status to surface only valid moves.
+  const fromStatusId =
+    gh.isGlobal || gh.fromStatusId === undefined ? undefined : String(gh.fromStatusId);
   const status = statusMap.get(toId);
   if (!status) {
     warnOnce('gh-transitions-status', toId);
@@ -138,13 +143,32 @@ export function __adaptToJiraTransition(
         name: `Status ${toId}`,
         statusCategory: { id: 0, key: 'indeterminate', name: 'Unknown' },
       },
+      fromStatusId,
     };
   }
   return {
     id: String(gh.transitionId),
     name: gh.name,
     to: { id: toId, name: status.name, statusCategory: status.statusCategory },
+    fromStatusId,
   };
+}
+
+/**
+ * Narrow a workflow's full transition list to those available from a specific
+ * status. Global transitions (no `fromStatusId`) always pass through.
+ *
+ * The GreenHopper `transitions.json` envelope returns every transition in a
+ * workflow regardless of source status — unlike the legacy per-issue REST
+ * `/transitions` endpoint which server-filters. Callers MUST apply this filter
+ * before surfacing transitions to the user.
+ */
+export function filterTransitionsForStatus(
+  transitions: JiraTransition[],
+  currentStatusId: string | undefined,
+): JiraTransition[] {
+  if (!currentStatusId) return transitions.filter((t) => !t.fromStatusId);
+  return transitions.filter((t) => !t.fromStatusId || t.fromStatusId === currentStatusId);
 }
 
 /**
@@ -193,6 +217,41 @@ export async function getGhTransitions(
     gcTime: Infinity,
   });
   const statusMap = await __ensureStatusMap(queryClient, baseUrl, token);
+  return __indexTransitions(envelope, projectId, issueTypeId).map((t) =>
+    __adaptToJiraTransition(t, statusMap),
+  );
+}
+
+/**
+ * Synchronous peek for `(projectId, issueTypeId)` transitions.
+ *
+ * Both layers (`['gh-transitions-envelope', projectId]` and `['jira-statuses']`)
+ * are populated once per project by the first `useGhTransitions` or
+ * `getGhTransitions` call; thereafter any `(projectId, issueTypeId)` pair can
+ * be resolved synchronously from cache without registering a per-type query.
+ *
+ * Returns `undefined` when either layer is missing (envelope not fetched yet,
+ * or status list not loaded). Returns `[]` on workflow miss (warn-once).
+ *
+ * Use this from render paths that need transitions for many issuetypes (e.g.
+ * sprint-board cards mixing stories + subtasks) where calling `useGhTransitions`
+ * per type is impossible (hooks in loops).
+ */
+export function peekGhTransitions(
+  queryClient: QueryClient,
+  projectId: number,
+  issueTypeId: string,
+): JiraTransition[] | undefined {
+  const envelope = queryClient.getQueryData<GhTransitionsResponse>([
+    'gh-transitions-envelope',
+    projectId,
+  ]);
+  const statuses = queryClient.getQueryData<JiraStatus[]>(['jira-statuses']);
+  if (!envelope || !statuses) return undefined;
+  const statusMap = new Map<string, StatusEntry>();
+  for (const s of statuses) {
+    statusMap.set(s.id, { name: s.name, statusCategory: s.statusCategory });
+  }
   return __indexTransitions(envelope, projectId, issueTypeId).map((t) =>
     __adaptToJiraTransition(t, statusMap),
   );
