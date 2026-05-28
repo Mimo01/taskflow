@@ -5,7 +5,7 @@ milestone_name: Cleanup, Roles Removal & Standup Notes
 status: Awaiting next milestone
 stopped_at: v1.10 shipped and archived
 last_updated: "2026-05-25T21:25:45.658Z"
-last_activity: 2026-05-27 — Completed quick task 260528-19k: I want to completely remove My tasks page
+last_activity: 2026-05-27 — Completed quick task 260528-20i: I want to fix as much biome problems as possible
 progress:
   total_phases: 6
   completed_phases: 6
@@ -108,6 +108,7 @@ Items acknowledged and deferred at the v1.10 milestone close on 2026-05-25 (20 o
 | 260525-ltf | On Standup notes page, make all tasks (including subtasks) clickable. Also make merge requests clickable to mr detail | 2026-05-25 | 11fa5375 | | [260525-ltf-on-standup-notes-page-make-all-tasks-inc](./quick/260525-ltf-on-standup-notes-page-make-all-tasks-inc/) |
 | 260526-h3u | Remove Sprint progress page entirely without replacement | 2026-05-26 | 3f5d9064 | Verified | [260526-h3u-remove-sprint-progress-page-entirely-wit](./quick/260526-h3u-remove-sprint-progress-page-entirely-wit/) |
 | 260528-19k | I want to completely remove My tasks page | 2026-05-27 | 04bfacd6 | Verified | [260528-19k-i-want-to-completely-remove-my-tasks-pag](./quick/260528-19k-i-want-to-completely-remove-my-tasks-pag/) |
+| 260528-20i | I want to fix as much biome problems as possible | 2026-05-27 | 30ef80af | Verified | [260528-20i-i-want-to-fix-as-much-biome-problems-as-](./quick/260528-20i-i-want-to-fix-as-much-biome-problems-as-/) |
 
 ## Session Continuity
 
