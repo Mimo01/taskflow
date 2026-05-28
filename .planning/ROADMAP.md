@@ -40,8 +40,8 @@
 
 - [x] 71-01-PLAN.md — Wave 0: capture script + redacted real fixtures (blocks all)
 - [x] 71-02-PLAN.md — Wave 1: greenhopperFetch client + types.ts
-- [ ] 71-03-PLAN.md — Wave 2: four typed fetchers (allData/data/details/transitions) + tests
-- [ ] 71-04-PLAN.md — Wave 2: buildEntityMaps + resolvers + warnOnce + tests
+- [x] 71-03-PLAN.md — Wave 2: four typed fetchers (allData/data/details/transitions) + tests
+- [x] 71-04-PLAN.md — Wave 2: buildEntityMaps + resolvers + warnOnce + tests
 - [ ] 71-05-PLAN.md — Wave 3: adaptIssue + createAdapter + fixture-driven tests
 - [ ] 71-06-PLAN.md — Wave 4: public barrel + jira.ts re-export (D-05) + full suite verify
 
