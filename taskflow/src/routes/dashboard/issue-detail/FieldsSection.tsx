@@ -374,9 +374,9 @@ export function FieldsSection({
     <>
       <MetaRow label="Status">
         <StatusPopover
-          issueKey={issueKey}
+          projectId={Number(f.project?.id ?? 0)}
+          issueTypeId={f.issuetype?.id ?? ''}
           currentStatus={f.status.name}
-          jiraBaseUrl={jiraBaseUrl}
           onSelect={handleTransition}
           disabled={transitionMutation.isPending}
           statusCategoryKey={f.status.statusCategory?.key}

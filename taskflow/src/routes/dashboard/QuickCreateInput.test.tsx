@@ -1,17 +1,20 @@
 /**
- * QuickCreateInput tests — Wave 0 RED stubs (now GREEN after plan 10-03)
+ * QuickCreateInput tests (Phase 72 Plan 02 update).
  *
- * These tests describe the expected behavior of the QuickCreateInput component.
- * Props updated to match the final component interface (statusId, projectKey,
- * jiraBaseUrl, jiraToken, onCreated required alongside statusName).
+ * Migrated from the legacy `fetchTransitions` flow to
+ * `getGhTransitions(queryClient, baseUrl, token, projectId, issueTypeId)` —
+ * tests cover the new prop surface (projectId + issueTypeId) and verify the
+ * post-create transition lookup hits the GH cache, not the REST fetcher.
  */
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/services/jira', () => ({
   createIssue: vi.fn().mockResolvedValue({ id: '10001', key: 'PROJ-42' }),
-  fetchTransitions: vi.fn().mockResolvedValue([]),
+  getGhTransitions: vi.fn().mockResolvedValue([]),
   postTransition: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -26,15 +29,24 @@ vi.mock('@/stores/auth.store', () => ({
   })),
 }));
 
-// Default props to satisfy the required interface
+// Default props to satisfy the required interface (Phase 72 — projectId/issueTypeId added).
 const DEFAULT_PROPS = {
   statusId: 'status-1',
   statusName: 'To Do',
   projectKey: 'PROJ',
+  projectId: 10042,
+  issueTypeId: '3',
   jiraBaseUrl: 'https://jira.example.com',
   jiraToken: 'test-jira-token',
   onCreated: vi.fn(),
 };
+
+function renderWithQuery(ui: React.ReactElement) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, staleTime: 0 } },
+  });
+  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
 
 describe('QuickCreateInput', () => {
   beforeEach(() => {
@@ -43,16 +55,12 @@ describe('QuickCreateInput', () => {
 
   it('shows text input when + Add button is clicked', async () => {
     const { default: QuickCreateInput } = await import('./QuickCreateInput');
-    render(<QuickCreateInput {...DEFAULT_PROPS} />);
+    renderWithQuery(<QuickCreateInput {...DEFAULT_PROPS} />);
 
-    // Input should not be visible before clicking
     expect(screen.queryByRole('textbox')).toBeNull();
 
-    // Click the + Add button
-    const addButton = screen.getByRole('button', { name: /\+ Add/i });
-    fireEvent.click(addButton);
+    fireEvent.click(screen.getByRole('button', { name: /\+ Add/i }));
 
-    // Text input should now be visible
     expect(screen.getByRole('textbox')).toBeTruthy();
   });
 
@@ -60,20 +68,14 @@ describe('QuickCreateInput', () => {
     const { createIssue } = await import('@/services/jira');
 
     const { default: QuickCreateInput } = await import('./QuickCreateInput');
-    render(<QuickCreateInput {...DEFAULT_PROPS} />);
+    renderWithQuery(<QuickCreateInput {...DEFAULT_PROPS} />);
 
-    // Open the input
-    const addButton = screen.getByRole('button', { name: /\+ Add/i });
-    fireEvent.click(addButton);
+    fireEvent.click(screen.getByRole('button', { name: /\+ Add/i }));
 
-    // Type into the input
     const input = screen.getByRole('textbox');
     fireEvent.change(input, { target: { value: 'My new story' } });
-
-    // Press Enter to submit
     fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
 
-    // createIssue should have been called
     expect(createIssue).toHaveBeenCalledWith(
       expect.any(String),
       expect.any(String),
@@ -81,7 +83,6 @@ describe('QuickCreateInput', () => {
       'My new story',
     );
 
-    // Input should be hidden after submission (async — wait for promises to resolve)
     await waitFor(() => {
       expect(screen.queryByRole('textbox')).toBeNull();
     });
@@ -91,21 +92,40 @@ describe('QuickCreateInput', () => {
     const { createIssue } = await import('@/services/jira');
 
     const { default: QuickCreateInput } = await import('./QuickCreateInput');
-    render(<QuickCreateInput {...DEFAULT_PROPS} />);
+    renderWithQuery(<QuickCreateInput {...DEFAULT_PROPS} />);
 
-    // Open the input
-    const addButton = screen.getByRole('button', { name: /\+ Add/i });
-    fireEvent.click(addButton);
+    fireEvent.click(screen.getByRole('button', { name: /\+ Add/i }));
 
-    // Type some text
     const input = screen.getByRole('textbox');
     fireEvent.change(input, { target: { value: 'Some text that will be discarded' } });
-
-    // Press Escape to cancel
     fireEvent.keyDown(input, { key: 'Escape', code: 'Escape' });
 
-    // Input should be hidden and createIssue should NOT have been called
     expect(screen.queryByRole('textbox')).toBeNull();
     expect(createIssue).not.toHaveBeenCalled();
+  });
+
+  it('uses getGhTransitions for post-create transition lookup', async () => {
+    const { getGhTransitions } = await import('@/services/jira');
+    vi.mocked(getGhTransitions).mockResolvedValueOnce([
+      { id: '11', name: 'Start', to: { id: 'status-1', name: 'To Do' } },
+    ] as Awaited<ReturnType<typeof getGhTransitions>>);
+
+    const { default: QuickCreateInput } = await import('./QuickCreateInput');
+    renderWithQuery(<QuickCreateInput {...DEFAULT_PROPS} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /\+ Add/i }));
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: 'Threaded story' } });
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+
+    await waitFor(() => {
+      expect(getGhTransitions).toHaveBeenCalledWith(
+        expect.anything(), // queryClient instance
+        'https://jira.example.com',
+        'test-jira-token',
+        10042,
+        '3',
+      );
+    });
   });
 });
