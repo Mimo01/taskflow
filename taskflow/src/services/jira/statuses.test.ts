@@ -88,7 +88,9 @@ describe('fetchAllJiraStatuses', () => {
   it('throws ApiError on 401', async () => {
     mockedFetch.mockResolvedValue({ ok: false, status: 401 } as unknown as Response);
     await expect(fetchAllJiraStatuses(BASE, TOKEN)).rejects.toBeInstanceOf(ApiError);
-    await expect(fetchAllJiraStatuses(BASE, TOKEN)).rejects.toThrow('Failed to fetch Jira statuses');
+    await expect(fetchAllJiraStatuses(BASE, TOKEN)).rejects.toThrow(
+      'Failed to fetch Jira statuses',
+    );
   });
 
   it('throws ApiError on 403', async () => {
