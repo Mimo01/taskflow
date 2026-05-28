@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.11
 milestone_name: GreenHopper API Migration
-status: planning
-stopped_at: Phase 72 planned (3 plans, 3 waves)
-last_updated: "2026-05-28T23:30:00.000Z"
-last_activity: 2026-05-28
+status: executing
+stopped_at: Phase 72 planned (3 plans, 3 waves; plan-checker PASS after 1 revision)
+last_updated: "2026-05-28T21:49:52.516Z"
+last_activity: 2026-05-28 -- Phase 72 execution started
 progress:
   total_phases: 5
   completed_phases: 1
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-25)
 
 ## Current Position
 
-Phase: 72
-Plan: Not started (3 plans ready: 72-01, 72-02, 72-03)
-Status: Ready to execute Phase 72
-Last activity: 2026-05-28
+Phase: 72 (workflow-transitions-via-greenhopper) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 72
+Last activity: 2026-05-28 -- Phase 72 execution started
 
 ## Performance Metrics
 
