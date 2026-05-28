@@ -107,7 +107,26 @@ export function AuthImage({ src, alt, className, onClick }: AuthImageProps) {
   }, [resolvedSrc, needsAuth]);
 
   if (!needsAuth) {
-    return <img src={src} alt={alt ?? ''} className={className} onClick={onClick} />;
+    return (
+      <img
+        src={src}
+        alt={alt ?? ''}
+        className={className}
+        onClick={onClick}
+        role={onClick ? 'button' : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onKeyDown={
+          onClick
+            ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onClick(e as unknown as React.MouseEvent<HTMLImageElement>);
+                }
+              }
+            : undefined
+        }
+      />
+    );
   }
 
   if (error) {
@@ -122,5 +141,24 @@ export function AuthImage({ src, alt, className, onClick }: AuthImageProps) {
     return <span className="inline-block w-32 h-20 bg-muted animate-pulse rounded-md" />;
   }
 
-  return <img src={blobUrl} alt={alt ?? ''} className={className} onClick={onClick} />;
+  return (
+    <img
+      src={blobUrl}
+      alt={alt ?? ''}
+      className={className}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick(e as unknown as React.MouseEvent<HTMLImageElement>);
+              }
+            }
+          : undefined
+      }
+    />
+  );
 }
