@@ -41,7 +41,9 @@ export async function fetchGhTransitions(
     // setJiraConnected(false) per D-04); only collapse network-class errors
     // to the "Cannot reach" envelope.
     if (err instanceof ApiError) throw err;
-    throw new Error(`Cannot reach ${baseUrl} — check the base URL`, { cause: err });
+    const wrapped = new Error(`Cannot reach ${baseUrl} — check the base URL`);
+    (wrapped as Error & { cause?: unknown }).cause = err;
+    throw wrapped;
   }
 
   if (!response.ok) {
