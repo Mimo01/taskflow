@@ -81,6 +81,17 @@ export interface JiraTransition {
     name: string;
     statusCategory?: { id: number; key: string; name: string };
   };
+  /**
+   * Source status id this transition applies from. Undefined means the
+   * transition is global (applies from any status). Use
+   * `filterTransitionsForStatus` to narrow a workflow's full transition list
+   * to those available from a specific issue's current status.
+   *
+   * Phase 72 (WR-02): keep this in sync with the re-export at
+   * `services/jira.ts:193-208` — `jira.ts` re-declares this type for legacy
+   * imports; both shapes must include `fromStatusId`.
+   */
+  fromStatusId?: string;
 }
 
 export interface JiraComment {
