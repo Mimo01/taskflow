@@ -225,6 +225,7 @@ describe('adaptIssue — Group G: timeInColumn passthrough', () => {
       done: base.done,
       hasCustomUserAvatar: base.hasCustomUserAvatar,
       color: base.color,
+      estimateStatisticRequired: base.estimateStatisticRequired,
       estimateStatistic: base.estimateStatistic,
       trackingStatistic: base.trackingStatistic,
       statusId: base.statusId,
