@@ -31,8 +31,12 @@ export async function fetchBacklogData(
       `/plan/backlog/data.json?rapidViewId=${boardId}`,
       'Load Backlog (data)',
     );
-  } catch {
-    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  } catch (err) {
+    // WR-02: preserve ApiError (auth failures bubble through to
+    // setJiraConnected(false) per D-04); only collapse network-class errors
+    // to the "Cannot reach" envelope.
+    if (err instanceof ApiError) throw err;
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`, { cause: err });
   }
 
   if (!response.ok) {
