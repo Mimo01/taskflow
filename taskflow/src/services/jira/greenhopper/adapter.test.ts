@@ -203,6 +203,17 @@ describe('adaptIssue — Group F: D-11 epic + flagged variants', () => {
     const out = adaptIssue(gh, maps, 'customfield_10016');
     expect(out.flagged).toBe(false);
   });
+
+  it('WR-06: gh.flagged === false and gh.flagged === undefined both produce out.flagged === false', () => {
+    // Explicit coverage of the `undefined → false` collapse documented in the
+    // adapter header. Both inputs are observationally indistinguishable on
+    // AdaptedIssue — consumers needing the distinction must read raw GhIssue.
+    const explicitFalse = adaptIssue(edge({ flagged: false }), maps, 'customfield_10016');
+    const missing = adaptIssue(edge({ flagged: undefined }), maps, 'customfield_10016');
+    expect(explicitFalse.flagged).toBe(false);
+    expect(missing.flagged).toBe(false);
+    expect(explicitFalse.flagged).toBe(missing.flagged);
+  });
 });
 
 describe('adaptIssue — Group G: timeInColumn passthrough', () => {

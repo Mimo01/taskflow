@@ -9,7 +9,14 @@
  *
  * Locked behavior:
  *   D-01: Return shape is a JiraIssue superset — drop-in for the ~60 existing
- *         consumers of jira.ts, with GH-only fields available natively.
+ *         consumers of jira.ts, with GH-only fields available natively. The
+ *         four GH-only top-level props are: timeInColumn? (only present when
+ *         input is a GhBoardIssue), color, flagged, and done.
+ *         WR-06: `flagged` collapses `undefined → false` at the adapter
+ *         boundary. This is correct for "show flagged badge if flagged" UI
+ *         (the only Phase 71/73 consumer) but conflates "not flagged" with
+ *         "no flag info present" for any future "ever-been-flagged" telemetry
+ *         — such consumers must look at the raw GhIssue, not AdaptedIssue.
  *   D-02: `customfield_10016` is synthesized only when
  *         gh.estimateStatistic.statFieldId === storyPointsFieldKey AND a
  *         numeric value is present; otherwise null. The caller is responsible
