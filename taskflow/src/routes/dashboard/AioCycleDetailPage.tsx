@@ -1013,6 +1013,7 @@ export default function AioCycleDetailPage() {
                 </thead>
                 <tbody>
                   {filteredRuns.map((run) => (
+                    // biome-ignore lint/a11y/useSemanticElements: tr cannot be replaced by button in a table
                     <tr
                       key={run.id}
                       className="border-b border-border hover:bg-muted/30 transition-colors cursor-pointer"
