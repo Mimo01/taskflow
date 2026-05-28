@@ -9,9 +9,9 @@
 
 ### Adapter Layer
 
-- [ ] **GH-ADAPT-01**: GreenHopper API client module created under `services/jira/greenhopper/` with typed responses for `allData`, `data`, `details`, and `transitions`
-- [ ] **GH-ADAPT-02**: Entity-map resolver helpers (statusId → Status, priorityId → Priority, typeId → Type, epicId → Epic) so existing UI components can keep consuming the existing UI `Issue` / `Status` / `Epic` types
-- [ ] **GH-ADAPT-03**: Issue adapter mapping GreenHopper `Issue` shape (numeric IDs, `estimateStatistic.statFieldValue.value`, `parentId`/`epicId` resolved via lookup maps) onto the existing app `Issue` type used by board/backlog UI
+- [x] **GH-ADAPT-01**: GreenHopper API client module created under `services/jira/greenhopper/` with typed responses for `allData`, `data`, `details`, and `transitions`
+- [x] **GH-ADAPT-02**: Entity-map resolver helpers (statusId → Status, priorityId → Priority, typeId → Type, epicId → Epic) so existing UI components can keep consuming the existing UI `Issue` / `Status` / `Epic` types
+- [x] **GH-ADAPT-03**: Issue adapter mapping GreenHopper `Issue` shape (numeric IDs, `estimateStatistic.statFieldValue.value`, `parentId`/`epicId` resolved via lookup maps) onto the existing app `Issue` type used by board/backlog UI
 
 ### Sprint Board (`allData.json`)
 
@@ -63,9 +63,9 @@ Filled by roadmap (Section 10 of new-milestone workflow).
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| GH-ADAPT-01 | Phase 71 | Pending |
-| GH-ADAPT-02 | Phase 71 | Pending |
-| GH-ADAPT-03 | Phase 71 | Pending |
+| GH-ADAPT-01 | Phase 71 | Complete |
+| GH-ADAPT-02 | Phase 71 | Complete |
+| GH-ADAPT-03 | Phase 71 | Complete |
 | GH-TRANS-01 | Phase 72 | Pending |
 | GH-TRANS-02 | Phase 72 | Pending |
 | GH-TRANS-03 | Phase 72 | Pending |
@@ -83,6 +83,7 @@ Filled by roadmap (Section 10 of new-milestone workflow).
 | GH-CUT-02 | Phase 75 | Pending |
 
 **Coverage:**
+
 - v1.11 requirements: 18 total
 - Mapped to phases: 18
 - Unmapped: 0 ✓
