@@ -68,7 +68,6 @@ export function WorklogEntryRow({
         entry={entry}
         issueKey={issueKey}
         jiraBaseUrl={jiraBaseUrl}
-        onDiscard={() => setEditingState(false)}
         onDelete={() => deleteMutation.mutate()}
         onSuccess={() => {
           setEditingState(false);

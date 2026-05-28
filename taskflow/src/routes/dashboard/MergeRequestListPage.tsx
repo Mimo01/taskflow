@@ -79,7 +79,7 @@ export default function MergeRequestListPage() {
   } = useQuery({
     queryKey: ['gitlab-project-mrs', projectId, stateFilter],
     queryFn: () =>
-      fetchProjectMRs(gitlabBaseUrl ?? '', gitlabToken ?? '', projectId ?? '', stateFilter),
+      fetchProjectMRs(gitlabBaseUrl ?? '', gitlabToken ?? '', projectId ?? 0, stateFilter),
     staleTime: 30_000,
     enabled: !!gitlabBaseUrl && !!gitlabToken && !!projectId && !isSearching,
   });

@@ -171,7 +171,7 @@ export default function ReleasesTab() {
       fetchProjectMilestonesInRange(
         gitlabBaseUrl ?? '',
         gitlabToken ?? '',
-        activeGitlabProject ?? '',
+        activeGitlabProject ?? 0,
         milestoneWindow?.from ?? '',
         milestoneWindow?.to ?? '',
       ),

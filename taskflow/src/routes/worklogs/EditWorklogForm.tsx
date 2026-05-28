@@ -24,7 +24,6 @@ interface EditWorklogFormProps {
   entry: TempoWorklog;
   issueKey: string;
   jiraBaseUrl: string;
-  onDiscard: () => void;
   onSuccess: () => void;
   onDelete: () => void;
 }
@@ -47,7 +46,6 @@ export function EditWorklogForm({
   entry,
   issueKey,
   jiraBaseUrl,
-  onDiscard,
   onSuccess,
   onDelete,
 }: EditWorklogFormProps) {

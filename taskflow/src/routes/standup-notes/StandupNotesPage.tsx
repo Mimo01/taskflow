@@ -240,7 +240,7 @@ export default function StandupNotesPage() {
       return fetchUserCommits(
         gitlabBaseUrl ?? '',
         token,
-        activeGitlabProject ?? '',
+        activeGitlabProject ?? 0,
         yesterdayDate,
         gitlabUsername ?? '',
         gitlabName,
@@ -261,7 +261,7 @@ export default function StandupNotesPage() {
     queryFn: async () => {
       const token = await readSecret('gitlab-pat').catch(() => null);
       if (!token) throw new Error('No GitLab token');
-      return fetchUserMREvents(gitlabBaseUrl ?? '', token, gitlabUserId ?? '', yesterdayDate);
+      return fetchUserMREvents(gitlabBaseUrl ?? '', token, gitlabUserId ?? 0, yesterdayDate);
     },
     enabled: !!gitlabBaseUrl && !!gitlabToken && !!gitlabUserId && !!yesterdayDate,
     staleTime: 5 * 60 * 1000,
