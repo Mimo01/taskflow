@@ -1,8 +1,8 @@
 ---
 phase: 72-workflow-transitions-via-greenhopper
 verified: 2026-05-29T00:32:00Z
-status: human_needed
-score: 4/4 success criteria verified (automated); 2 human UAT items remain
+status: passed
+score: 4/4 success criteria verified; 2 human UAT items approved 2026-05-29 (see 72-HUMAN-UAT.md); 2 gap-closure fixes (subtask transitions + status filter) committed as f7732dd1
 re_verification:
   previous_status: null
   previous_score: null
