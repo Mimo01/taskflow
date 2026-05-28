@@ -1,6 +1,7 @@
 // AUTH-01: Jira PAT validation
 // AUTH-06: Error banners for Jira validation failures
-// DEV-01, DEV-02, DEV-03, DEV-04: Phase 2 Jira sprint & transition functions
+// DEV-01, DEV-03, DEV-04: Phase 2 Jira sprint & transition functions
+//   (DEV-02 legacy GET path removed in Phase 72-03 per D-08 / GH-CUT-01)
 // CREATE-01..04: Phase 11 new service functions (Wave 0 RED tests)
 // EPIC-01, EPIC-03: Phase 13 epic service functions
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -18,7 +19,6 @@ import {
   fetchSprintIssues,
   fetchSprintStories,
   fetchSprintSubtasks,
-  fetchTransitions,
   type JiraIssue,
   listJiraProjects,
   postComment,
@@ -207,23 +207,6 @@ describe('jira service', () => {
       await expect(
         fetchSprintIssues('https://jira.example.com', 'my-token', 'PROJ'),
       ).rejects.toThrow('Sprint filtering unavailable — ensure Jira Software is installed');
-    });
-  });
-
-  describe('fetchTransitions', () => {
-    it('DEV-02: fetchTransitions returns transitions array', async () => {
-      const mockTransitions = [
-        { id: '11', name: 'To Do', to: { id: '10000', name: 'To Do' } },
-        { id: '21', name: 'In Progress', to: { id: '10001', name: 'In Progress' } },
-      ];
-      vi.mocked(mockFetch).mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({ transitions: mockTransitions }),
-      } as Response);
-
-      const result = await fetchTransitions('https://jira.example.com', 'my-token', 'PROJ-1');
-      expect(result).toEqual(mockTransitions);
     });
   });
 
