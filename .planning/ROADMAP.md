@@ -63,7 +63,7 @@
 Plans:
 
 - [x] 72-01-PLAN.md — Wave 1: warnOnce extract + statuses.ts + transitions cache (useGhTransitions/getGhTransitions/invalidateGhTransitions) + jira.ts re-exports + tests
-- [ ] 72-02-PLAN.md — Wave 2: swap 4 call sites (StatusPopover, SprintBoardTab, BulkActionBar, QuickCreateInput) + sprint-board toolbar 'Reload workflow transitions' action
+- [x] 72-02-PLAN.md — Wave 2: swap 4 call sites (StatusPopover, SprintBoardTab, BulkActionBar, QuickCreateInput) + sprint-board toolbar 'Reload workflow transitions' action
 - [ ] 72-03-PLAN.md — Wave 3: hard cutover — delete legacy fetchTransitions GET from services/jira.ts and services/jira/transitions.ts + tests; full suite green
 
 #### Phase 73: Sprint Board on `allData.json`
