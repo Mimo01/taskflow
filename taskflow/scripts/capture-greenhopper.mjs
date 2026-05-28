@@ -240,8 +240,15 @@ function redactTransitions(obj) {
   if (!obj || typeof obj !== 'object') return obj;
   // transitions.json is mostly numeric ids + transition names + workflow names;
   // RESEARCH redaction table does not require name redaction (workflow/transition
-  // names are configuration metadata, not PII). Keep as-is, but defensively
-  // remap any embedded issue keys if present (some GH builds include them).
+  // names are configuration metadata, not PII — see 71-RESEARCH.md §Capture
+  // Script Trust Boundary). Keep names as-is, but defensively remap any
+  // embedded issue keys if present (some GH builds include them).
+  //
+  // WR-04: do NOT walk every `key` field and rewrite anything matching
+  // /^[A-Z][A-Z0-9_]+-\d+$/. That regex would also match workflow step keys
+  // like "STEP-1" or fixVersion identifiers like "REL-12", silently
+  // misrepresenting the API shape in the committed fixture. Only `issueKey`
+  // is a known issue-key carrier in this payload.
   const walk = (node) => {
     if (Array.isArray(node)) {
       for (const item of node) walk(item);
@@ -251,10 +258,6 @@ function redactTransitions(obj) {
       for (const k of Object.keys(node)) {
         const v = node[k];
         if (k === 'issueKey' && typeof v === 'string') {
-          node[k] = redactIssueKey(v);
-          continue;
-        }
-        if (k === 'key' && typeof v === 'string' && /^[A-Z][A-Z0-9_]+-\d+$/.test(v)) {
           node[k] = redactIssueKey(v);
           continue;
         }
