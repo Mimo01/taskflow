@@ -155,163 +155,78 @@ export function BulkActionBar({
       );
     }
 
-    // Execute status transitions
-    if (targetStatus !== null) {
-      await parallelBatch(
-        keys,
-        async (key) => {
-          // Phase 72 (Plan 02): resolve transitions through the GH cache.
-          // Deriving (projectId, issueTypeId) from the selected issue lets us
-          // hit the project-scoped envelope (one fetch per project per
-          // session) instead of one /transitions REST call per key.
-          const issue = issues.find((i) => i.key === key);
-          if (!issue) throw new Error(`Issue ${key} not in selection`);
-          const projectId = Number(issue.fields.project?.id ?? 0);
-          const issueTypeId = issue.fields.issuetype?.id ?? '';
-          const transitions = await getGhTransitions(
-            queryClient,
-            jiraBaseUrl,
-            jiraToken,
-            projectId,
-            issueTypeId,
-          );
-          const transition = transitions.find(
-            (t) => t.to.name.toLowerCase() === targetStatus.toLowerCase(),
-          );
-          if (!transition) {
-            throw new Error(`No transition to "${targetStatus}"`);
-          }
-          await postTransition(jiraBaseUrl, jiraToken, key, transition.id);
-        },
-        5,
-        (result) => {
-          completed++;
-          if (result.ok) succeeded++;
-          else {
-            failed++;
-            failures.push({ key: result.item, error: result.error ?? 'Unknown error' });
-            // Rollback this issue optimistically
-            rollbackIssue(result.item);
-          }
-          setProgress({
-            total,
-            completed,
-            succeeded,
-            failed,
-            failures: [...failures],
-            isComplete: false,
-          });
-        },
-      );
-    }
+    // CR-01: unify all selected mutations into a single per-key async
+    // function. Previously each field (status/assignee/priority) ran its
+    // own parallelBatch with separate counter updates, which caused:
+    //   - secondary passes (assignee/priority after status) never
+    //     incremented completed/succeeded/failed, so the final progress
+    //     totals were wrong and the failures list contradicted succeeded.
+    //   - the priority branch's `targetStatus === null && targetAssignee
+    //     === null` gate silently dropped priority when assignee was also
+    //     set with status null.
+    // Single-pass dispatch fixes both: each key runs status -> assignee ->
+    // priority sequentially, any failure short-circuits that key into the
+    // failure path, and counters increment exactly once per key.
+    const applyOps = async (key: string): Promise<void> => {
+      const issue = issues.find((i) => i.key === key);
+      if (!issue) throw new Error(`Issue ${key} not in selection`);
 
-    // Execute assignee changes
-    if (targetAssignee !== null) {
-      // If we already did status, don't double-count. Reset counters for combined ops.
-      if (targetStatus === null) {
-        // Only assignee
-        await parallelBatch(
-          keys,
-          async (key) => {
-            await updateIssueField(jiraBaseUrl, jiraToken, key, 'assignee', {
-              name: targetAssignee,
-            });
-          },
-          5,
-          (result) => {
-            completed++;
-            if (result.ok) succeeded++;
-            else {
-              failed++;
-              failures.push({ key: result.item, error: result.error ?? 'Unknown error' });
-              rollbackIssue(result.item);
-            }
-            setProgress({
-              total,
-              completed,
-              succeeded,
-              failed,
-              failures: [...failures],
-              isComplete: false,
-            });
-          },
+      if (targetStatus !== null) {
+        // Phase 72 (Plan 02): resolve transitions through the GH cache.
+        // Deriving (projectId, issueTypeId) from the selected issue lets us
+        // hit the project-scoped envelope (one fetch per project per
+        // session) instead of one /transitions REST call per key.
+        const projectId = Number(issue.fields.project?.id ?? 0);
+        const issueTypeId = issue.fields.issuetype?.id ?? '';
+        const transitions = await getGhTransitions(
+          queryClient,
+          jiraBaseUrl,
+          jiraToken,
+          projectId,
+          issueTypeId,
         );
-      }
-    }
-
-    // Execute priority changes
-    if (targetPriority !== null) {
-      if (targetStatus === null && targetAssignee === null) {
-        await parallelBatch(
-          keys,
-          async (key) => {
-            await updateIssueField(jiraBaseUrl, jiraToken, key, 'priority', {
-              name: targetPriority,
-            });
-          },
-          5,
-          (result) => {
-            completed++;
-            if (result.ok) succeeded++;
-            else {
-              failed++;
-              failures.push({ key: result.item, error: result.error ?? 'Unknown error' });
-              rollbackIssue(result.item);
-            }
-            setProgress({
-              total,
-              completed,
-              succeeded,
-              failed,
-              failures: [...failures],
-              isComplete: false,
-            });
-          },
+        const transition = transitions.find(
+          (t) => t.to.name.toLowerCase() === targetStatus.toLowerCase(),
         );
+        if (!transition) {
+          throw new Error(`No transition to "${targetStatus}"`);
+        }
+        await postTransition(jiraBaseUrl, jiraToken, key, transition.id);
       }
-    }
 
-    // Handle combined operations (multiple fields changed)
-    if (targetStatus !== null && (targetAssignee !== null || targetPriority !== null)) {
-      // After status transitions done, run field updates for the same keys
-      const fieldKeys = keys.filter((k) => !failures.some((f) => f.key === k));
       if (targetAssignee !== null) {
-        await parallelBatch(
-          fieldKeys,
-          async (key) => {
-            await updateIssueField(jiraBaseUrl, jiraToken, key, 'assignee', {
-              name: targetAssignee,
-            });
-          },
-          5,
-          (result) => {
-            if (!result.ok) {
-              failures.push({ key: result.item, error: result.error ?? 'Unknown error' });
-              rollbackIssue(result.item);
-            }
-          },
-        );
+        await updateIssueField(jiraBaseUrl, jiraToken, key, 'assignee', {
+          name: targetAssignee,
+        });
       }
-      if (targetPriority !== null) {
-        await parallelBatch(
-          fieldKeys,
-          async (key) => {
-            await updateIssueField(jiraBaseUrl, jiraToken, key, 'priority', {
-              name: targetPriority,
-            });
-          },
-          5,
-          (result) => {
-            if (!result.ok) {
-              failures.push({ key: result.item, error: result.error ?? 'Unknown error' });
-              rollbackIssue(result.item);
-            }
-          },
-        );
-      }
-    }
 
-    setProgress({ total, completed: total, succeeded, failed, failures, isComplete: true });
+      if (targetPriority !== null) {
+        await updateIssueField(jiraBaseUrl, jiraToken, key, 'priority', {
+          name: targetPriority,
+        });
+      }
+    };
+
+    await parallelBatch(keys, applyOps, 5, (result) => {
+      completed++;
+      if (result.ok) {
+        succeeded++;
+      } else {
+        failed++;
+        failures.push({ key: result.item, error: result.error ?? 'Unknown error' });
+        rollbackIssue(result.item);
+      }
+      setProgress({
+        total,
+        completed,
+        succeeded,
+        failed,
+        failures: [...failures],
+        isComplete: false,
+      });
+    });
+
+    setProgress({ total, completed, succeeded, failed, failures, isComplete: true });
 
     if (failed === 0) {
       // All succeeded -- will auto-dismiss via BulkProgressIndicator
