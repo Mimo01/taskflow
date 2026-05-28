@@ -33,9 +33,14 @@ export interface JiraIssue {
     assignee: { displayName: string; avatarUrls: { '48x48': string } } | null;
     customfield_10016: number | null; // story points (most common field key)
     issuetype: {
+      /** Numeric id (Phase 72: needed for GH transitions cache lookup;
+       *  optional in the type so legacy test fixtures keep compiling). */
+      id?: string;
       name: string;
       subtask: boolean; // Use this -- NOT name comparison. Admins can rename issue types.
     };
+    /** Phase 72: optional project context needed for GH transitions cache. */
+    project?: { id: string; key: string };
     description?: string | null;
     // v1.1 additions (all optional -- non-breaking for all four existing callers):
     parent?: { id: string; key: string; fields: { summary: string } };
@@ -118,7 +123,8 @@ export interface JiraIssueDetail {
     summary: string;
     description: string | null;
     status: { id: string; name: string; statusCategory?: { key: string } };
-    issuetype: { name: string; subtask: boolean };
+    issuetype: { id?: string; name: string; subtask: boolean };
+    project?: { id: string; key: string };
     priority: { name: string; iconUrl?: string } | null;
     assignee: { displayName: string; name: string; avatarUrls: { '48x48': string } } | null;
     reporter: { displayName: string; name?: string; avatarUrls: { '48x48': string } } | null;

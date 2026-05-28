@@ -27,15 +27,25 @@ vi.mock('@/services/stronghold', () => ({
 }));
 
 // Mock jira service — controlled from each test
+// Phase 72 (Plan 02): the legacy `fetchTransitions` mock is gone; SprintBoardTab
+// now routes through `useGhTransitions` (project-level envelope cache) and the
+// toolbar invokes `invalidateGhTransitions`. The underlying `fetchGhTransitions`
+// is mocked separately in the per-test cases that need to assert on call counts.
 vi.mock('@/services/jira', () => ({
   fetchProjectStatuses: vi.fn().mockResolvedValue([]),
-  fetchTransitions: vi.fn().mockResolvedValue([]),
   postTransition: vi.fn().mockResolvedValue(undefined),
   fetchSprintStories: vi.fn().mockResolvedValue([]),
   fetchSprintSubtasks: vi.fn().mockResolvedValue([]),
   fetchEpicsBasic: vi.fn().mockResolvedValue([]),
   isIssueFlagged: vi.fn().mockReturnValue(false),
   setIssueFlagged: vi.fn().mockResolvedValue(undefined),
+  useGhTransitions: vi.fn(() => ({
+    data: undefined,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  })),
+  invalidateGhTransitions: vi.fn(),
 }));
 
 // Mock useBoardId hook — returns null (no board discovery in tests)
@@ -92,6 +102,7 @@ vi.mock('lucide-react', async (importOriginal) => {
     ChevronDown: () => <span data-testid="chevron-down" />,
     ChevronRight: () => <span data-testid="chevron-right" />,
     RefreshCw: () => <span data-testid="refresh-cw" />,
+    Workflow: () => <span data-testid="workflow-icon" />,
   };
 });
 
@@ -903,5 +914,90 @@ describe('FILT-02: saved filter integration', () => {
     // Clean up
     useSavedFilterStore.getState().setActiveFilter(null);
     useSavedFilterStore.getState().setSavedFilters([]);
+  });
+
+  // ─── Phase 72 Plan 02: GH transitions migration + toolbar reload action ───
+
+  it('routes transitions through useGhTransitions (no fetchTransitions call)', async () => {
+    const { fetchSprintStories, fetchSprintSubtasks, fetchProjectStatuses, useGhTransitions } =
+      await import('@/services/jira');
+    const story = makeIssue('PROJ-1', 'Story One', false, undefined, 'In Progress');
+    vi.mocked(fetchSprintStories).mockResolvedValue([story]);
+    vi.mocked(fetchSprintSubtasks).mockResolvedValue([]);
+    vi.mocked(fetchProjectStatuses).mockResolvedValue([makeStatus('In Progress', 'indeterminate')]);
+
+    const { useAuthStore } = await import('@/stores/auth.store');
+    vi.mocked(useAuthStore).mockReturnValue({
+      jiraBaseUrl: 'https://jira.example.com',
+      activeJiraProject: 'PROJ',
+      gitlabBaseUrl: 'https://gitlab.example.com',
+    } as ReturnType<typeof useAuthStore>);
+
+    const { default: SprintBoardTab } = await import('./SprintBoardTab');
+    renderWithQuery(<SprintBoardTab />);
+
+    // Wait for board mount and confirm useGhTransitions was used.
+    await waitFor(() => {
+      expect(useGhTransitions).toHaveBeenCalled();
+    });
+  });
+
+  it("toolbar 'Reload workflow transitions' action invalidates envelope + jira-statuses", async () => {
+    const {
+      fetchSprintStories,
+      fetchSprintSubtasks,
+      fetchProjectStatuses,
+      invalidateGhTransitions,
+    } = await import('@/services/jira');
+
+    // Build an issue carrying project + issuetype ids so the toolbar handler
+    // can derive projectId from localIssues[0].
+    const issue = {
+      ...makeIssue('PROJ-1', 'Story One', false, undefined, 'In Progress'),
+    };
+    (issue.fields as Record<string, unknown>).project = { id: '10042', key: 'PROJ' };
+    (issue.fields.issuetype as Record<string, unknown>).id = '3';
+
+    vi.mocked(fetchSprintStories).mockResolvedValue([issue as never]);
+    vi.mocked(fetchSprintSubtasks).mockResolvedValue([]);
+    vi.mocked(fetchProjectStatuses).mockResolvedValue([makeStatus('In Progress', 'indeterminate')]);
+
+    const { useAuthStore } = await import('@/stores/auth.store');
+    vi.mocked(useAuthStore).mockReturnValue({
+      jiraBaseUrl: 'https://jira.example.com',
+      activeJiraProject: 'PROJ',
+      gitlabBaseUrl: 'https://gitlab.example.com',
+    } as ReturnType<typeof useAuthStore>);
+
+    // Spy on QueryClient prototype to intercept invalidateQueries calls without
+    // needing to hand-thread a custom QueryClient through the component tree.
+    const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
+
+    const { default: SprintBoardTab } = await import('./SprintBoardTab');
+    renderWithQuery(<SprintBoardTab />);
+
+    // Wait for the board to mount + localIssues to populate so the toolbar
+    // handler can read projectId from localIssues[0]. ("Story One" may render
+    // twice — once in a sticky header overlay and once in the swimlane row.)
+    await waitFor(() => {
+      expect(screen.getAllByText('Story One').length).toBeGreaterThan(0);
+    });
+
+    const reloadBtn = await screen.findByRole('button', {
+      name: /Reload workflow transitions/i,
+    });
+    fireEvent.click(reloadBtn);
+
+    await waitFor(() => {
+      expect(invalidateGhTransitions).toHaveBeenCalledWith(expect.anything(), 10042);
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['jira-statuses'] });
+
+    // Inline aria-live success text per CONTEXT D-07.
+    await waitFor(() => {
+      expect(screen.getByText('Workflow transitions reloaded')).toBeTruthy();
+    });
+
+    invalidateSpy.mockRestore();
   });
 });

@@ -109,10 +109,9 @@ export default function TaskRow({
 
         {/* Status popover */}
         <StatusPopover
-          issueKey={issue.key}
+          projectId={Number(issue.fields.project?.id ?? 0)}
+          issueTypeId={issue.fields.issuetype?.id ?? ''}
           currentStatus={issue.fields.status.name}
-          jiraBaseUrl={jiraBaseUrl}
-          token={jiraToken}
           onSelect={(transitionId, toStatusName) =>
             onTransitionSelect(issue.key, transitionId, toStatusName)
           }

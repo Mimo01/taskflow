@@ -1,7 +1,11 @@
 /**
  * StatusPopover — Inline popover for Jira issue status transitions.
  *
- * Fetches available transitions lazily on first open (not on mount).
+ * Phase 72 (Plan 02): reads transitions from the GreenHopper project-scoped
+ * cache via `useGhTransitions(projectId, issueTypeId)` instead of the per-issue
+ * REST `/transitions` endpoint. The cache is project-scoped so multiple cards
+ * of the same project share a single underlying envelope fetch.
+ *
  * Calls onSelect(transitionId, toStatusName) when user picks a transition.
  * disabled prop prevents opening while a mutation is in-flight.
  *
@@ -9,57 +13,38 @@
  * consistent with TaskCard, StoryHeaderRow, and the issue-detail sidebar.
  */
 
-import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
-import { fetchTransitions } from '@/services/jira';
-import { readSecret } from '@/services/stronghold';
+import { useGhTransitions } from '@/services/jira';
 
 interface StatusPopoverProps {
-  issueKey: string;
+  /** Numeric Jira project id (Phase 72 — drives GH transitions cache key). */
+  projectId: number;
+  /** Jira issuetype id (Phase 72 — drives per-type transitions adaptation). */
+  issueTypeId: string;
   currentStatus: string;
-  jiraBaseUrl: string;
-  /** Pass token directly (e.g. TaskRow) or omit to resolve via readSecret */
-  token?: string;
   onSelect: (transitionId: string, toStatusName: string) => void;
   disabled?: boolean;
   statusCategoryKey?: string;
 }
 
 export default function StatusPopover({
-  issueKey,
+  projectId,
+  issueTypeId,
   currentStatus,
-  jiraBaseUrl,
-  token,
   onSelect,
   disabled = false,
   statusCategoryKey,
 }: StatusPopoverProps) {
   const [open, setOpen] = useState(false);
 
-  const {
-    data: transitions,
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery({
-    queryKey: ['transitions', issueKey],
-    queryFn: async () => {
-      const resolvedToken = token ?? (await readSecret('jira-pat').catch(() => null));
-      if (!resolvedToken) return [];
-      return fetchTransitions(jiraBaseUrl, resolvedToken, issueKey);
-    },
-    enabled: false, // Lazy — only fetch when popover opens
-  });
+  const { data: transitions, isLoading, isError } = useGhTransitions(projectId, issueTypeId);
 
   function handleOpenChange(newOpen: boolean) {
     if (disabled) return;
     setOpen(newOpen);
-    if (newOpen) {
-      refetch();
-    }
   }
 
   function handleSelect(transitionId: string, toStatusName: string) {
