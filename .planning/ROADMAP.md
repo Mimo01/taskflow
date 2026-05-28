@@ -35,6 +35,15 @@
 3. `adaptIssue(greenhopperIssue, entityMaps)` produces an object that the existing sprint-board / backlog `Issue` consumers accept without code changes
 4. Unit tests cover the adapter with fixtures captured from a real GreenHopper response
 
+**Plans:** 6 plans (W0: 71-01 → W1: 71-02 → W2: 71-03, 71-04 → W3: 71-05 → W4: 71-06)
+- [ ] 71-01-PLAN.md — Wave 0: capture script + redacted real fixtures (blocks all)
+- [ ] 71-02-PLAN.md — Wave 1: greenhopperFetch client + types.ts
+- [ ] 71-03-PLAN.md — Wave 2: four typed fetchers (allData/data/details/transitions) + tests
+- [ ] 71-04-PLAN.md — Wave 2: buildEntityMaps + resolvers + warnOnce + tests
+- [ ] 71-05-PLAN.md — Wave 3: adaptIssue + createAdapter + fixture-driven tests
+- [ ] 71-06-PLAN.md — Wave 4: public barrel + jira.ts re-export (D-05) + full suite verify
+
+
 #### Phase 72: Workflow Transitions via GreenHopper
 
 **Goal:** Replace per-issue REST `/transitions` calls with a cached per-project `transitions.json` map; wire it into sprint-board drag-to-transition and issue-detail status change.
