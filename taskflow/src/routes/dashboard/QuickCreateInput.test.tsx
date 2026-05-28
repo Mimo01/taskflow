@@ -1,10 +1,11 @@
 /**
- * QuickCreateInput tests (Phase 72 Plan 02 update).
+ * QuickCreateInput tests (Phase 72).
  *
- * Migrated from the legacy `fetchTransitions` flow to
- * `getGhTransitions(queryClient, baseUrl, token, projectId, issueTypeId)` —
- * tests cover the new prop surface (projectId + issueTypeId) and verify the
- * post-create transition lookup hits the GH cache, not the REST fetcher.
+ * Post-create transition lookup resolves through
+ * `getGhTransitions(queryClient, baseUrl, token, projectId, issueTypeId)`.
+ * Tests cover the prop surface (projectId + issueTypeId) and verify the
+ * lookup hits the GH cache. The legacy per-issue REST GET path was
+ * deleted in Phase 72-03 (D-08 / GH-CUT-01).
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

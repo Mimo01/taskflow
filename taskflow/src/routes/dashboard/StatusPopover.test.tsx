@@ -1,8 +1,8 @@
 /**
- * StatusPopover tests (Phase 72 Plan 02) — verify the component reads
- * transitions from `useGhTransitions(projectId, issueTypeId)` and renders
- * loading / error / list states without ever calling the legacy
- * `fetchTransitions` REST fetcher.
+ * StatusPopover tests (Phase 72) — verify the component reads transitions
+ * from `useGhTransitions(projectId, issueTypeId)` and renders loading /
+ * error / list states. The legacy per-issue REST GET path was deleted
+ * in Phase 72-03 (D-08 / GH-CUT-01).
  */
 
 import { fireEvent, render, screen } from '@testing-library/react';
@@ -10,8 +10,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/services/jira', () => ({
   useGhTransitions: vi.fn(),
-  // Intentionally do NOT export fetchTransitions — the migrated component must
-  // not import it. A test that accidentally references it would throw.
+  // Mock surface intentionally narrow — the migrated component reads
+  // transitions exclusively via the GH cache hook above.
 }));
 
 import { useGhTransitions } from '@/services/jira';
@@ -89,12 +89,11 @@ describe('StatusPopover', () => {
     expect(await screen.findByText(/Unable to load transitions/i)).toBeTruthy();
   });
 
-  it('does not import legacy fetchTransitions (source-grep guard)', async () => {
-    // Source-level guard: importing StatusPopover with a mock that omits
-    // `fetchTransitions` succeeded above (the test file loaded). If the
-    // component had referenced fetchTransitions, vitest would have thrown
-    // "No 'fetchTransitions' export is defined" at module-import time and
-    // every test in this file would fail.
+  it('does not import the legacy REST GET fetcher (source-grep guard)', async () => {
+    // Source-level guard: importing StatusPopover with a narrow mock that
+    // only exports the GH hook succeeded above (the test file loaded). If
+    // the component had referenced any other jira service export, vitest
+    // would have thrown at module-import time and every test would fail.
     mockedUseGhTransitions.mockReturnValue(hookResult({ data: [] }));
     const { default: StatusPopover } = await import('./StatusPopover');
     expect(StatusPopover).toBeTruthy();

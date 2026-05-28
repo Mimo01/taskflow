@@ -27,10 +27,11 @@ vi.mock('@/services/stronghold', () => ({
 }));
 
 // Mock jira service — controlled from each test
-// Phase 72 (Plan 02): the legacy `fetchTransitions` mock is gone; SprintBoardTab
-// now routes through `useGhTransitions` (project-level envelope cache) and the
-// toolbar invokes `invalidateGhTransitions`. The underlying `fetchGhTransitions`
-// is mocked separately in the per-test cases that need to assert on call counts.
+// Phase 72: SprintBoardTab routes transitions through `useGhTransitions`
+// (project-level envelope cache); the toolbar invokes `invalidateGhTransitions`.
+// The underlying `fetchGhTransitions` is mocked separately in the per-test
+// cases that need to assert on call counts. The legacy per-issue REST GET
+// path was deleted in Phase 72-03 (D-08 / GH-CUT-01).
 vi.mock('@/services/jira', () => ({
   fetchProjectStatuses: vi.fn().mockResolvedValue([]),
   postTransition: vi.fn().mockResolvedValue(undefined),
@@ -918,7 +919,7 @@ describe('FILT-02: saved filter integration', () => {
 
   // ─── Phase 72 Plan 02: GH transitions migration + toolbar reload action ───
 
-  it('routes transitions through useGhTransitions (no fetchTransitions call)', async () => {
+  it('routes transitions through useGhTransitions (no legacy per-issue REST call)', async () => {
     const { fetchSprintStories, fetchSprintSubtasks, fetchProjectStatuses, useGhTransitions } =
       await import('@/services/jira');
     const story = makeIssue('PROJ-1', 'Story One', false, undefined, 'In Progress');
