@@ -130,8 +130,13 @@ export function __adaptToJiraTransition(
   // `isGlobal` transitions apply from any status; non-global ones carry a
   // fromStatusId that `filterTransitionsForStatus` matches against the issue's
   // current status to surface only valid moves.
-  const fromStatusId =
-    gh.isGlobal || gh.fromStatusId === undefined ? undefined : String(gh.fromStatusId);
+  // WR-06: use `== null` to cover both `undefined` and `null` (some Jira DC
+  // versions emit `fromStatusId: null` for global-ish transitions; the
+  // strict `=== undefined` check would let `null` slip through and produce
+  // the string "null" via String(null), causing the transition to be
+  // silently hidden from every status by filterTransitionsForStatus).
+  const fromRaw = gh.fromStatusId;
+  const fromStatusId = gh.isGlobal || fromRaw == null ? undefined : String(fromRaw);
   const status = statusMap.get(toId);
   if (!status) {
     warnOnce('gh-transitions-status', toId);
@@ -289,6 +294,9 @@ export function useGhTransitions(
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
+    // WR-05: re-read the secret whenever the Jira instance changes (login
+    // rotation, instance switch). An empty dep array left the hook with a
+    // stale token across re-auth cycles.
     let cancelled = false;
     readSecret('jira-pat')
       .then((t) => {
@@ -300,7 +308,7 @@ export function useGhTransitions(
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [jiraBaseUrl]);
 
   return useQuery<JiraTransition[]>({
     queryKey: ['gh-transitions', projectId, issueTypeId],
