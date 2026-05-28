@@ -227,8 +227,24 @@ export default function CommandPalette({
   const isDefaultState = query.length < 2;
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" onClick={onClose}>
-      <div className="max-w-xl mt-16 mx-auto" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm"
+      role="button"
+      tabIndex={0}
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClose();
+        }
+      }}
+    >
+      <div
+        className="max-w-xl mt-16 mx-auto"
+        role="presentation"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => { e.stopPropagation(); }}
+      >
         <Command className="rounded-lg border shadow-lg bg-popover">
           <CommandInput
             placeholder="Search issues, MRs, and actions..."

@@ -25,7 +25,7 @@ describe('EmptyState', () => {
   });
 
   it('renders action ReactNode when provided', () => {
-    render(<EmptyState icon={Inbox} title="T" action={<button>Click me</button>} />);
+    render(<EmptyState icon={Inbox} title="T" action={<button type="button">Click me</button>} />);
     expect(screen.getByText('Click me')).toBeTruthy();
   });
 
