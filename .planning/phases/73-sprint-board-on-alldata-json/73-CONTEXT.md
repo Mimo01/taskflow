@@ -165,7 +165,42 @@ The planner has flexibility on:
 
 </deferred>
 
+<research_resolutions>
+## Research Resolutions (added 2026-05-29 after RESEARCH.md)
+
+The research phase verified `__fixtures__/allData.real.json` and surfaced findings that REVISE earlier decisions. Planner MUST honor these resolutions over the original D-* decisions where they conflict.
+
+### R-01 (overrides D-09 / D-09a — board quick filters)
+**Finding:** `allData.json` does NOT carry structured board quick filters. `etagData.quickFilters` is the string `"[]"`, not a usable filter list.
+**Resolution:** **Keep `fetchBoardQuickFilters` REST call** and its `['jira-board-quickfilters', boardId]` query in SprintBoardTab. Do NOT delete the fetcher or its `jira.ts` re-export. Net query count for this phase becomes 6→2, still a major reduction. Criterion #4 ("quick-filter filters work") is preserved.
+**Note:** The "Reload board" toolbar action (D-07) should ALSO invalidate `['jira-board-quickfilters', boardId]` so the bundle stays consistent.
+
+### R-02 (overrides D-09b — sprint goal)
+**Finding:** `sprintsData.sprints[]` in allData has NO `goal` field.
+**Resolution:** Keep SprintBoardTab's `fetchActiveSprint` query. `SprintGoalBanner.tsx` continues to consume `activeSprint` unchanged. D-09b's conditional cleanup does NOT fire.
+**Note:** "Reload board" should also invalidate `['jira-active-sprint', ...]` to keep the goal banner fresh.
+
+### R-03 (overrides D-05 / UI-SPEC date-fns reference — timeInColumn formatting)
+**Finding:** `date-fns` is NOT in `package.json`. Existing project pattern uses `Intl.RelativeTimeFormat` (see `IssueDetailContent.tsx:38-44`).
+**Resolution:** **Use `Intl.RelativeTimeFormat`** to render the badge text. Extract a shared helper (e.g. `src/lib/relative-time.ts` or colocate with the existing IssueDetailContent helper — planner picks). Badge text format: "3d ago" / "5h ago" / "just now" (matches existing pattern). UI-SPEC's `formatDistanceToNowStrict` reference is superseded.
+**Note:** The badge `title` attribute remains `"Entered status N ago"` per UI-SPEC.
+
+### R-04 (clarifies "Reload board" projectId source — addendum to D-07)
+**Finding:** `adaptIssue` does NOT populate `fields.project` on adapted issues. The existing Phase 72 `handleReloadWorkflowTransitions` reads `localIssues[0]?.fields.project?.id`, which will be `undefined` after the swap.
+**Resolution:** Source projectId from the raw GH envelope: `data.issuesData.issues[0]?.projectId` (numeric field). The Reload-board action handler should derive `currentProjectId` from raw data, NOT adapted issues.
+
+### Updated invalidation set for "Reload board" (D-07 + R-01 + R-02)
+Final query keys to invalidate on "Reload board" click:
+- `['gh-all-data', boardId]`
+- `['gh-transitions', currentProjectId]`
+- `['jira-statuses']`
+- `['jira-board-quickfilters', boardId]` (added by R-01)
+- `['jira-active-sprint', activeSprintId]` (added by R-02)
+
+</research_resolutions>
+
 ---
 
 *Phase: 73-sprint-board-on-alldata-json*
 *Context gathered: 2026-05-29*
+*Research resolutions appended: 2026-05-29*
