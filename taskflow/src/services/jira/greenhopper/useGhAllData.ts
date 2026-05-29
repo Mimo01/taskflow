@@ -24,11 +24,7 @@
  * hook", and PATTERNS.md §"useGhAllData.ts".
  */
 
-import {
-  type QueryClient,
-  type UseQueryResult,
-  useQuery,
-} from '@tanstack/react-query';
+import { type QueryClient, type UseQueryResult, useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
 import { useIsActiveRoute } from '../../../hooks/useIsActiveRoute';
@@ -45,16 +41,14 @@ import type { GhAllDataResponse } from './types';
  * Returns the raw envelope (no adapter pass) — SprintBoardTab adapts in a
  * `useMemo` per D-01 / Discretion section.
  */
-export function useGhAllData(
-  boardId: number | null,
-): UseQueryResult<GhAllDataResponse> {
+export function useGhAllData(boardId: number | null): UseQueryResult<GhAllDataResponse> {
   const jiraBaseUrl = useAuthStore((s) => s.jiraBaseUrl);
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    // Re-read the secret whenever the Jira instance changes (login rotation,
-    // instance switch). Empty dep array would leave the hook with a stale
-    // token across re-auth cycles (mirrors transitions.ts WR-05).
+    // WR-05: re-read the secret whenever the Jira instance changes (login
+    // rotation, instance switch). An empty dep array would leave the hook
+    // with a stale token across re-auth cycles (mirrors transitions.ts WR-05).
     let cancelled = false;
     readSecret('jira-pat')
       .then((t) => {
@@ -72,8 +66,7 @@ export function useGhAllData(
 
   return useQuery<GhAllDataResponse>({
     queryKey: ['gh-all-data', boardId],
-    queryFn: () =>
-      fetchAllData(jiraBaseUrl as string, token as string, boardId as number),
+    queryFn: () => fetchAllData(jiraBaseUrl as string, token as string, boardId as number),
     refetchInterval: POLL_INTERVAL_MS,
     refetchIntervalInBackground: false,
     staleTime: STALE_TIME_MS,
@@ -107,10 +100,7 @@ export async function getGhAllData(
  * Used by the "Reload board" toolbar action (D-07). Pass `boardId` to
  * invalidate a single board; omit to invalidate all cached boards.
  */
-export function invalidateGhAllData(
-  queryClient: QueryClient,
-  boardId?: number,
-): void {
+export function invalidateGhAllData(queryClient: QueryClient, boardId?: number): void {
   if (boardId === undefined) {
     queryClient.invalidateQueries({ queryKey: ['gh-all-data'] });
   } else {
