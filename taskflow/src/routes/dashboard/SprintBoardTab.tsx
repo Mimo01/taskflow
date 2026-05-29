@@ -686,12 +686,19 @@ export default function SprintBoardTab() {
     staleTime: 5 * 60 * 1000,
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
-  const epicNameMap = new Map<string, string>();
-  const epicColorMap = new Map<string, string>();
-  for (const e of epicsBasic ?? []) {
-    epicNameMap.set(e.key, e.epicName);
-    epicColorMap.set(e.key, e.color ?? '');
-  }
+  // WR-05: memoise per-epicsBasic to avoid handing fresh Map instances
+  // to VirtualizedSwimlanes on every render — defeats child memoisation
+  // and the scroll-handler's ref-stable design.
+  const epicNameMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const e of epicsBasic ?? []) m.set(e.key, e.epicName);
+    return m;
+  }, [epicsBasic]);
+  const epicColorMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const e of epicsBasic ?? []) m.set(e.key, e.color ?? '');
+    return m;
+  }, [epicsBasic]);
 
   // Fetch active sprint (for goal text and board ID)
   const { data: activeSprint } = useQuery({
@@ -905,17 +912,28 @@ export default function SprintBoardTab() {
     }
   }
 
-  const storyIssues = localIssues.filter((i) => !i.fields.issuetype.subtask);
-  const subtaskIssues = localIssues.filter((i) => i.fields.issuetype.subtask);
-  const subtasksByParent = new Map<string, JiraIssue[]>();
-  for (const sub of subtaskIssues) {
-    const pk = sub.fields.parent?.key;
-    if (pk) subtasksByParent.set(pk, [...(subtasksByParent.get(pk) ?? []), sub]);
-  }
-  const swimlanes = storyIssues.map((story) => ({
-    story,
-    subtasks: subtasksByParent.get(story.key) ?? [],
-  }));
+  // WR-05: memoise the per-render partitioning so VirtualizedSwimlanes
+  // (and the done-fingerprint effect below) only sees a new reference when
+  // localIssues actually changes.
+  const storyIssues = useMemo(
+    () => localIssues.filter((i) => !i.fields.issuetype.subtask),
+    [localIssues],
+  );
+  const subtaskIssues = useMemo(
+    () => localIssues.filter((i) => i.fields.issuetype.subtask),
+    [localIssues],
+  );
+  const swimlanes = useMemo(() => {
+    const subtasksByParent = new Map<string, JiraIssue[]>();
+    for (const sub of subtaskIssues) {
+      const pk = sub.fields.parent?.key;
+      if (pk) subtasksByParent.set(pk, [...(subtasksByParent.get(pk) ?? []), sub]);
+    }
+    return storyIssues.map((story) => ({
+      story,
+      subtasks: subtasksByParent.get(story.key) ?? [],
+    }));
+  }, [storyIssues, subtaskIssues]);
 
   // Stable fingerprint for the done-state of each swimlane — avoids a new array
   // reference every render triggering an infinite re-render loop in the effect below.
