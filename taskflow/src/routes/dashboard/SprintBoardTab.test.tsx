@@ -1,8 +1,8 @@
 /**
  * SprintBoardTab tests — Phase 73 Plan 02
  *
- * Migrated from the legacy `fetchSprintStories` + `fetchSprintSubtasks`
- * query path to the new `useGhAllData(boardId)` hook. The component now reads
+ * Migrated from the legacy two-query (sprint stories + sprint subtasks)
+ * path to the new `useGhAllData(boardId)` hook. The component now reads
  * a single `GhAllDataResponse`, adapts it via `createAdapter`, and buckets
  * via `statusCategory.key` from the adapter (D-03 / D-03a).
  *
@@ -42,7 +42,7 @@ vi.mock('@/services/stronghold', () => ({
 }));
 
 // Mock jira service — Phase 73 Plan 02 swap:
-//   * fetchSprintStories / fetchSprintSubtasks removed
+//   * legacy fetchers removed
 //   * useGhAllData / buildEntityMaps / createAdapter added
 // `createAdapter` returns an identity function so tests can pre-shape issues
 // as JiraIssue-likes inside the mocked `useGhAllData` envelope.
@@ -424,7 +424,7 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
     });
   });
 
-  it('does not import fetchSprintStories or fetchSprintSubtasks (they are gone)', async () => {
+  it('does not import legacy sprint fetchers (they are gone)', async () => {
     // The mocked `@/services/jira` deliberately does NOT export these symbols.
     // If SprintBoardTab still imported them, the module would throw "No
     // 'fetchSprintStories' export is defined on the mock" at import time.

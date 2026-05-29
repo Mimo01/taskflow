@@ -602,7 +602,7 @@ export default function SprintBoardTab() {
   }, [jiraBaseUrl]);
 
   // Phase 73 Plan 02 (D-01, D-03, D-04, D-04b, R-01, R-02, R-04, GH-BOARD-01/03/04):
-  // The legacy 2-query path (fetchSprintStories + fetchSprintSubtasks) is gone.
+  // The legacy 2-query path (sprint stories + sprint subtasks REST) is gone.
   // SprintBoardTab now reads a single allData envelope, adapts issues via the
   // Phase 71 createAdapter, and lets `statusCategory.key` drive the 3-bucket UI.
   // R-01 / R-02 keep `boardQuickFilters` + `activeSprint` REST queries — see
