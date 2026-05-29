@@ -1,0 +1,51 @@
+Phase 74 Plan 06 Task 1 — Pre-delete grep audit
+================================================
+
+Grep 1: external (non-dual-file) callers of doomed REST fetchers
+  grep -rnE "fetchBacklogIssues|fetchBacklogSprintStories|fetchBacklogView" \
+       taskflow/src --include="*.ts" --include="*.tsx" \
+    | grep -vE "services/jira/backlog\.ts|services/jira\.ts"
+
+  Production hits: none.
+  Test-only hits:
+    taskflow/src/components/app/Sidebar.test.tsx               (mock object)
+    taskflow/src/components/app/__tests__/Sidebar.prefetch.test.tsx (mock + JSDoc)
+    taskflow/src/services/jira/backlog.test.ts                 (tests for the doomed fns)
+  Conclusion: zero production callers — safe to delete the three fetchers.
+  Test cleanup is performed as part of Tasks 2-4 (mocks for now-deleted
+  symbols become dead mocks and must be removed to keep biome clean).
+
+Grep 2: external callers of BacklogViewData
+  grep -rnE "BacklogViewData" taskflow/src --include="*.ts" --include="*.tsx" \
+    | grep -vE "services/jira/backlog\.ts|services/jira\.ts"
+
+  Hit: taskflow/src/services/jira/types.ts:210 — the declaration itself.
+  No external importer beyond services/jira/backlog.ts:8 (the import we are
+  about to remove with fetchBacklogView). Safe to delete the types.ts
+  declaration once backlog.ts stops importing it.
+
+  RESEARCH note: Plan-time research said "only services/jira/backlog.ts:8".
+  Task 1 re-grep confirms that is the only IMPORTER, but the type's
+  DECLARATION lives in services/jira/types.ts:210 (not in backlog.ts:8 —
+  line 8 is the import). Deletion plan adjusted to also drop the types.ts
+  declaration (deviation Rule 1 against RESEARCH wording, not an
+  architectural change).
+
+Grep 3: fetchSprintList callers (must KEEP per D-09a)
+  grep -rnE "fetchSprintList" taskflow/src --include="*.ts" --include="*.tsx"
+
+  Production hit:
+    taskflow/src/routes/dashboard/issue-detail/FieldsSection.tsx:32, :153
+  Tests:
+    Sidebar.test.tsx / Sidebar.prefetch.test.tsx / backlog.test.ts
+  Conclusion: FieldsSection still imports fetchSprintList — D-09a holds,
+  do NOT delete fetchSprintList.
+
+JSDoc references (informational, will be cleaned in edit step):
+  - services/jira/epics.ts:84      "Two-query pattern (mirrors fetchBacklogView):"
+  - services/jira.ts:2515          "Two-query pattern (mirrors fetchBacklogView):"
+  These are JSDoc comments referencing a function that is about to disappear.
+  Will update to "(mirrors the now-removed fetchBacklogView pattern)" or
+  generic phrasing during Task 3.
+
+Result: PROCEED with Tasks 2-4.
