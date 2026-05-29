@@ -28,18 +28,13 @@ import type { ComponentType } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useResizable } from '@/hooks/useResizable';
-import { STALE_TIME_MS } from '@/lib/query-constants';
 import {
   fetchActiveSprint,
   fetchEpicsBasic,
   fetchProjectStatuses,
   getGhAllData,
+  getGhBacklogData,
 } from '@/services/jira';
-import {
-  fetchBacklogIssues,
-  fetchBacklogSprintStories,
-  fetchSprintList,
-} from '@/services/jira/backlog';
 import { fetchBoardId } from '@/services/jira/sprints';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
@@ -96,8 +91,6 @@ export default function Sidebar() {
 
   const queryClient = useQueryClient();
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
-  const storyPointsFieldKey = useSettingsStore((s) => s.storyPointsFieldKey);
-  const epicLinkFieldKey = useSettingsStore((s) => s.epicLinkFieldKey);
   const epicNameFieldKey = useSettingsStore((s) => s.epicNameFieldKey);
   const epicColorFieldKey = useSettingsStore((s) => s.epicColorFieldKey);
 
@@ -177,72 +170,22 @@ export default function Sidebar() {
         staleTime: 5 * 60 * 1000,
       });
       if (path === '/backlog') {
-        // Backlog issues don't depend on boardId — prefetch immediately.
-        queryClient.prefetchQuery({
-          queryKey: [
-            'jira-backlog-issues',
-            activeJiraProject,
-            jiraBaseUrl,
-            storyPointsFieldKey,
-            epicLinkFieldKey,
-            epicNameFieldKey,
-          ],
-          queryFn: () =>
-            fetchBacklogIssues(
-              jiraBaseUrl,
-              jiraToken,
-              activeJiraProject,
-              storyPointsFieldKey,
-              epicLinkFieldKey,
-              epicNameFieldKey,
-            ),
-          staleTime: STALE_TIME_MS,
-        });
-        // Sprint list needs boardId; sprint stories need sprint IDs from the list.
-        // Chain: boardId → sprint list → sprint stories (per-sprint, fast search API).
+        // Phase 74 Plan 04 (D-08 / D-08a): collapse the legacy three-fetcher
+        // chain into a single `getGhBacklogData(boardId)` warm-up that targets
+        // the same `['gh-backlog', boardId]` cache key BacklogPage reads.
+        // Mirrors the `/sprint-board` branch above with `getGhAllData` swapped
+        // for `getGhBacklogData`. D-08a: silently skip when boardId is null.
         queryClient
           .fetchQuery({
             queryKey: ['jira-board-id', activeJiraProject, jiraBaseUrl],
             queryFn: () => fetchBoardId(jiraBaseUrl, jiraToken, activeJiraProject),
             staleTime: Infinity,
           })
-          .then(async (boardId) => {
-            if (boardId == null) return;
-            const sprints = await queryClient.fetchQuery({
-              queryKey: ['jira-sprint-list', boardId, jiraBaseUrl],
-              queryFn: () => fetchSprintList(jiraBaseUrl, jiraToken, boardId),
-              staleTime: STALE_TIME_MS,
-            });
-            const sprintIds = (sprints ?? [])
-              .filter((s) => s.state === 'active' || s.state === 'future')
-              .map((s) => s.id);
-            if (sprintIds.length > 0) {
-              queryClient.prefetchQuery({
-                queryKey: [
-                  'jira-backlog-sprint-stories',
-                  activeJiraProject,
-                  jiraBaseUrl,
-                  sprintIds,
-                  storyPointsFieldKey,
-                  epicLinkFieldKey,
-                ],
-                queryFn: () =>
-                  fetchBacklogSprintStories(
-                    jiraBaseUrl,
-                    jiraToken,
-                    activeJiraProject,
-                    sprintIds,
-                    storyPointsFieldKey,
-                    epicLinkFieldKey,
-                  ),
-                staleTime: STALE_TIME_MS,
-              });
-            }
+          .then((boardId) => {
+            if (boardId == null) return; // D-08a guard
+            return getGhBacklogData(queryClient, jiraBaseUrl, jiraToken, boardId);
           })
-          .catch(() => {
-            // Board discovery failed — silently skip sprint-related prefetch.
-            // User will still get a normal load when they navigate.
-          });
+          .catch(() => {});
       }
     }
   }
