@@ -2650,8 +2650,10 @@ export {
   fetchIssueDetails,
   filterTransitionsForStatus,
   getGhAllData,
+  getGhBacklogData,
   getGhTransitions,
   invalidateGhAllData,
+  invalidateGhBacklogData,
   invalidateGhTransitions,
   peekGhTransitions,
   resolveEpic,
@@ -2660,6 +2662,7 @@ export {
   resolveStatus,
   resolveType,
   useGhAllData,
+  useGhBacklogData,
   useGhTransitions,
 } from './jira/greenhopper';
 // Jira statuses (Phase 72) — re-exported per dual-file convention.
