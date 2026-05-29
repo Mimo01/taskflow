@@ -544,9 +544,9 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
       return JSON.stringify(arg?.queryKey ?? []);
     });
     expect(calledKeys.some((k) => k === JSON.stringify(['jira-statuses']))).toBe(true);
-    expect(
-      calledKeys.some((k) => k === JSON.stringify(['jira-board-quickfilters', 163])),
-    ).toBe(true);
+    expect(calledKeys.some((k) => k === JSON.stringify(['jira-board-quickfilters', 163]))).toBe(
+      true,
+    );
     expect(
       calledKeys.some(
         (k) => k === JSON.stringify(['jira-active-sprint', 'PROJ', 'https://jira.example.com']),
@@ -593,43 +593,35 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
   });
 
   it("'Reload board' aria-live span auto-clears after 3 seconds", async () => {
-    vi.useFakeTimers();
-    try {
-      const story = makeIssue(
-        'PROJ-1',
-        'Story One',
-        false,
-        undefined,
-        'In Progress',
-        'indeterminate',
-      );
-      (story as Record<string, unknown>).projectId = 10042;
-      await seedAllData([story]);
+    const story = makeIssue(
+      'PROJ-1',
+      'Story One',
+      false,
+      undefined,
+      'In Progress',
+      'indeterminate',
+    );
+    (story as Record<string, unknown>).projectId = 10042;
+    await seedAllData([story]);
 
-      const { default: SprintBoardTab } = await import('./SprintBoardTab');
-      renderWithQuery(<SprintBoardTab />);
+    const { default: SprintBoardTab } = await import('./SprintBoardTab');
+    renderWithQuery(<SprintBoardTab />);
 
-      // Drive any pending microtasks under fake timers
-      await vi.advanceTimersByTimeAsync(0);
+    const reloadBtn = await screen.findByRole('button', { name: 'Reload board' });
+    fireEvent.click(reloadBtn);
 
-      const reloadBtn = await screen.findByRole('button', { name: 'Reload board' });
-      fireEvent.click(reloadBtn);
+    // Status appears.
+    await waitFor(() => {
+      expect(screen.queryByText('Board reloaded')).toBeTruthy();
+    });
 
-      await vi.advanceTimersByTimeAsync(0);
-
-      await waitFor(() => {
-        expect(screen.queryByText('Board reloaded')).toBeTruthy();
-      });
-
-      // Advance 3 seconds and the message should clear
-      await vi.advanceTimersByTimeAsync(3000);
-
-      await waitFor(() => {
+    // Auto-clears after 3 seconds.
+    await waitFor(
+      () => {
         expect(screen.queryByText('Board reloaded')).toBeNull();
-      });
-    } finally {
-      vi.useRealTimers();
-    }
+      },
+      { timeout: 4000 },
+    );
   });
 
   // ─── BOARD-05: clicking a card opens issue detail ──────────────────────────
