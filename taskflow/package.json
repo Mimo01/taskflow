@@ -14,6 +14,7 @@
     "format": "biome format --write ./src",
     "format:check": "biome format ./src",
     "check": "biome check ./src && tsc --noEmit",
+    "check:legacy-backlog": "node scripts/check-legacy-backlog-keys.mjs",
     "fix": "biome check --write ./src",
     "test": "vitest run",
     "bump": "node scripts/bump-version.mjs",

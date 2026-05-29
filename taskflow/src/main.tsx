@@ -41,7 +41,7 @@ import {
 import ErrorPage from './routes/error/ErrorPage';
 import { routes } from './routes/routes';
 import { initAvatarCache } from './services/avatarCache';
-import { discoverCustomFields, fetchIssueSummary } from './services/jira';
+import { discoverCustomFields, fetchIssueSummary, invalidateGhBacklogData } from './services/jira';
 import { readSecret } from './services/stronghold';
 import { applyDensity, loadTheme } from './services/theme';
 import { updaterService } from './services/updater';
@@ -366,23 +366,19 @@ function AppLayout() {
       }
     }
     if (!resolvedTitle) {
-      const backlogSprintStoriesEntries = queryClient.getQueriesData<CachedIssue[]>({
-        queryKey: ['jira-backlog-sprint-stories'],
-      });
-      for (const [, data] of backlogSprintStoriesEntries) {
-        if (!data) continue;
-        resolvedTitle = findTitle(data);
-        if (resolvedTitle) break;
-      }
-    }
-    if (!resolvedTitle) {
-      const backlogIssuesEntries = queryClient.getQueriesData<CachedIssue[]>({
-        queryKey: ['jira-backlog-issues'],
-      });
-      for (const [, data] of backlogIssuesEntries) {
-        if (!data) continue;
-        resolvedTitle = findTitle(data);
-        if (resolvedTitle) break;
+      // Phase 74 GH-CUT-01: backlog data now lives in ['gh-backlog', boardId]
+      // as a raw GhBacklogResponse envelope whose `.issues` is an array of
+      // GhIssue { key, summary } objects (top-level summary, not fields.summary).
+      const ghBacklogEntries = queryClient.getQueriesData<{
+        issues?: Array<{ key: string; summary?: string }>;
+      }>({ queryKey: ['gh-backlog'] });
+      for (const [, data] of ghBacklogEntries) {
+        if (!data?.issues) continue;
+        const match = data.issues.find((i) => i.key === issueKey);
+        if (match?.summary) {
+          resolvedTitle = match.summary;
+          break;
+        }
       }
     }
 
@@ -478,8 +474,8 @@ function AppLayout() {
   const handleCreateModalClose = () => {
     if (wasStoryCreate.current) {
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog-sprint-stories'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] });
+      // Phase 74 GH-CUT-01: backlog data lives under ['gh-backlog'].
+      invalidateGhBacklogData(queryClient);
     }
     wasStoryCreate.current = false;
     setCreateModalOpen(false);

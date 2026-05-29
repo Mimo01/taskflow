@@ -2,8 +2,7 @@
  * Jira backlog service — Phase 74 GH-CUT-01.
  *
  * Only fetchSprintList remains after the Phase 74 cutover. The legacy REST
- * fetchers (fetchBacklogIssues, fetchBacklogSprintStories, fetchBacklogView)
- * were removed in Plan 06; backlog data now flows through
+ * backlog fetchers were removed in Plan 06; backlog data now flows through
  * services/jira/greenhopper/useGhBacklogData (xboard data.json source).
  *
  * fetchSprintList is preserved per D-09a — issue-detail FieldsSection.tsx
