@@ -453,8 +453,9 @@ export async function fetchSprintIssues(
  * Fetch only parent (non-subtask) issues in the active sprint for a project.
  *
  * Uses fetchAllSearchPages for full pagination safety. Returns stories,
- * tasks, bugs, and epics — never subtasks. The second half of the old
- * fetchSprintIssues two-query strategy is now a separate fetchSprintSubtasks call.
+ * tasks, bugs, and epics — never subtasks. (The legacy two-query strategy
+ * that paired this with a subtask fetch was removed in Phase 73 Plan 03;
+ * sprint-board subtasks now come from the GH allData envelope.)
  *
  * @param baseUrl            - Jira base URL
  * @param token              - Personal Access Token
@@ -502,52 +503,6 @@ export async function fetchSprintStories(
     }
     throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
   }
-}
-
-/**
- * Fetch subtasks for a set of parent issue keys, chunked by SUBTASK_CHUNK_SIZE.
- *
- * Fires all chunk queries in parallel via Promise.all. Individual chunk failures
- * are caught silently (returns [] for that chunk) -- callers receive partial results
- * rather than an error. Returns empty array immediately when parentKeys is empty.
- *
- * @param baseUrl      - Jira base URL
- * @param token        - Personal Access Token
- * @param parentKeys   - Array of parent issue keys to fetch subtasks for
- * @param assignedToMe - If true, adds `AND assignee = currentUser()`
- */
-export async function fetchSprintSubtasks(
-  baseUrl: string,
-  token: string,
-  parentKeys: string[],
-  assignedToMe = false,
-): Promise<JiraIssue[]> {
-  if (parentKeys.length === 0) return [];
-
-  const base = baseUrl.replace(/\/$/, '');
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-  const assigneeClause = assignedToMe ? ' AND assignee = currentUser()' : '';
-  const subtaskFields = 'summary,status,assignee,issuetype,project,parent,timetracking';
-
-  const chunks: string[][] = [];
-  for (let i = 0; i < parentKeys.length; i += SUBTASK_CHUNK_SIZE) {
-    chunks.push(parentKeys.slice(i, i + SUBTASK_CHUNK_SIZE));
-  }
-
-  const chunkResults = await Promise.all(
-    chunks.map(async (chunk) => {
-      const subtaskJql = encodeURIComponent(
-        `issuetype in subtaskIssueTypes() AND parent in (${chunk.join(',')})${assigneeClause}`,
-      );
-      const subtaskBaseUrl = `${base}/rest/api/2/search?jql=${subtaskJql}&fields=${subtaskFields}`;
-      try {
-        return await fetchAllSearchPages(subtaskBaseUrl, headers);
-      } catch {
-        return [];
-      }
-    }),
-  );
-  return chunkResults.flat();
 }
 
 /**
