@@ -740,6 +740,11 @@ export default function SprintBoardTab() {
     String(
       (allData?.issuesData.issues[0] as { typeId?: string | number } | undefined)?.typeId ?? '',
     );
+  // WR-03: useGhTransitions internally gates with
+  // `enabled: projectId > 0 && !!issueTypeId` (see
+  // services/jira/greenhopper/transitions.ts), so passing the sentinel
+  // (0, '') fallbacks here is safe — the query stays disabled until the
+  // envelope resolves with at least one issue.
   useGhTransitions(sentinelProjectId, sentinelIssueTypeId);
 
   function getTransitions(issue: JiraIssue): JiraTransition[] | undefined {
