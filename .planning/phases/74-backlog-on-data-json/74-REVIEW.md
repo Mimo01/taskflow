@@ -33,7 +33,9 @@ findings:
   warning: 6
   info: 3
   total: 11
-status: issues_found
+status: fixed
+fixed_at: 2026-05-29T00:00:00Z
+fix_report: .planning/phases/74-backlog-on-data-json/74-REVIEW-FIX.md
 ---
 
 # Phase 74: Code Review Report
