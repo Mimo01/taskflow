@@ -24,25 +24,26 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { useBoardId } from '@/hooks/useBoardId';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
-import { useIsActiveRoute } from '@/hooks/useIsActiveRoute';
 import { epicColorToTailwind } from '@/lib/epicColors';
-import { POLL_INTERVAL_MS, STALE_TIME_MS } from '@/lib/query-constants';
 import type { JiraIssue, JiraTransition } from '@/services/jira';
 import {
+  buildEntityMaps,
+  createAdapter,
   fetchEpicsBasic,
   fetchProjectStatuses,
-  fetchSprintStories,
-  fetchSprintSubtasks,
+  filterTransitionsForStatus,
+  invalidateGhAllData,
   invalidateGhTransitions,
   isIssueFlagged,
+  peekGhTransitions,
   postTransition,
   setIssueFlagged,
-  filterTransitionsForStatus,
-  peekGhTransitions,
+  useGhAllData,
   useGhTransitions,
 } from '@/services/jira';
 import { fetchBoardQuickFilters } from '@/services/jira/board-config';
 import { fetchAllSearchPages } from '@/services/jira/client';
+import { warnOnce } from '@/services/jira/greenhopper/warnOnce';
 import { fetchActiveSprint } from '@/services/jira/sprints';
 import type { JiraBoardQuickFilter } from '@/services/jira/types';
 import { readSecret } from '@/services/stronghold';
@@ -384,6 +385,9 @@ function VirtualizedSwimlanes({
                           transitionError={cardErrors.get(card.key)}
                           isFlagged={isIssueFlagged(card, flaggedFieldKey)}
                           onToggleFlag={() => onToggleFlag(card.key)}
+                          timeInColumn={
+                            (card as { timeInColumn?: { enteredStatus: number } }).timeInColumn
+                          }
                         />
                       ))
                     )}
@@ -493,6 +497,9 @@ function VirtualizedSwimlanes({
                               transitionError={cardErrors.get(card.key)}
                               isFlagged={isIssueFlagged(card, flaggedFieldKey)}
                               onToggleFlag={() => onToggleFlag(card.key)}
+                              timeInColumn={
+                                (card as { timeInColumn?: { enteredStatus: number } }).timeInColumn
+                              }
                             />
                           ))
                         )}
@@ -525,8 +532,6 @@ export default function SprintBoardTab() {
     onIssueClick: (key: string) => void;
   }>();
   const queryClient = useQueryClient();
-
-  const isActive = useIsActiveRoute('/sprint-board');
 
   const [collapsedStories, setCollapsedStories] = useState<Set<string>>(new Set());
   // Tracks which story keys the user has manually toggled — prevents data polling
@@ -596,54 +601,52 @@ export default function SprintBoardTab() {
     }
   }, [jiraBaseUrl]);
 
+  // Phase 73 Plan 02 (D-01, D-03, D-04, D-04b, R-01, R-02, R-04, GH-BOARD-01/03/04):
+  // The legacy 2-query path (fetchSprintStories + fetchSprintSubtasks) is gone.
+  // SprintBoardTab now reads a single allData envelope, adapts issues via the
+  // Phase 71 createAdapter, and lets `statusCategory.key` drive the 3-bucket UI.
+  // R-01 / R-02 keep `boardQuickFilters` + `activeSprint` REST queries — see
+  // below.
   const {
-    data: stories,
+    data: allData,
     isLoading: storiesLoading,
     isFetching: storiesFetching,
     isError,
     error,
     dataUpdatedAt,
-  } = useQuery({
-    queryKey: [
-      'jira-sprint-stories',
-      activeJiraProject,
-      jiraBaseUrl,
-      storyPointsFieldKey,
-      epicLinkFieldKey,
-      flaggedFieldKey,
-    ],
-    queryFn: () =>
-      fetchSprintStories(
-        jiraBaseUrl ?? '',
-        jiraToken ?? '',
-        activeJiraProject ?? '',
-        false,
-        storyPointsFieldKey,
-        epicLinkFieldKey,
-        flaggedFieldKey,
-      ),
-    refetchInterval: POLL_INTERVAL_MS,
-    refetchIntervalInBackground: false,
-    staleTime: STALE_TIME_MS,
-    enabled: isActive && !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
-  });
+  } = useGhAllData(boardId ?? null);
 
-  const parentKeys = (stories ?? [])
-    .filter((i) => !i.fields.issuetype.subtask)
-    .map((i) => i.key)
-    .sort(); // Pitfall 1: sorted for stable query key
-
-  const { data: subtasksData, isLoading: subtasksLoading } = useQuery({
-    queryKey: ['jira-sprint-subtasks', activeJiraProject, jiraBaseUrl, parentKeys],
-    queryFn: () => fetchSprintSubtasks(jiraBaseUrl ?? '', jiraToken ?? '', parentKeys),
-    staleTime: STALE_TIME_MS,
-    enabled: isActive && !!jiraBaseUrl && !!jiraToken && parentKeys.length > 0,
-  });
-
-  const data = useMemo(
-    () => (stories ? [...stories, ...(subtasksData ?? [])] : undefined),
-    [stories, subtasksData],
+  // D-01: raw envelope returned by useGhAllData; adaptation is caller-side via
+  // useMemo (per the planned discretion). entityMaps and the per-issue adapt()
+  // are memoised on `allData` so we don't re-run N × adapter on every render.
+  const entityMaps = useMemo(() => (allData ? buildEntityMaps(allData) : null), [allData]);
+  const adapt = useMemo(
+    () => (entityMaps ? createAdapter({ storyPointsFieldKey, entityMaps }) : null),
+    [storyPointsFieldKey, entityMaps],
   );
+  const adaptedIssues = useMemo(() => {
+    if (!allData || !adapt) return [] as JiraIssue[];
+    return allData.issuesData.issues.map((gh) => {
+      // D-04b: orphan-subtask observability — parentId present, parentKey
+      // absent means the parent is NOT in the sprint envelope. The adapter
+      // will not synthesise `fields.parent`, so the card naturally falls into
+      // its statusCategory bucket as a standalone row. The warnOnce call is
+      // the deterministic signal for ops/debugging.
+      if (gh.parentId !== undefined && gh.parentKey === undefined) {
+        warnOnce('orphan-subtask', String(gh.parentId));
+      }
+      return adapt(gh) as JiraIssue;
+    });
+  }, [allData, adapt]);
+
+  // Plan 02 keeps subtasksLoading as a no-op (there are no more subtask queries).
+  // The skeleton inside each column was previously gated on it; collapsing it
+  // to `false` means cards render as soon as `allData` resolves.
+  const subtasksLoading = false;
+
+  // `data` mirrors the legacy two-query merge: defined whenever the envelope
+  // has resolved (even to zero issues, which is the empty-board state).
+  const data = allData ? adaptedIssues : undefined;
   const isLoading = storiesLoading;
 
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -723,24 +726,29 @@ export default function SprintBoardTab() {
   }, [data]);
 
   // Phase 72 (Plan 02): warm the GreenHopper transitions envelope once per
-  // project mount. The two-layer cache (envelope + per-type adapt) means every
-  // (projectId, issueTypeId) lookup downstream is a synchronous cache read
-  // once this hook resolves. Project id and a sentinel issuetype id are
-  // derived from the first local issue's `fields.project.id` /
-  // `fields.issuetype.id` (added to the search fields= list in services/jira.ts).
-  const sentinelProjectId = Number(localIssues[0]?.fields.project?.id ?? 0);
-  const sentinelIssueTypeId = localIssues[0]?.fields.issuetype?.id ?? '';
+  // project mount. Phase 73 R-04: `adaptIssue` does NOT populate
+  // `fields.project`, so we MUST source projectId from the raw GH envelope —
+  // `allData.issuesData.issues[0]?.projectId` — not from `localIssues[0]`.
+  // The sentinel issuetype id still comes from `localIssues[0]` since the
+  // adapter preserves `fields.issuetype.id` is absent on AdaptedIssue too —
+  // fall back to the raw envelope when needed.
+  const sentinelProjectId =
+    (allData?.issuesData.issues[0] as { projectId?: number } | undefined)?.projectId ?? 0;
+  const sentinelIssueTypeId =
+    localIssues[0]?.fields.issuetype?.id ??
+    String(
+      (allData?.issuesData.issues[0] as { typeId?: string | number } | undefined)?.typeId ?? '',
+    );
   useGhTransitions(sentinelProjectId, sentinelIssueTypeId);
 
   function getTransitions(issue: JiraIssue): JiraTransition[] | undefined {
     // Sync peek: envelope + status map are warmed once per project by the
     // sentinel useGhTransitions above, so any (projectId, issueTypeId) — including
     // subtask types whose per-type query was never registered — resolves from cache.
-    const all = peekGhTransitions(
-      queryClient,
-      Number(issue.fields.project?.id ?? 0),
-      issue.fields.issuetype?.id ?? '',
-    );
+    // Phase 73 R-04: AdaptedIssue does NOT carry `fields.project`; fall back to
+    // the sprint-board sentinel projectId derived from the raw GH envelope.
+    const projectId = Number(issue.fields.project?.id ?? 0) || sentinelProjectId;
+    const all = peekGhTransitions(queryClient, projectId, issue.fields.issuetype?.id ?? '');
     if (!all) return undefined;
     // The GH envelope returns every transition in the workflow regardless of
     // source status; filter down to the ones available from this card's current
@@ -759,7 +767,9 @@ export default function SprintBoardTab() {
   }, [reloadTransitionsStatus]);
 
   async function handleReloadWorkflowTransitions() {
-    const pid = Number(localIssues[0]?.fields.project?.id ?? 0);
+    // Phase 73 R-04: source projectId from the raw GH envelope, not
+    // localIssues (AdaptedIssue no longer carries `fields.project`).
+    const pid = sentinelProjectId;
     if (!Number.isFinite(pid) || pid === 0) {
       setReloadTransitionsStatus('Failed to reload workflow');
       return;
@@ -811,8 +821,13 @@ export default function SprintBoardTab() {
 
     try {
       await postTransition(jiraBaseUrl ?? '', jiraToken ?? '', issueKey, transitionId);
+      // Phase 73 Plan 02: legacy keys kept for backward-compat with any other
+      // consumer that registered them; the active board data source is now
+      // gh-all-data, so we MUST invalidate that too — otherwise post-transition
+      // refreshes silently no-op (Rule 2 — critical correctness).
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
+      invalidateGhAllData(queryClient, boardId ?? undefined);
     } catch {
       // Rollback to original status
       setLocalIssues((prev) =>
@@ -855,8 +870,13 @@ export default function SprintBoardTab() {
         !currentFlagged,
         flaggedFieldKey,
       );
+      // Phase 73 Plan 02: legacy keys kept for backward-compat with any other
+      // consumer that registered them; the active board data source is now
+      // gh-all-data, so we MUST invalidate that too — otherwise post-transition
+      // refreshes silently no-op (Rule 2 — critical correctness).
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
+      invalidateGhAllData(queryClient, boardId ?? undefined);
     } catch {
       // Rollback
       setLocalIssues((prev) =>
@@ -1142,8 +1162,11 @@ export default function SprintBoardTab() {
               onClick={() => {
                 setIsRefreshing(true);
                 setStickyHeader(null);
+                // Phase 73 Plan 02: refresh hits gh-all-data; legacy keys retained
+                // for callers Plan 03 will sweep.
                 queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
                 queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
+                invalidateGhAllData(queryClient, boardId ?? undefined);
               }}
               className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Refresh"
@@ -1225,6 +1248,7 @@ export default function SprintBoardTab() {
                     setIsRefreshing(true);
                     queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
                     queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
+                    invalidateGhAllData(queryClient, boardId ?? undefined);
                   }}
                   viewName="sprint board"
                 />
@@ -1239,6 +1263,7 @@ export default function SprintBoardTab() {
                     setIsRefreshing(true);
                     queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
                     queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
+                    invalidateGhAllData(queryClient, boardId ?? undefined);
                   }}
                   onDismiss={() => setBannerDismissed(true)}
                 />
