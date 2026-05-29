@@ -518,13 +518,14 @@ function VirtualizedSwimlanes({
 
 export default function SprintBoardTab() {
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
-  const {
-    storyPointsFieldKey,
-    epicLinkFieldKey,
-    epicNameFieldKey,
-    epicColorFieldKey,
-    flaggedFieldKey,
-  } = useSettingsStore();
+  // WR-02: fine-grained selectors avoid re-rendering the entire sprint
+  // board when unrelated settings (sidebar collapse, theme, AIO project,
+  // etc.) mutate. Matches the convention used in Sidebar.tsx.
+  const storyPointsFieldKey = useSettingsStore((s) => s.storyPointsFieldKey);
+  const epicLinkFieldKey = useSettingsStore((s) => s.epicLinkFieldKey);
+  const epicNameFieldKey = useSettingsStore((s) => s.epicNameFieldKey);
+  const epicColorFieldKey = useSettingsStore((s) => s.epicColorFieldKey);
+  const flaggedFieldKey = useSettingsStore((s) => s.flaggedFieldKey);
   const [jiraToken, setJiraToken] = useState<string | null>(null);
 
   const { boardId } = useBoardId(jiraBaseUrl, jiraToken, activeJiraProject);
