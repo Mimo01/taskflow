@@ -13,3 +13,4 @@ export * from './entityMaps';
 export * from './transitions';
 export * from './types';
 export * from './useGhAllData';
+export * from './useGhBacklogData';
