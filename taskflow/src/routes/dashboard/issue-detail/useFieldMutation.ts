@@ -14,11 +14,7 @@ import { readSecret } from '@/services/stronghold';
  * useBoardId) should pass it in; the hook falls back to all-boards
  * invalidation only when boardId is genuinely unavailable (null/undefined).
  */
-export function useFieldMutation(
-  issueKey: string,
-  jiraBaseUrl: string,
-  boardId?: number | null,
-) {
+export function useFieldMutation(issueKey: string, jiraBaseUrl: string, boardId?: number | null) {
   const queryClient = useQueryClient();
 
   return useMutation({

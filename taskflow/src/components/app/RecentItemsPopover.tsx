@@ -25,15 +25,13 @@ interface RecentItemsPopoverProps {
  * etc.). Callers must check the discriminator before accessing other
  * fields.
  */
-type RecentIssueLike =
-  | JiraIssue
-  | { key: string; fields: { summary: string }; __partial: true };
+type RecentIssueLike = JiraIssue | { key: string; fields: { summary: string }; isPartial: true };
 
 /**
  * Search all react-query cache entries for a Jira issue by key.
  * Handles different cache shapes: sprint-board (flat JiraIssue[]),
  * subtasks panel ({ issues: JiraIssue[] }), and gh-backlog (narrow
- * { key, summary } — returned as a `__partial` discriminated variant per
+ * { key, summary } — returned as a `isPartial` discriminated variant per
  * WR-02 so callers can't accidentally treat it as a full JiraIssue).
  */
 function findJiraIssueInCache(
@@ -75,14 +73,14 @@ function findJiraIssueInCache(
     if (!data?.issues) continue;
     const match = data.issues.find((issue) => issue.key === issueKey);
     if (match) {
-      // WR-02: return a narrow `__partial` variant rather than casting to
+      // WR-02: return a narrow `isPartial` variant rather than casting to
       // JiraIssue. The recents row only reads `.fields.summary`; any future
       // caller that touches `.fields.status` etc. will be forced by the
-      // discriminated-union type to first check `'__partial' in result`.
+      // discriminated-union type to first check `'isPartial' in result`.
       return {
         key: match.key,
         fields: { summary: match.summary ?? '' },
-        __partial: true,
+        isPartial: true,
       };
     }
   }
