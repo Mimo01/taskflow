@@ -602,7 +602,10 @@ export default function BacklogPage() {
   // moving the issueId between `data.sprints[].issuesIds[]` — the
   // adapter's `useMemo` chain re-derives `fields.sprint` from that
   // reverse index.
-  async function confirmMoveToSprint(issueKey: string, sprintId: number, sprintName: string) {
+  // WR-05: `sprintName` removed from the signature — the destination name is
+  // displayed by the confirmation dialog upstream and is not needed by the
+  // API call (`addIssuesToSprint` takes only the sprintId).
+  async function confirmMoveToSprint(issueKey: string, sprintId: number) {
     if (boardId == null) return;
     const issue = adaptedIssues.find((i) => i.key === issueKey);
     const issueNumericId = issue ? Number(issue.id) : null;
@@ -630,16 +633,18 @@ export default function BacklogPage() {
       await addIssuesToSprint(jiraBaseUrl ?? '', jiraToken ?? '', sprintId, [issueKey]);
       // D-06: one invalidation covers the whole backlog freshness contract.
       invalidateGhBacklogData(queryClient, boardId);
-      // Cross-surface freshness (issue-detail + sprint board sprint-stories)
-      // is intentionally preserved — not part of the legacy backlog key set
-      // stripped by D-09.
+      // WR-04: `['jira-sprint-stories']` is still a LIVE cache key —
+      // RecentItemsPopover (src/components/app/RecentItemsPopover.tsx:46)
+      // reads it for the recents popover, and the global title resolver in
+      // main.tsx (~line 360) walks it for sidebar/title fallback. Keep this
+      // cross-surface invalidation in sync after a sprint move so those
+      // surfaces don't display stale sprint-membership state.
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail'] });
     } catch (_err) {
       // Rollback to the snapshot taken before the optimistic mutation.
       if (previous) queryClient.setQueryData<GhBacklogResponse>(cacheKey, previous);
     }
-    void sprintName;
   }
 
   async function confirmMoveToBacklog(issueKey: string) {
@@ -665,6 +670,9 @@ export default function BacklogPage() {
     try {
       await moveIssuesToBacklog(jiraBaseUrl ?? '', jiraToken ?? '', [issueKey]);
       invalidateGhBacklogData(queryClient, boardId);
+      // WR-04: cross-surface invalidation — `['jira-sprint-stories']` is still
+      // live for RecentItemsPopover + main.tsx title resolver (see comment in
+      // confirmMoveToSprint above).
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail'] });
     } catch (_err) {
@@ -831,11 +839,7 @@ export default function BacklogPage() {
         toSprintName={pendingSprintMove?.sprintName ?? ''}
         onConfirm={() => {
           if (pendingSprintMove) {
-            void confirmMoveToSprint(
-              pendingSprintMove.issueKey,
-              pendingSprintMove.sprintId,
-              pendingSprintMove.sprintName,
-            );
+            void confirmMoveToSprint(pendingSprintMove.issueKey, pendingSprintMove.sprintId);
             setPendingSprintMove(null);
           }
         }}
