@@ -99,6 +99,17 @@ Plans:
 2. Move-to-sprint, create story, filter by epic / label / assignee, and virtualized rendering all work on the new data source
 3. Old REST backlog-fetch path is deleted
 
+**Plans:** 6 plans
+
+Plans:
+
+- [ ] 74-01-PLAN.md — Wave 0: type widening (GhBacklogResponse per D-04a) + Wave 0 test scaffolds (types pin, useGhBacklogData RED, adapter-backlog RED, BacklogPage.network RED, Sidebar.prefetch RED) + static-grep guard script
+- [ ] 74-02-PLAN.md — Wave 1: useGhBacklogData / getGhBacklogData / invalidateGhBacklogData + greenhopper barrel + services/jira.ts re-exports (D-09b)
+- [ ] 74-03-PLAN.md — Wave 2: BacklogPage data-layer rewrite (single useGhBacklogData, adapter chain, sprint reverse-index, ACTIVE/FUTURE filter, mutation invalidation swap, drop label/subtask/flagged chips)
+- [ ] 74-04-PLAN.md — Wave 2: Sidebar /backlog prefetch collapse 3 → 1 (getGhBacklogData)
+- [ ] 74-05-PLAN.md — Wave 3: Reload backlog toolbar action + aria-live status region + human-verify checkpoint
+- [ ] 74-06-PLAN.md — Wave 4: hard-cutover delete (fetchBacklogIssues / fetchBacklogSprintStories / fetchBacklogView / BacklogViewData) + activate check:legacy-backlog guard + full-suite gate
+
 #### Phase 75: Issue Detail on `details.json` + Performance Verification
 
 **Goal:** Replace the multi-fetch issue detail panel with a single `details.json` call; render server HTML where viable, fall back to REST v2 for interactive composers; record before/after perf metrics and confirm no REST paths replaced by this milestone remain.
