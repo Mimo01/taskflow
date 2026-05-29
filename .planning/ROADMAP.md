@@ -103,10 +103,10 @@ Plans:
 
 Plans:
 
-- [ ] 74-01-PLAN.md — Wave 0: type widening (GhBacklogResponse per D-04a) + Wave 0 test scaffolds (types pin, useGhBacklogData RED, adapter-backlog RED, BacklogPage.network RED, Sidebar.prefetch RED) + static-grep guard script
-- [ ] 74-02-PLAN.md — Wave 1: useGhBacklogData / getGhBacklogData / invalidateGhBacklogData + greenhopper barrel + services/jira.ts re-exports (D-09b)
-- [ ] 74-03-PLAN.md — Wave 2: BacklogPage data-layer rewrite (single useGhBacklogData, adapter chain, sprint reverse-index, ACTIVE/FUTURE filter, mutation invalidation swap, drop label/subtask/flagged chips)
-- [ ] 74-04-PLAN.md — Wave 2: Sidebar /backlog prefetch collapse 3 → 1 (getGhBacklogData)
+- [x] 74-01-PLAN.md — Wave 0: type widening (GhBacklogResponse per D-04a) + Wave 0 test scaffolds (types pin, useGhBacklogData RED, adapter-backlog RED, BacklogPage.network RED, Sidebar.prefetch RED) + static-grep guard script
+- [x] 74-02-PLAN.md — Wave 1: useGhBacklogData / getGhBacklogData / invalidateGhBacklogData + greenhopper barrel + services/jira.ts re-exports (D-09b)
+- [x] 74-03-PLAN.md — Wave 2: BacklogPage data-layer rewrite (single useGhBacklogData, adapter chain, sprint reverse-index, ACTIVE/FUTURE filter, mutation invalidation swap, drop label/subtask/flagged chips)
+- [x] 74-04-PLAN.md — Wave 2: Sidebar /backlog prefetch collapse 3 → 1 (getGhBacklogData)
 - [ ] 74-05-PLAN.md — Wave 3: Reload backlog toolbar action + aria-live status region + human-verify checkpoint
 - [ ] 74-06-PLAN.md — Wave 4: hard-cutover delete (fetchBacklogIssues / fetchBacklogSprintStories / fetchBacklogView / BacklogViewData) + activate check:legacy-backlog guard + full-suite gate
 
