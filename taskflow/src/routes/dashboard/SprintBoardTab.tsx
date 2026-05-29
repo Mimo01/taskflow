@@ -542,7 +542,8 @@ export default function SprintBoardTab() {
     userToggledRef.current.add(key);
     setCollapsedStories((prev) => {
       const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
     // If toggling the currently-sticky swimlane, update the sticky header directly
