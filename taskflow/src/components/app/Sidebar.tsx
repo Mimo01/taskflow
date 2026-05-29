@@ -192,6 +192,14 @@ export default function Sidebar() {
 
   function handleNavMouseEnter(path: string) {
     if (!PREFETCH_ROUTES.has(path)) return;
+    // WR-03: clear any prior pending timer before scheduling a new one. If
+    // the user moves between PREFETCH_ROUTES navlinks faster than the 100ms
+    // debounce (or interleaves keyboard focus with hover so no
+    // mouseleave fires), the previous timer would otherwise still fire and
+    // produce a redundant boardId resolve + GH envelope fetch.
+    if (prefetchTimerRef.current) {
+      clearTimeout(prefetchTimerRef.current);
+    }
     prefetchTimerRef.current = setTimeout(() => {
       prefetchForPath(path);
     }, 100); // 100ms debounce
