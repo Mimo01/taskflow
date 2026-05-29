@@ -30,7 +30,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ChevronDown, ChevronRight, Inbox } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
 import { Badge } from '@/components/ui/badge';
@@ -333,12 +333,36 @@ export default function BacklogPage() {
   // Per-query loading for epics (LOAD-04)
   const isEpicsLoading = !allEpics && !!activeJiraProject;
 
-  // D-07a: per-section refetch callbacks (refetchBacklog/refetchStories) are
-  // removed. The Plan 05 toolbar Reload action will own all manual refreshes
-  // via `invalidateGhBacklogData`. Inline error retry falls back to a no-op
-  // pending Plan 05 (ErrorState still renders without a Retry button).
+  // D-07 / Plan 05: single "Reload backlog" toolbar action. Mirrors Phase 73's
+  // "Reload board" pattern (SprintBoardTab.tsx:776-810). Invalidates the GH
+  // backlog envelope + project epics + project statuses (the three cache keys
+  // BacklogPage depends on). 3-second aria-live auto-clear matches Phase 73.
+  const [reloadStatus, setReloadStatus] = useState<string | null>(null);
+  useEffect(() => {
+    if (!reloadStatus) return;
+    const t = setTimeout(() => setReloadStatus(null), 3000);
+    return () => clearTimeout(t);
+  }, [reloadStatus]);
+
+  const handleReloadBacklog = useCallback(async () => {
+    try {
+      if (boardId) invalidateGhBacklogData(queryClient, boardId);
+      await queryClient.invalidateQueries({
+        queryKey: ['project-statuses', activeJiraProject, jiraBaseUrl],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ['jira-epics-basic', activeJiraProject, jiraBaseUrl],
+      });
+      setReloadStatus('Backlog reloaded');
+    } catch {
+      setReloadStatus('Failed to reload backlog');
+    }
+  }, [queryClient, boardId, activeJiraProject, jiraBaseUrl]);
+
+  // Inline error retry / stale-data banner retry route through the same
+  // handler so the user-visible "reload" semantics are uniform.
   const refetch = () => {
-    if (boardId != null) invalidateGhBacklogData(queryClient, boardId);
+    void handleReloadBacklog();
   };
 
   // ── Pending sprint move confirmation state ────────────────────────────────────
