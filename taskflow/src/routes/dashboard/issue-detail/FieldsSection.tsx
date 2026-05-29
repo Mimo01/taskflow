@@ -28,7 +28,7 @@ import { useBoardId } from '@/hooks/useBoardId';
 import { apiFetch } from '@/lib/apiFetch';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import type { JiraIssue, JiraIssueDetail } from '@/services/jira';
-import { isIssueFlagged } from '@/services/jira';
+import { invalidateGhBacklogData, isIssueFlagged } from '@/services/jira';
 import { fetchSprintList } from '@/services/jira/backlog';
 import { addIssuesToSprint, moveIssuesToBacklog } from '@/services/jira/sprints';
 import { postTransition } from '@/services/jira/transitions';
@@ -261,8 +261,9 @@ export function FieldsSection({
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
       queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog-sprint-stories'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] });
+      // Phase 74 GH-CUT-01: backlog data now lives under ['gh-backlog'].
+      if (boardId) invalidateGhBacklogData(queryClient, boardId);
+      else invalidateGhBacklogData(queryClient);
       queryClient.invalidateQueries({ queryKey: ['jira-epics-basic'] });
       queryClient.invalidateQueries({ queryKey: ['jira-fixversion-issues'] });
       queryClient.invalidateQueries({ queryKey: ['jira-version-counts'] });
@@ -286,8 +287,9 @@ export function FieldsSection({
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog-sprint-stories'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] });
+      // Phase 74 GH-CUT-01: backlog data now lives under ['gh-backlog'].
+      if (boardId) invalidateGhBacklogData(queryClient, boardId);
+      else invalidateGhBacklogData(queryClient);
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-list'] });
     },
   });

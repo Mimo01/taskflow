@@ -211,10 +211,7 @@ export interface GhBacklogResponse {
   canManageSprints: boolean;
   canCreateIssue: boolean;
   versionData: {
-    versionsPerProject: Record<
-      string,
-      Array<{ id: number; name: string; released: boolean }>
-    >;
+    versionsPerProject: Record<string, Array<{ id: number; name: string; released: boolean }>>;
     canCreateVersion: boolean;
     isLinkToDevStatusVersionAvailable: boolean;
   };

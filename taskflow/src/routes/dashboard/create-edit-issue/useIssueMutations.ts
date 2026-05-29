@@ -1,5 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { bulkUpdateIssue, createIssue, wrapCustomFieldValue } from '@/services/jira';
+import {
+  bulkUpdateIssue,
+  createIssue,
+  invalidateGhBacklogData,
+  wrapCustomFieldValue,
+} from '@/services/jira';
 import { createIssueLink } from '@/services/jira/links';
 import type { CreatemetaField } from '@/services/jira/types';
 import { readSecret } from '@/services/stronghold';
@@ -185,8 +190,8 @@ export function useIssueMutations({
       }
       queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog-sprint-stories'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] });
+      // Phase 74 GH-CUT-01: backlog data lives under ['gh-backlog'].
+      invalidateGhBacklogData(queryClient);
       onSuccess();
     },
     onError: (err: Error) => {

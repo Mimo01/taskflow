@@ -52,7 +52,13 @@ export function WorklogCellPopover({
   }
 
   return (
-    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setAnyEditing(false); }}>
+    <Popover
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (!o) setAnyEditing(false);
+      }}
+    >
       <PopoverTrigger
         className={`group w-full h-full min-h-[2rem] flex items-center justify-center cursor-pointer hover:bg-accent/60 px-2 py-1.5 ${dayColClassName ?? ''}`}
         aria-label={`View worklogs for ${issueKey} on ${date}`}

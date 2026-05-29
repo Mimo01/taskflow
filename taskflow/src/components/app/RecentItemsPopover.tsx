@@ -51,22 +51,20 @@ function findJiraIssueInCache(
     if (match) return match;
   }
 
-  const backlogSprintStoriesQueries = queryClient.getQueriesData<JiraIssue[]>({
-    queryKey: ['jira-backlog-sprint-stories'],
-  });
-  for (const [, data] of backlogSprintStoriesQueries) {
-    if (!data) continue;
-    const match = data.find((issue) => issue.key === issueKey);
-    if (match) return match;
-  }
-
-  const backlogIssuesQueries = queryClient.getQueriesData<JiraIssue[]>({
-    queryKey: ['jira-backlog-issues'],
-  });
-  for (const [, data] of backlogIssuesQueries) {
-    if (!data) continue;
-    const match = data.find((issue) => issue.key === issueKey);
-    if (match) return match;
+  // Phase 74 GH-CUT-01: backlog data lives in ['gh-backlog', boardId] as a
+  // raw GhBacklogResponse envelope. The recent-items popover only needs the
+  // issue summary, so adapt the GH shape into a minimal JiraIssue-like object.
+  const ghBacklogQueries = queryClient.getQueriesData<{
+    issues?: Array<{ key: string; summary?: string }>;
+  }>({ queryKey: ['gh-backlog'] });
+  for (const [, data] of ghBacklogQueries) {
+    if (!data?.issues) continue;
+    const match = data.issues.find((issue) => issue.key === issueKey);
+    if (match) {
+      // Adapt GhIssue { key, summary } into the JiraIssue shape the caller
+      // consumes (`.fields.summary` only).
+      return { key: match.key, fields: { summary: match.summary ?? '' } } as JiraIssue;
+    }
   }
 
   // 3. Issue detail cache (single issue)

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
 import type { JiraIssueDetail } from '@/services/jira';
-import { updateIssueField } from '@/services/jira';
+import { invalidateGhBacklogData, updateIssueField } from '@/services/jira';
 import { readSecret } from '@/services/stronghold';
 
 /**
@@ -42,8 +42,9 @@ export function useFieldMutation(issueKey: string, jiraBaseUrl: string) {
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
       queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog-sprint-stories'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] });
+      // Phase 74 GH-CUT-01: backlog data now lives under ['gh-backlog'].
+      // No boardId is available in this shared hook, so invalidate all boards.
+      invalidateGhBacklogData(queryClient);
       queryClient.invalidateQueries({ queryKey: ['jira-epics-basic'] });
       queryClient.invalidateQueries({ queryKey: ['jira-fixversion-issues'] });
       queryClient.invalidateQueries({ queryKey: ['jira-version-counts'] });
