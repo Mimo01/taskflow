@@ -108,7 +108,7 @@ Plans:
 - [x] 74-03-PLAN.md — Wave 2: BacklogPage data-layer rewrite (single useGhBacklogData, adapter chain, sprint reverse-index, ACTIVE/FUTURE filter, mutation invalidation swap, drop label/subtask/flagged chips)
 - [x] 74-04-PLAN.md — Wave 2: Sidebar /backlog prefetch collapse 3 → 1 (getGhBacklogData)
 - [x] 74-05-PLAN.md — Wave 3: Reload backlog toolbar action + aria-live status region + human-verify checkpoint
-- [ ] 74-06-PLAN.md — Wave 4: hard-cutover delete (fetchBacklogIssues / fetchBacklogSprintStories / fetchBacklogView / BacklogViewData) + activate check:legacy-backlog guard + full-suite gate
+- [x] 74-06-PLAN.md — Wave 4: hard-cutover delete (fetchBacklogIssues / fetchBacklogSprintStories / fetchBacklogView / BacklogViewData) + activate check:legacy-backlog guard + full-suite gate
 
 #### Phase 75: Issue Detail on `details.json` + Performance Verification
 
