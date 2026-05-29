@@ -261,6 +261,11 @@ export default function BacklogPage() {
   const issueIdToSprintId = useMemo(() => {
     const m = new Map<number, number>();
     for (const s of backlog?.sprints ?? []) {
+      // BL-01: restrict reverse index to ACTIVE/FUTURE sprints so issues
+      // whose only sprint membership is a CLOSED sprint fall through to the
+      // backlog bucket (matches the ACTIVE/FUTURE-only `sprintSections`
+      // partition below — keeps the "sections + backlog" partition consistent).
+      if (s.state !== 'ACTIVE' && s.state !== 'FUTURE') continue;
       for (const id of s.issuesIds) m.set(id, s.id);
     }
     return m;
