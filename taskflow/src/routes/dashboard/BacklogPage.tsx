@@ -50,7 +50,10 @@ import {
   fetchEpicsBasic,
   fetchProjectStatuses,
   invalidateGhBacklogData,
+  isIssueFlagged,
   moveIssuesToBacklog,
+  resolveEpic,
+  setIssueFlagged,
   useGhBacklogData,
 } from '@/services/jira';
 import type { GhBacklogResponse } from '@/services/jira/greenhopper/types';
@@ -79,6 +82,8 @@ function VirtualizedBacklogTable({
   sprints,
   onMoveToSprint,
   onMoveToBacklog,
+  flaggedFieldKey,
+  onToggleFlag,
 }: {
   filteredIssues: JiraIssue[];
   scrollElement: HTMLDivElement | null;
@@ -95,6 +100,8 @@ function VirtualizedBacklogTable({
   sprints: Array<{ id: number; name: string; state: string }>;
   onMoveToSprint: (issueKey: string, sprintId: number, sprintName: string) => void;
   onMoveToBacklog?: (issueKey: string) => void;
+  flaggedFieldKey: string;
+  onToggleFlag?: (issueKey: string) => void;
 }) {
   const rowVirtualizer = useVirtualizer({
     count: filteredIssues.length,
@@ -140,7 +147,8 @@ function VirtualizedBacklogTable({
         sprints={sprints}
         onMoveToSprint={onMoveToSprint}
         onMoveToBacklog={onMoveToBacklog}
-        // D-05c: flagged indicator dropped from backlog rows.
+        isFlagged={isIssueFlagged(issue, flaggedFieldKey)}
+        onToggleFlag={onToggleFlag ? () => onToggleFlag(issue.key) : undefined}
       />
     );
   }
@@ -200,8 +208,13 @@ export default function BacklogPage() {
 
   // ── Auth / settings ─────────────────────────────────────────────────────────
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
-  const { storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey, epicColorFieldKey } =
-    useSettingsStore();
+  const {
+    storyPointsFieldKey,
+    epicLinkFieldKey,
+    epicNameFieldKey,
+    epicColorFieldKey,
+    flaggedFieldKey,
+  } = useSettingsStore();
 
   const [jiraToken, setJiraToken] = useState<string | null>(null);
 
@@ -272,20 +285,32 @@ export default function BacklogPage() {
   }, [backlog?.sprints]);
 
   const adaptedIssues = useMemo<JiraIssue[]>(() => {
-    if (!backlog || !adapt) return [];
+    if (!backlog || !adapt || !entityMaps) return [];
     return backlog.issues.map((gh) => {
       const base = adapt(gh) as JiraIssue;
+      // Synthesize epic-link field (customfield_10014) from `gh.epicId` via
+      // resolveEpic — the shared adapter intentionally leaves this off the
+      // adapted shape (RESEARCH ambiguity #3), so callers that need the
+      // epic chip on rows / filter must hydrate it themselves.
+      const epic = resolveEpic(gh.epicId, entityMaps);
+      // Synthesize flagged status on the flagged field key so isIssueFlagged
+      // (which reads fields[flaggedFieldKey]) and BacklogRow's indicator/
+      // context-menu both work. Format mirrors Jira REST: array with one
+      // { value: 'Impediment' } object, or null when unflagged.
+      const flaggedValue: Array<{ value: string }> | null = gh.flagged
+        ? [{ value: 'Impediment' }]
+        : null;
       const sprintId = issueIdToSprintId.get(gh.id);
-      if (sprintId === undefined) return base;
-      // D-04b: synthesize `fields.sprint = { id }` from the reverse index so
-      // downstream code (context-menu "from sprint" copy, filter heuristics)
-      // can detect sprint membership without re-walking sprint arrays.
-      return {
-        ...base,
-        fields: { ...base.fields, sprint: { id: sprintId } },
+
+      const fields: JiraIssue['fields'] = {
+        ...base.fields,
+        ...(epic ? { [epicLinkFieldKey]: epic.key } : {}),
+        [flaggedFieldKey]: flaggedValue,
+        ...(sprintId !== undefined ? { sprint: { id: sprintId } } : {}),
       };
+      return { ...base, fields };
     });
-  }, [backlog, adapt, issueIdToSprintId]);
+  }, [backlog, adapt, entityMaps, issueIdToSprintId, epicLinkFieldKey, flaggedFieldKey]);
 
   // D-01: backlog list = adapted issues with no sprint membership.
   const backlogIssuesAdapted = useMemo<JiraIssue[]>(
@@ -585,6 +610,36 @@ export default function BacklogPage() {
     });
   }
 
+  async function handleToggleFlag(issueKey: string) {
+    if (!jiraBaseUrl || !jiraToken || boardId == null) return;
+    const issue = adaptedIssues.find((i) => i.key === issueKey);
+    if (!issue) return;
+    const currentFlagged = isIssueFlagged(issue, flaggedFieldKey);
+    const newFlaggedValue: Array<{ value: string }> | null = currentFlagged
+      ? null
+      : [{ value: 'Impediment' }];
+    const issueNumericId = Number(issue.id);
+    const cacheKey = ['gh-backlog', boardId] as const;
+    const previous = queryClient.getQueryData<GhBacklogResponse>(cacheKey);
+    queryClient.setQueryData<GhBacklogResponse>(cacheKey, (old) => {
+      if (!old) return old;
+      return {
+        ...old,
+        issues: old.issues.map((g) =>
+          g.id === issueNumericId ? { ...g, flagged: !currentFlagged } : g,
+        ),
+      };
+    });
+    try {
+      await setIssueFlagged(jiraBaseUrl, jiraToken, issueKey, !currentFlagged, flaggedFieldKey);
+      await invalidateGhBacklogData(queryClient, boardId);
+    } catch {
+      if (previous) queryClient.setQueryData<GhBacklogResponse>(cacheKey, previous);
+    }
+    // Touch unused setter so the optimistic-cache linter doesn't trip.
+    void newFlaggedValue;
+  }
+
   function requestMoveToBacklog(issueKey: string) {
     const issue = adaptedIssues.find((i) => i.key === issueKey);
     const currentSprintId = (issue?.fields.sprint as { id?: number } | undefined)?.id;
@@ -757,6 +812,8 @@ export default function BacklogPage() {
                 sprints={availableSprints}
                 onMoveToSprint={requestMoveToSprint}
                 onMoveToBacklog={moveToBacklog}
+                flaggedFieldKey={flaggedFieldKey}
+                onToggleFlag={handleToggleFlag}
               />
             ) : issues.length > 0 ? (
               /* All issues filtered out */
