@@ -29,7 +29,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { ChevronDown, ChevronRight, Inbox } from 'lucide-react';
+import { ChevronDown, ChevronRight, Inbox, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UnifiedFilterBar } from '@/components/UnifiedFilterBar';
@@ -774,13 +774,31 @@ export default function BacklogPage() {
       {/* Page header */}
       <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0">
         <h1 className="text-lg font-semibold">Backlog</h1>
-        <button
-          type="button"
-          onClick={() => openCreateStory()}
-          className="rounded border border-border bg-background px-3 py-1.5 text-sm hover:bg-accent transition-colors"
-        >
-          + Create Story
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Plan 05 — D-07 inline aria-live feedback span (mirrors SprintBoardTab). */}
+          <span aria-live="polite" className="sr-only">
+            {reloadStatus ?? ''}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              void handleReloadBacklog();
+            }}
+            disabled={backlogFetching}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+            aria-label="Reload backlog"
+            title="Reload backlog"
+          >
+            <RefreshCw className={backlogFetching ? 'size-3 animate-spin' : 'size-3'} />
+          </button>
+          <button
+            type="button"
+            onClick={() => openCreateStory()}
+            className="rounded border border-border bg-background px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+          >
+            + Create Story
+          </button>
+        </div>
       </div>
 
       {/* Sprint move confirmation dialogs */}
