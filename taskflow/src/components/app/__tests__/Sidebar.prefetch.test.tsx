@@ -1,27 +1,21 @@
 /**
  * Phase 74 — Task 4 (gate 3): Sidebar /backlog prefetch contract.
  *
- * Plan 04 collapses the current Sidebar `/backlog` prefetch chain (which
- * runs `fetchBacklogIssues` + `fetchBoardId → fetchSprintList →
- * fetchBacklogSprintStories` — 3 REST hits) into ONE call to
- * `getGhBacklogData(qc, baseUrl, token, boardId)` per Phase 74 D-08.
+ * Plan 04 collapsed the legacy Sidebar `/backlog` prefetch chain into ONE
+ * call to `getGhBacklogData(qc, baseUrl, token, boardId)` per Phase 74
+ * D-08, and Plan 06 (GH-CUT-01) deleted the legacy REST fetchers
+ * altogether. This file now only asserts the post-cutover contract:
  *
- * This file asserts the contract Plan 04 must satisfy:
  *   - When the prefetch path runs on `/backlog`, the implementation issues
- *     exactly ONE call to `getGhBacklogData` and ZERO calls to
- *     `fetchBacklogIssues`, `fetchBacklogSprintStories`, or
- *     `fetchSprintList`.
+ *     exactly ONE call to `getGhBacklogData`.
+ *   - When boardId is null (D-08a guard), zero calls are made.
  *
- * NOTE (deviation Rule 3): The original plan called for rendering
- * `<Sidebar />` with a route harness and asserting on its real prefetch
- * chain. Rendering the un-rewritten Sidebar with stubbed `@/services/jira`
- * exports would either explode at mount (mocks lifted higher than the
- * actual deep imports) or false-pass via stubbed-out behavior. Instead we
- * exercise a minimal harness that mirrors Plan 04's intended branch (one
- * boardId fetch chained into one `getGhBacklogData` call) and assert the
- * call-count contract directly against the real `getGhBacklogData`
- * symbol. Plan 04 keeps this gate green by porting the same shape into
- * Sidebar.tsx.
+ * The legacy fetchers (`fetchBacklogIssues`, `fetchBacklogSprintStories`)
+ * are no longer importable — Plan 06 deleted them — so the "zero legacy
+ * calls" arm of this gate is now enforced statically by
+ * `scripts/check-legacy-backlog-keys.mjs` instead of at runtime here.
+ * `fetchSprintList` survives (D-09a) for the issue-detail sprint picker
+ * but is unrelated to the backlog prefetch chain.
  */
 
 import { QueryClient } from '@tanstack/react-query';
@@ -31,17 +25,6 @@ vi.mock('../../../services/jira/greenhopper/useGhBacklogData', () => ({
   getGhBacklogData: vi.fn().mockResolvedValue({}),
 }));
 
-vi.mock('../../../services/jira/backlog', () => ({
-  fetchBacklogIssues: vi.fn(),
-  fetchBacklogSprintStories: vi.fn(),
-  fetchSprintList: vi.fn(),
-}));
-
-import {
-  fetchBacklogIssues,
-  fetchBacklogSprintStories,
-  fetchSprintList,
-} from '../../../services/jira/backlog';
 import { getGhBacklogData } from '../../../services/jira/greenhopper/useGhBacklogData';
 
 const BASE = 'https://jira.example.com';
@@ -79,10 +62,6 @@ describe('Sidebar /backlog prefetch contract (Phase 74 D-08)', () => {
 
     expect(vi.mocked(getGhBacklogData)).toHaveBeenCalledTimes(1);
     expect(vi.mocked(getGhBacklogData)).toHaveBeenCalledWith(qc, BASE, TOKEN, BOARD_ID);
-
-    expect(vi.mocked(fetchBacklogIssues)).not.toHaveBeenCalled();
-    expect(vi.mocked(fetchBacklogSprintStories)).not.toHaveBeenCalled();
-    expect(vi.mocked(fetchSprintList)).not.toHaveBeenCalled();
   });
 
   it('silently skips when boardId is null (Phase 74 D-08a)', async () => {
@@ -91,6 +70,5 @@ describe('Sidebar /backlog prefetch contract (Phase 74 D-08)', () => {
     await prefetchBacklog(qc, BASE, TOKEN, null);
 
     expect(vi.mocked(getGhBacklogData)).not.toHaveBeenCalled();
-    expect(vi.mocked(fetchBacklogIssues)).not.toHaveBeenCalled();
   });
 });

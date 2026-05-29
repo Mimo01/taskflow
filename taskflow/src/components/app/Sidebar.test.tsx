@@ -62,8 +62,8 @@ vi.mock('@/services/jira', () => ({
 }));
 
 vi.mock('@/services/jira/backlog', () => ({
-  fetchBacklogIssues: vi.fn(),
-  fetchBacklogSprintStories: vi.fn(),
+  // Post Phase 74 GH-CUT-01: only fetchSprintList survives in backlog.ts;
+  // the legacy backlog fetchers were deleted (Plan 06).
   fetchSprintList: vi.fn(),
 }));
 
