@@ -73,12 +73,7 @@ describe('TaskCard — timeInColumn badge slot (Phase 73 Plan 02)', () => {
   it('renders the badge with strict text + title when timeInColumn.enteredStatus is present', () => {
     // 1d 1h ago — strict text should round to "1d", title should mention days/hours.
     const enteredStatus = FIXED_NOW - 90_000_000; // ~1.04 days
-    render(
-      <TaskCard
-        issue={makeIssue()}
-        timeInColumn={{ enteredStatus }}
-      />,
-    );
+    render(<TaskCard issue={makeIssue()} timeInColumn={{ enteredStatus }} />);
 
     const badge = screen.getByTitle(/^Entered status /);
     expect(badge).toBeTruthy();
@@ -92,11 +87,7 @@ describe('TaskCard — timeInColumn badge slot (Phase 73 Plan 02)', () => {
   it('DOM-orders the badge after the story-points chip and before showStatus', () => {
     const enteredStatus = FIXED_NOW - 5 * 60_000; // 5 minutes
     const { container } = render(
-      <TaskCard
-        issue={makeIssue()}
-        timeInColumn={{ enteredStatus }}
-        showStatus
-      />,
+      <TaskCard issue={makeIssue()} timeInColumn={{ enteredStatus }} showStatus />,
     );
 
     // The shrink-0 row holds story-points + timeInColumn + status. Locate it
@@ -107,30 +98,29 @@ describe('TaskCard — timeInColumn badge slot (Phase 73 Plan 02)', () => {
     expect(row).not.toBeNull();
     expect(row.className).toContain('shrink-0');
 
-    const children = within(row).getAllByText(/.*/).filter((el) => el.parentElement === row);
+    const children = within(row)
+      .getAllByText(/.*/)
+      .filter((el) => el.parentElement === row);
     // Look for the story-points chip (text content === "5"), the timeInColumn
     // badge (its textContent matches \d+[smhd]), and the status badge ("In
     // Progress"). Assert relative order via Node.compareDocumentPosition.
-    const storyPointsChip = Array.from(row.children).find(
-      (n) => n.textContent === '5',
-    ) as HTMLElement | undefined;
-    const statusBadge = Array.from(row.children).find(
-      (n) => n.textContent === 'In Progress',
-    ) as HTMLElement | undefined;
+    const storyPointsChip = Array.from(row.children).find((n) => n.textContent === '5') as
+      | HTMLElement
+      | undefined;
+    const statusBadge = Array.from(row.children).find((n) => n.textContent === 'In Progress') as
+      | HTMLElement
+      | undefined;
 
-    expect(storyPointsChip).toBeTruthy();
-    expect(statusBadge).toBeTruthy();
+    if (!storyPointsChip || !statusBadge) throw new Error('row children missing');
     expect(children.length).toBeGreaterThanOrEqual(3);
 
     // story-points chip precedes the timeInColumn badge
     expect(
-      storyPointsChip!.compareDocumentPosition(badge) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      storyPointsChip.compareDocumentPosition(badge) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     // timeInColumn badge precedes the status badge
     expect(
-      badge.compareDocumentPosition(statusBadge!) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      badge.compareDocumentPosition(statusBadge) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
 
     // Silence "unused container" lint:
