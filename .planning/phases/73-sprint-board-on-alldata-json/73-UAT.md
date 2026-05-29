@@ -30,9 +30,8 @@ result: pass
 
 ### 5. Status Transitions Still Work After Rewrite
 expected: Drag a card to a different column (or use a transition action). The transition completes, the card moves, and time-in-column badge resets. No errors related to missing projectId / sentinel issue.
-result: issue
-reported: "there are no transitions available (bug), cant test this"
-severity: major
+result: pass
+note: initially failed (no transitions); fixed inline in commit d5e1c1ad (adapter.ts: populate issuetype.id from gh.typeId); re-verified pass
 
 ### 6. Sidebar Prefetch Warms Sprint Board
 expected: From a non-sprint-board page, hover/focus the Sprint Board sidebar link. Then click it. The board appears with cached data (no visible loading spinner, or only a very brief one) — faster than a cold load.
@@ -50,8 +49,8 @@ reason: scenario not reproducible in current sprint state
 ## Summary
 
 total: 8
-passed: 6
-issues: 1
+passed: 7
+issues: 0
 pending: 0
 skipped: 1
 blocked: 0
@@ -59,9 +58,16 @@ blocked: 0
 ## Gaps
 
 - truth: "Status transitions are available on TaskCards and successfully move a card to a new column after rewrite onto useGhAllData"
-  status: failed
+  status: resolved
   reason: "User reported: there are no transitions available (bug), cant test this"
   severity: major
   test: 5
-  artifacts: []
-  missing: []
+  root_cause: "adapter.ts:124-127 built fields.issuetype as { name, subtask } and omitted id; peekGhTransitions(qc, projectId, issue.fields.issuetype?.id ?? '') hit empty-string guard and returned undefined for every card"
+  artifacts:
+    - path: "taskflow/src/services/jira/greenhopper/adapter.ts"
+      issue: "issuetype object missing id field"
+    - path: "taskflow/src/services/jira/greenhopper/adapter.test.ts"
+      issue: "test enforced incorrect prior invariant (no id)"
+  fix_commit: "d5e1c1ad"
+  fix: "Added `id: gh.typeId` to adaptedIssuetype; updated test to assert id IS populated from gh.typeId"
+  debug_session: ".planning/debug/phase73-no-transitions.md"
