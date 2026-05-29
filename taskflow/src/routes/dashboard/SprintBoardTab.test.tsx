@@ -46,6 +46,29 @@ vi.mock('@/services/stronghold', () => ({
 //   * useGhAllData / buildEntityMaps / createAdapter added
 // `createAdapter` returns an identity function so tests can pre-shape issues
 // as JiraIssue-likes inside the mocked `useGhAllData` envelope.
+//
+// IMPORTANT: every value-producing mock factory below must return the SAME
+// reference on every call. `createAdapter`/`buildEntityMaps`/`useGhTransitions`
+// flow into `useMemo`/`useEffect` dep arrays in SprintBoardTab; handing back
+// a fresh object/function per call (e.g. `vi.fn(() => (gh) => gh)`) made the
+// adapter ref unstable, which retriggered the adaptedIssues memo → the
+// localIssues effect → infinite render loop → worker OOM. Hoisting the
+// identity adapter + entity-maps + transitions object out as module-level
+// constants keeps refs stable across renders.
+const IDENTITY_ADAPT = (gh: unknown) => gh;
+const STABLE_ENTITY_MAPS = {
+  statuses: new Map(),
+  priorities: new Map(),
+  types: new Map(),
+  epics: new Map(),
+};
+const STABLE_TRANSITIONS = {
+  data: undefined,
+  isLoading: false,
+  isError: false,
+  refetch: () => {},
+};
+
 vi.mock('@/services/jira', () => ({
   fetchProjectStatuses: vi.fn().mockResolvedValue([]),
   postTransition: vi.fn().mockResolvedValue(undefined),
@@ -61,19 +84,9 @@ vi.mock('@/services/jira', () => ({
     dataUpdatedAt: 0,
   })),
   invalidateGhAllData: vi.fn(),
-  buildEntityMaps: vi.fn(() => ({
-    statuses: new Map(),
-    priorities: new Map(),
-    types: new Map(),
-    epics: new Map(),
-  })),
-  createAdapter: vi.fn(() => (gh: unknown) => gh),
-  useGhTransitions: vi.fn(() => ({
-    data: undefined,
-    isLoading: false,
-    isError: false,
-    refetch: vi.fn(),
-  })),
+  buildEntityMaps: vi.fn(() => STABLE_ENTITY_MAPS),
+  createAdapter: vi.fn(() => IDENTITY_ADAPT),
+  useGhTransitions: vi.fn(() => STABLE_TRANSITIONS),
   invalidateGhTransitions: vi.fn(),
   peekGhTransitions: vi.fn(() => undefined),
   filterTransitionsForStatus: vi.fn(() => []),
