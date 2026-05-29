@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.11
 milestone_name: GreenHopper API Migration
 status: executing
-stopped_at: Phase 74 context gathered
-last_updated: "2026-05-29T12:00:30.303Z"
+stopped_at: Phase 74 UI-SPEC approved
+last_updated: "2026-05-29T12:20:33.728Z"
 last_activity: 2026-05-29 -- Phase 73 execution started
 progress:
   total_phases: 5
@@ -114,9 +114,9 @@ Items acknowledged and deferred at the v1.10 milestone close on 2026-05-25 (20 o
 
 ## Session Continuity
 
-Last session: 2026-05-29T12:00:30.298Z
-Stopped at: Phase 74 context gathered
-Resume file: .planning/phases/74-backlog-on-data-json/74-CONTEXT.md
+Last session: 2026-05-29T12:20:33.725Z
+Stopped at: Phase 74 UI-SPEC approved
+Resume file: .planning/phases/74-backlog-on-data-json/74-UI-SPEC.md
 
 ## Operator Next Steps
 
