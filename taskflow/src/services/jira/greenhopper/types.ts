@@ -157,13 +157,71 @@ export interface GhAllDataResponse {
 }
 
 /**
+ * Single sprint row inside `data.sprints[]` returned by
+ * GET /rest/greenhopper/1.0/xboard/plan/backlog/data.json.
+ *
+ * Sprint membership for backlog issues is expressed via `issuesIds: number[]`
+ * (NOT via per-issue `sprint`/`sprintId` field on GhIssue) — consumers build a
+ * reverse index `issueId → sprintId` at the call site. See Phase 74 D-04b.
+ *
+ * Sprint `state` is an uppercase string literal union as observed in the
+ * real fixture (`'ACTIVE' | 'CLOSED' | 'FUTURE'`) — see Phase 74 RESEARCH A5.
+ */
+export interface GhSprintBacklog {
+  id: number;
+  sequence: number;
+  rapidViewId: number;
+  name: string;
+  state: 'ACTIVE' | 'CLOSED' | 'FUTURE';
+  autoStartStop: boolean;
+  synced: boolean;
+  startDate: string;
+  endDate: string;
+  activatedDate: string;
+  completeDate: string;
+  canUpdateSprint: boolean;
+  canStartStopSprint: boolean;
+  canUpdateDates: boolean;
+  remoteLinks: unknown[];
+  daysRemaining: number;
+  timeRemaining?: { text: string; isFuture: boolean };
+  goal?: string;
+  issuesIds: number[];
+}
+
+/**
  * Full response of GET /rest/greenhopper/1.0/xboard/plan/backlog/data.json.
- * Backlog issues — does NOT carry entity maps (consumers combine with a
- * prior allData fetch for resolvers).
- * See RESEARCH §API Response Shapes.
+ *
+ * Carries `issues`, `entityData` (same shape as `GhAllDataResponse.entityData`
+ * — Phase 74 RESEARCH A3), `sprints[]` with `issuesIds[]` for sprint
+ * membership, `rankCustomFieldId`, `projects`, `versionData`, and a set of
+ * top-level capability/permission flags. Real fixture pinned by
+ * `__tests__/types-fixture.test.ts`.
+ *
+ * Shape derived from `__fixtures__/data.real.json` (Phase 74 D-04a) — the
+ * earlier shape `{ issues: GhIssue[] }` was incorrect.
  */
 export interface GhBacklogResponse {
   issues: GhIssue[];
+  entityData: GhAllDataResponse['entityData'];
+  rankCustomFieldId: number;
+  sprints: GhSprintBacklog[];
+  supportsPages: boolean;
+  projects: Array<{ id: number; key: string; name: string }>;
+  canManageSprints: boolean;
+  canCreateIssue: boolean;
+  versionData: {
+    versionsPerProject: Record<
+      string,
+      Array<{ id: number; name: string; released: boolean }>
+    >;
+    canCreateVersion: boolean;
+    isLinkToDevStatusVersionAvailable: boolean;
+  };
+  hasBulkChangePermission: boolean;
+  issueArchivingEnabled: boolean;
+  emptyFilterBoard: boolean;
+  cardColorStrategy: string;
 }
 
 /**
