@@ -565,9 +565,13 @@ export default function BacklogPage() {
   // the sprint name is resolved through `sprintSections` (the data.json
   // envelope's `data.sprints[]`).
   function lookupSprintNameById(sprintId: number | null | undefined): string | null {
-    if (sprintId == null) return null;
-    const found = sprintSections.find((s) => s.sprint.id === sprintId);
-    return found ? found.sprint.name : null;
+    // BL-02: resolve from the raw `backlog.sprints` (the full list, including
+    // CLOSED) rather than `sprintSections` (ACTIVE/FUTURE only) so a sprint
+    // name is always resolvable when an id is known — even for CLOSED sprints
+    // or arbitrary ids passed in from future callers.
+    if (sprintId == null || !backlog) return null;
+    const s = backlog.sprints.find((x) => x.id === sprintId);
+    return s ? s.name : null;
   }
 
   function requestMoveToSprint(issueKey: string, sprintId: number, sprintName: string) {
