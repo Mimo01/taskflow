@@ -81,7 +81,7 @@ export async function fetchEpicEnrichmentMap(
 /**
  * Fetch all epics in a project and enrich them with child story counts and points.
  *
- * Two-query pattern (mirrors fetchBacklogView):
+ * Two-query pattern:
  * 1. JQL `issuetype = Epic` returns epic issues.
  * 2. JQL `"Epic Link" in (...)` batches child stories for aggregation.
  *

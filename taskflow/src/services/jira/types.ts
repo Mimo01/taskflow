@@ -207,12 +207,10 @@ export interface IssueLinkType {
   outward: string;
 }
 
-export interface BacklogViewData {
-  sprints: Array<{ sprint: JiraActiveSprint; issues: JiraIssue[] }>;
-  backlog: JiraIssue[];
-  epicNames?: Map<string, string>; // epicKey -> epic summary (display name); provided by shared fetchEpicsBasic cache
-  epicColors?: Map<string, string>; // epicKey -> Jira color string; provided by shared fetchEpicsBasic cache
-}
+// The legacy backlog-view return type was removed in Phase 74 Plan 06
+// (GH-CUT-01, D-09) — the legacy backlog REST fetchers it described no
+// longer exist. Backlog data flows through useGhBacklogData (xboard
+// data.json) instead.
 
 export interface EpicEnriched {
   key: string;
