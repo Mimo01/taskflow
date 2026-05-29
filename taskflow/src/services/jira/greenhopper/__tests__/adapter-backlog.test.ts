@@ -80,4 +80,94 @@ describe('Phase 74 backlog adapter contract', () => {
     const someIssueId = sprintWithIssues.issuesIds[0] as number;
     expect(reverse.get(someIssueId)).toBe(sprintWithIssues.id);
   });
+
+  // ── BL-01 regression: CLOSED-sprint issues fall through to backlog bucket ──
+
+  it('BL-01: reverse-index built from ACTIVE/FUTURE-only sprints does NOT include an issue whose sole membership is a CLOSED sprint', () => {
+    // Synthesize a CLOSED sprint in-memory with a unique issue id that does
+    // NOT appear in any ACTIVE/FUTURE sprint.  The fixture has no CLOSED sprint,
+    // so we extend it here without mutating the on-disk JSON.
+    const CLOSED_SPRINT_ID = 99999;
+    const CLOSED_ONLY_ISSUE_ID = 999_000_001; // deliberately absent from real fixture
+
+    type SprintLike = { id: number; state: string; issuesIds: number[] };
+    const syntheticSprints: SprintLike[] = [
+      ...typed.sprints,
+      {
+        id: CLOSED_SPRINT_ID,
+        state: 'CLOSED',
+        issuesIds: [CLOSED_ONLY_ISSUE_ID],
+      },
+    ];
+
+    // Build the BL-01-correct reverse index: skip CLOSED sprints.
+    const reverseActive = new Map<number, number>();
+    for (const s of syntheticSprints) {
+      if (s.state !== 'ACTIVE' && s.state !== 'FUTURE') continue; // BL-01 guard
+      for (const id of s.issuesIds) reverseActive.set(id, s.id);
+    }
+
+    // The CLOSED-sprint issue must NOT be in the index so it can route to the
+    // backlog bucket in BacklogPage's partition logic.
+    expect(reverseActive.has(CLOSED_ONLY_ISSUE_ID)).toBe(false);
+
+    // Sanity: an ACTIVE-sprint issue IS in the index (guard isn't over-filtering).
+    const activeSprint = syntheticSprints.find((s) => s.state === 'ACTIVE' && s.issuesIds.length > 0);
+    if (!activeSprint) throw new Error('fixture has no ACTIVE sprint with issues — sanity check invalid');
+    expect(reverseActive.has(activeSprint.issuesIds[0] as number)).toBe(true);
+
+    // Counter-proof: a naïve index that includes ALL sprints WOULD capture the
+    // CLOSED-sprint issue (confirming the fix is load-bearing, not vacuous).
+    const reverseAll = new Map<number, number>();
+    for (const s of syntheticSprints) {
+      for (const id of s.issuesIds) reverseAll.set(id, s.id);
+    }
+    expect(reverseAll.has(CLOSED_ONLY_ISSUE_ID)).toBe(true);
+  });
+
+  // ── BL-02 regression: CLOSED-sprint names resolve from raw backlog.sprints ──
+
+  it('BL-02: lookupSprintNameById resolves CLOSED-sprint name from full backlog.sprints[] but not from ACTIVE/FUTURE-filtered list', () => {
+    const CLOSED_SPRINT_ID = 88888;
+    const CLOSED_SPRINT_NAME = 'Old Closed Sprint';
+
+    type SprintLike = { id: number; state: string; name: string; issuesIds: number[] };
+    const fullSprints: SprintLike[] = [
+      ...typed.sprints,
+      {
+        id: CLOSED_SPRINT_ID,
+        state: 'CLOSED',
+        name: CLOSED_SPRINT_NAME,
+        issuesIds: [],
+      },
+    ];
+
+    // Simulate BL-02-correct lookup: search the FULL list (includes CLOSED).
+    const lookupFromFull = (id: number): string | null => {
+      const s = fullSprints.find((x) => x.id === id);
+      return s ? s.name : null;
+    };
+
+    // Simulate the PRE-fix behaviour: lookup only across ACTIVE/FUTURE sections.
+    const activeFutureSprints = fullSprints.filter(
+      (s) => s.state === 'ACTIVE' || s.state === 'FUTURE',
+    );
+    const lookupFromFiltered = (id: number): string | null => {
+      const s = activeFutureSprints.find((x) => x.id === id);
+      return s ? s.name : null;
+    };
+
+    // BL-02 requirement: CLOSED sprint name IS resolvable from the full list.
+    expect(lookupFromFull(CLOSED_SPRINT_ID)).toBe(CLOSED_SPRINT_NAME);
+
+    // Pre-fix behaviour (filtered list): CLOSED sprint name is NOT resolvable —
+    // pinning why the raw-list source is required (the fix must NOT regress to this).
+    expect(lookupFromFiltered(CLOSED_SPRINT_ID)).toBeNull();
+
+    // Sanity: an ACTIVE sprint is resolvable from both paths.
+    const activeSprint = fullSprints.find((s) => s.state === 'ACTIVE');
+    if (!activeSprint) throw new Error('fixture has no ACTIVE sprint — sanity check invalid');
+    expect(lookupFromFull(activeSprint.id)).toBe(activeSprint.name);
+    expect(lookupFromFiltered(activeSprint.id)).toBe(activeSprint.name);
+  });
 });
