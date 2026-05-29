@@ -1,10 +1,11 @@
 ---
 phase: 73
 slug: sprint-board-on-alldata-json
-status: draft
+status: approved
 shadcn_initialized: true
 preset: base-nova
 created: 2026-05-29
+reviewed_at: 2026-05-29
 ---
 
 # Phase 73 — UI Design Contract
@@ -43,16 +44,15 @@ Inherits the project's Tailwind/shadcn spacing scale (multiples of 4). New surfa
 | Token | Value | Usage in this phase |
 |-------|-------|---------------------|
 | xs | 4px | Gap between `timeInColumn` badge and adjacent card elements |
-| sm | 8px | Horizontal padding inside `timeInColumn` badge (`px-1.5` = 6px; nearest 8px token for layout rhythm) |
 | md | 16px | Default element spacing (no new uses) |
 | lg | 24px | No new uses |
 | xl | 32px | No new uses |
 | 2xl | 48px | No new uses |
 | 3xl | 64px | No new uses |
 
-Exceptions:
-- `timeInColumn` badge inner padding: `px-1.5 py-0.5` (6px / 2px) — matches the existing story-points chip geometry in `TaskCard.tsx:147`. Use identical values for visual consistency.
-- StatusPopover popover width: `min-w-[160px]` — inherits from existing `StatusPopover.tsx:82`, no change.
+Inherited (not new spacing tokens introduced by this phase):
+- `timeInColumn` badge inner padding inherits unchanged from the existing story-points chip at `TaskCard.tsx:147` — these are not new spacing tokens introduced by this phase.
+- StatusPopover popover width `min-w-[160px]` inherits unchanged from `StatusPopover.tsx:82` — not a new spacing token introduced by this phase.
 
 ---
 
