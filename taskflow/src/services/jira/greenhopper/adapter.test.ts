@@ -170,10 +170,10 @@ describe('adaptIssue — Group E: D-11 subtask parent', () => {
     expect(out.fields.parent?.fields.summary).toBe('');
   });
 
-  it('does not declare an "id" property on issuetype (legacy shape is { name, subtask } only)', () => {
-    const gh = edge({});
+  it('populates issuetype.id from gh.typeId (needed by Phase 72 GH transitions peek)', () => {
+    const gh = edge({ typeId: '10001' });
     const out = adaptIssue(gh, maps, 'customfield_10016');
-    expect('id' in out.fields.issuetype).toBe(false);
+    expect(out.fields.issuetype.id).toBe('10001');
   });
 
   it('leaves fields.parent undefined when parentId is absent', () => {

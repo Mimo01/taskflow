@@ -117,11 +117,9 @@ export function adaptIssue(
   // rather than `gh.parentId !== undefined` keeps subtask consistent with the
   // synthesized parent — an issue with parentId but no parentKey is NOT marked
   // subtask (its parent could not be safely synthesised).
-  // NOTE: legacy `JiraIssue.fields.issuetype` shape in src/services/jira.ts:151-154
-  // is `{ name, subtask }` ONLY — adding `id` would fail tsc excess-property checks
-  // (PATTERNS §adapter.ts).
   const issuetype = resolveType(gh.typeId, entityMaps);
   const adaptedIssuetype: JiraIssue['fields']['issuetype'] = {
+    id: gh.typeId,
     name: issuetype.name,
     subtask: parent !== undefined,
   };
