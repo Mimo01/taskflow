@@ -99,7 +99,7 @@ Plans:
 2. Move-to-sprint, create story, filter by epic / label / assignee, and virtualized rendering all work on the new data source
 3. Old REST backlog-fetch path is deleted
 
-**Plans:** 6 plans
+**Plans:** 6/6 plans complete
 
 Plans:
 

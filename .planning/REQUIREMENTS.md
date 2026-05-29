@@ -22,8 +22,8 @@
 
 ### Backlog (`data.json`)
 
-- [ ] **GH-BACKLOG-01**: Backlog view fetches the flat issue list via a single `data.json` call (replaces paginated REST + per-issue lookups)
-- [ ] **GH-BACKLOG-02**: Existing backlog features (move-to-sprint, create story, filter by epic/label/assignee, virtualized rendering) work unchanged on the new data source
+- [x] **GH-BACKLOG-01**: Backlog view fetches the flat issue list via a single `data.json` call (replaces paginated REST + per-issue lookups)
+- [x] **GH-BACKLOG-02**: Existing backlog features (move-to-sprint, create story, filter by epic/label/assignee, virtualized rendering) work unchanged on the new data source
 
 ### Issue Detail (`details.json`)
 
@@ -73,8 +73,8 @@ Filled by roadmap (Section 10 of new-milestone workflow).
 | GH-BOARD-02 | Phase 73 | Pending |
 | GH-BOARD-03 | Phase 73 | Pending |
 | GH-BOARD-04 | Phase 73 | Pending |
-| GH-BACKLOG-01 | Phase 74 | Pending |
-| GH-BACKLOG-02 | Phase 74 | Pending |
+| GH-BACKLOG-01 | Phase 74 | Complete |
+| GH-BACKLOG-02 | Phase 74 | Complete |
 | GH-DETAIL-01 | Phase 75 | Pending |
 | GH-DETAIL-02 | Phase 75 | Pending |
 | GH-DETAIL-03 | Phase 75 | Pending |
