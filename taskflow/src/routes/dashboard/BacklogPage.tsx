@@ -3,18 +3,28 @@
  *
  * Renders:
  *   1. Active sprint section (if any) — collapsible, with sprint name, badge, issue count
- *   2. Future sprint sections — one per sprint, ordered by start date
+ *   2. Future sprint sections — one per sprint, ordered by data.sprints[]
  *   3. Backlog section — issues with no sprint assignment, always at bottom
  *
  * Each section uses BacklogRow for individual issue rows.
- * BacklogFilterBar applies filters across ALL sections combined.
+ * UnifiedFilterBar applies filters across ALL sections combined.
  * Right-click on any row opens a context menu to move the issue to a sprint.
  * Create story entry point via Outlet context remains unchanged.
  *
- * Architecture: Per-section queries with progressive loading (Phase 48).
- * - jira-sprint-stories: shared cache with SprintBoardTab
- * - jira-sprint-list: canonical board sprint ordering
- * - jira-backlog-issues: unassigned issues
+ * Architecture (Phase 74 — D-01/D-02/D-04b/D-06/D-09b): SINGLE
+ * `useGhBacklogData(boardId)` call replaces the three legacy per-section
+ * REST queries (sprint list + sprint stories + unassigned issues).
+ * Raw `GhBacklogResponse` is adapted at the call site via a useMemo chain:
+ * `buildEntityMaps → createAdapter → adapt → issueIdToSprintId reverse index
+ * → adaptedIssues → backlogIssuesAdapted + sprintSections`. Sprint
+ * membership is derived from `data.sprints[].issuesIds[]` (D-04b reverse
+ * index), not from per-issue `sprint` fields on `GhIssue`. Sprint state
+ * is uppercase per fixture (`ACTIVE` / `CLOSED` / `FUTURE` — RESEARCH A5).
+ *
+ * Per D-05a/b/c the label filter chip, subtask count chip, and flagged
+ * indicator surfaces are removed from the backlog. Per D-07a the
+ * per-section refetch callbacks are removed; the Plan 05 toolbar Reload
+ * action will own all manual refreshes.
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -32,21 +42,18 @@ import { StaleDataBanner } from '@/components/ui/stale-data-banner';
 import { useBoardId } from '@/hooks/useBoardId';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useListNavigation } from '@/hooks/useListNavigation';
-import { STALE_TIME_MS } from '@/lib/query-constants';
 import type { JiraIssue } from '@/services/jira';
 import {
   addIssuesToSprint,
+  buildEntityMaps,
+  createAdapter,
   fetchEpicsBasic,
   fetchProjectStatuses,
-  isIssueFlagged,
+  invalidateGhBacklogData,
   moveIssuesToBacklog,
-  setIssueFlagged,
+  useGhBacklogData,
 } from '@/services/jira';
-import {
-  fetchBacklogIssues,
-  fetchBacklogSprintStories,
-  fetchSprintList,
-} from '@/services/jira/backlog';
+import type { GhBacklogResponse } from '@/services/jira/greenhopper/types';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useFilterStore } from '@/stores/filter.store';
@@ -72,8 +79,6 @@ function VirtualizedBacklogTable({
   sprints,
   onMoveToSprint,
   onMoveToBacklog,
-  flaggedFieldKey,
-  onToggleFlag,
 }: {
   filteredIssues: JiraIssue[];
   scrollElement: HTMLDivElement | null;
@@ -90,8 +95,6 @@ function VirtualizedBacklogTable({
   sprints: Array<{ id: number; name: string; state: string }>;
   onMoveToSprint: (issueKey: string, sprintId: number, sprintName: string) => void;
   onMoveToBacklog?: (issueKey: string) => void;
-  flaggedFieldKey: string;
-  onToggleFlag: (issueKey: string) => void;
 }) {
   const rowVirtualizer = useVirtualizer({
     count: filteredIssues.length,
@@ -137,8 +140,7 @@ function VirtualizedBacklogTable({
         sprints={sprints}
         onMoveToSprint={onMoveToSprint}
         onMoveToBacklog={onMoveToBacklog}
-        isFlagged={isIssueFlagged(issue, flaggedFieldKey)}
-        onToggleFlag={onToggleFlag}
+        // D-05c: flagged indicator dropped from backlog rows.
       />
     );
   }
@@ -198,13 +200,8 @@ export default function BacklogPage() {
 
   // ── Auth / settings ─────────────────────────────────────────────────────────
   const { jiraBaseUrl, activeJiraProject } = useAuthStore();
-  const {
-    storyPointsFieldKey,
-    epicLinkFieldKey,
-    epicNameFieldKey,
-    epicColorFieldKey,
-    flaggedFieldKey,
-  } = useSettingsStore();
+  const { storyPointsFieldKey, epicLinkFieldKey, epicNameFieldKey, epicColorFieldKey } =
+    useSettingsStore();
 
   const [jiraToken, setJiraToken] = useState<string | null>(null);
 
@@ -216,92 +213,90 @@ export default function BacklogPage() {
 
   // ── Queries ─────────────────────────────────────────────────────────────────
 
-  // -- Per-section queries (progressive loading) ---
   const { boardId, isLoading: boardIdLoading } = useBoardId(
     jiraBaseUrl,
     jiraToken,
     activeJiraProject,
   );
 
-  // Query 1: Sprint list (canonical board ordering, includes empty sprints) — loads first for headers.
-  const { data: sprintList } = useQuery({
-    queryKey: ['jira-sprint-list', boardId, jiraBaseUrl],
-    queryFn: () => fetchSprintList(jiraBaseUrl ?? '', jiraToken ?? '', boardId ?? 0),
-    staleTime: STALE_TIME_MS,
-    enabled: !!boardId && !!jiraBaseUrl && !!jiraToken,
-  });
+  // Phase 74 (GH-BACKLOG-01 / D-01 / D-02 / D-09b): SINGLE backlog data
+  // query — replaces the three legacy per-section REST queries (sprint
+  // list + sprint stories + unassigned backlog issues). Raw envelope
+  // returned by `useGhBacklogData`; adaptation happens caller-side via
+  // the useMemo chain below.
+  const {
+    data: backlog,
+    isLoading: backlogLoading,
+    isFetching: backlogFetching,
+    isError,
+    error,
+  } = useGhBacklogData(boardId ?? null);
 
-  // Derive sprint IDs from the loaded sprint list (active + future only)
-  const sprintIds = useMemo(
+  // D-09b adapter useMemo chain — same model as SprintBoardTab (Pattern S3).
+  // `buildEntityMaps` reads only `.entityData`; the same shape is shared
+  // between `GhAllDataResponse` and `GhBacklogResponse` (RESEARCH A3), so we
+  // narrow via a structural cast through the entityData-bearing slice.
+  const entityMaps = useMemo(
     () =>
-      (sprintList ?? [])
-        .filter((s) => s.state === 'active' || s.state === 'future')
-        .map((s) => s.id),
-    [sprintList],
+      backlog
+        ? buildEntityMaps({ entityData: backlog.entityData } as unknown as Parameters<
+            typeof buildEntityMaps
+          >[0])
+        : null,
+    [backlog],
+  );
+  const adapt = useMemo(
+    () => (entityMaps ? createAdapter({ storyPointsFieldKey, entityMaps }) : null),
+    [storyPointsFieldKey, entityMaps],
   );
 
-  // Query 2: Sprint stories — fetched per-sprint using fast standard search API.
-  // Depends on sprintList (for sprint IDs), not boardId directly.
-  const {
-    data: sprintStories,
-    isLoading: storiesLoading,
-    isError: storiesError,
-    error: storiesErrorObj,
-    refetch: refetchStories,
-  } = useQuery<JiraIssue[]>({
-    queryKey: [
-      'jira-backlog-sprint-stories',
-      activeJiraProject,
-      jiraBaseUrl,
-      sprintIds,
-      storyPointsFieldKey,
-      epicLinkFieldKey,
-      flaggedFieldKey,
-    ],
-    queryFn: () =>
-      fetchBacklogSprintStories(
-        jiraBaseUrl ?? '',
-        jiraToken ?? '',
-        activeJiraProject ?? '',
-        sprintIds,
-        storyPointsFieldKey,
-        epicLinkFieldKey,
-        flaggedFieldKey,
-      ),
-    staleTime: STALE_TIME_MS,
-    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken && sprintIds.length > 0,
-  });
+  // D-04b sprint reverse-index: issueId → sprintId, built from
+  // `data.sprints[].issuesIds[]`. Drives both `fields.sprint` synthesis on
+  // adapted issues and the backlog/sprint partition below.
+  const issueIdToSprintId = useMemo(() => {
+    const m = new Map<number, number>();
+    for (const s of backlog?.sprints ?? []) {
+      for (const id of s.issuesIds) m.set(id, s.id);
+    }
+    return m;
+  }, [backlog?.sprints]);
 
-  // Query 3: Backlog issues (unassigned to any sprint)
-  const {
-    data: backlogIssues,
-    isLoading: backlogLoading,
-    isError: backlogError,
-    error: backlogErrorObj,
-    refetch: refetchBacklog,
-  } = useQuery<JiraIssue[]>({
-    queryKey: [
-      'jira-backlog-issues',
-      activeJiraProject,
-      jiraBaseUrl,
-      storyPointsFieldKey,
-      epicLinkFieldKey,
-      epicNameFieldKey,
-      flaggedFieldKey,
-    ],
-    queryFn: () =>
-      fetchBacklogIssues(
-        jiraBaseUrl ?? '',
-        jiraToken ?? '',
-        activeJiraProject ?? '',
-        storyPointsFieldKey,
-        epicLinkFieldKey,
-        epicNameFieldKey,
-        flaggedFieldKey,
-      ),
-    staleTime: STALE_TIME_MS,
-    enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
-  });
+  const adaptedIssues = useMemo<JiraIssue[]>(() => {
+    if (!backlog || !adapt) return [];
+    return backlog.issues.map((gh) => {
+      const base = adapt(gh) as JiraIssue;
+      const sprintId = issueIdToSprintId.get(gh.id);
+      if (sprintId === undefined) return base;
+      // D-04b: synthesize `fields.sprint = { id }` from the reverse index so
+      // downstream code (context-menu "from sprint" copy, filter heuristics)
+      // can detect sprint membership without re-walking sprint arrays.
+      return {
+        ...base,
+        fields: { ...base.fields, sprint: { id: sprintId } },
+      };
+    });
+  }, [backlog, adapt, issueIdToSprintId]);
+
+  // D-01: backlog list = adapted issues with no sprint membership.
+  const backlogIssuesAdapted = useMemo<JiraIssue[]>(
+    () => adaptedIssues.filter((i) => !(i.fields as { sprint?: unknown }).sprint),
+    [adaptedIssues],
+  );
+
+  // D-01a + RESEARCH A5: sprint sections rendered in `data.sprints[]` order,
+  // filtered to ACTIVE / FUTURE (uppercase per fixture). Each section's
+  // issues are the adapted rows whose synthesized `fields.sprint.id` matches.
+  const sprintSections = useMemo(() => {
+    if (!backlog) return [];
+    return backlog.sprints
+      .filter((s) => s.state === 'ACTIVE' || s.state === 'FUTURE')
+      .map((s) => ({
+        sprint: s,
+        issues: adaptedIssues.filter(
+          (i) => (i.fields.sprint as { id?: number } | undefined)?.id === s.id,
+        ),
+      }));
+  }, [backlog, adaptedIssues]);
 
   // All project statuses (for filter dropdown — shows all that exist, not just visible)
   const { data: projectStatuses } = useQuery({
@@ -327,37 +322,24 @@ export default function BacklogPage() {
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
 
-  // Show global skeleton until sprint list AND backlog have both loaded.
-  // Before jiraToken resolves (async readSecret), all queries are disabled — treat as loading.
-  // After boardId resolves, wait for sprint list so headers render together with backlog.
+  // Show global skeleton until backlog data loads. Before jiraToken resolves
+  // (async readSecret) or before boardId resolves, the query is disabled —
+  // treat as loading. Once `backlog` resolves, we render sections + backlog.
   const authBootstrapping = !jiraToken;
-  const waitingForSprintList = boardIdLoading || (boardId != null && !sprintList);
-  const isAnyLoading = authBootstrapping || waitingForSprintList || backlogLoading;
+  const isAnyLoading =
+    authBootstrapping || boardIdLoading || backlogLoading || (!backlog && backlogFetching);
   const showSkeleton = useDelayedLoading(isAnyLoading);
 
   // Per-query loading for epics (LOAD-04)
   const isEpicsLoading = !allEpics && !!activeJiraProject;
 
-  // Combined error state
-  const isError = storiesError || backlogError;
-  const error = storiesErrorObj ?? backlogErrorObj;
+  // D-07a: per-section refetch callbacks (refetchBacklog/refetchStories) are
+  // removed. The Plan 05 toolbar Reload action will own all manual refreshes
+  // via `invalidateGhBacklogData`. Inline error retry falls back to a no-op
+  // pending Plan 05 (ErrorState still renders without a Retry button).
   const refetch = () => {
-    refetchStories();
-    refetchBacklog();
+    if (boardId != null) invalidateGhBacklogData(queryClient, boardId);
   };
-
-  // Map parentKey → Set of subtask status names (from sprint stories data)
-  const subtaskStatusMap = useMemo(() => {
-    const map = new Map<string, Set<string>>();
-    for (const issue of sprintStories ?? []) {
-      if (issue.fields.issuetype.subtask && issue.fields.parent?.key) {
-        const parentKey = issue.fields.parent.key;
-        if (!map.has(parentKey)) map.set(parentKey, new Set());
-        map.get(parentKey)?.add(issue.fields.status.name);
-      }
-    }
-    return map;
-  }, [sprintStories]);
 
   // ── Pending sprint move confirmation state ────────────────────────────────────
   const [pendingSprintMove, setPendingSprintMove] = useState<{
@@ -398,42 +380,25 @@ export default function BacklogPage() {
 
   const { activeEpics, activeLabels, activeAssignees, activeStatuses } = useFilterStore();
 
-  // ── Build sprint sections from sprint list + sprint stories ──────────────────
+  // ── Sprint context for downstream UI (move-to-sprint menus) ──────────────────
 
-  const mergedSprints = useMemo(() => {
-    // Build sprint sections from sprintList alone so headers render immediately.
-    // Stories fill in once sprintStories resolves; sections show a loading state in the interim.
-    if (!sprintList) return [];
-    // Group stories by sprint ID (empty map when sprintStories not yet loaded)
-    const storiesBySprint = new Map<number, JiraIssue[]>();
-    for (const story of sprintStories ?? []) {
-      const sprintField = story.fields.sprint as { id: number } | null;
-      if (sprintField?.id) {
-        const existing = storiesBySprint.get(sprintField.id) ?? [];
-        existing.push(story);
-        storiesBySprint.set(sprintField.id, existing);
-      }
-    }
-    // Map sprint list to sections, filling in issues
-    return sprintList
-      .filter((s) => s.state === 'active' || s.state === 'future')
-      .map((sprint) => ({
-        sprint,
-        issues: storiesBySprint.get(sprint.id) ?? [],
-      }));
-  }, [sprintList, sprintStories]);
-
-  // Available sprints for context menu (active + future only)
+  // Available sprints for context menu — the ACTIVE+FUTURE sections only.
+  // BacklogRow's sprint type expects lowercase `state` ('active' | 'future' | …)
+  // so we down-case here (RESEARCH A5 — the wire shape is uppercase).
   const availableSprints = useMemo(
-    () => mergedSprints.map((s) => s.sprint).filter((s) => s.state !== 'closed'),
-    [mergedSprints],
+    () =>
+      sprintSections.map(({ sprint }) => ({
+        id: sprint.id,
+        name: sprint.name,
+        state: sprint.state.toLowerCase(),
+      })),
+    [sprintSections],
   );
 
   const allIssues = useMemo<JiraIssue[]>(() => {
-    const sprintIssuesList = mergedSprints.flatMap((s) => s.issues);
-    const backlogList = backlogIssues ?? [];
-    return [...sprintIssuesList, ...backlogList];
-  }, [mergedSprints, backlogIssues]);
+    const sprintIssuesList = sprintSections.flatMap((s) => s.issues);
+    return [...sprintIssuesList, ...backlogIssuesAdapted];
+  }, [sprintSections, backlogIssuesAdapted]);
 
   // ── Epic name and color maps derived from allEpics query ──────────────────────
 
@@ -465,12 +430,11 @@ export default function BacklogPage() {
         epics.set(epicKey, nameFromField ?? epicKey);
       }
     }
-    const labels = new Set<string>();
+    // D-05a: label filter dropped from the backlog surface — `GhIssue` carries
+    // no `labels[]`. Pass an empty array so the shared UnifiedFilterBar's
+    // Labels dropdown renders with no options on the backlog.
     const assignees = new Set<string>();
     for (const issue of allIssues) {
-      for (const label of (issue.fields.labels as string[] | undefined) ?? []) {
-        labels.add(label);
-      }
       if (issue.fields.assignee?.displayName) assignees.add(issue.fields.assignee.displayName);
     }
     // Statuses: all project workflow statuses (not just those on current issues)
@@ -479,17 +443,13 @@ export default function BacklogPage() {
     for (const issue of allIssues) {
       if (issue.fields.status?.name) statuses.add(issue.fields.status.name);
     }
-    // Also include subtask statuses from sprint stories data
-    for (const statusSet of subtaskStatusMap.values()) {
-      for (const s of statusSet) statuses.add(s);
-    }
     return {
       epics,
-      labels: Array.from(labels),
+      labels: [] as string[],
       assignees: Array.from(assignees),
       statuses: Array.from(statuses).sort(),
     };
-  }, [allIssues, epicLinkFieldKey, epicNameFieldKey, allEpics, projectStatuses, subtaskStatusMap]);
+  }, [allIssues, epicLinkFieldKey, epicNameFieldKey, allEpics, projectStatuses]);
 
   // ── Filter application helper ─────────────────────────────────────────────────
 
@@ -513,17 +473,11 @@ export default function BacklogPage() {
       const statusMatch = (() => {
         if (activeStatuses.size === 0) return true;
         const activeLC = new Set(Array.from(activeStatuses).map((s) => s.toLowerCase()));
-        // Match on the story's own status (case-insensitive)
+        // Match on the story's own status (case-insensitive). Phase 74 drops
+        // the subtask-status fallback path with the subtask chip (D-05b) — the
+        // backlog data envelope no longer carries subtask rows.
         const storyStatus = (issue.fields.status?.name ?? '').toLowerCase();
-        if (storyStatus && activeLC.has(storyStatus)) return true;
-        // Match on subtask statuses from sprint stories data
-        const subStatuses = subtaskStatusMap.get(issue.key);
-        if (subStatuses) {
-          for (const s of subStatuses) {
-            if (activeLC.has(s.toLowerCase())) return true;
-          }
-        }
-        return false;
+        return Boolean(storyStatus && activeLC.has(storyStatus));
       })();
       const result = epicMatch && labelMatch && assigneeMatch && statusMatch;
       return result;
@@ -533,9 +487,9 @@ export default function BacklogPage() {
   // ── J/K navigation ──────────────────────────────────────────────────────────
 
   const visibleIssueKeys = useMemo(() => {
-    if (!sprintStories && !backlogIssues) return [];
+    if (!backlog) return [];
     const keys: string[] = [];
-    for (const { sprint, issues } of mergedSprints) {
+    for (const { sprint, issues } of sprintSections) {
       const sectionId = `sprint-${sprint.id}`;
       if (collapsedSections.has(sectionId)) continue;
       const filtered = applyFilters(issues);
@@ -544,14 +498,14 @@ export default function BacklogPage() {
       }
     }
     if (!collapsedSections.has('backlog')) {
-      const filtered = applyFilters(backlogIssues ?? []);
+      const filtered = applyFilters(backlogIssuesAdapted);
       for (const issue of filtered) {
         keys.push(issue.key);
       }
     }
     return keys;
     // biome-ignore lint/correctness/useExhaustiveDependencies: applyFilters is a non-memoized local function; its deps are already captured via closures in this useMemo
-  }, [sprintStories, backlogIssues, collapsedSections, applyFilters, mergedSprints]);
+  }, [backlog, backlogIssuesAdapted, collapsedSections, applyFilters, sprintSections]);
 
   const { focusIndex } = useListNavigation({
     itemCount: visibleIssueKeys.length,
@@ -572,238 +526,117 @@ export default function BacklogPage() {
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
-  // Request handlers: set pending state for confirmation dialog
+  // Request handlers: set pending state for confirmation dialog. Phase 74 —
+  // both sprint and backlog issues now live in a single adapted list, and
+  // the sprint name is resolved through `sprintSections` (the data.json
+  // envelope's `data.sprints[]`).
+  function lookupSprintNameById(sprintId: number | null | undefined): string | null {
+    if (sprintId == null) return null;
+    const found = sprintSections.find((s) => s.sprint.id === sprintId);
+    return found ? found.sprint.name : null;
+  }
+
   function requestMoveToSprint(issueKey: string, sprintId: number, sprintName: string) {
-    const allIssuesList = [...(sprintStories ?? []), ...(backlogIssues ?? [])];
-    const issue = allIssuesList.find((i) => i.key === issueKey);
-    const currentSprintName = issue?.fields.sprint
-      ? ((issue.fields.sprint as { name?: string }).name ?? null)
-      : null;
-    setPendingSprintMove({ issueKey, sprintId, sprintName, fromSprintName: currentSprintName });
+    const issue = adaptedIssues.find((i) => i.key === issueKey);
+    const currentSprintId = (issue?.fields.sprint as { id?: number } | undefined)?.id;
+    setPendingSprintMove({
+      issueKey,
+      sprintId,
+      sprintName,
+      fromSprintName: lookupSprintNameById(currentSprintId),
+    });
   }
 
   function requestMoveToBacklog(issueKey: string) {
-    const allIssuesList = [...(sprintStories ?? []), ...(backlogIssues ?? [])];
-    const issue = allIssuesList.find((i) => i.key === issueKey);
-    const currentSprintName = issue?.fields.sprint
-      ? ((issue.fields.sprint as { name?: string }).name ?? 'Sprint')
-      : 'Sprint';
-    setPendingBacklogMove({ issueKey, fromSprintName: currentSprintName });
+    const issue = adaptedIssues.find((i) => i.key === issueKey);
+    const currentSprintId = (issue?.fields.sprint as { id?: number } | undefined)?.id;
+    setPendingBacklogMove({
+      issueKey,
+      fromSprintName: lookupSprintNameById(currentSprintId) ?? 'Sprint',
+    });
   }
 
-  // Confirm handlers: execute the actual API calls (formerly handleMove*)
+  // Confirm handlers: execute the actual API calls (formerly handleMove*).
+  // Phase 74 D-06 / D-06a: optimistic updates mutate the single
+  // `['gh-backlog', boardId]` cache in place; invalidation goes through
+  // `invalidateGhBacklogData` (NOT the deleted legacy backlog keys).
+  // Per RESEARCH Open Question #1 / Pitfall 5: optimistic update is by
+  // moving the issueId between `data.sprints[].issuesIds[]` — the
+  // adapter's `useMemo` chain re-derives `fields.sprint` from that
+  // reverse index.
   async function confirmMoveToSprint(issueKey: string, sprintId: number, sprintName: string) {
-    // Optimistic removal from backlog issues cache
-    const previousBacklog = queryClient.getQueryData<JiraIssue[]>([
-      'jira-backlog-issues',
-      activeJiraProject,
-      jiraBaseUrl,
-      storyPointsFieldKey,
-      epicLinkFieldKey,
-      epicNameFieldKey,
-      flaggedFieldKey,
-    ]);
-    queryClient.setQueryData<JiraIssue[]>(
-      [
-        'jira-backlog-issues',
-        activeJiraProject,
-        jiraBaseUrl,
-        storyPointsFieldKey,
-        epicLinkFieldKey,
-        epicNameFieldKey,
-        flaggedFieldKey,
-      ],
-      (old) => old?.filter((i) => i.key !== issueKey),
-    );
-    // Also optimistically remove from backlog sprint stories cache (if moving between sprints)
-    queryClient.setQueryData<JiraIssue[]>(
-      [
-        'jira-backlog-sprint-stories',
-        activeJiraProject,
-        jiraBaseUrl,
-        sprintIds,
-        storyPointsFieldKey,
-        epicLinkFieldKey,
-        flaggedFieldKey,
-      ],
-      (old) => old?.filter((i) => i.key !== issueKey),
-    );
+    if (boardId == null) return;
+    const issue = adaptedIssues.find((i) => i.key === issueKey);
+    const issueNumericId = issue ? Number(issue.id) : null;
+    const cacheKey = ['gh-backlog', boardId] as const;
+    const previous = queryClient.getQueryData<GhBacklogResponse>(cacheKey);
+    if (issueNumericId != null) {
+      queryClient.setQueryData<GhBacklogResponse>(cacheKey, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          sprints: old.sprints.map((s) =>
+            s.id === sprintId
+              ? {
+                  ...s,
+                  issuesIds: s.issuesIds.includes(issueNumericId)
+                    ? s.issuesIds
+                    : [...s.issuesIds, issueNumericId],
+                }
+              : { ...s, issuesIds: s.issuesIds.filter((id) => id !== issueNumericId) },
+          ),
+        };
+      });
+    }
     try {
       await addIssuesToSprint(jiraBaseUrl ?? '', jiraToken ?? '', sprintId, [issueKey]);
-      // Invalidate all relevant caches so they refetch with correct sprint assignments
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog-sprint-stories'] });
+      // D-06: one invalidation covers the whole backlog freshness contract.
+      invalidateGhBacklogData(queryClient, boardId);
+      // Cross-surface freshness (issue-detail + sprint board sprint-stories)
+      // is intentionally preserved — not part of the legacy backlog key set
+      // stripped by D-09.
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-sprint-list'] });
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-detail'] });
     } catch (_err) {
-      // Rollback on failure
-      queryClient.setQueryData(
-        [
-          'jira-backlog-issues',
-          activeJiraProject,
-          jiraBaseUrl,
-          storyPointsFieldKey,
-          epicLinkFieldKey,
-          epicNameFieldKey,
-          flaggedFieldKey,
-        ],
-        previousBacklog,
-      );
-      // Refetch sprint stories to restore correct state
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog-sprint-stories'] });
+      // Rollback to the snapshot taken before the optimistic mutation.
+      if (previous) queryClient.setQueryData<GhBacklogResponse>(cacheKey, previous);
     }
     void sprintName;
   }
 
   async function confirmMoveToBacklog(issueKey: string) {
-    // Optimistic removal from sprint stories cache
-    const previousStories = queryClient.getQueryData<JiraIssue[]>([
-      'jira-backlog-sprint-stories',
-      activeJiraProject,
-      jiraBaseUrl,
-      sprintIds,
-      storyPointsFieldKey,
-      epicLinkFieldKey,
-      flaggedFieldKey,
-    ]);
-    queryClient.setQueryData<JiraIssue[]>(
-      [
-        'jira-backlog-sprint-stories',
-        activeJiraProject,
-        jiraBaseUrl,
-        sprintIds,
-        storyPointsFieldKey,
-        epicLinkFieldKey,
-        flaggedFieldKey,
-      ],
-      (old) => old?.filter((i) => i.key !== issueKey),
-    );
+    if (boardId == null) return;
+    const issue = adaptedIssues.find((i) => i.key === issueKey);
+    const issueNumericId = issue ? Number(issue.id) : null;
+    const cacheKey = ['gh-backlog', boardId] as const;
+    const previous = queryClient.getQueryData<GhBacklogResponse>(cacheKey);
+    if (issueNumericId != null) {
+      // D-06a: drop the issueId from every sprint's `issuesIds[]` so the
+      // adapter chain demotes it to the backlog list on the next render.
+      queryClient.setQueryData<GhBacklogResponse>(cacheKey, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          sprints: old.sprints.map((s) => ({
+            ...s,
+            issuesIds: s.issuesIds.filter((id) => id !== issueNumericId),
+          })),
+        };
+      });
+    }
     try {
       await moveIssuesToBacklog(jiraBaseUrl ?? '', jiraToken ?? '', [issueKey]);
-      // Invalidate all relevant caches so they refetch with correct sprint assignments
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog-sprint-stories'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-sprint-list'] });
-    } catch (_err) {
-      // Rollback on failure
-      queryClient.setQueryData(
-        [
-          'jira-backlog-sprint-stories',
-          activeJiraProject,
-          jiraBaseUrl,
-          sprintIds,
-          storyPointsFieldKey,
-          epicLinkFieldKey,
-          flaggedFieldKey,
-        ],
-        previousStories,
-      );
-    }
-  }
-
-  async function handleToggleFlag(issueKey: string) {
-    // Find the issue across sprint stories and backlog issues
-    const allIssuesList = [...(sprintStories ?? []), ...(backlogIssues ?? [])];
-    const issue = allIssuesList.find((i) => i.key === issueKey);
-    if (!issue) return;
-
-    const currentFlagged = isIssueFlagged(issue, flaggedFieldKey);
-    const newFlaggedValue = currentFlagged ? null : [{ value: 'Impediment' }];
-
-    // Snapshot previous cached arrays for rollback
-    const previousBacklogIssues = queryClient.getQueryData<JiraIssue[]>([
-      'jira-backlog-issues',
-      activeJiraProject,
-      jiraBaseUrl,
-      storyPointsFieldKey,
-      epicLinkFieldKey,
-      epicNameFieldKey,
-      flaggedFieldKey,
-    ]);
-    const previousSprintStories = queryClient.getQueryData<JiraIssue[]>([
-      'jira-backlog-sprint-stories',
-      activeJiraProject,
-      jiraBaseUrl,
-      sprintIds,
-      storyPointsFieldKey,
-      epicLinkFieldKey,
-      flaggedFieldKey,
-    ]);
-
-    // Optimistically update both caches
-    const updateIssueFlag = (old: JiraIssue[] | undefined) =>
-      old?.map((i) =>
-        i.key === issueKey
-          ? { ...i, fields: { ...i.fields, [flaggedFieldKey]: newFlaggedValue } }
-          : i,
-      );
-
-    queryClient.setQueryData<JiraIssue[]>(
-      [
-        'jira-backlog-issues',
-        activeJiraProject,
-        jiraBaseUrl,
-        storyPointsFieldKey,
-        epicLinkFieldKey,
-        epicNameFieldKey,
-        flaggedFieldKey,
-      ],
-      updateIssueFlag,
-    );
-    queryClient.setQueryData<JiraIssue[]>(
-      [
-        'jira-backlog-sprint-stories',
-        activeJiraProject,
-        jiraBaseUrl,
-        sprintIds,
-        storyPointsFieldKey,
-        epicLinkFieldKey,
-        flaggedFieldKey,
-      ],
-      updateIssueFlag,
-    );
-
-    try {
-      await setIssueFlagged(
-        jiraBaseUrl ?? '',
-        jiraToken ?? '',
-        issueKey,
-        !currentFlagged,
-        flaggedFieldKey,
-      );
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog-sprint-stories'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-backlog-issues'] });
+      invalidateGhBacklogData(queryClient, boardId);
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail'] });
-    } catch {
-      // Rollback both caches
-      queryClient.setQueryData(
-        [
-          'jira-backlog-issues',
-          activeJiraProject,
-          jiraBaseUrl,
-          storyPointsFieldKey,
-          epicLinkFieldKey,
-          epicNameFieldKey,
-          flaggedFieldKey,
-        ],
-        previousBacklogIssues,
-      );
-      queryClient.setQueryData(
-        [
-          'jira-backlog-sprint-stories',
-          activeJiraProject,
-          jiraBaseUrl,
-          sprintIds,
-          storyPointsFieldKey,
-          epicLinkFieldKey,
-          flaggedFieldKey,
-        ],
-        previousSprintStories,
-      );
+    } catch (_err) {
+      if (previous) queryClient.setQueryData<GhBacklogResponse>(cacheKey, previous);
     }
   }
+
+  // D-05c: flagged indicator + flag/unflag handler dropped from the backlog
+  // surface. The same toggle is still available on the issue detail view
+  // (which owns its own mutation handler against the issue-detail cache).
 
   // ── Section renderer ──────────────────────────────────────────────────────────
 
@@ -878,8 +711,6 @@ export default function BacklogPage() {
                 sprints={availableSprints}
                 onMoveToSprint={requestMoveToSprint}
                 onMoveToBacklog={moveToBacklog}
-                flaggedFieldKey={flaggedFieldKey}
-                onToggleFlag={handleToggleFlag}
               />
             ) : issues.length > 0 ? (
               /* All issues filtered out */
@@ -969,58 +800,53 @@ export default function BacklogPage() {
         {/* Filter bar — scrolls with content */}
         <UnifiedFilterBar filterOptions={filterOptions} />
         {/* Error state — no cached data */}
-        {isError && !sprintStories && !backlogIssues && (
+        {isError && !backlog && (
           <div className="p-4">
             <ErrorState error={error} onRetry={refetch} viewName="backlog" />
           </div>
         )}
 
         {/* Stale data banner — error with cached data */}
-        {isError && (sprintStories || backlogIssues) && !bannerDismissed && (
+        {isError && backlog && !bannerDismissed && (
           <div className="px-4 pt-4">
             <StaleDataBanner onRetry={refetch} onDismiss={() => setBannerDismissed(true)} />
           </div>
         )}
 
         {showSkeleton ? (
-          /* Skeleton loading state — only when neither backlog nor sprint list has loaded */
+          /* Skeleton loading state — backlog envelope not yet loaded */
           <BacklogSkeleton />
         ) : !isError &&
           !authBootstrapping &&
-          mergedSprints.length === 0 &&
-          (backlogIssues ?? []).length === 0 &&
-          !storiesLoading &&
-          !backlogLoading &&
-          !waitingForSprintList ? (
-          /* Empty state — all queries settled with no data */
+          backlog &&
+          sprintSections.length === 0 &&
+          backlogIssuesAdapted.length === 0 ? (
+          /* Empty state — envelope settled with no data */
           <EmptyState
             icon={Inbox}
             title="Backlog is empty"
             subtitle="All issues are assigned to sprints"
             action={<Button onClick={() => openCreateStory()}>Create Issue</Button>}
           />
-        ) : mergedSprints.length > 0 ||
-          storiesLoading ||
-          (backlogIssues ?? []).length > 0 ||
-          backlogLoading ? (
+        ) : backlog && (sprintSections.length > 0 || backlogIssuesAdapted.length > 0) ? (
           /* Sprint sections + backlog section */
           <div>
-            {/* Sprint sections (active first, then future) */}
-            {mergedSprints.map(({ sprint, issues }) =>
+            {/* Sprint sections (active first, then future) — `data.sprints[]` order */}
+            {sprintSections.map(({ sprint, issues }) =>
               renderSection(
                 `sprint-${sprint.id}`,
                 sprint.name,
-                sprint.state === 'active' ? 'Active' : 'Future',
+                sprint.state === 'ACTIVE' ? 'Active' : 'Future',
                 issues,
                 false,
                 true,
                 requestMoveToBacklog,
-                storiesLoading,
+                false,
               ),
             )}
 
             {/* Backlog section — always last */}
-            {renderSection('backlog', 'Backlog', null, backlogIssues ?? [], true, true)}
+            {renderSection('backlog', 'Backlog', null, backlogIssuesAdapted, true, true)}
           </div>
         ) : null}
       </div>
