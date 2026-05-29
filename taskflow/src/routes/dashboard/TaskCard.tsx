@@ -29,6 +29,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import { formatTimeAgo, formatTimeAgoStrict } from '@/lib/formatTimeAgo';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
 import type { JiraIssue, JiraTransition } from '@/services/jira';
@@ -56,6 +57,13 @@ interface TaskCardProps {
   isFlagged?: boolean;
   /** Called when user selects Flag/Unflag from the context menu */
   onToggleFlag?: () => void;
+  /**
+   * Phase 73 (Plan 02) — time-in-column data from the GH allData adapter.
+   * When present, renders a small muted badge alongside the story-points chip
+   * showing how long the issue has been in its current status (UI-SPEC §1 / D-05).
+   * Separate prop (not on `issue`) preserves backward-compat for non-board callers.
+   */
+  timeInColumn?: { enteredStatus: number; durationPreviously?: number };
 }
 
 export default function TaskCard({
@@ -71,6 +79,7 @@ export default function TaskCard({
   transitionError,
   isFlagged,
   onToggleFlag,
+  timeInColumn,
 }: TaskCardProps) {
   const assignee = issue.fields.assignee;
   const avatarUrl = assignee?.avatarUrls['48x48'];
@@ -146,6 +155,18 @@ export default function TaskCard({
             {storyPoints != null && storyPoints > 0 && (
               <span className="text-[11px] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 font-mono leading-none">
                 {storyPoints}
+              </span>
+            )}
+
+            {/* Phase 73 Plan 02 — timeInColumn badge (UI-SPEC §1 / D-05 / R-03).
+                Decorative metadata only; native `title` provides the tooltip
+                (no Radix Tooltip per D-05a). Suppressed silently when absent. */}
+            {timeInColumn?.enteredStatus && (
+              <span
+                className="text-[11px] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 font-mono leading-none"
+                title={`Entered status ${formatTimeAgo(timeInColumn.enteredStatus)} ago`}
+              >
+                {formatTimeAgoStrict(timeInColumn.enteredStatus)}
               </span>
             )}
 
