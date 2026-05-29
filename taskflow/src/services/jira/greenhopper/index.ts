@@ -12,3 +12,4 @@ export * from './details';
 export * from './entityMaps';
 export * from './transitions';
 export * from './types';
+export * from './useGhAllData';
