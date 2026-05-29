@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -41,10 +41,12 @@ vi.mock('@/services/stronghold', () => ({
 }));
 
 vi.mock('@/services/jira', () => ({
-  fetchActiveSprint: vi.fn(),
-  fetchEpicsBasic: vi.fn(),
-  fetchProjectStatuses: vi.fn(),
-  fetchSprintStories: vi.fn(),
+  fetchActiveSprint: vi.fn().mockResolvedValue(null),
+  fetchEpicsBasic: vi.fn().mockResolvedValue([]),
+  fetchProjectStatuses: vi.fn().mockResolvedValue([]),
+  // Phase 73 Plan 03: sprint-board prefetch swap (D-08). The sidebar no longer
+  // imports fetchSprintStories; getGhAllData is the warm path.
+  getGhAllData: vi.fn().mockResolvedValue({ issuesData: { issues: [] } }),
 }));
 
 vi.mock('@/services/jira/backlog', () => ({
@@ -204,5 +206,75 @@ describe('Sidebar — tempoEnabled gate', () => {
       </QueryClientProvider>,
     );
     expect(queryByText('Worklogs')).toBeNull();
+  });
+});
+
+// ─── Phase 73 Plan 03: sprint-board prefetch swap (D-08 / D-08a) ─────────────
+
+describe('Sidebar — sprint-board prefetch swaps to getGhAllData (Phase 73 Plan 03)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAioEnabled = false;
+    mockSelectedAioProjectKey = null;
+    mockTempoEnabled = false;
+  });
+
+  it("focusing the Sprint Board nav resolves boardId and warms getGhAllData (D-08)", async () => {
+    const { fetchBoardId } = await import('@/services/jira/sprints');
+    const jira = await import('@/services/jira');
+    vi.mocked(fetchBoardId).mockResolvedValueOnce(163);
+
+    const { default: Sidebar } = await import('./Sidebar');
+    const { findByText } = render(
+      <QueryClientProvider client={makeClient()}>
+        <MemoryRouter>
+          <Sidebar />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const sprintBoardLink = await findByText('Sprint Board');
+    fireEvent.focus(sprintBoardLink);
+
+    await waitFor(() => {
+      expect(fetchBoardId).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      // D-08: getGhAllData warm with the resolved boardId.
+      expect((jira as unknown as { getGhAllData: ReturnType<typeof vi.fn> }).getGhAllData)
+        .toHaveBeenCalled();
+    });
+    const ghCalls = (jira as unknown as { getGhAllData: ReturnType<typeof vi.fn> }).getGhAllData
+      .mock.calls;
+    // queryClient (arg 0), baseUrl, token, boardId
+    expect(ghCalls[0][1]).toBe('https://jira.example.com');
+    expect(ghCalls[0][2]).toBe('test-jira-token');
+    expect(ghCalls[0][3]).toBe(163);
+  });
+
+  it("D-08a: silently skips getGhAllData when boardId resolves null", async () => {
+    const { fetchBoardId } = await import('@/services/jira/sprints');
+    const jira = await import('@/services/jira');
+    vi.mocked(fetchBoardId).mockResolvedValueOnce(null);
+
+    const { default: Sidebar } = await import('./Sidebar');
+    const { findByText } = render(
+      <QueryClientProvider client={makeClient()}>
+        <MemoryRouter>
+          <Sidebar />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const sprintBoardLink = await findByText('Sprint Board');
+    fireEvent.focus(sprintBoardLink);
+
+    await waitFor(() => {
+      expect(fetchBoardId).toHaveBeenCalled();
+    });
+    // Wait a beat for the .then() to run.
+    await new Promise((r) => setTimeout(r, 50));
+    expect((jira as unknown as { getGhAllData: ReturnType<typeof vi.fn> }).getGhAllData)
+      .not.toHaveBeenCalled();
   });
 });
