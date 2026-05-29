@@ -18,7 +18,6 @@ import {
   fetchJiraIssueByKey,
   fetchSprintIssues,
   fetchSprintStories,
-  fetchSprintSubtasks,
   type JiraIssue,
   listJiraProjects,
   postComment,
@@ -1572,67 +1571,8 @@ describe('jira service', () => {
     });
   });
 
-  // --- fetchSprintSubtasks ---
-  describe('fetchSprintSubtasks', () => {
-    it('returns empty array when parentKeys is empty', async () => {
-      const result = await fetchSprintSubtasks(BASE, TOKEN, []);
-      expect(result).toEqual([]);
-      expect(vi.mocked(mockFetch)).not.toHaveBeenCalled();
-    });
-
-    it('returns subtasks for a single chunk of parent keys', async () => {
-      const subtasks = [{ key: 'PROJ-10', fields: { summary: 'Subtask 1' } }];
-      vi.mocked(mockFetch).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ issues: subtasks, total: subtasks.length }),
-      } as Response);
-
-      const result = await fetchSprintSubtasks(BASE, TOKEN, ['PROJ-1', 'PROJ-2', 'PROJ-3']);
-      expect(result).toHaveLength(1);
-      expect(result[0].key).toBe('PROJ-10');
-    });
-
-    it('returns partial results when a chunk fails (second chunk returns 401)', async () => {
-      const subtasks = [{ key: 'PROJ-10', fields: { summary: 'Subtask 1' } }];
-      vi.mocked(mockFetch)
-        .mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          json: async () => ({ issues: subtasks, total: subtasks.length }),
-        } as Response) // chunk 1 succeeds
-        .mockResolvedValueOnce({
-          ok: false,
-          status: 401,
-        } as Response); // chunk 2 fails
-
-      // 60 keys = 2 chunks (50 + 10)
-      const parentKeys = Array.from({ length: 60 }, (_, i) => `PROJ-${i + 1}`);
-      const result = await fetchSprintSubtasks(BASE, TOKEN, parentKeys);
-
-      // Only chunk 1 results returned; chunk 2 fails silently
-      expect(result).toHaveLength(1);
-    });
-
-    it('splits 60 parent keys into 2 chunks (50 + 10) via SUBTASK_CHUNK_SIZE', async () => {
-      vi.mocked(mockFetch)
-        .mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          json: async () => ({ issues: [], total: 0 }),
-        } as Response) // chunk 1
-        .mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          json: async () => ({ issues: [], total: 0 }),
-        } as Response); // chunk 2
-
-      const parentKeys = Array.from({ length: 60 }, (_, i) => `PROJ-${i + 1}`);
-      await fetchSprintSubtasks(BASE, TOKEN, parentKeys);
-
-      expect(vi.mocked(mockFetch)).toHaveBeenCalledTimes(2);
-    });
-  });
+  // Legacy subtask fetcher removed in Phase 73 Plan 03 (GH-CUT-01); sprint-board
+  // subtasks now come from the GH allData envelope via useGhAllData.
 
   // --- fetchJiraIssueByKey ---
   describe('fetchJiraIssueByKey', () => {

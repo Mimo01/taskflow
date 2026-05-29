@@ -13,7 +13,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Bookmark, Columns3, RefreshCw, Workflow } from 'lucide-react';
+import { Bookmark, Columns3, RefreshCw } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
@@ -602,7 +602,7 @@ export default function SprintBoardTab() {
   }, [jiraBaseUrl]);
 
   // Phase 73 Plan 02 (D-01, D-03, D-04, D-04b, R-01, R-02, R-04, GH-BOARD-01/03/04):
-  // The legacy 2-query path (fetchSprintStories + fetchSprintSubtasks) is gone.
+  // The legacy 2-query path (sprint stories + sprint subtasks REST) is gone.
   // SprintBoardTab now reads a single allData envelope, adapts issues via the
   // Phase 71 createAdapter, and lets `statusCategory.key` drive the 3-bucket UI.
   // R-01 / R-02 keep `boardQuickFilters` + `activeSprint` REST queries — see
@@ -756,30 +756,39 @@ export default function SprintBoardTab() {
     return filterTransitionsForStatus(all, issue.fields.status?.id);
   }
 
-  // Phase 72 (Plan 02): toolbar "Reload workflow transitions" inline feedback.
-  // 3-second timeout mirrors the existing "Refresh" affordance; the aria-live
-  // span at line ~1103 surfaces it for AT users.
-  const [reloadTransitionsStatus, setReloadTransitionsStatus] = useState<string | null>(null);
+  // Phase 73 Plan 03 (D-07 / D-07a / R-01 / R-02 / R-04): single "Reload board"
+  // toolbar action. Replaces Phase 72's "Reload workflow transitions" item AND
+  // the bare "Refresh" icon button. Invalidates FIVE query keys per the
+  // updated invalidation set in CONTEXT.md §"Updated invalidation set for
+  // 'Reload board'". 3-second aria-live auto-clear mirrors the prior pattern.
+  const [reloadBoardStatus, setReloadBoardStatus] = useState<string | null>(null);
   useEffect(() => {
-    if (!reloadTransitionsStatus) return;
-    const t = setTimeout(() => setReloadTransitionsStatus(null), 3000);
+    if (!reloadBoardStatus) return;
+    const t = setTimeout(() => setReloadBoardStatus(null), 3000);
     return () => clearTimeout(t);
-  }, [reloadTransitionsStatus]);
+  }, [reloadBoardStatus]);
 
-  async function handleReloadWorkflowTransitions() {
-    // Phase 73 R-04: source projectId from the raw GH envelope, not
-    // localIssues (AdaptedIssue no longer carries `fields.project`).
+  async function handleReloadBoard() {
+    // R-04: projectId sourced from raw GH envelope (not adapted issues).
     const pid = sentinelProjectId;
-    if (!Number.isFinite(pid) || pid === 0) {
-      setReloadTransitionsStatus('Failed to reload workflow');
-      return;
-    }
     try {
-      invalidateGhTransitions(queryClient, pid);
+      // 1) gh-all-data envelope (Plan 01)
+      if (boardId) invalidateGhAllData(queryClient, boardId);
+      // 2) gh-transitions (Phase 72)
+      if (Number.isFinite(pid) && pid > 0) invalidateGhTransitions(queryClient, pid);
+      // 3) jira-statuses
       await queryClient.invalidateQueries({ queryKey: ['jira-statuses'] });
-      setReloadTransitionsStatus('Workflow transitions reloaded');
+      // 4) jira-board-quickfilters (R-01: REST quick filters stay)
+      await queryClient.invalidateQueries({
+        queryKey: ['jira-board-quickfilters', boardId],
+      });
+      // 5) jira-active-sprint (R-02: sprint goal stays REST)
+      await queryClient.invalidateQueries({
+        queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl],
+      });
+      setReloadBoardStatus('Board reloaded');
     } catch {
-      setReloadTransitionsStatus('Failed to reload workflow');
+      setReloadBoardStatus('Failed to reload board');
     }
   }
 
@@ -1149,38 +1158,27 @@ export default function SprintBoardTab() {
           {/* Refresh positioned absolutely so it doesn't affect column width distribution */}
           <div className="absolute right-0 top-0 h-full px-3 flex items-center gap-2 bg-background border-l border-border/20">
             <span className="text-xs text-muted-foreground hidden sm:inline">{lastRefreshed}</span>
-            {/* Phase 72 (Plan 02) — D-07 inline aria-live feedback span. */}
+            {/* Phase 73 Plan 03 — D-07 inline aria-live feedback span. */}
             <span
               role="status"
               aria-live="polite"
               className="text-xs text-muted-foreground hidden sm:inline"
             >
-              {reloadTransitionsStatus ?? ''}
+              {reloadBoardStatus ?? ''}
             </span>
             <button
               type="button"
               onClick={() => {
                 setIsRefreshing(true);
                 setStickyHeader(null);
-                // Phase 73 Plan 02: refresh hits gh-all-data; legacy keys retained
-                // for callers Plan 03 will sweep.
-                queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
-                queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
-                invalidateGhAllData(queryClient, boardId ?? undefined);
+                void handleReloadBoard();
               }}
+              disabled={storiesFetching}
               className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Refresh"
+              aria-label="Reload board"
+              title="Reload board"
             >
-              <RefreshCw className="size-3" />
-            </button>
-            <button
-              type="button"
-              onClick={handleReloadWorkflowTransitions}
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Reload workflow transitions"
-              title="Reload workflow transitions"
-            >
-              <Workflow className="size-3" />
+              <RefreshCw className={storiesFetching ? 'size-3 animate-spin' : 'size-3'} />
             </button>
           </div>
         </div>
