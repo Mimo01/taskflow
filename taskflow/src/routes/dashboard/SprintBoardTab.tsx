@@ -830,12 +830,10 @@ export default function SprintBoardTab() {
 
     try {
       await postTransition(jiraBaseUrl ?? '', jiraToken ?? '', issueKey, transitionId);
-      // Phase 73 Plan 02: legacy keys kept for backward-compat with any other
-      // consumer that registered them; the active board data source is now
-      // gh-all-data, so we MUST invalidate that too — otherwise post-transition
-      // refreshes silently no-op (Rule 2 — critical correctness).
-      queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
+      // Phase 73 Plan 03 (GH-CUT-01): gh-all-data is the sole sprint board
+      // data source; the legacy 'jira-sprint-stories' / 'jira-sprint-subtasks'
+      // query keys were retired with the hard cutover and no longer have any
+      // registered consumers.
       invalidateGhAllData(queryClient, boardId ?? undefined);
     } catch {
       // Rollback to original status
@@ -879,12 +877,10 @@ export default function SprintBoardTab() {
         !currentFlagged,
         flaggedFieldKey,
       );
-      // Phase 73 Plan 02: legacy keys kept for backward-compat with any other
-      // consumer that registered them; the active board data source is now
-      // gh-all-data, so we MUST invalidate that too — otherwise post-transition
-      // refreshes silently no-op (Rule 2 — critical correctness).
-      queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
+      // Phase 73 Plan 03 (GH-CUT-01): gh-all-data is the sole sprint board
+      // data source; the legacy 'jira-sprint-stories' / 'jira-sprint-subtasks'
+      // query keys were retired with the hard cutover and no longer have any
+      // registered consumers.
       invalidateGhAllData(queryClient, boardId ?? undefined);
     } catch {
       // Rollback
@@ -1244,8 +1240,6 @@ export default function SprintBoardTab() {
                   error={error}
                   onRetry={() => {
                     setIsRefreshing(true);
-                    queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
-                    queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
                     invalidateGhAllData(queryClient, boardId ?? undefined);
                   }}
                   viewName="sprint board"
@@ -1259,8 +1253,6 @@ export default function SprintBoardTab() {
                 <StaleDataBanner
                   onRetry={() => {
                     setIsRefreshing(true);
-                    queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
-                    queryClient.invalidateQueries({ queryKey: ['jira-sprint-subtasks'] });
                     invalidateGhAllData(queryClient, boardId ?? undefined);
                   }}
                   onDismiss={() => setBannerDismissed(true)}
