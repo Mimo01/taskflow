@@ -17,12 +17,24 @@ vi.mock('react-router-dom', async (importOriginal) => {
       to,
       children,
       className,
+      onMouseEnter,
+      onMouseLeave,
+      onFocus,
     }: {
       to: string;
       children: React.ReactNode;
       className?: unknown;
+      onMouseEnter?: (e: React.MouseEvent) => void;
+      onMouseLeave?: (e: React.MouseEvent) => void;
+      onFocus?: (e: React.FocusEvent) => void;
     }) => (
-      <a href={String(to)} className={typeof className === 'string' ? className : undefined}>
+      <a
+        href={String(to)}
+        className={typeof className === 'string' ? className : undefined}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+        onFocus={onFocus}
+      >
         {children}
       </a>
     ),
@@ -219,7 +231,7 @@ describe('Sidebar — sprint-board prefetch swaps to getGhAllData (Phase 73 Plan
     mockTempoEnabled = false;
   });
 
-  it("focusing the Sprint Board nav resolves boardId and warms getGhAllData (D-08)", async () => {
+  it('focusing the Sprint Board nav resolves boardId and warms getGhAllData (D-08)', async () => {
     const { fetchBoardId } = await import('@/services/jira/sprints');
     const jira = await import('@/services/jira');
     vi.mocked(fetchBoardId).mockResolvedValueOnce(163);
@@ -241,8 +253,9 @@ describe('Sidebar — sprint-board prefetch swaps to getGhAllData (Phase 73 Plan
     });
     await waitFor(() => {
       // D-08: getGhAllData warm with the resolved boardId.
-      expect((jira as unknown as { getGhAllData: ReturnType<typeof vi.fn> }).getGhAllData)
-        .toHaveBeenCalled();
+      expect(
+        (jira as unknown as { getGhAllData: ReturnType<typeof vi.fn> }).getGhAllData,
+      ).toHaveBeenCalled();
     });
     const ghCalls = (jira as unknown as { getGhAllData: ReturnType<typeof vi.fn> }).getGhAllData
       .mock.calls;
@@ -252,7 +265,7 @@ describe('Sidebar — sprint-board prefetch swaps to getGhAllData (Phase 73 Plan
     expect(ghCalls[0][3]).toBe(163);
   });
 
-  it("D-08a: silently skips getGhAllData when boardId resolves null", async () => {
+  it('D-08a: silently skips getGhAllData when boardId resolves null', async () => {
     const { fetchBoardId } = await import('@/services/jira/sprints');
     const jira = await import('@/services/jira');
     vi.mocked(fetchBoardId).mockResolvedValueOnce(null);
@@ -274,7 +287,8 @@ describe('Sidebar — sprint-board prefetch swaps to getGhAllData (Phase 73 Plan
     });
     // Wait a beat for the .then() to run.
     await new Promise((r) => setTimeout(r, 50));
-    expect((jira as unknown as { getGhAllData: ReturnType<typeof vi.fn> }).getGhAllData)
-      .not.toHaveBeenCalled();
+    expect(
+      (jira as unknown as { getGhAllData: ReturnType<typeof vi.fn> }).getGhAllData,
+    ).not.toHaveBeenCalled();
   });
 });
