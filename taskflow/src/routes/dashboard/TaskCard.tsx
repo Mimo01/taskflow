@@ -161,7 +161,7 @@ export default function TaskCard({
             {/* Phase 73 Plan 02 — timeInColumn badge (UI-SPEC §1 / D-05 / R-03).
                 Decorative metadata only; native `title` provides the tooltip
                 (no Radix Tooltip per D-05a). Suppressed silently when absent. */}
-            {timeInColumn?.enteredStatus && (
+            {timeInColumn?.enteredStatus != null && (
               <span
                 className="text-[11px] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 font-mono leading-none"
                 title={`Entered status ${formatTimeAgo(timeInColumn.enteredStatus)} ago`}
