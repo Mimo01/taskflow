@@ -33,7 +33,7 @@ import {
   fetchActiveSprint,
   fetchEpicsBasic,
   fetchProjectStatuses,
-  fetchSprintStories,
+  getGhAllData,
 } from '@/services/jira';
 import {
   fetchBacklogIssues,
@@ -125,25 +125,20 @@ export default function Sidebar() {
     if (!jiraBaseUrl || !jiraToken || !activeJiraProject) return;
 
     if (path === '/sprint-board' || path === '/dashboard') {
-      queryClient.prefetchQuery({
-        queryKey: [
-          'jira-sprint-stories',
-          activeJiraProject,
-          jiraBaseUrl,
-          storyPointsFieldKey,
-          epicLinkFieldKey,
-        ],
-        queryFn: () =>
-          fetchSprintStories(
-            jiraBaseUrl,
-            jiraToken,
-            activeJiraProject,
-            false,
-            storyPointsFieldKey,
-            epicLinkFieldKey,
-          ),
-        staleTime: STALE_TIME_MS,
-      });
+      // Phase 73 Plan 03 (D-08 / D-08a): swap legacy sprint-stories prefetch to
+      // getGhAllData via the boardId async-chain pattern (mirrors the backlog
+      // branch below). D-08a: silently skip when boardId is null.
+      queryClient
+        .fetchQuery({
+          queryKey: ['jira-board-id', activeJiraProject, jiraBaseUrl],
+          queryFn: () => fetchBoardId(jiraBaseUrl, jiraToken, activeJiraProject),
+          staleTime: Infinity,
+        })
+        .then((boardId) => {
+          if (boardId == null) return; // D-08a guard
+          return getGhAllData(queryClient, jiraBaseUrl, jiraToken, boardId);
+        })
+        .catch(() => {});
       if (path === '/sprint-board') {
         queryClient.prefetchQuery({
           queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl],
