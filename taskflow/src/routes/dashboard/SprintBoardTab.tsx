@@ -717,9 +717,12 @@ export default function SprintBoardTab() {
   });
 
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  // WR-06: reset the stale-data banner dismissal when the user switches
+  // boards — a dismissal on board A should not silence the banner for
+  // board B.
   useEffect(() => {
     setBannerDismissed(false);
-  }, []);
+  }, [boardId]);
 
   /** Used for filter options — maps workflow status names */
   const { data: workflowStatuses } = useQuery({
