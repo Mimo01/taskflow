@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useBoardId } from '@/hooks/useBoardId';
 import { apiFetch } from '@/lib/apiFetch';
 import type { GitLabMR } from '@/services/gitlab';
 import type { JiraIssueDetail } from '@/services/jira';
@@ -40,6 +41,7 @@ export function IssueDetailSidebar({
   const {
     jiraBaseUrl: storeJiraBaseUrl,
     jiraConnected,
+    activeJiraProject,
     gitlabBaseUrl,
     gitlabConnected,
     activeGitlabProject,
@@ -105,7 +107,22 @@ export function IssueDetailSidebar({
         return titleKeys.includes(issueKey) || branchKeys.includes(issueKey);
       });
 
-  const mutation = useFieldMutation(issueKey, effectiveJiraBaseUrl);
+  // WR-06: resolve the active project's boardId so the field-mutation hook
+  // can scope its gh-backlog invalidation to one board rather than every
+  // cached board. Same resolution pattern used by FieldsSection
+  // (FieldsSection.tsx:149). `jiraTokenForBoard` only feeds the boardId
+  // lookup query — the mutation itself reads the PAT inside its mutationFn.
+  const { data: jiraTokenForBoard } = useQuery({
+    queryKey: ['jira-pat'],
+    queryFn: () => readSecret('jira-pat'),
+    staleTime: Infinity,
+  });
+  const { boardId: sidebarBoardId } = useBoardId(
+    effectiveJiraBaseUrl,
+    jiraTokenForBoard ?? null,
+    activeJiraProject,
+  );
+  const mutation = useFieldMutation(issueKey, effectiveJiraBaseUrl, sidebarBoardId);
 
   return (
     <div className="space-y-4 text-sm">

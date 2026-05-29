@@ -7,8 +7,18 @@ import { readSecret } from '@/services/stronghold';
 /**
  * Shared mutation hook implementing Pattern 4 from RESEARCH.md.
  * Handles optimistic updates and rollback for field mutations.
+ *
+ * WR-06: `boardId` (optional) lets callers scope the gh-backlog invalidation
+ * to the active project's board envelope rather than every cached board.
+ * Callers that have already resolved boardId (e.g. IssueDetailSidebar via
+ * useBoardId) should pass it in; the hook falls back to all-boards
+ * invalidation only when boardId is genuinely unavailable (null/undefined).
  */
-export function useFieldMutation(issueKey: string, jiraBaseUrl: string) {
+export function useFieldMutation(
+  issueKey: string,
+  jiraBaseUrl: string,
+  boardId?: number | null,
+) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -42,9 +52,15 @@ export function useFieldMutation(issueKey: string, jiraBaseUrl: string) {
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
       queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
-      // Phase 74 GH-CUT-01: backlog data now lives under ['gh-backlog'].
-      // No boardId is available in this shared hook, so invalidate all boards.
-      invalidateGhBacklogData(queryClient);
+      // WR-06: scope to the active board when a boardId is available
+      // (prevents N redundant refetches across every project's gh-backlog
+      // envelope on every field edit). When not available, fall back to
+      // the broader invalidation.
+      if (boardId != null) {
+        invalidateGhBacklogData(queryClient, boardId);
+      } else {
+        invalidateGhBacklogData(queryClient);
+      }
       queryClient.invalidateQueries({ queryKey: ['jira-epics-basic'] });
       queryClient.invalidateQueries({ queryKey: ['jira-fixversion-issues'] });
       queryClient.invalidateQueries({ queryKey: ['jira-version-counts'] });
