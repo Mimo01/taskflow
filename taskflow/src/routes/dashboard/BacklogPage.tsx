@@ -230,7 +230,12 @@ export default function BacklogPage() {
     isFetching: backlogFetching,
     isError,
     error,
+    dataUpdatedAt,
   } = useGhBacklogData(boardId ?? null);
+
+  const lastRefreshed = dataUpdatedAt
+    ? `Refreshed: ${new Date(dataUpdatedAt).toLocaleTimeString()}`
+    : '';
 
   // D-09b adapter useMemo chain — same model as SprintBoardTab (Pattern S3).
   // `buildEntityMaps` reads only `.entityData`; the same shape is shared
@@ -775,8 +780,13 @@ export default function BacklogPage() {
       <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0">
         <h1 className="text-lg font-semibold">Backlog</h1>
         <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground hidden sm:inline">{lastRefreshed}</span>
           {/* Plan 05 — D-07 inline aria-live feedback span (mirrors SprintBoardTab). */}
-          <span aria-live="polite" className="sr-only">
+          <span
+            role="status"
+            aria-live="polite"
+            className="text-xs text-muted-foreground hidden sm:inline"
+          >
             {reloadStatus ?? ''}
           </span>
           <button
@@ -785,7 +795,7 @@ export default function BacklogPage() {
               void handleReloadBacklog();
             }}
             disabled={backlogFetching}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Reload backlog"
             title="Reload backlog"
           >
