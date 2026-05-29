@@ -79,12 +79,11 @@ Plans:
 3. `timeInColumn.enteredStatus` is available on each card / consumed by the existing "time in status" UI
 4. Drag-to-transition (optimistic + rollback), QuickCreateInput, epic / quick-filter / label filters, and sprint goal banner all work; old REST board-fetch path is deleted
 
-
 **Plans:** 3 plans
 
 Plans:
 
-- [ ] 73-01-PLAN.md — Wave 1: useGhAllData hook + getGhAllData + invalidateGhAllData + formatTimeAgo helpers + jira.ts re-exports + tests
+- [x] 73-01-PLAN.md — Wave 1: useGhAllData hook + getGhAllData + invalidateGhAllData + formatTimeAgo helpers + jira.ts re-exports + tests
 - [ ] 73-02-PLAN.md — Wave 2: SprintBoardTab data-layer rewrite onto useGhAllData (statusCategory bucketing, orphan-subtask warnOnce, R-04 projectId source) + TaskCard timeInColumn badge
 - [ ] 73-03-PLAN.md — Wave 3: single "Reload board" toolbar (5-key invalidation per R-01/R-02) + Sidebar prefetch swap to getGhAllData + delete fetchSprintSubtasks (GH-CUT-01)
 
