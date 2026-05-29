@@ -18,14 +18,28 @@ interface RecentItemsPopoverProps {
 }
 
 /**
+ * Narrow shape returned for gh-backlog hits — only `key` + `fields.summary`
+ * are guaranteed (WR-02: the rest of `JiraIssue` is NOT present on
+ * gh-backlog cache entries; an `as JiraIssue` cast would silently mislead
+ * any future caller that touches `.fields.status`, `.fields.issuetype`,
+ * etc.). Callers must check the discriminator before accessing other
+ * fields.
+ */
+type RecentIssueLike =
+  | JiraIssue
+  | { key: string; fields: { summary: string }; __partial: true };
+
+/**
  * Search all react-query cache entries for a Jira issue by key.
  * Handles different cache shapes: sprint-board (flat JiraIssue[]),
- * subtasks panel ({ issues: JiraIssue[] }), and backlog ({ sprints, backlog }).
+ * subtasks panel ({ issues: JiraIssue[] }), and gh-backlog (narrow
+ * { key, summary } — returned as a `__partial` discriminated variant per
+ * WR-02 so callers can't accidentally treat it as a full JiraIssue).
  */
 function findJiraIssueInCache(
   queryClient: ReturnType<typeof useQueryClient>,
   issueKey: string,
-): JiraIssue | undefined {
+): RecentIssueLike | undefined {
   // 1. jira-issues caches (sprint-board = flat array, subtasks panel = { issues: [] })
   const queries = queryClient.getQueriesData<JiraIssue[] | { issues?: JiraIssue[] }>({
     queryKey: ['jira-issues'],
@@ -61,9 +75,15 @@ function findJiraIssueInCache(
     if (!data?.issues) continue;
     const match = data.issues.find((issue) => issue.key === issueKey);
     if (match) {
-      // Adapt GhIssue { key, summary } into the JiraIssue shape the caller
-      // consumes (`.fields.summary` only).
-      return { key: match.key, fields: { summary: match.summary ?? '' } } as JiraIssue;
+      // WR-02: return a narrow `__partial` variant rather than casting to
+      // JiraIssue. The recents row only reads `.fields.summary`; any future
+      // caller that touches `.fields.status` etc. will be forced by the
+      // discriminated-union type to first check `'__partial' in result`.
+      return {
+        key: match.key,
+        fields: { summary: match.summary ?? '' },
+        __partial: true,
+      };
     }
   }
 
