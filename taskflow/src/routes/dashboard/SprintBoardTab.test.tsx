@@ -476,10 +476,9 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
     expect(firstCall).toBeTruthy();
   });
 
-  it('toolbar reload still works (clicks Refresh button → invalidates jira-sprint-stories|gh-all-data)', async () => {
-    // Plan 02 leaves BOTH existing toolbar buttons untouched; Plan 03 collapses
-    // them. We only assert that the buttons still exist + are clickable so the
-    // surface is not accidentally broken during the data-layer rewrite.
+  // ─── Phase 73 Plan 03: single 'Reload board' toolbar action ────────────────
+
+  it("toolbar renders exactly ONE reload button labeled 'Reload board'", async () => {
     const story = makeIssue(
       'PROJ-1',
       'Story One',
@@ -496,14 +495,19 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
     await waitFor(() => {
       expect(screen.getAllByText('Story One').length).toBeGreaterThan(0);
     });
-    // Both reload affordances are still present (replaced in Plan 03).
-    expect(screen.getByRole('button', { name: /Refresh/i })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Reload workflow transitions/i })).toBeTruthy();
+
+    // Single 'Reload board' button is the only reload affordance in the toolbar.
+    const reloadButtons = screen.getAllByRole('button', { name: /reload/i });
+    expect(reloadButtons.length).toBe(1);
+    expect(reloadButtons[0].getAttribute('aria-label')).toBe('Reload board');
+
+    // Old Phase 72 button is gone.
+    expect(screen.queryByRole('button', { name: /Reload workflow transitions/i })).toBeNull();
+    // Bare 'Refresh' icon-only button is gone (merged into Reload board).
+    expect(screen.queryByRole('button', { name: /^Refresh$/i })).toBeNull();
   });
 
-  // ─── Phase 72 carry-forward: useGhTransitions invalidation toolbar ─────────
-
-  it("toolbar 'Reload workflow transitions' action invalidates envelope + jira-statuses", async () => {
+  it("clicking 'Reload board' invalidates all five query keys + shows 'Board reloaded'", async () => {
     const story = makeIssue(
       'PROJ-1',
       'Story One',
@@ -515,7 +519,7 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
     (story as Record<string, unknown>).projectId = 10042;
     await seedAllData([story]);
 
-    const { invalidateGhTransitions } = await import('@/services/jira');
+    const { invalidateGhTransitions, invalidateGhAllData } = await import('@/services/jira');
     const invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
 
     const { default: SprintBoardTab } = await import('./SprintBoardTab');
@@ -525,21 +529,107 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
       expect(screen.getAllByText('Story One').length).toBeGreaterThan(0);
     });
 
-    const reloadBtn = await screen.findByRole('button', {
-      name: /Reload workflow transitions/i,
-    });
+    const reloadBtn = await screen.findByRole('button', { name: 'Reload board' });
     fireEvent.click(reloadBtn);
 
+    // Five invalidations per D-07 + R-01 + R-02:
     await waitFor(() => {
-      expect(invalidateGhTransitions).toHaveBeenCalledWith(expect.anything(), 10042);
+      expect(invalidateGhAllData).toHaveBeenCalledWith(expect.anything(), 163);
     });
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['jira-statuses'] });
+    expect(invalidateGhTransitions).toHaveBeenCalledWith(expect.anything(), 10042);
+
+    // queryClient.invalidateQueries called with each of three legacy keys
+    const calledKeys = invalidateSpy.mock.calls.map((c) => {
+      const arg = c[0] as { queryKey?: unknown[] } | undefined;
+      return JSON.stringify(arg?.queryKey ?? []);
+    });
+    expect(calledKeys.some((k) => k === JSON.stringify(['jira-statuses']))).toBe(true);
+    expect(
+      calledKeys.some((k) => k === JSON.stringify(['jira-board-quickfilters', 163])),
+    ).toBe(true);
+    expect(
+      calledKeys.some(
+        (k) => k === JSON.stringify(['jira-active-sprint', 'PROJ', 'https://jira.example.com']),
+      ),
+    ).toBe(true);
 
     await waitFor(() => {
-      expect(screen.getByText('Workflow transitions reloaded')).toBeTruthy();
+      expect(screen.getByText('Board reloaded')).toBeTruthy();
     });
 
     invalidateSpy.mockRestore();
+  });
+
+  it("'Reload board' aria-live span shows 'Failed to reload board' on error", async () => {
+    const story = makeIssue(
+      'PROJ-1',
+      'Story One',
+      false,
+      undefined,
+      'In Progress',
+      'indeterminate',
+    );
+    (story as Record<string, unknown>).projectId = 10042;
+    await seedAllData([story]);
+
+    const { invalidateGhAllData } = await import('@/services/jira');
+    vi.mocked(invalidateGhAllData).mockImplementationOnce(() => {
+      throw new Error('boom');
+    });
+
+    const { default: SprintBoardTab } = await import('./SprintBoardTab');
+    renderWithQuery(<SprintBoardTab />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Story One').length).toBeGreaterThan(0);
+    });
+
+    const reloadBtn = await screen.findByRole('button', { name: 'Reload board' });
+    fireEvent.click(reloadBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('Failed to reload board')).toBeTruthy();
+    });
+  });
+
+  it("'Reload board' aria-live span auto-clears after 3 seconds", async () => {
+    vi.useFakeTimers();
+    try {
+      const story = makeIssue(
+        'PROJ-1',
+        'Story One',
+        false,
+        undefined,
+        'In Progress',
+        'indeterminate',
+      );
+      (story as Record<string, unknown>).projectId = 10042;
+      await seedAllData([story]);
+
+      const { default: SprintBoardTab } = await import('./SprintBoardTab');
+      renderWithQuery(<SprintBoardTab />);
+
+      // Drive any pending microtasks under fake timers
+      await vi.advanceTimersByTimeAsync(0);
+
+      const reloadBtn = await screen.findByRole('button', { name: 'Reload board' });
+      fireEvent.click(reloadBtn);
+
+      await vi.advanceTimersByTimeAsync(0);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Board reloaded')).toBeTruthy();
+      });
+
+      // Advance 3 seconds and the message should clear
+      await vi.advanceTimersByTimeAsync(3000);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Board reloaded')).toBeNull();
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   // ─── BOARD-05: clicking a card opens issue detail ──────────────────────────
