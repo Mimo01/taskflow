@@ -15,7 +15,7 @@
  *     callers in production thread it via useMemo over `allData.issuesData.issues`.
  *   - `useBoardId` returns a non-null board id so the `useGhAllData` enabled
  *     guard wouldn't matter (the hook is mocked, but the conditional
- *     activeSprint + quickfilters queries depend on `boardId`).
+ *     activeSprint query depends on `boardId`).
  *
  * The test file covers:
  *   - existing HIER-02 / EPIC-02 / BOARD-* / FILT-02 behavior (preserved)
@@ -92,12 +92,9 @@ vi.mock('@/services/jira', () => ({
   filterTransitionsForStatus: vi.fn(() => []),
 }));
 
-// Sprints + board-config still hit REST per R-01 / R-02
+// Sprints still hit REST per R-02
 vi.mock('@/services/jira/sprints', () => ({
   fetchActiveSprint: vi.fn().mockResolvedValue(null),
-}));
-vi.mock('@/services/jira/board-config', () => ({
-  fetchBoardQuickFilters: vi.fn().mockResolvedValue([]),
 }));
 
 // Warn-once is imported directly from the greenhopper internal module by the
@@ -108,7 +105,7 @@ vi.mock('@/services/jira/greenhopper/warnOnce', () => ({
   warnOnce: warnOnceMock,
 }));
 
-// Mock useBoardId — non-null so allData hook + quickfilters query are enabled.
+// Mock useBoardId — non-null so allData hook + activeSprint query are enabled.
 vi.mock('@/hooks/useBoardId', () => ({
   useBoardId: vi.fn().mockReturnValue({ boardId: 163, isLoading: false }),
 }));
@@ -520,7 +517,7 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
     expect(screen.queryByRole('button', { name: /^Refresh$/i })).toBeNull();
   });
 
-  it("clicking 'Reload board' invalidates all five query keys + shows 'Board reloaded'", async () => {
+  it("clicking 'Reload board' invalidates all query keys + shows 'Board reloaded'", async () => {
     const story = makeIssue(
       'PROJ-1',
       'Story One',
@@ -545,21 +542,18 @@ describe('SprintBoardTab — Phase 73 Plan 02 data-layer rewrite', () => {
     const reloadBtn = await screen.findByRole('button', { name: 'Reload board' });
     fireEvent.click(reloadBtn);
 
-    // Five invalidations per D-07 + R-01 + R-02:
+    // Invalidations per D-07 + R-02:
     await waitFor(() => {
       expect(invalidateGhAllData).toHaveBeenCalledWith(expect.anything(), 163);
     });
     expect(invalidateGhTransitions).toHaveBeenCalledWith(expect.anything(), 10042);
 
-    // queryClient.invalidateQueries called with each of three legacy keys
+    // queryClient.invalidateQueries called with each remaining key
     const calledKeys = invalidateSpy.mock.calls.map((c) => {
       const arg = c[0] as { queryKey?: unknown[] } | undefined;
       return JSON.stringify(arg?.queryKey ?? []);
     });
     expect(calledKeys.some((k) => k === JSON.stringify(['jira-statuses']))).toBe(true);
-    expect(calledKeys.some((k) => k === JSON.stringify(['jira-board-quickfilters', 163]))).toBe(
-      true,
-    );
     expect(
       calledKeys.some(
         (k) => k === JSON.stringify(['jira-active-sprint', 'PROJ', 'https://jira.example.com']),
