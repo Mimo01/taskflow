@@ -41,11 +41,9 @@ import {
   useGhAllData,
   useGhTransitions,
 } from '@/services/jira';
-import { fetchBoardQuickFilters } from '@/services/jira/board-config';
 import { fetchAllSearchPages } from '@/services/jira/client';
 import { warnOnce } from '@/services/jira/greenhopper/warnOnce';
 import { fetchActiveSprint } from '@/services/jira/sprints';
-import type { JiraBoardQuickFilter } from '@/services/jira/types';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useFilterStore } from '@/stores/filter.store';
@@ -607,8 +605,7 @@ export default function SprintBoardTab() {
   // The legacy 2-query path (sprint stories + sprint subtasks REST) is gone.
   // SprintBoardTab now reads a single allData envelope, adapts issues via the
   // Phase 71 createAdapter, and lets `statusCategory.key` drive the 3-bucket UI.
-  // R-01 / R-02 keep `boardQuickFilters` + `activeSprint` REST queries — see
-  // below.
+  // R-02 keeps the `activeSprint` REST query — see below.
   const {
     data: allData,
     isLoading: storiesLoading,
@@ -708,14 +705,6 @@ export default function SprintBoardTab() {
     enabled: !!activeJiraProject && !!jiraBaseUrl && !!jiraToken,
   });
 
-  // Fetch board quick filters using the board ID from useBoardId hook (not activeSprint)
-  const { data: boardQuickFilters } = useQuery({
-    queryKey: ['jira-board-quickfilters', boardId],
-    queryFn: () => fetchBoardQuickFilters(jiraBaseUrl ?? '', jiraToken ?? '', boardId ?? 0),
-    staleTime: 5 * 60 * 1000,
-    enabled: !!jiraBaseUrl && !!jiraToken && !!boardId,
-  });
-
   const [bannerDismissed, setBannerDismissed] = useState(false);
   // WR-06: reset the stale-data banner dismissal when the user switches
   // boards — a dismissal on board A should not silence the banner for
@@ -795,11 +784,7 @@ export default function SprintBoardTab() {
       if (Number.isFinite(pid) && pid > 0) invalidateGhTransitions(queryClient, pid);
       // 3) jira-statuses
       await queryClient.invalidateQueries({ queryKey: ['jira-statuses'] });
-      // 4) jira-board-quickfilters (R-01: REST quick filters stay)
-      await queryClient.invalidateQueries({
-        queryKey: ['jira-board-quickfilters', boardId],
-      });
-      // 5) jira-active-sprint (R-02: sprint goal stays REST)
+      // 4) jira-active-sprint (R-02: sprint goal stays REST)
       await queryClient.invalidateQueries({
         queryKey: ['jira-active-sprint', activeJiraProject, jiraBaseUrl],
       });
@@ -973,14 +958,8 @@ export default function SprintBoardTab() {
     });
   }, [allDoneFingerprint]);
 
-  const {
-    activeEpics,
-    activeLabels,
-    activeAssignees,
-    activeStatuses,
-    activeJiraQuickFilters,
-    activeLabelFilters,
-  } = useFilterStore();
+  const { activeEpics, activeLabels, activeAssignees, activeStatuses, activeLabelFilters } =
+    useFilterStore();
 
   const activeFilterId = useSavedFilterStore((s) => s.activeFilterId);
   const savedFilters = useSavedFilterStore((s) => s.savedFilters);
@@ -1053,19 +1032,6 @@ export default function SprintBoardTab() {
           const issueStatus = (issue.fields.status?.name ?? '').toLowerCase();
           return Array.from(activeStatuses).some((s) => s.toLowerCase() === issueStatus);
         })();
-      // Jira board quick filter conditions (AND)
-      const qfMatch =
-        activeJiraQuickFilters.size === 0 ||
-        (() => {
-          for (const qfId of activeJiraQuickFilters) {
-            const qf = (boardQuickFilters ?? []).find((q: JiraBoardQuickFilter) => q.id === qfId);
-            if (qf) {
-              const cond = parseSimpleJql(qf.jql);
-              if (cond && !evaluateQfCondition(issue, cond)) return false;
-            }
-          }
-          return true;
-        })();
 
       // Label chip filters
       const labelChipMatch =
@@ -1074,44 +1040,8 @@ export default function SprintBoardTab() {
           activeLabelFilters.has(l),
         );
 
-      return epicMatch && labelMatch && assigneeMatch && statusMatch && qfMatch && labelChipMatch;
+      return epicMatch && labelMatch && assigneeMatch && statusMatch && labelChipMatch;
     });
-  }
-
-  /** Parse simple JQL: "field = value" or "field != value" */
-  function parseSimpleJql(jql: string): { field: string; op: string; value: string } | null {
-    const match = jql.trim().match(/^(\w+)\s*(=|!=)\s*"?([^"]+)"?$/i);
-    if (!match) return null;
-    return { field: match[1].toLowerCase(), op: match[2], value: match[3] };
-  }
-
-  /** Evaluate a simple JQL condition against a Jira issue */
-  function evaluateQfCondition(
-    issue: JiraIssue,
-    cond: { field: string; op: string; value: string },
-  ): boolean {
-    let fieldVal: string | undefined;
-    switch (cond.field) {
-      case 'issuetype':
-        fieldVal = issue.fields.issuetype.name;
-        break;
-      case 'priority':
-        fieldVal = (issue.fields as Record<string, unknown>).priority
-          ? ((issue.fields as Record<string, unknown>).priority as { name?: string })?.name
-          : undefined;
-        break;
-      case 'assignee':
-        fieldVal = issue.fields.assignee?.displayName;
-        break;
-      case 'status':
-        fieldVal = issue.fields.status.name;
-        break;
-      default:
-        return true; // unknown field = pass through
-    }
-    if (!fieldVal) return cond.op === '!=';
-    const isMatch = fieldVal.toLowerCase() === cond.value.toLowerCase();
-    return cond.op === '=' ? isMatch : !isMatch;
   }
 
   let filteredSwimlanes = swimlanes;
@@ -1134,7 +1064,6 @@ export default function SprintBoardTab() {
     activeLabels.size > 0 ||
     activeAssignees.size > 0 ||
     activeStatuses.size > 0 ||
-    activeJiraQuickFilters.size > 0 ||
     activeLabelFilters.size > 0
   ) {
     filteredSwimlanes = filteredSwimlanes
@@ -1295,11 +1224,7 @@ export default function SprintBoardTab() {
 
             {/* Quick filter chip row */}
             {!showSkeleton && !isError && data && (
-              <QuickFilterChipRow
-                quickFilters={boardQuickFilters ?? []}
-                labels={filterOptions.labels}
-                issues={localIssues}
-              />
+              <QuickFilterChipRow labels={filterOptions.labels} />
             )}
 
             {/* Active saved filter banner */}
