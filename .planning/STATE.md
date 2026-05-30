@@ -4,8 +4,8 @@ milestone: v1.11
 milestone_name: GreenHopper API Migration
 status: executing
 stopped_at: Phase 75 UI-SPEC approved
-last_updated: "2026-05-30T20:58:55.417Z"
-last_activity: 2026-05-30 -- Phase 75 planning complete
+last_updated: "2026-05-30T21:01:27.062Z"
+last_activity: 2026-05-30 -- Phase 75 execution started
 progress:
   total_phases: 5
   completed_phases: 4
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-25)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Phase 74 — backlog-on-data-json
+**Current focus:** Phase 75 — progressive-issue-detail-rendering
 
 ## Current Position
 
-Phase: 75
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-05-30 -- Phase 75 planning complete
+Phase: 75 (progressive-issue-detail-rendering) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 75
+Last activity: 2026-05-30 -- Phase 75 execution started
 
 ## Performance Metrics
 
