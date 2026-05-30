@@ -131,7 +131,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 75-02-PLAN.md — Wave 2: the crux — remove global isLoading gate, add 3 independent section queries with 200ms-gated skeletons + per-section inline errors + TTFMP/TTI perf marks; turn progressive test green
+- [x] 75-02-PLAN.md — Wave 2: the crux — remove global isLoading gate, add 3 independent section queries with 200ms-gated skeletons + per-section inline errors + TTFMP/TTI perf marks; turn progressive test green
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
