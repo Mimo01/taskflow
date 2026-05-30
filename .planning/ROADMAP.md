@@ -127,7 +127,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 75-01-PLAN.md — Wave 1: decompose fetchIssueDetail (slim base + fetchIssueChangelog + fetchEnrichedSubtasks) + Comments/Subtasks skeletons + failing Wave 0 progressive test scaffold
+- [x] 75-01-PLAN.md — Wave 1: decompose fetchIssueDetail (slim base + fetchIssueChangelog + fetchEnrichedSubtasks) + Comments/Subtasks skeletons + failing Wave 0 progressive test scaffold
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
