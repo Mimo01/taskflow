@@ -18,7 +18,7 @@ import { WorklogEntry } from './WorklogEntry';
 
 interface ActivityTimelineProps {
   comments: JiraComment[];
-  changelog: ChangelogHistory[];
+  changelog: ChangelogHistory[] | undefined;
   worklogs: JiraWorklog[];
   issueKey: string;
   jiraBaseUrl: string;
@@ -111,14 +111,6 @@ export function ActivityTimeline({
     onFilterChangeProp?.(f);
   };
 
-  const allEntries = mergeTimeline(comments, changelog, worklogs);
-
-  // mergeTimeline returns newest-first. If user wants oldest-first, reverse.
-  const sortedEntries = commentSortOrder === 'oldest' ? [...allEntries].reverse() : allEntries;
-
-  const counts = countByType(allEntries);
-  const visibleEntries = filterTimeline(sortedEntries, filter);
-
   // Loading state: if changelog is undefined (not yet fetched), show skeleton
   if (changelog === undefined) {
     return (
@@ -129,6 +121,14 @@ export function ActivityTimeline({
       </section>
     );
   }
+
+  const allEntries = mergeTimeline(comments, changelog, worklogs);
+
+  // mergeTimeline returns newest-first. If user wants oldest-first, reverse.
+  const sortedEntries = commentSortOrder === 'oldest' ? [...allEntries].reverse() : allEntries;
+
+  const counts = countByType(allEntries);
+  const visibleEntries = filterTimeline(sortedEntries, filter);
 
   const noActivity = allEntries.length === 0;
   const filteredEmpty = !noActivity && visibleEntries.length === 0;
