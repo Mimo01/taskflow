@@ -1483,6 +1483,45 @@ export async function discoverCustomFields(
   }
 }
 
+/**
+ * Enrich subtasks with assignee data via a JQL search query.
+ * Non-critical: returns the original subtasks unenriched on failure.
+ */
+export async function fetchEnrichedSubtasks(
+  baseUrl: string,
+  token: string,
+  subtasks: Array<{
+    key: string;
+    fields: {
+      summary: string;
+      status: { name: string; statusCategory: unknown };
+      assignee: JiraIssueDetail['fields']['assignee'];
+    };
+  }>,
+): Promise<typeof subtasks> {
+  const base = baseUrl.replace(/\/$/, '');
+  const subtaskKeys = subtasks.map((s) => s.key).join(',');
+  const enrichJql = encodeURIComponent(`key in (${subtaskKeys})`);
+  const enrichUrl = `${base}/rest/api/2/search?jql=${enrichJql}&fields=assignee&maxResults=${subtasks.length}`;
+  const enrichRes = await apiFetch(
+    'jira',
+    enrichUrl,
+    {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    },
+    'Load Issue Detail',
+  );
+  if (!enrichRes.ok) return subtasks;
+  const enrichData = (await enrichRes.json()) as {
+    issues: Array<{ key: string; fields: { assignee: JiraIssueDetail['fields']['assignee'] } }>;
+  };
+  const assigneeMap = new Map(enrichData.issues.map((i) => [i.key, i.fields.assignee]));
+  return subtasks.map((sub) => ({
+    ...sub,
+    fields: { ...sub.fields, assignee: assigneeMap.get(sub.key) ?? sub.fields.assignee },
+  }));
+}
+
 export async function fetchIssueDetail(
   baseUrl: string,
   token: string,
@@ -1506,7 +1545,6 @@ export async function fetchIssueDetail(
     'issuetype',
     'project',
     'description',
-    'comment',
     'attachment',
     'issuelinks',
     'subtasks',
@@ -1525,7 +1563,7 @@ export async function fetchIssueDetail(
   ]
     .filter(Boolean)
     .join(',');
-  const url = `${base}/rest/api/2/issue/${issueKey}?fields=${fields}&expand=changelog`;
+  const url = `${base}/rest/api/2/issue/${issueKey}?fields=${fields}`;
   const response = await apiFetch(
     'jira',
     url,
@@ -1541,37 +1579,6 @@ export async function fetchIssueDetail(
     throw new Error(`Failed to fetch issue ${issueKey}: ${response.status}`);
   }
   const issue = (await response.json()) as JiraIssueDetail;
-
-  // Jira's built-in subtasks field only returns summary+status — enrich with assignee
-  if (issue.fields.subtasks?.length > 0) {
-    try {
-      const subtaskKeys = issue.fields.subtasks.map((s) => s.key).join(',');
-      const enrichJql = encodeURIComponent(`key in (${subtaskKeys})`);
-      const enrichUrl = `${base}/rest/api/2/search?jql=${enrichJql}&fields=assignee&maxResults=${issue.fields.subtasks.length}`;
-      const enrichRes = await apiFetch(
-        'jira',
-        enrichUrl,
-        {
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        },
-        'Load Issue Detail',
-      );
-      if (enrichRes.ok) {
-        const enrichData = (await enrichRes.json()) as {
-          issues: Array<{
-            key: string;
-            fields: { assignee: JiraIssueDetail['fields']['assignee'] };
-          }>;
-        };
-        const assigneeMap = new Map(enrichData.issues.map((i) => [i.key, i.fields.assignee]));
-        for (const sub of issue.fields.subtasks) {
-          sub.fields.assignee = assigneeMap.get(sub.key) ?? null;
-        }
-      }
-    } catch {
-      // Non-critical — subtasks still display without assignee
-    }
-  }
 
   return issue;
 }
