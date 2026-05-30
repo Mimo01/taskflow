@@ -554,7 +554,6 @@ export default function IssueDetailPage() {
                   />
                 </div>
               )}
-              {showCommentsSkeleton && !commentsQuery.isError && <CommentsSkeleton />}
               {changelogQuery.isError && (
                 <div className="p-4">
                   <ErrorState
@@ -568,16 +567,23 @@ export default function IssueDetailPage() {
                   />
                 </div>
               )}
-              <ActivityTimeline
-                comments={commentsQuery.isError ? [] : comments}
-                changelog={
-                  changelogQuery.isError
-                    ? []
-                    : showChangelogSkeleton
-                      ? undefined
-                      : changelogQuery.data
-                }
-                worklogs={worklogs}
+              {/* Mutually exclusive: while comments are still pending (and not errored)
+                  show only the CommentsSkeleton. Otherwise render the merged timeline.
+                  Rendering both at once produced a confusing "skeleton + No activity yet"
+                  flash when changelog/worklog had already settled (WR-01). */}
+              {showCommentsSkeleton && !commentsQuery.isError ? (
+                <CommentsSkeleton />
+              ) : (
+                <ActivityTimeline
+                  comments={commentsQuery.isError ? [] : comments}
+                  changelog={
+                    changelogQuery.isError
+                      ? []
+                      : showChangelogSkeleton
+                        ? undefined
+                        : changelogQuery.data
+                  }
+                  worklogs={worklogs}
                 issueKey={issueKey}
                 jiraBaseUrl={jiraBaseUrl ?? ''}
                 jiraUserDisplayName={jiraUserDisplayName}
@@ -605,9 +611,10 @@ export default function IssueDetailPage() {
                 onWorklogEditSave={handleWorklogEditSave}
                 onWorklogEditCancel={handleWorklogEditCancel}
                 onWorklogDelete={handleWorklogDelete}
-                worklogEditPending={worklogEditMutation.isPending}
-                worklogEditError={worklogEditError}
-              />
+                  worklogEditPending={worklogEditMutation.isPending}
+                  worklogEditError={worklogEditError}
+                />
+              )}
 
               {(timelineFilter === 'comment' || timelineFilter === 'all') && (
                 <div className="sticky bottom-0 border-t py-3 -mx-6 px-6 bg-background">
