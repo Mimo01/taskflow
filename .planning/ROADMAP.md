@@ -123,7 +123,7 @@ Plans:
 3. Existing detail-panel features (edit fields, post comment, open-in-Jira deep link, pin, clone, watcher toggle) work unchanged on the existing REST v2 paths
 4. Verification artifact records before/after time-to-first-meaningful-paint and time-to-fully-interactive for issue-detail open; documents per-section latencies and which section gates "fully loaded"
 
-**Plans:** 4 plans
+**Plans:** 4/4 plans complete
 Plans:
 **Wave 1**
 

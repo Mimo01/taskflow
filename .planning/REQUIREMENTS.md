@@ -27,9 +27,9 @@
 
 ### Issue Detail (Progressive Rendering)
 
-- [ ] **PERF-DETAIL-01**: Issue detail panel renders the header (title, key, status, assignee) as soon as the base issue fetch resolves, independently of comments / attachments / subtasks / description-heavy sections
-- [ ] **PERF-DETAIL-02**: Each detail section (description, custom fields, comments, attachments, subtasks, issue links) loads via its own independent request and shows a localized skeleton while pending; no global blocking spinner gates the panel
-- [ ] **PERF-DETAIL-03**: Existing detail-panel features (edit fields, post comment, open-in-Jira deep link, pin, clone, watcher toggle) work unchanged on the existing REST v2 paths — the detail panel stays on Jira REST (no GreenHopper `details.json` migration)
+- [x] **PERF-DETAIL-01**: Issue detail panel renders the header (title, key, status, assignee) as soon as the base issue fetch resolves, independently of comments / attachments / subtasks / description-heavy sections
+- [x] **PERF-DETAIL-02**: Each detail section (description, custom fields, comments, attachments, subtasks, issue links) loads via its own independent request and shows a localized skeleton while pending; no global blocking spinner gates the panel
+- [x] **PERF-DETAIL-03**: Existing detail-panel features (edit fields, post comment, open-in-Jira deep link, pin, clone, watcher toggle) work unchanged on the existing REST v2 paths — the detail panel stays on Jira REST (no GreenHopper `details.json` migration)
 
 ### Workflow Transitions (`transitions.json`)
 
@@ -39,8 +39,8 @@
 
 ### Cutover & Verification
 
-- [ ] **GH-CUT-01**: Hard cutover per surface — each GreenHopper migration phase replaces its REST path in place. No coexistence flag; old REST paths for board / backlog / transitions are deleted as their replacements ship. (Issue detail stays on REST v2 — not migrated this milestone.)
-- [ ] **GH-CUT-02**: Performance verification — capture before/after request counts and end-to-end time for sprint-board open and backlog open; for issue-detail open, capture before/after time-to-first-meaningful-paint and time-to-fully-interactive plus per-section latencies. Recorded in the verification artifact of the final phase.
+- [x] **GH-CUT-01**: Hard cutover per surface — each GreenHopper migration phase replaces its REST path in place. No coexistence flag; old REST paths for board / backlog / transitions are deleted as their replacements ship. (Issue detail stays on REST v2 — not migrated this milestone.)
+- [x] **GH-CUT-02**: Performance verification — capture before/after request counts and end-to-end time for sprint-board open and backlog open; for issue-detail open, capture before/after time-to-first-meaningful-paint and time-to-fully-interactive plus per-section latencies. Recorded in the verification artifact of the final phase.
 
 ## v2 Requirements
 
@@ -74,11 +74,11 @@ Filled by roadmap (Section 10 of new-milestone workflow).
 | GH-BOARD-04 | Phase 73 | Pending |
 | GH-BACKLOG-01 | Phase 74 | Complete |
 | GH-BACKLOG-02 | Phase 74 | Complete |
-| PERF-DETAIL-01 | Phase 75 | Pending |
-| PERF-DETAIL-02 | Phase 75 | Pending |
-| PERF-DETAIL-03 | Phase 75 | Pending |
-| GH-CUT-01 | Phase 75 | Pending |
-| GH-CUT-02 | Phase 75 | Pending |
+| PERF-DETAIL-01 | Phase 75 | Complete |
+| PERF-DETAIL-02 | Phase 75 | Complete |
+| PERF-DETAIL-03 | Phase 75 | Complete |
+| GH-CUT-01 | Phase 75 | Complete |
+| GH-CUT-02 | Phase 75 | Complete |
 
 **Coverage:**
 
