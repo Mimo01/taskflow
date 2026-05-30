@@ -123,6 +123,15 @@ Plans:
 3. Existing detail-panel features (edit fields, post comment, open-in-Jira deep link, pin, clone, watcher toggle) work unchanged on the existing REST v2 paths
 4. Verification artifact records before/after time-to-first-meaningful-paint and time-to-fully-interactive for issue-detail open; documents per-section latencies and which section gates "fully loaded"
 
+**Plans:** 4 plans
+
+Plans:
+
+- [ ] 75-01-PLAN.md — Wave 1: decompose fetchIssueDetail (slim base + fetchIssueChangelog + fetchEnrichedSubtasks) + Comments/Subtasks skeletons + failing Wave 0 progressive test scaffold
+- [ ] 75-02-PLAN.md — Wave 2: the crux — remove global isLoading gate, add 3 independent section queries with 200ms-gated skeletons + per-section inline errors + TTFMP/TTI perf marks; turn progressive test green
+- [ ] 75-03-PLAN.md — Wave 3: mutation/invalidation fan-out to new comments/changelog keys + fix IssueDetailContent:68 key bug + invalidation tests + full-suite regression gate
+- [ ] 75-04-PLAN.md — Wave 4: GH-CUT-02 perf verification artifact (before/after TTFMP+TTI, per-section latencies, gating section) via human-verify checkpoint
+
 <details>
 <summary>✅ v1.0 MVP (Phases 1-4) — SHIPPED 2026-03-12</summary>
 
