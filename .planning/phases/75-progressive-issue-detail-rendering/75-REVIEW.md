@@ -19,8 +19,23 @@ findings:
   warning: 4
   info: 2
   total: 8
-status: issues_found
+resolved:
+  - CR-01  # fixed in 7f28b704 — TTI/subtasks-skeleton gated on subtasks presence
+  - CR-02  # fixed in 7f28b704 — deleteError gated on deletingCommentId === comment.id
+  - WR-01  # fixed in 7f28b704 — comments passed from parent query into IssueDetailContent
+  - WR-04  # fixed in 7f28b704 — per-section error banners; timeline renders surviving sections
+open:
+  - WR-02  # subtask-enrichment key omits subtask list (stale on base refetch)
+  - WR-03  # console.table ships to production on first load
+  - INFO-01  # duplicate comment fns in jira.ts vs jira/comments.ts
+  - INFO-02  # fetchIssueChangelog expand=changelog capped at 100 on Jira DC
+status: partially_resolved
 ---
+
+> **Resolution (2026-05-31, commit 7f28b704):** The 2 criticals + the 2 goal-undermining
+> regressions (WR-01, WR-04) were fixed inline during execute-phase. A sibling of CR-01 —
+> a permanent subtasks skeleton on zero-subtask issues — was also fixed. Build green,
+> 1664 tests pass. WR-02, WR-03, and both Info items remain open and tracked above.
 
 # Phase 75: Code Review Report
 
