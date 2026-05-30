@@ -262,6 +262,7 @@ export default function IssueDetailPage() {
       setEditText('');
       setEditError(null);
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-comments', issueKey, jiraBaseUrl] });
     },
     onError: (err: Error) => {
       setEditError(err.message);
@@ -277,6 +278,7 @@ export default function IssueDetailPage() {
     onSuccess: () => {
       setDeleteError(null);
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-comments', issueKey, jiraBaseUrl] });
     },
     onError: (err: Error) => {
       setDeleteError(err.message);
