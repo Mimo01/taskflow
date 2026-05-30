@@ -52,12 +52,16 @@ Exceptions:
 
 Existing codebase patterns extracted from `IssueDetailContent.tsx` and `IssueDetailPage.tsx`.
 
+**Declared weights (exactly 2):** 400 (regular) and 500 (medium).
+
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 14px (text-sm) | 400 (regular) | 1.5 |
 | Label / meta | 12px (text-xs) | 400 (regular) | 1.4 |
 | Section heading | 14px (text-sm) | 500 (medium) | 1.4 |
-| Issue title | 20px (text-xl) | 600 (semibold) | snug (~1.375) |
+| Issue title | 20px (text-xl) | 500 (medium) | snug (~1.375) |
+
+Codebase note: `IssueDetailContent.tsx:116` uses `font-semibold` (600) on the issue title (`h2`). `font-semibold` also appears in `AioTestRunsSection.tsx`, `AttachmentsSection.tsx`, and `WorklogEntry.tsx` on pre-existing component headings and author names. These are **preserved unchanged** per PERF-DETAIL-03 (all existing features must keep working). They are not new usage introduced by this phase. The 2-weight contract (400 + 500) governs net-new elements only; executor must not add `font-semibold` to any new skeleton, error, or section-heading element introduced in this phase.
 
 Source: `IssueDetailContent.tsx` lines 115-116 (title: `text-xl font-semibold leading-snug`), lines 121/191 (section headings: `text-sm font-medium`), lines 125/145 (body copy: `text-sm`), lines 156/202 (issue key: `text-xs font-mono`).
 
@@ -150,6 +154,8 @@ Sections are positioned statically in JSX order and always occupy their reserved
 | Description empty state | "No description" (existing: `text-sm text-muted-foreground italic` — do not change) |
 
 Source: `ErrorState` component uses "Couldn't load {viewName}" pattern (`error-state.tsx:31`). `viewName` is the only variable per-section. Existing empty-state copy from `IssueDetailContent.tsx` lines 125/145 is preserved unchanged (PERF-DETAIL-03 requires features work unchanged).
+
+Retry button label: "Retry" — matches the live `ErrorState` component label at `error-state.tsx:48`. Changing to "Try Again" would require modifying the shared component; accepted as-is.
 
 No destructive actions are introduced in this phase. Existing mutations (comment post/edit/delete, field edits, etc.) retain their current confirmation patterns.
 
