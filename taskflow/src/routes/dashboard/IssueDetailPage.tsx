@@ -14,13 +14,20 @@ import { ArrowLeft, MoreVertical } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { useResizable } from '@/hooks/useResizable';
 import type { JiraComment, JiraIssue, TimelineFilter } from '@/services/jira';
-import { deleteComment, fetchEnrichedSubtasks, fetchEpicStories, fetchIssueDetail, updateComment } from '@/services/jira';
+import {
+  deleteComment,
+  fetchEnrichedSubtasks,
+  fetchEpicStories,
+  fetchIssueDetail,
+  updateComment,
+} from '@/services/jira';
 import { fetchIssueChangelog } from '@/services/jira/changelog';
 import { fetchComments } from '@/services/jira/comments';
 import { parseDuration } from '@/services/jira/duration';
@@ -28,18 +35,17 @@ import type { JiraWorklog } from '@/services/jira/types';
 import { deleteWorklog, fetchFullWorklogs, updateWorklog } from '@/services/jira/worklogs';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
-import { ErrorState } from '@/components/ui/error-state';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { useRecentItemsStore } from '@/stores/recent-items.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { CommentComposer } from './CommentComposer';
-import { CommentsSkeleton } from './issue-detail/CommentsSkeleton';
 import type { EditInitialValues } from './CreateEditIssueModal';
 import { IssueDetailContent, relativeTime } from './IssueDetailContent';
 import { IssueDetailSidebar } from './IssueDetailSidebar';
 import { ActivityTimeline } from './issue-detail/ActivityTimeline';
 import { AioTestRunsSection } from './issue-detail/AioTestRunsSection';
+import { CommentsSkeleton } from './issue-detail/CommentsSkeleton';
 import type { AttachmentMap, UserMap } from './WikiRenderer';
 import { WikiRenderer } from './WikiRenderer';
 
@@ -143,7 +149,8 @@ export default function IssueDetailPage() {
       );
     },
     staleTime: 30_000,
-    enabled: !!issueKey && !!jiraBaseUrl && !!jiraConnected && (issue?.fields.subtasks?.length ?? 0) > 0,
+    enabled:
+      !!issueKey && !!jiraBaseUrl && !!jiraConnected && (issue?.fields.subtasks?.length ?? 0) > 0,
   });
 
   // Changelog query — feeds ActivityTimeline
@@ -180,14 +187,20 @@ export default function IssueDetailPage() {
     }
   }, [issue]);
 
-  // TTI — fires once when all sections have resolved
+  // TTI — fires once when all sections have resolved.
+  // The subtask enrichment query is `enabled: false` for issues with no subtasks; in
+  // TanStack Query v5 a disabled query with no cached data reports `isPending: true`
+  // indefinitely, so gating TTI on `!subtaskEnrichmentQuery.isPending` would never fire
+  // for the (majority) zero-subtask issues. Treat "no subtasks" as already settled.
+  const subtasksSettled =
+    (issue?.fields.subtasks?.length ?? 0) === 0 || !subtaskEnrichmentQuery.isPending;
   const ttiFiredRef = useRef(false);
   useEffect(() => {
     if (
       issue &&
       !commentsQuery.isPending &&
       !changelogQuery.isPending &&
-      !subtaskEnrichmentQuery.isPending &&
+      subtasksSettled &&
       !ttiFiredRef.current
     ) {
       ttiFiredRef.current = true;
@@ -199,7 +212,7 @@ export default function IssueDetailPage() {
         // performance.measure may throw if start mark is missing (e.g. HMR)
       }
     }
-  }, [issue, commentsQuery.isPending, changelogQuery.isPending, subtaskEnrichmentQuery.isPending]);
+  }, [issue, commentsQuery.isPending, changelogQuery.isPending, subtasksSettled]);
 
   const handleBack = () => {
     if (trail.length > 0) {
@@ -473,7 +486,11 @@ export default function IssueDetailPage() {
           <div className="p-6">
             <ErrorState
               error={new Error('Failed to load issue')}
-              onRetry={() => void queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] })}
+              onRetry={() =>
+                void queryClient.invalidateQueries({
+                  queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl],
+                })
+              }
               viewName="issue"
             />
           </div>
@@ -487,6 +504,7 @@ export default function IssueDetailPage() {
                 issue={issue}
                 issueKey={issueKey}
                 jiraBaseUrl={jiraBaseUrl ?? ''}
+                comments={comments}
                 onOpenIssue={onIssueClick}
                 onEdit={openEdit}
                 onClone={openClone}
@@ -499,8 +517,14 @@ export default function IssueDetailPage() {
                 onTogglePin={togglePin}
                 enrichedSubtasks={subtaskEnrichmentQuery.data as never}
                 showSubtasksSkeleton={showSubtasksSkeleton}
-                subtaskError={subtaskEnrichmentQuery.isError ? (subtaskEnrichmentQuery.error as Error) : null}
-                onSubtaskRetry={() => void queryClient.invalidateQueries({ queryKey: ['jira-subtask-enrichment', issueKey, jiraBaseUrl] })}
+                subtaskError={
+                  subtaskEnrichmentQuery.isError ? (subtaskEnrichmentQuery.error as Error) : null
+                }
+                onSubtaskRetry={() =>
+                  void queryClient.invalidateQueries({
+                    queryKey: ['jira-subtask-enrichment', issueKey, jiraBaseUrl],
+                  })
+                }
               />
             </div>
 
@@ -514,65 +538,76 @@ export default function IssueDetailPage() {
                 description={issue.fields.description}
               />
 
-              {commentsQuery.isError ? (
+              {/* Per-section error isolation: comment and changelog failures render as
+                  inline non-blocking banners. The merged ActivityTimeline still renders the
+                  surviving sections (e.g. a comments failure must NOT hide changelog/worklogs). */}
+              {commentsQuery.isError && (
                 <div className="p-4">
                   <ErrorState
                     error={commentsQuery.error}
-                    onRetry={() => void queryClient.invalidateQueries({ queryKey: ['jira-issue-comments', issueKey, jiraBaseUrl] })}
+                    onRetry={() =>
+                      void queryClient.invalidateQueries({
+                        queryKey: ['jira-issue-comments', issueKey, jiraBaseUrl],
+                      })
+                    }
                     viewName="comments"
                   />
                 </div>
-              ) : (
-                <>
-                  {showCommentsSkeleton && (
-                    <CommentsSkeleton />
-                  )}
-                  {changelogQuery.isError ? (
-                    <div className="p-4">
-                      <ErrorState
-                        error={changelogQuery.error}
-                        onRetry={() => void queryClient.invalidateQueries({ queryKey: ['jira-issue-changelog', issueKey, jiraBaseUrl] })}
-                        viewName="activity"
-                      />
-                    </div>
-                  ) : (
-                    <ActivityTimeline
-                      comments={comments}
-                      changelog={showChangelogSkeleton ? undefined : changelogQuery.data}
-                      worklogs={worklogs}
-                      issueKey={issueKey}
-                      jiraBaseUrl={jiraBaseUrl ?? ''}
-                      jiraUserDisplayName={jiraUserDisplayName}
-                      attachmentMap={attachmentMap}
-                      userMap={userMap}
-                      editingCommentId={editingCommentId}
-                      editText={editText}
-                      onEditStart={handleEdit}
-                      onEditChange={setEditText}
-                      onEditSave={handleSaveEdit}
-                      onEditCancel={handleCancelEdit}
-                      onDelete={handleDelete}
-                      editError={editError}
-                      deleteError={deleteError}
-                      deletingCommentId={deleteMutation.variables ?? null}
-                      editPending={editMutation.isPending}
-                      CommentCard={CommentCard}
-                      onFilterChange={setTimelineFilter}
-                      editingWorklogId={editingWorklogId}
-                      editDuration={editDuration}
-                      editWorklogComment={editWorklogComment}
-                      onWorklogEditStart={handleWorklogEdit}
-                      onWorklogEditDurationChange={setEditDuration}
-                      onWorklogEditCommentChange={setEditWorklogComment}
-                      onWorklogEditSave={handleWorklogEditSave}
-                      onWorklogEditCancel={handleWorklogEditCancel}
-                      onWorklogDelete={handleWorklogDelete}
-                      worklogEditPending={worklogEditMutation.isPending}
-                      worklogEditError={worklogEditError}
-                    />
-                  )}
-                </>
               )}
+              {showCommentsSkeleton && !commentsQuery.isError && <CommentsSkeleton />}
+              {changelogQuery.isError && (
+                <div className="p-4">
+                  <ErrorState
+                    error={changelogQuery.error}
+                    onRetry={() =>
+                      void queryClient.invalidateQueries({
+                        queryKey: ['jira-issue-changelog', issueKey, jiraBaseUrl],
+                      })
+                    }
+                    viewName="activity"
+                  />
+                </div>
+              )}
+              <ActivityTimeline
+                comments={commentsQuery.isError ? [] : comments}
+                changelog={
+                  changelogQuery.isError
+                    ? []
+                    : showChangelogSkeleton
+                      ? undefined
+                      : changelogQuery.data
+                }
+                worklogs={worklogs}
+                issueKey={issueKey}
+                jiraBaseUrl={jiraBaseUrl ?? ''}
+                jiraUserDisplayName={jiraUserDisplayName}
+                attachmentMap={attachmentMap}
+                userMap={userMap}
+                editingCommentId={editingCommentId}
+                editText={editText}
+                onEditStart={handleEdit}
+                onEditChange={setEditText}
+                onEditSave={handleSaveEdit}
+                onEditCancel={handleCancelEdit}
+                onDelete={handleDelete}
+                editError={editError}
+                deleteError={deleteError}
+                deletingCommentId={deleteMutation.variables ?? null}
+                editPending={editMutation.isPending}
+                CommentCard={CommentCard}
+                onFilterChange={setTimelineFilter}
+                editingWorklogId={editingWorklogId}
+                editDuration={editDuration}
+                editWorklogComment={editWorklogComment}
+                onWorklogEditStart={handleWorklogEdit}
+                onWorklogEditDurationChange={setEditDuration}
+                onWorklogEditCommentChange={setEditWorklogComment}
+                onWorklogEditSave={handleWorklogEditSave}
+                onWorklogEditCancel={handleWorklogEditCancel}
+                onWorklogDelete={handleWorklogDelete}
+                worklogEditPending={worklogEditMutation.isPending}
+                worklogEditError={worklogEditError}
+              />
 
               {(timelineFilter === 'comment' || timelineFilter === 'all') && (
                 <div className="sticky bottom-0 border-t py-3 -mx-6 px-6 bg-background">

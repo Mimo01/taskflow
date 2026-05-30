@@ -214,7 +214,7 @@ export function ActivityTimeline({
                   isEditing={isEditing}
                   editText={isEditing ? editText : ''}
                   editError={isEditing ? editError : null}
-                  deleteError={isEditing ? deleteError : null}
+                  deleteError={deletingCommentId === comment.id ? deleteError : null}
                   deletingCommentId={deletingCommentId}
                   editPending={isEditing ? editPending : false}
                   onEdit={onEditStart}

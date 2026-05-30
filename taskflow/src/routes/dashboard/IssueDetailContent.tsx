@@ -8,7 +8,13 @@ import { ErrorState } from '@/components/ui/error-state';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
-import type { JiraAttachment, JiraIssue, JiraIssueDetail, JiraIssueLink } from '@/services/jira';
+import type {
+  JiraAttachment,
+  JiraComment,
+  JiraIssue,
+  JiraIssueDetail,
+  JiraIssueLink,
+} from '@/services/jira';
 import { deleteAttachment } from '@/services/jira/attachments';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
@@ -24,6 +30,9 @@ interface IssueDetailContentProps {
   issue: JiraIssueDetail;
   issueKey: string;
   jiraBaseUrl: string;
+  /** Comments from the independent comments query — seeds the description @mention map.
+      `fetchIssueDetail` no longer returns `issue.fields.comment` after the phase 75 split. */
+  comments?: JiraComment[];
   onOpenIssue?: (key: string) => void;
   storyPointsFieldKey: string;
   sprintFieldKey: string;
@@ -72,7 +81,8 @@ function subtaskListContent({
   subtasks: JiraIssueDetail['fields']['subtasks'];
   onOpenIssue: ((key: string) => void) | undefined;
 }) {
-  const displaySubtasks: SubtaskDisplayItem[] = enrichedSubtasks ?? (subtasks as SubtaskDisplayItem[] | undefined) ?? [];
+  const displaySubtasks: SubtaskDisplayItem[] =
+    enrichedSubtasks ?? (subtasks as SubtaskDisplayItem[] | undefined) ?? [];
   if (displaySubtasks.length === 0) {
     if (enrichedSubtasks !== undefined) {
       return <p className="text-sm text-muted-foreground italic">No subtasks.</p>;
@@ -94,9 +104,7 @@ function subtaskListContent({
                 onClick={() => onOpenIssue?.(sub.key)}
                 className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent text-sm text-left"
               >
-                <span className="font-mono text-xs text-muted-foreground shrink-0">
-                  {sub.key}
-                </span>
+                <span className="font-mono text-xs text-muted-foreground shrink-0">{sub.key}</span>
                 <span className="flex-1 truncate">{sub.fields.summary}</span>
                 {sub.fields.assignee && (
                   <div
@@ -113,9 +121,7 @@ function subtaskListContent({
                     </span>
                   </div>
                 )}
-                <span className={statusPillClass(statusCat?.key)}>
-                  {sub.fields.status.name}
-                </span>
+                <span className={statusPillClass(statusCat?.key)}>{sub.fields.status.name}</span>
               </button>
             </li>
           );
@@ -139,6 +145,7 @@ export function IssueDetailContent({
   issue,
   issueKey,
   jiraBaseUrl,
+  comments: commentsProp,
   onOpenIssue,
   onEdit,
   onClone,
@@ -152,7 +159,9 @@ export function IssueDetailContent({
   onSubtaskRetry,
 }: IssueDetailContentProps) {
   const { summary, description, subtasks } = issue.fields;
-  const comments = issue.fields.comment?.comments ?? [];
+  // Comments now come from the parent's independent comments query (phase 75 split);
+  // `issue.fields.comment` is no longer populated by the slimmed fetchIssueDetail.
+  const comments = commentsProp ?? [];
   const { storyPointsFieldKey, epicLinkFieldKey } = useSettingsStore();
   const queryClient = useQueryClient();
   const jiraBaseUrlFromStore = useAuthStore((s) => s.jiraBaseUrl);
@@ -160,7 +169,9 @@ export function IssueDetailContent({
   async function handleDeleteAttachment(attachment: JiraAttachment) {
     const token = await readSecret('jira-pat');
     await deleteAttachment(jiraBaseUrl, token, attachment.id);
-    queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrlFromStore] });
+    queryClient.invalidateQueries({
+      queryKey: ['jira-issue-detail', issueKey, jiraBaseUrlFromStore],
+    });
   }
 
   // After logging work, invalidate the issue detail so TimeTrackingSummary updates.
@@ -281,18 +292,17 @@ export function IssueDetailContent({
       {/* Story/task → Subtasks list */}
       {!isEpic && !isSubtask && (
         <section>
-          {/* Subtask skeleton — shown while enrichment query is pending (200ms-gated) */}
-          {enrichedSubtasks === undefined && showSubtasksSkeleton && (
+          {/* Subtask skeleton — shown while enrichment query is pending (200ms-gated).
+              Guard on subtasks.length: the enrichment query is `enabled: false` for issues
+              with no subtasks, so it reports `isPending` forever — without this guard the
+              skeleton would render permanently on every subtask-less issue (CR-01 sibling). */}
+          {subtasks.length > 0 && enrichedSubtasks === undefined && showSubtasksSkeleton && (
             <SubtasksSkeleton />
           )}
           {/* Subtask error — inline retry without blanking panel */}
           {subtaskError && onSubtaskRetry && (
             <div className="p-4">
-              <ErrorState
-                error={subtaskError}
-                onRetry={onSubtaskRetry}
-                viewName="subtasks"
-              />
+              <ErrorState error={subtaskError} onRetry={onSubtaskRetry} viewName="subtasks" />
             </div>
           )}
           {/* Subtask list — use enriched data when available, fall back to base subtasks */}
