@@ -397,6 +397,9 @@ export default function IssueDetailPage() {
       setWorklogEditError(null);
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
       queryClient.invalidateQueries({ queryKey: ['jira-worklogs', issueKey, jiraBaseUrl] });
+      // Worklogs are merged into the same activity feed as changelog entries, so a
+      // worklog edit must also refresh the changelog-backed timeline history (WR-02).
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-changelog', issueKey, jiraBaseUrl] });
     },
     onError: (err: Error) => setWorklogEditError(err.message),
   });
@@ -410,6 +413,9 @@ export default function IssueDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
       queryClient.invalidateQueries({ queryKey: ['jira-worklogs', issueKey, jiraBaseUrl] });
+      // Worklogs feed the same activity timeline as changelog entries; refresh it
+      // so deleted-worklog history doesn't linger as stale changelog data (WR-02).
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-changelog', issueKey, jiraBaseUrl] });
     },
   });
 
