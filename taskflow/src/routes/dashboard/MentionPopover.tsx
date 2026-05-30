@@ -16,10 +16,16 @@ interface MentionPopoverProps {
   position: { bottom: number; left: number };
   onSelect: (user: JiraAssignableUser) => void;
   onDismiss: () => void;
+  /** Notifies the parent of the currently highlighted option index so the
+   *  composer's textarea can point aria-activedescendant at the right option. */
+  onActiveChange?: (index: number) => void;
 }
 
 export const MentionPopover = forwardRef<MentionPopoverHandle, MentionPopoverProps>(
-  function MentionPopover({ query, projectKey, jiraBaseUrl, position, onSelect, onDismiss }, ref) {
+  function MentionPopover(
+    { query, projectKey, jiraBaseUrl, position, onSelect, onDismiss, onActiveChange },
+    ref,
+  ) {
     const [activeIndex, setActiveIndex] = useState(0);
     const [debouncedQuery, setDebouncedQuery] = useState(query);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -67,6 +73,12 @@ export const MentionPopover = forwardRef<MentionPopoverHandle, MentionPopoverPro
         activeEl.scrollIntoView({ block: 'nearest' });
       }
     }, [activeIndex]);
+
+    // Notify parent of the highlighted option so the textarea's
+    // aria-activedescendant can track it for screen readers (WR-03).
+    useEffect(() => {
+      onActiveChange?.(activeIndex);
+    }, [activeIndex, onActiveChange]);
 
     // Expose keyboard handler to parent
     useImperativeHandle(ref, () => ({

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bold, Code, Italic, List } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { postComment } from '@/services/jira';
@@ -75,6 +75,7 @@ export function CommentComposer({ issueKey, jiraBaseUrl }: CommentComposerProps)
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionStart, setMentionStart] = useState(-1);
   const [mentionPosition, setMentionPosition] = useState({ bottom: 0, left: 0 });
+  const [mentionActiveIndex, setMentionActiveIndex] = useState(0);
 
   const projectKey = issueKey.split('-')[0];
 
@@ -169,8 +170,14 @@ export function CommentComposer({ issueKey, jiraBaseUrl }: CommentComposerProps)
     }
   }
 
-  // Derive active option id for aria-activedescendant
-  const activeDescendant = mentionActive ? `mention-option-0` : undefined;
+  // Stable callback so MentionPopover's notify effect doesn't refire each render.
+  const handleMentionActiveChange = useCallback((index: number) => {
+    setMentionActiveIndex(index);
+  }, []);
+
+  // Derive active option id for aria-activedescendant — tracks the option the
+  // MentionPopover currently highlights so screen readers announce the right one (WR-03).
+  const activeDescendant = mentionActive ? `mention-option-${mentionActiveIndex}` : undefined;
 
   return (
     <div className="space-y-2">
@@ -228,6 +235,7 @@ export function CommentComposer({ issueKey, jiraBaseUrl }: CommentComposerProps)
             position={mentionPosition}
             onSelect={handleMentionSelect}
             onDismiss={() => setMentionActive(false)}
+            onActiveChange={handleMentionActiveChange}
           />
         )}
       </div>
