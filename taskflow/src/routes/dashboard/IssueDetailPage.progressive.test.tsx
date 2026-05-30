@@ -51,6 +51,12 @@ vi.mock('@/services/jira', () => ({
   fetchEpicStories: vi.fn().mockResolvedValue([]),
   deleteComment: vi.fn(),
   updateComment: vi.fn(),
+  // Needed by IssueDetailSidebar → FieldsSection
+  isIssueFlagged: vi.fn().mockReturnValue(false),
+  invalidateGhBacklogData: vi.fn(),
+  mergeTimeline: vi.fn().mockReturnValue([]),
+  filterTimeline: vi.fn().mockReturnValue([]),
+  countByType: vi.fn().mockReturnValue({ comment: 0, change: 0, worklog: 0 }),
 }));
 
 vi.mock('@/services/jira/comments', () => ({
@@ -84,6 +90,17 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('@tauri-apps/plugin-opener', () => ({
   openUrl: vi.fn().mockResolvedValue(undefined),
+}));
+
+// Stub heavy sub-trees not relevant to progressive rendering tests
+vi.mock('./IssueDetailSidebar', () => ({
+  IssueDetailSidebar: () => null,
+}));
+vi.mock('./issue-detail/AioTestRunsSection', () => ({
+  AioTestRunsSection: () => null,
+}));
+vi.mock('./CommentComposer', () => ({
+  CommentComposer: () => null,
 }));
 
 // --- Imports (after mocks) ---
