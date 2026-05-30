@@ -20,7 +20,6 @@ interface FilterState {
   activeLabels: Set<string>;
   activeAssignees: Set<string>;
   activeStatuses: Set<string>;
-  activeJiraQuickFilters: Set<number>;
   activeLabelFilters: Set<string>;
   setActiveEpics: (epics: Set<string>) => void;
   setActiveLabels: (labels: Set<string>) => void;
@@ -30,9 +29,7 @@ interface FilterState {
   toggleLabel: (label: string) => void;
   toggleAssignee: (name: string) => void;
   toggleStatus: (status: string) => void;
-  toggleJiraQuickFilter: (id: number) => void;
   toggleLabelFilter: (label: string) => void;
-  clearJiraQuickFilters: () => void;
   clearLabelFilters: () => void;
   clearAll: () => void;
   applyQuickFilter: (filter: QuickFilter) => void;
@@ -50,7 +47,6 @@ export const useFilterStore = create<FilterState>()((set) => ({
   activeLabels: new Set<string>(),
   activeAssignees: new Set<string>(),
   activeStatuses: new Set<string>(),
-  activeJiraQuickFilters: new Set<number>(),
   activeLabelFilters: new Set<string>(),
   setActiveEpics: (epics) => set({ activeEpics: epics }),
   setActiveLabels: (labels) => set({ activeLabels: labels }),
@@ -62,13 +58,6 @@ export const useFilterStore = create<FilterState>()((set) => ({
     set((state) => ({ activeAssignees: toggle(state.activeAssignees, name) })),
   toggleStatus: (status) =>
     set((state) => ({ activeStatuses: toggle(state.activeStatuses, status) })),
-  toggleJiraQuickFilter: (id) =>
-    set((state) => {
-      const next = new Set(state.activeJiraQuickFilters);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return { activeJiraQuickFilters: next };
-    }),
   toggleLabelFilter: (label) =>
     set((state) => {
       const next = new Set(state.activeLabelFilters);
@@ -76,7 +65,6 @@ export const useFilterStore = create<FilterState>()((set) => ({
       else next.add(label);
       return { activeLabelFilters: next };
     }),
-  clearJiraQuickFilters: () => set({ activeJiraQuickFilters: new Set<number>() }),
   clearLabelFilters: () => set({ activeLabelFilters: new Set<string>() }),
   clearAll: () =>
     set({
@@ -84,7 +72,6 @@ export const useFilterStore = create<FilterState>()((set) => ({
       activeLabels: new Set<string>(),
       activeAssignees: new Set<string>(),
       activeStatuses: new Set<string>(),
-      activeJiraQuickFilters: new Set<number>(),
       activeLabelFilters: new Set<string>(),
     }),
   applyQuickFilter: (filter) =>
