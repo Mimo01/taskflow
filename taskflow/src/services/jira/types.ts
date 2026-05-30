@@ -257,17 +257,6 @@ export interface ParsedDuration {
   display: string;
 }
 
-// --- Phase 33 additions: Board quick filters ---
-
-export interface JiraBoardQuickFilter {
-  id: number;
-  boardId: number;
-  name: string;
-  jql: string;
-  description?: string;
-  position: number;
-}
-
 // --- Phase 35 additions: Saved filters ---
 
 export interface JiraSavedFilter {
