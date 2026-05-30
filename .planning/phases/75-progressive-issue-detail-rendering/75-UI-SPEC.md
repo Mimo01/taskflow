@@ -1,10 +1,11 @@
 ---
 phase: 75
 slug: progressive-issue-detail-rendering
-status: draft
+status: approved
 shadcn_initialized: true
 preset: base-nova
 created: 2026-05-30
+reviewed_at: 2026-05-30
 ---
 
 # Phase 75 — UI Design Contract
