@@ -160,7 +160,7 @@ export function IssueDetailContent({
   async function handleDeleteAttachment(attachment: JiraAttachment) {
     const token = await readSecret('jira-pat');
     await deleteAttachment(jiraBaseUrl, token, attachment.id);
-    queryClient.invalidateQueries({ queryKey: ['issue-detail', issueKey] });
+    queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrlFromStore] });
   }
 
   // After logging work, invalidate the issue detail so TimeTrackingSummary updates.

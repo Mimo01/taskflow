@@ -87,6 +87,7 @@ export function CommentComposer({ issueKey, jiraBaseUrl }: CommentComposerProps)
     onSuccess: () => {
       setText('');
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
+      queryClient.invalidateQueries({ queryKey: ['jira-issue-comments', issueKey, jiraBaseUrl] });
     },
   });
 
