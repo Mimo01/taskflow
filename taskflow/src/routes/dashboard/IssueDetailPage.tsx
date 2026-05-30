@@ -134,9 +134,14 @@ export default function IssueDetailPage() {
     enabled: !!issueKey && !!jiraBaseUrl && !!jiraConnected,
   });
 
+  // Stable signature of the current subtask set — included in the enrichment cache key
+  // so a changed subtask list (add/remove/reorder) produces a fresh cache entry instead
+  // of reusing enrichment keyed only on issueKey within the 30s staleTime (WR-04).
+  const subtaskSignature = (issue?.fields.subtasks ?? []).map((s) => s.key).join(',');
+
   // Subtask enrichment query — only fires when base data has subtasks
   const subtaskEnrichmentQuery = useQuery({
-    queryKey: ['jira-subtask-enrichment', issueKey, jiraBaseUrl],
+    queryKey: ['jira-subtask-enrichment', issueKey, jiraBaseUrl, subtaskSignature],
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token || !jiraBaseUrl) return [];
