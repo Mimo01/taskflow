@@ -57,6 +57,9 @@ vi.mock('@/services/jira', () => ({
   mergeTimeline: vi.fn().mockReturnValue([]),
   filterTimeline: vi.fn().mockReturnValue([]),
   countByType: vi.fn().mockReturnValue({ comment: 0, change: 0, worklog: 0 }),
+  // Needed by StatusPopover (in case it renders despite the component-level mock)
+  useGhTransitions: vi.fn().mockReturnValue({ data: undefined, isLoading: false, isError: false }),
+  filterTransitionsForStatus: vi.fn().mockReturnValue([]),
 }));
 
 vi.mock('@/services/jira/comments', () => ({
@@ -71,6 +74,67 @@ vi.mock('@/services/jira/worklogs', () => ({
   fetchFullWorklogs: vi.fn().mockResolvedValue([]),
   deleteWorklog: vi.fn(),
   updateWorklog: vi.fn(),
+}));
+
+vi.mock('@/services/jira/transitions', () => ({
+  postTransition: vi.fn(),
+}));
+
+vi.mock('@/hooks/useBoardId', () => ({
+  useBoardId: vi.fn().mockReturnValue({ boardId: null }),
+}));
+
+vi.mock('@/services/jira/backlog', () => ({
+  fetchSprintList: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock('@/services/jira/sprints', () => ({
+  addIssuesToSprint: vi.fn(),
+  moveIssuesToBacklog: vi.fn(),
+}));
+
+vi.mock('@/services/jira/versions', () => ({
+  fetchFixVersions: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock('@/lib/apiFetch', () => ({
+  apiFetch: vi.fn(),
+}));
+
+vi.mock('./StatusPopover', () => ({
+  default: ({
+    onSelect,
+    currentStatus,
+  }: {
+    onSelect: (id: string, name: string) => void;
+    currentStatus: string;
+  }) => (
+    <button
+      type="button"
+      data-testid="status-popover-trigger"
+      onClick={() => onSelect('done-transition-id', 'Done')}
+    >
+      {currentStatus}
+    </button>
+  ),
+}));
+
+vi.mock('./issue-detail/WatcherToggle', () => ({
+  WatcherToggle: () => null,
+}));
+
+vi.mock('./issue-detail/TimeTrackingSummary', () => ({
+  TimeTrackingSummary: () => null,
+}));
+
+vi.mock('./issue-detail/OverdueBadge', () => ({
+  OverdueBadge: () => null,
+}));
+
+vi.mock('./issue-detail/MetaRow', () => ({
+  MetaRow: ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div data-testid={`meta-row-${label.toLowerCase()}`}>{children}</div>
+  ),
 }));
 
 vi.mock('react-router-dom', async () => {
@@ -105,15 +169,18 @@ vi.mock('./CommentComposer', () => ({
 
 // --- Imports (after mocks) ---
 
+import type React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
-import { fetchEnrichedSubtasks, fetchIssueDetail } from '@/services/jira';
+import { deleteComment, fetchEnrichedSubtasks, fetchIssueDetail, updateComment } from '@/services/jira';
 import { fetchComments } from '@/services/jira/comments';
 import { fetchIssueChangelog } from '@/services/jira/changelog';
+import { postTransition } from '@/services/jira/transitions';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
 import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
@@ -121,6 +188,7 @@ import { useRecentItemsStore } from '@/stores/recent-items.store';
 import { useSettingsStore } from '@/stores/settings.store';
 
 import IssueDetailPage from './IssueDetailPage';
+import { FieldsSection } from './issue-detail/FieldsSection';
 
 // --- Constants ---
 
@@ -165,9 +233,86 @@ const mockFetchIssueDetail = vi.mocked(fetchIssueDetail);
 const mockFetchComments = vi.mocked(fetchComments);
 const mockFetchIssueChangelog = vi.mocked(fetchIssueChangelog);
 const mockFetchEnrichedSubtasks = vi.mocked(fetchEnrichedSubtasks);
+const mockDeleteComment = vi.mocked(deleteComment);
+const mockUpdateComment = vi.mocked(updateComment);
+const mockPostTransition = vi.mocked(postTransition);
 
 function makeQueryClient() {
-  return new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+}
+
+// Minimal FieldsSection issue fixture for status-transition test
+const FIELDS_SECTION_ISSUE = {
+  id: '10001',
+  key: ISSUE_KEY,
+  fields: {
+    summary: 'Test issue',
+    status: { id: '1', name: 'In Progress', statusCategory: { key: 'indeterminate' } },
+    assignee: { displayName: 'Alice', name: 'alice', avatarUrls: { '48x48': '' } },
+    reporter: { displayName: 'Bob', name: 'bob', emailAddress: 'bob@example.com', avatarUrls: { '48x48': '' } },
+    priority: { name: 'Medium' },
+    issuetype: { id: '10001', name: 'Story', subtask: false },
+    project: { id: '1', key: 'PROJ', name: 'Project' },
+    description: null,
+    attachment: [],
+    issuelinks: [],
+    subtasks: [],
+    labels: [],
+    fixVersions: [],
+    parent: undefined,
+    timetracking: {},
+    created: '2026-01-01T00:00:00.000Z',
+    updated: '2026-01-01T00:00:00.000Z',
+    duedate: null,
+    customfield_13415: null,
+    watches: { watchCount: 0, isWatching: false },
+    customfield_10014: null,
+    customfield_10020: null,
+  },
+};
+
+// Minimal no-op mutation prop for FieldsSection
+const noopMutation = {
+  mutate: () => {},
+  isPending: false,
+  isError: false,
+  isSuccess: false,
+  isIdle: true,
+  reset: () => {},
+  status: 'idle' as const,
+  data: undefined,
+  error: null,
+  variables: undefined,
+  context: undefined,
+  failureCount: 0,
+  failureReason: null,
+  submittedAt: 0,
+  mutateAsync: () => Promise.resolve(undefined),
+};
+
+// Comment fixture authored by logged-in user (Alice) — used for mutation tests
+const MOCK_COMMENT = {
+  id: 'c1',
+  author: { displayName: 'Alice', name: 'alice', emailAddress: 'alice@example.com' },
+  body: 'Hello world',
+  created: '2026-01-01T10:00:00.000Z',
+  updated: '2026-01-01T10:00:00.000Z',
+};
+
+function renderPage(client?: QueryClient) {
+  const qc = client ?? makeQueryClient();
+  return {
+    ...render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={[`/issue/${ISSUE_KEY}`]}>
+          <IssueDetailPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    ),
+    queryClient: qc,
+  };
 }
 
 function setupDefaultStores() {
@@ -181,6 +326,7 @@ function setupDefaultStores() {
       epicColorFieldKey: undefined,
       issueDetailPanelWidth: 400,
       setIssueDetailPanelWidth: () => {},
+      commentSortOrder: 'newest',
     };
     if (typeof selector === 'function') return selector(store);
     return store;
@@ -213,16 +359,6 @@ function setupDefaultStores() {
     if (typeof selector === 'function') return selector(store);
     return store;
   });
-}
-
-function renderPage() {
-  return render(
-    <QueryClientProvider client={makeQueryClient()}>
-      <MemoryRouter initialEntries={[`/issue/${ISSUE_KEY}`]}>
-        <IssueDetailPage />
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
 }
 
 // --- Tests ---
@@ -295,5 +431,188 @@ describe('IssueDetailPage — progressive rendering (Wave 0 RED gate)', () => {
 
     // subtasks-skeleton must be present while enrichment is pending
     expect(screen.getByTestId('subtasks-skeleton')).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PERF-DETAIL-03: Invalidation fan-out assertions
+// ---------------------------------------------------------------------------
+
+describe('invalidation fan-out (PERF-DETAIL-03)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUseDelayedLoading.mockReturnValue(false);
+    setupDefaultStores();
+    mockFetchIssueDetail.mockResolvedValue(BASE_ISSUE as never);
+    mockFetchComments.mockResolvedValue([MOCK_COMMENT]);
+    mockFetchIssueChangelog.mockResolvedValue([]);
+    mockFetchEnrichedSubtasks.mockResolvedValue([]);
+    mockDeleteComment.mockResolvedValue(undefined);
+    mockUpdateComment.mockResolvedValue(MOCK_COMMENT as never);
+    mockPostTransition.mockResolvedValue(undefined);
+  });
+
+  // PERF-DETAIL-03: deleting a comment invalidates jira-issue-comments
+  it('comment delete mutation invalidates jira-issue-comments key', async () => {
+    const qc = makeQueryClient();
+    const spy = vi.spyOn(qc, 'invalidateQueries');
+
+    // Pre-seed the comments query so comments are already "loaded"
+    qc.setQueryData(['jira-issue-comments', ISSUE_KEY, JIRA_BASE_URL], [MOCK_COMMENT]);
+
+    // Trigger deletion directly via the mock — simulate what the mutation's
+    // onSuccess does by calling deleteComment (already mocked) then waiting.
+    // We render the page so the mutation handler is wired up, then call
+    // deleteMutation.mutate via the rendered delete button.
+    const user = userEvent.setup();
+
+    // mock mergeTimeline to return a comment-type entry so CommentCard renders
+    const { mergeTimeline, filterTimeline } = await import('@/services/jira');
+    vi.mocked(mergeTimeline).mockReturnValue([{ type: 'comment', data: MOCK_COMMENT }] as never);
+    vi.mocked(filterTimeline).mockReturnValue([{ type: 'comment', data: MOCK_COMMENT }] as never);
+
+    renderPage(qc);
+
+    // Wait for the issue to load
+    await waitFor(() => expect(screen.getByText('Test issue title')).toBeTruthy());
+
+    // The CommentCard 3-dot menu button (aria-label="Comment actions") is rendered
+    // only for own comments (author.displayName === jiraUserDisplayName === 'Alice')
+    const menuButton = await screen.findByLabelText('Comment actions');
+    await user.click(menuButton);
+
+    // Click the Delete button in the menu
+    const deleteButton = await screen.findByRole('button', { name: /delete/i });
+    // Bypass the window.confirm dialog
+    vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
+    await user.click(deleteButton);
+
+    // Wait for deleteComment to be called and onSuccess to fire
+    await waitFor(() => expect(mockDeleteComment).toHaveBeenCalled());
+
+    // Assert jira-issue-comments was invalidated
+    await waitFor(() => {
+      const calls = spy.mock.calls.map((c) => c[0]);
+      expect(
+        calls.some(
+          (arg) =>
+            Array.isArray((arg as { queryKey?: unknown }).queryKey) &&
+            (arg as { queryKey: unknown[] }).queryKey[0] === 'jira-issue-comments',
+        ),
+      ).toBe(true);
+    });
+  });
+
+  // PERF-DETAIL-03: editing a comment invalidates jira-issue-comments
+  it('comment edit mutation invalidates jira-issue-comments key', async () => {
+    const qc = makeQueryClient();
+    const spy = vi.spyOn(qc, 'invalidateQueries');
+    qc.setQueryData(['jira-issue-comments', ISSUE_KEY, JIRA_BASE_URL], [MOCK_COMMENT]);
+
+    const { mergeTimeline, filterTimeline } = await import('@/services/jira');
+    vi.mocked(mergeTimeline).mockReturnValue([{ type: 'comment', data: MOCK_COMMENT }] as never);
+    vi.mocked(filterTimeline).mockReturnValue([{ type: 'comment', data: MOCK_COMMENT }] as never);
+
+    const { fireEvent } = await import('@testing-library/react');
+
+    renderPage(qc);
+    await waitFor(() => expect(screen.getByText('Test issue title')).toBeTruthy());
+
+    // Open the 3-dot comment actions menu, then click Edit inside it.
+    // Use the parent container of the menu button to scope button lookups and avoid
+    // collisions with the "Edit" button in IssueDetailContent's action row.
+    const { within } = await import('@testing-library/react');
+    const menuButton = await screen.findByLabelText('Comment actions');
+    const menuContainer = menuButton.closest('.relative') as HTMLElement;
+    fireEvent.click(menuButton);
+
+    // The dropdown is rendered inside the same .relative container
+    const editButton = within(menuContainer).getByRole('button', { name: 'Edit' });
+    fireEvent.click(editButton);
+
+    // After clicking Edit, the CommentCard switches to edit mode — a Textarea
+    // pre-filled with the comment body appears inside the comment card.
+    await waitFor(() => {
+      const textareas = screen.getAllByRole('textbox');
+      const editingTextarea = textareas.find(
+        (el) => (el as HTMLTextAreaElement).value === MOCK_COMMENT.body,
+      );
+      expect(editingTextarea).toBeTruthy();
+    });
+    const textareas = screen.getAllByRole('textbox');
+    const editTextarea = textareas.find(
+      (el) => (el as HTMLTextAreaElement).value === MOCK_COMMENT.body,
+    )!;
+
+    fireEvent.change(editTextarea, { target: { value: 'Updated comment text' } });
+
+    // The Save button is inside the edit form
+    const saveButton = screen.getByRole('button', { name: 'Save' });
+    fireEvent.click(saveButton);
+
+    await waitFor(() => expect(mockUpdateComment).toHaveBeenCalled());
+
+    await waitFor(() => {
+      const calls = spy.mock.calls.map((c) => c[0]);
+      expect(
+        calls.some(
+          (arg) =>
+            Array.isArray((arg as { queryKey?: unknown }).queryKey) &&
+            (arg as { queryKey: unknown[] }).queryKey[0] === 'jira-issue-comments',
+        ),
+      ).toBe(true);
+    });
+  });
+
+  // PERF-DETAIL-03: status transition invalidates jira-issue-changelog
+  it('status transition mutation invalidates jira-issue-changelog key', async () => {
+    const qc = makeQueryClient();
+    const spy = vi.spyOn(qc, 'invalidateQueries');
+
+    // Render FieldsSection directly with a stubbed StatusPopover that calls onSelect
+    const { render: rtlRender } = await import('@testing-library/react');
+    const user = userEvent.setup();
+
+    const { default: React2 } = await import('react');
+
+    rtlRender(
+      <QueryClientProvider client={qc}>
+        <FieldsSection
+          issue={FIELDS_SECTION_ISSUE as never}
+          issueKey={ISSUE_KEY}
+          jiraBaseUrl={JIRA_BASE_URL}
+          storyPointsFieldKey="customfield_10016"
+          epicLinkFieldKey="customfield_10014"
+          epicNameFieldKey="customfield_10010"
+          sprintFieldKey="customfield_10020"
+          epicColorFieldKey="customfield_10013"
+          mutation={noopMutation as never}
+          epicIssue={null}
+          onOpenIssue={undefined}
+        />
+      </QueryClientProvider>,
+    );
+
+    // The stub StatusPopover renders as a button that calls onSelect('done-transition-id', 'Done')
+    const statusButton = screen.getByTestId('status-popover-trigger');
+    await user.click(statusButton);
+
+    // postTransition resolves immediately (mock)
+    await waitFor(() => expect(mockPostTransition).toHaveBeenCalled());
+
+    // Assert jira-issue-changelog was invalidated in onSettled
+    await waitFor(() => {
+      const calls = spy.mock.calls.map((c) => c[0]);
+      expect(
+        calls.some(
+          (arg) =>
+            Array.isArray((arg as { queryKey?: unknown }).queryKey) &&
+            (arg as { queryKey: unknown[] }).queryKey[0] === 'jira-issue-changelog',
+        ),
+      ).toBe(true);
+    });
+
+    // Suppress unused import warning
+    void React2;
   });
 });
