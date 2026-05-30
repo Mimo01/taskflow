@@ -158,6 +158,8 @@ v1.8/v1.9 tech debt paid down (WorklogsPage timer/error/fragment fixes, `DatePre
 
 **Milestone closed with tech debt:** Phase 69 has no `VERIFICATION.md` (compensated by 12/12 UAT + nyquist-green VALIDATION); Phases 68/70 verification at `human_needed`; minor code-review items WR-05 (unguarded SP cast) and IN-01 (uncleared setTimeout). See `.planning/milestones/v1.10-MILESTONE-AUDIT.md`. v2.0 scope TBD.
 
+**v1.11 in progress (Phases 71-75):** all 5 phases complete. Phase 75 (2026-05-31) delivered progressive issue-detail rendering — the monolithic `fetchIssueDetail` was split into a slim base fetch plus three independent parallel queries (comments, subtask enrichment, changelog) with 200ms-gated per-section skeletons, per-section inline error/retry isolation, fanned-out cache invalidation, and TTFMP/TTI perf instrumentation. Measured: TTFMP 1180ms (header) / TTI 1682ms (changelog gates "fully loaded"). Verified 4/4 (one live error-isolation force-test deferred to `75-HUMAN-UAT.md`; open review items WR-02/WR-03 tracked). Milestone v1.11 not yet released — run `release.sh` separately to ship.
+
 ## Context
 
 - **Shipped v1.0:** 2026-03-12 — 4 phases, 20 plans, ~11,017 lines TypeScript
@@ -307,4 +309,4 @@ This document evolves at phase transitions and milestone boundaries.
 | Pinned issues + Log Work dropped from Standup Today during redesign (v1.10 Phase 70) | User decided the standup page is read/plan-oriented; pinning + logging belong on their own surfaces | ✓ Good — user-confirmed; STAND-08/09 descoped, Today shows sprint subtasks + nested MRs |
 
 ---
-*Last updated: 2026-05-28 after starting v1.11 GreenHopper API Migration*
+*Last updated: 2026-05-31 after Phase 75 (progressive issue detail rendering) completed v1.11's phase work*
