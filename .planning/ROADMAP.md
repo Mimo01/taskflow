@@ -110,18 +110,18 @@ Plans:
 - [x] 74-05-PLAN.md — Wave 3: Reload backlog toolbar action + aria-live status region + human-verify checkpoint
 - [x] 74-06-PLAN.md — Wave 4: hard-cutover delete (fetchBacklogIssues / fetchBacklogSprintStories / fetchBacklogView / BacklogViewData) + activate check:legacy-backlog guard + full-suite gate
 
-#### Phase 75: Issue Detail on `details.json` + Performance Verification
+#### Phase 75: Progressive Issue Detail Rendering
 
-**Goal:** Replace the multi-fetch issue detail panel with a single `details.json` call; render server HTML where viable, fall back to REST v2 for interactive composers; record before/after perf metrics and confirm no REST paths replaced by this milestone remain.
+**Goal:** Keep the existing Jira REST-based issue detail panel but eliminate the "blank panel until everything loads" feeling. Render each section (header, description, fields, comments, attachments, subtasks) as soon as its own request resolves, instead of blocking the whole panel on the slowest call.
 
-**Requirements:** GH-DETAIL-01, GH-DETAIL-02, GH-DETAIL-03, GH-DETAIL-04, GH-CUT-01, GH-CUT-02
+**Requirements:** PERF-DETAIL-01, PERF-DETAIL-02, PERF-DETAIL-03, GH-CUT-01, GH-CUT-02
 
 **Success criteria:**
 
-1. Opening an issue detail panel issues exactly one `details.json` request for operations + sprint + tabs (verified in the network log)
-2. HEADER / DETAILS tabs render from `defaultTabs` fields and `inlineEditableFields`; COMMENT / ATTACHMENT / SUB_TASKS / ISSUES_IN_EPIC tabs render from `Section.html` with documented REST v2 fallbacks for interactive surfaces (comment composer, attachment upload)
-3. Existing detail-panel features (edit fields, post comment, open-in-Jira deep link, pin, clone, watcher toggle) work unchanged
-4. Verification artifact records before/after request counts and end-to-end time for sprint-board open, backlog open, and issue-detail open; confirms the old REST paths for board / backlog / detail / transitions no longer exist in the codebase
+1. Opening an issue detail panel renders the header (title, key, status, assignee) as soon as the base issue fetch resolves — no waiting for comments / attachments / subtasks
+2. Each section (description, custom fields, comments, attachments, subtasks, links) shows a localized skeleton while its own request is pending; no global blocking spinner on the panel
+3. Existing detail-panel features (edit fields, post comment, open-in-Jira deep link, pin, clone, watcher toggle) work unchanged on the existing REST v2 paths
+4. Verification artifact records before/after time-to-first-meaningful-paint and time-to-fully-interactive for issue-detail open; documents per-section latencies and which section gates "fully loaded"
 
 <details>
 <summary>✅ v1.0 MVP (Phases 1-4) — SHIPPED 2026-03-12</summary>

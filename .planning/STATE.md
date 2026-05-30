@@ -65,6 +65,7 @@ Key decisions affecting current/next work:
 ### Roadmap Evolution
 
 - v1.10 closed with tech debt (status `tech_debt`); all verification debt cleared 2026-05-26: Phase 69 VERIFICATION.md minted (passed 4/4), Phases 68 (passed 11/11) and 70 (passed 4/4) re-verified out of `human_needed`. Only remaining v1.10 items are non-blocking code-review notes WR-05 (unguarded SP cast) + IN-01 (uncleared setTimeout).
+- 2026-05-30: Phase 75 edited — rescoped from GreenHopper `details.json` migration to progressive REST rendering of the issue detail panel. Requirements: GH-DETAIL-01..04 dropped, PERF-DETAIL-01..03 added; GH-CUT-01/02 adjusted (detail stays on REST v2; perf metric for detail is TTFMP / TTI / per-section latency instead of request count).
 
 ### Blockers/Concerns
 
