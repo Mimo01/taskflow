@@ -354,7 +354,7 @@ export default function IssueDetailPage() {
   };
 
   // ─── Worklog data + CRUD ──────────────────────────────────────────────────────
-  const { data: worklogs = [] } = useQuery({
+  const worklogsQuery = useQuery({
     queryKey: ['jira-worklogs', issueKey, jiraBaseUrl],
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
@@ -364,6 +364,7 @@ export default function IssueDetailPage() {
     staleTime: 30_000,
     enabled: !!issueKey && !!jiraBaseUrl && !!jiraConnected,
   });
+  const worklogs = worklogsQuery.data ?? [];
 
   const [editingWorklogId, setEditingWorklogId] = useState<string | null>(null);
   const [editDuration, setEditDuration] = useState('');
@@ -575,6 +576,19 @@ export default function IssueDetailPage() {
                       })
                     }
                     viewName="activity"
+                  />
+                </div>
+              )}
+              {worklogsQuery.isError && (
+                <div className="p-4">
+                  <ErrorState
+                    error={worklogsQuery.error}
+                    onRetry={() =>
+                      void queryClient.invalidateQueries({
+                        queryKey: ['jira-worklogs', issueKey, jiraBaseUrl],
+                      })
+                    }
+                    viewName="worklogs"
                   />
                 </div>
               )}
