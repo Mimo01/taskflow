@@ -4,6 +4,7 @@ import { Copy, ExternalLink, Pencil, Pin, Plus } from 'lucide-react';
 import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
+import { ErrorState } from '@/components/ui/error-state';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { statusPillClass } from '@/lib/statusStyles';
 import { cn } from '@/lib/utils';
@@ -15,6 +16,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import type { EditInitialValues } from './CreateEditIssueModal';
 import { AttachmentsSection } from './issue-detail/AttachmentsSection';
 import { LogWorkPopover } from './issue-detail/LogWorkPopover';
+import { SubtasksSkeleton } from './issue-detail/SubtasksSkeleton';
 import type { AttachmentMap } from './WikiRenderer';
 import { WikiRenderer } from './WikiRenderer';
 
@@ -32,6 +34,95 @@ interface IssueDetailContentProps {
   epicStories?: JiraIssue[];
   isPinned?: boolean;
   onTogglePin?: (key: string) => void;
+  /** Enriched subtasks from independent query (undefined = pending, [] = empty/loaded) */
+  enrichedSubtasks?: Array<{
+    id: string;
+    key: string;
+    fields: {
+      summary: string;
+      status: { name: string; statusCategory?: { key: string } | unknown };
+      assignee?: { displayName: string; name: string; avatarUrls?: { '48x48': string } } | null;
+    };
+  }>;
+  /** Show subtasks skeleton (200ms-gated) */
+  showSubtasksSkeleton?: boolean;
+  /** Subtask enrichment query error */
+  subtaskError?: Error | null;
+  /** Retry callback for subtask enrichment */
+  onSubtaskRetry?: () => void;
+}
+
+/** Shared subtask item shape — union of base (no assignee) and enriched (with assignee) */
+type SubtaskDisplayItem = {
+  id: string;
+  key: string;
+  fields: {
+    summary: string;
+    status: { name: string; statusCategory?: { key: string } | unknown };
+    assignee?: { displayName: string; name: string; avatarUrls?: { '48x48': string } } | null;
+  };
+};
+
+function subtaskListContent({
+  enrichedSubtasks,
+  subtasks,
+  onOpenIssue,
+}: {
+  enrichedSubtasks: SubtaskDisplayItem[] | undefined;
+  subtasks: JiraIssueDetail['fields']['subtasks'];
+  onOpenIssue: ((key: string) => void) | undefined;
+}) {
+  const displaySubtasks: SubtaskDisplayItem[] = enrichedSubtasks ?? (subtasks as SubtaskDisplayItem[] | undefined) ?? [];
+  if (displaySubtasks.length === 0) {
+    if (enrichedSubtasks !== undefined) {
+      return <p className="text-sm text-muted-foreground italic">No subtasks.</p>;
+    }
+    return null;
+  }
+  return (
+    <>
+      <h3 className="text-sm font-medium text-muted-foreground mb-2">
+        Subtasks ({displaySubtasks.length})
+      </h3>
+      <ul className="space-y-1">
+        {displaySubtasks.map((sub) => {
+          const statusCat = sub.fields.status.statusCategory as { key?: string } | undefined;
+          return (
+            <li key={sub.id}>
+              <button
+                type="button"
+                onClick={() => onOpenIssue?.(sub.key)}
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent text-sm text-left"
+              >
+                <span className="font-mono text-xs text-muted-foreground shrink-0">
+                  {sub.key}
+                </span>
+                <span className="flex-1 truncate">{sub.fields.summary}</span>
+                {sub.fields.assignee && (
+                  <div
+                    className="flex items-center gap-1.5 shrink-0"
+                    title={sub.fields.assignee.displayName}
+                  >
+                    <CachedAvatar
+                      url={sub.fields.assignee.avatarUrls?.['48x48']}
+                      name={sub.fields.assignee.displayName}
+                      size={20}
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      {sub.fields.assignee.displayName}
+                    </span>
+                  </div>
+                )}
+                <span className={statusPillClass(statusCat?.key)}>
+                  {sub.fields.status.name}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </>
+  );
 }
 
 export function relativeTime(iso: string): string {
@@ -55,6 +146,10 @@ export function IssueDetailContent({
   epicStories,
   isPinned,
   onTogglePin,
+  enrichedSubtasks,
+  showSubtasksSkeleton,
+  subtaskError,
+  onSubtaskRetry,
 }: IssueDetailContentProps) {
   const { summary, description, subtasks } = issue.fields;
   const comments = issue.fields.comment?.comments ?? [];
@@ -186,47 +281,22 @@ export function IssueDetailContent({
       {/* Story/task → Subtasks list */}
       {!isEpic && !isSubtask && (
         <section>
-          {subtasks && subtasks.length > 0 && (
-            <>
-              <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                Subtasks ({subtasks.length})
-              </h3>
-              <ul className="space-y-1">
-                {subtasks.map((sub) => (
-                  <li key={sub.id}>
-                    <button
-                      type="button"
-                      onClick={() => onOpenIssue?.(sub.key)}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent text-sm text-left"
-                    >
-                      <span className="font-mono text-xs text-muted-foreground shrink-0">
-                        {sub.key}
-                      </span>
-                      <span className="flex-1 truncate">{sub.fields.summary}</span>
-                      {sub.fields.assignee && (
-                        <div
-                          className="flex items-center gap-1.5 shrink-0"
-                          title={sub.fields.assignee.displayName}
-                        >
-                          <CachedAvatar
-                            url={sub.fields.assignee.avatarUrls?.['48x48']}
-                            name={sub.fields.assignee.displayName}
-                            size={20}
-                          />
-                          <span className="text-xs text-muted-foreground">
-                            {sub.fields.assignee.displayName}
-                          </span>
-                        </div>
-                      )}
-                      <span className={statusPillClass(sub.fields.status.statusCategory?.key)}>
-                        {sub.fields.status.name}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </>
+          {/* Subtask skeleton — shown while enrichment query is pending (200ms-gated) */}
+          {enrichedSubtasks === undefined && showSubtasksSkeleton && (
+            <SubtasksSkeleton />
           )}
+          {/* Subtask error — inline retry without blanking panel */}
+          {subtaskError && onSubtaskRetry && (
+            <div className="p-4">
+              <ErrorState
+                error={subtaskError}
+                onRetry={onSubtaskRetry}
+                viewName="subtasks"
+              />
+            </div>
+          )}
+          {/* Subtask list — use enriched data when available, fall back to base subtasks */}
+          {subtaskListContent({ enrichedSubtasks, subtasks, onOpenIssue })}
           <button
             type="button"
             onClick={() => onAddSubtask?.(issueKey)}
