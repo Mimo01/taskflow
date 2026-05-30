@@ -139,7 +139,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 75-04-PLAN.md — Wave 4: GH-CUT-02 perf verification artifact (before/after TTFMP+TTI, per-section latencies, gating section) via human-verify checkpoint
+- [x] 75-04-PLAN.md — Wave 4: GH-CUT-02 perf verification artifact (before/after TTFMP+TTI, per-section latencies, gating section) via human-verify checkpoint
 
 <details>
 <summary>✅ v1.0 MVP (Phases 1-4) — SHIPPED 2026-03-12</summary>
