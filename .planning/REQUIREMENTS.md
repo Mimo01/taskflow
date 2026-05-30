@@ -25,12 +25,11 @@
 - [x] **GH-BACKLOG-01**: Backlog view fetches the flat issue list via a single `data.json` call (replaces paginated REST + per-issue lookups)
 - [x] **GH-BACKLOG-02**: Existing backlog features (move-to-sprint, create story, filter by epic/label/assignee, virtualized rendering) work unchanged on the new data source
 
-### Issue Detail (`details.json`)
+### Issue Detail (Progressive Rendering)
 
-- [ ] **GH-DETAIL-01**: Issue detail panel fetches operations menu, sprint, and tab structure via a single `details.json` call
-- [ ] **GH-DETAIL-02**: HEADER and DETAILS tabs render from `details.tabs.defaultTabs` fields and `inlineEditableFields`
-- [ ] **GH-DETAIL-03**: COMMENT / ATTACHMENT / SUB_TASKS / ISSUES_IN_EPIC tabs render from `Section.html` (server-rendered) where the HTML is viable; for interactive surfaces that the HTML can't support (e.g. post/edit comment composer, attachment upload), fall back to the existing REST v2 path
-- [ ] **GH-DETAIL-04**: Existing detail-panel features (edit fields, post comment, open-in-Jira deep link, pin, clone, watcher toggle) work unchanged
+- [ ] **PERF-DETAIL-01**: Issue detail panel renders the header (title, key, status, assignee) as soon as the base issue fetch resolves, independently of comments / attachments / subtasks / description-heavy sections
+- [ ] **PERF-DETAIL-02**: Each detail section (description, custom fields, comments, attachments, subtasks, issue links) loads via its own independent request and shows a localized skeleton while pending; no global blocking spinner gates the panel
+- [ ] **PERF-DETAIL-03**: Existing detail-panel features (edit fields, post comment, open-in-Jira deep link, pin, clone, watcher toggle) work unchanged on the existing REST v2 paths — the detail panel stays on Jira REST (no GreenHopper `details.json` migration)
 
 ### Workflow Transitions (`transitions.json`)
 
@@ -40,8 +39,8 @@
 
 ### Cutover & Verification
 
-- [ ] **GH-CUT-01**: Hard cutover per surface — each phase replaces its REST path in place. No coexistence flag; old REST paths for board/backlog/detail/transitions are deleted as their replacements ship
-- [ ] **GH-CUT-02**: Performance verification — capture before/after request counts and end-to-end time for sprint-board open, backlog open, and issue-detail open; recorded in the verification artifact of the final phase
+- [ ] **GH-CUT-01**: Hard cutover per surface — each GreenHopper migration phase replaces its REST path in place. No coexistence flag; old REST paths for board / backlog / transitions are deleted as their replacements ship. (Issue detail stays on REST v2 — not migrated this milestone.)
+- [ ] **GH-CUT-02**: Performance verification — capture before/after request counts and end-to-end time for sprint-board open and backlog open; for issue-detail open, capture before/after time-to-first-meaningful-paint and time-to-fully-interactive plus per-section latencies. Recorded in the verification artifact of the final phase.
 
 ## v2 Requirements
 
@@ -75,19 +74,18 @@ Filled by roadmap (Section 10 of new-milestone workflow).
 | GH-BOARD-04 | Phase 73 | Pending |
 | GH-BACKLOG-01 | Phase 74 | Complete |
 | GH-BACKLOG-02 | Phase 74 | Complete |
-| GH-DETAIL-01 | Phase 75 | Pending |
-| GH-DETAIL-02 | Phase 75 | Pending |
-| GH-DETAIL-03 | Phase 75 | Pending |
-| GH-DETAIL-04 | Phase 75 | Pending |
+| PERF-DETAIL-01 | Phase 75 | Pending |
+| PERF-DETAIL-02 | Phase 75 | Pending |
+| PERF-DETAIL-03 | Phase 75 | Pending |
 | GH-CUT-01 | Phase 75 | Pending |
 | GH-CUT-02 | Phase 75 | Pending |
 
 **Coverage:**
 
-- v1.11 requirements: 18 total
-- Mapped to phases: 18
+- v1.11 requirements: 17 total
+- Mapped to phases: 17
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-05-28*
-*Last updated: 2026-05-28 after initial definition*
+*Last updated: 2026-05-30 — Phase 75 rescoped from GreenHopper `details.json` migration to progressive REST rendering (GH-DETAIL-01..04 dropped, PERF-DETAIL-01..03 added)*
