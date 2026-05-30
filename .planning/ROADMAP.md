@@ -135,7 +135,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 75-03-PLAN.md — Wave 3: mutation/invalidation fan-out to new comments/changelog keys + fix IssueDetailContent:68 key bug + invalidation tests + full-suite regression gate
+- [x] 75-03-PLAN.md — Wave 3: mutation/invalidation fan-out to new comments/changelog keys + fix IssueDetailContent:68 key bug + invalidation tests + full-suite regression gate
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
