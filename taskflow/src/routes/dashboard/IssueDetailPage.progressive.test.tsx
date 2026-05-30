@@ -224,6 +224,7 @@ describe('IssueDetailPage — progressive rendering (Wave 0 RED gate)', () => {
   // PERF-DETAIL-01: header renders before comments query resolves
   it('renders issue title when base query resolves but comments query is still pending', async () => {
     // Base issue resolves immediately; comments query is pending (never resolves mock above)
+    renderPage();
     await waitFor(() => {
       expect(screen.getByText('Test issue title')).toBeTruthy();
     });
@@ -237,6 +238,7 @@ describe('IssueDetailPage — progressive rendering (Wave 0 RED gate)', () => {
     mockUseDelayedLoading.mockReturnValue(true);
     mockFetchComments.mockReturnValue(new Promise(() => {}));
 
+    renderPage();
     await waitFor(() => {
       // Base issue is loaded
       expect(screen.getByText('Test issue title')).toBeTruthy();
@@ -269,6 +271,7 @@ describe('IssueDetailPage — progressive rendering (Wave 0 RED gate)', () => {
     mockUseDelayedLoading.mockReturnValue(true);
     mockFetchEnrichedSubtasks.mockReturnValue(new Promise(() => {}));
 
+    renderPage();
     await waitFor(() => {
       expect(screen.getByText('Test issue title')).toBeTruthy();
     });
