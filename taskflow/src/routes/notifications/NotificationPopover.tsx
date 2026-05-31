@@ -127,6 +127,16 @@ function VirtualizedNotificationList({
     getScrollElement: () => parentRef.current,
     estimateSize: () => 64,
     overscan: 5,
+    // Key the size cache (and React keys) by stable entry identity rather than the default
+    // array index. Entries mix short headers with taller notification rows and are measured
+    // dynamically; dismissing/marking-read remaps which entry sits at each index, so an
+    // index-keyed cache would apply a row's cached height to a header (and vice versa) —
+    // gaps/overlap until a scroll re-measures. Stable keys keep each entry's measured height.
+    getItemKey: (index) => {
+      const entry = entries[index];
+      if (!entry) return index;
+      return entry.type === 'header' ? `header:${entry.key}` : `item:${entry.item.id}`;
+    },
   });
 
   const virtualItems = rowVirtualizer.getVirtualItems();
