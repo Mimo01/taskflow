@@ -1141,7 +1141,6 @@ export default function ReleaseDetailPage() {
               {gitlabMatch.type !== 'none' && milestoneMRs && releaseMrs.length > 0 && (
                 <MetaRow label="MRs">
                   <span className="inline-flex flex-wrap items-center gap-1.5">
-                    <GitMerge className="size-3 text-muted-foreground shrink-0" />
                     {mrStateCounts.merged > 0 && (
                       <Badge tone="green" className="text-xs tabular-nums">
                         {mrStateCounts.merged} merged
