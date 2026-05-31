@@ -378,7 +378,7 @@ export function WikiEditor({
         ) : (
           <EditorContent
             editor={editor}
-            className="prose prose-sm dark:prose-invert max-w-none focus:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[inherit] [&_.ProseMirror>:first-child]:mt-0 [&_.ProseMirror>:last-child]:mb-0"
+            className="prose prose-sm dark:prose-invert max-w-none min-h-[inherit] focus:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[inherit] [&_.ProseMirror>:first-child]:mt-0 [&_.ProseMirror>:last-child]:mb-0"
           />
         )}
       </div>
