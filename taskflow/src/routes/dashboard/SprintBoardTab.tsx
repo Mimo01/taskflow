@@ -13,7 +13,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Bookmark, Columns3, RefreshCw } from 'lucide-react';
+import { Columns3, RefreshCw } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
@@ -41,13 +41,11 @@ import {
   useGhAllData,
   useGhTransitions,
 } from '@/services/jira';
-import { fetchAllSearchPages } from '@/services/jira/client';
 import { warnOnce } from '@/services/jira/greenhopper/warnOnce';
 import { fetchActiveSprint } from '@/services/jira/sprints';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useFilterStore } from '@/stores/filter.store';
-import { useSavedFilterStore } from '@/stores/saved-filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { QuickFilterChipRow } from './QuickFilterChipRow';
 import { SprintBoardSkeleton } from './SprintBoardSkeleton';
@@ -962,25 +960,6 @@ export default function SprintBoardTab() {
   const { activeEpics, activeLabels, activeAssignees, activeStatuses, activeLabelFilters } =
     useFilterStore();
 
-  const activeFilterId = useSavedFilterStore((s) => s.activeFilterId);
-  const savedFilters = useSavedFilterStore((s) => s.savedFilters);
-  const setActiveFilter = useSavedFilterStore((s) => s.setActiveFilter);
-  const activeFilter = activeFilterId ? savedFilters.find((f) => f.id === activeFilterId) : null;
-
-  // Saved filter: fetch JQL results to intersect with sprint issues
-  const { data: savedFilterIssueKeys, isLoading: isSavedFilterLoading } = useQuery({
-    queryKey: ['saved-filter-results', activeFilter?.jql],
-    queryFn: async () => {
-      const searchUrl = `${(jiraBaseUrl ?? '').replace(/\/$/, '')}/rest/api/2/search?jql=${encodeURIComponent(activeFilter?.jql ?? '')}&fields=key`;
-      const results = await fetchAllSearchPages(searchUrl, {
-        Authorization: `Bearer ${jiraToken ?? ''}`,
-      });
-      return new Set(results.map((issue) => issue.key));
-    },
-    enabled: !!activeFilter?.jql && !!jiraBaseUrl && !!jiraToken,
-    staleTime: 30_000,
-  });
-
   const filterOptionsEpics = new Map<string, string>();
   for (const e of epicsBasic ?? []) filterOptionsEpics.set(e.key, e.epicName);
   for (const issue of localIssues) {
@@ -1047,19 +1026,7 @@ export default function SprintBoardTab() {
 
   let filteredSwimlanes = swimlanes;
 
-  // Saved filter: intersect with JQL result keys
-  if (savedFilterIssueKeys && savedFilterIssueKeys.size > 0) {
-    filteredSwimlanes = filteredSwimlanes
-      .map(({ story, subtasks: sub }) => {
-        const storyMatches = savedFilterIssueKeys.has(story.key);
-        const filteredSubtasks = sub.filter((s) => savedFilterIssueKeys.has(s.key));
-        if (!storyMatches && filteredSubtasks.length === 0) return null;
-        return { story, subtasks: filteredSubtasks };
-      })
-      .filter((s): s is { story: JiraIssue; subtasks: JiraIssue[] } => s !== null);
-  }
-
-  // Apply local filters on the (possibly already saved-filter-narrowed) result
+  // Apply local filters
   if (
     activeEpics.size > 0 ||
     activeLabels.size > 0 ||
@@ -1226,24 +1193,6 @@ export default function SprintBoardTab() {
             {/* Quick filter chip row */}
             {!showSkeleton && !isError && data && (
               <QuickFilterChipRow labels={filterOptions.labels} />
-            )}
-
-            {/* Active saved filter banner */}
-            {!showSkeleton && !isError && data && activeFilter && (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 border-b border-primary/20">
-                <Bookmark className="size-3.5 text-primary" />
-                <span className="text-xs font-medium">Filter: {activeFilter.name}</span>
-                {isSavedFilterLoading && (
-                  <span className="text-xs text-muted-foreground">(loading...)</span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setActiveFilter(null)}
-                  className="text-xs text-primary/70 hover:text-primary ml-auto"
-                >
-                  Clear
-                </button>
-              </div>
             )}
 
             {/* Unified filter bar */}

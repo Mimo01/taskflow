@@ -23,7 +23,6 @@ import {
   X,
 } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { SaveFilterDialog } from '@/components/SaveFilterDialog';
 import { Button } from '@/components/ui/button';
 import {
   ContextMenu,
@@ -33,7 +32,6 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useAuthStore } from '@/stores/auth.store';
 import type { QuickFilter } from '@/stores/filter.store';
 import { useFilterStore } from '@/stores/filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -195,9 +193,6 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
   const { quickFilters, addQuickFilter, removeQuickFilter, renameQuickFilter, moveQuickFilter } =
     useSettingsStore();
 
-  const { jiraBaseUrl } = useAuthStore();
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-
   const [savingName, setSavingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -214,33 +209,6 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
 
   const activeCount =
     activeEpics.size + activeLabels.size + activeAssignees.size + activeStatuses.size;
-
-  const currentJqlClauses: string[] = [];
-  if (activeEpics.size > 0) {
-    currentJqlClauses.push(`"Epic Link" in (${Array.from(activeEpics).join(', ')})`);
-  }
-  if (activeLabels.size > 0) {
-    currentJqlClauses.push(
-      `labels in (${Array.from(activeLabels)
-        .map((l) => `"${l}"`)
-        .join(', ')})`,
-    );
-  }
-  if (activeAssignees.size > 0) {
-    currentJqlClauses.push(
-      `assignee in (${Array.from(activeAssignees)
-        .map((a) => `"${a}"`)
-        .join(', ')})`,
-    );
-  }
-  if (activeStatuses.size > 0) {
-    currentJqlClauses.push(
-      `status in (${Array.from(activeStatuses)
-        .map((s) => `"${s}"`)
-        .join(', ')})`,
-    );
-  }
-  const currentJql = currentJqlClauses.join(' AND ');
 
   function handleSaveQuickFilter() {
     if (!nameInput.trim()) return;
@@ -497,19 +465,6 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
             </Button>
           )}
 
-          {/* Save to Jira as saved filter — hidden when the active filter already matches a saved one */}
-          {hasActiveFilters && !savingName && !activeFilterMatchesSaved && jiraBaseUrl && (
-            <Button
-              variant="ghost"
-              size="xs"
-              onClick={() => setSaveDialogOpen(true)}
-              className="text-muted-foreground gap-1"
-            >
-              <BookmarkPlus className="size-3" />
-              <span className="text-[11px]">Save Filter</span>
-            </Button>
-          )}
-
           {savingName && (
             <span className="inline-flex items-center gap-1">
               <input
@@ -565,16 +520,6 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
           </Button>
         </div>
       </div>
-
-      {/* Save Filter dialog (Jira) */}
-      {jiraBaseUrl && (
-        <SaveFilterDialog
-          open={saveDialogOpen}
-          onOpenChange={setSaveDialogOpen}
-          jql={currentJql}
-          jiraBaseUrl={jiraBaseUrl}
-        />
-      )}
 
       {/* Expandable filter selectors row */}
       {filtersOpen && (
