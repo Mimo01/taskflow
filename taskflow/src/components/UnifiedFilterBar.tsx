@@ -277,6 +277,10 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
     return epicMatch && labelMatch && assigneeMatch && statusMatch;
   }
 
+  // True when the current active filter state is already saved as a quickfilter —
+  // used to suppress the Save button and prevent duplicate saved filters.
+  const activeFilterMatchesSaved = quickFilters.some(isQuickFilterActive);
+
   // Collect all active chips in one flat list with category labels
   const activeChips: Array<{
     key: string;
@@ -480,8 +484,8 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
         </div>
 
         <div className="shrink-0 flex items-center gap-1.5">
-          {/* Save as quickfilter */}
-          {hasActiveFilters && !savingName && (
+          {/* Save as quickfilter — hidden when the active filter already matches a saved one */}
+          {hasActiveFilters && !savingName && !activeFilterMatchesSaved && (
             <Button
               variant="ghost"
               size="xs"
@@ -493,8 +497,8 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
             </Button>
           )}
 
-          {/* Save to Jira as saved filter */}
-          {hasActiveFilters && !savingName && jiraBaseUrl && (
+          {/* Save to Jira as saved filter — hidden when the active filter already matches a saved one */}
+          {hasActiveFilters && !savingName && !activeFilterMatchesSaved && jiraBaseUrl && (
             <Button
               variant="ghost"
               size="xs"
