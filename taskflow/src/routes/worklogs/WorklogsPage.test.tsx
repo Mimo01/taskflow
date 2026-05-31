@@ -501,7 +501,9 @@ describe('WorklogsPage', () => {
     it('computes totals row as sum per day across all issues', async () => {
       // Monday: Alice(X-1) 4h + Bob(X-2) 2h = 6h total for Monday
       const monday = thisWeekDate(0);
-      const mondayDay = monday.slice(8); // "DD" portion, e.g. "25"
+      // Header renders the day via getDate() (unpadded), so strip any leading zero
+      // — otherwise this fails when the week's Monday is the 1st ("Mon 1" !~ "01").
+      const mondayDay = String(Number(monday.slice(8))); // "DD" → unpadded, e.g. "25" / "1"
 
       mockFetchWorklogsResult = [
         makeWorklog('alice', 'Alice Smith', monday, 4, 'X-1'),
@@ -519,8 +521,9 @@ describe('WorklogsPage', () => {
       const headCells = container.querySelectorAll('thead th');
       let mondayColIdx = -1;
       headCells.forEach((th, i) => {
-        // formatDayHeader(monday) → "Mon DD"
-        if (th.textContent?.includes(mondayDay)) {
+        // formatDayHeader(monday) → "Mon D"; match the " D" suffix exactly so
+        // "1" doesn't spuriously match "11"/"21".
+        if (th.textContent?.trim().endsWith(` ${mondayDay}`)) {
           mondayColIdx = i;
         }
       });
@@ -557,7 +560,7 @@ describe('WorklogsPage', () => {
     it('renders empty string for zero-hour cells (no "0h" text)', async () => {
       // Alice only logs on Monday — Tuesday and beyond should be blank
       const monday = thisWeekDate(0);
-      const tuesdayDay = thisWeekDate(1).slice(8); // "DD" portion
+      const tuesdayDay = String(Number(thisWeekDate(1).slice(8))); // "DD" → unpadded
 
       mockFetchWorklogsResult = [
         makeWorklog('alice', 'Alice Smith', monday, 4),
@@ -575,8 +578,8 @@ describe('WorklogsPage', () => {
       const headCells = container.querySelectorAll('thead th');
       let tuesdayColIdx = -1;
       headCells.forEach((th, i) => {
-        // formatDayHeader(thisWeekDate(1)) → "Tue DD"
-        if (th.textContent?.includes(tuesdayDay)) {
+        // formatDayHeader(thisWeekDate(1)) → "Tue D"; match the " D" suffix exactly.
+        if (th.textContent?.trim().endsWith(` ${tuesdayDay}`)) {
           tuesdayColIdx = i;
         }
       });
