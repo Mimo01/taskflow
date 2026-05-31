@@ -212,7 +212,6 @@ export default function IssueDetailPage() {
       performance.mark('issue-detail-fully-loaded');
       try {
         performance.measure('TTI', 'issue-detail-start', 'issue-detail-fully-loaded');
-        console.table(performance.getEntriesByType('measure'));
       } catch {
         // performance.measure may throw if start mark is missing (e.g. HMR)
       }
