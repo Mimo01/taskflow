@@ -15,6 +15,7 @@ import { describe, expect, it } from 'vitest';
 
 // These imports will fail (RED) until jiraToTiptap.ts and jiraWikiSerializer.ts
 // are implemented — that is the expected RED state.
+import { isSafeColor } from './extensions/JiraColorMark';
 import { jiraToTiptap } from './jiraToTiptap';
 import { serializeToJiraWiki } from './jiraWikiSerializer';
 
@@ -118,6 +119,45 @@ describe('lists', () => {
     const output = serializeToJiraWiki(doc);
     expect(output).toContain('(/) Done item');
     expect(output).toContain('(x) Todo item');
+  });
+
+  it('task list round-trip: serialize → Jira → jiraToTiptap → taskList with correct checked state (CR-04)', () => {
+    // Construct a taskList doc and serialize it to Jira wiki markup
+    const doc = {
+      type: 'doc',
+      content: [
+        {
+          type: 'taskList',
+          content: [
+            {
+              type: 'taskItem',
+              attrs: { checked: true },
+              content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Done item' }] }],
+            },
+            {
+              type: 'taskItem',
+              attrs: { checked: false },
+              content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Todo item' }] }],
+            },
+          ],
+        },
+      ],
+    };
+    const jiraWiki = serializeToJiraWiki(doc);
+    // Must emit the emoticon convention
+    expect(jiraWiki).toContain('(/) Done item');
+    expect(jiraWiki).toContain('(x) Todo item');
+
+    // Re-load via jiraToTiptap — must reconstruct real taskList nodes (not emoticon text)
+    const reloaded = jiraToTiptap(jiraWiki);
+    const taskListNode = reloaded.content?.find((n) => n.type === 'taskList');
+    expect(taskListNode).toBeDefined();
+    const items = taskListNode?.content ?? [];
+    expect(items).toHaveLength(2);
+    expect(items[0].type).toBe('taskItem');
+    expect(items[0].attrs?.checked).toBe(true);
+    expect(items[1].type).toBe('taskItem');
+    expect(items[1].attrs?.checked).toBe(false);
   });
 });
 
@@ -281,4 +321,33 @@ describe('no-op idempotence', () => {
     const output = roundTrip(input);
     expect(output).toBe(input);
   });
+});
+
+// ---------------------------------------------------------------------------
+// CR-01: isSafeColor — CSS injection guard (JiraColorMark security test)
+// ---------------------------------------------------------------------------
+
+describe('isSafeColor (CSS injection guard)', () => {
+  it('accepts 3-digit hex', () => expect(isSafeColor('#f0a')).toBe(true));
+  it('accepts 6-digit hex', () => expect(isSafeColor('#ff0000')).toBe(true));
+  it('accepts 4-digit hex (with alpha)', () => expect(isSafeColor('#f0a8')).toBe(true));
+  it('accepts 8-digit hex (with alpha)', () => expect(isSafeColor('#ff0000cc')).toBe(true));
+  it('accepts rgb()', () => expect(isSafeColor('rgb(255, 0, 0)')).toBe(true));
+  it('accepts rgba()', () => expect(isSafeColor('rgba(255, 0, 0, 0.5)')).toBe(true));
+  it('accepts CSS named color', () => expect(isSafeColor('red')).toBe(true));
+  it('accepts "transparent"', () => expect(isSafeColor('transparent')).toBe(true));
+
+  // Malicious / injection values must be rejected
+  it('rejects injection: "red;background:url(...)"', () =>
+    expect(isSafeColor('red;background:url(https://evil.example)')).toBe(false));
+  it('rejects injection: value with semicolon', () =>
+    expect(isSafeColor('#ff0000;color:red')).toBe(false));
+  it('rejects injection: expression() (IE legacy)', () =>
+    expect(isSafeColor('expression(alert(1))')).toBe(false));
+  it('rejects injection: closing style tag fragment', () =>
+    expect(isSafeColor('</style><script>alert(1)</script>')).toBe(false));
+  it('rejects injection: url() exfiltration', () =>
+    expect(isSafeColor('url(javascript:alert(1))')).toBe(false));
+  it('rejects hex with trailing junk', () =>
+    expect(isSafeColor('#ff0000 !important')).toBe(false));
 });
