@@ -90,9 +90,7 @@ describe('CommentComposer — post mutation invalidation (PERF-DETAIL-03)', () =
       const calls = spy.mock.calls.map((c) => c[0]);
       const invalidatedKeys = calls.map((arg) => (arg as { queryKey?: unknown[] }).queryKey);
       expect(
-        invalidatedKeys.some(
-          (key) => Array.isArray(key) && key[0] === 'jira-issue-comments',
-        ),
+        invalidatedKeys.some((key) => Array.isArray(key) && key[0] === 'jira-issue-comments'),
       ).toBe(true);
     });
   });
@@ -118,9 +116,7 @@ describe('CommentComposer — post mutation invalidation (PERF-DETAIL-03)', () =
       const calls = spy.mock.calls.map((c) => c[0]);
       const invalidatedKeys = calls.map((arg) => (arg as { queryKey?: unknown[] }).queryKey);
       expect(
-        invalidatedKeys.some(
-          (key) => Array.isArray(key) && key[0] === 'jira-issue-detail',
-        ),
+        invalidatedKeys.some((key) => Array.isArray(key) && key[0] === 'jira-issue-detail'),
       ).toBe(true);
     });
   });

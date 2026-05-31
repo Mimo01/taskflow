@@ -112,8 +112,11 @@ describe('Phase 74 backlog adapter contract', () => {
     expect(reverseActive.has(CLOSED_ONLY_ISSUE_ID)).toBe(false);
 
     // Sanity: an ACTIVE-sprint issue IS in the index (guard isn't over-filtering).
-    const activeSprint = syntheticSprints.find((s) => s.state === 'ACTIVE' && s.issuesIds.length > 0);
-    if (!activeSprint) throw new Error('fixture has no ACTIVE sprint with issues — sanity check invalid');
+    const activeSprint = syntheticSprints.find(
+      (s) => s.state === 'ACTIVE' && s.issuesIds.length > 0,
+    );
+    if (!activeSprint)
+      throw new Error('fixture has no ACTIVE sprint with issues — sanity check invalid');
     expect(reverseActive.has(activeSprint.issuesIds[0] as number)).toBe(true);
 
     // Counter-proof: a naïve index that includes ALL sprints WOULD capture the

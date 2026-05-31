@@ -122,16 +122,15 @@ describe('ActivityTimeline — changelog skeleton guard (PERF-DETAIL-02)', () =>
     };
 
     // Override the module-level mocks for this test
-    vi.mocked(jiraService.mergeTimeline).mockReturnValue([{ type: 'change', data: entry }] as never);
-    vi.mocked(jiraService.filterTimeline).mockReturnValue([{ type: 'change', data: entry }] as never);
+    vi.mocked(jiraService.mergeTimeline).mockReturnValue([
+      { type: 'change', data: entry },
+    ] as never);
+    vi.mocked(jiraService.filterTimeline).mockReturnValue([
+      { type: 'change', data: entry },
+    ] as never);
     vi.mocked(jiraService.countByType).mockReturnValue({ comment: 0, change: 1, worklog: 0 });
 
-    render(
-      <ActivityTimeline
-        {...BASE_PROPS}
-        changelog={[entry as never]}
-      />,
-    );
+    render(<ActivityTimeline {...BASE_PROPS} changelog={[entry as never]} />);
 
     const skeletons = document.querySelectorAll('.animate-pulse');
     expect(skeletons.length).toBe(0);
