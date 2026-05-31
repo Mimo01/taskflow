@@ -101,12 +101,22 @@ async function fetchFixVersionIssues(
   baseUrl: string,
   token: string,
   versionId: string,
+  storyPointsFieldKey: string,
 ): Promise<JiraIssue[]> {
   const base = baseUrl.replace(/\/$/, '');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   if (!/^\d+$/.test(versionId)) throw new Error(`Invalid versionId: ${versionId}`);
   const jql = `fixVersion = ${versionId} AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`;
-  const fields = 'summary,status,assignee,issuetype,customfield_10016';
+  // Request both common story-point field keys plus the instance-resolved key
+  // (mirrors the Set-based pattern in services/jira.ts) so effort works on
+  // instances using customfield_10028 instead of customfield_10016.
+  const fields = [
+    'summary',
+    'status',
+    'assignee',
+    'issuetype',
+    ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
+  ].join(',');
   const maxResults = 200;
   let startAt = 0;
   const allIssues: JiraIssue[] = [];
@@ -141,6 +151,7 @@ export default function ReleaseDetailPage() {
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, activeGitlabProject } = useAuthStore();
   const releaseDetailPanelWidth = useSettingsStore((s) => s.releaseDetailPanelWidth);
   const setReleaseDetailPanelWidth = useSettingsStore((s) => s.setReleaseDetailPanelWidth);
+  const storyPointsFieldKey = useSettingsStore((s) => s.storyPointsFieldKey);
 
   // Pinned-release tab support (mirrors AioCycleDetailPage cycle pinning)
   const releaseKey = `REL-${versionId}`;
@@ -295,11 +306,11 @@ export default function ReleaseDetailPage() {
 
   // Fetch Jira issues for this fix version
   const { data: fixVersionIssues, isLoading: isLoadingIssues } = useQuery({
-    queryKey: ['jira-fixversion-issues', versionId],
+    queryKey: ['jira-fixversion-issues', versionId, storyPointsFieldKey],
     queryFn: async () => {
       const token = await readSecret('jira-pat').catch(() => null);
       if (!token || !jiraBaseUrl || !versionId) throw new Error('No credentials');
-      return fetchFixVersionIssues(jiraBaseUrl, token, versionId);
+      return fetchFixVersionIssues(jiraBaseUrl, token, versionId, storyPointsFieldKey);
     },
     staleTime: 5 * 60_000,
     enabled: !!jiraBaseUrl && !!versionId,
@@ -395,33 +406,42 @@ export default function ReleaseDetailPage() {
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
   })();
 
-  // Issue status distribution from statusCategory.key (optional → default 'new').
+  // Issue status distribution from statusCategory.key. Bucket exhaustively so an
+  // out-of-union runtime key falls back to 'new' instead of producing NaN.
   const issueStatusCounts = (() => {
     const counts = { new: 0, indeterminate: 0, done: 0 };
     for (const issue of releaseIssues) {
-      const key = issue.fields.status.statusCategory?.key ?? 'new';
-      counts[key] += 1;
+      const key = issue.fields.status.statusCategory?.key;
+      if (key === 'done') counts.done += 1;
+      else if (key === 'indeterminate') counts.indeterminate += 1;
+      else counts.new += 1;
     }
     return counts;
   })();
 
-  // Story-point effort: sum customfield_10016 (guarded against null) for total and
-  // for done-category issues. hasStoryPoints gates graceful hiding of the effort line.
+  // Story-point effort: sum the instance-resolved story-point field (guarded against
+  // null) for total and for done-category issues. hasStoryPoints gates graceful
+  // hiding of the effort line.
+  const issueStoryPoints = (issue: JiraIssue): number | null => {
+    const sp = issue.fields[storyPointsFieldKey] as number | null | undefined;
+    return typeof sp === 'number' ? sp : null;
+  };
   const storyPoints = (() => {
     let total = 0;
     let completed = 0;
     for (const issue of releaseIssues) {
-      const sp = issue.fields.customfield_10016;
-      if (typeof sp === 'number') {
+      const sp = issueStoryPoints(issue);
+      if (sp !== null) {
         total += sp;
         if (issue.fields.status.statusCategory?.key === 'done') completed += sp;
       }
     }
     return { total, completed };
   })();
-  const hasStoryPoints = releaseIssues.some(
-    (i) => typeof i.fields.customfield_10016 === 'number' && i.fields.customfield_10016 > 0,
-  );
+  const hasStoryPoints = releaseIssues.some((i) => {
+    const sp = issueStoryPoints(i);
+    return sp !== null && sp > 0;
+  });
 
   // Populate edit form when entering edit mode (seeds both Jira + GitLab fields)
   const startEditing = () => {
