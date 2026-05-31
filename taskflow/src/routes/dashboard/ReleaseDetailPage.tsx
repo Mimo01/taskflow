@@ -6,7 +6,8 @@
  * with inline editing capabilities.
  */
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Dialog } from '@base-ui/react/dialog';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetch } from '@tauri-apps/plugin-http';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import {
@@ -40,7 +41,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { useResizable } from '@/hooks/useResizable';
 import { statusPillClass } from '@/lib/statusStyles';
 import type { GitLabMilestone, GitLabMR } from '@/services/gitlab';
-import { fetchMilestoneMRs, fetchProjectMilestonesInRange } from '@/services/gitlab';
+import {
+  fetchMilestoneMRs,
+  fetchProjectMilestonesInRange,
+  updateMilestone,
+} from '@/services/gitlab';
 import type { JiraIssue } from '@/services/jira';
 import { fetchFixVersions, updateFixVersion } from '@/services/jira';
 import { extractTicketKeys, linkMRToTask } from '@/services/linkEngine';
@@ -170,7 +175,12 @@ export default function ReleaseDetailPage() {
   const [editDate, setEditDate] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editReleased, setEditReleased] = useState(false);
-  const [mutationError, setMutationError] = useState<string | null>(null);
+  const [editMilestoneTitle, setEditMilestoneTitle] = useState('');
+  const [editMilestoneDescription, setEditMilestoneDescription] = useState('');
+  // Per-source save errors (partial-failure handling). Jira and GitLab fail independently.
+  const [jiraError, setJiraError] = useState<string | null>(null);
+  const [gitlabError, setGitlabError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Fetch all fix versions (shared cache key with ReleasesTab)
   const { data: fixVersions, isLoading } = useQuery({
@@ -338,67 +348,129 @@ export default function ReleaseDetailPage() {
     };
   })();
 
-  // Populate edit form when entering edit mode
+  // Populate edit form when entering edit mode (seeds both Jira + GitLab fields)
   const startEditing = () => {
     if (!version) return;
     setEditName(version.name);
     setEditDate(version.releaseDate ?? '');
     setEditDescription(version.description ?? '');
     setEditReleased(version.released);
-    setMutationError(null);
+    setEditMilestoneTitle(matchedMilestone?.title ?? '');
+    setEditMilestoneDescription(matchedMilestone?.description ?? '');
+    setJiraError(null);
+    setGitlabError(null);
     setEditing(true);
   };
 
   const cancelEditing = () => {
     setEditing(false);
-    setMutationError(null);
+    setJiraError(null);
+    setGitlabError(null);
   };
 
-  // Update mutation
-  const mutation = useMutation({
-    mutationFn: async (fields: {
-      name?: string;
-      releaseDate?: string | null;
-      description?: string;
-      released?: boolean;
-    }) => {
-      const token = await readSecret('jira-pat').catch(() => null);
-      if (!token || !jiraBaseUrl || !versionId) throw new Error('No credentials');
-      return updateFixVersion(jiraBaseUrl, token, versionId, fields);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['jira-fix-versions', activeJiraProject] });
-      queryClient.invalidateQueries({ queryKey: ['jira-version-counts', versionId] });
-      setEditing(false);
-      setMutationError(null);
-    },
-    onError: (err: Error) => {
-      setMutationError(err.message);
-    },
-  });
-
-  const handleSave = () => {
+  // Compute the changed Jira fields (only what differs from the current version).
+  const buildJiraDiff = () => {
     const fields: {
       name?: string;
       releaseDate?: string | null;
       description?: string;
       released?: boolean;
     } = {};
-
     if (editName !== version?.name) fields.name = editName;
     if (editDate !== (version?.releaseDate ?? '')) {
       fields.releaseDate = editDate || null;
     }
     if (editDescription !== (version?.description ?? '')) fields.description = editDescription;
     if (editReleased !== version?.released) fields.released = editReleased;
+    return fields;
+  };
 
-    // Only send if something changed
-    if (Object.keys(fields).length === 0) {
+  // Compute the changed GitLab milestone fields (title/description only).
+  const buildGitlabDiff = () => {
+    const fields: { title?: string; description?: string } = {};
+    if (!matchedMilestone) return fields;
+    if (editMilestoneTitle !== matchedMilestone.title) fields.title = editMilestoneTitle;
+    if (editMilestoneDescription !== (matchedMilestone.description ?? '')) {
+      fields.description = editMilestoneDescription;
+    }
+    return fields;
+  };
+
+  // Save is enabled only when at least one field across either source changed.
+  const isEditDirty =
+    Object.keys(buildJiraDiff()).length > 0 || Object.keys(buildGitlabDiff()).length > 0;
+
+  // Combined save: writes Jira + GitLab via Promise.allSettled, sending only
+  // changed fields per source. Partial failure keeps the modal open with a
+  // per-source error; the succeeded side is NOT rolled back.
+  const handleSave = async () => {
+    const jiraFields = buildJiraDiff();
+    const gitlabFields = buildGitlabDiff();
+    const hasJiraChanges = Object.keys(jiraFields).length > 0;
+    const hasGitlabChanges = Object.keys(gitlabFields).length > 0;
+
+    // Nothing changed — just close.
+    if (!hasJiraChanges && !hasGitlabChanges) {
       setEditing(false);
       return;
     }
 
-    mutation.mutate(fields);
+    setIsSaving(true);
+    setJiraError(null);
+    setGitlabError(null);
+
+    const jiraPromise = hasJiraChanges
+      ? (async () => {
+          const token = await readSecret('jira-pat').catch(() => null);
+          if (!token || !jiraBaseUrl || !versionId) throw new Error('No credentials');
+          return updateFixVersion(jiraBaseUrl, token, versionId, jiraFields);
+        })()
+      : null;
+
+    const gitlabPromise =
+      hasGitlabChanges && matchedMilestone
+        ? updateMilestone(
+            gitlabBaseUrl ?? '',
+            gitlabToken ?? '',
+            activeGitlabProject ?? 0,
+            matchedMilestone.id,
+            gitlabFields,
+          )
+        : null;
+
+    const [jiraResult, gitlabResult] = await Promise.allSettled([
+      jiraPromise ?? Promise.resolve(null),
+      gitlabPromise ?? Promise.resolve(null),
+    ]);
+
+    let anyFailed = false;
+
+    if (jiraPromise && jiraResult.status === 'rejected') {
+      anyFailed = true;
+      setJiraError((jiraResult.reason as Error)?.message ?? 'Failed to update Jira');
+    }
+    if (gitlabPromise && gitlabResult.status === 'rejected') {
+      anyFailed = true;
+      setGitlabError(
+        (gitlabResult.reason as Error)?.message ?? 'Failed to update GitLab milestone',
+      );
+    }
+
+    // Invalidate caches for whichever side succeeded.
+    if (jiraPromise && jiraResult.status === 'fulfilled') {
+      queryClient.invalidateQueries({ queryKey: ['jira-fix-versions', activeJiraProject] });
+      queryClient.invalidateQueries({ queryKey: ['jira-version-counts', versionId] });
+    }
+    if (gitlabPromise && gitlabResult.status === 'fulfilled') {
+      queryClient.invalidateQueries({ queryKey: ['gitlab-milestones', activeGitlabProject] });
+    }
+
+    setIsSaving(false);
+
+    // Full success closes the modal; any failure keeps it open with per-source error.
+    if (!anyFailed) {
+      setEditing(false);
+    }
   };
 
   const handleBack = () => {
@@ -843,92 +915,293 @@ export default function ReleaseDetailPage() {
               style={{ borderColor: isDragging || handleHovered ? 'var(--ring)' : undefined }}
               className="absolute left-0 top-0 h-full w-3 cursor-ew-resize z-20 border-l border-border transition-colors duration-100"
             />
-            {editing ? (
-              /* Edit form */
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium">Edit Release</h3>
-                  <button
-                    type="button"
-                    onClick={cancelEditing}
-                    className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted"
-                    aria-label="Cancel editing"
-                  >
-                    <X className="size-4" />
-                  </button>
-                </div>
+            {/* Read-only metadata (editing now happens in the modal below) */}
+            <div className="space-y-4 text-sm">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium">Details</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-xs h-7"
+                  onClick={startEditing}
+                >
+                  <Pencil className="size-3" />
+                  Edit
+                </Button>
+              </div>
 
-                {/* Name */}
-                <div className="space-y-1.5">
-                  <label htmlFor="release-name" className="text-xs text-muted-foreground">
-                    Name
-                  </label>
-                  <Input
-                    id="release-name"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    required
-                  />
-                </div>
+              <MetaRow label="Status">
+                {version.released ? (
+                  <Badge tone="green">Released</Badge>
+                ) : (
+                  <Badge tone="amber">Unreleased</Badge>
+                )}
+              </MetaRow>
 
-                {/* Release Date */}
-                <div className="space-y-1.5">
-                  <label htmlFor="release-date" className="text-xs text-muted-foreground">
-                    Release Date
-                  </label>
-                  <Input
-                    id="release-date"
-                    type="date"
-                    value={editDate}
-                    onChange={(e) => setEditDate(e.target.value)}
-                  />
-                </div>
+              <MetaRow label="Release Date">
+                {version.releaseDate ? (
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="size-3 text-muted-foreground shrink-0" />
+                    {version.releaseDate}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">Not set</span>
+                )}
+              </MetaRow>
 
-                {/* Description */}
-                <div className="space-y-1.5">
-                  <label htmlFor="release-description" className="text-xs text-muted-foreground">
-                    Description
-                  </label>
-                  <Textarea
-                    id="release-description"
-                    value={editDescription}
-                    onChange={(e) => setEditDescription(e.target.value)}
-                    rows={4}
-                  />
-                </div>
-
-                {/* Released toggle */}
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={editReleased}
-                    onClick={() => setEditReleased(!editReleased)}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                      editReleased ? 'bg-green-600' : 'bg-muted'
-                    }`}
-                  >
+              <MetaRow label="GitLab Milestone">
+                {gitlabMatch.type === 'exact' ? (
+                  gitlabMatch.candidateUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => openUrl(gitlabMatch.candidateUrl)}
+                      className="text-primary hover:underline flex items-center gap-1"
+                      data-testid="gitlab-link-exact"
+                    >
+                      {gitlabMatch.candidateName}
+                      <ExternalLink className="size-3 shrink-0" />
+                    </button>
+                  ) : (
+                    <span data-testid="gitlab-link-exact">{gitlabMatch.candidateName}</span>
+                  )
+                ) : gitlabMatch.type === 'fuzzy' ? (
+                  gitlabMatch.candidateUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => openUrl(gitlabMatch.candidateUrl)}
+                      className="border-b border-dashed border-muted-foreground hover:text-foreground flex items-center gap-1"
+                      title={`Fuzzy match: ${gitlabMatch.candidateName}`}
+                      data-testid="gitlab-link-fuzzy"
+                    >
+                      {gitlabMatch.candidateName}
+                      <ExternalLink className="size-3 shrink-0" />
+                    </button>
+                  ) : (
                     <span
-                      className={`inline-block size-3.5 rounded-full bg-white transition-transform ${
-                        editReleased ? 'translate-x-[18px]' : 'translate-x-[2px]'
-                      }`}
-                    />
-                  </button>
-                  <span className="text-sm">{editReleased ? 'Released' : 'Unreleased'}</span>
+                      className="border-b border-dashed border-muted-foreground"
+                      title={`Fuzzy match: ${gitlabMatch.candidateName}`}
+                      data-testid="gitlab-link-fuzzy"
+                    >
+                      {gitlabMatch.candidateName}
+                    </span>
+                  )
+                ) : (
+                  <span
+                    className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
+                    data-testid="gitlab-link-none"
+                  >
+                    <AlertTriangle className="size-3" />
+                    No milestone matched
+                  </span>
+                )}
+              </MetaRow>
+
+              <MetaRow label="MR Labels">
+                {gitlabMatch.type === 'none' ? (
+                  <span className="text-muted-foreground">—</span>
+                ) : milestoneMRs && labelCoverage ? (
+                  labelCoverage.allLabeled ? (
+                    <span className="inline-flex items-center gap-1 text-green-600 dark:text-green-400">
+                      <Check className="size-3" />
+                      All {labelCoverage.total} MRs labeled
+                    </span>
+                  ) : (
+                    <div>
+                      <span className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400">
+                        <AlertTriangle className="size-3" />
+                        {labelCoverage.unlabeled.length}/{labelCoverage.total} missing
+                      </span>
+                      <div className="mt-1.5 space-y-0.5">
+                        {labelCoverage.unlabeled.map((mr) => (
+                          <div key={mr.id} className="flex items-center gap-1.5">
+                            <GitMerge
+                              className={`size-3 shrink-0 ${
+                                mr.state === 'merged'
+                                  ? 'text-green-600 dark:text-green-400'
+                                  : mr.state === 'opened'
+                                    ? 'text-orange-600 dark:text-orange-400'
+                                    : 'text-gray-500'
+                              }`}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => openUrl(mr.web_url)}
+                              className="text-xs font-mono hover:underline shrink-0"
+                            >
+                              !{mr.iid}
+                            </button>
+                            <span className="line-clamp-1 text-xs text-muted-foreground">
+                              {mr.title}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  <span className="text-muted-foreground">Loading...</span>
+                )}
+              </MetaRow>
+            </div>
+          </div>
+
+          {/* Edit modal — centered overlay; sidebar stays read-only */}
+          <Dialog.Root
+            open={editing}
+            onOpenChange={(o) => {
+              if (!o) cancelEditing();
+            }}
+          >
+            <Dialog.Portal>
+              <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
+              <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[680px] max-h-[85vh] overflow-y-auto bg-background border rounded-lg shadow-xl flex flex-col">
+                <div className="flex items-center justify-between border-b px-6 py-4">
+                  <h2 className="text-lg font-semibold">Edit Release</h2>
+                  <Dialog.Close
+                    render={
+                      <button
+                        type="button"
+                        className="rounded p-1 hover:bg-accent"
+                        aria-label="Close"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    }
+                  />
                 </div>
 
-                {/* Error message */}
-                {mutationError && <p className="text-xs text-destructive">{mutationError}</p>}
+                <div className="flex flex-col gap-5 px-6 py-5">
+                  {/* Jira fields */}
+                  <div className="space-y-4">
+                    {/* Name */}
+                    <div className="space-y-1.5">
+                      <label htmlFor="release-name" className="text-xs text-muted-foreground">
+                        Name
+                      </label>
+                      <Input
+                        id="release-name"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        disabled={isSaving}
+                        required
+                      />
+                    </div>
 
-                {/* Save / Cancel buttons */}
-                <div className="flex gap-2 pt-2">
+                    {/* Release Date */}
+                    <div className="space-y-1.5">
+                      <label htmlFor="release-date" className="text-xs text-muted-foreground">
+                        Release Date
+                      </label>
+                      <Input
+                        id="release-date"
+                        type="date"
+                        value={editDate}
+                        onChange={(e) => setEditDate(e.target.value)}
+                        disabled={isSaving}
+                      />
+                    </div>
+
+                    {/* Description */}
+                    <div className="space-y-1.5">
+                      <label
+                        htmlFor="release-description"
+                        className="text-xs text-muted-foreground"
+                      >
+                        Description
+                      </label>
+                      <Textarea
+                        id="release-description"
+                        value={editDescription}
+                        onChange={(e) => setEditDescription(e.target.value)}
+                        disabled={isSaving}
+                        rows={4}
+                      />
+                    </div>
+
+                    {/* Released toggle */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={editReleased}
+                        onClick={() => setEditReleased(!editReleased)}
+                        disabled={isSaving}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                          editReleased ? 'bg-green-600' : 'bg-muted'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block size-3.5 rounded-full bg-white transition-transform ${
+                            editReleased ? 'translate-x-[18px]' : 'translate-x-[2px]'
+                          }`}
+                        />
+                      </button>
+                      <span className="text-sm">{editReleased ? 'Released' : 'Unreleased'}</span>
+                    </div>
+                  </div>
+
+                  {/* GitLab Milestone section — only when a milestone is matched */}
+                  {gitlabMatch.type !== 'none' && matchedMilestone && (
+                    <div className="space-y-4 border-t pt-5">
+                      <h3 className="text-sm font-medium">GitLab Milestone</h3>
+
+                      {/* Milestone Title */}
+                      <div className="space-y-1.5">
+                        <label htmlFor="milestone-title" className="text-xs text-muted-foreground">
+                          Title
+                        </label>
+                        <Input
+                          id="milestone-title"
+                          value={editMilestoneTitle}
+                          onChange={(e) => setEditMilestoneTitle(e.target.value)}
+                          disabled={isSaving}
+                        />
+                      </div>
+
+                      {/* Milestone Description */}
+                      <div className="space-y-1.5">
+                        <label
+                          htmlFor="milestone-description"
+                          className="text-xs text-muted-foreground"
+                        >
+                          Description
+                        </label>
+                        <Textarea
+                          id="milestone-description"
+                          value={editMilestoneDescription}
+                          onChange={(e) => setEditMilestoneDescription(e.target.value)}
+                          disabled={isSaving}
+                          rows={4}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Per-source errors (partial-failure handling) */}
+                  {jiraError && (
+                    <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                      Jira: {jiraError}
+                    </div>
+                  )}
+                  {gitlabError && (
+                    <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                      GitLab: {gitlabError}
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="flex justify-end gap-2 border-t px-6 py-4">
+                  <Button variant="outline" size="sm" onClick={cancelEditing} disabled={isSaving}>
+                    Cancel
+                  </Button>
                   <Button
                     size="sm"
                     onClick={handleSave}
-                    disabled={mutation.isPending || !editName.trim()}
+                    disabled={isSaving || !editName.trim() || !isEditDirty}
                     className="gap-1.5"
                   >
-                    {mutation.isPending ? (
+                    {isSaving ? (
                       <>
                         <Loader2 className="size-3.5 animate-spin" />
                         Saving...
@@ -940,147 +1213,10 @@ export default function ReleaseDetailPage() {
                       </>
                     )}
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={cancelEditing}
-                    disabled={mutation.isPending}
-                  >
-                    Cancel
-                  </Button>
                 </div>
-              </div>
-            ) : (
-              /* Read-only metadata */
-              <div className="space-y-4 text-sm">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium">Details</h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1.5 text-xs h-7"
-                    onClick={startEditing}
-                  >
-                    <Pencil className="size-3" />
-                    Edit
-                  </Button>
-                </div>
-
-                <MetaRow label="Status">
-                  {version.released ? (
-                    <Badge tone="green">Released</Badge>
-                  ) : (
-                    <Badge tone="amber">Unreleased</Badge>
-                  )}
-                </MetaRow>
-
-                <MetaRow label="Release Date">
-                  {version.releaseDate ? (
-                    <span className="flex items-center gap-1.5">
-                      <Calendar className="size-3 text-muted-foreground shrink-0" />
-                      {version.releaseDate}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">Not set</span>
-                  )}
-                </MetaRow>
-
-                <MetaRow label="GitLab Milestone">
-                  {gitlabMatch.type === 'exact' ? (
-                    gitlabMatch.candidateUrl ? (
-                      <button
-                        type="button"
-                        onClick={() => openUrl(gitlabMatch.candidateUrl)}
-                        className="text-primary hover:underline flex items-center gap-1"
-                        data-testid="gitlab-link-exact"
-                      >
-                        {gitlabMatch.candidateName}
-                        <ExternalLink className="size-3 shrink-0" />
-                      </button>
-                    ) : (
-                      <span data-testid="gitlab-link-exact">{gitlabMatch.candidateName}</span>
-                    )
-                  ) : gitlabMatch.type === 'fuzzy' ? (
-                    gitlabMatch.candidateUrl ? (
-                      <button
-                        type="button"
-                        onClick={() => openUrl(gitlabMatch.candidateUrl)}
-                        className="border-b border-dashed border-muted-foreground hover:text-foreground flex items-center gap-1"
-                        title={`Fuzzy match: ${gitlabMatch.candidateName}`}
-                        data-testid="gitlab-link-fuzzy"
-                      >
-                        {gitlabMatch.candidateName}
-                        <ExternalLink className="size-3 shrink-0" />
-                      </button>
-                    ) : (
-                      <span
-                        className="border-b border-dashed border-muted-foreground"
-                        title={`Fuzzy match: ${gitlabMatch.candidateName}`}
-                        data-testid="gitlab-link-fuzzy"
-                      >
-                        {gitlabMatch.candidateName}
-                      </span>
-                    )
-                  ) : (
-                    <span
-                      className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400"
-                      data-testid="gitlab-link-none"
-                    >
-                      <AlertTriangle className="size-3" />
-                      No milestone matched
-                    </span>
-                  )}
-                </MetaRow>
-
-                <MetaRow label="MR Labels">
-                  {gitlabMatch.type === 'none' ? (
-                    <span className="text-muted-foreground">—</span>
-                  ) : milestoneMRs && labelCoverage ? (
-                    labelCoverage.allLabeled ? (
-                      <span className="inline-flex items-center gap-1 text-green-600 dark:text-green-400">
-                        <Check className="size-3" />
-                        All {labelCoverage.total} MRs labeled
-                      </span>
-                    ) : (
-                      <div>
-                        <span className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400">
-                          <AlertTriangle className="size-3" />
-                          {labelCoverage.unlabeled.length}/{labelCoverage.total} missing
-                        </span>
-                        <div className="mt-1.5 space-y-0.5">
-                          {labelCoverage.unlabeled.map((mr) => (
-                            <div key={mr.id} className="flex items-center gap-1.5">
-                              <GitMerge
-                                className={`size-3 shrink-0 ${
-                                  mr.state === 'merged'
-                                    ? 'text-green-600 dark:text-green-400'
-                                    : mr.state === 'opened'
-                                      ? 'text-orange-600 dark:text-orange-400'
-                                      : 'text-gray-500'
-                                }`}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => openUrl(mr.web_url)}
-                                className="text-xs font-mono hover:underline shrink-0"
-                              >
-                                !{mr.iid}
-                              </button>
-                              <span className="line-clamp-1 text-xs text-muted-foreground">
-                                {mr.title}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  ) : (
-                    <span className="text-muted-foreground">Loading...</span>
-                  )}
-                </MetaRow>
-              </div>
-            )}
-          </div>
+              </Dialog.Popup>
+            </Dialog.Portal>
+          </Dialog.Root>
         </div>
       )}
     </div>

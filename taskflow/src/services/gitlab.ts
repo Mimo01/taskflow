@@ -715,6 +715,59 @@ export async function fetchProjectMilestonesInRange(
 }
 
 /**
+ * Update a GitLab project milestone's title and/or description.
+ *
+ * Sends `PUT /api/v4/projects/:id/milestones/:milestone_id`. The path param is the
+ * milestone's numeric `id` (GitLabMilestone.id), NOT the project-scoped `iid`.
+ * Only the provided fields are sent — an empty `description: ''` clears the field,
+ * while omitting a field leaves it untouched.
+ *
+ * @param baseUrl     - GitLab base URL
+ * @param token       - Personal Access Token
+ * @param projectId   - GitLab numeric project ID
+ * @param milestoneId - Milestone numeric `id` (NOT `iid`)
+ * @param fields      - Subset of { title, description } to update
+ * @returns The updated milestone
+ */
+export async function updateMilestone(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+  milestoneId: number,
+  fields: { title?: string; description?: string },
+): Promise<GitLabMilestone> {
+  const url = `${baseUrl.replace(/\/$/, '')}/api/v4/projects/${projectId}/milestones/${milestoneId}`;
+
+  let response: Response;
+  try {
+    response = await apiFetch(
+      'gitlab',
+      url,
+      {
+        method: 'PUT',
+        headers: {
+          'PRIVATE-TOKEN': token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(fields),
+      },
+      'Update Milestone',
+    );
+  } catch {
+    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
+  }
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Failed to update milestone', response.status, 'gitlab');
+    }
+    throw new Error(`Failed to update milestone: status ${response.status}`);
+  }
+
+  return (await response.json()) as GitLabMilestone;
+}
+
+/**
  * Fetch repository tags for a GitLab project.
  *
  * @param baseUrl   - GitLab base URL
