@@ -36,11 +36,7 @@ vi.mock('@/components/wiki-editor', () => ({
     onChange: (v: string) => void;
     placeholder?: string;
   }) => (
-    <textarea
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-    />
+    <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
   ),
 }));
 

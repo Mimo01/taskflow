@@ -22,15 +22,14 @@
  * and replace the matching paragraph(s) with rawJira nodes.
  */
 
+import type { AnyExtension, JSONContent } from '@tiptap/core';
+import { generateJSON } from '@tiptap/html';
 // @ts-expect-error — jira2md has no default export type declarations
 import j2m from 'jira2md';
-import { generateJSON } from '@tiptap/html';
-import type { JSONContent } from '@tiptap/core';
-import type { AnyExtension } from '@tiptap/core';
 
 import {
-  preprocessJiraMarkup,
   type AttachmentMap,
+  preprocessJiraMarkup,
   type UserMap,
 } from '@/routes/dashboard/WikiRenderer';
 import { buildExtensions } from './wikiEditorExtensions';
@@ -58,11 +57,7 @@ function fixMarkdownLinkUnderscores(md: string): string {
  * Convert Jira wiki markup to HTML using the WikiRenderer pipeline.
  * This is the shared step between WikiRenderer and jiraToTiptap.
  */
-export function jiraWikiToHtml(
-  wiki: string,
-  attachments?: AttachmentMap,
-  users?: UserMap,
-): string {
+export function jiraWikiToHtml(wiki: string, attachments?: AttachmentMap, users?: UserMap): string {
   const preprocessed = preprocessJiraMarkup(wiki, attachments, users);
   const markdown = fixMarkdownLinkUnderscores(j2m.to_markdown(preprocessed));
   // j2m.md_to_html uses marked internally — same parser WikiRenderer uses
@@ -166,8 +161,17 @@ function wrapUnknownMacros(doc: JSONContent, originalWiki: string): JSONContent 
   // Extract all {macro}...{macro} blocks from the original wiki that are NOT
   // known macros (the known ones are handled by preprocessJiraMarkup).
   const KNOWN_MACROS = new Set([
-    'panel', 'info', 'warning', 'note', 'quote', 'code', 'color',
-    'noformat', 'section', 'column', 'anchor',
+    'panel',
+    'info',
+    'warning',
+    'note',
+    'quote',
+    'code',
+    'color',
+    'noformat',
+    'section',
+    'column',
+    'anchor',
   ]);
 
   // Match {macroName...}...{macroName} (greedy, macro name can have params)

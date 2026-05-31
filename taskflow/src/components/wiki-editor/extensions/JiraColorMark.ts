@@ -15,8 +15,7 @@ export const JiraColorMark = Mark.create({
     return {
       color: {
         default: null,
-        parseHTML: (element) =>
-          element.getAttribute('data-color') ?? element.style?.color ?? null,
+        parseHTML: (element) => element.getAttribute('data-color') ?? element.style?.color ?? null,
         renderHTML: (attributes) =>
           attributes.color
             ? {

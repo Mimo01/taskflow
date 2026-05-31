@@ -12,16 +12,15 @@
  * For [~accountId:XXX], we never create those interactively — they come from loaded content.
  */
 
-import { ReactRenderer } from '@tiptap/react';
-import { Mention } from '@tiptap/extension-mention';
-import type { SuggestionProps, SuggestionKeyDownProps } from '@tiptap/suggestion';
 import type { AnyExtension } from '@tiptap/core';
-
+import { Mention } from '@tiptap/extension-mention';
+import { ReactRenderer } from '@tiptap/react';
+import type { SuggestionKeyDownProps, SuggestionProps } from '@tiptap/suggestion';
+import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import { CachedAvatar } from '@/components/ui/cached-avatar';
 import type { JiraAssignableUser } from '@/services/jira/types';
 import { fetchAssignableUsers } from '@/services/jira/users';
 import { readSecret } from '@/services/stronghold';
-import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 
 // ---------------------------------------------------------------------------
 // Suggestion list component
@@ -35,83 +34,79 @@ interface MentionListProps extends SuggestionProps {
   items: JiraAssignableUser[];
 }
 
-const MentionList = forwardRef<MentionListHandle, MentionListProps>(
-  function MentionList({ items, command }, ref) {
-    const [selectedIndex, setSelectedIndex] = useState(0);
+const MentionList = forwardRef<MentionListHandle, MentionListProps>(function MentionList(
+  { items, command },
+  ref,
+) {
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
-    useEffect(() => {
-      setSelectedIndex(0);
-    }, [items]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: items reference reset is intentional — matching MentionPopover pattern
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [items]);
 
-    useImperativeHandle(ref, () => ({
-      onKeyDown(e: KeyboardEvent) {
-        if (e.key === 'ArrowUp') {
-          setSelectedIndex((i) => (i > 0 ? i - 1 : Math.max(items.length - 1, 0)));
-          return true;
+  useImperativeHandle(ref, () => ({
+    onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'ArrowUp') {
+        setSelectedIndex((i) => (i > 0 ? i - 1 : Math.max(items.length - 1, 0)));
+        return true;
+      }
+      if (e.key === 'ArrowDown') {
+        setSelectedIndex((i) => (i < items.length - 1 ? i + 1 : 0));
+        return true;
+      }
+      if (e.key === 'Enter') {
+        const item = items[selectedIndex];
+        if (item) {
+          command({ id: item.name, label: item.displayName });
         }
-        if (e.key === 'ArrowDown') {
-          setSelectedIndex((i) => (i < items.length - 1 ? i + 1 : 0));
-          return true;
-        }
-        if (e.key === 'Enter') {
-          const item = items[selectedIndex];
-          if (item) {
-            command({ id: item.name, label: item.displayName });
-          }
-          return true;
-        }
-        return false;
-      },
-    }));
+        return true;
+      }
+      return false;
+    },
+  }));
 
-    if (items.length === 0) {
-      return (
-        <div className="bg-popover border rounded-md shadow-lg p-2 text-sm text-muted-foreground min-w-[200px]">
-          No matching users
-        </div>
-      );
-    }
-
+  if (items.length === 0) {
     return (
-      <div
-        role="listbox"
-        className="bg-popover border rounded-md shadow-lg p-1 min-w-[200px] max-h-[240px] overflow-y-auto"
-      >
-        {items.map((user, index) => {
-          const avatarUrl =
-            user.avatarUrls?.['48x48'] ??
-            user.avatarUrls?.['24x24'] ??
-            user.avatarUrls?.['16x16'];
-          const isActive = index === selectedIndex;
-          return (
-            <div
-              key={user.name}
-              role="option"
-              aria-selected={isActive}
-              className={`flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer text-sm ${
-                isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'
-              }`}
-              onClick={() => command({ id: user.name, label: user.displayName })}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') command({ id: user.name, label: user.displayName });
-              }}
-              onMouseEnter={() => setSelectedIndex(index)}
-            >
-              <CachedAvatar
-                url={avatarUrl}
-                name={user.displayName}
-                size={20}
-                className="shrink-0"
-              />
-              <span className="truncate">{user.displayName}</span>
-              <span className="text-muted-foreground text-xs ml-auto truncate">{user.name}</span>
-            </div>
-          );
-        })}
+      <div className="bg-popover border rounded-md shadow-lg p-2 text-sm text-muted-foreground min-w-[200px]">
+        No matching users
       </div>
     );
-  },
-);
+  }
+
+  return (
+    <div
+      role="listbox"
+      className="bg-popover border rounded-md shadow-lg p-1 min-w-[200px] max-h-[240px] overflow-y-auto"
+    >
+      {items.map((user, index) => {
+        const avatarUrl =
+          user.avatarUrls?.['48x48'] ?? user.avatarUrls?.['24x24'] ?? user.avatarUrls?.['16x16'];
+        const isActive = index === selectedIndex;
+        return (
+          <div
+            key={user.name}
+            role="option"
+            tabIndex={-1}
+            aria-selected={isActive}
+            className={`flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer text-sm ${
+              isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'
+            }`}
+            onClick={() => command({ id: user.name, label: user.displayName })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') command({ id: user.name, label: user.displayName });
+            }}
+            onMouseEnter={() => setSelectedIndex(index)}
+          >
+            <CachedAvatar url={avatarUrl} name={user.displayName} size={20} className="shrink-0" />
+            <span className="truncate">{user.displayName}</span>
+            <span className="text-muted-foreground text-xs ml-auto truncate">{user.name}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+});
 
 // ---------------------------------------------------------------------------
 // Factory function

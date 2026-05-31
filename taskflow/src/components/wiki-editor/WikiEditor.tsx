@@ -14,26 +14,25 @@
  * Do NOT weaken the rehype-sanitize allowlist in WikiRenderer.
  */
 
-import { useEditor, EditorContent } from '@tiptap/react';
+import { EditorContent, useEditor } from '@tiptap/react';
 import {
   Bold,
-  Italic,
-  Strikethrough,
   Code,
+  FileCode,
+  Italic,
   List,
   ListOrdered,
-  Quote,
   Minus,
-  FileCode,
+  Quote,
+  Strikethrough,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-
+import { createMentionExtension } from './extensions/mentionConfig';
+import type { AttachmentMap, UserMap } from './jiraToTiptap';
 import { jiraToTiptap } from './jiraToTiptap';
 import { serializeToJiraWiki } from './jiraWikiSerializer';
-import { buildExtensions } from './wikiEditorExtensions';
-import { createMentionExtension } from './extensions/mentionConfig';
 import { SourceView } from './SourceView';
-import type { AttachmentMap, UserMap } from './jiraToTiptap';
+import { buildExtensions } from './wikiEditorExtensions';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -144,7 +143,11 @@ export function WikiEditor({
       editorProps: {
         handleKeyDown(_view, event) {
           // Cmd/Ctrl+Enter → submit
-          if ((submitOnEnter || onSubmit) && event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+          if (
+            (submitOnEnter || onSubmit) &&
+            event.key === 'Enter' &&
+            (event.metaKey || event.ctrlKey)
+          ) {
             onSubmit?.();
             return true;
           }

@@ -8,20 +8,18 @@
  * Keeping one schema source prevents load/save drift (the jira.ts dual-file lesson).
  */
 
-import { type Extensions } from '@tiptap/core';
-import StarterKit from '@tiptap/starter-kit';
+import type { AnyExtension, Extensions } from '@tiptap/core';
+import { Mention } from '@tiptap/extension-mention';
 import { Table } from '@tiptap/extension-table';
-import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
-import { TaskList } from '@tiptap/extension-task-list';
+import { TableRow } from '@tiptap/extension-table-row';
 import { TaskItem } from '@tiptap/extension-task-item';
-import { Mention } from '@tiptap/extension-mention';
-import type { AnyExtension } from '@tiptap/core';
-
-import { RawJiraNode } from './extensions/RawJiraNode';
-import { JiraColorMark } from './extensions/JiraColorMark';
+import { TaskList } from '@tiptap/extension-task-list';
+import StarterKit from '@tiptap/starter-kit';
 import { JiraCalloutNode } from './extensions/JiraCalloutNode';
+import { JiraColorMark } from './extensions/JiraColorMark';
+import { RawJiraNode } from './extensions/RawJiraNode';
 
 export interface BuildExtensionsOpts {
   /**

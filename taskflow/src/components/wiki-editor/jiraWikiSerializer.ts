@@ -44,7 +44,10 @@ export function serializeToJiraWiki(doc: JSONContent): string {
   }
 
   // Collapse 3+ consecutive newlines to 2, then trim
-  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  return lines
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 // ---------------------------------------------------------------------------
@@ -158,9 +161,10 @@ function serializeList(listNode: JSONContent, marker: string, depth: number): st
     const firstChild = children[0];
     const rest = children.slice(1);
 
-    const lineText = firstChild?.type === 'paragraph'
-      ? serializeInlineContent(firstChild.content ?? [])
-      : serializeBlock(firstChild ?? { type: 'paragraph' }, { listDepth: depth });
+    const lineText =
+      firstChild?.type === 'paragraph'
+        ? serializeInlineContent(firstChild.content ?? [])
+        : serializeBlock(firstChild ?? { type: 'paragraph' }, { listDepth: depth });
 
     lines.push(`${prefix} ${lineText}`);
 
@@ -280,9 +284,7 @@ function serializeTableRow(row: JSONContent): string {
 function serializeCallout(node: JSONContent): string {
   const kind = (node.attrs?.['kind'] as string | undefined) ?? 'panel';
   const title = node.attrs?.['title'] as string | null | undefined;
-  const inner = (node.content ?? [])
-    .map((n) => serializeBlock(n, { listDepth: 0 }))
-    .join('\n');
+  const inner = (node.content ?? []).map((n) => serializeBlock(n, { listDepth: 0 })).join('\n');
 
   if (kind === 'panel') {
     const header = title ? `{panel:title=${title}}` : '{panel}';
