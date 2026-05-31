@@ -470,38 +470,55 @@ export default function ReleaseDetailPage() {
                 <h2 className="text-xl font-semibold leading-snug">{version.name}</h2>
               </div>
 
-              {/* Description */}
-              <section>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
-                  <FileText className="size-3.5" />
-                  {gitlabMatch.type !== 'none' && matchedMilestone
-                    ? 'Jira Description'
-                    : 'Description'}
-                </h3>
-                {version.description ? (
-                  <p className="text-sm whitespace-pre-wrap">{version.description}</p>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">No description</p>
-                )}
-              </section>
-
-              {/* GitLab Description */}
-              {gitlabMatch.type !== 'none' && matchedMilestone && (
+              {/* Description(s) — when a GitLab milestone is matched but neither
+                  side has text, collapse the two empty blocks into one. */}
+              {gitlabMatch.type !== 'none' &&
+              matchedMilestone &&
+              !version.description &&
+              !matchedMilestone.description ? (
                 <section>
                   <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
                     <FileText className="size-3.5" />
-                    GitLab Description
+                    Description
                   </h3>
-                  {matchedMilestone.description ? (
-                    <div className="text-sm prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ul]:pl-4 [&_li]:my-0">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {matchedMilestone.description}
-                      </ReactMarkdown>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground italic">No description</p>
-                  )}
+                  <p className="text-sm text-muted-foreground italic">No description</p>
                 </section>
+              ) : (
+                <>
+                  {/* Jira Description */}
+                  <section>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <FileText className="size-3.5" />
+                      {gitlabMatch.type !== 'none' && matchedMilestone
+                        ? 'Jira Description'
+                        : 'Description'}
+                    </h3>
+                    {version.description ? (
+                      <p className="text-sm whitespace-pre-wrap">{version.description}</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">No description</p>
+                    )}
+                  </section>
+
+                  {/* GitLab Description */}
+                  {gitlabMatch.type !== 'none' && matchedMilestone && (
+                    <section>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+                        <FileText className="size-3.5" />
+                        GitLab Description
+                      </h3>
+                      {matchedMilestone.description ? (
+                        <div className="text-sm prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ul]:pl-4 [&_li]:my-0">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {matchedMilestone.description}
+                          </ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">No description</p>
+                      )}
+                    </section>
+                  )}
+                </>
               )}
 
               {/* Label summary from milestone MRs */}
