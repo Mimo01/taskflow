@@ -328,289 +328,132 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
       {/* Primary row: quickfilters + filter toggle */}
       <div className="flex items-center gap-1.5 px-3 py-1.5">
         <div className="flex-1 min-w-0 flex flex-nowrap items-center gap-1.5 overflow-x-auto no-scrollbar">
-        {/* Quickfilter presets */}
-        {/* Empty state hint */}
-        {quickFilters.length === 0 && !hasActiveFilters && (
-          <span className="shrink-0 inline-flex items-center gap-1 text-[11px] text-muted-foreground/60 italic">
-            <Info className="size-3 shrink-0" />
-            Saved filters appear here — use Filter to create one
-          </span>
-        )}
-
-        {quickFilters.map((qf, qfIndex) => {
-          const active = isQuickFilterActive(qf);
-          const isFirst = qfIndex === 0;
-          const isLast = qfIndex === quickFilters.length - 1;
-          const isRenaming = renamingId === qf.id;
-
-          if (isRenaming) {
-            return (
-              <span
-                key={qf.id}
-                className="inline-flex items-center gap-1 rounded-md border border-ring bg-background pl-1.5 pr-1 py-0.5"
-              >
-                <Bookmark className="size-3 shrink-0 text-muted-foreground" />
-                <input
-                  ref={renameInputRef}
-                  type="text"
-                  value={renameInput}
-                  onChange={(e) => setRenameInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && renameInput.trim()) {
-                      renameQuickFilter(qf.id, renameInput.trim());
-                      setRenamingId(null);
-                    }
-                    if (e.key === 'Escape') setRenamingId(null);
-                  }}
-                  onBlur={() => {
-                    if (renameInput.trim()) renameQuickFilter(qf.id, renameInput.trim());
-                    setRenamingId(null);
-                  }}
-                  className="bg-transparent text-xs w-24 outline-none"
-                />
-              </span>
-            );
-          }
-
-          return (
-            <ContextMenu key={qf.id}>
-              <ContextMenuTrigger
-                render={
-                  <button
-                    type="button"
-                    onClick={() => (active ? clearAll() : applyQuickFilter(qf))}
-                    className={`inline-flex items-center gap-1 rounded-md text-xs leading-tight pl-2 pr-2.5 py-1 transition-colors cursor-pointer ${
-                      active
-                        ? 'bg-primary/15 text-primary border border-primary/30'
-                        : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent'
-                    }`}
-                  />
-                }
-              >
-                <Bookmark className={`size-3 shrink-0 ${active ? 'fill-primary/40' : ''}`} />
-                <span className="truncate max-w-[120px]">{qf.name}</span>
-              </ContextMenuTrigger>
-              <ContextMenuContent>
-                <ContextMenuItem
-                  onClick={() => {
-                    setRenamingId(qf.id);
-                    setRenameInput(qf.name);
-                    setTimeout(() => renameInputRef.current?.select(), 0);
-                  }}
-                >
-                  <Pencil className="size-3.5" />
-                  Rename
-                </ContextMenuItem>
-                {quickFilters.length > 1 && (
-                  <>
-                    <ContextMenuSeparator />
-                    <ContextMenuItem
-                      disabled={isFirst}
-                      onClick={() => moveQuickFilter(qf.id, 'left')}
-                    >
-                      <ArrowLeft className="size-3.5" />
-                      Move left
-                    </ContextMenuItem>
-                    <ContextMenuItem
-                      disabled={isLast}
-                      onClick={() => moveQuickFilter(qf.id, 'right')}
-                    >
-                      <ArrowRight className="size-3.5" />
-                      Move right
-                    </ContextMenuItem>
-                    <ContextMenuItem
-                      disabled={isFirst}
-                      onClick={() => moveQuickFilter(qf.id, 'front')}
-                    >
-                      <ChevronsLeft className="size-3.5" />
-                      Move to front
-                    </ContextMenuItem>
-                    <ContextMenuItem
-                      disabled={isLast}
-                      onClick={() => moveQuickFilter(qf.id, 'back')}
-                    >
-                      <ChevronsRight className="size-3.5" />
-                      Move to back
-                    </ContextMenuItem>
-                  </>
-                )}
-                <ContextMenuSeparator />
-                <ContextMenuItem variant="destructive" onClick={() => removeQuickFilter(qf.id)}>
-                  <Trash2 className="size-3.5" />
-                  Delete
-                </ContextMenuItem>
-              </ContextMenuContent>
-            </ContextMenu>
-          );
-        })}
-
-        {/* Active filter chips (shown in primary row when selectors are closed) */}
-        {!filtersOpen && activeChips.length > 0 && (
-          <>
-            {quickFilters.length > 0 && <div className="shrink-0 w-px h-4 bg-border" />}
-            <div className="flex flex-nowrap items-center gap-1">
-              {activeChips.map((chip) => (
-                <span
-                  key={chip.key}
-                  data-testid={`${chip.key.replace(/^(epic|label|assignee|status)-/, '$1-chip-')}`}
-                  className="shrink-0 inline-flex items-center gap-1 rounded-md bg-secondary text-secondary-foreground pl-1.5 pr-1 py-0.5 text-[11px] leading-tight"
-                >
-                  <span className="text-muted-foreground font-medium">{chip.category}:</span>
-                  <span className="max-w-[120px] truncate">{chip.label}</span>
-                  <button
-                    type="button"
-                    aria-label={`Remove ${chip.category.toLowerCase()} filter ${chip.label}`}
-                    onClick={chip.onRemove}
-                    className="rounded-sm hover:bg-muted-foreground/20 p-0.5 transition-colors"
-                  >
-                    <X className="size-2.5" />
-                  </button>
-                </span>
-              ))}
-              <button
-                type="button"
-                onClick={clearAll}
-                className="text-[11px] text-muted-foreground hover:text-foreground transition-colors px-1"
-              >
-                Clear
-              </button>
-            </div>
-          </>
-        )}
-        </div>
-
-        <div className="shrink-0 flex items-center gap-1.5">
-        {/* Save as quickfilter */}
-        {hasActiveFilters && !savingName && (
-          <Button
-            variant="ghost"
-            size="xs"
-            onClick={handleStartSave}
-            className="text-muted-foreground gap-1"
-          >
-            <BookmarkPlus className="size-3" />
-            <span className="text-[11px]">Save</span>
-          </Button>
-        )}
-
-        {/* Save to Jira as saved filter */}
-        {hasActiveFilters && !savingName && jiraBaseUrl && (
-          <Button
-            variant="ghost"
-            size="xs"
-            onClick={() => setSaveDialogOpen(true)}
-            className="text-muted-foreground gap-1"
-          >
-            <BookmarkPlus className="size-3" />
-            <span className="text-[11px]">Save Filter</span>
-          </Button>
-        )}
-
-        {savingName && (
-          <span className="inline-flex items-center gap-1">
-            <input
-              ref={nameInputRef}
-              type="text"
-              value={nameInput}
-              onChange={(e) => setNameInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSaveQuickFilter();
-                if (e.key === 'Escape') {
-                  setSavingName(false);
-                  setNameInput('');
-                }
-              }}
-              placeholder="Filter name..."
-              className="h-6 rounded-md border border-border bg-background px-2 text-xs w-28 focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-            <Button
-              variant="default"
-              size="xs"
-              onClick={handleSaveQuickFilter}
-              disabled={!nameInput.trim()}
-            >
-              Save
-            </Button>
-            <Button
-              variant="ghost"
-              size="xs"
-              onClick={() => {
-                setSavingName(false);
-                setNameInput('');
-              }}
-            >
-              <X className="size-3" />
-            </Button>
-          </span>
-        )}
-
-        {/* Filter toggle button */}
-        <Button
-          variant={filtersOpen ? 'secondary' : 'outline'}
-          size="xs"
-          onClick={() => setFiltersOpen(!filtersOpen)}
-          className="gap-1"
-        >
-          <Filter className="size-3" />
-          Filter
-          {activeCount > 0 && (
-            <span className="inline-flex items-center justify-center size-4 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold leading-none">
-              {activeCount}
+          {/* Quickfilter presets */}
+          {/* Empty state hint */}
+          {quickFilters.length === 0 && !hasActiveFilters && (
+            <span className="shrink-0 inline-flex items-center gap-1 text-[11px] text-muted-foreground/60 italic">
+              <Info className="size-3 shrink-0" />
+              Saved filters appear here — use Filter to create one
             </span>
           )}
-        </Button>
-        </div>
-      </div>
 
-      {/* Save Filter dialog (Jira) */}
-      {jiraBaseUrl && (
-        <SaveFilterDialog
-          open={saveDialogOpen}
-          onOpenChange={setSaveDialogOpen}
-          jql={currentJql}
-          jiraBaseUrl={jiraBaseUrl}
-        />
-      )}
+          {quickFilters.map((qf, qfIndex) => {
+            const active = isQuickFilterActive(qf);
+            const isFirst = qfIndex === 0;
+            const isLast = qfIndex === quickFilters.length - 1;
+            const isRenaming = renamingId === qf.id;
 
-      {/* Expandable filter selectors row */}
-      {filtersOpen && (
-        <div className="flex items-center gap-1.5 px-3 py-1.5 border-t border-border/50 bg-muted/20">
-          <FilterDropdown
-            label="Epic"
-            options={epicKeys}
-            selected={activeEpics}
-            onToggle={toggleEpic}
-            displayMap={filterOptions.epics}
-          />
-          <FilterDropdown
-            label="Label"
-            options={filterOptions.labels}
-            selected={activeLabels}
-            onToggle={toggleLabel}
-          />
-          <FilterDropdown
-            label="Assignee"
-            options={filterOptions.assignees}
-            selected={activeAssignees}
-            onToggle={toggleAssignee}
-          />
-          <FilterDropdown
-            label="Status"
-            options={filterOptions.statuses}
-            selected={activeStatuses}
-            onToggle={toggleStatus}
-          />
+            if (isRenaming) {
+              return (
+                <span
+                  key={qf.id}
+                  className="inline-flex items-center gap-1 rounded-md border border-ring bg-background pl-1.5 pr-1 py-0.5"
+                >
+                  <Bookmark className="size-3 shrink-0 text-muted-foreground" />
+                  <input
+                    ref={renameInputRef}
+                    type="text"
+                    value={renameInput}
+                    onChange={(e) => setRenameInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && renameInput.trim()) {
+                        renameQuickFilter(qf.id, renameInput.trim());
+                        setRenamingId(null);
+                      }
+                      if (e.key === 'Escape') setRenamingId(null);
+                    }}
+                    onBlur={() => {
+                      if (renameInput.trim()) renameQuickFilter(qf.id, renameInput.trim());
+                      setRenamingId(null);
+                    }}
+                    className="bg-transparent text-xs w-24 outline-none"
+                  />
+                </span>
+              );
+            }
 
-          {/* Active filter chips inline with selectors */}
-          {activeChips.length > 0 && (
+            return (
+              <ContextMenu key={qf.id}>
+                <ContextMenuTrigger
+                  render={
+                    <button
+                      type="button"
+                      onClick={() => (active ? clearAll() : applyQuickFilter(qf))}
+                      className={`inline-flex items-center gap-1 rounded-md text-xs leading-tight pl-2 pr-2.5 py-1 transition-colors cursor-pointer ${
+                        active
+                          ? 'bg-primary/15 text-primary border border-primary/30'
+                          : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent'
+                      }`}
+                    />
+                  }
+                >
+                  <Bookmark className={`size-3 shrink-0 ${active ? 'fill-primary/40' : ''}`} />
+                  <span className="truncate max-w-[120px]">{qf.name}</span>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem
+                    onClick={() => {
+                      setRenamingId(qf.id);
+                      setRenameInput(qf.name);
+                      setTimeout(() => renameInputRef.current?.select(), 0);
+                    }}
+                  >
+                    <Pencil className="size-3.5" />
+                    Rename
+                  </ContextMenuItem>
+                  {quickFilters.length > 1 && (
+                    <>
+                      <ContextMenuSeparator />
+                      <ContextMenuItem
+                        disabled={isFirst}
+                        onClick={() => moveQuickFilter(qf.id, 'left')}
+                      >
+                        <ArrowLeft className="size-3.5" />
+                        Move left
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        disabled={isLast}
+                        onClick={() => moveQuickFilter(qf.id, 'right')}
+                      >
+                        <ArrowRight className="size-3.5" />
+                        Move right
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        disabled={isFirst}
+                        onClick={() => moveQuickFilter(qf.id, 'front')}
+                      >
+                        <ChevronsLeft className="size-3.5" />
+                        Move to front
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        disabled={isLast}
+                        onClick={() => moveQuickFilter(qf.id, 'back')}
+                      >
+                        <ChevronsRight className="size-3.5" />
+                        Move to back
+                      </ContextMenuItem>
+                    </>
+                  )}
+                  <ContextMenuSeparator />
+                  <ContextMenuItem variant="destructive" onClick={() => removeQuickFilter(qf.id)}>
+                    <Trash2 className="size-3.5" />
+                    Delete
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
+            );
+          })}
+
+          {/* Active filter chips (shown in primary row when selectors are closed) */}
+          {!filtersOpen && activeChips.length > 0 && (
             <>
-              <div className="w-px h-4 bg-border" />
-              <div className="flex flex-wrap items-center gap-1">
+              {quickFilters.length > 0 && <div className="shrink-0 w-px h-4 bg-border" />}
+              <div className="flex flex-nowrap items-center gap-1">
                 {activeChips.map((chip) => (
                   <span
                     key={chip.key}
                     data-testid={`${chip.key.replace(/^(epic|label|assignee|status)-/, '$1-chip-')}`}
-                    className="inline-flex items-center gap-1 rounded-md bg-secondary text-secondary-foreground pl-1.5 pr-1 py-0.5 text-[11px] leading-tight"
+                    className="shrink-0 inline-flex items-center gap-1 rounded-md bg-secondary text-secondary-foreground pl-1.5 pr-1 py-0.5 text-[11px] leading-tight"
                   >
                     <span className="text-muted-foreground font-medium">{chip.category}:</span>
                     <span className="max-w-[120px] truncate">{chip.label}</span>
@@ -634,6 +477,165 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
               </div>
             </>
           )}
+        </div>
+
+        <div className="shrink-0 flex items-center gap-1.5">
+          {/* Save as quickfilter */}
+          {hasActiveFilters && !savingName && (
+            <Button
+              variant="ghost"
+              size="xs"
+              onClick={handleStartSave}
+              className="text-muted-foreground gap-1"
+            >
+              <BookmarkPlus className="size-3" />
+              <span className="text-[11px]">Save</span>
+            </Button>
+          )}
+
+          {/* Save to Jira as saved filter */}
+          {hasActiveFilters && !savingName && jiraBaseUrl && (
+            <Button
+              variant="ghost"
+              size="xs"
+              onClick={() => setSaveDialogOpen(true)}
+              className="text-muted-foreground gap-1"
+            >
+              <BookmarkPlus className="size-3" />
+              <span className="text-[11px]">Save Filter</span>
+            </Button>
+          )}
+
+          {savingName && (
+            <span className="inline-flex items-center gap-1">
+              <input
+                ref={nameInputRef}
+                type="text"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveQuickFilter();
+                  if (e.key === 'Escape') {
+                    setSavingName(false);
+                    setNameInput('');
+                  }
+                }}
+                placeholder="Filter name..."
+                className="h-6 rounded-md border border-border bg-background px-2 text-xs w-28 focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+              <Button
+                variant="default"
+                size="xs"
+                onClick={handleSaveQuickFilter}
+                disabled={!nameInput.trim()}
+              >
+                Save
+              </Button>
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={() => {
+                  setSavingName(false);
+                  setNameInput('');
+                }}
+              >
+                <X className="size-3" />
+              </Button>
+            </span>
+          )}
+
+          {/* Filter toggle button */}
+          <Button
+            variant={filtersOpen ? 'secondary' : 'outline'}
+            size="xs"
+            onClick={() => setFiltersOpen(!filtersOpen)}
+            className="gap-1"
+          >
+            <Filter className="size-3" />
+            Filter
+            {activeCount > 0 && (
+              <span className="inline-flex items-center justify-center size-4 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold leading-none">
+                {activeCount}
+              </span>
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* Save Filter dialog (Jira) */}
+      {jiraBaseUrl && (
+        <SaveFilterDialog
+          open={saveDialogOpen}
+          onOpenChange={setSaveDialogOpen}
+          jql={currentJql}
+          jiraBaseUrl={jiraBaseUrl}
+        />
+      )}
+
+      {/* Expandable filter selectors row */}
+      {filtersOpen && (
+        <div className="flex items-center gap-1.5 px-3 py-1.5 border-t border-border/50 bg-muted/20">
+          <div className="flex-1 min-w-0 flex flex-nowrap items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <FilterDropdown
+              label="Epic"
+              options={epicKeys}
+              selected={activeEpics}
+              onToggle={toggleEpic}
+              displayMap={filterOptions.epics}
+            />
+            <FilterDropdown
+              label="Label"
+              options={filterOptions.labels}
+              selected={activeLabels}
+              onToggle={toggleLabel}
+            />
+            <FilterDropdown
+              label="Assignee"
+              options={filterOptions.assignees}
+              selected={activeAssignees}
+              onToggle={toggleAssignee}
+            />
+            <FilterDropdown
+              label="Status"
+              options={filterOptions.statuses}
+              selected={activeStatuses}
+              onToggle={toggleStatus}
+            />
+
+            {/* Active filter chips inline with selectors */}
+            {activeChips.length > 0 && (
+              <>
+                <div className="shrink-0 w-px h-4 bg-border" />
+                <div className="flex flex-nowrap items-center gap-1">
+                  {activeChips.map((chip) => (
+                    <span
+                      key={chip.key}
+                      data-testid={`${chip.key.replace(/^(epic|label|assignee|status)-/, '$1-chip-')}`}
+                      className="shrink-0 inline-flex items-center gap-1 rounded-md bg-secondary text-secondary-foreground pl-1.5 pr-1 py-0.5 text-[11px] leading-tight"
+                    >
+                      <span className="text-muted-foreground font-medium">{chip.category}:</span>
+                      <span className="max-w-[120px] truncate">{chip.label}</span>
+                      <button
+                        type="button"
+                        aria-label={`Remove ${chip.category.toLowerCase()} filter ${chip.label}`}
+                        onClick={chip.onRemove}
+                        className="rounded-sm hover:bg-muted-foreground/20 p-0.5 transition-colors"
+                      >
+                        <X className="size-2.5" />
+                      </button>
+                    </span>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={clearAll}
+                    className="text-[11px] text-muted-foreground hover:text-foreground transition-colors px-1"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
