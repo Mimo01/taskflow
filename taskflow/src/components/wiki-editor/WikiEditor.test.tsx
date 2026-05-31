@@ -21,6 +21,7 @@ vi.mock('@tiptap/react', () => {
     on: vi.fn(),
     off: vi.fn(),
     destroy: vi.fn(),
+    setEditable: vi.fn(),
     isEmpty: false,
     isDestroyed: false,
   };
@@ -80,6 +81,7 @@ describe('WikiEditor', () => {
       on: vi.fn(),
       off: vi.fn(),
       destroy: vi.fn(),
+      setEditable: vi.fn(),
       isEmpty: false,
       isDestroyed: false,
     } as unknown as ReturnType<typeof useEditor>);

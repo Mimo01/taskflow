@@ -241,81 +241,154 @@ function extractText(node: JSONContent): string {
 const CHECKED_PREFIX = '✅ ';
 const UNCHECKED_PREFIX = '❌ ';
 
+type TaskKind = 'checked' | 'unchecked';
+
 /**
- * Detect the task-item prefix on a paragraph node.
- * Returns 'checked', 'unchecked', or null.
- *
- * preprocessJiraMarkup converts (/) → ✅ and (x) → ❌, so after the pipeline
- * task items arrive as paragraphs whose first text node starts with the emoji.
+ * If the inline text starts with a task-item emoji prefix, return the kind
+ * and the text with the prefix stripped. Otherwise return null.
  */
-function taskItemKind(node: JSONContent): 'checked' | 'unchecked' | null {
-  if (node.type !== 'paragraph') return null;
-  const first = node.content?.[0];
-  if (first?.type !== 'text') return null;
-  const t = first.text ?? '';
-  if (t.startsWith(CHECKED_PREFIX)) return 'checked';
-  if (t.startsWith(UNCHECKED_PREFIX)) return 'unchecked';
+function detectTaskPrefix(text: string): { kind: TaskKind; rest: string } | null {
+  if (text.startsWith(CHECKED_PREFIX))
+    return { kind: 'checked', rest: text.slice(CHECKED_PREFIX.length) };
+  if (text.startsWith(UNCHECKED_PREFIX))
+    return { kind: 'unchecked', rest: text.slice(UNCHECKED_PREFIX.length) };
   return null;
 }
 
 /**
- * Strip the leading ✅/❌ prefix from a paragraph's inline content,
- * returning the content array suitable for a taskItem's child paragraph.
+ * Split a paragraph's inline content at hardBreak boundaries into segments.
+ * Each segment is an array of JSONContent inline nodes (no hardBreaks).
  */
-function stripTaskPrefix(para: JSONContent): JSONContent[] {
-  const nodes = para.content ?? [];
-  if (nodes.length === 0) return [];
-  const [first, ...rest] = nodes;
-  if (first.type !== 'text') return nodes;
-  const text = first.text ?? '';
-  const stripped = text.startsWith(CHECKED_PREFIX)
-    ? text.slice(CHECKED_PREFIX.length)
-    : text.startsWith(UNCHECKED_PREFIX)
-      ? text.slice(UNCHECKED_PREFIX.length)
-      : text;
-  const inlineContent: JSONContent[] = stripped ? [{ ...first, text: stripped }, ...rest] : rest;
-  return inlineContent;
+function splitAtHardBreaksInline(nodes: JSONContent[]): JSONContent[][] {
+  const segments: JSONContent[][] = [];
+  let current: JSONContent[] = [];
+  for (const n of nodes) {
+    if (n.type === 'hardBreak') {
+      segments.push(current);
+      current = [];
+    } else {
+      current.push(n);
+    }
+  }
+  segments.push(current);
+  return segments;
 }
 
 /**
- * Walk the top-level doc content and group consecutive task-item paragraphs
- * into taskList nodes. Paragraphs that are not task items pass through unchanged.
+ * Given a segment (array of inline nodes), check if it begins with a task-item
+ * emoji prefix (on the first text node). If so, return the kind and the segment
+ * with the prefix stripped. Otherwise return null.
+ */
+function segmentAsTaskItem(
+  segment: JSONContent[],
+): { kind: TaskKind; content: JSONContent[] } | null {
+  if (segment.length === 0) return null;
+  const first = segment[0];
+  if (first.type !== 'text') return null;
+  const detected = detectTaskPrefix(first.text ?? '');
+  if (!detected) return null;
+  const strippedFirst = detected.rest ? [{ ...first, text: detected.rest }] : [];
+  return { kind: detected.kind, content: [...strippedFirst, ...segment.slice(1)] };
+}
+
+/**
+ * Walk the top-level doc content and convert task-item paragraphs to taskList
+ * nodes (CR-04).
  *
- * Only operates on the doc's direct children (top-level paragraphs emitted by
- * the serializer). Task items nested inside blockquotes etc. are not in scope.
+ * jira2md collapses adjacent lines into a single <p> with <br> separators, so
+ * "(/) Done item\n(x) Todo item" becomes one paragraph with a hardBreak between
+ * the two segments. We handle both cases:
+ *
+ *   (a) A paragraph whose first segment is a task item — split the paragraph at
+ *       hardBreak boundaries and collect all task-item segments into a taskList.
+ *       Non-task-item trailing segments are re-emitted as a new paragraph.
+ *
+ *   (b) Consecutive separate top-level paragraphs each starting with a task-item
+ *       prefix — grouped into a single taskList (less common but handled).
+ *
+ * Only operates on the doc's direct children. Task items nested inside blockquotes
+ * etc. are not in scope (they wouldn't round-trip anyway).
  */
 function reconvertTaskItems(doc: JSONContent): JSONContent {
   if (!doc.content) return doc;
 
   const newContent: JSONContent[] = [];
   let i = 0;
+
   while (i < doc.content.length) {
     const node = doc.content[i];
-    const kind = taskItemKind(node);
-    if (kind !== null) {
-      // Collect consecutive task-item paragraphs into one taskList
-      const taskItems: JSONContent[] = [];
-      while (i < doc.content.length) {
-        const current = doc.content[i];
-        const currentKind = taskItemKind(current);
-        if (currentKind === null) break;
-        const inlineContent = stripTaskPrefix(current);
-        taskItems.push({
-          type: 'taskItem',
-          attrs: { checked: currentKind === 'checked' },
-          content: [
-            {
-              type: 'paragraph',
-              content: inlineContent,
-            },
-          ],
-        });
-        i++;
-      }
-      newContent.push({ type: 'taskList', content: taskItems });
-    } else {
+
+    if (node.type !== 'paragraph') {
       newContent.push(node);
       i++;
+      continue;
+    }
+
+    // Split the paragraph at hardBreak boundaries
+    const segments = splitAtHardBreaksInline(node.content ?? []);
+
+    // Check if the first segment is a task item
+    const firstAsTask = segmentAsTaskItem(segments[0]);
+    if (firstAsTask === null) {
+      newContent.push(node);
+      i++;
+      continue;
+    }
+
+    // This paragraph starts with a task item. Collect all leading task segments.
+    const taskItems: JSONContent[] = [];
+    const remainingSegments: JSONContent[][] = [];
+    let inTaskRegion = true;
+    for (const seg of segments) {
+      if (inTaskRegion) {
+        const asTask = segmentAsTaskItem(seg);
+        if (asTask) {
+          taskItems.push({
+            type: 'taskItem',
+            attrs: { checked: asTask.kind === 'checked' },
+            content: [{ type: 'paragraph', content: asTask.content }],
+          });
+        } else {
+          inTaskRegion = false;
+          if (seg.length > 0) remainingSegments.push(seg);
+        }
+      } else {
+        if (seg.length > 0) remainingSegments.push(seg);
+      }
+    }
+
+    // Also consume subsequent top-level paragraphs that are task items
+    i++;
+    while (i < doc.content.length) {
+      const next = doc.content[i];
+      if (next.type !== 'paragraph') break;
+      const nextSegments = splitAtHardBreaksInline(next.content ?? []);
+      const nextFirstAsTask = segmentAsTaskItem(nextSegments[0]);
+      if (!nextFirstAsTask) break;
+      // Consume the whole next paragraph as task items
+      for (const seg of nextSegments) {
+        const asTask = segmentAsTaskItem(seg);
+        if (asTask) {
+          taskItems.push({
+            type: 'taskItem',
+            attrs: { checked: asTask.kind === 'checked' },
+            content: [{ type: 'paragraph', content: asTask.content }],
+          });
+        }
+      }
+      i++;
+    }
+
+    newContent.push({ type: 'taskList', content: taskItems });
+
+    // Re-emit any non-task trailing segments as a new paragraph
+    if (remainingSegments.length > 0) {
+      const remainingNodes: JSONContent[] = [];
+      for (let s = 0; s < remainingSegments.length; s++) {
+        if (s > 0) remainingNodes.push({ type: 'hardBreak' });
+        remainingNodes.push(...remainingSegments[s]);
+      }
+      newContent.push({ type: 'paragraph', content: remainingNodes });
     }
   }
 
