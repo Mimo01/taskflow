@@ -449,7 +449,6 @@ export async function fetchSprintIssues(
   }
 }
 
-
 /**
  * Fetch all sprint issues relevant to the current user with full team hierarchy.
  *

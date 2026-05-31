@@ -1508,7 +1508,6 @@ describe('jira service', () => {
     });
   });
 
-
   // --- fetchJiraIssueByKey ---
   describe('fetchJiraIssueByKey', () => {
     it('returns the parsed JiraIssue on 200', async () => {
