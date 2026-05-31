@@ -182,6 +182,21 @@ against that snapshot, not the live `matchedMilestone`.
 
 ---
 
+## Remediation (applied 2026-05-31, commit 663f36e5)
+
+| Finding | Resolution |
+|---------|------------|
+| WR-01 | GitLab save now also invalidates `['gitlab-milestone-mrs', activeGitlabProject]` (prefix). |
+| WR-02 | `matchedMilestone` is now the exact object the matcher chose (carried through the match), so identity is stable across a title rename; MR cache invalidated (WR-01). |
+| WR-03 | Milestone Title input marked `required`; Save disabled via `isMilestoneTitleInvalid` when a matched milestone's title is cleared. |
+| WR-05 | Fuzzy match is now deterministic — picks the milestone whose `due_date` is closest to the release date — and the chosen object (not a title re-find) is used for editing. |
+| IN-02 | `updateMilestone` surfaces GitLab's error-body `message` (e.g. "title is missing") instead of an opaque status; regression test added. |
+| WR-04, IN-01, IN-03, IN-04 | Not addressed (low-severity / informational). WR-04 documented as safe given `YYYY-MM-DD` inputs; IN-04 (open-modal refetch desync) left as a known low-likelihood edge given 5-min staleTime. |
+
+Gates after remediation: `vitest run gitlab.test.ts` → 65/65; release tests → 23/23; `npm run check` → clean.
+
+---
+
 _Reviewed: 2026-05-31_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: quick_
