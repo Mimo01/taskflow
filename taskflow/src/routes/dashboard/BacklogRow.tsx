@@ -91,8 +91,11 @@ function RowCells({
         </span>
       </td>
 
-      {/* Epic badge cell -- right-aligned, before Points column */}
-      <td className="px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap text-right">
+      {/* Epic badge cell -- right-aligned, before Points column.
+          max-w caps the column so a long epic name can't steal width from
+          the Summary column under the table's auto layout; the badge label
+          truncates instead. */}
+      <td className="max-w-[12rem] px-2 py-2 density-compact:py-1 density-comfortable:py-3 whitespace-nowrap text-right">
         {epicKey ? (
           epicsLoading ? (
             <Skeleton className="h-4 w-14 rounded-full" />
@@ -104,13 +107,13 @@ function RowCells({
                 onIssueClick(epicKey);
               }}
               className={cn(
-                'inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium hover:opacity-80 transition-opacity',
+                'inline-flex max-w-full items-center overflow-hidden rounded border px-1.5 py-0.5 text-xs font-medium hover:opacity-80 transition-opacity',
                 epicColorResult.className,
               )}
               style={epicColorResult.style}
               title={`${epicKey}: ${epicName}`}
             >
-              {epicName}
+              <span className="truncate">{epicName}</span>
             </button>
           ) : null
         ) : null}
