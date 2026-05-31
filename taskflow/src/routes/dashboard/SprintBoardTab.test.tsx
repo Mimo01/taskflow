@@ -135,11 +135,6 @@ vi.mock('@/stores/settings.store', () => ({
   })),
 }));
 
-// Mock jira client — fetchAllSearchPages used by saved filter integration
-vi.mock('@/services/jira/client', () => ({
-  fetchAllSearchPages: vi.fn().mockResolvedValue([]),
-}));
-
 // Mock link engine
 vi.mock('@/services/linkEngine', () => ({
   linkMRToTask: vi.fn().mockReturnValue(null),
