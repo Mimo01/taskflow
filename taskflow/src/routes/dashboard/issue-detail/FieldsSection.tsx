@@ -28,7 +28,7 @@ import { useBoardId } from '@/hooks/useBoardId';
 import { apiFetch } from '@/lib/apiFetch';
 import { epicColorToTailwind } from '@/lib/epicColors';
 import type { JiraIssue, JiraIssueDetail } from '@/services/jira';
-import { invalidateGhBacklogData, isIssueFlagged } from '@/services/jira';
+import { invalidateGhAllData, invalidateGhBacklogData, isIssueFlagged } from '@/services/jira';
 import { fetchSprintList } from '@/services/jira/backlog';
 import { addIssuesToSprint, moveIssuesToBacklog } from '@/services/jira/sprints';
 import { postTransition } from '@/services/jira/transitions';
@@ -260,9 +260,10 @@ export function FieldsSection({
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
       queryClient.invalidateQueries({ queryKey: ['jira-issue-changelog', issueKey, jiraBaseUrl] });
-      queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
       // Phase 74 GH-CUT-01: backlog data now lives under ['gh-backlog'].
+      // Phase 75: also invalidate GH all-data so sprint board columns refresh after a transition.
+      if (boardId) invalidateGhAllData(queryClient, boardId);
+      else invalidateGhAllData(queryClient);
       if (boardId) invalidateGhBacklogData(queryClient, boardId);
       else invalidateGhBacklogData(queryClient);
       queryClient.invalidateQueries({ queryKey: ['jira-epics-basic'] });
@@ -287,7 +288,6 @@ export function FieldsSection({
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
-      queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
       // Phase 74 GH-CUT-01: backlog data now lives under ['gh-backlog'].
       if (boardId) invalidateGhBacklogData(queryClient, boardId);
       else invalidateGhBacklogData(queryClient);

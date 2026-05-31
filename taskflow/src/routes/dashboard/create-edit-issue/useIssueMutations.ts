@@ -116,7 +116,6 @@ export function useIssueMutations({
       return newIssue;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
       if (isSubtask && state.parentKey && jiraBaseUrl) {
         queryClient.invalidateQueries({
           queryKey: ['jira-issue-detail', state.parentKey, jiraBaseUrl],
@@ -188,8 +187,6 @@ export function useIssueMutations({
           queryKey: ['jira-issue-detail', initialValues.issueKey, jiraBaseUrl],
         });
       }
-      queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
       // Phase 74 GH-CUT-01: backlog data lives under ['gh-backlog'].
       invalidateGhBacklogData(queryClient);
       onSuccess();
