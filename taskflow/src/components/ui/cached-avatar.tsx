@@ -63,7 +63,7 @@ export function CachedAvatar({ url, name, size = 32, className }: CachedAvatarPr
   const showUnassigned = !url && isUnassigned(name);
 
   return (
-    <div className={cn('relative', sizeClass, className)}>
+    <div className={cn('relative shrink-0', sizeClass, className)}>
       {/* Fallback — always rendered, hidden when image is shown */}
       <div
         className={cn(
