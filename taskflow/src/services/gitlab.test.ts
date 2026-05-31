@@ -1351,9 +1351,7 @@ describe('gitlab service', () => {
         string,
         { method: string; headers: Record<string, string>; body: string },
       ];
-      expect(calledUrl).toBe(
-        `${BASE}/api/v4/projects/${PROJECT_ID}/milestones/${MILESTONE_ID}`,
-      );
+      expect(calledUrl).toBe(`${BASE}/api/v4/projects/${PROJECT_ID}/milestones/${MILESTONE_ID}`);
       expect(calledOptions.method).toBe('PUT');
       expect(calledOptions.headers['PRIVATE-TOKEN']).toBe(TOKEN);
       expect(JSON.parse(calledOptions.body)).toEqual({ description: 'x' });
