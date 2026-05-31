@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-25)
 Phase: 75
 Plan: Not started
 Status: Executing Phase 75
-Last activity: 2026-05-30
+Last activity: 2026-05-30 - Completed quick task 260531-2el: remove Jira-loaded Sprint Board quick filters
 
 ## Performance Metrics
 
@@ -112,6 +112,7 @@ Items acknowledged and deferred at the v1.10 milestone close on 2026-05-25 (20 o
 | 260528-20i | I want to fix as much biome problems as possible | 2026-05-27 | 30ef80af | Verified | [260528-20i-i-want-to-fix-as-much-biome-problems-as-](./quick/260528-20i-i-want-to-fix-as-much-biome-problems-as-/) |
 | 260528-ct1 | I want to fix as much biome problems as possible | 2026-05-28 | f38084f9 | Verified | [260528-ct1-i-want-to-fix-as-much-biome-problems-as-](./quick/260528-ct1-i-want-to-fix-as-much-biome-problems-as-/) |
 | 260528-jwr | On jira issue detail, when selecting fix version, the values in the popup should be sorted by release dates, not alphabetically | 2026-05-28 | 2c9c1737 |  | [260528-jwr-on-jira-issue-detail-when-selecting-fix-](./quick/260528-jwr-on-jira-issue-detail-when-selecting-fix-/) |
+| 260531-2el | Remove Jira-loaded (GreenHopper editmodel) Sprint Board quick filters; keep app's own filters | 2026-05-30 | e1c098f0 | Verified | [260531-2el-on-sprint-board-delete-jira-loaded-quick](./quick/260531-2el-on-sprint-board-delete-jira-loaded-quick/) |
 
 ## Session Continuity
 
