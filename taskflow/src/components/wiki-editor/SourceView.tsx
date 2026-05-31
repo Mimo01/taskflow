@@ -14,18 +14,10 @@ interface SourceViewProps {
   onChange: (v: string) => void;
   disabled?: boolean;
   placeholder?: string;
-  minHeight?: number;
   id?: string;
 }
 
-export function SourceView({
-  value,
-  onChange,
-  disabled,
-  placeholder,
-  minHeight = 80,
-  id,
-}: SourceViewProps) {
+export function SourceView({ value, onChange, disabled, placeholder, id }: SourceViewProps) {
   return (
     <textarea
       id={id}
@@ -35,8 +27,7 @@ export function SourceView({
       disabled={disabled}
       placeholder={placeholder ?? 'Enter Jira wiki markup…'}
       spellCheck={false}
-      className="w-full resize-y rounded border border-input bg-background px-3 py-2 text-sm font-mono placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60"
-      style={{ minHeight }}
+      className="w-full field-sizing-content resize-none rounded border border-input bg-background px-3 py-2 text-sm font-mono placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60"
     />
   );
 }
