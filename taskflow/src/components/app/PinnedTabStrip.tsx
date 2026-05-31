@@ -10,7 +10,14 @@
  * pinned tab has its display data available at paint time.
  */
 
-import { ArrowLeftToLine, ArrowRightToLine, FlaskConical, Loader2, PinOff } from 'lucide-react';
+import {
+  ArrowLeftToLine,
+  ArrowRightToLine,
+  FlaskConical,
+  Loader2,
+  PinOff,
+  Rocket,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -34,7 +41,8 @@ interface PinnedTabStripProps {
 
 type IssueTab = { type: 'issue'; summary: string; issueTypeName: string };
 type CycleTab = { type: 'cycle'; name: string; projectKey: string };
-type ResolvedTab = IssueTab | CycleTab;
+type ReleaseTab = { type: 'release'; name: string; versionId: string; projectKey: string };
+type ResolvedTab = IssueTab | CycleTab | ReleaseTab;
 
 interface DragGhost {
   index: number;
@@ -154,6 +162,16 @@ export default function PinnedTabStrip({
               <span className="truncate text-[11px] leading-tight">{resolved.name}</span>
             </div>
           </>
+        ) : resolved?.type === 'release' ? (
+          <>
+            <Rocket className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+            <div className="flex flex-col min-w-0 leading-none">
+              <span className="font-mono text-[9px] text-muted-foreground/60 whitespace-nowrap">
+                v{resolved.versionId}
+              </span>
+              <span className="truncate text-[11px] leading-tight">{resolved.name}</span>
+            </div>
+          </>
         ) : resolved?.type === 'issue' ? (
           <>
             <IssueTypeIcon typeName={resolved.issueTypeName} />
@@ -250,6 +268,18 @@ export default function PinnedTabStrip({
                         <div className="flex flex-col min-w-0 leading-none">
                           <span className="font-mono text-[9px] text-muted-foreground/60 whitespace-nowrap">
                             {key}
+                          </span>
+                          <span className="truncate text-[11px] leading-tight">
+                            {resolved.name}
+                          </span>
+                        </div>
+                      </>
+                    ) : resolved?.type === 'release' ? (
+                      <>
+                        <Rocket className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                        <div className="flex flex-col min-w-0 leading-none">
+                          <span className="font-mono text-[9px] text-muted-foreground/60 whitespace-nowrap">
+                            v{resolved.versionId}
                           </span>
                           <span className="truncate text-[11px] leading-tight">
                             {resolved.name}

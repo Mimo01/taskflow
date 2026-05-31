@@ -143,6 +143,7 @@ function AppLayout() {
   const removePin = usePinnedTabsStore((s) => s.removePin);
   const reorderPins = usePinnedTabsStore((s) => s.reorder);
   const pinnedCycleMeta = usePinnedTabsStore((s) => s.pinnedCycleMeta);
+  const pinnedReleaseMeta = usePinnedTabsStore((s) => s.pinnedReleaseMeta);
   const breadcrumbPush = useBreadcrumbStore((s) => s.push);
   const breadcrumbReset = useBreadcrumbStore((s) => s.reset);
 
@@ -162,9 +163,12 @@ function AppLayout() {
     }
   };
 
-  // Split pinned keys: issue keys go through useQueries (API fetch), cycle keys read from store
-  const issuePinnedKeys = pinnedKeys.filter((k) => !k.includes('-CY-'));
+  // Split pinned keys three ways: release (REL-) and cycle (-CY-) read metadata from the
+  // store; everything else is an issue key fetched via useQueries. Release keys MUST be
+  // excluded from issuePinnedKeys so they never hit fetchIssueSummary.
+  const releasePinnedKeys = pinnedKeys.filter((k) => k.startsWith('REL-'));
   const cyclePinnedKeys = pinnedKeys.filter((k) => k.includes('-CY-'));
+  const issuePinnedKeys = pinnedKeys.filter((k) => !k.startsWith('REL-') && !k.includes('-CY-'));
 
   // Actively fetch summary+type for each pinned issue key so tabs load
   // independently on app start. Uses a lightweight 2-field endpoint.
@@ -187,9 +191,10 @@ function AppLayout() {
   // Local type aliases mirroring PinnedTabStrip's discriminated union (not exported from component)
   type IssueTab = { type: 'issue'; summary: string; issueTypeName: string };
   type CycleTab = { type: 'cycle'; name: string; projectKey: string };
+  type ReleaseTab = { type: 'release'; name: string; versionId: string; projectKey: string };
 
-  // Build a resolved map for PinnedTabStrip: key -> IssueTab | CycleTab
-  const resolvedPinnedTabs = new Map<string, IssueTab | CycleTab>();
+  // Build a resolved map for PinnedTabStrip: key -> IssueTab | CycleTab | ReleaseTab
+  const resolvedPinnedTabs = new Map<string, IssueTab | CycleTab | ReleaseTab>();
 
   // Issue tabs — index i aligns with issuePinnedKeys (not pinnedKeys)
   issuePinnedKeys.forEach((key, i) => {
@@ -210,6 +215,19 @@ function AppLayout() {
       resolvedPinnedTabs.set(key, {
         type: 'cycle',
         name: meta.name,
+        projectKey: meta.projectKey,
+      });
+    }
+  });
+
+  // Release tabs — metadata read from store (always available at paint time)
+  releasePinnedKeys.forEach((key) => {
+    const meta = pinnedReleaseMeta[key];
+    if (meta) {
+      resolvedPinnedTabs.set(key, {
+        type: 'release',
+        name: meta.name,
+        versionId: meta.versionId,
         projectKey: meta.projectKey,
       });
     }
@@ -304,6 +322,11 @@ function AppLayout() {
   // Derive active cycle key from current URL: /aio-cycle/:projectKey/:cycleKey → index 3
   const activeCycleKey = location.pathname.startsWith('/aio-cycle/')
     ? (location.pathname.split('/')[3] ?? null)
+    : null;
+
+  // Derive active release key from current URL: /release/:versionId → REL-{versionId}
+  const activeReleaseKey = location.pathname.startsWith('/release/')
+    ? `REL-${location.pathname.replace('/release/', '')}`
     : null;
 
   // Navigate to full-page issue detail + track recent item.
@@ -512,9 +535,12 @@ function AppLayout() {
         {pinnedKeys.length > 0 && (
           <PinnedTabStrip
             pinnedKeys={pinnedKeys}
-            activeKey={activeIssueKey ?? activeCycleKey}
+            activeKey={activeIssueKey ?? activeCycleKey ?? activeReleaseKey}
             onTabClick={(key) => {
-              if (key.includes('-CY-')) {
+              if (key.startsWith('REL-')) {
+                const meta = pinnedReleaseMeta[key];
+                navigate(`/release/${meta?.versionId ?? key.slice(4)}`);
+              } else if (key.includes('-CY-')) {
                 const meta = pinnedCycleMeta[key];
                 if (meta) navigate(`/aio-cycle/${meta.projectKey}/${key}`);
               } else {

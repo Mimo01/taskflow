@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // Mock lucide-react icons — includes FlaskConical for cycle tab rendering (added in Wave 1)
 vi.mock('lucide-react', () => ({
   FlaskConical: () => <span data-testid="flask-icon" />,
+  Rocket: () => <span data-testid="rocket-icon" />,
   ArrowLeftToLine: () => <span />,
   ArrowRightToLine: () => <span />,
   BookOpen: () => <span />,
@@ -95,6 +96,76 @@ describe('PinnedTabStrip', () => {
             pinnedKeys={['PROJ-CY-2']}
             resolvedTabs={resolvedTabs}
             activeKey="PROJ-CY-2"
+            onTabClick={vi.fn()}
+            onTabClose={vi.fn()}
+            onReorder={vi.fn()}
+          />
+        </MemoryRouter>,
+      );
+      const tab = screen.getByRole('tab');
+      expect(tab.className).toContain('border-primary');
+    });
+  });
+
+  describe('release tab rendering', () => {
+    it('renders release tab with Rocket icon when resolvedTabs has type="release" entry', () => {
+      const resolvedTabs = new Map([
+        [
+          'REL-12345',
+          { type: 'release' as const, name: 'v1.0', versionId: '12345', projectKey: 'PROJ' },
+        ],
+      ]);
+      render(
+        <MemoryRouter>
+          <PinnedTabStrip
+            pinnedKeys={['REL-12345']}
+            resolvedTabs={resolvedTabs}
+            activeKey={null}
+            onTabClick={vi.fn()}
+            onTabClose={vi.fn()}
+            onReorder={vi.fn()}
+          />
+        </MemoryRouter>,
+      );
+      expect(screen.getByTestId('rocket-icon')).toBeDefined();
+    });
+
+    it('renders version id (v-prefixed) in font-mono and release name as display text for release tab', () => {
+      const resolvedTabs = new Map([
+        [
+          'REL-12345',
+          { type: 'release' as const, name: 'v1.0', versionId: '12345', projectKey: 'PROJ' },
+        ],
+      ]);
+      render(
+        <MemoryRouter>
+          <PinnedTabStrip
+            pinnedKeys={['REL-12345']}
+            resolvedTabs={resolvedTabs}
+            activeKey={null}
+            onTabClick={vi.fn()}
+            onTabClose={vi.fn()}
+            onReorder={vi.fn()}
+          />
+        </MemoryRouter>,
+      );
+      expect(screen.getByText('v12345')).toBeDefined();
+      expect(screen.getByText('v1.0')).toBeDefined();
+    });
+
+    it('active release tab has border-primary class applied', () => {
+      const resolvedTabs = new Map([
+        [
+          'REL-12345',
+          { type: 'release' as const, name: 'v1.0', versionId: '12345', projectKey: 'PROJ' },
+        ],
+      ]);
+      render(
+        <MemoryRouter>
+          <PinnedTabStrip
+            pinnedKeys={['REL-12345']}
+            resolvedTabs={resolvedTabs}
+            activeKey="REL-12345"
             onTabClick={vi.fn()}
             onTabClose={vi.fn()}
             onReorder={vi.fn()}

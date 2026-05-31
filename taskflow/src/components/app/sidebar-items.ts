@@ -67,7 +67,7 @@ export const SIDEBAR_NAV_ITEMS: SidebarNavDef[] = [
     section: 'code',
   },
   // Tracking
-  { id: 'releases', label: 'Releases', path: '/releases', iconName: 'Tag', section: 'tracking' },
+  { id: 'releases', label: 'Releases', path: '/releases', iconName: 'Rocket', section: 'tracking' },
   { id: 'worklogs', label: 'Worklogs', path: '/worklogs', iconName: 'Clock', section: 'tracking' },
   // Testing (AIO)
   {

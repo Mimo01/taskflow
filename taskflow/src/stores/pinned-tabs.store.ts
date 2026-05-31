@@ -5,12 +5,18 @@ import { createTauriStorage } from '../lib/tauri-storage';
 interface PinnedTabsState {
   pinnedKeys: string[];
   pinnedCycleMeta: Record<string, { name: string; projectKey: string }>;
+  pinnedReleaseMeta: Record<string, { name: string; versionId: string; projectKey: string }>;
   togglePin: (key: string) => void;
   removePin: (key: string) => void;
   reorder: (fromIndex: number, toIndex: number) => void;
   isPinned: (key: string) => boolean;
   setPinnedCycleMeta: (key: string, meta: { name: string; projectKey: string }) => void;
   clearCycleMeta: (key: string) => void;
+  setPinnedReleaseMeta: (
+    key: string,
+    meta: { name: string; versionId: string; projectKey: string },
+  ) => void;
+  clearReleaseMeta: (key: string) => void;
 }
 
 export const usePinnedTabsStore = create<PinnedTabsState>()(
@@ -18,6 +24,7 @@ export const usePinnedTabsStore = create<PinnedTabsState>()(
     (set, get) => ({
       pinnedKeys: [],
       pinnedCycleMeta: {},
+      pinnedReleaseMeta: {},
       togglePin: (key) =>
         set((s) => ({
           pinnedKeys: s.pinnedKeys.includes(key)
@@ -44,15 +51,26 @@ export const usePinnedTabsStore = create<PinnedTabsState>()(
           delete next[key];
           return { pinnedCycleMeta: next };
         }),
+      setPinnedReleaseMeta: (key, meta) =>
+        set((s) => ({ pinnedReleaseMeta: { ...s.pinnedReleaseMeta, [key]: meta } })),
+      clearReleaseMeta: (key) =>
+        set((s) => {
+          const next = { ...s.pinnedReleaseMeta };
+          delete next[key];
+          return { pinnedReleaseMeta: next };
+        }),
     }),
     {
       name: 'pinned-tabs-store',
       storage: createTauriStorage('pinned-tabs.json'),
-      version: 1,
+      version: 2,
       migrate: (persisted, version) => {
         const s = persisted as PinnedTabsState;
         if (version < 1) {
           s.pinnedCycleMeta = {};
+        }
+        if (version < 2) {
+          s.pinnedReleaseMeta = {};
         }
         return s;
       },

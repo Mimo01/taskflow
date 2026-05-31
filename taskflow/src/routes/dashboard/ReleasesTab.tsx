@@ -13,7 +13,7 @@
 
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetch } from '@tauri-apps/plugin-http';
-import { Package, RefreshCw } from 'lucide-react';
+import { RefreshCw, Rocket } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
@@ -312,7 +312,7 @@ export default function ReleasesTab() {
         unreleasedVersions.length === 0 &&
         releasedVersions.length === 0 ? (
           <EmptyState
-            icon={Package}
+            icon={Rocket}
             title="No releases found"
             subtitle="Releases will appear once versions are created in Jira"
           />
