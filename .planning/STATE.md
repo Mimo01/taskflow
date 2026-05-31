@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-25)
 Phase: 75
 Plan: Not started
 Status: Executing Phase 75
-Last activity: 2026-05-31 - Completed quick task 260531-php: Redo release editing as a modal + edit GitLab milestone title/description
+Last activity: 2026-05-31 - Completed quick task 260531-qx3: Add more info to release detail page (MR-state, contributors, issue status + story points)
 
 ## Performance Metrics
 
@@ -119,6 +119,7 @@ Items acknowledged and deferred at the v1.10 milestone close on 2026-05-25 (20 o
 | 260531-oqa | Remove duplicate info between release detail main content and sidebar | 2026-05-31 | f0015e3a |  | [260531-oqa-remove-duplicate-info-between-release-de](./quick/260531-oqa-remove-duplicate-info-between-release-de/) |
 | 260531-owi | Add gitlab milestone description to release detail, currently there is only jira description | 2026-05-31 | 4735942e |  | [260531-owi-add-gitlab-milestone-description-to-rele](./quick/260531-owi-add-gitlab-milestone-description-to-rele/) |
 | 260531-php | Redo release editing as a modal (out of sidebar) + edit matched GitLab milestone title/description; one Save writes both Jira & GitLab | 2026-05-31 | dcb4dc75 | Verified | [260531-php-on-release-detail-allow-editing-gitlab-m](./quick/260531-php-on-release-detail-allow-editing-gitlab-m/) |
+| 260531-qx3 | Add more info to release detail page: MR-state distribution, contributor list, issue status distribution + story-point effort | 2026-05-31 | 0d0fb2be | Verified | [260531-qx3-i-want-to-add-more-info-to-the-release-d](./quick/260531-qx3-i-want-to-add-more-info-to-the-release-d/) |
 
 ## Session Continuity
 
