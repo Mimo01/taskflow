@@ -72,3 +72,23 @@ None. All new sections are wired to live derived data and render nothing when da
 - FOUND: taskflow/src/routes/dashboard/ReleaseDetailPage.tsx
 - FOUND commit 4c27ca0f (Task 1)
 - FOUND commit e0133d2b (Task 2)
+
+## Post-Completion Follow-Ups (session, approved)
+
+Adjustments made after the validated run, in response to user feedback:
+
+- **Code-review remediation** (`0d0fb2be`): story points now resolve via the
+  instance `storyPointsFieldKey` from settings (requests 10016/10028/resolved key)
+  instead of a hardcoded `customfield_10016`; issue-status bucketing made NaN-safe
+  (WR-01, WR-02 from the code review).
+- **Layout revision** (`a0842383`): removed the Contributors section entirely
+  (and its derivation + `Users` icon import); moved the issue status distribution
+  and story-point effort out of the main Issues section into the metadata sidebar
+  as `MetaRow`s alongside the MRs row.
+- **Icon trim** (`c5892eeb`): dropped the `GitMerge` icon from the sidebar MRs row.
+- **Status colors** (`3e728aae`): aligned issue status badge tones with the app's
+  canonical palette (`statusStyles.ts`): new → muted, in progress → blue, done → green.
+
+Final state: left column keeps descriptions, labels, and the issues table; the
+sidebar carries status, release date, milestone, MR-state distribution, issue
+status distribution, and story points. `npm run check` clean after each change.
