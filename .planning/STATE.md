@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-25)
 Phase: 75
 Plan: Not started
 Status: Executing Phase 75
-Last activity: 2026-05-31 - Completed quick task 260531-40s: Remove the Jira "Save Filter" button and entire flow from filters
+Last activity: 2026-05-31 - Completed quick task 260531-oqa: Remove duplicate info between release detail main content and sidebar
 
 ## Performance Metrics
 
@@ -115,6 +115,8 @@ Items acknowledged and deferred at the v1.10 milestone close on 2026-05-25 (20 o
 | 260531-2el | Remove Jira-loaded (GreenHopper editmodel) Sprint Board quick filters; keep app's own filters | 2026-05-30 | e1c098f0 | Verified | [260531-2el-on-sprint-board-delete-jira-loaded-quick](./quick/260531-2el-on-sprint-board-delete-jira-loaded-quick/) |
 | 260531-3ey | Sprint Board filters row: full-width with horizontal scroll overflow, right action buttons pinned (shrink-0) and unaffected by scroll | 2026-05-31 | dc9fbbd8 | Verified | [260531-3ey-on-sprint-board-the-filters-row-drags-th](./quick/260531-3ey-on-sprint-board-the-filters-row-drags-th/) |
 | 260531-40s | Remove the Jira "Save Filter" button and entire flow from filters; keep only the local "Save" QuickFilters | 2026-05-31 | 58f83bd6 | Verified | [260531-40s-remove-save-filter-flow](./quick/260531-40s-remove-save-filter-flow/) |
+| 260531-l0f | Currently I can pin issues and aio cycles. I also want to be able to pin releases | 2026-05-31 | 5257394e | Verified | [260531-l0f-currently-i-can-pin-issues-and-aio-cycle](./quick/260531-l0f-currently-i-can-pin-issues-and-aio-cycle/) |
+| 260531-oqa | Remove duplicate info between release detail main content and sidebar | 2026-05-31 | f0015e3a |  | [260531-oqa-remove-duplicate-info-between-release-de](./quick/260531-oqa-remove-duplicate-info-between-release-de/) |
 
 ## Session Continuity
 

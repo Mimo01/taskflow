@@ -20,6 +20,7 @@ import {
   KanbanSquare,
   LayoutDashboard,
   List,
+  Rocket,
   Settings,
   Tag,
   Users,
@@ -55,6 +56,7 @@ const ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {
   BarChart2,
   Users,
   Tag,
+  Rocket,
 };
 
 const NAV_LINK_BASE =

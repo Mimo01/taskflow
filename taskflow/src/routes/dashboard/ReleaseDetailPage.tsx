@@ -19,8 +19,9 @@ import {
   GitMerge,
   Info,
   Loader2,
-  Package,
   Pencil,
+  Pin,
+  Rocket,
   Tag,
   X,
 } from 'lucide-react';
@@ -46,6 +47,7 @@ import { matchGitLabToFixVersion } from '@/services/releaseLinker';
 import { readSecret } from '@/services/stronghold';
 import { useAuthStore } from '@/stores/auth.store';
 import { useBreadcrumbStore } from '@/stores/breadcrumb.store';
+import { usePinnedTabsStore } from '@/stores/pinned-tabs.store';
 import { useSettingsStore } from '@/stores/settings.store';
 
 // ---- Issue count fetching (duplicated from ReleasesTab to keep self-contained) ----
@@ -131,6 +133,14 @@ export default function ReleaseDetailPage() {
   const { jiraBaseUrl, activeJiraProject, gitlabBaseUrl, activeGitlabProject } = useAuthStore();
   const releaseDetailPanelWidth = useSettingsStore((s) => s.releaseDetailPanelWidth);
   const setReleaseDetailPanelWidth = useSettingsStore((s) => s.setReleaseDetailPanelWidth);
+
+  // Pinned-release tab support (mirrors AioCycleDetailPage cycle pinning)
+  const releaseKey = `REL-${versionId}`;
+  const pinned = usePinnedTabsStore((s) => s.pinnedKeys.includes(releaseKey));
+  const togglePin = usePinnedTabsStore((s) => s.togglePin);
+  const removePin = usePinnedTabsStore((s) => s.removePin);
+  const setPinnedReleaseMeta = usePinnedTabsStore((s) => s.setPinnedReleaseMeta);
+  const clearReleaseMeta = usePinnedTabsStore((s) => s.clearReleaseMeta);
 
   const [gitlabToken, setGitlabToken] = useState<string | null>(null);
 
@@ -446,25 +456,10 @@ export default function ReleaseDetailPage() {
               {/* Header */}
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <Package className="size-4 text-muted-foreground" />
+                  <Rocket className="size-4 text-muted-foreground" />
                   <p className="text-xs font-mono text-muted-foreground">v{version.id}</p>
                 </div>
                 <h2 className="text-xl font-semibold leading-snug">{version.name}</h2>
-              </div>
-
-              {/* Status badge */}
-              <div className="flex items-center gap-2">
-                {version.released ? (
-                  <Badge tone="green">Released</Badge>
-                ) : (
-                  <Badge tone="amber">Unreleased</Badge>
-                )}
-                {version.releaseDate && (
-                  <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <Calendar className="size-3.5" />
-                    {version.releaseDate}
-                  </span>
-                )}
               </div>
 
               {/* Description */}
@@ -757,6 +752,29 @@ export default function ReleaseDetailPage() {
                   variant="outline"
                   size="sm"
                   className="gap-1.5 text-xs"
+                  aria-label={pinned ? 'Unpin release' : 'Pin release'}
+                  title={pinned ? 'Unpin release' : 'Pin release'}
+                  onClick={() => {
+                    if (pinned) {
+                      removePin(releaseKey);
+                      clearReleaseMeta(releaseKey);
+                    } else {
+                      togglePin(releaseKey);
+                      setPinnedReleaseMeta(releaseKey, {
+                        name: version.name,
+                        versionId: versionId ?? '',
+                        projectKey: activeJiraProject ?? '',
+                      });
+                    }
+                  }}
+                >
+                  <Pin className={`size-3.5${pinned ? ' fill-current text-primary' : ''}`} />
+                  {pinned ? 'Unpin' : 'Pin'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-xs"
                   onClick={handleOpenInJira}
                 >
                   <ExternalLink className="size-3.5" />
@@ -918,24 +936,6 @@ export default function ReleaseDetailPage() {
                     </span>
                   ) : (
                     <span className="text-muted-foreground">Not set</span>
-                  )}
-                </MetaRow>
-
-                <MetaRow label="Description">
-                  {version.description ? (
-                    <span className="line-clamp-3">{version.description}</span>
-                  ) : (
-                    <span className="text-muted-foreground italic">No description</span>
-                  )}
-                </MetaRow>
-
-                <MetaRow label="Issues">
-                  {issueCounts ? (
-                    <span className="tabular-nums">
-                      {issueCounts.issuesFixed} / {issueCounts.issuesTotal} done
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">Loading...</span>
                   )}
                 </MetaRow>
 
