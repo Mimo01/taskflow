@@ -373,7 +373,6 @@ export function WikiEditor({
             onChange={handleSourceChange}
             disabled={disabled}
             placeholder={placeholder}
-            minHeight={resolvedMinHeight}
           />
         ) : (
           <EditorContent
