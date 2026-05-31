@@ -53,6 +53,7 @@ export function useGhBacklogData(boardId: number | null): UseQueryResult<GhBackl
   const jiraBaseUrl = useAuthStore((s) => s.jiraBaseUrl);
   const [token, setToken] = useState<string | null>(null);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: jiraBaseUrl is an intentional re-run trigger (WR-05) — the effect re-reads the secret on instance switch even though the body doesn't reference it.
   useEffect(() => {
     // WR-05 (Phase 71/73 carry-forward): re-read the secret whenever the
     // Jira instance changes (login rotation, instance switch). Empty deps

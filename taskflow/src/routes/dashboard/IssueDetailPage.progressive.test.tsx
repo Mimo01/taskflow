@@ -542,7 +542,8 @@ describe('invalidation fan-out (PERF-DETAIL-03)', () => {
     const textareas = screen.getAllByRole('textbox');
     const editTextarea = textareas.find(
       (el) => (el as HTMLTextAreaElement).value === MOCK_COMMENT.body,
-    )!;
+    );
+    if (!editTextarea) throw new Error('edit textarea not found');
 
     fireEvent.change(editTextarea, { target: { value: 'Updated comment text' } });
 

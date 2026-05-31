@@ -709,6 +709,7 @@ export default function SprintBoardTab() {
   // WR-06: reset the stale-data banner dismissal when the user switches
   // boards — a dismissal on board A should not silence the banner for
   // board B.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: boardId is an intentional re-run trigger (WR-06) — switching boards must reset the dismissal even though the body doesn't reference boardId.
   useEffect(() => {
     setBannerDismissed(false);
   }, [boardId]);
