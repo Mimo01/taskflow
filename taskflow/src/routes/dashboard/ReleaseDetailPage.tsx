@@ -1166,12 +1166,12 @@ export default function ReleaseDetailPage() {
                 <MetaRow label="Issues">
                   <span className="inline-flex flex-wrap items-center gap-1.5">
                     {issueStatusCounts.new > 0 && (
-                      <Badge tone="blue" className="text-xs tabular-nums">
+                      <Badge tone="muted" className="text-xs tabular-nums">
                         {issueStatusCounts.new} new
                       </Badge>
                     )}
                     {issueStatusCounts.indeterminate > 0 && (
-                      <Badge tone="amber" className="text-xs tabular-nums">
+                      <Badge tone="blue" className="text-xs tabular-nums">
                         {issueStatusCounts.indeterminate} in progress
                       </Badge>
                     )}
