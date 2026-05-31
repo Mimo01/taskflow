@@ -1,6 +1,6 @@
 // Settings store tests — keyboardOverrides (Phase 19) + layout customization (Phase 34)
 
-// biome-ignore assist/source/organizeImports: post-vi.mock imports must follow specific order to avoid TDZ circular dependency
+// NOTE: post-vi.mock imports must follow a specific order to avoid TDZ circular dependency
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
