@@ -287,7 +287,11 @@ function serializeCallout(node: JSONContent): string {
   const inner = (node.content ?? []).map((n) => serializeBlock(n, { listDepth: 0 })).join('\n');
 
   if (kind === 'panel') {
-    const header = title ? `{panel:title=${title}}` : '{panel}';
+    // WR-02: escape } and | in the title so the macro header cannot be broken.
+    // In Jira wiki, } closes the macro and | separates parameters — both must
+    // be backslash-escaped inside a macro parameter value.
+    const safeTitle = title ? title.replace(/[|}]/g, (c) => (c === '}' ? '\\}' : '\\|')) : null;
+    const header = safeTitle ? `{panel:title=${safeTitle}}` : '{panel}';
     return `${header}\n${inner}\n{panel}`;
   }
 
@@ -364,7 +368,9 @@ function serializeTextWithMarks(node: JSONContent): string {
         if (!text || text === href) {
           text = `[${href}]`;
         } else {
-          text = `[${text}|${href}]`;
+          // IN-01: escape | in link text — Jira parses [A|B|url] as broken markup
+          const safeText = text.replace(/\|/g, '\\|');
+          text = `[${safeText}|${href}]`;
         }
         break;
       }
