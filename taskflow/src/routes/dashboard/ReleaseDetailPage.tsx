@@ -474,7 +474,9 @@ export default function ReleaseDetailPage() {
               <section>
                 <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
                   <FileText className="size-3.5" />
-                  Description
+                  {gitlabMatch.type !== 'none' && matchedMilestone
+                    ? 'Jira Description'
+                    : 'Description'}
                 </h3>
                 {version.description ? (
                   <p className="text-sm whitespace-pre-wrap">{version.description}</p>
