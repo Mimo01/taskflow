@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-25)
 Phase: 75
 Plan: Not started
 Status: Executing Phase 75
-Last activity: 2026-05-31 - Completed quick task 260531-3ey: Sprint Board filters row full-width scroll with pinned right buttons
+Last activity: 2026-05-31 - Completed quick task 260531-40s: Remove the Jira "Save Filter" button and entire flow from filters
 
 ## Performance Metrics
 
@@ -114,6 +114,7 @@ Items acknowledged and deferred at the v1.10 milestone close on 2026-05-25 (20 o
 | 260528-jwr | On jira issue detail, when selecting fix version, the values in the popup should be sorted by release dates, not alphabetically | 2026-05-28 | 2c9c1737 |  | [260528-jwr-on-jira-issue-detail-when-selecting-fix-](./quick/260528-jwr-on-jira-issue-detail-when-selecting-fix-/) |
 | 260531-2el | Remove Jira-loaded (GreenHopper editmodel) Sprint Board quick filters; keep app's own filters | 2026-05-30 | e1c098f0 | Verified | [260531-2el-on-sprint-board-delete-jira-loaded-quick](./quick/260531-2el-on-sprint-board-delete-jira-loaded-quick/) |
 | 260531-3ey | Sprint Board filters row: full-width with horizontal scroll overflow, right action buttons pinned (shrink-0) and unaffected by scroll | 2026-05-31 | dc9fbbd8 | Verified | [260531-3ey-on-sprint-board-the-filters-row-drags-th](./quick/260531-3ey-on-sprint-board-the-filters-row-drags-th/) |
+| 260531-40s | Remove the Jira "Save Filter" button and entire flow from filters; keep only the local "Save" QuickFilters | 2026-05-31 | 58f83bd6 | Verified | [260531-40s-remove-save-filter-flow](./quick/260531-40s-remove-save-filter-flow/) |
 
 ## Session Continuity
 
