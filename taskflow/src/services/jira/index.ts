@@ -7,7 +7,6 @@
 
 export * from './attachments';
 export * from './duration';
-export * from './filters';
 export * from './types';
 export * from './users';
 export * from './worklogs';
