@@ -16,6 +16,7 @@ import {
   listGitLabGroups,
   listGitLabProjects,
   searchGitLabMRs,
+  updateMilestone,
   validateGitLab,
 } from './gitlab';
 
@@ -1303,6 +1304,95 @@ describe('gitlab service', () => {
 
       const result = await fetchParticipatedMRs(BASE, TOKEN, USER_ID, 30);
       expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('updateMilestone', () => {
+    const BASE = 'https://gitlab.example.com';
+    const TOKEN = 'my-token';
+    const PROJECT_ID = 99;
+    const MILESTONE_ID = 1234;
+
+    const updatedMilestone = {
+      id: MILESTONE_ID,
+      iid: 7,
+      title: 'New title',
+      description: 'New description',
+      start_date: null,
+      due_date: '2026-06-01',
+      state: 'active',
+      web_url: 'https://gitlab.example.com/group/proj/-/milestones/7',
+    };
+
+    it('returns the parsed milestone on 200 response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => updatedMilestone,
+      } as Response);
+
+      const result = await updateMilestone(BASE, TOKEN, PROJECT_ID, MILESTONE_ID, {
+        title: 'New title',
+        description: 'New description',
+      });
+      expect(result).toEqual(updatedMilestone);
+    });
+
+    it('issues a PUT to the numeric-id milestone path with PRIVATE-TOKEN and only the changed fields', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => updatedMilestone,
+      } as Response);
+
+      await updateMilestone(BASE, TOKEN, PROJECT_ID, MILESTONE_ID, { description: 'x' });
+
+      const [calledUrl, calledOptions] = vi.mocked(mockFetch).mock.calls[0] as [
+        string,
+        { method: string; headers: Record<string, string>; body: string },
+      ];
+      expect(calledUrl).toBe(
+        `${BASE}/api/v4/projects/${PROJECT_ID}/milestones/${MILESTONE_ID}`,
+      );
+      expect(calledOptions.method).toBe('PUT');
+      expect(calledOptions.headers['PRIVATE-TOKEN']).toBe(TOKEN);
+      expect(JSON.parse(calledOptions.body)).toEqual({ description: 'x' });
+    });
+
+    it('throws ApiError with status 401 on unauthorized response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        updateMilestone(BASE, TOKEN, PROJECT_ID, MILESTONE_ID, { title: 'x' }),
+      ).rejects.toMatchObject({ status: 401, source: 'gitlab' });
+    });
+
+    it('throws ApiError with status 403 on forbidden response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        updateMilestone(BASE, TOKEN, PROJECT_ID, MILESTONE_ID, { title: 'x' }),
+      ).rejects.toMatchObject({ status: 403, source: 'gitlab' });
+    });
+
+    it('throws a generic error on other non-ok status', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        updateMilestone(BASE, TOKEN, PROJECT_ID, MILESTONE_ID, { title: 'x' }),
+      ).rejects.toThrow('Failed to update milestone: status 500');
     });
   });
 });
