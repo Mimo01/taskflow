@@ -47,7 +47,6 @@ export function useFieldMutation(issueKey: string, jiraBaseUrl: string, boardId?
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
       queryClient.invalidateQueries({ queryKey: ['jira-issues', 'sprint-board'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
       // WR-06: scope to the active board when a boardId is available
       // (prevents N redundant refetches across every project's gh-backlog
       // envelope on every field edit). When not available, fall back to

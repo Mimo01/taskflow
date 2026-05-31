@@ -5,7 +5,6 @@
 // CREATE-01..04: Phase 11 new service functions (Wave 0 RED tests)
 // EPIC-01, EPIC-03: Phase 13 epic service functions
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError } from '../lib/api-error';
 import {
   bulkUpdateIssue,
   createIssue,
@@ -17,7 +16,6 @@ import {
   fetchIssueLinkTypes,
   fetchJiraIssueByKey,
   fetchSprintIssues,
-  fetchSprintStories,
   type JiraIssue,
   listJiraProjects,
   postComment,
@@ -1510,69 +1508,6 @@ describe('jira service', () => {
     });
   });
 
-  // --- fetchSprintStories ---
-  describe('fetchSprintStories', () => {
-    it('returns non-subtask issues on success', async () => {
-      const stories = [
-        { key: 'PROJ-1', fields: { summary: 'Story 1' } },
-        { key: 'PROJ-2', fields: { summary: 'Story 2' } },
-      ];
-      vi.mocked(mockFetch).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ issues: stories, total: stories.length }),
-      } as Response);
-
-      const result = await fetchSprintStories(BASE, TOKEN, 'PROJ');
-      expect(result).toHaveLength(2);
-      expect(result[0].key).toBe('PROJ-1');
-    });
-
-    it('returns empty array when no stories found', async () => {
-      vi.mocked(mockFetch).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ issues: [], total: 0 }),
-      } as Response);
-      const result = await fetchSprintStories(BASE, TOKEN, 'PROJ');
-      expect(result).toEqual([]);
-    });
-
-    it('throws ApiError on auth failure (401)', async () => {
-      vi.mocked(mockFetch).mockResolvedValueOnce({
-        ok: false,
-        status: 401,
-      } as Response);
-      await expect(fetchSprintStories(BASE, TOKEN, 'PROJ')).rejects.toThrow(ApiError);
-    });
-
-    it('throws user-friendly message on status 400 with sprint error', async () => {
-      vi.mocked(mockFetch).mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        text: async () => 'function not recognized',
-      } as Response);
-
-      await expect(fetchSprintStories(BASE, TOKEN, 'PROJ')).rejects.toThrow(
-        'Sprint filtering unavailable',
-      );
-    });
-
-    it('throws generic error on status 500', async () => {
-      vi.mocked(mockFetch).mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        text: async () => '',
-      } as Response);
-
-      await expect(fetchSprintStories(BASE, TOKEN, 'PROJ')).rejects.toThrow(
-        'Jira search failed with status 500',
-      );
-    });
-  });
-
-  // Legacy subtask fetcher removed in Phase 73 Plan 03 (GH-CUT-01); sprint-board
-  // subtasks now come from the GH allData envelope via useGhAllData.
 
   // --- fetchJiraIssueByKey ---
   describe('fetchJiraIssueByKey', () => {

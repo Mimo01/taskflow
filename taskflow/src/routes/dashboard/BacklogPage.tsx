@@ -688,13 +688,6 @@ export default function BacklogPage() {
       await addIssuesToSprint(jiraBaseUrl ?? '', jiraToken ?? '', sprintId, [issueKey]);
       // D-06: one invalidation covers the whole backlog freshness contract.
       invalidateGhBacklogData(queryClient, boardId);
-      // WR-04: `['jira-sprint-stories']` is still a LIVE cache key —
-      // RecentItemsPopover (src/components/app/RecentItemsPopover.tsx:46)
-      // reads it for the recents popover, and the global title resolver in
-      // main.tsx (~line 360) walks it for sidebar/title fallback. Keep this
-      // cross-surface invalidation in sync after a sprint move so those
-      // surfaces don't display stale sprint-membership state.
-      queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail'] });
     } catch (_err) {
       // Rollback to the snapshot taken before the optimistic mutation.
@@ -725,10 +718,6 @@ export default function BacklogPage() {
     try {
       await moveIssuesToBacklog(jiraBaseUrl ?? '', jiraToken ?? '', [issueKey]);
       invalidateGhBacklogData(queryClient, boardId);
-      // WR-04: cross-surface invalidation — `['jira-sprint-stories']` is still
-      // live for RecentItemsPopover + main.tsx title resolver (see comment in
-      // confirmMoveToSprint above).
-      queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail'] });
     } catch (_err) {
       if (previous) queryClient.setQueryData<GhBacklogResponse>(cacheKey, previous);

@@ -449,61 +449,6 @@ export async function fetchSprintIssues(
   }
 }
 
-/**
- * Fetch only parent (non-subtask) issues in the active sprint for a project.
- *
- * Uses fetchAllSearchPages for full pagination safety. Returns stories,
- * tasks, bugs, and epics — never subtasks. (The legacy two-query strategy
- * that paired this with a subtask fetch was removed in Phase 73 Plan 03;
- * sprint-board subtasks now come from the GH allData envelope.)
- *
- * @param baseUrl            - Jira base URL
- * @param token              - Personal Access Token
- * @param projectKey         - Jira project key (e.g. "PROJ")
- * @param assignedToMe       - If true, adds `AND assignee = currentUser()`
- * @param storyPointsFieldKey - Custom field key for story points
- * @param epicLinkFieldKey    - Custom field key for epic link
- * @throws Error('Sprint filtering unavailable -- ensure Jira Software is installed') on 400 with sprint errors
- */
-export async function fetchSprintStories(
-  baseUrl: string,
-  token: string,
-  projectKey: string,
-  assignedToMe = false,
-  storyPointsFieldKey = 'customfield_10016',
-  epicLinkFieldKey = 'customfield_10014',
-  flaggedFieldKey = 'customfield_10021',
-): Promise<JiraIssue[]> {
-  const base = baseUrl.replace(/\/$/, '');
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-  const assigneeClause = assignedToMe ? ' AND assignee = currentUser()' : '';
-  const spFields = [
-    ...new Set(['customfield_10016', 'customfield_10028', storyPointsFieldKey]),
-  ].join(',');
-  const fields = `summary,status,assignee,issuetype,project,labels,${spFields},${epicLinkFieldKey},parent,subtasks,timetracking,duedate,${flaggedFieldKey}`;
-  const jql = encodeURIComponent(
-    `project = ${projectKey} AND sprint in openSprints()${assigneeClause} AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`,
-  );
-  const baseSearchUrl = `${base}/rest/api/2/search?jql=${jql}&fields=${fields}`;
-
-  try {
-    return await fetchAllSearchPages(baseSearchUrl, headers);
-  } catch (err) {
-    if (err instanceof ApiError) throw err;
-    if (isResponseLikeError(err)) {
-      const status = err.status;
-      if (status === 400) {
-        const body = typeof err.text === 'function' ? await err.text() : '';
-        if (body.includes('function') || body.includes('not recognized')) {
-          throw new Error('Sprint filtering unavailable — ensure Jira Software is installed');
-        }
-        throw new Error(`Jira search failed with status 400`);
-      }
-      throw new Error(`Jira search failed with status ${status}`);
-    }
-    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
-  }
-}
 
 /**
  * Fetch all sprint issues relevant to the current user with full team hierarchy.
@@ -2343,7 +2288,6 @@ export {
   fetchAllData,
   fetchBacklogData,
   fetchGhTransitions,
-  fetchIssueDetails,
   filterTransitionsForStatus,
   getGhAllData,
   getGhBacklogData,
