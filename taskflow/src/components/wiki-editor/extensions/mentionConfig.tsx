@@ -197,15 +197,22 @@ export function createMentionExtension({
 
           onKeyDown(props: SuggestionKeyDownProps) {
             if (props.event.key === 'Escape') {
-              if (popupEl) popupEl.style.display = 'none';
-              return true;
+              // CR-03: return false so the keydown propagates to TipTap's suggestion
+              // plugin, which will cancel the suggestion session and fire onExit.
+              // Previously we hid the popup with display:none but kept the session
+              // open, leaking the DOM node and React tree because onExit never ran.
+              return false;
             }
             return component.ref?.onKeyDown(props.event) ?? false;
           },
 
           onExit() {
             if (popupEl) {
-              document.body.removeChild(popupEl);
+              // WR-03: guard against NotFoundError if the node was already detached
+              // (e.g. parent component unmount removed its subtree).
+              if (popupEl.parentNode === document.body) {
+                document.body.removeChild(popupEl);
+              }
               popupEl = null;
             }
             component.destroy();
