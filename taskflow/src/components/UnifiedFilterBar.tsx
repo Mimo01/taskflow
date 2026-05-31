@@ -327,7 +327,7 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
     <div data-testid="unified-filter-bar" className="border-b border-border">
       {/* Primary row: quickfilters + filter toggle */}
       <div className="flex items-center gap-1.5 px-3 py-1.5">
-        <div className="flex-1 min-w-0 flex flex-nowrap items-center gap-1.5 overflow-x-auto no-scrollbar">
+        <div className="flex-1 min-w-0 flex flex-nowrap items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 -my-0.5">
           {/* Quickfilter presets */}
           {/* Empty state hint */}
           {quickFilters.length === 0 && !hasActiveFilters && (
@@ -575,7 +575,7 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
       {/* Expandable filter selectors row */}
       {filtersOpen && (
         <div className="flex items-center gap-1.5 px-3 py-1.5 border-t border-border/50 bg-muted/20">
-          <div className="flex-1 min-w-0 flex flex-nowrap items-center gap-1.5 overflow-x-auto no-scrollbar">
+          <div className="flex-1 min-w-0 flex flex-nowrap items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 -my-0.5">
             <FilterDropdown
               label="Epic"
               options={epicKeys}
