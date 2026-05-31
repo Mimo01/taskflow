@@ -55,6 +55,7 @@ vi.mock('@/services/jira', () => ({
   updateComment: vi.fn(),
   // Needed by IssueDetailSidebar → FieldsSection
   isIssueFlagged: vi.fn().mockReturnValue(false),
+  invalidateGhAllData: vi.fn(),
   invalidateGhBacklogData: vi.fn(),
   mergeTimeline: vi.fn().mockReturnValue([]),
   filterTimeline: vi.fn().mockReturnValue([]),
