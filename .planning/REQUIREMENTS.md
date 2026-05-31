@@ -15,10 +15,10 @@
 
 ### Sprint Board (`allData.json`)
 
-- [ ] **GH-BOARD-01**: Sprint board fetches all issues, columns, swimlanes, statuses, priorities, types, and epics in a single `allData.json` call (replaces today's multi-call sprint-board fetch + per-issue enrichments)
-- [ ] **GH-BOARD-02**: Per-issue `timeInColumn.enteredStatus` is surfaced on the card (or made available to the existing "time in status" UI if present)
-- [ ] **GH-BOARD-03**: Sprint board renders columns from GreenHopper `columnsData` (not hardcoded status buckets) and groups by `parentId` for the subtask-under-story hierarchy
-- [ ] **GH-BOARD-04**: Existing sprint-board features (drag-to-transition with optimistic rollback, QuickCreateInput per column, epic / quick-filter / label filters, sprint goal banner) work unchanged on the new data source
+- [x] **GH-BOARD-01**: Sprint board fetches all issues, columns, swimlanes, statuses, priorities, types, and epics in a single `allData.json` call (replaces today's multi-call sprint-board fetch + per-issue enrichments)
+- [x] **GH-BOARD-02**: Per-issue `timeInColumn.enteredStatus` is surfaced on the card (or made available to the existing "time in status" UI if present)
+- [x] **GH-BOARD-03**: Sprint board renders columns from GreenHopper `columnsData` (not hardcoded status buckets) and groups by `parentId` for the subtask-under-story hierarchy
+- [x] **GH-BOARD-04**: Existing sprint-board features (drag-to-transition with optimistic rollback, QuickCreateInput per column, epic / quick-filter / label filters, sprint goal banner) work unchanged on the new data source
 
 ### Backlog (`data.json`)
 
@@ -68,10 +68,10 @@ Filled by roadmap (Section 10 of new-milestone workflow).
 | GH-TRANS-01 | Phase 72 | Complete |
 | GH-TRANS-02 | Phase 72 | Complete |
 | GH-TRANS-03 | Phase 72 | Complete |
-| GH-BOARD-01 | Phase 73 | Pending |
-| GH-BOARD-02 | Phase 73 | Pending |
-| GH-BOARD-03 | Phase 73 | Pending |
-| GH-BOARD-04 | Phase 73 | Pending |
+| GH-BOARD-01 | Phase 73 | Complete |
+| GH-BOARD-02 | Phase 73 | Complete |
+| GH-BOARD-03 | Phase 73 | Complete |
+| GH-BOARD-04 | Phase 73 | Complete |
 | GH-BACKLOG-01 | Phase 74 | Complete |
 | GH-BACKLOG-02 | Phase 74 | Complete |
 | PERF-DETAIL-01 | Phase 75 | Complete |
