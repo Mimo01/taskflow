@@ -370,7 +370,7 @@ function VirtualizedSwimlanes({
                 return (
                   <div
                     key={col.key}
-                    className="flex-1 min-h-[80px] flex flex-col gap-1.5 p-2 border-l border-border/20"
+                    className="flex-1 min-w-0 min-h-[80px] flex flex-col gap-1.5 p-2 border-l border-border/20"
                   >
                     {subtasksLoading ? (
                       <Skeleton className="h-8 w-full" />
@@ -482,7 +482,7 @@ function VirtualizedSwimlanes({
                     return (
                       <div
                         key={col.key}
-                        className="flex-1 min-h-[80px] flex flex-col gap-1.5 p-2 border-l border-border/20"
+                        className="flex-1 min-w-0 min-h-[80px] flex flex-col gap-1.5 p-2 border-l border-border/20"
                       >
                         {subtasksLoading ? (
                           <Skeleton className="h-8 w-full" />
@@ -1074,12 +1074,12 @@ export default function SprintBoardTab() {
               return (
                 <div
                   key={col.key}
-                  className="flex-1 px-3 flex items-center gap-1.5 border-l border-border/20 first:border-l-0"
+                  className="flex-1 min-w-0 px-3 flex items-center gap-1.5 border-l border-border/20 first:border-l-0"
                 >
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground truncate">
                     {col.label}
                   </span>
-                  <span className="text-xs text-muted-foreground/70">({count})</span>
+                  <span className="text-xs text-muted-foreground/70 shrink-0">({count})</span>
                 </div>
               );
             })}
