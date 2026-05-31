@@ -24,7 +24,6 @@ import {
   Pin,
   Rocket,
   Tag,
-  Users,
   X,
 } from 'lucide-react';
 import type React from 'react';
@@ -397,15 +396,6 @@ export default function ReleaseDetailPage() {
     return { merged, opened, closed };
   })();
 
-  // Unique MR authors (contributors), deduped by author id — mirrors labelMap shape.
-  const contributors = (() => {
-    const map = new Map<number, GitLabMR['author']>();
-    for (const mr of releaseMrs) {
-      if (!map.has(mr.author.id)) map.set(mr.author.id, mr.author);
-    }
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-  })();
-
   // Issue status distribution from statusCategory.key. Bucket exhaustively so an
   // out-of-union runtime key falls back to 'new' instead of producing NaN.
   const issueStatusCounts = (() => {
@@ -721,28 +711,6 @@ export default function ReleaseDetailPage() {
                 </section>
               )}
 
-              {/* Contributor list from milestone MRs — unique authors as avatars.
-                  Hides entirely when no milestone matched or no contributors. */}
-              {gitlabMatch.type !== 'none' && milestoneMRs && contributors.length > 0 && (
-                <section>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
-                    <Users className="size-3.5" />
-                    Contributors
-                    <Badge variant="secondary" className="text-xs tabular-nums">
-                      {contributors.length}
-                    </Badge>
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {contributors.map((c) => (
-                      <span key={c.id} className="inline-flex items-center gap-1.5 text-xs">
-                        <CachedAvatar url={c.avatar_url} name={c.name} size={20} />
-                        {c.name}
-                      </span>
-                    ))}
-                  </div>
-                </section>
-              )}
-
               {/* Issues with MR matching */}
               <section>
                 <div className="flex items-center gap-2 mb-2">
@@ -761,36 +729,6 @@ export default function ReleaseDetailPage() {
                     className="max-w-xs mb-4"
                     indicatorClassName="bg-green-500"
                   />
-                )}
-
-                {/* Issue status distribution + story-point effort.
-                    Distribution shows for any loaded issues; effort line only
-                    when at least one issue carries a positive story-point value. */}
-                {releaseIssues.length > 0 && (
-                  <div className="mb-4 space-y-1.5">
-                    <div className="flex flex-wrap gap-1.5">
-                      {issueStatusCounts.new > 0 && (
-                        <Badge tone="blue" className="text-xs tabular-nums">
-                          {issueStatusCounts.new} new
-                        </Badge>
-                      )}
-                      {issueStatusCounts.indeterminate > 0 && (
-                        <Badge tone="amber" className="text-xs tabular-nums">
-                          {issueStatusCounts.indeterminate} in progress
-                        </Badge>
-                      )}
-                      {issueStatusCounts.done > 0 && (
-                        <Badge tone="green" className="text-xs tabular-nums">
-                          {issueStatusCounts.done} done
-                        </Badge>
-                      )}
-                    </div>
-                    {hasStoryPoints && (
-                      <p className="text-xs text-muted-foreground tabular-nums">
-                        Story points: {storyPoints.completed} / {storyPoints.total}
-                      </p>
-                    )}
-                  </div>
                 )}
 
                 {/* Milestone warning */}
@@ -1219,6 +1157,40 @@ export default function ReleaseDetailPage() {
                         {mrStateCounts.closed} closed
                       </Badge>
                     )}
+                  </span>
+                </MetaRow>
+              )}
+
+              {/* Issue status distribution — hides entirely (no "—") when no
+                  issues are loaded. */}
+              {releaseIssues.length > 0 && (
+                <MetaRow label="Issues">
+                  <span className="inline-flex flex-wrap items-center gap-1.5">
+                    {issueStatusCounts.new > 0 && (
+                      <Badge tone="blue" className="text-xs tabular-nums">
+                        {issueStatusCounts.new} new
+                      </Badge>
+                    )}
+                    {issueStatusCounts.indeterminate > 0 && (
+                      <Badge tone="amber" className="text-xs tabular-nums">
+                        {issueStatusCounts.indeterminate} in progress
+                      </Badge>
+                    )}
+                    {issueStatusCounts.done > 0 && (
+                      <Badge tone="green" className="text-xs tabular-nums">
+                        {issueStatusCounts.done} done
+                      </Badge>
+                    )}
+                  </span>
+                </MetaRow>
+              )}
+
+              {/* Story-point effort — only when at least one issue carries a
+                  positive story-point value. */}
+              {hasStoryPoints && (
+                <MetaRow label="Story points">
+                  <span className="text-sm tabular-nums">
+                    {storyPoints.completed} / {storyPoints.total}
                   </span>
                 </MetaRow>
               )}
