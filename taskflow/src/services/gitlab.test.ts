@@ -1392,5 +1392,17 @@ describe('gitlab service', () => {
         updateMilestone(BASE, TOKEN, PROJECT_ID, MILESTONE_ID, { title: 'x' }),
       ).rejects.toThrow('Failed to update milestone: status 500');
     });
+
+    it('surfaces the GitLab error body message on a 400 response', async () => {
+      vi.mocked(mockFetch).mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ message: 'title is missing' }),
+      } as Response);
+
+      await expect(
+        updateMilestone(BASE, TOKEN, PROJECT_ID, MILESTONE_ID, { title: '' }),
+      ).rejects.toThrow('Failed to update milestone: title is missing');
+    });
   });
 });
