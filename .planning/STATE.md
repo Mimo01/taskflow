@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-25)
 Phase: 75
 Plan: Not started
 Status: Executing Phase 75
-Last activity: 2026-05-31 - Completed quick task 260531-saz: Enhance wiki editing input — shared TipTap WYSIWYG editor with Source toggle + lossless Jira-wiki round-trip
+Last activity: 2026-05-31 - Completed quick task 260531-ucj: Make WikiEditor Source mode match Rendered mode sizing (auto-grow, non-resizable)
 
 ## Performance Metrics
 
@@ -121,6 +121,7 @@ Items acknowledged and deferred at the v1.10 milestone close on 2026-05-25 (20 o
 | 260531-php | Redo release editing as a modal (out of sidebar) + edit matched GitLab milestone title/description; one Save writes both Jira & GitLab | 2026-05-31 | dcb4dc75 | Verified | [260531-php-on-release-detail-allow-editing-gitlab-m](./quick/260531-php-on-release-detail-allow-editing-gitlab-m/) |
 | 260531-qx3 | Add more info to release detail page: MR-state distribution, contributor list, issue status distribution + story-point effort | 2026-05-31 | 0d0fb2be | Verified | [260531-qx3-i-want-to-add-more-info-to-the-release-d](./quick/260531-qx3-i-want-to-add-more-info-to-the-release-d/) |
 | 260531-saz | Enhance wiki editing input: shared TipTap WYSIWYG `<WikiEditor>` with Source toggle + lossless Jira-wiki round-trip; replaces 4 textarea editors (description + comments) | 2026-05-31 | 31d51a70 | Verified | [260531-saz-i-want-to-enhance-the-wiki-editing-input](./quick/260531-saz-i-want-to-enhance-the-wiki-editing-input/) |
+| 260531-ucj | Make WikiEditor Source mode match Rendered mode sizing: textarea auto-grows with content (field-sizing-content) and is non-resizable (resize-none) | 2026-05-31 | e1153038 |  | [260531-ucj-the-wiki-editor-has-two-modes-rendered-a](./quick/260531-ucj-the-wiki-editor-has-two-modes-rendered-a/) |
 
 ## Session Continuity
 
