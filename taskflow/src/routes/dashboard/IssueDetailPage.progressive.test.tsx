@@ -42,7 +42,9 @@ vi.mock('@/hooks/useMentionUserMap', () => ({
 }));
 
 vi.mock('@/hooks/useResizable', () => ({
-  useResizable: vi.fn().mockReturnValue({ width: 400, isDragging: false, handleMouseDown: () => {} }),
+  useResizable: vi
+    .fn()
+    .mockReturnValue({ width: 400, isDragging: false, handleMouseDown: () => {} }),
 }));
 
 vi.mock('@/services/jira', () => ({
@@ -177,7 +179,12 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
-import { deleteComment, fetchEnrichedSubtasks, fetchIssueDetail, updateComment } from '@/services/jira';
+import {
+  deleteComment,
+  fetchEnrichedSubtasks,
+  fetchIssueDetail,
+  updateComment,
+} from '@/services/jira';
 import { fetchComments } from '@/services/jira/comments';
 import { fetchIssueChangelog } from '@/services/jira/changelog';
 import { postTransition } from '@/services/jira/transitions';
@@ -251,7 +258,12 @@ const FIELDS_SECTION_ISSUE = {
     summary: 'Test issue',
     status: { id: '1', name: 'In Progress', statusCategory: { key: 'indeterminate' } },
     assignee: { displayName: 'Alice', name: 'alice', avatarUrls: { '48x48': '' } },
-    reporter: { displayName: 'Bob', name: 'bob', emailAddress: 'bob@example.com', avatarUrls: { '48x48': '' } },
+    reporter: {
+      displayName: 'Bob',
+      name: 'bob',
+      emailAddress: 'bob@example.com',
+      avatarUrls: { '48x48': '' },
+    },
     priority: { name: 'Medium' },
     issuetype: { id: '10001', name: 'Story', subtask: false },
     project: { id: '1', key: 'PROJ', name: 'Project' },
