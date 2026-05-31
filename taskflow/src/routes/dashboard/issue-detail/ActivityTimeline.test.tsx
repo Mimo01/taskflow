@@ -15,7 +15,7 @@ vi.mock('@/stores/settings.store', () => ({
 vi.mock('@/services/jira', () => ({
   mergeTimeline: vi.fn().mockReturnValue([]),
   filterTimeline: vi.fn().mockReturnValue([]),
-  countByType: vi.fn().mockReturnValue({ comment: 0, change: 0, worklog: 0 }),
+  countByType: vi.fn().mockReturnValue({ all: 0, comment: 0, change: 0, worklog: 0 }),
 }));
 
 // --- Imports ---
@@ -76,7 +76,7 @@ const BASE_PROPS = {
   onWorklogDelete: () => {},
   worklogEditPending: false,
   worklogEditError: null,
-} as const;
+};
 
 // --- Tests ---
 
@@ -128,7 +128,12 @@ describe('ActivityTimeline — changelog skeleton guard (PERF-DETAIL-02)', () =>
     vi.mocked(jiraService.filterTimeline).mockReturnValue([
       { type: 'change', data: entry },
     ] as never);
-    vi.mocked(jiraService.countByType).mockReturnValue({ comment: 0, change: 1, worklog: 0 });
+    vi.mocked(jiraService.countByType).mockReturnValue({
+      all: 1,
+      comment: 0,
+      change: 1,
+      worklog: 0,
+    });
 
     render(<ActivityTimeline {...BASE_PROPS} changelog={[entry as never]} />);
 
