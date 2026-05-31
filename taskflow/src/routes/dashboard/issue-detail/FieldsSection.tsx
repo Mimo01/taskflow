@@ -269,7 +269,6 @@ export function FieldsSection({
       queryClient.invalidateQueries({ queryKey: ['jira-epics-basic'] });
       queryClient.invalidateQueries({ queryKey: ['jira-fixversion-issues'] });
       queryClient.invalidateQueries({ queryKey: ['jira-version-counts'] });
-      queryClient.invalidateQueries({ queryKey: ['jira-transitions', issueKey] });
     },
   });
 

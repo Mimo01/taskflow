@@ -376,17 +376,7 @@ function AppLayout() {
       if (resolvedTitle) break;
     }
 
-    // 2. Search backlog cache (flat JiraIssue[] arrays from Phase 48 refactor)
-    if (!resolvedTitle) {
-      const sprintStoriesEntries = queryClient.getQueriesData<CachedIssue[]>({
-        queryKey: ['jira-sprint-stories'],
-      });
-      for (const [, data] of sprintStoriesEntries) {
-        if (!data) continue;
-        resolvedTitle = findTitle(data);
-        if (resolvedTitle) break;
-      }
-    }
+    // 2. Search backlog cache (gh-backlog Phase 74 GH-CUT-01)
     if (!resolvedTitle) {
       // Phase 74 GH-CUT-01: backlog data now lives in ['gh-backlog', boardId]
       // as a raw GhBacklogResponse envelope whose `.issues` is an array of
@@ -495,7 +485,6 @@ function AppLayout() {
 
   const handleCreateModalClose = () => {
     if (wasStoryCreate.current) {
-      queryClient.invalidateQueries({ queryKey: ['jira-sprint-stories'] });
       // Phase 74 GH-CUT-01: backlog data lives under ['gh-backlog'].
       invalidateGhBacklogData(queryClient);
     }
