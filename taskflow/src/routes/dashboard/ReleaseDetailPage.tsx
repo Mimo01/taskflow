@@ -24,6 +24,7 @@ import {
   Pin,
   Rocket,
   Tag,
+  Users,
   X,
 } from 'lucide-react';
 import type React from 'react';
@@ -105,7 +106,7 @@ async function fetchFixVersionIssues(
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   if (!/^\d+$/.test(versionId)) throw new Error(`Invalid versionId: ${versionId}`);
   const jql = `fixVersion = ${versionId} AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`;
-  const fields = 'summary,status,assignee,issuetype';
+  const fields = 'summary,status,assignee,issuetype,customfield_10016';
   const maxResults = 200;
   let startAt = 0;
   const allIssues: JiraIssue[] = [];
@@ -370,6 +371,57 @@ export default function ReleaseDetailPage() {
       allLabeled: unlabeled.length === 0,
     };
   })();
+
+  // MR state distribution — count merged / opened, folding everything else
+  // (closed, locked) into "closed" so the math stays exhaustive without a switch.
+  const mrStateCounts = (() => {
+    let merged = 0;
+    let opened = 0;
+    let closed = 0;
+    for (const mr of releaseMrs) {
+      if (mr.state === 'merged') merged += 1;
+      else if (mr.state === 'opened') opened += 1;
+      else closed += 1;
+    }
+    return { merged, opened, closed };
+  })();
+
+  // Unique MR authors (contributors), deduped by author id — mirrors labelMap shape.
+  const contributors = (() => {
+    const map = new Map<number, GitLabMR['author']>();
+    for (const mr of releaseMrs) {
+      if (!map.has(mr.author.id)) map.set(mr.author.id, mr.author);
+    }
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  })();
+
+  // Issue status distribution from statusCategory.key (optional → default 'new').
+  const issueStatusCounts = (() => {
+    const counts = { new: 0, indeterminate: 0, done: 0 };
+    for (const issue of releaseIssues) {
+      const key = issue.fields.status.statusCategory?.key ?? 'new';
+      counts[key] += 1;
+    }
+    return counts;
+  })();
+
+  // Story-point effort: sum customfield_10016 (guarded against null) for total and
+  // for done-category issues. hasStoryPoints gates graceful hiding of the effort line.
+  const storyPoints = (() => {
+    let total = 0;
+    let completed = 0;
+    for (const issue of releaseIssues) {
+      const sp = issue.fields.customfield_10016;
+      if (typeof sp === 'number') {
+        total += sp;
+        if (issue.fields.status.statusCategory?.key === 'done') completed += sp;
+      }
+    }
+    return { total, completed };
+  })();
+  const hasStoryPoints = releaseIssues.some(
+    (i) => typeof i.fields.customfield_10016 === 'number' && i.fields.customfield_10016 > 0,
+  );
 
   // Populate edit form when entering edit mode (seeds both Jira + GitLab fields)
   const startEditing = () => {
