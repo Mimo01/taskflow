@@ -16,7 +16,7 @@ import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
+import { WikiEditor } from '@/components/wiki-editor';
 import { useDelayedLoading } from '@/hooks/useDelayedLoading';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import { useResizable } from '@/hooks/useResizable';
@@ -788,10 +788,12 @@ function CommentCard({
       {/* Card body */}
       {isEditing ? (
         <div className="space-y-2">
-          <Textarea
+          <WikiEditor
             value={editText}
-            onChange={(e) => onEditTextChange(e.target.value)}
-            className="min-h-[80px] resize-none"
+            onChange={onEditTextChange}
+            variant="comment"
+            users={userMap}
+            showSourceToggle
           />
           {editError && <p className="text-xs text-destructive">{editError}</p>}
           <div className="flex gap-2 justify-end">

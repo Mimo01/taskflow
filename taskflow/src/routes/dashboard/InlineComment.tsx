@@ -1,15 +1,17 @@
 /**
  * InlineComment — Rich inline comment list with WikiRenderer, edit/delete for
- * own comments, and a formatting toolbar on the composer.
+ * own comments, and WikiEditor as both the composer and inline edit surface.
  *
- * Matches the CommentCard design from IssueDetailPage exactly.
+ * The old textarea+toolbar+applyMarkup implementation is replaced by <WikiEditor>.
+ * Comment list, edit/delete menu, and mutations are UNCHANGED.
+ * userMap is passed to WikiEditor as users= for mention display resolution.
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bold, Code, Italic, List, MoreVertical } from 'lucide-react';
+import { MoreVertical } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { WikiEditor } from '@/components/wiki-editor';
 import { useMentionUserMap } from '@/hooks/useMentionUserMap';
 import type { JiraComment } from '@/services/jira';
 import { deleteComment, updateComment } from '@/services/jira';
@@ -31,16 +33,6 @@ interface InlineCommentProps {
   isLoadingComments?: boolean;
 }
 
-function applyMarkup(textarea: HTMLTextAreaElement, prefix: string, suffix: string) {
-  const { selectionStart, selectionEnd, value } = textarea;
-  const selected = value.slice(selectionStart, selectionEnd);
-  const before = value.slice(0, selectionStart);
-  const after = value.slice(selectionEnd);
-  const newValue = `${before}${prefix}${selected}${suffix}${after}`;
-  const cursorPos = selectionStart + prefix.length + selected.length + suffix.length;
-  return { newValue, cursorPos };
-}
-
 export default function InlineComment({
   issueKey,
   jiraBaseUrl,
@@ -53,10 +45,12 @@ export default function InlineComment({
   isLoadingComments,
 }: InlineCommentProps) {
   const [text, setText] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const queryClient = useQueryClient();
   const jiraUserDisplayName = useAuthStore((s) => s.jiraUserDisplayName);
   const commentSortOrder = useSettingsStore((s) => s.commentSortOrder);
+
+  const projectKey = issueKey.split('-')[0];
+
   const sortedComments = !existingComments
     ? undefined
     : commentSortOrder === 'newest'
@@ -89,9 +83,7 @@ export default function InlineComment({
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      textareaRef.current?.focus();
-    } else {
+    if (!isOpen) {
       setText('');
       setEditingCommentId(null);
       setEditText('');
@@ -148,17 +140,6 @@ export default function InlineComment({
     if (text.trim()) {
       onSubmit(text.trim());
     }
-  }
-
-  function handleMarkup(prefix: string, suffix: string) {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-    const { newValue, cursorPos } = applyMarkup(textarea, prefix, suffix);
-    setText(newValue);
-    requestAnimationFrame(() => {
-      textarea.focus();
-      textarea.setSelectionRange(cursorPos, cursorPos);
-    });
   }
 
   function handleEditStart(comment: JiraComment) {
@@ -244,10 +225,13 @@ export default function InlineComment({
                 {/* Body */}
                 {isEditing ? (
                   <div className="space-y-2">
-                    <Textarea
+                    <WikiEditor
                       value={editText}
-                      onChange={(e) => setEditText(e.target.value)}
-                      className="min-h-[80px] resize-none"
+                      onChange={setEditText}
+                      variant="comment"
+                      users={userMap}
+                      mention={{ projectKey, jiraBaseUrl }}
+                      showSourceToggle
                     />
                     {editMutation.isError && (
                       <p className="text-xs text-destructive">
@@ -288,51 +272,19 @@ export default function InlineComment({
         </div>
       )}
 
-      {/* Formatting toolbar */}
-      <div className="flex items-center gap-1 border rounded-t-md px-2 py-1 bg-muted/30">
-        <button
-          type="button"
-          onClick={() => handleMarkup('*', '*')}
-          title="Bold"
-          className="p-1 rounded hover:bg-accent"
-        >
-          <Bold className="size-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => handleMarkup('_', '_')}
-          title="Italic"
-          className="p-1 rounded hover:bg-accent"
-        >
-          <Italic className="size-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => handleMarkup('{code}', '{code}')}
-          title="Code block"
-          className="p-1 rounded hover:bg-accent"
-        >
-          <Code className="size-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => handleMarkup('* ', '')}
-          title="Bullet list"
-          className="p-1 rounded hover:bg-accent"
-        >
-          <List className="size-3.5" />
-        </button>
-      </div>
-
-      {/* Composer textarea */}
-      <textarea
-        ref={textareaRef}
-        rows={3}
-        placeholder="Add a comment..."
+      {/* Composer — WikiEditor replaces textarea+toolbar */}
+      <WikiEditor
         value={text}
-        onChange={(e) => setText(e.target.value)}
-        className="w-full resize-none rounded-t-none rounded-b border border-t-0 border-border bg-background px-2 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+        onChange={setText}
+        variant="inline"
+        placeholder="Add a comment..."
+        mention={{ projectKey, jiraBaseUrl }}
+        users={userMap}
+        submitOnEnter
+        onSubmit={handleSubmit}
+        showSourceToggle
       />
+
       {error && <p className="text-xs text-destructive">Failed to add comment -- try again</p>}
       <div className="flex items-center gap-2">
         <button

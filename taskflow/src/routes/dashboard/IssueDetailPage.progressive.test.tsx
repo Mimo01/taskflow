@@ -169,6 +169,22 @@ vi.mock('./CommentComposer', () => ({
   CommentComposer: () => null,
 }));
 
+// WikiEditor: stub as a controlled textarea so getAllByRole('textbox') queries work
+// and tests can find the pre-filled edit textarea by value (existing test pattern).
+vi.mock('@/components/wiki-editor', () => ({
+  WikiEditor: ({
+    value,
+    onChange,
+    placeholder,
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+    placeholder?: string;
+  }) => (
+    <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
+  ),
+}));
+
 // --- Imports (after mocks) ---
 
 import type React from 'react';
