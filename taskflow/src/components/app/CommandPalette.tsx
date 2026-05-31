@@ -12,7 +12,7 @@
  */
 
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bookmark, SearchX } from 'lucide-react';
+import { SearchX } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import {
@@ -34,7 +34,6 @@ import { applyTheme, saveTheme, type Theme } from '@/services/theme';
 import { useAuthStore } from '@/stores/auth.store';
 import { useNotificationsStore } from '@/stores/notifications.store';
 import { useRecentItemsStore } from '@/stores/recent-items.store';
-import { useSavedFilterStore } from '@/stores/saved-filter.store';
 import { useSettingsStore } from '@/stores/settings.store';
 
 const THEME_CYCLE: Theme[] = ['light', 'dark', 'system'];
@@ -72,8 +71,6 @@ export default function CommandPalette({
       : '';
   const pushRecentItem = useRecentItemsStore((s) => s.pushItem);
   const recentItems = useRecentItemsStore((s) => s.items);
-  const savedFilters = useSavedFilterStore((s) => s.savedFilters);
-  const setActiveFilter = useSavedFilterStore((s) => s.setActiveFilter);
 
   // KEYS migration: all keyboard shortcuts use react-hotkeys-hook (no raw window listeners)
   // enableOnFormTags: true is intentional -- Escape must close the palette even while typing
@@ -290,27 +287,6 @@ export default function CommandPalette({
                     ))
                   )}
                 </CommandGroup>
-
-                {/* Saved Filters -- default state */}
-                {savedFilters.length > 0 && (
-                  <CommandGroup heading="Saved Filters">
-                    {savedFilters.map((filter) => (
-                      <CommandItem
-                        key={`saved-filter-${filter.id}`}
-                        value={`saved-filter ${filter.name}`}
-                        keywords={['filter', 'saved', filter.name]}
-                        onSelect={() => {
-                          setActiveFilter(filter.id);
-                          onNavigate('/');
-                          onClose();
-                        }}
-                      >
-                        <Bookmark className="size-3.5 mr-2 shrink-0" />
-                        <span className="truncate">{filter.name}</span>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                )}
               </>
             ) : (
               <>
@@ -427,27 +403,6 @@ export default function CommandPalette({
                   </CommandGroup>
                 )}
               </>
-            )}
-
-            {/* Saved Filters -- always visible when filters exist */}
-            {savedFilters.length > 0 && (
-              <CommandGroup heading="Saved Filters">
-                {savedFilters.map((filter) => (
-                  <CommandItem
-                    key={`saved-filter-${filter.id}`}
-                    value={`saved-filter ${filter.name}`}
-                    keywords={['filter', 'saved', filter.name]}
-                    onSelect={() => {
-                      setActiveFilter(filter.id);
-                      onNavigate('/');
-                      onClose();
-                    }}
-                  >
-                    <Bookmark className="size-3.5 mr-2 shrink-0" />
-                    <span className="truncate">{filter.name}</span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
             )}
 
             {/* Navigation group -- dynamically derived from shortcuts registry (NAV_SHORTCUTS) */}
