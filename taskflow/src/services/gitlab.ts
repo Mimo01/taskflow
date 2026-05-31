@@ -173,6 +173,7 @@ export interface GitLabMilestone {
   id: number;
   iid: number;
   title: string;
+  description: string | null;
   start_date: string | null; // "YYYY-MM-DD" or null
   due_date: string | null; // "YYYY-MM-DD" or null
   state: 'active' | 'closed';
