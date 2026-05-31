@@ -26,7 +26,7 @@ import {
   Quote,
   Strikethrough,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createMentionExtension } from './extensions/mentionConfig';
 import type { AttachmentMap, UserMap } from './jiraToTiptap';
 import { jiraToTiptap } from './jiraToTiptap';
@@ -113,25 +113,44 @@ export function WikiEditor({
   // The last value prop we loaded into the editor (for controlled-sync, Pitfall 5)
   const lastLoadedValueRef = useRef(value);
 
-  // Build extension set (memoised by mention config)
-  const extensions = buildExtensions(
-    mention
-      ? {
-          mention: createMentionExtension({
-            projectKey: mention.projectKey,
-            jiraBaseUrl: mention.jiraBaseUrl,
-          }),
-        }
-      : {},
+  // Build extension set — memoised so the array reference is stable across renders.
+  // Keyed on the two mention config primitives; re-running when they change is fine
+  // (it will recreate the editor) but re-running on every render would cause TipTap
+  // to destroy and recreate the editor on every parent state change (CR-02).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const extensions = useMemo(
+    () =>
+      buildExtensions(
+        mention
+          ? {
+              mention: createMentionExtension({
+                projectKey: mention.projectKey,
+                jiraBaseUrl: mention.jiraBaseUrl,
+              }),
+            }
+          : {},
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mention?.projectKey, mention?.jiraBaseUrl],
   );
 
-  // Build initial TipTap JSON content
-  const initialContent = jiraToTiptap(value, { attachments, users });
+  // Build initial TipTap JSON content — intentionally only on mount.
+  // Later value changes are applied through the sync effect below (Pitfall 5).
+  // Re-computing on every render would also churn the editor (CR-02).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const initialContent = useMemo(
+    () => jiraToTiptap(value, { attachments, users }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   const editor = useEditor(
     {
       extensions,
       content: initialContent,
+      // Note: editable is NOT in the dependency array — we update it via a
+      // separate effect using editor.setEditable() to avoid full editor
+      // recreation on disabled toggle (WR-05).
       editable: !disabled,
       autofocus: autoFocus,
       onUpdate({ editor: ed }) {
@@ -155,8 +174,20 @@ export function WikiEditor({
         },
       },
     },
-    [disabled],
+    // Empty dep array: editor is created once. Extensions stability (CR-02) + setEditable
+    // effect below (WR-05) keep the editor correct without recreation on prop changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
   );
+
+  // WR-05: Update editability without recreating the editor.
+  // useEditor([disabled]) would destroy+recreate the editor on every disabled toggle,
+  // losing any unsaved content typed between the last onChange and the flip.
+  useEffect(() => {
+    if (editor && !editor.isDestroyed) {
+      editor.setEditable(!disabled);
+    }
+  }, [editor, disabled]);
 
   // Sync external value changes (Pitfall 5: only update when value differs from last serialized)
   useEffect(() => {
@@ -193,19 +224,22 @@ export function WikiEditor({
 
   const handleToggleToWysiwyg = useCallback(() => {
     setIsSource(false);
-    if (!sourceDirtyRef.current) {
-      // Source was not edited — no-op, don't reload or fire onChange
+    if (!sourceDirtyRef.current && sourceText === value) {
+      // True no-op: source was not edited AND external value didn't change while
+      // we were in source mode — nothing to reload. (WR-04)
       return;
     }
-    // Source was edited — reload editor from source text
-    const json = jiraToTiptap(sourceText, { attachments, users });
+    // Either source was edited, or the external value changed while source was open
+    // (e.g. optimistic rollback). Use the edited source if dirty, else the latest value.
+    const textToLoad = sourceDirtyRef.current ? sourceText : value;
+    const json = jiraToTiptap(textToLoad, { attachments, users });
     if (editor && !editor.isDestroyed) {
       editor.commands.setContent(json);
     }
-    lastLoadedValueRef.current = sourceText;
+    lastLoadedValueRef.current = textToLoad;
     wysiwygDirtyRef.current = false;
-    // Don't call onChange here — the source edit already emits via handleSourceChange
-  }, [editor, sourceText, attachments, users]);
+    // Don't call onChange here — source edits already emit via handleSourceChange
+  }, [editor, sourceText, value, attachments, users]);
 
   const handleSourceChange = useCallback(
     (text: string) => {
