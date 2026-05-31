@@ -131,6 +131,14 @@ function VirtualizedSwimlanes({
     getScrollElement: () => scrollElement,
     estimateSize: () => 120,
     overscan: 5,
+    // Key the size cache by the stable story key, not the array index (the default).
+    // @tanstack/react-virtual caches measured row heights keyed by getItemKey(index). With the
+    // default index key, filtering re-maps which story sits at each index, so a story inherits
+    // the *previous* occupant's cached height — wrong translateY offsets and total height, i.e.
+    // gaps and misaligned rows until a scroll re-measures each visible row individually. Keying
+    // by story.key makes each story carry its own measured height across filter changes, so
+    // positions are correct on the first paint with no scroll needed.
+    getItemKey: (index) => filteredSwimlanes[index]?.story.key ?? index,
   });
 
   const virtualItems = swimlaneVirtualizer.getVirtualItems();
