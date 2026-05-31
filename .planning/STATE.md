@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-05-25)
 Phase: 75
 Plan: Not started
 Status: Executing Phase 75
-Last activity: 2026-05-31 - Completed quick task 260531-oqa: Remove duplicate info between release detail main content and sidebar
+Last activity: 2026-05-31 - Completed quick task 260531-owi: Add gitlab milestone description to release detail
 
 ## Performance Metrics
 
@@ -117,6 +117,7 @@ Items acknowledged and deferred at the v1.10 milestone close on 2026-05-25 (20 o
 | 260531-40s | Remove the Jira "Save Filter" button and entire flow from filters; keep only the local "Save" QuickFilters | 2026-05-31 | 58f83bd6 | Verified | [260531-40s-remove-save-filter-flow](./quick/260531-40s-remove-save-filter-flow/) |
 | 260531-l0f | Currently I can pin issues and aio cycles. I also want to be able to pin releases | 2026-05-31 | 5257394e | Verified | [260531-l0f-currently-i-can-pin-issues-and-aio-cycle](./quick/260531-l0f-currently-i-can-pin-issues-and-aio-cycle/) |
 | 260531-oqa | Remove duplicate info between release detail main content and sidebar | 2026-05-31 | f0015e3a |  | [260531-oqa-remove-duplicate-info-between-release-de](./quick/260531-oqa-remove-duplicate-info-between-release-de/) |
+| 260531-owi | Add gitlab milestone description to release detail, currently there is only jira description | 2026-05-31 | 4735942e |  | [260531-owi-add-gitlab-milestone-description-to-rele](./quick/260531-owi-add-gitlab-milestone-description-to-rele/) |
 
 ## Session Continuity
 
