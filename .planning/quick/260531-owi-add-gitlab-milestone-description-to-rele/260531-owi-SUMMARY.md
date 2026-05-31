@@ -64,3 +64,15 @@ None — plan executed exactly as written. Two minor auto-fixes during biome lin
 - [x] `npm run check` (biome + tsc) passes with exit 0
 
 ## Self-Check: PASSED
+
+---
+
+## Post-plan follow-ups (same session, user-requested)
+
+After the initial plan executed, three refinements were committed directly:
+
+- `91690baa` — added `description: null` to two `GitLabMilestone` test fixtures in `ReleasesTab.test.tsx`. The required field broke `tsc` on the merged tree (the worktree check had passed); fixed and 14 tests green.
+- `045eee17` — the Jira "Description" header now reads **"Jira Description"** only when a GitLab milestone is matched, to disambiguate the two blocks.
+- `9023e456` — when a milestone is matched but **neither** side has a description, the two empty "No description" blocks collapse into a single "Description" section.
+
+All changes pass `npm run check`. Final code state covers all four match/empty combinations.
