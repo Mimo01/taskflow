@@ -327,10 +327,11 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
     <div data-testid="unified-filter-bar" className="border-b border-border">
       {/* Primary row: quickfilters + filter toggle */}
       <div className="flex items-center gap-1.5 px-3 py-1.5">
+        <div className="flex-1 min-w-0 flex flex-nowrap items-center gap-1.5 overflow-x-auto no-scrollbar">
         {/* Quickfilter presets */}
         {/* Empty state hint */}
         {quickFilters.length === 0 && !hasActiveFilters && (
-          <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/60 italic">
+          <span className="shrink-0 inline-flex items-center gap-1 text-[11px] text-muted-foreground/60 italic">
             <Info className="size-3 shrink-0" />
             Saved filters appear here — use Filter to create one
           </span>
@@ -446,13 +447,13 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
         {/* Active filter chips (shown in primary row when selectors are closed) */}
         {!filtersOpen && activeChips.length > 0 && (
           <>
-            {quickFilters.length > 0 && <div className="w-px h-4 bg-border" />}
-            <div className="flex flex-wrap items-center gap-1">
+            {quickFilters.length > 0 && <div className="shrink-0 w-px h-4 bg-border" />}
+            <div className="flex flex-nowrap items-center gap-1">
               {activeChips.map((chip) => (
                 <span
                   key={chip.key}
                   data-testid={`${chip.key.replace(/^(epic|label|assignee|status)-/, '$1-chip-')}`}
-                  className="inline-flex items-center gap-1 rounded-md bg-secondary text-secondary-foreground pl-1.5 pr-1 py-0.5 text-[11px] leading-tight"
+                  className="shrink-0 inline-flex items-center gap-1 rounded-md bg-secondary text-secondary-foreground pl-1.5 pr-1 py-0.5 text-[11px] leading-tight"
                 >
                   <span className="text-muted-foreground font-medium">{chip.category}:</span>
                   <span className="max-w-[120px] truncate">{chip.label}</span>
@@ -476,10 +477,9 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
             </div>
           </>
         )}
+        </div>
 
-        {/* Spacer */}
-        <div className="flex-1" />
-
+        <div className="shrink-0 flex items-center gap-1.5">
         {/* Save as quickfilter */}
         {hasActiveFilters && !savingName && (
           <Button
@@ -559,6 +559,7 @@ export function UnifiedFilterBar({ filterOptions }: UnifiedFilterBarProps) {
             </span>
           )}
         </Button>
+        </div>
       </div>
 
       {/* Save Filter dialog (Jira) */}
