@@ -79,6 +79,25 @@ vi.mock('./WikiRenderer', () => ({
   ),
 }));
 
+// WikiEditor: stub as a controlled textarea so existing placeholder-based queries work.
+vi.mock('@/components/wiki-editor', () => ({
+  WikiEditor: ({
+    value,
+    onChange,
+    placeholder,
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+    placeholder?: string;
+  }) => (
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+    />
+  ),
+}));
+
 // Minimal JiraIssueDetail fixture
 function makeIssueDetail(overrides: Record<string, unknown> = {}) {
   return {

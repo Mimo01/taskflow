@@ -24,6 +24,26 @@ vi.mock('./MentionPopover', () => ({
   MentionPopover: vi.fn().mockReturnValue(null),
 }));
 
+// WikiEditor: stub as a controlled textarea so mutation tests still exercise onChange/value.
+// The placeholder prop is forwarded so getByPlaceholderText('Add a comment…') still works.
+vi.mock('@/components/wiki-editor', () => ({
+  WikiEditor: ({
+    value,
+    onChange,
+    placeholder,
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+    placeholder?: string;
+  }) => (
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+    />
+  ),
+}));
+
 // --- Imports ---
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
