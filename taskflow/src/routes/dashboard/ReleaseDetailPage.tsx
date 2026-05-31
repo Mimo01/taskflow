@@ -24,6 +24,7 @@ import {
   Pin,
   Rocket,
   Tag,
+  Users,
   X,
 } from 'lucide-react';
 import type React from 'react';
@@ -105,7 +106,7 @@ async function fetchFixVersionIssues(
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   if (!/^\d+$/.test(versionId)) throw new Error(`Invalid versionId: ${versionId}`);
   const jql = `fixVersion = ${versionId} AND issuetype not in subtaskIssueTypes() ORDER BY rank ASC`;
-  const fields = 'summary,status,assignee,issuetype';
+  const fields = 'summary,status,assignee,issuetype,customfield_10016';
   const maxResults = 200;
   let startAt = 0;
   const allIssues: JiraIssue[] = [];
@@ -370,6 +371,57 @@ export default function ReleaseDetailPage() {
       allLabeled: unlabeled.length === 0,
     };
   })();
+
+  // MR state distribution — count merged / opened, folding everything else
+  // (closed, locked) into "closed" so the math stays exhaustive without a switch.
+  const mrStateCounts = (() => {
+    let merged = 0;
+    let opened = 0;
+    let closed = 0;
+    for (const mr of releaseMrs) {
+      if (mr.state === 'merged') merged += 1;
+      else if (mr.state === 'opened') opened += 1;
+      else closed += 1;
+    }
+    return { merged, opened, closed };
+  })();
+
+  // Unique MR authors (contributors), deduped by author id — mirrors labelMap shape.
+  const contributors = (() => {
+    const map = new Map<number, GitLabMR['author']>();
+    for (const mr of releaseMrs) {
+      if (!map.has(mr.author.id)) map.set(mr.author.id, mr.author);
+    }
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  })();
+
+  // Issue status distribution from statusCategory.key (optional → default 'new').
+  const issueStatusCounts = (() => {
+    const counts = { new: 0, indeterminate: 0, done: 0 };
+    for (const issue of releaseIssues) {
+      const key = issue.fields.status.statusCategory?.key ?? 'new';
+      counts[key] += 1;
+    }
+    return counts;
+  })();
+
+  // Story-point effort: sum customfield_10016 (guarded against null) for total and
+  // for done-category issues. hasStoryPoints gates graceful hiding of the effort line.
+  const storyPoints = (() => {
+    let total = 0;
+    let completed = 0;
+    for (const issue of releaseIssues) {
+      const sp = issue.fields.customfield_10016;
+      if (typeof sp === 'number') {
+        total += sp;
+        if (issue.fields.status.statusCategory?.key === 'done') completed += sp;
+      }
+    }
+    return { total, completed };
+  })();
+  const hasStoryPoints = releaseIssues.some(
+    (i) => typeof i.fields.customfield_10016 === 'number' && i.fields.customfield_10016 > 0,
+  );
 
   // Populate edit form when entering edit mode (seeds both Jira + GitLab fields)
   const startEditing = () => {
@@ -649,6 +701,28 @@ export default function ReleaseDetailPage() {
                 </section>
               )}
 
+              {/* Contributor list from milestone MRs — unique authors as avatars.
+                  Hides entirely when no milestone matched or no contributors. */}
+              {gitlabMatch.type !== 'none' && milestoneMRs && contributors.length > 0 && (
+                <section>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+                    <Users className="size-3.5" />
+                    Contributors
+                    <Badge variant="secondary" className="text-xs tabular-nums">
+                      {contributors.length}
+                    </Badge>
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {contributors.map((c) => (
+                      <span key={c.id} className="inline-flex items-center gap-1.5 text-xs">
+                        <CachedAvatar url={c.avatar_url} name={c.name} size={20} />
+                        {c.name}
+                      </span>
+                    ))}
+                  </div>
+                </section>
+              )}
+
               {/* Issues with MR matching */}
               <section>
                 <div className="flex items-center gap-2 mb-2">
@@ -667,6 +741,36 @@ export default function ReleaseDetailPage() {
                     className="max-w-xs mb-4"
                     indicatorClassName="bg-green-500"
                   />
+                )}
+
+                {/* Issue status distribution + story-point effort.
+                    Distribution shows for any loaded issues; effort line only
+                    when at least one issue carries a positive story-point value. */}
+                {releaseIssues.length > 0 && (
+                  <div className="mb-4 space-y-1.5">
+                    <div className="flex flex-wrap gap-1.5">
+                      {issueStatusCounts.new > 0 && (
+                        <Badge tone="blue" className="text-xs tabular-nums">
+                          {issueStatusCounts.new} new
+                        </Badge>
+                      )}
+                      {issueStatusCounts.indeterminate > 0 && (
+                        <Badge tone="amber" className="text-xs tabular-nums">
+                          {issueStatusCounts.indeterminate} in progress
+                        </Badge>
+                      )}
+                      {issueStatusCounts.done > 0 && (
+                        <Badge tone="green" className="text-xs tabular-nums">
+                          {issueStatusCounts.done} done
+                        </Badge>
+                      )}
+                    </div>
+                    {hasStoryPoints && (
+                      <p className="text-xs text-muted-foreground tabular-nums">
+                        Story points: {storyPoints.completed} / {storyPoints.total}
+                      </p>
+                    )}
+                  </div>
                 )}
 
                 {/* Milestone warning */}
@@ -1073,6 +1177,31 @@ export default function ReleaseDetailPage() {
                   <span className="text-muted-foreground">Loading...</span>
                 )}
               </MetaRow>
+
+              {/* MR state distribution — only when a milestone matched and has MRs.
+                  Hides entirely (no "—") when its data is absent. */}
+              {gitlabMatch.type !== 'none' && milestoneMRs && releaseMrs.length > 0 && (
+                <MetaRow label="MRs">
+                  <span className="inline-flex flex-wrap items-center gap-1.5">
+                    <GitMerge className="size-3 text-muted-foreground shrink-0" />
+                    {mrStateCounts.merged > 0 && (
+                      <Badge tone="green" className="text-xs tabular-nums">
+                        {mrStateCounts.merged} merged
+                      </Badge>
+                    )}
+                    {mrStateCounts.opened > 0 && (
+                      <Badge tone="blue" className="text-xs tabular-nums">
+                        {mrStateCounts.opened} open
+                      </Badge>
+                    )}
+                    {mrStateCounts.closed > 0 && (
+                      <Badge tone="muted" className="text-xs tabular-nums">
+                        {mrStateCounts.closed} closed
+                      </Badge>
+                    )}
+                  </span>
+                </MetaRow>
+              )}
             </div>
           </div>
 
