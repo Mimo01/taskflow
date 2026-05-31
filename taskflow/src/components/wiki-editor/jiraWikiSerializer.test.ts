@@ -348,6 +348,5 @@ describe('isSafeColor (CSS injection guard)', () => {
     expect(isSafeColor('</style><script>alert(1)</script>')).toBe(false));
   it('rejects injection: url() exfiltration', () =>
     expect(isSafeColor('url(javascript:alert(1))')).toBe(false));
-  it('rejects hex with trailing junk', () =>
-    expect(isSafeColor('#ff0000 !important')).toBe(false));
+  it('rejects hex with trailing junk', () => expect(isSafeColor('#ff0000 !important')).toBe(false));
 });

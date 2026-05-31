@@ -273,10 +273,7 @@ function stripTaskPrefix(para: JSONContent): JSONContent[] {
     : text.startsWith(UNCHECKED_PREFIX)
       ? text.slice(UNCHECKED_PREFIX.length)
       : text;
-  const newFirst: JSONContent = stripped
-    ? { ...first, text: stripped }
-    : null!;
-  const inlineContent = newFirst ? [newFirst, ...rest] : rest;
+  const inlineContent: JSONContent[] = stripped ? [{ ...first, text: stripped }, ...rest] : rest;
   return inlineContent;
 }
 
