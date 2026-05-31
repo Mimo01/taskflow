@@ -8,7 +8,7 @@
  * Keeping one schema source prevents load/save drift (the jira.ts dual-file lesson).
  */
 
-import { type Extensions, Node } from '@tiptap/core';
+import { type Extensions } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
