@@ -1,8 +1,8 @@
 ---
 phase: 74-backlog-on-data-json
 verified: 2026-05-29T00:00:00Z
-status: human_needed
-score: 3/3 must-haves verified (technical)
+status: passed
+score: 3/3 must-haves verified; human UAT resolved 2026-06-01 (74-HUMAN-UAT.md: 3/3 passed)
 overrides_applied: 0
 human_verification:
   - test: "Open the backlog in the dev/desktop app with DevTools Network panel open and confirm exactly ONE request to `/rest/greenhopper/1.0/xboard/plan/backlog/data.json?rapidViewId={boardId}` fires per board open (no paginated REST `/rest/api/2/search` fan-out)."
