@@ -761,7 +761,10 @@ export async function updateMilestone(
     if (response.status === 401 || response.status === 403) {
       throw new ApiError('Failed to update milestone', response.status, 'gitlab');
     }
-    throw new Error(`Failed to update milestone: status ${response.status}`);
+    // Surface GitLab's error body (e.g. {"message":"title is missing"}) instead
+    // of an opaque status code; fall back to the status when no message exists.
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(`Failed to update milestone: ${body?.message ?? `status ${response.status}`}`);
   }
 
   return (await response.json()) as GitLabMilestone;

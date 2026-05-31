@@ -243,31 +243,54 @@ export default function ReleaseDetailPage() {
     staleTime: 5 * 60_000,
   });
 
-  // Match GitLab milestone to this fix version by date
-  const gitlabMatch: ReleaseMatch = (() => {
+  // Match GitLab milestone to this fix version by date. We track the chosen
+  // milestone OBJECT (not just its title) so editing resolves by a stable id —
+  // re-finding by title breaks the moment the user renames the milestone, and
+  // an order-dependent fuzzy match could otherwise target the wrong milestone.
+  const { gitlabMatch, matchedMilestone } = ((): {
+    gitlabMatch: ReleaseMatch;
+    matchedMilestone: GitLabMilestone | null;
+  } => {
     const noMatch: ReleaseMatch = { type: 'none', candidateName: '', candidateUrl: '' };
-    if (!version?.releaseDate || !milestones) return noMatch;
-
-    const candidates = (milestones as GitLabMilestone[]).map((m) => ({
-      date: m.due_date,
-      name: m.title,
-      url: m.web_url,
-    }));
-
-    let bestMatch: ReleaseMatch = noMatch;
-    for (const cand of candidates) {
-      const match = matchGitLabToFixVersion(version.releaseDate, cand);
-      if (match.type === 'exact') return match;
-      if (match.type === 'fuzzy' && bestMatch.type === 'none') bestMatch = match;
+    if (!version?.releaseDate || !milestones) {
+      return { gitlabMatch: noMatch, matchedMilestone: null };
     }
-    return bestMatch;
-  })();
 
-  const matchedMilestone: GitLabMilestone | null =
-    gitlabMatch.type !== 'none' && milestones
-      ? ((milestones as GitLabMilestone[]).find((m) => m.title === gitlabMatch.candidateName) ??
-        null)
-      : null;
+    const fixMs = new Date(`${version.releaseDate}T00:00:00Z`).getTime();
+    let exact: { match: ReleaseMatch; milestone: GitLabMilestone } | null = null;
+    let bestFuzzy: {
+      match: ReleaseMatch;
+      milestone: GitLabMilestone;
+      diffMs: number;
+    } | null = null;
+
+    for (const m of milestones as GitLabMilestone[]) {
+      const match = matchGitLabToFixVersion(version.releaseDate, {
+        date: m.due_date,
+        name: m.title,
+        url: m.web_url,
+      });
+      if (match.type === 'exact') {
+        exact = { match, milestone: m };
+        break;
+      }
+      if (match.type === 'fuzzy') {
+        // Deterministic tie-break: prefer the milestone whose due_date is
+        // closest to the release date when more than one falls in the window.
+        const candMs = m.due_date ? new Date(`${m.due_date}T00:00:00Z`).getTime() : Number.NaN;
+        const diffMs = Number.isNaN(candMs) ? Number.POSITIVE_INFINITY : Math.abs(fixMs - candMs);
+        if (!bestFuzzy || diffMs < bestFuzzy.diffMs) {
+          bestFuzzy = { match, milestone: m, diffMs };
+        }
+      }
+    }
+
+    const chosen = exact ?? bestFuzzy;
+    return {
+      gitlabMatch: chosen ? chosen.match : noMatch,
+      matchedMilestone: chosen ? chosen.milestone : null,
+    };
+  })();
 
   // Fetch Jira issues for this fix version
   const { data: fixVersionIssues, isLoading: isLoadingIssues } = useQuery({
@@ -400,6 +423,10 @@ export default function ReleaseDetailPage() {
   const isEditDirty =
     Object.keys(buildJiraDiff()).length > 0 || Object.keys(buildGitlabDiff()).length > 0;
 
+  // GitLab rejects an empty milestone title (400). Block the save when a matched
+  // milestone's title has been cleared, mirroring the required Jira name guard.
+  const isMilestoneTitleInvalid = !!matchedMilestone && editMilestoneTitle.trim() === '';
+
   // Combined save: writes Jira + GitLab via Promise.allSettled, sending only
   // changed fields per source. Partial failure keeps the modal open with a
   // per-source error; the succeeded side is NOT rolled back.
@@ -463,6 +490,10 @@ export default function ReleaseDetailPage() {
     }
     if (gitlabPromise && gitlabResult.status === 'fulfilled') {
       queryClient.invalidateQueries({ queryKey: ['gitlab-milestones', activeGitlabProject] });
+      // The milestone-MR query is keyed on the milestone title — invalidate it
+      // too so a title rename doesn't leave the MR list/labels querying the old
+      // title.
+      queryClient.invalidateQueries({ queryKey: ['gitlab-milestone-mrs', activeGitlabProject] });
     }
 
     setIsSaving(false);
@@ -1155,6 +1186,7 @@ export default function ReleaseDetailPage() {
                           value={editMilestoneTitle}
                           onChange={(e) => setEditMilestoneTitle(e.target.value)}
                           disabled={isSaving}
+                          required
                         />
                       </div>
 
@@ -1198,7 +1230,9 @@ export default function ReleaseDetailPage() {
                   <Button
                     size="sm"
                     onClick={handleSave}
-                    disabled={isSaving || !editName.trim() || !isEditDirty}
+                    disabled={
+                      isSaving || !editName.trim() || !isEditDirty || isMilestoneTitleInvalid
+                    }
                     className="gap-1.5"
                   >
                     {isSaving ? (
