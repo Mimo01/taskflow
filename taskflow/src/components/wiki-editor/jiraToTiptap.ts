@@ -8,6 +8,7 @@
  *   1. preprocessJiraMarkup(wiki) — handles emoticons, mentions, panels, color,
  *      tables, hard-breaks, images. Emits HTML-enriched text with custom tags:
  *      <mention data-id>, <div data-callout>, <span data-color>, etc.
+ *      NOTE: (/) → ✅  and  (x) → ❌  here (emoticon substitution).
  *   2. jira2md.to_markdown() — converts Jira → markdown
  *   3. fixMarkdownLinkUnderscores() — fixes URL corruption from jira2md italic pass
  *   4. jira2md.md_to_html() — markdown → HTML (via marked)
@@ -15,6 +16,11 @@
  *      Custom parseHTML rules on RawJiraNode, JiraColorMark, JiraCalloutNode, mention
  *      node capture the special tags emitted in step 1.
  *   6. Post-process: scan for unrecognized {macro} patterns and wrap in rawJira nodes.
+ *   7. Post-process: reconvert task-item paragraphs back to taskList/taskItem nodes
+ *      (CR-04). preprocessJiraMarkup converts (/) → ✅ and (x) → ❌ for rendering,
+ *      so after generateJSON those appear as paragraphs starting with ✅/❌. We
+ *      detect consecutive such paragraphs at the top level and replace them with a
+ *      real taskList so they round-trip back as interactive checkboxes.
  *
  * Note on unknown macros: preprocessJiraMarkup does NOT handle unknown macros —
  * they pass through as literal text. After generateJSON the doc may contain
@@ -146,6 +152,13 @@ export function jiraToTiptap(wiki: string, opts: JiraToTiptapOpts = {}): JSONCon
   // and wrap those paragraphs as rawJira nodes to guarantee lossless passthrough.
   doc = wrapUnknownMacros(doc, wiki);
 
+  // Step 7 (CR-04): reconvert ✅/❌-prefixed paragraphs back to taskList nodes.
+  // preprocessJiraMarkup converts (/) → ✅ and (x) → ❌ before the pipeline, so
+  // serialized task items arrive as plain paragraphs after generateJSON. We detect
+  // consecutive groups of these at the top level and replace them with taskList so
+  // they reload as interactive checkboxes rather than static emoji text.
+  doc = reconvertTaskItems(doc);
+
   return doc;
 }
 
@@ -219,4 +232,95 @@ function extractText(node: JSONContent): string {
   if (node.type === 'text') return node.text ?? '';
   if (!node.content) return '';
   return node.content.map(extractText).join('');
+}
+
+// ---------------------------------------------------------------------------
+// CR-04: Task-item reconversion post-pass
+// ---------------------------------------------------------------------------
+
+const CHECKED_PREFIX = '✅ ';
+const UNCHECKED_PREFIX = '❌ ';
+
+/**
+ * Detect the task-item prefix on a paragraph node.
+ * Returns 'checked', 'unchecked', or null.
+ *
+ * preprocessJiraMarkup converts (/) → ✅ and (x) → ❌, so after the pipeline
+ * task items arrive as paragraphs whose first text node starts with the emoji.
+ */
+function taskItemKind(node: JSONContent): 'checked' | 'unchecked' | null {
+  if (node.type !== 'paragraph') return null;
+  const first = node.content?.[0];
+  if (first?.type !== 'text') return null;
+  const t = first.text ?? '';
+  if (t.startsWith(CHECKED_PREFIX)) return 'checked';
+  if (t.startsWith(UNCHECKED_PREFIX)) return 'unchecked';
+  return null;
+}
+
+/**
+ * Strip the leading ✅/❌ prefix from a paragraph's inline content,
+ * returning the content array suitable for a taskItem's child paragraph.
+ */
+function stripTaskPrefix(para: JSONContent): JSONContent[] {
+  const nodes = para.content ?? [];
+  if (nodes.length === 0) return [];
+  const [first, ...rest] = nodes;
+  if (first.type !== 'text') return nodes;
+  const text = first.text ?? '';
+  const stripped = text.startsWith(CHECKED_PREFIX)
+    ? text.slice(CHECKED_PREFIX.length)
+    : text.startsWith(UNCHECKED_PREFIX)
+      ? text.slice(UNCHECKED_PREFIX.length)
+      : text;
+  const newFirst: JSONContent = stripped
+    ? { ...first, text: stripped }
+    : null!;
+  const inlineContent = newFirst ? [newFirst, ...rest] : rest;
+  return inlineContent;
+}
+
+/**
+ * Walk the top-level doc content and group consecutive task-item paragraphs
+ * into taskList nodes. Paragraphs that are not task items pass through unchanged.
+ *
+ * Only operates on the doc's direct children (top-level paragraphs emitted by
+ * the serializer). Task items nested inside blockquotes etc. are not in scope.
+ */
+function reconvertTaskItems(doc: JSONContent): JSONContent {
+  if (!doc.content) return doc;
+
+  const newContent: JSONContent[] = [];
+  let i = 0;
+  while (i < doc.content.length) {
+    const node = doc.content[i];
+    const kind = taskItemKind(node);
+    if (kind !== null) {
+      // Collect consecutive task-item paragraphs into one taskList
+      const taskItems: JSONContent[] = [];
+      while (i < doc.content.length) {
+        const current = doc.content[i];
+        const currentKind = taskItemKind(current);
+        if (currentKind === null) break;
+        const inlineContent = stripTaskPrefix(current);
+        taskItems.push({
+          type: 'taskItem',
+          attrs: { checked: currentKind === 'checked' },
+          content: [
+            {
+              type: 'paragraph',
+              content: inlineContent,
+            },
+          ],
+        });
+        i++;
+      }
+      newContent.push({ type: 'taskList', content: taskItems });
+    } else {
+      newContent.push(node);
+      i++;
+    }
+  }
+
+  return { ...doc, content: newContent };
 }
