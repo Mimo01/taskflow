@@ -584,6 +584,7 @@ export async function fetchMyTasksHierarchy(
   return { issues: [...allParents, ...allSubtasks], myIssueKeys };
 }
 
+export { fetchIssueChangelog } from './jira/changelog';
 export { fetchComments, postComment } from './jira/comments';
 /**
  * Phase 72 (WR-01): postTransition was duplicated between this file and

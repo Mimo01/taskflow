@@ -26,10 +26,11 @@ import {
   fetchComments,
   fetchEnrichedSubtasks,
   fetchEpicStories,
+  fetchIssueChangelog,
   fetchIssueDetail,
   updateComment,
 } from '@/services/jira';
-import { fetchIssueChangelog } from '@/services/jira/changelog';
+
 import { parseDuration } from '@/services/jira/duration';
 import type { JiraWorklog } from '@/services/jira/types';
 import { deleteWorklog, fetchFullWorklogs, updateWorklog } from '@/services/jira/worklogs';
