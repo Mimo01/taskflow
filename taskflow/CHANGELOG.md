@@ -1,6 +1,38 @@
 # Changelog
 
 All notable changes to Taskflow are documented here.
+
+## [1.11.0] — 2026-06-01
+
+### Added
+
+- **Sprint board — time-in-column badge** — each card now shows how long the issue has been in its current column, sourced from the GreenHopper `timeInColumn` field
+- **Issue detail — progressive rendering** — the header (title, key, status, assignee) renders as soon as the base request resolves; comments, subtasks, and changelog each load independently with a localized skeleton, so a slow section never blanks the whole panel
+- **Releases — pin to tab strip** — releases can now be pinned to the header tab strip, just like issues and AIO cycles
+- **Releases — GitLab milestone description** — when a release is linked to a GitLab milestone, its description is shown alongside the Jira description
+- **Releases — detail panels** — the release detail page now includes MR-state distribution, contributor list, issue-status distribution, and story-point effort panels
+- **Releases — combined edit modal** — editing a release opens a modal that saves to both Jira (fix version) and the linked GitLab milestone in one action
+
+### Changed
+
+- **Sprint board — single-call data fetch** — all issues, columns, swimlanes, statuses, priorities, types, and epics now load in a single `allData.json` request (replaces the previous multi-call chain and per-issue enrichments)
+- **Backlog — single-call data fetch** — all backlog issues now load in a single `data.json` request (replaces paginated REST + per-issue lookups)
+- **Workflow transitions — cached per project** — available transitions are fetched once per project and cached by `projectId × issueTypeId → workflow`; the previous per-issue REST `/transitions` call on every drag-to-transition and status change is gone
+- **Sprint board — filter bar** — the filter row is now full-width with horizontal scroll; the reload and manage buttons stay pinned at the right and are unaffected by scroll
+- **Sprint board — quick filters** — Jira server-side quick filters (loaded from the board editmodel) have been removed; the app's own saved filters remain
+- **Filters — Jira "Save Filter" removed** — the Save Filter button and Jira-saved-filter flow are gone from the filter bar; only app-local saved filters remain
+- **Releases — layout** — deduplicated info between the main content and sidebar; issue status and story points moved to sidebar panels
+
+### Fixed
+
+- Status transition from the issue detail panel now refreshes the sprint board immediately
+- Backlog: epic chips, flagged indicator, and flag action restored after the data-layer migration
+- Backlog: CLOSED sprints are excluded from the move-to-sprint index so they no longer appear as move targets
+- Backlog: epic column no longer clips the issue summary title at narrow widths
+- Sprint board: columns no longer overflow horizontally at narrow window widths
+- Notifications: scroll position no longer jumps when the list refreshes
+- Filters: the Save button is hidden when the active filter already matches a saved one
+- Fix versions (issue detail field) are now sorted by release date, with undated versions listed first
 Entries are written by hand for each release.
 
 ## [1.10.4] — 2026-05-28
