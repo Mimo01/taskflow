@@ -31,7 +31,9 @@ export { __resetWarnOnce };
  * Purity contract (D-09): returns the same input sub-objects by reference.
  * Same input → same output. No cloning, no spreading, no side effects.
  */
-export function buildEntityMaps(allData: GhAllDataResponse): EntityMaps {
+export function buildEntityMaps(allData: {
+  entityData: GhAllDataResponse['entityData'];
+}): EntityMaps {
   return {
     statuses: allData.entityData.statuses,
     priorities: allData.entityData.priorities,
