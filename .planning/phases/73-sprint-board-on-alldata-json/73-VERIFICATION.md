@@ -84,7 +84,7 @@ overrides_applied: 0
 | GH-BOARD-01 | 73-01, 73-02 | Single `allData.json` call for board open | SATISFIED (code) | `useGhAllData(boardId)` is the sole issue source; legacy stories/subtasks queries removed; mocked tests assert single mock call |
 | GH-BOARD-02 | 73-01, 73-02 | Per-issue `timeInColumn.enteredStatus` surfaced | SATISFIED | TaskCard renders badge from `timeInColumn.enteredStatus`; SprintBoardTab passes it from adapted issue |
 | GH-BOARD-03 | 73-02 | Columns from GreenHopper data; subtasks grouped by `parentId` | SATISFIED (per D-03/D-03a interpretation) | Adapter resolves `statusCategory.key` via Phase 71 entity-maps; 3-bucket UI preserved per CONTEXT D-03; subtask grouping via `fields.parent.key` |
-| GH-BOARD-04 | 73-02, 73-03 | Existing features unchanged (drag, QuickCreateInput, filters, goal banner) + write-side reload | SATISFIED | Sprint goal banner JSX intact; `fetchBoardQuickFilters` preserved (R-01); single "Reload board" toolbar with 5-key invalidation set; SprintBoardTab test suite green covering filters/saved-filter/etc. |
+| GH-BOARD-04 | 73-02, 73-03 | Existing features unchanged (drag, QuickCreateInput, filters, goal banner) + write-side reload | SATISFIED | Sprint goal banner JSX intact; `fetchBoardQuickFilters` preserved (R-01); single "Reload board" toolbar with 4-key invalidation set; SprintBoardTab test suite green covering filters/saved-filter/etc. |
 | GH-CUT-01 | 73-03 | Hard cutover — delete legacy fetcher | SATISFIED | `fetchSprintSubtasks` purged from `src/` (0 grep matches); test suite green confirms no caller broken |
 
 Note: GH-CUT-01 in REQUIREMENTS.md is tagged "Phase 75" in the requirement→phase table, but Phase 73 Plan 03 frontmatter claimed this ID and applied the hard-cutover policy to the sprint-board surface (per-surface scope). This is consistent with GH-CUT-01's wording: "Hard cutover per surface — each phase replaces its REST path in place." Phase 75 will close GH-CUT-01 across remaining surfaces (board/backlog/detail/transitions).
@@ -116,7 +116,7 @@ The network-log spot-check from ROADMAP success criterion #1 (and Plans 02/03 ve
 #### 2. "Reload board" toolbar action triggers refetch and shows feedback
 
 **Test:** With board loaded, click the single reload button in the toolbar.
-**Expected:** `RefreshCw` icon spins; aria-live span reads "Board reloaded" on success or "Failed to reload board" on error; message clears after ~3 seconds; network panel shows refetches for all 5 invalidated keys.
+**Expected:** `RefreshCw` icon spins; aria-live span reads "Board reloaded" on success or "Failed to reload board" on error; message clears after ~3 seconds; network panel shows refetches for all 4 invalidated keys (gh-all-data, gh-transitions, jira-statuses, jira-active-sprint).
 **Why human:** Visual spin animation + aria-live timing in live DOM not asserted by component tests alone.
 
 #### 3. Drag-to-transition still works on new data source (GH-BOARD-04)
