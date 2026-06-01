@@ -287,7 +287,8 @@ export function FieldsSection({
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['jira-issue-detail', issueKey, jiraBaseUrl] });
-      // Phase 74 GH-CUT-01: backlog data now lives under ['gh-backlog'].
+      if (boardId) invalidateGhAllData(queryClient, boardId);
+      else invalidateGhAllData(queryClient);
       if (boardId) invalidateGhBacklogData(queryClient, boardId);
       else invalidateGhBacklogData(queryClient);
       queryClient.invalidateQueries({ queryKey: ['jira-sprint-list'] });
