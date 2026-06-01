@@ -251,16 +251,8 @@ export default function BacklogPage() {
     : '';
 
   // D-09b adapter useMemo chain — same model as SprintBoardTab (Pattern S3).
-  // `buildEntityMaps` reads only `.entityData`; the same shape is shared
-  // between `GhAllDataResponse` and `GhBacklogResponse` (RESEARCH A3), so we
-  // narrow via a structural cast through the entityData-bearing slice.
   const entityMaps = useMemo(
-    () =>
-      backlog
-        ? buildEntityMaps({ entityData: backlog.entityData } as unknown as Parameters<
-            typeof buildEntityMaps
-          >[0])
-        : null,
+    () => (backlog ? buildEntityMaps({ entityData: backlog.entityData }) : null),
     [backlog],
   );
   const adapt = useMemo(
