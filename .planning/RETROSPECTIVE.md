@@ -530,17 +530,66 @@
 
 ---
 
+## Milestone: v1.11 — GreenHopper API Migration
+
+**Shipped:** 2026-06-01
+**Phases:** 5 (71-75) | **Plans:** 22
+
+### What Was Built
+
+- GreenHopper typed adapter layer: `services/jira/greenhopper/` module with `greenhopperFetch` wrapper, 12 response interfaces, `buildEntityMaps` resolvers, `adaptIssue` + `createAdapter`; wired into the project's 60-import `services/jira.ts` barrel; 4 redacted real-world JSON fixtures as vitest data
+- Transitions cache: `useGhTransitions` / `getGhTransitions` / `invalidateGhTransitions` keyed by `projectId × issueTypeId → workflow → transitions[]`; per-issue REST `/transitions` GET hard-deleted from both `services/jira.ts` and `services/jira/transitions.ts`
+- Sprint board single-call migration: `allData.json` replaces multi-call fetch; `timeInColumn` badge per card; unified "Reload board" toolbar; `fetchSprintSubtasks` hard-deleted; Sidebar prefetch swapped
+- Backlog single-call migration: `data.json` replaces paginated REST; 5 mutation cache-invalidation sites migrated; `npm run check:legacy-backlog` static-grep guard prevents legacy symbol reappearance; `fetchBacklogIssues` / `fetchBacklogSprintStories` / `fetchBacklogView` / `BacklogViewData` hard-deleted
+- Progressive issue detail rendering: `fetchIssueDetail` decomposed into slim base + 3 independent parallel section queries; TTFMP 1180ms (header); TTI 1682ms (changelog gates "fully loaded"); 200ms-gated per-section skeletons; per-section inline error/retry isolation; fanned-out cache invalidation; perf artifact `docs/perf/75-issue-detail-progressive.md`
+
+### What Worked
+
+- **Fixture-first foundation (Phase 71-01)** — capturing real GreenHopper responses as redacted fixtures before writing any adapter code gave all subsequent tests a realistic data contract; the fixture-driven pattern prevented the "adapter passes fake tests, breaks on real data" failure mode
+- **Wave structure with hard-delete gates** — each phase ended with a hard-delete wave that removed the legacy fetcher and confirmed zero references via grep; having an explicit "delete the old thing" step as part of the plan made the migration scope unambiguous
+- **Static-grep guard for backlog (Phase 74-01)** — scripting `npm run check:legacy-backlog` in Wave 0 before writing any replacement code meant the guard was already in place by the time the legacy symbols were deleted; it caught regressions in Wave 3 before they reached the full suite
+- **Progressive rendering delivered equal UX win at lower risk** — descoping `details.json` migration mid-milestone (Phase 75 rescoped to progressive REST rendering) was the right trade-off: PERF-DETAIL-01/02/03 delivered the same user-facing improvement (no blank panel) without the complexity of migrating the issue detail API path
+- **Milestone audit tooling** — running `/gsd-audit-milestone` 7 times across the milestone's lifetime caught real issues (missing barrel export, double-cast, dead query keys) that would otherwise have required manual auditing at close
+
+### What Was Inefficient
+
+- **transitionMutation.onSettled gap caught late** — the missing `invalidateGhAllData` after a status transition from issue detail was a cross-phase wiring gap that went undetected until the final milestone audit (run 1); it was the kind of integration hole that would normally surface during human UAT but the sprint board and issue detail were tested separately
+- **WARNING-01/02 as post-audit cleanup** — `fetchIssueChangelog` missing from the `jira.ts` barrel and `buildEntityMaps` unknown-cast in BacklogPage were both post-audit quick-fix commits rather than issues caught at phase close; better phase-end cross-phase integration checks would have closed these during the phases that created them
+- **`jira-board-quickfilters` system created and then deleted** — Phase 73 wired `jira-board-quickfilters` invalidation into the Reload board handler, but a post-verification quick task (`e1c098f0`) removed the entire system when it turned out GH allData.json doesn't return quickfilter data; the half-implemented system could have been caught earlier with a real-API integration test
+
+### Patterns Established
+
+- **Fixture-first migration pattern** — for any data-layer migration, capture real API responses as redacted fixtures in Wave 0; all adapter tests run against these fixtures, not synthetic data
+- **Hard-delete wave as a migration phase gate** — each migration phase ends with a deletion + grep-guard wave; the phase is not complete until the legacy code is gone and the guard confirms zero references
+- **Static-grep guards for banned symbols** — `npm run check:legacy-backlog` is the template; any migration that removes a symbol suite-wide should have a guard that makes reintroduction a CI failure
+- **`cache.invalidateGhAllData` as cross-phase coordination point** — any mutation that could affect sprint board state (status transitions, sprint moves) must call `invalidateGhAllData`; this is now the canonical cross-surface invalidation hook
+
+### Key Lessons
+
+1. **Test cross-phase cache invalidation explicitly** — the `transitionMutation.onSettled` gap was a wiring issue that only surfaced at integration time; each mutation should have an explicit test asserting which cache keys it invalidates
+2. **Check barrel exports at phase-close** — `fetchIssueChangelog` was added to the greenhopper module but not re-exported via `services/jira.ts`; a simple `grep -c fetchIssueChangelog src/services/jira.ts` check at Phase 75 plan 01 close would have caught it
+3. **Validate API response shape assumptions early** — the `columnsData.columns[]` vs CATEGORY_COLUMNS decision (GH-BOARD-03) was forced by a mismatch between what the requirement assumed the API returned and what it actually returned; probe the response shape before speccing the adapter
+4. **Descoping mid-milestone is healthy when the UX goal is still met** — the details.json migration was descoped from v1.11 and the user got the same perceived-performance improvement via progressive rendering; staying committed to the original technical scope would have added complexity without user-visible benefit
+
+### Cost Observations
+
+- Sessions: 22 plans across 5 phases over 4 days, 284 commits
+- Milestone audit runs: 7 iterations (started at `gaps_found`, closed at `tech_debt` with 10 non-blocking items)
+- Notable: the adapter foundation phase (71) with 6 plans was the most front-loaded milestone phase in the project; the investment paid off across all 4 subsequent phases that consumed the adapter without modification
+
+---
+
 ## Cross-Milestone Trends
 
-| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 | v1.5 | v1.6.3 | v1.7 | v1.8 | v1.9 | v1.10 |
-|--------|------|------|------|------|------|------|--------|------|------|------|-------|
-| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) | 7 (31-37) | 4 (38-41) | 9 (42-49) | 9 (50-58) | 6 (59-64) | 6 (65-70) |
-| Plans | 20 | 24 | 29 | 27 | 21 | 25 | 10 | 23 | 45 | 20 | 15 |
-| Quick tasks | 0 | 20 | 0 | 40+ | 2 | 6 | 13 | 20+ | n/a | 10 | 17 |
-| Timeline (days) | 2 | 2 | 2 | 5 | 2 | 4 | 6 | 8 | 7 | 4 | 3 |
-| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 | ~45k* | ~51,536 | ~57,000+ | ~68,000+ | ~73,264 | ~80,895 |
-| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) | 7 (28%) | 0 (0%) | 5 (22%) | n/a | 3 (15%) | 0 (0%) |
-| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) | 30/34 (88%)** | 15/15 (100%) | 17/17 (100%) | n/a | 19/19 (100%)*** | 27/29 (93%)**** |
+| Metric | v1.0 | v1.1 | v1.2 | v1.3 | v1.4 | v1.5 | v1.6.3 | v1.7 | v1.8 | v1.9 | v1.10 | v1.11 |
+|--------|------|------|------|------|------|------|--------|------|------|------|-------|-------|
+| Phases | 4 | 4 (5-8) | 9 (9-17) | 7 (18-24) | 6 (25-30) | 7 (31-37) | 4 (38-41) | 9 (42-49) | 9 (50-58) | 6 (59-64) | 6 (65-70) | 5 (71-75) |
+| Plans | 20 | 24 | 29 | 27 | 21 | 25 | 10 | 23 | 45 | 20 | 15 | 22 |
+| Quick tasks | 0 | 20 | 0 | 40+ | 2 | 6 | 13 | 20+ | n/a | 10 | 17 | — |
+| Timeline (days) | 2 | 2 | 2 | 5 | 2 | 4 | 6 | 8 | 7 | 4 | 3 | 4 |
+| LOC (TypeScript) | ~11,017 | ~15,856 | ~23,607 | ~32,173 | ~37,520 | ~45k* | ~51,536 | ~57,000+ | ~68,000+ | ~73,264 | ~80,895 | ~80,895+ |
+| Gap/fix plans | 7 (35%) | 7 (29%) | 6 (21%) | 2 (7%) | 1 (5%) | 7 (28%) | 0 (0%) | 5 (22%) | n/a | 3 (15%) | 0 (0%) | 0 (0%) |
+| Requirements hit | 35/35 (100%) | 22/22 (100%) | 27/27 (100%) | 31/31 (100%) | 27/27 (100%) | 30/34 (88%)** | 15/15 (100%) | 17/17 (100%) | n/a | 19/19 (100%)*** | 27/29 (93%)**** | 17/17 (100%) |
 
 \* v1.5 LOC corrected from previous ~633k count
 \*\* 4 requirements user-deferred (bulk operations BOARD-04–07)

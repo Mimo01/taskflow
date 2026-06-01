@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.11
 milestone_name: GreenHopper API Migration
-status: executing
-stopped_at: Phase 75 UI-SPEC approved
-last_updated: "2026-05-30T22:28:46.756Z"
-last_activity: 2026-05-30
+status: complete
+stopped_at: Milestone closed 2026-06-01
+last_updated: "2026-06-01T00:00:00.000Z"
+last_activity: 2026-06-01
 progress:
   total_phases: 5
   completed_phases: 5
@@ -18,17 +18,17 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-25)
+See: .planning/PROJECT.md (updated 2026-06-01)
 
 **Core value:** Developers and PMs can see everything they need — tasks, MRs, sprint state, notifications, and test execution health — in one place, without switching between Jira, GitLab, and AIO.
-**Current focus:** Phase 75 — progressive-issue-detail-rendering
+**Current focus:** Planning next milestone (v1.12)
 
 ## Current Position
 
-Phase: 75
-Plan: Not started
-Status: Executing Phase 75
-Last activity: 2026-06-01 - Completed quick task 260601-1ou: fix FieldsSection.transitionMutation.onSettled invalidateGhAllData + remove dead query keys
+Phase: —
+Plan: —
+Status: v1.11 milestone closed 2026-06-01
+Last activity: 2026-06-01 — Closed v1.11 GreenHopper API Migration milestone
 
 ## Performance Metrics
 

@@ -125,15 +125,15 @@ Developers and PMs can see everything they need — tasks, merge requests, sprin
 - ✓ Standup Notes Yesterday recap: `/standup-notes` route + all-visible sidebar entry, last-working-day resolution (weekends + Tempo-schedule holidays skipped), four independently-degrading sections (Tempo worklogs, Jira changelog, Git commits, MR activity) — v1.10 Phase 69
 - ✓ Standup Notes Today section: open sprint subtasks/tasks (assignee = me) grouped by parent story with nested participating MRs — v1.10 Phase 70
 
+- ✓ GreenHopper typed adapter layer: `services/jira/greenhopper/` module with typed fetchers, entity-map resolvers, and `adaptIssue` wired into the `services/jira.ts` barrel — v1.11 Phase 71
+- ✓ Workflow transitions cached per-project via `transitions.json` (`projectId × issueTypeId → workflow → transitions[]`); per-issue REST `/transitions` GET deleted — v1.11 Phase 72
+- ✓ Sprint board reads from a single `allData.json` call with `timeInColumn` badge per card; `fetchSprintSubtasks` deleted — v1.11 Phase 73
+- ✓ Backlog reads from a single `data.json` call; legacy REST fetchers hard-deleted with static-grep guard — v1.11 Phase 74
+- ✓ Progressive issue detail rendering: header visible at TTFMP 1180ms, per-section skeletons, per-section inline error/retry isolation; TTI 1682ms — v1.11 Phase 75
+
 ### Active
 
-<!-- v1.11 GreenHopper API Migration — see REQUIREMENTS.md for full REQ-IDs -->
-
-- [ ] Sprint board reads from GreenHopper `allData.json` (single call) with per-issue `timeInColumn`
-- [ ] Backlog reads from GreenHopper `data.json` (single call)
-- [ ] Issue detail panel reads from GreenHopper `details.json` (single call) including operations, sprint, and all tabs
-- [ ] Workflow transitions read from GreenHopper `transitions.json` (per-project, cached) and drive status transitions
-- [ ] Adapter layer maps GreenHopper entity shapes onto existing UI types so cutover is incremental
+<!-- v1.12 — TBD -->
 
 ### Out of Scope
 
@@ -158,7 +158,7 @@ v1.8/v1.9 tech debt paid down (WorklogsPage timer/error/fragment fixes, `DatePre
 
 **Milestone closed with tech debt:** Phase 69 has no `VERIFICATION.md` (compensated by 12/12 UAT + nyquist-green VALIDATION); Phases 68/70 verification at `human_needed`; minor code-review items WR-05 (unguarded SP cast) and IN-01 (uncleared setTimeout). See `.planning/milestones/v1.10-MILESTONE-AUDIT.md`. v2.0 scope TBD.
 
-**v1.11 in progress (Phases 71-75):** all 5 phases complete. Phase 75 (2026-05-31) delivered progressive issue-detail rendering — the monolithic `fetchIssueDetail` was split into a slim base fetch plus three independent parallel queries (comments, subtask enrichment, changelog) with 200ms-gated per-section skeletons, per-section inline error/retry isolation, fanned-out cache invalidation, and TTFMP/TTI perf instrumentation. Measured: TTFMP 1180ms (header) / TTI 1682ms (changelog gates "fully loaded"). Verified 4/4 (one live error-isolation force-test deferred to `75-HUMAN-UAT.md`; open review items WR-02/WR-03 tracked). Milestone v1.11 not yet released — run `release.sh` separately to ship.
+**v1.11 shipped 2026-06-01** — 5 phases (71-75), 22 plans, 284 commits, 308 files changed (+48,340/−16,981 lines) over 4 days. Eliminated Jira API n+1 bottlenecks: sprint board and backlog now each load via a single GreenHopper API call; workflow transitions cached per-project; issue detail panel renders progressively with TTFMP 1180ms. 17/17 requirements satisfied. 10 non-blocking tech-debt items acknowledged. Milestone closed `tech_debt` — run `release.sh` to cut the v1.11.x release.
 
 ## Context
 
@@ -173,6 +173,7 @@ v1.8/v1.9 tech debt paid down (WorklogsPage timer/error/fragment fixes, `DatePre
 - **Shipped v1.8:** 2026-05-19 — 8 phases (51–58), 45 plans, 464 commits, 367 files changed (+62,924/−2,759 lines)
 - **Shipped v1.9:** 2026-05-23 — 6 phases (59-64), 20 plans, 258 commits, 230 files changed (+26,283/−3,085 lines)
 - **Shipped v1.10:** 2026-05-25 — 6 phases (65-70), 15 plans, 17 quick tasks, 271 commits, 432 files changed (+30,286/−1,489 lines)
+- **Shipped v1.11:** 2026-06-01 — 5 phases (71-75), 22 plans, 284 commits, 308 files changed (+48,340/−16,981 lines)
 - **Tech stack:** Tauri 2, React 18, TypeScript, Zustand, TanStack Query, shadcn/ui, Tailwind v4, Vitest, Biome, @dnd-kit/core, @dnd-kit/sortable, @tanstack/react-virtual, jira2md, react-markdown, react-hotkeys-hook, cmdk, babel-plugin-react-compiler (react-grid-layout removed v1.9)
 - **Jira instance:** On-premise (Jira Data Center v10.3.15) — REST API v2 with Bearer PAT auth; createmeta/workflow/transitions APIs used for issue management
 - **GitLab:** Self-hosted or gitlab.com — personal access token
@@ -307,6 +308,11 @@ This document evolves at phase transitions and milestone boundaries.
 | "Yesterday" = last working day, not calendar day (v1.10 Phase 69) | Monday standups need Friday's work; weekends + Tempo-schedule holidays must be skipped | ✓ Good — schedule-aware resolution; degrades gracefully when Tempo off |
 | Standup sources each load independently with per-section states (v1.10 Phase 69) | One slow/failed integration shouldn't blank the whole recap | ✓ Good — four sections degrade to empty-state in isolation |
 | Pinned issues + Log Work dropped from Standup Today during redesign (v1.10 Phase 70) | User decided the standup page is read/plan-oriented; pinning + logging belong on their own surfaces | ✓ Good — user-confirmed; STAND-08/09 descoped, Today shows sprint subtasks + nested MRs |
+| Hard cutover per surface — REST paths deleted alongside GreenHopper replacement (v1.11) | No coexistence flag; simpler codebase; user chose clean cutover over staged rollout | ✓ Good — codebase cleaner; static-grep guard prevents reintroduction |
+| `CATEGORY_COLUMNS` 3-bucket over `columnsData.columns[]` for sprint board (v1.11 Phase 73) | `columnsData.columns[]` mapped to backend workflow statuses, not the app's 3-bucket UI; accepted per D-03/D-03a | ✓ Good — user-accepted; board renders correctly with ACTIVE/FUTURE/DONE buckets |
+| GreenHopper `details.json` migration descoped from v1.11 (Phase 75 rescoped) | Issue detail stay on REST v2; progressive rendering delivers the UX win without the API migration complexity | ✓ Good — PERF-DETAIL-01/02/03 delivered equal perceived-performance gain at lower risk |
+| `FieldsSection.transitionMutation.onSettled` calls `invalidateGhAllData` (v1.11 Phase 73/75) | Status change from issue detail must refresh the sprint board; the cache invalidation was missing at Phase 73 merge time | ✓ Good — wired in `2ac516c7`; sprint board stays live after issue-detail status change |
+| `jira-board-quickfilters` system removed post-Phase 73 verification (v1.11 quick task `e1c098f0`) | GH `allData.json` doesn't return quickfilter data; the Jira-loaded quickfilters were replaced by app's own saved filters | ✓ Good — app's saved filter system is the correct replacement; no functionality lost |
 
 ---
-*Last updated: 2026-05-31 after Phase 75 (progressive issue detail rendering) completed v1.11's phase work*
+*Last updated: 2026-06-01 after v1.11 GreenHopper API Migration milestone close*
