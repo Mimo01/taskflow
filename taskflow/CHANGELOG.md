@@ -7,6 +7,38 @@ All notable changes to Taskflow are documented here.
 ### Added
 
 - **Sprint board — time-in-column badge** — each card now shows how long the issue has been in its current column, sourced from the GreenHopper `timeInColumn` field
+- **Issue detail — progressive rendering** — the header renders as soon as the base request resolves; comments, subtasks, and changelog each load independently with a localized skeleton
+- **Releases — pin to tab strip** — releases can now be pinned to the header tab strip
+- **Releases — GitLab milestone description** — shown alongside the Jira description when a release is linked to a GitLab milestone
+- **Releases — detail panels** — MR-state distribution, contributor list, issue-status distribution, and story-point effort panels
+- **Releases — combined edit modal** — saves to both Jira and the linked GitLab milestone in one action
+
+### Changed
+
+- **Sprint board — single-call data fetch** — all data now loads in a single `allData.json` request
+- **Backlog — single-call data fetch** — all backlog issues now load in a single `data.json` request
+- **Workflow transitions — cached per project** — fetched once per project; per-issue REST `/transitions` call eliminated
+- **Sprint board — filter bar** — full-width with horizontal scroll; reload and manage buttons pinned at the right
+- **Sprint board — quick filters** — Jira server-side quick filters removed; app saved filters remain
+- **Filters — Jira Save Filter removed** — only app-local saved filters remain
+- **Releases — layout** — deduplicated sidebar/main content; issue status and story points moved to sidebar panels
+
+### Fixed
+
+- Status transition from issue detail now refreshes the sprint board immediately
+- Backlog: epic chips, flagged indicator, and flag action restored after data-layer migration
+- Backlog: CLOSED sprints excluded from move-to-sprint index
+- Backlog: epic column no longer clips issue summary title at narrow widths
+- Sprint board: columns no longer overflow horizontally at narrow widths
+- Notifications: scroll position no longer jumps on list refresh
+- Filters: Save button hidden when active filter matches a saved one
+- Fix versions sorted by release date, undated versions listed first
+
+## [1.11.0] — 2026-06-01
+
+### Added
+
+- **Sprint board — time-in-column badge** — each card now shows how long the issue has been in its current column, sourced from the GreenHopper `timeInColumn` field
 - **Issue detail — progressive rendering** — the header (title, key, status, assignee) renders as soon as the base request resolves; comments, subtasks, and changelog each load independently with a localized skeleton, so a slow section never blanks the whole panel
 - **Releases — pin to tab strip** — releases can now be pinned to the header tab strip, just like issues and AIO cycles
 - **Releases — GitLab milestone description** — when a release is linked to a GitLab milestone, its description is shown alongside the Jira description
