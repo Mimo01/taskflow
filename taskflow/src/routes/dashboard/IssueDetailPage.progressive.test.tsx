@@ -49,6 +49,7 @@ vi.mock('@/hooks/useResizable', () => ({
 
 vi.mock('@/services/jira', () => ({
   fetchIssueDetail: vi.fn(),
+  fetchComments: vi.fn(),
   fetchEnrichedSubtasks: vi.fn(),
   fetchEpicStories: vi.fn().mockResolvedValue([]),
   deleteComment: vi.fn(),
@@ -63,10 +64,6 @@ vi.mock('@/services/jira', () => ({
   // Needed by StatusPopover (in case it renders despite the component-level mock)
   useGhTransitions: vi.fn().mockReturnValue({ data: undefined, isLoading: false, isError: false }),
   filterTransitionsForStatus: vi.fn().mockReturnValue([]),
-}));
-
-vi.mock('@/services/jira/comments', () => ({
-  fetchComments: vi.fn(),
 }));
 
 vi.mock('@/services/jira/changelog', () => ({
@@ -185,8 +182,8 @@ import {
   fetchEnrichedSubtasks,
   fetchIssueDetail,
   updateComment,
+  fetchComments,
 } from '@/services/jira';
-import { fetchComments } from '@/services/jira/comments';
 import { fetchIssueChangelog } from '@/services/jira/changelog';
 import { postTransition } from '@/services/jira/transitions';
 import { useAuthStore } from '@/stores/auth.store';
