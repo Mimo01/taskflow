@@ -21,6 +21,7 @@ import { ApiError } from '../lib/api-error';
 import { apiFetch } from '../lib/apiFetch';
 import { getJiraLimit } from '../lib/concurrency';
 import { isResponseLikeError } from './jira/client';
+import type { JiraComment } from './jira/types';
 
 export { addIssuesToSprint } from './jira/sprints';
 // Re-export changelog and watcher modules for barrel access via '@/services/jira'
@@ -583,6 +584,7 @@ export async function fetchMyTasksHierarchy(
   return { issues: [...allParents, ...allSubtasks], myIssueKeys };
 }
 
+export { fetchComments, postComment } from './jira/comments';
 /**
  * Phase 72 (WR-01): postTransition was duplicated between this file and
  * `services/jira/transitions.ts`. The modular implementation is canonical
@@ -592,86 +594,7 @@ export async function fetchMyTasksHierarchy(
  * `@/services/jira/transitions` directly.
  */
 export { postTransition } from './jira/transitions';
-
-/**
- * Post a comment on a Jira issue.
- *
- * @param baseUrl  - Jira base URL
- * @param token    - Personal Access Token
- * @param issueKey - Issue key (e.g. "PROJ-1")
- * @param body     - Comment text
- */
-export async function postComment(
-  baseUrl: string,
-  token: string,
-  issueKey: string,
-  body: string,
-): Promise<void> {
-  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/comment`;
-
-  let response: Response;
-  try {
-    response = await apiFetch(
-      'jira',
-      url,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ body }),
-      },
-      'Manage Comments',
-    );
-  } catch {
-    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
-  }
-
-  if (!response.ok && response.status !== 201) {
-    if (response.status === 401 || response.status === 403) {
-      throw new ApiError(`Failed to post comment on ${issueKey}`, response.status, 'jira');
-    }
-    throw new Error(`Failed to post comment on ${issueKey}: status ${response.status}`);
-  }
-}
-
-export interface JiraComment {
-  id: string;
-  author: { displayName: string; name?: string };
-  body: string;
-  created: string; // ISO 8601
-  updated: string;
-}
-
-export async function fetchComments(
-  baseUrl: string,
-  token: string,
-  issueKey: string,
-): Promise<JiraComment[]> {
-  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/comment`;
-  let response: Response;
-  try {
-    response = await apiFetch(
-      'jira',
-      url,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      },
-      'Load Issue Detail',
-    );
-  } catch {
-    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
-  }
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new ApiError(`Failed to fetch comments for ${issueKey}`, response.status, 'jira');
-    }
-    throw new Error(`Failed to fetch comments for ${issueKey}: status ${response.status}`);
-  }
-  const data = (await response.json()) as { comments: JiraComment[] };
-  return data.comments ?? [];
-}
+export type { JiraComment } from './jira/types';
 
 // ─── Standup Activity ──────────────────────────────────────────────────────────
 
@@ -892,74 +815,7 @@ export async function fetchIssueMeta(
   return map;
 }
 
-export async function updateComment(
-  baseUrl: string,
-  token: string,
-  issueKey: string,
-  commentId: string,
-  body: string,
-): Promise<void> {
-  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/comment/${commentId}`;
-
-  let response: Response;
-  try {
-    response = await apiFetch(
-      'jira',
-      url,
-      {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ body }),
-      },
-      'Manage Comments',
-    );
-  } catch {
-    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
-  }
-
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new ApiError(`Failed to update comment on ${issueKey}`, response.status, 'jira');
-    }
-    throw new Error(`Failed to update comment on ${issueKey}: status ${response.status}`);
-  }
-}
-
-export async function deleteComment(
-  baseUrl: string,
-  token: string,
-  issueKey: string,
-  commentId: string,
-): Promise<void> {
-  const url = `${baseUrl.replace(/\/$/, '')}/rest/api/2/issue/${issueKey}/comment/${commentId}`;
-
-  let response: Response;
-  try {
-    response = await apiFetch(
-      'jira',
-      url,
-      {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-      'Manage Comments',
-    );
-  } catch {
-    throw new Error(`Cannot reach ${baseUrl} — check the base URL`);
-  }
-
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new ApiError(`Failed to delete comment on ${issueKey}`, response.status, 'jira');
-    }
-    throw new Error(`Failed to delete comment on ${issueKey}: status ${response.status}`);
-  }
-}
+export { deleteComment, updateComment } from './jira/comments';
 
 // ─── Phase 4: PM Dashboard & Search ──────────────────────────────────────────
 
