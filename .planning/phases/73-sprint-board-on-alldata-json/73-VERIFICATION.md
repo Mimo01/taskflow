@@ -28,7 +28,7 @@ overrides_applied: 0
 | 6 | `formatTimeAgo` / `formatTimeAgoStrict` use `Intl.RelativeTimeFormat` (no `date-fns`) | VERIFIED | `Intl.RelativeTimeFormat('en', { numeric: 'auto' })` in `formatTimeAgo.ts`; no `date-fns` import in lib file or `package.json` |
 | 7 | Sentinel `projectId` sourced from raw GH envelope, not AdaptedIssue (R-04) | VERIFIED | `(allData?.issuesData.issues[0] as { projectId?: number } \| undefined)?.projectId ?? 0` present; `getTransitions` falls back to sentinel |
 | 8 | Toolbar shows ONE "Reload board" control (Phase 72 "Reload workflow transitions" + bare RefreshCw gone) | VERIFIED | `<button aria-label="Reload board">`; `handleReloadWorkflowTransitions` → 0 matches; `Workflow` lucide icon → 0 matches |
-| 9 | Clicking "Reload board" invalidates all FIVE keys (gh-all-data, gh-transitions, jira-statuses, jira-board-quickfilters, jira-active-sprint) | VERIFIED | 13 matches across handler + Plan 02 carryovers; all five distinct keys grep-confirmed |
+| 9 | Clicking "Reload board" invalidates gh-all-data, gh-transitions, jira-statuses, jira-active-sprint | VERIFIED (updated post-phase) | `jira-board-quickfilters` system removed in commit `e1c098f0` after this verification was written; `handleReloadBoard` correctly has 4 keys |
 | 10 | aria-live shows "Board reloaded" / "Failed to reload board", auto-clears after 3s | VERIFIED | `setReloadBoardStatus('Board reloaded')` + `setReloadBoardStatus('Failed to reload board')` present; existing 3s `useEffect` auto-clear preserved (renamed from Phase 72 pattern); test asserts via `vi.advanceTimersByTime(3000)` |
 | 11 | Sidebar prefetch for `/sprint-board` uses `getGhAllData(boardId)` via boardId async-chain (silent skip when boardId null — D-08a) | VERIFIED | `getGhAllData(queryClient, jiraBaseUrl, jiraToken, boardId)` present; `fetchSprintStories` removed; `boardId == null` guard (2 matches); `fetchBoardId` used in sprint-board branch |
 | 12 | `fetchSprintSubtasks` source + re-export deleted; no caller remains in `src/` (GH-CUT-01 hard cutover) | VERIFIED | `grep -rn fetchSprintSubtasks taskflow/src/` returns 0 lines |
@@ -58,7 +58,7 @@ overrides_applied: 0
 | `SprintBoardTab.tsx` | AdaptedIssue[] | useMemo over allData.issuesData.issues with storyPointsFieldKey | WIRED |
 | `TaskCard.tsx` | `@/lib/formatTimeAgo` | formatTimeAgo + formatTimeAgoStrict imports | WIRED |
 | `Sidebar.tsx` | `@/services/jira` | getGhAllData + fetchBoardId | WIRED |
-| `handleReloadBoard` | 5 invalidation keys | gh-all-data + gh-transitions + jira-statuses + jira-board-quickfilters + jira-active-sprint | WIRED (all 5 grep-confirmed) |
+| `handleReloadBoard` | 4 invalidation keys | gh-all-data + gh-transitions + jira-statuses + jira-active-sprint | WIRED (jira-board-quickfilters removed in e1c098f0 post-phase) |
 
 ### Data-Flow Trace (Level 4)
 

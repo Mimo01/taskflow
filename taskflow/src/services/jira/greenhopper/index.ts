@@ -8,7 +8,6 @@
 export * from './adapter';
 export * from './allData';
 export * from './data';
-export * from './details';
 export * from './entityMaps';
 export * from './transitions';
 export * from './types';
