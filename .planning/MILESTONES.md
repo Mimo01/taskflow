@@ -1,5 +1,24 @@
 # Milestones
 
+## v1.11 GreenHopper API Migration (Shipped: 2026-06-01)
+
+**Phases completed:** 5 phases (71-75), 22 plans
+**Timeline:** 4 days (2026-05-28 → 2026-06-01)
+**Codebase:** ~80,895+ lines TypeScript, 308 files changed (+48,340/−16,981 lines), 284 commits
+**Git range:** 9a8ce377 (docs: start milestone v1.11) → 76f5b155 (chore(v1.11): fix stale reload doc)
+
+**Key accomplishments:**
+
+1. **GreenHopper typed adapter layer (Phase 71)** — `services/jira/greenhopper/` module with `greenhopperFetch` wrapper, 12 response interfaces, `buildEntityMaps` resolvers (statusId/priorityId/typeId/epicId → UI types), and `adaptIssue` + `createAdapter` — wired into the project's 60-import `services/jira.ts` barrel; 4 redacted real-world JSON fixtures committed as vitest test data
+2. **Transitions cache (Phase 72)** — `transitions.json` fetched once per project, keyed by `projectId × issueTypeId → workflow → transitions[]`; legacy per-issue REST `/transitions` GET deleted from both `services/jira.ts` and `services/jira/transitions.ts`
+3. **Sprint board single-call migration (Phase 73)** — `allData.json` replaces multi-call board fetch; `timeInColumn` badge per card; unified "Reload board" 4-key toolbar; `fetchSprintSubtasks` hard-deleted; Sidebar prefetch swapped to `getGhAllData`
+4. **Backlog single-call migration (Phase 74)** — `data.json` replaces paginated REST + per-issue lookups; 5 mutation cache-invalidation sites migrated; `npm run check:legacy-backlog` static-grep guard prevents legacy symbol reappearance; legacy `fetchBacklogIssues` / `fetchBacklogSprintStories` / `fetchBacklogView` / `BacklogViewData` hard-deleted
+5. **Progressive issue detail (Phase 75)** — monolithic `fetchIssueDetail` decomposed into slim base + 3 independent parallel section queries; TTFMP 1180ms (header visible); TTI 1682ms (changelog gates "fully loaded"); 200ms-gated per-section skeletons; fanned-out cache invalidation; perf artifact `docs/perf/75-issue-detail-progressive.md`
+
+**Known Tech Debt (10 items — non-blocking):** `fetchIssueDetails` dead private module; 3 SUMMARY files missing `requirements-completed` frontmatter; `QuickCreateInput`/`BulkActionBar` orphaned; `73-VERIFICATION.md` truth #9 stale (correct code, stale doc); CATEGORY_COLUMNS vs `columnsData.columns[]` design note; 2 intentional Biome `useExhaustiveDependencies` suppressions; `sprintMoveMutation` doesn't refresh sprint board; subtask enrichment cache key staleness; duplicate comment functions pre-existing.
+
+---
+
 ## v1.10 Cleanup, Roles Removal & Standup Notes (Shipped: 2026-05-25)
 
 **Phases completed:** 6 phases (65-70), 15 plans, 17 quick tasks

@@ -13,133 +13,22 @@
 - ✅ **v1.8 AIO Test Management** — Phases 50-58 (shipped 2026-05-19)
 - ✅ **v1.9 Tempo, Dashboard Redesign & Cleanup** — Phases 59-64 (shipped 2026-05-23)
 - ✅ **v1.10 Cleanup, Roles Removal & Standup Notes** — Phases 65-70 (shipped 2026-05-25)
-- ◆ **v1.11 GreenHopper API Migration** — Phases 71-75 (in progress, started 2026-05-28)
+- ✅ **v1.11 GreenHopper API Migration** — Phases 71-75 (shipped 2026-06-01)
 
 ## Phases
 
-### v1.11 GreenHopper API Migration (Active)
+<details>
+<summary>✅ v1.11 GreenHopper API Migration (Phases 71-75) — SHIPPED 2026-06-01</summary>
 
-**Goal:** Eliminate Jira API n+1 bottlenecks by migrating the app's Jira backbone to the on-prem GreenHopper API (`/rest/greenhopper/1.0/xboard/*`). See `.planning/research/GREENHOPPER-API.md` for the endpoint reference and `.planning/REQUIREMENTS.md` for REQ-IDs.
+- [x] Phase 71: GreenHopper Adapter Foundation (6/6 plans) — completed 2026-05-28
+- [x] Phase 72: Workflow Transitions via GreenHopper (3/3 plans) — completed 2026-05-29
+- [x] Phase 73: Sprint Board on allData.json (3/3 plans) — completed 2026-05-29
+- [x] Phase 74: Backlog on data.json (6/6 plans) — completed 2026-05-29
+- [x] Phase 75: Progressive Issue Detail Rendering (4/4 plans) — completed 2026-05-30
 
-**Cutover policy:** hard cutover per surface — each phase replaces its REST path in place; the old REST board/backlog/detail/transitions paths are deleted as their replacements ship.
+See archive: `.planning/milestones/v1.11-ROADMAP.md`
 
-#### Phase 71: GreenHopper Adapter Foundation
-
-**Goal:** Build the typed GreenHopper API client and adapter layer that every later phase consumes. No UI changes ship in this phase.
-
-**Requirements:** GH-ADAPT-01, GH-ADAPT-02, GH-ADAPT-03
-
-**Success criteria:**
-
-1. `services/jira/greenhopper/` module exists with typed fetchers for `allData`, `data`, `details`, `transitions` returning the documented response shapes
-2. Entity-map resolvers translate `statusId` / `priorityId` / `typeId` / `epicId` into the existing UI `Status` / `Priority` / `Type` / `Epic` types
-3. `adaptIssue(greenhopperIssue, entityMaps)` produces an object that the existing sprint-board / backlog `Issue` consumers accept without code changes
-4. Unit tests cover the adapter with fixtures captured from a real GreenHopper response
-
-**Plans:** 6/6 plans complete
-
-- [x] 71-01-PLAN.md — Wave 0: capture script + redacted real fixtures (blocks all)
-- [x] 71-02-PLAN.md — Wave 1: greenhopperFetch client + types.ts
-- [x] 71-03-PLAN.md — Wave 2: four typed fetchers (allData/data/details/transitions) + tests
-- [x] 71-04-PLAN.md — Wave 2: buildEntityMaps + resolvers + warnOnce + tests
-- [x] 71-05-PLAN.md — Wave 3: adaptIssue + createAdapter + fixture-driven tests
-- [x] 71-06-PLAN.md — Wave 4: public barrel + jira.ts re-export (D-05) + full suite verify
-
-#### Phase 72: Workflow Transitions via GreenHopper
-
-**Goal:** Replace per-issue REST `/transitions` calls with a cached per-project `transitions.json` map; wire it into sprint-board drag-to-transition and issue-detail status change.
-
-**Requirements:** GH-TRANS-01, GH-TRANS-02, GH-TRANS-03
-
-**Success criteria:**
-
-1. `transitions.json` is fetched once per project per session and cached, keyed by `projectId × issueTypeId → workflow → transitions[]`
-2. Sprint-board drag-to-transition reads available transitions from the cache (no per-issue REST `/transitions` call in the network log)
-3. Issue-detail status change reads from the same cache
-4. Cache is refreshed on session start and via a manual refresh action; the old per-issue `/transitions` REST path is deleted
-
-**Plans:** 3/3 plans complete
-
-Plans:
-
-- [x] 72-01-PLAN.md — Wave 1: warnOnce extract + statuses.ts + transitions cache (useGhTransitions/getGhTransitions/invalidateGhTransitions) + jira.ts re-exports + tests
-- [x] 72-02-PLAN.md — Wave 2: swap 4 call sites (StatusPopover, SprintBoardTab, BulkActionBar, QuickCreateInput) + sprint-board toolbar 'Reload workflow transitions' action
-- [x] 72-03-PLAN.md — Wave 3: hard cutover — delete legacy fetchTransitions GET from services/jira.ts and services/jira/transitions.ts + tests; full suite green
-
-#### Phase 73: Sprint Board on `allData.json`
-
-**Goal:** Replace the multi-call sprint-board fetch with a single `allData.json` call; render columns from `columnsData` and surface `timeInColumn`.
-
-**Requirements:** GH-BOARD-01, GH-BOARD-02, GH-BOARD-03, GH-BOARD-04
-
-**Success criteria:**
-
-1. Opening the sprint board issues exactly one `allData.json` request to load issues + columns + swimlanes + entity maps (verified in the network log)
-2. Columns render from GreenHopper `columnsData`; subtasks are grouped under their parent story via `parentId`
-3. `timeInColumn.enteredStatus` is available on each card / consumed by the existing "time in status" UI
-4. Drag-to-transition (optimistic + rollback), QuickCreateInput, epic / quick-filter / label filters, and sprint goal banner all work; old REST board-fetch path is deleted
-
-**Plans:** 3 plans
-
-Plans:
-
-- [x] 73-01-PLAN.md — Wave 1: useGhAllData hook + getGhAllData + invalidateGhAllData + formatTimeAgo helpers + jira.ts re-exports + tests
-- [x] 73-02-PLAN.md — Wave 2: SprintBoardTab data-layer rewrite onto useGhAllData (statusCategory bucketing, orphan-subtask warnOnce, R-04 projectId source) + TaskCard timeInColumn badge
-- [x] 73-03-PLAN.md — Wave 3: single "Reload board" toolbar (5-key invalidation per R-01/R-02) + Sidebar prefetch swap to getGhAllData + delete fetchSprintSubtasks (GH-CUT-01)
-
-#### Phase 74: Backlog on `data.json`
-
-**Goal:** Replace the paginated REST backlog fetch with a single `data.json` call.
-
-**Requirements:** GH-BACKLOG-01, GH-BACKLOG-02
-
-**Success criteria:**
-
-1. Opening the backlog issues exactly one `data.json` request (verified in the network log)
-2. Move-to-sprint, create story, filter by epic / label / assignee, and virtualized rendering all work on the new data source
-3. Old REST backlog-fetch path is deleted
-
-**Plans:** 6/6 plans complete
-
-Plans:
-
-- [x] 74-01-PLAN.md — Wave 0: type widening (GhBacklogResponse per D-04a) + Wave 0 test scaffolds (types pin, useGhBacklogData RED, adapter-backlog RED, BacklogPage.network RED, Sidebar.prefetch RED) + static-grep guard script
-- [x] 74-02-PLAN.md — Wave 1: useGhBacklogData / getGhBacklogData / invalidateGhBacklogData + greenhopper barrel + services/jira.ts re-exports (D-09b)
-- [x] 74-03-PLAN.md — Wave 2: BacklogPage data-layer rewrite (single useGhBacklogData, adapter chain, sprint reverse-index, ACTIVE/FUTURE filter, mutation invalidation swap, drop label/subtask/flagged chips)
-- [x] 74-04-PLAN.md — Wave 2: Sidebar /backlog prefetch collapse 3 → 1 (getGhBacklogData)
-- [x] 74-05-PLAN.md — Wave 3: Reload backlog toolbar action + aria-live status region + human-verify checkpoint
-- [x] 74-06-PLAN.md — Wave 4: hard-cutover delete (fetchBacklogIssues / fetchBacklogSprintStories / fetchBacklogView / BacklogViewData) + activate check:legacy-backlog guard + full-suite gate
-
-#### Phase 75: Progressive Issue Detail Rendering
-
-**Goal:** Keep the existing Jira REST-based issue detail panel but eliminate the "blank panel until everything loads" feeling. Render each section (header, description, fields, comments, attachments, subtasks) as soon as its own request resolves, instead of blocking the whole panel on the slowest call.
-
-**Requirements:** PERF-DETAIL-01, PERF-DETAIL-02, PERF-DETAIL-03, GH-CUT-01, GH-CUT-02
-
-**Success criteria:**
-
-1. Opening an issue detail panel renders the header (title, key, status, assignee) as soon as the base issue fetch resolves — no waiting for comments / attachments / subtasks
-2. Each section (description, custom fields, comments, attachments, subtasks, links) shows a localized skeleton while its own request is pending; no global blocking spinner on the panel
-3. Existing detail-panel features (edit fields, post comment, open-in-Jira deep link, pin, clone, watcher toggle) work unchanged on the existing REST v2 paths
-4. Verification artifact records before/after time-to-first-meaningful-paint and time-to-fully-interactive for issue-detail open; documents per-section latencies and which section gates "fully loaded"
-
-**Plans:** 4/4 plans complete
-Plans:
-**Wave 1**
-
-- [x] 75-01-PLAN.md — Wave 1: decompose fetchIssueDetail (slim base + fetchIssueChangelog + fetchEnrichedSubtasks) + Comments/Subtasks skeletons + failing Wave 0 progressive test scaffold
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 75-02-PLAN.md — Wave 2: the crux — remove global isLoading gate, add 3 independent section queries with 200ms-gated skeletons + per-section inline errors + TTFMP/TTI perf marks; turn progressive test green
-
-**Wave 3** *(blocked on Wave 2 completion)*
-
-- [x] 75-03-PLAN.md — Wave 3: mutation/invalidation fan-out to new comments/changelog keys + fix IssueDetailContent:68 key bug + invalidation tests + full-suite regression gate
-
-**Wave 4** *(blocked on Wave 3 completion)*
-
-- [x] 75-04-PLAN.md — Wave 4: GH-CUT-02 perf verification artifact (before/after TTFMP+TTI, per-section latencies, gating section) via human-verify checkpoint
+</details>
 
 <details>
 <summary>✅ v1.0 MVP (Phases 1-4) — SHIPPED 2026-03-12</summary>
@@ -317,8 +206,8 @@ All v1.0-v1.10 phases shipped. See per-milestone archives in `.planning/mileston
 | v1.8 AIO Test Management | 9 (50-58) | 45 | 2026-05-19 |
 | v1.9 Tempo, Dashboard Redesign & Cleanup | 6 (59-64) | 20 | 2026-05-23 |
 | v1.10 Cleanup, Roles Removal & Standup Notes | 6 (65-70) | 15 | 2026-05-25 |
-| v1.11 GreenHopper API Migration (active) | 5 (71-75) | — | in progress |
+| v1.11 GreenHopper API Migration | 5 (71-75) | 22 | 2026-06-01 |
 
 ---
 
-_v1.11 started 2026-05-28 — Phase 71 (GreenHopper Adapter Foundation) is next._
+_v1.11 shipped 2026-06-01. Start next milestone with /gsd-new-milestone._
