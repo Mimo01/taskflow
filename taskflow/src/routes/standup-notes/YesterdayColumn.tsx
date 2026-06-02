@@ -279,8 +279,16 @@ function buildGroups(
   // 2. Add Jira transitions + comments
   for (const activity of jiraData ?? []) {
     const group = ensureGroup(activity.issueKey, activity.summary, activity.issueType);
-    for (const t of activity.transitions) {
-      group.subItems.push({ kind: 'transition', label: `${t.fromStatus} → ${t.toStatus}` });
+    if (activity.transitions.length > 0) {
+      // Collapse all transitions to a single initial → final sub-item.
+      // Sort by `at` ISO timestamp (string comparison is correct for ISO-8601) to
+      // determine chronological order — do NOT trust array order from the API.
+      const sorted = [...activity.transitions].sort((a, b) =>
+        a.at < b.at ? -1 : a.at > b.at ? 1 : 0,
+      );
+      const initial = sorted[0].fromStatus;
+      const final = sorted[sorted.length - 1].toStatus;
+      group.subItems.push({ kind: 'transition', label: `${initial} → ${final}` });
     }
     for (const c of activity.comments) {
       const snippet = c.body.length > 80 ? `${c.body.slice(0, 80)}…` : c.body;
