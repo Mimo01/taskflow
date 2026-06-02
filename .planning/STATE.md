@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-02)
 Phase: 76 of 80 (Visual Polish and Shared Primitives)
 Plan: —
 Status: Ready to plan
-Last activity: 2026-06-02 — Roadmap created for v1.12 (5 phases, 32 requirements mapped)
+Last activity: 2026-06-02 — Completed quick task 260602-x58: Standup Notes status transition collapse
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -69,6 +69,12 @@ Key decisions for v1.12 (drawn from research + PROJECT.md):
 - Phase 79: `hasScreen` propagation through `__adaptToJiraTransition` — confirm before writing plans
 - Apple Developer ID certificate not yet acquired — blocks macOS notarization (carried from v1.7)
 - Windows code signing decision pending (carried from v1.7)
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260602-x58 | Standup Notes: collapse story status transitions to initial → final | 2026-06-02 | 19ccf8ed | [260602-x58-on-standup-notes-page-when-presenting-st](./quick/260602-x58-on-standup-notes-page-when-presenting-st/) |
 
 ## Deferred Items
 
