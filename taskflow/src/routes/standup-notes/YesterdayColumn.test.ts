@@ -149,6 +149,93 @@ describe('generateMarkdown — parent-story rollup', () => {
   });
 });
 
+describe('generateMarkdown — transition collapse', () => {
+  function activityItem(
+    issueKey: string,
+    summary: string,
+    transitions: Array<{ fromStatus: string; toStatus: string; at: string }>,
+  ) {
+    return {
+      issueKey,
+      summary,
+      issueType: 'Story',
+      transitions,
+      comments: [],
+    };
+  }
+
+  it('collapses multiple transitions to a single initial → final line', () => {
+    const jiraData = [
+      activityItem('PROJ-1', 'Build widget', [
+        { fromStatus: 'To Do', toStatus: 'In Progress', at: '2026-06-02T09:00:00.000Z' },
+        { fromStatus: 'In Progress', toStatus: 'In Review', at: '2026-06-02T11:00:00.000Z' },
+        { fromStatus: 'In Review', toStatus: 'Done', at: '2026-06-02T15:00:00.000Z' },
+      ]),
+    ];
+
+    const md = generateMarkdown({ jiraData }, DATE);
+
+    // Only one transition line
+    const transitionLines = md.match(/- .* → .*/g) ?? [];
+    expect(transitionLines).toHaveLength(1);
+    expect(md).toContain('- To Do → Done');
+    // Should NOT contain intermediate transitions as separate lines
+    expect(md).not.toContain('- To Do → In Progress');
+    expect(md).not.toContain('- In Progress → In Review');
+    expect(md).not.toContain('- In Review → Done');
+  });
+
+  it('collapses out-of-order array by timestamp, not array order', () => {
+    const jiraData = [
+      activityItem('PROJ-2', 'Shuffle test', [
+        { fromStatus: 'In Review', toStatus: 'Done', at: '2026-06-02T15:00:00.000Z' },
+        { fromStatus: 'To Do', toStatus: 'In Progress', at: '2026-06-02T09:00:00.000Z' },
+        { fromStatus: 'In Progress', toStatus: 'In Review', at: '2026-06-02T11:00:00.000Z' },
+      ]),
+    ];
+
+    const md = generateMarkdown({ jiraData }, DATE);
+
+    const transitionLines = md.match(/- .* → .*/g) ?? [];
+    expect(transitionLines).toHaveLength(1);
+    // earliest fromStatus (09:00) → latest toStatus (15:00)
+    expect(md).toContain('- To Do → Done');
+  });
+
+  it('leaves a single transition unchanged', () => {
+    const jiraData = [
+      activityItem('PROJ-3', 'Single step', [
+        { fromStatus: 'To Do', toStatus: 'In Progress', at: '2026-06-02T09:00:00.000Z' },
+      ]),
+    ];
+
+    const md = generateMarkdown({ jiraData }, DATE);
+
+    expect(md).toContain('- To Do → In Progress');
+    const transitionLines = md.match(/- .* → .*/g) ?? [];
+    expect(transitionLines).toHaveLength(1);
+  });
+
+  it('produces no transition line when transitions array is empty', () => {
+    const jiraData = [
+      {
+        issueKey: 'PROJ-4',
+        summary: 'No transitions',
+        issueType: 'Story',
+        transitions: [],
+        comments: [{ body: 'A comment here', author: 'user', at: '2026-06-02T10:00:00.000Z' }],
+      },
+    ];
+
+    const md = generateMarkdown({ jiraData }, DATE);
+
+    // Comment line should still appear
+    expect(md).toContain('Comment: "A comment here"');
+    // No transition line using → arrow
+    expect(md).not.toMatch(/- .* → .*/);
+  });
+});
+
 describe('generateMarkdown — section header label', () => {
   it('uses "Yesterday" when the date is the calendar day before today', () => {
     // Pin today to a Tuesday so yesterday is Monday 2026-05-25
