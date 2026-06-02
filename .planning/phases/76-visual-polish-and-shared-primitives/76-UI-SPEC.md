@@ -1,10 +1,11 @@
 ---
 phase: 76
 slug: visual-polish-and-shared-primitives
-status: draft
+status: approved
 shadcn_initialized: true
 preset: base-nova / neutral / cssVariables
 created: 2026-06-03
+reviewed_at: 2026-06-03
 ---
 
 # Phase 76 — UI Design Contract
