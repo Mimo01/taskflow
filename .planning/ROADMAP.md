@@ -205,7 +205,11 @@ See archive: `.planning/milestones/v1.10-ROADMAP.md`
   2. Done items in the Standup Notes Today section appear struck-through
   3. Sprint board cards display a left-edge color stripe driven by issue priority, legible in both light and dark themes (WCAG ≥ 3:1 against the card surface)
   4. `lib/issueDisplayUtils.ts` exports `isDoneStatus`, `doneSummaryClass`, and `priorityStripeClass`; `services/jira/rank.ts` exports `rankIssue`; settings store bumped to persist v24 with `rankFieldKey`
-**Plans**: TBD
+**Plans**: 4 plans
+- [ ] 76-01-PLAN.md — issueDisplayUtils.ts (isDoneStatus/doneSummaryClass/priorityStripeClass) + tests
+- [ ] 76-02-PLAN.md — services/jira/rank.ts LexoRank midpoint (rankIssue) + 9 edge-case tests
+- [ ] 76-03-PLAN.md — settings store v25 + rankFieldKey discovery in BacklogPage
+- [ ] 76-04-PLAN.md — wire strike + priority stripe into TaskCard/BacklogRow/Today/Dashboard (+ human verify)
 **UI hint**: yes
 
 ### Phase 77: Universal Peek Slideover and Issue-Detail Refinements
